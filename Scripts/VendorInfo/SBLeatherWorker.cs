@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using Server.Items;
+using Server.Custom.ExileHunterBestiary.Items;
+
 
 namespace Server.Mobiles 
 { 
@@ -33,6 +35,8 @@ namespace Server.Mobiles
             {
                 Add(new GenericBuyInfo(typeof(Hides), 4, 999, 0x1078, 0, true)); 
                 Add(new GenericBuyInfo(typeof(ThighBoots), 56, 10, 0x1711, 0)); 
+                Add(new GenericBuyInfo(typeof(HunterBestiary), 500, 5, 0x2252, 1153));
+
             }
         }
 

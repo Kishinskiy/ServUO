@@ -1974,6 +1974,8 @@ namespace Server.Mobiles
             {
                 totalDamage = 0;
             }
+            Server.Custom.ExileHunterBestiary.HunterBestiaryEngine.OnCreatureDamaged(this, from, ref totalDamage);
+
         }
 
         public override void OnDamage(int amount, Mobile from, bool willKill)
