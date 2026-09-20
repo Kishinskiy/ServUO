@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using Server.Items;
+using Server.Custom.ExileHunterBestiary.Items;
+
 
 namespace Server.Mobiles
 {
@@ -32,6 +34,7 @@ namespace Server.Mobiles
             public InternalBuyInfo()
             {
                 Add(new GenericBuyInfo(typeof(Spellbook), 18, 10, 0xEFA, 0));
+                Add(new GenericBuyInfo(typeof(HunterBestiary), 100, 25, 0x2252, 1153));
 				
                 if (Core.AOS)
                     Add(new GenericBuyInfo(typeof(NecromancerSpellbook), 115, 10, 0x2253, 0));
