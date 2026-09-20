@@ -6269,6 +6269,7 @@ namespace Server.Mobiles
         public override void OnDeath(Container c)
         {
             MeerMage.StopEffect(this, false);
+            Server.Custom.HunterQuest.HunterQuestSystem.CheckQuestProgress(this);
 
             if (IsBonded)
             {
