@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using Server.Items;
+using Server.Custom.ExileHunterBestiary.Items;
+
 
 namespace Server.Mobiles
 {
@@ -32,6 +34,8 @@ namespace Server.Mobiles
             public InternalBuyInfo()
             {
                 Add(new GenericBuyInfo("1041243", typeof(ContractOfEmployment), 1252, 20, 0x14F0, 0));
+                Add(new GenericBuyInfo(typeof(HunterBestiary), 500, 5, 0x2252, 1153));
+
 
                 if (Multis.BaseHouse.NewVendorSystem)
                 {

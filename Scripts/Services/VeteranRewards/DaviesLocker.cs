@@ -1,5 +1,6 @@
 using System;
 using Server;
+using Server.Custom.TownHouses;
 using Server.Mobiles;
 using Server.Multis;
 using System.Collections.Generic;
@@ -89,7 +90,20 @@ namespace Server.Engines.VeteranRewards
         {
             BaseHouse house = BaseHouse.FindHouseAt(this);
 
-            return house != null && house.HasSecureAccess(from, m_Level);
+            if (house != null)
+                return house.HasSecureAccess(from, m_Level);
+
+            // Check if the locker is placed inside a TownHouse region
+            Region r = Region.Find(GetWorldLocation(), Map);
+            while (r != null)
+            {
+                TownHouseRegion thr = r as TownHouseRegion;
+                if (thr != null && thr.Controller != null)
+                    return thr.Controller.IsFriend(from);
+                r = r.Parent;
+            }
+
+            return false;
         }
 
         public void TryAddEntry(Item item, Mobile from)

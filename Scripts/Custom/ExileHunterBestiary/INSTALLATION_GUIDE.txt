@@ -1,0 +1,139 @@
+================================================================================
+          EXILE HUNTER'S BESTIARY & MONSTER TREATISES SYSTEM
+                         INSTALLATION & USER GUIDE
+================================================================================
+Release Target: ServUO (Standard / Publish 54+ / Modern Expansions)
+Author: UO Exile Team
+Language: C# (.NET Framework / .NET Core)
+Directory: Scripts/Custom systems/ExileHunterBestiary/
+
+--------------------------------------------------------------------------------
+1. OVERVIEW
+--------------------------------------------------------------------------------
+The Hunter's Bestiary system introduces an addictive horizontal progression
+and collectathon mechanic for players. 
+
+Key Features:
+1. 193 Pre-Registered Creatures:
+   - Divided into 8 lore categories: Undead, Daemons & Fiends, Reptiles & Dragons,
+     Elementals, Humanoids & Fey, Arachnids & Insects, Beasts & Monsters, and
+     Bosses, Champions & Peerless.
+2. Monster Treatises (HunterTreatise):
+   - Beautiful magery scroll appearance (ItemID 0x1F5F) with themed hues.
+   - Consumable on double-click: grants permanent +20% damage (melee, ranged, and
+     spells) against that specific creature type.
+   - Tamers' controlled pets also benefit from the master's unlocked treatises!
+   - Duplicate prevention: players cannot consume a treatise they already know,
+     encouraging trading and player vendor economy.
+3. Dynamic Per-Viewer Tooltips:
+   - When hovering over any treatise in world, bags, or vendors, the tooltip
+     dynamically checks the viewer's profile:
+     * Shows [Already Learned] in soft green if the player knows it.
+     * Shows [Not Learned Yet] in bright cyan if the player needs it.
+4. The Grand Hunter's Bestiary (HunterBestiary):
+   - Blessed leather-bound ancient tome (ItemID 0x2252).
+   - Tooltip displays total mastery progress across the entire bestiary.
+   - Double-clicking opens the interactive HunterBestiaryGump.
+5. Sleek Bestiary Gump (HunterBestiaryGump):
+   - High-contrast, clean typography (no bold, no italics) on a dark slate frame.
+   - 8 Category tabs with completion counters: e.g. "Undead (14/26)".
+   - Overall mastery percentage and category completion progress bars.
+   - Clear checkmarks for mastered creatures and pending indicators.
+   - Forward / Back page navigation.
+6. Organic Monster Drops:
+   - Automatically hooks into Server.EventSink.CreatureDeath.
+   - 2% drop rate for standard monsters; 5% to 10% for bosses and champions.
+7. Standalone XML Persistence:
+   - Saves all player mastery profiles to Data/ExileHunterProfiles.xml on WorldSave.
+   - Restores automatically on server start / WorldLoad.
+   - 0 modifications to PlayerMobile serialization!
+
+--------------------------------------------------------------------------------
+2. QUICK INSTALLATION (30 SECONDS)
+--------------------------------------------------------------------------------
+This system is 99.9% drag-and-drop and does NOT modify the Server core (Server/).
+
+STEP 1:
+Place the entire "ExileHunterBestiary" directory into:
+Scripts/Custom systems/ExileHunterBestiary/
+(or inside your server's custom scripts folder).
+
+STEP 2:
+Open: Scripts/Mobiles/Normal/BaseCreature.cs
+Locate the method:
+    public virtual void OnBeforeDamage(Mobile from, ref int totalDamage, DamageType type)
+
+Add this SINGLE LINE at the end of the method:
+    Server.Custom.ExileHunterBestiary.HunterBestiaryEngine.OnCreatureDamaged(this, from, ref totalDamage);
+
+Example:
+    public virtual void OnBeforeDamage(Mobile from, ref int totalDamage, DamageType type)
+    {
+        if (type >= DamageType.Spell && RecentSetControl)
+        {
+            totalDamage = 0;
+        }
+
+        // Hunter's Bestiary +20% Damage Hook:
+        Server.Custom.ExileHunterBestiary.HunterBestiaryEngine.OnCreatureDamaged(this, from, ref totalDamage);
+    }
+
+STEP 3:
+Compile your server. You are ready to go!
+
+--------------------------------------------------------------------------------
+3. DIRECTORY & FILE STRUCTURE
+--------------------------------------------------------------------------------
+Scripts/Custom systems/ExileHunterBestiary/
+├── Core/
+│   ├── BestiaryCategory.cs       -> Enum of the 8 creature families.
+│   ├── HunterCreatureEntry.cs    -> Metadata definition for registered monsters.
+│   ├── HunterProfile.cs          -> Per-player learned treatise tracking.
+│   └── HunterBestiaryEngine.cs   -> 193-creature registry, drop hook, combat hook,
+│                                    XML persistence, and [Bestiary command.
+├── Items/
+│   ├── HunterTreatise.cs         -> Consumable magery scroll with dynamic tooltips.
+│   └── HunterBestiary.cs         -> Blessed grimoire item that opens the gump.
+├── Gumps/
+│   └── HunterBestiaryGump.cs     -> Multi-category book UI with progress bars.
+└── INSTALLATION_GUIDE.txt        -> This document.
+
+--------------------------------------------------------------------------------
+4. COMMANDS
+--------------------------------------------------------------------------------
+[Bestiary (or [Bestiario)
+- Player command. Opens the Hunter's Bestiary gump anytime.
+
+[add HunterBestiary
+- GM command. Spawns the physical grimoire item in your backpack.
+
+[add HunterTreatise <CreatureId>
+- GM command. Spawns a treatise scroll for the specified creature.
+  Examples:
+  * [add HunterTreatise Lich
+  * [add HunterTreatise Balron
+  * [add HunterTreatise Dragon
+  * [add HunterTreatise DemonKnight
+
+--------------------------------------------------------------------------------
+5. CONFIGURATION & CUSTOMIZATION
+--------------------------------------------------------------------------------
+All global settings are in:
+Scripts/Custom systems/ExileHunterBestiary/Core/HunterBestiaryEngine.cs
+
+1. Drop Rates:
+   - Line 14: public const double DefaultDropChance = 0.02; // 2% for normal mobs
+   - Line 15: public const double BossDropChance = 0.05;    // 5% for bosses
+
+2. Adding Custom Monsters:
+   In HunterBestiaryEngine.RegisterCreatures(), simply add:
+   Register("UniqueId", "Display Name", typeof(MyCustomMob), BestiaryCategory.CategoryName, bookHue, dropChance);
+
+   Example:
+   Register("ShadowDragon", "Shadow Dragon", typeof(ShadowDragon), BestiaryCategory.Reptiles, 1109, 0.03);
+
+3. Adjusting the Damage Multiplier:
+   In HunterBestiaryEngine.OnCreatureDamaged():
+   Line 274: totalDamage = (int)(totalDamage * 1.20); // Change 1.20 to desired multiplier.
+
+================================================================================
