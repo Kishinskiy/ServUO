@@ -1,4 +1,5 @@
 using System;
+using Server.Custom.TownHouses;
 using Server.Items;
 using Server.Multis;
 using Server.Network;
@@ -212,7 +213,7 @@ namespace Server.Mobiles
         {
             base.GetContextMenuEntries(from, list);
 
-            if (IsOwner(from))
+            if (IsOwner(Owner))
             {
                 if (from.Alive && from.InRange(this, 2))
                 {
@@ -620,6 +621,18 @@ namespace Server.Mobiles
             if (IsChildOf(from.Backpack))
             {
                 BaseHouse house = BaseHouse.FindHouseAt(from);
+
+                if (house == null)
+                {
+                    // Check for TownHouse region
+                    TownHouseRegion thr = from.Region as TownHouseRegion;
+                    if (thr != null && thr.Controller != null && thr.Controller.IsFriend(from))
+                    {
+                        from.SendLocalizedMessage(1151657); // Where do you wish to place this?
+                        from.Target = new PlaceTarget(this);
+                        return;
+                    }
+                }
 
                 if (house != null)
                 {

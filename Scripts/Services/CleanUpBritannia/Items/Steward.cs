@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Server.Custom.TownHouses;
 using Server.ContextMenus;
 using Server.Gumps;
 using Server.Items;
@@ -793,6 +794,18 @@ namespace Server.Mobiles
             {
                 BaseHouse house = BaseHouse.FindHouseAt(from);
 
+                if (house == null)
+                {
+                    // Check for TownHouse region — skip the Public requirement
+                    TownHouseRegion thr = from.Region as TownHouseRegion;
+                    if (thr != null && thr.Controller != null && thr.Controller.IsFriend(from))
+                    {
+                        from.SendLocalizedMessage(1151657); // Where do you wish to place this?
+                        from.Target = new PlaceTarget(this);
+                        return;
+                    }
+                }
+
                 if (house != null)
                 {
                     if (house.Owner == from || house.IsCoOwner(from))
@@ -804,7 +817,7 @@ namespace Server.Mobiles
                         }
                         else
                         {
-                            from.SendLocalizedMessage(1153304); // You cannot place this vendor, steward or barkeep. Make sure the house is public and has sufficient storage available.
+                            from.SendLocalizedMessage(1153304); // You cannot place this vendor, steward or barkeep...
                         }
                     }
                     else
@@ -896,12 +909,21 @@ namespace Server.Mobiles
 
                 AddonFitResult result = CouldFit(loc, map, from, ref house);
 
+                // If placement failed only because there is no BaseHouse, check for a TownHouse region.
+                if (result == AddonFitResult.NotInHouse)
+                {
+                    TownHouseRegion thr = from.Region as TownHouseRegion;
+                    if (thr != null && thr.Controller != null && thr.Controller.IsFriend(from) && thr.Controller.IsInside(loc, map))
+                        result = AddonFitResult.Valid;
+                }
+
                 if (result == AddonFitResult.Valid)
                 {
                     Mobile mannequin;
 
                     if (_Deed is StewardDeed)
                     {
+                        // house may be null when placed in a TownHouse — Steward handles null safely
                         mannequin = new Steward(from, house);
                     }
                     else

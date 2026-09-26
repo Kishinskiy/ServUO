@@ -1,4 +1,5 @@
 using System;
+using Server.Custom.TownHouses;
 using Server.Engines.Craft;
 using Server.Multis;
 using Server.Targeting;
@@ -181,6 +182,25 @@ namespace Server.Items
 
                     AddonFitResult res = galleon != null ? AddonFitResult.Valid : addon.CouldFit(p, map, from, ref house);
 
+                    // If placement failed only because there is no standard BaseHouse,
+                    // check whether the player is inside a TownHouse region with friend access.
+                    bool placedInTownHouse = false;
+
+                    if (res == AddonFitResult.NotInHouse)
+                    {
+                        TownHouseRegion thr = from.Region as TownHouseRegion;
+
+                        if (thr != null && thr.Controller != null && thr.Controller.IsFriend(from))
+                        {
+                            // Verify the target tile is also inside the TownHouse bounds.
+                            if (thr.Controller.IsInside(new Point3D(p), map))
+                            {
+                                res = AddonFitResult.Valid;
+                                placedInTownHouse = true;
+                            }
+                        }
+                    }
+
                     if (res == AddonFitResult.Valid)
                     {
                         addon.Resource = m_Deed.Resource;
@@ -193,7 +213,8 @@ namespace Server.Items
 
                         addon.MoveToWorld(new Point3D(p), map);
 
-                        if (house != null)
+                        // Register with BaseHouse only when one was found (not in TownHouse).
+                        if (house != null && !placedInTownHouse)
                             house.Addons[addon] = from;
 
                         if (galleon != null)
@@ -209,7 +230,7 @@ namespace Server.Items
                         from.SendLocalizedMessage(500271); // You cannot build near the door.
                     else if (res == AddonFitResult.NoWall)
                         from.SendLocalizedMessage(500268); // This object needs to be mounted on something.
-					
+
                     if (res != AddonFitResult.Valid)
                     {
                         addon.Delete();
