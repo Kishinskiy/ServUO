@@ -1,1 +1,6 @@
-<HunterProfiles />
+<HunterProfiles>
+  <Profile serial="39355">
+    <Creature id="Zombie" />
+    <Creature id="Skeleton" />
+  </Profile>
+</HunterProfiles>
