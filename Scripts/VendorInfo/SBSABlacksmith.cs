@@ -35,6 +35,20 @@ namespace Server.Mobiles
                 Add(new GenericBuyInfo(typeof(Tongs), 13, 14, 0xFBB, 0));
                 Add(new GenericBuyInfo(typeof(GemMiningBook), 10625, 20, 0xFBE, 0));
 
+                // --- НАЧАЛО БЛОКА: ПРОДАЖА СВИТКОВ У NPC ---
+                // Шанс 30% (0.3), что у этого конкретного кузнеца при обновлении ассортимента появится свиток
+                if (Utility.RandomDouble() < 0.20)
+                {
+                    // Случайный номинал свитка (+5 или +10, чтобы у NPC не было слишком жирного лута)
+                    int scrollValue = Utility.RandomBool() ? 5 : 10;
+
+                    // Задаем цену: например, 25000 золотых за +5 и 50000 за +10
+                    int price = scrollValue == 5 ? 250000 : 500000;
+
+                    // Добавляем в продажу: Тип, Цена, Количество на полке (1-2 шт), ID графики (0x14F0), Цвет (0x64), Аргументы конструктора
+                    Add(new GenericBuyInfo(typeof(LevelUpScroll), price, Utility.RandomMinMax(1, 2), 0x14F0, 0x64, new object[] { scrollValue }));
+                }
+                // --- КОНЕЦ БЛОКА ---
             }
         }
 

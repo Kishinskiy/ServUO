@@ -159,7 +159,7 @@ namespace Server.Engines.XmlSpawner2
 
             // --- НАЧАЛО БЛОКА: ДРОП СВИТКОВ ПРОКАЧКИ ---
             // Задаем шанс выпадения свитка (0.05 = 5%, 0.10 = 10%, 0.02 = 2%)
-            double scrollChance = 0.05;
+            double scrollChance = 0.10;
 
             if (Utility.RandomDouble() < scrollChance)
             {
