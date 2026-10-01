@@ -29,6 +29,7 @@ using Server.Spells.Sixth;
 using Server.Spells.SkillMasteries;
 using Server.Spells.Spellweaving;
 using Server.Targeting;
+using Server.Engines.XmlSpawner2;
 #endregion
 
 namespace Server.Mobiles
@@ -375,7 +376,7 @@ namespace Server.Mobiles
 
         public virtual Faction FactionAllegiance { get { return null; } }
 
-        public virtual int DefaultHitsRegen 
+        public virtual int DefaultHitsRegen
         {
             get
             {
@@ -758,9 +759,9 @@ namespace Server.Mobiles
         private SkillName _Mastery;
 
         [CommandProperty(AccessLevel.GameMaster)]
-		public SkillName Mastery 
+		public SkillName Mastery
 		{
-			get { return _Mastery; } 
+			get { return _Mastery; }
 			set
 			{
 				var old = _Mastery;
@@ -772,7 +773,7 @@ namespace Server.Mobiles
                 }
 			}
 		}
-		
+
 		public virtual MasteryInfo[] Masteries { get; set; }
 		public DateTime NextMastery { get; set; }
 
@@ -929,11 +930,11 @@ namespace Server.Mobiles
 				}
 				else if (value)
 				{
-					Paragon.Convert(this);
+					XmlParagon.Convert(this);
 				}
 				else
 				{
-					Paragon.UnConvert(this);
+					XmlParagon.UnConvert(this);
 				}
 
 				m_Paragon = value;
@@ -941,6 +942,7 @@ namespace Server.Mobiles
 				InvalidateProperties();
 			}
 		}
+
 
         [CommandProperty(AccessLevel.GameMaster)]
         public bool IsChampionSpawn
@@ -952,7 +954,7 @@ namespace Server.Mobiles
 				{
 	                if (!m_IsChampionSpawn && value)
 	                    SetToChampionSpawn();
-	
+
 	                m_IsChampionSpawn = value;
 
                     OnChampionSpawnChange();
@@ -996,11 +998,11 @@ namespace Server.Mobiles
                         InitialFocus = (Mobile)value;
                     }
                 }
-                else if (AttacksFocus && 
-                        initialFocus != null && 
-                        value != initialFocus && 
-                        !initialFocus.Hidden &&  
-                        Map == initialFocus.Map && 
+                else if (AttacksFocus &&
+                        initialFocus != null &&
+                        value != initialFocus &&
+                        !initialFocus.Hidden &&
+                        Map == initialFocus.Map &&
                         InRange(initialFocus.Location, RangePerception))
                 {
                     //Keeps focus
@@ -1063,8 +1065,8 @@ namespace Server.Mobiles
         public virtual bool CanFly { get { return false; } }
 
         public virtual bool CanAutoStable
-		{ 
-			get 
+		{
+			get
 			{
 				if(!(ControlMaster is PlayerMobile))
 					return false;
@@ -1472,11 +1474,11 @@ namespace Server.Mobiles
             {
                 if (suffix.Length == 0)
                 {
-                    suffix = "(Paragon)";
+                    suffix = XmlParagon.GetParagonLabel(this);
                 }
                 else
                 {
-                    suffix = String.Concat( suffix, " (Paragon)" );
+                    suffix = String.Concat( suffix, " " + XmlParagon.GetParagonLabel(this) );
                 }
             }
 
@@ -1674,7 +1676,15 @@ namespace Server.Mobiles
 
         public override void OnBeforeSpawn(Point3D location, Map m)
         {
-            if (Paragon.CheckConvert(this, location, m))
+
+            double paragonChance = 0.10;
+
+            if (this.HitsMax > 0 && !this.Controlled && !this.Summoned && this.InitialInnocent == false && Utility.RandomDouble() < paragonChance)
+            {
+                IsParagon = true; // Моб становится парагоном из аддона XmlParagon
+            }
+            else
+            if (XmlParagon.CheckConvert(this, location, m))
             {
                 IsParagon = true;
             }
@@ -3789,7 +3799,7 @@ namespace Server.Mobiles
         public DateTime BardEndTime { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public double MinTameSkill 
+        public double MinTameSkill
         {
             get { return m_dMinTameSkill; }
             set
@@ -3810,7 +3820,7 @@ namespace Server.Mobiles
                         m_CurrentTameSkill = value;
                     }
                 }
-            } 
+            }
         }
 
         [CommandProperty(AccessLevel.GameMaster)]
@@ -3998,7 +4008,7 @@ namespace Server.Mobiles
                 level = 2;
             else if (total > 35)
                 level = 1;
-                
+
             return Poison.GetPoison(Math.Max(current, level));
         }
 
@@ -5209,16 +5219,16 @@ namespace Server.Mobiles
                 Skills[name].Cap = Skills[name].Base;
             }
 
-            if (name == SkillName.Poisoning && Skills[name].Base > 0 && 
+            if (name == SkillName.Poisoning && Skills[name].Base > 0 &&
                 !Controlled &&
                 (AbilityProfile == null || !AbilityProfile.HasAbility(MagicalAbility.Poisoning)))
             {
                 SetMagicalAbility(MagicalAbility.Poisoning);
             }
 
-            if (!Controlled && name == SkillName.Magery && 
-                (AbilityProfile == null || !AbilityProfile.HasAbility(MagicalAbility.Magery)) && 
-                Skills[SkillName.Magery].Base > 0 && 
+            if (!Controlled && name == SkillName.Magery &&
+                (AbilityProfile == null || !AbilityProfile.HasAbility(MagicalAbility.Magery)) &&
+                Skills[SkillName.Magery].Base > 0 &&
                 (AI == AIType.AI_Mage || AI == AIType.AI_Necro || AI == AIType.AI_NecroMage || AI == AIType.AI_Mystic || AI == AIType.AI_Spellweaving))
 
             {
@@ -5245,7 +5255,7 @@ namespace Server.Mobiles
                 Skills[name].Cap = Skills[name].Base;
             }
 
-            if (name == SkillName.Poisoning && Skills[name].Base > 0 && 
+            if (name == SkillName.Poisoning && Skills[name].Base > 0 &&
                 !Controlled &&
                 (AbilityProfile == null || !AbilityProfile.HasAbility(MagicalAbility.Poisoning)))
             {
@@ -5253,8 +5263,8 @@ namespace Server.Mobiles
             }
 
             if (!Controlled && name == SkillName.Magery &&
-                (AbilityProfile == null || !AbilityProfile.HasAbility(MagicalAbility.Magery)) && 
-                Skills[SkillName.Magery].Base > 0 && 
+                (AbilityProfile == null || !AbilityProfile.HasAbility(MagicalAbility.Magery)) &&
+                Skills[SkillName.Magery].Base > 0 &&
                 (AI == AIType.AI_Mage || AI == AIType.AI_Necro || AI == AIType.AI_NecroMage || AI == AIType.AI_Mystic || AI == AIType.AI_Spellweaving))
 
             {
@@ -5897,9 +5907,9 @@ namespace Server.Mobiles
             {
                 if (treasureLevel >= 0)
                 {
-					if (m_Paragon && Paragon.ChestChance > Utility.RandomDouble())
+					if (m_Paragon && XmlParagon.GetChestChance(this) > Utility.RandomDouble())
 					{
-						PackItem( new ParagonChest( this.Name, treasureLevel ) );
+                        XmlParagon.AddChest(this,treasureLevel);
 					}
                     else if (TreasureMapChance >= Utility.RandomDouble())
                     {
@@ -6224,11 +6234,11 @@ namespace Server.Mobiles
         private bool m_Allured;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public bool Allured 
-        { 
-            get { return m_Allured; } 
-            set 
-            { 
+        public bool Allured
+        {
+            get { return m_Allured; }
+            set
+            {
                 m_Allured = value;
 
                 if (value && Backpack != null)
@@ -6258,9 +6268,9 @@ namespace Server.Mobiles
 
         public virtual void OnKilledBy(Mobile mob)
         {
-            if (m_Paragon && Paragon.CheckArtifactChance(mob, this))
+            if (m_Paragon && XmlParagon.CheckArtifactChance(mob, this))
             {
-                Paragon.GiveArtifactTo(mob);
+                XmlParagon.GiveArtifactTo(mob, this);
             }
 
             EventSink.InvokeOnKilledBy(new OnKilledByEventArgs(this, mob));
@@ -6782,7 +6792,7 @@ namespace Server.Mobiles
             creature.Hits = creature.HitsMaxSeed;
 
             return true;
-        }        
+        }
 
         private static bool EnableRummaging = true;
 
@@ -7048,17 +7058,17 @@ namespace Server.Mobiles
         private long m_NextPeace;
         private long m_NextProvoke;
 
-        public virtual bool CanDiscord 
-        { 
-            get 
+        public virtual bool CanDiscord
+        {
+            get
             {
                 if (Controlled && AbilityProfile != null)
                 {
                     return AbilityProfile.HasAbility(MagicalAbility.Discordance);
                 }
 
-                return false; 
-            } 
+                return false;
+            }
         }
 
         public virtual bool CanPeace { get { return false; } }

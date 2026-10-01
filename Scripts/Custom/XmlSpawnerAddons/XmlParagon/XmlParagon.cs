@@ -13,7 +13,7 @@ namespace Server.Engines.XmlSpawner2
         // default artifact types
         private static Type[] m_Artifacts = new Type[]
 		{
-			typeof( GoldBricks ), typeof( PhillipsWoodenSteed ), 
+			typeof( GoldBricks ), typeof( PhillipsWoodenSteed ),
 			typeof( AlchemistsBauble ), typeof( ArcticDeathDealer ),
 			typeof( BlazeOfDeath ), typeof( BowOfTheJukaKing ),
 			typeof( BurglarsBandana ), typeof( CavortingClub ),
@@ -22,8 +22,8 @@ namespace Server.Engines.XmlSpawner2
 			typeof( NightsKiss ), typeof( NoxRangersHeavyCrossbow ),
 			typeof( OrcishVisage ), typeof( PolarBearMask ),
 			typeof( ShieldOfInvulnerability ), typeof( StaffOfPower ),
-			typeof( VioletCourage ), typeof( HeartOfTheLion ), 
-			typeof( WrathOfTheDryad ), typeof( PixieSwatter ), 
+			typeof( VioletCourage ), typeof( HeartOfTheLion ),
+			typeof( WrathOfTheDryad ), typeof( PixieSwatter ),
 			typeof( GlovesOfThePugilist )
 		};
 
