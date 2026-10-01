@@ -100,6 +100,39 @@ namespace Server.Customs.Invasion_System
 
                 switch (invading)
                 {
+                    case InvasionTowns.BritainFelucca:
+                    {
+                        // Координаты центрального района Британии (площадь у банка/мостов)
+                        Top = new Point3D(1412, 1530, 0);
+                        Bottom = new Point3D(1690, 1750, 0);
+                        MinSpawnZ = -5;
+                        MaxSpawnZ = 25;
+                        SpawnMap = Map.Felucca; // Принудительно спавним в Траммеле
+                        TownInvaded = "Britain";
+                        break;
+                    }
+                    case InvasionTowns.BritainTrammel:
+                    {
+                        // Координаты центрального района Британии (площадь у банка/мостов)
+                        Top = new Point3D(1412, 1530, 0);
+                        Bottom = new Point3D(1690, 1750, 0);
+                        MinSpawnZ = -5;
+                        MaxSpawnZ = 25;
+                        SpawnMap = Map.Trammel; // Принудительно спавним в Траммеле
+                        TownInvaded = "Britain";
+                        break;
+                    }
+                    case InvasionTowns.NewHavenTrammel:
+                    {
+                        // Координаты города Нью-Хейвен (зоны вокруг банка и кастомных построек)
+                        Top = new Point3D(3450, 2480, 0);
+                        Bottom = new Point3D(3580, 2630, 0);
+                        MinSpawnZ = -5;
+                        MaxSpawnZ = 35;
+                        SpawnMap = Map.Trammel; // Принудительно спавним в Траммеле
+                        TownInvaded = "New Haven";
+                        break;
+                    }
                     case InvasionTowns.BuccaneersDen:
                     {
                         Top = new Point3D(2608, 2060, 0);
@@ -244,7 +277,7 @@ namespace Server.Customs.Invasion_System
             {
                 foreach (Region r in Region.Regions)
                 {
-                    if (r is GuardedRegion && r.Name == TownInvaded)
+                    if (r is GuardedRegion && r.Name == TownInvaded && r.Map == SpawnMap)
                     {
                         ((GuardedRegion)r).Disabled = false;
                     }

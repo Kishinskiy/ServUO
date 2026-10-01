@@ -39,6 +39,9 @@
         Papua,
         SkaraBrae,
         Vesper,
-        Yew
+        Yew,
+        BritainTrammel,
+        BritainFelucca,
+        NewHavenTrammel
     }
 }
