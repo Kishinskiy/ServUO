@@ -29,7 +29,6 @@ using Server.Spells.Sixth;
 using Server.Spells.SkillMasteries;
 using Server.Spells.Spellweaving;
 using Server.Targeting;
-using Server.Engines.XmlSpawner2;
 #endregion
 
 namespace Server.Mobiles
