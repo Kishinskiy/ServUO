@@ -22,31 +22,33 @@ namespace Server.Customs.Invasion_System
 
         private static void CheckAndLaunchRandomInvasion()
         {
-            // Проверяем, идет ли СЕЙЧАС какое-то вторжение. Если да — ждем следующего тика таймера.
+            // Если уже есть хоть одно активное вторжение — ничего не делаем
             foreach (var inv in Invasions)
             {
                 if (inv.IsRunning)
                     return;
             }
 
-            // 1. Выбираем случайный город из вашего enum InvasionTowns
             Array towns = Enum.GetValues(typeof(InvasionTowns));
             InvasionTowns randomTown = (InvasionTowns)towns.GetValue(Utility.Random(towns.Length));
 
-            // 2. Выбираем случайную группу монстров из enum TownMonsterType
             Array monsters = Enum.GetValues(typeof(TownMonsterType));
             TownMonsterType randomMonster = (TownMonsterType)monsters.GetValue(Utility.Random(monsters.Length));
 
-            // 3. Выбираем случайного босса из enum TownChampionType
             Array champions = Enum.GetValues(typeof(TownChampionType));
             TownChampionType randomChamp = (TownChampionType)champions.GetValue(Utility.Random(champions.Length));
 
-            // Запускаем ивент прямо сейчас (DateTime.UtcNow)
-            TownInvasion newInvasion = new TownInvasion(randomTown, randomMonster, randomChamp, DateTime.UtcNow);
+            // ИСПРАВЛЕНО: Сдвигаем время на минуту назад, чтобы условие "StartTime <= UtcNow" выполнилось железно
+            DateTime immediateStart = DateTime.UtcNow.AddMinutes(-1.0);
 
-            // Оповещаем консоль сервера о генерации
-            Console.WriteLine($"[Invasion System] Сгенерировано случайное вторжение: Город: {randomTown}, Монстры: {randomMonster}, Босс: {randomChamp}");
+            // Создаем ивент
+            TownInvasion newInvasion = new TownInvasion(randomTown, randomMonster, randomChamp, immediateStart);
+
+            // Важно: Принудительно толкаем метод старта, чтобы не ждать системного GlobalSync
+            newInvasion.OnStart();
+
         }
+
 
         [Usage("ListInvasions")]
         [Description("Lists all active invasions.")]

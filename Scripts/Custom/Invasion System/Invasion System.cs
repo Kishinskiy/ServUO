@@ -266,6 +266,19 @@ namespace Server.Customs.Invasion_System
                 }
 
                 Spawn();
+
+                string mapName = SpawnMap == Map.Trammel ? "Trammel" : "Felucca";
+                string globalAlert = string.Format("[Вторжение]: Город {0} ({1}) атакован силами {2}! Стражники покинули пост!", TownInvaded, mapName, TownMonsterType);
+                int alertSound = 0x21F;
+                foreach (Server.Network.NetState state in Server.Network.NetState.Instances)
+                {
+                    Mobile m = state.Mobile;
+                    if (m != null)
+                    {
+                        m.SendMessage(0x22, globalAlert); // Яркий красный цвет в чат
+                        m.PlaySound(alertSound);          // Звук рога прямо игроку
+                    }
+                }
             }
         }
 
