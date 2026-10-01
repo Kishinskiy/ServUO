@@ -56,7 +56,6 @@ namespace Server.Gumps
                 {
 					if ( m_From != null )
 					{
-						m_Scroll.BlacksmithValidated = true;
                         m_From.CloseGump(typeof(AwaitingSmithApprovalGump));
                         m_From.SendMessage("They have validated your scroll.  Select a levelable item to increase max levels or ESC to apply at another time.");
                         m_From.Target = new LevelUpScroll.LevelItemTarget(m_Scroll); // Call our target
