@@ -259,8 +259,22 @@ namespace Server.Misc
 			DespawnMins = 5;
 
 			Creatures = new List<KamRegionCreatureEntry>();
-			for (int i = 0; i < 40; i++)
-				Creatures.Add(new KamRegionCreatureEntry());
+            Creatures.Add(new KamRegionCreatureEntry("Orc", 1));
+            Creatures.Add(new KamRegionCreatureEntry("OrcMage", 1));
+            Creatures.Add(new KamRegionCreatureEntry("OrcCaptain", 1));
+            Creatures.Add(new KamRegionCreatureEntry("Skeleton", 1));
+            Creatures.Add(new KamRegionCreatureEntry("Zombie", 1));
+            Creatures.Add(new KamRegionCreatureEntry("Lich", 1));
+            Creatures.Add(new KamRegionCreatureEntry("Ogre", 1));
+            Creatures.Add(new KamRegionCreatureEntry("Ettin", 1));
+            Creatures.Add(new KamRegionCreatureEntry("HeadlessOne", 1));
+            Creatures.Add(new KamRegionCreatureEntry("Ratman", 1));
+
+            // Заполняем оставшиеся ячейки пустыми строками, чтобы в сумме было ровно 40 (требование интерфейса)
+            while (Creatures.Count < 40)
+            {
+                Creatures.Add(new KamRegionCreatureEntry());
+            }
 
 			NextAllowedSpawn = DateTime.MinValue;
 			SpawnHistory = new List<DateTime>();
@@ -574,9 +588,9 @@ namespace Server.Misc
 	public static class KamRegionSpawnerSystem
 	{
 		private static KamRegionSpawnerController m_Controller;
-		
-		public static KamRegionSpawnerController Controller 
-		{ 
+
+		public static KamRegionSpawnerController Controller
+		{
 			get { if (m_Controller == null || m_Controller.Deleted) EnsureInitialized(); return m_Controller; }
 			set { m_Controller = value; }
 		}
