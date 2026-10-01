@@ -156,7 +156,32 @@ namespace Server.Engines.XmlSpawner2
             {
                 bc.PackItem(new ParagonChest(bc.Name, treasureLevel));
             }
+
+            // --- НАЧАЛО БЛОКА: ДРОП СВИТКОВ ПРОКАЧКИ ---
+            // Задаем шанс выпадения свитка (0.05 = 5%, 0.10 = 10%, 0.02 = 2%)
+            double scrollChance = 0.05;
+
+            if (Utility.RandomDouble() < scrollChance)
+            {
+                // Генерируем случайную ценность свитка (+5, +10, +15 или +20 к макс. уровню)
+                int[] scrollValues = new int[] { 5, 10, 15, 20 };
+                int randomValue = scrollValues[Utility.Random(scrollValues.Length)];
+
+                // Создаем свиток
+                Item scroll = new Server.Items.LevelUpScroll(randomValue);
+
+                if (scroll != null)
+                {
+                    // Безопасно добавляем свиток в труп погибшего парагона
+                    bc.PackItem(scroll);
+
+                    // ИСПРАВЛЕНО: Безопасный вызов визуального эффекта (синие искорки над трупом)
+                    Effects.SendLocationParticles(bc, 0x376A, 9, 32, 5022);
+                }
+            }
+            // --- КОНЕЦ БЛОКА ---
         }
+
 
         public static double GetChestChance(BaseCreature bc)
         {
