@@ -367,6 +367,62 @@ namespace Server.Customs.Invasion_System
         {
             Despawn();
 
+            int defendersAmount = 50;
+
+            Type[] defenderTypes = new Type[]
+            {
+                typeof(Server.Mobiles.HolyMage),     // Священный маг (хилит и бьет магией)
+                typeof(Server.Mobiles.Paladin),      // Паладин (классический воин ближнего боя)
+                typeof(Server.Mobiles.OrderGuard),   // Рыцарь Ордена Порядка
+                typeof(Server.Mobiles.ChaosGuard)    // Рыцарь Хаоса
+            };
+
+            for (int i = 0; i < defendersAmount; ++i)
+            {
+                Type randomDefType = defenderTypes[Utility.Random(defenderTypes.Length)];
+                object defender = Activator.CreateInstance(randomDefType);
+
+                if (defender != null && defender is Mobile)
+                {
+                    Point3D location = FindSpawnLocation();
+                    if (location != Point3D.Zero)
+                    {
+                        Mobile npc = (Mobile)defender;
+
+                        npc.OnBeforeSpawn(location, SpawnMap);
+                        npc.MoveToWorld(location, SpawnMap);
+                        npc.OnAfterSpawn();
+
+                        // Настраиваем NPC, чтобы они были агрессивны к монстрам
+                        if (npc is BaseCreature)
+                        {
+                            BaseCreature bc = (BaseCreature)npc;
+                            bc.Tamable = false;
+
+                            // Выставляем им команду "Ополчение" (Team 1),
+                            // чтобы они не били игроков и сражались сообща
+                            bc.Team = 1;
+                            bc.FightMode = FightMode.Evil;
+                            bc.RangePerception = 18;
+                            bc.Warmode = true;
+
+                            // Переименовываем их, чтобы было понятно, кто это
+                            string oldName = bc.Name;
+                            bc.Name = $"{oldName} [Town Defender]";
+
+                            // Немного баффаем им жизни, чтобы их не убили в первую секунду
+                            bc.HitsMaxSeed = 350;
+                            bc.Hits = 350;
+                        }
+
+                        // Добавляем защитников в общий список контроля _Spawned,
+                        // чтобы они автоматически исчезли (Despawn), когда ивент закончится!
+                        _Spawned.Add(npc);
+                    }
+                }
+            }
+
+
             MonsterTownSpawnEntry[] entries = null;
 
             switch (_TownMonsterType)
@@ -402,8 +458,16 @@ namespace Server.Customs.Invasion_System
             int count = 0;
 
             for (int i = 0; i < _Spawned.Count; ++i)
+            {
                 if (_Spawned[i] != null && !_Spawned[i].Deleted && _Spawned[i].Alive)
-                    ++count;
+                {
+                    // Исправление: считаем только мобов с отрицательной кармой (монстров вторжения)
+                    if (_Spawned[i].Karma < 0)
+                    {
+                        ++count;
+                    }
+                }
+            }
 
             if (!_FinalStage) //Monsters
             {
@@ -445,20 +509,27 @@ namespace Server.Customs.Invasion_System
         private Point3D FindSpawnLocation()
         {
             int x, y, z;
-
             var count = 100;
+
+            // Исправление: четко вычисляем мин/макс координаты, даже если Top и Bottom записаны задом наперед
+            int minX = Math.Min(_Top.X, _Bottom.X);
+            int maxX = Math.Max(_Top.X, _Bottom.X);
+            int minY = Math.Min(_Top.Y, _Bottom.Y);
+            int maxY = Math.Max(_Top.Y, _Bottom.Y);
 
             do
             {
-                x = Utility.Random(_Top.X, (_Bottom.X - _Top.X));
-                y = Utility.Random(_Top.Y, (_Bottom.Y - _Top.Y));
+                x = Utility.RandomMinMax(minX, maxX);
+                y = Utility.RandomMinMax(minY, maxY);
                 z = SpawnMap.GetAverageZ(x, y);
             }
             while (!SpawnMap.CanSpawnMobile(x, y, z) && --count >= 0);
 
             if (count < 0)
             {
-                x = y = z = 0;
+                x = minX + ((maxX - minX) / 2);
+                y = minY + ((maxY - minY) / 2);
+                z = SpawnMap.GetAverageZ(x, y);
             }
 
             return new Point3D(x, y, z);
