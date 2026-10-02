@@ -667,9 +667,10 @@ namespace Server.Customs.Invasion_System
                     {
                         bc.Tamable = false;
                         bc.Team = 1;
-                        bc.FightMode = FightMode.Evil;
+                        bc.FightMode = FightMode.Closest;
                         bc.RangePerception = 22;
                         bc.Warmode = true;
+                        bc.Karma = 5000;
 
                         bc.Name = $"{bc.Name} [Reinforcement]";
                         bc.HitsMaxSeed = 300;
