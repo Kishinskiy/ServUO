@@ -410,9 +410,10 @@ namespace Server.Customs.Invasion_System
                             // Выставляем им команду "Ополчение" (Team 1),
                             // чтобы они не били игроков и сражались сообща
                             bc.Team = 1;
-                            bc.FightMode = FightMode.Evil;
+                            bc.FightMode = FightMode.Closest;
                             bc.RangePerception = 18;
                             bc.Warmode = true;
+                            bc.Karma = 5000;
 
                             // Переименовываем их, чтобы было понятно, кто это
                             string oldName = bc.Name;
