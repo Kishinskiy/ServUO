@@ -35,9 +35,9 @@ namespace Server.Custom.SurvivalSystem
                 int currentBAC = pm.BAC;
                 // Serial id = pm.Serial;
 
-                if (currentThirst > 0 && Utility.RandomDouble() < 0.027)
+                if (currentThirst < 20 && Utility.RandomDouble() < 0.005)
                 {
-                    currentThirst--;
+                    currentThirst++;
                     SetThirstProperty(pm, currentThirst);
                 }
 
@@ -156,7 +156,7 @@ namespace Server.Custom.SurvivalSystem
                 // =========================================================================
                 // ХАРДКОРНАЯ СИСТЕМА ДЕБАФФОВ И ПРЕДУПРЕЖДЕНИЙ О ЖАЖДЕ
                 // =========================================================================
-                if (currentThirst == 0) // ПОЛНОЕ ОБЕЗВОЖИВАНИЕ (Критическая точка)
+                if (currentThirst == 20) // ПОЛНОЕ ОБЕЗВОЖИВАНИЕ (Критическая точка)
                 {
                     // Регистрируем маркер дебаффа жажды на 15 секунд
                     pm.AddStatMod(new StatMod(StatType.Int, "ThirstManaDebuff", 0, TimeSpan.FromSeconds(15.0)));
