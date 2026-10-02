@@ -1231,11 +1231,19 @@ namespace Server.Misc
 					continue;
 
 				Region playerRegion = KamRegionSpawnerSystem.GetRegionAt(player);
-				if (playerRegion == null ||
-					!String.Equals(KamRegionSpawnerSystem.GetRegionKey(playerRegion, player.Map), regionKey, StringComparison.OrdinalIgnoreCase))
-				{
-					continue;
-				}
+                if (playerRegion == null)
+                    continue;
+
+                if (playerRegion is TownRegion || playerRegion is GuardedRegion ||
+                    playerRegion.IsPartOf(typeof(TownRegion)) || playerRegion.IsPartOf(typeof(GuardedRegion)))
+                {
+                    continue;
+                }
+
+                if (!String.Equals(KamRegionSpawnerSystem.GetRegionKey(playerRegion, player.Map), regionKey, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
 
 				candidates.Add(player);
 			}
@@ -1865,6 +1873,11 @@ namespace Server.Misc
 					Region reg = KamRegionSpawnerSystem.GetRegionAt(pm);
 					if (reg == null)
 						continue;
+                    if (reg is TownRegion || reg is GuardedRegion ||
+                        reg.IsPartOf(typeof(TownRegion)) || reg.IsPartOf(typeof(GuardedRegion)))
+                    {
+                        continue;
+                    }
 
 					string regKey = KamRegionSpawnerSystem.GetRegionKey(reg, pm.Map);
 					if (String.Equals(regKey, "Unknown|Unknown", StringComparison.OrdinalIgnoreCase))
