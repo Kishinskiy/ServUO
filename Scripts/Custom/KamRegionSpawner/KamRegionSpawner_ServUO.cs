@@ -230,9 +230,9 @@ namespace Server.Misc
 
 		public KamRegionSpawnerProfile()
 		{
-			Enabled = false;
+			Enabled = true;
 			SpawnChance = 100;
-			RandomizerPercent = 0;
+			RandomizerPercent = 10;
 			HourlyMax = 15;
 			MaxSpawnsPerRegion = 0;
 			CooldownMins = 5;
