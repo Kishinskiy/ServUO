@@ -2112,6 +2112,15 @@ namespace Server.Misc
 				if (actualSpawned <= 0)
 					return;
 
+                foreach (PlayerMobile member in clusterMembers)
+                {
+                    if (member != null && member.NetState != null)
+                    {
+                        member.SendSound(0x145);
+                        pm.SendMessage(0x22, "Вы чувствуете приближение опасности...");
+                    }
+                }
+
 				DateTime nextAllowed = DateTime.Now.AddMinutes(effectiveCooldown);
 				KamRegionSpawnerSystem.SetClusterNextAllowedSpawn(prof, clusterMembers, nextAllowed);
 				prof.NextAllowedSpawn = nextAllowed;
