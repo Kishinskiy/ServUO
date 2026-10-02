@@ -603,8 +603,36 @@ namespace Server.Misc
 		{
 			CommandSystem.Register("KamRegionSpawner", AccessLevel.Administrator, new CommandEventHandler(OnAdminCommand));
 			CommandSystem.Register("KRS", AccessLevel.Administrator, new CommandEventHandler(OnAdminCommand));
+            CommandSystem.Register("KRSEnableAll", AccessLevel.Administrator, new CommandEventHandler(OnEnableAllCommand));
 			EventSink.WorldLoad += new WorldLoadEventHandler(OnWorldLoad);
 		}
+
+        private static void OnEnableAllCommand(CommandEventArgs e)
+        {
+            EnsureInitialized(); // Проверяем, что контроллер загружен
+
+            if (Controller == null || Controller.Profiles == null)
+            {
+                e.Mobile.SendMessage("Ошибка: Контроллер системы KRS не найден в мире.");
+                return;
+            }
+
+            int activatedCount = 0;
+
+            // Проходим по всем существующим профилям в базе данных сервера
+            foreach (KeyValuePair<string, KamRegionSpawnerProfile> kvp in Controller.Profiles)
+            {
+                if (kvp.Value != null && !kvp.Value.Enabled)
+                {
+                    kvp.Value.Enabled = true; // Включаем профиль
+                    kvp.Value.Normalize();    // Корректируем внутренние лимиты
+                    activatedCount++;
+                }
+            }
+
+            e.Mobile.SendMessage($"Успешно активировано регионов: {activatedCount}. Всего в базе профилей: {Controller.Profiles.Count}.");
+        }
+
 
 		private static void OnWorldLoad()
 		{
