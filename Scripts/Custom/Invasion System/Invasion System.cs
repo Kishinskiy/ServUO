@@ -378,10 +378,12 @@ namespace Server.Customs.Invasion_System
 
             Type[] defenderTypes = new Type[]
             {
-                typeof(Server.Mobiles.HolyMage),     // Священный маг (хилит и бьет магией)
+                typeof(Server.Mobiles.Archmage),     // Священный маг (хилит и бьет магией)
                 typeof(Server.Mobiles.Paladin),      // Паладин (классический воин ближнего боя)
                 typeof(Server.Mobiles.OrderGuard),   // Рыцарь Ордена Порядка
-                typeof(Server.Mobiles.ChaosGuard)    // Рыцарь Хаоса
+                typeof(Server.Mobiles.ChaosGuard),    // Рыцарь Хаоса
+                typeof(Server.Mobiles.ArcherGuard),
+                typeof(Server.Mobiles.NecroMageAI)
             };
 
             for (int i = 0; i < defendersAmount; ++i)
