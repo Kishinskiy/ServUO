@@ -36,6 +36,7 @@ namespace Server.Customs.Invasion_System
         private string _TownInvaded = "Moonglow";
 
         private Timer _SpawnTimer;
+        private Timer _ReinforcementTimer;
 
         private DateTime _lastAnnounce = DateTime.UtcNow;
 
@@ -300,6 +301,9 @@ namespace Server.Customs.Invasion_System
             if (SpawnTimer != null)
                 _SpawnTimer.Stop();
 
+            if (_ReinforcementTimer != null)
+                _ReinforcementTimer.Stop();
+
             InvasionControl.Invasions.Remove(this);
         }
 
@@ -361,6 +365,9 @@ namespace Server.Customs.Invasion_System
         {
             if (!IsRunning)
                 _SpawnTimer = Timer.DelayCall(TimeSpan.Zero, TimeSpan.FromSeconds(15.0), CheckSpawn);
+
+            if (_ReinforcementTimer == null || !_ReinforcementTimer.Running)
+                _ReinforcementTimer = Timer.DelayCall(TimeSpan.FromMinutes(30.0), TimeSpan.FromMinutes(30.0), SpawnReinforcements);
         }
 
         private void Spawn()
@@ -582,6 +589,96 @@ namespace Server.Customs.Invasion_System
                 case TownChampionType.Serado: AddMonster(typeof(Serado)); break;
             }
         }
+
+                private void SpawnReinforcements()
+        {
+            // Если наступила финальная стадия (битва с Боссом), подкрепления больше не идут
+            if (_FinalStage || !IsRunning)
+                return;
+
+            int amount = Utility.RandomMinMax(15, 50); // Прибывает небольшой отряд из 15-50 рыцарей
+
+            Type[] defenderTypes = new Type[]
+            {
+                typeof(Server.Mobiles.HolyMage),
+                typeof(Server.Mobiles.Paladin),
+                typeof(Server.Mobiles.OrderGuard),
+                typeof(Server.Mobiles.ChaosGuard)
+            };
+
+            // Глобальный анонс в чат о прибытии помощи
+            foreach (Server.Network.NetState state in Server.Network.NetState.Instances)
+            {
+                Mobile m = state.Mobile;
+                if (m != null && m.Map == SpawnMap && m.InRange(_Top, 150))
+                {
+                    m.SendMessage(0x5A, "[Вторжение]: К городским воротам пробился отряд ополчения для поддержки защитников!");
+                }
+            }
+
+            for (int i = 0; i < amount; ++i)
+            {
+                Type randomDefType = defenderTypes[Utility.Random(defenderTypes.Length)];
+                object defender = Activator.CreateInstance(randomDefType);
+
+                if (defender != null && defender is Mobile npc)
+                {
+                    int x = 0, y = 0, z = 0;
+                    bool safePointFound = false;
+
+                    // Пытаемся найти сушу недалеко от краев города за 20 попыток
+                    for (int attempt = 0; attempt < 20; attempt++)
+                    {
+                        x = Utility.RandomBool() ? _Top.X + Utility.RandomMinMax(-12, 12) : _Bottom.X + Utility.RandomMinMax(-12, 12);
+                        y = Utility.RandomBool() ? _Top.Y + Utility.RandomMinMax(-12, 12) : _Bottom.Y + Utility.RandomMinMax(-12, 12);
+                        z = SpawnMap.GetAverageZ(x, y);
+
+                        // Проверка 1: Может ли мобильный объект физически стоять в этой точке
+                        if (SpawnMap.CanSpawnMobile(x, y, z))
+                        {
+                            // Проверка 2: Защита от моря. Проверяем, что под ногами не вода (тайлы с флагом Wet/Water)
+                            LandTile landTile = SpawnMap.Tiles.GetLandTile(x, y);
+                            if ((Server.TileData.LandTable[landTile.ID].Flags & TileFlag.Wet) == 0)
+                            {
+                                safePointFound = true;
+                                break; // Точка идеальна, выходим из цикла поиска
+                            }
+                        }
+                    }
+
+                    // Fallback: Если кругом вода (как на Buccaneer's Den), спавним строго внутри города
+                    if (!safePointFound)
+                    {
+                        // Берем случайную точку прямо из проверенного метода FindSpawnLocation()
+                        Point3D townPoint = FindSpawnLocation();
+                        x = townPoint.X;
+                        y = townPoint.Y;
+                        z = townPoint.Z;
+                    }
+
+                    Point3D spawnPoint = new Point3D(x, y, z);
+                    npc.OnBeforeSpawn(spawnPoint, SpawnMap);
+                    npc.MoveToWorld(spawnPoint, SpawnMap);
+                    npc.OnAfterSpawn();
+
+                    if (npc is BaseCreature bc)
+                    {
+                        bc.Tamable = false;
+                        bc.Team = 1;
+                        bc.FightMode = FightMode.Evil;
+                        bc.RangePerception = 22;
+                        bc.Warmode = true;
+
+                        bc.Name = $"{bc.Name} [Reinforcement]";
+                        bc.HitsMaxSeed = 300;
+                        bc.Hits = 300;
+                    }
+
+                    _Spawned.Add(npc);
+                }
+            }
+        }
+
         #endregion
      }
 }
