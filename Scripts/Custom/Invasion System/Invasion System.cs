@@ -9,10 +9,14 @@ namespace Server.Customs.Invasion_System
 {
     public class TownInvasion
     {
+        private static int _LastInvadedWeekOfYear = -1;
+
         public static void Initialize()
         {
-            Timer.DelayCall(TimeSpan.Zero, TimeSpan.FromSeconds(30.0), GlobalSync);
+           // Timer.DelayCall(TimeSpan.FromSeconds(10.0), TimeSpan.FromSeconds(60.0), GlobalSync);
         }
+
+        
 
         #region Private Variables
 
@@ -74,6 +78,8 @@ namespace Server.Customs.Invasion_System
 
         #region Constructor
 
+        
+
         public TownInvasion(InvasionTowns town, TownMonsterType monster, TownChampionType champion, DateTime time)
         {
             _Spawned = new List<Mobile>();
@@ -101,7 +107,7 @@ namespace Server.Customs.Invasion_System
 
                 switch (invading)
                 {
-                    case InvasionTowns.BritainFelucca:
+                    case InvasionTowns.Britain:
                     {
                         // Координаты центрального района Британии (площадь у банка/мостов)
                         Top = new Point3D(1412, 1530, 0);
@@ -110,28 +116,6 @@ namespace Server.Customs.Invasion_System
                         MaxSpawnZ = 25;
                         SpawnMap = Map.Felucca; // Принудительно спавним в Траммеле
                         TownInvaded = "Britain";
-                        break;
-                    }
-                    case InvasionTowns.BritainTrammel:
-                    {
-                        // Координаты центрального района Британии (площадь у банка/мостов)
-                        Top = new Point3D(1412, 1530, 0);
-                        Bottom = new Point3D(1690, 1750, 0);
-                        MinSpawnZ = -5;
-                        MaxSpawnZ = 25;
-                        SpawnMap = Map.Trammel; // Принудительно спавним в Траммеле
-                        TownInvaded = "Britain";
-                        break;
-                    }
-                    case InvasionTowns.NewHavenTrammel:
-                    {
-                        // Координаты города Нью-Хейвен (зоны вокруг банка и кастомных построек)
-                        Top = new Point3D(3450, 2480, 0);
-                        Bottom = new Point3D(3580, 2630, 0);
-                        MinSpawnZ = -5;
-                        MaxSpawnZ = 35;
-                        SpawnMap = Map.Trammel; // Принудительно спавним в Траммеле
-                        TownInvaded = "New Haven";
                         break;
                     }
                     case InvasionTowns.BuccaneersDen:
@@ -345,18 +329,37 @@ namespace Server.Customs.Invasion_System
 
         private static void GlobalSync()
         {
-            var index = InvasionControl.Invasions.Count;
+            DateTime now = DateTime.Now; // Используем локальное время сервера (или DateTime.UtcNow для Гринвича)
 
-            while (--index >= 0)
+            // НАСТРОЙКА ВРЕМЕНИ: Выберите нужный день и час
+            // DayOfWeek.Saturday = Суббота, Hour == 18 (6 часов вечера), Minute == 00
+            if (now.DayOfWeek == DayOfWeek.Saturday && now.Hour == 18 && now.Minute == 0)
             {
-                if (index >= InvasionControl.Invasions.Count)
-                    continue;
+                // Получаем номер текущей недели в году
+                int currentWeek = System.Globalization.CultureInfo.CurrentCulture.Calendar.GetWeekOfYear(
+                    now, System.Globalization.DateTimeFormatInfo.CurrentInfo.CalendarWeekRule, System.Globalization.DateTimeFormatInfo.CurrentInfo.FirstDayOfWeek);
 
-                var obj = InvasionControl.Invasions[index];
-
-                if (obj._StartTime <= DateTime.UtcNow)
+                // Если на этой неделе ивент еще НЕ запускался
+                if (_LastInvadedWeekOfYear != currentWeek)
                 {
-                    obj.OnStart();
+                    _LastInvadedWeekOfYear = currentWeek;
+
+                    // Ищем запланированные инвазии в InvasionControl и запускаем ту, чье время пришло
+                    var index = InvasionControl.Invasions.Count;
+                    while (--index >= 0)
+                    {
+                        if (index >= InvasionControl.Invasions.Count)
+                            continue;
+
+                        var obj = InvasionControl.Invasions[index];
+
+                        // Запускаем ивент
+                        obj.OnStart();
+                        
+                        // Если в системе InvasionControl предусмотрен запуск только одного города за раз,
+                        // можно поставить break; чтобы не активировать все города одновременно
+                        break; 
+                    }
                 }
             }
         }

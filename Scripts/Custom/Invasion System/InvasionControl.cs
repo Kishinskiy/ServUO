@@ -9,6 +9,8 @@ namespace Server.Customs.Invasion_System
 {
     public static class InvasionControl
     {
+        private static int _LastInvadedWeekOfYear = -1;
+
         public static List<TownInvasion> Invasions = new List<TownInvasion>();
 
         static Mobile _caller;
@@ -17,36 +19,51 @@ namespace Server.Customs.Invasion_System
         public static void Initialize()
         {
             CommandSystem.Register("ListInvasions", AccessLevel.Administrator, ListInvasions_OnCommand);
-            _AutoInvasionTimer = Timer.DelayCall(TimeSpan.FromMinutes(5.0), TimeSpan.FromMinutes(30.0), CheckAndLaunchRandomInvasion);
+            
+            // Запускаем таймер проверки каждую минуту (60 секунд). First старт через 10 секунд после запуска сервера.
+            _AutoInvasionTimer = Timer.DelayCall(TimeSpan.FromSeconds(10.0), TimeSpan.FromSeconds(60.0), CheckAndLaunchRandomInvasion);
         }
 
         private static void CheckAndLaunchRandomInvasion()
         {
-            // Если уже есть хоть одно активное вторжение — ничего не делаем
-            foreach (var inv in Invasions)
+            DateTime now = DateTime.Now; // Время вашего сервера (или DateTime.UtcNow для Гринвича)
+
+            // НАСТРОЙКА: Запуск каждую Субботу (Saturday) в 18:00
+            if (now.DayOfWeek == DayOfWeek.Saturday && now.Hour == 18 && now.Minute == 0)
             {
-                if (inv.IsRunning)
-                    return;
+                // Вычисляем номер текущей недели в году
+                int currentWeek = System.Globalization.CultureInfo.CurrentCulture.Calendar.GetWeekOfYear(
+                    now, System.Globalization.DateTimeFormatInfo.CurrentInfo.CalendarWeekRule, System.Globalization.DateTimeFormatInfo.CurrentInfo.FirstDayOfWeek);
+
+                // Если на этой неделе авто-вторжение еще НЕ запускалось
+                if (_LastInvadedWeekOfYear != currentWeek)
+                {
+                    _LastInvadedWeekOfYear = currentWeek;
+
+                    // Если уже есть хоть одно активное вторжение — отменяем запуск нового
+                    foreach (var inv in Invasions)
+                    {
+                        if (inv.IsRunning)
+                            return;
+                    }
+
+                    // Выбираем случайные параметры для еженедельного ивента
+                    Array towns = Enum.GetValues(typeof(InvasionTowns));
+                    InvasionTowns randomTown = (InvasionTowns)towns.GetValue(Utility.Random(towns.Length));
+
+                    Array monsters = Enum.GetValues(typeof(TownMonsterType));
+                    TownMonsterType randomMonster = (TownMonsterType)monsters.GetValue(Utility.Random(monsters.Length));
+
+                    Array champions = Enum.GetValues(typeof(TownChampionType));
+                    TownChampionType randomChamp = (TownChampionType)champions.GetValue(Utility.Random(champions.Length));
+
+                    DateTime immediateStart = DateTime.UtcNow.AddMinutes(-1.0);
+
+                    // Создаем и принудительно запускаем ивент
+                    TownInvasion newInvasion = new TownInvasion(randomTown, randomMonster, randomChamp, immediateStart);
+                    newInvasion.OnStart();
+                }
             }
-
-            Array towns = Enum.GetValues(typeof(InvasionTowns));
-            InvasionTowns randomTown = (InvasionTowns)towns.GetValue(Utility.Random(towns.Length));
-
-            Array monsters = Enum.GetValues(typeof(TownMonsterType));
-            TownMonsterType randomMonster = (TownMonsterType)monsters.GetValue(Utility.Random(monsters.Length));
-
-            Array champions = Enum.GetValues(typeof(TownChampionType));
-            TownChampionType randomChamp = (TownChampionType)champions.GetValue(Utility.Random(champions.Length));
-
-            // ИСПРАВЛЕНО: Сдвигаем время на минуту назад, чтобы условие "StartTime <= UtcNow" выполнилось железно
-            DateTime immediateStart = DateTime.UtcNow.AddMinutes(-1.0);
-
-            // Создаем ивент
-            TownInvasion newInvasion = new TownInvasion(randomTown, randomMonster, randomChamp, immediateStart);
-
-            // Важно: Принудительно толкаем метод старта, чтобы не ждать системного GlobalSync
-            newInvasion.OnStart();
-
         }
 
 

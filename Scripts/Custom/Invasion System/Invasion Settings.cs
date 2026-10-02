@@ -40,8 +40,6 @@
         SkaraBrae,
         Vesper,
         Yew,
-        BritainTrammel,
-        BritainFelucca,
-        NewHavenTrammel
+        Britain,
     }
 }
