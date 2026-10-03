@@ -122,14 +122,33 @@ namespace Server.Mobiles
                 int resourceRoll = Utility.Random(3);
                 if (resourceRoll == 0) { lootItem = new IronIngot(); lootItem.Amount = Utility.RandomMinMax(50, 100); lootItem.Hue = Utility.RandomList(2207, 2418); lootItem.Name = "Слиток редкого металла"; }
                 else if (resourceRoll == 1) { lootItem = new Log(); lootItem.Amount = Utility.RandomMinMax(50, 100); lootItem.Hue = 1192; lootItem.Name = "Бревно реликтового дерева"; }
-                else { lootItem = Loot.Construct(Loot.GemTypes); lootItem.Amount = Utility.RandomMinMax(10, 20); }
-
+                else
+                {
+                    lootItem = Loot.Construct(Loot.GemTypes);
+                    lootItem.Amount = Utility.RandomMinMax(10, 20);
+                    // ИСПРАВЛЕНО: Даем камням текстовое имя из базы данных ядра, чтобы Vendor Search не падал в NullReference
+                    if (lootItem != null)
+                        lootItem.Name = lootItem.ItemData.Name;
+                }
                 finalPrice = Utility.RandomMinMax(5000, 12000);
             }
 
             // РЕГИСТРАЦИЯ ТОВАРА И ОБХОД ЗАЩИТЫ ЯДРА
             if (lootItem != null)
             {
+                // ЖЕЛЕЗОБЕТОННАЯ ЗАЩИТА: Если у сгенерированного предмета имя null или пустое,
+                // мы принудительно берём его официальное название из ItemData (базы данных скриптов)
+                if (string.IsNullOrEmpty(lootItem.Name))
+                {
+                    lootItem.Name = lootItem.ItemData.Name;
+                }
+
+                // В крайнем случае, если и там пусто, берём название самого класса C#
+                if (string.IsNullOrEmpty(lootItem.Name))
+                {
+                    lootItem.Name = lootItem.GetType().Name;
+                }
+
                 lootItem.Weight = 0;
                 this.Backpack.DropItem(lootItem);
 
@@ -248,8 +267,13 @@ namespace Server.Mobiles
                 }
 
                 // Переименовываем и даем описание для Vendor Search
-                string origName = string.IsNullOrEmpty(item.Name) ? item.GetType().Name : item.Name;
-                if (origName.StartsWith("#")) origName = item.ItemData.Name;
+                // ИСПРАВЛЕНО: Жесткая проверка оригинального имени на пустые значения и null
+                string origName = item.Name;
+                if (string.IsNullOrEmpty(origName)) origName = item.ItemData.Name;
+                if (string.IsNullOrEmpty(origName)) origName = item.GetType().Name;
+                if (!string.IsNullOrEmpty(origName) && origName.StartsWith("#")) origName = item.ItemData.Name;
+                if (string.IsNullOrEmpty(origName)) origName = "Предмет";
+
 
                 vi.Description = $"[Комиссионка: сдано игроком {from.Name}]";
                 item.Name = $"[Б/У] {origName}";
