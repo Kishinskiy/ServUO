@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Server.Items;
+using Server.Custom.SurvivalSystem;
 
 namespace Server.Mobiles
 {
@@ -41,6 +42,7 @@ namespace Server.Mobiles
                 Add(new BeverageBuyInfo(typeof(Pitcher), BeverageType.Liquor, 11, 20, 0x1F99, 0));
                 Add(new BeverageBuyInfo(typeof(Pitcher), BeverageType.Wine, 11, 20, 0x1F9B, 0));
                 Add(new BeverageBuyInfo(typeof(Pitcher), BeverageType.Water, 11, 20, 0x1F9D, 0));
+                Add(new GenericBuyInfo(typeof(SurvivalInfoBook), 100, 1, 0x2252, 0));
 
                 Add(new GenericBuyInfo(typeof(BreadLoaf), 6, 10, 0x103B, 0, true));
                 Add(new GenericBuyInfo(typeof(CheeseWheel), 21, 10, 0x97E, 0, true));

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Server.Items;
+using Server.Custom.SurvivalSystem;
 
 namespace Server.Mobiles
 {
@@ -71,6 +72,9 @@ namespace Server.Mobiles
                 Add(new GenericBuyInfo(typeof(Torch), 7, 20, 0xF6B, 0, true));
                 Add(new GenericBuyInfo(typeof(Candle), 6, 20, 0xA28, 0, true));
                 Add(new GenericBuyInfo(typeof(Beeswax), 1, 20, 0x1422, 0, true));
+
+                // Survival info book – allows players to view hunger, thirst and drunk stats
+                Add(new GenericBuyInfo(typeof(SurvivalInfoBook), 100, 1, 0x2252, 0));
 
                 Add(new GenericBuyInfo(typeof(Backpack), 15, 20, 0x9B2, 0));
                 Add(new GenericBuyInfo("1016450", typeof(Chessboard), 2, 20, 0xFA6, 0));

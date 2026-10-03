@@ -19,6 +19,7 @@ namespace Server.Custom.SurvivalSystem
             CommandSystem.Register("drunk", AccessLevel.Player, new CommandEventHandler(OnDrunkCommand));
 
             m_NotifyTimer = Timer.DelayCall(TimeSpan.FromSeconds(5.0), TimeSpan.FromSeconds(5.0), new TimerCallback(OnSurvivalCheck));
+            // (stats broadcast removed – use SurvivalInfoBook for manual checking)
         }
 
         private static void OnSurvivalCheck()
@@ -280,7 +281,7 @@ namespace Server.Custom.SurvivalSystem
         }
 
 
-        private static int GetThirstProperty(PlayerMobile pm)
+        public static int GetThirstProperty(PlayerMobile pm)
         {
             var prop = typeof(PlayerMobile).GetProperty("Thirst");
             if (prop != null)
