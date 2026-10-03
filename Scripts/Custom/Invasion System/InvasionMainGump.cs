@@ -18,6 +18,7 @@ namespace Server.Customs.Invasion_System
         public static void Initialize()
         {
             CommandSystem.Register("InvasionSystem", AccessLevel.Administrator, InvasionMainGump_OnCommand);
+            CommandSystem.Register("INS", AccessLevel.Administrator, InvasionMainGump_OnCommand);
         }
 
         [Usage("InvasionSystem")]
