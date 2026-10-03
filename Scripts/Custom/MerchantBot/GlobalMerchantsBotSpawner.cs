@@ -13,7 +13,7 @@ namespace Server.Misc
     public static class GlobalMerchantSpawner
     {
         public static readonly string MerchantBotTypeName = "MerchantBot";
-        public const int SpacingRadius = 25; // Минимальная дистанция между ботами
+        public const int SpacingRadius = 15; // Минимальная дистанция между ботами
 
         public static void Initialize()
         {
@@ -22,6 +22,13 @@ namespace Server.Misc
             CommandSystem.Register("MS", AccessLevel.Administrator, new CommandEventHandler(OnSpawnerCommand));
 
             EventSink.WorldLoad += new WorldLoadEventHandler(OnWorldLoad);
+        }
+
+        // Simple helper to broadcast log messages to all online players.
+        private static void Log(string message)
+        {
+            // Hue 0x35 matches other informational broadcasts.
+            World.Broadcast(0x35, false, message);
         }
 
         private static void OnWorldLoad()
@@ -38,7 +45,8 @@ namespace Server.Misc
         private static void OnSpawnerCommand(CommandEventArgs e)
         {
             e.Mobile.CloseGump(typeof(GlobalMerchantSpawnerGump));
-            e.Mobile.SendGump(new GlobalMerchantSpawnerGump(e.Mobile, Map.Trammel, 15));
+            // Use a larger default amount (5,000 merchants) for initial spawn
+            e.Mobile.SendGump(new GlobalMerchantSpawnerGump(e.Mobile, Map.Trammel, 5000));
         }
 
         // Возвращает отфильтрованный список городов для конкретной карты
@@ -92,6 +100,7 @@ namespace Server.Misc
             }
             int count = toDelete.Count;
             foreach (Mobile m in toDelete) m.Delete();
+            Log($"Wiped {count} merchant bots from map {map}.");
             return count;
         }
 
@@ -110,6 +119,7 @@ namespace Server.Misc
             }
             int count = toDelete.Count;
             foreach (Mobile m in toDelete) m.Delete();
+            Log($"Wiped {count} merchant bots from town {town.Name}.");
             return count;
         }
 
@@ -155,6 +165,7 @@ namespace Server.Misc
             {
                 totalSpawned += SpawnInTownInternal(botType, r, quotas[r]);
             }
+            Log($"Global spawn on {map} completed: {totalSpawned} merchants spawned.");
             return totalSpawned;
         }
 
@@ -197,9 +208,10 @@ namespace Server.Misc
                             }
                             bot.MoveToWorld(loc, town.Map);
                             spawned++;
+                            Log($"Spawned merchant bot at {loc} in town {town.Name}.");
                             break;
                         }
-                        catch {}
+                        catch { }
                     }
                 }
             }
@@ -226,10 +238,11 @@ namespace Server.Misc
             Resizable = false;
 
             AddPage(0);
-            AddBackground(0, 0, 560, 500, 9270); // Красивый темный каменный фон
-            AddAlphaRegion(10, 10, 540, 480);
+            // Expand the Gump width to give more horizontal space for town lists and controls
+            AddBackground(0, 0, 660, 520, 9270); // Slightly taller and wider background for more space
+            AddAlphaRegion(10, 10, 640, 500);
 
-            AddHtml(20, 20, 520, 25, "<BASEFONT COLOR=#66CCFF><BIG><B>Управление Спавнером Торговых Ботов</B></BIG></BASEFONT>", false, false);
+            AddHtml(20, 20, 620, 30, "<BASEFONT COLOR=#66CCFF><BIG><B>Управление Спавнером Торговых Ботов</B></BIG></BASEFONT>", false, false);
 
             // --- БЛОК ВЫБОРА КАРТЫ ---
             AddHtml(20, 55, 120, 20, "<BASEFONT COLOR=#FFFF66>Выберите мир:</BASEFONT>", false, false);
@@ -250,126 +263,127 @@ namespace Server.Misc
             // --- БЛОК НАСТРОЙКИ КОЛИЧЕСТВА ---
             AddImageTiled(20, 120, 520, 4, 9107); // Разделительная линия
             AddHtml(20, 135, 200, 20, "<BASEFONT COLOR=#FFFF66>Количество для спавна:</BASEFONT>", false, false);
+            // Wider input box to accommodate large numbers like 5000
             AddBackground(210, 132, 80, 24, 9200);
-            AddTextEntry(215, 134, 70, 20, 0x480, 0, m_InputAmount.ToString());
+            AddTextEntry(215, 134, 80, 20, 0x480, 0, m_InputAmount.ToString());
 
             // Кнопки глобального спавна/очистки для ВСЕЙ выбранной карты
-            AddButton(310, 132, 4005, 4007, 10, GumpButtonType.Reply, 0);
-AddLabel(345, 134, 68, "Заселить весь мир");
-AddButton(310, 157, 4017, 4019, 11, GumpButtonType.Reply, 0);
-AddLabel(345, 159, 38, "Очистить весь мир");
-AddButton(20, 162, 4011, 4013, 12, GumpButtonType.Reply, 0);
-AddLabel(55, 164, 1153, "ЗАСЕЛИТЬ АБСОЛЮТНО ВСЕ МИРЫ СЕРВЕРА");
-AddImageTiled(20, 195, 520, 4, 9107); // Разделительная линия
-// --- СПИСОК ЛОКАЦИЙ / ГОРОДОВ ВЫБРАННОЙ КАРТЫ ---
-AddHtml(20, 205, 520, 20, $"Список городов в мире {m_SelectedMap.Name} (Зазор: {GlobalMerchantSpawner.SpacingRadius} табл.):", false, false);
-System.Collections.Generic.List<Region> towns = GlobalMerchantSpawner.GetTownRegions(m_SelectedMap);
-if (towns.Count == 0)
-{
-AddLabel(20, 240, 38, "В этом мире не найдено доступных городских регионов.");
-}
-else
-{
-// Таблица городов с прокруткой (используем Scrollable Текстовую область ядра)
-int listY = 235;
-for (int i = 0; i < towns.Count; i++)
-{
-if (listY > 420) break; // Защита от выхода за границы окна
-Region town = towns[i];
-AddLabel(20, listY, 995, town.Name);
-// Кнопка: Заспавнить именно в этот город
-AddButton(260, listY, 4005, 4007, 100 + i, GumpButtonType.Reply, 0);
-AddLabel(295, listY, 68, "Заселить город");
-// Кнопка: Очистить именно этот город
-AddButton(410, listY, 4017, 4019, 200 + i, GumpButtonType.Reply, 0);
-AddLabel(445, listY, 38, "Очистить");
-listY += 25;
-}
-}
-}
-public override void OnResponse(NetState sender, RelayInfo info)
-{
-Mobile from = sender.Mobile;
-if (from == null || from.AccessLevel < AccessLevel.Administrator) return;
-// Считываем введенное число из текстового поля
-TextRelay amountRelay = info.GetTextEntry(0);
-int amount = m_InputAmount;
-if (amountRelay != null)
-{
-int.TryParse(amountRelay.Text, out amount);
-if (amount <= 0) amount = 1;
-}
-// Обработка кликов по вкладкам миров
-if (info.ButtonID >= 1 && info.ButtonID <= 6)
-{
-Map[] maps = { Map.Trammel, Map.Felucca, Map.Ilshenar, Map.Malas, Map.Tokuno, Map.TerMur };
-from.SendGump(new GlobalMerchantSpawnerGump(from, maps[info.ButtonID - 1], amount));
-return;
-}
-switch (info.ButtonID)
-{
-case 10: // Заселить весь текущий мир целиком
-{
-int spawned = GlobalMerchantSpawner.DoGlobalSpawn(m_SelectedMap, amount);
-from.SendMessage(68, $"[Спавнер] В мире {m_SelectedMap.Name} распределено и заспавнено ботов: {spawned}.");
-break;
-}
-case 11: // Очистить весь текущий мир целиком
-{
-int wiped = GlobalMerchantSpawner.WipeMap(m_SelectedMap);
-from.SendMessage(38, $"[Спавнер] Из мира {m_SelectedMap.Name} удалено всех ботов: {wiped}.");
-break;
-}
-case 12: // МЕГА-КНОПКА: Заселить ВСЕ миры, включая Trammel
-{
-    int trm = GlobalMerchantSpawner.DoGlobalSpawn(Map.Trammel, amount);
-    int fel = GlobalMerchantSpawner.DoGlobalSpawn(Map.Felucca, amount);
-    int ils = GlobalMerchantSpawner.DoGlobalSpawn(Map.Ilshenar, amount);
-    int mal = GlobalMerchantSpawner.DoGlobalSpawn(Map.Malas, amount);
-    int tok = GlobalMerchantSpawner.DoGlobalSpawn(Map.Tokuno, amount);
-    int ter = GlobalMerchantSpawner.DoGlobalSpawn(Map.TerMur, amount);
+            // Move the global spawn button and its label a bit right for better spacing
+            AddButton(340, 132, 4005, 4007, 10, GumpButtonType.Reply, 0);
+            AddLabel(375, 134, 68, "Заселить весь мир");
+            AddButton(340, 157, 4017, 4019, 11, GumpButtonType.Reply, 0);
+            AddLabel(375, 159, 68, "Очистить весь мир");
+            AddButton(20, 162, 4011, 4019, 12, GumpButtonType.Reply, 0);
+            AddLabel(55, 164, 1153, "ЗАСЕЛИТЬ ВСЕ МИРЫ СЕРВЕРА");
+            AddImageTiled(20, 195, 520, 4, 9107); // Разделительная линия
+                                                  // --- СПИСОК ЛОКАЦИЙ / ГОРОДОВ ВЫБРАННОЙ КАРТЫ ---
+            AddHtml(20, 205, 620, 20, $"Список городов в мире {m_SelectedMap.Name} (Зазор: {GlobalMerchantSpawner.SpacingRadius} табл.):", false, false);
+            System.Collections.Generic.List<Region> towns = GlobalMerchantSpawner.GetTownRegions(m_SelectedMap);
+            if (towns.Count == 0)
+            {
+                AddLabel(20, 240, 38, "В этом мире не найдено доступных городских регионов.");
+            }
+            else
+            {
+                // Таблица городов с прокруткой (используем Scrollable Текстовую область ядра)
+                int listY = 235;
+                for (int i = 0; i < towns.Count; i++)
+                {
+                    if (listY > 420) break; // Защита от выхода за границы окна
+                    Region town = towns[i];
+                    AddLabel(20, listY, 995, Sanitize(town.Name));
+                    // Кнопка: Заспавнить именно в этот город
+                    AddButton(260, listY, 4005, 4007, 100 + i, GumpButtonType.Reply, 0);
+                    AddLabel(295, listY, 68, "Заселить город");
+                    // Кнопка: Очистить именно этот город
+                    AddButton(410, listY, 4017, 4019, 200 + i, GumpButtonType.Reply, 0);
+                    AddLabel(445, listY, 38, "Очистить");
+                    listY += 25;
+                }
+            }
+        }
 
-    int grandTotal = trm + fel + ils + mal + tok + ter;
+        // Handles button clicks for the merchant spawner UI.
+        public override void OnResponse(NetState sender, RelayInfo info)
+        {
+            Mobile from = sender.Mobile;
 
-    from.SendMessage(68, $"[Глобальный спавн] Операция завершена успешно!");
-    from.SendMessage(995, $"Заселено: Trammel ({trm}), Felucca ({fel}), Ilshenar ({ils}), Malas ({mal}), Tokuno ({tok}), TerMur ({ter}).");
-    from.SendMessage(68, $"Всего по всем мирам сервера успешно сгенерировано торговцев: {grandTotal}.");
-    break;
-}
+            // Update amount from the text entry if present (index 0)
+            var txt = info.GetTextEntry(0);
+            if (txt != null && int.TryParse(txt.Text, out int parsed) && parsed > 0)
+                m_InputAmount = parsed;
 
-default:
-{
-    System.Collections.Generic.List<Region> towns = GlobalMerchantSpawner.GetTownRegions(m_SelectedMap);
-// Кнопки точечного спавна в конкретный город (100 + индекс)
-if (info.ButtonID >= 100 && info.ButtonID < 200)
-{
-int index = info.ButtonID - 100;
-if (index >= 0 && index < towns.Count)
-{
-Region town = towns[index];
-int spawned = GlobalMerchantSpawner.DoTownSpawn(town, amount);
-from.SendMessage(68, $"[Спавнер] В городе {town.Name} ({m_SelectedMap.Name}) успешно размещено ботов: {spawned}.");
-}
-}
-// Кнопки точечной очистки конкретного города (200 + индекс)
-else if (info.ButtonID >= 200 && info.ButtonID < 300)
-{
-int index = info.ButtonID - 200;
-if (index >= 0 && index < towns.Count)
-{
-Region town = towns[index];
-int wiped = GlobalMerchantSpawner.WipeTown(town);
-from.SendMessage(38, $"[Спавнер] Из города {town.Name} ({m_SelectedMap.Name}) удалено ботов: {wiped}.");
-}
-}
-break;
-}
-}
-// Переоткрываем окно после любого действия, сохраняя текущий выбранный мир и число
-if (info.ButtonID != 0)
-{
-from.SendGump(new GlobalMerchantSpawnerGump(from, m_SelectedMap, amount));
-}
-}
-}
+            // Map selection buttons (IDs 1‑6)
+            if (info.ButtonID >= 1 && info.ButtonID <= 6)
+            {
+                Map[] maps = { Map.Trammel, Map.Felucca, Map.Ilshenar, Map.Malas, Map.Tokuno, Map.TerMur };
+                m_SelectedMap = maps[info.ButtonID - 1];
+                // refresh the gump with the new map selection
+                from.SendGump(new GlobalMerchantSpawnerGump(from, m_SelectedMap, m_InputAmount));
+                return;
+            }
+
+            // Global actions (buttons 10‑12)
+            Map[] allMaps = { Map.Trammel, Map.Felucca, Map.Ilshenar, Map.Malas, Map.Tokuno, Map.TerMur };
+            switch (info.ButtonID)
+            {
+                case 10: // "Заселить весь мир" – proportional global spawn on all maps
+                    foreach (Map map in allMaps)
+                        GlobalMerchantSpawner.DoGlobalSpawn(map, m_InputAmount);
+                    from.SendMessage("Global spawn completed on all maps.");
+                    break;
+                case 11: // "Очистить весь мир" – wipe all maps
+                    foreach (Map map in allMaps)
+                        GlobalMerchantSpawner.WipeMap(map);
+                    from.SendMessage("All maps wiped of merchant bots.");
+                    break;
+                case 12: // Absolute global spawn – same as 10 for now
+                    foreach (Map map in allMaps)
+                        GlobalMerchantSpawner.DoGlobalSpawn(map, m_InputAmount);
+                    from.SendMessage("Absolute global spawn completed on all maps.");
+                    break;
+                default:
+                    break;
+            }
+
+            // Town‑specific actions (spawn = 100+index, wipe = 200+index)
+            if (info.ButtonID >= 100 && info.ButtonID < 200)
+            {
+                int idx = info.ButtonID - 100;
+                var towns = GlobalMerchantSpawner.GetTownRegions(m_SelectedMap);
+                if (idx >= 0 && idx < towns.Count)
+                {
+                    var town = towns[idx];
+                    int spawned = GlobalMerchantSpawner.DoTownSpawn(town, m_InputAmount);
+                    from.SendMessage($"Spawned {spawned} merchants in {town.Name}.");
+                }
+                return;
+            }
+            else if (info.ButtonID >= 200 && info.ButtonID < 300)
+            {
+                int idx = info.ButtonID - 200;
+                var towns = GlobalMerchantSpawner.GetTownRegions(m_SelectedMap);
+                if (idx >= 0 && idx < towns.Count)
+                {
+                    var town = towns[idx];
+                    int wiped = GlobalMerchantSpawner.WipeTown(town);
+                    from.SendMessage($"Wiped {wiped} merchants from {town.Name}.");
+                }
+                return;
+            }
+        }
+        // Helper to replace non‑ASCII characters (e.g., Cyrillic) with a placeholder.
+        private static string Sanitize(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+                return text;
+            var chars = text.ToCharArray();
+            for (int i = 0; i < chars.Length; i++)
+            {
+                if (chars[i] > 127) // any non‑ASCII character
+                    chars[i] = '?';
+            }
+            return new string(chars);
+        }
+    }
 }

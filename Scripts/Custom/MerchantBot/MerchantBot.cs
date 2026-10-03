@@ -18,44 +18,14 @@ namespace Server.Mobiles
         public MerchantBot() : base(null, null)
         {
             Name = NameList.RandomName("male");
-            Title = "странствующий купец";
+            Title = "Traveling Merchant"; // ASCII title to keep VendorSearch stable
             CantWalk = true;
             this.HoldGold = 500000;
 
             DressUp();
 
-            // Создаем скрытого "виртуального" владельца для обхода проверок
-            // КРИТИЧЕСКИЙ ФИКС КРАША VENDOR SEARCH НА КИРИЛЛИЦЕ:
-            try
-            {
-                FakeMerchantOwner fakeOwner = new FakeMerchantOwner();
-
-                FieldInfo ownerField = typeof(PlayerVendor).GetField("m_Owner", BindingFlags.Instance | BindingFlags.NonPublic)
-                                       ?? typeof(PlayerVendor).GetField("<Owner>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic);
-
-                if (ownerField != null)
-                {
-                    ownerField.SetValue(this, fakeOwner);
-                }
-
-                // Силовое заполнение приватного поля m_Account у фальшивого владельца через рефлексию
-                if (fakeOwner.FakeAccountProperty != null)
-                {
-                    FieldInfo accField = typeof(Mobile).GetField("m_Account", BindingFlags.Instance | BindingFlags.NonPublic)
-                                         ?? typeof(Mobile).GetField("<Account>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic);
-                    if (accField != null)
-                    {
-                        accField.SetValue(fakeOwner, fakeOwner.FakeAccountProperty);
-                    }
-                }
-            }
-            catch {}
-
-
-            // Генерируем товар МГНОВЕННО при создании
+            // Generate initial inventory and start the update timer.
             ProcessMarketCycle();
-
-            // Настраиваем регулярный таймер
             Timer.DelayCall(UpdateInterval, UpdateInterval, new TimerCallback(ProcessMarketCycle));
         }
 
@@ -180,6 +150,13 @@ namespace Server.Mobiles
                 if (string.IsNullOrEmpty(lootItem.Name))
                     lootItem.Name = lootItem.GetType().Name;
 
+                // Resolve the "%s%" placeholder that appears in some Ultima item names when the amount > 1.
+                // Example: "gold %s%" should become "gold 50" for a stack of 50.
+                if (lootItem.Amount > 1 && lootItem.Name != null && lootItem.Name.Contains("%s%"))
+                {
+                    lootItem.Name = lootItem.Name.Replace("%s%", lootItem.Amount.ToString());
+                }
+
                 lootItem.InvalidateProperties();
                 lootItem.Weight = 0;
                 this.Backpack.DropItem(lootItem);
@@ -287,69 +264,13 @@ namespace Server.Mobiles
             int version = reader.ReadInt();
             if (this.HoldGold < 100000)
                 this.HoldGold = 500000;
-            try
-            {
-                FakeMerchantOwner fakeOwner = new FakeMerchantOwner();
-
-                FieldInfo ownerField = typeof(PlayerVendor).GetField("m_Owner", BindingFlags.Instance | BindingFlags.NonPublic)
-                                       ?? typeof(PlayerVendor).GetField("<Owner>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic);
-                if (ownerField != null)
-                {
-                    ownerField.SetValue(this, fakeOwner);
-                }
-
-                if (fakeOwner.FakeAccountProperty != null)
-                {
-                    FieldInfo accField = typeof(Mobile).GetField("m_Account", BindingFlags.Instance | BindingFlags.NonPublic)
-                                         ?? typeof(Mobile).GetField("<Account>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic);
-                    if (accField != null)
-                    {
-                        accField.SetValue(fakeOwner, fakeOwner.FakeAccountProperty);
-                    }
-                }
-            }
-            catch {}
+            // Previously used reflection to inject a fake owner for VendorSearch compatibility.
+            // This hack is no longer needed and has been removed for simplicity.
             Timer.DelayCall(TimeSpan.FromMinutes(5.0), UpdateInterval, new TimerCallback(ProcessMarketCycle));
 
 
         }
     }
 
-    // КАСТОМНЫЙ КЛАСС-ЗАГЛУШКА ДЛЯ ИДЕАЛЬНОЙ СТАБИЛЬНОСТИ
-    public class FakeMerchantOwner : PlayerMobile
-    {
-        // Переопределяем свойство аккаунта, чтобы оно возвращало пустую строку/объект при рефлексии,
-        // но никогда не выдавало системный null, от которого падает VendorSearch
-        private object m_FakeAccount;
-
-        public FakeMerchantOwner() : base()
-        {
-            Name = "Купеческая гильдия";
-
-            // Находим скрытый внутренний XML-конструктор аккаунта через рефлексию,
-            // чтобы не зависеть от публичных методов ядра ServUO
-            try
-            {
-                Type accountType = ScriptCompiler.FindTypeByName("Server.Accounting.Account", true);
-                if (accountType != null)
-                {
-                    ConstructorInfo[] ctors = accountType.GetConstructors(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
-                    foreach (ConstructorInfo ctor in ctors)
-                    {
-                        ParameterInfo[] param = ctor.GetParameters();
-                        if (param.Length == 1 && param[0].ParameterType.Name == "XmlElement")
-                        {
-                            m_FakeAccount = ctor.Invoke(new object[] { null });
-                            break;
-                        }
-                    }
-                }
-            }
-            catch {}
-        }
-
-        // Переопределяем встроенное свойство аккаунта мобилы
-        // Если поиск ServUO через рефлексию или напрямую запросит Account, мы отдадим созданный XML-объект
-        public object FakeAccountProperty => m_FakeAccount;
-    }
+    // The FakeMerchantOwner class and related reflection hacks have been removed.
 }
