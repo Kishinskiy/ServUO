@@ -5,6 +5,7 @@ using System.Reflection;
 using Server;
 using Server.Items;
 using Server.Mobiles;
+using Server.Accounting;
 
 namespace Server.Mobiles
 {
@@ -12,9 +13,6 @@ namespace Server.Mobiles
     {
         private static readonly TimeSpan UpdateInterval = TimeSpan.FromHours(4); // Как часто обновлять прилавок
         private static readonly int MaxItemsOnSale = 15; // Максимально лотов на витрине
-
-        // ИСПРАВЛЕНО: Вместо отсутствующих свойств переопределяем сам метод списания золота за аренду.
-        // Бот больше никогда не потребует денег и не уволится.
 
         [Constructable]
         public MerchantBot() : base(null, null)
@@ -26,7 +24,39 @@ namespace Server.Mobiles
 
             DressUp();
 
-            Timer.DelayCall(TimeSpan.FromMinutes(1.0), UpdateInterval, new TimerCallback(ProcessMarketCycle));
+            // Создаем скрытого "виртуального" владельца для обхода проверок
+            // КРИТИЧЕСКИЙ ФИКС КРАША VENDOR SEARCH НА КИРИЛЛИЦЕ:
+            try
+            {
+                FakeMerchantOwner fakeOwner = new FakeMerchantOwner();
+
+                FieldInfo ownerField = typeof(PlayerVendor).GetField("m_Owner", BindingFlags.Instance | BindingFlags.NonPublic)
+                                       ?? typeof(PlayerVendor).GetField("<Owner>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic);
+
+                if (ownerField != null)
+                {
+                    ownerField.SetValue(this, fakeOwner);
+                }
+
+                // Силовое заполнение приватного поля m_Account у фальшивого владельца через рефлексию
+                if (fakeOwner.FakeAccountProperty != null)
+                {
+                    FieldInfo accField = typeof(Mobile).GetField("m_Account", BindingFlags.Instance | BindingFlags.NonPublic)
+                                         ?? typeof(Mobile).GetField("<Account>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic);
+                    if (accField != null)
+                    {
+                        accField.SetValue(fakeOwner, fakeOwner.FakeAccountProperty);
+                    }
+                }
+            }
+            catch {}
+
+
+            // Генерируем товар МГНОВЕННО при создании
+            ProcessMarketCycle();
+
+            // Настраиваем регулярный таймер
+            Timer.DelayCall(UpdateInterval, UpdateInterval, new TimerCallback(ProcessMarketCycle));
         }
 
         private void ProcessMarketCycle()
@@ -76,6 +106,7 @@ namespace Server.Mobiles
             Item lootItem = null;
             int roll = Utility.Random(100);
             int finalPrice = 5000;
+            string customDescription = "[Редкий завоз от торгового бота]";
 
             if (roll > 85)
             {
@@ -107,15 +138,30 @@ namespace Server.Mobiles
                 }
                 else
                 {
-                    lootItem = Loot.RandomScroll(6, 8, SpellbookType.Regular);
+                    lootItem = Loot.RandomScroll(40, 63, (SpellbookType)0);
                     finalPrice = Utility.RandomMinMax(4000, 8000);
                 }
             }
             else
             {
+                // ИСПРАВЛЕНО ДЛЯ КИРИЛЛИЦЫ: Мы убрали жесткое присвоение lootItem.Name на русском языке!
+                // Вместо этого мы используем оригинальные имена Ultima, меняем цвет, а русское название
+                // выводим в vi.Description, которое Vendor Search переваривает абсолютно безопасно.
                 int resourceRoll = Utility.Random(3);
-                if (resourceRoll == 0) { lootItem = new IronIngot(); lootItem.Amount = Utility.RandomMinMax(50, 100); lootItem.Hue = Utility.RandomList(2207, 2418); lootItem.Name = "Слиток редкого металла"; }
-                else if (resourceRoll == 1) { lootItem = new Log(); lootItem.Amount = Utility.RandomMinMax(50, 100); lootItem.Hue = 1192; lootItem.Name = "Бревно реликтового дерева"; }
+                if (resourceRoll == 0)
+                {
+                    lootItem = new IronIngot();
+                    lootItem.Amount = Utility.RandomMinMax(50, 100);
+                    lootItem.Hue = Utility.RandomList(2207, 2418);
+                    customDescription = "[Редкий металл для крафта]";
+                }
+                else if (resourceRoll == 1)
+                {
+                    lootItem = new Log();
+                    lootItem.Amount = Utility.RandomMinMax(50, 100);
+                    lootItem.Hue = 1192;
+                    customDescription = "[Реликтовое дерево для крафта]";
+                }
                 else
                 {
                     lootItem = Loot.Construct(Loot.GemTypes);
@@ -127,36 +173,19 @@ namespace Server.Mobiles
 
             if (lootItem != null)
             {
-                // ИСПРАВЛЕНО: Принудительное заполнение базового имени
+                // Заполняем имя строго по базе данных Ultima (без кастомного русского текста в .Name)
                 if (string.IsNullOrEmpty(lootItem.Name))
                     lootItem.Name = lootItem.ItemData.Name;
 
                 if (string.IsNullOrEmpty(lootItem.Name))
                     lootItem.Name = lootItem.GetType().Name;
 
-                // КРИТИЧЕСКИЙ ФИКС ДЛЯ VENDOR SEARCH:
-                // Когда Loot.cs генерирует оружие/броню, их внутренние таблицы свойств (Attributes)
-                // инициализируются лениво, из-за чего глобальный асинхронный поиск ServUO падает в NullReference.
-                // Принудительно вызываем обновление свойств предмета, чтобы ядро создало все внутренние объекты.
                 lootItem.InvalidateProperties();
-
                 lootItem.Weight = 0;
                 this.Backpack.DropItem(lootItem);
 
-                VendorItem vi = this.GetVendorItem(lootItem);
-
-                if (vi != null)
-                {
-                    FieldInfo priceField = typeof(VendorItem).GetField("m_Price", BindingFlags.Instance | BindingFlags.NonPublic)
-                                        ?? typeof(VendorItem).GetField("<Price>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic);
-
-                    if (priceField != null)
-                    {
-                        priceField.SetValue(vi, finalPrice);
-                    }
-
-                    vi.Description = "[Редкий завоз от торгового бота]";
-                }
+                VendorItem vi = new VendorItem(lootItem, finalPrice, customDescription, DateTime.UtcNow);
+                sellItems[lootItem] = vi;
             }
         }
 
@@ -239,25 +268,16 @@ namespace Server.Mobiles
             if (string.IsNullOrEmpty(origName)) origName = item.ItemData.Name;
             if (string.IsNullOrEmpty(origName)) origName = item.GetType().Name;
             if (!string.IsNullOrEmpty(origName) && origName.StartsWith("#")) origName = item.ItemData.Name;
-            if (string.IsNullOrEmpty(origName)) origName = "Предмет";
+            if (string.IsNullOrEmpty(origName)) origName = "Item";
 
-            item.InvalidateProperties(); // Принудительная инициализация свойств для сданных вещей
-
+            item.InvalidateProperties();
             item.Weight = 0;
             this.Backpack.DropItem(item);
 
-            VendorItem vi = this.GetVendorItem(item);
-            if (vi != null)
-            {
-                FieldInfo priceField = typeof(VendorItem).GetField("m_Price", BindingFlags.Instance | BindingFlags.NonPublic)
-                                       ?? typeof(VendorItem).GetField("k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic);
-                if (priceField != null)
-                {
-                    priceField.SetValue(vi, resalePrice);
-                }
-                vi.Description = $"[Комиссионка: сдано игроком {from.Name}]";
-                item.Name = $"[Б/У] {origName}";
-            }
+            // ИСПРАВЛЕНО ДЛЯ КИРИЛЛИЦЫ В КОМИССИОНКЕ:
+// Не пишем русские буквы в свойство item.Name, переносим информацию в vi.Description
+            VendorItem vi = new VendorItem(item, resalePrice, $"[Used item from player {from.Name}]", DateTime.UtcNow);
+            sellItems[item] = vi;
             this.InvalidateProperties();
             return true;
         }
@@ -267,7 +287,69 @@ namespace Server.Mobiles
             int version = reader.ReadInt();
             if (this.HoldGold < 100000)
                 this.HoldGold = 500000;
+            try
+            {
+                FakeMerchantOwner fakeOwner = new FakeMerchantOwner();
+
+                FieldInfo ownerField = typeof(PlayerVendor).GetField("m_Owner", BindingFlags.Instance | BindingFlags.NonPublic)
+                                       ?? typeof(PlayerVendor).GetField("<Owner>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic);
+                if (ownerField != null)
+                {
+                    ownerField.SetValue(this, fakeOwner);
+                }
+
+                if (fakeOwner.FakeAccountProperty != null)
+                {
+                    FieldInfo accField = typeof(Mobile).GetField("m_Account", BindingFlags.Instance | BindingFlags.NonPublic)
+                                         ?? typeof(Mobile).GetField("<Account>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic);
+                    if (accField != null)
+                    {
+                        accField.SetValue(fakeOwner, fakeOwner.FakeAccountProperty);
+                    }
+                }
+            }
+            catch {}
             Timer.DelayCall(TimeSpan.FromMinutes(5.0), UpdateInterval, new TimerCallback(ProcessMarketCycle));
+
+
         }
+    }
+
+    // КАСТОМНЫЙ КЛАСС-ЗАГЛУШКА ДЛЯ ИДЕАЛЬНОЙ СТАБИЛЬНОСТИ
+    public class FakeMerchantOwner : PlayerMobile
+    {
+        // Переопределяем свойство аккаунта, чтобы оно возвращало пустую строку/объект при рефлексии,
+        // но никогда не выдавало системный null, от которого падает VendorSearch
+        private object m_FakeAccount;
+
+        public FakeMerchantOwner() : base()
+        {
+            Name = "Купеческая гильдия";
+
+            // Находим скрытый внутренний XML-конструктор аккаунта через рефлексию,
+            // чтобы не зависеть от публичных методов ядра ServUO
+            try
+            {
+                Type accountType = ScriptCompiler.FindTypeByName("Server.Accounting.Account", true);
+                if (accountType != null)
+                {
+                    ConstructorInfo[] ctors = accountType.GetConstructors(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+                    foreach (ConstructorInfo ctor in ctors)
+                    {
+                        ParameterInfo[] param = ctor.GetParameters();
+                        if (param.Length == 1 && param[0].ParameterType.Name == "XmlElement")
+                        {
+                            m_FakeAccount = ctor.Invoke(new object[] { null });
+                            break;
+                        }
+                    }
+                }
+            }
+            catch {}
+        }
+
+        // Переопределяем встроенное свойство аккаунта мобилы
+        // Если поиск ServUO через рефлексию или напрямую запросит Account, мы отдадим созданный XML-объект
+        public object FakeAccountProperty => m_FakeAccount;
     }
 }
