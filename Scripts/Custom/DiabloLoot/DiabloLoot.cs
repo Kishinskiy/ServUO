@@ -65,7 +65,8 @@ namespace Server.Custom.DiabloLoot
         public static string FormatName(Item item, string originalName)
         {
             string color = GetRarityColor(item);
-            return String.Format("<BASEFONT COLOR={0}>{1}</FONT>", color, originalName);
+            // Use matching BASEFONT tags for proper HTML rendering in client
+            return String.Format("<BASEFONT COLOR={0}>{1}</BASEFONT>", color, originalName);
         }
     }
 }
