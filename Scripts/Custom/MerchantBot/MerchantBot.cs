@@ -19,8 +19,9 @@ namespace Server.Mobiles
         {
             Name = NameList.RandomName("male");
             Title = "Traveling Merchant"; // ASCII title to keep VendorSearch stable
-            CantWalk = true;
+            CantWalk = false;
             this.HoldGold = 500000;
+            this.Direction = (Direction)Utility.Random(8);
 
             DressUp();
 
@@ -257,7 +258,7 @@ namespace Server.Mobiles
             this.Backpack.DropItem(item);
 
             // ИСПРАВЛЕНО ДЛЯ КИРИЛЛИЦЫ В КОМИССИОНКЕ:
-// Не пишем русские буквы в свойство item.Name, переносим информацию в vi.Description
+            // Не пишем русские буквы в свойство item.Name, переносим информацию в vi.Description
             // Create a description that shows the main properties of the sold item.
             string usedDesc = GetItemDescription(item) ?? $"[Used item from player {from.Name}]";
             VendorItem vi = new VendorItem(item, resalePrice, usedDesc, DateTime.UtcNow);
