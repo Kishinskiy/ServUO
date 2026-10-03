@@ -76,6 +76,7 @@ namespace Server.Mobiles
             Item lootItem = null;
             int roll = Utility.Random(100);
             int finalPrice = 5000;
+            // Base description – will be replaced with a detailed one per item below.
             string customDescription = "[Редкий завоз от торгового бота]";
 
             if (roll > 85)
@@ -143,15 +144,17 @@ namespace Server.Mobiles
 
             if (lootItem != null)
             {
-                // Заполняем имя строго по базе данных Ultima (без кастомного русского текста в .Name)
+                // Ensure the item has a proper display name (Ultima DB name or type name).
                 if (string.IsNullOrEmpty(lootItem.Name))
-                    lootItem.Name = lootItem.ItemData.Name;
-
-                if (string.IsNullOrEmpty(lootItem.Name))
-                    lootItem.Name = lootItem.GetType().Name;
+                {
+                    // Safely obtain Ultima name from ItemData (struct) – check the Name string directly.
+                    if (!string.IsNullOrEmpty(lootItem.ItemData.Name))
+                        lootItem.Name = lootItem.ItemData.Name;
+                    else
+                        lootItem.Name = lootItem.GetType().Name;
+                }
 
                 // Resolve the "%s%" placeholder that appears in some Ultima item names when the amount > 1.
-                // Example: "gold %s%" should become "gold 50" for a stack of 50.
                 if (lootItem.Amount > 1 && lootItem.Name != null && lootItem.Name.Contains("%s%"))
                 {
                     lootItem.Name = lootItem.Name.Replace("%s%", lootItem.Amount.ToString());
@@ -161,7 +164,9 @@ namespace Server.Mobiles
                 lootItem.Weight = 0;
                 this.Backpack.DropItem(lootItem);
 
-                VendorItem vi = new VendorItem(lootItem, finalPrice, customDescription, DateTime.UtcNow);
+                // Build a detailed description containing the main stats of the item.
+                string detailedDesc = GetItemDescription(lootItem) ?? customDescription;
+                VendorItem vi = new VendorItem(lootItem, finalPrice, detailedDesc, DateTime.UtcNow);
                 sellItems[lootItem] = vi;
             }
         }
@@ -253,7 +258,9 @@ namespace Server.Mobiles
 
             // ИСПРАВЛЕНО ДЛЯ КИРИЛЛИЦЫ В КОМИССИОНКЕ:
 // Не пишем русские буквы в свойство item.Name, переносим информацию в vi.Description
-            VendorItem vi = new VendorItem(item, resalePrice, $"[Used item from player {from.Name}]", DateTime.UtcNow);
+            // Create a description that shows the main properties of the sold item.
+            string usedDesc = GetItemDescription(item) ?? $"[Used item from player {from.Name}]";
+            VendorItem vi = new VendorItem(item, resalePrice, usedDesc, DateTime.UtcNow);
             sellItems[item] = vi;
             this.InvalidateProperties();
             return true;
@@ -269,6 +276,29 @@ namespace Server.Mobiles
             Timer.DelayCall(TimeSpan.FromMinutes(5.0), UpdateInterval, new TimerCallback(ProcessMarketCycle));
 
 
+        }
+
+        // Provides a concise tooltip description for items shown in Vendor Search.
+        private static string GetItemDescription(Item item)
+        {
+            if (item == null) return null;
+
+            if (item is BaseWeapon bw)
+                return $"Damage: {bw.MinDamage}-{bw.MaxDamage}, Speed: {bw.Speed}";
+
+            if (item is BaseArmor ba)
+                return $"Armor Rating: {ba.ArmorRating}, Durability: {ba.Durability}";
+
+            if (item is BaseJewel bj)
+                return $"Slots: {bj.MaxHitPoints}";
+
+            if (item is SpellScroll)
+                return "Spell Scroll";
+
+            if (item is TreasureMap tm)
+                return $"Treasure Map (Level {tm.Level})";
+
+            return item.Name ?? item.GetType().Name;
         }
     }
 
