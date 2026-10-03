@@ -199,23 +199,24 @@ namespace Server.Misc
 			newChar.Hue = args.Hue | 0x8000;
 
 			newChar.Hunger = 20;
+            newChar.Thirst = 20;
 
 			var young = false;
 
 			if (newChar is PlayerMobile)
 			{
 				var pm = (PlayerMobile)newChar;
-				
+
 				pm.AutoRenewInsurance = true;
 
 				var skillcap = Config.Get("PlayerCaps.SkillCap", 1000.0d) / 10;
-				
+
 				if (skillcap != 100.0)
 				{
 					for (var i = 0; i < Enum.GetNames(typeof(SkillName)).Length; ++i)
 						pm.Skills[i].Cap = skillcap;
 				}
-				
+
 				pm.Profession = args.Profession;
 
 				if (pm.IsPlayer() && pm.Account.Young && !Siege.SiegeShard)
@@ -272,7 +273,7 @@ namespace Server.Misc
 				{
 					Owner = newChar
 				};
-				
+
 				newChar.BankBox.DropItem(ticket);
 			}
 
