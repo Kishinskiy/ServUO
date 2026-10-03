@@ -1,16 +1,9 @@
-using System;
-using Server;
 using Server.Gumps;
 using Server.Mobiles;
 using Server.Network;
-using Server.Custom.SurvivalSystem;
 
 namespace Server.Custom.SurvivalSystem
 {
-    /// <summary>
-    /// Simple gump that shows a player's Hunger, Thirst and BAC values.
-    /// It is opened when the SurvivalInfoBook is double‑clicked.
-    /// </summary>
     public class SurvivalInfoGump : Gump
     {
         private readonly PlayerMobile _pm;
@@ -26,9 +19,7 @@ namespace Server.Custom.SurvivalSystem
             AddLabel(20, 20, 0x0, "Survival Information");
 
             int hunger = _pm.Hunger;
-            // Use the underlying thirst property (which reflects the currentThirst value)
-            // Retrieve the current thirst value from the core property (or cache via GetCurrentThirst)
-            int thirst = SurvivalSystem.GetThirstProperty(_pm);
+            int thirst = _pm.Thirst;
             int bac = _pm.BAC;
 
             AddLabel(20, 50, 0x0, $"Hunger: {hunger}/20");

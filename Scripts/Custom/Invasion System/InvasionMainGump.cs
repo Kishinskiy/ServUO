@@ -13,7 +13,7 @@ namespace Server.Customs.Invasion_System
         public InvasionTowns SelectedTown;
         public TownMonsterType SelectedMonster;
         public TownChampionType SelectedChamp;
-        private Timer _mStartTimer;
+        // private Timer _mStartTimer;
 
         public static void Initialize()
         {
@@ -65,7 +65,7 @@ namespace Server.Customs.Invasion_System
             {
                 y += 25;
                 if (i < 9)
-                { 
+                {
                     AddLabel(120, y, 0, Enum.GetName(typeof(InvasionTowns), i));
                     AddRadio(90, y, 208, 209, false, i + 100);
                 }

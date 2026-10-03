@@ -16,7 +16,7 @@ namespace Server.Customs.Invasion_System
            // Timer.DelayCall(TimeSpan.FromSeconds(10.0), TimeSpan.FromSeconds(60.0), GlobalSync);
         }
 
-        
+
 
         #region Private Variables
 
@@ -35,7 +35,7 @@ namespace Server.Customs.Invasion_System
         private TownChampionType _TownChampionType = TownChampionType.Barracoon;
         private InvasionTowns _InvasionTown = InvasionTowns.BuccaneersDen;
         private DateTime _StartTime;
-        private bool _AlwaysMurderer = false;
+        // private bool _AlwaysMurderer = false;
 
         private string _TownInvaded = "Moonglow";
 
@@ -78,7 +78,7 @@ namespace Server.Customs.Invasion_System
 
         #region Constructor
 
-        
+
 
         public TownInvasion(InvasionTowns town, TownMonsterType monster, TownChampionType champion, DateTime time)
         {
@@ -355,10 +355,10 @@ namespace Server.Customs.Invasion_System
 
                         // Запускаем ивент
                         obj.OnStart();
-                        
+
                         // Если в системе InvasionControl предусмотрен запуск только одного города за раз,
                         // можно поставить break; чтобы не активировать все города одновременно
-                        break; 
+                        break;
                     }
                 }
             }
