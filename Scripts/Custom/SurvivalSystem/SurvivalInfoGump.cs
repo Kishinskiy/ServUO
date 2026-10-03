@@ -3,6 +3,7 @@ using Server;
 using Server.Gumps;
 using Server.Mobiles;
 using Server.Network;
+using Server.Custom.SurvivalSystem;
 
 namespace Server.Custom.SurvivalSystem
 {
@@ -25,6 +26,8 @@ namespace Server.Custom.SurvivalSystem
             AddLabel(20, 20, 0x0, "Survival Information");
 
             int hunger = _pm.Hunger;
+            // Use the underlying thirst property (which reflects the currentThirst value)
+            // Retrieve the current thirst value from the core property (or cache via GetCurrentThirst)
             int thirst = SurvivalSystem.GetThirstProperty(_pm);
             int bac = _pm.BAC;
 

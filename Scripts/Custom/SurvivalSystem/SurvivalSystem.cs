@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using Server;
 using Server.Commands;
 using Server.Mobiles;
@@ -12,6 +13,12 @@ namespace Server.Custom.SurvivalSystem
     public static class SurvivalSystem
     {
         private static Timer m_NotifyTimer;
+        // Cache of the latest thirst value per player for quick UI lookup.
+        private static readonly ConcurrentDictionary<PlayerMobile, int> _thirstCache =
+            new ConcurrentDictionary<PlayerMobile, int>();
+        // Tracks the last time we applied the deterministic hourly thirst increase for each player.
+        private static readonly ConcurrentDictionary<PlayerMobile, DateTime> _thirstLastUpdate =
+            new ConcurrentDictionary<PlayerMobile, DateTime>();
         public static void Initialize()
         {
             CommandSystem.Register("hunger", AccessLevel.Player, new CommandEventHandler(OnHungerCommand));
@@ -36,11 +43,24 @@ namespace Server.Custom.SurvivalSystem
                 int currentBAC = pm.BAC;
                 // Serial id = pm.Serial;
 
-                if (currentThirst < 20 && Utility.RandomDouble() < 0.005)
+                // Deterministic thirst increase: every hour of real game time adds 5 thirst points.
+                // Initialise the timestamp if this is the first check for the player.
+                DateTime last = _thirstLastUpdate.GetOrAdd(pm, DateTime.UtcNow);
+                TimeSpan elapsed = DateTime.UtcNow - last;
+                if (elapsed.TotalHours >= 1.0)
                 {
-                    currentThirst++;
-                    SetThirstProperty(pm, currentThirst);
+                    int wholeHours = (int)Math.Floor(elapsed.TotalHours);
+                    int added = wholeHours * 5; // increase per hour
+                    int newThirst = Math.Min(20, currentThirst + added);
+                    if (newThirst != currentThirst)
+                    {
+                        SetThirstProperty(pm, newThirst);
+                        currentThirst = newThirst;
+                    }
+                    // Advance the stored timestamp by the processed whole hours.
+                    _thirstLastUpdate[pm] = last.AddHours(wholeHours);
                 }
+
 
                 // =========================================================================
                 // СЛОЙ 1 (ЛЕГКИЙ ГОЛОД): Активен при голоде 10 и ниже
@@ -157,7 +177,8 @@ namespace Server.Custom.SurvivalSystem
                 // =========================================================================
                 // ХАРДКОРНАЯ СИСТЕМА ДЕБАФФОВ И ПРЕДУПРЕЖДЕНИЙ О ЖАЖДЕ
                 // =========================================================================
-                if (currentThirst == 20) // ПОЛНОЕ ОБЕЗВОЖИВАНИЕ (Критическая точка)
+                // Critical dehydration occurs when thirst reaches its maximum (20).
+                if (currentThirst >= 20) // ПОЛНОЕ ОБЕЗВОЖИВАНИЕ (Критическая точка)
                 {
                     // Регистрируем маркер дебаффа жажды на 15 секунд
                     pm.AddStatMod(new StatMod(StatType.Int, "ThirstManaDebuff", 0, TimeSpan.FromSeconds(15.0)));
@@ -291,13 +312,43 @@ namespace Server.Custom.SurvivalSystem
             return 20;
         }
 
+        /// <summary>
+        /// Returns the most recent thirst value for the given player as tracked by the
+        /// survival system. This is used by UI components (e.g., SurvivalInfoGump) to
+        /// display an up‑to‑date thirst level without querying the property directly each
+        /// time. Falls back to the player’s Thirst property if the cache does not contain
+        /// an entry (e.g., before the first survival check runs).
+        /// </summary>
+        public static int GetCurrentThirst(PlayerMobile pm)
+        {
+            if (pm == null) return 0;
+            if (_thirstCache.TryGetValue(pm, out var cached))
+                return cached;
+            return GetThirstProperty(pm);
+        }
+
         private static void SetThirstProperty(PlayerMobile pm, int value)
         {
             var prop = typeof(PlayerMobile).GetProperty("Thirst");
             if (prop != null && prop.CanWrite)
             {
                 prop.SetValue(pm, value);
+                // Keep the cache in sync so UI components always see the latest value.
+                _thirstCache[pm] = value;
             }
+        }
+
+        /// <summary>
+        /// Adjusts the player's thirst by a delta (positive to increase, negative to decrease).
+        /// The resulting value is clamped between 0 and 20 and both the core property and the
+        /// internal cache are updated. Drink items can call this method with a negative delta.
+        /// </summary>
+        public static void AdjustThirst(PlayerMobile pm, int delta)
+        {
+            if (pm == null) return;
+            int current = GetThirstProperty(pm);
+            int newValue = Math.Max(0, Math.Min(20, current + delta));
+            SetThirstProperty(pm, newValue);
         }
 
         private static void OnHungerCommand(CommandEventArgs e)
