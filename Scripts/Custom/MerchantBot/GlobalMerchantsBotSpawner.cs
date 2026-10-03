@@ -27,6 +27,7 @@ namespace Server.Misc
         private static void OnWorldLoad()
         {
             // Автоматический стартовый спавн по умолчанию для всех живых миров сервера
+            DoGlobalSpawn(Map.Trammel, 15);
             DoGlobalSpawn(Map.Felucca, 15);
             DoGlobalSpawn(Map.Ilshenar, 10);
             DoGlobalSpawn(Map.Malas, 15);
@@ -225,8 +226,8 @@ namespace Server.Misc
             Resizable = false;
 
             AddPage(0);
-            AddBackground(0, 0, 560, 480, 9270); // Красивый темный каменный фон
-            AddAlphaRegion(10, 10, 540, 460);
+            AddBackground(0, 0, 560, 500, 9270); // Красивый темный каменный фон
+            AddAlphaRegion(10, 10, 540, 480);
 
             AddHtml(20, 20, 520, 25, "<BASEFONT COLOR=#66CCFF><BIG><B>Управление Спавнером Торговых Ботов</B></BIG></BASEFONT>", false, false);
 
@@ -257,7 +258,9 @@ namespace Server.Misc
 AddLabel(345, 134, 68, "Заселить весь мир");
 AddButton(310, 157, 4017, 4019, 11, GumpButtonType.Reply, 0);
 AddLabel(345, 159, 38, "Очистить весь мир");
-AddImageTiled(20, 190, 520, 4, 9107); // Разделительная линия
+AddButton(20, 162, 4011, 4013, 12, GumpButtonType.Reply, 0);
+AddLabel(55, 164, 1153, "ЗАСЕЛИТЬ АБСОЛЮТНО ВСЕ МИРЫ СЕРВЕРА");
+AddImageTiled(20, 195, 520, 4, 9107); // Разделительная линия
 // --- СПИСОК ЛОКАЦИЙ / ГОРОДОВ ВЫБРАННОЙ КАРТЫ ---
 AddHtml(20, 205, 520, 20, $"Список городов в мире {m_SelectedMap.Name} (Зазор: {GlobalMerchantSpawner.SpacingRadius} табл.):", false, false);
 System.Collections.Generic.List<Region> towns = GlobalMerchantSpawner.GetTownRegions(m_SelectedMap);
@@ -268,7 +271,7 @@ AddLabel(20, 240, 38, "В этом мире не найдено доступны
 else
 {
 // Таблица городов с прокруткой (используем Scrollable Текстовую область ядра)
-int listY = 230;
+int listY = 235;
 for (int i = 0; i < towns.Count; i++)
 {
 if (listY > 420) break; // Защита от выхода за границы окна
@@ -317,6 +320,23 @@ int wiped = GlobalMerchantSpawner.WipeMap(m_SelectedMap);
 from.SendMessage(38, $"[Спавнер] Из мира {m_SelectedMap.Name} удалено всех ботов: {wiped}.");
 break;
 }
+case 12: // МЕГА-КНОПКА: Заселить ВСЕ миры, включая Trammel
+{
+    int trm = GlobalMerchantSpawner.DoGlobalSpawn(Map.Trammel, amount);
+    int fel = GlobalMerchantSpawner.DoGlobalSpawn(Map.Felucca, amount);
+    int ils = GlobalMerchantSpawner.DoGlobalSpawn(Map.Ilshenar, amount);
+    int mal = GlobalMerchantSpawner.DoGlobalSpawn(Map.Malas, amount);
+    int tok = GlobalMerchantSpawner.DoGlobalSpawn(Map.Tokuno, amount);
+    int ter = GlobalMerchantSpawner.DoGlobalSpawn(Map.TerMur, amount);
+
+    int grandTotal = trm + fel + ils + mal + tok + ter;
+
+    from.SendMessage(68, $"[Глобальный спавн] Операция завершена успешно!");
+    from.SendMessage(995, $"Заселено: Trammel ({trm}), Felucca ({fel}), Ilshenar ({ils}), Malas ({mal}), Tokuno ({tok}), TerMur ({ter}).");
+    from.SendMessage(68, $"Всего по всем мирам сервера успешно сгенерировано торговцев: {grandTotal}.");
+    break;
+}
+
 default:
 {
     System.Collections.Generic.List<Region> towns = GlobalMerchantSpawner.GetTownRegions(m_SelectedMap);
