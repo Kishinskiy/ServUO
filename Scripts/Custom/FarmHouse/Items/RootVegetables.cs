@@ -31,9 +31,21 @@ namespace Server.Custom.Farms
             Hue = 52;
         }
 
-        public CustomPotato(Serial serial) : base(serial) { }
-        public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write(0); }
-        public override void Deserialize(GenericReader reader) { base.Deserialize(reader); reader.ReadInt(); }
+        public CustomPotato(Serial serial) : base(serial)
+        {
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            reader.ReadInt();
+        }
     }
 
     // =========================================================================
@@ -68,7 +80,8 @@ namespace Server.Custom.Farms
             }
 
             FarmRegion farmReg = (FarmRegion)reg;
-            if (farmReg.Controller != null && farmReg.Controller.Owner != from && from.AccessLevel == AccessLevel.Player)
+            if (farmReg.Controller != null && farmReg.Controller.Owner != from &&
+                from.AccessLevel == AccessLevel.Player)
             {
                 from.SendMessage("Вы не можете сажать семена на чужом поле!");
                 return;
@@ -91,6 +104,7 @@ namespace Server.Custom.Farms
                     return;
                 }
             }
+
             eable.Free();
 
             FarmVegetablePlant plant = new FarmVegetablePlant(from, m_Type);
@@ -113,12 +127,28 @@ namespace Server.Custom.Farms
         private Timer m_GrowthTimer;
         private bool m_Watered;
         private int m_DryCount; // Счетчик пропущенных поливов
-        private bool m_IsDead;  // Статус: погибло ли растение
-        [CommandProperty(AccessLevel.GameMaster)]
-        public Mobile Planter { get { return m_Planter; } }
+        private bool m_IsDead; // Статус: погибло ли растение
+
+        private int m_DaysInStage; // Сколько дней растение успешно росло на ТЕКУЩЕЙ стадии
+
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public bool IsDead { get { return m_IsDead; } set { m_IsDead = value; UpdateName(); InvalidateProperties(); } }
+        public Mobile Planter
+        {
+            get { return m_Planter; }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public bool IsDead
+        {
+            get { return m_IsDead; }
+            set
+            {
+                m_IsDead = value;
+                UpdateName();
+                InvalidateProperties();
+            }
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public bool Watered
@@ -135,7 +165,15 @@ namespace Server.Custom.Farms
         }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int Stage { get { return m_Stage; } set { m_Stage = value; InvalidateProperties(); } }
+        public int Stage
+        {
+            get { return m_Stage; }
+            set
+            {
+                m_Stage = value;
+                InvalidateProperties();
+            }
+        }
 
         public FarmVegetablePlant(Mobile planter, VegetableType type) : base(0x18E5)
         {
@@ -149,7 +187,8 @@ namespace Server.Custom.Farms
 
             UpdateName();
 
-            m_GrowthTimer = Timer.DelayCall(TimeSpan.FromSeconds(30.0), TimeSpan.FromSeconds(30.0), new TimerCallback(Grow));
+            m_GrowthTimer = Timer.DelayCall(TimeSpan.FromHours(2.0), TimeSpan.FromHours(2.0),
+                new TimerCallback(GrowPerDay));
         }
 
 
@@ -184,7 +223,109 @@ namespace Server.Custom.Farms
                 case VegetableType.Lettuce: return "Lettuce";
                 case VegetableType.Pumpkin: return "Pumpkin";
             }
+
             return "Vegetable";
+        }
+
+        private void GrowPerDay()
+        {
+            if (Deleted || m_IsDead) return;
+
+            // 1. ПРОВЕРКА НА ЗАСУХУ
+            if (!m_Watered)
+            {
+                m_DryCount++;
+
+                // Растущие фазы (0 и 1) погибают, если их не поливать 3 игровых дня подряд (6 реальных часов)
+                if (m_Stage < 2 && m_DryCount >= 3)
+                {
+                    WitherAndDie();
+                    return;
+                }
+                // Спелый плод (фаза 2) сгниет, если его забросить на 14 игровых дней (28 реальных часов)
+                else if (m_Stage == 2 && m_DryCount >= 14)
+                {
+                    WitherAndDie();
+                    return;
+                }
+
+                if (m_Planter != null && m_Stage < 2)
+                    m_Planter.SendMessage(
+                        $"Ваш урожай ({GetVegNameString()}) засыхает! Вы не полили его за эти сутки!");
+
+                UpdateName();
+                return;
+            }
+
+            // 2. РАСТЕНИЕ ПОЛИТО ЗА СУТКИ
+            m_Watered = false; // Сбрасываем полив на следующие сутки
+
+            if (m_Stage < 2)
+            {
+                m_DaysInStage++; // Увеличиваем счетчик успешных дней на текущей стадии
+
+                // Если растение успешно поливали 7 игровых дней (14 реальных часов) — оно переходит на следующую стадию!
+                if (m_DaysInStage >= 7)
+                {
+                    m_Stage++;
+                    m_DaysInStage = 0; // Сбрасываем дни для новой стадии
+
+                    if (m_Stage == 1) // Переход на 2 фазу (ботва)
+                    {
+                        ItemID = 0xCB7;
+                        if (m_VegType == VegetableType.Potato) Hue = 2411;
+                        if (m_VegType == VegetableType.Pumpkin) ItemID = 0xCB5;
+                        if (m_VegType == VegetableType.Cabbage) ItemID = 0xCB6;
+                        if (m_VegType == VegetableType.Lettuce) ItemID = 0xC70;
+
+                        if (m_Planter != null)
+                            m_Planter.SendMessage(
+                                $"Ваша грядка ({GetVegNameString()}) развилась и перешла во вторую фазу роста!");
+                    }
+                    else if (m_Stage == 2) // Полное созревание (суммарно прошло 14 дней)
+                    {
+                        switch (m_VegType)
+                        {
+                            case VegetableType.Pumpkin:
+                                ItemID = 0xC6A;
+                                Hue = 0;
+                                break;
+                            case VegetableType.Cabbage:
+                                ItemID = 0xC7B;
+                                Hue = 0;
+                                break;
+                            case VegetableType.Lettuce:
+                                ItemID = 0xC70;
+                                Hue = 0;
+                                break;
+                            case VegetableType.Carrot:
+                                ItemID = 0xCB7;
+                                Hue = 43;
+                                break;
+                            case VegetableType.Onion:
+                                ItemID = 0x1846;
+                                Hue = 0;
+                                break;
+                            case VegetableType.Potato:
+                                ItemID = 0x1846;
+                                Hue = 52;
+                                break;
+                        }
+
+                        if (m_Planter != null)
+                            m_Planter.SendMessage(
+                                $"Поздравляем! Ваш урожай ({GetVegNameString()}) полностью созрел за 2 недели!");
+                    }
+                }
+                else
+                {
+                    if (m_Planter != null)
+                        m_Planter.SendMessage(
+                            $"Прошли еще одни сутки. Ваш урожай ({GetVegNameString()}) успешно впитал воду.");
+                }
+            }
+
+            UpdateName();
         }
 
         private void Grow()
@@ -204,7 +345,8 @@ namespace Server.Custom.Farms
                 }
 
                 if (m_Planter != null)
-                    m_Planter.SendMessage($"Ваш урожай ({GetVegNameString()}) засыхает без воды! Если не полить сейчас, он погибнет!");
+                    m_Planter.SendMessage(
+                        $"Ваш урожай ({GetVegNameString()}) засыхает без воды! Если не полить сейчас, он погибнет!");
 
                 return;
             }
@@ -224,18 +366,37 @@ namespace Server.Custom.Farms
                 }
 
                 if (m_VegType == VegetableType.Potato) Hue = 2411;
-                if (m_Planter != null) m_Planter.SendMessage($"Вашие посадки ({GetVegNameString()}) впитали воду и подросли.");
+                if (m_Planter != null)
+                    m_Planter.SendMessage($"Вашие посадки ({GetVegNameString()}) впитали воду и подросли.");
             }
             else if (m_Stage == 2)
             {
                 switch (m_VegType)
                 {
-                    case VegetableType.Pumpkin: ItemID = 0xC6A; Hue = 0; break;
-                    case VegetableType.Cabbage: ItemID = 0xC7B; Hue = 0; break;
-                    case VegetableType.Lettuce: ItemID = 0xC70; Hue = 0; break;
-                    case VegetableType.Carrot:  ItemID = 0xCB7; Hue = 43; break;
-                    case VegetableType.Onion:   ItemID = 0x1846; Hue = 0; break;
-                    case VegetableType.Potato:  ItemID = 0x1846; Hue = 52; break;
+                    case VegetableType.Pumpkin:
+                        ItemID = 0xC6A;
+                        Hue = 0;
+                        break;
+                    case VegetableType.Cabbage:
+                        ItemID = 0xC7B;
+                        Hue = 0;
+                        break;
+                    case VegetableType.Lettuce:
+                        ItemID = 0xC70;
+                        Hue = 0;
+                        break;
+                    case VegetableType.Carrot:
+                        ItemID = 0xCB7;
+                        Hue = 43;
+                        break;
+                    case VegetableType.Onion:
+                        ItemID = 0x1846;
+                        Hue = 0;
+                        break;
+                    case VegetableType.Potato:
+                        ItemID = 0x1846;
+                        Hue = 52;
+                        break;
                 }
 
                 if (m_Planter != null) m_Planter.SendMessage($"Ваш урожай ({GetVegNameString()}) полностью созрел!");
@@ -252,7 +413,7 @@ namespace Server.Custom.Farms
             m_GrowthTimer.Stop(); // Процесс роста останавливается навсегда
 
             ItemID = 0x0CBC; // Превращаем куст в сухую коричневую корягу
-            Hue = 0;         // Сбрасываем цвета
+            Hue = 0; // Сбрасываем цвета
 
             UpdateName();
 
@@ -267,7 +428,8 @@ namespace Server.Custom.Farms
             {
                 // Проверка прав на регион фермы
                 Region region = Region.Find(Location, Map);
-                if (region is FarmRegion && ((FarmRegion)region).Controller != null && ((FarmRegion)region).Controller.Owner != from && from.AccessLevel == AccessLevel.Player)
+                if (region is FarmRegion && ((FarmRegion)region).Controller != null &&
+                    ((FarmRegion)region).Controller.Owner != from && from.AccessLevel == AccessLevel.Player)
                 {
                     from.SendMessage("Вы не можете трогать чужое засохшее растение.");
                     return;
@@ -285,6 +447,7 @@ namespace Server.Custom.Farms
                     dryTrash.Delete();
                     from.SendMessage("Ваш инвентарь полон, освободите место, чтобы убрать сухой куст.");
                 }
+
                 return;
             }
 
@@ -299,51 +462,70 @@ namespace Server.Custom.Farms
             if (reg is FarmRegion)
             {
                 FarmRegion farmReg = (FarmRegion)reg;
-                if (farmReg.Controller != null && farmReg.Controller.Owner != from && from.AccessLevel == AccessLevel.Player)
+                if (farmReg.Controller != null && farmReg.Controller.Owner != from &&
+                    from.AccessLevel == AccessLevel.Player)
                 {
                     from.SendMessage("Вы не можете собирать чужой урожай!");
                     return;
                 }
             }
 
-            Item vegetable;
-            string message = "";
+            // ИЗМЕНЕНО: РАНДОМНЫЙ СБОР ПЛОДОВ ОТ 1 ДО 3 ШТУК
+            int yieldCount = Utility.RandomMinMax(1, 3);
+            bool totalSuccess = true;
 
-            if (m_VegType == VegetableType.Onion) { vegetable = new Onion(); message = "спелый лук!"; }
-            else if (m_VegType == VegetableType.Cabbage) { vegetable = new Cabbage(); message = "кочан капусты!"; }
-            else if (m_VegType == VegetableType.Carrot) { vegetable = new Carrot(); message = "сочную морковь!"; }
-            else if (m_VegType == VegetableType.Lettuce) { vegetable = new Lettuce(); message = "свежий салат!"; }
-            else if (m_VegType == VegetableType.Pumpkin) { vegetable = new Pumpkin(); message = "крупную тыкву!"; }
-            else { vegetable = new CustomPotato(); message = "крупный картофель!"; }
-
-            if (from.Backpack.TryDropItem(from, vegetable, false))
+            for (int i = 0; i < yieldCount; i++)
             {
-                from.SendMessage($"Вы успешно собрали {message}");
+                Item vegetable;
+                if (m_VegType == VegetableType.Onion) vegetable = new Onion();
+                else if (m_VegType == VegetableType.Cabbage) vegetable = new Cabbage();
+                else if (m_VegType == VegetableType.Carrot) vegetable = new Carrot();
+                else if (m_VegType == VegetableType.Lettuce) vegetable = new Lettuce();
+                else if (m_VegType == VegetableType.Pumpkin) vegetable = new Pumpkin();
+                else vegetable = new CustomPotato();
+
+                if (!from.Backpack.TryDropItem(from, vegetable, false))
+                {
+                    vegetable.Delete();
+                    totalSuccess = false;
+                    break;
+                }
+            }
+
+            if (totalSuccess)
+            {
+                from.SendMessage($"Вы успешно собрали богатый урожай в количестве {yieldCount} шт.!");
                 from.PlaySound(0x13E);
                 this.Delete();
             }
             else
             {
-                vegetable.Delete();
-                from.SendMessage("Ваш инвентарь переполнен! Вы не сможете унести овощи.");
+                from.SendMessage("Часть урожая не поместилась, так как ваш инвентарь переполнен! Освободите место.");
             }
         }
 
-        public override void OnDelete() { if (m_GrowthTimer != null) m_GrowthTimer.Stop(); base.OnDelete(); }
-        public FarmVegetablePlant(Serial serial) : base(serial) { }
+        public override void OnDelete()
+        {
+            if (m_GrowthTimer != null) m_GrowthTimer.Stop();
+            base.OnDelete();
+        }
+
+        public FarmVegetablePlant(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)3); // Поднимаем версию сохранения до 3
+            writer.Write((int)4); // Поднимаем версию сохранения до 4
             writer.Write(m_Planter);
             writer.Write(m_Stage);
             writer.Write((int)m_VegType);
             writer.Write(m_Watered);
-            writer.Write(m_DryCount); // Записываем счетчик сухих циклов
-            writer.Write(m_IsDead);   // Записываем статус смерти
+            writer.Write(m_DryCount);
+            writer.Write(m_IsDead);
+            writer.Write(m_DaysInStage); // Сохраняем прожитые дни на текущей стадии
         }
-
 
         public override void Deserialize(GenericReader reader)
         {
@@ -353,20 +535,16 @@ namespace Server.Custom.Farms
             m_Stage = reader.ReadInt();
             m_VegType = (VegetableType)reader.ReadInt();
             m_Watered = reader.ReadBool();
-
-            if (version >= 3)
-            {
-                m_DryCount = reader.ReadInt();
-                m_IsDead = reader.ReadBool();
-            }
+            m_DryCount = reader.ReadInt();
+            m_IsDead = reader.ReadBool();
+            if (version >= 4)
+                m_DaysInStage = reader.ReadInt();
             else
-            {
-                m_DryCount = 0;
-                m_IsDead = false;
-            }
-// Если растение осталось живым, запускаем таймер роста обратно
-            if (!m_IsDead && m_Stage < 2)
-                m_GrowthTimer = Timer.DelayCall(TimeSpan.FromSeconds(30.0), TimeSpan.FromSeconds(30.0), new TimerCallback(Grow));
+                m_DaysInStage = 0;
+// Восстановление таймеров с шагом в 2 реальных часа (1 игровые сутки)
+            if (!m_IsDead)
+                m_GrowthTimer = Timer.DelayCall(TimeSpan.FromHours(2.0), TimeSpan.FromHours(2.0),
+                    new TimerCallback(GrowPerDay));
             UpdateName();
         }
     }
