@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Server.Items;
+using Server.Custom.Farms;
 
 namespace Server.Mobiles
 {
@@ -56,13 +57,30 @@ namespace Server.Mobiles
                 Add(new GenericBuyInfo(typeof(SheafOfHay), 2, 20, 0xF36, 0));
                 Add(new GenericBuyInfo(typeof(Hoe), 5, 20, 3897, 0));
 
-                Add(new GenericBuyInfo(typeof(Server.Custom.Farms.WateringCan), 150, 20, 0x4C52, 0)); // Лейка за 150 золотых
-                Add(new GenericBuyInfo(typeof(Server.Custom.Farms.OnionSeed), 15, 50, 0xDCF, 2417));   // Семена лука за 15 золотых
-                Add(new GenericBuyInfo(typeof(Server.Custom.Farms.FarmPotato), 15, 50, 0x1846, 52)); // Продаем сам картофель (0x1846)
-                Add(new GenericBuyInfo(typeof(Server.Custom.Farms.CabbageSeed), 15, 50, 0xDCF, 61));  // Семена капусты за 15 золотых
-                Add(new GenericBuyInfo(typeof(Server.Custom.Farms.CarrotSeed), 15, 50, 0xDCF, 43));   // Семена моркови за 15 золотых
-                Add(new GenericBuyInfo(typeof(Server.Custom.Farms.LettuceSeed), 15, 50, 0xDCF, 169)); // Семена салата за 15 золотых
-                Add(new GenericBuyInfo(typeof(Server.Custom.Farms.PumpkinSeed), 20, 50, 0xDCF, 144)); // Семена тыквы за 20 золотых
+                // =========================================================================
+                // ТОВАРЫ ДЛЯ ФЕРМЕРОВ (ИНСТРУМЕНТЫ И СЕМЕНА)
+                // =========================================================================
+                Add(new GenericBuyInfo(typeof(WateringCan), 150, 20, 0x4C52, 0)); // Лейка
+                Add(new GenericBuyInfo(typeof(EmptyPotatoSack), 10, 100, 0x0E76, 0)); // Пустой мешок
+
+                // Поштучные овощи / Семена
+                Add(new GenericBuyInfo(typeof(FarmPotato), 15, 50, 0x1846, 52));   // Картофель поштучно
+                Add(new GenericBuyInfo(typeof(OnionSeed), 15, 50, 0xDCF, 2417));   // Семена лука
+                Add(new GenericBuyInfo(typeof(CabbageSeed), 15, 50, 0xDCF, 61));  // Семена капусты
+                Add(new GenericBuyInfo(typeof(CarrotSeed), 15, 50, 0xDCF, 43));   // Семена моркови
+                Add(new GenericBuyInfo(typeof(LettuceSeed), 15, 50, 0xDCF, 169)); // Семена салата
+                Add(new GenericBuyInfo(typeof(PumpkinSeed), 20, 50, 0xDCF, 144)); // Семена тыквы
+
+                // =========================================================================
+                // ОПТОВАЯ ТОРГОВЛЯ: ИСПРАВЛЕННЫЕ МЕШКИ (FullFarmSack) ПО 200 ШТ
+                // =========================================================================
+                Add(new GenericBuyInfo("Sack of Potatoes (200)", typeof(FullFarmSack), 2500, 10, 0x0E79, 1718, new object[] { VegetableType.Potato }));
+                Add(new GenericBuyInfo("Sack of Onions (200)", typeof(FullFarmSack), 2500, 10, 0x0E79, 2417, new object[] { VegetableType.Onion }));
+                Add(new GenericBuyInfo("Sack of Cabbages (200)", typeof(FullFarmSack), 2500, 10, 0x0E79, 266, new object[] { VegetableType.Cabbage }));
+                Add(new GenericBuyInfo("Sack of Carrots (200)", typeof(FullFarmSack), 2500, 10, 0x0E79, 43, new object[] { VegetableType.Carrot }));
+                Add(new GenericBuyInfo("Sack of Lettuce (200)", typeof(FullFarmSack), 2500, 10, 0x0E79, 169, new object[] { VegetableType.Lettuce }));
+                Add(new GenericBuyInfo("Sack of Pumpkins (200)", typeof(FullFarmSack), 3500, 5, 0x0E79, 144, new object[] { VegetableType.Pumpkin }));
+
             }
         }
 
@@ -90,6 +108,22 @@ namespace Server.Mobiles
                 Add(typeof(Peach), 1);
                 Add(typeof(Pear), 1);
                 Add(typeof(SheafOfHay), 1);
+
+                // =========================================================================
+                // СКУПКА ШТУЧНЫХ ОВОЩЕЙ И КАРТОФЕЛЯ
+                // =========================================================================
+                Add(typeof(FarmPotato), 5);
+                Add(typeof(Onion), 5);
+                Add(typeof(Cabbage), 5);
+                Add(typeof(Carrot), 5);
+                Add(typeof(Lettuce), 5);
+                Add(typeof(Pumpkin), 7);
+
+                // =========================================================================
+                // ОПТОВАЯ СКУПКА: ФЕРМЕР ПРИНИМАЕТ СТРОГО ПОЛНЫЕ ЗАКРЫТЫЕ МЕШКИ!
+                // =========================================================================
+                Add(typeof(FullFarmSack), 1000);
+
             }
         }
     }
