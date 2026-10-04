@@ -58,7 +58,7 @@ namespace Server.Mobiles
 
                 Add(new GenericBuyInfo(typeof(Server.Custom.Farms.WateringCan), 150, 20, 0x4C52, 0)); // Лейка за 150 золотых
                 Add(new GenericBuyInfo(typeof(Server.Custom.Farms.OnionSeed), 15, 50, 0xDCF, 2417));   // Семена лука за 15 золотых
-                Add(new GenericBuyInfo(typeof(Server.Custom.Farms.PotatoSeed), 15, 50, 0xDCF, 52));   // Семена картошки за 15 золотых
+                Add(new GenericBuyInfo(typeof(Server.Custom.Farms.FarmPotato), 15, 50, 0x1846, 52)); // Продаем сам картофель (0x1846)
                 Add(new GenericBuyInfo(typeof(Server.Custom.Farms.CabbageSeed), 15, 50, 0xDCF, 61));  // Семена капусты за 15 золотых
                 Add(new GenericBuyInfo(typeof(Server.Custom.Farms.CarrotSeed), 15, 50, 0xDCF, 43));   // Семена моркови за 15 золотых
                 Add(new GenericBuyInfo(typeof(Server.Custom.Farms.LettuceSeed), 15, 50, 0xDCF, 169)); // Семена салата за 15 золотых

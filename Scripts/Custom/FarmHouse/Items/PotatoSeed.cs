@@ -19,6 +19,7 @@ namespace Server.Custom.Farms
             Hue = 52;
             Stackable = true;
             Amount = amount;
+            Stackable = true;
         }
 
         public override void OnDoubleClick(Mobile from)
