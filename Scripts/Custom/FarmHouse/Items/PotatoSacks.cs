@@ -36,11 +36,11 @@ namespace Server.Custom.Farms
     }
 
     // ТАРГЕТ НАПОЛНЕНИЯ ИЗ ПУСТОГО МЕШКА
-    public class  PackVegetableTarget : Target
+    public class PackVegetableTarget : Target
     {
         private EmptyPotatoSack m_EmptySack;
 
-        public  PackVegetableTarget(EmptyPotatoSack sack) : base(3, false, TargetFlags.None) { m_EmptySack = sack; }
+        public PackVegetableTarget(EmptyPotatoSack sack) : base(3, false, TargetFlags.None) { m_EmptySack = sack; }
 
         protected override void OnTarget(Mobile from, object targeted)
         {
@@ -60,142 +60,51 @@ namespace Server.Custom.Farms
             int amount = vegetable.Amount;
             if (amount <= 0) return;
 
+            // Забираем максимум 200 штук
             int toPack = Math.Min(amount, 200);
 
-            if (toPack == 200)
+            // Создаем мешок
+            FullFarmSack fullSack = new FullFarmSack(vegType, toPack);
+
+            if (from.Backpack.TryDropItem(from, fullSack, false))
             {
-                // Если засыпали СРАЗУ 200 штук — создается ПОЛНЫЙ ОПТОВЫЙ мешок
-                FullFarmSack fullSack = new FullFarmSack(vegType);
-                if (from.Backpack.TryDropItem(from, fullSack, false))
-                {
-                    if (amount > 200) vegetable.Amount -= 200; else vegetable.Delete();
-                    m_EmptySack.Consume();
-                    from.PlaySound(0x57);
-                    from.SendMessage("Вы заполнили мешок до краев! Он автоматически завязался для оптовой продажи.");
-                }
-                else fullSack.Delete();
-            }
-            else
-            {
-                // Если засыпали МЕНЬШЕ 200 — создается НЕЗАПОЛНЕННЫЙ мешок
-                UnfinishedFarmSack openSack = new UnfinishedFarmSack(vegType, toPack);
-                if (from.Backpack.TryDropItem(from, openSack, false))
-                {
+                if (amount > 200)
+                    vegetable.Amount -= 200;
+                else
                     vegetable.Delete();
-                    m_EmptySack.Consume();
-                    from.PlaySound(0x57);
-                    from.SendMessage($"Вы насыпали {toPack} шт. Овощей в мешок. Вы можете досыпать еще мышкой.");
-                }
-                else openSack.Delete();
+
+                m_EmptySack.Consume(); // Тратим пустой мешок
+                from.PlaySound(0x57); // Звук шуршания мешка
+                from.SendMessage($"Вы успешно упаковали овощи в мешок ({toPack} / 200).");
             }
+            else fullSack.Delete();
         }
     }
 
-
     // =========================================================================
-    // 2. ПРЕДМЕТ: НЕЗАПОЛНЕННЫЙ МЕШОК (ВЕНДОРЫ ЕГО НЕ СКУПАЮТ)
+    // 2. ПРЕДМЕТ: ЕДИНЫЙ УНИВЕРСАЛЬНЫЙ МЕШОК С ОВОЩАМИ
     // =========================================================================
-    public class UnfinishedFarmSack : Item
+    public class FullFarmSack : Item
     {
         private int m_Count;
         private VegetableType m_Type;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int Count { get { return m_Count; } set { m_Count = value; UpdateProps(); } }
+        public int PotatoCount { get { return m_Count; } set { m_Count = value; UpdateProps(); } }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public VegetableType Type { get { return m_Type; } set { m_Type = value; UpdateProps(); } }
 
-        public UnfinishedFarmSack(VegetableType type, int count) : base(0x0E76) // Внешний вид открытого мешка
+        // Безопасный пустой конструктор для нативной скупки ядра сервера (всегда вернет 1000gp у Farmer)
+        public FullFarmSack() : this(VegetableType.Potato, 200)
+        {
+        }
+
+        public FullFarmSack(VegetableType type, int count) : base(0x0E79) // Завязанный мешок
         {
             m_Type = type;
             m_Count = count;
-            Weight = 2.0;
-            UpdateProps();
-        }
-
-        public void UpdateProps()
-        {
-            string nameRu = FullFarmSack.GetVegNameRuStatic(m_Type);
-            Hue = FullFarmSack.GetHueStatic(m_Type);
-            Name = $"Unfinished Sack of {nameRu} ({m_Count} / 200)";
-            InvalidateProperties();
-        }
-
-        // Досыпание овощей мышкой
-        public override bool OnDragDrop(Mobile from, Item dropped)
-        {
-            object typeResult = FullFarmSack.GetTypeFromItem(dropped);
-            if (typeResult == null || (VegetableType)typeResult != m_Type)
-            {
-                from.SendMessage("Нельзя смешивать разные типы овощей!");
-                return false;
-            }
-
-            int spaceLeft = 200 - m_Count;
-            int toAdd = Math.Min(dropped.Amount, spaceLeft);
-
-            m_Count += toAdd;
-            from.PlaySound(0x57);
-
-            if (dropped.Amount > toAdd) dropped.Amount -= toAdd; else dropped.Delete();
-
-            // ПРОВЕРКА НА ТРАНСФОРМАЦИЮ: Если досыпали до 200, он превращается в Полный Оптовый Мешок!
-            if (m_Count >= 200)
-            {
-                FullFarmSack fullSack = new FullFarmSack(m_Type);
-                if (from.Backpack.TryDropItem(from, fullSack, false))
-                {
-                    from.SendMessage("Мешок заполнился и завязался! Теперь его можно выгодно продать фермеру.");
-                    this.Delete(); // Удаляем открытый незаполненный мешок
-                }
-                else fullSack.Delete();
-                return true;
-            }
-
-            UpdateProps();
-            from.SendMessage($"Вы досыпали овощи. Всего в мешке: {m_Count} / 200 шт.");
-            return true;
-        }
-
-        // Двойной клик просто возвращает все овощи и пустой мешок назад
-        public override void OnDoubleClick(Mobile from)
-        {
-            if (!IsChildOf(from.Backpack)) { from.SendLocalizedMessage(1042001); return; }
-
-            Item unpacked = FullFarmSack.CreateVegetableStatic(m_Type, m_Count);
-            EmptyPotatoSack emptySack = new EmptyPotatoSack();
-
-            if (from.Backpack.TryDropItem(from, unpacked, false))
-            {
-                if (!from.Backpack.TryDropItem(from, emptySack, false)) emptySack.MoveToWorld(from.Location, from.Map);
-                from.PlaySound(0x57);
-                from.SendMessage("Вы опустошили незаполненный мешок.");
-                this.Delete();
-            }
-            else { unpacked.Delete(); emptySack.Delete(); from.SendMessage("Рюкзак полон."); }
-        }
-
-        public override void GetProperties(ObjectPropertyList list) { base.GetProperties(list); list.Add($"Содержит: {m_Count} шт. (Незаполнен)"); }
-        public UnfinishedFarmSack(Serial serial) : base(serial) { }
-        public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write(0); writer.Write(m_Count); writer.Write((int)m_Type); }
-        public override void Deserialize(GenericReader reader) { base.Deserialize(reader); reader.ReadInt(); m_Count = reader.ReadInt(); m_Type = (VegetableType)reader.ReadInt(); UpdateProps(); }
-    }
-
-    // =========================================================================
-    // 3. ПРЕДМЕТ: ПОЛНЫЙ ОПТОВЫЙ МЕШОК (РАЗРЕШЕН ДЛЯ ПРОДАЖИ ВЕНДОРУ)
-    // =========================================================================
-    public class FullFarmSack : Item
-    {
-        private VegetableType m_Type;
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public VegetableType Type { get { return m_Type; } set { m_Type = value; UpdateProps(); } }
-
-        public FullFarmSack(VegetableType type) : base(0x0E79) // Закрытый мешок
-        {
-            m_Type = type;
-            Weight = 5.0;
+            Weight = 5.0; // Лёгкий вес мешка для экономии места
             UpdateProps();
         }
 
@@ -203,31 +112,114 @@ namespace Server.Custom.Farms
         {
             string nameRu = GetVegNameRuStatic(m_Type);
             Hue = GetHueStatic(m_Type);
-            Name = $"Sack of {nameRu} (200 / 200) [Oпт]";
+
+            // Если мешок заполнен не до конца, клиент покажет его реальный статус, но класс останется неизменным!
+            if (m_Count < 200)
+                Name = $"Sack of {nameRu} ({m_Count} / 200) [Открыт]";
+            else
+                Name = $"Sack of {nameRu} ({m_Count} / 200) [Опт]";
+
             InvalidateProperties();
         }
 
-        // Развязывание полного мешка: достает порцию в 24 шт. И превращает остаток в Незаполненный мешок!
-        public override void OnDoubleClick(Mobile from)
+        // КЛАССИЧЕСКИЙ DRAG-DROP: Позволяет досыпать овощи сверху мышечкой
+        public override bool OnDragDrop(Mobile from, Item dropped)
         {
-            if (!IsChildOf(from.Backpack)) { from.SendLocalizedMessage(1042001); return; }
-
-            Item portionItem = CreateVegetableStatic(m_Type, 24);
-
-            if (from.Backpack.TryDropItem(from, portionItem, false))
+            if (m_Count >= 200)
             {
-                // Развязали оптовый мешок -> получили 24 овоща и открытый мешок с остатком 176 шт.
-                UnfinishedFarmSack openSack = new UnfinishedFarmSack(m_Type, 176);
-                if (!from.Backpack.TryDropItem(from, openSack, false)) openSack.MoveToWorld(from.Location, from.Map);
-
-                from.PlaySound(0x57);
-                from.SendMessage("Вы открыли оптовый мешок и достали первую порцию из 24 шт.");
-                this.Delete(); // Удаляем закрытый оптовый мешок
+                from.SendMessage("Этот мешок уже забит до отказа (200/200)!");
+                return false; // Возвращаем false — предмет просто вернется игроку под мышку
             }
-            else { portionItem.Delete(); from.SendMessage("Рюкзак полон."); }
+
+            object typeResult = GetTypeFromItem(dropped);
+            if (typeResult == null || (VegetableType)typeResult != m_Type)
+            {
+                from.SendMessage("Нельзя смешивать разные типы овощей в одном мешке!");
+                return false;
+            }
+
+            // Вычисляем, сколько свободного места осталось в мешке
+            int spaceLeft = 200 - m_Count;
+
+            // Сколько реально заберем из брошенного стака
+            int toAdd = Math.Min(dropped.Amount, spaceLeft);
+
+            m_Count += toAdd;
+            from.PlaySound(0x57); // Звук шуршания
+
+            // Если в брошенном стаке предметов БОЛЬШЕ, чем вместил мешок
+            if (dropped.Amount > toAdd)
+            {
+                // Уменьшаем количество в стаке на то число, что мы забрали
+                dropped.Amount -= toAdd;
+
+                // ВАЖНО: Принудительно заставляем сервер перерисовать остаток стака
+                // и безопасно закинуть его обратно в бэкпак игрока! Это защищает от исчезновения.
+                from.Backpack.DropItem(dropped);
+
+                from.SendMessage($"Вы досыпали овощи до максимума (200/200). Остаток стака ({dropped.Amount} шт.) вернулся в ваш рюкзак.");
+            }
+            else
+            {
+                // Если стак поместился целиком — просто удаляем его из мира
+                dropped.Delete();
+                from.SendMessage($"Вы успешно досыпали овощи в мешок. Всего внутри: {m_Count} / 200 шт.");
+            }
+
+            UpdateProps();
+            return true; // Подтверждаем серверу, что транзакция успешна
         }
 
-        // --- СТАТИЧЕСКИЕ ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ДЛЯ ОБОИХ КЛАССОВ ---
+        // ИСПРАВЛЕНО: Убран капризный TryDropItem, заменен на нативный DropItem для идеального порционного извлечения
+        public override void OnDoubleClick(Mobile from)
+        {
+            if (!IsChildOf(from.Backpack))
+            {
+                from.SendLocalizedMessage(1042001);
+                return;
+            }
+
+            if (m_Count <= 0)
+            {
+                this.Delete();
+                return;
+            }
+
+            // Проверяем лимит веса рюкзака перед извлечением порции
+            if (from.Backpack.Weight + 5.0 > from.Backpack.MaxWeight)
+            {
+                from.SendMessage("Ваш рюкзак слишком тяжелый, чтобы доставать овощи!");
+                return;
+            }
+
+            // Достаем порцию в 24 штуки (или остаток, если меньше 24)
+            int portion = Math.Min(24, m_Count);
+
+            Item unpackedItem = CreateVegetableStatic(m_Type, portion);
+
+            // ИСПРАВЛЕННЫЙ ВБРОС: DropItem сам красиво досылает цифры в уже существующий стак в рюкзаке!
+            from.Backpack.DropItem(unpackedItem);
+
+            m_Count -= portion;
+            from.PlaySound(0x57);
+
+            // Если мешок полностью опустел
+            if (m_Count <= 0)
+            {
+                EmptyPotatoSack emptySack = new EmptyPotatoSack();
+                from.Backpack.DropItem(emptySack); // Возвращаем пустой многоразовый мешок
+
+                from.SendMessage($"Вы достали последние {portion} шт. овощей. Мешок опустел.");
+                this.Delete(); // Удаляем использованную тару
+            }
+            else
+            {
+                UpdateProps();
+                from.SendMessage($"Вы достали {portion} шт. из мешка. Осталось: {m_Count} шт.");
+            }
+        }
+
+        // --- СТАТИЧЕСКИЕ ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ---
         public static object GetTypeFromItem(Item item)
         {
             if (item is FarmPotato) return VegetableType.Potato;
@@ -238,6 +230,7 @@ namespace Server.Custom.Farms
             if (item is Pumpkin) return VegetableType.Pumpkin;
             return null;
         }
+
         public static string GetVegNameRuStatic(VegetableType type)
         {
             switch (type) {
@@ -250,6 +243,7 @@ namespace Server.Custom.Farms
             }
             return "Vegetables";
         }
+
         public static int GetHueStatic(VegetableType type)
         {
             switch (type) {
@@ -262,6 +256,7 @@ namespace Server.Custom.Farms
             }
             return 0;
         }
+
         public static Item CreateVegetableStatic(VegetableType type, int count)
         {
             Item veg;
@@ -276,10 +271,10 @@ namespace Server.Custom.Farms
             veg.Amount = count;
             return veg;
         }
-        public override void GetProperties(ObjectPropertyList list) { base.GetProperties(list); list.Add("Содержит: 200 шт. (Полный опт)"); }
+
+        public override void GetProperties(ObjectPropertyList list) { base.GetProperties(list); list.Add($"Содержит: {m_Count} шт."); }
         public FullFarmSack(Serial serial) : base(serial) { }
-        public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write(0); writer.Write((int)m_Type); }
-        public override void Deserialize(GenericReader reader) { base.Deserialize(reader); int version = reader.ReadInt(); m_Type = (VegetableType)reader.ReadInt(); UpdateProps(); }
+        public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write(0); writer.Write(m_Count); writer.Write((int)m_Type); }
+        public override void Deserialize(GenericReader reader) { base.Deserialize(reader); int version = reader.ReadInt(); m_Count = reader.ReadInt(); m_Type = (VegetableType)reader.ReadInt(); UpdateProps(); }
     }
 }
-
