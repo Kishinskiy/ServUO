@@ -2,14 +2,14 @@ using System;
 using System.Collections.Generic;
 using Server.Items;
 
-namespace Server.Mobiles 
-{ 
-    public class SBFarmer : SBInfo 
-    { 
+namespace Server.Mobiles
+{
+    public class SBFarmer : SBInfo
+    {
         private readonly List<GenericBuyInfo> m_BuyInfo = new InternalBuyInfo();
         private readonly IShopSellInfo m_SellInfo = new InternalSellInfo();
-        public SBFarmer() 
-        { 
+        public SBFarmer()
+        {
         }
 
         public override IShopSellInfo SellInfo
@@ -27,9 +27,9 @@ namespace Server.Mobiles
             }
         }
 
-        public class InternalBuyInfo : List<GenericBuyInfo> 
-        { 
-            public InternalBuyInfo() 
+        public class InternalBuyInfo : List<GenericBuyInfo>
+        {
+            public InternalBuyInfo()
             {
                 Add(new GenericBuyInfo("1031235", typeof(FreshGinger), 505, 10, 11235, 0));
                 Add(new GenericBuyInfo(typeof(Cabbage), 5, 20, 0xC7B, 0, true));
@@ -55,13 +55,21 @@ namespace Server.Mobiles
                 Add(new GenericBuyInfo(typeof(Apple), 3, 20, 0x9D0, 0, true));
                 Add(new GenericBuyInfo(typeof(SheafOfHay), 2, 20, 0xF36, 0));
                 Add(new GenericBuyInfo(typeof(Hoe), 5, 20, 3897, 0));
+
+                Add(new GenericBuyInfo(typeof(Server.Custom.Farms.WateringCan), 150, 20, 0x4C52, 0)); // Лейка за 150 золотых
+                Add(new GenericBuyInfo(typeof(Server.Custom.Farms.OnionSeed), 15, 50, 0xDCF, 2417));   // Семена лука за 15 золотых
+                Add(new GenericBuyInfo(typeof(Server.Custom.Farms.PotatoSeed), 15, 50, 0xDCF, 52));   // Семена картошки за 15 золотых
+                Add(new GenericBuyInfo(typeof(Server.Custom.Farms.CabbageSeed), 15, 50, 0xDCF, 61));  // Семена капусты за 15 золотых
+                Add(new GenericBuyInfo(typeof(Server.Custom.Farms.CarrotSeed), 15, 50, 0xDCF, 43));   // Семена моркови за 15 золотых
+                Add(new GenericBuyInfo(typeof(Server.Custom.Farms.LettuceSeed), 15, 50, 0xDCF, 169)); // Семена салата за 15 золотых
+                Add(new GenericBuyInfo(typeof(Server.Custom.Farms.PumpkinSeed), 20, 50, 0xDCF, 144)); // Семена тыквы за 20 золотых
             }
         }
 
-        public class InternalSellInfo : GenericSellInfo 
-        { 
-            public InternalSellInfo() 
-            { 
+        public class InternalSellInfo : GenericSellInfo
+        {
+            public InternalSellInfo()
+            {
                 Add(typeof(Pitcher), 5);
                 Add(typeof(Eggs), 1);
                 Add(typeof(Apple), 1);
