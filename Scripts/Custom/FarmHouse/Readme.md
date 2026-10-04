@@ -21,3 +21,29 @@ public override void GenerateLoot()
 1. Откройте файл 📂 Scripts/Misc/Loot.cs.
 2. Найдите там массивы лута (например, MiddlingLoot или LowLoot).
 3. Добавьте в конец списка типов ваш новый класс: typeof( Server.Custom.Farms.FarmSeedBag ).
+
+
+
+пример как добавил я 
+
+
+```c#
+
+private static readonly Type[] m_MLResources =
+{
+    typeof(BlueDiamond), typeof(DarkSapphire), typeof(EcruCitrine), typeof(FireRuby), typeof(PerfectEmerald), typeof(Turquoise), typeof(WhitePearl), typeof(BrilliantAmber),
+    typeof(LuminescentFungi), typeof(BarkFragment), typeof(SwitchItem), typeof(ParasiticPlant), 
+    typeof(Server.Custom.Farms.FarmSeedBag)
+};
+```
+
+Для регуляроного луда добавит так
+
+```c#
+private static readonly Type[] m_RegTypes = new[]
+		{
+			typeof(BlackPearl), typeof(Bloodmoss), typeof(Garlic), typeof(Ginseng), typeof(MandrakeRoot), typeof(Nightshade),
+			typeof(SulfurousAsh), typeof(SpidersSilk),
+            typeof(Server.Custom.Farms.FarmSeedBag) // <-- Можно дописать его прямо сюда!
+		};
+```
