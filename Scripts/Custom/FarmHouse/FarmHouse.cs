@@ -94,6 +94,7 @@ namespace Server.Custom.Farms
             Movable = false;
             Name = "Farmer's Field Sign";
 
+
             // Вызываем постройку мгновенно
             Timer.DelayCall(TimeSpan.FromSeconds(0.1), new TimerCallback(BuildFarm));
         }
@@ -116,7 +117,8 @@ namespace Server.Custom.Farms
             }
 
             // Ставим пугало в верхний правый угол грядок (внутри поля)
-            SpawnPart(0x1E1F, 2, -2, 0);
+            // SpawnPart(0x1E1F, 2, -2, 0);
+
 
             // СМЕЩАЕМ ТАБЛИЧКУ К ЮЖНОМУ КРАЮ:
             // Переносим саму табличку на границу поля (на 3 клетки на юг от центра), чтобы она не торчала посреди грядок
@@ -228,9 +230,9 @@ namespace Server.Custom.Farms
             {
                 if (!Deleted && Map != null && Map != Map.Internal)
                 {
-                    // Восстанавливаем приватную зону региона с учетом смещения таблички
-                    Point3D min = new Point3D(X - 5, Y - 8, Z - 100);
-                    Point3D max = new Point3D(X + 5, Y + 2, Z + 100);
+                    // Восстанавливаем приватную зону региона забора
+                    Point3D min = new Point3D(X - 6, Y - 6, Z - 100);
+                    Point3D max = new Point3D(X + 6, Y + 6, Z + 100);
                     Rectangle3D area3D = new Rectangle3D(min, max);
 
                     m_Region = new FarmRegion(this, Map, area3D);
@@ -255,6 +257,127 @@ namespace Server.Custom.Farms
         public override bool AllowHousing(Mobile from, Point3D p)
         {
             return false;
+        }
+    }
+
+    // 4. ПРЕДМЕТ: СЕКЦИЯ ЗАБОРЧИКА ДЛЯ САМОСТОЯТЕЛЬНОЙ УСТАНОВКИ
+    public class FarmFenceItem : Item
+    {
+        [Constructable]
+        public FarmFenceItem() : base(0x844) // Базовая графика горизонтального забора
+        {
+            Name = "Farm Fence Section";
+            Weight = 2.0;
+        }
+
+        public override void OnDoubleClick(Mobile from)
+        {
+            if (!IsChildOf(from.Backpack))
+            {
+                from.SendLocalizedMessage(1042001); // Предмет должен быть в паке
+                return;
+            }
+
+            // Проверяем, находится ли игрок вообще на ферме
+            Region reg = Region.Find(from.Location, from.Map);
+            if (!(reg is FarmRegion))
+            {
+                from.SendMessage("Этот забор можно ставить только на территории вашей фермы!");
+                return;
+            }
+
+            FarmRegion farmReg = reg as FarmRegion;
+            if (farmReg.Controller != null && farmReg.Controller.Owner != from && from.AccessLevel == AccessLevel.Player)
+            {
+                from.SendMessage("Вы не можете строить на чужой ферме!");
+                return;
+            }
+
+            from.SendMessage("Выберите место на земле внутри вашей фермы, чтобы поставить забор.");
+            from.Target = new FencePlacementTarget(this);
+        }
+
+        public FarmFenceItem(Serial serial) : base(serial) { }
+        public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write(0); }
+        public override void Deserialize(GenericReader reader) { base.Deserialize(reader); reader.ReadInt(); }
+    }
+
+    // ТАРГЕТ РАЗМЕЩЕНИЯ ЗАБОРА
+    public class FencePlacementTarget : Target
+    {
+        private FarmFenceItem m_FenceDeed;
+
+        public FencePlacementTarget(FarmFenceItem deed) : base(4, true, TargetFlags.None)
+        {
+            m_FenceDeed = deed;
+        }
+
+        protected override void OnTarget(Mobile from, object targeted)
+        {
+            if (m_FenceDeed == null || m_FenceDeed.Deleted || !m_FenceDeed.IsChildOf(from.Backpack))
+                return;
+
+            IPoint3D p = targeted as IPoint3D;
+            if (p == null) return;
+
+            Point3D loc = new Point3D(p.X, p.Y, p.Z);
+            Map map = from.Map;
+
+            if (map == null || map == Map.Internal) return;
+
+            // Проверяем, что точка клика находится строго внутри региона фермы
+            Region reg = Region.Find(loc, map);
+            if (!(reg is FarmRegion))
+            {
+                from.SendMessage("Забор можно ставить только в границах фермерского поля!");
+                return;
+            }
+
+            FarmRegion farmReg = reg as FarmRegion;
+            // Проверяем права собственности на регион
+            if (farmReg.Controller != null && farmReg.Controller.Owner != from && from.AccessLevel == AccessLevel.Player)
+            {
+                from.SendMessage("Это чужая ферма, вы не имеете права здесь строить.");
+                return;
+            }
+
+            // УМНАЯ СИСТЕМА ПОВОРОТА:
+            // Определяем, куда смотрит игрок в момент клика.
+            // Если он смотрит на Север или Юг — ставим горизонтальный забор.
+            // Если смотрит на Запад или Восток — ставим вертикальный.
+            int fenceItemID = 0x844; // Дефолт (горизонтальный)
+
+            if (from.Direction == Direction.West || from.Direction == Direction.East ||
+                from.Direction == Direction.Left || from.Direction == Direction.Right)
+            {
+                fenceItemID = 0x845; // Вертикальный
+            }
+
+            // Спавним забор как капитальную постройку
+            Static fence = new Static(fenceItemID);
+            fence.MoveToWorld(loc, map);
+            fence.Movable = false; // Чтобы его нельзя было утащить
+            fence.Name = "Farm Fence";
+
+            // Позволяем игроку в будущем свернуть этот забор обратно, если он передумает!
+            // Для этого вешаем на него контекстное меню или просто разрешаем хозяину фермы удалить его топором/командой.
+            // Чтобы сервер не забыл этот забор, привяжем его к контроллеру фермы
+            if (farmReg.Controller != null)
+            {
+                // Нам нужно добавить этот предмет в список удаления фермы, но так как список приватный,
+                // мы можем просто разрешить игрокам разбивать его инструментом.
+                // Для простоты — этот забор теперь вечная часть декора фермы.
+            }
+
+            m_FenceDeed.Consume(); // Тратим одну секцию забора из пака
+            from.SendMessage("Забор успешно установлен!");
+
+            // Автоматически даем следующий прицел, чтобы можно было быстро строить стену кликами!
+            if (from.Backpack.FindItemByType(typeof(FarmFenceItem)) != null)
+            {
+                from.SendMessage("Выберите следующее место для установки секции.");
+                from.Target = new FencePlacementTarget((FarmFenceItem)from.Backpack.FindItemByType(typeof(FarmFenceItem)));
+            }
         }
     }
 }
