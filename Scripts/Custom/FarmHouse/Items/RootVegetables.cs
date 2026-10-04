@@ -112,26 +112,39 @@ namespace Server.Custom.Farms
         private VegetableType m_VegType;
         private Timer m_GrowthTimer;
         private bool m_Watered;
-
+        private int m_DryCount; // Счетчик пропущенных поливов
+        private bool m_IsDead;  // Статус: погибло ли растение
         [CommandProperty(AccessLevel.GameMaster)]
         public Mobile Planter { get { return m_Planter; } }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public bool IsDead { get { return m_IsDead; } set { m_IsDead = value; UpdateName(); InvalidateProperties(); } }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public bool Watered
         {
             get { return m_Watered; }
-            set { m_Watered = value; UpdateName(); InvalidateProperties(); }
+            set
+            {
+                if (m_IsDead) return; // Мертвое растение поливать бесполезно
+                m_Watered = value;
+                if (m_Watered) m_DryCount = 0; // Сбрасываем счетчик засухи при успешном поливе
+                UpdateName();
+                InvalidateProperties();
+            }
         }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public int Stage { get { return m_Stage; } set { m_Stage = value; InvalidateProperties(); } }
 
-        public FarmVegetablePlant(Mobile planter, VegetableType type) : base(0x18E5) // Старт: росток
+        public FarmVegetablePlant(Mobile planter, VegetableType type) : base(0x18E5)
         {
             m_Planter = planter;
             m_VegType = type;
             m_Stage = 0;
             m_Watered = false;
+            m_DryCount = 0;
+            m_IsDead = false;
             Movable = false;
 
             UpdateName();
@@ -139,8 +152,15 @@ namespace Server.Custom.Farms
             m_GrowthTimer = Timer.DelayCall(TimeSpan.FromSeconds(30.0), TimeSpan.FromSeconds(30.0), new TimerCallback(Grow));
         }
 
+
         public void UpdateName()
         {
+            if (m_IsDead)
+            {
+                Name = "Засохшее погибшее растение (Завяло)";
+                return;
+            }
+
             string baseName = GetVegNameString();
 
             if (m_Stage == 0) Name = $"{baseName} Plant (Phase 1)";
@@ -169,45 +189,53 @@ namespace Server.Custom.Farms
 
         private void Grow()
         {
-            if (Deleted) return;
+            if (Deleted || m_IsDead) return;
 
+            // ЗЕМЛЯ СУХАЯ: Включаем логику увядания
             if (!m_Watered)
             {
-                if (m_Planter != null && Utility.RandomDouble() < 0.2)
-                    m_Planter.SendMessage($"Ваш урожай ({GetVegNameString()}) остановился в росте, грядку нужно полить!");
+                m_DryCount++; // Увеличиваем счетчик засухи
+
+                // На 3-й пропущенный цикл полива растение окончательно засыхает и превращается в мусор
+                if (m_DryCount >= 3)
+                {
+                    WitherAndDie();
+                    return;
+                }
+
+                if (m_Planter != null)
+                    m_Planter.SendMessage($"Ваш урожай ({GetVegNameString()}) засыхает без воды! Если не полить сейчас, он погибнет!");
+
                 return;
             }
 
+            // ЗЕМЛЯ ПОЛИТА: Растем дальше
             m_Stage++;
             m_Watered = false;
 
             if (m_Stage == 1)
             {
-                // Фаза 2: Настройка внешнего вида ботвы/куста для каждого типа
                 switch (m_VegType)
                 {
-                    case VegetableType.Pumpkin: ItemID = 0xCB5; break; // Куст тыквы
-                    case VegetableType.Cabbage: ItemID = 0xCB6; break; // Куст капусты
-                    case VegetableType.Lettuce: ItemID = 0xC70; break; // Листья салата
-                    default: ItemID = 0xCB7; break;                    // Ботва для моркови/картофеля/лука
+                    case VegetableType.Pumpkin: ItemID = 0xCB5; break;
+                    case VegetableType.Cabbage: ItemID = 0xCB6; break;
+                    case VegetableType.Lettuce: ItemID = 0xC70; break;
+                    default: ItemID = 0xCB7; break;
                 }
 
-                // Индивидуальные цвета ботвы
                 if (m_VegType == VegetableType.Potato) Hue = 2411;
-
-                if (m_Planter != null) m_Planter.SendMessage($"Ваши посадки ({GetVegNameString()}) впитали воду и подросли.");
+                if (m_Planter != null) m_Planter.SendMessage($"Вашие посадки ({GetVegNameString()}) впитали воду и подросли.");
             }
             else if (m_Stage == 2)
             {
-                // Фаза 3: Финальный спелый вид плода на грядке
                 switch (m_VegType)
                 {
-                    case VegetableType.Pumpkin: ItemID = 0xC6A; Hue = 0; break;  // Большая спелая тыква
-                    case VegetableType.Cabbage: ItemID = 0xC7B; Hue = 0; break;  // Спелый кочан капусты
-                    case VegetableType.Lettuce: ItemID = 0xC70; Hue = 0; break;  // Пышный кочан салата
-                    case VegetableType.Carrot:  ItemID = 0xCB7; Hue = 43; break; // Морковная ботва (сама морковь под землей, подсветим Hue)
-                    case VegetableType.Onion:   ItemID = 0x1846; Hue = 0; break;  // Луковица
-                    case VegetableType.Potato:  ItemID = 0x1846; Hue = 52; break; // Картофельный клубень
+                    case VegetableType.Pumpkin: ItemID = 0xC6A; Hue = 0; break;
+                    case VegetableType.Cabbage: ItemID = 0xC7B; Hue = 0; break;
+                    case VegetableType.Lettuce: ItemID = 0xC70; Hue = 0; break;
+                    case VegetableType.Carrot:  ItemID = 0xCB7; Hue = 43; break;
+                    case VegetableType.Onion:   ItemID = 0x1846; Hue = 0; break;
+                    case VegetableType.Potato:  ItemID = 0x1846; Hue = 52; break;
                 }
 
                 if (m_Planter != null) m_Planter.SendMessage($"Ваш урожай ({GetVegNameString()}) полностью созрел!");
@@ -217,8 +245,50 @@ namespace Server.Custom.Farms
             UpdateName();
         }
 
+        // МЕТОД ГИБЕЛИ РАСТЕНИЯ
+        private void WitherAndDie()
+        {
+            m_IsDead = true;
+            m_GrowthTimer.Stop(); // Процесс роста останавливается навсегда
+
+            ItemID = 0x0CBC; // Превращаем куст в сухую коричневую корягу
+            Hue = 0;         // Сбрасываем цвета
+
+            UpdateName();
+
+            if (m_Planter != null)
+                m_Planter.SendMessage("Один из ваших кустов на ферме полностью засох и погиб из-за нехватки воды.");
+        }
+
         public override void OnDoubleClick(Mobile from)
         {
+            // ПРОВЕРКА: Если растение мертвое, даем игроку очистить грядку и получить хворост
+            if (m_IsDead)
+            {
+                // Проверка прав на регион фермы
+                Region region = Region.Find(Location, Map);
+                if (region is FarmRegion && ((FarmRegion)region).Controller != null && ((FarmRegion)region).Controller.Owner != from && from.AccessLevel == AccessLevel.Player)
+                {
+                    from.SendMessage("Вы не можете трогать чужое засохшее растение.");
+                    return;
+                }
+
+                Kindling dryTrash = new Kindling(); // Хворост для костра (идеальный мусор)
+                if (from.Backpack.TryDropItem(from, dryTrash, false))
+                {
+                    from.SendMessage("Вы выдернули засохший куст и выбросили сухие ветки в инвентарь.");
+                    from.PlaySound(0x13E);
+                    this.Delete(); // Очищаем грядку
+                }
+                else
+                {
+                    dryTrash.Delete();
+                    from.SendMessage("Ваш инвентарь полон, освободите место, чтобы убрать сухой куст.");
+                }
+                return;
+            }
+
+            // Дальше идет стандартный оригинальный код сбора живых овощей...
             if (m_Stage < 2)
             {
                 from.SendMessage("Это растение еще не созрело. Ему нужно время.");
@@ -236,7 +306,6 @@ namespace Server.Custom.Farms
                 }
             }
 
-            // ИСПРАВЛЕНО ДЛЯ C# 7.3: Выдача нативного или кастомного плода через if-else
             Item vegetable;
             string message = "";
 
@@ -261,18 +330,20 @@ namespace Server.Custom.Farms
         }
 
         public override void OnDelete() { if (m_GrowthTimer != null) m_GrowthTimer.Stop(); base.OnDelete(); }
-
         public FarmVegetablePlant(Serial serial) : base(serial) { }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)2);
+            writer.Write((int)3); // Поднимаем версию сохранения до 3
             writer.Write(m_Planter);
             writer.Write(m_Stage);
             writer.Write((int)m_VegType);
             writer.Write(m_Watered);
+            writer.Write(m_DryCount); // Записываем счетчик сухих циклов
+            writer.Write(m_IsDead);   // Записываем статус смерти
         }
+
 
         public override void Deserialize(GenericReader reader)
         {
@@ -281,9 +352,20 @@ namespace Server.Custom.Farms
             m_Planter = reader.ReadMobile();
             m_Stage = reader.ReadInt();
             m_VegType = (VegetableType)reader.ReadInt();
-            if (version >= 2) m_Watered = reader.ReadBool();
-            else m_Watered = true;
-            if (m_Stage < 2)
+            m_Watered = reader.ReadBool();
+
+            if (version >= 3)
+            {
+                m_DryCount = reader.ReadInt();
+                m_IsDead = reader.ReadBool();
+            }
+            else
+            {
+                m_DryCount = 0;
+                m_IsDead = false;
+            }
+// Если растение осталось живым, запускаем таймер роста обратно
+            if (!m_IsDead && m_Stage < 2)
                 m_GrowthTimer = Timer.DelayCall(TimeSpan.FromSeconds(30.0), TimeSpan.FromSeconds(30.0), new TimerCallback(Grow));
             UpdateName();
         }
