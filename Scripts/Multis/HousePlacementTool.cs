@@ -35,14 +35,14 @@ namespace Server.Items
             if (IsChildOf(from.Backpack))
             {
                 if (from.Map == Map.TerMur && !Server.Engines.Points.PointsSystem.QueensLoyalty.IsNoble(from))
-                {                    
+                {
                     from.SendLocalizedMessage(1113713); // You must rise to the rank of noble in the eyes of the Gargoyle Queen before her majesty will allow you to build a house in her lands.
                     return;
                 }
 
                 from.SendGump(new HousePlacementCategoryGump(this, from));
             }
-                
+
             else
                 from.SendLocalizedMessage(1042001); // That must be in your pack for you to use it.
         }
@@ -87,15 +87,15 @@ namespace Server.Items
 
             AddPage(0);
 
-            AddBackground(0, 0, 270, 170, 5054);
+            AddBackground(0, 0, 270, 190, 5054);
 
-            AddImageTiled(10, 10, 250, 150, 2624);
-            AddAlphaRegion(10, 10, 250, 150);
+            AddImageTiled(10, 10, 250, 170, 2624);
+            AddAlphaRegion(10, 10, 250, 170);
 
             AddHtmlLocalized(10, 10, 250, 20, 1060239, LabelColor, false, false); // <CENTER>HOUSE PLACEMENT TOOL</CENTER>
 
-            AddButton(10, 130, 4017, 4019, 0, GumpButtonType.Reply, 0);
-            AddHtmlLocalized(45, 130, 150, 20, 3000363, LabelColor, false, false); // Close
+            AddButton(10, 150, 4017, 4019, 0, GumpButtonType.Reply, 0);
+            AddHtmlLocalized(45, 150, 150, 20, 3000363, LabelColor, false, false); // Close
 
             AddPage(1);
 
@@ -112,6 +112,9 @@ namespace Server.Items
             {
                 AddButton(10, 100, 4005, 4007, 4, GumpButtonType.Reply, 0);
                 AddHtmlLocalized(45, 100, 200, 20, 1158540, LabelColor, false, false); // Custom House Contest
+                //CustomFarms
+                AddButton(10, 120, 4005, 4007, 5, GumpButtonType.Reply, 0);
+                AddHtml(45, 120, 200, 20, $"<BASEFONT COLOR=#7FFF>Player Farms</BASEFONT>", false, false);
             }
         }
 
@@ -143,6 +146,11 @@ namespace Server.Items
                         {
                             m_From.SendGump(new HousePlacementListGump(m_Tool, m_From, HousePlacementEntry.CustomHouseContest));
                         }
+                        break;
+                    }
+                case 5: // Farm House Contest
+                    {
+                        m_From.SendGump(new HousePlacementListGump(m_Tool, m_From, HousePlacementEntry.FarmFoundations));
                         break;
                     }
             }
@@ -536,6 +544,21 @@ namespace Server.Items
             new HousePlacementEntry(typeof(HouseFoundation), 1060384,	2119,	1059,	2437,	1218,	42,	187000, 0,	10,	0,	0x147B)// 18x18 3-Story Customizable House
         };
 
+        private static readonly HousePlacementEntry[] m_FarmFoundations = new HousePlacementEntry[]
+        {
+            new HousePlacementEntry(
+                typeof(Server.Custom.Farms.CustomFarmController), // Наш тип фермы
+                1011303,                                          // Cliloc текстовой заглушки имени
+                2100, 1050,                                       // Лимиты в меню
+                300, 5,                                           // Локдауны
+                42,                                               // Срок распада
+                50000,                                            // Цена (50,000 gp)
+                0, 0, 0,                                          // Смещения осей X, Y, Z
+                0x13EC                                            // ВАЖНО: Заменили 0x006A на 0x13EC (ID пустого плоского фундамента 7x7)
+            ),
+        };
+
+
         private static Hashtable m_Table;
         private readonly Type m_Type;
         private readonly int m_Description;
@@ -581,6 +604,7 @@ namespace Server.Items
             FillTable(m_TwoStoryFoundations);
             FillTable(m_ThreeStoryFoundations);
             FillTable(m_CustomHouseContest);
+            FillTable(m_FarmFoundations);
         }
 
         public static HousePlacementEntry[] HousesEJ
@@ -617,6 +641,14 @@ namespace Server.Items
             get
             {
                 return m_CustomHouseContest;
+            }
+        }
+
+        public static HousePlacementEntry[] FarmFoundations
+        {
+            get
+            {
+                return m_FarmFoundations;
             }
         }
 
@@ -713,6 +745,17 @@ namespace Server.Items
         {
             try
             {
+                if (m_Type == typeof(Server.Custom.Farms.CustomFarmController))
+                {
+                    // Если игрок выбрал ферму, мы спавним наш контроллер прямо на месте клика
+                    // (Поскольку метод должен вернуть BaseHouse, мы создадим контроллер, а вернем null,
+                    // чтобы стандартный код создания фундаментов прервался, так как мы уже всё построили сами)
+
+                    // Но так как координаты клика находятся в методе PlacementWarning_Callback,
+                    // самый чистый способ — просто зарегистрировать в m_FarmFoundations тип существующего маленького дома,
+                    // а в OnPlacement подменить его.
+                }
+
                 object[] args;
 
                 if (m_Type == typeof(HouseFoundation))
@@ -770,6 +813,42 @@ namespace Server.Items
             {
                 case HousePlacementResult.Valid:
                     {
+                        if (m_MultiID == 0x13EC)
+                        {
+                            if (from.AccessLevel >= AccessLevel.GameMaster)
+                            {
+                                from.SendMessage("{0} gold would have been withdrawn from your bank if you were not a GM.", m_Cost.ToString());
+                            }
+                            else
+                            {
+                                // Проверяем золото в банке и списываем его
+                                if (!Banker.Withdraw(from, m_Cost, true))
+                                {
+                                    from.SendLocalizedMessage(1060646); // Сообщение "Недостаточно средств"
+                                    return;
+                                }
+                            }
+
+                            // Создаем нашу настоящую ферму ровно в центре указанной точки
+                            Server.Custom.Farms.CustomFarmController farm = new Server.Custom.Farms.CustomFarmController(from);
+                            farm.MoveToWorld(center, map);
+
+                            // Смещаем сторонние предметы/игроков, если они мешали строительству
+                            for (int i = 0; i < toMove.Count; ++i)
+                            {
+                                object o = toMove[i];
+                                Point3D banLoc = new Point3D(center.X, center.Y + 6, center.Z);
+
+                                if (o is Mobile)
+                                    ((Mobile)o).Location = banLoc;
+                                else if (o is Item)
+                                    ((Item)o).Location = banLoc;
+                            }
+
+                            from.SendMessage("Вы успешно обустроили фермерское поле!");
+                            return; // Выходим, чтобы ядро не создавало стандартный фундамент дома
+                        }
+
                         if (from.AccessLevel > AccessLevel.Player || BaseHouse.CheckAccountHouseLimit(from))
                         {
                             BaseHouse house = ConstructHouse(from);
@@ -903,12 +982,12 @@ namespace Server.Items
                         /* You are about to place a new house.
                         * Placing this house will condemn any and all of your other houses that you may have.
                         * All of your houses on all shards will be affected.
-                        * 
+                        *
                         * In addition, you will not be able to place another house or have one transferred to you for one (1) real-life week.
-                        * 
+                        *
                         * Once you accept these terms, these effects cannot be reversed.
                         * Re-deeding or transferring your new house will not uncondemn your other house(s) nor will the one week timer be removed.
-                        * 
+                        *
                         * If you are absolutely certain you wish to proceed, click the button next to OKAY below.
                         * If you do not wish to trade for this house, click CANCEL.
                         */
@@ -1088,7 +1167,15 @@ namespace Server.Items
                 int lockdowns = (int)(entry.Lockdowns * BaseHouse.GlobalBonusStorageScalar);
 
                 AddButton(10, y, 4005, 4007, 1 + i, GumpButtonType.Reply, 0);
-                AddHtmlLocalized(50, y, 225, 20, entry.Description, LabelColor, false, false);
+                // Проверяем тип на наш новый класс контроллера фермы
+                if (entry.Type == typeof(Server.Custom.Farms.CustomFarmController))
+                {
+                    AddHtml(50, y, 225, 20, "<BASEFONT COLOR=#7FFF>Custom Farm Field</BASEFONT>", false, false);
+                }
+                else
+                {
+                    AddHtmlLocalized(50, y, 225, 20, entry.Description, LabelColor, false, false);
+                }
                 AddLabel(275, y, LabelHue, storage.ToString());
                 AddLabel(350, y, LabelHue, lockdowns.ToString());
                 AddLabel(425, y, LabelHue, entry.Cost.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("en-US")));
