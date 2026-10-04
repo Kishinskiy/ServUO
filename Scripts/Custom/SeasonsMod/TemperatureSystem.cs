@@ -30,19 +30,32 @@ namespace Server.Custom.Seasons
             PlayerMobile pm = e.Mobile as PlayerMobile;
             if (pm != null)
             {
-                // При логине принудительно сбрасываем любые ограничения скорости клиента,
-                // если игрок заходит не зимой или в безопасную зону
-                if (pm.Map != Map.Trammel && pm.Map != Map.Felucca || pm.Map.Season != 3 || IsInDoors(pm) || IsNearHeatSource(pm) || IsWarmlyDressed(pm))
+                // Сброс всех ограничений при логине в безопасных условиях
+                if (pm.Map != Map.Trammel && pm.Map != Map.Felucca)
                 {
                     pm.SendSpeedControl(SpeedControlType.Disable);
+                    return;
                 }
-                else if (pm.Map.Season == 3 && !IsWarmlyDressed(pm))
+
+                // Логика для Зимы
+                if (pm.Map.Season == 3)
                 {
-                    // Если зашел сразу на мороз без куртки — активируем дебаф
-                    ApplyFreezeDebuff(pm);
+                    if (IsInDoors(pm) || IsNearHeatSource(pm) || IsWarmlyDressed(pm))
+                        pm.SendSpeedControl(SpeedControlType.Disable);
+                    else
+                        ApplyFreezeDebuff(pm);
+                }
+                // Логика для Лета
+                else if (pm.Map.Season == 1)
+                {
+                    if (IsWarmlyDressed(pm) && !IsInDoors(pm))
+                        ApplySummerDebuff(pm);
+                    else
+                        RemoveSummerDebuff(pm);
                 }
             }
         }
+
 
         private static void CheckPlayersTemperature()
         {
@@ -59,6 +72,10 @@ namespace Server.Custom.Seasons
                 if (pm.Map.Season == 3) // Зима
                 {
                     HandleWinterEffects(pm);
+                }
+                else if (pm.Map.Season == 1) // Лето
+                {
+                    HandleSummerEffects(pm);
                 }
             }
         }
@@ -223,6 +240,75 @@ namespace Server.Custom.Seasons
                 pm.SendSpeedControl(SpeedControlType.Disable);
 
                 pm.SendMessage(0x5D, "Тепло возвращается к вам, обморожение отступило.");
+            }
+        }
+
+        // Список игроков с активным перегревом
+        private static List<Mobile> m_OverheatedPlayers = new List<Mobile>();
+
+        private static void HandleSummerEffects(PlayerMobile pm)
+        {
+            // В помещениях (магазинах, тавернах, домах) работает тень, там не перегреешься
+            if (IsInDoors(pm))
+            {
+                RemoveSummerDebuff(pm);
+                return;
+            }
+
+            // Проверяем, надеты ли на игрока теплые зимние вещи летом
+            bool wearingWinterClothes = IsWarmlyDressed(pm);
+
+            if (wearingWinterClothes)
+            {
+                pm.SendMessage(0x26, "Вам невыносимо жарко в зимней одежде! Вы перегреваетесь.");
+
+                ApplySummerDebuff(pm);
+
+                // Летом от жары в первую очередь уходит Mana (от усталости мозга) и Stamina
+                if (pm.Stam > 15)
+                {
+                    pm.Stam -= Utility.RandomMinMax(8, 15);
+                }
+                if (pm.Mana > 10)
+                {
+                    pm.Mana -= Utility.RandomMinMax(3, 7);
+                }
+                else if (pm.Stam <= 15)
+                {
+                    // Если выносливость на пределе, игрок получает тепловой удар (урон здоровью)
+                    pm.Damage(Utility.RandomMinMax(4, 9));
+                    pm.PlaySound(pm.Female ? 0x31B : 0x42B); // Звук тяжелого вздоха/хрипа
+                }
+            }
+            else
+            {
+                // Игрок одет по-летнему — снимаем дебафф
+                RemoveSummerDebuff(pm);
+            }
+        }
+
+        private static void ApplySummerDebuff(PlayerMobile pm)
+        {
+            if (!m_OverheatedPlayers.Contains(pm))
+            {
+                m_OverheatedPlayers.Add(pm);
+
+                // Используем BuffIcon.MortalStrike (красная иконка дебаффа, которая 100% есть в ServUO 0.57)
+                // Передаем Cliloc 1075647 (или любой другой ID негативного эффекта)
+                BuffInfo.AddBuff(pm, new BuffInfo(BuffIcon.MortalStrike, 1075647, 1075647, "Тепловой удар! Вы изнываете от жажды и жары. Снимите теплую одежду."));
+            }
+        }
+
+        private static void RemoveSummerDebuff(PlayerMobile pm)
+        {
+            if (m_OverheatedPlayers.Contains(pm))
+            {
+                m_OverheatedPlayers.Remove(pm);
+
+                // Удаляем иконку дебаффа с панели
+                BuffInfo.RemoveBuff(pm, BuffIcon.MortalStrike);
+
+                pm.SendMessage(0x5D, "Прохлада приносит облегчение, ваше самочувствие улучшилось.");
             }
         }
     }
