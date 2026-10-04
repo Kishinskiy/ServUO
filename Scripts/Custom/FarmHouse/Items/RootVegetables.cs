@@ -38,6 +38,13 @@ namespace Server.Custom.Farms
             Amount = amount;
         }
 
+        protected override void OnAmountChange(int oldValue)
+        {
+            base.OnAmountChange(oldValue);
+
+            InvalidateProperties(); // Обновляем описание при наведении
+            Delta(ItemDelta.Update); // Принудительно заставляем клиент перерисовать стопку с цифрой количества
+        }
 
         // НОВОЕ: Двойной клик по картофелине позволяет посадить её в землю!
         public override void OnDoubleClick(Mobile from)
@@ -54,7 +61,7 @@ namespace Server.Custom.Farms
             from.Target = new FarmVegetableTarget(this, VegetableType.Potato);
         }
 
-        
+
         public FarmPotato(Serial serial) : base(serial)
         {
         }
