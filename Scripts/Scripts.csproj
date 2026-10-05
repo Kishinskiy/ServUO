@@ -30,5 +30,9 @@
 	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="System.Data.DataSetExtensions" Version="4.5.0" />
+        <PackageReference Include="System.Data.SQLite" Version="1.0.119" />
+	</ItemGroup>
+	<ItemGroup>
+	  <Folder Include="Custom\GameBotAI\" />
 	</ItemGroup>
 </Project>

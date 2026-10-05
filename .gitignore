@@ -41,5 +41,6 @@
 *.DotSettings.user
 *.ini
 
-!/Data/*
+/Data
 !/bin/rosyln/*
+/Config

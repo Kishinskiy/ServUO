@@ -179,7 +179,8 @@ namespace Server
         private static readonly Type[] m_MLResources =
 {
             typeof(BlueDiamond), typeof(DarkSapphire), typeof(EcruCitrine), typeof(FireRuby), typeof(PerfectEmerald), typeof(Turquoise), typeof(WhitePearl), typeof(BrilliantAmber),
-            typeof(LuminescentFungi), typeof(BarkFragment), typeof(SwitchItem), typeof(ParasiticPlant), 
+            typeof(LuminescentFungi), typeof(BarkFragment), typeof(SwitchItem), typeof(ParasiticPlant),
+            typeof(Server.Custom.Farms.FarmSeedBag)
         };
 
         public static Type[] MLResources { get { return m_MLResources; } }
@@ -786,7 +787,7 @@ namespace Server
             if (Core.SA && isStygian)
             {
                 return Construct(
-                    
+
                     m_SAWeaponTypes,
                     m_AosWeaponTypes,
                     m_WeaponTypes,
@@ -809,7 +810,7 @@ namespace Server
             if (Core.ML && isMondain)
             {
                 return Construct(
-                    
+
                     m_MLWeaponTypes,
                     m_AosWeaponTypes,
                     m_WeaponTypes,
@@ -829,7 +830,7 @@ namespace Server
             if (Core.SE && inTokuno)
             {
                 return Construct(
-                    
+
                     m_SEWeaponTypes,
                     m_AosWeaponTypes,
                     m_WeaponTypes,
@@ -849,7 +850,7 @@ namespace Server
             if (Core.AOS)
             {
                 return Construct(
-                    
+
                     m_AosWeaponTypes,
                     m_WeaponTypes,
                     m_AosRangedWeaponTypes,

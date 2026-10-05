@@ -6200,6 +6200,7 @@ namespace Server.Items
                 else
                     list.Add(1152281 + ((int)m_ItemPower - 9));
             }
+
         }
 
         public bool CanShowPoisonCharges()
