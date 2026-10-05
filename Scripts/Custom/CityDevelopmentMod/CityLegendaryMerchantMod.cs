@@ -32,6 +32,27 @@ namespace Server.Custom.CityDevelopment
 
             // Таймер самоликвидации (проверка склада каждые 10 секунд)
             Timer.DelayCall(TimeSpan.FromSeconds(10.0), TimeSpan.FromSeconds(10.0), new TimerCallback(CheckStockAndCleanup));
+
+            // ДОБАВЛЕНО: Купец стоит в городе максимум 4 часа. Если не раскупили — он уходит, уступая место новому каравану!
+            Timer.DelayCall(TimeSpan.FromHours(4.0), new TimerCallback(LeaveTownDueToNoSales));
+        }
+
+        // Метод ухода по истечении времени
+        private void LeaveTownDueToNoSales()
+        {
+            if (this.Deleted) return;
+
+            PublicOverheadMessage(Network.MessageType.Regular, 0x35, false, "Торговля в этом городе идет вяло... Я отправляюсь в другой регион. До встречи, честные господа!");
+            
+            // Чисто удаляем предметы из его сумки, чтобы они не забивали память сервера
+            if (this.Backpack != null)
+            {
+                List<Item> toDelete = new List<Item>();
+                foreach (Item item in this.Backpack.Items) toDelete.Add(item);
+                foreach (Item item in toDelete) item.Delete();
+            }
+
+            Timer.DelayCall(TimeSpan.FromSeconds(2.0), () => this.Delete());
         }
 
         private void DressUp()
