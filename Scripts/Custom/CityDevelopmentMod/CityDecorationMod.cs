@@ -11,27 +11,31 @@ namespace Server.Custom.CityDevelopment
     {
         public static void Initialize() { }
 
-        // Метод поиска центра города (общий для спавна и удаления)
+        // ИСПРАВЛЕНО: Карта теперь определяется динамически, а не прибита к Felucca
         private static Point3D FindCityCenter(Town town, out Map map)
         {
-            map = Map.Felucca;
+            // По умолчанию ставим карту, но будем её перезаписывать при нахождении
+            map = Map.Trammel; 
+
+            // 1. Ищем фракционные или городские камни во всех мирах
             foreach (Item item in World.Items.Values)
             {
                 if (item != null && !item.Deleted && item.Map != null && item.Map != Map.Internal)
                 {
                     string typeName = item.GetType().Name.ToLower();
-                    if (typeName.Contains("factionstone") || typeName.Contains("townstone"))
+                    if (typeName.Contains("factionstone") || typeName.Contains("townstone") || typeName.Contains("citystone"))
                     {
                         Region itemRegion = Region.Find(item.Location, item.Map);
                         if (Town.FromRegion(itemRegion) == town)
                         {
-                            map = item.Map;
+                            map = item.Map; // Передаем карту, где реально стоит этот камень
                             return item.Location;
                         }
                     }
                 }
             }
 
+            // 2. Резервный поиск по глашатаю (TownHerald)
             foreach (Mobile m in World.Mobiles.Values)
             {
                 if (m != null && !m.Deleted && m.Map != null && m.Map != Map.Internal && m is BaseVendor)
@@ -78,7 +82,6 @@ namespace Server.Custom.CityDevelopment
             }
         }
 
-        // МЕТОД ОЧИСТКИ ДЕКОРАЦИЙ ПРИ УПАДКЕ ГОРОДА
         public static void RemoveTownDecoration(Town town, int levelToDestroy)
         {
             Map map;
@@ -86,27 +89,23 @@ namespace Server.Custom.CityDevelopment
 
             if (center == Point3D.Zero) return;
 
-            // Включаем глухой грустный звук разрушения статики на площади
-            Effects.PlaySound(center, map, 0x11D);
+            Effects.PlaySound(center, map, 0x11D); // Звук падения уровня
 
-            // Собираем список ID предметов, которые были привязаны к разрушаемому уровню
             List<int> targetIDs = new List<int>();
             switch (levelToDestroy)
             {
-                case 2: targetIDs.Add(0x1567); break; // Флаги
-                case 3: targetIDs.Add(0x1851); targetIDs.Add(0x1852); break; // Клумбы
-                case 4: targetIDs.Add(0x15A5); break; // Статуя
-                case 5: targetIDs.Add(0x1F2A); targetIDs.Add(0x1F2B); targetIDs.Add(0x1F2C); break; // Части фонтана
+                case 2: targetIDs.Add(0x1567); break; 
+                case 3: targetIDs.Add(0x1851); targetIDs.Add(0x1852); break; 
+                case 4: targetIDs.Add(0x15A5); break; 
+                case 5: targetIDs.Add(0x1F2A); targetIDs.Add(0x1F2B); targetIDs.Add(0x1F2C); break; 
             }
 
-            // Находим и удаляем эти предметы в радиусе 10 клеток от центра города
             List<Item> toDelete = new List<Item>();
             IPooledEnumerable eable = map.GetItemsInRange(center, 10);
             foreach (Item item in eable)
             {
                 if (item != null && !item.Deleted && targetIDs.Contains(item.ItemID))
                 {
-                    // Дополнительно проверяем, что этот заспавненный предмет находится в регионе увядающего города
                     Region itemRegion = Region.Find(item.Location, map);
                     if (Town.FromRegion(itemRegion) == town && !item.Movable)
                     {
@@ -116,7 +115,6 @@ namespace Server.Custom.CityDevelopment
             }
             eable.Free();
 
-            // Безопасно стираем статику из мира ServUO
             foreach (Item item in toDelete)
             {
                 item.Delete();

@@ -11,23 +11,20 @@ namespace Server.Custom.CityDevelopment
     {
         public static void Initialize()
         {
-            // Регистрация новых ГМ-команд на сервере
             CommandSystem.Register("SetCityLevel", AccessLevel.GameMaster, new CommandEventHandler(SetCityLevel_OnCommand));
             CommandSystem.Register("AddCityPoints", AccessLevel.GameMaster, new CommandEventHandler(AddCityPoints_OnCommand));
             CommandSystem.Register("ResetCity", AccessLevel.GameMaster, new CommandEventHandler(ResetCity_OnCommand));
         }
 
-        // 1. КОМАНДА: УСТАНОВИТЬ УРОВЕНЬ ГОРОДА [SetCityLevel <1-5>
         private static void SetCityLevel_OnCommand(CommandEventArgs e)
         {
             Mobile from = e.Mobile;
             if (from == null) return;
 
-            // Определяем город по региону, в котором стоит ГМ
             Town town = Town.FromRegion(from.Region);
             if (town == null)
             {
-                from.SendMessage(0x22, "Вы должны находиться в черте официального фракционного города!");
+                from.SendMessage(0x22, "Вы должны находиться в черте официального города!");
                 return;
             }
 
@@ -45,18 +42,14 @@ namespace Server.Custom.CityDevelopment
             }
 
             string townName = town.ToString();
-            CityProgress progress = CityDevelopmentMod.GetCityProfile(from.Region.Name);
+            CityProgress progress = CityDevelopmentMod.GetCityProfile(townName);
 
             if (progress != null)
             {
                 progress.Level = targetLevel;
                 progress.CurrentSupplies = 0.0;
-
-                // Пересчитываем планку требований под новый уровень (25.0 * 2 за каждый уровень)
                 progress.RequiredSupplies = 25.0 * Math.Pow(2.0, targetLevel - 1);
 
-                // Напрямую через рефлексию/вызов метода основного мода обновляем налог в ядре ServUO
-                // Используем приватный метод через дублирование логики, чтобы не ломать инкапсуляцию
                 int baseTax = 2;
                 switch (targetLevel)
                 {
@@ -68,17 +61,13 @@ namespace Server.Custom.CityDevelopment
                 }
                 town.Tax = baseTax;
 
-                // Вызываем декоратор для спавна объектов этого уровня
                 CityDecorationMod.DecorateTown(town, targetLevel);
 
                 from.SendMessage(88, $"Успешно! Город {townName} переведен на Уровень {targetLevel}. Официальный налог: +{town.Tax}%.");
-
-                string globalMsg = $"[Экономика] Губернатор назначил новое величие городу {townName}! Достигнут {targetLevel} уровень развития.";
-                CommandHandlers.BroadcastMessage(AccessLevel.Player, 0x35, globalMsg);
+                CommandHandlers.BroadcastMessage(AccessLevel.Player, 0x35, $"[Экономика] Назначено новое величие городу {townName}! Достигнут {targetLevel} уровень развития.");
             }
         }
 
-        // 2. КОМАНДА: ДОБАВИТЬ ОЧКИ БЛАГОСОСТОЯНИЯ [AddCityPoints <дробное число>
         private static void AddCityPoints_OnCommand(CommandEventArgs e)
         {
             Mobile from = e.Mobile;
@@ -93,13 +82,13 @@ namespace Server.Custom.CityDevelopment
 
             if (e.Length < 1)
             {
-                from.SendMessage(0x22, "Использование: [AddCityPoints <количество> (например: [AddCityPoints 5.50)");
+                from.SendMessage(0x22, "Использование: [AddCityPoints <количество>");
                 return;
             }
 
             double pointsToAdd = e.GetDouble(0);
             string townName = town.ToString();
-            CityProgress progress = CityDevelopmentMod.GetCityProfile(from.Region.Name);
+            CityProgress progress = CityDevelopmentMod.GetCityProfile(townName);
 
             if (progress != null)
             {
@@ -108,7 +97,6 @@ namespace Server.Custom.CityDevelopment
 
                 from.SendMessage(88, $"Вы изменили очки благосостояния {townName} на {pointsToAdd:F2}. Теперь: {progress.CurrentSupplies:F2} / {progress.RequiredSupplies:F2}");
 
-                // Проверяем, не привело ли ручное добавление очков к апу города
                 if (progress.CurrentSupplies >= progress.RequiredSupplies && progress.Level < 5)
                 {
                     progress.Level++;
@@ -127,12 +115,11 @@ namespace Server.Custom.CityDevelopment
                     town.Tax = baseTax;
 
                     CityDecorationMod.DecorateTown(town, progress.Level);
-                    CommandHandlers.BroadcastMessage(AccessLevel.Player, 0x35, $"[Экономика] Город {townName} развился до {progress.Level} уровня благодаря вливаниям капитала!");
+                    CommandHandlers.BroadcastMessage(AccessLevel.Player, 0x35, $"[Экономика] Город {townName} развился до {progress.Level} уровня!");
                 }
             }
         }
 
-        // 3. КОМАНДА: ПОЛНЫЙ СБРОС ГОРОДА [ResetCity
         private static void ResetCity_OnCommand(CommandEventArgs e)
         {
             Mobile from = e.Mobile;
@@ -146,16 +133,16 @@ namespace Server.Custom.CityDevelopment
             }
 
             string townName = town.ToString();
-            CityProgress progress = CityDevelopmentMod.GetCityProfile(from.Region.Name);
+            CityProgress progress = CityDevelopmentMod.GetCityProfile(townName);
 
             if (progress != null)
             {
                 progress.Level = 1;
                 progress.CurrentSupplies = 0.0;
                 progress.RequiredSupplies = 25.0;
-                town.Tax = 2; // Возвращаем базовый налог 2%
+                town.Tax = 2;
 
-                from.SendMessage(0x22, $"Внимание: Весь экономический прогресс города {townName} полностью сброшен на начальный этап. Налог возвращен к 2%.");
+                from.SendMessage(0x22, $"Внимание: Весь экономический прогресс города {townName} полностью сброшен.");
             }
         }
     }

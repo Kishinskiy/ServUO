@@ -32,8 +32,6 @@ namespace Server.Custom.CityDevelopment
             EventSink.Shutdown += (e) => Save();
             EventSink.ServerStarted += new ServerStartedEventHandler(Load);
 
-            // ЗАПУСК МЕХАНИКИ УПАДКА: Таймер срабатывает каждые 24 часа real-time
-            // Для тестов вы можете изменить TimeSpan.FromDays(1.0) на TimeSpan.FromMinutes(1.0)
             Timer.DelayCall(TimeSpan.FromDays(1.0), TimeSpan.FromDays(1.0), new TimerCallback(ProcessCityDecay));
         }
 
@@ -93,12 +91,9 @@ namespace Server.Custom.CityDevelopment
 
                     ApplyDynamicTaxToBaseSystem(destinationTown, progress.Level);
                     CityDecorationMod.DecorateTown(destinationTown, progress.Level);
+                    CityLegendaryMerchantMod.CheckMerchantSpawn(destinationTown, progress.Level);
 
-                    Server.Custom.CityDevelopment.CityLegendaryMerchantMod.CheckMerchantSpawn(destinationTown, progress.Level);
-
-
-                    string globalMsg = $"[Экономика] Город {townName} развился до {progress.Level} уровня благодаря поставкам купцов!";
-                    CommandHandlers.BroadcastMessage(AccessLevel.Player, 0x35, globalMsg);
+                    CommandHandlers.BroadcastMessage(AccessLevel.Player, 0x35, $"[Экономика] Город {townName} развился до {progress.Level} уровня благодаря поставкам купцов!");
                 }
             }
             else
@@ -107,7 +102,6 @@ namespace Server.Custom.CityDevelopment
             }
         }
 
-        // АВТОМАТИЧЕСКИЙ ЕЖЕДНЕВНЫЙ УПАДОК ГОРОДОВ
         private static void ProcessCityDecay()
         {
             List<Town> townsList = Town.Towns;
@@ -120,31 +114,23 @@ namespace Server.Custom.CityDevelopment
                 string townName = t.ToString();
                 if (_cityData.TryGetValue(townName, out CityProgress progress))
                 {
-                    if (progress.Level == 1 && progress.CurrentSupplies <= 0.0)
-                        continue; // Город 1 уровня без очков падать ниже не может
+                    if (progress.Level == 1 && progress.CurrentSupplies <= 0.0) continue;
 
-                    // Снимаем 1.00 очко благосостояния в сутки из-за амортизации и потребления ресурсов
                     progress.CurrentSupplies -= 1.00;
 
-                    // Если очки ушли в минус — город деградирует (падает уровень)
                     if (progress.CurrentSupplies < 0.0)
                     {
                         if (progress.Level > 1)
                         {
                             progress.Level--;
-                            // Возвращаем планку требований на предыдущий этап
                             progress.RequiredSupplies = progress.RequiredSupplies / 2.0;
-                            progress.CurrentSupplies = progress.RequiredSupplies - 1.00; // Оставляем на грани апа
+                            progress.CurrentSupplies = progress.RequiredSupplies - 1.00;
 
-                            // Применяем сниженный налог в ядро ServUO
                             ApplyDynamicTaxToBaseSystem(t, progress.Level);
-
-                            // ВЫЗЫВАЕМ ОЧИСТКУ ДЕКОРАЦИЙ УПАВШЕГО УРОВНЯ!
                             CityDecorationMod.RemoveTownDecoration(t, progress.Level + 1);
-                            Server.Custom.CityDevelopment.CityLegendaryMerchantMod.RemoveMerchant(t);
+                            CityLegendaryMerchantMod.RemoveMerchant(t);
 
-                            string decayMsg = $"[Кризис] Город {townName} пришел в упадок и опустился до {progress.Level} уровня из-за нехватки снабжения!";
-                            CommandHandlers.BroadcastMessage(AccessLevel.Player, 0x22, decayMsg);
+                            CommandHandlers.BroadcastMessage(AccessLevel.Player, 0x22, $"[Кризис] Город {townName} опустился до {progress.Level} уровня из-за нехватки снабжения!");
                         }
                         else
                         {
@@ -174,7 +160,7 @@ namespace Server.Custom.CityDevelopment
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[CityDevelopment] Ошибка записи налога в ядро: {ex.Message}");
+                Console.WriteLine($"[CityDevelopment] Ошибка записи налога: {ex.Message}");
             }
         }
 
@@ -264,6 +250,7 @@ namespace Server.Custom.CityDevelopment
                 if (stream != null) stream.Close();
             }
         }
+
         private static void CityStatus_OnCommand(CommandEventArgs e)
         {
             Mobile m = e.Mobile;
@@ -273,6 +260,7 @@ namespace Server.Custom.CityDevelopment
                 m.Target = new CityTarget();
             }
         }
+
         private class CityTarget : Target
         {
             public CityTarget() : base(12, false, TargetFlags.None) { }
@@ -280,13 +268,27 @@ namespace Server.Custom.CityDevelopment
             {
                 if (targeted is BaseVendor vendor)
                 {
-                    Town town = Town.FromRegion(vendor.Region);
+                    Region vendorRegion = Region.Find(vendor.Location, vendor.Map);
+                    Town town = Town.FromRegion(vendorRegion);
+                    // Резервный поиск для NPC на доках (вне региона города)
+                    if (town == null && vendor.Region != null && !string.IsNullOrEmpty(vendor.Region.Name))
+                    {
+                        string regName = vendor.Region.Name;
+                        foreach (Town t in Town.Towns)
+                        {
+                            if (regName.IndexOf(t.ToString(), StringComparison.OrdinalIgnoreCase) >= 0)
+                            {
+                                town = t;
+                                break;
+                            }
+                        }
+                    }
                     if (town != null)
                     {
                         string townName = town.ToString();
                         CityProgress progress = GetCityProfile(townName);
                         if (progress == null) progress = new CityProgress();
-                        from.SendMessage(89, $"Статус развития города: {townName}");
+                        from.SendMessage(89, $"Статус развития города: {townName} ({vendor.Map})");
                         from.SendMessage(0x59, $"Текущий уровень: {progress.Level} из 5");
                         from.SendMessage(0x35, $"Очки благосостояния: {progress.CurrentSupplies:F2} / {progress.RequiredSupplies:F2}");
                         from.SendMessage(0x58, $"Действующий официальный налог города в ServUO: +{town.Tax}%");

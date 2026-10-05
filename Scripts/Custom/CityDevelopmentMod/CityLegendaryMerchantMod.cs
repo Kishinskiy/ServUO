@@ -4,39 +4,29 @@ using Server;
 using Server.Mobiles;
 using Server.Items;
 using Server.Factions;
-using Server.Custom.AdvancedNpcTrade; // ИСПРАВЛЕНО: Подключено пространство имен для доступа к AdvancedNpcTradeMod
+using Server.Custom.AdvancedNpcTrade;
 
 namespace Server.Custom.CityDevelopment
 {
-    // Кастомный класс для живого NPC торговца-легенды
     public class LegendaryMerchant : BaseVendor
     {
         private readonly List<SBInfo> m_SBInfos = new List<SBInfo>();
-
         protected override List<SBInfo> SBInfos { get { return m_SBInfos; } }
 
-        public override void InitSBInfo()
-        {
-            // Не заполняем стандартные витрины
-        }
+        public override void InitSBInfo() { }
 
         public LegendaryMerchant(string title) : base(title)
         {
             Name = NameList.RandomName("male");
             Title = title;
             Hue = Utility.RandomSkinHue();
-
             CantWalk = true;
-
-            // ИСПРАВЛЕНО: Так как IsInvulnerable доступен только для чтения,
-            // делаем NPC неуязвимым через стандартное свойство Blessed ядра ServUO
             Blessed = true;
         }
 
         public override bool OnBuyItems(Mobile buyer, List<BuyItemResponse> list)
         {
             bool success = base.OnBuyItems(buyer, list);
-
             if (success)
             {
                 var buyInfo = GetBuyInfo();
@@ -52,44 +42,27 @@ namespace Server.Custom.CityDevelopment
                     Timer.DelayCall(TimeSpan.FromSeconds(2.0), () => Delete());
                 }
             }
-
             return success;
         }
 
         public LegendaryMerchant(Serial serial) : base(serial) { }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.Write((int)0);
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            int version = reader.ReadInt();
-        }
+        public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write((int)0); }
+        public override void Deserialize(GenericReader reader) { base.Deserialize(reader); int version = reader.ReadInt(); }
     }
 
-    // МЕНЕДЖЕР УПРАВЛЕНИЯ СПАВНОМ ТОРГОВЦЕВ
     public static class CityLegendaryMerchantMod
     {
         public static void CheckMerchantSpawn(Town town, int currentLevel)
         {
             if (town == null) return;
 
-            // Очищаем старого торговца в этом городе
             RemoveMerchant(town);
 
-            // Торговец приходит ТОЛЬКО на максимальном 5-м уровне города
-            if (currentLevel < 5)
-                return;
+            if (currentLevel < 5) return;
+            if (Utility.RandomDouble() > 0.30) return;
 
-            // Бросаем кубик на 30% шанс появления
-            if (Utility.RandomDouble() > 0.30)
-                return;
-
-            Map map = Map.Felucca;
+            // ИСПРАВЛЕНО: Карта определяется динамически на основе TownStone
+            Map map = Map.Trammel; 
             Point3D spawnLoc = Point3D.Zero;
             bool centerFound = false;
 
@@ -98,7 +71,7 @@ namespace Server.Custom.CityDevelopment
                 if (item != null && !item.Deleted && item.Map != null && item.Map != Map.Internal)
                 {
                     string typeName = item.GetType().Name.ToLower();
-                    if (typeName.Contains("factionstone") || typeName.Contains("townstone"))
+                    if (typeName.Contains("factionstone") || typeName.Contains("townstone") || typeName.Contains("citystone"))
                     {
                         Region itemRegion = Region.Find(item.Location, item.Map);
                         if (Town.FromRegion(itemRegion) == town)
@@ -117,7 +90,6 @@ namespace Server.Custom.CityDevelopment
             spawnLoc.X += 2;
             spawnLoc.Z = map.GetAverageZ(spawnLoc.X, spawnLoc.Y);
 
-            // Выбираем случайную профессию из 8 возможных вариантов
             string merchantTitle = "Странствующий Купец";
             int professionType = Utility.Random(8);
 
@@ -133,11 +105,9 @@ namespace Server.Custom.CityDevelopment
                 case 7: merchantTitle = "Великий Натуралист Земель"; break;
             }
 
-            // Создаем и спавним NPC в мире
             LegendaryMerchant merchant = new LegendaryMerchant($"[{merchantTitle}]");
             merchant.MoveToWorld(spawnLoc, map);
 
-            // Наполняем магазин 5 лимитированными артефактами
             for (int i = 0; i < 5; i++)
             {
                 var customArtifacts = AdvancedNpcTradeMod.GetLegendaryArtifacts(merchant);
@@ -149,7 +119,6 @@ namespace Server.Custom.CityDevelopment
                 }
             }
 
-            // Оповещаем регион о прибытии торговца
             merchant.PublicOverheadMessage(Network.MessageType.Regular, 0x35, false, $"Приветствую жителей! Я, {merchantTitle}, прибыл в ваш великий мегаполис. Привез 5 редчайших товаров!");
         }
 
@@ -160,16 +129,17 @@ namespace Server.Custom.CityDevelopment
             List<Mobile> toDelete = new List<Mobile>();
             foreach (Mobile m in World.Mobiles.Values)
             {
-                if (m != null && !m.Deleted && m is LegendaryMerchant && Town.FromRegion(m.Region) == town)
+                if (m != null && !m.Deleted && m is LegendaryMerchant)
                 {
-                    toDelete.Add(m);
+                    Region mobRegion = Region.Find(m.Location, m.Map);
+                    if (Town.FromRegion(mobRegion) == town)
+                    {
+                        toDelete.Add(m);
+                    }
                 }
             }
 
-            foreach (Mobile m in toDelete)
-            {
-                m.Delete();
-            }
+            foreach (Mobile m in toDelete) { m.Delete(); }
         }
     }
 }
