@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Xml;
 using Server;
 using Server.Mobiles;
+using System.Data.SQLite; // Теперь эта библиотека официально подключена в .csproj!
 
 namespace Server.Custom.AdvancedNpcTrade
 {
@@ -12,16 +12,56 @@ namespace Server.Custom.AdvancedNpcTrade
         private static readonly Dictionary<Tuple<Serial, Serial>, LoyaltyInfo> _data
             = new Dictionary<Tuple<Serial, Serial>, LoyaltyInfo>();
 
-        private static readonly string _filePath
-            = Path.Combine(Core.BaseDirectory, "Scripts/Custom/AdvancedNpcTrade/Data/LoyaltyData.xml");
+        private static readonly string _dbFolder = Path.Combine(Core.BaseDirectory, "Scripts/Custom/AdvancedNpcTrade/Data");
+        private static readonly string _dbPath = Path.Combine(Core.BaseDirectory, "Scripts/Custom/AdvancedNpcTrade/Data/LoyaltyDatabase.db");
+        private static readonly string _connectionString = $"Data Source={_dbPath};Version=3;";
 
         private static readonly TimeSpan MaxInactivity = TimeSpan.FromDays(30.0);
 
         public class LoyaltyInfo
         {
             public LoyaltyLevel Level { get; set; } = LoyaltyLevel.None;
-            public double Purchases { get; set; } = 0.0; // ИСПРАВЛЕНО: тип изменен на double
+            public double Purchases { get; set; } = 0.0;
             public DateTime LastPurchase { get; set; } = DateTime.UtcNow;
+        }
+
+        // 1. ИНИЦИАЛИЗАЦИЯ И АВТОМАТИЧЕСКОЕ СОЗДАНИЕ ТАБЛИЦЫ
+        public static void Initialize()
+        {
+            try
+            {
+                if (!Directory.Exists(_dbFolder))
+                    Directory.CreateDirectory(_dbFolder);
+
+                using (var connection = new SQLiteConnection(_connectionString))
+                {
+                    connection.Open();
+
+                    string createTableQuery = @"
+                        CREATE TABLE IF NOT EXISTS LoyaltyRecords (
+                            VendorSerial INTEGER,
+                            PlayerSerial INTEGER,
+                            LoyaltyLevel INTEGER,
+                            Purchases REAL,
+                            LastPurchase TEXT,
+                            PRIMARY KEY (VendorSerial, PlayerSerial)
+                        );";
+
+                    using (var command = new SQLiteCommand(createTableQuery, connection))
+                    {
+                        command.ExecuteNonQuery();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[AdvancedNpcTrade] Критическая ошибка инициализации SQLite: {ex.Message}");
+            }
+
+            // Подписываемся на события сохранения ServUO
+            EventSink.Shutdown += (e) => Save();
+            EventSink.WorldSave += (e) => Save(); // Сохранение при команде [save
+            EventSink.ServerStarted += new ServerStartedEventHandler(Load);
         }
 
         public static LoyaltyInfo GetInfo(BaseVendor vendor, Mobile player)
@@ -35,7 +75,6 @@ namespace Server.Custom.AdvancedNpcTrade
             return info;
         }
 
-        // ИСПРАВЛЕНО: amount теперь принимает double
         public static void AddPurchase(BaseVendor vendor, Mobile player, double amount)
         {
             var key = Tuple.Create(vendor.Serial, player.Serial);
@@ -47,118 +86,127 @@ namespace Server.Custom.AdvancedNpcTrade
 
             info.Purchases += amount;
             info.LastPurchase = DateTime.UtcNow;
-
-            // Пересчитываем уровень по новой double-системе
             info.Level = LoyaltyTables.GetLevelFromPoints(info.Purchases);
         }
 
+        // 2. ВЫСОКОСКОРОСТНОЕ ПАКЕТНОЕ СОХРАНЕНИЕ (UPSERT С ТРАНЗАКЦИЕЙ)
         public static void Save()
         {
-            try
-            {
-                var dir = Path.GetDirectoryName(_filePath);
-                if (!Directory.Exists(dir))
-                    Directory.CreateDirectory(dir);
-
-                XmlWriterSettings settings = new XmlWriterSettings { Indent = true };
-                using (XmlWriter writer = XmlWriter.Create(_filePath, settings))
-                {
-                    writer.WriteStartDocument();
-                    writer.WriteStartElement("LoyaltyData");
-
-                    List<Tuple<Serial, Serial>> keysToRemove = new List<Tuple<Serial, Serial>>();
-                    DateTime now = DateTime.UtcNow;
-
-                    foreach (var kvp in _data)
-                    {
-                        BaseVendor vendor = World.FindMobile(kvp.Key.Item1) as BaseVendor;
-                        Mobile player = World.FindMobile(kvp.Key.Item2);
-                        bool isExpired = (now - kvp.Value.LastPurchase) > MaxInactivity;
-
-                        if (vendor == null || player == null || isExpired || kvp.Value.Purchases <= 0.0)
-                        {
-                            keysToRemove.Add(kvp.Key);
-                            continue;
-                        }
-
-                        writer.WriteStartElement("Entry");
-                        writer.WriteAttributeString("VendorSerial", kvp.Key.Item1.Value.ToString());
-                        writer.WriteAttributeString("PlayerSerial", kvp.Key.Item2.Value.ToString());
-                        writer.WriteElementString("Level", ((int)kvp.Value.Level).ToString());
-
-                        // XML автоматически запишет double в виде понятной строки (например "0.02")
-                        writer.WriteElementString("Purchases", kvp.Value.Purchases.ToString("F2", System.Globalization.CultureInfo.InvariantCulture));
-                        writer.WriteElementString("LastPurchase", kvp.Value.LastPurchase.ToBinary().ToString());
-                        writer.WriteEndElement();
-                    }
-
-                    writer.WriteEndElement();
-                    writer.WriteEndDocument();
-
-                    foreach (var key in keysToRemove)
-                    {
-                        _data.Remove(key);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[AdvancedNpcTrade] Ошибка при сохранении LoyaltyData.xml: {ex}");
-            }
-        }
-
-        public static void Load()
-        {
-            if (!File.Exists(_filePath))
+            if (_data.Count == 0)
                 return;
 
             try
             {
-                FileInfo fileInfo = new FileInfo(_filePath);
-                if (fileInfo.Length == 0) return;
-
-                XmlDocument doc = new XmlDocument();
-                doc.Load(_filePath);
-                XmlNode root = doc["LoyaltyData"];
-                if (root == null) return;
-
-                _data.Clear();
-
-                foreach (XmlElement entry in doc.GetElementsByTagName("Entry"))
+                using (var connection = new SQLiteConnection(_connectionString))
                 {
-                    int vSerValue = Convert.ToInt32(entry.GetAttribute("VendorSerial"));
-                    int pSerValue = Convert.ToInt32(entry.GetAttribute("PlayerSerial"));
+                    connection.Open();
 
-                    Serial vendorSer = (Serial)vSerValue;
-                    Serial playerSer = (Serial)pSerValue;
-
-                    var level = (LoyaltyLevel)int.Parse(entry["Level"]?.InnerText ?? "0");
-
-                    // ИСПРАВЛЕНО: Парсим Purchases как double с поддержкой сотых долей
-                    string purText = entry["Purchases"]?.InnerText ?? "0.0";
-                    double purchases = double.Parse(purText, System.Globalization.CultureInfo.InvariantCulture);
-
-                    DateTime lastPur = DateTime.UtcNow;
-                    if (entry["LastPurchase"] != null)
+                    // Открываем транзакцию — это избавит сервер от микрофризов при [save]
+                    using (var transaction = connection.BeginTransaction())
                     {
-                        long binaryDate = long.Parse(entry["LastPurchase"].InnerText);
-                        lastPur = DateTime.FromBinary(binaryDate);
-                    }
+                        List<Tuple<Serial, Serial>> keysToRemove = new List<Tuple<Serial, Serial>>();
+                        DateTime now = DateTime.UtcNow;
 
-                    var key = Tuple.Create(vendorSer, playerSer);
-                    _data[key] = new LoyaltyInfo { Level = level, Purchases = purchases, LastPurchase = lastPur };
+                        string upsertQuery = @"
+                            INSERT OR REPLACE INTO LoyaltyRecords (VendorSerial, PlayerSerial, LoyaltyLevel, Purchases, LastPurchase)
+                            VALUES (@vSer, @pSer, @lvl, @purch, @last);";
+
+                        string deleteQuery = "DELETE FROM LoyaltyRecords WHERE VendorSerial = @vSer AND PlayerSerial = @pSer;";
+
+                        foreach (var kvp in _data)
+                        {
+                            BaseVendor vendor = World.FindMobile(kvp.Key.Item1) as BaseVendor;
+                            Mobile player = World.FindMobile(kvp.Key.Item2);
+                            bool isExpired = (now - kvp.Value.LastPurchase) > MaxInactivity;
+
+                            // Если сущности удалены или запись устарела на 30 дней — стираем строку
+                            if (vendor == null || player == null || isExpired || kvp.Value.Purchases <= 0.0)
+                            {
+                                keysToRemove.Add(kvp.Key);
+
+                                using (var delCmd = new SQLiteCommand(deleteQuery, connection, transaction))
+                                {
+                                    delCmd.Parameters.AddWithValue("@vSer", kvp.Key.Item1.Value);
+                                    delCmd.Parameters.AddWithValue("@pSer", kvp.Key.Item2.Value);
+                                    delCmd.ExecuteNonQuery();
+                                }
+                                continue;
+                            }
+
+                            // Безопасная вставка параметров
+                            using (var cmd = new SQLiteCommand(upsertQuery, connection, transaction))
+                            {
+                                cmd.Parameters.AddWithValue("@vSer", kvp.Key.Item1.Value);
+                                cmd.Parameters.AddWithValue("@pSer", kvp.Key.Item2.Value);
+                                cmd.Parameters.AddWithValue("@lvl", (int)kvp.Value.Level);
+                                cmd.Parameters.AddWithValue("@purch", kvp.Value.Purchases);
+                                cmd.Parameters.AddWithValue("@last", kvp.Value.LastPurchase.ToString("o"));
+                                cmd.ExecuteNonQuery();
+                            }
+                        }
+
+                        transaction.Commit(); // Применяем изменения
+
+                        foreach (var key in keysToRemove)
+                        {
+                            _data.Remove(key);
+                        }
+                    }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[AdvancedNpcTrade] Ошибка при чтении LoyaltyData.xml: {ex}");
+                Console.WriteLine($"[AdvancedNpcTrade] Ошибка сохранения в базу данных SQLite: {ex.Message}");
             }
         }
 
-        public static void Initialize()
+        // 3. ЗАГРУЗКА ДАННЫХ ПРИ СТАРТЕ СЕРВЕРА
+        public static void Load()
         {
-            EventSink.Shutdown += (e) => Save();
-            EventSink.ServerStarted += new ServerStartedEventHandler(Load);
+            if (!File.Exists(_dbPath))
+                return;
+
+            try
+            {
+                _data.Clear();
+
+                using (var connection = new SQLiteConnection(_connectionString))
+                {
+                    connection.Open();
+
+                    string selectQuery = "SELECT VendorSerial, PlayerSerial, LoyaltyLevel, Purchases, LastPurchase FROM LoyaltyRecords;";
+
+                    using (var command = new SQLiteCommand(selectQuery, connection))
+                    using (SQLiteDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            int vSerValue = reader.GetInt32(0);
+                            int pSerValue = reader.GetInt32(1);
+                            int lvlValue = reader.GetInt32(2);
+                            double purchases = reader.GetDouble(3);
+                            string dateText = reader.GetString(4);
+
+                            Serial vendorSer = (Serial)vSerValue;
+                            Serial playerSer = (Serial)pSerValue;
+                            LoyaltyLevel level = (LoyaltyLevel)lvlValue;
+                            DateTime lastPurchase = DateTime.Parse(dateText);
+
+                            var key = Tuple.Create(vendorSer, playerSer);
+                            _data[key] = new LoyaltyInfo
+                            {
+                                Level = level,
+                                Purchases = purchases,
+                                LastPurchase = lastPurchase
+                            };
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[AdvancedNpcTrade] Ошибка загрузки из базы данных SQLite: {ex.Message}");
+            }
         }
     }
 }
