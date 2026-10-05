@@ -135,48 +135,114 @@ namespace Server.Custom.AdvancedNpcTrade
             return count;
         }
 
+                // ГЕНЕРАЦИЯ АРТЕФАКТОВ НА ОСНОВЕ РЕАЛЬНЫХ ПРОФЕССИЙ ВЕНДОРОВ ИЗ ВАШЕГО СПИСКА
         public static List<IBuyItemInfo> GetLegendaryArtifacts(BaseVendor vendor)
         {
             List<IBuyItemInfo> artifacts = new List<IBuyItemInfo>();
             if (vendor == null) return artifacts;
 
+            // Получаем точное системное имя класса живого NPC
             string vendorClass = vendor.GetType().Name.ToLower();
             Item spawnedItem = null;
 
+
+
             try
             {
-                if (vendorClass.Contains("blacksmith") || vendorClass.Contains("weaponsmith"))
+                // 1. КУЗНЕЦЫ, ОРУЖЕЙНИКИ И БРОННИКИ (Тяжелое снаряжение, металл)
+                if (vendorClass.Contains("blacksmith") || vendorClass.Contains("weaponsmith") ||
+                    vendorClass.Contains("armorer") || vendorClass.Contains("iron") ||
+                    vendorClass.Contains("pewterer") || vendorClass.Contains("miner"))
                 {
                     spawnedItem = Loot.RandomWeapon();
-                }
-                else if (vendorClass.Contains("armorer"))
-                {
-                    spawnedItem = Loot.RandomArmor();
-                }
-                else if (vendorClass.Contains("alchemist"))
-                {
-                    spawnedItem = Loot.RandomPotion();
-                }
-                else if (vendorClass.Contains("mage") || vendorClass.Contains("magician") || vendorClass.Contains("scribe"))
-                {
-                    spawnedItem = Loot.RandomScroll(0, 7, SpellbookType.Regular);
-                }
-                else if (vendorClass.Contains("jeweler"))
-                {
-                    spawnedItem = Loot.RandomJewelry();
-                }
-                else
-                {
-                    if (Utility.RandomBool())
-                    {
-                        spawnedItem = Loot.RandomClothing();
-                    }
-                    else
-                    {
-                        spawnedItem = new Goblet();
-                    }
+                    if (Utility.RandomBool()) spawnedItem = Loot.RandomArmor(); // 50% шанс получить броню вместо оружия
+
                 }
 
+                // 2. АЛХИМИКИ И ТРАВНИКИ (Поушены, редкие реагенты)
+                else if (vendorClass.Contains("alchemist") || vendorClass.Contains("herbalist"))
+                {
+                    spawnedItem = Loot.RandomPotion();
+
+                }
+
+                // 3. МАГИ, ПИСАРИ, МИСТИКИ И НЕКРОМАНТЫ (Свитки, книги заклинаний)
+                else if (vendorClass.Contains("mage") || vendorClass.Contains("magician") ||
+                    vendorClass.Contains("scribe") || vendorClass.Contains("necromancer") ||
+                    vendorClass.Contains("mystic") || vendorClass.Contains("monk"))
+                {
+                    spawnedItem = Loot.RandomScroll(0, 7, SpellbookType.Regular);
+
+                }
+
+                // 4. ЮВЕЛИРЫ (Кольца, браслеты, драгоценности)
+                else if (vendorClass.Contains("jeweler") || vendorClass.Contains("fortune"))
+                {
+                    spawnedItem = Loot.RandomJewelry();
+
+                }
+
+                // 5. ПОРТНЫЕ, КОЖЕВНИКИ И ТКАЧИ (Ткань, кожаная броня, робы)
+                else if (vendorClass.Contains("tailor") || vendorClass.Contains("tanner") ||
+                    vendorClass.Contains("weaver") || vendorClass.Contains("leather") ||
+                    vendorClass.Contains("cobbler") || vendorClass.Contains("furtrader"))
+                {
+                    spawnedItem = Loot.RandomClothing();
+                    if (Utility.RandomDouble() < 0.35) spawnedItem = Loot.RandomArmor(); // Шанс подбросить кожаный доспех
+
+                }
+
+                // 6. ТРАКТИРЩИКИ, ПОВАРА, БАРМЕНЫ И ПЕКАРИ (Провизия, выпивка)
+                else if (vendorClass.Contains("innkeeper") || vendorClass.Contains("barkeeper") ||
+                    vendorClass.Contains("cook") || vendorClass.Contains("baker") ||
+                    vendorClass.Contains("tavern") || vendorClass.Contains("waiter") ||
+                    vendorClass.Contains("miller") || vendorClass.Contains("variety"))
+                {
+                    spawnedItem = Loot.RandomPotion();
+
+                }
+
+                // 7. ОХОТНИКИ, ЛУКАРИ И СЛЕДОПЫТЫ (Луки, арбалеты, стрелы)
+                else if (vendorClass.Contains("bowyer") || vendorClass.Contains("ranger"))
+                {
+                    spawnedItem = Loot.RandomWeapon();
+
+                }
+
+                // 8. ПЛОТНИКИ И ИНЖЕНЕРЫ (Деревянные щиты, мебель, инструменты)
+                else if (vendorClass.Contains("carpenter") || vendorClass.Contains("tinker") ||
+                    vendorClass.Contains("architect") || vendorClass.Contains("shipwright") ||
+                    vendorClass.Contains("crafter") || vendorClass.Contains("broker"))
+                {
+                    spawnedItem = new Goblet();
+
+                }
+
+                // 9. КОНЮХИ И КРЕСТЬЯНЕ (Фермеры, рыбаки, ветеринары)
+                else if (vendorClass.Contains("trainer") || vendorClass.Contains("veterinarian") ||
+                    vendorClass.Contains("farmer") || vendorClass.Contains("fisherman") ||
+                    vendorClass.Contains("rancher") || vendorClass.Contains("beekeeper") ||
+                    vendorClass.Contains("gardener"))
+                {
+                    spawnedItem = new Goblet();
+
+                }
+
+                // 10. УЧИТЕЛЯ БОЕВЫХ ИСКУССТВ (Древняя Япония / Токуно)
+                else if (vendorClass.Contains("keeper") || vendorClass.Contains("ninja") || vendorClass.Contains("samurai"))
+                {
+                    spawnedItem = Loot.RandomWeapon();
+
+                }
+
+                // КАТЕГОРИЯ СТРАХОВКИ: Если класс NPC не подошел
+                if (spawnedItem == null)
+                {
+                    if (Utility.RandomBool()) spawnedItem = Loot.RandomClothing();
+                    else spawnedItem = new Goblet();
+                }
+
+                // НАЛОЖЕНИЕ МАГИЧЕСКИХ СВОЙСТВ (Используем наш безопасный CountProps)
                 if (spawnedItem != null)
                 {
                     int propertyCount = 0;
@@ -205,15 +271,16 @@ namespace Server.Custom.AdvancedNpcTrade
                     int priceScalar = vendor.GetPriceScalar();
                     int finalPrice = (int)Math.Round(goldValue * (priceScalar / 100.0));
 
+                    // ИСПРАВЛЕНО: Пытаемся получить чистое имя, сгенерированное лут-системой
                     string itemRealName = spawnedItem.Name;
                     if (string.IsNullOrEmpty(itemRealName))
                     {
+                        // Если имя пустое, движок UO выведет имя класса (например, "Kryss" или "Katana")
                         itemRealName = spawnedItem.GetType().Name;
                     }
 
-                    string finalDisplayName = $"[Артефакт] {itemRealName}";
-
-                    var info = new GenericBuyInfo(finalDisplayName, spawnedItem.GetType(), finalPrice, 1, spawnedItem.ItemID, spawnedItem.Hue);
+                    // ИСПРАВЛЕНО: Передаем в GenericBuyInfo чистую строку itemRealName БЕЗ кастомных префиксов
+                    var info = new GenericBuyInfo(itemRealName, spawnedItem.GetType(), finalPrice, 1, spawnedItem.ItemID, spawnedItem.Hue);
                     artifacts.Add(info);
 
                     spawnedItem.Delete();
@@ -233,11 +300,12 @@ namespace Server.Custom.AdvancedNpcTrade
                     }
                 }
 
-                artifacts.Add(new GenericBuyInfo("[Артефакт] Магический Свиток", typeof(SpellScroll), 15000, 1, 0x1F1F, 0));
+                artifacts.Add(new GenericBuyInfo("Spell Scroll", typeof(SpellScroll), 15000, 1, 0x1F1F, 0));
             }
 
             return artifacts;
         }
+
 
         private static void LoyaltyInfo_OnCommand(CommandEventArgs e)
         {
