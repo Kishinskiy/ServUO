@@ -39,8 +39,36 @@ namespace Server.Custom.CityDevelopment
             EventSink.Shutdown += (e) => Save();
             EventSink.ServerStarted += new ServerStartedEventHandler(Load);
 
-            // МЕХАНИКА ЕЖЕДНЕВНОГО СОДЕРЖАНИЯ (Списание золота и амортизация очков)
+            // Механика суточных расходов (каждые 24 часа)
             Timer.DelayCall(TimeSpan.FromDays(1.0), TimeSpan.FromDays(1.0), new TimerCallback(ProcessCityDecayAndMaintenance));
+
+            // НОВАЯ МЕХАНИКА: Таймер циклического прибытия караванов (тикает каждые 30 минут)
+            // Он проверяет пустые площади городов 5-го уровня и с шансом 80% спавнит нового купца!
+            Timer.DelayCall(TimeSpan.FromMinutes(60.0), TimeSpan.FromMinutes(60.0), new TimerCallback(ProcessCyclicMerchantSpawn));
+        }
+
+        private static void ProcessCyclicMerchantSpawn()
+        {
+            List<Town> townsList = Town.Towns;
+            if (townsList == null) return;
+
+            foreach (Town t in townsList)
+            {
+                if (t == null) continue;
+
+                if (!Enum.TryParse(t.ToString(), true, out Server.Engines.CityLoyalty.City coreCity))
+                    continue;
+
+                CityProgress progress = GetCityProfile(coreCity);
+                
+                // Если город развит до финала (5 уровень)
+                if (progress != null && progress.Level >= 5)
+                {
+                    // Вызываем проверку спавна. Метод CheckMerchantSpawn сам проверит, 
+                    // если купец уже стоит — ничего не сделает, если пустая площадь — сделает бросок 80% шанса!
+                    CityLegendaryMerchantMod.CheckMerchantSpawn(t, progress.Level);
+                }
+            }
         }
 
         // Метод строго принимает Server.Engines.CityLoyalty.City

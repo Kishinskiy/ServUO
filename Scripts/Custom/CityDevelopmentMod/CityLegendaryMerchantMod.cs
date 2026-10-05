@@ -42,7 +42,6 @@ namespace Server.Custom.CityDevelopment
             this.AddItem(new ThighBoots(1175));
         }
 
-        // Вспомогательный метод подсчета магических свойств для динамической цены
         private int CountProps(object attributesObject)
         {
             if (attributesObject == null) return 0;
@@ -63,7 +62,7 @@ namespace Server.Custom.CityDevelopment
             return count;
         }
 
-private void GenerateLegendaryStock()
+        private void GenerateLegendaryStock()
         {
             if (this.Backpack == null || this.Deleted) return;
 
@@ -79,7 +78,8 @@ private void GenerateLegendaryStock()
 
                 switch (_ProfessionIndex)
                 {
-                    case 0: case 5: // Оружейник / Лучник
+                    case 0:
+                    case 5: // Оружейник / Лучник
                         spawnedItem = Loot.RandomWeapon();
                         break;
                     case 4: // Бронник
@@ -89,9 +89,10 @@ private void GenerateLegendaryStock()
                     case 1: // Маг / Писарь
                         spawnedItem = Loot.RandomScroll(50, 63, SpellbookType.Regular);
                         break;
-                    case 2: case 3: // Алхимик / Трактирщик
+                    case 2:
+                    case 3: // Алхимик / Трактирщик
                         spawnedItem = Loot.RandomPotion();
-                        if (spawnedItem != null) spawnedItem.Hue = 1161; 
+                        if (spawnedItem != null) spawnedItem.Hue = 1161;
                         break;
                     case 7: // Семена Натуралиста
                         try
@@ -114,7 +115,6 @@ private void GenerateLegendaryStock()
                 {
                     int propertyCount = 0;
 
-                    // Накладываем магию рунических инструментов
                     if (spawnedItem is BaseWeapon weapon)
                     {
                         BaseRunicTool.ApplyAttributesTo(weapon, 5, 95, 100);
@@ -131,14 +131,12 @@ private void GenerateLegendaryStock()
                         propertyCount = CountProps(jewel.Attributes);
                     }
 
-                    // Выставляем ранг мощности для Diablo системы
                     var powerProp = spawnedItem.GetType().GetProperty("ItemPower");
                     if (powerProp != null && powerProp.CanWrite)
                     {
                         try { powerProp.SetValue(spawnedItem, Enum.ToObject(powerProp.PropertyType, 5), null); } catch { }
                     }
 
-                    // Форматируем имя под палитру Diablo Loot
                     string originalName = spawnedItem.Name;
                     if (string.IsNullOrEmpty(originalName))
                     {
@@ -149,13 +147,12 @@ private void GenerateLegendaryStock()
                     }
                     spawnedItem.Name = DiabloLootColors.FormatName(spawnedItem, originalName);
 
-                    // Сбрасываем вес, чтобы вендор не упал от перегруза
                     spawnedItem.Weight = 0;
 
-                    // 1. СНАЧАЛА КЛАДЕМ ПРЕДМЕТ В BACKPACK (Пусть ядро ServUO зарегистрирует его по базовой цене)
+                    // Укладываем в сумку
                     this.Backpack.DropItem(spawnedItem);
 
-                    // 2. РАССЧИТЫВАЕМ ДИНАМИЧЕСКУЮ ЦЕНУ НА ОСНОВЕ ЕГО РЕАЛЬНЫХ СВОЙСТВ
+                    // Рассчитываем динамическую цену
                     int finalPrice = 150000;
 
                     if (spawnedItem is Seed)
@@ -167,34 +164,28 @@ private void GenerateLegendaryStock()
                         int goldValue = (int)(spawnedItem.Weight * 200) + (propertyCount * 35000);
                         goldValue = (int)(goldValue * Utility.RandomMinMax(0.85, 1.15));
 
-                        // Ограничители баланса
                         if (goldValue < 45000) goldValue = 45000;
                         if (goldValue > 380000) goldValue = 380000;
 
                         finalPrice = goldValue;
                     }
 
-                    // 3. ПРИНУДИТЕЛЬНО ПЕРЕЗАПИСЫВАЕМ ЦЕНУ НА ДИНАМИЧЕСКУЮ ЧЕРЕЗ СИСТЕМНУЮ ОБЕРТКУ VENDORITEM
-                    if (sellItems.Contains(spawnedItem))
+                    // УЛЬТИМАТИВНЫЙ ФИКС ЦЕНЫ: Используем штатный метод PlayerVendor.System,
+                    // либо принудительно подменяем свойства внутри Hashtable, переписывая структуру
+                    VendorItem vi = sellItems[spawnedItem] as VendorItem;
+                    if (vi == null)
                     {
-                        // Existing entry: replace with a new VendorItem having the updated price
-                        VendorItem vi = sellItems[spawnedItem] as VendorItem;
-                        if (vi != null)
-                        {
-                            // Preserve the original description if needed; otherwise set default
-                            string description = vi.Description ?? "[Легендарный Артефакт 5 Уровня Мощности]";
-                            VendorItem newVi = new VendorItem(spawnedItem, finalPrice, description, DateTime.UtcNow);
-                            sellItems[spawnedItem] = newVi;
-                        }
+                        vi = new VendorItem(spawnedItem, finalPrice, "[Легендарный Артефакт 5 Уровня Мощности]", DateTime.UtcNow);
+                        sellItems[spawnedItem] = vi;
                     }
                     else
                     {
-                        // If the core hasn't created the entry yet, create it manually
-                        VendorItem vi = new VendorItem(spawnedItem, finalPrice, "[Легендарный Артефакт 5 Уровня Мощности]", DateTime.UtcNow);
-                        sellItems[spawnedItem] = vi;
+                        // Since VendorItem.Price is read‑only, recreate the entry with the new price
+                        var updatedVi = new VendorItem(spawnedItem, finalPrice, "[Легендарный Артефакт 5 Уровня Мощности]", DateTime.UtcNow);
+                        sellItems[spawnedItem] = updatedVi;
                     }
 
-                    // 4. УЛЬТИМАТИВНЫЙ ФИКС: Вызываем штатный метод PlayerVendor для жесткой фиксации цены в памяти
+                    // Насильно заставляем ядро комиссионки обновить прайс-лист в пакетах для клиента
                     this.InvalidateProperties();
                 }
             }
@@ -222,21 +213,44 @@ private void GenerateLegendaryStock()
 
     public static class CityLegendaryMerchantMod
     {
+        // Вспомогательный метод проверки: стоит ли сейчас купец в данном городе
+        public static bool IsMerchantExists(Town town)
+        {
+            if (town == null) return false;
+            foreach (Mobile m in World.Mobiles.Values)
+            {
+                if (m != null && !m.Deleted && m is LegendaryMerchant)
+                {
+                    Region mobRegion = Region.Find(m.Location, m.Map);
+                    if (mobRegion != null && mobRegion.Name != null &&
+                        mobRegion.Name.IndexOf(town.ToString(), StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
         public static void CheckMerchantSpawn(Town town, int currentLevel)
         {
             if (town == null) return;
 
-            RemoveMerchant(town);
+            // Если уровень меньше 5 — жестко стираем купца и выходим
+            if (currentLevel < 5)
+            {
+                RemoveMerchant(town);
+                return;
+            }
 
-            if (currentLevel < 5) return;
-
+            // Если купец уже стоит на площади — повторно его не спавним, чтобы не двоился
+            if (IsMerchantExists(town)) return;
+            // Бросок костей на приезд каравана (80% шанс успеха по вашей настройке)
             if (Utility.RandomDouble() > 0.80) return;
-
             try
             {
                 Map map = Map.Trammel;
                 Point3D spawnLoc = Point3D.Zero;
-
                 if (Enum.TryParse(town.ToString(), true, out City coreCity))
                 {
                     CityLoyaltySystem sys = CityLoyaltySystem.GetCityInstance(coreCity);
@@ -275,27 +289,23 @@ private void GenerateLegendaryStock()
         public static void RemoveMerchant(Town town)
         {
             if (town == null) return;
-
-            // Чистый перебор существ в мире: никаких конфликтов с типами List и Town!
             List<Mobile> toDelete = new List<Mobile>();
-            
             foreach (Mobile m in World.Mobiles.Values)
             {
                 if (m != null && !m.Deleted && m is LegendaryMerchant)
                 {
                     Region mobRegion = Region.Find(m.Location, m.Map);
-                    if (mobRegion != null && mobRegion.Name != null && 
-                        mobRegion.Name.IndexOf(town.ToString(), StringComparison.OrdinalIgnoreCase) >= 0)
+                    if (mobRegion != null && mobRegion.Name != null &&
+                    mobRegion.Name.IndexOf(town.ToString(), StringComparison.OrdinalIgnoreCase) >= 0)
                     {
                         toDelete.Add(m);
                     }
                     else if (town.ToString().Contains("Moonglow") && m.X >= 4400 && m.X <= 4560)
                     {
-                        toDelete.Add(m); // Жесткая страховка для доков Мунглоу
+                        toDelete.Add(m);
                     }
                 }
             }
-
             foreach (Mobile m in toDelete) { m.Delete(); }
         }
     }
