@@ -160,14 +160,12 @@ namespace Server.Custom.AdvancedNpcTrade
             return count;
         }
 
-        public static List<IBuyItemInfo> GetLegendaryArtifacts(BaseVendor vendor)
+        public static List<IBuyItemInfo> GetLegendaryArtifacts(BaseVendor vendor, Mobile buyer)
         {
             List<IBuyItemInfo> artifacts = new List<IBuyItemInfo>();
-            if (vendor == null) return artifacts;
+            if (vendor == null || buyer == null) return artifacts;
 
-            Mobile buyer = vendor.Map.GetMobilesInRange(vendor.Location, 10).FirstOrDefault(m => m.Player && m.Alive);
-            if (buyer == null) return artifacts; // Если покупатель не обнаружен, выходим
-
+        
             double totalPoints = GetTotalLoyaltyPoints(vendor, buyer);
             LoyaltyLevel currentLevel = LoyaltyTables.GetLevelFromPoints(totalPoints);
 
