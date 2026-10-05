@@ -15,6 +15,7 @@ using Server.Network;
 using Server.Regions;
 using Server.Services.Virtues;
 using Server.Targeting;
+using Server.Custom.AdvancedNpcTrade;
 #endregion
 
 namespace Server.Mobiles
@@ -354,7 +355,7 @@ namespace Server.Mobiles
 		public override void OnAfterDelete()
 		{
 			base.OnAfterDelete();
-			
+
 			AllVendors.Remove(this);
 		}
 
@@ -781,12 +782,12 @@ namespace Server.Mobiles
 
 			Utility.AssignRandomHair(this, hairHue);
 			Utility.AssignRandomFacialHair(this, hairHue);
-			
+
 			if (Body == 0x191)
 			{
 				FacialHairItemID = 0;
 			}
-						
+
 			if (Body == 0x191)
 			{
 				switch (Utility.Random(6))
@@ -1191,7 +1192,7 @@ namespace Server.Mobiles
                         return false;
                     }
                 }
-				
+
                 if (Core.ML && pm != null && pm.NextBODTurnInTime > DateTime.UtcNow)
 				{
                     SayTo(from, 1079976, 0x3B2); // You'll have to wait a few seconds while I inspect the last order.
@@ -1231,7 +1232,7 @@ namespace Server.Mobiles
                 {
                     SayTo(from, 1157204, from.Name, 0x3B2); // Ho! Ho! Thank ye ~1_PLAYER~ for giving me a Bulk Order Deed!
 
-                    BODContext context = BulkOrderSystem.GetContext(from); 
+                    BODContext context = BulkOrderSystem.GetContext(from);
 
                     int points = 0;
                     double banked = 0.0;
@@ -1257,7 +1258,7 @@ namespace Server.Mobiles
                             break;
                     }
 
-                    // On EA, you have to choose the reward before you get the gold/fame reward.  IF you right click the gump, you lose 
+                    // On EA, you have to choose the reward before you get the gold/fame reward.  IF you right click the gump, you lose
                     // the gold/fame for that bod.
 
                     Banker.Deposit(from, gold, true);
@@ -1648,6 +1649,9 @@ namespace Server.Mobiles
 					if (gbi != null)
 					{
 						ProcessSinglePurchase(buy, gbi, validBuy, ref controlSlots, ref fullPurchase, ref cost);
+                        // НАША СТРОКА: Применяем скидку лояльности к стоимости этой позиции
+                        cost = AdvancedNpcTradeMod.CalculateDiscountedPrice(this, buyer, (int)cost);
+
 					}
 					else if (item != BuyPack && item.IsChildOf(BuyPack))
 					{
@@ -1796,7 +1800,7 @@ namespace Server.Mobiles
 
 			if (!bought)
 			{
-				// ? Begging thy pardon, but thy bank account lacks these funds. 
+				// ? Begging thy pardon, but thy bank account lacks these funds.
 				// : Begging thy pardon, but thou casnt afford that.
                 SayTo(buyer, totalCost >= 2000 ? 500191 : 500192, 0x3B2);
 
@@ -1804,7 +1808,7 @@ namespace Server.Mobiles
 			}
 
 			buyer.PlaySound(0x32);
-			
+
 			cont = buyer.Backpack ?? buyer.BankBox;
 
 			foreach (BuyItemResponse buy in validBuy)
@@ -1902,7 +1906,7 @@ namespace Server.Mobiles
                     SayTo(
                         buyer,
                         0x3B2,
-                        "I would not presume to charge thee anything.  Here are the goods you requested.", 
+                        "I would not presume to charge thee anything.  Here are the goods you requested.",
                         null,
                         !Core.AOS);
 				}
@@ -1918,6 +1922,7 @@ namespace Server.Mobiles
 				else
 				{
                     SayTo(buyer, String.Format("The total of thy purchase is {0} gold.  My thanks for the patronage.", totalCost), 0x3B2, true);
+
 				}
 			}
 			else
@@ -1936,7 +1941,7 @@ namespace Server.Mobiles
                     SayTo(
                         buyer,
                         0x3B2,
-                        "The total of thy purchase is {0} gold, which has been withdrawn from your bank account.  My thanks for the patronage.  Unfortunately, I could not sell you all the goods you requested.", 
+                        "The total of thy purchase is {0} gold, which has been withdrawn from your bank account.  My thanks for the patronage.  Unfortunately, I could not sell you all the goods you requested.",
                         totalCost.ToString(),
                         !Core.AOS);
 				}
@@ -1950,6 +1955,9 @@ namespace Server.Mobiles
                         !Core.AOS);
 				}
 			}
+
+            // СЮДА: Засчитываем успешную покупку в базу данных лояльности
+            AdvancedNpcTradeMod.OnSuccessfulPurchase(this, buyer, validBuy.Count);
 
 			return true;
 		}
@@ -2487,7 +2495,7 @@ namespace Server.Mobiles
             RemoveConvertEntry(convert);
             from.CloseGump(typeof(Server.Gumps.ConfirmCallbackGump));
 
-            from.SendGump(new Server.Gumps.ConfirmCallbackGump((PlayerMobile)from, 1049004, 1154115, state, null, 
+            from.SendGump(new Server.Gumps.ConfirmCallbackGump((PlayerMobile)from, 1049004, 1154115, state, null,
                 (m, obj) =>
                 {
                     BaseArmor ar = obj as BaseArmor;

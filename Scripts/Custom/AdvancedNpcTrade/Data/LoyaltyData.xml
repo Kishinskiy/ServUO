@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<LoyaltyData>
+  <Entry VendorSerial="119" PlayerSerial="118">
+    <Level>0</Level>
+    <Purchases>0</Purchases>
+  </Entry>
+  <Entry VendorSerial="766" PlayerSerial="116">
+    <Level>0</Level>
+    <Purchases>1</Purchases>
+  </Entry>
+</LoyaltyData>
