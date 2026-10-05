@@ -93,7 +93,7 @@ namespace Server.Custom.CityDevelopment
             Hashtable sellItems = field.GetValue(this) as Hashtable;
             if (sellItems == null) return;
 
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < 15; i++)
             {
                 Item spawnedItem = null;
 
