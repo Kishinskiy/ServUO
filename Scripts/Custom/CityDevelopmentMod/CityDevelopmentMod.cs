@@ -94,6 +94,9 @@ namespace Server.Custom.CityDevelopment
                     ApplyDynamicTaxToBaseSystem(destinationTown, progress.Level);
                     CityDecorationMod.DecorateTown(destinationTown, progress.Level);
 
+                    Server.Custom.CityDevelopment.CityLegendaryMerchantMod.CheckMerchantSpawn(destinationTown, progress.Level);
+
+
                     string globalMsg = $"[Экономика] Город {townName} развился до {progress.Level} уровня благодаря поставкам купцов!";
                     CommandHandlers.BroadcastMessage(AccessLevel.Player, 0x35, globalMsg);
                 }
@@ -138,6 +141,7 @@ namespace Server.Custom.CityDevelopment
 
                             // ВЫЗЫВАЕМ ОЧИСТКУ ДЕКОРАЦИЙ УПАВШЕГО УРОВНЯ!
                             CityDecorationMod.RemoveTownDecoration(t, progress.Level + 1);
+                            Server.Custom.CityDevelopment.CityLegendaryMerchantMod.RemoveMerchant(t);
 
                             string decayMsg = $"[Кризис] Город {townName} пришел в упадок и опустился до {progress.Level} уровня из-за нехватки снабжения!";
                             CommandHandlers.BroadcastMessage(AccessLevel.Player, 0x22, decayMsg);
