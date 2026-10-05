@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Reflection; // ПОДКЛЮЧЕНО для универсального подсчета магических свойств
+using System.Reflection;
 using Server;
 using Server.Commands;
 using Server.Mobiles;
@@ -13,35 +13,43 @@ namespace Server.Custom.AdvancedNpcTrade
 {
     public static class AdvancedNpcTradeMod
     {
+        // Вероятность начисления очков лояльности за каждый купленный предмет (в процентах от 1 до 100)
+        // По умолчанию: 5%
+        public static readonly int LoyaltyChance = 5;
+
+        // =========================================================================
+
         public static void Initialize()
         {
             LoyaltyManager.Initialize();
             CommandSystem.Register("LoyaltyInfo", AccessLevel.GameMaster, new CommandEventHandler(LoyaltyInfo_OnCommand));
         }
 
-        // Вспомогательный метод определения суммарных очков лояльности
-        public static int GetTotalLoyaltyPoints(BaseVendor vendor, Mobile buyer)
+        // Вспомогательный метод определения суммарных очков лояльности (Возвращает double)
+        public static double GetTotalLoyaltyPoints(BaseVendor vendor, Mobile buyer)
         {
-            if (vendor == null || buyer == null) return 0;
+            if (vendor == null || buyer == null) return 0.0;
 
             var info = LoyaltyManager.GetInfo(vendor, buyer);
-            int points = info.Purchases;
+            double points = info.Purchases;
 
-            if (buyer.Karma >= 10000)       points += 15;
-            else if (buyer.Karma >= 5000)   points += 5;
-            else if (buyer.Karma <= -10000) points -= 25;
-            else if (buyer.Karma <= -5000)  points -= 10;
+            // Добавляем полноценные double бонусы за Карму
+            if (buyer.Karma >= 10000)       points += 15.0;
+            else if (buyer.Karma >= 5000)   points += 5.0;
+            else if (buyer.Karma <= -10000) points -= 25.0;
+            else if (buyer.Karma <= -5000)  points -= 10.0;
 
+            // Добавляем полноценные double бонусы за Славу в городе
             points += GetCityBonusPoints(vendor, buyer);
 
-            return points < 0 ? 0 : points;
+            return points < 0.0 ? 0.0 : points;
         }
 
-        private static int GetCityBonusPoints(BaseVendor vendor, Mobile buyer)
+        private static double GetCityBonusPoints(BaseVendor vendor, Mobile buyer)
         {
-            if (vendor == null || vendor.Region == null || buyer == null) return 0;
+            if (vendor == null || vendor.Region == null || buyer == null) return 0.0;
             string regionName = vendor.Region.Name;
-            if (string.IsNullOrEmpty(regionName)) return 0;
+            if (string.IsNullOrEmpty(regionName)) return 0.0;
 
             bool isInCity = regionName.Contains("Britain") || regionName.Contains("Moonglow") ||
                             regionName.Contains("Yew") || regionName.Contains("Minoc") ||
@@ -49,18 +57,18 @@ namespace Server.Custom.AdvancedNpcTrade
                             regionName.Contains("Magincia") || regionName.Contains("Jhelom") ||
                             regionName.Contains("Vesper");
 
-            if (!isInCity) return 0;
+            if (!isInCity) return 0.0;
 
-            if (buyer.Fame >= 10000)       return 20;
-            else if (buyer.Fame >= 5000)   return 10;
-            else if (buyer.Fame >= 2000)   return 3;
+            if (buyer.Fame >= 10000)       return 20.0;
+            else if (buyer.Fame >= 5000)   return 10.0;
+            else if (buyer.Fame >= 2000)   return 3.0;
 
-            return 0;
+            return 0.0;
         }
 
         public static int CalculateDiscountedPrice(BaseVendor vendor, Mobile buyer, int originalPrice)
         {
-            int totalPoints = GetTotalLoyaltyPoints(vendor, buyer);
+            double totalPoints = GetTotalLoyaltyPoints(vendor, buyer);
             LoyaltyLevel finalLevel = LoyaltyTables.GetLevelFromPoints(totalPoints);
             double finalDiscount = LoyaltyTables.Discount[finalLevel];
 
@@ -71,18 +79,40 @@ namespace Server.Custom.AdvancedNpcTrade
             return newPrice < 1 ? 1 : newPrice;
         }
 
+        // НАЧИСЛЕНИЕ ДРОБНЫХ ОЧКОВ С НАСТРАИВАЕМОЙ ВЕРОЯТНОСТЬЮ
         public static void OnSuccessfulPurchase(BaseVendor vendor, Mobile buyer, int amount)
         {
             if (vendor == null || buyer == null || amount <= 0) return;
 
-            LoyaltyManager.AddPurchase(vendor, buyer, amount);
-            int displayPoints = GetTotalLoyaltyPoints(vendor, buyer);
-            LoyaltyLevel currentLvl = LoyaltyTables.GetLevelFromPoints(displayPoints);
+            double calculatedPoints = 0.0;
 
-            buyer.SendMessage(89, $"Спасибо за покупку! Суммарные очки: {displayPoints}. Ваш текущий ранг: {currentLvl}");
+            // Переводим int процентов (например, 5) в формат вероятности double (0.05)
+            double targetChance = LoyaltyChance / 100.0;
+
+            // Цикл проверяет каждый купленный предмет индивидуально
+            for (int i = 0; i < amount; i++)
+            {
+                if (Utility.RandomDouble() < targetChance)
+                {
+                    calculatedPoints += 0.01; // Накапливаем динамическую сумму очков
+                }
+            }
+
+            // Если в этот раз шанс сработал хотя бы для одного предмета
+            if (calculatedPoints > 0.0)
+            {
+                LoyaltyManager.AddPurchase(vendor, buyer, calculatedPoints);
+
+                // ИСПРАВЛЕНО: Сообщение о росте лояльности с динамическим указанием набранных очков
+                buyer.SendMessage(88, $"Лояльность продавца {vendor.Name} увеличилась на +{calculatedPoints:F2}!");
+            }
+            else
+            {
+                // ИСПРАВЛЕНО: Если очки не начислились, пишем просто дефолтную фразу
+                buyer.SendMessage(89, "Спасибо за покупку!");
+            }
         }
 
-        // Вспомогательный безопасный метод подсчета ненулевых свойств в любом AOS-контейнере атрибутов
         private static int CountProps(object attributesObject)
         {
             if (attributesObject == null) return 0;
@@ -90,14 +120,13 @@ namespace Server.Custom.AdvancedNpcTrade
 
             try
             {
-                // Через рефлексию вытягиваем все публичные свойства (инты) структуры атрибутов
                 PropertyInfo[] props = attributesObject.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
                 foreach (PropertyInfo prop in props)
                 {
                     if (prop.PropertyType == typeof(int))
                     {
                         int value = (int)prop.GetValue(attributesObject, null);
-                        if (value > 0) count++; // Если свойство (например, удача или урон) больше нуля — считаем его!
+                        if (value > 0) count++;
                     }
                 }
             }
@@ -106,7 +135,6 @@ namespace Server.Custom.AdvancedNpcTrade
             return count;
         }
 
-        // ГЕНЕРАЦИЯ АРТЕФАКТОВ НА ОСНОВЕ СТАНДАРТНОЙ ЛУТ-СИСТЕМЫ СЕРВЕРА
         public static List<IBuyItemInfo> GetLegendaryArtifacts(BaseVendor vendor)
         {
             List<IBuyItemInfo> artifacts = new List<IBuyItemInfo>();
@@ -153,11 +181,9 @@ namespace Server.Custom.AdvancedNpcTrade
                 {
                     int propertyCount = 0;
 
-                    // Навешиваем мощные случайные магические AOS/SA свойства
                     if (spawnedItem is BaseWeapon weapon)
                     {
                         BaseRunicTool.ApplyAttributesTo(weapon, 4, 80, 100);
-                        // ИСПРАВЛЕНО: Безопасно считаем сгенерированные статы с помощью универсального метода CountProps
                         propertyCount = CountProps(weapon.Attributes) + CountProps(weapon.WeaponAttributes);
                     }
                     else if (spawnedItem is BaseArmor armor)
@@ -222,11 +248,9 @@ namespace Server.Custom.AdvancedNpcTrade
                 m.Target = new LoyaltyTarget();
             }
         }
-
         private class LoyaltyTarget : Target
         {
             public LoyaltyTarget() : base(12, false, TargetFlags.None) { }
-
             protected override void OnTarget(Mobile from, object targeted)
             {
                 if (targeted is BaseVendor vendor)
@@ -234,12 +258,15 @@ namespace Server.Custom.AdvancedNpcTrade
                     var info = LoyaltyManager.GetInfo(vendor, from);
                     if (info != null)
                     {
-                        int pts = GetTotalLoyaltyPoints(vendor, from);
+                        double pts = info.Purchases;
+                        double karmaBonus = from.Karma >= 10000 ? 15.0 : (from.Karma >= 5000 ? 5.0 : (from.Karma <= -10000 ? -25.0 : (from.Karma <= -5000 ? -10.0 : 0.0)));
+                        double cityBonus = GetCityBonusPoints(vendor, from);
+                        double finalPts = pts + karmaBonus + cityBonus;
+                        if (finalPts < 0.0) finalPts = 0.0;
                         string cityRegionName = (vendor.Region != null) ? vendor.Region.Name : "Неизвестно";
-                        string vendorClass = vendor.GetType().Name;
-
-                        from.SendMessage(89, $"Торговец: {vendor.Name} (Класс: {vendorClass}). Личных покупок: {info.Purchases}");
-                        from.SendMessage(0x35, $"ИТОГО очков: {pts} -> Ранг: {LoyaltyTables.GetLevelFromPoints(pts)}");
+                        from.SendMessage(89, $"Торговец: {vendor.Name}. Личных очков покупок: {pts:F2}");
+                        from.SendMessage(0x59, $"Регион: {cityRegionName}. Бонус Кармы: {karmaBonus:F2}, Бонус Славы: {cityBonus:F2}");
+                        from.SendMessage(0x35, $"ИТОГО очков репутации: {finalPts:F2} -> Ранг: {LoyaltyTables.GetLevelFromPoints(finalPts)}");
                     }
                 }
                 else

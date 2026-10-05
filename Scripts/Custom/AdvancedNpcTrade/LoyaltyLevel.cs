@@ -15,7 +15,6 @@ namespace Server.Custom.AdvancedNpcTrade
 
     public static class LoyaltyTables
     {
-        // Скидка в % в зависимости от ИТОГОВОГО уровня
         public static readonly Dictionary<LoyaltyLevel, double> Discount = new Dictionary<LoyaltyLevel, double>()
         {
             [LoyaltyLevel.None]       = 0.00,
@@ -26,18 +25,18 @@ namespace Server.Custom.AdvancedNpcTrade
             [LoyaltyLevel.Legend]     = 0.40
         };
 
-        // Сумма ОЧКОВ для перехода на уровень
-        public static readonly Dictionary<LoyaltyLevel, int> RequiredPurchases = new Dictionary<LoyaltyLevel, int>()
+        // ИСПРАВЛЕНО: Теперь пороги — это честные дробные double
+        public static readonly Dictionary<LoyaltyLevel, double> RequiredPurchases = new Dictionary<LoyaltyLevel, double>()
         {
-            { LoyaltyLevel.Friendly, 50   },
-            { LoyaltyLevel.Trusted,  150  },
-            { LoyaltyLevel.Ally,     300  },
-            { LoyaltyLevel.Champion, 600  },
-            { LoyaltyLevel.Legend,   1200 }
+            { LoyaltyLevel.Friendly, 25.0   },  // Нужна сумма 25.00 очков
+            { LoyaltyLevel.Trusted,  75.0   },  // 75.00 очков
+            { LoyaltyLevel.Ally,     150.0  },  // 150.00 очков
+            { LoyaltyLevel.Champion, 300.0  },  // 300.00 очков
+            { LoyaltyLevel.Legend,   500.0  }   // 500.00 очков
         };
 
-        // Метод динамического определения уровня по сумме очков
-        public static LoyaltyLevel GetLevelFromPoints(int points)
+        // ИСПРАВЛЕНО: Метод теперь принимает double points
+        public static LoyaltyLevel GetLevelFromPoints(double points)
         {
             LoyaltyLevel current = LoyaltyLevel.None;
 
@@ -45,7 +44,6 @@ namespace Server.Custom.AdvancedNpcTrade
             {
                 if (lvl == LoyaltyLevel.None) continue;
 
-                // ИСПРАВЛЕНО: Теперь используется правильное имя словаря RequiredPurchases
                 if (points >= RequiredPurchases[lvl])
                 {
                     current = lvl;
