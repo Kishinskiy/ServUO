@@ -1160,6 +1160,29 @@ namespace Server.Engines.CityLoyalty
 
             origin.CompletedTrades++;
 
+            // ИНТЕГРАЦИЯ С МОДОМ РАЗВИТИЯ ГОРОДОВ
+            try
+            {
+                if (origin != null)
+                {
+                    string originName = origin.City.ToString(); // Получаем имя города-отправителя (например, "Moonglow")
+                    
+                    // Ищем соответствующий фракционный объект Town для вашего мода
+                    Server.Factions.Town factionOriginTown = Server.Factions.Town.Towns.Find(t => t.ToString().Contains(originName));
+                    
+                    if (factionOriginTown != null)
+                    {
+                        // Вызываем прокачку для города-ОТПРАВИТЕЛЯ каравана
+                        Server.Custom.CityDevelopment.CityDevelopmentMod.OnTradeOrderDelivered(from, factionOriginTown);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[CityDevelopment] Ошибка триггера в ядре: {ex.Message}");
+            }
+
+
             if (CityTradeSystem.KrampusEncounterActive)
             {
                 KrampusEncounter.Encounter.OnTradeComplete(from, entry);

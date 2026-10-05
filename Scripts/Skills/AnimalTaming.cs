@@ -30,7 +30,7 @@ namespace Server.SkillHandlers
 		{
 			SkillInfo.Table[(int)SkillName.AnimalTaming].Callback = OnUse;
 		}
-		
+
 		public static TimeSpan OnUse(Mobile m)
 		{
 			m.RevealingAction();
@@ -181,6 +181,36 @@ namespace Server.SkillHandlers
 							creature.PrivateOverheadMessage(MessageType.Regular, 0x3B2, 1054025, from.NetState);
 								// You must subdue this creature before you can tame it!
 						}
+                        // =========================================================================
+                        // НАШ БЛОК: СИСТЕМА ТРЕБОВАНИЯ КАРМЫ К УРОВНЮ МОНСТРА (ФИЛЬТР DEMISE STYLE)
+                        // =========================================================================
+                        else if (from.AccessLevel == AccessLevel.Player && creature.MinTameSkill >= 50.0)
+                        {
+                            if (creature.Karma < 0)
+                            {
+                                // ИСПРАВЛЕНО: Коэффициент жесткости поднят до 80% (0.80)
+                                double requiredNegativeKarma = creature.Karma * 0.80;
+
+                                if (from.Karma > requiredNegativeKarma)
+                                {
+                                    creature.PlaySound(creature.GetAngerSound());
+                                    creature.PublicOverheadMessage(MessageType.Regular, 0x22, false, "Это существо презирает твою праведность! Твоя карма слишком высока.");
+                                    return; // Полностью прерываем таминг, прицел гаснет
+                                }
+                            }
+                            else if (creature.Karma > 0)
+                            {
+                                // ИСПРАВЛЕНО: Коэффициент жесткости поднят до 80% (0.80)
+                                double requiredPositiveKarma = creature.Karma * 0.80;
+
+                                if (from.Karma < requiredPositiveKarma)
+                                {
+                                    creature.PlaySound(creature.GetAngerSound());
+                                    creature.PublicOverheadMessage(MessageType.Regular, 0x35, false, "Это благородное существо видит тьму в твоей душе! Очисти свою карму.");
+                                    return; // Полностью прерываем таминг, прицел гаснет
+                                }
+                            }
+                        }
 						else if (DarkWolfFamiliar.CheckMastery(from, creature) || from.Skills[SkillName.AnimalTaming].Value >= creature.CurrentTameSkill)
 						{
 							FactionWarHorse warHorse = creature as FactionWarHorse;

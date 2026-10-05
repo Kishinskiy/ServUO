@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
 using Server;
 using Server.Items;
 using Server.Regions;
@@ -18,7 +19,7 @@ namespace Server.Custom.Farms
         Pumpkin
     }
 
-    
+
     // =========================================================================
     // 2. УНИВЕРСАЛЬНЫЙ ТАРГЕТ ПОСАДКИ ДЛЯ СЕМЯН
     // =========================================================================
@@ -127,13 +128,24 @@ namespace Server.Custom.Farms
             get { return m_Watered; }
             set
             {
-                if (m_IsDead) return; // Мертвое растение поливать бесполезно
+                if (m_IsDead) return; // Мёртвое растение поливать бесполезно
+
+                // УЛЬТИМАТИВНАЯ БЛОКИРОВКА ПОЛИВА ЗИМОЙ:
+                // Проверяем текущий сезон карты. Если зима (ID: 3) — блокируем установку флага полива!
+                if (this.Map != null && this.Map != Map.Internal && this.Map.Season == 3)
+                {
+                    if (m_Planter != null)
+                        m_Planter.SendMessage(0x22, "Земля на грядке промёрзла насквозь! Вода мгновенно превращается в лёд, полив невозможен.");
+                    return;
+                }
+
                 m_Watered = value;
-                if (m_Watered) m_DryCount = 0; // Сбрасываем счетчик засухи при успешном поливе
+                if (m_Watered) m_DryCount = 0; // Сбрасываем счётчик засухи при успешном поливе
                 UpdateName();
                 InvalidateProperties();
             }
         }
+
 
         [CommandProperty(AccessLevel.GameMaster)]
         public int Stage
@@ -202,18 +214,101 @@ namespace Server.Custom.Farms
         {
             if (Deleted || m_IsDead) return;
 
-            // 1. ПРОВЕРКА НА ЗАСУХУ
+            // =========================================================================
+            // СИНХРОНИЗАЦИЯ С МОДОМ СЕЗОНОВ (Через Map.Season)
+            // =========================================================================
+            int currentSeason = 0; // По умолчанию весна (0)
+            if (this.Map != null && this.Map != Map.Internal)
+            {
+                currentSeason = this.Map.Season; // Читаем ID сезона (0-Весна, 1-Лето, 2-Осень, 3-Зима)
+            }
+
+            // ЗИМА (ID: 3): Растения засыпают под снегом. Счётчики замирают, грядки не сохнут и не растут
+            if (currentSeason == 3)
+            {
+                if (m_Planter != null && m_Stage < 2)
+                    m_Planter.SendMessage(0x5D, $"[Зимняя спячка] Рост вашего урожая ({GetVegNameString()}) полностью заморожен до весенней оттепели.");
+
+                return; // Полный выход из метода, засуха не наступает
+            }
+
+            // =========================================================================
+            // АВТОМАТИЧЕСКИЙ ПОЛИВ ДОЖДЕМ (РАБОТАЕТ: ВЕСНА, ЛЕТО, ОСЕНЬ)
+            // =========================================================================
+            if (this.Map != null && this.Map != Map.Internal)
+            {
+                // Запрашиваем список всех активных погодных зон для текущей карты (Trammel / Felucca)
+                List<Server.Misc.Weather> weatherList = Server.Misc.Weather.GetWeatherList(this.Map);
+
+                if (weatherList != null)
+                {
+                    bool isRainingNow = false;
+
+                    // Сканируем каждую погодную зону на сервере
+                    for (int j = 0; j < weatherList.Count; ++j)
+                    {
+                        Server.Misc.Weather w = weatherList[j];
+
+                        // Проверяем: активна ли зона, идут ли осадки и теплая ли температура (выше нуля = Дождь)
+                        // Используем рефлексию для чтения закрытого флага m_Active, если у него нет public свойства
+                        bool isActivePercipitation = false;
+                        FieldInfo activeField = typeof(Server.Misc.Weather).GetField("m_Active", BindingFlags.Instance | BindingFlags.NonPublic);
+                        if (activeField != null)
+                        {
+                            isActivePercipitation = (bool)activeField.GetValue(w);
+                        }
+
+                        if (isActivePercipitation && w.Temperature > 0)
+                        {
+                            // Проверяем, входят ли координаты грядки в прямоугольные зоны этого шторма/дождя
+                            if (w.IntersectsWith(new Rectangle2D(this.X, this.Y, 1, 1)))
+                            {
+                                isRainingNow = true;
+                                break; // Дождь найден, прекращаем поиск
+                            }
+                        }
+                    }
+
+                    // Если над грядкой бушует дождь — земля впитывает влагу
+                    if (isRainingNow)
+                    {
+                        m_Watered = true;
+                        m_DryCount = 0; // Сбрасываем счетчик засухи
+
+                        if (m_Planter != null && m_Stage < 2)
+                            m_Planter.SendMessage(0x5D, $"[Погода] Проливной дождь напитал вашу грядку ({GetVegNameString()}) благодатной влагой!");
+                    }
+                }
+            }
+            // =========================================================================
+
+
+            // Настройка скорости созревания в зависимости от климата
+            int daysRequiredToGrow = 7; // ВЕСНА (База): 7 тиков на фазу (14 часов реального времени)
+
+            if (currentSeason == 1)
+            {
+                daysRequiredToGrow = 4; // ЛЕТО: Жара ускоряет рост! Нужно всего 4 тика (8 часов реального времени)
+            }
+            else if (currentSeason == 2)
+            {
+                daysRequiredToGrow = 12; // ОСЕНЬ: Заморозки замедляют рост. Нужно 12 тиков (24 часа реального времени)
+            }
+
+            // =========================================================================
+            // 1. ПРОВЕРКА НА ЗАСУХУ (РАБОТАЕТ ВЕСНОЙ, ЛЕТОМ И ОСЕНЬЮ)
+            // =========================================================================
             if (!m_Watered)
             {
                 m_DryCount++;
 
-                // Растущие фазы (0 и 1) погибают, если их не поливать 3 игровых дня подряд (6 реальных часов)
+                // Растущие фазы погибают за 3 пропущенных дня засухи
                 if (m_Stage < 2 && m_DryCount >= 3)
                 {
                     WitherAndDie();
                     return;
                 }
-                // Спелый плод (фаза 2) сгниет, если его забросить на 14 игровых дней (28 реальных часов)
+                // Спелый плод сгниет за 14 дней
                 else if (m_Stage == 2 && m_DryCount >= 14)
                 {
                     WitherAndDie();
@@ -221,22 +316,23 @@ namespace Server.Custom.Farms
                 }
 
                 if (m_Planter != null && m_Stage < 2)
-                    m_Planter.SendMessage(
-                        $"Ваш урожай ({GetVegNameString()}) засыхает! Вы не полили его за эти сутки!");
+                    m_Planter.SendMessage(0x22, $"Ваш урожай ({GetVegNameString()}) засыхает! Вы не полили его за эти сутки!");
 
                 UpdateName();
                 return;
             }
 
-            // 2. РАСТЕНИЕ ПОЛИТО ЗА СУТКИ
+            // =========================================================================
+            // 2. РАСТЕНИЕ УСПЕШНО ПОЛИТО
+            // =========================================================================
             m_Watered = false; // Сбрасываем полив на следующие сутки
 
             if (m_Stage < 2)
             {
-                m_DaysInStage++; // Увеличиваем счетчик успешных дней на текущей стадии
+                m_DaysInStage++; // Увеличиваем счетчик успешных дней
 
-                // Если растение успешно поливали 7 игровых дней (14 реальных часов) — оно переходит на следующую стадию!
-                if (m_DaysInStage >= 7)
+                // Проверяем динамический порог созревания (4 дня летом, 7 весной, 12 осенью)
+                if (m_DaysInStage >= daysRequiredToGrow)
                 {
                     m_Stage++;
                     m_DaysInStage = 0; // Сбрасываем дни для новой стадии
@@ -250,49 +346,34 @@ namespace Server.Custom.Farms
                         if (m_VegType == VegetableType.Lettuce) ItemID = 0xC70;
 
                         if (m_Planter != null)
-                            m_Planter.SendMessage(
-                                $"Ваша грядка ({GetVegNameString()}) развилась и перешла во вторую фазу роста!");
+                            m_Planter.SendMessage(88, $"Ваша грядка ({GetVegNameString()}) впитала соки сезона и перешла во вторую фазу роста!");
                     }
-                    else if (m_Stage == 2) // Полное созревание (суммарно прошло 14 дней)
+                    else if (m_Stage == 2) // Полное созревание
                     {
                         switch (m_VegType)
                         {
-                            case VegetableType.Pumpkin:
-                                ItemID = 0xC6A;
-                                Hue = 0;
-                                break;
-                            case VegetableType.Cabbage:
-                                ItemID = 0xC7B;
-                                Hue = 0;
-                                break;
-                            case VegetableType.Lettuce:
-                                ItemID = 0xC70;
-                                Hue = 0;
-                                break;
-                            case VegetableType.Carrot:
-                                ItemID = 0xCB7;
-                                Hue = 43;
-                                break;
-                            case VegetableType.Onion:
-                                ItemID = 0x1846;
-                                Hue = 0;
-                                break;
-                            case VegetableType.Potato:
-                                ItemID = 0x1846;
-                                Hue = 52;
-                                break;
+                            case VegetableType.Pumpkin: ItemID = 0xC6A; Hue = 0; break;
+                            case VegetableType.Cabbage: ItemID = 0xC7B; Hue = 0; break;
+                            case VegetableType.Lettuce: ItemID = 0xC70; Hue = 0; break;
+                            case VegetableType.Carrot: ItemID = 0xCB7; Hue = 43; break;
+                            case VegetableType.Onion: ItemID = 0x1846; Hue = 0; break;
+                            case VegetableType.Potato: ItemID = 0x1846; Hue = 52; break;
                         }
 
                         if (m_Planter != null)
-                            m_Planter.SendMessage(
-                                $"Поздравляем! Ваш урожай ({GetVegNameString()}) полностью созрел за 2 недели!");
+                            m_Planter.SendMessage(0x35, $"Поздравляем! Ваш урожай ({GetVegNameString()}) полностью созрел под солнцем и готов к сбору!");
                     }
                 }
                 else
                 {
                     if (m_Planter != null)
-                        m_Planter.SendMessage(
-                            $"Прошли еще одни сутки. Ваш урожай ({GetVegNameString()}) успешно впитал воду.");
+                    {
+                        string seasonName = "весенней оттепелью";
+                        if (currentSeason == 1) seasonName = "летним солнцем";
+                        if (currentSeason == 2) seasonName = "осенней прохладой";
+
+                        m_Planter.SendMessage($"Прошли еще одни сутки под {seasonName}. Урожай ({GetVegNameString()}) впитал воду. До фазы: {m_DaysInStage}/{daysRequiredToGrow}");
+                    }
                 }
             }
 
@@ -512,7 +593,7 @@ namespace Server.Custom.Farms
                 m_DaysInStage = reader.ReadInt();
             else
                 m_DaysInStage = 0;
-// Восстановление таймеров с шагом в 2 реальных часа (1 игровые сутки)
+            // Восстановление таймеров с шагом в 2 реальных часа (1 игровые сутки)
             if (!m_IsDead)
                 m_GrowthTimer = Timer.DelayCall(TimeSpan.FromHours(2.0), TimeSpan.FromHours(2.0),
                     new TimerCallback(GrowPerDay));
