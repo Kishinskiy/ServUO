@@ -117,61 +117,29 @@ namespace Server.Custom.CityDevelopment
             spawnLoc.X += 2;
             spawnLoc.Z = map.GetAverageZ(spawnLoc.X, spawnLoc.Y);
 
-            // ИСПРАВЛЕНО: Выбираем случайную профессию из 7 возможных вариантов (от 0 до 6)
+            // Выбираем случайную профессию из 8 возможных вариантов
             string merchantTitle = "Странствующий Купец";
             int professionType = Utility.Random(8);
 
-            // Переменная-заглушка, которая подскажет основному моду лояльности, какой тип лута генерировать
-            string fakeClassName = "blacksmith";
-
             switch (professionType)
             {
-                case 0:
-                    merchantTitle = "Легендарный Оружейник";
-                    fakeClassName = "blacksmith"; // Генерирует: Оружие / Тяжелую металлическую броню
-                    break;
-                case 1:
-                    merchantTitle = "Древний Магистр Магии";
-                    fakeClassName = "mage"; // Генерирует: Высокоуровневые свитки заклинаний
-                    break;
-                case 2:
-                    merchantTitle = "Магистр Алхимии";
-                    fakeClassName = "alchemist"; // Генерирует: Концентрированные зелья и эликсиры
-                    break;
-                case 3:
-                    merchantTitle = "Королевский Интендант";
-                    fakeClassName = "cook"; // Генерирует: Элитные вина и восстанавливающие экстракты
-                    break;
-                case 4:
-                    // НОВОЕ: Для Портных и Кожевников (Tailoring / Leatherworking)
-                    merchantTitle = "Придворный Модельер";
-                    fakeClassName = "tailor"; // Генерирует: Зачарованную одежду, плащи, кожаные и шипованные доспехи
-                    break;
-                case 5:
-                    // НОВОЕ: Для Лукарей и Охотников (Bowcraft / Fletching)
-                    merchantTitle = "Мастер-Лучник Охоты";
-                    fakeClassName = "bowyer"; // Генерирует: Композитные луки, элитные арбалеты с руническими статами
-                    break;
-                case 6:
-                    // НОВОЕ: Для Плотников и Инженеров-Тинкеров (Carpentry / Tinkering)
-                    merchantTitle = "Главный Инженер Гильдии";
-                    fakeClassName = "carpenter"; // Генерирует: Магические деревянные щиты, редкие детали, инструменты и приборы
-                    break;
-                case 7:
-                    // НОВОЕ: Для фермеров, тамеров, ветеринаров и рыболовов!
-                    merchantTitle = "Великий Натуралист Земель";
-                    break;
+                case 0: merchantTitle = "Легендарный Оружейник"; break;
+                case 1: merchantTitle = "Древний Магистр Магии"; break;
+                case 2: merchantTitle = "Магистр Алхимии"; break;
+                case 3: merchantTitle = "Королевский Интендант"; break;
+                case 4: merchantTitle = "Придворный Модельер"; break;
+                case 5: merchantTitle = "Мастер-Лучник Охоты"; break;
+                case 6: merchantTitle = "Главный Инженер Гильдии"; break;
+                case 7: merchantTitle = "Великий Натуралист Земель"; break;
             }
 
             // Создаем и спавним NPC в мире
             LegendaryMerchant merchant = new LegendaryMerchant($"[{merchantTitle}]");
             merchant.MoveToWorld(spawnLoc, map);
 
-            // Наполняем магазин 5 лимитированными артефактами на основе выбранного направления крафта
+            // Наполняем магазин 5 лимитированными артефактами
             for (int i = 0; i < 5; i++)
             {
-                // Наше кастомное ядро AdvancedNpcTradeMod.GetLegendaryArtifacts считает имя класса
-                // заспавненного мерчанта и сгенерирует строго тематический лут!
                 var customArtifacts = AdvancedNpcTradeMod.GetLegendaryArtifacts(merchant);
                 foreach (var art in customArtifacts)
                 {
@@ -182,7 +150,7 @@ namespace Server.Custom.CityDevelopment
             }
 
             // Оповещаем регион о прибытии торговца
-            merchant.PublicOverheadMessage(Network.MessageType.Regular, 0x35, false, $"Приветствую жителей! Я, {merchantTitle}, прибыл в ваш мегаполис. Привез 5 редчайших товаров!");
+            merchant.PublicOverheadMessage(Network.MessageType.Regular, 0x35, false, $"Приветствую жителей! Я, {merchantTitle}, прибыл в ваш великий мегаполис. Привез 5 редчайших товаров!");
         }
 
         public static void RemoveMerchant(Town town)
