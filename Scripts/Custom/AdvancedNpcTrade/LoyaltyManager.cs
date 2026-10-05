@@ -16,7 +16,7 @@ namespace Server.Custom.AdvancedNpcTrade
         private static readonly string _dbPath = Path.Combine(Core.BaseDirectory, "Scripts/Custom/AdvancedNpcTrade/Data/LoyaltyDatabase.db");
         private static readonly string _connectionString = $"Data Source={_dbPath};Version=3;";
 
-        private static readonly TimeSpan MaxInactivity = TimeSpan.FromDays(30.0);
+        private static readonly TimeSpan MaxInactivity = TimeSpan.FromDays(90.0);
 
         public class LoyaltyInfo
         {

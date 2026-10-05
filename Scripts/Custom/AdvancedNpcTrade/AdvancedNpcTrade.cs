@@ -9,6 +9,7 @@ using Server.Regions;
 using Server.Items;
 using Server.Network;
 using Server.Engines.Plants;
+using System.Linq;
 
 namespace Server.Custom.AdvancedNpcTrade
 {
@@ -164,6 +165,18 @@ namespace Server.Custom.AdvancedNpcTrade
             List<IBuyItemInfo> artifacts = new List<IBuyItemInfo>();
             if (vendor == null) return artifacts;
 
+            Mobile buyer = vendor.Map.GetMobilesInRange(vendor.Location, 10).FirstOrDefault(m => m.Player && m.Alive);
+            if (buyer == null) return artifacts; // Если покупатель не обнаружен, выходим
+
+            double totalPoints = GetTotalLoyaltyPoints(vendor, buyer);
+            LoyaltyLevel currentLevel = LoyaltyTables.GetLevelFromPoints(totalPoints);
+
+
+            if (currentLevel != LoyaltyLevel.Legend)
+            {
+                return artifacts;
+            }
+
             string vendorClass = vendor.GetType().Name.ToLower();
             Item spawnedItem = null;
 
@@ -174,90 +187,112 @@ namespace Server.Custom.AdvancedNpcTrade
                 customProfession = (int)profProp.GetValue(vendor, null);
             }
 
-            try
+            int artifactsCount = Utility.RandomMinMax(1, 2);
+
+            for (int i = 0; i < artifactsCount; i++)
             {
-                if (customProfession == 0 || customProfession == 5 ||
-                    ((customProfession == -1) && (vendorClass.Contains("blacksmith") || vendorClass.Contains("weaponsmith"))))
-                {
-                    spawnedItem = Loot.RandomWeapon();
-                }
-                else if (customProfession == 4 || ((customProfession == -1) && vendorClass.Contains("armorer")))
-                {
-                    spawnedItem = Loot.RandomArmor();
-                }
-                else if (customProfession == 2 || ((customProfession == -1) && vendorClass.Contains("alchemist")))
-                {
-                    spawnedItem = Loot.RandomPotion();
-                }
-                else if (customProfession == 1 || ((customProfession == -1) && (vendorClass.Contains("mage") || vendorClass.Contains("magician") || vendorClass.Contains("scribe"))))
-                {
-                    spawnedItem = Loot.RandomScroll(0, 7, SpellbookType.Regular);
-                }
-                else if (vendorClass.Contains("jeweler"))
-                {
-                    spawnedItem = Loot.RandomJewelry();
-                }
-                else if (customProfession == 7)
-                {
-                    try
-                    {
-                        Seed rareSeed = new Seed();
-                        rareSeed.PlantType = (PlantType)Utility.RandomMinMax(0, 16);
-                        rareSeed.PlantHue = (PlantHue)Utility.RandomMinMax(0, 16);
-                        spawnedItem = rareSeed;
-                    }
-                    catch { spawnedItem = new Candle(); }
-                }
-                else
-                {
-                    if (Utility.RandomBool()) spawnedItem = Loot.RandomClothing();
-                    else spawnedItem = new Goblet();
-                }
+                // Reuse the variable declared before the loop
+                spawnedItem = null;
 
-                if (spawnedItem == null) spawnedItem = new Candle();
-
-                if (spawnedItem != null)
+                try
                 {
-                    int propertyCount = 0;
-
-                    if (spawnedItem is BaseWeapon weapon)
+                    // 1. ОРУЖЕЙНИКИ И КУЗНЕЦЫ (Weaponsmith, Blacksmith, Bowyer) -> Оружие и щиты
+                    if (customProfession == 0 || customProfession == 5 ||
+                        ((customProfession == -1) && (vendorClass.Contains("blacksmith") || vendorClass.Contains("weaponsmith") || vendorClass.Contains("bowyer"))))
                     {
-                        BaseRunicTool.ApplyAttributesTo(weapon, 4, 80, 100);
-                        propertyCount = CountProps(weapon.Attributes) + CountProps(weapon.WeaponAttributes);
+                        spawnedItem = Loot.RandomWeapon();
                     }
-                    else if (spawnedItem is BaseArmor armor)
+                    // 2. БРОННИКИ И ПОРТНЫЕ (Armorer, Tailor, Tanner) -> Боевой доспех или щит
+                    else if (customProfession == 4 || ((customProfession == -1) && (vendorClass.Contains("armorer") || vendorClass.Contains("tailor") || vendorClass.Contains("tanner"))))
                     {
-                        BaseRunicTool.ApplyAttributesTo(armor, 4, 80, 100);
-                        propertyCount = CountProps(armor.Attributes) + CountProps(armor.ArmorAttributes);
+                        spawnedItem = Loot.RandomArmor();
+                        if (spawnedItem == null) spawnedItem = Loot.RandomShield();
                     }
-                    else if (spawnedItem is BaseJewel jewel)
+                    // 3. АЛХИМИКИ (Alchemist, Herbalist) -> Эксклюзивные мощные эликсиры
+                    else if (customProfession == 2 || ((customProfession == -1) && vendorClass.Contains("alchemist")))
                     {
-                        BaseRunicTool.ApplyAttributesTo(jewel, 4, 80, 100);
-                        propertyCount = CountProps(jewel.Attributes);
+                        spawnedItem = Loot.RandomPotion();
+                        if (spawnedItem != null) spawnedItem.Hue = 1161; // Эксклюзивный неоновый хью
+                    }
+                    // 4. МАГИ, ПИСАРИ И МИСТИКИ (Mage, Scribe) -> Высокоуровневые свитки заклинаний
+                    else if (customProfession == 1 || ((customProfession == -1) && (vendorClass.Contains("mage") || vendorClass.Contains("magician") || vendorClass.Contains("scribe"))))
+                    {
+                        spawnedItem = Loot.RandomScroll(50, 63, SpellbookType.Regular); // 7-8 круги магии
+                    }
+                    // 5. ЮВЕЛИРЫ (Jeweler) -> Элитная бижутерия
+                    else if (vendorClass.Contains("jeweler"))
+                    {
+                        spawnedItem = Loot.RandomJewelry();
+                    }
+                    // 6. ВЕТЕРИНАРЫ И КОНЮХИ (AnimalTrainer) -> Редкие семена Натуралиста
+                    else if (customProfession == 7 || ((customProfession == -1) && vendorClass.Contains("trainer")))
+                    {
+                        try
+                        {
+                            Seed rareSeed = new Seed();
+                            rareSeed.PlantType = (PlantType)Utility.RandomMinMax(0, 16);
+                            rareSeed.PlantHue = (PlantHue)Utility.RandomMinMax(0, 16);
+                            spawnedItem = rareSeed;
+                        }
+                        catch { spawnedItem = new Candle(); }
+                    }
+                    // Резервный пул для остальных (Универсальный ценный сувенир — кубок или подсвечник)
+                    else
+                    {
+                        spawnedItem = Loot.RandomArmorOrShieldOrWeaponOrJewelry(true, true, true);
                     }
 
-                    if (propertyCount == 0) propertyCount = 1;
+                    if (spawnedItem == null) spawnedItem = new Candle();
 
-                    int goldValue = (int)(spawnedItem.Weight * 150) + (propertyCount * 12000);
-                    if (goldValue < 5000) goldValue = 5000;
+                    if (spawnedItem != null)
+                    {
+                        // ВЫКРУЧИВАЕМ МАГИЮ НА ПОЛНУЮ (Как у ГМ-купца 5 уровня!)
+                        if (spawnedItem is BaseWeapon weapon)
+                            BaseRunicTool.ApplyAttributesTo(weapon, 5, 95, 100);
+                        else if (spawnedItem is BaseArmor armor)
+                            BaseRunicTool.ApplyAttributesTo(armor, 5, 95, 100);
+                        else if (spawnedItem is BaseJewel jewel)
+                            BaseRunicTool.ApplyAttributesTo(jewel, 5, 95, 100);
 
-                    int priceScalar = vendor.GetPriceScalar();
-                    int finalPrice = (int)Math.Round(goldValue * (priceScalar / 100.0));
+                        // Насильно вживляем ItemPower 5 уровня для Diablo Loot System
+                        var powerProp = spawnedItem.GetType().GetProperty("ItemPower");
+                        if (powerProp != null && powerProp.CanWrite)
+                        {
+                            try { powerProp.SetValue(spawnedItem, Enum.ToObject(powerProp.PropertyType, 5), null); } catch { }
+                        }
 
-                    string itemRealName = spawnedItem.Name;
-                    if (string.IsNullOrEmpty(itemRealName)) itemRealName = spawnedItem.GetType().Name;
-                    string finalDisplayName = $"[Артефакт] {itemRealName}";
-                    string diabloColoredName = Server.Custom.DiabloLoot.DiabloLootColors.FormatName(spawnedItem, finalDisplayName);
-                    var info = new GenericBuyInfo(diabloColoredName, spawnedItem.GetType(), finalPrice, 1, spawnedItem.ItemID, spawnedItem.Hue);
-                    artifacts.Add(info);
-                    spawnedItem.Delete();
+                        // Устанавливаем элитную стоимость: 200 000 gp за артефакт, семена — 30 000 gp
+                        int finalPrice = (spawnedItem is Seed) ? 30000 : 200000;
+
+                        // Читаем имя из базы данных Ultima
+                        string itemRealName = spawnedItem.Name;
+                        if (string.IsNullOrEmpty(itemRealName))
+                        {
+                            if (spawnedItem.ItemData.Name != null && !string.IsNullOrEmpty(spawnedItem.ItemData.Name))
+                                itemRealName = spawnedItem.ItemData.Name;
+                            else
+                                itemRealName = spawnedItem.GetType().Name;
+                        }
+
+                        string finalDisplayName = $"[Легенда] {itemRealName}";
+
+                        // Окрашиваем витрину в сочный оранжевый/легендарный цвет Diablo Loot!
+                        string diabloColoredName = Server.Custom.DiabloLoot.DiabloLootColors.FormatName(spawnedItem, finalDisplayName);
+
+                        // Записываем скрытый артефакт в массив меню купли-продажи
+                        var info = new GenericBuyInfo(diabloColoredName, spawnedItem.GetType(), finalPrice, 1, spawnedItem.ItemID, spawnedItem.Hue);
+                        artifacts.Add(info);
+
+                        // Чисто стираем временный слепок, чтобы предмет клонировался игроку в инвентарь при покупке без багов!
+                        spawnedItem.Delete();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[AdvancedNpcTrade] Ошибка скрытой витрины Легенды: {ex.Message}");
                 }
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[AdvancedNpcTrade] Ошибка генерации артефакта: {ex.Message}");
-                artifacts.Add(new GenericBuyInfo("[Артефакт] Магический Свиток", typeof(SpellScroll), 15000, 1, 0x1F1F, 0));
-            }
+
             return artifacts;
         }
         private static void LoyaltyInfo_OnCommand(CommandEventArgs e)
