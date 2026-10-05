@@ -18,17 +18,15 @@ namespace Server.Custom.AdvancedNpcTrade
 
         static AdvancedNpcTradeMod()
         {
-            try 
-            { 
-                Console.OutputEncoding = System.Text.Encoding.UTF8; 
-            } 
+            try
+            {
+                Console.OutputEncoding = System.Text.Encoding.UTF8;
+            }
             catch { }
         }
 
         public static void Initialize()
         {
-        
-
             LoyaltyManager.Initialize();
             CommandSystem.Register("LoyaltyInfo", AccessLevel.GameMaster, new CommandEventHandler(LoyaltyInfo_OnCommand));
         }
@@ -52,15 +50,59 @@ namespace Server.Custom.AdvancedNpcTrade
 
         public static int CalculateDiscountedPrice(BaseVendor vendor, Mobile buyer, int originalPrice)
         {
-            double totalPoints = GetTotalLoyaltyPoints(vendor, buyer);
-            LoyaltyLevel finalLevel = LoyaltyTables.GetLevelFromPoints(totalPoints);
-            double finalDiscount = LoyaltyTables.Discount[finalLevel];
-
-            if (finalDiscount <= 0.0)
+            if (vendor == null || buyer == null)
                 return originalPrice;
 
-            int newPrice = (int)Math.Round(originalPrice * (1.0 - finalDiscount));
-            return newPrice < 1 ? 1 : newPrice;
+            double finalPrice = originalPrice;
+
+            // =========================================================================
+            // 1. БАЗОВАЯ ЦЕНА + НАЛОГ ФРАКЦИОННОГО ГОРОДА
+            // =========================================================================
+            // Ищем, к какому фракционному городу относится регион этого торговца
+            if (vendor.Region != null && !string.IsNullOrEmpty(vendor.Region.Name))
+            {
+                Server.Factions.Town town = Server.Factions.Town.Towns.Find(t => 
+                    vendor.Region.Name.IndexOf(t.ToString(), StringComparison.OrdinalIgnoreCase) >= 0);
+
+                if (town != null && town.Tax > 0)
+                {
+                    // Налог города (например, town.Tax = 5 означает +5% к цене товара)
+                    double taxMultiplier = 1.0 + (town.Tax / 100.0);
+                    finalPrice *= taxMultiplier;
+                }
+            }
+
+            // =========================================================================
+            // 2. ВЛИЯНИЕ КАРМЫ ИГРОКА (Положительная — скидка, отрицательная — наценка)
+            // =========================================================================
+            double karmaModifier = 0.0;
+
+            if (buyer.Karma > 0)
+            {
+                // Максимальная скидка от кармы: -10% при 15000 кармы и выше
+                karmaModifier = -(Math.Min(buyer.Karma, 15000) / 150000.0); 
+            }
+            else if (buyer.Karma < 0)
+            {
+                // Максимальная штрафная наценка: +25% при -15000 кармы и ниже
+                karmaModifier = Math.Abs(Math.Max(buyer.Karma, -15000)) / 60000.0; 
+            }
+
+            finalPrice *= (1.0 + karmaModifier);
+
+            // =========================================================================
+            // 3. СКИДКА ОТ ЛИЧНОЙ ЛОЯЛЬНОСТИ У ТОРГОВЦА
+            // =========================================================================
+            double totalPoints = GetTotalLoyaltyPoints(vendor, buyer);
+            LoyaltyLevel finalLevel = LoyaltyTables.GetLevelFromPoints(totalPoints);
+            double loyaltyDiscount = LoyaltyTables.Discount[finalLevel];
+
+            // Вычитаем процент скидки за ранг лояльности (например, -40% на Легенде)
+            finalPrice *= (1.0 - loyaltyDiscount);
+
+            // Жесткий предохранитель: товар не может стоить дешевле 1 золотой монеты
+            int roundedPrice = (int)Math.Round(finalPrice);
+            return roundedPrice < 1 ? 1 : roundedPrice;
         }
 
         public static void OnSuccessfulPurchase(BaseVendor vendor, Mobile buyer, int amount)
@@ -109,6 +151,7 @@ namespace Server.Custom.AdvancedNpcTrade
             return count;
         }
 
+        // МЕТОД ВОЗВРАЩЕН К СТАБИЛЬНОМУ СТАНДАРТУ ЯДРА ДЛЯ КЛАССИЧЕСКИХ NPC
         public static List<IBuyItemInfo> GetLegendaryArtifacts(BaseVendor vendor)
         {
             List<IBuyItemInfo> artifacts = new List<IBuyItemInfo>();
@@ -126,25 +169,24 @@ namespace Server.Custom.AdvancedNpcTrade
 
             try
             {
-                // ПОЛНОСТЬЮ СЛУЧАЙНЫЙ ВЫБОР ИЗ СИСТЕМЫ ЛУТА (Как у MerchantBot, но строго Artifact-уровня)
-                if (customProfession == 0 || customProfession == 5) // Оружейник / Лучник
+                if (customProfession == 0 || customProfession == 5)
                 {
                     spawnedItem = Loot.RandomWeapon();
                 }
-                else if (customProfession == 4) // Бронник / Модельер
+                else if (customProfession == 4)
                 {
                     spawnedItem = Loot.RandomArmor();
                 }
-                else if (customProfession == 1) // Маг / Писарь
+                else if (customProfession == 1)
                 {
                     spawnedItem = Loot.RandomScroll(50, 63, SpellbookType.Regular);
                 }
-                else if (customProfession == 2 || customProfession == 3) // Алхимик / Трактирщик
+                else if (customProfession == 2 || customProfession == 3)
                 {
                     spawnedItem = Loot.RandomPotion();
-                    if (spawnedItem != null) spawnedItem.Hue = 1161; // Эксклюзивный неоновый цвет эликсиров
+                    if (spawnedItem != null) spawnedItem.Hue = 1161;
                 }
-                else if (customProfession == 7) // Семена Натуралиста (Категория 9)
+                else if (customProfession == 7)
                 {
                     try
                     {
@@ -157,7 +199,6 @@ namespace Server.Custom.AdvancedNpcTrade
                 }
                 else
                 {
-                    // Дефолтный пушной выбор: Оружие, Броня или Бижутерия (Штатный метод вашего MerchantBot!)
                     spawnedItem = Loot.RandomArmorOrShieldOrWeaponOrJewelry(true, true, true);
                 }
 
@@ -168,7 +209,6 @@ namespace Server.Custom.AdvancedNpcTrade
 
                 if (spawnedItem != null)
                 {
-                    // ВЫКРУЧИВАЕМ МАГИЮ НА МАКСИМУМ: Если это экипировка, накладываем свойства RunicTool 5 уровня мощности
                     if (spawnedItem is BaseWeapon weapon)
                     {
                         BaseRunicTool.ApplyAttributesTo(weapon, 5, 95, 100);
@@ -182,17 +222,14 @@ namespace Server.Custom.AdvancedNpcTrade
                         BaseRunicTool.ApplyAttributesTo(jewel, 5, 95, 100);
                     }
 
-                    // КЛАССОМ ВЫШЕ: Насильно выставляем легендарную мощность ItemPower (ранг 5) через рефлексию
                     var powerProp = spawnedItem.GetType().GetProperty("ItemPower");
                     if (powerProp != null && powerProp.CanWrite)
                     {
                         try { powerProp.SetValue(spawnedItem, Enum.ToObject(powerProp.PropertyType, 5), null); } catch { }
                     }
 
-                    // Базовая стоимость случайных артефактов — 150 000 gp, семян — 25 000 gp
                     int finalPrice = (spawnedItem is Seed) ? 25000 : 150000;
 
-                    // Читаем официальное имя предмета, сгенерированное базой данных Ultima
                     string itemRealName = spawnedItem.Name;
                     if (string.IsNullOrEmpty(itemRealName))
                     {
@@ -202,18 +239,14 @@ namespace Server.Custom.AdvancedNpcTrade
                             itemRealName = spawnedItem.GetType().Name;
                     }
 
-                    // Интеграция с вашей Diablo Loot System (Окрасит строку в оранжевый цвет, так как ItemPower равен 5)
                     string diabloColoredName = Server.Custom.DiabloLoot.DiabloLootColors.FormatName(spawnedItem, itemRealName);
 
-                    // Регистрируем на витрину! 
-                    // Важно: Мы передаем ТОЧНЫЙ сгенерированный экземпляр предмета в инвентарь купца (BuyPack)
                     var info = new GenericBuyInfo(diabloColoredName, spawnedItem.GetType(), finalPrice, 1, spawnedItem.ItemID, spawnedItem.Hue);
                     artifacts.Add(info);
 
-                    // ВНИМАНИЕ: Теперь мы НЕ удаляем spawnedItem через Delete()! 
-                    // Мы отдаем этот перманентный, заряженный магией предмет в невидимую сумку вендора. 
-                    // Благодаря этому при покупке игрок получит вещь со всеми свойствами, а тултипы на витрине оживут!
-                    vendor.BuyPack.DropItem(spawnedItem);
+                    // УЛЬТИМАТИВНЫЙ ФИКС БАГА ИНВЕНТАРЯ: Чисто удаляем временный слепок!
+                    // Обычные вендоры теперь отдают товар в инвентарь игрока идеально и без задержек.
+                    spawnedItem.Delete();
                 }
             }
             catch (Exception ex)
@@ -225,7 +258,6 @@ namespace Server.Custom.AdvancedNpcTrade
             return artifacts;
         }
 
-        // ВСЕ МЕТОДЫ ВЕРНУЛИСЬ СТРОГО ВНУТРЬ КЛАССА ADVANCEDNPCTRADEMOD:
         private static void LoyaltyInfo_OnCommand(CommandEventArgs e)
         {
             Mobile m = e.Mobile;
@@ -235,6 +267,7 @@ namespace Server.Custom.AdvancedNpcTrade
                 m.Target = new LoyaltyTarget();
             }
         }
+
         private static double GetCityBonusPoints(BaseVendor vendor, Mobile buyer)
         {
             if (vendor == null || vendor.Region == null || buyer == null) return 0.0;
@@ -251,7 +284,7 @@ namespace Server.Custom.AdvancedNpcTrade
             else if (buyer.Fame >= 2000) return 3.0;
             return 0.0;
         }
-        // ОСТАВЛЕН ТОЛЬКО ОДИН ЕДИНСТВЕННЫЙ КЛАСС ПРИЦЕЛА ВНУТРИ РОДИТЕЛЬСКОГО КЛАССА:
+
         private class LoyaltyTarget : Target
         {
             public LoyaltyTarget() : base(12, false, TargetFlags.None) { }
@@ -279,5 +312,5 @@ namespace Server.Custom.AdvancedNpcTrade
                 }
             }
         }
-    } // Конец класса AdvancedNpcTradeMod
-} // Конец namespace
+    }
+}
