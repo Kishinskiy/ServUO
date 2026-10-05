@@ -16,10 +16,18 @@ namespace Server.Custom.AdvancedNpcTrade
     {
         public static readonly int LoyaltyChance = 5;
 
+        static AdvancedNpcTradeMod()
+        {
+            try 
+            { 
+                Console.OutputEncoding = System.Text.Encoding.UTF8; 
+            } 
+            catch { }
+        }
+
         public static void Initialize()
         {
-            // Фикс кодировки для Linux
-            try { Console.OutputEncoding = System.Text.Encoding.UTF8; } catch { }
+        
 
             LoyaltyManager.Initialize();
             CommandSystem.Register("LoyaltyInfo", AccessLevel.GameMaster, new CommandEventHandler(LoyaltyInfo_OnCommand));

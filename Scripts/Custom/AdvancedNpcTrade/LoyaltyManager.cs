@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using Server;
 using Server.Mobiles;
-using System.Data.SQLite; // Теперь эта библиотека официально подключена в .csproj!
+using Microsoft.Data.Sqlite; // Теперь эта библиотека официально подключена в .csproj!
 
 namespace Server.Custom.AdvancedNpcTrade
 {
@@ -33,7 +33,7 @@ namespace Server.Custom.AdvancedNpcTrade
                 if (!Directory.Exists(_dbFolder))
                     Directory.CreateDirectory(_dbFolder);
 
-                using (var connection = new SQLiteConnection(_connectionString))
+                using (var connection = new SqliteConnection(_connectionString))
                 {
                     connection.Open();
 
@@ -47,7 +47,7 @@ namespace Server.Custom.AdvancedNpcTrade
                             PRIMARY KEY (VendorSerial, PlayerSerial)
                         );";
 
-                    using (var command = new SQLiteCommand(createTableQuery, connection))
+                    using (var command = new SqliteCommand(createTableQuery, connection))
                     {
                         command.ExecuteNonQuery();
                     }
@@ -97,7 +97,7 @@ namespace Server.Custom.AdvancedNpcTrade
 
             try
             {
-                using (var connection = new SQLiteConnection(_connectionString))
+                using (var connection = new SqliteConnection(_connectionString))
                 {
                     connection.Open();
 
@@ -124,7 +124,7 @@ namespace Server.Custom.AdvancedNpcTrade
                             {
                                 keysToRemove.Add(kvp.Key);
 
-                                using (var delCmd = new SQLiteCommand(deleteQuery, connection, transaction))
+                                using (var delCmd = new SqliteCommand(deleteQuery, connection, transaction))
                                 {
                                     delCmd.Parameters.AddWithValue("@vSer", kvp.Key.Item1.Value);
                                     delCmd.Parameters.AddWithValue("@pSer", kvp.Key.Item2.Value);
@@ -134,7 +134,7 @@ namespace Server.Custom.AdvancedNpcTrade
                             }
 
                             // Безопасная вставка параметров
-                            using (var cmd = new SQLiteCommand(upsertQuery, connection, transaction))
+                            using (var cmd = new SqliteCommand(upsertQuery, connection, transaction))
                             {
                                 cmd.Parameters.AddWithValue("@vSer", kvp.Key.Item1.Value);
                                 cmd.Parameters.AddWithValue("@pSer", kvp.Key.Item2.Value);
@@ -170,14 +170,14 @@ namespace Server.Custom.AdvancedNpcTrade
             {
                 _data.Clear();
 
-                using (var connection = new SQLiteConnection(_connectionString))
+                using (var connection = new SqliteConnection(_connectionString))
                 {
                     connection.Open();
 
                     string selectQuery = "SELECT VendorSerial, PlayerSerial, LoyaltyLevel, Purchases, LastPurchase FROM LoyaltyRecords;";
 
-                    using (var command = new SQLiteCommand(selectQuery, connection))
-                    using (SQLiteDataReader reader = command.ExecuteReader())
+                    using (var command = new SqliteCommand(selectQuery, connection))
+                    using (SqliteDataReader reader = command.ExecuteReader())
                     {
                         while (reader.Read())
                         {
