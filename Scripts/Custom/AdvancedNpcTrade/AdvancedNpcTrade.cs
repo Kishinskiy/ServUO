@@ -14,7 +14,7 @@ namespace Server.Custom.AdvancedNpcTrade
 {
     public static class AdvancedNpcTradeMod
     {
-        // Вероятность начисления очков лояльности за каждый купленный предмет (в процентах от 1 до 100)
+        // Вероятность начисления очков лояльности за каждый купленный предмет (в процентах)
         public static readonly int LoyaltyChance = 5;
 
         static AdvancedNpcTradeMod()
@@ -49,19 +49,17 @@ namespace Server.Custom.AdvancedNpcTrade
             return points < 0.0 ? 0.0 : points;
         }
 
+        // ИСПРАВЛЕНО: Метод теперь работает ВСЕЗЕМНО (во всех мирах без исключения)
         private static double GetCityBonusPoints(BaseVendor vendor, Mobile buyer)
         {
             if (vendor == null || vendor.Region == null || buyer == null) return 0.0;
-            string regionName = vendor.Region.Name;
-            if (string.IsNullOrEmpty(regionName)) return 0.0;
 
-            bool isInCity = regionName.Contains("Britain") || regionName.Contains("Moonglow") ||
-                            regionName.Contains("Yew") || regionName.Contains("Minoc") ||
-                            regionName.Contains("Trinsic") || regionName.Contains("Skara") ||
-                            regionName.Contains("Magincia") || regionName.Contains("Jhelom") ||
-                            regionName.Contains("Vesper");
+            // Вместо жесткого перебора названий проверяем тип региона.
+            // Если регион является TownRegion (город) или GuardedRegion (охраняемая зона) — 
+            // значит, система лояльности автоматически активирует бонусы в ЛЮБОМ мире (включая Малас, Токуно и т.д.)
+            bool isValidCityRegion = vendor.Region is TownRegion || vendor.Region is GuardedRegion;
 
-            if (!isInCity) return 0.0;
+            if (!isValidCityRegion) return 0.0;
 
             if (buyer.Fame >= 10000) return 20.0;
             else if (buyer.Fame >= 5000) return 10.0;
@@ -71,7 +69,7 @@ namespace Server.Custom.AdvancedNpcTrade
         }
 
         // =========================================================================
-        // МОНУМЕНТАЛЬНЫЙ РАСЧЕТ ЦЕНЫ: БАЗА + НАЛОГ ГОРОДА + КАРМА + ЛОЯЛЬНОСТЬ ВЕНДОРА
+        // УНИВЕРСАЛЬНЫЙ РАСЧЕТ ЦЕНЫ ДЛЯ ВСЕХ МИРОВ (БАЗА + НАЛОГ + КАРМА + ЛОЯЛЬНОСТЬ)
         // =========================================================================
         public static int CalculateDiscountedPrice(BaseVendor vendor, Mobile buyer, int originalPrice)
         {
@@ -80,7 +78,7 @@ namespace Server.Custom.AdvancedNpcTrade
 
             double finalPrice = originalPrice;
 
-            // 1. Применяем налог фракционного города (если вендор находится в черте города)
+            // 1. Применяем налог фракционного города (с защитой по названию региона для Trammel/Felucca)
             if (vendor.Region != null && !string.IsNullOrEmpty(vendor.Region.Name))
             {
                 Server.Factions.Town town = Server.Factions.Town.Towns.Find(t =>
@@ -88,33 +86,29 @@ namespace Server.Custom.AdvancedNpcTrade
 
                 if (town != null && town.Tax > 0)
                 {
-                    // Налог города (например, town.Tax = 5 превращается в наценку +5%)
                     finalPrice *= (1.0 + (town.Tax / 100.0));
                 }
             }
 
-            // 2. Влияние кармы игрока на итоговый ценник товара
+            // 2. Влияние кармы игрока на итоговый ценник товара (работает во всех мирах)
             double karmaModifier = 0.0;
             if (buyer.Karma > 0)
             {
-                // Положительная карма: дает дополнительную скидку до -10% при 15k+ кармы
-                karmaModifier = -(Math.Min(buyer.Karma, 15000) / 150000.0);
+                karmaModifier = -(Math.Min(buyer.Karma, 15000) / 150000.0); // скидка до -10%
             }
             else if (buyer.Karma < 0)
             {
-                // Отрицательная карма: торговцы накладывают штраф до +25% при -15k- кармы
-                karmaModifier = Math.Abs(Math.Max(buyer.Karma, -15000)) / 60000.0;
+                karmaModifier = Math.Abs(Math.Max(buyer.Karma, -15000)) / 60000.0; // наценка до +25%
             }
             finalPrice *= (1.0 + karmaModifier);
 
-            // 3. Вычитаем скидку от личной лояльности у конкретного продавца
+            // 3. Вычитаем скидку за ранг личной лояльности (работает во всех мирах)
             double totalPoints = GetTotalLoyaltyPoints(vendor, buyer);
             LoyaltyLevel finalLevel = LoyaltyTables.GetLevelFromPoints(totalPoints);
             double loyaltyDiscount = LoyaltyTables.Discount[finalLevel];
 
             finalPrice *= (1.0 - loyaltyDiscount);
 
-            // Предохранитель баланса: цена не может упасть ниже 1 золотого
             int roundedPrice = (int)Math.Round(finalPrice);
             return roundedPrice < 1 ? 1 : roundedPrice;
         }
@@ -246,16 +240,16 @@ namespace Server.Custom.AdvancedNpcTrade
 
                     int goldValue = (int)(spawnedItem.Weight * 150) + (propertyCount * 12000);
                     if (goldValue < 5000) goldValue = 5000;
+
                     int priceScalar = vendor.GetPriceScalar();
                     int finalPrice = (int)Math.Round(goldValue * (priceScalar / 100.0));
+
                     string itemRealName = spawnedItem.Name;
                     if (string.IsNullOrEmpty(itemRealName)) itemRealName = spawnedItem.GetType().Name;
                     string finalDisplayName = $"[Артефакт] {itemRealName}";
-                    // Оборачиваем имя в цвета Diablo, если это необходимо
                     string diabloColoredName = Server.Custom.DiabloLoot.DiabloLootColors.FormatName(spawnedItem, finalDisplayName);
                     var info = new GenericBuyInfo(diabloColoredName, spawnedItem.GetType(), finalPrice, 1, spawnedItem.ItemID, spawnedItem.Hue);
                     artifacts.Add(info);
-                    // СТАБИЛЬНЫЙ ФИКС: Обычные NPC чисто удаляют временные слепки предметов!
                     spawnedItem.Delete();
                 }
             }
