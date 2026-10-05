@@ -43,7 +43,7 @@ namespace Server.Custom.CityDevelopment
             Timer.DelayCall(TimeSpan.FromDays(1.0), TimeSpan.FromDays(1.0), new TimerCallback(ProcessCityDecayAndMaintenance));
         }
 
-        // ИСПРАВЛЕНО: Метод теперь строго принимает Server.Engines.CityLoyalty.City
+        // Метод строго принимает Server.Engines.CityLoyalty.City
         public static CityProgress GetCityProfile(Server.Engines.CityLoyalty.City city)
         {
             string cleanName = city.ToString();
@@ -118,7 +118,9 @@ namespace Server.Custom.CityDevelopment
                     progress.RequiredSupplies = 250.0 * Math.Pow(2.0, progress.Level - 1);
 
                     ApplyDynamicTaxToBaseSystem(originTown, progress.Level);
-                    CityDecorationMod.DecorateTown(originTown, progress.Level);
+
+                    // ИСПРАВЛЕНО: Передаем player.Map третьим аргументом, чтобы декорации спавнились там, где находится купец
+                    CityDecorationMod.DecorateTown(originTown, progress.Level, player.Map);
                     CityLegendaryMerchantMod.CheckMerchantSpawn(originTown, progress.Level);
 
                     string globalMsg = $"[Экономика] Город {townName} развился до {progress.Level} уровня благодаря вливаниям капитала и поставкам припасов!";
@@ -188,7 +190,10 @@ namespace Server.Custom.CityDevelopment
                         progress.CurrentSupplies = 0.0; // Очки сбрасываются в 0 на новом уровне
 
                         ApplyDynamicTaxToBaseSystem(t, progress.Level);
-                        CityDecorationMod.RemoveTownDecoration(t, progress.Level + 1);
+
+                        // ИСПРАВЛЕНО: Передаем карту лояльности Trammel, где запущены основные фракционные города
+                        CityDecorationMod.RemoveTownDecoration(t, progress.Level + 1, Map.Trammel);
+                        CityDecorationMod.RemoveTownDecoration(t, progress.Level + 1, Map.Felucca); // Чистим зеркало во Felucca
                         CityLegendaryMerchantMod.RemoveMerchant(t);
 
                         string decayMsg = $"[Кризис] Город {townName} обанкротился или остался без снабжения! Уровень упал до {progress.Level}.";
@@ -232,7 +237,6 @@ namespace Server.Custom.CityDevelopment
             }
             catch { }
         }
-
         private static void ApplyDynamicTaxToBaseSystem(Town town, int cityLevel)
         {
             if (town == null) return;
@@ -332,7 +336,7 @@ namespace Server.Custom.CityDevelopment
                             {
                                 if (system.Definition.Region.IsPartOf(npc.Region))
                                 {
-                                    city = c; // ИСПРАВЛЕНО: Теперь записываем enum города 'c' вместо 'system'
+                                    city = c;
                                     cityFound = true;
                                     break;
                                 }
@@ -364,11 +368,10 @@ namespace Server.Custom.CityDevelopment
                                 double dist = npc.GetDistanceToSqrt(stone.Location);
                                 if (dist < closestDist && dist < 300.0)
                                 {
-                                    // ИСПРАВЛЕНО: Извлекаем enum City из объекта системы лояльности камня
                                     if (stone.City != null)
                                     {
                                         closestDist = dist;
-                                        city = stone.City.City; // .City (система) -> .City (enum)
+                                        city = stone.City.City;
                                         cityFound = true;
                                     }
                                 }

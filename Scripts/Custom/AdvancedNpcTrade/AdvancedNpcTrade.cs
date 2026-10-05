@@ -14,19 +14,17 @@ namespace Server.Custom.AdvancedNpcTrade
 {
     public static class AdvancedNpcTradeMod
     {
-        // Вероятность начисления очков лояльности за каждый купленный предмет (в процентах от 1 до 100)
-        // По умолчанию: 5%
         public static readonly int LoyaltyChance = 5;
-
-        // =========================================================================
 
         public static void Initialize()
         {
+            // Фикс кодировки для Linux
+            try { Console.OutputEncoding = System.Text.Encoding.UTF8; } catch { }
+
             LoyaltyManager.Initialize();
             CommandSystem.Register("LoyaltyInfo", AccessLevel.GameMaster, new CommandEventHandler(LoyaltyInfo_OnCommand));
         }
 
-        // Вспомогательный метод определения суммарных очков лояльности (Возвращает double)
         public static double GetTotalLoyaltyPoints(BaseVendor vendor, Mobile buyer)
         {
             if (vendor == null || buyer == null) return 0.0;
@@ -34,37 +32,14 @@ namespace Server.Custom.AdvancedNpcTrade
             var info = LoyaltyManager.GetInfo(vendor, buyer);
             double points = info.Purchases;
 
-            // Добавляем полноценные double бонусы за Карму
-            if (buyer.Karma >= 10000)       points += 15.0;
-            else if (buyer.Karma >= 5000)   points += 5.0;
+            if (buyer.Karma >= 10000) points += 15.0;
+            else if (buyer.Karma >= 5000) points += 5.0;
             else if (buyer.Karma <= -10000) points -= 25.0;
-            else if (buyer.Karma <= -5000)  points -= 10.0;
+            else if (buyer.Karma <= -5000) points -= 10.0;
 
-            // Добавляем полноценные double бонусы за Славу в городе
             points += GetCityBonusPoints(vendor, buyer);
 
             return points < 0.0 ? 0.0 : points;
-        }
-
-        private static double GetCityBonusPoints(BaseVendor vendor, Mobile buyer)
-        {
-            if (vendor == null || vendor.Region == null || buyer == null) return 0.0;
-            string regionName = vendor.Region.Name;
-            if (string.IsNullOrEmpty(regionName)) return 0.0;
-
-            bool isInCity = regionName.Contains("Britain") || regionName.Contains("Moonglow") ||
-                            regionName.Contains("Yew") || regionName.Contains("Minoc") ||
-                            regionName.Contains("Trinsic") || regionName.Contains("Skara") ||
-                            regionName.Contains("Magincia") || regionName.Contains("Jhelom") ||
-                            regionName.Contains("Vesper");
-
-            if (!isInCity) return 0.0;
-
-            if (buyer.Fame >= 10000)       return 20.0;
-            else if (buyer.Fame >= 5000)   return 10.0;
-            else if (buyer.Fame >= 2000)   return 3.0;
-
-            return 0.0;
         }
 
         public static int CalculateDiscountedPrice(BaseVendor vendor, Mobile buyer, int originalPrice)
@@ -80,36 +55,28 @@ namespace Server.Custom.AdvancedNpcTrade
             return newPrice < 1 ? 1 : newPrice;
         }
 
-        // НАЧИСЛЕНИЕ ДРОБНЫХ ОЧКОВ С НАСТРАИВАЕМОЙ ВЕРОЯТНОСТЬЮ
         public static void OnSuccessfulPurchase(BaseVendor vendor, Mobile buyer, int amount)
         {
             if (vendor == null || buyer == null || amount <= 0) return;
 
             double calculatedPoints = 0.0;
-
-            // Переводим int процентов (например, 5) в формат вероятности double (0.05)
             double targetChance = LoyaltyChance / 100.0;
 
-            // Цикл проверяет каждый купленный предмет индивидуально
             for (int i = 0; i < amount; i++)
             {
                 if (Utility.RandomDouble() < targetChance)
                 {
-                    calculatedPoints += 0.01; // Накапливаем динамическую сумму очков
+                    calculatedPoints += 0.01;
                 }
             }
 
-            // Если в этот раз шанс сработал хотя бы для одного предмета
             if (calculatedPoints > 0.0)
             {
                 LoyaltyManager.AddPurchase(vendor, buyer, calculatedPoints);
-
-                // ИСПРАВЛЕНО: Сообщение о росте лояльности с динамическим указанием набранных очков
                 buyer.SendMessage(88, $"Лояльность продавца {vendor.Name} увеличилась на +{calculatedPoints:F2}!");
             }
             else
             {
-                // ИСПРАВЛЕНО: Если очки не начислились, пишем просто дефолтную фразу
                 buyer.SendMessage(89, "Спасибо за покупку!");
             }
         }
@@ -118,7 +85,6 @@ namespace Server.Custom.AdvancedNpcTrade
         {
             if (attributesObject == null) return 0;
             int count = 0;
-
             try
             {
                 PropertyInfo[] props = attributesObject.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
@@ -132,200 +98,126 @@ namespace Server.Custom.AdvancedNpcTrade
                 }
             }
             catch { }
-
             return count;
         }
 
-                // ГЕНЕРАЦИЯ АРТЕФАКТОВ НА ОСНОВЕ РЕАЛЬНЫХ ПРОФЕССИЙ ВЕНДОРОВ ИЗ ВАШЕГО СПИСКА
         public static List<IBuyItemInfo> GetLegendaryArtifacts(BaseVendor vendor)
         {
             List<IBuyItemInfo> artifacts = new List<IBuyItemInfo>();
             if (vendor == null) return artifacts;
 
-            // Получаем точное системное имя класса живого NPC
             string vendorClass = vendor.GetType().Name.ToLower();
             Item spawnedItem = null;
 
-
+            int customProfession = -1;
+            var profProp = vendor.GetType().GetProperty("ProfessionIndex");
+            if (profProp != null)
+            {
+                customProfession = (int)profProp.GetValue(vendor, null);
+            }
 
             try
             {
-                // 1. КУЗНЕЦЫ, ОРУЖЕЙНИКИ И БРОННИКИ (Тяжелое снаряжение, металл)
-                if (vendorClass.Contains("blacksmith") || vendorClass.Contains("weaponsmith") ||
-                    vendorClass.Contains("armorer") || vendorClass.Contains("iron") ||
-                    vendorClass.Contains("pewterer") || vendorClass.Contains("miner"))
+                // ПОЛНОСТЬЮ СЛУЧАЙНЫЙ ВЫБОР ИЗ СИСТЕМЫ ЛУТА (Как у MerchantBot, но строго Artifact-уровня)
+                if (customProfession == 0 || customProfession == 5) // Оружейник / Лучник
                 {
                     spawnedItem = Loot.RandomWeapon();
-                    if (Utility.RandomBool()) spawnedItem = Loot.RandomArmor(); // 50% шанс получить броню вместо оружия
-
                 }
-
-                // 2. АЛХИМИКИ И ТРАВНИКИ (Поушены, редкие реагенты)
-                else if (vendorClass.Contains("alchemist") || vendorClass.Contains("herbalist"))
+                else if (customProfession == 4) // Бронник / Модельер
+                {
+                    spawnedItem = Loot.RandomArmor();
+                }
+                else if (customProfession == 1) // Маг / Писарь
+                {
+                    spawnedItem = Loot.RandomScroll(50, 63, SpellbookType.Regular);
+                }
+                else if (customProfession == 2 || customProfession == 3) // Алхимик / Трактирщик
                 {
                     spawnedItem = Loot.RandomPotion();
-
+                    if (spawnedItem != null) spawnedItem.Hue = 1161; // Эксклюзивный неоновый цвет эликсиров
                 }
-
-                // 3. МАГИ, ПИСАРИ, МИСТИКИ И НЕКРОМАНТЫ (Свитки, книги заклинаний)
-                else if (vendorClass.Contains("mage") || vendorClass.Contains("magician") ||
-                    vendorClass.Contains("scribe") || vendorClass.Contains("necromancer") ||
-                    vendorClass.Contains("mystic") || vendorClass.Contains("monk"))
-                {
-                    spawnedItem = Loot.RandomScroll(0, 7, SpellbookType.Regular);
-
-                }
-
-                // 4. ЮВЕЛИРЫ (Кольца, браслеты, драгоценности)
-                else if (vendorClass.Contains("jeweler") || vendorClass.Contains("fortune"))
-                {
-                    spawnedItem = Loot.RandomJewelry();
-
-                }
-
-                // 5. ПОРТНЫЕ, КОЖЕВНИКИ И ТКАЧИ (Ткань, кожаная броня, робы)
-                else if (vendorClass.Contains("tailor") || vendorClass.Contains("tanner") ||
-                    vendorClass.Contains("weaver") || vendorClass.Contains("leather") ||
-                    vendorClass.Contains("cobbler") || vendorClass.Contains("furtrader"))
-                {
-                    spawnedItem = Loot.RandomClothing();
-                    if (Utility.RandomDouble() < 0.35) spawnedItem = Loot.RandomArmor(); // Шанс подбросить кожаный доспех
-
-                }
-
-                // 6. ТРАКТИРЩИКИ, ПОВАРА, БАРМЕНЫ И ПЕКАРИ (Провизия, выпивка)
-                else if (vendorClass.Contains("innkeeper") || vendorClass.Contains("barkeeper") ||
-                    vendorClass.Contains("cook") || vendorClass.Contains("baker") ||
-                    vendorClass.Contains("tavern") || vendorClass.Contains("waiter") ||
-                    vendorClass.Contains("miller") || vendorClass.Contains("variety"))
-                {
-                    spawnedItem = Loot.RandomPotion();
-
-                }
-
-                // 7. ОХОТНИКИ, ЛУКАРИ И СЛЕДОПЫТЫ (Луки, арбалеты, стрелы)
-                else if (vendorClass.Contains("bowyer") || vendorClass.Contains("ranger"))
-                {
-                    spawnedItem = Loot.RandomWeapon();
-
-                }
-
-                // 8. ПЛОТНИКИ И ИНЖЕНЕРЫ (Деревянные щиты, мебель, инструменты)
-                else if (vendorClass.Contains("carpenter") || vendorClass.Contains("tinker") ||
-                    vendorClass.Contains("architect") || vendorClass.Contains("shipwright") ||
-                    vendorClass.Contains("crafter") || vendorClass.Contains("broker"))
-                {
-                    spawnedItem = new Goblet();
-
-                }
-
-                // 9. КОНЮХИ И КРЕСТЬЯНЕ (Фермеры, рыбаки, ветеринары)
-                else if (vendorClass.Contains("trainer") || vendorClass.Contains("veterinarian") ||
-                         vendorClass.Contains("farmer") || vendorClass.Contains("fisherman") ||
-                         vendorClass.Contains("rancher") || vendorClass.Contains("merchant")) // Перехватываем нашего кастомного мерчанта
+                else if (customProfession == 7) // Семена Натуралиста (Категория 9)
                 {
                     try
                     {
-                        // ГЕНЕРИРУЕМ НАСТОЯЩЕЕ РЕДКОЕ СЕМЯ ИЗ СИСТЕМЫ ПЛАНТОВОДСТВА UO
                         Seed rareSeed = new Seed();
-
-                        // Случайно выбираем тип растения (в UO их 4 группы сложности: от простых до редких)
-                        rareSeed.PlantType = (PlantType)Utility.RandomMinMax(0, 16); // 16+ базовых видов растений в ServUO
-
-                        // Случайно выбираем редкий цвет для семени (от классических до ярких редких мутаций)
+                        rareSeed.PlantType = (PlantType)Utility.RandomMinMax(0, 16);
                         rareSeed.PlantHue = (PlantHue)Utility.RandomMinMax(0, 16);
-
-                        // Записываем получившееся семя в нашу переменную для выставления на витрину
                         spawnedItem = rareSeed;
-
                     }
-                    catch
-                    {
-                        // Страховка на случай, если в вашем ядре изменены энумы плант-системы
-                        spawnedItem = new Goblet();
-
-                    }
+                    catch { spawnedItem = new Candle(); }
                 }
-
-                // 10. УЧИТЕЛЯ БОЕВЫХ ИСКУССТВ (Древняя Япония / Токуно)
-                else if (vendorClass.Contains("keeper") || vendorClass.Contains("ninja") || vendorClass.Contains("samurai"))
+                else
                 {
-                    spawnedItem = Loot.RandomWeapon();
-
+                    // Дефолтный пушной выбор: Оружие, Броня или Бижутерия (Штатный метод вашего MerchantBot!)
+                    spawnedItem = Loot.RandomArmorOrShieldOrWeaponOrJewelry(true, true, true);
                 }
 
-                // КАТЕГОРИЯ СТРАХОВКИ: Если класс NPC не подошел
                 if (spawnedItem == null)
                 {
-                    if (Utility.RandomBool()) spawnedItem = Loot.RandomClothing();
-                    else spawnedItem = new Goblet();
+                    spawnedItem = new Candle();
                 }
 
-                // НАЛОЖЕНИЕ МАГИЧЕСКИХ СВОЙСТВ (Используем наш безопасный CountProps)
                 if (spawnedItem != null)
                 {
-                    int propertyCount = 0;
-
+                    // ВЫКРУЧИВАЕМ МАГИЮ НА МАКСИМУМ: Если это экипировка, накладываем свойства RunicTool 5 уровня мощности
                     if (spawnedItem is BaseWeapon weapon)
                     {
-                        BaseRunicTool.ApplyAttributesTo(weapon, 4, 80, 100);
-                        propertyCount = CountProps(weapon.Attributes) + CountProps(weapon.WeaponAttributes);
+                        BaseRunicTool.ApplyAttributesTo(weapon, 5, 95, 100);
                     }
                     else if (spawnedItem is BaseArmor armor)
                     {
-                        BaseRunicTool.ApplyAttributesTo(armor, 4, 80, 100);
-                        propertyCount = CountProps(armor.Attributes) + CountProps(armor.ArmorAttributes);
+                        BaseRunicTool.ApplyAttributesTo(armor, 5, 95, 100);
                     }
                     else if (spawnedItem is BaseJewel jewel)
                     {
-                        BaseRunicTool.ApplyAttributesTo(jewel, 4, 80, 100);
-                        propertyCount = CountProps(jewel.Attributes);
+                        BaseRunicTool.ApplyAttributesTo(jewel, 5, 95, 100);
                     }
 
-                    if (propertyCount == 0) propertyCount = 1;
+                    // КЛАССОМ ВЫШЕ: Насильно выставляем легендарную мощность ItemPower (ранг 5) через рефлексию
+                    var powerProp = spawnedItem.GetType().GetProperty("ItemPower");
+                    if (powerProp != null && powerProp.CanWrite)
+                    {
+                        try { powerProp.SetValue(spawnedItem, Enum.ToObject(powerProp.PropertyType, 5), null); } catch { }
+                    }
 
-                    int goldValue = (int)(spawnedItem.Weight * 150) + (propertyCount * 12000);
-                    if (goldValue < 5000) goldValue = 5000;
+                    // Базовая стоимость случайных артефактов — 150 000 gp, семян — 25 000 gp
+                    int finalPrice = (spawnedItem is Seed) ? 25000 : 150000;
 
-                    int priceScalar = vendor.GetPriceScalar();
-                    int finalPrice = (int)Math.Round(goldValue * (priceScalar / 100.0));
-
-                    // ИСПРАВЛЕНО: Пытаемся получить чистое имя, сгенерированное лут-системой
+                    // Читаем официальное имя предмета, сгенерированное базой данных Ultima
                     string itemRealName = spawnedItem.Name;
                     if (string.IsNullOrEmpty(itemRealName))
                     {
-                        // Если имя пустое, движок UO выведет имя класса (например, "Kryss" или "Katana")
-                        itemRealName = spawnedItem.GetType().Name;
+                        if (spawnedItem.ItemData.Name != null && !string.IsNullOrEmpty(spawnedItem.ItemData.Name))
+                            itemRealName = spawnedItem.ItemData.Name;
+                        else
+                            itemRealName = spawnedItem.GetType().Name;
                     }
 
-                    // ИСПРАВЛЕНО: Передаем в GenericBuyInfo чистую строку itemRealName БЕЗ кастомных префиксов
-                    var info = new GenericBuyInfo(itemRealName, spawnedItem.GetType(), finalPrice, 1, spawnedItem.ItemID, spawnedItem.Hue);
+                    // Интеграция с вашей Diablo Loot System (Окрасит строку в оранжевый цвет, так как ItemPower равен 5)
+                    string diabloColoredName = Server.Custom.DiabloLoot.DiabloLootColors.FormatName(spawnedItem, itemRealName);
+
+                    // Регистрируем на витрину! 
+                    // Важно: Мы передаем ТОЧНЫЙ сгенерированный экземпляр предмета в инвентарь купца (BuyPack)
+                    var info = new GenericBuyInfo(diabloColoredName, spawnedItem.GetType(), finalPrice, 1, spawnedItem.ItemID, spawnedItem.Hue);
                     artifacts.Add(info);
 
-                    spawnedItem.Delete();
+                    // ВНИМАНИЕ: Теперь мы НЕ удаляем spawnedItem через Delete()! 
+                    // Мы отдаем этот перманентный, заряженный магией предмет в невидимую сумку вендора. 
+                    // Благодаря этому при покупке игрок получит вещь со всеми свойствами, а тултипы на витрине оживут!
+                    vendor.BuyPack.DropItem(spawnedItem);
                 }
             }
             catch (Exception ex)
             {
-                string errorMsg = $"[AdvancedNpcTrade] Ошибка генерации артефакта: {ex.Message}";
-                Console.WriteLine(errorMsg);
-
-                foreach (var netState in NetState.Instances)
-                {
-                    Mobile m = netState.Mobile;
-                    if (m != null && m.AccessLevel >= AccessLevel.GameMaster)
-                    {
-                        m.SendMessage(0x22, errorMsg);
-                    }
-                }
-
-                artifacts.Add(new GenericBuyInfo("Spell Scroll", typeof(SpellScroll), 15000, 1, 0x1F1F, 0));
+                Console.WriteLine($"[AdvancedNpcTrade] Ошибка генерации артефакта: {ex.Message}");
+                artifacts.Add(new GenericBuyInfo("<BASEFONT COLOR=#4169E1>Магический Свиток</BASEFONT>", typeof(SpellScroll), 15000, 1, 0x1F1F, 0));
             }
 
             return artifacts;
         }
 
-
+        // ВСЕ МЕТОДЫ ВЕРНУЛИСЬ СТРОГО ВНУТРЬ КЛАССА ADVANCEDNPCTRADEMOD:
         private static void LoyaltyInfo_OnCommand(CommandEventArgs e)
         {
             Mobile m = e.Mobile;
@@ -335,6 +227,23 @@ namespace Server.Custom.AdvancedNpcTrade
                 m.Target = new LoyaltyTarget();
             }
         }
+        private static double GetCityBonusPoints(BaseVendor vendor, Mobile buyer)
+        {
+            if (vendor == null || vendor.Region == null || buyer == null) return 0.0;
+            string regionName = vendor.Region.Name;
+            if (string.IsNullOrEmpty(regionName)) return 0.0;
+            bool isInCity = regionName.Contains("Britain") || regionName.Contains("Moonglow") ||
+            regionName.Contains("Yew") || regionName.Contains("Minoc") ||
+            regionName.Contains("Trinsic") || regionName.Contains("Skara") ||
+            regionName.Contains("Magincia") || regionName.Contains("Jhelom") ||
+            regionName.Contains("Vesper");
+            if (!isInCity) return 0.0;
+            if (buyer.Fame >= 10000) return 20.0;
+            else if (buyer.Fame >= 5000) return 10.0;
+            else if (buyer.Fame >= 2000) return 3.0;
+            return 0.0;
+        }
+        // ОСТАВЛЕН ТОЛЬКО ОДИН ЕДИНСТВЕННЫЙ КЛАСС ПРИЦЕЛА ВНУТРИ РОДИТЕЛЬСКОГО КЛАССА:
         private class LoyaltyTarget : Target
         {
             public LoyaltyTarget() : base(12, false, TargetFlags.None) { }
@@ -362,5 +271,5 @@ namespace Server.Custom.AdvancedNpcTrade
                 }
             }
         }
-    }
-}
+    } // Конец класса AdvancedNpcTradeMod
+} // Конец namespace
