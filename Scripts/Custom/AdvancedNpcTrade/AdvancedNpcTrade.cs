@@ -8,6 +8,7 @@ using Server.Targeting;
 using Server.Regions;
 using Server.Items;
 using Server.Network;
+using Server.Engines.Plants;
 
 namespace Server.Custom.AdvancedNpcTrade
 {
@@ -220,12 +221,30 @@ namespace Server.Custom.AdvancedNpcTrade
 
                 // 9. КОНЮХИ И КРЕСТЬЯНЕ (Фермеры, рыбаки, ветеринары)
                 else if (vendorClass.Contains("trainer") || vendorClass.Contains("veterinarian") ||
-                    vendorClass.Contains("farmer") || vendorClass.Contains("fisherman") ||
-                    vendorClass.Contains("rancher") || vendorClass.Contains("beekeeper") ||
-                    vendorClass.Contains("gardener"))
+                         vendorClass.Contains("farmer") || vendorClass.Contains("fisherman") ||
+                         vendorClass.Contains("rancher") || vendorClass.Contains("merchant")) // Перехватываем нашего кастомного мерчанта
                 {
-                    spawnedItem = new Goblet();
+                    try
+                    {
+                        // ГЕНЕРИРУЕМ НАСТОЯЩЕЕ РЕДКОЕ СЕМЯ ИЗ СИСТЕМЫ ПЛАНТОВОДСТВА UO
+                        Seed rareSeed = new Seed();
 
+                        // Случайно выбираем тип растения (в UO их 4 группы сложности: от простых до редких)
+                        rareSeed.PlantType = (PlantType)Utility.RandomMinMax(0, 16); // 16+ базовых видов растений в ServUO
+
+                        // Случайно выбираем редкий цвет для семени (от классических до ярких редких мутаций)
+                        rareSeed.PlantHue = (PlantHue)Utility.RandomMinMax(0, 16);
+
+                        // Записываем получившееся семя в нашу переменную для выставления на витрину
+                        spawnedItem = rareSeed;
+
+                    }
+                    catch
+                    {
+                        // Страховка на случай, если в вашем ядре изменены энумы плант-системы
+                        spawnedItem = new Goblet();
+
+                    }
                 }
 
                 // 10. УЧИТЕЛЯ БОЕВЫХ ИСКУССТВ (Древняя Япония / Токуно)
