@@ -1,9 +1,9 @@
 using System;
-using System.Collections.Generic;
 using Server;
 using Server.Mobiles;
 using Server.Commands;
 using Server.Factions;
+using Server.Engines.CityLoyalty;
 
 namespace Server.Custom.CityDevelopment
 {
@@ -42,13 +42,21 @@ namespace Server.Custom.CityDevelopment
             }
 
             string townName = town.ToString();
-            CityProgress progress = CityDevelopmentMod.GetCityProfile(townName);
+            
+            // ИСПРАВЛЕНО: Безопасное приведение строки региона к enum City для базы данных
+            if (!Enum.TryParse(townName, true, out City coreCity))
+            {
+                from.SendMessage(0x22, $"Ошибка: Город {townName} не зарегистрирован в системе лояльности ядра.");
+                return;
+            }
+
+            CityProgress progress = CityDevelopmentMod.GetCityProfile(coreCity);
 
             if (progress != null)
             {
                 progress.Level = targetLevel;
                 progress.CurrentSupplies = 0.0;
-                progress.RequiredSupplies = 25.0 * Math.Pow(2.0, targetLevel - 1);
+                progress.RequiredSupplies = 250.0 * Math.Pow(2.0, targetLevel - 1);
 
                 int baseTax = 2;
                 switch (targetLevel)
@@ -88,7 +96,15 @@ namespace Server.Custom.CityDevelopment
 
             double pointsToAdd = e.GetDouble(0);
             string townName = town.ToString();
-            CityProgress progress = CityDevelopmentMod.GetCityProfile(townName);
+
+            // ИСПРАВЛЕНО: Конвертируем строку в enum City
+            if (!Enum.TryParse(townName, true, out City coreCity))
+            {
+                from.SendMessage(0x22, "Ошибка привязки города к ядру лояльности.");
+                return;
+            }
+
+            CityProgress progress = CityDevelopmentMod.GetCityProfile(coreCity);
 
             if (progress != null)
             {
@@ -101,7 +117,7 @@ namespace Server.Custom.CityDevelopment
                 {
                     progress.Level++;
                     progress.CurrentSupplies = 0.0;
-                    progress.RequiredSupplies *= 2.0;
+                    progress.RequiredSupplies = 250.0 * Math.Pow(2.0, progress.Level - 1);
 
                     int baseTax = 2;
                     switch (progress.Level)
@@ -133,13 +149,17 @@ namespace Server.Custom.CityDevelopment
             }
 
             string townName = town.ToString();
-            CityProgress progress = CityDevelopmentMod.GetCityProfile(townName);
+
+            // ИСПРАВЛЕНО: Конвертируем строку в enum City
+            if (!Enum.TryParse(townName, true, out City coreCity)) return;
+
+            CityProgress progress = CityDevelopmentMod.GetCityProfile(coreCity);
 
             if (progress != null)
             {
                 progress.Level = 1;
                 progress.CurrentSupplies = 0.0;
-                progress.RequiredSupplies = 25.0;
+                progress.RequiredSupplies = 250.0;
                 town.Tax = 2;
 
                 from.SendMessage(0x22, $"Внимание: Весь экономический прогресс города {townName} полностью сброшен.");
