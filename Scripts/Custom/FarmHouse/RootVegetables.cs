@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
 using Server;
 using Server.Items;
 using Server.Regions;
@@ -230,6 +231,57 @@ namespace Server.Custom.Farms
 
                 return; // Полный выход из метода, засуха не наступает
             }
+
+            // =========================================================================
+            // АВТОМАТИЧЕСКИЙ ПОЛИВ ДОЖДЕМ (РАБОТАЕТ: ВЕСНА, ЛЕТО, ОСЕНЬ)
+            // =========================================================================
+            if (this.Map != null && this.Map != Map.Internal)
+            {
+                // Запрашиваем список всех активных погодных зон для текущей карты (Trammel / Felucca)
+                List<Server.Misc.Weather> weatherList = Server.Misc.Weather.GetWeatherList(this.Map);
+
+                if (weatherList != null)
+                {
+                    bool isRainingNow = false;
+
+                    // Сканируем каждую погодную зону на сервере
+                    for (int j = 0; j < weatherList.Count; ++j)
+                    {
+                        Server.Misc.Weather w = weatherList[j];
+
+                        // Проверяем: активна ли зона, идут ли осадки и теплая ли температура (выше нуля = Дождь)
+                        // Используем рефлексию для чтения закрытого флага m_Active, если у него нет public свойства
+                        bool isActivePercipitation = false;
+                        FieldInfo activeField = typeof(Server.Misc.Weather).GetField("m_Active", BindingFlags.Instance | BindingFlags.NonPublic);
+                        if (activeField != null)
+                        {
+                            isActivePercipitation = (bool)activeField.GetValue(w);
+                        }
+
+                        if (isActivePercipitation && w.Temperature > 0)
+                        {
+                            // Проверяем, входят ли координаты грядки в прямоугольные зоны этого шторма/дождя
+                            if (w.IntersectsWith(new Rectangle2D(this.X, this.Y, 1, 1)))
+                            {
+                                isRainingNow = true;
+                                break; // Дождь найден, прекращаем поиск
+                            }
+                        }
+                    }
+
+                    // Если над грядкой бушует дождь — земля впитывает влагу
+                    if (isRainingNow)
+                    {
+                        m_Watered = true;
+                        m_DryCount = 0; // Сбрасываем счетчик засухи
+
+                        if (m_Planter != null && m_Stage < 2)
+                            m_Planter.SendMessage(0x5D, $"[Погода] Проливной дождь напитал вашу грядку ({GetVegNameString()}) благодатной влагой!");
+                    }
+                }
+            }
+            // =========================================================================
+
 
             // Настройка скорости созревания в зависимости от климата
             int daysRequiredToGrow = 7; // ВЕСНА (База): 7 тиков на фазу (14 часов реального времени)
