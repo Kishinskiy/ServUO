@@ -5,42 +5,13 @@ using Server.Targeting;
 
 namespace Server.Custom.Farms
 {
-    // =========================================================================
-    // 1. ПРЕДМЕТ: УНИВЕРСАЛЬНЫЙ ПУСТОЙ ФЕРМЕРСКИЙ МЕШОК
-    // =========================================================================
-    public class EmptyPotatoSack : Item
-    {
-        [Constructable]
-        public EmptyPotatoSack() : base(0x0E76) // Открытый холщовый мешок
-        {
-            Name = "Empty Farm Sack";
-            Weight = 1.0;
-            Hue = 1718;
-        }
-
-        public override void OnDoubleClick(Mobile from)
-        {
-            if (!IsChildOf(from.Backpack))
-            {
-                from.SendLocalizedMessage(1042001); // Предмет должен быть в паке
-                return;
-            }
-
-            from.SendMessage("Выберите стак овощей (картофель, лук, капуста, морковь, салат, тыква), чтобы наполнить этот мешок.");
-            from.Target = new PackVegetableTarget(this);
-        }
-
-        public EmptyPotatoSack(Serial serial) : base(serial) { }
-        public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write(0); }
-        public override void Deserialize(GenericReader reader) { base.Deserialize(reader); reader.ReadInt(); }
-    }
 
     // ТАРГЕТ НАПОЛНЕНИЯ ИЗ ПУСТОГО МЕШКА
     public class PackVegetableTarget : Target
     {
-        private EmptyPotatoSack m_EmptySack;
+        private EmptyFarmSack m_EmptySack;
 
-        public PackVegetableTarget(EmptyPotatoSack sack) : base(3, false, TargetFlags.None) { m_EmptySack = sack; }
+        public PackVegetableTarget(EmptyFarmSack sack) : base(3, false, TargetFlags.None) { m_EmptySack = sack; }
 
         protected override void OnTarget(Mobile from, object targeted)
         {
@@ -96,9 +67,7 @@ namespace Server.Custom.Farms
         public VegetableType Type { get { return m_Type; } set { m_Type = value; UpdateProps(); } }
 
         // Безопасный пустой конструктор для нативной скупки ядра сервера (всегда вернет 1000gp у Farmer)
-        public FullFarmSack() : this(VegetableType.Potato, 200)
-        {
-        }
+        public FullFarmSack() : this(VegetableType.Potato, 200){}
 
         public FullFarmSack(VegetableType type, int count) : base(0x0E79) // Завязанный мешок
         {
@@ -206,7 +175,7 @@ namespace Server.Custom.Farms
             // Если мешок полностью опустел
             if (m_Count <= 0)
             {
-                EmptyPotatoSack emptySack = new EmptyPotatoSack();
+                EmptyFarmSack emptySack = new EmptyFarmSack();
                 from.Backpack.DropItem(emptySack); // Возвращаем пустой многоразовый мешок
 
                 from.SendMessage($"Вы достали последние {portion} шт. овощей. Мешок опустел.");

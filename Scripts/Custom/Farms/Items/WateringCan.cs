@@ -18,7 +18,7 @@ namespace Server.Custom.Farms
         }
 
         [Constructable]
-        public WateringCan() : base(0x14E6) // Графика большого кувшина/ведра
+        public WateringCan() : base(0x1F9D) // Графика большого кувшина/ведра
         {
             Name = "Watering Can";
             Weight = 2.0;

@@ -957,13 +957,25 @@ namespace Server.Mobiles
 				// NOTE: Only GBI supported; if you use another implementation of IBuyItemInfo, this will crash
 				GenericBuyInfo gbi = (GenericBuyInfo)buyItem;
 				IEntity disp = gbi.GetDisplayEntity();
+				
+				try
+				{
+					// Безопасно пытаемся создать слепок предмета для витрины магазина
+					disp = gbi.GetDisplayEntity();
+				}
+				catch (Exception ex)
+				{
+					// Если у предмета кривой конструктор — пишем ошибку в консоль, но НЕ роняем сервер
+					Console.WriteLine($"[BaseVendor] Ошибка генерации витрины для типа {gbi.Type?.FullName}: {ex.Message}");
+					continue; // Просто пропускаем этот проблемный предмет и идем к следующему
+				}
 
 				if (Siege.SiegeShard && !Siege.VendorCanSell(gbi.Type))
 				{
 					continue;
 				}
 				int displayPrice = Server.Custom.AdvancedNpcTrade.AdvancedNpcTradeMod.CalculateDiscountedPrice(this, from, buyItem.Price);
-				
+
 				list.Add(
 					new BuyItemState(
 						buyItem.Name,

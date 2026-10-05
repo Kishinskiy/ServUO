@@ -61,7 +61,7 @@ namespace Server.Mobiles
                 // ТОВАРЫ ДЛЯ ФЕРМЕРОВ (ИНСТРУМЕНТЫ И СЕМЕНА)
                 // =========================================================================
                 Add(new GenericBuyInfo(typeof(WateringCan), 150, 20, 0x4C52, 0)); // Лейка
-                Add(new GenericBuyInfo(typeof(EmptyPotatoSack), 10, 100, 0x0E76, 0)); // Пустой мешок
+                Add(new GenericBuyInfo(typeof(EmptyFarmSack), 10, 100, 0x0E76, 0)); // Пустой мешок
 
                 // Поштучные овощи / Семена
                 Add(new GenericBuyInfo(typeof(FarmPotato), 15, 50, 0x1846, 52));   // Картофель поштучно
@@ -74,13 +74,12 @@ namespace Server.Mobiles
                 // =========================================================================
                 // ОПТОВАЯ ТОРГОВЛЯ: ИСПРАВЛЕННЫЕ МЕШКИ (FullFarmSack) ПО 200 ШТ
                 // =========================================================================
-                Add(new GenericBuyInfo("Sack of Potatoes (200)", typeof(FullFarmSack), 2500, 10, 0x0E79, 1718, new object[] { VegetableType.Potato }));
-                Add(new GenericBuyInfo("Sack of Onions (200)", typeof(FullFarmSack), 2500, 10, 0x0E79, 2417, new object[] { VegetableType.Onion }));
-                Add(new GenericBuyInfo("Sack of Cabbages (200)", typeof(FullFarmSack), 2500, 10, 0x0E79, 266, new object[] { VegetableType.Cabbage }));
-                Add(new GenericBuyInfo("Sack of Carrots (200)", typeof(FullFarmSack), 2500, 10, 0x0E79, 43, new object[] { VegetableType.Carrot }));
-                Add(new GenericBuyInfo("Sack of Lettuce (200)", typeof(FullFarmSack), 2500, 10, 0x0E79, 169, new object[] { VegetableType.Lettuce }));
-                Add(new GenericBuyInfo("Sack of Pumpkins (200)", typeof(FullFarmSack), 3500, 5, 0x0E79, 144, new object[] { VegetableType.Pumpkin }));
-
+                Add(new GenericBuyInfo("Sack of Potatoes (200)", typeof(FullFarmSack), 2500, 10, 0x0E79, 1718, new object[] { VegetableType.Potato, 200 }));
+                Add(new GenericBuyInfo("Sack of Onions (200)", typeof(FullFarmSack), 2500, 10, 0x0E79, 2417, new object[] { VegetableType.Onion, 200 }));
+                Add(new GenericBuyInfo("Sack of Cabbages (200)", typeof(FullFarmSack), 2500, 10, 0x0E79, 266, new object[] { VegetableType.Cabbage, 200 }));
+                Add(new GenericBuyInfo("Sack of Carrots (200)", typeof(FullFarmSack), 2500, 10, 0x0E79, 43, new object[] { VegetableType.Carrot, 200 }));
+                Add(new GenericBuyInfo("Sack of Lettuce (200)", typeof(FullFarmSack), 2500, 10, 0x0E79, 169, new object[] { VegetableType.Lettuce, 200 }));
+                Add(new GenericBuyInfo("Sack of Pumpkins (200)", typeof(FullFarmSack), 3500, 5, 0x0E79, 144, new object[] { VegetableType.Pumpkin, 200 }));
             }
         }
 
