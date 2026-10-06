@@ -40,7 +40,6 @@ namespace Server.Items
             list.Add(1060659, "Использование\tДля торговли с Особыми Купцами");
             list.Add(1060660, "Редкость\t⭐ Мифическая ⭐");
         }
-
         public PremiumCoin(Serial serial) : base(serial)
         {
         }

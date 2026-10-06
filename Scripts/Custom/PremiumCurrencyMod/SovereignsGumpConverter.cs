@@ -119,7 +119,7 @@ namespace Server.Custom.PremiumCurrency
             if (totalCoins > 0)
             {
                 AddButton(110, 140, 247, 248, 1, GumpButtonType.Reply, 0);
-                AddLabel(145, 142, 0x35, "Обменять все доступные монеты");
+                AddLabel(185, 142, 0x35, "Обменять все доступные монеты");
             }
             else
             {
