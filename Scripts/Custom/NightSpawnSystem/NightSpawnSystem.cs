@@ -38,17 +38,14 @@ namespace Server.Custom.NightSpawns
 
         private static void CheckGameTime()
         {
-            // Берем часы и минуты напрямую из глобального регистратора времени ServUO
-            int uoHours, uoMinutes;
-            string ampm;
-            
-            // Получаем время сервера, передав пустую ссылку (или карту), эмулятор сам заполнит часы
-            // Но чтобы не гадать с аргументами, мы просто берем астрономический цикл карты:
-            int timeInMinutes = (int)(Core.TickCount / 250) % 1440; // Полный цикл суток UO
-            uoHours = timeInMinutes / 60;
+            // Core.TickCount возвращает аптайм сервера в миллисекундах. 
+            // В UO полные сутки (24 часа) длятся ровно 2 реальных часа (7 200 000 миллисекунд).
+            // Рассчитываем, сколько игровых минут прошло с начала текущего игрового дня:
+            long totalGameMinutes = (Core.TickCount / 5000) % 1440; 
+            int currentHour = (int)(totalGameMinutes / 60);
 
-            // В UO ночь наступает в 20:00 и длится до 6 утра
-            bool nightNow = (uoHours >= 20 || uoHours < 6);
+            // Ночь в Ultima Online длится с 20:00 (8 PM) до 06:00 (6 AM)
+            bool nightNow = (currentHour >= 20 || currentHour < 6);
 
             if (nightNow && !_IsNightActive)
             {
@@ -59,11 +56,13 @@ namespace Server.Custom.NightSpawns
                 TriggerDawn();
             }
 
+            // Если сейчас ночь, с определенным шансом запускаем волну спавна
             if (_IsNightActive && Utility.RandomMinMax(1, 100) <= SpawnChancePercent)
             {
                 SpawnNightWave();
             }
         }
+
 
 
         private static void TriggerNightfall()
