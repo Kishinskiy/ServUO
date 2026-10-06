@@ -66,8 +66,9 @@ namespace Server.Custom.NightSpawns
             if (currentMobsCount >= MaxMobsTotal)
                 return;
 
+            // Выбираем случайный город из списка для атаки
             Point3D targetCityCenter = CityCenters[Utility.Random(CityCenters.Length)];
-
+            
             // Считываем системное время для этой карты
             int uoHours, uoMinutes;
             Clock.GetTime(map, map.Width / 2, map.Height / 2, out uoHours, out uoMinutes);
@@ -81,8 +82,6 @@ namespace Server.Custom.NightSpawns
             if (!isNight)
                 return;
 
-            // Выбираем случайный город из списка для атаки
-            Point3D targetCityCenter = CityCenters[Utility.Random(CityCenters.Length)];
 
             // Ищем точку на окраине выбранного города (у ворот или в лесу неподалеку)
             Point3D spawnLoc = GetRaidSpawnLocation(map, targetCityCenter);
@@ -90,15 +89,13 @@ namespace Server.Custom.NightSpawns
                 return;
 
             // Оповещаем мир о штурме конкретного города (только в начале часа, чтобы не спамить чат)
-            if (currentMoonPhase == MoonPhase.Full)
+            if (uoMinutes == 0 || uoMinutes == 30)
             {
-                string msgFull = string.Format("[КРОВАВАЯ ЛУНА] Армия проклятых наступает на {0} в мире {1}! К воротам стягиваются элитные монстры!", cityName, map.Name);
-                World.Broadcast(0x26, true, msgFull);
-            }
-            else
-            {
-                string msgRegular = string.Format("[ОСАДА] Ночные твари замечены на окраинах {0} ({1})! Они прорываются к центру города!", cityName, map.Name);
-                World.Broadcast(0x22, true, msgRegular);
+                string cityName = GetCityName(targetCityCenter);
+                if (currentMoonPhase == MoonPhase.Full)
+                    World.Broadcast(0x26, true, $"[КРОВАВАЯ ЛУНА] Армия проклятых наступает на {cityName} в мире {map.Name}! К воротам города стягиваются элитные монстры!");
+                else
+                    World.Broadcast(0x22, true, $"[ОСАДА] Ночные твари замечены на окраинах {cityName} в мире {map.Name}! Они прорываются к центру города!");
             }
 
             // Спавним штурмовой отряд
