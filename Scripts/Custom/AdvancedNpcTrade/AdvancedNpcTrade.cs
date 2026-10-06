@@ -153,7 +153,7 @@ namespace Server.Custom.AdvancedNpcTrade
             {
                 if (Utility.RandomDouble() < targetChance)
                 {
-                    calculatedPoints += 0.01;
+                    calculatedPoints += 0.10;
                 }
             }
 
