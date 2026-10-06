@@ -47,7 +47,7 @@ namespace Server.Custom.Farms
             {
                 for (int y = -1; y <= 1; y++)
                 {
-                    Components.Add(0x31F4, x, y, 0);
+                    Components.Add(0x9, x, y, 0);
                 }
             }
 
@@ -105,7 +105,7 @@ namespace Server.Custom.Farms
             {
                 for (int y = -3; y <= 3; y++)
                 {
-                    Components.Add(0x31F4, x, y, 0);
+                    Components.Add(0x9, x, y, 0);
                 }
             }
 
