@@ -313,6 +313,7 @@ namespace Server.Engines.Craft
 
             // Containers
             AddCraft(typeof(WoodenBox), 1044292, 1023709, 21.0, 46.0, typeof(Board), 1044041, 10, 1044351);
+            AddCraft(typeof(Barrel), 1044292, "barrel (open)", 52.6, 77.6, typeof(Board), 1044041, 1, 1044351);
             AddCraft(typeof(SmallCrate), 1044292, 1044309, 10.0, 35.0, typeof(Board), 1044041, 8, 1044351);
             AddCraft(typeof(MediumCrate), 1044292, 1044310, 31.0, 56.0, typeof(Board), 1044041, 15, 1044351);
             AddCraft(typeof(LargeCrate), 1044292, 1044311, 47.3, 72.3, typeof(Board), 1044041, 18, 1044351);
