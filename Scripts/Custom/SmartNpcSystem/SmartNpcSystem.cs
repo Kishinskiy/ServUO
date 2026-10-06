@@ -8,7 +8,6 @@ namespace Server.Custom.SmartNPCs
 {
     public static class SmartNpcSystem
     {
-        // 1. БАЗЫ ДАННЫХ ДЛЯ ДИНАМИЧЕСКИХ ОПОВЕЩЕНИЙ
         private static readonly string[] DynamicGreetings_Normal = new string[]
         {
             "Приветствую тебя, благородный путник!",
@@ -43,7 +42,7 @@ namespace Server.Custom.SmartNPCs
 
         private static readonly string[] DynamicGreetings_BloodMoon = new string[]
         {
-            "Спаси нас Лорд Бритиш... Кровавая Луна взошла! Мы все обречены!",
+            "Спаси нас Лорд Бритиш... Всходит Кровавая Луна! Мы все обречены!",
             "Стража бежала! Гварды нас не защитят! Нечисть уже прорывается к центру города!",
             "Личи и мумии заполонили предместья! Оружие к бою, если хочешь выжить в эту ночь!",
             "Проклятие... Луна окрасилась кровью! Древнее зло восстало!"
@@ -51,29 +50,25 @@ namespace Server.Custom.SmartNPCs
 
         public static void Initialize()
         {
-            // Подписываемся на движение (для пассивных приветствий)
-            EventSink.Movement += new MovementEventHandler(OnMovement);
-
-            // Подписываемся на речь (для активных диалогов по ключевым словам)
-            EventSink.Speech += new SpeechEventHandler(OnSpeech);
+            // Оставляем только пассивные приветствия при ходьбе, они работают отлично
+            EventSink.Movement += new MovementEventHandler(OnPlayerMovement);
         }
 
-        private static void OnMovement(MovementEventArgs e)
+        private static void OnPlayerMovement(MovementEventArgs e)
         {
             Mobile player = e.Mobile;
 
             if (player == null || !player.Player || !player.Alive || player.AccessLevel > AccessLevel.Player)
                 return;
 
-            IPooledEnumerable eable = player.Map.GetMobilesInRange(player.Location, 3);
+            IPooledEnumerable eable = player.Map.GetMobilesInRange(player.Location, 4);
             foreach (Mobile m in eable)
             {
                 if (m is BaseVendor && m.Alive && m.Combatant == null)
                 {
-                    if (Utility.RandomDouble() < 0.10)
+                    if (Utility.RandomDouble() < 0.25)
                     {
                         string speech = GetContextualSpeech(m);
-
                         m.Direction = m.GetDirectionTo(player);
                         m.Say(0x3B2, speech);
                         break;
@@ -84,95 +79,65 @@ namespace Server.Custom.SmartNPCs
         }
 
         // =========================================================================
-        // 2. ИНТЕРАКТИВНЫЕ ДИАЛОГИ ПО КЛЮЧЕВЫМ СЛОВАМ (OnSpeech)
+        // ЭТОТ МЕТОД МЫ БУДЕМ ВЫЗЫВАТЬ НАПРЯМУЮ ИЗ ЯДРА ТОРГОВЦЕВ
         // =========================================================================
-        private static void OnSpeech(SpeechEventArgs e)
+        public static bool HandleNpcSpeech(Mobile npc, Mobile player, string speechText)
         {
-            Mobile player = e.Mobile;
-            string text = e.Speech.ToLower().Trim();
+            if (npc == null || player == null || string.IsNullOrEmpty(speechText))
+                return false;
 
-            if (player == null || !player.Alive || string.IsNullOrEmpty(text))
-                return;
+            string text = speechText.ToLower().Trim();
 
-            // Скандируем NPC в радиусе 3 клеток вокруг говорящего игрока
-            IPooledEnumerable eable = player.Map.GetMobilesInRange(player.Location, 3);
-            foreach (Mobile m in eable)
+            int uoHours, uoMinutes;
+            Clock.GetTime(npc.Map, npc.X, npc.Y, out uoHours, out uoMinutes);
+            MoonPhase currentMoonPhase = Clock.GetMoonPhase(npc.Map, npc.X, npc.Y);
+            bool isNight = (uoHours >= 20 || uoHours < 4);
+
+            string reply = "";
+
+            if (text.Contains("привет") || text.Contains("здравствуй") || text.Contains("хай"))
+                reply = string.Format("Здравствуй, {0}. Чем я могу помочь почтенному искателю приключений?", player.Name);
+            else if (text.Contains("работа") || text.Contains("занятие") || text.Contains("квест"))
+                reply = "Работы всегда в достатке. Фермерам за стенами то и дело требуются рабочие руки для полива полей из кувшинов, а городскому ополчению — отважные мечи.";
+            else if (text.Contains("слухи") || text.Contains("новости") || text.Contains("что нового"))
             {
-                // Нас интересуют только живые торговцы, которые сейчас не ведут бой
-                if (m is BaseVendor && m.Alive && m.Combatant == null)
-                {
-                    // Считываем точные астрономические данные из файлов Clock.cs конкретно для этой локации
-                    int uoHours, uoMinutes;
-                    Clock.GetTime(m.Map, m.X, m.Y, out uoHours, out uoMinutes);
-                    MoonPhase currentMoonPhase = Clock.GetMoonPhase(m.Map, m.X, m.Y);
-                    bool isNight = (uoHours >= 20 || uoHours < 4);
-
-                    // Флаг, ответил ли NPC (чтобы повернуться к игроку)
-                    bool hasAnswered = true;
-                    string reply = "";
-
-                    // Блок ветвления по ключевым словам
-                    if (text.Contains("привет") || text.Contains("здравствуй") || text.Contains("хай"))
-                    {
-                        reply = string.Format("Здравствуй, {0}. Чем я могу помочь почтенному искателю приключений?", player.Name);
-                    }
-                    else if (text.Contains("работа") || text.Contains("занятие") || text.Contains("квест"))
-                    {
-                        reply = "Работы всегда в достатке. Фермерам за стенами то и дело требуются рабочие руки для полива полей из кувшинов, а городскому ополчению — отважные мечи.";
-                    }
-                    else if (text.Contains("слухи") || text.Contains("новости") || text.Contains("что нового"))
-                    {
-                        if (isNight)
-                            reply = "Какие уж тут слухи посреди ночи? Слышишь скрежет за воротами? Сиди тихо и молись, чтобы стены выдержали.";
-                        else
-                            reply = "Поговаривают, осадный ИИ ночных монстров стал куда умнее... Они больше не бродят бесцельно по лесам, а целенаправленно маршируют к центрам наших городов, едва заходит солнце!";
-                    }
-                    else if (text.Contains("осада") || text.Contains("штурм") || text.Contains("монстр") || text.Contains("нападен"))
-                    {
-                        if (isNight)
-                        {
-                            reply = "Осада идет прямо сейчас! Стража в панике бежала, отключив городскую защиту. Вся надежда только на таких героев, как ты!";
-                        }
-                        else
-                        {
-                            reply = string.Format("Сейчас на часах {0}:{1:D2}. Городская стража бдит, всё спокойно. Но как только пробьет 20:00 вечера, жди беды — чудовища обязательно пойдут на привал.", uoHours, uoMinutes);
-                        }
-                    }
-                    else if (text.Contains("луна") || text.Contains("полнолуние"))
-                    {
-                        if (currentMoonPhase == MoonPhase.Full)
-                            reply = "Посмотри на небо... Луна полностью круглая и багровая. Это проклятое Полнолуние. Ночью вместо обычных зомби город будут штурмовать Личи и Мумии!";
-                        else
-                            reply = string.Format("Небосвод чист. Фаза луны сейчас — {0}. До Кровавой Луны еще есть время, так что ночные набеги должны быть терпимыми.", currentMoonPhase);
-                    }
-                    else if (text.Contains("погода") || text.Contains("дождь"))
-                    {
-                        if (IsRainingOverNpc(m))
-                            reply = "Льет как из ведра! Пронизывающий холод. Если промочит до нитки, бег будет заблокирован, пока не согреешься у Campfire или внутри таверны.";
-                        else
-                            reply = "Погода нынче благосклонна. Главное, чтобы летний зной не заставил нас перегреваться в теплых плащах.";
-                    }
-                    else
-                    {
-                        hasAnswered = false; // Игрок сказал что-то не связанное с ключевыми словами
-                    }
-
-                    // Если реплика сформирована — NPC озвучивает её
-                    if (hasAnswered && !string.IsNullOrEmpty(reply))
-                    {
-                        m.Direction = m.GetDirectionTo(player); // Поворачиваемся к игроку
-                        m.Say(0x3B2, reply);                    // Произносим текст
-
-                        // Предотвращаем спам: если один торговец уже развернуто ответил игроку, остальные в этой точке молчат
-                        eable.Free();
-                        return;
-                    }
-                }
+                if (isNight)
+                    reply = "Какие уж тут слухи посреди ночи? Слышишь скрежет за воротами? Сиди тихо и молись, чтобы стены выдержали.";
+                else
+                    reply = "Поговаривают, осадный ИИ ночных монстров стал куда умнее... Они целенаправленно маршируют к центрам наших городов, едва заходит солнце!";
             }
-            eable.Free();
+            else if (text.Contains("осада") || text.Contains("штурм") || text.Contains("монстр") || text.Contains("нападен"))
+            {
+                if (isNight)
+                    reply = "Осада идет прямо сейчас! Стража в панике бежала, отключив городскую защиту. Вся надежда только на таких героев, как ты!";
+                else
+                    reply = string.Format("Сейчас на часах {0}:{1:D2}. Городская стража бдит, всё спокойно. Но как только пробьет 20:00 вечера, чудовища пойдут на штурм.", uoHours, uoMinutes);
+            }
+            else if (text.Contains("луна") || text.Contains("полнолуние"))
+            {
+                if (currentMoonPhase == MoonPhase.Full)
+                    reply = "Посмотри на небо... Луна полностью круглая и багровая. Это проклятое Полнолуние. Ночью вместо обычных зомби город будут штурмовать Личи и Мумии!";
+                else
+                    reply = string.Format("Небосвод чист. Фаза луны сейчас — {0}. До Кровавой Луны еще есть время, так что ночные набеги должны быть терпимыми.", currentMoonPhase);
+            }
+            else if (text.Contains("погода") || text.Contains("дождь"))
+            {
+                if (IsRainingOverNpc(npc))
+                    reply = "Льет как из ведра! Пронизывающий cold. Если промочит до нитки, бег будет заблокирован, пока не согреешься у костра или внутри таверны.";
+                else
+                    reply = "Погода нынче благосклонна. Главное, чтобы летний зной не заставил нас перегреваться в теплых плащах.";
+            }
+
+            if (!string.IsNullOrEmpty(reply))
+            {
+                npc.Direction = npc.GetDirectionTo(player);
+                npc.Say(0x3B2, reply);
+                return true; // Успешно ответили
+            }
+
+            return false;
         }
 
-        // 3. ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ (ГЛАВНЫЙ МОЗГ СИСТЕМЫ ПРИВЕТСТВИЙ)
         private static string GetContextualSpeech(Mobile npc)
         {
             Map map = npc.Map;
@@ -196,8 +161,10 @@ namespace Server.Custom.SmartNPCs
                 return DynamicGreetings_Rain[Utility.Random(DynamicGreetings_Rain.Length)];
             if (!isNpcInDoors && map.Season == 1 && !IsRainingOverNpc(npc))
                 return DynamicGreetings_SummerHeat[Utility.Random(DynamicGreetings_SummerHeat.Length)];
+
             return DynamicGreetings_Normal[Utility.Random(DynamicGreetings_Normal.Length)];
         }
+
         private static bool IsRainingOverNpc(Mobile npc)
         {
             System.Collections.Generic.List<Server.Misc.Weather> weatherList = Server.Misc.Weather.GetWeatherList(npc.Map);
@@ -215,6 +182,7 @@ namespace Server.Custom.SmartNPCs
             }
             return false;
         }
+
         private static bool IsNpcInDoors(Mobile npc)
         {
             Region reg = npc.Region;

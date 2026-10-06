@@ -12222,7 +12222,7 @@ namespace Server
 
 			if (ns != null)
 			{
-				ns.Send(new UnicodeMessage(Serial.MinusOne, -1, MessageType.Regular, hue, 3, "ENU", "System", text));
+				ns.Send(new UnicodeMessage(Serial.MinusOne, -1, MessageType.Regular, hue, 3, "RUS", "System", text));
 			}
 		}
 
