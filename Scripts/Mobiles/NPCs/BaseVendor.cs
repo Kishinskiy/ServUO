@@ -1141,6 +1141,7 @@ namespace Server.Mobiles
 
 		public virtual void VendorSell(Mobile from)
 		{
+
 			if (!IsActiveBuyer)
 			{
 				return;
@@ -1194,6 +1195,7 @@ namespace Server.Mobiles
 					Say(true, "You have nothing I would be interested in.");
 				}
 			}
+
 		}
 
 		public override bool OnDragDrop(Mobile from, Item dropped)
@@ -2273,7 +2275,18 @@ namespace Server.Mobiles
 			}
 			//no cliloc for this?
 			//SayTo( seller, true, "Thank you! I bought {0} item{1}. Here is your {2}gp.", Sold, (Sold > 1 ? "s" : ""), GiveGold );
+			if (list != null && list.Count > 0)
+			{
+				int totalSoldAmount = 0;
+				for (int i = 0; i < list.Count; i++)
+				{
+					// Суммируем количество каждого проданного стопкой предмета
+					totalSoldAmount += list[i].Amount;
+				}
 
+				// Вызываем наш кастомный метод лояльности продавцов
+				AdvancedNpcTradeMod.OnSuccessfulSell(this, seller, totalSoldAmount);
+			}
 			return true;
 		}
 

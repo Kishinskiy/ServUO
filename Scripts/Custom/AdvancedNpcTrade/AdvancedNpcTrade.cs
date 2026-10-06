@@ -140,6 +140,35 @@ namespace Server.Custom.AdvancedNpcTrade
             }
         }
 
+                // НАЧИСЛЕНИЕ ОЧКОВ ПРИ ПРОДАЖЕ ТОВАРА ВЕНДОРУ (Снабжение рынка)
+        public static void OnSuccessfulSell(BaseVendor vendor, Mobile seller, int amount)
+        {
+            if (vendor == null || seller == null || amount <= 0) return;
+
+            double calculatedPoints = 0.0;
+            double targetChance = LoyaltyChance / 100.0;
+
+            // Цикл проверяет каждый сданный предмет отдельно
+            for (int i = 0; i < amount; i++)
+            {
+                if (Utility.RandomDouble() < targetChance)
+                {
+                    calculatedPoints += 0.01;
+                }
+            }
+
+            if (calculatedPoints > 0.0)
+            {
+                // Записываем очки в общую базу данных лояльности
+                LoyaltyManager.AddPurchase(vendor, seller, calculatedPoints);
+                seller.SendMessage(0x35, $"Вы снабдили торговца сырьем! Лояльность {vendor.Name} выросла на +{calculatedPoints:F2}!");
+            }
+            else
+            {
+                seller.SendMessage(0x59, "Вы успешно продали свои товары торговцу.");
+            }
+        }
+
         private static int CountProps(object attributesObject)
         {
             if (attributesObject == null) return 0;
