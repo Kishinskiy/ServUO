@@ -25,7 +25,7 @@ namespace Server.Custom.NightSpawns
         {
             // Запускаем таймер проверки времени. В UO игровые часы идут быстро, проверяем каждые 30 реальных секунд.
             _ClockTimer = Timer.DelayCall(TimeSpan.FromSeconds(30.0), TimeSpan.FromSeconds(30.0), CheckGameTime);
-            
+
             // Подписываемся на очистку при перезагрузке мира, чтобы не плодить баги
             EventSink.WorldLoad += OnWorldLoad;
         }
@@ -41,7 +41,7 @@ namespace Server.Custom.NightSpawns
             // Core.TickCount возвращает аптайм сервера в миллисекундах. 
             // В UO полные сутки (24 часа) длятся ровно 2 реальных часа (7 200 000 миллисекунд).
             // Рассчитываем, сколько игровых минут прошло с начала текущего игрового дня:
-            long totalGameMinutes = (Core.TickCount / 5000) % 1440; 
+            long totalGameMinutes = (Core.TickCount / 5000) % 1440;
             int currentHour = (int)(totalGameMinutes / 60);
 
             // Ночь в Ultima Online длится с 20:00 (8 PM) до 06:00 (6 AM)
@@ -68,13 +68,15 @@ namespace Server.Custom.NightSpawns
         private static void TriggerNightfall()
         {
             _IsNightActive = true;
-            World.Broadcast(0x22, true, "The darkness gathers over the world... Night creatures awaken from their slumber!");
+            World.Broadcast(0x22, true, "Тьма сгущается над миром... Ночные твари пробуждаются от сна!");
+
         }
 
         private static void TriggerDawn()
         {
             _IsNightActive = false;
-            World.Broadcast(0x5D, true, "The first rays of the sun light up the horizon. Night monsters dissolve into the mist...");
+            World.Broadcast(0x5D, true, "Первые лучи солнца озаряют горизонт. Ночные чудовища растворяются в тумане...");
+
 
             // На рассвете аккуратно удаляем выживших ночных мобов, если они не в бою с игроком
             for (int i = _ActiveNightMobs.Count - 1; i >= 0; i--)
@@ -124,10 +126,10 @@ namespace Server.Custom.NightSpawns
                     if (nightMob != null)
                     {
                         nightMob.MoveToWorld(new Point3D(x, y, z), player.Map);
-                        
+
                         // Даем мобу кастомный префикс, чтобы игроки видели, что он ночной
-                        nightMob.Name = "[Night] " + nightMob.Name; 
-                        
+                        nightMob.Name = "[Night] " + nightMob.Name;
+
                         // Немного усиливаем ночных тварей (на 20% больше здоровья)
                         nightMob.HitsMaxSeed = (int)(nightMob.HitsMaxSeed * 1.2);
                         nightMob.Hits = nightMob.HitsMax;

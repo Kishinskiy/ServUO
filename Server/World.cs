@@ -19,7 +19,7 @@ namespace Server
 		private static Dictionary<Serial, Mobile> m_Mobiles;
 		private static Dictionary<Serial, Item> m_Items;
 		private static Dictionary<CustomSerial, SaveData> _Data;
-		
+
 		private static bool m_Metrics = Config.Get("General.Metrics", false);
 
 		private static bool m_Loading;
@@ -126,13 +126,29 @@ namespace Server
 
 			Packet p;
 
-			if (ascii)
+			// Автоматически определяем, есть ли в тексте русские буквы
+			bool hasCyrillic = false;
+			if (!string.IsNullOrEmpty(text))
+			{
+				for (int i = 0; i < text.Length; i++)
+				{
+					if (text[i] >= 0x0400 && text[i] <= 0x04FF)
+					{
+						hasCyrillic = true;
+						break;
+					}
+				}
+			}
+
+			// Если в строке есть кириллица — принудительно переключаем пакет в Unicode режим(РУС локализация)
+			if (ascii && !hasCyrillic)
 			{
 				p = new AsciiMessage(Serial.MinusOne, -1, MessageType.Regular, hue, 3, "System", text);
 			}
 			else
 			{
-				p = new UnicodeMessage(Serial.MinusOne, -1, MessageType.Regular, hue, 3, "ENU", "System", text);
+				// Отправляем Unicode пакет с языковым маркером "RUS", который Mono на Mac и клиент UO переварят идеально
+				p = new UnicodeMessage(Serial.MinusOne, -1, MessageType.Regular, hue, 3, "RUS", "System", text);
 			}
 
 			var list = NetState.Instances;
@@ -283,8 +299,8 @@ namespace Server
 
 		public static string LoadingType { get { return m_LoadingType; } }
 
-		private static readonly Type[] m_SerialTypeArray = new Type[1] {typeof(Serial)};
-		private static readonly Type[] _CustomSerialTypeArray = new Type[1] {typeof(CustomSerial)};
+		private static readonly Type[] m_SerialTypeArray = new Type[1] { typeof(Serial) };
+		private static readonly Type[] _CustomSerialTypeArray = new Type[1] { typeof(CustomSerial) };
 
 		private static List<Tuple<ConstructorInfo, string>> ReadTypes(BinaryReader tdbReader)
 		{
@@ -306,7 +322,7 @@ namespace Server
 					{
 						Console.WriteLine("Error: Type '{0}' was not found. Delete all of those types? (y/n)", typeName);
 
-                        if (Console.ReadKey(true).Key == ConsoleKey.Y)
+						if (Console.ReadKey(true).Key == ConsoleKey.Y)
 						{
 							types.Add(null);
 							Utility.PushColor(ConsoleColor.Yellow);
@@ -794,13 +810,13 @@ namespace Server
 				{
 					Console.WriteLine("Delete the object? (y/n)");
 
-                    if (Console.ReadKey(true).Key == ConsoleKey.Y)
+					if (Console.ReadKey(true).Key == ConsoleKey.Y)
 					{
 						if (failedType != typeof(BaseGuild))
 						{
 							Console.WriteLine("Delete all objects of that type? (y/n)");
 
-                            if (Console.ReadKey(true).Key == ConsoleKey.Y)
+							if (Console.ReadKey(true).Key == ConsoleKey.Y)
 							{
 								if (failedMobiles)
 								{
@@ -1105,8 +1121,8 @@ namespace Server
 			{
 				return;
 			}
-            
-            ++m_Saves;
+
+			++m_Saves;
 
 			NetState.FlushAll();
 			NetState.Pause();
@@ -1146,14 +1162,14 @@ namespace Server
 				Directory.CreateDirectory("Saves/Customs/");
 			}
 
-            try
-            {
-                EventSink.InvokeBeforeWorldSave(new BeforeWorldSaveEventArgs());
-            }
-            catch (Exception e)
-            {
-                throw new Exception("FATAL: Exception in EventSink.BeforeWorldSave", e);
-            }
+			try
+			{
+				EventSink.InvokeBeforeWorldSave(new BeforeWorldSaveEventArgs());
+			}
+			catch (Exception e)
+			{
+				throw new Exception("FATAL: Exception in EventSink.BeforeWorldSave", e);
+			}
 
 			if (m_Metrics)
 			{
@@ -1170,9 +1186,9 @@ namespace Server
 				EventSink.InvokeWorldSave(new WorldSaveEventArgs(message));
 			}
 			catch (Exception e)
-            {
-                throw new Exception("FATAL: Exception in EventSink.WorldSave", e);
-            }
+			{
+				throw new Exception("FATAL: Exception in EventSink.WorldSave", e);
+			}
 
 			watch.Stop();
 
@@ -1197,15 +1213,15 @@ namespace Server
 
 			NetState.Resume();
 
-            try
-            {
-                EventSink.InvokeAfterWorldSave(new AfterWorldSaveEventArgs());
-            }
-            catch (Exception e)
-            {
-                throw new Exception("FATAL: Exception in EventSink.AfterWorldSave", e);
-            }
-        }
+			try
+			{
+				EventSink.InvokeAfterWorldSave(new AfterWorldSaveEventArgs());
+			}
+			catch (Exception e)
+			{
+				throw new Exception("FATAL: Exception in EventSink.AfterWorldSave", e);
+			}
+		}
 
 		internal static List<Type> m_ItemTypes = new List<Type>();
 		internal static List<Type> m_MobileTypes = new List<Type>();

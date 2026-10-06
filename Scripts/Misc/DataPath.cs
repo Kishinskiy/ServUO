@@ -19,6 +19,39 @@ namespace Server.Misc
         */
 		private static readonly string CustomPath = Config.Get(@"DataPath.CustomPath", default(string));
 
+        private static string ResolvePath(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+                return path;
+
+            // 1. Обработка конструкции $HOME (например: $HOME/UOClient)
+            if (path.Contains("$HOME"))
+            {
+                string homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                path = path.Replace("$HOME", homeDir);
+            }
+
+            // 2. Обработка тильды ~ в начале пути (например: ~/UOClient)
+            if (path.StartsWith("~"))
+            {
+                string homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                
+                if (path.Length > 1 && (path[1] == '/' || path[1] == '\\'))
+                {
+                    path = Path.Combine(homeDir, path.Substring(2));
+                }
+                else if (path.Length == 1)
+                {
+                    path = homeDir;
+                }
+            }
+
+            // 3. Автоматически нормализуем разделители (/ для Unix, \ для Windows) под текущую ОС
+            path = path.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+
+            // Возвращаем полный каноничный абсолютный путь
+            return Path.GetFullPath(path);
+        }
 		static DataPath()
 		{
 			string path;
@@ -64,8 +97,23 @@ namespace Server.Misc
 				Console.WriteLine("Enter the Ultima Online directory:");
 	            Console.Write("> ");
 	
-	            Core.DataDirectories.Add(Console.ReadLine());
+	            // Пропускаем введенный вручную путь в консоли через парсер
+                string inputPath = ResolvePath(Console.ReadLine());
+                
+                if (!string.IsNullOrWhiteSpace(inputPath) && Directory.Exists(inputPath))
+                {
+                    Core.DataDirectories.Add(inputPath);
+                }
 			}
+
+            // Если папка не найдена — пишем предупреждение вместо падения эмулятора
+            if (Core.DataDirectories.Count == 0)
+            {
+                Utility.PushColor(ConsoleColor.Red);
+                Console.WriteLine("DataPath Error: Указанная папка клиента UO не найдена или недоступна!");
+                Utility.PopColor();
+                return;
+            }
 	
 			foreach (var path in Core.DataDirectories)
 			{

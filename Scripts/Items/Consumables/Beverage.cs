@@ -1151,6 +1151,29 @@ namespace Server.Items
             else if (targ is Item)
             {
                 Item item = (Item)targ;
+                // =========================================================================
+                // ПЕРЕХВАТ ДЛЯ СТАТИЧЕСКОЙ БОЧКИ С ВОДОЙ (ItemID: 5453 / 0x154D)
+                // =========================================================================
+                if (item.ItemID == 0x154D)
+                {
+                    if (from.Map != item.Map || !from.InRange(item.GetWorldLocation(), 2) || !from.InLOS(item))
+                    {
+                        from.LocalOverheadMessage(Network.MessageType.Regular, 0x3B2, 1019045); // I can't reach that.
+                        return;
+                    }
+
+                    Content = BeverageType.Water;
+                    Poison = null;
+                    Poisoner = null;
+                    Quantity = MaxQuantity; // Наполняем кувшин полностью до краев (5/5)
+
+                    from.PlaySound(0x26); // Приятный звук наливающейся воды
+                    from.SendLocalizedMessage(1010089); // You fill the container with water.
+                    return; // Прерываем метод, чтобы не искать IWaterSource
+                }
+                // =========================================================================
+
+
                 IWaterSource src;
 
                 src = (item as IWaterSource);
@@ -1365,6 +1388,48 @@ namespace Server.Items
         {
             if (IsEmpty || !Pourable || !ValidateUse(from, false))
                 return;
+
+            // =========================================================================
+            // ИНТЕГРАЦИЯ С ФЕРМОЙ: ПОЛИВ ГРЯДОК ИЗ КУВШИНА С ВОДОЙ
+            // =========================================================================
+            if (Content == BeverageType.Water && targ is Server.Custom.Farms.FarmVegetablePlant)
+            {
+                Server.Custom.Farms.FarmVegetablePlant plant = (Server.Custom.Farms.FarmVegetablePlant)targ;
+
+                if (plant.IsDead)
+                {
+                    from.SendMessage("Этому растению полив уже не поможет, оно погибло.");
+                    return;
+                }
+
+                if (plant.Watered)
+                {
+                    from.SendMessage("Эта грядка уже отлично увлажнена!");
+                    return;
+                }
+
+                // Проверяем права на приватную грядку (как в вашей лейке)
+                Region reg = Region.Find(plant.Location, plant.Map);
+                if (reg is Server.Custom.Farms.FarmRegion)
+                {
+                    Server.Custom.Farms.FarmRegion farmReg = (Server.Custom.Farms.FarmRegion)reg;
+                    if (farmReg.Controller != null && farmReg.Controller.Owner != from && from.AccessLevel == AccessLevel.Player)
+                    {
+                        from.SendMessage("Вы не можете ухаживать за чужим урожаем!");
+                        return;
+                    }
+                }
+
+                // Успешный полив:
+                plant.Watered = true;
+                Quantity--; // Тратим 1 заряд воды кувшина (из максимума в 5 зарядов)
+
+                from.PlaySound(0x4E); // Стандартный звук брызг воды в UO
+                from.SendMessage($"Вы тщательно полили грядку из кувшина. Воды осталось: {Quantity}/{MaxQuantity}");
+                return; // Выходим, чтобы кувшин не выполнял другие нативные проверки
+            }
+            // =========================================================================
+
 
             if (targ is BaseBeverage)
             {

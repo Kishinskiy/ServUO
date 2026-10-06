@@ -56,6 +56,43 @@ namespace Server.Custom.Seasons
             }
         }
 
+        private static bool IsRainingOverPlayer(PlayerMobile pm)
+        {
+            if (pm == null || pm.Map == null || pm.Map == Map.Internal)
+                return false;
+
+            // Запрашиваем список всех погодных штормов для текущей карты (Trammel / Felucca)
+            List<Server.Misc.Weather> weatherList = Server.Misc.Weather.GetWeatherList(pm.Map);
+
+            if (weatherList != null)
+            {
+                for (int j = 0; j < weatherList.Count; ++j)
+                {
+                    Server.Misc.Weather w = weatherList[j];
+
+                    // Используем рефлексию для чтения приватного флага активности шторма m_Active
+                    bool isActivePercipitation = false;
+                    System.Reflection.FieldInfo activeField = typeof(Server.Misc.Weather).GetField("m_Active", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+                    if (activeField != null)
+                    {
+                        isActivePercipitation = (bool)activeField.GetValue(w);
+                    }
+
+                    // Если шторм активен, и это жидкие осадки (температура выше нуля = Дождь)
+                    if (isActivePercipitation && w.Temperature > 0)
+                    {
+                        // Проверяем, находится ли координата игрока внутри прямоугольника этого дождя
+                        if (w.IntersectsWith(new Rectangle2D(pm.X, pm.Y, 1, 1)))
+                        {
+                            return true; // Над игроком прямо сейчас идет дождь!
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
 
         private static void CheckPlayersTemperature()
         {
@@ -69,6 +106,21 @@ namespace Server.Custom.Seasons
                 if (pm.Map != Map.Trammel && pm.Map != Map.Felucca)
                     continue;
 
+                // =========================================================================
+                // БАЗОВАЯ ПРОВЕРКА БЕЗОПАСНОСТИ: Если в помещении или у костра — ВСЕГДА тепло!
+                // =========================================================================
+                if (IsInDoors(pm) || IsNearHeatSource(pm))
+                {
+                    RemoveFreezeDebuff(pm);
+
+                    // Если сейчас лето — в помещении/у костра тоже должно становиться прохладнее (снимаем тепловой удар)
+                    if (pm.Map.Season == 1)
+                        RemoveSummerDebuff(pm);
+
+                    continue; // Сразу переходим к следующему игроку, не запуская проверки ниже!
+                }
+
+
                 if (pm.Map.Season == 3) // Зима
                 {
                     HandleWinterEffects(pm);
@@ -77,29 +129,63 @@ namespace Server.Custom.Seasons
                 {
                     HandleSummerEffects(pm);
                 }
+                else // Весна (0) или Осень (2)
+                {
+                    if (IsInDoors(pm))
+                    {
+                        RemoveFreezeDebuff(pm);
+                    }
+                    // Только если игрок НА УЛИЦЕ и идет дождь — он замерзает
+                    else if (IsRainingOverPlayer(pm))
+                    {
+                        HandleRainEffects(pm);
+                    }
+                    else
+                    {
+                        // Если дождя нет и игрок на улице — согреваем его
+                        RemoveFreezeDebuff(pm);
+                    }
+                }
+            }
+        }
+
+        private static void HandleRainEffects(PlayerMobile pm)
+        {
+            bool isProtected = IsWarmlyDressed(pm);
+
+            if (!isProtected)
+            {
+                pm.SendMessage(0x4B5, "Ледяной дождь промочил вас до нитки! Вы дрожите от холода, бег заблокирован.");
+                ApplyFreezeDebuff(pm);
+
+                if (pm.Stam > 10)
+                {
+                    pm.Stam -= Utility.RandomMinMax(3, 7);
+                }
+                else
+                {
+                    pm.Damage(Utility.RandomMinMax(2, 5));
+                    pm.PlaySound(pm.Female ? 0x32E : 0x43E);
+                }
+            }
+            else
+            {
+                RemoveFreezeDebuff(pm);
+
+                if (Utility.RandomDouble() < 0.05)
+                    pm.SendMessage(0x5D, "Дождь льет стеной, но плотный плащ защищает вас от пронизывающей влаги.");
             }
         }
 
         private static void HandleWinterEffects(PlayerMobile pm)
         {
-            // 1. Проверка на помещение или источник тепла
-            if (IsInDoors(pm) || IsNearHeatSource(pm))
-            {
-                RemoveFreezeDebuff(pm);
-                return;
-            }
-
-            // 2. Проверка на одежду
             bool isWarmlyDressed = IsWarmlyDressed(pm);
-
-            // 3. Применение эффектов
+            // 1. Проверка на помещение или источник тепла
             if (!isWarmlyDressed)
             {
                 pm.SendMessage(0x4B5, "Ваши конечности немеют от лютого холода! Вы больше не можете бежать.");
-
                 ApplyFreezeDebuff(pm);
 
-                // Наносим урон
                 if (pm.Stam > 10)
                 {
                     pm.Stam -= Utility.RandomMinMax(5, 10);
@@ -219,11 +305,27 @@ namespace Server.Custom.Seasons
             {
                 m_FrozenPlayers.Add(pm);
 
-                // 1. Добавляем иконку дебаффа на панель баффов
-                BuffInfo.AddBuff(pm, new BuffInfo(BuffIcon.Curse, 1075824, 1075824, "Вы замерзаете! Бег заблокирован. Найдите источник тепла."));
+                // 1. Всегда добавляем иконку дебаффа на панель баффов (чтобы игрок видел, что замерзает)
+                BuffInfo.AddBuff(pm, new BuffInfo(BuffIcon.Curse, 1075824, 1075824, "Вы замерзаете! Найдите источник тепла."));
 
-                // 2. Отправляем пакет клиенту, принудительно запрещающий бег (переключение на WalkSpeed)
-                pm.SendSpeedControl(SpeedControlType.WalkSpeed);
+                // 2. Блокируем бег ТОЛЬКО если персонаж НЕ сидит верхом на маунте
+                if (!pm.Mounted)
+                {
+                    pm.SendSpeedControl(SpeedControlType.WalkSpeed);
+                }
+            }
+            else
+            {
+                // Если игрок УЖЕ был в списке замерзших, но прямо сейчас СЛЕЗ с маунта — принудительно включаем замедление
+                if (!pm.Mounted)
+                {
+                    pm.SendSpeedControl(SpeedControlType.WalkSpeed);
+                }
+                // Если игрок НАОБОРОТ сел на маунта, будучи замерзшим — возвращаем ему скорость маунта
+                else
+                {
+                    pm.SendSpeedControl(SpeedControlType.Disable);
+                }
             }
         }
 
@@ -249,7 +351,7 @@ namespace Server.Custom.Seasons
         private static void HandleSummerEffects(PlayerMobile pm)
         {
             // В помещениях (магазинах, тавернах, домах) работает тень, там не перегреешься
-            if (IsInDoors(pm))
+            if (IsInDoors(pm) || IsRainingOverPlayer(pm))
             {
                 RemoveSummerDebuff(pm);
                 return;
