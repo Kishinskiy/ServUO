@@ -53,25 +53,19 @@ namespace Server.Custom.PowerScrollsAdditional
                 return;
             }
 
-            // =========================================================================
+            // ИСПРАВЛЕНО CS0841: Создаем красивое имя навыка в самом начале метода,
+            // чтобы переменная существовала в контексте ДО всех проверок и условий!
+            string skillFriendlyName = m_Skill.ToString();
+            skillFriendlyName = System.Text.RegularExpressions.Regex.Replace(skillFriendlyName, "([a-z])([A-Z])", "$1 $2");
+
             // КРИТИЧЕСКОЕ УСЛОВИЕ БАЛАНСА: ПРОВЕРКА РЕАЛЬНОЙ ПРОКАЧКИ ДО 120.0
-            // =========================================================================
-            // skill.Base — это чистая реальная прокачка игрока руками (без учета шмоток)
             if (skill.Base < 120.0 && from.AccessLevel == AccessLevel.Player)
             {
                 from.SendMessage(0x22, $"Вы не можете использовать этот свиток! Сначала вы должны честно развить навык {skillFriendlyName} до 120.0 реального значения.");
                 return;
             }
-            // =========================================================================
-
 
             int currentCap = (int)(skill.Cap);
-
-            if (currentCap < 120 && from.AccessLevel == AccessLevel.Player)
-            {
-                from.SendMessage(0x22, "Ваш базовый лимит этого навыка должен быть равен 120.0 (нужен оригинальный Power Scroll).");
-                return;
-            }
 
             if (currentCap >= 250)
             {
@@ -83,10 +77,6 @@ namespace Server.Custom.PowerScrollsAdditional
             if (newCap > 250) newCap = 250;
 
             skill.Cap = newCap;
-
-            // ФИКС ОШИБКИ: Генерируем красивое имя навыка прямо внутри этого метода, чтобы оно существовало в контексте
-            string skillFriendlyName = m_Skill.ToString();
-            skillFriendlyName = System.Text.RegularExpressions.Regex.Replace(skillFriendlyName, "([a-z])([A-Z])", "$1 $2");
 
             from.PlaySound(0x1F7);
             from.FixedParticles(0x373A, 1, 15, 9907, Hue, 0, EffectLayer.Head);

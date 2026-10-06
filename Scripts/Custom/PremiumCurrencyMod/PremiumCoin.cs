@@ -3,14 +3,15 @@ using Server;
 
 namespace Server.Items
 {
-    // Наследуемся от Item и реализуем интерфейс ICommodity, чтобы монета могла лежать в стопках
+    // Реализуем интерфейс ICommodity, добавляя все требуемые им свойства
     public class PremiumCoin : Item, ICommodity
     {
+        // ИСПРАВЛЕНО CS0535: Добавлено обязательное для интерфейса ICommodity свойство IsDeedable
+        // Выставляем true, если хотите разрешить упаковывать монеты в вексели, или false, если запрещено
+        public bool IsDeedable { get { return true; } }
+
         // Привязываем красивое текстовое описание для товарных бирж
         TextDefinition ICommodity.Description { get { return LabelNumber; } }
-        
-        // Разрешаем монете объединяться в стопки
-        public override bool Stackable { get { return true; } }
 
         [Constructable]
         public PremiumCoin() : this(1)
@@ -18,12 +19,16 @@ namespace Server.Items
         }
 
         [Constructable]
-        public PremiumCoin(int amount) : base(0xEEF) // 0xEEF — Классическая графика золотой монеты UO
+        public PremiumCoin(int amount) : base(0xEEF) // 0xEEF — Графика золотой монеты
         {
             Name = "Монета Удачи";
-            Hue = 1161; // Эксклюзивный неоновый оранжево-золотой цвет (Diablo-стиль)
-            Weight = 0.01; // Весит ничтожно мало, чтобы можно было носить тысячи штук
+            Hue = 1161; // Эксклюзивный неоновый оранжево-золотой цвет
+            Weight = 0.01; 
             Amount = amount;
+
+            // ИСПРАВЛЕНО CS0506: Вместо override свойства Stackable, 
+            // в ServUO мы просто аппаратно включаем этот флаг напрямую в конструкторе предмета!
+            Stackable = true;
         }
 
         // Выводим кастомные свойства при наведении мышки (Тултип)
@@ -36,7 +41,6 @@ namespace Server.Items
             list.Add(1060660, "Редкость\t⭐ Мифическая ⭐");
         }
 
-        // Конструктор для десериализации (загрузки из сохранений)
         public PremiumCoin(Serial serial) : base(serial)
         {
         }
