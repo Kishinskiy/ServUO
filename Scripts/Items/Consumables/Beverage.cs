@@ -1154,7 +1154,7 @@ namespace Server.Items
                 // =========================================================================
                 // ПЕРЕХВАТ ДЛЯ СТАТИЧЕСКОЙ БОЧКИ С ВОДОЙ (ItemID: 5453 / 0x154D)
                 // =========================================================================
-                if (item.ItemID == 0x154D)
+                if (item.ItemID == 0x154D || item.ItemID == 0xE7B)
                 {
                     if (from.Map != item.Map || !from.InRange(item.GetWorldLocation(), 2) || !from.InLOS(item))
                     {
