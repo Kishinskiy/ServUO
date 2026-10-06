@@ -13,7 +13,6 @@ namespace Server.Custom.PremiumCurrency
     {
         public static void Initialize()
         {
-            // Перехватываем глобальное событие речи в мире
             EventSink.Speech += new SpeechEventHandler(EventSink_Speech);
         }
 
@@ -24,7 +23,6 @@ namespace Server.Custom.PremiumCurrency
             if (from == null || from.Backpack == null || e.Handled)
                 return;
 
-            // Если игрок говорит стандартное слово "bank" или "банкир"
             if (e.Speech.Trim().IndexOf("bank", StringComparison.OrdinalIgnoreCase) >= 0)
             {
                 Banker banker = null;
@@ -37,18 +35,32 @@ namespace Server.Custom.PremiumCurrency
                     }
                 }
 
-                // Если банкир рядом — открываем наше кастомное Gump-окно параллельно с сейфом
                 if (banker != null)
                 {
+                    // =========================================================================
+                    // ЖЕЛЕЗНОЕ ИСПРАВЛЕНИE БАГА:
+                    // Насильно приказываем ядру ServUO открыть физический сейф банка на экране!
+                    // Это гарантирует открытие ячейки, даже если клиент перегружен пакетами.
+                    // =========================================================================
+                    if (from.BankBox != null)
+                    {
+                        from.BankBox.Open(); 
+                    }
+                    // =========================================================================
+
+                    // Открываем наше просторное окно обмена
                     from.CloseGump(typeof(SovereignsExchangeGump));
                     from.SendGump(new SovereignsExchangeGump(from, banker));
+                    
+                    // Помечаем речь как обработанную, так как мы сами открыли и банк, и окно обмена
+                    e.Handled = true;
                 }
             }
         }
     }
 
     // =========================================================================
-    // ГРАФИЧЕСКОЕ ОКНО ОБМЕНА ВАЛЮТЫ (GUMP)
+    // НАДЕЖНОЕ РАСШИРЕННОЕ ОКНО ОБМЕНА ВАЛЮТЫ (БЕЗ ТЕКСТОВЫХ ПОЛЕЙ ВВОДА)
     // =========================================================================
     public class SovereignsExchangeGump : Gump
     {
@@ -63,13 +75,26 @@ namespace Server.Custom.PremiumCurrency
             Account acct = from.Account as Account;
             int currentSovereigns = acct != null ? acct.Sovereigns : 0;
 
-            // Считаем монеты в рюкзаке
-            var coins = from.Backpack.FindItemsByType<PremiumCoin>();
             int totalCoins = 0;
-            if (coins != null)
+
+            // 1. Считаем монеты в рюкзаке
+            var backpackCoins = from.Backpack.FindItemsByType<PremiumCoin>();
+            if (backpackCoins != null)
             {
-                foreach (PremiumCoin coin in coins)
+                foreach (PremiumCoin coin in backpackCoins)
                     totalCoins += coin.Amount;
+            }
+
+            // 2. Считаем монеты в банке
+            BankBox box = from.FindBankNoCreate();
+            if (box != null)
+            {
+                var bankCoins = box.FindItemsByType<PremiumCoin>();
+                if (bankCoins != null)
+                {
+                    foreach (PremiumCoin coin in bankCoins)
+                        totalCoins += coin.Amount;
+                }
             }
 
             Closable = true;
@@ -77,35 +102,28 @@ namespace Server.Custom.PremiumCurrency
             Dragable = true;
             Resizable = false;
 
-            // СТРОИМ ИНТЕРФЕЙС ОКНА
             AddPage(0);
             
-            // Задний фон окна (Красивая темная средневековая плита)
-            AddBackground(0, 0, 420, 220, 9270); 
-            AddAlphaRegion(10, 10, 400, 200);
+            AddBackground(0, 0, 500, 220, 9270); 
+            AddAlphaRegion(10, 10, 480, 200);
 
-            // Заголовок
-            AddLabel(110, 20, 1161, "ОБМЕННЫЙ ПУНКТ СУВЕРЕНОВ");
-            AddImage(15, 17, 9005); // Разделительная декоративная линия UO
-            AddImage(200, 17, 9005);
+            AddLabel(150, 20, 1161, "ОБМЕННЫЙ ПУНКТ СУВЕРЕНОВ");
+            AddImage(15, 17, 9005); 
+            AddImage(280, 17, 9005);
 
-            // Иконка сундука/золота
             AddImage(35, 75, 5545);
 
-            // Статистика для игрока
-            AddLabel(110, 65, 0x481, $"Ваш баланс в Store: {currentSovereigns} Сув.");
-            AddLabel(110, 90, 88, $"Монет Удачи в сумке: {totalCoins} шт.");
+            AddLabel(110, 65, 0x481, $"Ваш текущий баланс в Store: {currentSovereigns} Сув.");
+            AddLabel(110, 90, 88, $"Всего Монет Удачи (Сумка + Банк): {totalCoins} шт.");
 
             if (totalCoins > 0)
             {
-                // Если монеты есть — рисуем большую сочную кнопку обмена
                 AddButton(110, 140, 247, 248, 1, GumpButtonType.Reply, 0);
-                AddLabel(145, 142, 0x35, "Обменять все монеты");
+                AddLabel(145, 142, 0x35, "Обменять все доступные монеты");
             }
             else
             {
-                // Если монет нет — пишем предупреждение
-                AddLabel(110, 142, 0x22, "У вас нет монет для обмена");
+                AddLabel(110, 142, 0x22, "У вас нет Монет Удачи для проведения операции");
             }
         }
 
@@ -116,7 +134,6 @@ namespace Server.Custom.PremiumCurrency
             if (from == null || from.Backpack == null || m_Banker == null || info.ButtonID != 1)
                 return;
 
-            // Проверяем дистанцию до банкира повторно (защита от читеров с открытыми гумпами)
             if (!from.InRange(m_Banker.Location, 3))
             {
                 from.SendMessage(0x22, "Вы отошли слишком далеко от банкира!");
@@ -126,14 +143,17 @@ namespace Server.Custom.PremiumCurrency
             Account acct = from.Account as Account;
             if (acct == null) return;
 
-            var coins = from.Backpack.FindItemsByType<PremiumCoin>();
             int totalCoinsFound = 0;
 
-            if (coins != null)
-            {
-                foreach (PremiumCoin coin in coins)
-                    totalCoinsFound += coin.Amount;
-            }
+            var backpackCoins = from.Backpack.FindItemsByType<PremiumCoin>();
+            var bankCoins = new List<PremiumCoin>();
+
+            BankBox box = from.FindBankNoCreate();
+            if (box != null)
+                bankCoins = box.FindItemsByType<PremiumCoin>();
+
+            if (backpackCoins != null) { foreach (PremiumCoin c in backpackCoins) totalCoinsFound += c.Amount; }
+            if (bankCoins != null) { foreach (PremiumCoin c in bankCoins) totalCoinsFound += c.Amount; }
 
             if (totalCoinsFound <= 0)
             {
@@ -141,21 +161,24 @@ namespace Server.Custom.PremiumCurrency
                 return;
             }
 
-            // Жесткое Server-Side удаление физических монет
-            for (int i = coins.Count - 1; i >= 0; i--)
+            if (backpackCoins != null)
             {
-                coins[i].Delete();
+                for (int i = backpackCoins.Count - 1; i >= 0; i--)
+                    backpackCoins[i].Delete();
             }
 
-            // Начисление суверенов на аккаунт
+            if (bankCoins != null)
+            {
+                for (int i = bankCoins.Count - 1; i >= 0; i--)
+                    bankCoins[i].Delete();
+            }
+
             acct.DepositSovereigns(totalCoinsFound);
 
-            // Эффекты успеха
-            m_Banker.PlaySound(0x35); // Звук пересыпания монет
-            m_Banker.Say($"Прекрасно! Я зачислил {totalCoinsFound} Суверен(ов) на ваш Store-баланс.");
-            from.SendMessage(88, $"Успешная конвертация! На баланс зачислено +{totalCoinsFound} Суверен(ов).");
+            m_Banker.PlaySound(0x35); 
+            m_Banker.Say($"Прекрасно! Я изъял монеты и зачислил {totalCoinsFound} Суверен(ов) на ваш баланс.");
+            from.SendMessage(88, $"Успешная конвертация! Совместный баланс пополнен на +{totalCoinsFound} Суверен(ов).");
 
-            // Автоматически обновляем окно, чтобы игрок увидел свой новый баланс!
             from.SendGump(new SovereignsExchangeGump(from, m_Banker));
         }
     }
