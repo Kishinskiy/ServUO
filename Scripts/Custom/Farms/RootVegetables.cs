@@ -21,7 +21,7 @@ namespace Server.Custom.Farms
     }
 
     // =========================================================================
-    // ТАРГЕТ ПОСАДКИ ДЛЯ СЕМЯН
+    // ТАРГЕТ ПОСАДКИ ДЛЯ СЕМЯН (С ПОДДЕРЖКОЙ ДОМАШНИХ ТЕПЛИЦ)
     // =========================================================================
     public class FarmVegetableTarget : Target
     {
@@ -58,9 +58,13 @@ namespace Server.Custom.Farms
             bool isFurrowsField = (cleanLandID >= 0x9 && cleanLandID <= 0x15);
             bool isStaticField = (customGround != null && (customGround.ItemID >= 0x150 && customGround.ItemID <= 0x15C));
 
-            if (!isCustomPlowed && !isStandardField && !isFurrowsField && !isStaticField)
+            // Проверяем, находится ли точка посадки внутри дома игрока
+            bool isInsideHouse = (Server.Multis.BaseHouse.FindHouseAt(loc, map, 16) != null);
+
+            // Если игрок НЕ в доме, то проверяем стандартную вспаханную землю на улице
+            if (!isInsideHouse && !isCustomPlowed && !isStandardField && !isFurrowsField && !isStaticField)
             {
-                from.SendMessage("Сажать овощи можно только на вспаханной пашне фермерского поля!");
+                from.SendMessage("Сажать овощи можно только на фермерском поле или внутри своего дома!");
                 return;
             }
 
@@ -97,7 +101,7 @@ namespace Server.Custom.Farms
     }
 
     // =========================================================================
-    // УНИВЕРСАЛЬНЫЙ КУСТ С РАСШИРЕННОЙ СИСТЕМОЙ УХОДА И ЗАРАЖЕНИЯ СОРНЯКАМИ
+    // УНИВЕРСАЛЬНЫЙ КУСТ С ПОДДЕРЖКОЙ ТУЛТИПОВ И УМНОГО КЛИМАТА В ДОМЕ
     // =========================================================================
     public class FarmVegetablePlant : Item
     {
@@ -139,28 +143,28 @@ namespace Server.Custom.Farms
         public int WaterLevel
         {
             get => m_WaterLevel;
-            set { m_WaterLevel = Math.Max(0, Math.Min(100, value)); UpdateName(); InvalidateProperties(); }
+            set { m_WaterLevel = Math.Max(0, Math.Min(100, value)); InvalidateProperties(); }
         }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public int FertilityLevel
         {
             get => m_FertilityLevel;
-            set { m_FertilityLevel = Math.Max(0, Math.Min(100, value)); UpdateName(); InvalidateProperties(); }
+            set { m_FertilityLevel = Math.Max(0, Math.Min(100, value)); InvalidateProperties(); }
         }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public int WeedsLevel
         {
             get => m_WeedsLevel;
-            set { m_WeedsLevel = Math.Max(0, Math.Min(100, value)); UpdateName(); InvalidateProperties(); }
+            set { m_WeedsLevel = Math.Max(0, Math.Min(100, value)); InvalidateProperties(); }
         }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public int PestsCount
         {
             get => m_PestsCount;
-            set { m_PestsCount = Math.Max(0, Math.Min(3, value)); UpdateName(); InvalidateProperties(); }
+            set { m_PestsCount = Math.Max(0, Math.Min(3, value)); InvalidateProperties(); }
         }
 
         [CommandProperty(AccessLevel.GameMaster)]
@@ -190,6 +194,7 @@ namespace Server.Custom.Farms
             m_GrowthTimer = Timer.DelayCall(TimeSpan.FromHours(2.0), TimeSpan.FromHours(2.0), new TimerCallback(GrowPerDay));
         }
 
+        // Чистое красивое имя, вся техническая часть перенесена в тултипы
         public void UpdateName()
         {
             if (m_IsWeedSource)
@@ -206,12 +211,29 @@ namespace Server.Custom.Farms
 
             string baseName = GetVegNameString();
             string stageStr = m_Stage == 2 ? "Ripe" : $"Phase {m_Stage + 1}";
+            Name = $"{stageStr} {baseName}";
+        }
 
-            Name = $"{stageStr} {baseName} [Влага: {m_WaterLevel}%] [Питание: {m_FertilityLevel}%]";
+        // =========================================================================
+        // СИСТЕМА ТУЛТИПОВ ПРИ НАВЕДЕНИИ МЫШКИ 🔍
+        // =========================================================================
+        public override void AddProperties(ObjectPropertyList list)
+        {
+            base.AddProperties(list); // Выводит Name первой строчкой
 
-            if (m_WeedsLevel > 0) Name += $" *Сорняки: {m_WeedsLevel}%*";
-            if (m_PestsCount > 0) Name += " *Атаковано вредителями*";
-            if (m_WaterLevel < 25 && m_Stage < 2) Name += " [Нужен срочный полив!]";
+            if (m_IsDead || m_IsWeedSource) return;
+
+            list.Add($"Влажность почвы: {m_WaterLevel}%");
+            list.Add($"Питательность почвы: {m_FertilityLevel}%");
+
+            if (m_WeedsLevel > 0)
+                list.Add($"* Сорняки: {m_WeedsLevel}% *");
+
+            if (m_PestsCount > 0)
+                list.Add($"* Вредители: {m_PestsCount}/3 *");
+
+            if (m_WaterLevel < 25 && m_Stage < 2)
+                list.Add("Нужен срочный полив!");
         }
 
         private string GetVegNameString()
@@ -246,10 +268,7 @@ namespace Server.Custom.Farms
                 currentSeason = this.Map.Season;
             }
 
-            // =========================================================================
             // УМНАЯ ПРОВЕРКА НА ТЕПЛИЦУ (Дом игрока) 🏡🌿
-            // =========================================================================
-            // Проверяем, находится ли грядка на территории любого частного дома
             Server.Multis.BaseHouse house = Server.Multis.BaseHouse.FindHouseAt(this.Location, this.Map, 16);
             bool isInGreenhouse = (house != null);
 
@@ -261,9 +280,7 @@ namespace Server.Custom.Farms
                 return;
             }
 
-            // =========================================================================
             // АВТОМАТИЧЕСКИЙ ПОЛИВ ДОЖДЕМ (Только на улице, под крышей дома дождя нет!)
-            // =========================================================================
             if (!isInGreenhouse && this.Map != null && this.Map != Map.Internal)
             {
                 List<Server.Misc.Weather> weatherList = Server.Misc.Weather.GetWeatherList(this.Map);
@@ -290,23 +307,19 @@ namespace Server.Custom.Farms
                     }
                 }
             }
-
             // Настройка скорости роста (В доме всегда тепло, как весной!)
             int daysRequiredToGrow = (currentSeason == 0 || currentSeason == 2 || isInGreenhouse) ? 4 : 8;
             if (m_WaterLevel >= 60 && daysRequiredToGrow > 2) daysRequiredToGrow -= 1;
-            
             // В доме влага испаряется МЕДЛЕННЕЕ (минус 10% вместо 25%), так как нет ветра и солнца
             int waterLoss = isInGreenhouse ? 10 : 25;
             m_WaterLevel = Math.Max(0, m_WaterLevel - waterLoss);
             m_FertilityLevel = Math.Max(0, m_FertilityLevel - 10);
-
-            // Сорняки и вредители в домашней теплице
+            // Сорняки и вредители в домашней теплице (чуть активнее из-за застойного теплого воздуха)
             if (m_Stage < 2)
             {
                 double weedChance = isInGreenhouse ? (BaseWeedsChance + 0.10) : BaseWeedsChance;
                 if (Utility.RandomDouble() < weedChance)
                     m_WeedsLevel = Math.Min(100, m_WeedsLevel + 15);
-                
                 double pestsChance = isInGreenhouse ? 0.35 : 0.25;
                 if (Utility.RandomDouble() < pestsChance)
                     m_PestsCount = Math.Min(3, m_PestsCount + 1);
@@ -326,7 +339,7 @@ namespace Server.Custom.Farms
                 }
                 if (m_Planter != null && m_Stage < 2)
                     m_Planter.SendMessage(0x22, $"Ваш урожай ({GetVegNameString()}) страдает от засухи или вредителей!");
-                UpdateName();
+                InvalidateProperties();
                 return;
             }
             m_DryCount = 0;
@@ -363,9 +376,10 @@ namespace Server.Custom.Farms
                         }
                         if (m_Planter != null) m_Planter.SendMessage(0x35, $"Ваш урожай ({GetVegNameString()}) полностью созрел и готов к сбору!");
                     }
+                    UpdateName();
                 }
             }
-            UpdateName();
+            InvalidateProperties();
         }
         private void TurnIntoWeedBush()
         {
@@ -375,6 +389,7 @@ namespace Server.Custom.Farms
             ItemID = 0x0CB5;
             Hue = 1167;
             UpdateName();
+            InvalidateProperties();
             if (m_Planter != null)
                 m_Planter.SendMessage(0x22, "ВНИМАНИЕ! Из-за плохой прополки одна из ваших грядок ПОЛНОСТЬЮ ОБРОСЛА СОРНЯКОМ и теперь заражает соседние кусты!");
         }
@@ -387,6 +402,7 @@ namespace Server.Custom.Farms
                 if (item is FarmVegetablePlant neighborPlant && neighborPlant != this && !neighborPlant.IsDead && !neighborPlant.IsWeedSource)
                 {
                     neighborPlant.WeedsLevel = Math.Min(100, neighborPlant.WeedsLevel + 25);
+                    neighborPlant.InvalidateProperties();
                     Effects.SendLocationParticles(EffectItem.Create(neighborPlant.Location, neighborPlant.Map, TimeSpan.FromSeconds(0.5)), 0x376A, 9, 10, 5042);
                     if (neighborPlant.Planter != null)
                         neighborPlant.Planter.SendMessage(0x22, $"[!] Сорняки с соседнего заросшего куста перекинулись на вашу посадку ({neighborPlant.GetVegNameString()})! Нужна срочная прополка!");
@@ -401,6 +417,7 @@ namespace Server.Custom.Farms
             ItemID = 0x0CBC;
             Hue = 0;
             UpdateName();
+            InvalidateProperties();
             if (m_Planter != null)
                 m_Planter.SendMessage("Один из ваших кустов на ферме полностью погиб из-за засухи или вредителей.");
         }
@@ -446,8 +463,14 @@ namespace Server.Custom.Farms
                 from.SendMessage(0x5D, $"--- Состояние грядки ({GetVegNameString()}) ---");
                 from.SendMessage($"Влажность почвы: {m_WaterLevel}% / 100%");
                 from.SendMessage($"Питательность почвы: {m_FertilityLevel}% / 100%");
-                from.SendMessage(m_WeedsLevel > 0 ? $"[!] Плантация заросла сорняками на {m_WeedsLevel}%. Требуется прополка тяпкой!" : "Сорняков не обнаружено.");
-                from.SendMessage(m_PestsCount > 0 ? $"[!] Замечено вредителей: {m_PestsCount} шт. Нужна дезинсекция." : "Паразитов на листьях нет.");
+                if (m_WeedsLevel > 0)
+                    from.SendMessage(0x22, $"[!] Заражение сорняками: {m_WeedsLevel}% / 100% (Нужна тяпка)");
+                else
+                    from.SendMessage(0x42, "Сорняков на грядке не обнаружено.");
+                if (m_PestsCount > 0)
+                    from.SendMessage(0x22, $"[!] Атака вредителей: {m_PestsCount} из 3 шт. (Нужна дезинсекция!)");
+                else
+                    from.SendMessage(0x42, "Паразитов на листьях нет.");
                 return;
             }
             Region reg = Region.Find(Location, Map);
@@ -509,6 +532,7 @@ namespace Server.Custom.Farms
             WaterLevel += percent;
             from.PlaySound(0x4E);
             from.SendMessage(0x42, $"Вы полили грядку. Уровень влаги: {m_WaterLevel}%.");
+            InvalidateProperties();
         }
         public void ApplyFertilizer(Mobile from, int percent)
         {
@@ -517,6 +541,7 @@ namespace Server.Custom.Farms
             FertilityLevel += percent;
             from.PlaySound(0x244);
             from.SendMessage(0x42, $"Вы внесли удобрения. Уровень питания: {m_FertilityLevel}%.");
+            InvalidateProperties();
         }
         public void RemoveWeeds(Mobile from, int percent)
         {
@@ -525,6 +550,7 @@ namespace Server.Custom.Farms
             WeedsLevel = Math.Max(0, m_WeedsLevel - percent);
             from.PlaySound(0x13E);
             from.SendMessage(0x42, $"Вы прошлись тяпкой. Уровень сорняков снижен до {m_WeedsLevel}%.");
+            InvalidateProperties();
         }
         public void KillPests(Mobile from)
         {
@@ -533,6 +559,7 @@ namespace Server.Custom.Farms
             UpdateName();
             from.PlaySound(0x3B4);
             from.SendMessage(0x42, "Вы уничтожили всех паразитов.");
+            InvalidateProperties();
         }
         public override void OnDelete()
         {
@@ -582,6 +609,7 @@ namespace Server.Custom.Farms
             if (!m_IsDead || m_IsWeedSource)
                 m_GrowthTimer = Timer.DelayCall(TimeSpan.FromHours(2.0), TimeSpan.FromHours(2.0), new TimerCallback(GrowPerDay));
             UpdateName();
+            InvalidateProperties();
         }
     }
 }
