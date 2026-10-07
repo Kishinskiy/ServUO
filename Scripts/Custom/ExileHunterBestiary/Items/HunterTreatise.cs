@@ -71,7 +71,7 @@ namespace Server.Custom.ExileHunterBestiary.Items
 
         public void UpdateAppearance()
         {
-            ItemID = 0x1F5F; // Magery spell scroll graphic
+            ItemID = 0x1F5F; // Графика свитка
 
             var entry = Entry;
             if (entry != null)
@@ -86,11 +86,14 @@ namespace Server.Custom.ExileHunterBestiary.Items
             }
         }
 
+        // =========================================================================
+        // ИСПРАВЛЕНО: ИСПОЛЬЗОВАНИЕ СВИТКА ДЛЯ НАЧИСЛЕНИЯ ОПЫТА В РАНГИ 📜🔥
+        // =========================================================================
         public override void OnDoubleClick(Mobile from)
         {
             if (!IsChildOf(from.Backpack))
             {
-                from.SendLocalizedMessage(1042001); // That must be in your pack for you to use it.
+                from.SendLocalizedMessage(1042001); // Предмет должен быть в паке
                 return;
             }
 
@@ -101,23 +104,46 @@ namespace Server.Custom.ExileHunterBestiary.Items
             if (profile == null)
                 return;
 
-            if (profile.HasLearned(m_CreatureId))
+            if (entry != null)
             {
-                from.SendMessage(0x22, $"You have already mastered the study of {displayName}. Keep this treatise to trade with other hunters!");
-                from.PlaySound(0x5C);
-                return;
-            }
+                int oldLevel = profile.GetGroupLevel(entry.Category);
+                
+                // Начисляем случайное количество опыта за прочтение трактата (от 20 до 40 очков)
+                int pointsGained = Utility.RandomMinMax(20, 40);
+                int realGained = profile.LearnWithProgress(m_CreatureId, pointsGained);
 
-            if (profile.Learn(m_CreatureId))
-            {
-                from.SendMessage(0x3F, $"You thoroughly study the treatise and permanently unlock +20% damage against {displayName}!");
+                // Если лимит в 300 очков на одного конкретного моба уже забит
+                if (realGained <= 0)
+                {
+                    from.SendMessage(0x22, $"Вы уже максимально изучили анатомию {displayName} по свиткам! Передайте этот трактат другим охотникам.");
+                    from.PlaySound(0x5C);
+                    return;
+                }
+
+                int newLevel = profile.GetGroupLevel(entry.Category);
+                
+                from.SendMessage(0x3F, $"Вы изучили трактат о {displayName}! Категория {entry.Category} получила +{realGained} очков прогресса.");
                 from.FixedParticles(0x373A, 10, 15, 5012, EffectLayer.Waist);
-                from.PlaySound(0x249);
+                from.PlaySound(0x249); // Волшебный звук прочтения
 
-                Consume();
+                Consume(); // Свиток исчезает
+
+                // Если за счет этих очков вся общая категория подняла Ранг (например, с 1 на 2)
+                if (newLevel > oldLevel)
+                {
+                    from.PlaySound(0x5B6); // Звук триумфа
+                    from.SendMessage(0x35, $"[Бестиарий] Поздравляем! Ваша категория {entry.Category} поднялась до Ранга {newLevel}/5!");
+                }
+            }
+            else
+            {
+                from.SendMessage(0x22, "Этот трактат поврежден и его невозможно прочесть.");
             }
         }
 
+        // =========================================================================
+        // ИСПРАВЛЕНО: ОТОБРАЖЕНИЕ КАТЕГОРИИ И ТЕКУЩЕГО ОПЫТА В ТУЛТИПЕ 🔍
+        // =========================================================================
         public override void GetProperties(ObjectPropertyList list)
         {
             base.GetProperties(list);
@@ -126,32 +152,30 @@ namespace Server.Custom.ExileHunterBestiary.Items
             string creatureName = entry != null ? entry.DisplayName : m_CreatureId;
             string category = entry != null ? entry.Category.ToString() : "Unknown";
 
-            list.Add(1070722, string.Format("<BASEFONT COLOR=#D1C4E9>Hunter's Study: +20% Damage vs {0}<BASEFONT COLOR=#FFFFFF>", creatureName));
-            list.Add(1070722, string.Format("<BASEFONT COLOR=#ECEFF1>Category: {0}<BASEFONT COLOR=#FFFFFF>", category));
-            list.Add(1070722, "<BASEFONT COLOR=#FFE082>Double-click to permanently master<BASEFONT COLOR=#FFFFFF>");
+            list.Add(1070722, string.Format("<BASEFONT COLOR=#D1C4E9>Hunter's Study: {0}<BASEFONT COLOR=#FFFFFF>", creatureName));
+            list.Add(1070722, string.Format("<BASEFONT COLOR=#ECEFF1>Category: {1}<BASEFONT COLOR=#FFFFFF>", creatureName, category));
+            list.Add(1070722, "<BASEFONT COLOR=#FFE082>Изучение добавляет очки прогресса категории (Ранги 1-5)<BASEFONT COLOR=#FFFFFF>");
         }
 
+        // Обновляем всплывающий статус "Изучено / Не изучено" на основе наличия очков прогресса
         public override void SendPropertiesTo(Mobile from)
         {
             var list = new ObjectPropertyList(this);
             GetProperties(list);
 
             var profile = HunterBestiaryEngine.GetProfile(from);
-            bool learned = profile != null && profile.HasLearned(m_CreatureId);
+            
+            // Если в профиле у этого моба уже есть хоть сколько-то очков прогресса
+            int currentProgress = profile != null ? profile.GetProgress(m_CreatureId) : 0;
 
-            if (learned)
+            if (currentProgress > 0)
             {
-                list.Add(1070722, "<BASEFONT COLOR=#00E676>[Already Learned]<BASEFONT COLOR=#FFFFFF>");
+                list.Add(1070722, string.Format("<BASEFONT COLOR=#00E676>[Изучено: {0}/300 XP]<BASEFONT COLOR=#FFFFFF>", currentProgress));
             }
             else
             {
-                list.Add(1070722, "<BASEFONT COLOR=#00E5FF>[Not Learned Yet]<BASEFONT COLOR=#FFFFFF>");
+                list.Add(1070722, "<BASEFONT COLOR=#00E5FF>[Еще не изучалось]<BASEFONT COLOR=#FFFFFF>");
             }
-
-            // if (OnGetProperties != null)
-            // {
-            //     OnGetProperties(this, list);
-            // }
 
             list.Terminate();
             from.Send(list);
@@ -160,7 +184,6 @@ namespace Server.Custom.ExileHunterBestiary.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-
             writer.Write((int)0); // version
             writer.Write(m_CreatureId);
         }
@@ -168,7 +191,6 @@ namespace Server.Custom.ExileHunterBestiary.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-
             int version = reader.ReadInt();
             m_CreatureId = reader.ReadString();
 
