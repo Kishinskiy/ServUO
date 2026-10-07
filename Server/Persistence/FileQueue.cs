@@ -9,40 +9,17 @@ namespace Server
 
     public sealed class FileQueue : IDisposable
     {
-        private static int bufferSize;
-        private static BufferPool bufferPool;
-        private readonly object syncRoot;
+        private static readonly int bufferSize;
+        private static readonly BufferPool bufferPool;
         private readonly Chunk[] active;
-        private readonly Queue<Page> pending;
-        private Page buffered;
         private readonly FileCommitCallback callback;
+        private readonly Queue<Page> pending;
+        private readonly object syncRoot;
         private int activeCount;
+        private Page buffered;
         private ManualResetEvent idle;
-        private long position;
-        public FileQueue(int concurrentWrites, FileCommitCallback callback)
-        {
-            if (concurrentWrites < 1)
-            {
-                throw new ArgumentOutOfRangeException("concurrentWrites");
-            }
-            else if (bufferSize < 1)
-            {
-                throw new ArgumentOutOfRangeException("bufferSize");
-            }
-            else if (callback == null)
-            {
-                throw new ArgumentNullException("callback");
-            }
 
-            this.syncRoot = new object();
-
-            this.active = new Chunk[concurrentWrites];
-            this.pending = new Queue<Page>();
-
-            this.callback = callback;
-
-            this.idle = new ManualResetEvent(true);
-        }
+        public long Position { get; private set; }
 
         static FileQueue()
         {
@@ -50,30 +27,41 @@ namespace Server
             bufferPool = new BufferPool("File Buffers", 64, bufferSize);
         }
 
-        public long Position
+        public FileQueue(int concurrentWrites, FileCommitCallback callback)
         {
-            get
-            {
-                return this.position;
-            }
+            if (concurrentWrites < 1) throw new ArgumentOutOfRangeException("concurrentWrites");
+
+            if (bufferSize < 1) throw new ArgumentOutOfRangeException("bufferSize");
+
+            if (callback == null) throw new ArgumentNullException("callback");
+
+            syncRoot = new object();
+
+            active = new Chunk[concurrentWrites];
+            pending = new Queue<Page>();
+
+            this.callback = callback;
+
+            idle = new ManualResetEvent(true);
         }
+
         public void Dispose()
         {
-            if (this.idle != null)
+            if (idle != null)
             {
-                this.idle.Close();
-                this.idle = null;
+                idle.Close();
+                idle = null;
             }
         }
 
         public void Flush()
         {
-            if (this.buffered.buffer != null)
+            if (buffered.buffer != null)
             {
-                this.Append(this.buffered);
+                Append(buffered);
 
-                this.buffered.buffer = null;
-                this.buffered.length = 0;
+                buffered.buffer = null;
+                buffered.length = 0;
             }
 
             /*lock ( syncRoot ) {
@@ -94,119 +82,96 @@ namespace Server
             }
             }*/
 
-            this.idle.WaitOne();
+            idle.WaitOne();
         }
 
         public void Enqueue(byte[] buffer, int offset, int size)
         {
-            if (buffer == null)
-            {
-                throw new ArgumentNullException("buffer");
-            }
-            else if (offset < 0)
-            {
-                throw new ArgumentOutOfRangeException("offset");
-            }
-            else if (size < 0)
-            {
-                throw new ArgumentOutOfRangeException("size");
-            }
-            else if ((buffer.Length - offset) < size)
-            {
-                throw new ArgumentException();
-            }
+            if (buffer == null) throw new ArgumentNullException("buffer");
 
-            this.position += size;
+            if (offset < 0) throw new ArgumentOutOfRangeException("offset");
+
+            if (size < 0) throw new ArgumentOutOfRangeException("size");
+
+            if (buffer.Length - offset < size) throw new ArgumentException();
+
+            Position += size;
 
             while (size > 0)
             {
-                if (this.buffered.buffer == null)
-                { // nothing yet buffered
-                    this.buffered.buffer = bufferPool.AcquireBuffer();
-                }
+                if (buffered.buffer == null)
+                    // nothing yet buffered
+                    buffered.buffer = bufferPool.AcquireBuffer();
 
-                byte[] page = this.buffered.buffer; // buffer page
-                int pageSpace = page.Length - this.buffered.length; // available bytes in page
-                int byteCount = (size > pageSpace ? pageSpace : size); // how many bytes we can copy over
+                var page = buffered.buffer; // buffer page
+                var pageSpace = page.Length - buffered.length; // available bytes in page
+                var byteCount = size > pageSpace ? pageSpace : size; // how many bytes we can copy over
 
-                Buffer.BlockCopy(buffer, offset, page, this.buffered.length, byteCount);
+                Buffer.BlockCopy(buffer, offset, page, buffered.length, byteCount);
 
-                this.buffered.length += byteCount;
+                buffered.length += byteCount;
                 offset += byteCount;
                 size -= byteCount;
 
-                if (this.buffered.length == page.Length)
-                { // page full
-                    this.Append(this.buffered);
+                if (buffered.length == page.Length)
+                {
+                    // page full
+                    Append(buffered);
 
-                    this.buffered.buffer = null;
-                    this.buffered.length = 0;
+                    buffered.buffer = null;
+                    buffered.length = 0;
                 }
             }
         }
 
         private void Append(Page page)
         {
-            lock (this.syncRoot)
+            lock (syncRoot)
             {
-                if (this.activeCount == 0)
-                {
-                    this.idle.Reset();
-                }
+                if (activeCount == 0) idle.Reset();
 
-                ++this.activeCount;
+                ++activeCount;
 
-                for (int slot = 0; slot < this.active.Length; ++slot)
-                {
-                    if (this.active[slot] == null)
+                for (var slot = 0; slot < active.Length; ++slot)
+                    if (active[slot] == null)
                     {
-                        this.active[slot] = new Chunk(this, slot, page.buffer, 0, page.length);
+                        active[slot] = new Chunk(this, slot, page.buffer, 0, page.length);
 
-                        this.callback(this.active[slot]);
+                        callback(active[slot]);
 
                         return;
                     }
-                }
 
-                this.pending.Enqueue(page);
+                pending.Enqueue(page);
             }
         }
 
         private void Commit(Chunk chunk, int slot)
         {
-            if (slot < 0 || slot >= this.active.Length)
-            {
-                throw new ArgumentOutOfRangeException("slot");
-            }
+            if (slot < 0 || slot >= active.Length) throw new ArgumentOutOfRangeException("slot");
 
-            lock (this.syncRoot)
+            lock (syncRoot)
             {
-                if (this.active[slot] != chunk)
-                {
-                    throw new ArgumentException();
-                }
+                if (active[slot] != chunk) throw new ArgumentException();
 
                 bufferPool.ReleaseBuffer(chunk.Buffer);
 
-                if (this.pending.Count > 0)
+                if (pending.Count > 0)
                 {
-                    Page page = this.pending.Dequeue();
+                    var page = pending.Dequeue();
 
-                    this.active[slot] = new Chunk(this, slot, page.buffer, 0, page.length);
+                    active[slot] = new Chunk(this, slot, page.buffer, 0, page.length);
 
-                    this.callback(this.active[slot]);
+                    callback(active[slot]);
                 }
                 else
                 {
-                    this.active[slot] = null;
+                    active[slot] = null;
                 }
 
-                --this.activeCount;
+                --activeCount;
 
-                if (this.activeCount == 0)
-                {
-                    this.idle.Set();
-                }
+                if (activeCount == 0) idle.Set();
             }
         }
 
@@ -218,45 +183,29 @@ namespace Server
 
         public sealed class Chunk
         {
+            private readonly int offset;
             private readonly FileQueue owner;
             private readonly int slot;
-            private readonly byte[] buffer;
-            private readonly int offset;
-            private readonly int size;
+
+            public byte[] Buffer { get; }
+
+            public int Offset => 0;
+
+            public int Size { get; }
+
             public Chunk(FileQueue owner, int slot, byte[] buffer, int offset, int size)
             {
                 this.owner = owner;
                 this.slot = slot;
 
-                this.buffer = buffer;
+                this.Buffer = buffer;
                 this.offset = offset;
-                this.size = size;
+                this.Size = size;
             }
 
-            public byte[] Buffer
-            {
-                get
-                {
-                    return this.buffer;
-                }
-            }
-            public int Offset
-            {
-                get
-                {
-                    return 0;
-                }
-            }
-            public int Size
-            {
-                get
-                {
-                    return this.size;
-                }
-            }
             public void Commit()
             {
-                this.owner.Commit(this, this.slot);
+                owner.Commit(this, slot);
             }
         }
     }

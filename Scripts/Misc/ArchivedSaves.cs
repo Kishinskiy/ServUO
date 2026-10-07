@@ -1,10 +1,10 @@
 using System;
-using System.IO;
-using System.IO.Compression;
-using System.Threading;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
+using System.Threading;
 
 namespace Server.Misc
 {
@@ -21,6 +21,17 @@ namespace Server.Misc
         private static readonly string _DefaultDestination;
 
         private static string _Destination;
+
+        private static bool _Enabled;
+
+        private static readonly List<IAsyncResult> _Tasks = new List<IAsyncResult>(0x40);
+
+        private static readonly object _TaskRoot = ((ICollection)_Tasks).SyncRoot;
+
+        private static readonly AutoResetEvent _Sync = new AutoResetEvent(true);
+
+        private static readonly Action<string> _Pack = InternalPack;
+        private static readonly Action<DateTime> _Prune = InternalPrune;
 
         public static string Destination
         {
@@ -43,11 +54,9 @@ namespace Server.Misc
             }
         }
 
-        private static bool _Enabled;
-
         public static bool Enabled
         {
-            get { return _Enabled; }
+            get => _Enabled;
             set
             {
                 if (_Enabled == value)
@@ -67,21 +76,14 @@ namespace Server.Misc
 
         public static MergeType Merge { get; set; }
 
-        private static readonly List<IAsyncResult> _Tasks = new List<IAsyncResult>(0x40);
-
-        private static readonly object _TaskRoot = ((ICollection)_Tasks).SyncRoot;
-
-        private static readonly AutoResetEvent _Sync = new AutoResetEvent(true);
-
-        private static readonly Action<string> _Pack = InternalPack;
-        private static readonly Action<DateTime> _Prune = InternalPrune;
-
         public static int PendingTasks
         {
             get
             {
                 lock (_TaskRoot)
+                {
                     return _Tasks.Count - _Tasks.RemoveAll(t => t.IsCompleted);
+                }
             }
         }
 
@@ -175,26 +177,44 @@ namespace Server.Misc
                 {
                     case MergeType.Months: date = string.Format("{0}-{1}", now.Month, now.Year); break;
                     case MergeType.Days: date = string.Format("{0}-{1}-{2}", now.Day, now.Month, now.Year); break;
-                    case MergeType.Hours: date = string.Format("{0}-{1}-{2} {3:D2} {4}", now.Day, now.Month, now.Year, hour12, ampm); break;
-                    case MergeType.Minutes: default: date = string.Format("{0}-{1}-{2} {3:D2}-{4:D2} {5}", now.Day, now.Month, now.Year, hour12, now.Minute, ampm); break;
+                    case MergeType.Hours:
+                        date = string.Format("{0}-{1}-{2} {3:D2} {4}", now.Day, now.Month, now.Year, hour12,
+                            ampm); break;
+                    case MergeType.Minutes:
+                    default:
+                        date = string.Format("{0}-{1}-{2} {3:D2}-{4:D2} {5}", now.Day, now.Month, now.Year, hour12,
+                            now.Minute, ampm); break;
                 }
 
                 var file = string.Format("{0} Saves ({1}).zip", ServerList.ServerName, date);
                 var dest = Path.Combine(Destination, file);
 
-                try { File.Delete(dest); }
-                catch { }
+                try
+                {
+                    File.Delete(dest);
+                }
+                catch
+                {
+                }
 
                 ZipFile.CreateFromDirectory(source, dest, CompressionLevel.Optimal, false);
             }
-            catch { }
+            catch
+            {
+            }
 
-            try { Directory.Delete(source, true); }
-            catch { }
+            try
+            {
+                Directory.Delete(source, true);
+            }
+            catch
+            {
+            }
 
             sw.Stop();
 
-            Utility.WriteConsoleColor(ConsoleColor.Cyan, "Archives: Packing done in {0:F1} seconds.", sw.Elapsed.TotalSeconds);
+            Utility.WriteConsoleColor(ConsoleColor.Cyan, "Archives: Packing done in {0:F1} seconds.",
+                sw.Elapsed.TotalSeconds);
         }
 
         private static void BeginPack(string source)
@@ -211,7 +231,9 @@ namespace Server.Misc
             var t = _Pack.BeginInvoke(source, EndPack, source);
 
             lock (_TaskRoot)
+            {
                 _Tasks.Add(t);
+            }
         }
 
         private static void EndPack(IAsyncResult r)
@@ -219,7 +241,9 @@ namespace Server.Misc
             _Pack.EndInvoke(r);
 
             lock (_TaskRoot)
+            {
                 _Tasks.Remove(r);
+            }
 
             _Sync.Set();
         }
@@ -237,21 +261,24 @@ namespace Server.Misc
             {
                 var root = new DirectoryInfo(Destination);
 
-                foreach (FileInfo archive in root.GetFiles("*.zip", SearchOption.AllDirectories))
-                {
+                foreach (var archive in root.GetFiles("*.zip", SearchOption.AllDirectories))
                     try
                     {
                         if (archive.LastWriteTimeUtc < threshold)
                             archive.Delete();
                     }
-                    catch { }
-                }
+                    catch
+                    {
+                    }
             }
-            catch { }
+            catch
+            {
+            }
 
             sw.Stop();
 
-            Utility.WriteConsoleColor(ConsoleColor.Cyan, "Archives: Pruning done in {0:F1} seconds.", sw.Elapsed.TotalSeconds);
+            Utility.WriteConsoleColor(ConsoleColor.Cyan, "Archives: Pruning done in {0:F1} seconds.",
+                sw.Elapsed.TotalSeconds);
         }
 
         private static void BeginPrune(DateTime threshold)
@@ -268,7 +295,9 @@ namespace Server.Misc
             var t = _Prune.BeginInvoke(threshold, EndPrune, threshold);
 
             lock (_TaskRoot)
+            {
                 _Tasks.Add(t);
+            }
         }
 
         private static void EndPrune(IAsyncResult r)
@@ -276,7 +305,9 @@ namespace Server.Misc
             _Prune.EndInvoke(r);
 
             lock (_TaskRoot)
+            {
                 _Tasks.Remove(r);
+            }
 
             _Sync.Set();
         }

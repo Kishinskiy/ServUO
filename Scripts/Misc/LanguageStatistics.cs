@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using Server.Accounting;
@@ -7,20 +6,20 @@ using Server.Commands;
 namespace Server.Misc
 {
     /**
-    * This file requires to be saved in a Unicode
-    * compatible format.
-    * 
-    * Warning: if you change String.Format methods,
-    * please note that the following character
-    * is suggested before any left-to-right text
-    * in order to prevent undesired formatting
-    * resulting from mixing LR and RL text: ‎
-    * 
-    * Use this one if you need to force RL: ‏
-    * 
-    * If you do not see the above chars, please
-    * enable showing of unicode control chars
-    **/
+     * This file requires to be saved in a Unicode
+     * compatible format.
+     * 
+     * Warning: if you change String.Format methods,
+     * please note that the following character
+     * is suggested before any left-to-right text
+     * in order to prevent undesired formatting
+     * resulting from mixing LR and RL text: ‎
+     * 
+     * Use this one if you need to force RL: ‏
+     * 
+     * If you do not see the above chars, please
+     * enable showing of unicode control chars
+     */
     public class LanguageStatistics
     {
         private static readonly InternationalCode[] InternationalCodes =
@@ -71,7 +70,8 @@ namespace Server.Misc
             new InternationalCode("ENP", "English", "Philippines"),
             new InternationalCode("ESP", "Spanish", "Spain (Traditional Sort)", "Español", "España (tipo tradicional)"),
             new InternationalCode("ESM", "Spanish", "Mexico", "Español", "México"),
-            new InternationalCode("ESN", "Spanish", "Spain (International Sort)", "Español", "España (tipo internacional)"),
+            new InternationalCode("ESN", "Spanish", "Spain (International Sort)", "Español",
+                "España (tipo internacional)"),
             new InternationalCode("ESG", "Spanish", "Guatemala", "Español", "Guatemala"),
             new InternationalCode("ESC", "Spanish", "Costa Rica", "Español", "Costa Rica"),
             new InternationalCode("ESA", "Spanish", "Panama", "Español", "Panama"),
@@ -161,35 +161,35 @@ namespace Server.Misc
             new InternationalCode("SAN", "Sanskrit", "India", "संस्कृत", "भारतम्"),
             new InternationalCode("KOK", "Konkani", "India", "कोंकणी", "भारत")
         };
+
         private static readonly bool DefaultLocalNames = false;
         private static readonly bool ShowAlternatives = true;
-        private static readonly bool CountAccounts = true;// will consider only first character's valid language
+        private static readonly bool CountAccounts = true; // will consider only first character's valid language
+
         public static void Initialize()
         {
-            CommandSystem.Register("LanguageStatistics", AccessLevel.Administrator, new CommandEventHandler(LanguageStatistics_OnCommand));
+            CommandSystem.Register("LanguageStatistics", AccessLevel.Administrator, LanguageStatistics_OnCommand);
         }
 
         [Usage("LanguageStatistics")]
         [Description("Generate a file containing the list of languages for each PlayerMobile.")]
         public static void LanguageStatistics_OnCommand(CommandEventArgs e)
         {
-            Dictionary<string, InternationalCodeCounter> ht = new Dictionary<string, InternationalCodeCounter>();
+            var ht = new Dictionary<string, InternationalCodeCounter>();
 
-            using (StreamWriter writer = new StreamWriter("languages.txt"))
+            using (var writer = new StreamWriter("languages.txt"))
             {
                 if (CountAccounts)
-                {
                     // count accounts
                     foreach (Account acc in Accounts.GetAccounts())
-                    {
-                        for (int i = 0; i < acc.Length; i++)
+                        for (var i = 0; i < acc.Length; i++)
                         {
-                            Mobile mob = acc[i];
+                            var mob = acc[i];
 
                             if (mob == null)
                                 continue;
 
-                            string lang = mob.Language;
+                            var lang = mob.Language;
 
                             if (lang != null)
                             {
@@ -203,16 +203,12 @@ namespace Server.Misc
                                 break;
                             }
                         }
-                    }
-                }
                 else
-                {
                     // count playermobiles
-                    foreach (Mobile mob in World.Mobiles.Values)
-                    {
+                    foreach (var mob in World.Mobiles.Values)
                         if (mob.Player)
                         {
-                            string lang = mob.Language;
+                            var lang = mob.Language;
 
                             if (lang != null)
                             {
@@ -224,19 +220,19 @@ namespace Server.Misc
                                     ht[lang].Increase();
                             }
                         }
-                    }
-                }
 
-                writer.WriteLine(String.Format("Language statistics. Numbers show how many {0} use the specified language.", CountAccounts ? "accounts" : "playermobile"));
-                writer.WriteLine("====================================================================================================");
+                writer.WriteLine("Language statistics. Numbers show how many {0} use the specified language.",
+                    CountAccounts ? "accounts" : "playermobile");
+                writer.WriteLine(
+                    "====================================================================================================");
                 writer.WriteLine();
 
                 // sort the list
-                List<InternationalCodeCounter> list = new List<InternationalCodeCounter>(ht.Values);
+                var list = new List<InternationalCodeCounter>(ht.Values);
                 list.Sort(InternationalCodeComparer.Instance);
 
-                foreach (InternationalCodeCounter c in list)
-                    writer.WriteLine(String.Format("{0}‎ : {1}", GetFormattedInfo(c.Code), c.Count));
+                foreach (var c in list)
+                    writer.WriteLine("{0}‎ : {1}", GetFormattedInfo(c.Code), c.Count);
 
                 e.Mobile.SendMessage("Languages list generated.");
             }
@@ -245,92 +241,62 @@ namespace Server.Misc
         private static string GetFormattedInfo(string code)
         {
             if (code == null || code.Length != 3)
-                return String.Format("Unknown code {0}", code);
+                return string.Format("Unknown code {0}", code);
 
-            for (int i = 0; i < InternationalCodes.Length; i++)
-            {
+            for (var i = 0; i < InternationalCodes.Length; i++)
                 if (code == InternationalCodes[i].Code)
-                {
-                    return String.Format("{0}", InternationalCodes[i].GetName());
-                }
-            }
+                    return string.Format("{0}", InternationalCodes[i].GetName());
 
-            return String.Format("Unknown code {0}", code);
+            return string.Format("Unknown code {0}", code);
         }
 
-        struct InternationalCode
+        private struct InternationalCode
         {
-            readonly string m_Code;
-            readonly string m_Language;
-            readonly string m_Country;
-            readonly string m_Language_LocalName;
-            readonly string m_Country_LocalName;
-            readonly bool m_HasLocalInfo;
+            private readonly bool m_HasLocalInfo;
+
             public InternationalCode(string code, string language, string country)
                 : this(code, language, country, null, null)
             {
-                this.m_HasLocalInfo = false;
+                m_HasLocalInfo = false;
             }
 
-            public InternationalCode(string code, string language, string country, string language_localname, string country_localname)
+            public InternationalCode(string code, string language, string country, string language_localname,
+                string country_localname)
             {
-                this.m_Code = code;
-                this.m_Language = language;
-                this.m_Country = country;
-                this.m_Language_LocalName = language_localname;
-                this.m_Country_LocalName = country_localname;
-                this.m_HasLocalInfo = true;
+                Code = code;
+                Language = language;
+                Country = country;
+                Language_LocalName = language_localname;
+                Country_LocalName = country_localname;
+                m_HasLocalInfo = true;
             }
 
-            public string Code
-            {
-                get
-                {
-                    return this.m_Code;
-                }
-            }
-            public string Language
-            {
-                get
-                {
-                    return this.m_Language;
-                }
-            }
-            public string Country
-            {
-                get
-                {
-                    return this.m_Country;
-                }
-            }
-            public string Language_LocalName
-            {
-                get
-                {
-                    return this.m_Language_LocalName;
-                }
-            }
-            public string Country_LocalName
-            {
-                get
-                {
-                    return this.m_Country_LocalName;
-                }
-            }
+            public string Code { get; }
+
+            public string Language { get; }
+
+            public string Country { get; }
+
+            public string Language_LocalName { get; }
+
+            public string Country_LocalName { get; }
+
             public string GetName()
             {
                 string s;
 
-                if (this.m_HasLocalInfo)
+                if (m_HasLocalInfo)
                 {
-                    s = String.Format("{0}‎ - {1}", DefaultLocalNames ? this.m_Language_LocalName : this.m_Language, DefaultLocalNames ? this.m_Country_LocalName : this.m_Country);
+                    s = string.Format("{0}‎ - {1}", DefaultLocalNames ? Language_LocalName : Language,
+                        DefaultLocalNames ? Country_LocalName : Country);
 
                     if (ShowAlternatives)
-                        s += String.Format("‎ 【{0}‎ - {1}‎】", DefaultLocalNames ? this.m_Language : this.m_Language_LocalName, DefaultLocalNames ? this.m_Country : this.m_Country_LocalName);
+                        s += string.Format("‎ 【{0}‎ - {1}‎】", DefaultLocalNames ? Language : Language_LocalName,
+                            DefaultLocalNames ? Country : Country_LocalName);
                 }
                 else
                 {
-                    s = String.Format("{0}‎ - {1}", this.m_Language, this.m_Country);
+                    s = string.Format("{0}‎ - {1}", Language, Country);
                 }
 
                 return s;
@@ -339,40 +305,25 @@ namespace Server.Misc
 
         private class InternationalCodeCounter
         {
-            private readonly string m_Code;
-            private int m_Count;
+            public string Code { get; }
+
+            public int Count { get; private set; }
+
             public InternationalCodeCounter(string code)
             {
-                this.m_Code = code;
-                this.m_Count = 1;
+                Code = code;
+                Count = 1;
             }
 
-            public string Code
-            {
-                get
-                {
-                    return this.m_Code;
-                }
-            }
-            public int Count
-            {
-                get
-                {
-                    return this.m_Count;
-                }
-            }
             public void Increase()
             {
-                this.m_Count++;
+                Count++;
             }
         }
 
         private class InternationalCodeComparer : IComparer<InternationalCodeCounter>
         {
             public static readonly InternationalCodeComparer Instance = new InternationalCodeComparer();
-            public InternationalCodeComparer()
-            {
-            }
 
             public int Compare(InternationalCodeCounter x, InternationalCodeCounter y)
             {

@@ -18,101 +18,59 @@
  *
  ***************************************************************************/
 
-using System;
 using Server.Network;
 
 namespace Server.Gumps
 {
     public class GumpHtml : GumpEntry
     {
-        private int m_X, m_Y;
-        private int m_Width, m_Height;
-        private string m_Text;
+        private static readonly byte[] m_LayoutName = Gump.StringToBuffer("htmlgump");
         private readonly int m_TextID;
         private bool m_Background, m_Scrollbar;
+        private string m_Text;
+        private int m_Width, m_Height;
+        private int m_X, m_Y;
 
         public int X
         {
-            get
-            {
-                return m_X;
-            }
-            set
-            {
-                Delta(ref m_X, value);
-            }
+            get => m_X;
+            set => Delta(ref m_X, value);
         }
 
         public int Y
         {
-            get
-            {
-                return m_Y;
-            }
-            set
-            {
-                Delta(ref m_Y, value);
-            }
+            get => m_Y;
+            set => Delta(ref m_Y, value);
         }
 
         public int Width
         {
-            get
-            {
-                return m_Width;
-            }
-            set
-            {
-                Delta(ref m_Width, value);
-            }
+            get => m_Width;
+            set => Delta(ref m_Width, value);
         }
 
         public int Height
         {
-            get
-            {
-                return m_Height;
-            }
-            set
-            {
-                Delta(ref m_Height, value);
-            }
+            get => m_Height;
+            set => Delta(ref m_Height, value);
         }
 
         public string Text
         {
-            get
-            {
-                return m_Text;
-            }
-            set
-            {
-                Delta(ref m_Text, value);
-            }
+            get => m_Text;
+            set => Delta(ref m_Text, value);
         }
 
         public bool Background
         {
-            get
-            {
-                return m_Background;
-            }
-            set
-            {
-                Delta(ref m_Background, value);
-            }
+            get => m_Background;
+            set => Delta(ref m_Background, value);
         }
 
         public bool Scrollbar
         {
-            get
-            {
-                return m_Scrollbar;
-            }
-            set
-            {
-                Delta(ref m_Scrollbar, value);
-            }
+            get => m_Scrollbar;
+            set => Delta(ref m_Scrollbar, value);
         }
 
         public GumpHtml(int x, int y, int width, int height, string text, bool background, bool scrollbar)
@@ -139,10 +97,9 @@ namespace Server.Gumps
 
         public override string Compile()
         {
-            return String.Format("{{ htmlgump {0} {1} {2} {3} {4} {5} {6} }}", m_X, m_Y, m_Width, m_Height, m_Text == null ? m_TextID : Parent.Intern(m_Text), m_Background ? 1 : 0, m_Scrollbar ? 1 : 0);
+            return string.Format("{{ htmlgump {0} {1} {2} {3} {4} {5} {6} }}", m_X, m_Y, m_Width, m_Height,
+                m_Text == null ? m_TextID : Parent.Intern(m_Text), m_Background ? 1 : 0, m_Scrollbar ? 1 : 0);
         }
-
-        private static byte[] m_LayoutName = Gump.StringToBuffer("htmlgump");
 
         public override void AppendTo(IGumpWriter disp)
         {

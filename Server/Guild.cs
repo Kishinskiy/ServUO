@@ -1,123 +1,105 @@
 #region References
-using System;
+
 using System.Collections.Generic;
+
 #endregion
 
 namespace Server.Guilds
 {
-	public enum GuildType
-	{
-		Regular,
-		Chaos,
-		Order
-	}
+    public enum GuildType
+    {
+        Regular,
+        Chaos,
+        Order
+    }
 
-	public abstract class BaseGuild : ISerializable
-	{
-		private readonly int m_Id;
+    public abstract class BaseGuild : ISerializable
+    {
+        private static int m_NextID = 1;
 
-		protected BaseGuild(int Id) //serialization ctor
-		{
-			m_Id = Id;
-			m_GuildList.Add(m_Id, this);
-			if (m_Id + 1 > m_NextID)
-			{
-				m_NextID = m_Id + 1;
-			}
-		}
+        [CommandProperty(AccessLevel.Counselor)]
+        public int Id { get; }
 
-		protected BaseGuild()
-		{
-			m_Id = m_NextID++;
-			m_GuildList.Add(m_Id, this);
-		}
+        public abstract string Abbreviation { get; set; }
+        public abstract string Name { get; set; }
+        public abstract GuildType Type { get; set; }
+        public abstract bool Disbanded { get; }
 
-		[CommandProperty(AccessLevel.Counselor)]
-		public int Id { get { return m_Id; } }
+        public static Dictionary<int, BaseGuild> List { get; } = new Dictionary<int, BaseGuild>();
 
-		int ISerializable.TypeReference { get { return 0; } }
+        protected BaseGuild(int Id) //serialization ctor
+        {
+            this.Id = Id;
+            List.Add(this.Id, this);
+            if (this.Id + 1 > m_NextID) m_NextID = this.Id + 1;
+        }
 
-		int ISerializable.SerialIdentity { get { return m_Id; } }
+        protected BaseGuild()
+        {
+            Id = m_NextID++;
+            List.Add(Id, this);
+        }
 
-		public abstract void Deserialize(GenericReader reader);
-		public abstract void Serialize(GenericWriter writer);
+        int ISerializable.TypeReference => 0;
 
-		public abstract string Abbreviation { get; set; }
-		public abstract string Name { get; set; }
-		public abstract GuildType Type { get; set; }
-		public abstract bool Disbanded { get; }
-		public abstract void OnDelete(Mobile mob);
+        int ISerializable.SerialIdentity => Id;
+        public abstract void Serialize(GenericWriter writer);
 
-		private static readonly Dictionary<int, BaseGuild> m_GuildList = new Dictionary<int, BaseGuild>();
-		private static int m_NextID = 1;
+        public abstract void Deserialize(GenericReader reader);
+        public abstract void OnDelete(Mobile mob);
 
-		public static Dictionary<int, BaseGuild> List { get { return m_GuildList; } }
+        public static BaseGuild Find(int id)
+        {
+            BaseGuild g;
 
-		public static BaseGuild Find(int id)
-		{
-			BaseGuild g;
+            List.TryGetValue(id, out g);
 
-			m_GuildList.TryGetValue(id, out g);
+            return g;
+        }
 
-			return g;
-		}
+        public static BaseGuild FindByName(string name)
+        {
+            foreach (var g in List.Values)
+                if (g.Name == name)
+                    return g;
 
-		public static BaseGuild FindByName(string name)
-		{
-			foreach (BaseGuild g in m_GuildList.Values)
-			{
-				if (g.Name == name)
-				{
-					return g;
-				}
-			}
+            return null;
+        }
 
-			return null;
-		}
+        public static BaseGuild FindByAbbrev(string abbr)
+        {
+            foreach (var g in List.Values)
+                if (g.Abbreviation == abbr)
+                    return g;
 
-		public static BaseGuild FindByAbbrev(string abbr)
-		{
-			foreach (BaseGuild g in m_GuildList.Values)
-			{
-				if (g.Abbreviation == abbr)
-				{
-					return g;
-				}
-			}
+            return null;
+        }
 
-			return null;
-		}
+        public static List<BaseGuild> Search(string find)
+        {
+            var words = find.ToLower().Split(' ');
+            var results = new List<BaseGuild>();
 
-		public static List<BaseGuild> Search(string find)
-		{
-			var words = find.ToLower().Split(' ');
-			var results = new List<BaseGuild>();
+            foreach (var g in List.Values)
+            {
+                var match = true;
+                var name = g.Name.ToLower();
+                for (var i = 0; i < words.Length; i++)
+                    if (name.IndexOf(words[i]) == -1)
+                    {
+                        match = false;
+                        break;
+                    }
 
-			foreach (BaseGuild g in m_GuildList.Values)
-			{
-				bool match = true;
-				string name = g.Name.ToLower();
-				for (int i = 0; i < words.Length; i++)
-				{
-					if (name.IndexOf(words[i]) == -1)
-					{
-						match = false;
-						break;
-					}
-				}
+                if (match) results.Add(g);
+            }
 
-				if (match)
-				{
-					results.Add(g);
-				}
-			}
+            return results;
+        }
 
-			return results;
-		}
-
-		public override string ToString()
-		{
-			return String.Format("0x{0:X} \"{1} [{2}]\"", m_Id, Name, Abbreviation);
-		}
-	}
+        public override string ToString()
+        {
+            return string.Format("0x{0:X} \"{1} [{2}]\"", Id, Name, Abbreviation);
+        }
+    }
 }

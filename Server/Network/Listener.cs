@@ -1,4 +1,5 @@
 #region References
+
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -8,6 +9,7 @@ using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+
 #endregion
 
 namespace Server.Network
@@ -24,12 +26,28 @@ namespace Server.Network
             Encoding.UTF8.GetBytes("OPTIONS"),
             Encoding.UTF8.GetBytes("PATCH"),
             Encoding.UTF8.GetBytes("CONNECT"),
-            Encoding.UTF8.GetBytes("TRACE"),
+            Encoding.UTF8.GetBytes("TRACE")
         };
 
         private static readonly BufferPool m_ByteBufferPool = new BufferPool("Login Byte", 1024, 1);
         private static readonly BufferPool m_PeekBufferPool = new BufferPool("Login Peek", 1024, 4);
-        private static readonly BufferPool m_SeedBufferPool = new BufferPool("Login Seed [0xEF]", 1024, PacketHandlers.LoginSeedLength);
+
+        private static readonly BufferPool m_SeedBufferPool =
+            new BufferPool("Login Seed [0xEF]", 1024, PacketHandlers.LoginSeedLength);
+
+        private readonly AutoResetEvent m_AcceptLimiter = new AutoResetEvent(true);
+
+        private readonly Thread m_AcceptThread;
+
+        private readonly ConcurrentQueue<SocketState> m_Accepted = new ConcurrentQueue<SocketState>();
+
+        private SocketAsyncEventArgs m_AcceptArgs;
+
+        private long m_Counter, m_AcceptsPerSecond;
+
+        private Socket m_Listener;
+
+        private long m_SliceTime, m_SliceCounter;
 
         public static IPAddress Address => Config.Get("Server.Listen", IPAddress.Any);
 
@@ -40,21 +58,7 @@ namespace Server.Network
             new IPEndPoint(Address, Port)
         };
 
-        private long m_SliceTime, m_SliceCounter;
-
-        private long m_Counter, m_AcceptsPerSecond;
-
         public long AcceptsPerSecond => m_AcceptsPerSecond;
-
-        private Socket m_Listener;
-
-        private readonly ConcurrentQueue<SocketState> m_Accepted = new ConcurrentQueue<SocketState>();
-
-        private readonly AutoResetEvent m_AcceptLimiter = new AutoResetEvent(true);
-
-        private readonly Thread m_AcceptThread;
-
-        private SocketAsyncEventArgs m_AcceptArgs;
 
         public Listener(IPEndPoint ipep)
         {
@@ -62,25 +66,29 @@ namespace Server.Network
 
             m_SliceTime = Core.TickCount;
 
-            if (m_Listener == null)
-            {
-                return;
-            }
+            if (m_Listener == null) return;
 
             DisplayListener();
 
             m_AcceptThread = new Thread(AcceptLoop)
             {
-                Name = $"Login Accept Processor",
-                Priority = ThreadPriority.AboveNormal,
+                Name = "Login Accept Processor",
+                Priority = ThreadPriority.AboveNormal
             };
 
             m_AcceptThread.Start();
         }
 
+        public void Dispose()
+        {
+            var socket = Interlocked.Exchange(ref m_Listener, null);
+
+            socket?.Close();
+        }
+
         private static Socket Bind(IPEndPoint ipep)
         {
-            Socket s = new Socket(ipep.AddressFamily, SocketType.Stream, ProtocolType.Tcp)
+            var s = new Socket(ipep.AddressFamily, SocketType.Stream, ProtocolType.Tcp)
             {
                 SendTimeout = 1000,
                 ReceiveTimeout = 1000,
@@ -90,8 +98,8 @@ namespace Server.Network
                 LingerState =
                 {
                     Enabled = true,
-                    LingerTime = 0,
-                },
+                    LingerTime = 0
+                }
             };
 
             try
@@ -134,28 +142,23 @@ namespace Server.Network
 
         private void DisplayListener()
         {
-            if (!(m_Listener.LocalEndPoint is IPEndPoint ipep))
-            {
-                return;
-            }
+            if (!(m_Listener.LocalEndPoint is IPEndPoint ipep)) return;
 
             if (ipep.Address.Equals(IPAddress.Any) || ipep.Address.Equals(IPAddress.IPv6Any))
             {
-                NetworkInterface[] adapters = NetworkInterface.GetAllNetworkInterfaces();
+                var adapters = NetworkInterface.GetAllNetworkInterfaces();
 
-                foreach (NetworkInterface adapter in adapters)
+                foreach (var adapter in adapters)
                 {
-                    IPInterfaceProperties properties = adapter.GetIPProperties();
+                    var properties = adapter.GetIPProperties();
 
                     foreach (IPAddressInformation unicast in properties.UnicastAddresses)
-                    {
                         if (ipep.AddressFamily == unicast.Address.AddressFamily)
                         {
                             Utility.PushColor(ConsoleColor.Green);
                             Console.WriteLine("Listening: {0}:{1}", unicast.Address, ipep.Port);
                             Utility.PopColor();
                         }
-                    }
                 }
             }
             else
@@ -194,25 +197,16 @@ namespace Server.Network
         [STAThread]
         private void AcceptLoop()
         {
-            while (m_Listener != null)
-            {
-                Accept();
-            }
+            while (m_Listener != null) Accept();
         }
 
         private void Accept()
         {
-            if (!m_AcceptLimiter.WaitOne(10))
-            {
-                return;
-            }
+            if (!m_AcceptLimiter.WaitOne(10)) return;
 
-            if (m_Listener == null)
-            {
-                return;
-            }
+            if (m_Listener == null) return;
 
-            SocketAsyncEventArgs e = Reset(ref m_AcceptArgs);
+            var e = Reset(ref m_AcceptArgs);
 
             bool iocp;
 
@@ -225,10 +219,7 @@ namespace Server.Network
                 iocp = false;
             }
 
-            if (!iocp)
-            {
-                OnAccept(e);
-            }
+            if (!iocp) OnAccept(e);
         }
 
         private void OnAccept(object sender, SocketAsyncEventArgs e)
@@ -240,15 +231,12 @@ namespace Server.Network
         {
             try
             {
-                Socket accepted = e.AcceptSocket;
-                SocketError error = e.SocketError;
+                var accepted = e.AcceptSocket;
+                var error = e.SocketError;
 
                 m_AcceptArgs = Reset(ref e);
 
-                if (accepted == null)
-                {
-                    return;
-                }
+                if (accepted == null) return;
 
                 Interlocked.Increment(ref m_Counter);
 
@@ -268,16 +256,12 @@ namespace Server.Network
 
                     _ = ThreadPool.QueueUserWorkItem(o =>
                     {
-                        Socket s = (Socket)o;
+                        var s = (Socket)o;
 
-                        if (ValidateSequence(s, out byte[] seed))
-                        {
+                        if (ValidateSequence(s, out var seed))
                             Enqueue(s, seed);
-                        }
                         else
-                        {
                             Release(false, ref s);
-                        }
                     }, accepted);
                 }
                 catch
@@ -308,22 +292,19 @@ namespace Server.Network
 
             try
             {
-                int recv = socket.Receive(peek, peek.Length, SocketFlags.None);
+                var recv = socket.Receive(peek, peek.Length, SocketFlags.None);
 
-                if (recv < peek.Length)
-                {
-                    return false;
-                }
+                if (recv < peek.Length) return false;
 
-                bool allow = false;
+                var allow = false;
 
-                int index = 0;
+                var index = 0;
 
-                byte packetID = peek[index++];
+                var packetID = peek[index++];
 
                 if (packetID == 0xEF)
                 {
-                    byte[] packet = m_SeedBufferPool.AcquireBuffer();
+                    var packet = m_SeedBufferPool.AcquireBuffer();
 
                     try
                     {
@@ -335,16 +316,16 @@ namespace Server.Network
                         {
                             Buffer.BlockCopy(peek, 0, packet, 0, peek.Length);
 
-                            uint seed = readU32(packet, ref index);
+                            var seed = readU32(packet, ref index);
 
                             if (seed != 0)
                             {
-                                uint clientMaj = readU32(packet, ref index);
-                                uint clientMin = readU32(packet, ref index);
-                                uint clientRev = readU32(packet, ref index);
-                                uint clientPat = readU32(packet, ref index);
+                                var clientMaj = readU32(packet, ref index);
+                                var clientMin = readU32(packet, ref index);
+                                var clientRev = readU32(packet, ref index);
+                                var clientPat = readU32(packet, ref index);
 
-                                uint version = (clientMaj << 24) | (clientMin << 16) | (clientRev << 8) | clientPat;
+                                var version = (clientMaj << 24) | (clientMin << 16) | (clientRev << 8) | clientPat;
 
                                 if (version != 0)
                                 {
@@ -364,7 +345,7 @@ namespace Server.Network
                 {
                     index = packetID = 0;
 
-                    uint seed = readU32(peek, ref index);
+                    var seed = readU32(peek, ref index);
 
                     if (seed != 0)
                     {
@@ -415,9 +396,9 @@ namespace Server.Network
 
         private static bool Match(byte[] buffer)
         {
-            for (int i = 0; i < m_HttpFilters.Length; i++)
+            for (var i = 0; i < m_HttpFilters.Length; i++)
             {
-                byte[] filter = m_HttpFilters[i];
+                var filter = m_HttpFilters[i];
 
                 if (filter?.Length > 0)
                 {
@@ -425,18 +406,10 @@ namespace Server.Network
                     IEnumerable<byte> pseq = buffer;
 
                     if (filter.Length > buffer.Length)
-                    {
                         fseq = fseq.Take(buffer.Length);
-                    }
-                    else if (buffer.Length > filter.Length)
-                    {
-                        pseq = pseq.Take(filter.Length);
-                    }
+                    else if (buffer.Length > filter.Length) pseq = pseq.Take(filter.Length);
 
-                    if (Enumerable.SequenceEqual(fseq, pseq))
-                    {
-                        return true;
-                    }
+                    if (fseq.SequenceEqual(pseq)) return true;
                 }
             }
 
@@ -453,11 +426,9 @@ namespace Server.Network
         private static void Release(bool graceful, ref Socket socket)
         {
             if (socket != null)
-            {
                 try
                 {
                     if (graceful)
-                    {
                         try
                         {
                             socket.Shutdown(SocketShutdown.Both);
@@ -466,7 +437,6 @@ namespace Server.Network
                         {
                             NetState.TraceException(ex);
                         }
-                    }
 
                     if (socket.LingerState != null)
                     {
@@ -487,12 +457,11 @@ namespace Server.Network
 
                     socket = null;
                 }
-            }
         }
 
         public IEnumerable<SocketState> Slice()
         {
-            long now = Core.TickCount;
+            var now = Core.TickCount;
 
             if (now - m_SliceTime >= 1000)
             {
@@ -503,32 +472,21 @@ namespace Server.Network
                 Interlocked.Exchange(ref m_SliceCounter, count);
             }
 
-            int limit = Math.Min(m_Accepted.Count, 100);
+            var limit = Math.Min(m_Accepted.Count, 100);
 
-            while (--limit >= 0 && m_Accepted.TryDequeue(out SocketState accepted))
+            while (--limit >= 0 && m_Accepted.TryDequeue(out var accepted))
             {
-                Socket socket = accepted.Socket;
+                var socket = accepted.Socket;
 
-                SocketConnectEventArgs args = new SocketConnectEventArgs(socket);
+                var args = new SocketConnectEventArgs(socket);
 
                 EventSink.InvokeSocketConnect(args);
 
                 if (args.AllowConnection)
-                {
                     yield return accepted;
-                }
                 else
-                {
                     Release(true, ref socket);
-                }
             }
-        }
-
-        public void Dispose()
-        {
-            Socket socket = Interlocked.Exchange(ref m_Listener, null);
-
-            socket?.Close();
         }
     }
 

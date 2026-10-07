@@ -1,35 +1,32 @@
 #region References
+
 using System;
 using System.Collections.Generic;
+
 #endregion
 
 namespace Server.Diagnostics
 {
-	public class TargetProfile : BaseProfile
-	{
-		private static readonly Dictionary<Type, TargetProfile> _profiles = new Dictionary<Type, TargetProfile>();
+    public class TargetProfile : BaseProfile
+    {
+        private static readonly Dictionary<Type, TargetProfile> _profiles = new Dictionary<Type, TargetProfile>();
 
-		public static IEnumerable<TargetProfile> Profiles { get { return _profiles.Values; } }
+        public static IEnumerable<TargetProfile> Profiles => _profiles.Values;
 
-		public static TargetProfile Acquire(Type type)
-		{
-			if (!Core.Profiling)
-			{
-				return null;
-			}
+        public TargetProfile(Type type)
+            : base(type.FullName)
+        {
+        }
 
-			TargetProfile prof;
+        public static TargetProfile Acquire(Type type)
+        {
+            if (!Core.Profiling) return null;
 
-			if (!_profiles.TryGetValue(type, out prof))
-			{
-				_profiles.Add(type, prof = new TargetProfile(type));
-			}
+            TargetProfile prof;
 
-			return prof;
-		}
+            if (!_profiles.TryGetValue(type, out prof)) _profiles.Add(type, prof = new TargetProfile(type));
 
-		public TargetProfile(Type type)
-			: base(type.FullName)
-		{ }
-	}
+            return prof;
+        }
+    }
 }

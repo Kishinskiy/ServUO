@@ -1,188 +1,166 @@
 ﻿#region References
-using System;
 
+using System;
 using Server;
 using Server.Gumps;
+
 #endregion
 
 namespace CustomsFramework
 {
-	public class BaseModule : SaveData, ICustomsEntity, ISerializable
-	{
-		private Mobile _LinkedMobile;
-		private Item _LinkedItem;
-		private DateTime _CreatedTime;
-		private DateTime _LastEditedTime;
+    public class BaseModule : SaveData, ICustomsEntity, ISerializable
+    {
+        private Item _LinkedItem;
+        private Mobile _LinkedMobile;
 
-		public BaseModule()
-		{ }
+        public virtual string Description => "Base Module, inherit from this class and override all interface items.";
 
-		public BaseModule(Mobile from)
-		{
-			LinkMobile(from);
-		}
+        public virtual string Version => "1.0";
 
-		public BaseModule(Item item)
-		{
-			LinkItem(item);
-		}
+        public virtual AccessLevel EditLevel => AccessLevel.Developer;
 
-		public BaseModule(CustomSerial serial)
-			: base(serial)
-		{ }
+        public virtual Gump SettingsGump => null;
 
-		public override string Name { get { return @"Base Module"; } }
+        [CommandProperty(AccessLevel.Administrator)]
+        public Mobile LinkedMobile
+        {
+            get => _LinkedMobile;
+            set => LinkMobile(value);
+        }
 
-		public virtual string Description { get { return "Base Module, inherit from this class and override all interface items."; } }
+        [CommandProperty(AccessLevel.Administrator)]
+        public Item LinkedItem
+        {
+            get => _LinkedItem;
+            set => LinkItem(value);
+        }
 
-		public virtual string Version { get { return "1.0"; } }
+        [CommandProperty(AccessLevel.Administrator)]
+        public DateTime CreatedTime { get; private set; }
 
-		public virtual AccessLevel EditLevel { get { return AccessLevel.Developer; } }
+        [CommandProperty(AccessLevel.Administrator)]
+        public DateTime LastEditedTime { get; private set; }
 
-		public virtual Gump SettingsGump { get { return null; } }
+        public BaseModule()
+        {
+        }
 
-		[CommandProperty(AccessLevel.Administrator)]
-		public Mobile LinkedMobile { get { return _LinkedMobile; } set { LinkMobile(value); } }
+        public BaseModule(Mobile from)
+        {
+            LinkMobile(from);
+        }
 
-		[CommandProperty(AccessLevel.Administrator)]
-		public Item LinkedItem { get { return _LinkedItem; } set { LinkItem(value); } }
+        public BaseModule(Item item)
+        {
+            LinkItem(item);
+        }
 
-		[CommandProperty(AccessLevel.Administrator)]
-		public DateTime CreatedTime { get { return _CreatedTime; } }
+        public BaseModule(CustomSerial serial)
+            : base(serial)
+        {
+        }
 
-		[CommandProperty(AccessLevel.Administrator)]
-		public DateTime LastEditedTime { get { return _LastEditedTime; } }
+        public override string Name => @"Base Module";
 
-		public override string ToString()
-		{
-			return Name;
-		}
+        public override void Prep()
+        {
+        }
 
-		public override void Prep()
-		{ }
+        public override void Delete()
+        {
+            if (_LinkedMobile != null)
+            {
+                _LinkedMobile.Modules.Remove(this);
+                _LinkedMobile = null;
+            }
 
-		public override void Delete()
-		{
-			if (_LinkedMobile != null)
-			{
-				_LinkedMobile.Modules.Remove(this);
-				_LinkedMobile = null;
-			}
+            if (_LinkedItem != null)
+            {
+                _LinkedItem.Modules.Remove(this);
+                _LinkedItem = null;
+            }
+        }
 
-			if (_LinkedItem != null)
-			{
-				_LinkedItem.Modules.Remove(this);
-				_LinkedItem = null;
-			}
-		}
+        public override void Serialize(GenericWriter writer)
+        {
+            writer.WriteVersion(0);
 
-		public void Update()
-		{
-			_LastEditedTime = DateTime.UtcNow;
-		}
+            // Version 0
+            writer.Write(_LinkedMobile);
+            writer.Write(_LinkedItem);
+            writer.Write(CreatedTime);
+            writer.Write(LastEditedTime);
+        }
 
-		public bool LinkMobile(Mobile from)
-		{
-			if (_LinkedMobile != null || _LinkedMobile == from)
-			{
-				return false;
-			}
-			else
-			{
-				if (!from.Modules.Contains(this))
-				{
-					from.Modules.Add(this);
-				}
+        public override string ToString()
+        {
+            return Name;
+        }
 
-				_LinkedMobile = from;
-				Update();
-				return true;
-			}
-		}
+        public void Update()
+        {
+            LastEditedTime = DateTime.UtcNow;
+        }
 
-		public bool LinkItem(Item item)
-		{
-			if (_LinkedItem != null || _LinkedItem == item)
-			{
-				return false;
-			}
-			else
-			{
-				if (!item.Modules.Contains(this))
-				{
-					item.Modules.Add(this);
-				}
+        public bool LinkMobile(Mobile from)
+        {
+            if (_LinkedMobile != null || _LinkedMobile == from) return false;
 
-				_LinkedItem = item;
-				Update();
-				return true;
-			}
-		}
+            if (!from.Modules.Contains(this)) from.Modules.Add(this);
 
-		public bool UnlinkMobile()
-		{
-			if (_LinkedMobile == null)
-			{
-				return false;
-			}
-			else
-			{
-				if (_LinkedMobile.Modules.Contains(this))
-				{
-					_LinkedMobile.Modules.Remove(this);
-				}
+            _LinkedMobile = from;
+            Update();
+            return true;
+        }
 
-				_LinkedMobile = null;
-				Update();
-				return true;
-			}
-		}
+        public bool LinkItem(Item item)
+        {
+            if (_LinkedItem != null || _LinkedItem == item) return false;
 
-		public bool UnlinkItem()
-		{
-			if (_LinkedItem == null)
-			{
-				return false;
-			}
-			else
-			{
-				if (_LinkedItem.Modules.Contains(this))
-				{
-					_LinkedItem.Modules.Remove(this);
-				}
+            if (!item.Modules.Contains(this)) item.Modules.Add(this);
 
-				_LinkedItem = null;
-				Update();
-				return true;
-			}
-		}
+            _LinkedItem = item;
+            Update();
+            return true;
+        }
 
-		public override void Serialize(GenericWriter writer)
-		{
-			writer.WriteVersion(0);
+        public bool UnlinkMobile()
+        {
+            if (_LinkedMobile == null) return false;
 
-			// Version 0
-			writer.Write(_LinkedMobile);
-			writer.Write(_LinkedItem);
-			writer.Write(_CreatedTime);
-			writer.Write(_LastEditedTime);
-		}
+            if (_LinkedMobile.Modules.Contains(this)) _LinkedMobile.Modules.Remove(this);
 
-		public override void Deserialize(GenericReader reader)
-		{
-			int version = reader.ReadInt();
+            _LinkedMobile = null;
+            Update();
+            return true;
+        }
 
-			switch (version)
-			{
-				case 0:
-					{
-						LinkedMobile = reader.ReadMobile();
-						LinkedItem = reader.ReadItem();
-						_CreatedTime = reader.ReadDateTime();
-						_LastEditedTime = reader.ReadDateTime();
-						break;
-					}
-			}
-		}
-	}
+        public bool UnlinkItem()
+        {
+            if (_LinkedItem == null) return false;
+
+            if (_LinkedItem.Modules.Contains(this)) _LinkedItem.Modules.Remove(this);
+
+            _LinkedItem = null;
+            Update();
+            return true;
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            var version = reader.ReadInt();
+
+            switch (version)
+            {
+                case 0:
+                {
+                    LinkedMobile = reader.ReadMobile();
+                    LinkedItem = reader.ReadItem();
+                    CreatedTime = reader.ReadDateTime();
+                    LastEditedTime = reader.ReadDateTime();
+                    break;
+                }
+            }
+        }
+    }
 }

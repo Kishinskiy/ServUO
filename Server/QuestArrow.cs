@@ -1,113 +1,96 @@
 #region References
+
 using Server.Network;
+
 #endregion
 
 namespace Server
 {
-	public class QuestArrow
-	{
-		private readonly Mobile m_Mobile;
-		private readonly IPoint3D m_Target;
-		private bool m_Running;
+    public class QuestArrow
+    {
+        public Mobile Mobile { get; }
 
-		public Mobile Mobile { get { return m_Mobile; } }
+        public IPoint3D Target { get; }
 
-		public IPoint3D Target { get { return m_Target; } }
+        public bool Running { get; private set; }
 
-		public bool Running { get { return m_Running; } }
+        public QuestArrow(Mobile m, IPoint3D t)
+        {
+            Running = true;
+            Mobile = m;
+            Target = t;
+        }
 
-		public void Update()
-		{
-			Update(m_Target.X, m_Target.Y);
-		}
+        public QuestArrow(Mobile m, IPoint3D t, int x, int y)
+            : this(m, t)
+        {
+            Update(x, y);
+        }
 
-		public void Update(int x, int y)
-		{
-			if (!m_Running)
-			{
-				return;
-			}
+        public void Update()
+        {
+            Update(Target.X, Target.Y);
+        }
 
-			NetState ns = m_Mobile.NetState;
+        public void Update(int x, int y)
+        {
+            if (!Running) return;
 
-			if (ns == null)
-			{
-				return;
-			}
+            var ns = Mobile.NetState;
 
-			if (ns.HighSeas)
-			{
-				if (m_Target is IEntity)
-				{
-					ns.Send(new SetArrowHS(x, y, ((IEntity)m_Target).Serial));
-				}
-				else
-				{
-					ns.Send(new SetArrowHS(x, y, Serial.MinusOne));
-				}
-			}
-			else
-			{
-				ns.Send(new SetArrow(x, y));
-			}
-		}
+            if (ns == null) return;
 
-		public void Stop()
-		{
-			Stop(m_Target.X, m_Target.Y);
-		}
+            if (ns.HighSeas)
+            {
+                if (Target is IEntity)
+                    ns.Send(new SetArrowHS(x, y, ((IEntity)Target).Serial));
+                else
+                    ns.Send(new SetArrowHS(x, y, Serial.MinusOne));
+            }
+            else
+            {
+                ns.Send(new SetArrow(x, y));
+            }
+        }
 
-		public void Stop(int x, int y)
-		{
-			if (!m_Running)
-			{
-				return;
-			}
+        public void Stop()
+        {
+            Stop(Target.X, Target.Y);
+        }
 
-			m_Mobile.ClearQuestArrow();
+        public void Stop(int x, int y)
+        {
+            if (!Running) return;
 
-			NetState ns = m_Mobile.NetState;
+            Mobile.ClearQuestArrow();
 
-			if (ns != null)
-			{
-				if (ns.HighSeas)
-				{
-					if (m_Target is IEntity)
-					{
-						ns.Send(new CancelArrowHS(x, y, ((IEntity)m_Target).Serial));
-					}
-					else
-					{
-						ns.Send(new CancelArrowHS(x, y, Serial.MinusOne));
-					}
-				}
-				else
-				{
-					ns.Send(new CancelArrow());
-				}
-			}
+            var ns = Mobile.NetState;
 
-			m_Running = false;
-			OnStop();
-		}
+            if (ns != null)
+            {
+                if (ns.HighSeas)
+                {
+                    if (Target is IEntity)
+                        ns.Send(new CancelArrowHS(x, y, ((IEntity)Target).Serial));
+                    else
+                        ns.Send(new CancelArrowHS(x, y, Serial.MinusOne));
+                }
+                else
+                {
+                    ns.Send(new CancelArrow());
+                }
+            }
 
-		public virtual void OnStop()
-		{ }
+            Running = false;
+            OnStop();
+        }
 
-		public virtual void OnClick(bool rightClick)
-		{ }
+        public virtual void OnStop()
+        {
+        }
 
-		public QuestArrow(Mobile m, IPoint3D t)
-		{
-			m_Running = true;
-			m_Mobile = m;
-			m_Target = t;
-		}
-
-		public QuestArrow(Mobile m, IPoint3D t, int x, int y)
-			: this(m, t)
-		{
-			Update(x, y);
-		}
-	}
+        public virtual void OnClick(bool rightClick)
+        {
+        }
+    }
 }

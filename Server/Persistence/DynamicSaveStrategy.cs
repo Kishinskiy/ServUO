@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using CustomsFramework;
 using Server.Guilds;
@@ -10,61 +9,57 @@ namespace Server
 {
     public sealed class DynamicSaveStrategy : SaveStrategy
     {
+        private readonly BlockingCollection<QueuedMemoryWriter> _dataThreadWriters;
         private readonly ConcurrentBag<Item> _decayBag;
+        private readonly BlockingCollection<QueuedMemoryWriter> _guildThreadWriters;
         private readonly BlockingCollection<QueuedMemoryWriter> _itemThreadWriters;
         private readonly BlockingCollection<QueuedMemoryWriter> _mobileThreadWriters;
-        private readonly BlockingCollection<QueuedMemoryWriter> _guildThreadWriters;
-        private readonly BlockingCollection<QueuedMemoryWriter> _dataThreadWriters;
-        private SaveMetrics _metrics;
-        private SequentialFileWriter _itemData, _itemIndex;
-        private SequentialFileWriter _mobileData, _mobileIndex;
-        private SequentialFileWriter _guildData, _guildIndex;
         private SequentialFileWriter _customData, _customIndex;
+        private SequentialFileWriter _guildData, _guildIndex;
+        private SequentialFileWriter _itemData, _itemIndex;
+        private SaveMetrics _metrics;
+        private SequentialFileWriter _mobileData, _mobileIndex;
+
+        public override string Name => "Dynamic";
+
         public DynamicSaveStrategy()
         {
-            this._decayBag = new ConcurrentBag<Item>();
-            this._itemThreadWriters = new BlockingCollection<QueuedMemoryWriter>();
-            this._mobileThreadWriters = new BlockingCollection<QueuedMemoryWriter>();
-            this._guildThreadWriters = new BlockingCollection<QueuedMemoryWriter>();
-            this._dataThreadWriters = new BlockingCollection<QueuedMemoryWriter>();
+            _decayBag = new ConcurrentBag<Item>();
+            _itemThreadWriters = new BlockingCollection<QueuedMemoryWriter>();
+            _mobileThreadWriters = new BlockingCollection<QueuedMemoryWriter>();
+            _guildThreadWriters = new BlockingCollection<QueuedMemoryWriter>();
+            _dataThreadWriters = new BlockingCollection<QueuedMemoryWriter>();
         }
 
-        public override string Name
-        {
-            get
-            {
-                return "Dynamic";
-            }
-        }
         public override void Save(SaveMetrics metrics, bool permitBackgroundWrite)
         {
-            this._metrics = metrics;
+            _metrics = metrics;
 
-            this.OpenFiles();
+            OpenFiles();
 
-            Task[] saveTasks = new Task[4];
+            var saveTasks = new Task[4];
 
-            saveTasks[0] = this.SaveItems();
-            saveTasks[1] = this.SaveMobiles();
-            saveTasks[2] = this.SaveGuilds();
-            saveTasks[3] = this.SaveData();
+            saveTasks[0] = SaveItems();
+            saveTasks[1] = SaveMobiles();
+            saveTasks[2] = SaveGuilds();
+            saveTasks[3] = SaveData();
 
-            this.SaveTypeDatabases();
+            SaveTypeDatabases();
 
             if (permitBackgroundWrite)
             {
                 //This option makes it finish the writing to disk in the background, continuing even after Save() returns.
                 Task.Factory.ContinueWhenAll(saveTasks, _ =>
                 {
-                    this.CloseFiles();
+                    CloseFiles();
 
                     World.NotifyDiskWriteComplete();
                 });
             }
             else
             {
-                Task.WaitAll(saveTasks);	//Waits for the completion of all of the tasks(committing to disk)
-                this.CloseFiles();
+                Task.WaitAll(saveTasks); //Waits for the completion of all of the tasks(committing to disk)
+                CloseFiles();
             }
         }
 
@@ -72,20 +67,17 @@ namespace Server
         {
             Item item;
 
-            while (this._decayBag.TryTake(out item))
-            {
+            while (_decayBag.TryTake(out item))
                 if (item.OnDecay())
-                {
                     item.Delete();
-                }
-            }
         }
 
-        private Task StartCommitTask(BlockingCollection<QueuedMemoryWriter> threadWriter, SequentialFileWriter data, SequentialFileWriter index)
+        private Task StartCommitTask(BlockingCollection<QueuedMemoryWriter> threadWriter, SequentialFileWriter data,
+            SequentialFileWriter index)
         {
-            Task commitTask = Task.Factory.StartNew(() =>
+            var commitTask = Task.Factory.StartNew(() =>
             {
-                while (!(threadWriter.IsCompleted))
+                while (!threadWriter.IsCompleted)
                 {
                     QueuedMemoryWriter writer;
 
@@ -109,42 +101,38 @@ namespace Server
         private Task SaveItems()
         {
             //Start the blocking consumer; this runs in background.
-            Task commitTask = this.StartCommitTask(this._itemThreadWriters, this._itemData, this._itemIndex);
+            var commitTask = StartCommitTask(_itemThreadWriters, _itemData, _itemIndex);
 
             IEnumerable<Item> items = World.Items.Values;
 
             //Start the producer.
             Parallel.ForEach(items, () => new QueuedMemoryWriter(),
-                (Item item, ParallelLoopState state, QueuedMemoryWriter writer) =>
+                (item, state, writer) =>
                 {
-                    long startPosition = writer.Position;
+                    var startPosition = writer.Position;
 
                     item.Serialize(writer);
 
-                    int size = (int)(writer.Position - startPosition);
+                    var size = (int)(writer.Position - startPosition);
 
                     writer.QueueForIndex(item, size);
 
-                    if (item.Decays && item.Parent == null && item.Map != Map.Internal && DateTime.UtcNow > (item.LastMoved + item.DecayTime))
-                    {
-                        this._decayBag.Add(item);
-                    }
+                    if (item.Decays && item.Parent == null && item.Map != Map.Internal &&
+                        DateTime.UtcNow > item.LastMoved + item.DecayTime) _decayBag.Add(item);
 
-                    if (this._metrics != null)
-                    {
-                        this._metrics.OnItemSaved(size);
-                    }
+                    if (_metrics != null) _metrics.OnItemSaved(size);
 
                     return writer;
                 },
-                (writer) =>
+                writer =>
                 {
                     writer.Flush();
 
-                    this._itemThreadWriters.Add(writer);
+                    _itemThreadWriters.Add(writer);
                 });
 
-            this._itemThreadWriters.CompleteAdding();	//We only get here after the Parallel.ForEach completes.  Lets our task 
+            _itemThreadWriters
+                .CompleteAdding(); //We only get here after the Parallel.ForEach completes.  Lets our task 
 
             return commitTask;
         }
@@ -152,37 +140,35 @@ namespace Server
         private Task SaveMobiles()
         {
             //Start the blocking consumer; this runs in background.
-            Task commitTask = this.StartCommitTask(this._mobileThreadWriters, this._mobileData, this._mobileIndex);
+            var commitTask = StartCommitTask(_mobileThreadWriters, _mobileData, _mobileIndex);
 
             IEnumerable<Mobile> mobiles = World.Mobiles.Values;
 
             //Start the producer.
             Parallel.ForEach(mobiles, () => new QueuedMemoryWriter(),
-                (Mobile mobile, ParallelLoopState state, QueuedMemoryWriter writer) =>
+                (mobile, state, writer) =>
                 {
-                    long startPosition = writer.Position;
+                    var startPosition = writer.Position;
 
                     mobile.Serialize(writer);
 
-                    int size = (int)(writer.Position - startPosition);
+                    var size = (int)(writer.Position - startPosition);
 
                     writer.QueueForIndex(mobile, size);
 
-                    if (this._metrics != null)
-                    {
-                        this._metrics.OnMobileSaved(size);
-                    }
+                    if (_metrics != null) _metrics.OnMobileSaved(size);
 
                     return writer;
                 },
-                (writer) =>
+                writer =>
                 {
                     writer.Flush();
 
-                    this._mobileThreadWriters.Add(writer);
+                    _mobileThreadWriters.Add(writer);
                 });
 
-            this._mobileThreadWriters.CompleteAdding();	//We only get here after the Parallel.ForEach completes.  Lets our task tell the consumer that we're done
+            _mobileThreadWriters
+                .CompleteAdding(); //We only get here after the Parallel.ForEach completes.  Lets our task tell the consumer that we're done
 
             return commitTask;
         }
@@ -190,116 +176,114 @@ namespace Server
         private Task SaveGuilds()
         {
             //Start the blocking consumer; this runs in background.
-            Task commitTask = this.StartCommitTask(this._guildThreadWriters, this._guildData, this._guildIndex);
+            var commitTask = StartCommitTask(_guildThreadWriters, _guildData, _guildIndex);
 
             IEnumerable<BaseGuild> guilds = BaseGuild.List.Values;
 
             //Start the producer.
             Parallel.ForEach(guilds, () => new QueuedMemoryWriter(),
-                (BaseGuild guild, ParallelLoopState state, QueuedMemoryWriter writer) =>
+                (guild, state, writer) =>
                 {
-                    long startPosition = writer.Position;
+                    var startPosition = writer.Position;
 
                     guild.Serialize(writer);
 
-                    int size = (int)(writer.Position - startPosition);
+                    var size = (int)(writer.Position - startPosition);
 
                     writer.QueueForIndex(guild, size);
 
-                    if (this._metrics != null)
-                    {
-                        this._metrics.OnGuildSaved(size);
-                    }
+                    if (_metrics != null) _metrics.OnGuildSaved(size);
 
                     return writer;
                 },
-                (writer) =>
+                writer =>
                 {
                     writer.Flush();
 
-                    this._guildThreadWriters.Add(writer);
+                    _guildThreadWriters.Add(writer);
                 });
 
-            this._guildThreadWriters.CompleteAdding();	//We only get here after the Parallel.ForEach completes.  Lets our task 
+            _guildThreadWriters
+                .CompleteAdding(); //We only get here after the Parallel.ForEach completes.  Lets our task 
 
             return commitTask;
         }
 
         private Task SaveData()
         {
-            Task commitTask = this.StartCommitTask(this._dataThreadWriters, this._customData, this._customIndex);
+            var commitTask = StartCommitTask(_dataThreadWriters, _customData, _customIndex);
 
             IEnumerable<SaveData> data = World.Data.Values;
 
             Parallel.ForEach(data, () => new QueuedMemoryWriter(),
-                (SaveData saveData, ParallelLoopState state, QueuedMemoryWriter writer) =>
+                (saveData, state, writer) =>
                 {
-                    long startPosition = writer.Position;
+                    var startPosition = writer.Position;
 
                     saveData.Serialize(writer);
 
-                    int size = (int)(writer.Position - startPosition);
+                    var size = (int)(writer.Position - startPosition);
 
                     writer.QueueForIndex(saveData, size);
 
-                    if (this._metrics != null)
-                        this._metrics.OnDataSaved(size);
+                    if (_metrics != null)
+                        _metrics.OnDataSaved(size);
 
                     return writer;
                 },
-                (writer) =>
+                writer =>
                 {
                     writer.Flush();
 
-                    this._dataThreadWriters.Add(writer);
+                    _dataThreadWriters.Add(writer);
                 });
 
-            this._dataThreadWriters.CompleteAdding();
+            _dataThreadWriters.CompleteAdding();
 
             return commitTask;
         }
 
         private void OpenFiles()
         {
-            this._itemData = new SequentialFileWriter(World.ItemDataPath, this._metrics);
-            this._itemIndex = new SequentialFileWriter(World.ItemIndexPath, this._metrics);
+            _itemData = new SequentialFileWriter(World.ItemDataPath, _metrics);
+            _itemIndex = new SequentialFileWriter(World.ItemIndexPath, _metrics);
 
-            this._mobileData = new SequentialFileWriter(World.MobileDataPath, this._metrics);
-            this._mobileIndex = new SequentialFileWriter(World.MobileIndexPath, this._metrics);
+            _mobileData = new SequentialFileWriter(World.MobileDataPath, _metrics);
+            _mobileIndex = new SequentialFileWriter(World.MobileIndexPath, _metrics);
 
-            this._guildData = new SequentialFileWriter(World.GuildDataPath, this._metrics);
-            this._guildIndex = new SequentialFileWriter(World.GuildIndexPath, this._metrics);
+            _guildData = new SequentialFileWriter(World.GuildDataPath, _metrics);
+            _guildIndex = new SequentialFileWriter(World.GuildIndexPath, _metrics);
 
-            this._customData = new SequentialFileWriter(World.DataBinaryPath, this._metrics);
-            this._customIndex = new SequentialFileWriter(World.DataIndexPath, this._metrics);
+            _customData = new SequentialFileWriter(World.DataBinaryPath, _metrics);
+            _customIndex = new SequentialFileWriter(World.DataIndexPath, _metrics);
 
-            this.WriteCount(this._itemIndex, World.Items.Count);
-            this.WriteCount(this._mobileIndex, World.Mobiles.Count);
-            this.WriteCount(this._guildIndex, BaseGuild.List.Count);
-            this.WriteCount(this._customIndex, World.Data.Count);
+            WriteCount(_itemIndex, World.Items.Count);
+            WriteCount(_mobileIndex, World.Mobiles.Count);
+            WriteCount(_guildIndex, BaseGuild.List.Count);
+            WriteCount(_customIndex, World.Data.Count);
         }
 
         private void CloseFiles()
         {
-            this._itemData.Close();
-            this._itemIndex.Close();
+            _itemData.Close();
+            _itemIndex.Close();
 
-            this._mobileData.Close();
-            this._mobileIndex.Close();
+            _mobileData.Close();
+            _mobileIndex.Close();
 
-            this._guildData.Close();
-            this._guildIndex.Close();
+            _guildData.Close();
+            _guildIndex.Close();
 
-            this._customData.Close();
-            this._customIndex.Close();
+            _customData.Close();
+            _customIndex.Close();
         }
 
         private void WriteCount(SequentialFileWriter indexFile, int count)
         {
             //Equiv to GenericWriter.Write( (int)count );
-            byte[] buffer = new byte[4];
+            var buffer = new byte[4];
 
-            buffer[0] = (byte)(count);
+            buffer[0] = (byte)count;
             buffer[1] = (byte)(count >> 8);
             buffer[2] = (byte)(count >> 16);
             buffer[3] = (byte)(count >> 24);
@@ -309,21 +293,18 @@ namespace Server
 
         private void SaveTypeDatabases()
         {
-            this.SaveTypeDatabase(World.ItemTypesPath, World.m_ItemTypes);
-            this.SaveTypeDatabase(World.MobileTypesPath, World.m_MobileTypes);
-            this.SaveTypeDatabase(World.DataTypesPath, World._DataTypes);
+            SaveTypeDatabase(World.ItemTypesPath, World.m_ItemTypes);
+            SaveTypeDatabase(World.MobileTypesPath, World.m_MobileTypes);
+            SaveTypeDatabase(World.DataTypesPath, World._DataTypes);
         }
 
         private void SaveTypeDatabase(string path, List<Type> types)
         {
-            BinaryFileWriter bfw = new BinaryFileWriter(path, false);
+            var bfw = new BinaryFileWriter(path, false);
 
             bfw.Write(types.Count);
 
-            foreach (Type type in types)
-            {
-                bfw.Write(type.FullName);
-            }
+            foreach (var type in types) bfw.Write(type.FullName);
 
             bfw.Flush();
 

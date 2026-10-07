@@ -1,308 +1,246 @@
 #region References
+
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
+
 #endregion
 
 namespace Ultima
 {
-	public sealed class TileMatrixPatch
-	{
-		public int LandBlocksCount { get; private set; }
-		public int StaticBlocksCount { get; private set; }
+    public sealed class TileMatrixPatch
+    {
+        private static byte[] m_Buffer;
+        private static StaticTile[] m_TileBuffer = new StaticTile[128];
+        private readonly int BlockHeight;
 
-		public Tile[][][] LandBlocks { get; private set; }
-		public HuedTile[][][][][] StaticBlocks { get; private set; }
+        private readonly int BlockWidth;
+        public int LandBlocksCount { get; private set; }
+        public int StaticBlocksCount { get; private set; }
 
-		private readonly int BlockWidth;
-		private readonly int BlockHeight;
+        public Tile[][][] LandBlocks { get; }
+        public HuedTile[][][][][] StaticBlocks { get; }
 
-		private static byte[] m_Buffer;
-		private static StaticTile[] m_TileBuffer = new StaticTile[128];
+        public TileMatrixPatch(TileMatrix matrix, int index, string path)
+        {
+            BlockWidth = matrix.BlockWidth;
+            BlockHeight = matrix.BlockWidth;
 
-		public bool IsLandBlockPatched(int x, int y)
-		{
-			if (x < 0 || y < 0 || x >= BlockWidth || y >= BlockHeight)
-			{
-				return false;
-			}
-			if (LandBlocks[x] == null)
-			{
-				return false;
-			}
-			if (LandBlocks[x][y] == null)
-			{
-				return false;
-			}
-			return true;
-		}
+            LandBlocksCount = StaticBlocksCount = 0;
+            string mapDataPath, mapIndexPath;
+            if (path == null)
+            {
+                mapDataPath = Files.GetFilePath("mapdif{0}.mul", index);
+                mapIndexPath = Files.GetFilePath("mapdifl{0}.mul", index);
+            }
+            else
+            {
+                mapDataPath = Path.Combine(path, string.Format("mapdif{0}.mul", index));
+                if (!File.Exists(mapDataPath)) mapDataPath = null;
+                mapIndexPath = Path.Combine(path, string.Format("mapdifl{0}.mul", index));
+                if (!File.Exists(mapIndexPath)) mapIndexPath = null;
+            }
 
-		public Tile[] GetLandBlock(int x, int y)
-		{
-			if (x < 0 || y < 0 || x >= BlockWidth || y >= BlockHeight)
-			{
-				return TileMatrix.InvalidLandBlock;
-			}
-			if (LandBlocks[x] == null)
-			{
-				return TileMatrix.InvalidLandBlock;
-			}
-			return LandBlocks[x][y];
-		}
+            if (mapDataPath != null && mapIndexPath != null)
+            {
+                LandBlocks = new Tile[matrix.BlockWidth][][];
+                LandBlocksCount = PatchLand(matrix, mapDataPath, mapIndexPath);
+            }
 
-		public Tile GetLandTile(int x, int y)
-		{
-			return GetLandBlock(x >> 3, y >> 3)[((y & 0x7) << 3) + (x & 0x7)];
-		}
+            string staDataPath, staIndexPath, staLookupPath;
+            if (path == null)
+            {
+                staDataPath = Files.GetFilePath("stadif{0}.mul", index);
+                staIndexPath = Files.GetFilePath("stadifl{0}.mul", index);
+                staLookupPath = Files.GetFilePath("stadifi{0}.mul", index);
+            }
+            else
+            {
+                staDataPath = Path.Combine(path, string.Format("stadif{0}.mul", index));
+                if (!File.Exists(staDataPath)) staDataPath = null;
+                staIndexPath = Path.Combine(path, string.Format("stadifl{0}.mul", index));
+                if (!File.Exists(staIndexPath)) staIndexPath = null;
+                staLookupPath = Path.Combine(path, string.Format("stadifi{0}.mul", index));
+                if (!File.Exists(staLookupPath)) staLookupPath = null;
+            }
 
-		public bool IsStaticBlockPatched(int x, int y)
-		{
-			if (x < 0 || y < 0 || x >= BlockWidth || y >= BlockHeight)
-			{
-				return false;
-			}
-			if (StaticBlocks[x] == null)
-			{
-				return false;
-			}
-			if (StaticBlocks[x][y] == null)
-			{
-				return false;
-			}
-			return true;
-		}
+            if (staDataPath != null && staIndexPath != null && staLookupPath != null)
+            {
+                StaticBlocks = new HuedTile[matrix.BlockWidth][][][][];
+                StaticBlocksCount = PatchStatics(matrix, staDataPath, staIndexPath, staLookupPath);
+            }
+        }
 
-		public HuedTile[][][] GetStaticBlock(int x, int y)
-		{
-			if (x < 0 || y < 0 || x >= BlockWidth || y >= BlockHeight)
-			{
-				return TileMatrix.EmptyStaticBlock;
-			}
-			if (StaticBlocks[x] == null)
-			{
-				return TileMatrix.EmptyStaticBlock;
-			}
-			return StaticBlocks[x][y];
-		}
+        public bool IsLandBlockPatched(int x, int y)
+        {
+            if (x < 0 || y < 0 || x >= BlockWidth || y >= BlockHeight) return false;
+            if (LandBlocks[x] == null) return false;
+            if (LandBlocks[x][y] == null) return false;
+            return true;
+        }
 
-		public HuedTile[] GetStaticTiles(int x, int y)
-		{
-			return GetStaticBlock(x >> 3, y >> 3)[x & 0x7][y & 0x7];
-		}
+        public Tile[] GetLandBlock(int x, int y)
+        {
+            if (x < 0 || y < 0 || x >= BlockWidth || y >= BlockHeight) return TileMatrix.InvalidLandBlock;
+            if (LandBlocks[x] == null) return TileMatrix.InvalidLandBlock;
+            return LandBlocks[x][y];
+        }
 
-		public TileMatrixPatch(TileMatrix matrix, int index, string path)
-		{
-			BlockWidth = matrix.BlockWidth;
-			BlockHeight = matrix.BlockWidth;
+        public Tile GetLandTile(int x, int y)
+        {
+            return GetLandBlock(x >> 3, y >> 3)[((y & 0x7) << 3) + (x & 0x7)];
+        }
 
-			LandBlocksCount = StaticBlocksCount = 0;
-			string mapDataPath, mapIndexPath;
-			if (path == null)
-			{
-				mapDataPath = Files.GetFilePath("mapdif{0}.mul", index);
-				mapIndexPath = Files.GetFilePath("mapdifl{0}.mul", index);
-			}
-			else
-			{
-				mapDataPath = Path.Combine(path, String.Format("mapdif{0}.mul", index));
-				if (!File.Exists(mapDataPath))
-				{
-					mapDataPath = null;
-				}
-				mapIndexPath = Path.Combine(path, String.Format("mapdifl{0}.mul", index));
-				if (!File.Exists(mapIndexPath))
-				{
-					mapIndexPath = null;
-				}
-			}
+        public bool IsStaticBlockPatched(int x, int y)
+        {
+            if (x < 0 || y < 0 || x >= BlockWidth || y >= BlockHeight) return false;
+            if (StaticBlocks[x] == null) return false;
+            if (StaticBlocks[x][y] == null) return false;
+            return true;
+        }
 
-			if (mapDataPath != null && mapIndexPath != null)
-			{
-				LandBlocks = new Tile[matrix.BlockWidth][][];
-				LandBlocksCount = PatchLand(matrix, mapDataPath, mapIndexPath);
-			}
+        public HuedTile[][][] GetStaticBlock(int x, int y)
+        {
+            if (x < 0 || y < 0 || x >= BlockWidth || y >= BlockHeight) return TileMatrix.EmptyStaticBlock;
+            if (StaticBlocks[x] == null) return TileMatrix.EmptyStaticBlock;
+            return StaticBlocks[x][y];
+        }
 
-			string staDataPath, staIndexPath, staLookupPath;
-			if (path == null)
-			{
-				staDataPath = Files.GetFilePath("stadif{0}.mul", index);
-				staIndexPath = Files.GetFilePath("stadifl{0}.mul", index);
-				staLookupPath = Files.GetFilePath("stadifi{0}.mul", index);
-			}
-			else
-			{
-				staDataPath = Path.Combine(path, String.Format("stadif{0}.mul", index));
-				if (!File.Exists(staDataPath))
-				{
-					staDataPath = null;
-				}
-				staIndexPath = Path.Combine(path, String.Format("stadifl{0}.mul", index));
-				if (!File.Exists(staIndexPath))
-				{
-					staIndexPath = null;
-				}
-				staLookupPath = Path.Combine(path, String.Format("stadifi{0}.mul", index));
-				if (!File.Exists(staLookupPath))
-				{
-					staLookupPath = null;
-				}
-			}
+        public HuedTile[] GetStaticTiles(int x, int y)
+        {
+            return GetStaticBlock(x >> 3, y >> 3)[x & 0x7][y & 0x7];
+        }
 
-			if (staDataPath != null && staIndexPath != null && staLookupPath != null)
-			{
-				StaticBlocks = new HuedTile[matrix.BlockWidth][][][][];
-				StaticBlocksCount = PatchStatics(matrix, staDataPath, staIndexPath, staLookupPath);
-			}
-		}
+        private int PatchLand(TileMatrix matrix, string dataPath, string indexPath)
+        {
+            using (
+                FileStream fsData = new FileStream(dataPath, FileMode.Open, FileAccess.Read, FileShare.Read),
+                fsIndex = new FileStream(indexPath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                using (var indexReader = new BinaryReader(fsIndex))
+                {
+                    var count = (int)(indexReader.BaseStream.Length / 4);
 
-		private int PatchLand(TileMatrix matrix, string dataPath, string indexPath)
-		{
-			using (
-				FileStream fsData = new FileStream(dataPath, FileMode.Open, FileAccess.Read, FileShare.Read),
-						   fsIndex = new FileStream(indexPath, FileMode.Open, FileAccess.Read, FileShare.Read))
-			{
-				using (var indexReader = new BinaryReader(fsIndex))
-				{
-					var count = (int)(indexReader.BaseStream.Length / 4);
+                    for (var i = 0; i < count; ++i)
+                    {
+                        var blockID = indexReader.ReadInt32();
+                        var x = blockID / matrix.BlockHeight;
+                        var y = blockID % matrix.BlockHeight;
 
-					for (int i = 0; i < count; ++i)
-					{
-						int blockID = indexReader.ReadInt32();
-						int x = blockID / matrix.BlockHeight;
-						int y = blockID % matrix.BlockHeight;
+                        fsData.Seek(4, SeekOrigin.Current);
 
-						fsData.Seek(4, SeekOrigin.Current);
+                        var tiles = new Tile[64];
 
-						var tiles = new Tile[64];
+                        var gc = GCHandle.Alloc(tiles, GCHandleType.Pinned);
+                        try
+                        {
+                            if (m_Buffer == null || m_Buffer.Length < 192) m_Buffer = new byte[192];
 
-						GCHandle gc = GCHandle.Alloc(tiles, GCHandleType.Pinned);
-						try
-						{
-							if (m_Buffer == null || m_Buffer.Length < 192)
-							{
-								m_Buffer = new byte[192];
-							}
+                            fsData.Read(m_Buffer, 0, 192);
 
-							fsData.Read(m_Buffer, 0, 192);
+                            Marshal.Copy(m_Buffer, 0, gc.AddrOfPinnedObject(), 192);
+                        }
+                        finally
+                        {
+                            gc.Free();
+                        }
 
-							Marshal.Copy(m_Buffer, 0, gc.AddrOfPinnedObject(), 192);
-						}
-						finally
-						{
-							gc.Free();
-						}
-						if (LandBlocks[x] == null)
-						{
-							LandBlocks[x] = new Tile[matrix.BlockHeight][];
-						}
-						LandBlocks[x][y] = tiles;
-					}
-					return count;
-				}
-			}
-		}
+                        if (LandBlocks[x] == null) LandBlocks[x] = new Tile[matrix.BlockHeight][];
+                        LandBlocks[x][y] = tiles;
+                    }
 
-		private int PatchStatics(TileMatrix matrix, string dataPath, string indexPath, string lookupPath)
-		{
-			using (
-				FileStream fsData = new FileStream(dataPath, FileMode.Open, FileAccess.Read, FileShare.Read),
-						   fsIndex = new FileStream(indexPath, FileMode.Open, FileAccess.Read, FileShare.Read),
-						   fsLookup = new FileStream(lookupPath, FileMode.Open, FileAccess.Read, FileShare.Read))
-			{
-				using (BinaryReader indexReader = new BinaryReader(fsIndex), lookupReader = new BinaryReader(fsLookup))
-				{
-					int count = Math.Min((int)(indexReader.BaseStream.Length / 4), (int)(lookupReader.BaseStream.Length / 12));
+                    return count;
+                }
+            }
+        }
 
-					var lists = new HuedTileList[8][];
+        private int PatchStatics(TileMatrix matrix, string dataPath, string indexPath, string lookupPath)
+        {
+            using (
+                FileStream fsData = new FileStream(dataPath, FileMode.Open, FileAccess.Read, FileShare.Read),
+                fsIndex = new FileStream(indexPath, FileMode.Open, FileAccess.Read, FileShare.Read),
+                fsLookup = new FileStream(lookupPath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                using (BinaryReader indexReader = new BinaryReader(fsIndex), lookupReader = new BinaryReader(fsLookup))
+                {
+                    var count = Math.Min((int)(indexReader.BaseStream.Length / 4),
+                        (int)(lookupReader.BaseStream.Length / 12));
 
-					for (int x = 0; x < 8; ++x)
-					{
-						lists[x] = new HuedTileList[8];
+                    var lists = new HuedTileList[8][];
 
-						for (int y = 0; y < 8; ++y)
-						{
-							lists[x][y] = new HuedTileList();
-						}
-					}
+                    for (var x = 0; x < 8; ++x)
+                    {
+                        lists[x] = new HuedTileList[8];
 
-					for (int i = 0; i < count; ++i)
-					{
-						int blockID = indexReader.ReadInt32();
-						int blockX = blockID / matrix.BlockHeight;
-						int blockY = blockID % matrix.BlockHeight;
+                        for (var y = 0; y < 8; ++y) lists[x][y] = new HuedTileList();
+                    }
 
-						int offset = lookupReader.ReadInt32();
-						int length = lookupReader.ReadInt32();
-						lookupReader.ReadInt32(); // Extra
+                    for (var i = 0; i < count; ++i)
+                    {
+                        var blockID = indexReader.ReadInt32();
+                        var blockX = blockID / matrix.BlockHeight;
+                        var blockY = blockID % matrix.BlockHeight;
 
-						if (offset < 0 || length <= 0)
-						{
-							if (StaticBlocks[blockX] == null)
-							{
-								StaticBlocks[blockX] = new HuedTile[matrix.BlockHeight][][][];
-							}
+                        var offset = lookupReader.ReadInt32();
+                        var length = lookupReader.ReadInt32();
+                        lookupReader.ReadInt32(); // Extra
 
-							StaticBlocks[blockX][blockY] = TileMatrix.EmptyStaticBlock;
-							continue;
-						}
+                        if (offset < 0 || length <= 0)
+                        {
+                            if (StaticBlocks[blockX] == null)
+                                StaticBlocks[blockX] = new HuedTile[matrix.BlockHeight][][][];
 
-						fsData.Seek(offset, SeekOrigin.Begin);
+                            StaticBlocks[blockX][blockY] = TileMatrix.EmptyStaticBlock;
+                            continue;
+                        }
 
-						int tileCount = length / 7;
+                        fsData.Seek(offset, SeekOrigin.Begin);
 
-						if (m_TileBuffer.Length < tileCount)
-						{
-							m_TileBuffer = new StaticTile[tileCount];
-						}
+                        var tileCount = length / 7;
 
-						StaticTile[] staTiles = m_TileBuffer;
+                        if (m_TileBuffer.Length < tileCount) m_TileBuffer = new StaticTile[tileCount];
 
-						GCHandle gc = GCHandle.Alloc(staTiles, GCHandleType.Pinned);
-						try
-						{
-							if (m_Buffer == null || m_Buffer.Length < length)
-							{
-								m_Buffer = new byte[length];
-							}
+                        var staTiles = m_TileBuffer;
 
-							fsData.Read(m_Buffer, 0, length);
+                        var gc = GCHandle.Alloc(staTiles, GCHandleType.Pinned);
+                        try
+                        {
+                            if (m_Buffer == null || m_Buffer.Length < length) m_Buffer = new byte[length];
 
-							Marshal.Copy(m_Buffer, 0, gc.AddrOfPinnedObject(), length);
+                            fsData.Read(m_Buffer, 0, length);
 
-							for (int j = 0; j < tileCount; ++j)
-							{
-								StaticTile cur = staTiles[j];
-								lists[cur.m_X & 0x7][cur.m_Y & 0x7].Add(Art.GetLegalItemID(cur.m_ID), cur.m_Hue, cur.m_Z);
-							}
+                            Marshal.Copy(m_Buffer, 0, gc.AddrOfPinnedObject(), length);
 
-							var tiles = new HuedTile[8][][];
+                            for (var j = 0; j < tileCount; ++j)
+                            {
+                                var cur = staTiles[j];
+                                lists[cur.m_X & 0x7][cur.m_Y & 0x7]
+                                    .Add(Art.GetLegalItemID(cur.m_ID), cur.m_Hue, cur.m_Z);
+                            }
 
-							for (int x = 0; x < 8; ++x)
-							{
-								tiles[x] = new HuedTile[8][];
+                            var tiles = new HuedTile[8][][];
 
-								for (int y = 0; y < 8; ++y)
-								{
-									tiles[x][y] = lists[x][y].ToArray();
-								}
-							}
+                            for (var x = 0; x < 8; ++x)
+                            {
+                                tiles[x] = new HuedTile[8][];
 
-							if (StaticBlocks[blockX] == null)
-							{
-								StaticBlocks[blockX] = new HuedTile[matrix.BlockHeight][][][];
-							}
+                                for (var y = 0; y < 8; ++y) tiles[x][y] = lists[x][y].ToArray();
+                            }
 
-							StaticBlocks[blockX][blockY] = tiles;
-						}
-						finally
-						{
-							gc.Free();
-						}
-					}
+                            if (StaticBlocks[blockX] == null)
+                                StaticBlocks[blockX] = new HuedTile[matrix.BlockHeight][][][];
 
-					return count;
-				}
-			}
-		}
-	}
+                            StaticBlocks[blockX][blockY] = tiles;
+                        }
+                        finally
+                        {
+                            gc.Free();
+                        }
+                    }
+
+                    return count;
+                }
+            }
+        }
+    }
 }

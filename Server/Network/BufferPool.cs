@@ -1,33 +1,42 @@
 #region References
+
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
+
 #endregion
 
 namespace Server.Network
 {
     public class BufferPool
     {
-        private static readonly ConcurrentDictionary<BufferPool, string> m_Pools = new ConcurrentDictionary<BufferPool, string>();
+        private static readonly ConcurrentDictionary<BufferPool, string> m_Pools =
+            new ConcurrentDictionary<BufferPool, string>();
 
-        public static ReadOnlyCollection<BufferPool> Pools => (ReadOnlyCollection<BufferPool>)m_Pools.Keys;
-
-        private readonly string m_Name;
-
-        private readonly int m_InitialCapacity;
         private readonly int m_BufferSize;
-
-        private volatile int m_Misses;
 
         private readonly ConcurrentQueue<byte[]> m_FreeBuffers = new ConcurrentQueue<byte[]>();
 
-        public int Count
+        private readonly int m_InitialCapacity;
+
+        private readonly string m_Name;
+
+        private volatile int m_Misses;
+
+        public static ReadOnlyCollection<BufferPool> Pools => (ReadOnlyCollection<BufferPool>)m_Pools.Keys;
+
+        public int Count => m_FreeBuffers.Count;
+
+        public BufferPool(string name, int initialCapacity, int bufferSize)
         {
-            get
-            {
-                return m_FreeBuffers.Count;
-            }
+            m_Name = name;
+
+            m_InitialCapacity = initialCapacity;
+            m_BufferSize = bufferSize;
+
+            while (m_FreeBuffers.Count < initialCapacity) m_FreeBuffers.Enqueue(new byte[bufferSize]);
+
+            m_Pools[this] = name;
         }
 
         public void GetInfo(
@@ -46,44 +55,20 @@ namespace Server.Network
             misses = m_Misses;
         }
 
-        public BufferPool(string name, int initialCapacity, int bufferSize)
-        {
-            m_Name = name;
-
-            m_InitialCapacity = initialCapacity;
-            m_BufferSize = bufferSize;
-
-            while (m_FreeBuffers.Count < initialCapacity)
-            {
-                m_FreeBuffers.Enqueue(new byte[bufferSize]);
-            }
-
-            m_Pools[this] = name;
-        }
-
         public byte[] AcquireBuffer()
         {
-            if (m_FreeBuffers.TryDequeue(out var buffer))
-            {
-                return buffer;
-            }
+            if (m_FreeBuffers.TryDequeue(out var buffer)) return buffer;
 
             ++m_Misses;
 
-            while (m_FreeBuffers.Count < m_InitialCapacity - 1)
-            {
-                m_FreeBuffers.Enqueue(new byte[m_BufferSize]);
-            }
+            while (m_FreeBuffers.Count < m_InitialCapacity - 1) m_FreeBuffers.Enqueue(new byte[m_BufferSize]);
 
             return new byte[m_BufferSize];
         }
 
         public void ReleaseBuffer(byte[] buffer)
         {
-            if (buffer == null || buffer.Length != m_BufferSize)
-            {
-                return;
-            }
+            if (buffer == null || buffer.Length != m_BufferSize) return;
 
             Array.Clear(buffer, 0, buffer.Length);
 

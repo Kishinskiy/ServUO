@@ -1,25 +1,25 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using Server.Engines.CityLoyalty;
 using Server.Engines.SphynxFortune;
 using Server.Engines.XmlSpawner2;
 using Server.Items;
 using Server.Misc;
 using Server.Mobiles;
+using Server.Network;
+using Server.Services.Virtues;
+using Server.SkillHandlers;
 using Server.Spells;
-using Server.Spells.Second;
-using Server.Spells.Fifth;
 using Server.Spells.Bushido;
+using Server.Spells.Chivalry;
+using Server.Spells.Fifth;
+using Server.Spells.Mysticism;
+using Server.Spells.Necromancy;
 using Server.Spells.Ninjitsu;
 using Server.Spells.Seventh;
-using Server.Spells.Chivalry;
-using Server.Spells.Necromancy;
-using Server.Spells.Spellweaving;
-using Server.SkillHandlers;
-using Server.Engines.CityLoyalty;
-using Server.Services.Virtues;
 using Server.Spells.SkillMasteries;
+using Server.Spells.Spellweaving;
 
 namespace Server
 {
@@ -35,9 +35,9 @@ namespace Server
     {
         public static void DisableStatInfluences()
         {
-            for (int i = 0; i < SkillInfo.Table.Length; ++i)
+            for (var i = 0; i < SkillInfo.Table.Length; ++i)
             {
-                SkillInfo info = SkillInfo.Table[i];
+                var info = SkillInfo.Table[i];
 
                 info.StrScale = 0.0;
                 info.DexScale = 0.0;
@@ -46,7 +46,8 @@ namespace Server
             }
         }
 
-        public static int Damage(IDamageable m, int damage, bool ignoreArmor, int phys, int fire, int cold, int pois, int nrgy)
+        public static int Damage(IDamageable m, int damage, bool ignoreArmor, int phys, int fire, int cold, int pois,
+            int nrgy)
         {
             return Damage(m, null, damage, ignoreArmor, phys, fire, cold, pois, nrgy);
         }
@@ -56,75 +57,85 @@ namespace Server
             return Damage(m, null, damage, phys, fire, cold, pois, nrgy);
         }
 
-        public static int Damage(IDamageable m, Mobile from, int damage, int phys, int fire, int cold, int pois, int nrgy)
+        public static int Damage(IDamageable m, Mobile from, int damage, int phys, int fire, int cold, int pois,
+            int nrgy)
         {
             return Damage(m, from, damage, false, phys, fire, cold, pois, nrgy, 0, 0, false);
         }
 
-        public static int Damage(IDamageable m, Mobile from, int damage, int phys, int fire, int cold, int pois, int nrgy, int chaos)
+        public static int Damage(IDamageable m, Mobile from, int damage, int phys, int fire, int cold, int pois,
+            int nrgy, int chaos)
         {
             return Damage(m, from, damage, false, phys, fire, cold, pois, nrgy, chaos, 0, false);
         }
 
-        public static int Damage(IDamageable m, Mobile from, int damage, int phys, int fire, int cold, int pois, int nrgy, int chaos, int direct)
+        public static int Damage(IDamageable m, Mobile from, int damage, int phys, int fire, int cold, int pois,
+            int nrgy, int chaos, int direct)
         {
             return Damage(m, from, damage, false, phys, fire, cold, pois, nrgy, chaos, direct, false);
         }
 
-        public static int Damage(IDamageable m, Mobile from, int damage, bool ignoreArmor, int phys, int fire, int cold, int pois, int nrgy)
+        public static int Damage(IDamageable m, Mobile from, int damage, bool ignoreArmor, int phys, int fire, int cold,
+            int pois, int nrgy)
         {
             return Damage(m, from, damage, ignoreArmor, phys, fire, cold, pois, nrgy, 0, 0, false);
         }
 
-        public static int Damage(IDamageable m, Mobile from, int damage, int phys, int fire, int cold, int pois, int nrgy, bool keepAlive)
+        public static int Damage(IDamageable m, Mobile from, int damage, int phys, int fire, int cold, int pois,
+            int nrgy, bool keepAlive)
         {
             return Damage(m, from, damage, false, phys, fire, cold, pois, nrgy, 0, 0, keepAlive);
         }
 
-        public static int Damage(IDamageable m, Mobile from, int damage, bool ignoreArmor, int phys, int fire, int cold, int pois, int nrgy, int chaos, int direct, bool keepAlive, bool archer, bool deathStrike)
+        public static int Damage(IDamageable m, Mobile from, int damage, bool ignoreArmor, int phys, int fire, int cold,
+            int pois, int nrgy, int chaos, int direct, bool keepAlive, bool archer, bool deathStrike)
         {
-            return Damage(m, from, damage, false, phys, fire, cold, pois, nrgy, chaos, direct, keepAlive, archer ? DamageType.Ranged : DamageType.Melee); // old deathStrike damage, kept for compatibility
+            return Damage(m, from, damage, false, phys, fire, cold, pois, nrgy, chaos, direct, keepAlive,
+                archer ? DamageType.Ranged : DamageType.Melee); // old deathStrike damage, kept for compatibility
         }
 
-        public static int Damage(IDamageable m, Mobile from, int damage, int phys, int fire, int cold, int pois, int nrgy, DamageType type)
+        public static int Damage(IDamageable m, Mobile from, int damage, int phys, int fire, int cold, int pois,
+            int nrgy, DamageType type)
         {
             return Damage(m, from, damage, false, phys, fire, cold, pois, nrgy, 0, 0, false, type);
         }
 
-        public static int Damage(IDamageable m, Mobile from, int damage, int phys, int fire, int cold, int pois, int nrgy, int chaos, int direct, DamageType type)
+        public static int Damage(IDamageable m, Mobile from, int damage, int phys, int fire, int cold, int pois,
+            int nrgy, int chaos, int direct, DamageType type)
         {
             return Damage(m, from, damage, false, phys, fire, cold, pois, nrgy, chaos, direct, false, type);
         }
 
-        public static int Damage(IDamageable damageable, Mobile from, int damage, bool ignoreArmor, int phys, int fire, int cold, int pois, int nrgy, int chaos, int direct, bool keepAlive, DamageType type = DamageType.Melee)
+        public static int Damage(IDamageable damageable, Mobile from, int damage, bool ignoreArmor, int phys, int fire,
+            int cold, int pois, int nrgy, int chaos, int direct, bool keepAlive, DamageType type = DamageType.Melee)
         {
-            Mobile m = damageable as Mobile;
+            var m = damageable as Mobile;
 
             if (damageable == null || damageable.Deleted || !damageable.Alive || damage <= 0)
                 return 0;
 
             if (m != null && phys == 0 && fire == 100 && cold == 0 && pois == 0 && nrgy == 0)
-                Mobiles.MeerMage.StopEffect(m, true);
+                MeerMage.StopEffect(m, true);
 
             if (!Core.AOS)
             {
-                if(m != null)
+                if (m != null)
                     m.Damage(damage, from);
 
                 return damage;
             }
 
             #region Mondain's Legacy
+
             if (m != null)
-            {
                 m.Items.ForEach(i =>
                 {
-                    ITalismanProtection prot = i as ITalismanProtection;
+                    var prot = i as ITalismanProtection;
 
                     if (prot != null)
                         damage = prot.Protection.ScaleDamage(from, damage);
                 });
-            }
+
             #endregion
 
             Fix(ref phys);
@@ -136,7 +147,6 @@ namespace Server
             Fix(ref direct);
 
             if (Core.ML && chaos > 0)
-            {
                 switch (Utility.Random(5))
                 {
                     case 0:
@@ -155,9 +165,8 @@ namespace Server
                         nrgy += chaos;
                         break;
                 }
-            }
 
-            bool ranged = type == DamageType.Ranged;
+            var ranged = type == DamageType.Ranged;
             BaseQuiver quiver = null;
 
             if (ranged && from.Race != Race.Gargoyle)
@@ -167,11 +176,11 @@ namespace Server
 
             if (!ignoreArmor)
             {
-                int physDamage = damage * phys * (100 - damageable.PhysicalResistance);
-                int fireDamage = damage * fire * (100 - damageable.FireResistance);
-                int coldDamage = damage * cold * (100 - damageable.ColdResistance);
-                int poisonDamage = damage * pois * (100 - damageable.PoisonResistance);
-                int energyDamage = damage * nrgy * (100 - damageable.EnergyResistance);
+                var physDamage = damage * phys * (100 - damageable.PhysicalResistance);
+                var fireDamage = damage * fire * (100 - damageable.FireResistance);
+                var coldDamage = damage * cold * (100 - damageable.ColdResistance);
+                var poisonDamage = damage * pois * (100 - damageable.PoisonResistance);
+                var energyDamage = damage * nrgy * (100 - damageable.EnergyResistance);
 
                 totalDamage = physDamage + fireDamage + coldDamage + poisonDamage + energyDamage;
                 totalDamage /= 10000;
@@ -187,30 +196,25 @@ namespace Server
                 if (m != null)
                     BaseFishPie.ScaleDamage(from, m, ref totalDamage, phys, fire, cold, pois, nrgy, direct);
 
-                if (Core.HS && ArmorPierce.IsUnderEffects(m))
-                {
-                    totalDamage += (int)((double)totalDamage * .1);
-                }
+                if (Core.HS && ArmorPierce.IsUnderEffects(m)) totalDamage += (int)(totalDamage * .1);
 
                 if (Core.HS && type == DamageType.Spell)
-                {
                     if (from?.FindItemOnLayer(Layer.MiddleTorso) is SpellFocusingSash spellSash)
                     {
                         spellSash.ValidateTarget(from, m, out var sdiOffset);
 
                         totalDamage += Scale(totalDamage, sdiOffset);
                     }
-                }
 
                 if (totalDamage < 1)
-                    totalDamage = 1;           
+                    totalDamage = 1;
             }
             else if (Core.ML && m is PlayerMobile)
             {
                 if (quiver != null)
                     damage += damage * quiver.DamageIncrease / 100;
 
-                totalDamage = Math.Min(damage, Core.TOL && ranged ? 30 : 35);	// Direct Damage cap of 30/35
+                totalDamage = Math.Min(damage, Core.TOL && ranged ? 30 : 35); // Direct Damage cap of 30/35
             }
             else
             {
@@ -221,54 +225,44 @@ namespace Server
             }
 
             // object being damaged is not a mobile, so we will end here
-            if (damageable is Item)
-            {
-                return damageable.Damage(totalDamage, from);
-            }
+            if (damageable is Item) return damageable.Damage(totalDamage, from);
 
             #region Evil Omen, Blood Oath and reflect physical
-            if (EvilOmenSpell.TryEndEffect(m))
-            {
-                totalDamage = (int)(totalDamage * 1.25);
-            }
+
+            if (EvilOmenSpell.TryEndEffect(m)) totalDamage = (int)(totalDamage * 1.25);
 
             if (from != null && !from.Deleted && from.Alive && !from.IsDeadBondedPet)
             {
-                Mobile oath = BloodOathSpell.GetBloodOath(from);
+                var oath = BloodOathSpell.GetBloodOath(from);
 
                 /* Per EA's UO Herald Pub48 (ML):
-                * ((resist spellsx10)/20 + 10=percentage of damage resisted)
-                * 
-                * Tested 12/29/2017-
-                * No cap, also, above forumula is only in effect vs. creatures
-                */
+                 * ((resist spellsx10)/20 + 10=percentage of damage resisted)
+                 *
+                 * Tested 12/29/2017-
+                 * No cap, also, above forumula is only in effect vs. creatures
+                 */
 
                 if (oath == m)
                 {
-                    int originalDamage = totalDamage;
+                    var originalDamage = totalDamage;
                     totalDamage = (int)(totalDamage * 1.2);
 
                     if (!Core.TOL && totalDamage > 35 && from is PlayerMobile) /* capped @ 35, seems no expansion */
-                    {
                         totalDamage = 35;
-                    }
 
                     if (Core.ML && m is BaseCreature)
-                    {
-                        from.Damage((int)(originalDamage * (1 - (((from.Skills.MagicResist.Value * .5) + 10) / 100))), m);
-                    }
+                        from.Damage((int)(originalDamage * (1 - (from.Skills.MagicResist.Value * .5 + 10) / 100)), m);
                     else
-                    {
                         from.Damage(originalDamage, m);
-                    }
                 }
                 else if (!ignoreArmor && from != m)
                 {
-                    int reflectPhys = Math.Min(105, AosAttributes.GetValue(m, AosAttribute.ReflectPhysical));
+                    var reflectPhys = Math.Min(105, AosAttributes.GetValue(m, AosAttribute.ReflectPhysical));
 
                     if (reflectPhys != 0)
                     {
-                        if (from is ExodusMinion && ((ExodusMinion)from).FieldActive || from is ExodusOverseer && ((ExodusOverseer)from).FieldActive)
+                        if ((from is ExodusMinion && ((ExodusMinion)from).FieldActive) ||
+                            (from is ExodusOverseer && ((ExodusOverseer)from).FieldActive))
                         {
                             from.FixedParticles(0x376A, 20, 10, 0x2530, EffectLayer.Waist);
                             from.PlaySound(0x2F4);
@@ -276,14 +270,18 @@ namespace Server
                         }
                         else
                         {
-                            from.Damage(Scale((damage * phys * (100 - (ignoreArmor ? 0 : m.PhysicalResistance))) / 10000, reflectPhys), m);
+                            from.Damage(
+                                Scale(damage * phys * (100 - (ignoreArmor ? 0 : m.PhysicalResistance)) / 10000,
+                                    reflectPhys), m);
                         }
                     }
                 }
             }
+
             #endregion
 
             #region Stygian Abyss
+
             //SHould this go in after or before dragon barding absorb?
             if (ignoreArmor)
                 DamageEaterContext.CheckDamage(m, totalDamage, 0, 0, 0, 0, 0, 100);
@@ -292,37 +290,46 @@ namespace Server
 
             if (fire > 0 && totalDamage > 0)
                 SwarmContext.CheckRemove(m);
+
             #endregion
 
             SpiritualityVirtue.GetDamageReduction(m, ref totalDamage);
 
             #region Berserk
+
             BestialSetHelper.OnDamage(m, from, ref totalDamage);
+
             #endregion
 
             #region Epiphany Set
+
             EpiphanyHelper.OnHit(m, totalDamage);
+
             #endregion
 
-            if (type == DamageType.Spell && m != null && Feint.Registry.ContainsKey(m) && Feint.Registry[m].Enemy == from)
-                totalDamage -= (int)((double)damage * ((double)Feint.Registry[m].DamageReduction / 100));
+            if (type == DamageType.Spell && m != null && Feint.Registry.ContainsKey(m) &&
+                Feint.Registry[m].Enemy == from)
+                totalDamage -= (int)(damage * ((double)Feint.Registry[m].DamageReduction / 100));
 
             if (m.Hidden && Core.ML && type >= DamageType.Spell)
             {
-                int chance = (int)Math.Min(33, 100 - (Server.Spells.SkillMasteries.ShadowSpell.GetDifficultyFactor(m) * 100));
+                var chance = (int)Math.Min(33, 100 - ShadowSpell.GetDifficultyFactor(m) * 100);
 
                 if (Utility.Random(100) < chance)
                 {
                     m.RevealingAction();
-                    m.NextSkillTime = Core.TickCount + (12000 - ((int)m.Skills[SkillName.Hiding].Value) * 100);
+                    m.NextSkillTime = Core.TickCount + (12000 - (int)m.Skills[SkillName.Hiding].Value * 100);
                 }
             }
 
             #region Skill Mastery
+
             SkillMasterySpell.OnDamage(m, from, type, ref totalDamage);
+
             #endregion
 
             #region Pet Training
+
             if (from is BaseCreature || m is BaseCreature)
             {
                 SpecialAbility.CheckCombatTrigger(from, m, ref totalDamage, type);
@@ -333,73 +340,45 @@ namespace Server
                     {
                         var profile = PetTrainingHelper.GetTrainingProfile((BaseCreature)from);
 
-                        if (profile != null)
-                        {
-                            profile.CheckProgress((BaseCreature)m);
-                        }
+                        if (profile != null) profile.CheckProgress((BaseCreature)m);
 
                         profile = PetTrainingHelper.GetTrainingProfile((BaseCreature)m);
 
-                        if (profile != null && 0.3 > Utility.RandomDouble())
-                        {
-                            profile.CheckProgress((BaseCreature)from);
-                        }
+                        if (profile != null && 0.3 > Utility.RandomDouble()) profile.CheckProgress((BaseCreature)from);
                     }
 
-                    if (from is BaseCreature && ((BaseCreature)from).Controlled && m.Player)
-                    {
-                        totalDamage /= 2;
-                    }
+                    if (from is BaseCreature && ((BaseCreature)from).Controlled && m.Player) totalDamage /= 2;
                 }
             }
+
             #endregion
 
-            if (type <= DamageType.Ranged)
-            {
-                AttuneWeaponSpell.TryAbsorb(m, ref totalDamage);
-            }
+            if (type <= DamageType.Ranged) AttuneWeaponSpell.TryAbsorb(m, ref totalDamage);
 
-            if (keepAlive && totalDamage > m.Hits)
-            {
-                totalDamage = m.Hits;
-            }
+            if (keepAlive && totalDamage > m.Hits) totalDamage = m.Hits;
 
             if (from is BaseCreature && type <= DamageType.Ranged)
-            {
                 ((BaseCreature)from).AlterMeleeDamageTo(m, ref totalDamage);
-            }
 
             if (m is BaseCreature && type <= DamageType.Ranged)
-            {
                 ((BaseCreature)m).AlterMeleeDamageFrom(from, ref totalDamage);
-            }
 
-            if (m is BaseCreature)
-            {
-                ((BaseCreature)m).OnBeforeDamage(from, ref totalDamage, type);
-            }
+            if (m is BaseCreature) ((BaseCreature)m).OnBeforeDamage(from, ref totalDamage, type);
 
-            if (totalDamage <= 0)
-            {
-                return 0;
-            }
+            if (totalDamage <= 0) return 0;
 
-            if (from != null)
-            {
-                DoLeech(totalDamage, from, m);
-            }
+            if (from != null) DoLeech(totalDamage, from, m);
 
             totalDamage = m.Damage(totalDamage, from, true, false);
 
             if (Core.SA && type == DamageType.Melee && from is BaseCreature &&
                 (m is PlayerMobile || (m is BaseCreature && !((BaseCreature)m).IsMonster)))
-            {
                 from.RegisterDamage(totalDamage / 4, m);
-            }
 
             SpiritSpeak.CheckDisrupt(m);
 
             #region Stygian Abyss
+
             if (m.Spell != null)
                 ((Spell)m.Spell).CheckCasterDisruption(true, phys, fire, cold, pois, nrgy);
 
@@ -410,8 +389,9 @@ namespace Server
 
             SoulChargeContext.CheckHit(from, m, totalDamage);
 
-            Spells.Mysticism.SleepSpell.OnDamage(m);
-            Spells.Mysticism.PurgeMagicSpell.OnMobileDoDamage(from);
+            SleepSpell.OnDamage(m);
+            PurgeMagicSpell.OnMobileDoDamage(from);
+
             #endregion
 
             BaseCostume.OnDamaged(m);
@@ -427,18 +407,20 @@ namespace Server
 
         public static int Scale(int input, int percent)
         {
-            return (input * percent) / 100;
+            return input * percent / 100;
         }
 
         public static void DoLeech(int damageGiven, Mobile from, Mobile target)
         {
-            TransformContext context = TransformationSpellHelper.GetContext(from);
+            var context = TransformationSpellHelper.GetContext(from);
 
             if (context != null)
             {
                 if (context.Type == typeof(WraithFormSpell))
                 {
-                    int manaLeech = AOS.Scale(damageGiven, Math.Min(target.Mana, (int)from.Skills.SpiritSpeak.Value / 5)); // Wraith form gives 5-20% mana leech
+                    var manaLeech = Scale(damageGiven,
+                        Math.Min(target.Mana,
+                            (int)from.Skills.SpiritSpeak.Value / 5)); // Wraith form gives 5-20% mana leech
 
                     if (manaLeech != 0)
                     {
@@ -451,15 +433,19 @@ namespace Server
                 else if (context.Type == typeof(VampiricEmbraceSpell))
                 {
                     #region High Seas
+
                     if (target is BaseCreature && ((BaseCreature)target).TaintedLifeAura)
                     {
-                        AOS.Damage(from, target, AOS.Scale(damageGiven, 20), false, 0, 0, 0, 0, 0, 0, 100, false, false, false);
-                        from.SendLocalizedMessage(1116778); //The tainted life force energy damages you as your body tries to absorb it.
+                        Damage(from, target, Scale(damageGiven, 20), false, 0, 0, 0, 0, 0, 0, 100, false, false, false);
+                        from.SendLocalizedMessage(
+                            1116778); //The tainted life force energy damages you as your body tries to absorb it.
                     }
+
                     #endregion
+
                     else
                     {
-                        from.Hits += AOS.Scale(damageGiven, 20);
+                        from.Hits += Scale(damageGiven, 20);
                         from.PlaySound(0x44D);
                     }
                 }
@@ -467,35 +453,49 @@ namespace Server
         }
 
         #region AOS Status Bar
-        public static int GetStatus( Mobile from, int index )
-		{
-			switch ( index )
-			{
-				case 0: return from.GetMaxResistance( ResistanceType.Physical );
-				case 1: return from.GetMaxResistance( ResistanceType.Fire );
-				case 2: return from.GetMaxResistance( ResistanceType.Cold );
-				case 3: return from.GetMaxResistance( ResistanceType.Poison );
-				case 4: return from.GetMaxResistance( ResistanceType.Energy );
-                case 5: return Math.Min(45 + BaseArmor.GetRefinedDefenseChance(from), AosAttributes.GetValue(from, AosAttribute.DefendChance));
+
+        public static int GetStatus(Mobile from, int index)
+        {
+            switch (index)
+            {
+                case 0: return from.GetMaxResistance(ResistanceType.Physical);
+                case 1: return from.GetMaxResistance(ResistanceType.Fire);
+                case 2: return from.GetMaxResistance(ResistanceType.Cold);
+                case 3: return from.GetMaxResistance(ResistanceType.Poison);
+                case 4: return from.GetMaxResistance(ResistanceType.Energy);
+                case 5:
+                    return Math.Min(45 + BaseArmor.GetRefinedDefenseChance(from),
+                        AosAttributes.GetValue(from, AosAttribute.DefendChance));
                 case 6: return 45 + BaseArmor.GetRefinedDefenseChance(from);
-                case 7: return Math.Min(from.Race == Race.Gargoyle ? 50 : 45, AosAttributes.GetValue(from, AosAttribute.AttackChance));
+                case 7:
+                    return Math.Min(from.Race == Race.Gargoyle ? 50 : 45,
+                        AosAttributes.GetValue(from, AosAttribute.AttackChance));
                 case 8: return Math.Min(60, AosAttributes.GetValue(from, AosAttribute.WeaponSpeed));
                 case 9: return Math.Min(100, AosAttributes.GetValue(from, AosAttribute.WeaponDamage));
                 case 10: return Math.Min(100, AosAttributes.GetValue(from, AosAttribute.LowerRegCost));
                 case 11: return AosAttributes.GetValue(from, AosAttribute.SpellDamage);
                 case 12: return Math.Min(6, AosAttributes.GetValue(from, AosAttribute.CastRecovery));
                 case 13: return Math.Min(4, AosAttributes.GetValue(from, AosAttribute.CastSpeed));
-                case 14: return Math.Min(40, AosAttributes.GetValue(from, AosAttribute.LowerManaCost)) + BaseArmor.GetInherentLowerManaCost(from);
-                
+                case 14:
+                    return Math.Min(40, AosAttributes.GetValue(from, AosAttribute.LowerManaCost)) +
+                           BaseArmor.GetInherentLowerManaCost(from);
+
                 case 15: return (int)RegenRates.HitPointRegen(from); // HP   REGEN
                 case 16: return (int)RegenRates.StamRegen(from); // Stam REGEN
                 case 17: return (int)RegenRates.ManaRegen(from); // MANA REGEN
-                case 18: return Math.Min(105, AosAttributes.GetValue(from, AosAttribute.ReflectPhysical)); // reflect phys
+                case 18:
+                    return Math.Min(105, AosAttributes.GetValue(from, AosAttribute.ReflectPhysical)); // reflect phys
                 case 19: return Math.Min(50, AosAttributes.GetValue(from, AosAttribute.EnhancePotions)); // enhance pots
 
-                case 20: return AosAttributes.GetValue(from, AosAttribute.BonusStr) + from.GetStatOffset(StatType.Str); // str inc
-                case 21: return AosAttributes.GetValue(from, AosAttribute.BonusDex) + from.GetStatOffset(StatType.Dex); ; // dex inc
-                case 22: return AosAttributes.GetValue(from, AosAttribute.BonusInt) + from.GetStatOffset(StatType.Int); ; // int inc
+                case 20:
+                    return AosAttributes.GetValue(from, AosAttribute.BonusStr) +
+                           from.GetStatOffset(StatType.Str); // str inc
+                case 21:
+                    return AosAttributes.GetValue(from, AosAttribute.BonusDex) + from.GetStatOffset(StatType.Dex);
+                    ; // dex inc
+                case 22:
+                    return AosAttributes.GetValue(from, AosAttribute.BonusInt) + from.GetStatOffset(StatType.Int);
+                    ; // int inc
 
                 case 23: return 0; // hits neg
                 case 24: return 0; // stam neg
@@ -504,9 +504,10 @@ namespace Server
                 case 26: return AosAttributes.GetValue(from, AosAttribute.BonusHits); // hits inc
                 case 27: return AosAttributes.GetValue(from, AosAttribute.BonusStam); // stam inc
                 case 28: return AosAttributes.GetValue(from, AosAttribute.BonusMana); // mana inc
-				default: return 0;
-			}
+                default: return 0;
+            }
         }
+
         #endregion
     }
 
@@ -544,17 +545,221 @@ namespace Server
 
     public sealed class AosAttributes : BaseAttributes
     {
+        public int this[AosAttribute attribute]
+        {
+            get => ExtendedGetValue((int)attribute);
+            set => SetValue((int)attribute, value);
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int RegenHits
+        {
+            get => this[AosAttribute.RegenHits];
+            set => this[AosAttribute.RegenHits] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int RegenStam
+        {
+            get => this[AosAttribute.RegenStam];
+            set => this[AosAttribute.RegenStam] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int RegenMana
+        {
+            get => this[AosAttribute.RegenMana];
+            set => this[AosAttribute.RegenMana] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int DefendChance
+        {
+            get => this[AosAttribute.DefendChance];
+            set => this[AosAttribute.DefendChance] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int AttackChance
+        {
+            get => this[AosAttribute.AttackChance];
+            set => this[AosAttribute.AttackChance] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int BonusStr
+        {
+            get => this[AosAttribute.BonusStr];
+            set => this[AosAttribute.BonusStr] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int BonusDex
+        {
+            get => this[AosAttribute.BonusDex];
+            set => this[AosAttribute.BonusDex] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int BonusInt
+        {
+            get => this[AosAttribute.BonusInt];
+            set => this[AosAttribute.BonusInt] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int BonusHits
+        {
+            get => this[AosAttribute.BonusHits];
+            set => this[AosAttribute.BonusHits] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int BonusStam
+        {
+            get => this[AosAttribute.BonusStam];
+            set => this[AosAttribute.BonusStam] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int BonusMana
+        {
+            get => this[AosAttribute.BonusMana];
+            set => this[AosAttribute.BonusMana] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int WeaponDamage
+        {
+            get => this[AosAttribute.WeaponDamage];
+            set => this[AosAttribute.WeaponDamage] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int WeaponSpeed
+        {
+            get => this[AosAttribute.WeaponSpeed];
+            set => this[AosAttribute.WeaponSpeed] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int SpellDamage
+        {
+            get => this[AosAttribute.SpellDamage];
+            set => this[AosAttribute.SpellDamage] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int CastRecovery
+        {
+            get => this[AosAttribute.CastRecovery];
+            set => this[AosAttribute.CastRecovery] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int CastSpeed
+        {
+            get => this[AosAttribute.CastSpeed];
+            set => this[AosAttribute.CastSpeed] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int LowerManaCost
+        {
+            get => this[AosAttribute.LowerManaCost];
+            set => this[AosAttribute.LowerManaCost] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int LowerRegCost
+        {
+            get => this[AosAttribute.LowerRegCost];
+            set => this[AosAttribute.LowerRegCost] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int ReflectPhysical
+        {
+            get => this[AosAttribute.ReflectPhysical];
+            set => this[AosAttribute.ReflectPhysical] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int EnhancePotions
+        {
+            get => this[AosAttribute.EnhancePotions];
+            set => this[AosAttribute.EnhancePotions] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int Luck
+        {
+            get => this[AosAttribute.Luck];
+            set => this[AosAttribute.Luck] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int SpellChanneling
+        {
+            get => this[AosAttribute.SpellChanneling];
+            set => this[AosAttribute.SpellChanneling] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int NightSight
+        {
+            get => this[AosAttribute.NightSight];
+            set => this[AosAttribute.NightSight] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int IncreasedKarmaLoss
+        {
+            get => this[AosAttribute.IncreasedKarmaLoss];
+            set => this[AosAttribute.IncreasedKarmaLoss] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int Brittle
+        {
+            get => this[AosAttribute.Brittle];
+            set => this[AosAttribute.Brittle] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int LowerAmmoCost
+        {
+            get => this[AosAttribute.LowerAmmoCost];
+            set => this[AosAttribute.LowerAmmoCost] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int BalancedWeapon
+        {
+            get => this[AosAttribute.BalancedWeapon];
+            set => this[AosAttribute.BalancedWeapon] = value;
+        }
+
+        public AosAttributes(Item owner)
+            : base(owner)
+        {
+        }
+
+        public AosAttributes(Item owner, AosAttributes other)
+            : base(owner, other)
+        {
+        }
+
+        public AosAttributes(Item owner, GenericReader reader)
+            : base(owner, reader)
+        {
+        }
+
         public static bool IsValid(AosAttribute attribute)
         {
-            if (!Core.AOS)
-            {
-                return false;
-            }
+            if (!Core.AOS) return false;
 
-            if (!Core.ML && attribute == AosAttribute.IncreasedKarmaLoss)
-            {
-                return false;
-            }
+            if (!Core.ML && attribute == AosAttribute.IncreasedKarmaLoss) return false;
 
             return true;
         }
@@ -576,25 +781,25 @@ namespace Server
 
         public static int GetValue(Mobile m, AosAttribute attribute)
         {
-            if (World.Loading || !IsValid(attribute))
-            {
-                return 0;
-            }
+            if (World.Loading || !IsValid(attribute)) return 0;
 
-            int value = 0;
+            var value = 0;
 
-            if (attribute == AosAttribute.Luck || attribute == AosAttribute.RegenMana || attribute == AosAttribute.DefendChance || attribute == AosAttribute.EnhancePotions)
+            if (attribute == AosAttribute.Luck || attribute == AosAttribute.RegenMana ||
+                attribute == AosAttribute.DefendChance || attribute == AosAttribute.EnhancePotions)
                 value += SphynxFortune.GetAosAttributeBonus(m, attribute);
 
             #region Enhancement
+
             value += Enhancement.GetValue(m, attribute);
+
             #endregion
 
-            for (int i = 0; i < m.Items.Count; ++i)
+            for (var i = 0; i < m.Items.Count; ++i)
             {
-                Item obj = m.Items[i];
+                var obj = m.Items[i];
 
-                AosAttributes attrs = RunicReforging.GetAosAttributes(obj);
+                var attrs = RunicReforging.GetAosAttributes(obj);
 
                 if (attrs != null)
                     value += attrs[attribute];
@@ -610,7 +815,7 @@ namespace Server
 
                 if (obj is ISetItem)
                 {
-                    ISetItem item = (ISetItem)obj;
+                    var item = (ISetItem)obj;
 
                     attrs = item.SetAttributes;
 
@@ -622,7 +827,9 @@ namespace Server
             #region Malus/Buff Handler
 
             #region Skill Mastery
+
             value += SkillMasterySpell.GetAttributeBonus(m, attribute);
+
             #endregion
 
             if (attribute == AosAttribute.WeaponDamage)
@@ -638,30 +845,32 @@ namespace Server
                 if (TransformationSpellHelper.UnderTransformation(m, typeof(HorrificBeastSpell)))
                     value += 25;
 
-                int defenseMasteryMalus = 0;
-                int discordanceEffect = 0;
+                var defenseMasteryMalus = 0;
+                var discordanceEffect = 0;
 
                 // Defense Mastery gives a -50%/-80% malus to damage.
-                if (Server.Items.DefenseMastery.GetMalus(m, ref defenseMasteryMalus))
+                if (DefenseMastery.GetMalus(m, ref defenseMasteryMalus))
                     value -= defenseMasteryMalus;
 
                 // Discordance gives a -2%/-48% malus to damage.
-                if (SkillHandlers.Discordance.GetEffect(m, ref discordanceEffect))
+                if (Discordance.GetEffect(m, ref discordanceEffect))
                     value -= discordanceEffect * 2;
 
                 if (Block.IsBlocking(m))
                     value -= 30;
 
                 #region SA
+
                 if (m is PlayerMobile && m.Race == Race.Gargoyle)
-                {
                     value += ((PlayerMobile)m).GetRacialBerserkBuff(false);
-                }
+
                 #endregion
 
                 #region High Seas
+
                 if (BaseFishPie.IsUnderEffects(m, FishPieEffect.WeaponDam))
                     value += 5;
+
                 #endregion
             }
             else if (attribute == AosAttribute.SpellDamage)
@@ -672,7 +881,7 @@ namespace Server
                 if (PsychicAttack.Registry.ContainsKey(m))
                     value -= PsychicAttack.Registry[m].SpellDamageMalus;
 
-                TransformContext context = TransformationSpellHelper.GetContext(m);
+                var context = TransformationSpellHelper.GetContext(m);
 
                 if (context != null && context.Spell is ReaperFormSpell)
                     value += ((ReaperFormSpell)context.Spell).SpellDamageBonus;
@@ -680,20 +889,23 @@ namespace Server
                 value += ArcaneEmpowermentSpell.GetSpellBonus(m, true);
 
                 #region SA
-                if (m is PlayerMobile && m.Race == Race.Gargoyle)
-                {
-                    value += ((PlayerMobile)m).GetRacialBerserkBuff(true);
-                }
+
+                if (m is PlayerMobile && m.Race == Race.Gargoyle) value += ((PlayerMobile)m).GetRacialBerserkBuff(true);
+
                 #endregion
 
                 #region City Loyalty
+
                 if (CityLoyaltySystem.HasTradeDeal(m, TradeDeal.GuildOfArcaneArts))
                     value += 5;
+
                 #endregion
 
                 #region High Seas
+
                 if (BaseFishPie.IsUnderEffects(m, FishPieEffect.SpellDamage))
                     value += 5;
+
                 #endregion
             }
             else if (attribute == AosAttribute.CastSpeed)
@@ -705,16 +917,20 @@ namespace Server
                     value -= EssenceOfWindSpell.GetFCMalus(m);
 
                 #region City Loyalty
+
                 if (CityLoyaltySystem.HasTradeDeal(m, TradeDeal.BardicCollegium))
                     value += 1;
+
                 #endregion
 
                 #region SA
-                if (Spells.Mysticism.SleepSpell.IsUnderSleepEffects(m))
+
+                if (SleepSpell.IsUnderSleepEffects(m))
                     value -= 2;
 
-                if (TransformationSpellHelper.UnderTransformation(m, typeof(Spells.Mysticism.StoneFormSpell)))
+                if (TransformationSpellHelper.UnderTransformation(m, typeof(StoneFormSpell)))
                     value -= 2;
+
                 #endregion
             }
             else if (attribute == AosAttribute.CastRecovery)
@@ -725,8 +941,10 @@ namespace Server
                 value -= ThunderstormSpell.GetCastRecoveryMalus(m);
 
                 #region SA
-                if (Spells.Mysticism.SleepSpell.IsUnderSleepEffects(m))
+
+                if (SleepSpell.IsUnderSleepEffects(m))
                     value -= 3;
+
                 #endregion
             }
             else if (attribute == AosAttribute.WeaponSpeed)
@@ -739,34 +957,38 @@ namespace Server
 
                 value += HonorableExecution.GetSwingBonus(m);
 
-                TransformContext context = TransformationSpellHelper.GetContext(m);
+                var context = TransformationSpellHelper.GetContext(m);
 
                 if (context != null && context.Spell is ReaperFormSpell)
                     value += ((ReaperFormSpell)context.Spell).SwingSpeedBonus;
 
-                int discordanceEffect = 0;
+                var discordanceEffect = 0;
 
                 // Discordance gives a malus of -0/-28% to swing speed.
-                if (SkillHandlers.Discordance.GetEffect(m, ref discordanceEffect))
+                if (Discordance.GetEffect(m, ref discordanceEffect))
                     value -= discordanceEffect;
 
                 if (EssenceOfWindSpell.IsDebuffed(m))
                     value -= EssenceOfWindSpell.GetSSIMalus(m);
 
                 #region City Loyalty
+
                 if (CityLoyaltySystem.HasTradeDeal(m, TradeDeal.GuildOfAssassins))
                     value += 5;
+
                 #endregion
 
                 #region SA
-                if (Spells.Mysticism.SleepSpell.IsUnderSleepEffects(m))
+
+                if (SleepSpell.IsUnderSleepEffects(m))
                     value -= 45;
 
-                if (TransformationSpellHelper.UnderTransformation(m, typeof(Spells.Mysticism.StoneFormSpell)))
+                if (TransformationSpellHelper.UnderTransformation(m, typeof(StoneFormSpell)))
                     value -= 10;
 
                 if (StickySkin.IsUnderEffects(m))
                     value -= 30;
+
                 #endregion
             }
             else if (attribute == AosAttribute.AttackChance)
@@ -775,7 +997,7 @@ namespace Server
                     value -= 60;
 
                 if (DivineFurySpell.UnderEffect(m))
-                    value += DivineFurySpell.GetAttackBonus(m);                   
+                    value += DivineFurySpell.GetAttackBonus(m);
 
                 if (BaseWeapon.CheckAnimal(m, typeof(GreyWolf)) || BaseWeapon.CheckAnimal(m, typeof(BakeKitsune)))
                     value += 20; // attacker gets 20% bonus when under Wolf or Bake Kitsune form
@@ -783,32 +1005,38 @@ namespace Server
                 if (HitLower.IsUnderAttackEffect(m))
                     value -= 25; // Under Hit Lower Attack effect -> 25% malus
 
-                WeaponAbility ability = WeaponAbility.GetCurrentAbility(m);
+                var ability = WeaponAbility.GetCurrentAbility(m);
 
                 if (ability != null)
                     value += ability.AccuracyBonus;
 
-                SpecialMove move = SpecialMove.GetCurrentMove(m);
+                var move = SpecialMove.GetCurrentMove(m);
 
                 if (move != null)
                     value += move.GetAccuracyBonus(m);
 
                 #region City Loyalty
+
                 if (CityLoyaltySystem.HasTradeDeal(m, TradeDeal.WarriorsGuild))
                     value += 5;
+
                 #endregion
 
                 #region SA
-                if (Spells.Mysticism.SleepSpell.IsUnderSleepEffects(m))
+
+                if (SleepSpell.IsUnderSleepEffects(m))
                     value -= 45;
 
                 if (m.Race == Race.Gargoyle)
-                    value += 5;  //Gargoyles get a +5 HCI
+                    value += 5; //Gargoyles get a +5 HCI
+
                 #endregion
 
                 #region High Seas
+
                 if (BaseFishPie.IsUnderEffects(m, FishPieEffect.HitChance))
                     value += 8;
+
                 #endregion
             }
             else if (attribute == AosAttribute.DefendChance)
@@ -821,8 +1049,8 @@ namespace Server
 
                 value -= HitLower.GetDefenseMalus(m);
 
-                int discordanceEffect = 0;
-                int surpriseMalus = 0;
+                var discordanceEffect = 0;
+                var surpriseMalus = 0;
 
                 value += Block.GetBonus(m);
 
@@ -830,22 +1058,27 @@ namespace Server
                     value -= surpriseMalus;
 
                 // Defender loses -0/-28% if under the effect of Discordance.
-                if (SkillHandlers.Discordance.GetEffect(m, ref discordanceEffect))
+                if (Discordance.GetEffect(m, ref discordanceEffect))
                     value -= discordanceEffect;
 
                 #region High Seas
+
                 if (BaseFishPie.IsUnderEffects(m, FishPieEffect.DefChance))
                     value += 8;
+
                 #endregion
             }
             else if (attribute == AosAttribute.RegenHits)
             {
                 #region City Loyalty
+
                 if (CityLoyaltySystem.HasTradeDeal(m, TradeDeal.MaritimeGuild))
                     value += 2;
+
                 #endregion
 
                 #region High Seas
+
                 if (m is PlayerMobile && BaseFishPie.IsUnderEffects(m, FishPieEffect.HitsRegen))
                     value += 3;
 
@@ -854,6 +1087,7 @@ namespace Server
 
                 if (SearingWeaponContext.HasContext(m))
                     value -= m is PlayerMobile ? 20 : 60;
+
                 #endregion
 
                 //Virtue Artifacts
@@ -862,11 +1096,13 @@ namespace Server
             else if (attribute == AosAttribute.RegenStam)
             {
                 #region High Seas
+
                 if (m is PlayerMobile && BaseFishPie.IsUnderEffects(m, FishPieEffect.StamRegen))
                     value += 3;
 
                 if (SurgeShield.IsUnderEffects(m, SurgeType.Stam))
                     value += 10;
+
                 #endregion
 
                 //Virtue Artifacts
@@ -875,21 +1111,26 @@ namespace Server
             else if (attribute == AosAttribute.RegenMana)
             {
                 #region City Loyalty
+
                 if (CityLoyaltySystem.HasTradeDeal(m, TradeDeal.MerchantsAssociation))
                     value += 1;
+
                 #endregion
 
                 #region High Seas
+
                 if (m is PlayerMobile && BaseFishPie.IsUnderEffects(m, FishPieEffect.ManaRegen))
                     value += 3;
 
                 if (SurgeShield.IsUnderEffects(m, SurgeType.Mana))
                     value += 10;
+
                 #endregion
 
                 //Virtue Artifacts
                 value += AnkhPendant.GetManaRegenModifier(m);
             }
+
             #endregion
 
             return value;
@@ -898,53 +1139,20 @@ namespace Server
         public override void SetValue(int bitmask, int value)
         {
             if (Core.SA && bitmask == (int)AosAttribute.WeaponSpeed && Owner is BaseWeapon)
-            {
                 ((BaseWeapon)Owner).WeaponAttributes.ScaleLeech(value);
-            }
 
             base.SetValue(bitmask, value);
         }
 
-        public AosAttributes(Item owner)
-            : base(owner)
-        {
-        }
-
-        public AosAttributes(Item owner, AosAttributes other)
-            : base(owner, other)
-        {
-        }
-
-        public AosAttributes(Item owner, GenericReader reader)
-            : base(owner, reader)
-        {
-        }
-
-
-        public int this[AosAttribute attribute]
-        {
-            get
-            {
-                return ExtendedGetValue((int)attribute);
-            }
-            set
-            {
-                SetValue((int)attribute, value);
-            }
-        }
-
         public int ExtendedGetValue(int bitmask)
         {
-            int value = GetValue(bitmask);
+            var value = GetValue(bitmask);
 
-            XmlAosAttributes xaos = (XmlAosAttributes)XmlAttach.FindAttachment(Owner, typeof(XmlAosAttributes));
+            var xaos = (XmlAosAttributes)XmlAttach.FindAttachment(Owner, typeof(XmlAosAttributes));
 
-            if (xaos != null)
-            {
-                value += xaos.GetValue(bitmask);
-            }
+            if (xaos != null) value += xaos.GetValue(bitmask);
 
-            return (value);
+            return value;
         }
 
         public override string ToString()
@@ -954,13 +1162,13 @@ namespace Server
 
         public void AddStatBonuses(Mobile to)
         {
-            int strBonus = BonusStr;
-            int dexBonus = BonusDex;
-            int intBonus = BonusInt;
+            var strBonus = BonusStr;
+            var dexBonus = BonusDex;
+            var intBonus = BonusInt;
 
             if (strBonus != 0 || dexBonus != 0 || intBonus != 0)
             {
-                string modName = Owner.Serial.ToString();
+                var modName = Owner.Serial.ToString();
 
                 if (strBonus != 0)
                     to.AddStatMod(new StatMod(StatType.Str, modName + "Str", strBonus, TimeSpan.Zero));
@@ -977,364 +1185,13 @@ namespace Server
 
         public void RemoveStatBonuses(Mobile from)
         {
-            string modName = Owner.Serial.ToString();
+            var modName = Owner.Serial.ToString();
 
             from.RemoveStatMod(modName + "Str");
             from.RemoveStatMod(modName + "Dex");
             from.RemoveStatMod(modName + "Int");
 
             from.CheckStatTimers();
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int RegenHits
-        {
-            get
-            {
-                return this[AosAttribute.RegenHits];
-            }
-            set
-            {
-                this[AosAttribute.RegenHits] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int RegenStam
-        {
-            get
-            {
-                return this[AosAttribute.RegenStam];
-            }
-            set
-            {
-                this[AosAttribute.RegenStam] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int RegenMana
-        {
-            get
-            {
-                return this[AosAttribute.RegenMana];
-            }
-            set
-            {
-                this[AosAttribute.RegenMana] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int DefendChance
-        {
-            get
-            {
-                return this[AosAttribute.DefendChance];
-            }
-            set
-            {
-                this[AosAttribute.DefendChance] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int AttackChance
-        {
-            get
-            {
-                return this[AosAttribute.AttackChance];
-            }
-            set
-            {
-                this[AosAttribute.AttackChance] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int BonusStr
-        {
-            get
-            {
-                return this[AosAttribute.BonusStr];
-            }
-            set
-            {
-                this[AosAttribute.BonusStr] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int BonusDex
-        {
-            get
-            {
-                return this[AosAttribute.BonusDex];
-            }
-            set
-            {
-                this[AosAttribute.BonusDex] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int BonusInt
-        {
-            get
-            {
-                return this[AosAttribute.BonusInt];
-            }
-            set
-            {
-                this[AosAttribute.BonusInt] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int BonusHits
-        {
-            get
-            {
-                return this[AosAttribute.BonusHits];
-            }
-            set
-            {
-                this[AosAttribute.BonusHits] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int BonusStam
-        {
-            get
-            {
-                return this[AosAttribute.BonusStam];
-            }
-            set
-            {
-                this[AosAttribute.BonusStam] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int BonusMana
-        {
-            get
-            {
-                return this[AosAttribute.BonusMana];
-            }
-            set
-            {
-                this[AosAttribute.BonusMana] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int WeaponDamage
-        {
-            get
-            {
-                return this[AosAttribute.WeaponDamage];
-            }
-            set
-            {
-                this[AosAttribute.WeaponDamage] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int WeaponSpeed
-        {
-            get
-            {
-                return this[AosAttribute.WeaponSpeed];
-            }
-            set
-            {
-                this[AosAttribute.WeaponSpeed] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int SpellDamage
-        {
-            get
-            {
-                return this[AosAttribute.SpellDamage];
-            }
-            set
-            {
-                this[AosAttribute.SpellDamage] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int CastRecovery
-        {
-            get
-            {
-                return this[AosAttribute.CastRecovery];
-            }
-            set
-            {
-                this[AosAttribute.CastRecovery] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int CastSpeed
-        {
-            get
-            {
-                return this[AosAttribute.CastSpeed];
-            }
-            set
-            {
-                this[AosAttribute.CastSpeed] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int LowerManaCost
-        {
-            get
-            {
-                return this[AosAttribute.LowerManaCost];
-            }
-            set
-            {
-                this[AosAttribute.LowerManaCost] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int LowerRegCost
-        {
-            get
-            {
-                return this[AosAttribute.LowerRegCost];
-            }
-            set
-            {
-                this[AosAttribute.LowerRegCost] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int ReflectPhysical
-        {
-            get
-            {
-                return this[AosAttribute.ReflectPhysical];
-            }
-            set
-            {
-                this[AosAttribute.ReflectPhysical] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int EnhancePotions
-        {
-            get
-            {
-                return this[AosAttribute.EnhancePotions];
-            }
-            set
-            {
-                this[AosAttribute.EnhancePotions] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int Luck
-        {
-            get
-            {
-                return this[AosAttribute.Luck];
-            }
-            set
-            {
-                this[AosAttribute.Luck] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int SpellChanneling
-        {
-            get
-            {
-                return this[AosAttribute.SpellChanneling];
-            }
-            set
-            {
-                this[AosAttribute.SpellChanneling] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int NightSight
-        {
-            get
-            {
-                return this[AosAttribute.NightSight];
-            }
-            set
-            {
-                this[AosAttribute.NightSight] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int IncreasedKarmaLoss
-        {
-            get
-            {
-                return this[AosAttribute.IncreasedKarmaLoss];
-            }
-            set
-            {
-                this[AosAttribute.IncreasedKarmaLoss] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int Brittle
-        {
-            get
-            {
-                return this[AosAttribute.Brittle];
-            }
-            set
-            {
-                this[AosAttribute.Brittle] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int LowerAmmoCost
-        {
-            get
-            {
-                return this[AosAttribute.LowerAmmoCost];
-            }
-            set
-            {
-                this[AosAttribute.LowerAmmoCost] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int BalancedWeapon
-        {
-            get
-            {
-                return this[AosAttribute.BalancedWeapon];
-            }
-            set
-            {
-                this[AosAttribute.BalancedWeapon] = value;
-            }
         }
     }
 
@@ -1372,22 +1229,212 @@ namespace Server
         HitFatigue = 0x10000000,
         HitManaDrain = 0x20000000,
         SplinteringWeapon = 0x40000000,
-        ReactiveParalyze =  0x80000000,
+        ReactiveParalyze = 0x80000000
     }
 
     public sealed class AosWeaponAttributes : BaseAttributes
     {
+        public int this[AosWeaponAttribute attribute]
+        {
+            get => ExtendedGetValue((int)attribute);
+            set => SetValue((int)attribute, value);
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int LowerStatReq
+        {
+            get => this[AosWeaponAttribute.LowerStatReq];
+            set => this[AosWeaponAttribute.LowerStatReq] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int SelfRepair
+        {
+            get => this[AosWeaponAttribute.SelfRepair];
+            set => this[AosWeaponAttribute.SelfRepair] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int HitLeechHits
+        {
+            get => this[AosWeaponAttribute.HitLeechHits];
+            set => this[AosWeaponAttribute.HitLeechHits] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int HitLeechStam
+        {
+            get => this[AosWeaponAttribute.HitLeechStam];
+            set => this[AosWeaponAttribute.HitLeechStam] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int HitLeechMana
+        {
+            get => this[AosWeaponAttribute.HitLeechMana];
+            set => this[AosWeaponAttribute.HitLeechMana] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int HitLowerAttack
+        {
+            get => this[AosWeaponAttribute.HitLowerAttack];
+            set => this[AosWeaponAttribute.HitLowerAttack] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int HitLowerDefend
+        {
+            get => this[AosWeaponAttribute.HitLowerDefend];
+            set => this[AosWeaponAttribute.HitLowerDefend] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int HitMagicArrow
+        {
+            get => this[AosWeaponAttribute.HitMagicArrow];
+            set => this[AosWeaponAttribute.HitMagicArrow] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int HitHarm
+        {
+            get => this[AosWeaponAttribute.HitHarm];
+            set => this[AosWeaponAttribute.HitHarm] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int HitFireball
+        {
+            get => this[AosWeaponAttribute.HitFireball];
+            set => this[AosWeaponAttribute.HitFireball] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int HitLightning
+        {
+            get => this[AosWeaponAttribute.HitLightning];
+            set => this[AosWeaponAttribute.HitLightning] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int HitDispel
+        {
+            get => this[AosWeaponAttribute.HitDispel];
+            set => this[AosWeaponAttribute.HitDispel] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int HitColdArea
+        {
+            get => this[AosWeaponAttribute.HitColdArea];
+            set => this[AosWeaponAttribute.HitColdArea] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int HitFireArea
+        {
+            get => this[AosWeaponAttribute.HitFireArea];
+            set => this[AosWeaponAttribute.HitFireArea] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int HitPoisonArea
+        {
+            get => this[AosWeaponAttribute.HitPoisonArea];
+            set => this[AosWeaponAttribute.HitPoisonArea] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int HitEnergyArea
+        {
+            get => this[AosWeaponAttribute.HitEnergyArea];
+            set => this[AosWeaponAttribute.HitEnergyArea] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int HitPhysicalArea
+        {
+            get => this[AosWeaponAttribute.HitPhysicalArea];
+            set => this[AosWeaponAttribute.HitPhysicalArea] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int ResistPhysicalBonus
+        {
+            get => this[AosWeaponAttribute.ResistPhysicalBonus];
+            set => this[AosWeaponAttribute.ResistPhysicalBonus] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int ResistFireBonus
+        {
+            get => this[AosWeaponAttribute.ResistFireBonus];
+            set => this[AosWeaponAttribute.ResistFireBonus] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int ResistColdBonus
+        {
+            get => this[AosWeaponAttribute.ResistColdBonus];
+            set => this[AosWeaponAttribute.ResistColdBonus] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int ResistPoisonBonus
+        {
+            get => this[AosWeaponAttribute.ResistPoisonBonus];
+            set => this[AosWeaponAttribute.ResistPoisonBonus] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int ResistEnergyBonus
+        {
+            get => this[AosWeaponAttribute.ResistEnergyBonus];
+            set => this[AosWeaponAttribute.ResistEnergyBonus] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int UseBestSkill
+        {
+            get => this[AosWeaponAttribute.UseBestSkill];
+            set => this[AosWeaponAttribute.UseBestSkill] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int MageWeapon
+        {
+            get => this[AosWeaponAttribute.MageWeapon];
+            set => this[AosWeaponAttribute.MageWeapon] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int DurabilityBonus
+        {
+            get => this[AosWeaponAttribute.DurabilityBonus];
+            set => this[AosWeaponAttribute.DurabilityBonus] = value;
+        }
+
+        public AosWeaponAttributes(Item owner)
+            : base(owner)
+        {
+        }
+
+        public AosWeaponAttributes(Item owner, AosWeaponAttributes other)
+            : base(owner, other)
+        {
+        }
+
+        public AosWeaponAttributes(Item owner, GenericReader reader)
+            : base(owner, reader)
+        {
+        }
+
         public static bool IsValid(AosWeaponAttribute attribute)
         {
-            if (!Core.AOS)
-            {
-                return false;
-            }
+            if (!Core.AOS) return false;
 
-            if (!Core.SA && attribute >= AosWeaponAttribute.BloodDrinker)
-            {
-                return false;
-            }
+            if (!Core.SA && attribute >= AosWeaponAttribute.BloodDrinker) return false;
 
             return true;
         }
@@ -1409,20 +1456,19 @@ namespace Server
 
         public static int GetValue(Mobile m, AosWeaponAttribute attribute)
         {
-            if (World.Loading || !IsValid(attribute))
-            {
-                return 0;
-            }
+            if (World.Loading || !IsValid(attribute)) return 0;
 
-            int value = 0;
+            var value = 0;
 
             #region Enhancement
+
             value += Enhancement.GetValue(m, attribute);
+
             #endregion
 
-            for (int i = 0; i < m.Items.Count; ++i)
+            for (var i = 0; i < m.Items.Count; ++i)
             {
-                AosWeaponAttributes attrs = RunicReforging.GetAosWeaponAttributes(m.Items[i]);
+                var attrs = RunicReforging.GetAosWeaponAttributes(m.Items[i]);
 
                 if (attrs != null)
                     value += attrs[attribute];
@@ -1434,91 +1480,59 @@ namespace Server
         public override void SetValue(int bitmask, int value)
         {
             if (bitmask == (int)AosWeaponAttribute.DurabilityBonus && Owner is BaseWeapon)
-            {
                 ((BaseWeapon)Owner).UnscaleDurability();
-            }
 
             base.SetValue(bitmask, value);
 
             if (bitmask == (int)AosWeaponAttribute.DurabilityBonus && Owner is BaseWeapon)
-            {
                 ((BaseWeapon)Owner).ScaleDurability();
-            }
-        }
-
-        public AosWeaponAttributes(Item owner)
-            : base(owner)
-        {
-        }
-
-        public AosWeaponAttributes(Item owner, AosWeaponAttributes other)
-            : base(owner, other)
-        {
-        }
-
-        public AosWeaponAttributes(Item owner, GenericReader reader)
-            : base(owner, reader)
-        {
-        }
-
-        public int this[AosWeaponAttribute attribute]
-        {
-            get
-            {
-                return ExtendedGetValue((int)attribute);
-            }
-            set
-            {
-                SetValue((int)attribute, value);
-            }
         }
 
         public int ExtendedGetValue(int bitmask)
         {
-            int value = GetValue(bitmask);
+            var value = GetValue(bitmask);
 
-            XmlAosAttributes xaos = (XmlAosAttributes)XmlAttach.FindAttachment(Owner, typeof(XmlAosAttributes));
+            var xaos = (XmlAosAttributes)XmlAttach.FindAttachment(Owner, typeof(XmlAosAttributes));
 
-            if (xaos != null)
-            {
-                value += xaos.GetValue(bitmask);
-            }
+            if (xaos != null) value += xaos.GetValue(bitmask);
 
-            return (value);
+            return value;
         }
 
         public void ScaleLeech(int weaponSpeed)
         {
-            BaseWeapon wep = Owner as BaseWeapon;
+            var wep = Owner as BaseWeapon;
 
             if (wep == null || wep.IsArtifact)
                 return;
 
             if (HitLeechHits > 0)
             {
-                double postcap = (double)HitLeechHits / (double)ItemPropertyInfo.GetMaxIntensity(wep, AosWeaponAttribute.HitLeechHits);
+                var postcap = HitLeechHits /
+                              (double)ItemPropertyInfo.GetMaxIntensity(wep, AosWeaponAttribute.HitLeechHits);
                 if (postcap < 1.0) postcap = 1.0;
 
-                int newhits = (int)((wep.MlSpeed * 2500 / (100 + weaponSpeed)) * postcap);
+                var newhits = (int)(wep.MlSpeed * 2500 / (100 + weaponSpeed) * postcap);
 
                 if (wep is BaseRanged)
                     newhits /= 2;
 
-                if(HitLeechHits > newhits)
+                if (HitLeechHits > newhits)
                     HitLeechHits = newhits;
             }
 
             if (HitLeechMana > 0)
             {
-                double postcap = (double)HitLeechMana / (double)ItemPropertyInfo.GetMaxIntensity(wep, AosWeaponAttribute.HitLeechMana);
+                var postcap = HitLeechMana /
+                              (double)ItemPropertyInfo.GetMaxIntensity(wep, AosWeaponAttribute.HitLeechMana);
                 if (postcap < 1.0) postcap = 1.0;
 
-                int newmana = (int)((wep.MlSpeed * 2500 / (100 + weaponSpeed)) * postcap);
+                var newmana = (int)(wep.MlSpeed * 2500 / (100 + weaponSpeed) * postcap);
 
                 if (wep is BaseRanged)
                     newmana /= 2;
 
-                if(HitLeechMana > newmana)
+                if (HitLeechMana > newmana)
                     HitLeechMana = newmana;
             }
         }
@@ -1528,440 +1542,137 @@ namespace Server
             return "...";
         }
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int LowerStatReq
-        {
-            get
-            {
-                return this[AosWeaponAttribute.LowerStatReq];
-            }
-            set
-            {
-                this[AosWeaponAttribute.LowerStatReq] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int SelfRepair
-        {
-            get
-            {
-                return this[AosWeaponAttribute.SelfRepair];
-            }
-            set
-            {
-                this[AosWeaponAttribute.SelfRepair] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int HitLeechHits
-        {
-            get
-            {
-                return this[AosWeaponAttribute.HitLeechHits];
-            }
-            set
-            {
-                this[AosWeaponAttribute.HitLeechHits] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int HitLeechStam
-        {
-            get
-            {
-                return this[AosWeaponAttribute.HitLeechStam];
-            }
-            set
-            {
-                this[AosWeaponAttribute.HitLeechStam] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int HitLeechMana
-        {
-            get
-            {
-                return this[AosWeaponAttribute.HitLeechMana];
-            }
-            set
-            {
-                this[AosWeaponAttribute.HitLeechMana] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int HitLowerAttack
-        {
-            get
-            {
-                return this[AosWeaponAttribute.HitLowerAttack];
-            }
-            set
-            {
-                this[AosWeaponAttribute.HitLowerAttack] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int HitLowerDefend
-        {
-            get
-            {
-                return this[AosWeaponAttribute.HitLowerDefend];
-            }
-            set
-            {
-                this[AosWeaponAttribute.HitLowerDefend] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int HitMagicArrow
-        {
-            get
-            {
-                return this[AosWeaponAttribute.HitMagicArrow];
-            }
-            set
-            {
-                this[AosWeaponAttribute.HitMagicArrow] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int HitHarm
-        {
-            get
-            {
-                return this[AosWeaponAttribute.HitHarm];
-            }
-            set
-            {
-                this[AosWeaponAttribute.HitHarm] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int HitFireball
-        {
-            get
-            {
-                return this[AosWeaponAttribute.HitFireball];
-            }
-            set
-            {
-                this[AosWeaponAttribute.HitFireball] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int HitLightning
-        {
-            get
-            {
-                return this[AosWeaponAttribute.HitLightning];
-            }
-            set
-            {
-                this[AosWeaponAttribute.HitLightning] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int HitDispel
-        {
-            get
-            {
-                return this[AosWeaponAttribute.HitDispel];
-            }
-            set
-            {
-                this[AosWeaponAttribute.HitDispel] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int HitColdArea
-        {
-            get
-            {
-                return this[AosWeaponAttribute.HitColdArea];
-            }
-            set
-            {
-                this[AosWeaponAttribute.HitColdArea] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int HitFireArea
-        {
-            get
-            {
-                return this[AosWeaponAttribute.HitFireArea];
-            }
-            set
-            {
-                this[AosWeaponAttribute.HitFireArea] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int HitPoisonArea
-        {
-            get
-            {
-                return this[AosWeaponAttribute.HitPoisonArea];
-            }
-            set
-            {
-                this[AosWeaponAttribute.HitPoisonArea] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int HitEnergyArea
-        {
-            get
-            {
-                return this[AosWeaponAttribute.HitEnergyArea];
-            }
-            set
-            {
-                this[AosWeaponAttribute.HitEnergyArea] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int HitPhysicalArea
-        {
-            get
-            {
-                return this[AosWeaponAttribute.HitPhysicalArea];
-            }
-            set
-            {
-                this[AosWeaponAttribute.HitPhysicalArea] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int ResistPhysicalBonus
-        {
-            get
-            {
-                return this[AosWeaponAttribute.ResistPhysicalBonus];
-            }
-            set
-            {
-                this[AosWeaponAttribute.ResistPhysicalBonus] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int ResistFireBonus
-        {
-            get
-            {
-                return this[AosWeaponAttribute.ResistFireBonus];
-            }
-            set
-            {
-                this[AosWeaponAttribute.ResistFireBonus] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int ResistColdBonus
-        {
-            get
-            {
-                return this[AosWeaponAttribute.ResistColdBonus];
-            }
-            set
-            {
-                this[AosWeaponAttribute.ResistColdBonus] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int ResistPoisonBonus
-        {
-            get
-            {
-                return this[AosWeaponAttribute.ResistPoisonBonus];
-            }
-            set
-            {
-                this[AosWeaponAttribute.ResistPoisonBonus] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int ResistEnergyBonus
-        {
-            get
-            {
-                return this[AosWeaponAttribute.ResistEnergyBonus];
-            }
-            set
-            {
-                this[AosWeaponAttribute.ResistEnergyBonus] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int UseBestSkill
-        {
-            get
-            {
-                return this[AosWeaponAttribute.UseBestSkill];
-            }
-            set
-            {
-                this[AosWeaponAttribute.UseBestSkill] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int MageWeapon
-        {
-            get
-            {
-                return this[AosWeaponAttribute.MageWeapon];
-            }
-            set
-            {
-                this[AosWeaponAttribute.MageWeapon] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int DurabilityBonus
-        {
-            get
-            {
-                return this[AosWeaponAttribute.DurabilityBonus];
-            }
-            set
-            {
-                this[AosWeaponAttribute.DurabilityBonus] = value;
-            }
-        }
-
         #region SA
+
         [CommandProperty(AccessLevel.GameMaster)]
         public int BloodDrinker
         {
-            get
-            {
-                return this[AosWeaponAttribute.BloodDrinker];
-            }
-            set
-            {
-                this[AosWeaponAttribute.BloodDrinker] = value;
-            }
+            get => this[AosWeaponAttribute.BloodDrinker];
+            set => this[AosWeaponAttribute.BloodDrinker] = value;
         }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public int BattleLust
         {
-            get
-            {
-                return this[AosWeaponAttribute.BattleLust];
-            }
-            set
-            {
-                this[AosWeaponAttribute.BattleLust] = value;
-            }
+            get => this[AosWeaponAttribute.BattleLust];
+            set => this[AosWeaponAttribute.BattleLust] = value;
         }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public int HitCurse
         {
-            get
-            {
-                return this[AosWeaponAttribute.HitCurse];
-            }
-            set
-            {
-                this[AosWeaponAttribute.HitCurse] = value;
-            }
+            get => this[AosWeaponAttribute.HitCurse];
+            set => this[AosWeaponAttribute.HitCurse] = value;
         }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public int HitFatigue
         {
-            get
-            {
-                return this[AosWeaponAttribute.HitFatigue];
-            }
-            set
-            {
-                this[AosWeaponAttribute.HitFatigue] = value;
-            }
+            get => this[AosWeaponAttribute.HitFatigue];
+            set => this[AosWeaponAttribute.HitFatigue] = value;
         }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public int HitManaDrain
         {
-            get
-            {
-                return this[AosWeaponAttribute.HitManaDrain];
-            }
-            set
-            {
-                this[AosWeaponAttribute.HitManaDrain] = value;
-            }
+            get => this[AosWeaponAttribute.HitManaDrain];
+            set => this[AosWeaponAttribute.HitManaDrain] = value;
         }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public int SplinteringWeapon
         {
-            get
-            {
-                return this[AosWeaponAttribute.SplinteringWeapon];
-            }
-            set
-            {
-                this[AosWeaponAttribute.SplinteringWeapon] = value;
-            }
+            get => this[AosWeaponAttribute.SplinteringWeapon];
+            set => this[AosWeaponAttribute.SplinteringWeapon] = value;
         }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public int ReactiveParalyze
         {
-            get
-            {
-                return this[AosWeaponAttribute.ReactiveParalyze];
-            }
-            set
-            {
-                this[AosWeaponAttribute.ReactiveParalyze] = value;
-            }
+            get => this[AosWeaponAttribute.ReactiveParalyze];
+            set => this[AosWeaponAttribute.ReactiveParalyze] = value;
         }
+
         #endregion
     }
 
     [Flags]
     public enum ExtendedWeaponAttribute
     {
-        BoneBreaker     = 0x00000001,
-        HitSwarm        = 0x00000002,
-        HitSparks       = 0x00000004,
-        Bane            = 0x00000008,
-        MysticWeapon    = 0x00000010,
-        AssassinHoned   = 0x00000020,
-        Focus           = 0x00000040,
-        HitExplosion    = 0x00000080
+        BoneBreaker = 0x00000001,
+        HitSwarm = 0x00000002,
+        HitSparks = 0x00000004,
+        Bane = 0x00000008,
+        MysticWeapon = 0x00000010,
+        AssassinHoned = 0x00000020,
+        Focus = 0x00000040,
+        HitExplosion = 0x00000080
     }
 
     public sealed class ExtendedWeaponAttributes : BaseAttributes
     {
+        public int this[ExtendedWeaponAttribute attribute]
+        {
+            get => GetValue((int)attribute);
+            set => SetValue((int)attribute, value);
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int BoneBreaker
+        {
+            get => this[ExtendedWeaponAttribute.BoneBreaker];
+            set => this[ExtendedWeaponAttribute.BoneBreaker] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int HitSwarm
+        {
+            get => this[ExtendedWeaponAttribute.HitSwarm];
+            set => this[ExtendedWeaponAttribute.HitSwarm] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int HitSparks
+        {
+            get => this[ExtendedWeaponAttribute.HitSparks];
+            set => this[ExtendedWeaponAttribute.HitSparks] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int Bane
+        {
+            get => this[ExtendedWeaponAttribute.Bane];
+            set => this[ExtendedWeaponAttribute.Bane] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int MysticWeapon
+        {
+            get => this[ExtendedWeaponAttribute.MysticWeapon];
+            set => this[ExtendedWeaponAttribute.MysticWeapon] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int AssassinHoned
+        {
+            get => this[ExtendedWeaponAttribute.AssassinHoned];
+            set => this[ExtendedWeaponAttribute.AssassinHoned] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int Focus
+        {
+            get => this[ExtendedWeaponAttribute.Focus];
+            set => this[ExtendedWeaponAttribute.Focus] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int HitExplosion
+        {
+            get => this[ExtendedWeaponAttribute.HitExplosion];
+            set => this[ExtendedWeaponAttribute.HitExplosion] = value;
+        }
+
         public ExtendedWeaponAttributes(Item owner)
             : base(owner)
         {
@@ -1982,19 +1693,21 @@ namespace Server
             if (!Core.AOS)
                 return 0;
 
-            int value = 0;
+            var value = 0;
 
             #region Enhancement
+
             value += Enhancement.GetValue(m, attribute);
+
             #endregion
 
-            for (int i = 0; i < m.Items.Count; ++i)
+            for (var i = 0; i < m.Items.Count; ++i)
             {
-                Item obj = m.Items[i];
+                var obj = m.Items[i];
 
                 if (obj is BaseWeapon)
                 {
-                    ExtendedWeaponAttributes attrs = ((BaseWeapon)obj).ExtendedWeaponAttributes;
+                    var attrs = ((BaseWeapon)obj).ExtendedWeaponAttributes;
 
                     if (attrs != null)
                         value += attrs[attribute];
@@ -2004,125 +1717,9 @@ namespace Server
             return value;
         }
 
-        public int this[ExtendedWeaponAttribute attribute]
-        {
-            get
-            {
-                return GetValue((int)attribute);
-            }
-            set
-            {
-                SetValue((int)attribute, value);
-            }
-        }
-
         public override string ToString()
         {
             return "...";
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int BoneBreaker
-        {
-            get
-            {
-                return this[ExtendedWeaponAttribute.BoneBreaker];
-            }
-            set
-            {
-                this[ExtendedWeaponAttribute.BoneBreaker] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int HitSwarm
-        {
-            get
-            {
-                return this[ExtendedWeaponAttribute.HitSwarm];
-            }
-            set
-            {
-                this[ExtendedWeaponAttribute.HitSwarm] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int HitSparks
-        {
-            get
-            {
-                return this[ExtendedWeaponAttribute.HitSparks];
-            }
-            set
-            {
-                this[ExtendedWeaponAttribute.HitSparks] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int Bane
-        {
-            get
-            {
-                return this[ExtendedWeaponAttribute.Bane];
-            }
-            set
-            {
-                this[ExtendedWeaponAttribute.Bane] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int MysticWeapon
-        {
-            get
-            {
-                return this[ExtendedWeaponAttribute.MysticWeapon];
-            }
-            set
-            {
-                this[ExtendedWeaponAttribute.MysticWeapon] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int AssassinHoned
-        {
-            get
-            {
-                return this[ExtendedWeaponAttribute.AssassinHoned];
-            }
-            set
-            {
-                this[ExtendedWeaponAttribute.AssassinHoned] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int Focus
-        {
-            get
-            {
-                return this[ExtendedWeaponAttribute.Focus];
-            }
-            set
-            {
-                this[ExtendedWeaponAttribute.Focus] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int HitExplosion
-        {
-            get
-            {
-                return this[ExtendedWeaponAttribute.HitExplosion];
-            }
-            set
-            {
-                this[ExtendedWeaponAttribute.HitExplosion] = value;
-            }
         }
     }
 
@@ -2133,25 +1730,85 @@ namespace Server
         SelfRepair = 0x00000002,
         MageArmor = 0x00000004,
         DurabilityBonus = 0x00000008,
+
         #region Stygian Abyss
+
         ReactiveParalyze = 0x00000010,
         SoulCharge = 0x00000020
+
         #endregion
     }
 
     public sealed class AosArmorAttributes : BaseAttributes
     {
+        public int this[AosArmorAttribute attribute]
+        {
+            get => ExtendedGetValue((int)attribute);
+            set => SetValue((int)attribute, value);
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int LowerStatReq
+        {
+            get => this[AosArmorAttribute.LowerStatReq];
+            set => this[AosArmorAttribute.LowerStatReq] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int SelfRepair
+        {
+            get => this[AosArmorAttribute.SelfRepair];
+            set => this[AosArmorAttribute.SelfRepair] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int MageArmor
+        {
+            get => this[AosArmorAttribute.MageArmor];
+            set => this[AosArmorAttribute.MageArmor] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int DurabilityBonus
+        {
+            get => this[AosArmorAttribute.DurabilityBonus];
+            set => this[AosArmorAttribute.DurabilityBonus] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int ReactiveParalyze
+        {
+            get => this[AosArmorAttribute.ReactiveParalyze];
+            set => this[AosArmorAttribute.ReactiveParalyze] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int SoulCharge
+        {
+            get => this[AosArmorAttribute.SoulCharge];
+            set => this[AosArmorAttribute.SoulCharge] = value;
+        }
+
+        public AosArmorAttributes(Item owner)
+            : base(owner)
+        {
+        }
+
+        public AosArmorAttributes(Item owner, GenericReader reader)
+            : base(owner, reader)
+        {
+        }
+
+        public AosArmorAttributes(Item owner, AosArmorAttributes other)
+            : base(owner, other)
+        {
+        }
+
         public static bool IsValid(AosArmorAttribute attribute)
         {
-            if (!Core.AOS)
-            {
-                return false;
-            }
+            if (!Core.AOS) return false;
 
-            if (!Core.SA && attribute >= AosArmorAttribute.ReactiveParalyze)
-            {
-                return false;
-            }
+            if (!Core.SA && attribute >= AosArmorAttribute.ReactiveParalyze) return false;
 
             return true;
         }
@@ -2173,16 +1830,13 @@ namespace Server
 
         public static int GetValue(Mobile m, AosArmorAttribute attribute)
         {
-            if (World.Loading || !IsValid(attribute))
-            {
-                return 0;
-            }
+            if (World.Loading || !IsValid(attribute)) return 0;
 
-            int value = 0;
+            var value = 0;
 
-            for (int i = 0; i < m.Items.Count; ++i)
+            for (var i = 0; i < m.Items.Count; ++i)
             {
-                AosArmorAttributes attrs = RunicReforging.GetAosArmorAttributes(m.Items[i]);
+                var attrs = RunicReforging.GetAosArmorAttributes(m.Items[i]);
 
                 if (attrs != null)
                     value += attrs[attribute];
@@ -2196,13 +1850,8 @@ namespace Server
             if (bitmask == (int)AosArmorAttribute.DurabilityBonus)
             {
                 if (Owner is BaseArmor)
-                {
                     ((BaseArmor)Owner).UnscaleDurability();
-                }
-                else if (Owner is BaseClothing)
-                {
-                    ((BaseClothing)Owner).UnscaleDurability();
-                }
+                else if (Owner is BaseClothing) ((BaseClothing)Owner).UnscaleDurability();
             }
 
             base.SetValue(bitmask, value);
@@ -2210,144 +1859,101 @@ namespace Server
             if (bitmask == (int)AosArmorAttribute.DurabilityBonus)
             {
                 if (Owner is BaseArmor)
-                {
                     ((BaseArmor)Owner).ScaleDurability();
-                }
-                else if (Owner is BaseClothing)
-                {
-                    ((BaseClothing)Owner).ScaleDurability();
-                }
-            }
-        }
-
-        public AosArmorAttributes(Item owner)
-            : base(owner)
-        {
-        }
-
-        public AosArmorAttributes(Item owner, GenericReader reader)
-            : base(owner, reader)
-        {
-        }
-
-        public AosArmorAttributes(Item owner, AosArmorAttributes other)
-            : base(owner, other)
-        {
-        }
-
-        public int this[AosArmorAttribute attribute]
-        {
-            get
-            {
-                return ExtendedGetValue((int)attribute);
-            }
-            set
-            {
-                SetValue((int)attribute, value);
+                else if (Owner is BaseClothing) ((BaseClothing)Owner).ScaleDurability();
             }
         }
 
         public int ExtendedGetValue(int bitmask)
         {
-            int value = GetValue(bitmask);
+            var value = GetValue(bitmask);
 
-            XmlAosAttributes xaos = (XmlAosAttributes)XmlAttach.FindAttachment(Owner, typeof(XmlAosAttributes));
+            var xaos = (XmlAosAttributes)XmlAttach.FindAttachment(Owner, typeof(XmlAosAttributes));
 
-            if (xaos != null)
-            {
-                value += xaos.GetValue(bitmask);
-            }
+            if (xaos != null) value += xaos.GetValue(bitmask);
 
-            return (value);
+            return value;
         }
 
         public override string ToString()
         {
             return "...";
         }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int LowerStatReq
-        {
-            get
-            {
-                return this[AosArmorAttribute.LowerStatReq];
-            }
-            set
-            {
-                this[AosArmorAttribute.LowerStatReq] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int SelfRepair
-        {
-            get
-            {
-                return this[AosArmorAttribute.SelfRepair];
-            }
-            set
-            {
-                this[AosArmorAttribute.SelfRepair] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int MageArmor
-        {
-            get
-            {
-                return this[AosArmorAttribute.MageArmor];
-            }
-            set
-            {
-                this[AosArmorAttribute.MageArmor] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int DurabilityBonus
-        {
-            get
-            {
-                return this[AosArmorAttribute.DurabilityBonus];
-            }
-            set
-            {
-                this[AosArmorAttribute.DurabilityBonus] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int ReactiveParalyze
-        {
-            get
-            {
-                return this[AosArmorAttribute.ReactiveParalyze];
-            }
-            set
-            {
-                this[AosArmorAttribute.ReactiveParalyze] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int SoulCharge
-        {
-            get
-            {
-                return this[AosArmorAttribute.SoulCharge];
-            }
-            set
-            {
-                this[AosArmorAttribute.SoulCharge] = value;
-            }
-        }
     }
 
     public sealed class AosSkillBonuses : BaseAttributes
     {
         private List<SkillMod> m_Mods;
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public double Skill_1_Value
+        {
+            get => GetBonus(0);
+            set => SetBonus(0, value);
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public SkillName Skill_1_Name
+        {
+            get => GetSkill(0);
+            set => SetSkill(0, value);
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public double Skill_2_Value
+        {
+            get => GetBonus(1);
+            set => SetBonus(1, value);
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public SkillName Skill_2_Name
+        {
+            get => GetSkill(1);
+            set => SetSkill(1, value);
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public double Skill_3_Value
+        {
+            get => GetBonus(2);
+            set => SetBonus(2, value);
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public SkillName Skill_3_Name
+        {
+            get => GetSkill(2);
+            set => SetSkill(2, value);
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public double Skill_4_Value
+        {
+            get => GetBonus(3);
+            set => SetBonus(3, value);
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public SkillName Skill_4_Name
+        {
+            get => GetSkill(3);
+            set => SetSkill(3, value);
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public double Skill_5_Value
+        {
+            get => GetBonus(4);
+            set => SetBonus(4, value);
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public SkillName Skill_5_Name
+        {
+            get => GetSkill(4);
+            set => SetSkill(4, value);
+        }
 
         public AosSkillBonuses(Item owner)
             : base(owner)
@@ -2366,7 +1972,7 @@ namespace Server
 
         public void GetProperties(ObjectPropertyList list)
         {
-            for (int i = 0; i < 5; ++i)
+            for (var i = 0; i < 5; ++i)
             {
                 SkillName skill;
                 double bonus;
@@ -2395,14 +2001,11 @@ namespace Server
 
         public void AddTo(Mobile m)
         {
-            if (Discordance.UnderPVPEffects(m))
-            {
-                return;
-            }
+            if (Discordance.UnderPVPEffects(m)) return;
 
             Remove();
 
-            for (int i = 0; i < 5; ++i)
+            for (var i = 0; i < 5; ++i)
             {
                 SkillName skill;
                 double bonus;
@@ -2425,14 +2028,15 @@ namespace Server
             if (m_Mods == null)
                 return;
 
-            for (int i = 0; i < m_Mods.Count; ++i)
+            for (var i = 0; i < m_Mods.Count; ++i)
             {
-                Mobile m = m_Mods[i].Owner;
+                var m = m_Mods[i].Owner;
                 m_Mods[i].Remove();
 
                 if (Core.ML)
                     CheckCancelMorph(m);
             }
+
             m_Mods = null;
         }
 
@@ -2449,41 +2053,41 @@ namespace Server
 
         public bool GetValues(int index, out SkillName skill, out double bonus)
         {
-            int v = GetValue(1 << index);
-            int vSkill = 0;
-            int vBonus = 0;
+            var v = GetValue(1 << index);
+            var vSkill = 0;
+            var vBonus = 0;
 
-            for (int i = 0; i < 16; ++i)
+            for (var i = 0; i < 16; ++i)
             {
                 vSkill <<= 1;
-                vSkill |= (v & 1);
+                vSkill |= v & 1;
                 v >>= 1;
 
                 vBonus <<= 1;
-                vBonus |= (v & 1);
+                vBonus |= v & 1;
                 v >>= 1;
             }
 
             skill = (SkillName)vSkill;
             bonus = (double)vBonus / 10;
 
-            return (bonus != 0);
+            return bonus != 0;
         }
 
         public void SetValues(int index, SkillName skill, double bonus)
         {
-            int v = 0;
-            int vSkill = (int)skill;
-            int vBonus = (int)(bonus * 10);
+            var v = 0;
+            var vSkill = (int)skill;
+            var vBonus = (int)(bonus * 10);
 
-            for (int i = 0; i < 16; ++i)
+            for (var i = 0; i < 16; ++i)
             {
                 v <<= 1;
-                v |= (vBonus & 1);
+                v |= vBonus & 1;
                 vBonus >>= 1;
 
                 v <<= 1;
-                v |= (vSkill & 1);
+                v |= vSkill & 1;
                 vSkill >>= 1;
             }
 
@@ -2532,18 +2136,16 @@ namespace Server
 
             double minSkill, maxSkill;
 
-            AnimalFormContext acontext = AnimalForm.GetContext(m);
-            TransformContext context = TransformationSpellHelper.GetContext(m);
+            var acontext = AnimalForm.GetContext(m);
+            var context = TransformationSpellHelper.GetContext(m);
 
             if (context != null)
             {
-                Spell spell = context.Spell as Spell;
+                var spell = context.Spell as Spell;
                 spell.GetCastSkills(out minSkill, out maxSkill);
 
                 if (m.Skills[spell.CastSkill].Value < minSkill)
-                {
                     TransformationSpellHelper.RemoveContext(m, context, true);
-                }
             }
 
             if (acontext != null)
@@ -2557,17 +2159,15 @@ namespace Server
                     int i;
 
                     for (i = 0; i < AnimalForm.Entries.Length; ++i)
-                    {
                         if (AnimalForm.Entries[i].Type == acontext.Type)
                             break;
-                    }
 
-                    if (i < AnimalForm.Entries.Length && m.Skills[SkillName.Ninjitsu].Value < AnimalForm.Entries[i].ReqSkill)
-                    {
+                    if (i < AnimalForm.Entries.Length &&
+                        m.Skills[SkillName.Ninjitsu].Value < AnimalForm.Entries[i].ReqSkill)
                         AnimalForm.RemoveContext(m, true);
-                    }
                 }
             }
+
             if (!m.CanBeginAction(typeof(PolymorphSpell)) && m.Skills[SkillName.Magery].Value < 66.1)
             {
                 m.BodyMod = 0;
@@ -2577,6 +2177,7 @@ namespace Server
                 BaseArmor.ValidateMobile(m);
                 BaseClothing.ValidateMobile(m);
             }
+
             if (!m.CanBeginAction(typeof(IncognitoSpell)) && m.Skills[SkillName.Magery].Value < 38.1)
             {
                 if (m is PlayerMobile)
@@ -2589,141 +2190,11 @@ namespace Server
                 BaseClothing.ValidateMobile(m);
                 BuffInfo.RemoveBuff(m, BuffIcon.Incognito);
             }
-            return;
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public double Skill_1_Value
-        {
-            get
-            {
-                return GetBonus(0);
-            }
-            set
-            {
-                SetBonus(0, value);
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public SkillName Skill_1_Name
-        {
-            get
-            {
-                return GetSkill(0);
-            }
-            set
-            {
-                SetSkill(0, value);
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public double Skill_2_Value
-        {
-            get
-            {
-                return GetBonus(1);
-            }
-            set
-            {
-                SetBonus(1, value);
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public SkillName Skill_2_Name
-        {
-            get
-            {
-                return GetSkill(1);
-            }
-            set
-            {
-                SetSkill(1, value);
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public double Skill_3_Value
-        {
-            get
-            {
-                return GetBonus(2);
-            }
-            set
-            {
-                SetBonus(2, value);
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public SkillName Skill_3_Name
-        {
-            get
-            {
-                return GetSkill(2);
-            }
-            set
-            {
-                SetSkill(2, value);
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public double Skill_4_Value
-        {
-            get
-            {
-                return GetBonus(3);
-            }
-            set
-            {
-                SetBonus(3, value);
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public SkillName Skill_4_Name
-        {
-            get
-            {
-                return GetSkill(3);
-            }
-            set
-            {
-                SetSkill(3, value);
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public double Skill_5_Value
-        {
-            get
-            {
-                return GetBonus(4);
-            }
-            set
-            {
-                SetBonus(4, value);
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public SkillName Skill_5_Name
-        {
-            get
-            {
-                return GetSkill(4);
-            }
-            set
-            {
-                SetSkill(4, value);
-            }
         }
     }
 
     #region Stygian Abyss
+
     [Flags]
     public enum SAAbsorptionAttribute
     {
@@ -2738,8 +2209,9 @@ namespace Server
         ResonancePoison = 0x00000100,
         ResonanceEnergy = 0x00000200,
         ResonanceKinetic = 0x00000400,
-        /*Soul Charge is wrong. 
-         * Do not use these types. 
+
+        /*Soul Charge is wrong.
+         * Do not use these types.
          * Use AosArmorAttribute type only.
          * Fill these in with any new attributes.*/
         SoulChargeFire = 0x00000800,
@@ -2752,12 +2224,164 @@ namespace Server
 
     public sealed class SAAbsorptionAttributes : BaseAttributes
     {
+        public int this[SAAbsorptionAttribute attribute]
+        {
+            get => GetValue((int)attribute);
+            set => SetValue((int)attribute, value);
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int EaterFire
+        {
+            get => this[SAAbsorptionAttribute.EaterFire];
+            set => this[SAAbsorptionAttribute.EaterFire] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int EaterCold
+        {
+            get => this[SAAbsorptionAttribute.EaterCold];
+            set => this[SAAbsorptionAttribute.EaterCold] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int EaterPoison
+        {
+            get => this[SAAbsorptionAttribute.EaterPoison];
+            set => this[SAAbsorptionAttribute.EaterPoison] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int EaterEnergy
+        {
+            get => this[SAAbsorptionAttribute.EaterEnergy];
+            set => this[SAAbsorptionAttribute.EaterEnergy] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int EaterKinetic
+        {
+            get => this[SAAbsorptionAttribute.EaterKinetic];
+            set => this[SAAbsorptionAttribute.EaterKinetic] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int EaterDamage
+        {
+            get => this[SAAbsorptionAttribute.EaterDamage];
+            set => this[SAAbsorptionAttribute.EaterDamage] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int ResonanceFire
+        {
+            get => this[SAAbsorptionAttribute.ResonanceFire];
+            set => this[SAAbsorptionAttribute.ResonanceFire] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int ResonanceCold
+        {
+            get => this[SAAbsorptionAttribute.ResonanceCold];
+            set => this[SAAbsorptionAttribute.ResonanceCold] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int ResonancePoison
+        {
+            get => this[SAAbsorptionAttribute.ResonancePoison];
+            set => this[SAAbsorptionAttribute.ResonancePoison] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int ResonanceEnergy
+        {
+            get => this[SAAbsorptionAttribute.ResonanceEnergy];
+            set => this[SAAbsorptionAttribute.ResonanceEnergy] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int ResonanceKinetic
+        {
+            get => this[SAAbsorptionAttribute.ResonanceKinetic];
+            set => this[SAAbsorptionAttribute.ResonanceKinetic] = value;
+        }
+
+        //[CommandProperty(AccessLevel.GameMaster)]
+        public int SoulChargeFire
+        {
+            get => this[SAAbsorptionAttribute.SoulChargeFire];
+            set
+            {
+                //this[SAAbsorptionAttribute.SoulChargeFire] = value;
+            }
+        }
+
+        //[CommandProperty(AccessLevel.GameMaster)]
+        public int SoulChargeCold
+        {
+            get => this[SAAbsorptionAttribute.SoulChargeCold];
+            set
+            {
+                //this[SAAbsorptionAttribute.SoulChargeCold] = value;
+            }
+        }
+
+        //[CommandProperty(AccessLevel.GameMaster)]
+        public int SoulChargePoison
+        {
+            get => this[SAAbsorptionAttribute.SoulChargePoison];
+            set
+            {
+                //this[SAAbsorptionAttribute.SoulChargePoison] = value;
+            }
+        }
+
+        //[CommandProperty(AccessLevel.GameMaster)]
+        public int SoulChargeEnergy
+        {
+            get => this[SAAbsorptionAttribute.SoulChargeEnergy];
+            set
+            {
+                //this[SAAbsorptionAttribute.SoulChargeEnergy] = value;
+            }
+        }
+
+        //[CommandProperty(AccessLevel.GameMaster)]
+        public int SoulChargeKinetic
+        {
+            get => this[SAAbsorptionAttribute.SoulChargeKinetic];
+            set
+            {
+                //this[SAAbsorptionAttribute.SoulChargeKinetic] = value;
+            }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int CastingFocus
+        {
+            get => this[SAAbsorptionAttribute.CastingFocus];
+            set => this[SAAbsorptionAttribute.CastingFocus] = value;
+        }
+
+        public SAAbsorptionAttributes(Item owner)
+            : base(owner)
+        {
+        }
+
+        public SAAbsorptionAttributes(Item owner, SAAbsorptionAttributes other)
+            : base(owner, other)
+        {
+        }
+
+        public SAAbsorptionAttributes(Item owner, GenericReader reader)
+            : base(owner, reader)
+        {
+        }
+
         public static bool IsValid(SAAbsorptionAttribute attribute)
         {
-            if (!Core.SA)
-            {
-                return false;
-            }
+            if (!Core.SA) return false;
 
             return true;
         }
@@ -2779,20 +2403,19 @@ namespace Server
 
         public static int GetValue(Mobile m, SAAbsorptionAttribute attribute)
         {
-            if (World.Loading || !IsValid(attribute))
-            {
-                return 0;
-            }
+            if (World.Loading || !IsValid(attribute)) return 0;
 
-            int value = 0;
+            var value = 0;
 
             #region Enhancement
+
             value += Enhancement.GetValue(m, attribute);
+
             #endregion
 
-            for (int i = 0; i < m.Items.Count; ++i)
+            for (var i = 0; i < m.Items.Count; ++i)
             {
-                SAAbsorptionAttributes attrs = RunicReforging.GetSAAbsorptionAttributes(m.Items[i]);
+                var attrs = RunicReforging.GetSAAbsorptionAttributes(m.Items[i]);
 
                 if (attrs != null)
                     value += attrs[attribute];
@@ -2803,259 +2426,12 @@ namespace Server
             return value;
         }
 
-        public SAAbsorptionAttributes(Item owner)
-            : base(owner)
-        {
-        }
-
-        public SAAbsorptionAttributes(Item owner, SAAbsorptionAttributes other)
-            : base(owner, other)
-        {
-        }
-
-        public SAAbsorptionAttributes(Item owner, GenericReader reader)
-            : base(owner, reader)
-        {
-        }
-
-        public int this[SAAbsorptionAttribute attribute]
-        {
-            get
-            {
-                return GetValue((int)attribute);
-            }
-            set
-            {
-                SetValue((int)attribute, value);
-            }
-        }
-
         public override string ToString()
         {
             return "...";
         }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int EaterFire
-        {
-            get
-            {
-                return this[SAAbsorptionAttribute.EaterFire];
-            }
-            set
-            {
-                this[SAAbsorptionAttribute.EaterFire] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int EaterCold
-        {
-            get
-            {
-                return this[SAAbsorptionAttribute.EaterCold];
-            }
-            set
-            {
-                this[SAAbsorptionAttribute.EaterCold] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int EaterPoison
-        {
-            get
-            {
-                return this[SAAbsorptionAttribute.EaterPoison];
-            }
-            set
-            {
-                this[SAAbsorptionAttribute.EaterPoison] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int EaterEnergy
-        {
-            get
-            {
-                return this[SAAbsorptionAttribute.EaterEnergy];
-            }
-            set
-            {
-                this[SAAbsorptionAttribute.EaterEnergy] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int EaterKinetic
-        {
-            get
-            {
-                return this[SAAbsorptionAttribute.EaterKinetic];
-            }
-            set
-            {
-                this[SAAbsorptionAttribute.EaterKinetic] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int EaterDamage
-        {
-            get
-            {
-                return this[SAAbsorptionAttribute.EaterDamage];
-            }
-            set
-            {
-                this[SAAbsorptionAttribute.EaterDamage] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int ResonanceFire
-        {
-            get
-            {
-                return this[SAAbsorptionAttribute.ResonanceFire];
-            }
-            set
-            {
-                this[SAAbsorptionAttribute.ResonanceFire] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int ResonanceCold
-        {
-            get
-            {
-                return this[SAAbsorptionAttribute.ResonanceCold];
-            }
-            set
-            {
-                this[SAAbsorptionAttribute.ResonanceCold] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int ResonancePoison
-        {
-            get
-            {
-                return this[SAAbsorptionAttribute.ResonancePoison];
-            }
-            set
-            {
-                this[SAAbsorptionAttribute.ResonancePoison] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int ResonanceEnergy
-        {
-            get
-            {
-                return this[SAAbsorptionAttribute.ResonanceEnergy];
-            }
-            set
-            {
-                this[SAAbsorptionAttribute.ResonanceEnergy] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int ResonanceKinetic
-        {
-            get
-            {
-                return this[SAAbsorptionAttribute.ResonanceKinetic];
-            }
-            set
-            {
-                this[SAAbsorptionAttribute.ResonanceKinetic] = value;
-            }
-        }
-
-        //[CommandProperty(AccessLevel.GameMaster)]
-        public int SoulChargeFire
-        {
-            get
-            {
-                return this[SAAbsorptionAttribute.SoulChargeFire];
-            }
-            set
-            {
-                //this[SAAbsorptionAttribute.SoulChargeFire] = value;
-            }
-        }
-
-        //[CommandProperty(AccessLevel.GameMaster)]
-        public int SoulChargeCold
-        {
-            get
-            {
-                return this[SAAbsorptionAttribute.SoulChargeCold];
-            }
-            set
-            {
-                //this[SAAbsorptionAttribute.SoulChargeCold] = value;
-            }
-        }
-
-        //[CommandProperty(AccessLevel.GameMaster)]
-        public int SoulChargePoison
-        {
-            get
-            {
-                return this[SAAbsorptionAttribute.SoulChargePoison];
-            }
-            set
-            {
-                //this[SAAbsorptionAttribute.SoulChargePoison] = value;
-            }
-        }
-
-        //[CommandProperty(AccessLevel.GameMaster)]
-        public int SoulChargeEnergy
-        {
-            get
-            {
-                return this[SAAbsorptionAttribute.SoulChargeEnergy];
-            }
-            set
-            {
-                //this[SAAbsorptionAttribute.SoulChargeEnergy] = value;
-            }
-        }
-
-        //[CommandProperty(AccessLevel.GameMaster)]
-        public int SoulChargeKinetic
-        {
-            get
-            {
-                return this[SAAbsorptionAttribute.SoulChargeKinetic];
-            }
-            set
-            {
-                //this[SAAbsorptionAttribute.SoulChargeKinetic] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int CastingFocus
-        {
-            get
-            {
-                return this[SAAbsorptionAttribute.CastingFocus];
-            }
-            set
-            {
-                this[SAAbsorptionAttribute.CastingFocus] = value;
-            }
-        }
     }
+
     #endregion
 
     [Flags]
@@ -3072,6 +2448,61 @@ namespace Server
 
     public sealed class AosElementAttributes : BaseAttributes
     {
+        public int this[AosElementAttribute attribute]
+        {
+            get => ExtendedGetValue((int)attribute);
+            set => SetValue((int)attribute, value);
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int Physical
+        {
+            get => this[AosElementAttribute.Physical];
+            set => this[AosElementAttribute.Physical] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int Fire
+        {
+            get => this[AosElementAttribute.Fire];
+            set => this[AosElementAttribute.Fire] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int Cold
+        {
+            get => this[AosElementAttribute.Cold];
+            set => this[AosElementAttribute.Cold] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int Poison
+        {
+            get => this[AosElementAttribute.Poison];
+            set => this[AosElementAttribute.Poison] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int Energy
+        {
+            get => this[AosElementAttribute.Energy];
+            set => this[AosElementAttribute.Energy] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int Chaos
+        {
+            get => this[AosElementAttribute.Chaos];
+            set => this[AosElementAttribute.Chaos] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int Direct
+        {
+            get => this[AosElementAttribute.Direct];
+            set => this[AosElementAttribute.Direct] = value;
+        }
+
         public AosElementAttributes(Item owner)
             : base(owner)
         {
@@ -3087,126 +2518,20 @@ namespace Server
         {
         }
 
-        public int this[AosElementAttribute attribute]
-        {
-            get
-            {
-                return ExtendedGetValue((int)attribute);
-            }
-            set
-            {
-                SetValue((int)attribute, value);
-            }
-        }
-
         public int ExtendedGetValue(int bitmask)
         {
-            int value = GetValue(bitmask);
+            var value = GetValue(bitmask);
 
-            XmlAosAttributes xaos = (XmlAosAttributes)XmlAttach.FindAttachment(Owner, typeof(XmlAosAttributes));
+            var xaos = (XmlAosAttributes)XmlAttach.FindAttachment(Owner, typeof(XmlAosAttributes));
 
-            if (xaos != null)
-            {
-                value += xaos.GetValue(bitmask);
-            }
+            if (xaos != null) value += xaos.GetValue(bitmask);
 
-            return (value);
+            return value;
         }
 
         public override string ToString()
         {
             return "...";
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int Physical
-        {
-            get
-            {
-                return this[AosElementAttribute.Physical];
-            }
-            set
-            {
-                this[AosElementAttribute.Physical] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int Fire
-        {
-            get
-            {
-                return this[AosElementAttribute.Fire];
-            }
-            set
-            {
-                this[AosElementAttribute.Fire] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int Cold
-        {
-            get
-            {
-                return this[AosElementAttribute.Cold];
-            }
-            set
-            {
-                this[AosElementAttribute.Cold] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int Poison
-        {
-            get
-            {
-                return this[AosElementAttribute.Poison];
-            }
-            set
-            {
-                this[AosElementAttribute.Poison] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int Energy
-        {
-            get
-            {
-                return this[AosElementAttribute.Energy];
-            }
-            set
-            {
-                this[AosElementAttribute.Energy] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int Chaos
-        {
-            get
-            {
-                return this[AosElementAttribute.Chaos];
-            }
-            set
-            {
-                this[AosElementAttribute.Chaos] = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int Direct
-        {
-            get
-            {
-                return this[AosElementAttribute.Direct];
-            }
-            set
-            {
-                this[AosElementAttribute.Direct] = value;
-            }
         }
     }
 
@@ -3223,6 +2548,56 @@ namespace Server
 
     public sealed class NegativeAttributes : BaseAttributes
     {
+        public const double CombatDecayChance = 0.02;
+
+        public int this[NegativeAttribute attribute]
+        {
+            get => GetValue((int)attribute);
+            set => SetValue((int)attribute, value);
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int Brittle
+        {
+            get => this[NegativeAttribute.Brittle];
+            set => this[NegativeAttribute.Brittle] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int Prized
+        {
+            get => this[NegativeAttribute.Prized];
+            set => this[NegativeAttribute.Prized] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int Massive
+        {
+            get => this[NegativeAttribute.Massive];
+            set => this[NegativeAttribute.Massive] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int Unwieldly
+        {
+            get => this[NegativeAttribute.Unwieldly];
+            set => this[NegativeAttribute.Unwieldly] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int Antique
+        {
+            get => this[NegativeAttribute.Antique];
+            set => this[NegativeAttribute.Antique] = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int NoRepair
+        {
+            get => this[NegativeAttribute.NoRepair];
+            set => this[NegativeAttribute.NoRepair] = value;
+        }
+
         public NegativeAttributes(Item owner)
             : base(owner)
         {
@@ -3244,10 +2619,10 @@ namespace Server
                 list.Add(1151782);
 
             if (Brittle > 0 ||
-                item is BaseWeapon && ((BaseWeapon)item).Attributes.Brittle > 0 ||
-                item is BaseArmor && ((BaseArmor)item).Attributes.Brittle > 0 ||
-                item is BaseJewel && ((BaseJewel)item).Attributes.Brittle > 0 ||
-                item is BaseClothing && ((BaseClothing)item).Attributes.Brittle > 0)
+                (item is BaseWeapon && ((BaseWeapon)item).Attributes.Brittle > 0) ||
+                (item is BaseArmor && ((BaseArmor)item).Attributes.Brittle > 0) ||
+                (item is BaseJewel && ((BaseJewel)item).Attributes.Brittle > 0) ||
+                (item is BaseClothing && ((BaseClothing)item).Attributes.Brittle > 0))
                 list.Add(1116209);
 
             if (Prized > 0)
@@ -3263,8 +2638,6 @@ namespace Server
                 list.Add(1076187);
         }
 
-        public const double CombatDecayChance = 0.02;
-
         public static void OnCombatAction(Mobile m)
         {
             if (m == null || !m.Alive)
@@ -3274,17 +2647,14 @@ namespace Server
 
             foreach (var item in m.Items.Where(i => i is IDurability))
             {
-                NegativeAttributes attrs = RunicReforging.GetNegativeAttributes(item);
+                var attrs = RunicReforging.GetNegativeAttributes(item);
 
-                if (attrs != null && attrs.Antique > 0 && CombatDecayChance > Utility.RandomDouble())
-                {
-                    list.Add(item);
-                }
+                if (attrs != null && attrs.Antique > 0 && CombatDecayChance > Utility.RandomDouble()) list.Add(item);
             }
 
             foreach (var item in list)
             {
-                IDurability dur = item as IDurability;
+                var dur = item as IDurability;
 
                 if (dur == null)
                     continue;
@@ -3292,13 +2662,9 @@ namespace Server
                 if (dur.HitPoints >= 1)
                 {
                     if (dur.HitPoints >= 4)
-                    {
                         dur.HitPoints -= 4;
-                    }
                     else
-                    {
                         dur.HitPoints = 0;
-                    }
                 }
                 else
                 {
@@ -3307,7 +2673,8 @@ namespace Server
                         dur.MaxHitPoints--;
 
                         if (item.Parent is Mobile)
-                            ((Mobile)item.Parent).LocalOverheadMessage(Server.Network.MessageType.Regular, 0x3B2, 1061121); // Your equipment is severely damaged.
+                            ((Mobile)item.Parent).LocalOverheadMessage(MessageType.Regular, 0x3B2,
+                                1061121); // Your equipment is severely damaged.
                     }
                     else
                     {
@@ -3319,69 +2686,32 @@ namespace Server
             ColUtility.Free(list);
         }
 
-        public int this[NegativeAttribute attribute]
-        {
-            get { return GetValue((int)attribute); }
-            set { SetValue((int)attribute, value); }
-        }
-
         public override string ToString()
         {
             return "...";
         }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int Brittle { get { return this[NegativeAttribute.Brittle]; } set { this[NegativeAttribute.Brittle] = value; } }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int Prized { get { return this[NegativeAttribute.Prized]; } set { this[NegativeAttribute.Prized] = value; } }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int Massive { get { return this[NegativeAttribute.Massive]; } set { this[NegativeAttribute.Massive] = value; } }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int Unwieldly { get { return this[NegativeAttribute.Unwieldly]; } set { this[NegativeAttribute.Unwieldly] = value; } }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int Antique { get { return this[NegativeAttribute.Antique]; } set { this[NegativeAttribute.Antique] = value; } }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int NoRepair { get { return this[NegativeAttribute.NoRepair]; } set { this[NegativeAttribute.NoRepair] = value; } }
     }
 
     [PropertyObject]
     public abstract class BaseAttributes
     {
-        private readonly Item m_Owner;
+        private static readonly int[] m_Empty = new int[0];
         private uint m_Names;
         private int[] m_Values;
 
-        private static readonly int[] m_Empty = new int[0];
+        public bool IsEmpty => m_Names == 0;
 
-        public bool IsEmpty
-        {
-            get
-            {
-                return (m_Names == 0);
-            }
-        }
-        public Item Owner
-        {
-            get
-            {
-                return m_Owner;
-            }
-        }
+        public Item Owner { get; }
 
         public BaseAttributes(Item owner)
         {
-            m_Owner = owner;
+            Owner = owner;
             m_Values = m_Empty;
         }
 
         public BaseAttributes(Item owner, BaseAttributes other)
         {
-            m_Owner = owner;
+            Owner = owner;
             m_Values = new int[other.m_Values.Length];
             other.m_Values.CopyTo(m_Values, 0);
             m_Names = other.m_Names;
@@ -3389,32 +2719,32 @@ namespace Server
 
         public BaseAttributes(Item owner, GenericReader reader)
         {
-            m_Owner = owner;
+            Owner = owner;
 
             int version = reader.ReadByte();
 
             switch (version)
             {
                 case 1:
-                    {
-                        m_Names = reader.ReadUInt();
-                        m_Values = new int[reader.ReadEncodedInt()];
+                {
+                    m_Names = reader.ReadUInt();
+                    m_Values = new int[reader.ReadEncodedInt()];
 
-                        for (int i = 0; i < m_Values.Length; ++i)
-                            m_Values[i] = reader.ReadEncodedInt();
+                    for (var i = 0; i < m_Values.Length; ++i)
+                        m_Values[i] = reader.ReadEncodedInt();
 
-                        break;
-                    }
+                    break;
+                }
                 case 0:
-                    {
-                        m_Names = reader.ReadUInt();
-                        m_Values = new int[reader.ReadInt()];
+                {
+                    m_Names = reader.ReadUInt();
+                    m_Values = new int[reader.ReadInt()];
 
-                        for (int i = 0; i < m_Values.Length; ++i)
-                            m_Values[i] = reader.ReadInt();
+                    for (var i = 0; i < m_Values.Length; ++i)
+                        m_Values[i] = reader.ReadInt();
 
-                        break;
-                    }
+                    break;
+                }
             }
         }
 
@@ -3422,11 +2752,11 @@ namespace Server
         {
             writer.Write((byte)1); // version;
 
-            writer.Write((uint)m_Names);
-            writer.WriteEncodedInt((int)m_Values.Length);
+            writer.Write(m_Names);
+            writer.WriteEncodedInt(m_Values.Length);
 
-            for (int i = 0; i < m_Values.Length; ++i)
-                writer.WriteEncodedInt((int)m_Values[i]);
+            for (var i = 0; i < m_Values.Length; ++i)
+                writer.WriteEncodedInt(m_Values[i]);
         }
 
         public int GetValue(int bitmask)
@@ -3434,12 +2764,12 @@ namespace Server
             if (!Core.AOS)
                 return 0;
 
-            uint mask = (uint)bitmask;
+            var mask = (uint)bitmask;
 
             if ((m_Names & mask) == 0)
                 return 0;
 
-            int index = GetIndex(mask);
+            var index = GetIndex(mask);
 
             if (index >= 0 && index < m_Values.Length)
                 return m_Values[index];
@@ -3449,32 +2779,32 @@ namespace Server
 
         public virtual void SetValue(int bitmask, int value)
         {
-            uint mask = (uint)bitmask;
+            var mask = (uint)bitmask;
 
             if (value != 0)
             {
                 if ((m_Names & mask) != 0)
                 {
-                    int index = GetIndex(mask);
+                    var index = GetIndex(mask);
 
                     if (index >= 0 && index < m_Values.Length)
                         m_Values[index] = value;
                 }
                 else
                 {
-                    int index = GetIndex(mask);
+                    var index = GetIndex(mask);
 
                     if (index >= 0 && index <= m_Values.Length)
                     {
-                        int[] old = m_Values;
+                        var old = m_Values;
                         m_Values = new int[old.Length + 1];
 
-                        for (int i = 0; i < index; ++i)
+                        for (var i = 0; i < index; ++i)
                             m_Values[i] = old[i];
 
                         m_Values[index] = value;
 
-                        for (int i = index; i < old.Length; ++i)
+                        for (var i = index; i < old.Length; ++i)
                             m_Values[i + 1] = old[i];
 
                         m_Names |= mask;
@@ -3483,7 +2813,7 @@ namespace Server
             }
             else if ((m_Names & mask) != 0)
             {
-                int index = GetIndex(mask);
+                var index = GetIndex(mask);
 
                 if (index >= 0 && index < m_Values.Length)
                 {
@@ -3495,35 +2825,36 @@ namespace Server
                     }
                     else
                     {
-                        int[] old = m_Values;
+                        var old = m_Values;
                         m_Values = new int[old.Length - 1];
 
-                        for (int i = 0; i < index; ++i)
+                        for (var i = 0; i < index; ++i)
                             m_Values[i] = old[i];
 
-                        for (int i = index + 1; i < old.Length; ++i)
+                        for (var i = index + 1; i < old.Length; ++i)
                             m_Values[i - 1] = old[i];
                     }
                 }
             }
 
-            if (m_Owner != null && m_Owner.Parent is Mobile)
+            if (Owner != null && Owner.Parent is Mobile)
             {
-                Mobile m = (Mobile)m_Owner.Parent;
+                var m = (Mobile)Owner.Parent;
 
                 m.CheckStatTimers();
                 m.UpdateResistances();
-                m.Delta(MobileDelta.Stat | MobileDelta.WeaponDamage | MobileDelta.Hits | MobileDelta.Stam | MobileDelta.Mana);
+                m.Delta(MobileDelta.Stat | MobileDelta.WeaponDamage | MobileDelta.Hits | MobileDelta.Stam |
+                        MobileDelta.Mana);
             }
 
-            if (m_Owner != null)
-                m_Owner.InvalidateProperties();
+            if (Owner != null)
+                Owner.InvalidateProperties();
         }
 
         private int GetIndex(uint mask)
         {
-            int index = 0;
-            uint ourNames = m_Names;
+            var index = 0;
+            var ourNames = m_Names;
             uint currentBit = 1;
 
             while (currentBit != mask)

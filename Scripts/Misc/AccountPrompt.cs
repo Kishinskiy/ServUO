@@ -12,19 +12,19 @@ namespace Server.Misc
                 Console.WriteLine("This server has no accounts.");
                 Console.Write("Do you want to create the owner account now? (y/n)");
 
-                string key = Console.ReadLine();
- 
+                var key = Console.ReadLine();
+
                 if (key.ToUpper() == "Y")
                 {
                     Console.WriteLine();
 
                     Console.Write("Username: ");
-                    string username = Console.ReadLine();
+                    var username = Console.ReadLine();
 
                     Console.Write("Password: ");
-                    string password = Console.ReadLine();
+                    var password = Console.ReadLine();
 
-                    Account a = new Account(username, password);
+                    var a = new Account(username, password);
                     a.AccessLevel = AccessLevel.Owner;
 
                     Console.WriteLine("Account created.");

@@ -8,7 +8,7 @@ namespace Server.Misc
         public FoodDecayTimer()
             : base(TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5))
         {
-            this.Priority = TimerPriority.OneMinute;
+            Priority = TimerPriority.OneMinute;
         }
 
         public static void Initialize()
@@ -18,7 +18,7 @@ namespace Server.Misc
 
         public static void FoodDecay()
         {
-            foreach (NetState state in NetState.Instances)
+            foreach (var state in NetState.Instances)
             {
                 HungerDecay(state.Mobile);
                 ThirstDecay(state.Mobile);
@@ -39,7 +39,7 @@ namespace Server.Misc
 
         protected override void OnTick()
         {
-            FoodDecay();			
+            FoodDecay();
         }
     }
 }

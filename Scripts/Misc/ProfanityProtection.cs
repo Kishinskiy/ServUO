@@ -1,28 +1,31 @@
-using System;
-using Server.Network;
-
 namespace Server.Misc
 {
     public enum ProfanityAction
     {
-        None,			// no action taken
-        Disallow,		// speech is not displayed
-        Criminal,		// makes the player criminal, not killable by guards
-        CriminalAction,	// makes the player criminal, can be killed by guards
-        Disconnect,		// player is kicked
-        Other			// some other implementation
+        None, // no action taken
+        Disallow, // speech is not displayed
+        Criminal, // makes the player criminal, not killable by guards
+        CriminalAction, // makes the player criminal, can be killed by guards
+        Disconnect, // player is kicked
+        Other // some other implementation
     }
 
     public class ProfanityProtection
     {
         private static readonly bool Enabled = false;
-        private static readonly ProfanityAction Action = ProfanityAction.Disallow;// change here what to do when profanity is detected
-        private static readonly char[] m_Exceptions = new char[]
+
+        private static readonly ProfanityAction
+            Action = ProfanityAction.Disallow; // change here what to do when profanity is detected
+
+        public static char[] Exceptions { get; } =
         {
-            ' ', '-', '.', '\'', '"', ',', '_', '+', '=', '~', '`', '!', '^', '*', '\\', '/', ';', ':', '<', '>', '[', ']', '{', '}', '?', '|', '(', ')', '%', '$', '&', '#', '@'
+            ' ', '-', '.', '\'', '"', ',', '_', '+', '=', '~', '`', '!', '^', '*', '\\', '/', ';', ':', '<', '>', '[',
+            ']', '{', '}', '?', '|', '(', ')', '%', '$', '&', '#', '@'
         };
-        private static readonly string[] m_StartDisallowed = new string[] { };
-        private static readonly string[] m_Disallowed = new string[]
+
+        public static string[] StartDisallowed { get; } = { };
+
+        public static string[] Disallowed { get; } =
         {
             "jigaboo",
             "chigaboo",
@@ -70,36 +73,16 @@ namespace Server.Misc
             "shit",
             "fuck"
         };
-        public static char[]	Exceptions
-        {
-            get
-            {
-                return m_Exceptions;
-            }
-        }
-        public static string[]	StartDisallowed
-        {
-            get
-            {
-                return m_StartDisallowed;
-            }
-        }
-        public static string[]	Disallowed
-        {
-            get
-            {
-                return m_Disallowed;
-            }
-        }
+
         public static void Initialize()
         {
             if (Enabled)
-                EventSink.Speech += new SpeechEventHandler(EventSink_Speech);
+                EventSink.Speech += EventSink_Speech;
         }
 
         private static bool OnProfanityDetected(Mobile from, string speech)
         {
-            switch ( Action )
+            switch (Action)
             {
                 case ProfanityAction.None:
                     return true;
@@ -112,30 +95,31 @@ namespace Server.Misc
                     from.CriminalAction(false);
                     return true;
                 case ProfanityAction.Disconnect:
-                    {
-                        NetState ns = from.NetState;
+                {
+                    var ns = from.NetState;
 
-                        if (ns != null)
-                            ns.Dispose();
+                    if (ns != null)
+                        ns.Dispose();
 
-                        return false;
-                    }
+                    return false;
+                }
                 default:
                 case ProfanityAction.Other: // TODO: Provide custom implementation if this is chosen
-                    {
-                        return true;
-                    }
+                {
+                    return true;
+                }
             }
         }
 
         private static void EventSink_Speech(SpeechEventArgs e)
         {
-            Mobile from = e.Mobile;
+            var from = e.Mobile;
 
             if (from.IsStaff())
                 return;
 
-            if (!NameVerification.Validate(e.Speech, 0, int.MaxValue, true, true, false, int.MaxValue, m_Exceptions, m_Disallowed, m_StartDisallowed))
+            if (!NameVerification.Validate(e.Speech, 0, int.MaxValue, true, true, false, int.MaxValue, Exceptions,
+                    Disallowed, StartDisallowed))
                 e.Blocked = !OnProfanityDetected(from, e.Speech);
         }
     }

@@ -1,22 +1,21 @@
 using System;
 using System.IO;
-
 using Server.Commands;
 
 namespace Server.Misc
 {
     public static class AutoSave
     {
-		private static readonly string[] m_Backups = new string[]
+        private static readonly string[] m_Backups =
         {
             "Third Backup",
             "Second Backup",
             "Most Recent"
         };
 
-		private static readonly TimeSpan m_Delay;
+        private static readonly TimeSpan m_Delay;
         private static readonly TimeSpan m_Warning;
-		
+
         private static readonly Timer m_Timer;
 
         public static bool SavesEnabled { get; set; }
@@ -50,7 +49,9 @@ namespace Server.Misc
                 e.Mobile.SendMessage("Saves have been {0}.", SavesEnabled ? "enabled" : "disabled");
             }
             else
+            {
                 e.Mobile.SendMessage("Format: SetSaves <true | false>");
+            }
         }
 
         public static void Save()
@@ -80,19 +81,22 @@ namespace Server.Misc
 
         private static void Tick()
         {
-            if (!SavesEnabled || AutoRestart.Restarting || Commands.CreateWorld.WorldCreating)
+            if (!SavesEnabled || AutoRestart.Restarting || CreateWorld.WorldCreating)
                 return;
 
             if (m_Warning == TimeSpan.Zero)
+            {
                 Save();
+            }
             else
             {
-                int s = (int)m_Warning.TotalSeconds;
-                int m = s / 60;
+                var s = (int)m_Warning.TotalSeconds;
+                var m = s / 60;
                 s %= 60;
 
                 if (m > 0 && s > 0)
-                    World.Broadcast(0x35, true, "The world will save in {0} minute{1} and {2} second{3}.", m, m != 1 ? "s" : "", s, s != 1 ? "s" : "");
+                    World.Broadcast(0x35, true, "The world will save in {0} minute{1} and {2} second{3}.", m,
+                        m != 1 ? "s" : "", s, s != 1 ? "s" : "");
                 else if (m > 0)
                     World.Broadcast(0x35, true, "The world will save in {0} minute{1}.", m, m != 1 ? "s" : "");
                 else
@@ -107,23 +111,23 @@ namespace Server.Misc
             if (m_Backups.Length == 0)
                 return false;
 
-            string root = Path.Combine(Core.BaseDirectory, "Backups/Automatic");
+            var root = Path.Combine(Core.BaseDirectory, "Backups/Automatic");
 
             if (!Directory.Exists(root))
                 Directory.CreateDirectory(root);
 
-            string tempRoot = Path.Combine(Core.BaseDirectory, "Backups/Temp");
+            var tempRoot = Path.Combine(Core.BaseDirectory, "Backups/Temp");
 
             if (Directory.Exists(tempRoot))
                 Directory.Delete(tempRoot, true);
-            
-            string[] existing = Directory.GetDirectories(root);
 
-            bool anySuccess = existing.Length == 0;
+            var existing = Directory.GetDirectories(root);
 
-            for (int i = 0; i < m_Backups.Length; ++i)
+            var anySuccess = existing.Length == 0;
+
+            for (var i = 0; i < m_Backups.Length; ++i)
             {
-                DirectoryInfo dir = Match(existing, m_Backups[i]);
+                var dir = Match(existing, m_Backups[i]);
 
                 if (dir == null)
                     continue;
@@ -136,11 +140,13 @@ namespace Server.Misc
 
                         anySuccess = true;
                     }
-                    catch { }
+                    catch
+                    {
+                    }
                 }
                 else
                 {
-                    bool delete = true;
+                    var delete = true;
 
                     try
                     {
@@ -148,17 +154,22 @@ namespace Server.Misc
 
                         delete = !ArchivedSaves.Process(tempRoot);
                     }
-                    catch { }
+                    catch
+                    {
+                    }
 
                     if (delete)
-                    {
-                        try { dir.Delete(true); }
-                        catch { }
-                    }
+                        try
+                        {
+                            dir.Delete(true);
+                        }
+                        catch
+                        {
+                        }
                 }
             }
 
-            string saves = Path.Combine(Core.BaseDirectory, "Saves");
+            var saves = Path.Combine(Core.BaseDirectory, "Saves");
 
             if (Directory.Exists(saves))
                 Directory.Move(saves, Path.Combine(root, m_Backups[m_Backups.Length - 1]));
@@ -168,9 +179,9 @@ namespace Server.Misc
 
         private static DirectoryInfo Match(string[] paths, string match)
         {
-            for (int i = 0; i < paths.Length; ++i)
+            for (var i = 0; i < paths.Length; ++i)
             {
-                DirectoryInfo info = new DirectoryInfo(paths[i]);
+                var info = new DirectoryInfo(paths[i]);
 
                 if (info.Name.StartsWith(match))
                     return info;

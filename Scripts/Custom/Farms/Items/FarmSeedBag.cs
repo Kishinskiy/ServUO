@@ -1,7 +1,3 @@
-using System;
-using Server;
-using Server.Items;
-
 namespace Server.Custom.Farms
 {
     public class FarmSeedBag : Item
@@ -33,12 +29,30 @@ namespace Server.Custom.Farms
 
             switch (seedType)
             {
-                case 0: spawnedSeed = new OnionSeed(count); seedName = "лука"; break;
-                case 1: spawnedSeed = new FarmPotato(count); seedName = "картофеля (клубни)"; break; // Выдаем сразу плод картофеля!
-                case 2: spawnedSeed = new CabbageSeed(count); seedName = "капусты"; break;
-                case 3: spawnedSeed = new CarrotSeed(count); seedName = "моркови"; break;
-                case 4: spawnedSeed = new LettuceSeed(count); seedName = "салата"; break;
-                default: spawnedSeed = new PumpkinSeed(count); seedName = "тыквы"; break;
+                case 0:
+                    spawnedSeed = new OnionSeed(count);
+                    seedName = "лука";
+                    break;
+                case 1:
+                    spawnedSeed = new FarmPotato(count);
+                    seedName = "картофеля (клубни)";
+                    break; // Выдаем сразу плод картофеля!
+                case 2:
+                    spawnedSeed = new CabbageSeed(count);
+                    seedName = "капусты";
+                    break;
+                case 3:
+                    spawnedSeed = new CarrotSeed(count);
+                    seedName = "моркови";
+                    break;
+                case 4:
+                    spawnedSeed = new LettuceSeed(count);
+                    seedName = "салата";
+                    break;
+                default:
+                    spawnedSeed = new PumpkinSeed(count);
+                    seedName = "тыквы";
+                    break;
             }
 
             // Пытаемся положить семена в бэкпак игрока
@@ -57,8 +71,20 @@ namespace Server.Custom.Farms
             }
         }
 
-        public FarmSeedBag(Serial serial) : base(serial) { }
-        public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write((int)0); }
-        public override void Deserialize(GenericReader reader) { base.Deserialize(reader); int version = reader.ReadInt(); }
+        public FarmSeedBag(Serial serial) : base(serial)
+        {
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write((int)0);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            int version = reader.ReadInt();
+        }
     }
 }

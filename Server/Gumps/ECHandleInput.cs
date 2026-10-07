@@ -1,20 +1,15 @@
-using System;
 using Server.Network;
 
 namespace Server.Gumps
 {
     public class ECHandleInput : GumpEntry
     {
-        public ECHandleInput()
-        {
-        }
+        private static readonly byte[] m_LayoutName = Gump.StringToBuffer("echandleinput");
 
         public override string Compile()
         {
-            return String.Format("{{ echandleinput }}");
+            return "{ echandleinput }";
         }
-
-        private static byte[] m_LayoutName = Gump.StringToBuffer("echandleinput");
 
         public override void AppendTo(IGumpWriter disp)
         {

@@ -1,55 +1,53 @@
 ﻿#region References
-using System;
 
+using System;
 using CustomsFramework;
+
 #endregion
 
 namespace Server
 {
-	public class LastEditedBy
-	{
-		private Mobile _Mobile;
-		private DateTime _Time;
+    public class LastEditedBy
+    {
+        [CommandProperty(AccessLevel.Decorator)]
+        public Mobile Mobile { get; set; }
 
-		public LastEditedBy(Mobile mobile)
-		{
-			_Mobile = mobile;
-			_Time = DateTime.UtcNow;
-		}
+        [CommandProperty(AccessLevel.Decorator)]
+        public DateTime Time { get; set; }
 
-		public LastEditedBy(GenericReader reader)
-		{
-			Deserialize(reader);
-		}
+        public LastEditedBy(Mobile mobile)
+        {
+            Mobile = mobile;
+            Time = DateTime.UtcNow;
+        }
 
-		[CommandProperty(AccessLevel.Decorator)]
-		public Mobile Mobile { get { return _Mobile; } set { _Mobile = value; } }
+        public LastEditedBy(GenericReader reader)
+        {
+            Deserialize(reader);
+        }
 
-		[CommandProperty(AccessLevel.Decorator)]
-		public DateTime Time { get { return _Time; } set { _Time = value; } }
+        public void Serialize(GenericWriter writer)
+        {
+            writer.WriteVersion(0);
 
-		public void Serialize(GenericWriter writer)
-		{
-			writer.WriteVersion(0);
+            // Version 0
+            writer.Write(Mobile);
+            writer.Write(Time);
+        }
 
-			// Version 0
-			writer.Write(_Mobile);
-			writer.Write(_Time);
-		}
+        private void Deserialize(GenericReader reader)
+        {
+            var version = reader.ReadInt();
 
-		private void Deserialize(GenericReader reader)
-		{
-			int version = reader.ReadInt();
-
-			switch (version)
-			{
-				case 0:
-					{
-						_Mobile = reader.ReadMobile();
-						_Time = reader.ReadDateTime();
-						break;
-					}
-			}
-		}
-	}
+            switch (version)
+            {
+                case 0:
+                {
+                    Mobile = reader.ReadMobile();
+                    Time = reader.ReadDateTime();
+                    break;
+                }
+            }
+        }
+    }
 }

@@ -1,226 +1,228 @@
 #region References
+
 using System;
 using System.IO;
+
 #endregion
 
 namespace Server
 {
-	public enum BodyType : byte
-	{
-		Empty,
-		Monster,
-		Sea,
-		Animal,
-		Human,
-		Equipment
-	}
+    public enum BodyType : byte
+    {
+        Empty,
+        Monster,
+        Sea,
+        Animal,
+        Human,
+        Equipment
+    }
 
-	public struct Body
-	{
-		private readonly int m_BodyID;
+    public struct Body
+    {
+        private static readonly BodyType[] m_Types;
 
-		private static readonly BodyType[] m_Types;
+        static Body()
+        {
+            if (File.Exists("Data/bodyTable.cfg"))
+            {
+                using (var ip = new StreamReader("Data/bodyTable.cfg"))
+                {
+                    m_Types = new BodyType[0x1000];
 
-		static Body()
-		{
-			if (File.Exists("Data/bodyTable.cfg"))
-			{
-				using (StreamReader ip = new StreamReader("Data/bodyTable.cfg"))
-				{
-					m_Types = new BodyType[0x1000];
+                    string line;
 
-					string line;
+                    while ((line = ip.ReadLine()) != null)
+                    {
+                        if (line.Length == 0 || line.StartsWith("#")) continue;
 
-					while ((line = ip.ReadLine()) != null)
-					{
-						if (line.Length == 0 || line.StartsWith("#"))
-						{
-							continue;
-						}
+                        var split = line.Split('\t');
 
-						var split = line.Split('\t');
+                        BodyType type;
+                        int bodyID;
 
-						BodyType type;
-						int bodyID;
+                        if (int.TryParse(split[0], out bodyID) && Enum.TryParse(split[1], true, out type) &&
+                            bodyID >= 0 &&
+                            bodyID < m_Types.Length)
+                        {
+                            m_Types[bodyID] = type;
+                        }
+                        else
+                        {
+                            Console.WriteLine("Warning: Invalid bodyTable entry:");
+                            Console.WriteLine(line);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                Console.WriteLine("Warning: Data/bodyTable.cfg does not exist");
 
-						if (int.TryParse(split[0], out bodyID) && Enum.TryParse(split[1], true, out type) && bodyID >= 0 &&
-							bodyID < m_Types.Length)
-						{
-							m_Types[bodyID] = type;
-						}
-						else
-						{
-							Console.WriteLine("Warning: Invalid bodyTable entry:");
-							Console.WriteLine(line);
-						}
-					}
-				}
-			}
-			else
-			{
-				Console.WriteLine("Warning: Data/bodyTable.cfg does not exist");
+                m_Types = new BodyType[0];
+            }
+        }
 
-				m_Types = new BodyType[0];
-			}
-		}
+        public Body(int bodyID)
+        {
+            BodyID = bodyID;
+        }
 
-		public Body(int bodyID)
-		{
-			m_BodyID = bodyID;
-		}
+        public BodyType Type
+        {
+            get
+            {
+                if (BodyID >= 0 && BodyID < m_Types.Length) return m_Types[BodyID];
 
-		public BodyType Type
-		{
-			get
-			{
-				if (m_BodyID >= 0 && m_BodyID < m_Types.Length)
-				{
-					return m_Types[m_BodyID];
-				}
-				else
-				{
-					return BodyType.Empty;
-				}
-			}
-		}
+                return BodyType.Empty;
+            }
+        }
 
-		public bool IsHuman
-		{
-			get
-			{
-				return (m_BodyID >= 0 && m_BodyID < m_Types.Length && m_Types[m_BodyID] == BodyType.Human && m_BodyID != 402 &&
-						m_BodyID != 403 && m_BodyID != 607 && m_BodyID != 608 && m_BodyID != 970)
+        public bool IsHuman
+        {
+            get
+            {
+                return (BodyID >= 0 && BodyID < m_Types.Length && m_Types[BodyID] == BodyType.Human && BodyID != 402 &&
+                        BodyID != 403 && BodyID != 607 && BodyID != 608 && BodyID != 970)
 
-					   #region Stygian Abyss
-					   || m_BodyID == 694 || m_BodyID == 695
-					#endregion
+                       #region Stygian Abyss
 
-					;
-			}
-		}
+                       || BodyID == 694 || BodyID == 695
 
-		public bool IsMale
-		{
-			get
-			{
-				return m_BodyID == 183 || m_BodyID == 185 || m_BodyID == 400 || m_BodyID == 402 || m_BodyID == 605 ||
-					   m_BodyID == 607 || m_BodyID == 750
+                    #endregion
 
-					   #region Stygian Abyss
-					   || m_BodyID == 666 || m_BodyID == 694
-					#endregion
+                    ;
+            }
+        }
 
-					;
-			}
-		}
+        public bool IsMale
+        {
+            get
+            {
+                return BodyID == 183 || BodyID == 185 || BodyID == 400 || BodyID == 402 || BodyID == 605 ||
+                       BodyID == 607 || BodyID == 750
 
-		public bool IsFemale
-		{
-			get
-			{
-				return m_BodyID == 184 || m_BodyID == 186 || m_BodyID == 401 || m_BodyID == 403 || m_BodyID == 606 ||
-					   m_BodyID == 608 || m_BodyID == 751
+                       #region Stygian Abyss
 
-					   #region Stygian Abyss
-					   || m_BodyID == 667 || m_BodyID == 695
-					   #endregion
+                       || BodyID == 666 || BodyID == 694
 
-					   #region High Seas
-					   || m_BodyID == 1253
-					#endregion
+                    #endregion
 
-					;
-			}
-		}
+                    ;
+            }
+        }
 
-		public bool IsGhost
-		{
-			get
-			{
-				return m_BodyID == 402 || m_BodyID == 403 || m_BodyID == 607 || m_BodyID == 608 || m_BodyID == 970
+        public bool IsFemale
+        {
+            get
+            {
+                return BodyID == 184 || BodyID == 186 || BodyID == 401 || BodyID == 403 || BodyID == 606 ||
+                       BodyID == 608 || BodyID == 751
 
-					   #region Stygian Abyss
-					   || m_BodyID == 694 || m_BodyID == 695
-					#endregion
+                       #region Stygian Abyss
 
-					;
-			}
-		}
+                       || BodyID == 667 || BodyID == 695
 
-		public bool IsMonster { get { return m_BodyID >= 0 && m_BodyID < m_Types.Length && m_Types[m_BodyID] == BodyType.Monster; } }
+                       #endregion
 
-		public bool IsAnimal { get { return m_BodyID >= 0 && m_BodyID < m_Types.Length && m_Types[m_BodyID] == BodyType.Animal; } }
+                       #region High Seas
 
-		public bool IsEmpty { get { return m_BodyID >= 0 && m_BodyID < m_Types.Length && m_Types[m_BodyID] == BodyType.Empty; } }
+                       || BodyID == 1253
 
-		public bool IsSea { get { return m_BodyID >= 0 && m_BodyID < m_Types.Length && m_Types[m_BodyID] == BodyType.Sea; } }
+                    #endregion
 
-		public bool IsEquipment { get { return m_BodyID >= 0 && m_BodyID < m_Types.Length && m_Types[m_BodyID] == BodyType.Equipment; } }
+                    ;
+            }
+        }
 
-		#region Stygian Abyss
-		public bool IsGargoyle { get { return m_BodyID == 666 || m_BodyID == 667 || m_BodyID == 694 || m_BodyID == 695; } }
-		#endregion
+        public bool IsGhost
+        {
+            get
+            {
+                return BodyID == 402 || BodyID == 403 || BodyID == 607 || BodyID == 608 || BodyID == 970
 
-		public int BodyID { get { return m_BodyID; } }
+                       #region Stygian Abyss
 
-		public static implicit operator int(Body a)
-		{
-			return a.m_BodyID;
-		}
+                       || BodyID == 694 || BodyID == 695
 
-		public static implicit operator Body(int a)
-		{
-			return new Body(a);
-		}
+                    #endregion
 
-		public override string ToString()
-		{
-			return string.Format("0x{0:X}", m_BodyID);
-		}
+                    ;
+            }
+        }
 
-		public override int GetHashCode()
-		{
-			return m_BodyID;
-		}
+        public bool IsMonster => BodyID >= 0 && BodyID < m_Types.Length && m_Types[BodyID] == BodyType.Monster;
 
-		public override bool Equals(object o)
-		{
-			if (o == null || !(o is Body))
-			{
-				return false;
-			}
+        public bool IsAnimal => BodyID >= 0 && BodyID < m_Types.Length && m_Types[BodyID] == BodyType.Animal;
 
-			return ((Body)o).m_BodyID == m_BodyID;
-		}
+        public bool IsEmpty => BodyID >= 0 && BodyID < m_Types.Length && m_Types[BodyID] == BodyType.Empty;
 
-		public static bool operator ==(Body l, Body r)
-		{
-			return l.m_BodyID == r.m_BodyID;
-		}
+        public bool IsSea => BodyID >= 0 && BodyID < m_Types.Length && m_Types[BodyID] == BodyType.Sea;
 
-		public static bool operator !=(Body l, Body r)
-		{
-			return l.m_BodyID != r.m_BodyID;
-		}
+        public bool IsEquipment => BodyID >= 0 && BodyID < m_Types.Length && m_Types[BodyID] == BodyType.Equipment;
 
-		public static bool operator >(Body l, Body r)
-		{
-			return l.m_BodyID > r.m_BodyID;
-		}
+        #region Stygian Abyss
 
-		public static bool operator >=(Body l, Body r)
-		{
-			return l.m_BodyID >= r.m_BodyID;
-		}
+        public bool IsGargoyle => BodyID == 666 || BodyID == 667 || BodyID == 694 || BodyID == 695;
 
-		public static bool operator <(Body l, Body r)
-		{
-			return l.m_BodyID < r.m_BodyID;
-		}
+        #endregion
 
-		public static bool operator <=(Body l, Body r)
-		{
-			return l.m_BodyID <= r.m_BodyID;
-		}
-	}
+        public int BodyID { get; }
+
+        public static implicit operator int(Body a)
+        {
+            return a.BodyID;
+        }
+
+        public static implicit operator Body(int a)
+        {
+            return new Body(a);
+        }
+
+        public override string ToString()
+        {
+            return string.Format("0x{0:X}", BodyID);
+        }
+
+        public override int GetHashCode()
+        {
+            return BodyID;
+        }
+
+        public override bool Equals(object o)
+        {
+            if (o == null || !(o is Body)) return false;
+
+            return ((Body)o).BodyID == BodyID;
+        }
+
+        public static bool operator ==(Body l, Body r)
+        {
+            return l.BodyID == r.BodyID;
+        }
+
+        public static bool operator !=(Body l, Body r)
+        {
+            return l.BodyID != r.BodyID;
+        }
+
+        public static bool operator >(Body l, Body r)
+        {
+            return l.BodyID > r.BodyID;
+        }
+
+        public static bool operator >=(Body l, Body r)
+        {
+            return l.BodyID >= r.BodyID;
+        }
+
+        public static bool operator <(Body l, Body r)
+        {
+            return l.BodyID < r.BodyID;
+        }
+
+        public static bool operator <=(Body l, Body r)
+        {
+            return l.BodyID <= r.BodyID;
+        }
+    }
 }

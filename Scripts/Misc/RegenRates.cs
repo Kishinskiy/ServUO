@@ -9,7 +9,7 @@ using Server.Spells.SkillMasteries;
 
 namespace Server.Misc
 {
-    public delegate Int32 RegenBonusHandler(Mobile from);
+    public delegate int RegenBonusHandler(Mobile from);
 
     public class RegenRates
     {
@@ -24,18 +24,18 @@ namespace Server.Misc
             Mobile.DefaultStamRate = TimeSpan.FromSeconds(7.0);
             Mobile.DefaultManaRate = TimeSpan.FromSeconds(7.0);
 
-            Mobile.ManaRegenRateHandler = new RegenRateHandler(Mobile_ManaRegenRate);
+            Mobile.ManaRegenRateHandler = Mobile_ManaRegenRate;
 
             if (Core.AOS)
             {
-                Mobile.StamRegenRateHandler = new RegenRateHandler(Mobile_StamRegenRate);
-                Mobile.HitsRegenRateHandler = new RegenRateHandler(Mobile_HitsRegenRate);
+                Mobile.StamRegenRateHandler = Mobile_StamRegenRate;
+                Mobile.HitsRegenRateHandler = Mobile_HitsRegenRate;
             }
         }
 
         public static double GetArmorOffset(Mobile from)
         {
-            double rating = 0.0;
+            var rating = 0.0;
 
             if (!Core.AOS)
                 rating += GetArmorMeditationValue(from.ShieldArmor as BaseArmor);
@@ -55,10 +55,10 @@ namespace Server.Misc
             if (!m.Alive)
                 return;
 
-            double n = (double)cur / max;
-            double v = Math.Sqrt(m.Skills[skill].Value * 0.005);
+            var n = (double)cur / max;
+            var v = Math.Sqrt(m.Skills[skill].Value * 0.005);
 
-            n *= (1.0 - v);
+            n *= 1.0 - v;
             n += v;
 
             m.CheckSkill(skill, n);
@@ -86,25 +86,20 @@ namespace Server.Misc
 
             CheckBonusSkill(from, from.Stam, from.StamMax, SkillName.Focus);
 
-            double bonus = from.Skills[SkillName.Focus].Value * 0.1;
+            var bonus = from.Skills[SkillName.Focus].Value * 0.1;
 
             bonus += StamRegen(from);
 
             if (Core.SA)
             {
-                double rate = 1.0 / (1.42 + (bonus / 100));
+                var rate = 1.0 / (1.42 + bonus / 100);
 
-                if (from is BaseCreature && ((BaseCreature)from).IsMonster)
-                {
-                    rate *= 1.95;
-                }
+                if (from is BaseCreature && ((BaseCreature)from).IsMonster) rate *= 1.95;
 
                 return TimeSpan.FromSeconds(rate);
             }
-            else
-            {
-                return TimeSpan.FromSeconds(1.0 / (0.1 * (2 + bonus)));
-            }
+
+            return TimeSpan.FromSeconds(1.0 / (0.1 * (2 + bonus)));
         }
 
         private static TimeSpan Mobile_ManaRegenRate(Mobile from)
@@ -116,55 +111,53 @@ namespace Server.Misc
                 CheckBonusSkill(from, from.Mana, from.ManaMax, SkillName.Meditation);
 
             double rate;
-            double armorPenalty = GetArmorOffset(from);
+            var armorPenalty = GetArmorOffset(from);
 
             if (Core.ML)
             {
-                double med = from.Skills[SkillName.Meditation].Value;
-                double focus = from.Skills[SkillName.Focus].Value;
+                var med = from.Skills[SkillName.Meditation].Value;
+                var focus = from.Skills[SkillName.Focus].Value;
 
-                double focusBonus = focus / 200;
+                var focusBonus = focus / 200;
                 double medBonus = 0;
 
                 CheckBonusSkill(from, from.Mana, from.ManaMax, SkillName.Focus);
 
                 if (armorPenalty == 0)
                 {
-                    medBonus = (0.0075 * med) + (0.0025 * from.Int);
+                    medBonus = 0.0075 * med + 0.0025 * from.Int;
 
                     if (medBonus >= 100.0)
                         medBonus *= 1.1;
 
-                    if (from.Meditating)
-                    {
-                        medBonus *= 2;
-                    }
+                    if (from.Meditating) medBonus *= 2;
                 }
 
-                double itemBase = ((((med / 2) + (focus / 4)) / 90) * .65) + 2.35;
-                double intensityBonus = Math.Sqrt(ManaRegen(from));
+                var itemBase = (med / 2 + focus / 4) / 90 * .65 + 2.35;
+                var intensityBonus = Math.Sqrt(ManaRegen(from));
 
                 if (intensityBonus > 5.5)
                     intensityBonus = 5.5;
 
-                double itemBonus = ((itemBase * intensityBonus) - (itemBase - 1)) / 10;
+                var itemBonus = (itemBase * intensityBonus - (itemBase - 1)) / 10;
 
                 rate = 1.0 / (0.2 + focusBonus + medBonus + itemBonus);
             }
             else if (Core.AOS)
             {
-                double medPoints = from.Int + (from.Skills[SkillName.Meditation].Value * 3);
+                var medPoints = from.Int + from.Skills[SkillName.Meditation].Value * 3;
 
-                medPoints *= (from.Skills[SkillName.Meditation].Value < 100.0) ? 0.025 : 0.0275;
+                medPoints *= from.Skills[SkillName.Meditation].Value < 100.0 ? 0.025 : 0.0275;
 
                 CheckBonusSkill(from, from.Mana, from.ManaMax, SkillName.Focus);
 
-                double focusPoints = (from.Skills[SkillName.Focus].Value * 0.05);
+                var focusPoints = from.Skills[SkillName.Focus].Value * 0.05;
 
                 if (armorPenalty > 0)
                     medPoints = 0; // In AOS, wearing any meditation-blocking armor completely removes meditation bonus
 
-                double totalPoints = focusPoints + medPoints + (from.Meditating ? (medPoints > 13.0 ? 13.0 : medPoints) : 0.0);
+                var totalPoints = focusPoints + medPoints +
+                                  (from.Meditating ? medPoints > 13.0 ? 13.0 : medPoints : 0.0);
 
                 totalPoints += ManaRegen(from);
 
@@ -178,12 +171,12 @@ namespace Server.Misc
             }
             else
             {
-                double medPoints = (from.Int + from.Skills[SkillName.Meditation].Value) * 0.5;
+                var medPoints = (from.Int + from.Skills[SkillName.Meditation].Value) * 0.5;
 
                 if (medPoints <= 0)
                     rate = 7.0;
                 else if (medPoints <= 100)
-                    rate = 7.0 - (239 * medPoints / 2400) + (19 * medPoints * medPoints / 48000);
+                    rate = 7.0 - 239 * medPoints / 2400 + 19 * medPoints * medPoints / 48000;
                 else if (medPoints < 120)
                     rate = 1.0;
                 else
@@ -200,10 +193,7 @@ namespace Server.Misc
                     rate = 7.0;
             }
 
-            if (double.IsNaN(rate))
-            {
-                return Mobile.DefaultManaRate;
-            }
+            if (double.IsNaN(rate)) return Mobile.DefaultManaRate;
 
             return TimeSpan.FromSeconds(rate);
         }
@@ -215,13 +205,13 @@ namespace Server.Misc
             if (from is BaseCreature)
                 points += ((BaseCreature)from).DefaultHitsRegen;
 
-            if (Core.ML && from is PlayerMobile && from.Race == Race.Human)	//Is this affected by the cap?
+            if (Core.ML && from is PlayerMobile && from.Race == Race.Human) //Is this affected by the cap?
                 points += 2;
 
             if (points < 0)
                 points = 0;
 
-            if (Core.ML && from is PlayerMobile)	//does racial bonus go before/after?
+            if (Core.ML && from is PlayerMobile) //does racial bonus go before/after?
                 points = Math.Min(points, 18);
 
             if (CheckTransform(from, typeof(HorrificBeastSpell)))
@@ -236,7 +226,7 @@ namespace Server.Misc
             points += BarrabHemolymphConcentrate.HPRegenBonus(from);
 
             if (Core.AOS)
-                foreach (RegenBonusHandler handler in HitsBonusHandlers)
+                foreach (var handler in HitsBonusHandlers)
                     points += handler(from);
 
             return points;
@@ -265,7 +255,7 @@ namespace Server.Misc
                 points = -1;
 
             if (Core.AOS)
-                foreach (RegenBonusHandler handler in StamBonusHandlers)
+                foreach (var handler in StamBonusHandlers)
                     points += handler(from);
 
             return points;
@@ -289,7 +279,7 @@ namespace Server.Misc
             if (!Core.ML && from is PlayerMobile)
                 points = Math.Min(points, 18);
 
-            foreach (RegenBonusHandler handler in ManaBonusHandlers)
+            foreach (var handler in ManaBonusHandlers)
                 points += handler(from);
 
             return points;
@@ -300,7 +290,7 @@ namespace Server.Misc
             if (ar == null || ar.ArmorAttributes.MageArmor != 0 || ar.Attributes.SpellChanneling != 0)
                 return 0.0;
 
-            switch ( ar.MeditationAllowance )
+            switch (ar.MeditationAllowance)
             {
                 default:
                 case ArmorMeditationAllowance.None:

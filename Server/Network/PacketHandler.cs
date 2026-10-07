@@ -1,32 +1,27 @@
 namespace Server.Network
 {
-	public delegate void OnPacketReceive(NetState state, PacketReader pvSrc);
+    public delegate void OnPacketReceive(NetState state, PacketReader pvSrc);
 
-	public delegate bool ThrottlePacketCallback(byte packetID, NetState state, out bool drop);
+    public delegate bool ThrottlePacketCallback(byte packetID, NetState state, out bool drop);
 
-	public class PacketHandler
-	{
-		private readonly int m_PacketID;
-		private readonly int m_Length;
-		private readonly bool m_Ingame;
-		private readonly OnPacketReceive m_OnReceive;
+    public class PacketHandler
+    {
+        public int PacketID { get; }
 
-		public PacketHandler(int packetID, int length, bool ingame, OnPacketReceive onReceive)
-		{
-			m_PacketID = packetID;
-			m_Length = length;
-			m_Ingame = ingame;
-			m_OnReceive = onReceive;
-		}
+        public int Length { get; }
 
-		public int PacketID { get { return m_PacketID; } }
+        public OnPacketReceive OnReceive { get; }
 
-		public int Length { get { return m_Length; } }
+        public ThrottlePacketCallback ThrottleCallback { get; set; }
 
-		public OnPacketReceive OnReceive { get { return m_OnReceive; } }
+        public bool Ingame { get; }
 
-		public ThrottlePacketCallback ThrottleCallback { get; set; }
-
-		public bool Ingame { get { return m_Ingame; } }
-	}
+        public PacketHandler(int packetID, int length, bool ingame, OnPacketReceive onReceive)
+        {
+            PacketID = packetID;
+            Length = length;
+            Ingame = ingame;
+            OnReceive = onReceive;
+        }
+    }
 }

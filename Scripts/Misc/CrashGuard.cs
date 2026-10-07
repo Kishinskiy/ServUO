@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Net.Mail;
 using Server.Accounting;
@@ -14,10 +13,11 @@ namespace Server.Misc
         private static readonly bool SaveBackup = true;
         private static readonly bool RestartServer = true;
         private static readonly bool GenerateReport = true;
+
         public static void Initialize()
         {
             if (Enabled) // If enabled, register our crash event handler
-                EventSink.Crashed += new CrashedEventHandler(CrashGuard_OnCrash);
+                EventSink.Crashed += CrashGuard_OnCrash;
         }
 
         public static void CrashGuard_OnCrash(CrashedEventArgs e)
@@ -32,7 +32,8 @@ namespace Server.Misc
 
             /*if ( Core.Service )
             e.Close = true;
-            else */ if (RestartServer)
+            else */
+            if (RestartServer)
                 Restart(e);
         }
 
@@ -40,7 +41,7 @@ namespace Server.Misc
         {
             Console.Write("Crash: Sending email...");
 
-            MailMessage message = new MailMessage(Email.FromAddress, Email.CrashAddresses);
+            var message = new MailMessage(Email.FromAddress, Email.CrashAddresses);
 
             message.Subject = "Automated ServUO Crash Report";
 
@@ -76,13 +77,13 @@ namespace Server.Misc
 
         private static void Restart(CrashedEventArgs e)
         {
-            string root = GetRoot();
+            var root = GetRoot();
 
             Console.Write("Crash: Restarting...");
 
             try
             {
-               // Process.Start(Core.ExePath, Core.Arguments);
+                // Process.Start(Core.ExePath, Core.Arguments);
                 Console.WriteLine("done");
 
                 e.Close = true;
@@ -106,8 +107,8 @@ namespace Server.Misc
 
         private static void CopyFile(string rootOrigin, string rootBackup, string path)
         {
-            string originPath = Combine(rootOrigin, path);
-            string backupPath = Combine(rootBackup, path);
+            var originPath = Combine(rootOrigin, path);
+            var backupPath = Combine(rootBackup, path);
 
             try
             {
@@ -125,11 +126,11 @@ namespace Server.Misc
 
             try
             {
-                string timeStamp = GetTimeStamp();
+                var timeStamp = GetTimeStamp();
 
-                string root = GetRoot();
-                string rootBackup = Combine(root, String.Format("Backups/Crashed/{0}/", timeStamp));
-                string rootOrigin = Combine(root, String.Format("Saves/"));
+                var root = GetRoot();
+                var rootBackup = Combine(root, string.Format("Backups/Crashed/{0}/", timeStamp));
+                var rootOrigin = Combine(root, "Saves/");
 
                 // Create new directories
                 CreateDirectory(rootBackup);
@@ -170,20 +171,21 @@ namespace Server.Misc
 
             try
             {
-                string timeStamp = GetTimeStamp();
-                string fileName = String.Format("Crash {0}.log", timeStamp);
+                var timeStamp = GetTimeStamp();
+                var fileName = string.Format("Crash {0}.log", timeStamp);
 
-                string root = GetRoot();
-                string filePath = Combine(root, fileName);
+                var root = GetRoot();
+                var filePath = Combine(root, fileName);
 
-                using (StreamWriter op = new StreamWriter(filePath))
+                using (var op = new StreamWriter(filePath))
                 {
-                    Version ver = Core.Assembly.GetName().Version;
+                    var ver = Core.Assembly.GetName().Version;
 
                     op.WriteLine("Server Crash Report");
                     op.WriteLine("===================");
                     op.WriteLine();
-                    op.WriteLine("ServUO Version {0}.{1}, Build {2}.{3}", ver.Major, ver.Minor, ver.Build, ver.Revision);
+                    op.WriteLine("ServUO Version {0}.{1}, Build {2}.{3}", ver.Major, ver.Minor, ver.Build,
+                        ver.Revision);
                     op.WriteLine("Operating System: {0}", Environment.OSVersion);
                     op.WriteLine(".NET Framework: {0}", Environment.Version);
                     op.WriteLine("Time: {0}", DateTime.UtcNow);
@@ -216,18 +218,18 @@ namespace Server.Misc
 
                         op.WriteLine("- Count: {0}", states.Count);
 
-                        for (int i = 0; i < states.Count; ++i)
+                        for (var i = 0; i < states.Count; ++i)
                         {
-                            NetState state = states[i];
+                            var state = states[i];
 
                             op.Write("+ {0}:", state);
 
-                            Account a = state.Account as Account;
+                            var a = state.Account as Account;
 
                             if (a != null)
                                 op.Write(" (account = {0})", a.Username);
 
-                            Mobile m = state.Mobile;
+                            var m = state.Mobile;
 
                             if (m != null)
                                 op.Write(" (mobile = 0x{0:X} '{1}')", m.Serial.Value, m.Name);
@@ -254,9 +256,9 @@ namespace Server.Misc
 
         private static string GetTimeStamp()
         {
-            DateTime now = DateTime.UtcNow;
+            var now = DateTime.UtcNow;
 
-            return String.Format("{0}-{1}-{2}-{3}-{4}-{5}",
+            return string.Format("{0}-{1}-{2}-{3}-{4}-{5}",
                 now.Day,
                 now.Month,
                 now.Year,

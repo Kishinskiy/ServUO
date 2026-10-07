@@ -7,23 +7,17 @@ namespace Server
 {
     public class NameList
     {
-        private static Dictionary<string, NameList> m_Table;
-        private readonly string m_Type;
-        private readonly string[] m_List;
-        public NameList(string type, XmlElement xml)
-        {
-            this.m_Type = type;
-            this.m_List = xml.InnerText.Split(',');
+        private static readonly Dictionary<string, NameList> m_Table;
 
-            for (int i = 0; i < this.m_List.Length; ++i)
-                this.m_List[i] = Utility.Intern(this.m_List[i].Trim());
-        }
+        public string Type { get; }
+
+        public string[] List { get; }
 
         static NameList()
         {
             m_Table = new Dictionary<string, NameList>(StringComparer.OrdinalIgnoreCase);
 
-            string filePath = Path.Combine(Core.BaseDirectory, "Data/names.xml");
+            var filePath = Path.Combine(Core.BaseDirectory, "Data/names.xml");
 
             if (!File.Exists(filePath))
                 return;
@@ -39,20 +33,15 @@ namespace Server
             }
         }
 
-        public string Type
+        public NameList(string type, XmlElement xml)
         {
-            get
-            {
-                return this.m_Type;
-            }
+            Type = type;
+            List = xml.InnerText.Split(',');
+
+            for (var i = 0; i < List.Length; ++i)
+                List[i] = Utility.Intern(List[i].Trim());
         }
-        public string[] List
-        {
-            get
-            {
-                return this.m_List;
-            }
-        }
+
         public static NameList GetNameList(string type)
         {
             NameList n = null;
@@ -62,7 +51,7 @@ namespace Server
 
         public static string RandomName(string type)
         {
-            NameList list = GetNameList(type);
+            var list = GetNameList(type);
 
             if (list != null)
                 return list.GetRandomName();
@@ -72,8 +61,8 @@ namespace Server
 
         public bool ContainsName(string name)
         {
-            for (int i = 0; i < this.m_List.Length; i++)
-                if (name == this.m_List[i])
+            for (var i = 0; i < List.Length; i++)
+                if (name == List[i])
                     return true;
 
             return false;
@@ -81,29 +70,29 @@ namespace Server
 
         public string GetRandomName()
         {
-            if (this.m_List.Length > 0)
-                return this.m_List[Utility.Random(this.m_List.Length)];
+            if (List.Length > 0)
+                return List[Utility.Random(List.Length)];
 
             return "";
         }
 
         private static void Load(string filePath)
         {
-            XmlDocument doc = new XmlDocument();
+            var doc = new XmlDocument();
             doc.Load(filePath);
 
-            XmlElement root = doc["names"];
+            var root = doc["names"];
 
             foreach (XmlElement element in root.GetElementsByTagName("namelist"))
             {
-                string type = element.GetAttribute("type");
+                var type = element.GetAttribute("type");
 
-                if (String.IsNullOrEmpty(type))
+                if (string.IsNullOrEmpty(type))
                     continue;
 
                 try
                 {
-                    NameList list = new NameList(type, element);
+                    var list = new NameList(type, element);
 
                     m_Table[type] = list;
                 }

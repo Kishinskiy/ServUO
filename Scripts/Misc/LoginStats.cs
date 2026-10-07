@@ -1,9 +1,5 @@
-using System;
+using Server.Engines.Help;
 using Server.Network;
-using Server.Engines.Quests;
-using Server.Mobiles;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace Server.Misc
 {
@@ -12,28 +8,26 @@ namespace Server.Misc
         public static void Initialize()
         {
             // Register our event handler
-            EventSink.Login += new LoginEventHandler(EventSink_Login);
+            EventSink.Login += EventSink_Login;
         }
 
         private static void EventSink_Login(LoginEventArgs args)
         {
-            int userCount = NetState.Instances.Count;
-            int itemCount = World.Items.Count;
-            int mobileCount = World.Mobiles.Count;
+            var userCount = NetState.Instances.Count;
+            var itemCount = World.Items.Count;
+            var mobileCount = World.Mobiles.Count;
 
-            Mobile m = args.Mobile;
+            var m = args.Mobile;
 
-            m.SendMessage("Welcome, {0}! There {1} currently {2} user{3} online, with {4} item{5} and {6} mobile{7} in the world.",
+            m.SendMessage(
+                "Welcome, {0}! There {1} currently {2} user{3} online, with {4} item{5} and {6} mobile{7} in the world.",
                 args.Mobile.Name,
                 userCount == 1 ? "is" : "are",
                 userCount, userCount == 1 ? "" : "s",
                 itemCount, itemCount == 1 ? "" : "s",
                 mobileCount, mobileCount == 1 ? "" : "s");
 
-            if (m.IsStaff())
-            {
-                Server.Engines.Help.PageQueue.Pages_OnCalled(m);
-            }
+            if (m.IsStaff()) PageQueue.Pages_OnCalled(m);
         }
     }
 }

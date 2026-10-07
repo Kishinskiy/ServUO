@@ -1,491 +1,388 @@
 #region References
-using System;
 
+using System;
 using Server.Accounting;
 using Server.Items;
 using Server.Network;
+
 #endregion
 
 namespace Server
 {
-	public class SecureTrade
-	{
-		private readonly SecureTradeInfo m_From;
-		private readonly SecureTradeInfo m_To;
+    public class SecureTrade
+    {
+        public SecureTradeInfo From { get; }
 
-		private bool m_Valid;
+        public SecureTradeInfo To { get; }
 
-		public SecureTrade(Mobile from, Mobile to)
-		{
-			m_Valid = true;
+        public bool Valid { get; private set; }
 
-			m_From = new SecureTradeInfo(this, from, new SecureTradeContainer(this));
-			m_To = new SecureTradeInfo(this, to, new SecureTradeContainer(this));
+        public SecureTrade(Mobile from, Mobile to)
+        {
+            Valid = true;
 
-			var from6017 = (from.NetState != null && from.NetState.ContainerGridLines);
-			var to6017 = (to.NetState != null && to.NetState.ContainerGridLines);
+            From = new SecureTradeInfo(this, from, new SecureTradeContainer(this));
+            To = new SecureTradeInfo(this, to, new SecureTradeContainer(this));
 
-			var from704565 = (from.NetState != null && from.NetState.NewSecureTrading);
-			var to704565 = (to.NetState != null && to.NetState.NewSecureTrading);
+            var from6017 = from.NetState != null && from.NetState.ContainerGridLines;
+            var to6017 = to.NetState != null && to.NetState.ContainerGridLines;
 
-			from.Send(new MobileStatus(from, to));
-			from.Send(new UpdateSecureTrade(m_From.Container, false, false));
+            var from704565 = from.NetState != null && from.NetState.NewSecureTrading;
+            var to704565 = to.NetState != null && to.NetState.NewSecureTrading;
 
-			if (from6017)
-			{
-				from.Send(new SecureTradeEquip6017(m_To.Container, to));
-			}
-			else
-			{
-				from.Send(new SecureTradeEquip(m_To.Container, to));
-			}
+            from.Send(new MobileStatus(from, to));
+            from.Send(new UpdateSecureTrade(From.Container, false, false));
 
-			from.Send(new UpdateSecureTrade(m_From.Container, false, false));
+            if (from6017)
+                from.Send(new SecureTradeEquip6017(To.Container, to));
+            else
+                from.Send(new SecureTradeEquip(To.Container, to));
 
-			if (from6017)
-			{
-				from.Send(new SecureTradeEquip6017(m_From.Container, from));
-			}
-			else
-			{
-				from.Send(new SecureTradeEquip(m_From.Container, from));
-			}
+            from.Send(new UpdateSecureTrade(From.Container, false, false));
 
-			from.Send(new DisplaySecureTrade(to, m_From.Container, m_To.Container, to.Name));
-			from.Send(new UpdateSecureTrade(m_From.Container, false, false));
+            if (from6017)
+                from.Send(new SecureTradeEquip6017(From.Container, from));
+            else
+                from.Send(new SecureTradeEquip(From.Container, from));
 
-			if (from.Account != null && from704565)
-			{
-				from.Send(
-					new UpdateSecureTrade(m_From.Container, TradeFlag.UpdateLedger, from.Account.TotalGold, from.Account.TotalPlat));
-			}
+            from.Send(new DisplaySecureTrade(to, From.Container, To.Container, to.Name));
+            from.Send(new UpdateSecureTrade(From.Container, false, false));
 
-			to.Send(new MobileStatus(to, from));
-			to.Send(new UpdateSecureTrade(m_To.Container, false, false));
+            if (from.Account != null && from704565)
+                from.Send(
+                    new UpdateSecureTrade(From.Container, TradeFlag.UpdateLedger, from.Account.TotalGold,
+                        from.Account.TotalPlat));
 
-			if (to6017)
-			{
-				to.Send(new SecureTradeEquip6017(m_From.Container, from));
-			}
-			else
-			{
-				to.Send(new SecureTradeEquip(m_From.Container, from));
-			}
+            to.Send(new MobileStatus(to, from));
+            to.Send(new UpdateSecureTrade(To.Container, false, false));
 
-			to.Send(new UpdateSecureTrade(m_To.Container, false, false));
+            if (to6017)
+                to.Send(new SecureTradeEquip6017(From.Container, from));
+            else
+                to.Send(new SecureTradeEquip(From.Container, from));
 
-			if (to6017)
-			{
-				to.Send(new SecureTradeEquip6017(m_To.Container, to));
-			}
-			else
-			{
-				to.Send(new SecureTradeEquip(m_To.Container, to));
-			}
+            to.Send(new UpdateSecureTrade(To.Container, false, false));
 
-			to.Send(new DisplaySecureTrade(from, m_To.Container, m_From.Container, from.Name));
-			to.Send(new UpdateSecureTrade(m_To.Container, false, false));
+            if (to6017)
+                to.Send(new SecureTradeEquip6017(To.Container, to));
+            else
+                to.Send(new SecureTradeEquip(To.Container, to));
 
-			if (to.Account != null && to704565)
-			{
-				to.Send(new UpdateSecureTrade(m_To.Container, TradeFlag.UpdateLedger, to.Account.TotalGold, to.Account.TotalPlat));
-			}
-		}
+            to.Send(new DisplaySecureTrade(from, To.Container, From.Container, from.Name));
+            to.Send(new UpdateSecureTrade(To.Container, false, false));
 
-		public SecureTradeInfo From { get { return m_From; } }
-		public SecureTradeInfo To { get { return m_To; } }
+            if (to.Account != null && to704565)
+                to.Send(new UpdateSecureTrade(To.Container, TradeFlag.UpdateLedger, to.Account.TotalGold,
+                    to.Account.TotalPlat));
+        }
 
-		public bool Valid { get { return m_Valid; } }
+        public void Cancel()
+        {
+            if (!Valid) return;
 
-		public void Cancel()
-		{
-			if (!m_Valid)
-			{
-				return;
-			}
+            var list = From.Container.Items;
 
-			var list = m_From.Container.Items;
+            for (var i = list.Count - 1; i >= 0; --i)
+                if (i < list.Count)
+                {
+                    var item = list[i];
 
-			for (var i = list.Count - 1; i >= 0; --i)
-			{
-				if (i < list.Count)
-				{
-					var item = list[i];
+                    if (item == From.VirtualCheck) continue;
 
-					if (item == m_From.VirtualCheck)
-					{
-						continue;
-					}
+                    item.OnSecureTrade(From.Mobile, To.Mobile, From.Mobile, false);
 
-					item.OnSecureTrade(m_From.Mobile, m_To.Mobile, m_From.Mobile, false);
+                    if (!item.Deleted) From.Mobile.AddToBackpack(item);
+                }
 
-					if (!item.Deleted)
-					{
-						m_From.Mobile.AddToBackpack(item);
-					}
-				}
-			}
+            list = To.Container.Items;
 
-			list = m_To.Container.Items;
+            for (var i = list.Count - 1; i >= 0; --i)
+                if (i < list.Count)
+                {
+                    var item = list[i];
 
-			for (var i = list.Count - 1; i >= 0; --i)
-			{
-				if (i < list.Count)
-				{
-					var item = list[i];
+                    if (item == To.VirtualCheck) continue;
 
-					if (item == m_To.VirtualCheck)
-					{
-						continue;
-					}
+                    item.OnSecureTrade(To.Mobile, From.Mobile, To.Mobile, false);
 
-					item.OnSecureTrade(m_To.Mobile, m_From.Mobile, m_To.Mobile, false);
+                    if (!item.Deleted) To.Mobile.AddToBackpack(item);
+                }
 
-					if (!item.Deleted)
-					{
-						m_To.Mobile.AddToBackpack(item);
-					}
-				}
-			}
+            Close();
+        }
 
-			Close();
-		}
+        public void Close()
+        {
+            if (!Valid) return;
 
-		public void Close()
-		{
-			if (!m_Valid)
-			{
-				return;
-			}
+            From.Mobile.Send(new CloseSecureTrade(From.Container));
+            To.Mobile.Send(new CloseSecureTrade(To.Container));
 
-			m_From.Mobile.Send(new CloseSecureTrade(m_From.Container));
-			m_To.Mobile.Send(new CloseSecureTrade(m_To.Container));
+            Valid = false;
 
-			m_Valid = false;
+            var ns = From.Mobile.NetState;
 
-			var ns = m_From.Mobile.NetState;
+            if (ns != null) ns.RemoveTrade(this);
 
-			if (ns != null)
-			{
-				ns.RemoveTrade(this);
-			}
+            ns = To.Mobile.NetState;
 
-			ns = m_To.Mobile.NetState;
+            if (ns != null) ns.RemoveTrade(this);
 
-			if (ns != null)
-			{
-				ns.RemoveTrade(this);
-			}
+            Timer.DelayCall(From.Dispose);
+            Timer.DelayCall(To.Dispose);
+        }
 
-			Timer.DelayCall(m_From.Dispose);
-			Timer.DelayCall(m_To.Dispose);
-		}
+        public void UpdateFromCurrency()
+        {
+            UpdateCurrency(From, To);
+        }
 
-		public void UpdateFromCurrency()
-		{
-			UpdateCurrency(m_From, m_To);
-		}
+        public void UpdateToCurrency()
+        {
+            UpdateCurrency(To, From);
+        }
 
-		public void UpdateToCurrency()
-		{
-			UpdateCurrency(m_To, m_From);
-		}
-
-		private static void UpdateCurrency(SecureTradeInfo left, SecureTradeInfo right)
-		{
+        private static void UpdateCurrency(SecureTradeInfo left, SecureTradeInfo right)
+        {
             var ls = left.Mobile != null ? left.Mobile.NetState : null;
             var rs = right.Mobile != null ? right.Mobile.NetState : null;
 
-			if (ls != null && ls.NewSecureTrading)
-			{
-				var plat = left.Mobile.Account.TotalPlat;
-				var gold = left.Mobile.Account.TotalGold;
+            if (ls != null && ls.NewSecureTrading)
+            {
+                var plat = left.Mobile.Account.TotalPlat;
+                var gold = left.Mobile.Account.TotalGold;
 
-				ls.Send(new UpdateSecureTrade(left.Container, TradeFlag.UpdateLedger, gold, plat));
-			}
+                ls.Send(new UpdateSecureTrade(left.Container, TradeFlag.UpdateLedger, gold, plat));
+            }
 
-			if (rs != null && rs.NewSecureTrading)
-			{
-				rs.Send(new UpdateSecureTrade(right.Container, TradeFlag.UpdateGold, left.Gold, left.Plat));
-			}
-		}
+            if (rs != null && rs.NewSecureTrading)
+                rs.Send(new UpdateSecureTrade(right.Container, TradeFlag.UpdateGold, left.Gold, left.Plat));
+        }
 
-		public void Update()
-		{
-			if (!m_Valid)
-			{
-				return;
-			}
+        public void Update()
+        {
+            if (!Valid) return;
 
-			if (!m_From.IsDisposed && m_From.Accepted && !m_To.IsDisposed && m_To.Accepted)
-			{
-				var list = m_From.Container.Items;
+            if (!From.IsDisposed && From.Accepted && !To.IsDisposed && To.Accepted)
+            {
+                var list = From.Container.Items;
 
-				var allowed = true;
+                var allowed = true;
 
-				for (var i = list.Count - 1; allowed && i >= 0; --i)
-				{
-					if (i < list.Count)
-					{
-						var item = list[i];
+                for (var i = list.Count - 1; allowed && i >= 0; --i)
+                    if (i < list.Count)
+                    {
+                        var item = list[i];
 
-						if (item == m_From.VirtualCheck)
-						{
-							continue;
-						}
+                        if (item == From.VirtualCheck) continue;
 
-						if (!item.AllowSecureTrade(m_From.Mobile, m_To.Mobile, m_To.Mobile, true))
-						{
-							allowed = false;
-						}
-					}
-				}
+                        if (!item.AllowSecureTrade(From.Mobile, To.Mobile, To.Mobile, true)) allowed = false;
+                    }
 
-				list = m_To.Container.Items;
+                list = To.Container.Items;
 
-				for (var i = list.Count - 1; allowed && i >= 0; --i)
-				{
-					if (i < list.Count)
-					{
-						var item = list[i];
+                for (var i = list.Count - 1; allowed && i >= 0; --i)
+                    if (i < list.Count)
+                    {
+                        var item = list[i];
 
-						if (item == m_To.VirtualCheck)
-						{
-							continue;
-						}
+                        if (item == To.VirtualCheck) continue;
 
-						if (!item.AllowSecureTrade(m_To.Mobile, m_From.Mobile, m_From.Mobile, true))
-						{
-							allowed = false;
-						}
-					}
-				}
+                        if (!item.AllowSecureTrade(To.Mobile, From.Mobile, From.Mobile, true)) allowed = false;
+                    }
 
-				if (AccountGold.Enabled)
-				{
-					if (m_From.Mobile.Account != null)
-					{
-						var cur = m_From.Mobile.Account.TotalCurrency;
-						var off = m_From.Plat + (m_From.Gold / Math.Max(1.0, AccountGold.CurrencyThreshold));
+                if (AccountGold.Enabled)
+                {
+                    if (From.Mobile.Account != null)
+                    {
+                        var cur = From.Mobile.Account.TotalCurrency;
+                        var off = From.Plat + From.Gold / Math.Max(1.0, AccountGold.CurrencyThreshold);
 
-						if (off > cur)
-						{
-							allowed = false;
-							m_From.Mobile.SendMessage("You do not have enough currency to complete this trade.");
-						}
-					}
+                        if (off > cur)
+                        {
+                            allowed = false;
+                            From.Mobile.SendMessage("You do not have enough currency to complete this trade.");
+                        }
+                    }
 
-					if (m_To.Mobile.Account != null)
-					{
-						var cur = m_To.Mobile.Account.TotalCurrency;
-						var off = m_To.Plat + (m_To.Gold / Math.Max(1.0, AccountGold.CurrencyThreshold));
+                    if (To.Mobile.Account != null)
+                    {
+                        var cur = To.Mobile.Account.TotalCurrency;
+                        var off = To.Plat + To.Gold / Math.Max(1.0, AccountGold.CurrencyThreshold);
 
-						if (off > cur)
-						{
-							allowed = false;
-							m_To.Mobile.SendMessage("You do not have enough currency to complete this trade.");
-						}
-					}
-				}
+                        if (off > cur)
+                        {
+                            allowed = false;
+                            To.Mobile.SendMessage("You do not have enough currency to complete this trade.");
+                        }
+                    }
+                }
 
-				if (!allowed)
-				{
-					m_From.Accepted = false;
-					m_To.Accepted = false;
+                if (!allowed)
+                {
+                    From.Accepted = false;
+                    To.Accepted = false;
 
-					m_From.Mobile.Send(new UpdateSecureTrade(m_From.Container, m_From.Accepted, m_To.Accepted));
-					m_To.Mobile.Send(new UpdateSecureTrade(m_To.Container, m_To.Accepted, m_From.Accepted));
+                    From.Mobile.Send(new UpdateSecureTrade(From.Container, From.Accepted, To.Accepted));
+                    To.Mobile.Send(new UpdateSecureTrade(To.Container, To.Accepted, From.Accepted));
 
-					return;
-				}
+                    return;
+                }
 
-				if (AccountGold.Enabled && m_From.Mobile.Account != null && m_To.Mobile.Account != null)
-				{
-					HandleAccountGoldTrade();
-				}
+                if (AccountGold.Enabled && From.Mobile.Account != null && To.Mobile.Account != null)
+                    HandleAccountGoldTrade();
 
-				list = m_From.Container.Items;
+                list = From.Container.Items;
 
-				for (var i = list.Count - 1; i >= 0; --i)
-				{
-					if (i < list.Count)
-					{
-						var item = list[i];
+                for (var i = list.Count - 1; i >= 0; --i)
+                    if (i < list.Count)
+                    {
+                        var item = list[i];
 
-						if (item == m_From.VirtualCheck)
-						{
-							continue;
-						}
+                        if (item == From.VirtualCheck) continue;
 
-						item.OnSecureTrade(m_From.Mobile, m_To.Mobile, m_To.Mobile, true);
+                        item.OnSecureTrade(From.Mobile, To.Mobile, To.Mobile, true);
 
-						if (!item.Deleted)
-						{
-							m_To.Mobile.AddToBackpack(item);
-						}
-					}
-				}
+                        if (!item.Deleted) To.Mobile.AddToBackpack(item);
+                    }
 
-				list = m_To.Container.Items;
+                list = To.Container.Items;
 
-				for (var i = list.Count - 1; i >= 0; --i)
-				{
-					if (i < list.Count)
-					{
-						var item = list[i];
+                for (var i = list.Count - 1; i >= 0; --i)
+                    if (i < list.Count)
+                    {
+                        var item = list[i];
 
-						if (item == m_To.VirtualCheck)
-						{
-							continue;
-						}
+                        if (item == To.VirtualCheck) continue;
 
-						item.OnSecureTrade(m_To.Mobile, m_From.Mobile, m_From.Mobile, true);
+                        item.OnSecureTrade(To.Mobile, From.Mobile, From.Mobile, true);
 
-						if (!item.Deleted)
-						{
-							m_From.Mobile.AddToBackpack(item);
-						}
-					}
-				}
+                        if (!item.Deleted) From.Mobile.AddToBackpack(item);
+                    }
 
-				Close();
-			}
-			else if (!m_From.IsDisposed && !m_To.IsDisposed)
-			{
-				m_From.Mobile.Send(new UpdateSecureTrade(m_From.Container, m_From.Accepted, m_To.Accepted));
-				m_To.Mobile.Send(new UpdateSecureTrade(m_To.Container, m_To.Accepted, m_From.Accepted));
-			}
-		}
+                Close();
+            }
+            else if (!From.IsDisposed && !To.IsDisposed)
+            {
+                From.Mobile.Send(new UpdateSecureTrade(From.Container, From.Accepted, To.Accepted));
+                To.Mobile.Send(new UpdateSecureTrade(To.Container, To.Accepted, From.Accepted));
+            }
+        }
 
-		private void HandleAccountGoldTrade()
-		{
-			int fromPlatSend = 0, fromGoldSend = 0, fromPlatRecv = 0, fromGoldRecv = 0;
-			int toPlatSend = 0, toGoldSend = 0, toPlatRecv = 0, toGoldRecv = 0;
+        private void HandleAccountGoldTrade()
+        {
+            int fromPlatSend = 0, fromGoldSend = 0, fromPlatRecv = 0, fromGoldRecv = 0;
+            int toPlatSend = 0, toGoldSend = 0, toPlatRecv = 0, toGoldRecv = 0;
 
-			if (m_From.Plat > 0 & m_From.Mobile.Account.WithdrawPlat(m_From.Plat))
-			{
-				fromPlatSend = m_From.Plat;
+            if ((From.Plat > 0) & From.Mobile.Account.WithdrawPlat(From.Plat))
+            {
+                fromPlatSend = From.Plat;
 
-				if (m_To.Mobile.Account.DepositPlat(m_From.Plat))
-				{
-					toPlatRecv = fromPlatSend;
-				}
-			}
+                if (To.Mobile.Account.DepositPlat(From.Plat)) toPlatRecv = fromPlatSend;
+            }
 
-			if (m_From.Gold > 0 & m_From.Mobile.Account.WithdrawGold(m_From.Gold))
-			{
-				fromGoldSend = m_From.Gold;
+            if ((From.Gold > 0) & From.Mobile.Account.WithdrawGold(From.Gold))
+            {
+                fromGoldSend = From.Gold;
 
-				if (m_To.Mobile.Account.DepositGold(m_From.Gold))
-				{
-					toGoldRecv = fromGoldSend;
-				}
-			}
+                if (To.Mobile.Account.DepositGold(From.Gold)) toGoldRecv = fromGoldSend;
+            }
 
-			if (m_To.Plat > 0 & m_To.Mobile.Account.WithdrawPlat(m_To.Plat))
-			{
-				toPlatSend = m_To.Plat;
+            if ((To.Plat > 0) & To.Mobile.Account.WithdrawPlat(To.Plat))
+            {
+                toPlatSend = To.Plat;
 
-				if (m_From.Mobile.Account.DepositPlat(m_To.Plat))
-				{
-					fromPlatRecv = toPlatSend;
-				}
-			}
+                if (From.Mobile.Account.DepositPlat(To.Plat)) fromPlatRecv = toPlatSend;
+            }
 
-			if (m_To.Gold > 0 & m_To.Mobile.Account.WithdrawGold(m_To.Gold))
-			{
-				toGoldSend = m_To.Gold;
+            if ((To.Gold > 0) & To.Mobile.Account.WithdrawGold(To.Gold))
+            {
+                toGoldSend = To.Gold;
 
-				if (m_From.Mobile.Account.DepositGold(m_To.Gold))
-				{
-					fromGoldRecv = toGoldSend;
-				}
-			}
+                if (From.Mobile.Account.DepositGold(To.Gold)) fromGoldRecv = toGoldSend;
+            }
 
-			HandleAccountGoldTrade(m_From.Mobile, m_To.Mobile, fromPlatSend, fromGoldSend, fromPlatRecv, fromGoldRecv);
-			HandleAccountGoldTrade(m_To.Mobile, m_From.Mobile, toPlatSend, toGoldSend, toPlatRecv, toGoldRecv);
-		}
+            HandleAccountGoldTrade(From.Mobile, To.Mobile, fromPlatSend, fromGoldSend, fromPlatRecv, fromGoldRecv);
+            HandleAccountGoldTrade(To.Mobile, From.Mobile, toPlatSend, toGoldSend, toPlatRecv, toGoldRecv);
+        }
 
-		private static void HandleAccountGoldTrade(
-			Mobile left,
-			Mobile right,
-			int platSend,
-			int goldSend,
-			int platRecv,
-			int goldRecv)
-		{
-			if (platSend > 0 || goldSend > 0)
-			{
-				if (platSend > 0 && goldSend > 0)
-				{
-					left.SendMessage("You traded {0:#,0} platinum and {1:#,0} gold to {2}.", platSend, goldSend, right.RawName);
-				}
-				else if (platSend > 0)
-				{
-					left.SendMessage("You traded {0:#,0} platinum to {1}.", platSend, right.RawName);
-				}
-				else if (goldSend > 0)
-				{
-					left.SendMessage("You traded {0:#,0} gold to {1}.", goldSend, right.RawName);
-				}
-			}
+        private static void HandleAccountGoldTrade(
+            Mobile left,
+            Mobile right,
+            int platSend,
+            int goldSend,
+            int platRecv,
+            int goldRecv)
+        {
+            if (platSend > 0 || goldSend > 0)
+            {
+                if (platSend > 0 && goldSend > 0)
+                    left.SendMessage("You traded {0:#,0} platinum and {1:#,0} gold to {2}.", platSend, goldSend,
+                        right.RawName);
+                else if (platSend > 0)
+                    left.SendMessage("You traded {0:#,0} platinum to {1}.", platSend, right.RawName);
+                else if (goldSend > 0) left.SendMessage("You traded {0:#,0} gold to {1}.", goldSend, right.RawName);
+            }
 
-			if (platRecv > 0 || goldRecv > 0)
-			{
-				if (platRecv > 0 && goldRecv > 0)
-				{
-					left.SendMessage("You received {0:#,0} platinum and {1:#,0} gold from {2}.", platRecv, goldRecv, right.RawName);
-				}
-				else if (platRecv > 0)
-				{
-					left.SendMessage("You received {0:#,0} platinum from {1}.", platRecv, right.RawName);
-				}
-				else if (goldRecv > 0)
-				{
-					left.SendMessage("You received {0:#,0} gold from {1}.", goldRecv, right.RawName);
-				}
-			}
-		}
-	}
+            if (platRecv > 0 || goldRecv > 0)
+            {
+                if (platRecv > 0 && goldRecv > 0)
+                    left.SendMessage("You received {0:#,0} platinum and {1:#,0} gold from {2}.", platRecv, goldRecv,
+                        right.RawName);
+                else if (platRecv > 0)
+                    left.SendMessage("You received {0:#,0} platinum from {1}.", platRecv, right.RawName);
+                else if (goldRecv > 0) left.SendMessage("You received {0:#,0} gold from {1}.", goldRecv, right.RawName);
+            }
+        }
+    }
 
-	public class SecureTradeInfo : IDisposable
-	{
-		public SecureTrade Owner { get; private set; }
-		public Mobile Mobile { get; private set; }
-		public SecureTradeContainer Container { get; private set; }
-		public VirtualCheck VirtualCheck { get; private set; }
+    public class SecureTradeInfo : IDisposable
+    {
+        public SecureTrade Owner { get; private set; }
+        public Mobile Mobile { get; private set; }
+        public SecureTradeContainer Container { get; private set; }
+        public VirtualCheck VirtualCheck { get; private set; }
 
-		public int Gold { get { return VirtualCheck.Gold; } set { VirtualCheck.Gold = value; } }
-		public int Plat { get { return VirtualCheck.Plat; } set { VirtualCheck.Plat = value; } }
+        public int Gold
+        {
+            get => VirtualCheck.Gold;
+            set => VirtualCheck.Gold = value;
+        }
 
-		public bool Accepted { get; set; }
+        public int Plat
+        {
+            get => VirtualCheck.Plat;
+            set => VirtualCheck.Plat = value;
+        }
 
-		public bool IsDisposed { get; private set; }
+        public bool Accepted { get; set; }
 
-		public SecureTradeInfo(SecureTrade owner, Mobile m, SecureTradeContainer c)
-		{
-			Owner = owner;
-			Mobile = m;
-			Container = c;
+        public bool IsDisposed { get; private set; }
 
-			Mobile.AddItem(Container);
+        public SecureTradeInfo(SecureTrade owner, Mobile m, SecureTradeContainer c)
+        {
+            Owner = owner;
+            Mobile = m;
+            Container = c;
 
-			VirtualCheck = new VirtualCheck(0, 0);
-			Container.DropItem(VirtualCheck);
-		}
+            Mobile.AddItem(Container);
 
-		public void Dispose()
-		{
-			VirtualCheck.Delete();
-			VirtualCheck = null;
+            VirtualCheck = new VirtualCheck(0, 0);
+            Container.DropItem(VirtualCheck);
+        }
 
-			Container.Delete();
-			Container = null;
+        public void Dispose()
+        {
+            VirtualCheck.Delete();
+            VirtualCheck = null;
 
-			Mobile = null;
-			Owner = null;
+            Container.Delete();
+            Container = null;
 
-			IsDisposed = true;
-		}
-	}
+            Mobile = null;
+            Owner = null;
+
+            IsDisposed = true;
+        }
+    }
 }

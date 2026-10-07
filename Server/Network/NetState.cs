@@ -1,4 +1,5 @@
 #region References
+
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -9,13 +10,13 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-
 using Server.Accounting;
 using Server.Diagnostics;
 using Server.Gumps;
 using Server.HuePickers;
 using Server.Items;
 using Server.Menus;
+
 #endregion
 
 namespace Server.Network
@@ -37,30 +38,58 @@ namespace Server.Network
     [PropertyObject]
     public class NetState : IComparable<NetState>
     {
+        public const int SendBufferCapacity = 1024, SendBufferSize = 8092;
+        public const int ReceiveBufferCapacity = 1024, ReceiveBufferSize = 2048;
         public static bool BufferStaticPackets = false;
 
-        public static event NetStateCreatedCallback CreatedCallback;
+        private static bool m_Paused;
 
-        private readonly IPAddress m_Address;
-        private ByteQueue m_Buffer;
-        private byte[] m_RecvBuffer;
+        private static readonly ClientVersion m_Version400a = new ClientVersion("4.0.0a");
+        private static readonly ClientVersion m_Version407a = new ClientVersion("4.0.7a");
+        private static readonly ClientVersion m_Version500a = new ClientVersion("5.0.0a");
+        private static readonly ClientVersion m_Version502b = new ClientVersion("5.0.2b");
+        private static readonly ClientVersion m_Version6000 = new ClientVersion("6.0.0.0");
+        private static readonly ClientVersion m_Version6017 = new ClientVersion("6.0.1.7");
+        private static readonly ClientVersion m_Version60142 = new ClientVersion("6.0.14.2");
+        private static readonly ClientVersion m_Version7000 = new ClientVersion("7.0.0.0");
+        private static readonly ClientVersion m_Version7090 = new ClientVersion("7.0.9.0");
+        private static readonly ClientVersion m_Version70130 = new ClientVersion("7.0.13.0");
+        private static readonly ClientVersion m_Version70160 = new ClientVersion("7.0.16.0");
+        private static readonly ClientVersion m_Version70300 = new ClientVersion("7.0.30.0");
+        private static readonly ClientVersion m_Version70331 = new ClientVersion("7.0.33.1");
+        private static readonly ClientVersion m_Version704565 = new ClientVersion("7.0.45.65");
+        private static readonly ClientVersion m_Version70500 = new ClientVersion("7.0.50.0");
+        private static readonly ClientVersion m_Version70610 = new ClientVersion("7.0.61.0");
+
+        private static readonly ConcurrentDictionary<NetState, IPAddress> m_Instances =
+            new ConcurrentDictionary<NetState, IPAddress>();
+
+        private static readonly ConcurrentQueue<NetState> m_Disposed = new ConcurrentQueue<NetState>();
+
+        private readonly object _SendLock = new object();
+
+        private readonly object m_AsyncLock = new object();
+
         private readonly SendQueue m_SendQueue;
-        private bool m_Running;
-
-        private List<Gump> m_Gumps;
-        private List<HuePicker> m_HuePickers;
-        private List<IMenu> m_Menus;
-        private readonly List<SecureTrade> m_Trades;
         private readonly string m_ToString;
+
+        private ProtocolChanges _ProtocolChanges;
+
+        private volatile bool _Sending;
+
+        private volatile AsyncState m_AsyncState;
+
+        private byte[] m_InitialData;
+
+        private long m_NextCheckActivity;
+        private byte[] m_RecvBuffer;
         private ClientVersion m_Version;
 
-        private readonly DateTime m_ConnectedOn;
+        [CommandProperty(AccessLevel.Administrator, true)]
+        public DateTime ConnectedOn { get; }
 
         [CommandProperty(AccessLevel.Administrator, true)]
-        public DateTime ConnectedOn { get { return m_ConnectedOn; } }
-
-        [CommandProperty(AccessLevel.Administrator, true)]
-        public TimeSpan ConnectedFor { get { return (DateTime.UtcNow - m_ConnectedOn); } }
+        public TimeSpan ConnectedFor => DateTime.UtcNow - ConnectedOn;
 
         [CommandProperty(AccessLevel.Administrator, true)]
         public uint AuthID { get; set; }
@@ -69,20 +98,7 @@ namespace Server.Network
         public uint Seed { get; set; }
 
         [CommandProperty(AccessLevel.Administrator)]
-        public IPAddress Address { get { return m_Address; } }
-
-        private static bool m_Paused;
-
-        [Flags]
-        private enum AsyncState
-        {
-            Pending = 0x01,
-            Paused = 0x02
-        }
-
-        private volatile AsyncState m_AsyncState;
-        
-		private readonly object m_AsyncLock = new object();
+        public IPAddress Address { get; }
 
         public IPacketEncoder PacketEncoder { get; set; }
         public IPacketEncryptor PacketEncryptor { get; set; }
@@ -102,299 +118,104 @@ namespace Server.Network
         [CommandProperty(AccessLevel.Administrator, true)]
         public ClientVersion Version
         {
-            get { return m_Version; }
+            get => m_Version;
             set
             {
                 m_Version = value;
 
                 if (value >= m_Version70610)
-                {
                     _ProtocolChanges = ProtocolChanges.Version70610;
-                }
                 else if (value >= m_Version70500)
-                {
                     _ProtocolChanges = ProtocolChanges.Version70500;
-                }
                 else if (value >= m_Version704565)
-                {
                     _ProtocolChanges = ProtocolChanges.Version704565;
-                }
                 else if (value >= m_Version70331)
-                {
                     _ProtocolChanges = ProtocolChanges.Version70331;
-                }
                 else if (value >= m_Version70300)
-                {
                     _ProtocolChanges = ProtocolChanges.Version70300;
-                }
                 else if (value >= m_Version70160)
-                {
                     _ProtocolChanges = ProtocolChanges.Version70160;
-                }
                 else if (value >= m_Version70130)
-                {
                     _ProtocolChanges = ProtocolChanges.Version70130;
-                }
                 else if (value >= m_Version7090)
-                {
                     _ProtocolChanges = ProtocolChanges.Version7090;
-                }
                 else if (value >= m_Version7000)
-                {
                     _ProtocolChanges = ProtocolChanges.Version7000;
-                }
                 else if (value >= m_Version60142)
-                {
                     _ProtocolChanges = ProtocolChanges.Version60142;
-                }
                 else if (value >= m_Version6017)
-                {
                     _ProtocolChanges = ProtocolChanges.Version6017;
-                }
                 else if (value >= m_Version6000)
-                {
                     _ProtocolChanges = ProtocolChanges.Version6000;
-                }
                 else if (value >= m_Version502b)
-                {
                     _ProtocolChanges = ProtocolChanges.Version502b;
-                }
                 else if (value >= m_Version500a)
-                {
                     _ProtocolChanges = ProtocolChanges.Version500a;
-                }
                 else if (value >= m_Version407a)
-                {
                     _ProtocolChanges = ProtocolChanges.Version407a;
-                }
-                else if (value >= m_Version400a)
-                {
-                    _ProtocolChanges = ProtocolChanges.Version400a;
-                }
+                else if (value >= m_Version400a) _ProtocolChanges = ProtocolChanges.Version400a;
             }
         }
 
-        private static readonly ClientVersion m_Version400a = new ClientVersion("4.0.0a");
-        private static readonly ClientVersion m_Version407a = new ClientVersion("4.0.7a");
-        private static readonly ClientVersion m_Version500a = new ClientVersion("5.0.0a");
-        private static readonly ClientVersion m_Version502b = new ClientVersion("5.0.2b");
-        private static readonly ClientVersion m_Version6000 = new ClientVersion("6.0.0.0");
-        private static readonly ClientVersion m_Version6017 = new ClientVersion("6.0.1.7");
-        private static readonly ClientVersion m_Version60142 = new ClientVersion("6.0.14.2");
-        private static readonly ClientVersion m_Version7000 = new ClientVersion("7.0.0.0");
-        private static readonly ClientVersion m_Version7090 = new ClientVersion("7.0.9.0");
-        private static readonly ClientVersion m_Version70130 = new ClientVersion("7.0.13.0");
-        private static readonly ClientVersion m_Version70160 = new ClientVersion("7.0.16.0");
-        private static readonly ClientVersion m_Version70300 = new ClientVersion("7.0.30.0");
-        private static readonly ClientVersion m_Version70331 = new ClientVersion("7.0.33.1");
-        private static readonly ClientVersion m_Version704565 = new ClientVersion("7.0.45.65");
-        private static readonly ClientVersion m_Version70500 = new ClientVersion("7.0.50.0");
-        private static readonly ClientVersion m_Version70610 = new ClientVersion("7.0.61.0");
-
-        private ProtocolChanges _ProtocolChanges;
-
-        private enum ProtocolChanges
-        {
-            NewSpellbook = 0x00000001,
-            DamagePacket = 0x00000002,
-            Unpack = 0x00000004,
-            BuffIcon = 0x00000008,
-            NewHaven = 0x00000010,
-            ContainerGridLines = 0x00000020,
-            ExtendedSupportedFeatures = 0x00000040,
-            StygianAbyss = 0x00000080,
-            HighSeas = 0x00000100,
-            NewCharacterList = 0x00000200,
-            NewCharacterCreation = 0x00000400,
-            ExtendedStatus = 0x00000800,
-            NewMobileIncoming = 0x00001000,
-            NewSecureTrading = 0x00002000,
-            UltimaStore = 0x00004000,
-            EndlessJourney = 0x00008000,
-
-            Version400a = NewSpellbook,
-            Version407a = Version400a | DamagePacket,
-            Version500a = Version407a | Unpack,
-            Version502b = Version500a | BuffIcon,
-            Version6000 = Version502b | NewHaven,
-            Version6017 = Version6000 | ContainerGridLines,
-            Version60142 = Version6017 | ExtendedSupportedFeatures,
-            Version7000 = Version60142 | StygianAbyss,
-            Version7090 = Version7000 | HighSeas,
-            Version70130 = Version7090 | NewCharacterList,
-            Version70160 = Version70130 | NewCharacterCreation,
-            Version70300 = Version70160 | ExtendedStatus,
-            Version70331 = Version70300 | NewMobileIncoming,
-            Version704565 = Version70331 | NewSecureTrading,
-            Version70500 = Version704565 | UltimaStore,
-            Version70610 = Version70500 | EndlessJourney
-        }
+        [CommandProperty(AccessLevel.Administrator, true)]
+        public bool NewSpellbook => (_ProtocolChanges & ProtocolChanges.NewSpellbook) != 0;
 
         [CommandProperty(AccessLevel.Administrator, true)]
-        public bool NewSpellbook { get { return ((_ProtocolChanges & ProtocolChanges.NewSpellbook) != 0); } }
+        public bool DamagePacket => (_ProtocolChanges & ProtocolChanges.DamagePacket) != 0;
 
         [CommandProperty(AccessLevel.Administrator, true)]
-        public bool DamagePacket { get { return ((_ProtocolChanges & ProtocolChanges.DamagePacket) != 0); } }
+        public bool Unpack => (_ProtocolChanges & ProtocolChanges.Unpack) != 0;
 
         [CommandProperty(AccessLevel.Administrator, true)]
-        public bool Unpack { get { return ((_ProtocolChanges & ProtocolChanges.Unpack) != 0); } }
+        public bool BuffIcon => (_ProtocolChanges & ProtocolChanges.BuffIcon) != 0;
 
         [CommandProperty(AccessLevel.Administrator, true)]
-        public bool BuffIcon { get { return ((_ProtocolChanges & ProtocolChanges.BuffIcon) != 0); } }
+        public bool NewHaven => (_ProtocolChanges & ProtocolChanges.NewHaven) != 0;
 
         [CommandProperty(AccessLevel.Administrator, true)]
-        public bool NewHaven { get { return ((_ProtocolChanges & ProtocolChanges.NewHaven) != 0); } }
+        public bool ContainerGridLines => (_ProtocolChanges & ProtocolChanges.ContainerGridLines) != 0;
 
         [CommandProperty(AccessLevel.Administrator, true)]
-        public bool ContainerGridLines { get { return ((_ProtocolChanges & ProtocolChanges.ContainerGridLines) != 0); } }
+        public bool ExtendedSupportedFeatures => (_ProtocolChanges & ProtocolChanges.ExtendedSupportedFeatures) != 0;
 
         [CommandProperty(AccessLevel.Administrator, true)]
-        public bool ExtendedSupportedFeatures { get { return ((_ProtocolChanges & ProtocolChanges.ExtendedSupportedFeatures) != 0); } }
+        public bool StygianAbyss => (_ProtocolChanges & ProtocolChanges.StygianAbyss) != 0;
 
         [CommandProperty(AccessLevel.Administrator, true)]
-        public bool StygianAbyss { get { return ((_ProtocolChanges & ProtocolChanges.StygianAbyss) != 0); } }
+        public bool HighSeas => (_ProtocolChanges & ProtocolChanges.HighSeas) != 0;
 
         [CommandProperty(AccessLevel.Administrator, true)]
-        public bool HighSeas { get { return ((_ProtocolChanges & ProtocolChanges.HighSeas) != 0); } }
+        public bool NewCharacterList => (_ProtocolChanges & ProtocolChanges.NewCharacterList) != 0;
 
         [CommandProperty(AccessLevel.Administrator, true)]
-        public bool NewCharacterList { get { return ((_ProtocolChanges & ProtocolChanges.NewCharacterList) != 0); } }
+        public bool NewCharacterCreation => (_ProtocolChanges & ProtocolChanges.NewCharacterCreation) != 0;
 
         [CommandProperty(AccessLevel.Administrator, true)]
-        public bool NewCharacterCreation { get { return ((_ProtocolChanges & ProtocolChanges.NewCharacterCreation) != 0); } }
+        public bool ExtendedStatus => (_ProtocolChanges & ProtocolChanges.ExtendedStatus) != 0;
 
         [CommandProperty(AccessLevel.Administrator, true)]
-        public bool ExtendedStatus { get { return ((_ProtocolChanges & ProtocolChanges.ExtendedStatus) != 0); } }
+        public bool NewMobileIncoming => (_ProtocolChanges & ProtocolChanges.NewMobileIncoming) != 0;
 
         [CommandProperty(AccessLevel.Administrator, true)]
-        public bool NewMobileIncoming { get { return ((_ProtocolChanges & ProtocolChanges.NewMobileIncoming) != 0); } }
+        public bool NewSecureTrading => (_ProtocolChanges & ProtocolChanges.NewSecureTrading) != 0;
 
         [CommandProperty(AccessLevel.Administrator, true)]
-        public bool NewSecureTrading { get { return ((_ProtocolChanges & ProtocolChanges.NewSecureTrading) != 0); } }
+        public bool UltimaStore => (_ProtocolChanges & ProtocolChanges.UltimaStore) != 0;
 
         [CommandProperty(AccessLevel.Administrator, true)]
-        public bool UltimaStore { get { return ((_ProtocolChanges & ProtocolChanges.UltimaStore) != 0); } }
+        public bool EndlessJourney => (_ProtocolChanges & ProtocolChanges.EndlessJourney) != 0;
 
         [CommandProperty(AccessLevel.Administrator, true)]
-        public bool EndlessJourney { get { return ((_ProtocolChanges & ProtocolChanges.EndlessJourney) != 0); } }
+        public bool IsUOTDClient =>
+            (Flags & ClientFlags.UOTD) != 0 || (m_Version != null && m_Version.Type == ClientType.UOTD);
 
         [CommandProperty(AccessLevel.Administrator, true)]
-        public bool IsUOTDClient { get { return ((Flags & ClientFlags.UOTD) != 0 || (m_Version != null && m_Version.Type == ClientType.UOTD)); } }
+        public bool IsSAClient => m_Version != null && m_Version.Type == ClientType.SA;
 
         [CommandProperty(AccessLevel.Administrator, true)]
-        public bool IsSAClient { get { return (m_Version != null && m_Version.Type == ClientType.SA); } }
+        public bool IsEnhancedClient => IsUOTDClient || (m_Version != null && m_Version.Major >= 67);
 
-        [CommandProperty(AccessLevel.Administrator, true)]
-        public bool IsEnhancedClient { get { return IsUOTDClient || (m_Version != null && m_Version.Major >= 67); } }
-
-        public List<SecureTrade> Trades { get { return m_Trades; } }
-
-        public void ValidateAllTrades()
-        {
-            if (m_Trades == null)
-            {
-                return;
-            }
-
-            for (int i = m_Trades.Count - 1; i >= 0; --i)
-            {
-                if (i >= m_Trades.Count)
-                {
-                    continue;
-                }
-
-                var trade = m_Trades[i];
-
-                if (trade.From.Mobile.Deleted || trade.To.Mobile.Deleted || !trade.From.Mobile.Alive || !trade.To.Mobile.Alive ||
-                    !trade.From.Mobile.InRange(trade.To.Mobile, 2) || trade.From.Mobile.Map != trade.To.Mobile.Map)
-                {
-                    trade.Cancel();
-                }
-            }
-        }
-
-        public void CancelAllTrades()
-        {
-            if (m_Trades == null)
-            {
-                return;
-            }
-
-            for (int i = m_Trades.Count - 1; i >= 0; --i)
-            {
-                if (i < m_Trades.Count)
-                {
-                    m_Trades[i].Cancel();
-                }
-            }
-        }
-
-        public void RemoveTrade(SecureTrade trade)
-        {
-            if (m_Trades != null)
-            {
-                m_Trades.Remove(trade);
-            }
-        }
-
-        public SecureTrade FindTrade(Mobile m)
-        {
-            if (m_Trades == null)
-            {
-                return null;
-            }
-
-            foreach (var trade in m_Trades)
-            {
-                if (trade.From.Mobile == m || trade.To.Mobile == m)
-                {
-                    return trade;
-                }
-            }
-
-            return null;
-        }
-
-        public SecureTradeContainer FindTradeContainer(Mobile m)
-        {
-            if (m_Trades == null)
-            {
-                return null;
-            }
-
-            foreach (var trade in m_Trades)
-            {
-                var from = trade.From;
-                var to = trade.To;
-
-                if (from.Mobile == Mobile && to.Mobile == m)
-                {
-                    return from.Container;
-                }
-
-                if (from.Mobile == m && to.Mobile == Mobile)
-                {
-                    return to.Container;
-                }
-            }
-
-            return null;
-        }
-
-        public SecureTradeContainer AddTrade(NetState state)
-        {
-            if (m_Trades == null || state.m_Trades == null)
-            {
-                return null;
-            }
-
-            var newTrade = new SecureTrade(Mobile, state.Mobile);
-
-            m_Trades.Add(newTrade);
-            state.m_Trades.Add(newTrade);
-
-            return newTrade.From.Container;
-        }
+        public List<SecureTrade> Trades { get; }
 
         [CommandProperty(AccessLevel.Administrator, true)]
         public bool CompressionEnabled { get; set; }
@@ -402,18 +223,192 @@ namespace Server.Network
         [CommandProperty(AccessLevel.Administrator, true)]
         public int Sequence { get; set; }
 
-        public List<Gump> Gumps { get { return m_Gumps; } }
-        public List<HuePicker> HuePickers { get { return m_HuePickers; } }
-        public List<IMenu> Menus { get { return m_Menus; } }
+        public List<Gump> Gumps { get; private set; }
 
-        private static int m_GumpCap = 512, m_HuePickerCap = 512, m_MenuCap = 512;
+        public List<HuePicker> HuePickers { get; private set; }
 
-        public static int GumpCap { get { return m_GumpCap; } set { m_GumpCap = value; } }
-        public static int HuePickerCap { get { return m_HuePickerCap; } set { m_HuePickerCap = value; } }
-        public static int MenuCap { get { return m_MenuCap; } set { m_MenuCap = value; } }
+        public List<IMenu> Menus { get; private set; }
+
+        public static int GumpCap { get; set; } = 512;
+
+        public static int HuePickerCap { get; set; } = 512;
+
+        public static int MenuCap { get; set; } = 512;
 
         [CommandProperty(AccessLevel.Administrator, true)]
         public int UpdateRange { get; set; }
+
+        public CityInfo[] CityInfo { get; set; }
+
+        [CommandProperty(AccessLevel.Administrator, true)]
+        public Mobile Mobile { get; set; }
+
+        public ServerInfo[] ServerInfo { get; set; }
+
+        [CommandProperty(AccessLevel.Administrator)]
+        public IAccount Account { get; set; }
+
+        public static ReadOnlyCollection<NetState> Instances => (ReadOnlyCollection<NetState>)m_Instances.Keys;
+        public static ReadOnlyCollection<IPAddress> Addresses => (ReadOnlyCollection<IPAddress>)m_Instances.Values;
+
+        public static BufferPool SendBuffers { get; } = new BufferPool("Send", SendBufferCapacity, SendBufferSize);
+
+        public static BufferPool ReceiveBuffers { get; } =
+            new BufferPool("Receive", ReceiveBufferCapacity, ReceiveBufferSize);
+
+        public static int CoalesceSleep { get; set; } = -1;
+
+        [CommandProperty(AccessLevel.Administrator, true)]
+        public bool IsDisposing { get; private set; }
+
+        [CommandProperty(AccessLevel.Administrator, true)]
+        public bool Running { get; private set; }
+
+        [CommandProperty(AccessLevel.Administrator, true)]
+        public bool Seeded { get; set; }
+
+        public Socket Socket { get; private set; }
+
+        public ByteQueue Buffer { get; private set; }
+
+        public ExpansionInfo ExpansionInfo
+        {
+            get
+            {
+                for (var i = ExpansionInfo.Table.Length - 1; i >= 0; i--)
+                {
+                    var info = ExpansionInfo.Table[i];
+
+                    if ((info.RequiredClient != null && Version >= info.RequiredClient) ||
+                        (Flags & info.ClientFlags) != 0) return info;
+                }
+
+                return ExpansionInfo.GetInfo(Expansion.None);
+            }
+        }
+
+        [CommandProperty(AccessLevel.Administrator, true)]
+        public Expansion Expansion => (Expansion)ExpansionInfo.ID;
+
+        public NetState(SocketState state)
+        {
+            Socket = state.Socket;
+
+            m_InitialData = state.Seed;
+
+            Buffer = new ByteQueue();
+
+            m_RecvBuffer = ReceiveBuffers.AcquireBuffer();
+
+            Gumps = new List<Gump>();
+            HuePickers = new List<HuePicker>();
+            Menus = new List<IMenu>();
+            Trades = new List<SecureTrade>();
+
+            m_SendQueue = new SendQueue();
+
+            m_NextCheckActivity = Core.TickCount + 30000;
+
+            try
+            {
+                Address = Utility.Intern(((IPEndPoint)Socket.RemoteEndPoint).Address);
+                m_ToString = Address.ToString();
+            }
+            catch (Exception ex)
+            {
+                TraceException(ex);
+                Address = IPAddress.None;
+                m_ToString = "(error)";
+            }
+
+            m_Instances[this] = Address;
+
+            ConnectedOn = DateTime.UtcNow;
+
+            UpdateRange = Core.GlobalUpdateRange;
+
+            if (CreatedCallback != null) CreatedCallback(this);
+        }
+
+        public int CompareTo(NetState other)
+        {
+            if (other == null) return 1;
+
+            return string.Compare(m_ToString, other.m_ToString, StringComparison.Ordinal);
+        }
+
+        public static event NetStateCreatedCallback CreatedCallback;
+
+        public void ValidateAllTrades()
+        {
+            if (Trades == null) return;
+
+            for (var i = Trades.Count - 1; i >= 0; --i)
+            {
+                if (i >= Trades.Count) continue;
+
+                var trade = Trades[i];
+
+                if (trade.From.Mobile.Deleted || trade.To.Mobile.Deleted || !trade.From.Mobile.Alive ||
+                    !trade.To.Mobile.Alive ||
+                    !trade.From.Mobile.InRange(trade.To.Mobile, 2) || trade.From.Mobile.Map != trade.To.Mobile.Map)
+                    trade.Cancel();
+            }
+        }
+
+        public void CancelAllTrades()
+        {
+            if (Trades == null) return;
+
+            for (var i = Trades.Count - 1; i >= 0; --i)
+                if (i < Trades.Count)
+                    Trades[i].Cancel();
+        }
+
+        public void RemoveTrade(SecureTrade trade)
+        {
+            if (Trades != null) Trades.Remove(trade);
+        }
+
+        public SecureTrade FindTrade(Mobile m)
+        {
+            if (Trades == null) return null;
+
+            foreach (var trade in Trades)
+                if (trade.From.Mobile == m || trade.To.Mobile == m)
+                    return trade;
+
+            return null;
+        }
+
+        public SecureTradeContainer FindTradeContainer(Mobile m)
+        {
+            if (Trades == null) return null;
+
+            foreach (var trade in Trades)
+            {
+                var from = trade.From;
+                var to = trade.To;
+
+                if (from.Mobile == Mobile && to.Mobile == m) return from.Container;
+
+                if (from.Mobile == m && to.Mobile == Mobile) return to.Container;
+            }
+
+            return null;
+        }
+
+        public SecureTradeContainer AddTrade(NetState state)
+        {
+            if (Trades == null || state.Trades == null) return null;
+
+            var newTrade = new SecureTrade(Mobile, state.Mobile);
+
+            Trades.Add(newTrade);
+            state.Trades.Add(newTrade);
+
+            return newTrade.From.Container;
+        }
 
         public void WriteConsole(string text)
         {
@@ -422,19 +417,16 @@ namespace Server.Network
 
         public void WriteConsole(string format, params object[] args)
         {
-            WriteConsole(String.Format(format, args));
+            WriteConsole(string.Format(format, args));
         }
 
         public void AddMenu(IMenu menu)
         {
-            if (m_Menus == null)
-            {
-                m_Menus = new List<IMenu>();
-            }
+            if (Menus == null) Menus = new List<IMenu>();
 
-            if (m_Menus.Count < m_MenuCap)
+            if (Menus.Count < MenuCap)
             {
-                m_Menus.Add(menu);
+                Menus.Add(menu);
             }
             else
             {
@@ -447,38 +439,26 @@ namespace Server.Network
 
         public void RemoveMenu(IMenu menu)
         {
-            if (m_Menus != null)
-            {
-                m_Menus.Remove(menu);
-            }
+            if (Menus != null) Menus.Remove(menu);
         }
 
         public void RemoveMenu(int index)
         {
-            if (m_Menus != null)
-            {
-                m_Menus.RemoveAt(index);
-            }
+            if (Menus != null) Menus.RemoveAt(index);
         }
 
         public void ClearMenus()
         {
-            if (m_Menus != null)
-            {
-                m_Menus.Clear();
-            }
+            if (Menus != null) Menus.Clear();
         }
 
         public void AddHuePicker(HuePicker huePicker)
         {
-            if (m_HuePickers == null)
-            {
-                m_HuePickers = new List<HuePicker>();
-            }
+            if (HuePickers == null) HuePickers = new List<HuePicker>();
 
-            if (m_HuePickers.Count < m_HuePickerCap)
+            if (HuePickers.Count < HuePickerCap)
             {
-                m_HuePickers.Add(huePicker);
+                HuePickers.Add(huePicker);
             }
             else
             {
@@ -491,38 +471,26 @@ namespace Server.Network
 
         public void RemoveHuePicker(HuePicker huePicker)
         {
-            if (m_HuePickers != null)
-            {
-                m_HuePickers.Remove(huePicker);
-            }
+            if (HuePickers != null) HuePickers.Remove(huePicker);
         }
 
         public void RemoveHuePicker(int index)
         {
-            if (m_HuePickers != null)
-            {
-                m_HuePickers.RemoveAt(index);
-            }
+            if (HuePickers != null) HuePickers.RemoveAt(index);
         }
 
         public void ClearHuePickers()
         {
-            if (m_HuePickers != null)
-            {
-                m_HuePickers.Clear();
-            }
+            if (HuePickers != null) HuePickers.Clear();
         }
 
         public void AddGump(Gump gump)
         {
-            if (m_Gumps == null)
-            {
-                m_Gumps = new List<Gump>();
-            }
+            if (Gumps == null) Gumps = new List<Gump>();
 
-            if (m_Gumps.Count < m_GumpCap)
+            if (Gumps.Count < GumpCap)
             {
-                m_Gumps.Add(gump);
+                Gumps.Add(gump);
             }
             else
             {
@@ -535,26 +503,17 @@ namespace Server.Network
 
         public void RemoveGump(Gump gump)
         {
-            if (m_Gumps != null)
-            {
-                m_Gumps.Remove(gump);
-            }
+            if (Gumps != null) Gumps.Remove(gump);
         }
 
         public void RemoveGump(int index)
         {
-            if (m_Gumps != null)
-            {
-                m_Gumps.RemoveAt(index);
-            }
+            if (Gumps != null) Gumps.RemoveAt(index);
         }
 
         public void ClearGumps()
         {
-            if (m_Gumps != null)
-            {
-                m_Gumps.Clear();
-            }
+            if (Gumps != null) Gumps.Clear();
         }
 
         public void LaunchBrowser(string url)
@@ -563,111 +522,28 @@ namespace Server.Network
             Send(new LaunchBrowser(url));
         }
 
-        public CityInfo[] CityInfo { get; set; }
-
-        [CommandProperty(AccessLevel.Administrator, true)]
-        public Mobile Mobile { get; set; }
-
-        public ServerInfo[] ServerInfo { get; set; }
-
-        [CommandProperty(AccessLevel.Administrator)]
-        public IAccount Account { get; set; }
-
         public override string ToString()
         {
             return m_ToString;
         }
 
-        private static readonly ConcurrentDictionary<NetState, IPAddress> m_Instances = new ConcurrentDictionary<NetState, IPAddress>();
-
-        public static ReadOnlyCollection<NetState> Instances => (ReadOnlyCollection<NetState>)m_Instances.Keys;
-        public static ReadOnlyCollection<IPAddress> Addresses => (ReadOnlyCollection<IPAddress>)m_Instances.Values;
-
-        public const int SendBufferCapacity = 1024, SendBufferSize = 8092;
-        public const int ReceiveBufferCapacity = 1024, ReceiveBufferSize = 2048;
-
-        private static readonly BufferPool m_SendBufferPool = new BufferPool("Send", SendBufferCapacity, SendBufferSize);
-        private static readonly BufferPool m_ReceiveBufferPool = new BufferPool("Receive", ReceiveBufferCapacity, ReceiveBufferSize);
-
-        public static BufferPool SendBuffers { get { return m_SendBufferPool; } }
-        public static BufferPool ReceiveBuffers { get { return m_ReceiveBufferPool; } }
-
-        public NetState(SocketState state)
-        {
-            Socket = state.Socket;
-
-            m_InitialData = state.Seed;
-
-            m_Buffer = new ByteQueue();
-
-            m_RecvBuffer = m_ReceiveBufferPool.AcquireBuffer();
-
-            m_Gumps = new List<Gump>();
-            m_HuePickers = new List<HuePicker>();
-            m_Menus = new List<IMenu>();
-            m_Trades = new List<SecureTrade>();
-
-            m_SendQueue = new SendQueue();
-
-            m_NextCheckActivity = Core.TickCount + 30000;
-
-            try
-            {
-                m_Address = Utility.Intern(((IPEndPoint)Socket.RemoteEndPoint).Address);
-                m_ToString = m_Address.ToString();
-            }
-            catch (Exception ex)
-            {
-                TraceException(ex);
-                m_Address = IPAddress.None;
-                m_ToString = "(error)";
-            }
-
-            m_Instances[this] = m_Address;
-
-            m_ConnectedOn = DateTime.UtcNow;
-
-            UpdateRange = Core.GlobalUpdateRange;
-
-            if (CreatedCallback != null)
-            {
-                CreatedCallback(this);
-            }
-        }
-
-        private volatile bool _Sending;
-
-		private readonly object _SendLock = new object();
-
         public virtual void Send(Packet p)
         {
-            if (p == null)
-            {
-                return;
-            }
+            if (p == null) return;
 
             try
             {
-                if (Socket == null || BlockAllPackets)
-                {
-                    return;
-                }
+                if (Socket == null || BlockAllPackets) return;
 
-                var buffer = p.Compile(CompressionEnabled, out int length);
+                var buffer = p.Compile(CompressionEnabled, out var length);
 
                 if (buffer != null)
                 {
-                    if (buffer.Length <= 0 || length <= 0)
-                    {
-                        return;
-                    }
+                    if (buffer.Length <= 0 || length <= 0) return;
 
                     PacketSendProfile prof = null;
 
-                    if (Core.Profiling)
-                    {
-                        prof = PacketSendProfile.Acquire(p.GetType());
-                    }
+                    if (Core.Profiling) prof = PacketSendProfile.Acquire(p.GetType());
 
                     prof?.Start();
 
@@ -683,13 +559,9 @@ namespace Server.Network
                             if (BufferStaticPackets && p.State.HasFlag(PacketState.Acquired))
                             {
                                 if (packetLength <= SendBufferSize)
-                                {
-                                    packetBuffer = m_SendBufferPool.AcquireBuffer();
-                                }
+                                    packetBuffer = SendBuffers.AcquireBuffer();
                                 else
-                                {
                                     packetBuffer = new byte[packetLength];
-                                }
 
                                 System.Buffer.BlockCopy(buffer, 0, packetBuffer, 0, packetLength);
                             }
@@ -714,10 +586,8 @@ namespace Server.Network
                                     gram = m_SendQueue.Enqueue(buffer, length);
                                 }
 
-                                if (buffered && m_SendBufferPool.Count < SendBufferCapacity)
-                                {
-                                    m_SendBufferPool.ReleaseBuffer(buffer);
-                                }
+                                if (buffered && SendBuffers.Count < SendBufferCapacity)
+                                    SendBuffers.ReleaseBuffer(buffer);
 
                                 if (gram != null && !_Sending)
                                 {
@@ -774,31 +644,23 @@ namespace Server.Network
 
         public void Start()
         {
-            m_Running = true;
+            Running = true;
 
-            if (Socket == null || m_Paused)
-            {
-                return;
-            }
+            if (Socket == null || m_Paused) return;
 
             try
-			{
-				lock (m_AsyncLock)
-	            {
-	                if ((m_AsyncState & (AsyncState.Pending | AsyncState.Paused)) == 0)
-	                {
-	                    InternalBeginReceive();
-	                }
-	            }
-			}
+            {
+                lock (m_AsyncLock)
+                {
+                    if ((m_AsyncState & (AsyncState.Pending | AsyncState.Paused)) == 0) InternalBeginReceive();
+                }
+            }
             catch (Exception ex)
             {
                 TraceException(ex);
                 Dispose(false);
             }
         }
-
-        private byte[] m_InitialData;
 
         private void InternalBeginReceive()
         {
@@ -827,10 +689,7 @@ namespace Server.Network
         {
             try
             {
-                if (task.IsFaulted)
-                {
-                    throw task.Exception;
-                }
+                if (task.IsFaulted) throw task.Exception;
 
                 var byteCount = task.Result;
 
@@ -838,41 +697,39 @@ namespace Server.Network
                 {
                     m_NextCheckActivity = Core.TickCount + 90000;
 
-					byte[] buffer;
+                    byte[] buffer;
 
-					lock (m_AsyncLock)
-					{
-						buffer = m_RecvBuffer;
-					}
+                    lock (m_AsyncLock)
+                    {
+                        buffer = m_RecvBuffer;
+                    }
 
                     PacketEncryptor?.DecryptIncomingPacket(this, ref buffer, ref byteCount);
                     PacketEncoder?.DecodeIncomingPacket(this, ref buffer, ref byteCount);
 
-                    lock (m_Buffer)
+                    lock (Buffer)
                     {
-                        m_Buffer.Enqueue(buffer, 0, byteCount);
+                        Buffer.Enqueue(buffer, 0, byteCount);
                     }
 
                     MessagePump.OnReceive(this);
 
-					lock (m_AsyncLock)
-					{
-	                    m_AsyncState &= ~AsyncState.Pending;
-	
-	                    if ((m_AsyncState & AsyncState.Paused) == 0)
-	                    {
-	                        try
-	                        {
-	                            InternalBeginReceive();
-	                        }
-	                        catch (Exception ex)
-	                        {
-	                            TraceException(ex);
-	                            Dispose(false);
-	                        }
-	                    }
-	                }
-	            }
+                    lock (m_AsyncLock)
+                    {
+                        m_AsyncState &= ~AsyncState.Pending;
+
+                        if ((m_AsyncState & AsyncState.Paused) == 0)
+                            try
+                            {
+                                InternalBeginReceive();
+                            }
+                            catch (Exception ex)
+                            {
+                                TraceException(ex);
+                                Dispose(false);
+                            }
+                    }
+                }
                 else
                 {
                     Dispose(false);
@@ -888,10 +745,7 @@ namespace Server.Network
         {
             try
             {
-                if (task.IsFaulted)
-                {
-                    throw task.Exception;
-                }
+                if (task.IsFaulted) throw task.Exception;
 
                 var bytes = task.Result;
 
@@ -903,10 +757,7 @@ namespace Server.Network
 
                 m_NextCheckActivity = Core.TickCount + 90000;
 
-                if (m_CoalesceSleep >= 0)
-                {
-                    Thread.Sleep(m_CoalesceSleep);
-                }
+                if (CoalesceSleep >= 0) Thread.Sleep(CoalesceSleep);
 
                 SendQueue.Gram gram;
 
@@ -914,14 +765,10 @@ namespace Server.Network
                 {
                     gram = m_SendQueue.Dequeue();
 
-                    if (gram == null && m_SendQueue.IsFlushReady)
-                    {
-                        gram = m_SendQueue.CheckFlushReady();
-                    }
+                    if (gram == null && m_SendQueue.IsFlushReady) gram = m_SendQueue.CheckFlushReady();
                 }
 
                 if (gram != null)
-                {
                     try
                     {
                         var segment = new ArraySegment<byte>(gram.Buffer, 0, gram.Length);
@@ -933,14 +780,11 @@ namespace Server.Network
                         TraceException(ex);
                         Dispose(false);
                     }
-                }
                 else
-                {
                     lock (_SendLock)
                     {
                         _Sending = false;
                     }
-                }
             }
             catch (Exception)
             {
@@ -953,12 +797,10 @@ namespace Server.Network
             m_Paused = true;
 
             foreach (var ns in m_Instances.Keys)
-            {
-				lock (ns.m_AsyncLock)
-				{
-					ns.m_AsyncState |= AsyncState.Paused;
-				}
-            }
+                lock (ns.m_AsyncLock)
+                {
+                    ns.m_AsyncState |= AsyncState.Paused;
+                }
         }
 
         public static void Resume()
@@ -967,59 +809,43 @@ namespace Server.Network
 
             foreach (var ns in m_Instances.Keys)
             {
-                if (ns.Socket == null)
-                {
-                    continue;
-                }
+                if (ns.Socket == null) continue;
 
-				lock (ns.m_AsyncLock)
-				{
-	                ns.m_AsyncState &= ~AsyncState.Paused;
-	
-	                try
-	                {
-	                    if ((ns.m_AsyncState & AsyncState.Pending) == 0)
-	                    {
-	                        ns.InternalBeginReceive();
-	                    }
-	                }
-	                catch (Exception ex)
-	                {
-	                    TraceException(ex);
-	                    ns.Dispose(false);
-	                }
-	            }
-	        }
-		}
+                lock (ns.m_AsyncLock)
+                {
+                    ns.m_AsyncState &= ~AsyncState.Paused;
+
+                    try
+                    {
+                        if ((ns.m_AsyncState & AsyncState.Pending) == 0) ns.InternalBeginReceive();
+                    }
+                    catch (Exception ex)
+                    {
+                        TraceException(ex);
+                        ns.Dispose(false);
+                    }
+                }
+            }
+        }
 
         public bool Flush()
         {
-            if (Socket == null)
-            {
-                return false;
-            }
+            if (Socket == null) return false;
 
             lock (_SendLock)
             {
-                if (_Sending)
-                {
-                    return false;
-                }
+                if (_Sending) return false;
 
                 SendQueue.Gram gram;
 
                 lock (m_SendQueue)
                 {
-                    if (!m_SendQueue.IsFlushReady)
-                    {
-                        return false;
-                    }
+                    if (!m_SendQueue.IsFlushReady) return false;
 
                     gram = m_SendQueue.CheckFlushReady();
                 }
 
                 if (gram != null)
-                {
                     try
                     {
                         _Sending = true;
@@ -1035,7 +861,6 @@ namespace Server.Network
                         TraceException(ex);
                         Dispose(false);
                     }
-                }
             }
 
             return false;
@@ -1043,39 +868,21 @@ namespace Server.Network
 
         public PacketHandler GetHandler(int packetID)
         {
-            if (ContainerGridLines)
-            {
-                return PacketHandlers.Get6017Handler(packetID);
-            }
+            if (ContainerGridLines) return PacketHandlers.Get6017Handler(packetID);
 
             return PacketHandlers.GetHandler(packetID);
         }
 
         public static void FlushAll()
         {
-            foreach (NetState ns in m_Instances.Keys)
-            {
-                _ = ns.Flush();
-            }
+            foreach (var ns in m_Instances.Keys) _ = ns.Flush();
         }
-
-        private static int m_CoalesceSleep = -1;
-
-        public static int CoalesceSleep { get { return m_CoalesceSleep; } set { m_CoalesceSleep = value; } }
-
-        private long m_NextCheckActivity;
 
         public void CheckAlive(long curTicks)
         {
-            if (Socket == null)
-            {
-                return;
-            }
+            if (Socket == null) return;
 
-            if (m_NextCheckActivity - curTicks >= 0)
-            {
-                return;
-            }
+            if (m_NextCheckActivity - curTicks >= 0) return;
 
             Utility.PushColor(ConsoleColor.Red);
             Console.WriteLine("Client: {0}: Disconnecting due to inactivity...", this);
@@ -1086,10 +893,7 @@ namespace Server.Network
 
         public static void TraceException(Exception ex)
         {
-            if (!Core.Debug)
-            {
-                return;
-            }
+            if (!Core.Debug) return;
 
             try
             {
@@ -1104,20 +908,17 @@ namespace Server.Network
                 }
             }
             catch
-            { }
+            {
+            }
 
             try
             {
                 Console.WriteLine(ex);
             }
             catch
-            { }
+            {
+            }
         }
-
-        private bool m_Disposing;
-
-        [CommandProperty(AccessLevel.Administrator, true)]
-        public bool IsDisposing { get { return m_Disposing; } }
 
         public void Dispose()
         {
@@ -1126,17 +927,11 @@ namespace Server.Network
 
         public virtual void Dispose(bool flush)
         {
-            if (Socket == null || m_Disposing)
-            {
-                return;
-            }
+            if (Socket == null || IsDisposing) return;
 
-            m_Disposing = true;
+            IsDisposing = true;
 
-            if (flush)
-            {
-                Flush();
-            }
+            if (flush) Flush();
 
             try
             {
@@ -1155,22 +950,19 @@ namespace Server.Network
             {
                 TraceException(ex);
             }
-            
+
             var buffer = Interlocked.Exchange(ref m_RecvBuffer, null);
 
-            if (buffer != null)
-            {
-                m_ReceiveBufferPool.ReleaseBuffer(buffer);
-            }
+            if (buffer != null) ReceiveBuffers.ReleaseBuffer(buffer);
 
             Socket = null;
 
             PacketEncoder = null;
             PacketEncryptor = null;
 
-            m_Buffer = null;
+            Buffer = null;
 
-            m_Running = false;
+            Running = false;
 
             m_Disposed.Enqueue(this);
         }
@@ -1186,18 +978,13 @@ namespace Server.Network
             {
                 var curTicks = Core.TickCount;
 
-                foreach (var ns in m_Instances.Keys)
-                {
-                    ns.CheckAlive(curTicks);
-                }
+                foreach (var ns in m_Instances.Keys) ns.CheckAlive(curTicks);
             }
             catch (Exception ex)
             {
                 TraceException(ex);
             }
         }
-
-        private static readonly ConcurrentQueue<NetState> m_Disposed = new ConcurrentQueue<NetState>();
 
         public static void ProcessDisposedQueue()
         {
@@ -1218,78 +1005,33 @@ namespace Server.Network
 
                 m_Instances.TryRemove(ns, out _);
 
-                ns.m_Gumps.Clear();
-                ns.m_Menus.Clear();
-                ns.m_HuePickers.Clear();
+                ns.Gumps.Clear();
+                ns.Menus.Clear();
+                ns.HuePickers.Clear();
 
                 ns.Account = null;
                 ns.ServerInfo = null;
                 ns.CityInfo = null;
 
-                if (!ns.m_SendQueue.IsEmpty)
-                {
-                    ns.m_SendQueue.Clear();
-                }
+                if (!ns.m_SendQueue.IsEmpty) ns.m_SendQueue.Clear();
 
                 Utility.PushColor(ConsoleColor.Red);
 
                 if (a != null)
-                {
                     ns.WriteConsole("Disconnected. [{0} Online] [{1}]", m_Instances.Count, a);
-                }
-                else if (MessagePump.Display(ns))
-                {
-                    ns.WriteConsole("Disconnected. [{0} Online]", m_Instances.Count);
-                }
+                else if (MessagePump.Display(ns)) ns.WriteConsole("Disconnected. [{0} Online]", m_Instances.Count);
 
                 Utility.PopColor();
             }
         }
 
-        [CommandProperty(AccessLevel.Administrator, true)]
-        public bool Running { get { return m_Running; } }
-
-        [CommandProperty(AccessLevel.Administrator, true)]
-        public bool Seeded { get; set; }
-
-        public Socket Socket { get; private set; }
-
-        public ByteQueue Buffer { get { return m_Buffer; } }
-
-        public ExpansionInfo ExpansionInfo
-        {
-            get
-            {
-                for (var i = ExpansionInfo.Table.Length - 1; i >= 0; i--)
-                {
-                    var info = ExpansionInfo.Table[i];
-
-                    if ((info.RequiredClient != null && Version >= info.RequiredClient) || ((Flags & info.ClientFlags) != 0))
-                    {
-                        return info;
-                    }
-                }
-
-                return ExpansionInfo.GetInfo(Expansion.None);
-            }
-        }
-
-        [CommandProperty(AccessLevel.Administrator, true)]
-        public Expansion Expansion { get { return (Expansion)ExpansionInfo.ID; } }
-
         public bool SupportsExpansion(ExpansionInfo info, bool checkCoreExpansion)
         {
-            if (info == null || (checkCoreExpansion && (int)Core.Expansion < info.ID))
-            {
-                return false;
-            }
+            if (info == null || (checkCoreExpansion && (int)Core.Expansion < info.ID)) return false;
 
-            if (info.RequiredClient != null)
-            {
-                return (IsEnhancedClient || Version >= info.RequiredClient);
-            }
+            if (info.RequiredClient != null) return IsEnhancedClient || Version >= info.RequiredClient;
 
-            return ((Flags & info.ClientFlags) != 0);
+            return (Flags & info.ClientFlags) != 0;
         }
 
         public bool SupportsExpansion(Expansion ex, bool checkCoreExpansion)
@@ -1307,19 +1049,53 @@ namespace Server.Network
             return SupportsExpansion(info, true);
         }
 
-        public int CompareTo(NetState other)
+        [Flags]
+        private enum AsyncState
         {
-            if (other == null)
-            {
-                return 1;
-            }
+            Pending = 0x01,
+            Paused = 0x02
+        }
 
-            return String.Compare(m_ToString, other.m_ToString, StringComparison.Ordinal);
+        private enum ProtocolChanges
+        {
+            NewSpellbook = 0x00000001,
+            DamagePacket = 0x00000002,
+            Unpack = 0x00000004,
+            BuffIcon = 0x00000008,
+            NewHaven = 0x00000010,
+            ContainerGridLines = 0x00000020,
+            ExtendedSupportedFeatures = 0x00000040,
+            StygianAbyss = 0x00000080,
+            HighSeas = 0x00000100,
+            NewCharacterList = 0x00000200,
+            NewCharacterCreation = 0x00000400,
+            ExtendedStatus = 0x00000800,
+            NewMobileIncoming = 0x00001000,
+            NewSecureTrading = 0x00002000,
+            UltimaStore = 0x00004000,
+            EndlessJourney = 0x00008000,
+
+            Version400a = NewSpellbook,
+            Version407a = Version400a | DamagePacket,
+            Version500a = Version407a | Unpack,
+            Version502b = Version500a | BuffIcon,
+            Version6000 = Version502b | NewHaven,
+            Version6017 = Version6000 | ContainerGridLines,
+            Version60142 = Version6017 | ExtendedSupportedFeatures,
+            Version7000 = Version60142 | StygianAbyss,
+            Version7090 = Version7000 | HighSeas,
+            Version70130 = Version7090 | NewCharacterList,
+            Version70160 = Version70130 | NewCharacterCreation,
+            Version70300 = Version70160 | ExtendedStatus,
+            Version70331 = Version70300 | NewMobileIncoming,
+            Version704565 = Version70331 | NewSecureTrading,
+            Version70500 = Version704565 | UltimaStore,
+            Version70610 = Version70500 | EndlessJourney
         }
 
         #region Packet Throttling
 
-        private readonly long[] _Throttles = new long[Byte.MaxValue];
+        private readonly long[] _Throttles = new long[byte.MaxValue];
 
         public void SetPacketTime(byte packetID)
         {

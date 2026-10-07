@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Server.Items;
 using Server.Custom.Farms;
+using Server.Custom.Farms.Items;
 
 namespace Server.Mobiles
 {
@@ -44,6 +45,7 @@ namespace Server.Mobiles
                 // =========================================================================
                 // РАНГ: FRIENDLY (Требуется ранг Friendly и выше)
                 // =========================================================================
+                Add(new GenericBuyInfo(typeof(PestSpray), 150, 20, 0x0EFC, 63));
                 Add(new GenericBuyInfo(typeof(CarrotSeed), 15, 50, 0xDCF, 43));   // 5
                 Add(new GenericBuyInfo(typeof(LettuceSeed), 15, 50, 0xDCF, 169)); // 6
                 Add(new GenericBuyInfo(typeof(PumpkinSeed), 20, 50, 0xDCF, 144)); // 7

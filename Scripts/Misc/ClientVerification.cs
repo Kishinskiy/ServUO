@@ -3,7 +3,6 @@ using System.Diagnostics;
 using System.IO;
 using Server.Gumps;
 using Server.Mobiles;
-using Server.Network;
 
 namespace Server.Misc
 {
@@ -14,81 +13,51 @@ namespace Server.Misc
         private static readonly TimeSpan m_AgeLeniency = TimeSpan.FromDays(10);
         private static readonly TimeSpan m_GameTimeLeniency = TimeSpan.FromHours(25);
 
-        private static ClientVersion m_Required;
-        private static ClientVersion m_RequiredEC;
-
         public static TimeSpan KickDelay = TimeSpan.FromSeconds(Config.Get("Client.KickDelay", 20.0));
         public static bool AllowRegular = Config.Get("Client.AllowRegular", true);
         public static bool AllowUOTD = Config.Get("Client.AllowUOTD", true);
         public static bool AllowGod = Config.Get("Client.AllowGod", true);
         public static bool AllowEC = Config.Get("Client.AllowEC", true);
 
-        private enum OldClientResponse
-        {
-            Ignore,
-            Warn,
-            Annoy,
-            LenientKick,
-            Kick
-        }
+        public static ClientVersion Required { get; set; }
 
-        public static ClientVersion Required
-        {
-            get
-            {
-                return m_Required;
-            }
-            set
-            {
-                m_Required = value;
-            }
-        }
-
-        public static ClientVersion RequiredEC
-        {
-            get
-            {
-                return m_RequiredEC;
-            }
-            set
-            {
-                m_RequiredEC = value;
-            }
-        }
+        public static ClientVersion RequiredEC { get; set; }
 
         public static void Initialize()
         {
-            EventSink.ClientVersionReceived += new ClientVersionReceivedHandler(EventSink_ClientVersionReceived);
-            EventSink.ClientTypeReceived += new ClientTypeReceivedHandler(EventSink_ClientTypeReceived);
+            EventSink.ClientVersionReceived += EventSink_ClientVersionReceived;
+            EventSink.ClientTypeReceived += EventSink_ClientTypeReceived;
 
-            m_RequiredEC = new ClientVersion(67, 0, 59, 0, ClientType.SA);
+            RequiredEC = new ClientVersion(67, 0, 59, 0, ClientType.SA);
 
             if (m_DetectClientRequirement)
             {
-                string path = Core.FindDataFile("client.exe");
+                var path = Core.FindDataFile("client.exe");
 
                 if (File.Exists(path))
                 {
-                    FileVersionInfo info = FileVersionInfo.GetVersionInfo(path);
+                    var info = FileVersionInfo.GetVersionInfo(path);
 
-                    if (info.FileMajorPart != 0 || info.FileMinorPart != 0 || info.FileBuildPart != 0 || info.FilePrivatePart != 0)
-                    {
-                        Required = new ClientVersion(info.FileMajorPart, info.FileMinorPart, info.FileBuildPart, info.FilePrivatePart);
-                    }
+                    if (info.FileMajorPart != 0 || info.FileMinorPart != 0 || info.FileBuildPart != 0 ||
+                        info.FilePrivatePart != 0)
+                        Required = new ClientVersion(info.FileMajorPart, info.FileMinorPart, info.FileBuildPart,
+                            info.FilePrivatePart);
                 }
             }
 
             if (Required != null)
             {
                 Utility.PushColor(ConsoleColor.White);
-                Console.WriteLine("Restricting classic client version to {0}. Action to be taken: {1}", Required, m_OldClientResponse);
+                Console.WriteLine("Restricting classic client version to {0}. Action to be taken: {1}", Required,
+                    m_OldClientResponse);
                 Utility.PopColor();
             }
 
             if (RequiredEC != null)
             {
                 Utility.PushColor(ConsoleColor.White);
-                Console.WriteLine("Restricting enhanced client version to {0}. Action to be taken: {1}", RequiredEC, "Kick");
+                Console.WriteLine("Restricting enhanced client version to {0}. Action to be taken: {1}", RequiredEC,
+                    "Kick");
                 Utility.PopColor();
             }
         }
@@ -96,17 +65,22 @@ namespace Server.Misc
         private static void EventSink_ClientVersionReceived(ClientVersionReceivedArgs e)
         {
             string kickMessage = null;
-            NetState state = e.State;
-            ClientVersion version = e.Version;
+            var state = e.State;
+            var version = e.Version;
 
             if (state.Mobile != null && state.Mobile.IsStaff())
                 return;
 
-            ClientVersion required = Required;
+            var required = Required;
 
-            if (required != null && version < required && (m_OldClientResponse == OldClientResponse.Kick || (m_OldClientResponse == OldClientResponse.LenientKick && (DateTime.UtcNow - state.Mobile.CreationTime) > m_AgeLeniency && state.Mobile is PlayerMobile && ((PlayerMobile)state.Mobile).GameTime > m_GameTimeLeniency)))
+            if (required != null && version < required && (m_OldClientResponse == OldClientResponse.Kick ||
+                                                           (m_OldClientResponse == OldClientResponse.LenientKick &&
+                                                            DateTime.UtcNow - state.Mobile.CreationTime >
+                                                            m_AgeLeniency && state.Mobile is PlayerMobile &&
+                                                            ((PlayerMobile)state.Mobile).GameTime >
+                                                            m_GameTimeLeniency)))
             {
-                kickMessage = String.Format("This server requires your client version be at least {0}.", required);
+                kickMessage = string.Format("This server requires your client version be at least {0}.", required);
             }
             else if (!AllowGod || !AllowRegular || !AllowUOTD)
             {
@@ -154,20 +128,22 @@ namespace Server.Misc
             }
             else if (Required != null && version < Required)
             {
-                switch( m_OldClientResponse )
+                switch (m_OldClientResponse)
                 {
                     case OldClientResponse.Warn:
-                        {
-                            state.Mobile.SendMessage(0x22, "Your client is out of date. Please update your client.", Required);
-                            state.Mobile.SendMessage(0x22, "This server recommends that your client version be at least {0}.", Required);
-                            break;
-                        }
+                    {
+                        state.Mobile.SendMessage(0x22, "Your client is out of date. Please update your client.",
+                            Required);
+                        state.Mobile.SendMessage(0x22,
+                            "This server recommends that your client version be at least {0}.", Required);
+                        break;
+                    }
                     case OldClientResponse.LenientKick:
                     case OldClientResponse.Annoy:
-                        {
-                            SendAnnoyGump(state.Mobile);
-                            break;
-                        }
+                    {
+                        SendAnnoyGump(state.Mobile);
+                        break;
+                    }
                 }
             }
         }
@@ -175,7 +151,7 @@ namespace Server.Misc
         private static void EventSink_ClientTypeReceived(ClientTypeReceivedArgs e)
         {
             var state = e.State;
-            ClientVersion version = state.Version;
+            var version = state.Version;
 
             if (state.IsEnhancedClient)
             {
@@ -189,30 +165,29 @@ namespace Server.Misc
                 }
                 else
                 {
-                    ClientVersion required = RequiredEC;
+                    var required = RequiredEC;
 
                     if (required != null && version < required)
-                    {
                         Timer.DelayCall(TimeSpan.FromSeconds(5), () =>
+                        {
+                            if (state.Mobile != null && !state.Mobile.IsStaff())
                             {
-                                if (state.Mobile != null && !state.Mobile.IsStaff())
+                                state.Mobile.SendMessage(
+                                    "This server requires your enhanced client version be at least {0}. You will be disconnected in 5 seconds.",
+                                    required);
+
+                                Timer.DelayCall(TimeSpan.FromSeconds(5), () =>
                                 {
-                                    state.Mobile.SendMessage("This server requires your enhanced client version be at least {0}. You will be disconnected in 5 seconds.", required);
+                                    Utility.PushColor(ConsoleColor.DarkRed);
+                                    Console.WriteLine("Client: {0}: Disconnecting, bad enhanced client version.",
+                                        state);
+                                    Utility.PopColor();
 
-                                    Timer.DelayCall(TimeSpan.FromSeconds(5), () =>
-                                        {
-                                            Utility.PushColor(ConsoleColor.DarkRed);
-                                            Console.WriteLine("Client: {0}: Disconnecting, bad enhanced client version.", state);
-                                            Utility.PopColor();
-
-                                            state.Dispose();
-                                        });
-                                }
-                            });
-                    }
+                                    state.Dispose();
+                                });
+                            }
+                        });
                 }
-
-                return;
             }
         }
 
@@ -220,13 +195,18 @@ namespace Server.Misc
         {
             if (m.NetState != null && m.NetState.Version < Required)
             {
-                Gump g = new WarningGump(1060637, 30720, String.Format("Your client is out of date. Please update your client.<br>This server recommends that your client version be at least {0}.<br> <br>You are currently using version {1}.<br> <br>To patch, run UOPatch.exe inside your Ultima Online folder.", Required, m.NetState.Version), 0xFFC000, 480, 360,
-                    delegate(Mobile mob, bool selection, object o)
+                Gump g = new WarningGump(1060637, 30720,
+                    string.Format(
+                        "Your client is out of date. Please update your client.<br>This server recommends that your client version be at least {0}.<br> <br>You are currently using version {1}.<br> <br>To patch, run UOPatch.exe inside your Ultima Online folder.",
+                        Required, m.NetState.Version), 0xFFC000, 480, 360,
+                    delegate
                     {
                         m.SendMessage("You will be reminded of this again.");
 
                         if (m_OldClientResponse == OldClientResponse.LenientKick)
-                            m.SendMessage("Old clients will be kicked after {0} days of character age and {1} hours of play time", m_AgeLeniency, m_GameTimeLeniency);
+                            m.SendMessage(
+                                "Old clients will be kicked after {0} days of character age and {1} hours of play time",
+                                m_AgeLeniency, m_GameTimeLeniency);
 
                         Timer.DelayCall(TimeSpan.FromMinutes(Utility.Random(5, 15)), delegate { SendAnnoyGump(m); });
                     }, null, false);
@@ -237,6 +217,15 @@ namespace Server.Misc
 
                 m.SendGump(g);
             }
+        }
+
+        private enum OldClientResponse
+        {
+            Ignore,
+            Warn,
+            Annoy,
+            LenientKick,
+            Kick
         }
     }
 }

@@ -1,47 +1,28 @@
-using System;
 using System.Xml;
 
 namespace Server.Gumps
 {
     public class ChildNode
     {
-        private readonly ParentNode m_Parent;
-        private string m_Name;
-        private Point3D m_Location;
+        public ParentNode Parent { get; }
+
+        public string Name { get; private set; }
+
+        public Point3D Location { get; private set; }
+
         public ChildNode(XmlTextReader xml, ParentNode parent)
         {
-            this.m_Parent = parent;
+            Parent = parent;
 
-            this.Parse(xml);
+            Parse(xml);
         }
 
-        public ParentNode Parent
-        {
-            get
-            {
-                return this.m_Parent;
-            }
-        }
-        public string Name
-        {
-            get
-            {
-                return this.m_Name;
-            }
-        }
-        public Point3D Location
-        {
-            get
-            {
-                return this.m_Location;
-            }
-        }
         private void Parse(XmlTextReader xml)
         {
             if (xml.MoveToAttribute("name"))
-                this.m_Name = xml.Value;
+                Name = xml.Value;
             else
-                this.m_Name = "empty";
+                Name = "empty";
 
             int x = 0, y = 0, z = 0;
 
@@ -54,7 +35,7 @@ namespace Server.Gumps
             if (xml.MoveToAttribute("z"))
                 z = Utility.ToInt32(xml.Value);
 
-            this.m_Location = new Point3D(x, y, z);
+            Location = new Point3D(x, y, z);
         }
     }
 }

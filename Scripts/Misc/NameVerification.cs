@@ -1,16 +1,17 @@
-using System;
 using Server.Commands;
 
 namespace Server.Misc
 {
     public class NameVerification
     {
-        public static readonly char[] SpaceDashPeriodQuote = new char[]
+        public static readonly char[] SpaceDashPeriodQuote =
         {
             ' ', '-', '.', '\''
         };
+
         public static readonly char[] Empty = new char[0];
-        private static readonly string[] m_StartDisallowed = new string[]
+
+        public static string[] StartDisallowed { get; } =
         {
             "seer",
             "counselor",
@@ -19,7 +20,8 @@ namespace Server.Misc
             "lady",
             "lord"
         };
-        private static readonly string[] m_Disallowed = new string[]
+
+        public static string[] Disallowed { get; } =
         {
             "jigaboo",
             "chigaboo",
@@ -97,23 +99,10 @@ namespace Server.Misc
             "osi",
             "origin"
         };
-        public static string[] StartDisallowed
-        {
-            get
-            {
-                return m_StartDisallowed;
-            }
-        }
-        public static string[] Disallowed
-        {
-            get
-            {
-                return m_Disallowed;
-            }
-        }
+
         public static void Initialize()
         {
-            CommandSystem.Register("ValidateName", AccessLevel.Administrator, new CommandEventHandler(ValidateName_OnCommand));
+            CommandSystem.Register("ValidateName", AccessLevel.Administrator, ValidateName_OnCommand);
         }
 
         [Usage("ValidateName")]
@@ -126,25 +115,29 @@ namespace Server.Misc
                 e.Mobile.SendMessage(0x22, "That name is considered invalid.");
         }
 
-        public static bool Validate(string name, int minLength, int maxLength, bool allowLetters, bool allowDigits, bool noExceptionsAtStart, int maxExceptions, char[] exceptions)
+        public static bool Validate(string name, int minLength, int maxLength, bool allowLetters, bool allowDigits,
+            bool noExceptionsAtStart, int maxExceptions, char[] exceptions)
         {
-            return Validate(name, minLength, maxLength, allowLetters, allowDigits, noExceptionsAtStart, maxExceptions, exceptions, m_Disallowed, m_StartDisallowed);
+            return Validate(name, minLength, maxLength, allowLetters, allowDigits, noExceptionsAtStart, maxExceptions,
+                exceptions, Disallowed, StartDisallowed);
         }
 
-        public static bool Validate(string name, int minLength, int maxLength, bool allowLetters, bool allowDigits, bool noExceptionsAtStart, int maxExceptions, char[] exceptions, string[] disallowed, string[] startDisallowed)
+        public static bool Validate(string name, int minLength, int maxLength, bool allowLetters, bool allowDigits,
+            bool noExceptionsAtStart, int maxExceptions, char[] exceptions, string[] disallowed,
+            string[] startDisallowed)
         {
             if (name == null || name.Length < minLength || name.Length > maxLength)
                 return false;
 
-            int exceptCount = 0;
+            var exceptCount = 0;
 
             name = name.ToLower();
 
-            if (!allowLetters || !allowDigits || (exceptions.Length > 0 && (noExceptionsAtStart || maxExceptions < int.MaxValue)))
-            {
-                for (int i = 0; i < name.Length; ++i)
+            if (!allowLetters || !allowDigits ||
+                (exceptions.Length > 0 && (noExceptionsAtStart || maxExceptions < int.MaxValue)))
+                for (var i = 0; i < name.Length; ++i)
                 {
-                    char c = name[i];
+                    var c = name[i];
 
                     if (c >= 'a' && c <= 'z')
                     {
@@ -162,9 +155,9 @@ namespace Server.Misc
                     }
                     else
                     {
-                        bool except = false;
+                        var except = false;
 
-                        for (int j = 0; !except && j < exceptions.Length; ++j)
+                        for (var j = 0; !except && j < exceptions.Length; ++j)
                             if (c == exceptions[j])
                                 except = true;
 
@@ -175,37 +168,34 @@ namespace Server.Misc
                             return false;
                     }
                 }
-            }
 
-            for (int i = 0; i < disallowed.Length; ++i)
+            for (var i = 0; i < disallowed.Length; ++i)
             {
-                int indexOf = name.IndexOf(disallowed[i]);
+                var indexOf = name.IndexOf(disallowed[i]);
 
                 if (indexOf == -1)
                     continue;
 
-                bool badPrefix = (indexOf == 0);
+                var badPrefix = indexOf == 0;
 
-                for (int j = 0; !badPrefix && j < exceptions.Length; ++j)
-                    badPrefix = (name[indexOf - 1] == exceptions[j]);
+                for (var j = 0; !badPrefix && j < exceptions.Length; ++j)
+                    badPrefix = name[indexOf - 1] == exceptions[j];
 
                 if (!badPrefix)
                     continue;
 
-                bool badSuffix = ((indexOf + disallowed[i].Length) >= name.Length);
+                var badSuffix = indexOf + disallowed[i].Length >= name.Length;
 
-                for (int j = 0; !badSuffix && j < exceptions.Length; ++j)
-                    badSuffix = (name[indexOf + disallowed[i].Length] == exceptions[j]);
+                for (var j = 0; !badSuffix && j < exceptions.Length; ++j)
+                    badSuffix = name[indexOf + disallowed[i].Length] == exceptions[j];
 
                 if (badSuffix)
                     return false;
             }
 
-            for (int i = 0; i < startDisallowed.Length; ++i)
-            {
+            for (var i = 0; i < startDisallowed.Length; ++i)
                 if (name.StartsWith(startDisallowed[i]))
                     return false;
-            }
 
             return true;
         }

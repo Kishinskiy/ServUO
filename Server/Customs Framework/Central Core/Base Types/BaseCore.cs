@@ -1,80 +1,86 @@
 ﻿#region References
+
 using Server;
 using Server.Gumps;
+
 #endregion
 
 namespace CustomsFramework
 {
-	public class BaseCore : SaveData, ICustomsEntity, ISerializable
-	{
-		public static event BaseCoreEventHandler OnEnabledChanged;
+    public class BaseCore : SaveData, ICustomsEntity, ISerializable
+    {
+        private bool _Enabled;
 
-		private bool _Enabled;
+        [CommandProperty(AccessLevel.Developer)]
+        public bool Enabled
+        {
+            get => _Enabled;
+            set
+            {
+                if (value != _Enabled)
+                {
+                    _Enabled = value;
 
-		public BaseCore()
-		{ }
+                    if (OnEnabledChanged != null) OnEnabledChanged(new BaseCoreEventArgs(this));
+                }
+            }
+        }
 
-		public BaseCore(CustomSerial serial)
-			: base(serial)
-		{ }
+        public virtual string Description => @"Base Core, inherit from this class and override the interface items.";
+        public virtual string Version => "1.0";
 
-		[CommandProperty(AccessLevel.Developer)]
-		public bool Enabled
-		{
-			get { return _Enabled; }
-			set
-			{
-				if (value != _Enabled)
-				{
-					_Enabled = value;
+        public virtual AccessLevel EditLevel => AccessLevel.Developer;
 
-					if (OnEnabledChanged != null)
-					{
-						OnEnabledChanged(new BaseCoreEventArgs(this));
-					}
-				}
-			}
-		}
+        // TODO: Implement Custom Systems Control
+        public virtual Gump SettingsGump => null;
+        public virtual bool ShardControlEnabled => false;
 
-		public override string Name { get { return @"Base Core"; } }
-		public virtual string Description { get { return @"Base Core, inherit from this class and override the interface items."; } }
-		public virtual string Version { get { return "1.0"; } }
-		public virtual AccessLevel EditLevel { get { return AccessLevel.Developer; } }
-		// TODO: Implement Custom Systems Control
-		public virtual Gump SettingsGump { get { return null; } }
-		public virtual bool ShardControlEnabled { get { return false; } }
+        public BaseCore()
+        {
+        }
 
-		public override string ToString()
-		{
-			return Name;
-		}
+        public BaseCore(CustomSerial serial)
+            : base(serial)
+        {
+        }
 
-		public override void Prep()
-		{ }
+        public override string Name => @"Base Core";
 
-		public override void Delete()
-		{ }
+        public override void Prep()
+        {
+        }
 
-		public override void Serialize(GenericWriter writer)
-		{
-			writer.WriteVersion(0);
+        public override void Delete()
+        {
+        }
 
-			// Version 0
-			writer.Write(_Enabled);
-		}
+        public override void Serialize(GenericWriter writer)
+        {
+            writer.WriteVersion(0);
 
-		public override void Deserialize(GenericReader reader)
-		{
-			int version = reader.ReadInt();
+            // Version 0
+            writer.Write(_Enabled);
+        }
 
-			switch (version)
-			{
-				case 0:
-					{
-						_Enabled = reader.ReadBool();
-						break;
-					}
-			}
-		}
-	}
+        public static event BaseCoreEventHandler OnEnabledChanged;
+
+        public override string ToString()
+        {
+            return Name;
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            var version = reader.ReadInt();
+
+            switch (version)
+            {
+                case 0:
+                {
+                    _Enabled = reader.ReadBool();
+                    break;
+                }
+            }
+        }
+    }
 }

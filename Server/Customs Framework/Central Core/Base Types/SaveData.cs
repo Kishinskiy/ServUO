@@ -1,113 +1,115 @@
 ﻿#region References
-using System;
 
+using System;
 using Server;
+
 #endregion
 
 namespace CustomsFramework
 {
-	public class SaveData : ICustomsEntity, IComparable<SaveData>, ISerializable
-	{
-		#region CompareTo
-		public int CompareTo(ICustomsEntity other)
-		{
-			if (other == null)
-			{
-				return -1;
-			}
+    public class SaveData : ICustomsEntity, IComparable<SaveData>, ISerializable
+    {
+        private CustomSerial _Serial;
 
-			return _Serial.CompareTo(other.Serial);
-		}
+        internal int _TypeID;
 
-		public int CompareTo(SaveData other)
-		{
-			return CompareTo((ICustomsEntity)other);
-		}
+        [CommandProperty(AccessLevel.Developer)]
+        public bool Deleted { get; set; }
 
-		public int CompareTo(object other)
-		{
-			if (other == null || other is ICustomsEntity)
-			{
-				return CompareTo((ICustomsEntity)other);
-			}
+        public SaveData(CustomSerial serial)
+        {
+            _Serial = serial;
 
-			throw new ArgumentException();
-		}
-		#endregion
+            var dataType = GetType();
+            _TypeID = World._DataTypes.IndexOf(dataType);
 
-		internal int _TypeID;
+            if (_TypeID == -1)
+            {
+                World._DataTypes.Add(dataType);
+                _TypeID = World._DataTypes.Count - 1;
+            }
+        }
 
-		int ISerializable.TypeReference { get { return _TypeID; } }
+        public SaveData()
+        {
+            _Serial = CustomSerial.NewCustom;
 
-		int ISerializable.SerialIdentity { get { return _Serial; } }
+            World.AddData(this);
 
-		private bool _Deleted;
-		private CustomSerial _Serial;
+            var dataType = GetType();
+            _TypeID = World._DataTypes.IndexOf(dataType);
 
-		[CommandProperty(AccessLevel.Developer)]
-		public bool Deleted { get { return _Deleted; } set { _Deleted = value; } }
+            if (_TypeID == -1)
+            {
+                World._DataTypes.Add(dataType);
+                _TypeID = World._DataTypes.Count - 1;
+            }
+        }
 
-		[CommandProperty(AccessLevel.Developer)]
-		public CustomSerial Serial { get { return _Serial; } set { _Serial = value; } }
+        [CommandProperty(AccessLevel.Developer)]
+        public CustomSerial Serial
+        {
+            get => _Serial;
+            set => _Serial = value;
+        }
 
-		public virtual string Name { get { return @"Save Data"; } }
+        public virtual string Name => @"Save Data";
 
-		public SaveData(CustomSerial serial)
-		{
-			_Serial = serial;
+        public virtual void Prep()
+        {
+        }
 
-			Type dataType = GetType();
-			_TypeID = World._DataTypes.IndexOf(dataType);
+        public virtual void Delete()
+        {
+        }
 
-			if (_TypeID == -1)
-			{
-				World._DataTypes.Add(dataType);
-				_TypeID = World._DataTypes.Count - 1;
-			}
-		}
+        int ISerializable.TypeReference => _TypeID;
 
-		public SaveData()
-		{
-			_Serial = CustomSerial.NewCustom;
+        int ISerializable.SerialIdentity => _Serial;
 
-			World.AddData(this);
+        public virtual void Serialize(GenericWriter writer)
+        {
+            writer.WriteVersion(0);
 
-			Type dataType = GetType();
-			_TypeID = World._DataTypes.IndexOf(dataType);
+            // Version 0
+            writer.Write(Deleted);
+        }
 
-			if (_TypeID == -1)
-			{
-				World._DataTypes.Add(dataType);
-				_TypeID = World._DataTypes.Count - 1;
-			}
-		}
+        public virtual void Deserialize(GenericReader reader)
+        {
+            var version = reader.ReadInt();
 
-		public virtual void Prep()
-		{ }
+            switch (version)
+            {
+                case 0:
+                {
+                    Deleted = reader.ReadBool();
+                    break;
+                }
+            }
+        }
 
-		public virtual void Delete()
-		{ }
+        #region CompareTo
 
-		public virtual void Serialize(GenericWriter writer)
-		{
-			writer.WriteVersion(0);
+        public int CompareTo(ICustomsEntity other)
+        {
+            if (other == null) return -1;
 
-			// Version 0
-			writer.Write(_Deleted);
-		}
+            return _Serial.CompareTo(other.Serial);
+        }
 
-		public virtual void Deserialize(GenericReader reader)
-		{
-			int version = reader.ReadInt();
+        public int CompareTo(SaveData other)
+        {
+            return CompareTo((ICustomsEntity)other);
+        }
 
-			switch (version)
-			{
-				case 0:
-					{
-						_Deleted = reader.ReadBool();
-						break;
-					}
-			}
-		}
-	}
+        public int CompareTo(object other)
+        {
+            if (other == null || other is ICustomsEntity) return CompareTo((ICustomsEntity)other);
+
+            throw new ArgumentException();
+        }
+
+        #endregion
+    }
 }

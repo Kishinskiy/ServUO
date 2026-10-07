@@ -8,14 +8,11 @@
 [![GitHub contributors](https://img.shields.io/github/contributors/servuo/servuo.svg)](https://github.com/ServUO/ServUO/graphs/contributors)
 [![GitHub](https://img.shields.io/github/license/servuo/servuo.svg?color=a)](https://github.com/ServUO/ServUO/blob/master/LICENSE)
 
-
 ServUO is a community driven Ultima Online Server Emulator written in C#.
-
 
 ### Website
 
 [ServUO]
-
 
 #### Windows
 
@@ -23,17 +20,16 @@ Run `_windebug.bat` for development, attaching a debugger and/or extended output
 
 Run `_winrelease.bat` for production environment.
 
-
 #### Other Platforms
 
 Run `make debug` for development, attaching a debugger and/or extended output.
 
 Run `make` or `make release` for production environment. Writing release is optinal by default
 
-
 ### Linux Dependencies
 
 #### Ubuntu / Debian
+
 ```
 sudo add-apt-repository ppa:dotnet/backports
 sudo apt-get update
@@ -41,19 +37,20 @@ sudo apt-get -y install zlib1g mono-complete dotnet-sdk-10.0 dotnet-runtime-10.0
 ```
 
 #### Arch-based
+
 ```
 sudo pacman -S make mono dotnet-sdk dotnet-runtime
 ```
 
 ### Summary
 
-1. Starting with the `/Config` directory, make sure to read the readme first, then find and edit `Server.cfg` to set up the essentials.
+1. Starting with the `/Config` directory, make sure to read the readme first, then find and edit `Server.cfg` to set up
+   the essentials.
 2. Go through the remaining `*.cfg` files to ensure they suit your needs.
 3. For Windows, run `_winrelease.bat` to produce `ServUO.exe`, OSX/Linux users may run `make`.
 4. Run `ServUO`
 5. ???
 6. Profit!
-
 
     [ServUO]: <https://www.servuo.dev>
 

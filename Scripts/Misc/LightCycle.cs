@@ -1,107 +1,108 @@
 #region References
-using System;
 
+using System;
 using Server.Commands;
 using Server.Items;
 using Server.Network;
+
 #endregion
 
 namespace Server
 {
-	public static class LightCycle
+    public static class LightCycle
     {
         public const int DayLevel = 0;
         public const int NightLevel = 12;
         public const int DungeonLevel = 26;
         public const int JailLevel = 9;
 
-		private static int _LevelOverride = Int32.MinValue;
+        private static int _LevelOverride = int.MinValue;
 
         public static int LevelOverride
         {
-			get { return _LevelOverride; }
+            get => _LevelOverride;
             set
             {
-				_LevelOverride = value;
+                _LevelOverride = value;
 
-				CheckLightLevels();
+                CheckLightLevels();
             }
         }
 
         public static void Initialize()
         {
-			new LightCycleTimer(Clock.SecondsPerUOMinute).Start();
+            new LightCycleTimer(Clock.SecondsPerUOMinute).Start();
 
-			EventSink.Login += OnLogin;
+            EventSink.Login += OnLogin;
 
-			CommandSystem.Register("GlobalLight", AccessLevel.GameMaster, Light_OnCommand);
+            CommandSystem.Register("GlobalLight", AccessLevel.GameMaster, Light_OnCommand);
         }
 
         public static void OnLogin(LoginEventArgs args)
         {
-			var m = args.Mobile;
+            var m = args.Mobile;
 
-			if (m != null)
-            	m.CheckLightLevels(true);
+            if (m != null)
+                m.CheckLightLevels(true);
         }
 
         public static int ComputeLevelFor(Mobile from)
         {
-			if (_LevelOverride > int.MinValue)
-				return _LevelOverride;
+            if (_LevelOverride > int.MinValue)
+                return _LevelOverride;
 
             int hours, minutes;
 
-			Clock.GetTime(from.Map, from.X, from.Y, out hours, out minutes);
+            Clock.GetTime(from.Map, from.X, from.Y, out hours, out minutes);
 
             /* OSI times:
-            * 
-            * Midnight ->  3:59 AM : Night
-            *  4:00 AM -> 11:59 PM : Day
-            * 
-            * RunUO times:
-            * 
-            * 10:00 PM -> 11:59 PM : Scale to night
-            * Midnight ->  3:59 AM : Night
-            *  4:00 AM ->  5:59 AM : Scale to day
-            *  6:00 AM ->  9:59 PM : Day
-            */
+             *
+             * Midnight ->  3:59 AM : Night
+             *  4:00 AM -> 11:59 PM : Day
+             *
+             * RunUO times:
+             *
+             * 10:00 PM -> 11:59 PM : Scale to night
+             * Midnight ->  3:59 AM : Night
+             *  4:00 AM ->  5:59 AM : Scale to day
+             *  6:00 AM ->  9:59 PM : Day
+             */
 
             if (hours < 4)
                 return NightLevel;
 
             if (hours < 6)
-                return NightLevel + (((((hours - 4) * 60) + minutes) * (DayLevel - NightLevel)) / 120);
+                return NightLevel + ((hours - 4) * 60 + minutes) * (DayLevel - NightLevel) / 120;
 
             if (hours < 22)
                 return DayLevel;
 
             if (hours < 24)
-                return DayLevel + (((((hours - 22) * 60) + minutes) * (NightLevel - DayLevel)) / 120);
+                return DayLevel + ((hours - 22) * 60 + minutes) * (NightLevel - DayLevel) / 120;
 
             return NightLevel; // should never be
         }
 
-		public static void CheckLightLevels()
-		{
-			var i = NetState.Instances.Count;
+        public static void CheckLightLevels()
+        {
+            var i = NetState.Instances.Count;
 
-			while (--i >= 0)
-			{
-				if (i >= NetState.Instances.Count)
-					continue;
+            while (--i >= 0)
+            {
+                if (i >= NetState.Instances.Count)
+                    continue;
 
-				var ns = NetState.Instances[i];
+                var ns = NetState.Instances[i];
 
-				if (ns == null)
-					continue;
+                if (ns == null)
+                    continue;
 
-				var m = ns.Mobile;
+                var m = ns.Mobile;
 
-				if (m != null)
-					m.CheckLightLevels(false);
-			}
-		}
+                if (m != null)
+                    m.CheckLightLevels(false);
+            }
+        }
 
         [Usage("GlobalLight <value>")]
         [Description("Sets the current global light level.")]
@@ -110,7 +111,7 @@ namespace Server
             if (e.Length >= 1)
             {
                 LevelOverride = e.GetInt32(0);
-				e.Mobile.SendMessage("Global light level override has been changed to {0}.", _LevelOverride);
+                e.Mobile.SendMessage("Global light level override has been changed to {0}.", _LevelOverride);
             }
             else
             {
@@ -126,31 +127,31 @@ namespace Server
             public NightSightTimer(Mobile owner)
                 : base(TimeSpan.FromMinutes(Utility.Random(15, 25)))
             {
-				m_Owner = owner;
+                m_Owner = owner;
 
-				Priority = TimerPriority.OneMinute;
+                Priority = TimerPriority.OneMinute;
             }
 
             protected override void OnTick()
             {
-				m_Owner.EndAction(typeof(LightCycle));
-				m_Owner.LightLevel = 0;
+                m_Owner.EndAction(typeof(LightCycle));
+                m_Owner.LightLevel = 0;
 
-				BuffInfo.RemoveBuff(m_Owner, BuffIcon.NightSight);
+                BuffInfo.RemoveBuff(m_Owner, BuffIcon.NightSight);
             }
         }
 
         private class LightCycleTimer : Timer
         {
-			public LightCycleTimer(double interval)
-				: base(TimeSpan.Zero, TimeSpan.FromSeconds(interval))
+            public LightCycleTimer(double interval)
+                : base(TimeSpan.Zero, TimeSpan.FromSeconds(interval))
             {
-				Priority = TimerPriority.OneSecond;
+                Priority = TimerPriority.OneSecond;
             }
 
             protected override void OnTick()
             {
-				CheckLightLevels();
+                CheckLightLevels();
             }
         }
     }

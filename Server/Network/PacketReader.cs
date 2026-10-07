@@ -1,511 +1,387 @@
 #region References
-using System;
+
 using System.IO;
 using System.Text;
+
 #endregion
 
 namespace Server.Network
 {
-	public class PacketReader
-	{
-		private readonly byte[] m_Data;
-		private readonly int m_Size;
-		private int m_Index;
-
-		public PacketReader(byte[] data, int size, bool fixedSize)
-		{
-			m_Data = data;
-			m_Size = size;
-			m_Index = fixedSize ? 1 : 3;
-		}
-
-		public byte[] Buffer { get { return m_Data; } }
-
-		public int Size { get { return m_Size; } }
-
-		public void Trace(NetState state)
-		{
-			try
-			{
-				using (StreamWriter sw = new StreamWriter("Packets.log", true))
-				{
-					var buffer = m_Data;
-
-					if (buffer.Length > 0)
-					{
-						sw.WriteLine("Client: {0}: Unhandled packet 0x{1:X2}", state, buffer[0]);
-					}
-
-					using (MemoryStream ms = new MemoryStream(buffer))
-					{
-						Utility.FormatBuffer(sw, ms, buffer.Length);
-					}
-
-					sw.WriteLine();
-					sw.WriteLine();
-				}
-			}
-			catch
-			{ }
-		}
-
-		public int Seek(int offset, SeekOrigin origin)
-		{
-			switch (origin)
-			{
-				case SeekOrigin.Begin:
-					m_Index = offset;
-					break;
-				case SeekOrigin.Current:
-					m_Index += offset;
-					break;
-				case SeekOrigin.End:
-					m_Index = m_Size - offset;
-					break;
-			}
-
-			return m_Index;
-		}
-
-		public int ReadInt32()
-		{
-			if ((m_Index + 4) > m_Size)
-			{
-				return 0;
-			}
-
-			return (m_Data[m_Index++] << 24) | (m_Data[m_Index++] << 16) | (m_Data[m_Index++] << 8) | m_Data[m_Index++];
-		}
-
-		public short ReadInt16()
-		{
-			if ((m_Index + 2) > m_Size)
-			{
-				return 0;
-			}
-
-			return (short)((m_Data[m_Index++] << 8) | m_Data[m_Index++]);
-		}
-
-		public byte ReadByte()
-		{
-			if ((m_Index + 1) > m_Size)
-			{
-				return 0;
-			}
-
-			return m_Data[m_Index++];
-		}
-
-		public uint ReadUInt32()
-		{
-			if ((m_Index + 4) > m_Size)
-			{
-				return 0;
-			}
-
-			return (uint)((m_Data[m_Index++] << 24) | (m_Data[m_Index++] << 16) | (m_Data[m_Index++] << 8) | m_Data[m_Index++]);
-		}
-
-		public ushort ReadUInt16()
-		{
-			if ((m_Index + 2) > m_Size)
-			{
-				return 0;
-			}
-
-			return (ushort)((m_Data[m_Index++] << 8) | m_Data[m_Index++]);
-		}
-
-		public sbyte ReadSByte()
-		{
-			if ((m_Index + 1) > m_Size)
-			{
-				return 0;
-			}
-
-			return (sbyte)m_Data[m_Index++];
-		}
+    public class PacketReader
+    {
+        private int m_Index;
+
+        public byte[] Buffer { get; }
+
+        public int Size { get; }
+
+        public PacketReader(byte[] data, int size, bool fixedSize)
+        {
+            Buffer = data;
+            Size = size;
+            m_Index = fixedSize ? 1 : 3;
+        }
+
+        public void Trace(NetState state)
+        {
+            try
+            {
+                using (var sw = new StreamWriter("Packets.log", true))
+                {
+                    var buffer = Buffer;
+
+                    if (buffer.Length > 0) sw.WriteLine("Client: {0}: Unhandled packet 0x{1:X2}", state, buffer[0]);
+
+                    using (var ms = new MemoryStream(buffer))
+                    {
+                        Utility.FormatBuffer(sw, ms, buffer.Length);
+                    }
+
+                    sw.WriteLine();
+                    sw.WriteLine();
+                }
+            }
+            catch
+            {
+            }
+        }
 
-		public bool ReadBoolean()
-		{
-			if ((m_Index + 1) > m_Size)
-			{
-				return false;
-			}
-
-			return (m_Data[m_Index++] != 0);
-		}
-
-		public string ReadUnicodeStringLE()
-		{
-			StringBuilder sb = new StringBuilder();
-
-			int c;
-
-			while ((m_Index + 1) < m_Size && (c = (m_Data[m_Index++] | (m_Data[m_Index++] << 8))) != 0)
-			{
-				sb.Append((char)c);
-			}
-
-			return sb.ToString();
-		}
-
-		public string ReadUnicodeStringLESafe(int fixedLength)
-		{
-			int bound = m_Index + (fixedLength << 1);
-			int end = bound;
-
-			if (bound > m_Size)
-			{
-				bound = m_Size;
-			}
-
-			StringBuilder sb = new StringBuilder();
-
-			int c;
-
-			while ((m_Index + 1) < bound && (c = (m_Data[m_Index++] | (m_Data[m_Index++] << 8))) != 0)
-			{
-				if (IsSafeChar(c))
-				{
-					sb.Append((char)c);
-				}
-			}
-
-			m_Index = end;
-
-			return sb.ToString();
-		}
+        public int Seek(int offset, SeekOrigin origin)
+        {
+            switch (origin)
+            {
+                case SeekOrigin.Begin:
+                    m_Index = offset;
+                    break;
+                case SeekOrigin.Current:
+                    m_Index += offset;
+                    break;
+                case SeekOrigin.End:
+                    m_Index = Size - offset;
+                    break;
+            }
 
-		public string ReadUnicodeStringLESafe()
-		{
-			StringBuilder sb = new StringBuilder();
-
-			int c;
-
-			while ((m_Index + 1) < m_Size && (c = (m_Data[m_Index++] | (m_Data[m_Index++] << 8))) != 0)
-			{
-				if (IsSafeChar(c))
-				{
-					sb.Append((char)c);
-				}
-			}
-
-			return sb.ToString();
-		}
-
-		public string ReadUnicodeStringSafe()
-		{
-			StringBuilder sb = new StringBuilder();
-
-			int c;
-
-			while ((m_Index + 1) < m_Size && (c = ((m_Data[m_Index++] << 8) | m_Data[m_Index++])) != 0)
-			{
-				if (IsSafeChar(c))
-				{
-					sb.Append((char)c);
-				}
-			}
-
-			return sb.ToString();
-		}
-
-		public string ReadUnicodeString()
-		{
-			StringBuilder sb = new StringBuilder();
-
-			int c;
-
-			while ((m_Index + 1) < m_Size && (c = ((m_Data[m_Index++] << 8) | m_Data[m_Index++])) != 0)
-			{
-				sb.Append((char)c);
-			}
+            return m_Index;
+        }
 
-			return sb.ToString();
-		}
+        public int ReadInt32()
+        {
+            if (m_Index + 4 > Size) return 0;
 
-		public bool IsSafeChar(int c)
-		{
-			return (c >= 0x20 && c < 0xFFFE);
-		}
+            return (Buffer[m_Index++] << 24) | (Buffer[m_Index++] << 16) | (Buffer[m_Index++] << 8) | Buffer[m_Index++];
+        }
 
-		public string ReadUTF8StringSafe(int fixedLength)
-		{
-			if (m_Index >= m_Size)
-			{
-				m_Index += fixedLength;
-				return String.Empty;
-			}
+        public short ReadInt16()
+        {
+            if (m_Index + 2 > Size) return 0;
 
-			int bound = m_Index + fixedLength;
-			//int end   = bound;
-
-			if (bound > m_Size)
-			{
-				bound = m_Size;
-			}
-
-			int count = 0;
-			int index = m_Index;
-			int start = m_Index;
-
-			while (index < bound && m_Data[index++] != 0)
-			{
-				++count;
-			}
-
-			index = 0;
-
-			var buffer = new byte[count];
-			int value = 0;
-
-			while (m_Index < bound && (value = m_Data[m_Index++]) != 0)
-			{
-				buffer[index++] = (byte)value;
-			}
-
-			string s = Utility.UTF8.GetString(buffer);
-
-			bool isSafe = true;
-
-			for (int i = 0; isSafe && i < s.Length; ++i)
-			{
-				isSafe = IsSafeChar(s[i]);
-			}
-
-			m_Index = start + fixedLength;
-
-			if (isSafe)
-			{
-				return s;
-			}
+            return (short)((Buffer[m_Index++] << 8) | Buffer[m_Index++]);
+        }
 
-			StringBuilder sb = new StringBuilder(s.Length);
-
-			for (int i = 0; i < s.Length; ++i)
-			{
-				if (IsSafeChar(s[i]))
-				{
-					sb.Append(s[i]);
-				}
-			}
-
-			return sb.ToString();
-		}
+        public byte ReadByte()
+        {
+            if (m_Index + 1 > Size) return 0;
 
-		public string ReadUTF8StringSafe()
-		{
-			if (m_Index >= m_Size)
-			{
-				return String.Empty;
-			}
-
-			int count = 0;
-			int index = m_Index;
-
-			while (index < m_Size && m_Data[index++] != 0)
-			{
-				++count;
-			}
-
-			index = 0;
-
-			var buffer = new byte[count];
-			int value = 0;
-
-			while (m_Index < m_Size && (value = m_Data[m_Index++]) != 0)
-			{
-				buffer[index++] = (byte)value;
-			}
-
-			string s = Utility.UTF8.GetString(buffer);
+            return Buffer[m_Index++];
+        }
 
-			bool isSafe = true;
-
-			for (int i = 0; isSafe && i < s.Length; ++i)
-			{
-				isSafe = IsSafeChar(s[i]);
-			}
-
-			if (isSafe)
-			{
-				return s;
-			}
+        public uint ReadUInt32()
+        {
+            if (m_Index + 4 > Size) return 0;
 
-			StringBuilder sb = new StringBuilder(s.Length);
-
-			for (int i = 0; i < s.Length; ++i)
-			{
-				if (IsSafeChar(s[i]))
-				{
-					sb.Append(s[i]);
-				}
-			}
-
-			return sb.ToString();
-		}
+            return (uint)((Buffer[m_Index++] << 24) | (Buffer[m_Index++] << 16) | (Buffer[m_Index++] << 8) |
+                          Buffer[m_Index++]);
+        }
 
-		public string ReadUTF8String()
-		{
-			if (m_Index >= m_Size)
-			{
-				return String.Empty;
-			}
+        public ushort ReadUInt16()
+        {
+            if (m_Index + 2 > Size) return 0;
 
-			int count = 0;
-			int index = m_Index;
+            return (ushort)((Buffer[m_Index++] << 8) | Buffer[m_Index++]);
+        }
 
-			while (index < m_Size && m_Data[index++] != 0)
-			{
-				++count;
-			}
+        public sbyte ReadSByte()
+        {
+            if (m_Index + 1 > Size) return 0;
 
-			index = 0;
+            return (sbyte)Buffer[m_Index++];
+        }
 
-			var buffer = new byte[count];
-			int value = 0;
+        public bool ReadBoolean()
+        {
+            if (m_Index + 1 > Size) return false;
 
-			while (m_Index < m_Size && (value = m_Data[m_Index++]) != 0)
-			{
-				buffer[index++] = (byte)value;
-			}
+            return Buffer[m_Index++] != 0;
+        }
 
-			return Utility.UTF8.GetString(buffer);
-		}
+        public string ReadUnicodeStringLE()
+        {
+            var sb = new StringBuilder();
 
-		public string ReadString()
-		{
-			StringBuilder sb = new StringBuilder();
+            int c;
 
-			int c;
+            while (m_Index + 1 < Size && (c = Buffer[m_Index++] | (Buffer[m_Index++] << 8)) != 0) sb.Append((char)c);
 
-			while (m_Index < m_Size && (c = m_Data[m_Index++]) != 0)
-			{
-				sb.Append((char)c);
-			}
+            return sb.ToString();
+        }
 
-			return sb.ToString();
-		}
+        public string ReadUnicodeStringLESafe(int fixedLength)
+        {
+            var bound = m_Index + (fixedLength << 1);
+            var end = bound;
 
-		public string ReadStringSafe()
-		{
-			StringBuilder sb = new StringBuilder();
+            if (bound > Size) bound = Size;
 
-			int c;
+            var sb = new StringBuilder();
 
-			while (m_Index < m_Size && (c = m_Data[m_Index++]) != 0)
-			{
-				if (IsSafeChar(c))
-				{
-					sb.Append((char)c);
-				}
-			}
+            int c;
 
-			return sb.ToString();
-		}
+            while (m_Index + 1 < bound && (c = Buffer[m_Index++] | (Buffer[m_Index++] << 8)) != 0)
+                if (IsSafeChar(c))
+                    sb.Append((char)c);
 
-		public string ReadUnicodeStringSafe(int fixedLength)
-		{
-			int bound = m_Index + (fixedLength << 1);
-			int end = bound;
+            m_Index = end;
 
-			if (bound > m_Size)
-			{
-				bound = m_Size;
-			}
+            return sb.ToString();
+        }
 
-			StringBuilder sb = new StringBuilder();
+        public string ReadUnicodeStringLESafe()
+        {
+            var sb = new StringBuilder();
 
-			int c;
+            int c;
 
-			while ((m_Index + 1) < bound && (c = ((m_Data[m_Index++] << 8) | m_Data[m_Index++])) != 0)
-			{
-				if (IsSafeChar(c))
-				{
-					sb.Append((char)c);
-				}
-			}
+            while (m_Index + 1 < Size && (c = Buffer[m_Index++] | (Buffer[m_Index++] << 8)) != 0)
+                if (IsSafeChar(c))
+                    sb.Append((char)c);
 
-			m_Index = end;
+            return sb.ToString();
+        }
 
-			return sb.ToString();
-		}
+        public string ReadUnicodeStringSafe()
+        {
+            var sb = new StringBuilder();
 
-		public string ReadUnicodeString(int fixedLength)
-		{
-			int bound = m_Index + (fixedLength << 1);
-			int end = bound;
+            int c;
 
-			if (bound > m_Size)
-			{
-				bound = m_Size;
-			}
+            while (m_Index + 1 < Size && (c = (Buffer[m_Index++] << 8) | Buffer[m_Index++]) != 0)
+                if (IsSafeChar(c))
+                    sb.Append((char)c);
 
-			StringBuilder sb = new StringBuilder();
+            return sb.ToString();
+        }
 
-			int c;
+        public string ReadUnicodeString()
+        {
+            var sb = new StringBuilder();
 
-			while ((m_Index + 1) < bound && (c = ((m_Data[m_Index++] << 8) | m_Data[m_Index++])) != 0)
-			{
-				sb.Append((char)c);
-			}
+            int c;
 
-			m_Index = end;
+            while (m_Index + 1 < Size && (c = (Buffer[m_Index++] << 8) | Buffer[m_Index++]) != 0) sb.Append((char)c);
 
-			return sb.ToString();
-		}
+            return sb.ToString();
+        }
 
-		public string ReadStringSafe(int fixedLength)
-		{
-			int bound = m_Index + fixedLength;
-			int end = bound;
+        public bool IsSafeChar(int c)
+        {
+            return c >= 0x20 && c < 0xFFFE;
+        }
 
-			if (bound > m_Size)
-			{
-				bound = m_Size;
-			}
+        public string ReadUTF8StringSafe(int fixedLength)
+        {
+            if (m_Index >= Size)
+            {
+                m_Index += fixedLength;
+                return string.Empty;
+            }
 
-			StringBuilder sb = new StringBuilder();
+            var bound = m_Index + fixedLength;
+            //int end   = bound;
 
-			int c;
+            if (bound > Size) bound = Size;
 
-			while (m_Index < bound && (c = m_Data[m_Index++]) != 0)
-			{
-				if (IsSafeChar(c))
-				{
-					sb.Append((char)c);
-				}
-			}
+            var count = 0;
+            var index = m_Index;
+            var start = m_Index;
 
-			m_Index = end;
+            while (index < bound && Buffer[index++] != 0) ++count;
 
-			return sb.ToString();
-		}
+            index = 0;
 
-		public string ReadString(int fixedLength)
-		{
-			int bound = m_Index + fixedLength;
-			int end = bound;
+            var buffer = new byte[count];
+            var value = 0;
 
-			if (bound > m_Size)
-			{
-				bound = m_Size;
-			}
+            while (m_Index < bound && (value = Buffer[m_Index++]) != 0) buffer[index++] = (byte)value;
 
-			StringBuilder sb = new StringBuilder();
+            var s = Utility.UTF8.GetString(buffer);
 
-			int c;
+            var isSafe = true;
 
-			while (m_Index < bound && (c = m_Data[m_Index++]) != 0)
-			{
-				sb.Append((char)c);
-			}
+            for (var i = 0; isSafe && i < s.Length; ++i) isSafe = IsSafeChar(s[i]);
 
-			m_Index = end;
+            m_Index = start + fixedLength;
 
-			return sb.ToString();
-		}
-	}
+            if (isSafe) return s;
+
+            var sb = new StringBuilder(s.Length);
+
+            for (var i = 0; i < s.Length; ++i)
+                if (IsSafeChar(s[i]))
+                    sb.Append(s[i]);
+
+            return sb.ToString();
+        }
+
+        public string ReadUTF8StringSafe()
+        {
+            if (m_Index >= Size) return string.Empty;
+
+            var count = 0;
+            var index = m_Index;
+
+            while (index < Size && Buffer[index++] != 0) ++count;
+
+            index = 0;
+
+            var buffer = new byte[count];
+            var value = 0;
+
+            while (m_Index < Size && (value = Buffer[m_Index++]) != 0) buffer[index++] = (byte)value;
+
+            var s = Utility.UTF8.GetString(buffer);
+
+            var isSafe = true;
+
+            for (var i = 0; isSafe && i < s.Length; ++i) isSafe = IsSafeChar(s[i]);
+
+            if (isSafe) return s;
+
+            var sb = new StringBuilder(s.Length);
+
+            for (var i = 0; i < s.Length; ++i)
+                if (IsSafeChar(s[i]))
+                    sb.Append(s[i]);
+
+            return sb.ToString();
+        }
+
+        public string ReadUTF8String()
+        {
+            if (m_Index >= Size) return string.Empty;
+
+            var count = 0;
+            var index = m_Index;
+
+            while (index < Size && Buffer[index++] != 0) ++count;
+
+            index = 0;
+
+            var buffer = new byte[count];
+            var value = 0;
+
+            while (m_Index < Size && (value = Buffer[m_Index++]) != 0) buffer[index++] = (byte)value;
+
+            return Utility.UTF8.GetString(buffer);
+        }
+
+        public string ReadString()
+        {
+            var sb = new StringBuilder();
+
+            int c;
+
+            while (m_Index < Size && (c = Buffer[m_Index++]) != 0) sb.Append((char)c);
+
+            return sb.ToString();
+        }
+
+        public string ReadStringSafe()
+        {
+            var sb = new StringBuilder();
+
+            int c;
+
+            while (m_Index < Size && (c = Buffer[m_Index++]) != 0)
+                if (IsSafeChar(c))
+                    sb.Append((char)c);
+
+            return sb.ToString();
+        }
+
+        public string ReadUnicodeStringSafe(int fixedLength)
+        {
+            var bound = m_Index + (fixedLength << 1);
+            var end = bound;
+
+            if (bound > Size) bound = Size;
+
+            var sb = new StringBuilder();
+
+            int c;
+
+            while (m_Index + 1 < bound && (c = (Buffer[m_Index++] << 8) | Buffer[m_Index++]) != 0)
+                if (IsSafeChar(c))
+                    sb.Append((char)c);
+
+            m_Index = end;
+
+            return sb.ToString();
+        }
+
+        public string ReadUnicodeString(int fixedLength)
+        {
+            var bound = m_Index + (fixedLength << 1);
+            var end = bound;
+
+            if (bound > Size) bound = Size;
+
+            var sb = new StringBuilder();
+
+            int c;
+
+            while (m_Index + 1 < bound && (c = (Buffer[m_Index++] << 8) | Buffer[m_Index++]) != 0) sb.Append((char)c);
+
+            m_Index = end;
+
+            return sb.ToString();
+        }
+
+        public string ReadStringSafe(int fixedLength)
+        {
+            var bound = m_Index + fixedLength;
+            var end = bound;
+
+            if (bound > Size) bound = Size;
+
+            var sb = new StringBuilder();
+
+            int c;
+
+            while (m_Index < bound && (c = Buffer[m_Index++]) != 0)
+                if (IsSafeChar(c))
+                    sb.Append((char)c);
+
+            m_Index = end;
+
+            return sb.ToString();
+        }
+
+        public string ReadString(int fixedLength)
+        {
+            var bound = m_Index + fixedLength;
+            var end = bound;
+
+            if (bound > Size) bound = Size;
+
+            var sb = new StringBuilder();
+
+            int c;
+
+            while (m_Index < bound && (c = Buffer[m_Index++]) != 0) sb.Append((char)c);
+
+            m_Index = end;
+
+            return sb.ToString();
+        }
+    }
 }

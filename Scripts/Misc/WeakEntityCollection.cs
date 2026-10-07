@@ -1,236 +1,217 @@
 ﻿#region References
+
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+
 #endregion
 
 namespace Server
 {
-	public static class WeakEntityCollection
-	{
-		public sealed class EntityCollection : List<IEntity>
-		{
-			public IEnumerable<Item> Items { get { return this.OfType<Item>(); } }
-			public IEnumerable<Mobile> Mobiles { get { return this.OfType<Mobile>(); } }
+    public static class WeakEntityCollection
+    {
+        private static readonly string _FilePath =
+            Path.Combine("Saves", "WeakEntityCollection", "WeakEntityCollection.bin");
 
-			public EntityCollection()
-				: this(0x400)
-			{ }
+        private static readonly Dictionary<string, EntityCollection> _Collections =
+            new Dictionary<string, EntityCollection>(StringComparer.OrdinalIgnoreCase);
 
-			public EntityCollection(int capacity)
-				: base(capacity)
-			{ }
-		}
+        public static void Configure()
+        {
+            EventSink.WorldSave += OnWorldSave;
+            EventSink.WorldLoad += OnWorldLoad;
+        }
 
-		private static readonly string _FilePath = Path.Combine("Saves", "WeakEntityCollection", "WeakEntityCollection.bin");
+        private static void OnWorldSave(WorldSaveEventArgs e)
+        {
+            Save();
+        }
 
-		private static readonly Dictionary<string, EntityCollection> _Collections =
-			new Dictionary<string, EntityCollection>(StringComparer.OrdinalIgnoreCase);
+        private static void OnWorldLoad()
+        {
+            Load();
+        }
 
-		public static void Configure()
-		{
-			EventSink.WorldSave += OnWorldSave;
-			EventSink.WorldLoad += OnWorldLoad;
-		}
+        public static void Save()
+        {
+            Persistence.Serialize(
+                _FilePath,
+                writer =>
+                {
+                    writer.Write(1); // Version
 
-		private static void OnWorldSave(WorldSaveEventArgs e)
-		{
-			Save();
-		}
+                    writer.Write(_Collections.Count);
 
-		private static void OnWorldLoad()
-		{
-			Load();
-		}
+                    foreach (var kv in _Collections)
+                    {
+                        writer.Write(kv.Key);
 
-		public static void Save()
-		{
-			Persistence.Serialize(
-				_FilePath,
-				writer =>
-				{
-					writer.Write(1); // Version
+                        kv.Value.RemoveAll(ent => ent == null || ent.Deleted);
 
-					writer.Write(_Collections.Count);
+                        writer.Write(kv.Value.Count);
 
-					foreach (var kv in _Collections)
-					{
-						writer.Write(kv.Key);
+                        foreach (var ent in kv.Value) writer.Write(ent.Serial);
+                    }
+                });
+        }
 
-						kv.Value.RemoveAll(ent => ent == null || ent.Deleted);
+        public static void Load()
+        {
+            Persistence.Deserialize(
+                _FilePath,
+                reader =>
+                {
+                    var version = reader.ReadInt();
 
-						writer.Write(kv.Value.Count);
+                    switch (version)
+                    {
+                        case 1:
+                        {
+                            var entries = reader.ReadInt();
 
-						foreach (var ent in kv.Value)
-						{
-							writer.Write(ent.Serial);
-						}
-					}
-				});
-		}
+                            while (--entries >= 0)
+                            {
+                                var key = reader.ReadString();
 
-		public static void Load()
-		{
-			Persistence.Deserialize(
-				_FilePath,
-				reader =>
-				{
-					var version = reader.ReadInt();
+                                var ents = reader.ReadInt();
 
-					switch (version)
-					{
-						case 1:
-						{
-							var entries = reader.ReadInt();
+                                var col = new EntityCollection(ents);
 
-							while (--entries >= 0)
-							{
-								var key = reader.ReadString();
+                                IEntity ent;
 
-								var ents = reader.ReadInt();
+                                while (--ents >= 0)
+                                {
+                                    ent = World.FindEntity(reader.ReadInt());
 
-								var col = new EntityCollection(ents);
+                                    if (ent != null && !ent.Deleted) col.Add(ent);
+                                }
 
-								IEntity ent;
+                                _Collections[key] = col;
+                            }
+                        }
+                            break;
+                        case 0:
+                        {
+                            var entries = reader.ReadInt();
 
-								while (--ents >= 0)
-								{
-									ent = World.FindEntity(reader.ReadInt());
+                            while (--entries >= 0)
+                            {
+                                var key = reader.ReadString();
 
-									if (ent != null && !ent.Deleted)
-									{
-										col.Add(ent);
-									}
-								}
+                                var items = reader.ReadStrongItemList();
+                                var mobiles = reader.ReadStrongMobileList();
 
-								_Collections[key] = col;
-							}
-						}
-							break;
-						case 0:
-						{
-							var entries = reader.ReadInt();
+                                var col = new EntityCollection(items.Count + mobiles.Count);
 
-							while (--entries >= 0)
-							{
-								var key = reader.ReadString();
+                                col.AddRange(items);
+                                col.AddRange(mobiles);
 
-								var items = reader.ReadStrongItemList();
-								var mobiles = reader.ReadStrongMobileList();
+                                _Collections[key] = col;
+                            }
+                        }
+                            break;
+                    }
+                });
+        }
 
-								var col = new EntityCollection(items.Count + mobiles.Count);
+        public static EntityCollection GetCollection(string name)
+        {
+            EntityCollection col;
 
-								col.AddRange(items);
-								col.AddRange(mobiles);
+            if (!_Collections.TryGetValue(name, out col) || col == null)
+                _Collections[name] = col = new EntityCollection();
 
-								_Collections[key] = col;
-							}
-						}
-							break;
-					}
-				});
-		}
-
-		public static EntityCollection GetCollection(string name)
-		{
-			EntityCollection col;
-
-			if (!_Collections.TryGetValue(name, out col) || col == null)
-			{
-				_Collections[name] = col = new EntityCollection();
-			}
-
-			return col;
-		}
+            return col;
+        }
 
         public static bool HasCollection(string name)
         {
             return name != null && _Collections.ContainsKey(name);
         }
 
-		public static void Add(string key, IEntity entity)
-		{
-			if (entity == null || entity.Deleted)
-			{
-				return;
-			}
+        public static void Add(string key, IEntity entity)
+        {
+            if (entity == null || entity.Deleted) return;
 
-			var col = GetCollection(key);
+            var col = GetCollection(key);
 
-			if (col != null && !col.Contains(entity))
-			{
-				col.Add(entity);
-			}
-		}
+            if (col != null && !col.Contains(entity)) col.Add(entity);
+        }
 
-		public static bool Remove(string key, IEntity entity)
-		{
-			if (entity == null)
-			{
-				return false;
-			}
+        public static bool Remove(string key, IEntity entity)
+        {
+            if (entity == null) return false;
 
-			var col = GetCollection(key);
+            var col = GetCollection(key);
 
-			if (col != null)
-			{
-				return col.Remove(entity);
-			}
+            if (col != null) return col.Remove(entity);
 
-			return false;
-		}
+            return false;
+        }
 
-		public static int Clean(string key)
-		{
-			var removed = 0;
+        public static int Clean(string key)
+        {
+            var removed = 0;
 
-			var col = GetCollection(key);
+            var col = GetCollection(key);
 
-			if (col != null)
-			{
-				var ents = col.Count;
+            if (col != null)
+            {
+                var ents = col.Count;
 
-				while (--ents >= 0)
-				{
-					if (ents < col.Count && col[ents].Deleted)
-					{
-						col.RemoveAt(ents);
+                while (--ents >= 0)
+                    if (ents < col.Count && col[ents].Deleted)
+                    {
+                        col.RemoveAt(ents);
 
-						++removed;
-					}
-				}
-			}
+                        ++removed;
+                    }
+            }
 
-			return removed;
-		}
+            return removed;
+        }
 
-		public static int Delete(string key)
-		{
-			var deleted = 0;
+        public static int Delete(string key)
+        {
+            var deleted = 0;
 
-			var col = GetCollection(key);
+            var col = GetCollection(key);
 
-			if (col != null)
-			{
-				var ents = col.Count;
+            if (col != null)
+            {
+                var ents = col.Count;
 
-				while (--ents >= 0)
-				{
-					if (ents < col.Count)
-					{
-						col[ents].Delete();
+                while (--ents >= 0)
+                    if (ents < col.Count)
+                    {
+                        col[ents].Delete();
 
-						++deleted;
-					}
-				}
+                        ++deleted;
+                    }
 
-				col.Clear();
-			}
+                col.Clear();
+            }
 
-			_Collections.Remove(key);
+            _Collections.Remove(key);
 
-			return deleted;
-		}
-	}
+            return deleted;
+        }
+
+        public sealed class EntityCollection : List<IEntity>
+        {
+            public IEnumerable<Item> Items => this.OfType<Item>();
+            public IEnumerable<Mobile> Mobiles => this.OfType<Mobile>();
+
+            public EntityCollection()
+                : this(0x400)
+            {
+            }
+
+            public EntityCollection(int capacity)
+                : base(capacity)
+            {
+            }
+        }
+    }
 }

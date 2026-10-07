@@ -1,12 +1,12 @@
-using System;
 using System.IO;
 
 namespace Server
 {
     public class ShrinkTable
     {
-        public const int DefaultItemID = 0x1870;// Yellow virtue stone
+        public const int DefaultItemID = 0x1870; // Yellow virtue stone
         private static int[] m_Table;
+
         public static int Lookup(Mobile m)
         {
             return Lookup(m.Body.BodyID, DefaultItemID);
@@ -27,7 +27,7 @@ namespace Server
             if (m_Table == null)
                 Load();
 
-            int val = 0;
+            var val = 0;
 
             if (body >= 0 && body < m_Table.Length)
                 val = m_Table[body];
@@ -40,7 +40,7 @@ namespace Server
 
         private static void Load()
         {
-            string path = Path.Combine(Core.BaseDirectory, "Data/shrink.cfg");
+            var path = Path.Combine(Core.BaseDirectory, "Data/shrink.cfg");
 
             if (!File.Exists(path))
             {
@@ -50,7 +50,7 @@ namespace Server
 
             m_Table = new int[1500];
 
-            using (StreamReader ip = new StreamReader(path))
+            using (var ip = new StreamReader(path))
             {
                 string line;
 
@@ -63,12 +63,12 @@ namespace Server
 
                     try
                     {
-                        string[] split = line.Split('\t');
+                        var split = line.Split('\t');
 
                         if (split.Length >= 2)
                         {
-                            int body = Utility.ToInt32(split[0]);
-                            int item = Utility.ToInt32(split[1]);
+                            var body = Utility.ToInt32(split[0]);
+                            var item = Utility.ToInt32(split[1]);
 
                             if (body >= 0 && body < m_Table.Length)
                                 m_Table[body] = item;

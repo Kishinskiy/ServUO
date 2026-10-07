@@ -1,4 +1,5 @@
 using System;
+using System.Net;
 using System.Net.Mail;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -8,30 +9,33 @@ namespace Server.Misc
     public class Email
     {
         /* In order to support emailing, fill in EmailServer and FromAddress:
-        * Example:
-        *  public static readonly string EmailServer = "mail.domain.com";
-        *  public static readonly string FromAddress = "runuo@domain.com";
-        * 
-        * If you want to add crash reporting emailing, fill in CrashAddresses:
-        * Example:
-        *  public static readonly string CrashAddresses = "first@email.here,second@email.here,third@email.here";
-        * 
-        * If you want to add speech log page emailing, fill in SpeechLogPageAddresses:
-        * Example:
-        *  public static readonly string SpeechLogPageAddresses = "first@email.here,second@email.here,third@email.here";
-        */
+         * Example:
+         *  public static readonly string EmailServer = "mail.domain.com";
+         *  public static readonly string FromAddress = "runuo@domain.com";
+         *
+         * If you want to add crash reporting emailing, fill in CrashAddresses:
+         * Example:
+         *  public static readonly string CrashAddresses = "first@email.here,second@email.here,third@email.here";
+         *
+         * If you want to add speech log page emailing, fill in SpeechLogPageAddresses:
+         * Example:
+         *  public static readonly string SpeechLogPageAddresses = "first@email.here,second@email.here,third@email.here";
+         */
         public static readonly string EmailServer = Config.Get("Email.EmailServer", default(string));
         public static readonly int EmailPort = Config.Get("Email.EmailPort", 25);
         public static readonly bool EmailSsl = Config.Get("Email.EmailSsl", false);
 
         public static readonly string FromAddress = Config.Get("Email.FromAddress", default(string));
         public static readonly string CrashAddresses = Config.Get("Email.CrashAddresses", default(string));
-        public static readonly string SpeechLogPageAddresses = Config.Get("Email.SpeechLogPageAddresses", default(string));
+
+        public static readonly string SpeechLogPageAddresses =
+            Config.Get("Email.SpeechLogPageAddresses", default(string));
 
         public static readonly string EmailUsername = Config.Get("Email.EmailUsername", default(string));
         public static readonly string EmailPassword = Config.Get("Email.EmailPassword", default(string));
 
-        private static readonly Regex _pattern = new Regex(@"^[a-z0-9.+_-]+@([a-z0-9-]+\.)+[a-z]+$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        private static readonly Regex _pattern = new Regex(@"^[a-z0-9.+_-]+@([a-z0-9-]+\.)+[a-z]+$",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static SmtpClient _Client;
 
@@ -48,10 +52,7 @@ namespace Server.Misc
             if (EmailServer != null)
             {
                 _Client = new SmtpClient(EmailServer, EmailPort);
-                if (EmailUsername != null)
-                {
-                    _Client.Credentials = new System.Net.NetworkCredential(EmailUsername, EmailPassword);
-                }
+                if (EmailUsername != null) _Client.Credentials = new NetworkCredential(EmailUsername, EmailPassword);
                 if (EmailSsl)
                     _Client.EnableSsl = true;
             }
@@ -76,12 +77,12 @@ namespace Server.Misc
 
         public static void AsyncSend(MailMessage message)
         {
-            ThreadPool.QueueUserWorkItem(new WaitCallback(SendCallback), message);
+            ThreadPool.QueueUserWorkItem(SendCallback, message);
         }
 
         private static void SendCallback(object state)
         {
-            MailMessage message = (MailMessage)state;
+            var message = (MailMessage)state;
 
             if (Send(message))
                 Console.WriteLine("Sent e-mail '{0}' to '{1}'.", message.Subject, message.To);

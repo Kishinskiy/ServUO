@@ -1,16 +1,30 @@
 ﻿#region References
+
 using System;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
+
 #endregion
 
 namespace Server.Network
 {
     public class PingListener : IDisposable
     {
+        private const int Port = 12000;
         private UdpClient _Listener;
-        const int Port = 12000;
+
+        public PingListener(IPEndPoint ipep)
+        {
+            _Listener = Bind(ipep);
+
+            BeginReceive();
+        }
+
+        public void Dispose()
+        {
+            _Listener.Close();
+            _Listener = null;
+        }
 
         private static UdpClient Bind(IPEndPoint ipep)
         {
@@ -39,10 +53,10 @@ namespace Server.Network
                         Console.WriteLine("Ping Listener Failed: {0}:{1} (Unavailable)", ipep.Address, Port);
                         break;
                     default:
-                        {
-                            Console.WriteLine("Ping Listener Exception:");
-                            Console.WriteLine(e);
-                        }
+                    {
+                        Console.WriteLine("Ping Listener Exception:");
+                        Console.WriteLine(e);
+                    }
                         break;
                 }
             }
@@ -50,19 +64,9 @@ namespace Server.Network
             return null;
         }
 
-        public PingListener(IPEndPoint ipep)
-        {
-            _Listener = Bind(ipep);
-
-            BeginReceive();
-        }
-
         private void BeginReceive()
         {
-            if (_Listener != null)
-            {
-                _Listener.BeginReceive(EndReceive, _Listener);
-            }
+            if (_Listener != null) _Listener.BeginReceive(EndReceive, _Listener);
         }
 
         private void EndReceive(IAsyncResult r)
@@ -87,12 +91,6 @@ namespace Server.Network
         private void EndSend(IAsyncResult asyncResult)
         {
             _Listener.EndSend(asyncResult);
-        }
-
-        public void Dispose()
-        {
-            _Listener.Close();
-            _Listener = null;
         }
     }
 }

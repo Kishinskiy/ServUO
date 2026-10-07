@@ -1,7 +1,9 @@
 #region References
+
 using System.Reflection;
 using System.Resources;
 using System.Runtime.InteropServices;
+
 #endregion
 
 [assembly: AssemblyTitle("ServUO Server")]

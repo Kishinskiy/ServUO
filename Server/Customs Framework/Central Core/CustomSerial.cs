@@ -1,116 +1,109 @@
 ﻿#region References
-using System;
 
+using System;
 using Server;
+
 #endregion
 
 namespace CustomsFramework
 {
-	public struct CustomSerial : IComparable, IComparable<CustomSerial>
-	{
-		public static readonly CustomSerial MinusOne = new CustomSerial(-1);
-		public static readonly CustomSerial Zero = new CustomSerial(0);
-		private static CustomSerial _LastCustom = Zero;
-		private readonly int _Serial;
+    public struct CustomSerial : IComparable, IComparable<CustomSerial>
+    {
+        public static readonly CustomSerial MinusOne = new CustomSerial(-1);
+        public static readonly CustomSerial Zero = new CustomSerial(0);
 
-		private CustomSerial(int serial)
-		{
-			_Serial = serial;
-		}
+        private CustomSerial(int serial)
+        {
+            Value = serial;
+        }
 
-		public static CustomSerial LastCore { get { return _LastCustom; } }
+        public static CustomSerial LastCore { get; private set; } = Zero;
 
-		public static CustomSerial NewCustom
-		{
-			get
-			{
-				while (World.GetData(_LastCustom = (_LastCustom + 1)) != null)
-				{ }
+        public static CustomSerial NewCustom
+        {
+            get
+            {
+                while (World.GetData(LastCore = LastCore + 1) != null)
+                {
+                }
 
-				return _LastCustom;
-			}
-		}
+                return LastCore;
+            }
+        }
 
-		public int Value { get { return _Serial; } }
-		public bool IsValid { get { return (_Serial > 0); } }
+        public int Value { get; }
 
-		public override int GetHashCode()
-		{
-			return _Serial;
-		}
+        public bool IsValid => Value > 0;
 
-		public int CompareTo(CustomSerial other)
-		{
-			return _Serial.CompareTo(other._Serial);
-		}
+        public override int GetHashCode()
+        {
+            return Value;
+        }
 
-		public int CompareTo(object other)
-		{
-			if (other is CustomSerial)
-			{
-				return CompareTo((CustomSerial)other);
-			}
-			else if (other == null)
-			{
-				return -1;
-			}
+        public int CompareTo(CustomSerial other)
+        {
+            return Value.CompareTo(other.Value);
+        }
 
-			throw new ArgumentException();
-		}
+        public int CompareTo(object other)
+        {
+            if (other is CustomSerial) return CompareTo((CustomSerial)other);
 
-		public override bool Equals(object obj)
-		{
-			if (obj == null || !(obj is CustomSerial))
-			{
-				return false;
-			}
+            if (other == null) return -1;
 
-			return ((CustomSerial)obj)._Serial == _Serial;
-		}
+            throw new ArgumentException();
+        }
 
-		public override string ToString()
-		{
-			return String.Format("0x{0:X8}", _Serial);
-		}
+        public override bool Equals(object obj)
+        {
+            if (obj == null || !(obj is CustomSerial)) return false;
 
-		public static bool operator ==(CustomSerial first, CustomSerial second)
-		{
-			return first._Serial == second._Serial;
-		}
+            return ((CustomSerial)obj).Value == Value;
+        }
 
-		public static bool operator !=(CustomSerial first, CustomSerial second)
-		{
-			return first._Serial != second._Serial;
-		}
+        public override string ToString()
+        {
+            return string.Format("0x{0:X8}", Value);
+        }
 
-		public static bool operator >(CustomSerial first, CustomSerial second)
-		{
-			return first._Serial > second._Serial;
-		}
+        public static bool operator ==(CustomSerial first, CustomSerial second)
+        {
+            return first.Value == second.Value;
+        }
 
-		public static bool operator <(CustomSerial first, CustomSerial second)
-		{
-			return first._Serial < second._Serial;
-		}
+        public static bool operator !=(CustomSerial first, CustomSerial second)
+        {
+            return first.Value != second.Value;
+        }
 
-		public static bool operator >=(CustomSerial first, CustomSerial second)
-		{
-			return first._Serial >= second._Serial;
-		}
+        public static bool operator >(CustomSerial first, CustomSerial second)
+        {
+            return first.Value > second.Value;
+        }
 
-		public static bool operator <=(CustomSerial first, CustomSerial second)
-		{
-			return first._Serial <= second._Serial;
-		}
+        public static bool operator <(CustomSerial first, CustomSerial second)
+        {
+            return first.Value < second.Value;
+        }
 
-		public static implicit operator int(CustomSerial serial)
-		{
-			return serial._Serial;
-		}
+        public static bool operator >=(CustomSerial first, CustomSerial second)
+        {
+            return first.Value >= second.Value;
+        }
 
-		public static implicit operator CustomSerial(int serial)
-		{
-			return new CustomSerial(serial);
-		}
-	}
+        public static bool operator <=(CustomSerial first, CustomSerial second)
+        {
+            return first.Value <= second.Value;
+        }
+
+        public static implicit operator int(CustomSerial serial)
+        {
+            return serial.Value;
+        }
+
+        public static implicit operator CustomSerial(int serial)
+        {
+            return new CustomSerial(serial);
+        }
+    }
 }

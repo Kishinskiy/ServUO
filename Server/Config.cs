@@ -1,4 +1,5 @@
 #region References
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -8,11 +9,12 @@ using System.Net;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
+
 #endregion
 
 namespace Server
 {
-    [AttributeUsage(AttributeTargets.Property, AllowMultiple = false, Inherited = true)]
+    [AttributeUsage(AttributeTargets.Property)]
     public class ConfigPropertyAttribute : Attribute
     {
         public string Scope { get; }
@@ -25,139 +27,15 @@ namespace Server
 
     public static class Config
     {
-        public sealed class Entry : IEquatable<Entry>, IComparable<Entry>
-        {
-            private readonly string m_InitialValue;
-            private readonly bool m_InitialDefault;
-
-            private int? m_Hash;
-
-            public int FileIndex { get; private set; }
-
-            public string File { get; private set; }
-            public string Scope { get; private set; }
-
-            public string Desc { get; set; }
-
-            public string Key { get; private set; }
-            public string Value { get; private set; }
-
-            public object Object { get; private set; }
-
-            public bool UseDefault { get; set; }
-
-            public Entry(string file, int fileIndex, string scope, string desc, string key, string value, object state, bool useDefault)
-            {
-                m_InitialValue = value;
-                m_InitialDefault = useDefault;
-
-                File = file;
-                FileIndex = fileIndex;
-
-                Scope = scope;
-                Desc = desc;
-
-                Key = key;
-                Value = value;
-                Object = state;
-
-                UseDefault = useDefault;
-            }
-
-            public void Set(string value, object state)
-            {
-                if (m_InitialValue == value)
-                {
-                    UseDefault = m_InitialDefault;
-                }
-                else if (Value != value)
-                {
-                    UseDefault = state == null;
-                }
-
-                var oldValue = Value;
-                var oldObject = Object;
-
-                Value = value;
-                Object = state;
-
-                OnEntryChanged?.Invoke(this, oldValue, oldObject);
-            }
-
-            public override string ToString()
-            {
-                if (UseDefault)
-                {
-                    return $"{Scope}.@{Key}={Value}";
-                }
-
-                return $"{Scope}.{Key}={Value}";
-            }
-
-            public override int GetHashCode()
-            {
-                if (m_Hash != null)
-                {
-                    return m_Hash.Value;
-                }
-
-                unchecked
-                {
-                    var hash = -1;
-
-                    hash = (hash * 397) ^ File.GetHashCode();
-                    hash = (hash * 397) ^ Scope.GetHashCode();
-                    hash = (hash * 397) ^ Key.GetHashCode();
-
-                    m_Hash = hash;
-
-                    return hash;
-                }
-            }
-
-            public override bool Equals(object obj)
-            {
-                return obj is Entry e && Equals(e);
-            }
-
-            public bool Equals(Entry other)
-            {
-                if (other is null)
-                {
-                    return false;
-                }
-
-                if (ReferenceEquals(other, this))
-                {
-                    return true;
-                }
-
-                return Insensitive.Equals(File, other.File) && Insensitive.Equals(Scope, other.Scope) && Insensitive.Equals(Key, other.Key);
-            }
-
-            public int CompareTo(Entry other)
-            {
-                if (other == null)
-                {
-                    return -1;
-                }
-
-                if (!Insensitive.Equals(File, other.File))
-                {
-                    return Insensitive.Compare(File, other.File);
-                }
-
-                return FileIndex.CompareTo(other.FileIndex);
-            }
-        }
-
         private static bool _Initialized;
 
         private static readonly string _Path = Path.Combine(Core.BaseDirectory, "Config");
 
-        private static readonly HashSet<string> _Warned = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
+        private static readonly HashSet<string>
+            _Warned = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
 
-        private static readonly Dictionary<string, Entry> _Entries = new Dictionary<string, Entry>(StringComparer.InvariantCultureIgnoreCase);
+        private static readonly Dictionary<string, Entry> _Entries =
+            new Dictionary<string, Entry>(StringComparer.InvariantCultureIgnoreCase);
 
         public static IEnumerable<Entry> Entries => _Entries.Values;
 
@@ -190,22 +68,14 @@ namespace Server
                 var count = 0;
 
                 foreach (var e in _Entries.Values)
-                {
                     if (string.IsNullOrWhiteSpace(scope) || Insensitive.Equals(e.Scope, scope))
                     {
-                        if (++count == 1)
-                        {
-                            output.WriteLine();
-                        }
+                        if (++count == 1) output.WriteLine();
 
                         output.WriteLine(e);
                     }
-                }
 
-                if (count > 0)
-                {
-                    output.WriteLine();
-                }
+                if (count > 0) output.WriteLine();
             }
         }
 
@@ -219,10 +89,7 @@ namespace Server
 
         public static void Load()
         {
-            if (_Initialized)
-            {
-                return;
-            }
+            if (_Initialized) return;
 
             _Initialized = true;
 
@@ -246,7 +113,6 @@ namespace Server
             }
 
             foreach (var path in files)
-            {
                 try
                 {
                     LoadFile(path);
@@ -277,16 +143,12 @@ namespace Server
                         return;
                     }
                 }
-            }
 
             if (Core.Debug)
             {
                 Utility.PushColor(ConsoleColor.Blue);
 
-                foreach (var e in _Entries.Values)
-                {
-                    Console.WriteLine(e);
-                }
+                foreach (var e in _Entries.Values) Console.WriteLine(e);
 
                 Utility.PopColor();
             }
@@ -325,28 +187,19 @@ namespace Server
         {
             var info = new FileInfo(path);
 
-            if (!info.Exists)
-            {
-                throw new FileNotFoundException();
-            }
+            if (!info.Exists) throw new FileNotFoundException();
 
             path = info.Directory != null ? info.Directory.FullName : string.Empty;
 
             var io = path.IndexOf(_Path, StringComparison.OrdinalIgnoreCase);
 
-            if (io > -1)
-            {
-                path = path.Substring(io + _Path.Length);
-            }
+            if (io > -1) path = path.Substring(io + _Path.Length);
 
             var parts = path.Split(Path.DirectorySeparatorChar);
 
             var scope = string.Join(".", parts.Where(p => !string.IsNullOrWhiteSpace(p)));
 
-            if (scope.Length > 0)
-            {
-                scope += ".";
-            }
+            if (scope.Length > 0) scope += ".";
 
             scope += Path.GetFileNameWithoutExtension(info.Name);
 
@@ -380,25 +233,17 @@ namespace Server
 
                 io = line.IndexOf('=');
 
-                if (io < 0)
-                {
-                    throw new FormatException($"Bad format at line {i + 1}");
-                }
+                if (io < 0) throw new FormatException($"Bad format at line {i + 1}");
 
                 var key = line.Substring(0, io);
                 var val = line.Substring(io + 1);
 
                 if (string.IsNullOrWhiteSpace(key))
-                {
                     throw new NullReferenceException($"Key can not be null at line {i + 1}");
-                }
 
                 key = key.Trim();
 
-                if (string.IsNullOrEmpty(val))
-                {
-                    val = null;
-                }
+                if (string.IsNullOrEmpty(val)) val = null;
 
                 var e = new Entry(info.FullName, idx++, scope, string.Join("\n", desc), key, val, null, useDef);
 
@@ -415,7 +260,6 @@ namespace Server
             _ = Directory.CreateDirectory(_Path);
 
             foreach (var g in _Entries.Values.GroupBy(e => e.File))
-            {
                 try
                 {
                     SaveFile(g.Key, g.OrderBy(e => e.FileIndex));
@@ -431,20 +275,15 @@ namespace Server
                     Console.WriteLine(relativePath, ConsoleColor.Gray);
                     Utility.PopColor();
                 }
-            }
         }
 
         public static void Save(string scope)
         {
-            if (!_Entries.Values.Any(e => Insensitive.Equals(e.Scope, scope)))
-            {
-                _ = Load(scope);
-            }
+            if (!_Entries.Values.Any(e => Insensitive.Equals(e.Scope, scope))) _ = Load(scope);
 
             _ = Directory.CreateDirectory(_Path);
 
             foreach (var g in _Entries.Values.Where(e => Insensitive.Equals(e.Scope, scope)).GroupBy(e => e.File))
-            {
                 try
                 {
                     SaveFile(g.Key, g.OrderBy(e => e.FileIndex));
@@ -460,7 +299,6 @@ namespace Server
                     Console.WriteLine(relativePath);
                     Utility.PopColor();
                 }
-            }
         }
 
         private static void SaveFile(string path, IEnumerable<Entry> entries)
@@ -476,16 +314,10 @@ namespace Server
                     var split = e.Desc.Split('\n');
 
                     if (split.Length > 0)
-                    {
                         foreach (var line in split)
-                        {
                             _ = content.AppendLine($"# {line}");
-                        }
-                    }
                     else
-                    {
                         _ = content.AppendLine($"# {e.Desc}");
-                    }
                 }
 
                 _ = content.AppendLine($"{(e.UseDefault ? "@" : string.Empty)}{e.Key}={e.Value}");
@@ -508,12 +340,114 @@ namespace Server
 
             scope = string.Join(".", parts);
 
-            if (_Gen)
-            {
-                return Path.Combine(_Path, "_GEN", Path.Combine(parts) + ".cfg");
-            }
+            if (_Gen) return Path.Combine(_Path, "_GEN", Path.Combine(parts) + ".cfg");
 
             return Path.Combine(_Path, Path.Combine(parts) + ".cfg");
+        }
+
+        public sealed class Entry : IEquatable<Entry>, IComparable<Entry>
+        {
+            private readonly bool m_InitialDefault;
+            private readonly string m_InitialValue;
+
+            private int? m_Hash;
+
+            public int FileIndex { get; }
+
+            public string File { get; }
+            public string Scope { get; }
+
+            public string Desc { get; set; }
+
+            public string Key { get; }
+            public string Value { get; private set; }
+
+            public object Object { get; private set; }
+
+            public bool UseDefault { get; set; }
+
+            public Entry(string file, int fileIndex, string scope, string desc, string key, string value, object state,
+                bool useDefault)
+            {
+                m_InitialValue = value;
+                m_InitialDefault = useDefault;
+
+                File = file;
+                FileIndex = fileIndex;
+
+                Scope = scope;
+                Desc = desc;
+
+                Key = key;
+                Value = value;
+                Object = state;
+
+                UseDefault = useDefault;
+            }
+
+            public int CompareTo(Entry other)
+            {
+                if (other == null) return -1;
+
+                if (!Insensitive.Equals(File, other.File)) return Insensitive.Compare(File, other.File);
+
+                return FileIndex.CompareTo(other.FileIndex);
+            }
+
+            public bool Equals(Entry other)
+            {
+                if (other is null) return false;
+
+                if (ReferenceEquals(other, this)) return true;
+
+                return Insensitive.Equals(File, other.File) && Insensitive.Equals(Scope, other.Scope) &&
+                       Insensitive.Equals(Key, other.Key);
+            }
+
+            public void Set(string value, object state)
+            {
+                if (m_InitialValue == value)
+                    UseDefault = m_InitialDefault;
+                else if (Value != value) UseDefault = state == null;
+
+                var oldValue = Value;
+                var oldObject = Object;
+
+                Value = value;
+                Object = state;
+
+                OnEntryChanged?.Invoke(this, oldValue, oldObject);
+            }
+
+            public override string ToString()
+            {
+                if (UseDefault) return $"{Scope}.@{Key}={Value}";
+
+                return $"{Scope}.{Key}={Value}";
+            }
+
+            public override int GetHashCode()
+            {
+                if (m_Hash != null) return m_Hash.Value;
+
+                unchecked
+                {
+                    var hash = -1;
+
+                    hash = (hash * 397) ^ File.GetHashCode();
+                    hash = (hash * 397) ^ Scope.GetHashCode();
+                    hash = (hash * 397) ^ Key.GetHashCode();
+
+                    m_Hash = hash;
+
+                    return hash;
+                }
+            }
+
+            public override bool Equals(object obj)
+            {
+                return obj is Entry e && Equals(e);
+            }
         }
 
         #region Setters
@@ -532,7 +466,8 @@ namespace Server
 
             var path = GetFilePath(ref key, out var scope);
 
-            var idx = _Entries.Values.Where(o => Insensitive.Equals(o.File, path)).Select(o => o.FileIndex).DefaultIfEmpty().Max();
+            var idx = _Entries.Values.Where(o => Insensitive.Equals(o.File, path)).Select(o => o.FileIndex)
+                .DefaultIfEmpty().Max();
 
             _Entries[key] = new Entry(path, idx, scope, string.Empty, key, value, state, false);
         }
@@ -655,15 +590,9 @@ namespace Server
         {
             Load();
 
-            if (!_Gen && Core.Debug && _Entries.TryGetValue($"_DEBUG.{key}", out entry) && entry != null)
-            {
-                return true;
-            }
+            if (!_Gen && Core.Debug && _Entries.TryGetValue($"_DEBUG.{key}", out entry) && entry != null) return true;
 
-            if (_Entries.TryGetValue(key, out entry) && entry != null)
-            {
-                return true;
-            }
+            if (_Entries.TryGetValue(key, out entry) && entry != null) return true;
 
             return false;
         }
@@ -672,10 +601,7 @@ namespace Server
         {
             if (InternalGet(key, out var entry) && !entry.UseDefault)
             {
-                if (entry.Object is T val)
-                {
-                    return val;
-                }
+                if (entry.Object is T val) return val;
 
                 if (entry.Value != null)
                 {
@@ -823,10 +749,7 @@ namespace Server
 
         public static string ToString<T>(T value)
         {
-            if (value == null)
-            {
-                return string.Empty;
-            }
+            if (value == null) return string.Empty;
 
             var type = typeof(T);
 
@@ -835,17 +758,14 @@ namespace Server
                 try
                 {
                     if (!_DetectedStringifiers.TryGetValue(typeof(Array), out var stringify))
-                    {
-                        _DetectedStringifiers[typeof(Array)] = stringify = typeof(Config).GetMethod("ToArrayString", new[] { type });
-                    }
+                        _DetectedStringifiers[typeof(Array)] =
+                            stringify = typeof(Config).GetMethod("ToArrayString", new[] { type });
 
-                    if (stringify != null)
-                    {
-                        return (string)stringify.Invoke(null, new object[] { value });
-                    }
+                    if (stringify != null) return (string)stringify.Invoke(null, new object[] { value });
                 }
                 catch
-                { }
+                {
+                }
 
                 return string.Empty;
             }
@@ -855,17 +775,14 @@ namespace Server
                 try
                 {
                     if (!_DetectedStringifiers.TryGetValue(typeof(Enum), out var stringify))
-                    {
-                        _DetectedStringifiers[typeof(Enum)] = stringify = typeof(Config).GetMethod("ToEnumString", new[] { type });
-                    }
+                        _DetectedStringifiers[typeof(Enum)] =
+                            stringify = typeof(Config).GetMethod("ToEnumString", new[] { type });
 
-                    if (stringify != null)
-                    {
-                        return (string)stringify.Invoke(null, new object[] { value });
-                    }
+                    if (stringify != null) return (string)stringify.Invoke(null, new object[] { value });
                 }
                 catch
-                { }
+                {
+                }
 
                 return string.Empty;
             }
@@ -875,17 +792,14 @@ namespace Server
                 try
                 {
                     if (!_DetectedStringifiers.TryGetValue(typeof(Delegate), out var stringify))
-                    {
-                        _DetectedStringifiers[typeof(Delegate)] = stringify = typeof(Config).GetMethod("ToDelegateString", new[] { type });
-                    }
+                        _DetectedStringifiers[typeof(Delegate)] =
+                            stringify = typeof(Config).GetMethod("ToDelegateString", new[] { type });
 
-                    if (stringify != null)
-                    {
-                        return (string)stringify.Invoke(null, new object[] { value });
-                    }
+                    if (stringify != null) return (string)stringify.Invoke(null, new object[] { value });
                 }
                 catch
-                { }
+                {
+                }
 
                 return string.Empty;
             }
@@ -893,19 +807,15 @@ namespace Server
             try
             {
                 if (!_DetectedStringifiers.TryGetValue(type, out var stringify))
-                {
                     _DetectedStringifiers[type] = stringify = typeof(Config).GetMethod("ToString", new[] { type });
-                }
 
-                if (stringify != null)
-                {
-                    return (string)stringify.Invoke(null, new object[] { value });
-                }
+                if (stringify != null) return (string)stringify.Invoke(null, new object[] { value });
 
                 return value.ToString();
             }
             catch
-            { }
+            {
+            }
 
             return string.Empty;
         }
@@ -1012,15 +922,9 @@ namespace Server
 
         public static string ToArrayString<T>(T[] value)
         {
-            if (value == null)
-            {
-                return string.Empty;
-            }
+            if (value == null) return string.Empty;
 
-            if (value.Length == 0)
-            {
-                return "[]";
-            }
+            if (value.Length == 0) return "[]";
 
             var type = typeof(T);
 
@@ -1034,10 +938,7 @@ namespace Server
             {
                 var val = value[i];
 
-                if (i > 0)
-                {
-                    _ = encoded.Append(", ");
-                }
+                if (i > 0) _ = encoded.Append(", ");
 
                 if (val != null)
                 {
@@ -1045,70 +946,52 @@ namespace Server
 
                     var isSubArray = val?.GetType()?.IsArray == true;
 
-                    if (isSubArray)
-                    {
-                        _ = encoded.Append('\t');
-                    }
+                    if (isSubArray) _ = encoded.Append('\t');
 
                     var isSubString = isString || val?.GetType() == typeof(string);
 
-                    if (isSubString)
-                    {
-                        _ = encoded.Append('"');
-                    }
+                    if (isSubString) _ = encoded.Append('"');
 
                     foreach (var c in str)
-                    {
                         switch (c)
                         {
                             case '"':
-                            _ = encoded.Append("\\\"");
-                            break;
+                                _ = encoded.Append("\\\"");
+                                break;
                             case '\\':
-                            _ = encoded.Append("\\\\");
-                            break;
+                                _ = encoded.Append("\\\\");
+                                break;
                             case '\b':
-                            _ = encoded.Append("\\b");
-                            break;
+                                _ = encoded.Append("\\b");
+                                break;
                             case '\f':
-                            _ = encoded.Append("\\f");
-                            break;
+                                _ = encoded.Append("\\f");
+                                break;
                             case '\n':
-                            _ = encoded.Append("\\n");
-                            break;
+                                _ = encoded.Append("\\n");
+                                break;
                             case '\r':
-                            _ = encoded.Append("\\r");
-                            break;
+                                _ = encoded.Append("\\r");
+                                break;
                             case '\t':
-                            _ = encoded.Append("\\t");
-                            break;
+                                _ = encoded.Append("\\t");
+                                break;
                             default:
                             {
                                 var sur = Convert.ToInt32(c);
 
                                 if (sur >= 32 && sur <= 126)
-                                {
                                     _ = encoded.Append(c);
-                                }
                                 else
-                                {
                                     _ = encoded.Append("\\u" + Convert.ToString(sur, 16).PadLeft(4, '0'));
-                                }
                             }
 
-                            break;
+                                break;
                         }
-                    }
 
-                    if (isSubString)
-                    {
-                        _ = encoded.Append('"');
-                    }
+                    if (isSubString) _ = encoded.Append('"');
 
-                    if (isSubArray)
-                    {
-                        _ = encoded.Append(Environment.NewLine);
-                    }
+                    if (isSubArray) _ = encoded.Append(Environment.NewLine);
                 }
             }
 
@@ -1150,17 +1033,11 @@ namespace Server
                 if (type == typeof(string))
                 {
                     if (input == null)
-                    {
                         value = default;
-                    }
                     else if (input.Length == 0)
-                    {
                         value = (T)(object)string.Empty;
-                    }
                     else
-                    {
                         value = (T)(object)input.Trim().Trim('"');
-                    }
 
                     return true;
                 }
@@ -1176,9 +1053,8 @@ namespace Server
                     try
                     {
                         if (!_DetectedTryParsers.TryGetValue(typeof(Array), out var tryParse))
-                        {
-                            _DetectedTryParsers[typeof(Array)] = tryParse = typeof(Config).GetMethod("TryParseArray", new[] { typeof(string), type.MakeByRefType() });
-                        }
+                            _DetectedTryParsers[typeof(Array)] = tryParse = typeof(Config).GetMethod("TryParseArray",
+                                new[] { typeof(string), type.MakeByRefType() });
 
                         if (tryParse != null)
                         {
@@ -1192,7 +1068,8 @@ namespace Server
                         }
                     }
                     catch
-                    { }
+                    {
+                    }
 
                     return false;
                 }
@@ -1202,9 +1079,8 @@ namespace Server
                     try
                     {
                         if (!_DetectedTryParsers.TryGetValue(typeof(Enum), out var tryParse))
-                        {
-                            _DetectedTryParsers[typeof(Enum)] = tryParse = typeof(Config).GetMethod("TryParseEnum", new[] { typeof(string), type.MakeByRefType() });
-                        }
+                            _DetectedTryParsers[typeof(Enum)] = tryParse = typeof(Config).GetMethod("TryParseEnum",
+                                new[] { typeof(string), type.MakeByRefType() });
 
                         if (tryParse != null)
                         {
@@ -1218,7 +1094,8 @@ namespace Server
                         }
                     }
                     catch
-                    { }
+                    {
+                    }
 
                     return false;
                 }
@@ -1228,9 +1105,9 @@ namespace Server
                     try
                     {
                         if (!_DetectedTryParsers.TryGetValue(typeof(Delegate), out var tryParse))
-                        {
-                            _DetectedTryParsers[typeof(Delegate)] = tryParse = typeof(Config).GetMethod("TryParseDelegate", new[] { typeof(string), type.MakeByRefType() });
-                        }
+                            _DetectedTryParsers[typeof(Delegate)] = tryParse =
+                                typeof(Config).GetMethod("TryParseDelegate",
+                                    new[] { typeof(string), type.MakeByRefType() });
 
                         if (tryParse != null)
                         {
@@ -1244,7 +1121,8 @@ namespace Server
                         }
                     }
                     catch
-                    { }
+                    {
+                    }
 
                     return false;
                 }
@@ -1252,9 +1130,8 @@ namespace Server
                 try
                 {
                     if (!_DetectedTryParsers.TryGetValue(type, out var tryParse))
-                    {
-                        _DetectedTryParsers[type] = tryParse = typeof(Config).GetMethod("TryParse", new[] { typeof(string), type.MakeByRefType() });
-                    }
+                        _DetectedTryParsers[type] = tryParse = typeof(Config).GetMethod("TryParse",
+                            new[] { typeof(string), type.MakeByRefType() });
 
                     var args = new object[] { input.Trim(), value };
 
@@ -1265,16 +1142,14 @@ namespace Server
                     }
                 }
                 catch
-                { }
+                {
+                }
 
                 if (type.IsDefined(typeof(ParsableAttribute)))
-                {
                     try
                     {
                         if (!_DetectedParsers.TryGetValue(type, out var parse))
-                        {
                             _DetectedParsers[type] = parse = type.GetMethod("Parse", new[] { typeof(string) });
-                        }
 
                         if (parse != null)
                         {
@@ -1283,16 +1158,14 @@ namespace Server
                         }
                     }
                     catch
-                    { }
-                }
+                    {
+                    }
                 else
-                {
                     try
                     {
                         if (!_DetectedTryParsers.TryGetValue(type, out var tryParse))
-                        {
-                            _DetectedTryParsers[type] = tryParse = type.GetMethod("TryParse", new[] { typeof(string), type.MakeByRefType() });
-                        }
+                            _DetectedTryParsers[type] = tryParse = type.GetMethod("TryParse",
+                                new[] { typeof(string), type.MakeByRefType() });
 
                         var args = new object[] { input.Trim(), value };
 
@@ -1303,11 +1176,12 @@ namespace Server
                         }
                     }
                     catch
-                    { }
-                }
+                    {
+                    }
             }
             catch
-            { }
+            {
+            }
 
             return false;
         }
@@ -1374,10 +1248,7 @@ namespace Server
 
         public static bool TryParse(string input, out bool value)
         {
-            if (bool.TryParse(input, out value))
-            {
-                return true;
-            }
+            if (bool.TryParse(input, out value)) return true;
 
             if (Regex.IsMatch(input, @"(true|yes|on|1|enabled)", RegexOptions.IgnoreCase))
             {
@@ -1409,15 +1280,9 @@ namespace Server
         {
             var type = Type.GetType(input, false);
 
-            if (type != null)
-            {
-                return (value = type) != null;
-            }
+            if (type != null) return (value = type) != null;
 
-            if (input.IndexOf('.') < 0)
-            {
-                return (value = ScriptCompiler.FindTypeByName(input)) != null;
-            }
+            if (input.IndexOf('.') < 0) return (value = ScriptCompiler.FindTypeByName(input)) != null;
 
             return (value = ScriptCompiler.FindTypeByFullName(input)) != null;
         }
@@ -1449,7 +1314,6 @@ namespace Server
             var i = input.LastIndexOf('.');
 
             if (i > 0)
-            {
                 try
                 {
                     if (TryParse(input.Remove(i), out Type target) && target != null)
@@ -1464,8 +1328,8 @@ namespace Server
                     }
                 }
                 catch
-                { }
-            }
+                {
+                }
 
             value = null;
             return false;
@@ -1529,7 +1393,8 @@ namespace Server
             {
                 var index = -1;
 
-                value = ((T1)values[++index], (T2)values[++index], (T3)values[++index], (T4)values[++index], (T5)values[++index]);
+                value = ((T1)values[++index], (T2)values[++index], (T3)values[++index], (T4)values[++index],
+                    (T5)values[++index]);
 
                 return true;
             }
@@ -1545,7 +1410,8 @@ namespace Server
             {
                 var index = -1;
 
-                value = ((T1)values[++index], (T2)values[++index], (T3)values[++index], (T4)values[++index], (T5)values[++index], (T6)values[++index]);
+                value = ((T1)values[++index], (T2)values[++index], (T3)values[++index], (T4)values[++index],
+                    (T5)values[++index], (T6)values[++index]);
 
                 return true;
             }
@@ -1553,7 +1419,8 @@ namespace Server
             return false;
         }
 
-        public static bool TryParseArgs<T1, T2, T3, T4, T5, T6, T7>(string input, out (T1, T2, T3, T4, T5, T6, T7) value)
+        public static bool TryParseArgs<T1, T2, T3, T4, T5, T6, T7>(string input,
+            out (T1, T2, T3, T4, T5, T6, T7) value)
         {
             value = default;
 
@@ -1561,7 +1428,8 @@ namespace Server
             {
                 var index = -1;
 
-                value = ((T1)values[++index], (T2)values[++index], (T3)values[++index], (T4)values[++index], (T5)values[++index], (T6)values[++index], (T7)values[++index]);
+                value = ((T1)values[++index], (T2)values[++index], (T3)values[++index], (T4)values[++index],
+                    (T5)values[++index], (T6)values[++index], (T7)values[++index]);
 
                 return true;
             }
@@ -1569,7 +1437,8 @@ namespace Server
             return false;
         }
 
-        public static bool TryParseArgs<T1, T2, T3, T4, T5, T6, T7, T8>(string input, out (T1, T2, T3, T4, T5, T6, T7, T8) value)
+        public static bool TryParseArgs<T1, T2, T3, T4, T5, T6, T7, T8>(string input,
+            out (T1, T2, T3, T4, T5, T6, T7, T8) value)
         {
             value = default;
 
@@ -1577,7 +1446,8 @@ namespace Server
             {
                 var index = -1;
 
-                value = ((T1)values[++index], (T2)values[++index], (T3)values[++index], (T4)values[++index], (T5)values[++index], (T6)values[++index], (T7)values[++index], (T8)values[++index]);
+                value = ((T1)values[++index], (T2)values[++index], (T3)values[++index], (T4)values[++index],
+                    (T5)values[++index], (T6)values[++index], (T7)values[++index], (T8)values[++index]);
 
                 return true;
             }
@@ -1631,17 +1501,11 @@ namespace Server
                         var inString = false;
 
                         if (idx >= 0)
-                        {
                             inString = true;
-                        }
                         else if (isGeneric)
-                        {
                             idx = oidx;
-                        }
                         else
-                        {
                             break;
-                        }
 
                         var dump = false;
 
@@ -1672,32 +1536,32 @@ namespace Server
                                 switch (c)
                                 {
                                     case '"':
-                                    _ = build.Append('"');
-                                    break;
+                                        _ = build.Append('"');
+                                        break;
                                     case '\\':
-                                    _ = build.Append('\\');
-                                    break;
+                                        _ = build.Append('\\');
+                                        break;
                                     case '/':
-                                    _ = build.Append('/');
-                                    break;
+                                        _ = build.Append('/');
+                                        break;
                                     case 'b':
-                                    _ = build.Append('\b');
-                                    break;
+                                        _ = build.Append('\b');
+                                        break;
                                     case 'f':
-                                    _ = build.Append('\f');
-                                    break;
+                                        _ = build.Append('\f');
+                                        break;
                                     case 'n':
-                                    _ = build.Append('\n');
-                                    break;
+                                        _ = build.Append('\n');
+                                        break;
                                     case 'r':
-                                    _ = build.Append('\r');
-                                    break;
+                                        _ = build.Append('\r');
+                                        break;
                                     case 't':
-                                    _ = build.Append('\t');
-                                    break;
+                                        _ = build.Append('\t');
+                                        break;
                                     default:
-                                    found = false;
-                                    break;
+                                        found = false;
+                                        break;
                                 }
 
                                 if (!found && c == 'u')
@@ -1710,7 +1574,8 @@ namespace Server
                                         return false;
                                     }
 
-                                    if (!uint.TryParse(input.Substring(idx, 4), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var sur))
+                                    if (!uint.TryParse(input.Substring(idx, 4), NumberStyles.HexNumber,
+                                            CultureInfo.InvariantCulture, out var sur))
                                     {
                                         value = null;
                                         return false;
@@ -1735,10 +1600,7 @@ namespace Server
                             }
                         }
 
-                        if (dump)
-                        {
-                            output.Add(build.ToString());
-                        }
+                        if (dump) output.Add(build.ToString());
 
                         _ = build.Clear();
                     }
@@ -1807,28 +1669,19 @@ namespace Server
 
             try
             {
-                Console.WriteLine($"Config: Generating...");
+                Console.WriteLine("Config: Generating...");
 
                 foreach (var m in typeof(Config).GetMethods(BindingFlags.Public | BindingFlags.Static))
                 {
-                    if (!m.Name.StartsWith("Set"))
-                    {
-                        continue;
-                    }
+                    if (!m.Name.StartsWith("Set")) continue;
 
                     var p = m.GetParameters();
 
-                    if (p.Length != 2)
-                    {
-                        continue;
-                    }
+                    if (p.Length != 2) continue;
 
                     var keyArg = p[0];
 
-                    if (keyArg.ParameterType != typeof(string))
-                    {
-                        continue;
-                    }
+                    if (keyArg.ParameterType != typeof(string)) continue;
 
                     var valArg = p[1];
 
@@ -1836,10 +1689,7 @@ namespace Server
                     {
                         var a = valArg.ParameterType.GetGenericParameterConstraints();
 
-                        if (a != null && a.Length > 0)
-                        {
-                            supportedTypes[a[0]] = m;
-                        }
+                        if (a != null && a.Length > 0) supportedTypes[a[0]] = m;
                     }
                     else
                     {
@@ -1853,78 +1703,51 @@ namespace Server
 
                     foreach (var type in cache.Types)
                     {
-                        if (type == typeof(Config) || type == typeof(Entry))
-                        {
-                            continue;
-                        }
+                        if (type == typeof(Config) || type == typeof(Entry)) continue;
 
-                        foreach (var field in type.GetFields(BindingFlags.Static | BindingFlags.Public | BindingFlags.DeclaredOnly))
+                        foreach (var field in type.GetFields(BindingFlags.Static | BindingFlags.Public |
+                                                             BindingFlags.DeclaredOnly))
                         {
-                            if (field.IsLiteral)
-                            {
-                                continue;
-                            }
+                            if (field.IsLiteral) continue;
 
-                            if (!supportedTypes.TryGetValue(field.FieldType, out var setter))
-                            {
-                                continue;
-                            }
+                            if (!supportedTypes.TryGetValue(field.FieldType, out var setter)) continue;
 
                             var key = $"{type.Name}.{field.Name}";
 
-                            if (key.IndexOfAny(_InvalidChars) >= 0)
-                            {
-                                continue;
-                            }
+                            if (key.IndexOfAny(_InvalidChars) >= 0) continue;
 
                             if (!_Entries.TryGetValue(key, out var entry) || entry == null)
                             {
                                 var val = field.GetValue(null);
 
                                 if (val != null)
-                                {
-                                    _ = setter.Invoke(null, new object[] { key, val });
-                                }
+                                    _ = setter.Invoke(null, new[] { key, val });
                                 else
-                                {
                                     InternalSet<object>(key, ToString, null);
-                                }
 
                                 _ = files.Add(GetFilePath(ref key, out _));
                             }
                         }
 
-                        foreach (var prop in type.GetProperties(BindingFlags.Static | BindingFlags.Public | BindingFlags.DeclaredOnly))
+                        foreach (var prop in type.GetProperties(BindingFlags.Static | BindingFlags.Public |
+                                                                BindingFlags.DeclaredOnly))
                         {
-                            if (!prop.CanRead)
-                            {
-                                continue;
-                            }
+                            if (!prop.CanRead) continue;
 
-                            if (!supportedTypes.TryGetValue(prop.PropertyType, out var setter))
-                            {
-                                continue;
-                            }
+                            if (!supportedTypes.TryGetValue(prop.PropertyType, out var setter)) continue;
 
                             var key = $"{type.Name}.{prop.Name}";
 
-                            if (key.IndexOfAny(_InvalidChars) >= 0)
-                            {
-                                continue;
-                            }
+                            if (key.IndexOfAny(_InvalidChars) >= 0) continue;
 
                             if (!_Entries.TryGetValue(key, out var entry) || entry == null)
                             {
                                 var val = prop.GetValue(null);
 
                                 if (val != null)
-                                {
-                                    _ = setter.Invoke(null, new object[] { key, val });
-                                }
+                                    _ = setter.Invoke(null, new[] { key, val });
                                 else
-                                {
                                     InternalSet<object>(key, ToString, null);
-                                }
 
                                 _ = files.Add(GetFilePath(ref key, out _));
                             }
@@ -1935,20 +1758,13 @@ namespace Server
                 var count = 0;
 
                 foreach (var group in _Entries.Values.GroupBy(e => e.File))
-                {
                     if (files.Contains(group.Key))
                     {
                         foreach (var entry in group)
                         {
-                            if (string.IsNullOrWhiteSpace(entry.Desc))
-                            {
-                                entry.Desc = string.Empty;
-                            }
+                            if (string.IsNullOrWhiteSpace(entry.Desc)) entry.Desc = string.Empty;
 
-                            if (entry.Desc.Length > 0)
-                            {
-                                entry.Desc += "\n";
-                            }
+                            if (entry.Desc.Length > 0) entry.Desc += "\n";
 
                             entry.Desc += $"Default: {entry.Value}";
 
@@ -1964,13 +1780,12 @@ namespace Server
 
                         ++count;
                     }
-                }
 
                 Console.WriteLine($"Config: Generated {count:N0} new files.");
             }
             catch (Exception e)
             {
-                Console.WriteLine($"Config: Generation Failed");
+                Console.WriteLine("Config: Generation Failed");
 
                 Console.WriteLine(e);
             }

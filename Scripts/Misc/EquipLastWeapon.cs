@@ -1,7 +1,5 @@
-using System;
-using Server;
-using Server.Mobiles;
 using Server.Items;
+using Server.Mobiles;
 
 namespace Server.Network
 {
@@ -9,20 +7,20 @@ namespace Server.Network
     {
         public static void Initialize()
         {
-            PacketHandlers.RegisterEncoded(0x1E, true, new OnEncodedPacketReceive(EquipLastWeaponRequest));
+            PacketHandlers.RegisterEncoded(0x1E, true, EquipLastWeaponRequest);
         }
 
         public static void EquipLastWeaponRequest(NetState state, IEntity e, EncodedReader reader)
         {
-            PlayerMobile from = state.Mobile as PlayerMobile;
+            var from = state.Mobile as PlayerMobile;
 
             if (from == null || from.Backpack == null)
                 return;
 
             if (from.IsStaff() || Core.TickCount - from.NextActionTime >= 0)
             {
-                BaseWeapon toEquip = from.LastWeapon;
-                BaseWeapon toDisarm = from.FindItemOnLayer(Layer.OneHanded) as BaseWeapon;
+                var toEquip = from.LastWeapon;
+                var toDisarm = from.FindItemOnLayer(Layer.OneHanded) as BaseWeapon;
 
                 if (toDisarm == null)
                     toDisarm = from.FindItemOnLayer(Layer.TwoHanded) as BaseWeapon;

@@ -215,11 +215,11 @@ namespace Server.Custom.Farms
         }
 
         // =========================================================================
-        // СИСТЕМА ТУЛТИПОВ ПРИ НАВЕДЕНИИ МЫШКИ 🔍
+        // ИСПРАВЛЕНО: СИСТЕМА ТУЛТИПОВ ДЛЯ СТАРЫХ СБОРOK СЕРВЕРА (GetProperties) 🔍
         // =========================================================================
-        public override void AddProperties(ObjectPropertyList list)
+        public override void GetProperties(ObjectPropertyList list)
         {
-            base.AddProperties(list); // Выводит Name первой строчкой
+            base.GetProperties(list); // Выводит Name первой строчкой (вместо base.AddProperties)
 
             if (m_IsDead || m_IsWeedSource) return;
 
