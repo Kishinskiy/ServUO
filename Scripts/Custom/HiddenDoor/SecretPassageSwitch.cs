@@ -7,10 +7,10 @@ namespace Server.Items
 {
     public class SecretPassageSwitch : Item
     {
-        private int m_RequiredSkill; // Минимальный уровень Detecting Hidden (например, 70.0)
-        private Point3D m_TeleportTarget; // Куда переносить игрока (в подземелье)
-        private Map m_TeleportMap; // Карта подземелья (обычно та же, что и у замка)
-        private Timer m_RevealTimer; // Таймер, который снова скроет рычаг, если по нему не кликнули
+        private int m_RequiredSkill; 
+        private Point3D m_TeleportTarget; 
+        private Map m_TeleportMap; 
+        private Timer m_RevealTimer; 
 
         [CommandProperty(AccessLevel.GameMaster)]
         public int RequiredSkill { get => m_RequiredSkill; set { m_RequiredSkill = value; InvalidateProperties(); } }
@@ -22,48 +22,40 @@ namespace Server.Items
         public Map TeleportMap { get => m_TeleportMap; set => m_TeleportMap = value; }
 
         [Constructable]
-        public SecretPassageSwitch() : base(0x108F) // Графика маленького камня в стене или рычага
+        public SecretPassageSwitch() : base(0x108F) 
         {
             Name = "Странный камень";
             Movable = false;
-            Visible = false; // ПО УМОЛЧАНИЮ ПРЕДМЕТ НЕВИДИМ ДЛЯ ВСЕХ 
+            Visible = false; // Предмет скрыт от обычного взора
             
-            m_RequiredSkill = 70; // Требуется 70.0 Detecting Hidden по умолчанию
-            m_TeleportTarget = new Point3D(1495, 1629, 10); // Заглушка (координаты подземелья)
+            m_RequiredSkill = 70; 
+            m_TeleportTarget = new Point3D(1495, 1629, 10); 
             m_TeleportMap = Map.Felucca;
         }
 
         // =========================================================================
-        // ГЛАВНЫЙ МЕТОД ЯДРА: Вызывается при использовании Detecting Hidden
+        // ИСПРАВЛЕННЫЙ МЕТОД ОБНАРУЖЕНИЯ
+        // Вызывайте его из Scripts/Skills/DetectHidden.cs при сканировании области!
         // =========================================================================
-        public override void OnDetectedHidden(Mobile from)
+        public void Discover(Mobile from)
         {
-            base.OnDetectedHidden(from);
-
             if (from == null || !from.Player)
                 return;
 
-            // Проверяем уровень навыка игрока (значение от 0 до 100)
+            // Проверяем навык
             if (from.Skills[SkillName.DetectHidden].Value < m_RequiredSkill)
-            {
-                // Игрок использовал навык, но его мастерства не хватило, чтобы заметить тайник
                 return;
-            }
 
-            // Если рычаг уже кем-то обнаружен и виден, ничего не делаем
             if (this.Visible)
                 return;
 
-            // Делаем рычаг видимым
             this.Visible = true;
             
-            // Эффекты обнаружения (звук искр и мистические частицы вокруг камня)
             Effects.SendLocationParticles(EffectItem.Create(Location, Map, TimeSpan.FromSeconds(1.0)), 0x376A, 9, 32, 5015);
             from.PlaySound(0x1F2); 
             
             from.SendMessage(0x42, "Ваш наметанный глаз заметил странно шатающийся камень в кладке стены!");
 
-            // Запускаем таймер на 15 секунд. Если никто не нажмет рычаг, он снова исчезнет
             if (m_RevealTimer != null)
                 m_RevealTimer.Stop();
 
@@ -74,8 +66,7 @@ namespace Server.Items
         {
             if (!this.Deleted)
             {
-                this.Visible = false; // Снова исчезает из мира
-                // Звук тихого шороха камня
+                this.Visible = false; 
                 Effects.PlaySound(Location, Map, 0x11D); 
             }
         }
@@ -88,9 +79,12 @@ namespace Server.Items
             if (from == null || !from.Player)
                 return;
 
-            // ГМ-ы могут кликать всегда, игроки — только если рычаг обнаружен (видим)
+            // Игроки могут нажать только если камень обнаружен (видим)
             if (!this.Visible && from.AccessLevel == AccessLevel.Player)
+            {
+                from.SendMessage("Здесь нет ничего примечательного.");
                 return;
+            }
 
             if (!from.InRange(this.GetWorldLocation(), 2))
             {
@@ -98,19 +92,16 @@ namespace Server.Items
                 return;
             }
 
-            // Останавливаем таймер скрытия, так как рычаг успешно использован
             if (m_RevealTimer != null)
                 m_RevealTimer.Stop();
 
-            // Эффект нажатия (звук тяжелого каменного механизма)
             Effects.PlaySound(Location, Map, 0x241);
             from.SendMessage(0x42, "Вы нажимаете на скрытый камень. Под вашими ногами разверзается тьма!");
 
-            // Телепортируем игрока в подземелье
-            BaseCreature.TeleportPets(from, m_TeleportTarget, m_TeleportMap); // Переносим и игрока, и его питомцев (коней)
+            // Безопасный перенос петов и игрока
+            BaseCreature.TeleportPets(from, m_TeleportTarget, m_TeleportMap); 
             from.MoveToWorld(m_TeleportTarget, m_TeleportMap);
 
-            // Сразу же возвращаем рычагу невидимость для следующего исследователя
             this.Visible = false;
         }
 
