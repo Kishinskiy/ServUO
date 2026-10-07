@@ -11,11 +11,40 @@ namespace Server.Custom.SmartNPCs
     {
         private static Dictionary<Mobile, DateTime> m_Cooldowns = new Dictionary<Mobile, DateTime>();
 
+        // --- ДИНАМИЧЕСКИЕ НАБОРЫ ПРИВЕТСТВИЙ (Пассивное поведение) ---
         private static readonly string[] DynamicGreetings_Normal = new string[]
         {
             "Приветствую тебя, благородный путник!",
             "Хороший день для приключений, не так ли?",
             "Добро пожаловать! Если ищешь кров или товары — ты в правильном месте."
+        };
+
+        private static readonly string[] DynamicGreetings_Rain = new string[]
+        {
+            "Ну и погодка... Промок до нитки! Хоть бы плащ от этой сырости спасал.",
+            "Этот ледяной дождь погубит весь урожай! Заходи скорее под крышу.",
+            "Путник, под таким ливнем только простуду ловить! Рад видеть тебя в сухом месте."
+        };
+
+        private static readonly string[] DynamicGreetings_SummerHeat = new string[]
+        {
+            "Какая невыносимая жара! Мозги буквально плавятся на этом солнце.",
+            "В такую сушь только и думаешь, как бы сделать глоток ледяной воды...",
+            "Жара душит... Даже у фонтана дышать нечем. Сними тяжелый плащ, путник!"
+        };
+
+        private static readonly string[] DynamicGreetings_Night = new string[]
+        {
+            "Тссс... Не шуми, путник. Ночью за стенами города бродят жуткие твари.",
+            "Уже поздно, порядочные горожане давно спят. Стража настороже.",
+            "Ночной воздух так холоден... Тебе лучше переждать темноту в таверне."
+        };
+
+        private static readonly string[] DynamicGreetings_BloodMoon = new string[]
+        {
+            "Спаси нас Лорд Бритиш... Всходит Кровавая Луна! Мы все обречены!",
+            "Нечисть уже прорывается к центру города! Оружие к бою, если хочешь выжить!",
+            "Проклятие... Луна окрасилась кровью! Древнее зло восстало в эту ночь!"
         };
 
         private static readonly string[] DynamicGoodbyes = new string[]
@@ -26,7 +55,7 @@ namespace Server.Custom.SmartNPCs
             "Да хранят тебя боги! Доброго пути."
         };
 
-        // 🧭 ЖЕСТКАЯ БАЗА КООРДИНАТ ГОРОДОВ (Центральные площади)
+        // База координат городов
         private static readonly Dictionary<string, Point3D> m_StaticCities = new Dictionary<string, Point3D>(StringComparer.OrdinalIgnoreCase)
         {
             { "Britain", new Point3D(1495, 1629, 10) },
@@ -41,34 +70,22 @@ namespace Server.Custom.SmartNPCs
             { "Ocllo", new Point3D(3649, 2682, 0) }
         };
 
-        // ⚖️ ЖЕСТКАЯ БАЗА КООРДИНАТ ТОРГОВЫХ МИНИСТРОВ ДЛЯ КАЖДОГО ГОРОДА
         private static readonly Dictionary<string, Point3D> m_Ministers = new Dictionary<string, Point3D>(StringComparer.OrdinalIgnoreCase)
         {
-            { "Britain", new Point3D(1435, 1680, 0) },
-            { "Minoc", new Point3D(2437, 449, 15) },
-            { "Yew", new Point3D(542, 983, 0) },
-            { "Moonglow", new Point3D(4436, 1076, 0) },
-            { "Magincia", new Point3D(3712, 2228, 20) },
-            { "Trinsic", new Point3D(1821, 2772, 0) },
-            { "Skara Brae", new Point3D(571, 2217, 0) },
-            { "Jhelom", new Point3D(1401, 3778, 0) },
-            { "Vesper", new Point3D(2992, 672, 0) },
-            { "Ocllo", new Point3D(3661, 2603, 0) }
+            { "Britain", new Point3D(1435, 1680, 0) }, { "Minoc", new Point3D(2437, 449, 15) },
+            { "Yew", new Point3D(542, 983, 0) }, { "Moonglow", new Point3D(4436, 1076, 0) },
+            { "Magincia", new Point3D(3712, 2228, 20) }, { "Trinsic", new Point3D(1821, 2772, 0) },
+            { "Skara Brae", new Point3D(571, 2217, 0) }, { "Jhelom", new Point3D(1401, 3778, 0) },
+            { "Vesper", new Point3D(2992, 672, 0) }, { "Ocllo", new Point3D(3661, 2603, 0) }
         };
 
-        // 👑 ЖЕСТКАЯ БАЗА КООРДИНАТ ГУБЕРНАТОРОВ / МЭРОВ ДЛЯ КАЖДОГО ГОРОДА
         private static readonly Dictionary<string, Point3D> m_Governors = new Dictionary<string, Point3D>(StringComparer.OrdinalIgnoreCase)
         {
-            { "Britain", new Point3D(1324, 1621, 0) }, // Тронный зал
-            { "Minoc", new Point3D(2450, 480, 0) },
-            { "Yew", new Point3D(618, 934, 0) },
-            { "Moonglow", new Point3D(4474, 1130, 0) },
-            { "Magincia", new Point3D(3731, 2168, 20) },
-            { "Trinsic", new Point3D(1859, 2692, 0) },
-            { "Skara Brae", new Point3D(614, 2137, 0) },
-            { "Jhelom", new Point3D(1376, 3816, 0) },
-            { "Vesper", new Point3D(2937, 574, 0) },
-            { "Ocllo", new Point3D(3649, 2682, 0) }
+            { "Britain", new Point3D(1324, 1621, 0) }, { "Minoc", new Point3D(2450, 480, 0) },
+            { "Yew", new Point3D(618, 934, 0) }, { "Moonglow", new Point3D(4474, 1130, 0) },
+            { "Magincia", new Point3D(3731, 2168, 20) }, { "Trinsic", new Point3D(1859, 2692, 0) },
+            { "Skara Brae", new Point3D(614, 2137, 0) }, { "Jhelom", new Point3D(1376, 3816, 0) },
+            { "Vesper", new Point3D(2937, 574, 0) }, { "Ocllo", new Point3D(3649, 2682, 0) }
         };
 
         public static void Initialize()
@@ -76,6 +93,7 @@ namespace Server.Custom.SmartNPCs
             EventSink.Movement += new MovementEventHandler(OnPlayerMovement);
         }
 
+        // Пассивное приветствие при проходе игрока (С учетом контекста мира)
         private static void OnPlayerMovement(MovementEventArgs e)
         {
             Mobile player = e.Mobile;
@@ -95,9 +113,11 @@ namespace Server.Custom.SmartNPCs
                     if (Utility.RandomDouble() < 0.15)
                     {
                         m_Cooldowns[m] = DateTime.UtcNow;
-
-                        string speech = DynamicGreetings_Normal[Utility.Random(DynamicGreetings_Normal.Length)];
                         m.Direction = m.GetDirectionTo(player);
+
+                        // Выбираем фразу на основе погоды и времени суток
+                        string speech = GetContextualSpeech(m);
+
                         m.PublicOverheadMessage(Network.MessageType.Regular, 0x3B2, false, speech);
                         break;
                     }
@@ -117,7 +137,13 @@ namespace Server.Custom.SmartNPCs
             string text = speechText.ToLower().Trim();
             string reply = "";
 
-            // Определяем текущий город, где стоит торговец
+            // Считываем время и фазу луны из ядра ServUO
+            int uoHours, uoMinutes;
+            Clock.GetTime(npc.Map, npc.X, npc.Y, out uoHours, out uoMinutes);
+            MoonPhase currentMoonPhase = Clock.GetMoonPhase(npc.Map, npc.X, npc.Y);
+            bool isNight = (uoHours >= 20 || uoHours < 4);
+
+            // Определяем текущий город
             string currentTownName = "";
             Region r = npc.Region;
             if (r != null && !string.IsNullOrEmpty(r.Name) && !r.Name.Equals(npc.Map.Name, StringComparison.OrdinalIgnoreCase) && !r.Name.Equals("Default", StringComparison.OrdinalIgnoreCase))
@@ -129,56 +155,38 @@ namespace Server.Custom.SmartNPCs
             if (text.Contains("спасибо") || text.Contains("благодарю") || text.Contains("thanks") || text.Contains("ty"))
             {
                 reply = DynamicGoodbyes[Utility.Random(DynamicGoodbyes.Length)];
-                npc.Direction = npc.GetDirectionTo(player);
-                npc.PublicOverheadMessage(Network.MessageType.Regular, 0x3B2, false, reply);
-                player.SendMessage(0x5D, $"{npc.Name}: {reply}");
-                return true;
             }
 
             // 1. ИНТЕРАКТИВНАЯ ТОРГОВЛЯ 💰
-            if (text.Contains("торговать") || text.Contains("торговля") || text.Contains("trade"))
+            else if (text.Contains("торговать") || text.Contains("торговля") || text.Contains("trade"))
             {
                 reply = "Ты хочешь что-то 'купить', 'продать' или ты ищешь 'министр'а торговли?";
-                npc.Direction = npc.GetDirectionTo(player);
-                npc.PublicOverheadMessage(Network.MessageType.Regular, 0x3B2, false, reply);
-                player.SendMessage(0x5D, $"{npc.Name}: {reply}");
-                return true;
             }
-            
-            if (text.Equals("купить") || text.Contains("хочу купить") || text.Contains("buy"))
+            else if (text.Equals("купить") || text.Contains("хочу купить") || text.Contains("buy"))
             {
-                if (npc is BaseVendor vendor)
-                {
-                    vendor.Direction = vendor.GetDirectionTo(player);
-                    vendor.VendorBuy(player);
-                    return true;
-                }
+                if (npc is BaseVendor vendor) { vendor.Direction = vendor.GetDirectionTo(player); vendor.VendorBuy(player); return true; }
             }
-            
-            if (text.Equals("продать") || text.Contains("хочу продать") || text.Contains("sell"))
+            else if (text.Equals("продать") || text.Contains("хочу продать") || text.Contains("sell"))
             {
-                if (npc is BaseVendor vendor)
+                if (npc is BaseVendor vendor) { vendor.Direction = vendor.GetDirectionTo(player); vendor.VendorSell(player); return true; }
+            }
+
+            // 2. ДИНАМИЧЕСКИЙ ПОИСК КОНКРЕТНОГО ГОРОДА 🗺️
+            if (string.IsNullOrEmpty(reply))
+            {
+                foreach (var pair in m_StaticCities)
                 {
-                    vendor.Direction = vendor.GetDirectionTo(player);
-                    vendor.VendorSell(player);
-                    return true;
+                    if (text.Contains(pair.Key.ToLower()))
+                    {
+                        Point3D targetLoc = pair.Value;
+                        Direction dir = npc.GetDirectionTo(targetLoc);
+                        reply = $"Путь к городу {pair.Key} лежит на {GetDirectionName(dir)} отсюда. Координаты центра: {targetLoc.X}, {targetLoc.Y}.";
+                        break;
+                    }
                 }
             }
 
-            // 2. ДИНАМИЧЕСКИЙ ПОИСК КОНКРЕТНОГО ГОРОДА ИЗ СЛОВАРЯ (Срабатывает ПЕРВЫМ 🗺️)
-            // Если игрок упомянул название города (например, "где minoc", "minoc", "дорога в minoc")
-            foreach (var pair in m_StaticCities)
-            {
-                if (text.Contains(pair.Key.ToLower()))
-                {
-                    Point3D targetLoc = pair.Value;
-                    Direction dir = npc.GetDirectionTo(targetLoc);
-                    reply = $"Путь к городу {pair.Key} лежит на {GetDirectionName(dir)} отсюда. Координаты центра: {targetLoc.X}, {targetLoc.Y}.";
-                    break;
-                }
-            }
-
-            // 3. ПОИСК МИНИСТРА СТРОГО В ТЕКУЩЕМ ГОРОДЕ ⚖
+            // 3. ПОИСК МИНИСТРА ⚖️
             if (string.IsNullOrEmpty(reply) && (text.Equals("министр") || text.Contains("министр торговли") || text.Contains("minister")))
             {
                 if (!string.IsNullOrEmpty(currentTownName) && m_Ministers.TryGetValue(currentTownName, out Point3D ministerLoc))
@@ -192,7 +200,7 @@ namespace Server.Custom.SmartNPCs
                 }
             }
 
-            // 4. ПОИСК ГУБЕРНАТОРА СТРОГО В ТЕКУЩЕМ ГОРОДЕ 👑
+            // 4. ПОИСК ГУБЕРНАТОРА 👑
             if (string.IsNullOrEmpty(reply) && (text.Contains("губернатор") || text.Contains("мэр") || text.Contains("governor")))
             {
                 if (!string.IsNullOrEmpty(currentTownName) && m_Governors.TryGetValue(currentTownName, out Point3D govLoc))
@@ -205,25 +213,46 @@ namespace Server.Custom.SmartNPCs
                     reply = "Здесь нет действующего Губернатора. Тебе нужно зайти в черту какого-нибудь города.";
                 }
             }
-
-            // 5. Текущее местоположение 🧭
+            // 5. НОВОЕ: РЕАКЦИЯ НА ПОГОДУ / ДОЖДЬ И ВРЕМЯ ГОДА 🌧️
+            if (string.IsNullOrEmpty(reply) && (text.Contains("погода") || text.Contains("дождь") || text.Contains("weather") || text.Contains("rain")))
+            {
+                if (IsRainingOverNpc(npc))
+                    reply = "Льет как из ведра! Пронизывающий холод. Если промочит до нитки, бег будет заблокирован, пока не согреешься у костра или внутри таверны.";
+                else if (npc.Map.Season == 1) // Лето в ServUO
+                    reply = "Погода нынче жаркая, настоящее лето! Главное — не перегреваться в тяжелых доспехах под палящим солнцем.";
+                else
+                    reply = "Погода нынче благосклонна к путешественникам, небосвод чист.";
+            }
+            // 6. НОВОЕ: РЕАКЦИЯ НА НОЧЬ / ШТУРМЫ ГОРОДОВ 🌙
+            if (string.IsNullOrEmpty(reply) && (text.Contains("ночь") || text.Contains("осада") || text.Contains("штурм") || text.Contains("ночные монстры")))
+            {
+                if (isNight)
+                    reply = "Осада идет прямо сейчас! Слышишь скрежет за воротами? Городская защита отключена, вся надежда только на героев!";
+                else
+                    reply = string.Format("Сейчас на часах {0}:{1:D2}. Всё спокойно. Но как только пробьет 20:00 вечера, чудовища пойдут на штурм.", uoHours, uoMinutes);
+            }
+            // 7. НОВОЕ: РЕАКЦИЯ НА КРОВАТУЮ ЛУНУ 🩸
+            if (string.IsNullOrEmpty(reply) && (text.Contains("луна") || text.Contains("полнолуние") || text.Contains("moon")))
+            {
+                if (currentMoonPhase == MoonPhase.Full)
+                    reply = "Посмотри на небо... Луна полностью багровая. Это проклятое Полнолуние! В эту ночь вместо обычных зомби город будут штурмовать Личи и Мумии!";
+                else
+                    reply = string.Format("Небосвод чист. Фаза луны сейчас — {0}. До Кровавой Луны еще есть время, так что ночные набеги будут терпимыми.", currentMoonPhase);
+            }
+            // 8. Текущее местоположение 🧭
             if (string.IsNullOrEmpty(reply) && (text.Contains("где я") || text.Contains("какой город") || text.Contains("город") || text.Contains("где мы")))
             {
                 string locationCoords = $"[Координаты: {player.X}, {player.Y}]";
-
                 if (!string.IsNullOrEmpty(currentTownName))
                     reply = $"Мы находимся в поселении {currentTownName}. {locationCoords}";
                 else
                     reply = $"Мы сейчас на диких землях мира {npc.Map.Name}. {locationCoords}";
             }
-
-            // 6. Абстрактный запрос дороги ("куда идти", "где город" БЕЗ указания имени конкретного города)
+            // 9. Абстрактный запрос дороги
             if (string.IsNullOrEmpty(reply) && (text.Contains("дорога") || text.Contains("куда идти") || text.Contains("где")))
             {
                 if (!string.IsNullOrEmpty(currentTownName))
-                {
                     reply = $"Ты уже находишься в черте города {currentTownName}. Банк и лавки торговцев прямо в центре поселения.";
-                }
                 else
                 {
                     Point3D britainLoc = m_StaticCities["Britain"];
@@ -231,14 +260,12 @@ namespace Server.Custom.SmartNPCs
                     reply = $"Ты заплутал в диких землях. Столица Britain находится на {GetDirectionName(dir)} отсюда. Координаты ворот: {britainLoc.X}, {britainLoc.Y}.";
                 }
             }
-
-            // 7. Базовое приветствие (если ничего из спец-команд не подошло)
+            // 10. Базовое приветствие
             if (string.IsNullOrEmpty(reply) && (text.Contains("привет") || text.Contains("здравствуй") || text.Contains("хай") || text.Contains("hello") || text.Contains("hi")))
             {
                 reply = string.Format("Здравствуй, {0}. Чем я могу помочь?", player.Name);
             }
-
-            // Финальная отправка сформированного ответа
+            // Отправка
             if (!string.IsNullOrEmpty(reply))
             {
                 npc.Direction = npc.GetDirectionTo(player);
@@ -246,7 +273,59 @@ namespace Server.Custom.SmartNPCs
                 player.SendMessage(0x5D, $"{npc.Name}: {reply}");
                 return true;
             }
-
+            return false;
+        }
+        // --- Вспомогательные методы определения состояния мира ---
+        private static string GetContextualSpeech(Mobile npc)
+        {
+            Map map = npc.Map;
+            if (map == null || map == Map.Internal)
+                return DynamicGreetings_Normal[Utility.Random(DynamicGreetings_Normal.Length)];
+            int uoHours, uoMinutes;
+            Clock.GetTime(map, npc.X, npc.Y, out uoHours, out uoMinutes);
+            MoonPhase currentMoonPhase = Clock.GetMoonPhase(map, npc.X, npc.Y);
+            bool isNight = (uoHours >= 20 || uoHours < 4);
+            bool isNpcInDoors = IsNpcInDoors(npc);
+            // Кровавая луна (Ночь + Полнолуние)
+            if (isNight && currentMoonPhase == MoonPhase.Full)
+                return DynamicGreetings_BloodMoon[Utility.Random(DynamicGreetings_BloodMoon.Length)];
+            // Обычная ночь
+            if (isNight)
+                return DynamicGreetings_Night[Utility.Random(DynamicGreetings_Night.Length)];
+            // Дождь (только если NPC на улице)
+            if (!isNpcInDoors && IsRainingOverNpc(npc))
+                return DynamicGreetings_Rain[Utility.Random(DynamicGreetings_Rain.Length)];
+            // Летний зной (Сезон 1 в UO, NPC на улице)
+            if (!isNpcInDoors && map.Season == 1)
+                return DynamicGreetings_SummerHeat[Utility.Random(DynamicGreetings_SummerHeat.Length)];
+            return DynamicGreetings_Normal[Utility.Random(DynamicGreetings_Normal.Length)];
+        }
+        private static bool IsRainingOverNpc(Mobile npc)
+        {
+            // Проверяем встроенный список активной погоды на карте ServUO
+            var weatherList = Server.Misc.Weather.GetWeatherList(npc.Map);
+            if (weatherList != null)
+            {
+                for (int j = 0; j < weatherList.Count; ++j)
+                {
+                    Server.Misc.Weather w = weatherList[j];
+                    bool isActive = false;
+                    // Вытаскиваем приватный флаг активности погоды через рефлексию (совместимо со всеми версиями RunUO/ServUO)
+                    System.Reflection.FieldInfo activeField = typeof(Server.Misc.Weather).GetField("m_Active", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+                    if (activeField != null) isActive = (bool)activeField.GetValue(w);
+                    if (isActive && w.Temperature > 0 && w.IntersectsWith(new Rectangle2D(npc.X, npc.Y, 1, 1)))
+                        return true;
+                }
+            }
+            return false;
+        }
+        private static bool IsNpcInDoors(Mobile npc)
+        {
+            Region reg = npc.Region;
+            if (reg == null) return false;
+            // Если регион технически помечен как дом или таверна
+            if (reg.IsPartOf(typeof(Server.Regions.HouseRegion)) || reg.Name == "Inns" || reg.Name == "Taverns")
+                return true;
             return false;
         }
         private static string GetDirectionName(Direction dir)
