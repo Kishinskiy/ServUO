@@ -246,18 +246,24 @@ namespace Server.Custom.Farms
                 currentSeason = this.Map.Season;
             }
 
-            // ПРОВЕРКА НА ТЕПЛИЦУ 🌿
-            Region currentRegion = Region.Find(this.Location, this.Map);
-            bool isInGreenhouse = (currentRegion is GreenhouseRegion);
+            // =========================================================================
+            // УМНАЯ ПРОВЕРКА НА ТЕПЛИЦУ (Дом игрока) 🏡🌿
+            // =========================================================================
+            // Проверяем, находится ли грядка на территории любого частного дома
+            Server.Multis.BaseHouse house = Server.Multis.BaseHouse.FindHouseAt(this.Location, this.Map, 16);
+            bool isInGreenhouse = (house != null);
 
+            // Если растение ЗИМОЙ и НА УЛИЦЕ (вне дома) — рост замораживается
             if (currentSeason == 3 && !isInGreenhouse)
             {
                 if (m_Planter != null && m_Stage < 2)
-                    m_Planter.SendMessage(0x5D, $"[Зимняя спячка] Рост вашего урожая ({GetVegNameString()}) заморожен. Нужна теплица!");
+                    m_Planter.SendMessage(0x5D, $"[Зимняя спячка] Рост вашего урожая ({GetVegNameString()}) заморожен. Перенесите грядку в дом или теплицу!");
                 return;
             }
 
-            // АВТОМАТИЧЕСКИЙ ПОЛИВ ДОЖДЕМ (Только на улице)
+            // =========================================================================
+            // АВТОМАТИЧЕСКИЙ ПОЛИВ ДОЖДЕМ (Только на улице, под крышей дома дождя нет!)
+            // =========================================================================
             if (!isInGreenhouse && this.Map != null && this.Map != Map.Internal)
             {
                 List<Server.Misc.Weather> weatherList = Server.Misc.Weather.GetWeatherList(this.Map);
@@ -284,16 +290,23 @@ namespace Server.Custom.Farms
                     }
                 }
             }
+
+            // Настройка скорости роста (В доме всегда тепло, как весной!)
             int daysRequiredToGrow = (currentSeason == 0 || currentSeason == 2 || isInGreenhouse) ? 4 : 8;
             if (m_WaterLevel >= 60 && daysRequiredToGrow > 2) daysRequiredToGrow -= 1;
+            
+            // В доме влага испаряется МЕДЛЕННЕЕ (минус 10% вместо 25%), так как нет ветра и солнца
             int waterLoss = isInGreenhouse ? 10 : 25;
             m_WaterLevel = Math.Max(0, m_WaterLevel - waterLoss);
             m_FertilityLevel = Math.Max(0, m_FertilityLevel - 10);
+
+            // Сорняки и вредители в домашней теплице
             if (m_Stage < 2)
             {
                 double weedChance = isInGreenhouse ? (BaseWeedsChance + 0.10) : BaseWeedsChance;
                 if (Utility.RandomDouble() < weedChance)
                     m_WeedsLevel = Math.Min(100, m_WeedsLevel + 15);
+                
                 double pestsChance = isInGreenhouse ? 0.35 : 0.25;
                 if (Utility.RandomDouble() < pestsChance)
                     m_PestsCount = Math.Min(3, m_PestsCount + 1);
