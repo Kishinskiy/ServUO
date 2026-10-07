@@ -2,16 +2,26 @@ using System;
 using Server;
 using Server.Items;
 using Server.Targeting;
-using Server.Mobiles;
-using Server.Engines.BulkOrders;
+using Server.Mobiles; // Явное подключение всех NPC торговцев
+using Server.Engines.BulkOrders; // Подключение BOD системы
 
 namespace Server.Custom.GarrisonSupply
 {
+    public enum SupplyType
+    {
+        Blacksmith, // Кузнец
+        Carpentry,  // Плотник
+        Tailor,     // Портной
+        Cooking     // Повар
+    }
+
     public class GarrisonSupplyCrate : Item
     {
         private bool m_IsSealed;
         private int m_RewardGold;
         private string m_ContentName;
+        private SupplyType m_SupplyType;
+        private int m_FoodCount;
 
         [CommandProperty(AccessLevel.GameMaster)]
         public bool IsSealed { get => m_IsSealed; set { m_IsSealed = value; InvalidateProperties(); } }
@@ -22,18 +32,50 @@ namespace Server.Custom.GarrisonSupply
         [CommandProperty(AccessLevel.GameMaster)]
         public string ContentName { get => m_ContentName; set { m_ContentName = value; InvalidateProperties(); } }
 
+        [CommandProperty(AccessLevel.GameMaster)]
+        public SupplyType ContainerType { get => m_SupplyType; set { m_SupplyType = value; UpdateAppearance(); } }
+
         [Constructable]
-        public GarrisonSupplyCrate() : base(0x09A8) // Графика деревянного ящика (Crate)
+        public GarrisonSupplyCrate() : this(SupplyType.Blacksmith)
         {
-            Name = "Ящик Снабжения Гарнизона (Пустой)";
-            Weight = 5.0;
-            Hue = 2418; // Стальной/железный оттенок дерева
+        }
+
+        [Constructable]
+        public GarrisonSupplyCrate(SupplyType type) : base(0x09A8) // Графика деревянного ящика
+        {
+            m_SupplyType = type;
             m_IsSealed = false;
             m_RewardGold = 0;
             m_ContentName = "Пусто";
+            m_FoodCount = 0;
+            Weight = 5.0;
+
+            UpdateAppearance();
         }
 
-        // Тултип для вашей версии ServUO net48
+        public void UpdateAppearance()
+        {
+            if (m_IsSealed) return;
+
+            // Настройка графики, цветов и названий под каждую профессию ремесленника
+            switch (m_SupplyType)
+            {
+                case SupplyType.Blacksmith:
+                    ItemID = 0x09A8; Hue = 2418; Name = "Ящик Снабжения Гарнизона (Кузнечный - Пустой)";
+                    break;
+                case SupplyType.Carpentry:
+                    ItemID = 0x09A8; Hue = 1133; Name = "Ящик Строительных Припасов (Плотник - Пустой)";
+                    break;
+                case SupplyType.Tailor:
+                    ItemID = 0x0E7A; Hue = 2417; Name = "Тюк Армейского Обмундирования (Портной - Пустой)";
+                    break;
+                case SupplyType.Cooking:
+                    ItemID = 0x0FAE; Hue = 1424; Name = "Бочка Городского Провианта (Повар - Пустая)";
+                    break;
+            }
+            InvalidateProperties();
+        }
+
         public override void GetProperties(ObjectPropertyList list)
         {
             base.GetProperties(list);
@@ -42,11 +84,14 @@ namespace Server.Custom.GarrisonSupply
             {
                 list.Add($"Содержимое: {m_ContentName}");
                 list.Add($"Выплата гарнизона: {m_RewardGold} золотых");
-                list.Add("<BASEFONT COLOR=#69F0AE>[Дважды кликните, чтобы сдать Оружейнику]<BASEFONT COLOR=#FFFFFF>");
+                list.Add("<BASEFONT COLOR=#69F0AE>[Дважды кликните, чтобы сдать профильному NPC]<BASEFONT COLOR=#FFFFFF>");
             }
             else
             {
-                list.Add("<BASEFONT COLOR=#FFE082>Используйте этот ящик на полностью заполненный кузнечный BOD контракт, чтобы упаковать оружие для стражи города.<BASEFONT COLOR=#FFFFFF>");
+                if (m_SupplyType == SupplyType.Cooking)
+                    list.Add($"Заполнено провиантом: {m_FoodCount} / 100 шт. (Кликните на бочку и цельтесь в готовую еду)");
+                else
+                    list.Add("<BASEFONT COLOR=#FFE082>Используйте этот контейнер на заполненный малый BOD контракт вашей профессии, чтобы упаковать припасы для города.<BASEFONT COLOR=#FFFFFF>");
             }
         }
 
@@ -60,156 +105,180 @@ namespace Server.Custom.GarrisonSupply
 
             if (m_IsSealed)
             {
-                // Если ящик закрыт, даем прицел для сдачи Оружейнику!
-                from.SendMessage("Выберите Оружейника (Weaponsmith) в развиваемом городе, чтобы передать ему припасы.");
+                from.SendMessage("Выберите профильного NPC-продавца в развиваемом городе, чтобы передать ему снабжение.");
                 from.Target = new InternalDeliverTarget(this);
             }
             else
             {
-                // Если ящик пустой, даем прицел на упаковку BOD
-                from.SendMessage("Выберите полностью заполненный кузнечный BOD-контракт, чтобы упаковать его в ящик.");
+                from.SendMessage(m_SupplyType == SupplyType.Cooking ? "Выберите готовую еду для загрузки в бочку." : "Выберите полностью заполненный малый BOD-контракт.");
                 from.Target = new InternalPackTarget(this);
             }
         }
 
         // =========================================================================
-        // ТАРГЕТ УПАКОВКИ BOD КОНТРАКТА В ЯЩИК 🛠️
+        // ТАРГЕТ УПАКОВКИ КОНТРАКТОВ ИЛИ ЕДЫ 🛠️
         // =========================================================================
         private class InternalPackTarget : Target
         {
-            private GarrisonSupplyCrate m_Crate;
+            private GarrisonSupplyCrate m_Container;
 
-            public InternalPackTarget(GarrisonSupplyCrate crate) : base(2, false, TargetFlags.None)
+            public InternalPackTarget(GarrisonSupplyCrate container) : base(2, false, TargetFlags.None)
             {
-                m_Crate = crate;
+                m_Container = container;
             }
 
             protected override void OnTarget(Mobile from, object targeted)
             {
-                if (m_Crate == null || m_Crate.Deleted || !m_Crate.IsChildOf(from.Backpack) || m_Crate.IsSealed)
+                if (m_Container == null || m_Container.Deleted || !m_Container.IsChildOf(from.Backpack) || m_Container.IsSealed)
                     return;
 
-                // Проверяем малый контракт в вашей версии ServUO
-                if (targeted is SmallBOD bod)
+                // ЛОГИКА ДЛЯ ПОВАРОВ (Загрузка еды напрямую)
+                if (m_Container.ContainerType == SupplyType.Cooking)
                 {
-                    // ИСПРАВЛЕНО НА СТАНДАРТ: Проверяем тип контракта напрямую через перечисление BODType
-                    if (bod.BODType == BODType.Smith)
+                    if (targeted is Food food)
                     {
-                        if (bod.AmountCur < bod.AmountMax)
+                        m_Container.m_FoodCount += food.Amount;
+                        m_Container.RewardGold += food.Amount * 15; // По 15 золотых за штуку еды
+                        food.Consume();
+                        from.PlaySound(0x57);
+
+                        if (m_Container.m_FoodCount >= 100)
                         {
-                            from.SendMessage(0x22, $"Этот контракт еще не завершен! Сначала докуйте предметы ({bod.AmountCur}/{bod.AmountMax}).");
-                            return;
+                            m_Container.m_FoodCount = 100;
+                            m_Container.IsSealed = true;
+                            m_Container.ContentName = "100x Армейский Рацион Провианта";
+                            m_Container.Name = "Запечатанная Бочка Городского Провианта";
+                            from.SendMessage(0x35, "Бочка провианта полностью заполнена и заколочена!");
                         }
-
-                        // Расчет награды золотом
-                        int calculatedGold = bod.AmountMax * 150;
-
-                        if (bod.Material != BulkMaterialType.None)
-                            calculatedGold = (int)(calculatedGold * 2.0); // Х2 золота за цветной металл
-
-                        if (bod.RequireExceptional)
-                            calculatedGold = (int)(calculatedGold * 1.5); // +50% за мастерскую работу
-
-                        m_Crate.IsSealed = true;
-                        m_Crate.RewardGold = calculatedGold;
-
-                        // Текстовое определение типа кованого предмета через тип из базы контракта
-                        string itemTypeName = bod.Type != null ? bod.Type.Name : "Iron Equipment";
-
-                        m_Crate.ContentName = $"{bod.AmountMax}x {(bod.RequireExceptional ? "Exceptional " : "")}{itemTypeName}";
-                        m_Crate.Name = "Ящик со снаряжением для городского гарнизона";
-                        m_Crate.ItemID = 0x09A9; // Меняем визуал на закрытый ящик
-
-                        bod.Consume(); // Уничтожаем BOD свиток
-                        from.PlaySound(0x13E); // Звук закрытия деревянной крышки
-                        from.SendMessage(0x35, "Вы успешно укомплектовали и заколотили ящик снабжения!");
+                        else
+                        {
+                            from.SendMessage($"Вы положили еду в бочку. Прогресс: {m_Container.m_FoodCount}/100.");
+                        }
+                        m_Container.InvalidateProperties();
                     }
                     else
                     {
-                        from.SendMessage(0x22, "Этот ящик принимает только контракты Кузнечного дела (Blacksmithing)!");
+                        from.SendMessage(0x22, "В эту бочку можно складывать только готовую еду!");
                     }
+                    return;
+                }
+
+                // ЛОГИКА ДЛЯ ПРОФЕССИЙ С BOD КОНТРАКТАМИ
+                if (targeted is SmallBOD bod)
+                {
+                    bool isValidBOD = false;
+
+                    if (m_Container.ContainerType == SupplyType.Blacksmith && bod.BODType == BODType.Smith) isValidBOD = true;
+                    if (m_Container.ContainerType == SupplyType.Carpentry && bod.BODType == BODType.Carpentry) isValidBOD = true;
+                    if (m_Container.ContainerType == SupplyType.Tailor && bod.BODType == BODType.Tailor) isValidBOD = true;
+
+                    if (!isValidBOD)
+                    {
+                        from.SendMessage(0x22, "Этот контейнер не принимает контракты данной профессии!");
+                        return;
+                    }
+
+                    if (bod.AmountCur < bod.AmountMax)
+                    {
+                        from.SendMessage(0x22, $"Этот контракт еще не завершен! ({bod.AmountCur}/{bod.AmountMax})");
+                        return;
+                    }
+
+                    int calculatedGold = bod.AmountMax * 150;
+
+                    if (bod.Material != BulkMaterialType.None) calculatedGold *= 2;
+                    if (bod.RequireExceptional) calculatedGold = (int)(calculatedGold * 1.5);
+
+                    m_Container.IsSealed = true;
+                    m_Container.RewardGold = calculatedGold;
+
+                    string itemTypeName = bod.Type != null ? bod.Type.Name : "Craft Equipment";
+                    m_Container.ContentName = $"{bod.AmountMax}x {(bod.RequireExceptional ? "Exceptional " : "")}{itemTypeName}";
+
+                    // ИСПРАВЛЕНО: Заменено ошибочное m_Crate на правильное m_Container
+                    if (m_Container.ContainerType == SupplyType.Blacksmith) { m_Container.ItemID = 0x09A9; m_Container.Name = "Ящик со снаряжением для городского гарнизона"; }
+                    else if (m_Container.ContainerType == SupplyType.Carpentry) { m_Container.ItemID = 0x09A9; m_Container.Name = "Заколоченный ящик строительных припасов"; }
+                    else { m_Container.Name = "Завязанный тюк армейского обмундирования"; }
+
+                    bod.Consume();
+                    from.PlaySound(0x13E);
+                    from.SendMessage(0x35, "Вы успешно упаковали припасы снабжения!");
                 }
                 else if (targeted is LargeBOD)
                 {
-                    from.SendMessage(0x22, "Большие комплексные контракты (Large BOD) слишком огромны для этого ящика. Сдавайте только Small BOD.");
+                    from.SendMessage(0x22, "Большие комплексные контракты слишком огромны для этого ящика.");
                 }
                 else
                 {
-                    from.SendMessage(0x22, "Сюда можно упаковать только заполненный кузнечный контракт!");
+                    from.SendMessage(0x22, "Сюда можно упаковать только заполненный контракт малого типа (Small BOD)!");
                 }
             }
         }
 
         // =========================================================================
-        // ТАРГЕТ СДАЧИ ЯЩИКА НПЦ ОРУЖЕЙНИКУ ПРЯМО В МИРЕ 🏙️💰
+        // ТАРГЕТ СДАЧИ КОНТЕНТА К КАСTОМНЫМ NPC 🏙️💰
         // =========================================================================
         private class InternalDeliverTarget : Target
         {
-            private GarrisonSupplyCrate m_Crate;
+            private GarrisonSupplyCrate m_Container;
 
-            public InternalDeliverTarget(GarrisonSupplyCrate crate) : base(3, false, TargetFlags.None)
+            public InternalDeliverTarget(GarrisonSupplyCrate container) : base(3, false, TargetFlags.None)
             {
-                m_Crate = crate;
+                m_Container = container;
             }
 
             protected override void OnTarget(Mobile from, object targeted)
             {
-                if (m_Crate == null || m_Crate.Deleted || !m_Crate.IsChildOf(from.Backpack) || !m_Crate.IsSealed)
+                if (m_Container == null || m_Container.Deleted || !m_Container.IsChildOf(from.Backpack) || !m_Container.IsSealed)
                     return;
-
-                if (targeted is Weaponsmith vendor)
+                if (targeted is Mobile vendor)
                 {
-                    if (!from.InRange(vendor.Location, 3))
+                    bool isTargetValidNPC = false;
+                    // Проверяем соответствие получателя типу припасов
+                    if (m_Container.ContainerType == SupplyType.Blacksmith && vendor is Weaponsmith) isTargetValidNPC = true;
+                    if (m_Container.ContainerType == SupplyType.Carpentry && (vendor is Carpenter || vendor is Architect)) isTargetValidNPC = true;
+                    if (m_Container.ContainerType == SupplyType.Tailor && (vendor is Tailor || vendor is Weaver)) isTargetValidNPC = true;
+                    if (m_Container.ContainerType == SupplyType.Cooking && (vendor is InnKeeper || vendor is Cook)) isTargetValidNPC = true;
+                    if (!isTargetValidNPC)
                     {
-                        from.SendMessage(0x22, "Вы слишком далеко от торговца!");
+                        from.SendMessage(0x22, "Этот торговец не принимает данный тип припасов снабжения!");
                         return;
                     }
-
+                    // Проверяем регион города лояльности
                     if (vendor.Region != null && !string.IsNullOrEmpty(vendor.Region.Name))
                     {
                         foreach (Server.Engines.CityLoyalty.City c in Enum.GetValues(typeof(Server.Engines.CityLoyalty.City)))
                         {
                             if (vendor.Region.Name.IndexOf(c.ToString(), StringComparison.OrdinalIgnoreCase) >= 0)
                             {
-                                // 1. Выдаем золото из казны игроку в пак
-                                Gold gold = new Gold(m_Crate.RewardGold);
-                                if (!from.Backpack.TryDropItem(from, gold, false))
-                                {
-                                    gold.MoveToWorld(from.Location, from.Map);
-                                }
-
-                                // 2. Начисляем очки развития этому городу (+50 очков опыта за ящик)
+                                // 1. Начисляем золото
+                                Gold gold = new Gold(m_Container.RewardGold);
+                                if (!from.Backpack.TryDropItem(from, gold, false)) gold.MoveToWorld(from.Location, from.Map);
+                                // 2. Качаем опыт города
+                                // ИСПРАВЛЕНО: Вызываем точную переменную CurrentSupplies
                                 var cityProfile = Server.Custom.CityDevelopment.CityDevelopmentMod.GetCityProfile(c);
                                 if (cityProfile != null)
                                 {
                                     cityProfile.CurrentSupplies += 50.0;
                                 }
-
-                                // 3. Качаем Лояльность вендоров у игрока в этом регионе (+0.50 репутации)
-                                Server.Custom.AdvancedNpcTrade.LoyaltyManager.AddPurchase(vendor, from, 0.50);
-
-                                // Эффекты и фраза торговца
-                                vendor.PlaySound(0x2E6); // Звук пересыпания монет
-                                vendor.Say("Отлично! Эти мечи и доспехи помогут укрепить оборону нашего города. Вот ваша плата!");
-                                from.SendMessage(0x35, $"Вы сдали оружие! Получено: {m_Crate.RewardGold} золотых. Лояльность торговцев {vendor.Name} выросла!");
-
-                                m_Crate.Delete(); // Полностью уничтожаем ящик снабжения
+                                // 3. Начисляем лояльность вендора
+                                if (vendor is BaseVendor baseVendor)
+                                {
+                                    Server.Custom.AdvancedNpcTrade.LoyaltyManager.AddPurchase(baseVendor, from, 0.50);
+                                }
+                                vendor.PlaySound(0x2E6);
+                                vendor.Say("Великолепные припасы! Наш город крайне нуждался в этом. Вот ваша плата ремесленника!");
+                                from.SendMessage(0x35, $"Припасы успешно сданы! Получено: {m_Container.RewardGold} золотых. Лояльность {vendor.Name} выросла!");
+                                m_Container.Delete();
                                 return;
                             }
                         }
                     }
-
-                    from.SendMessage(0x22, "Этот Оружейник находится вне зон кастомных городов. Отвезите ящик в Britain, Moonglow, Yew и т.д.");
-                }
-                else
-                {
-                    from.SendMessage(0x22, "Передать ящик снабжения можно только профессиональному Оружейнику (Weaponsmith)!");
+                    from.SendMessage(0x22, "Этот торговец находится вне зон кастомных городов фракций.");
                 }
             }
         }
-
         public GarrisonSupplyCrate(Serial serial) : base(serial) { }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -217,8 +286,9 @@ namespace Server.Custom.GarrisonSupply
             writer.Write(m_IsSealed);
             writer.Write(m_RewardGold);
             writer.Write(m_ContentName);
+            writer.Write((int)m_SupplyType);
+            writer.Write(m_FoodCount);
         }
-
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
@@ -226,6 +296,8 @@ namespace Server.Custom.GarrisonSupply
             m_IsSealed = reader.ReadBool();
             m_RewardGold = reader.ReadInt();
             m_ContentName = reader.ReadString();
+            m_SupplyType = (SupplyType)reader.ReadInt();
+            m_FoodCount = reader.ReadInt();
         }
     }
 }

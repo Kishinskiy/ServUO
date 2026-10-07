@@ -32,7 +32,7 @@ namespace Server.Mobiles
         {
             public InternalBuyInfo()
             {
-                Add(new GenericBuyInfo(typeof(Nails), 3, 20, 0x102E, 0));
+                Add(new GenericBuyInfo("Ящик Строительных Припасов (Пустой)", typeof(Server.Custom.GarrisonSupply.GarrisonSupplyCrate), 1000, 20, 0x09A8, 1133, new object[] { Server.Custom.GarrisonSupply.SupplyType.Carpentry }));                Add(new GenericBuyInfo(typeof(Nails), 3, 20, 0x102E, 0));
                 Add(new GenericBuyInfo(typeof(Saw), 15, 20, 0x1034, 0));
                 Add(new GenericBuyInfo(typeof(Hammer), 17, 20, 0x102A, 0));
                 Add(new GenericBuyInfo(typeof(Axle), 2, 20, 0x105B, 0, true));
