@@ -32,6 +32,7 @@ namespace Server.Mobiles
         { 
             public InternalBuyInfo() 
             {
+                Add(new GenericBuyInfo(typeof(FishingPole), 15, 20, 0xDC0, 0));
                 Add(new GenericBuyInfo(typeof(RawFishSteak), 3, 20, 0x97A, 0, true));
                 //TODO: Add( new GenericBuyInfo( typeof( SmallFish ), 3, 20, 0xDD6, 0 ) );
                 //TODO: Add( new GenericBuyInfo( typeof( SmallFish ), 3, 20, 0xDD7, 0 ) );

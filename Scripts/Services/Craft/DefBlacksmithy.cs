@@ -916,6 +916,7 @@ namespace Server.Engines.Craft
                 AddRes(index, typeof(IronIngot), 1044036, 20, 1044037);
             }
 
+            AddCraft(typeof(BarrelHoops), 1011173, "barrel hoops", 0.0, 50.0, typeof(IronIngot), 1044036, 5, 1044037);
             AddCraft(typeof(MetalKeg), 1011173, 1150675, 85.0, 100.0, typeof(IronIngot), 1044036, 25, 1044253);
 
             if (Core.SA)

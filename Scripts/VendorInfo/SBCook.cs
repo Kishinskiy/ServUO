@@ -31,6 +31,7 @@ namespace Server.Mobiles
         { 
             public InternalBuyInfo() 
             {
+                Add(new GenericBuyInfo("1044567", typeof(Skillet), 3, 20, 0x97F, 0));
                 Add(new GenericBuyInfo(typeof(BreadLoaf), 5, 20, 0x103B, 0, true));
                 Add(new GenericBuyInfo(typeof(BreadLoaf), 5, 20, 0x103C, 0, true));
                 Add(new GenericBuyInfo(typeof(ApplePie), 7, 20, 0x1041, 0, true)); //OSI just has Pie, not Apple/Fruit/Meat
@@ -59,7 +60,7 @@ namespace Server.Mobiles
                 Add(new GenericBuyInfo(typeof(JarHoney), 3, 20, 0x9EC, 0, true));
                 Add(new GenericBuyInfo(typeof(RollingPin), 2, 20, 0x1043, 0));
                 Add(new GenericBuyInfo(typeof(FlourSifter), 2, 20, 0x103E, 0));
-                Add(new GenericBuyInfo("1044567", typeof(Skillet), 3, 20, 0x97F, 0));
+                
             }
         }
 

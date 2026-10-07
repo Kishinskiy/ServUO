@@ -44,28 +44,36 @@ namespace Server.Custom.Farms
             Point3D loc = new Point3D(p.X, p.Y, p.Z);
             Map map = from.Map;
 
+            if (!from.InRange(loc, 3))
+            {
+                from.SendLocalizedMessage(500446); // Вы слишком далеко.
+                return;
+            }
+            LandTile landTile = map.Tiles.GetLandTile(loc.X, loc.Y);
+            int cleanLandID = landTile.ID & 0x3FFF;
+            Static customGround = targeted as Static;
+            bool isCustomPlowed = (customGround != null && customGround.ItemID == 0x31F4);
+
+            bool isStandardField = (cleanLandID >= 0x150 && cleanLandID <= 0x15C); // Стандартная пашня UO
+            bool isFurrowsField = (cleanLandID >= 0x9 && cleanLandID <= 0x15);      // Поля типа "furrows" (Ваш случай!)
+            bool isStaticField = (customGround != null && (customGround.ItemID >= 0x150 && customGround.ItemID <= 0x15C));
+
+            if (!isCustomPlowed && !isStandardField && !isFurrowsField && !isStaticField)
+            {
+                from.SendMessage("Сажать овощи можно только на вспаханной пашне фермерского поля!");
+                return;
+            }
+            
             Region reg = Region.Find(loc, map);
-            if (!(reg is FarmRegion))
+            if (reg is FarmRegion)
             {
-                from.SendMessage("Эти семена прорастут только на подготовленной фермерской пашне!");
-                return;
+                FarmRegion farmReg = (FarmRegion)reg;
+                if (farmReg.Controller != null && farmReg.Controller.Owner != from && from.AccessLevel == AccessLevel.Player)
+                {
+                    from.SendMessage("Вы не можете сажать семена на чужом приватном поле!");
+                    return;
+                }
             }
-
-            FarmRegion farmReg = (FarmRegion)reg;
-            if (farmReg.Controller != null && farmReg.Controller.Owner != from &&
-                from.AccessLevel == AccessLevel.Player)
-            {
-                from.SendMessage("Вы не можете сажать семена на чужом поле!");
-                return;
-            }
-
-            Static ground = targeted as Static;
-            if (ground == null || ground.ItemID != 0x31F4)
-            {
-                from.SendMessage("Сажать нужно строго на вспаханную землю огорода.");
-                return;
-            }
-
             IPooledEnumerable eable = map.GetItemsInRange(loc, 0);
             foreach (Item item in eable)
             {
@@ -76,11 +84,10 @@ namespace Server.Custom.Farms
                     return;
                 }
             }
-
             eable.Free();
-
+            int targetZ = (customGround != null) ? customGround.Z : landTile.Z;
             FarmVegetablePlant plant = new FarmVegetablePlant(from, m_Type);
-            plant.MoveToWorld(new Point3D(loc.X, loc.Y, loc.Z + 1), map);
+            plant.MoveToWorld(new Point3D(loc.X, loc.Y, targetZ + 1), map);
 
             m_Seed.Consume();
             from.PlaySound(0x243);

@@ -33,6 +33,8 @@ namespace Server.Mobiles
             public InternalBuyInfo()
             {
                 Add(new GenericBuyInfo(typeof(Nails), 3, 20, 0x102E, 0));
+                Add(new GenericBuyInfo(typeof(Saw), 15, 20, 0x1034, 0));
+                Add(new GenericBuyInfo(typeof(Hammer), 17, 20, 0x102A, 0));
                 Add(new GenericBuyInfo(typeof(Axle), 2, 20, 0x105B, 0, true));
                 Add(new GenericBuyInfo(typeof(Board), 3, 20, 0x1BD7, 0, true));
                 Add(new GenericBuyInfo(typeof(DrawKnife), 10, 20, 0x10E4, 0));
@@ -40,8 +42,8 @@ namespace Server.Mobiles
                 Add(new GenericBuyInfo(typeof(Scorp), 10, 20, 0x10E7, 0));
                 Add(new GenericBuyInfo(typeof(Inshave), 10, 20, 0x10E6, 0));
                 Add(new GenericBuyInfo(typeof(DovetailSaw), 12, 20, 0x1028, 0));
-                Add(new GenericBuyInfo(typeof(Saw), 15, 20, 0x1034, 0));
-                Add(new GenericBuyInfo(typeof(Hammer), 17, 20, 0x102A, 0));
+                
+                
                 Add(new GenericBuyInfo(typeof(MouldingPlane), 11, 20, 0x102C, 0));
                 Add(new GenericBuyInfo(typeof(SmoothingPlane), 10, 20, 0x1032, 0));
                 Add(new GenericBuyInfo(typeof(JointingPlane), 11, 20, 0x1030, 0));

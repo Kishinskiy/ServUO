@@ -105,6 +105,13 @@ namespace Server.Mobiles
 		// Temporary 
 		public override void OnSpeech(SpeechEventArgs e)
 		{
+
+			if (Server.Custom.SmartNPCs.SmartNpcSystem.HandleNpcSpeech(m_Mobile, e.Mobile, e.Speech))
+			{
+				e.Handled = true;
+				return;
+			}
+
 			base.OnSpeech(e);
 
 			var from = e.Mobile;

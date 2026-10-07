@@ -31,6 +31,11 @@ namespace Server.Mobiles
         {
             public InternalBuyInfo()
             {
+                Add(new GenericBuyInfo(typeof(Bone), 3, 20, 0xf7e, 0));
+                Add(new GenericBuyInfo(typeof(FertileDirt), 3, 20, 0xF81, 0));
+                Add(new GenericBuyInfo(typeof(NetherBoltScroll), 8, 20, 0x2D9E, 0));
+                Add(new GenericBuyInfo(typeof(HealingStoneScroll), 13, 20, 0x2D9F, 0));
+
                 Add(new GenericBuyInfo(typeof(PurgeMagicScroll), 18, 10, 0x2DA0, 0, true));
                 Add(new GenericBuyInfo(typeof(EnchantScroll), 23, 10, 0x2DA1, 0, true));
                 Add(new GenericBuyInfo(typeof(SleepScroll), 28, 10, 0x2DA2, 0, true));
@@ -61,10 +66,7 @@ namespace Server.Mobiles
                 Add(new GenericBuyInfo(typeof(SpidersSilk), 3, 20, 0xF8D, 0));
 
 
-                Add(new GenericBuyInfo(typeof(Bone), 3, 20, 0xf7e, 0));
-                Add(new GenericBuyInfo(typeof(FertileDirt), 3, 20, 0xF81, 0));
-                Add(new GenericBuyInfo(typeof(NetherBoltScroll), 8, 20, 0x2D9E, 0));
-                Add(new GenericBuyInfo(typeof(HealingStoneScroll), 13, 20, 0x2D9F, 0));
+
             }
         }
 

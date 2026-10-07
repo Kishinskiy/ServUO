@@ -31,12 +31,12 @@ namespace Server.Mobiles
         {
             public InternalBuyInfo()
             {
+                Add(new GenericBuyInfo(typeof(Axe), 40, 20, 0xF49, 0));
+                Add(new GenericBuyInfo(typeof(Pickaxe), 22, 20, 0xE86, 0));
                 Add(new GenericBuyInfo(typeof(ExecutionersAxe), 30, 20, 0xF45, 0));
                 Add(new GenericBuyInfo(typeof(BattleAxe), 26, 20, 0xF47, 0));
                 Add(new GenericBuyInfo(typeof(TwoHandedAxe), 32, 20, 0x1443, 0));
-                Add(new GenericBuyInfo(typeof(Axe), 40, 20, 0xF49, 0));
                 Add(new GenericBuyInfo(typeof(DoubleAxe), 52, 20, 0xF4B, 0));
-                Add(new GenericBuyInfo(typeof(Pickaxe), 22, 20, 0xE86, 0));
                 Add(new GenericBuyInfo(typeof(LargeBattleAxe), 33, 20, 0x13FB, 0));
                 Add(new GenericBuyInfo(typeof(WarAxe), 29, 20, 0x13B0, 0));
             }

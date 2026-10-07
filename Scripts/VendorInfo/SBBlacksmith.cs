@@ -34,6 +34,13 @@ namespace Server.Mobiles
                 this.Add(new GenericBuyInfo(typeof(IronIngot), 5, 16, 0x1BF2, 0, true));
                 this.Add(new GenericBuyInfo(typeof(Tongs), 13, 14, 0xFBB, 0));
 
+                this.Add(new GenericBuyInfo(typeof(RingmailChest), 121, 20, 0x13ec, 0));
+                this.Add(new GenericBuyInfo(typeof(RingmailLegs), 90, 20, 0x13F0, 0));
+                this.Add(new GenericBuyInfo(typeof(RingmailArms), 85, 20, 0x13EE, 0));
+                this.Add(new GenericBuyInfo(typeof(RingmailGloves), 93, 20, 0x13eb, 0));
+
+                this.Add(new GenericBuyInfo(typeof(WoodenShield), 30, 20, 0x1B7A, 0));
+
                 this.Add(new GenericBuyInfo(typeof(BronzeShield), 66, 20, 0x1B72, 0));
                 this.Add(new GenericBuyInfo(typeof(Buckler), 50, 20, 0x1B73, 0));
                 this.Add(new GenericBuyInfo(typeof(MetalKiteShield), 123, 20, 0x1B74, 0));
@@ -41,7 +48,10 @@ namespace Server.Mobiles
                 this.Add(new GenericBuyInfo(typeof(WoodenKiteShield), 70, 20, 0x1B78, 0));
                 this.Add(new GenericBuyInfo(typeof(MetalShield), 121, 20, 0x1B7B, 0));
 
-                this.Add(new GenericBuyInfo(typeof(WoodenShield), 30, 20, 0x1B7A, 0));
+                this.Add(new GenericBuyInfo(typeof(ChainCoif), 17, 20, 0x13BB, 0));
+                this.Add(new GenericBuyInfo(typeof(ChainChest), 143, 20, 0x13BF, 0));
+                this.Add(new GenericBuyInfo(typeof(ChainLegs), 149, 20, 0x13BE, 0));
+
 
                 this.Add(new GenericBuyInfo(typeof(PlateGorget), 104, 20, 0x1413, 0));
                 this.Add(new GenericBuyInfo(typeof(PlateChest), 243, 20, 0x1415, 0));
@@ -58,15 +68,6 @@ namespace Server.Mobiles
                 this.Add(new GenericBuyInfo(typeof(NorseHelm), 18, 20, 0x140F, 0));
                 this.Add(new GenericBuyInfo(typeof(Bascinet), 18, 20, 0x140C, 0));
                 this.Add(new GenericBuyInfo(typeof(PlateHelm), 21, 20, 0x1419, 0));
-
-                this.Add(new GenericBuyInfo(typeof(ChainCoif), 17, 20, 0x13BB, 0));
-                this.Add(new GenericBuyInfo(typeof(ChainChest), 143, 20, 0x13BF, 0));
-                this.Add(new GenericBuyInfo(typeof(ChainLegs), 149, 20, 0x13BE, 0));
-
-                this.Add(new GenericBuyInfo(typeof(RingmailChest), 121, 20, 0x13ec, 0));
-                this.Add(new GenericBuyInfo(typeof(RingmailLegs), 90, 20, 0x13F0, 0));
-                this.Add(new GenericBuyInfo(typeof(RingmailArms), 85, 20, 0x13EE, 0));
-                this.Add(new GenericBuyInfo(typeof(RingmailGloves), 93, 20, 0x13eb, 0));
 
                 this.Add(new GenericBuyInfo(typeof(ExecutionersAxe), 30, 20, 0xF45, 0));
                 this.Add(new GenericBuyInfo(typeof(Bardiche), 60, 20, 0xF4D, 0));
