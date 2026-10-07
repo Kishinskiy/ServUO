@@ -101,8 +101,7 @@ namespace Server.Custom.Farms
     // =========================================================================
     public class FarmVegetablePlant : Item
     {
-        // НАСТРОЙКИ ВЕРОЯТНОСТЕЙ СВЕРХУ КЛАССА (ЛЕГКО РЕДАКТИРОВАТЬ ⚙️)
-        public static readonly double BaseWeedsChance = 0.30; // 30% базовый шанс разрастания сорняков в сутки
+        public static readonly double BaseWeedsChance = 0.30;
 
         private Mobile m_Planter;
         private int m_Stage;
@@ -112,13 +111,12 @@ namespace Server.Custom.Farms
         private bool m_IsDead;
         private int m_DaysInStage;
 
-        // ПЕРЕМЕННЫЕ УХОДА
-        private int m_WaterLevel;       // Уровень влаги в процентах (0 - 100%)
-        private int m_FertilityLevel;   // Уровень удобренности почвы (0 - 100%)
-        private int m_WeedsLevel;       // Уровень сорняков в процентах (0 - 100%)
-        private int m_PestsCount;       // Количество паразитов/насекомых (0 - 3)
-        private int m_GoodCareTicks;    // Накопленные очки идеального ухода для множителя урожая
-        private bool m_IsWeedSource;    // Заражает ли этот куст соседей
+        private int m_WaterLevel;
+        private int m_FertilityLevel;
+        private int m_WeedsLevel;
+        private int m_PestsCount;
+        private int m_GoodCareTicks;
+        private bool m_IsWeedSource;
 
         [CommandProperty(AccessLevel.GameMaster)]
         public Mobile Planter => m_Planter;
@@ -248,17 +246,19 @@ namespace Server.Custom.Farms
                 currentSeason = this.Map.Season;
             }
 
-            if (currentSeason == 3)
+            // ПРОВЕРКА НА ТЕПЛИЦУ 🌿
+            Region currentRegion = Region.Find(this.Location, this.Map);
+            bool isInGreenhouse = (currentRegion is GreenhouseRegion);
+
+            if (currentSeason == 3 && !isInGreenhouse)
             {
                 if (m_Planter != null && m_Stage < 2)
-                    m_Planter.SendMessage(0x5D, $"[Зимняя спячка] Рост вашего урожая ({GetVegNameString()}) заморожен.");
+                    m_Planter.SendMessage(0x5D, $"[Зимняя спячка] Рост вашего урожая ({GetVegNameString()}) заморожен. Нужна теплица!");
                 return;
             }
 
-            // =========================================================================
-            // АВТОМАТИЧЕСКИЙ ПОЛИВ ДОЖДЕМ
-            // =========================================================================
-            if (this.Map != null && this.Map != Map.Internal)
+            // АВТОМАТИЧЕСКИЙ ПОЛИВ ДОЖДЕМ (Только на улице)
+            if (!isInGreenhouse && this.Map != null && this.Map != Map.Internal)
             {
                 List<Server.Misc.Weather> weatherList = Server.Misc.Weather.GetWeatherList(this.Map);
                 if (weatherList != null)
@@ -284,17 +284,18 @@ namespace Server.Custom.Farms
                     }
                 }
             }
-            // Настройка скорости роста
-            int daysRequiredToGrow = (currentSeason == 0 || currentSeason == 2) ? 4 : 8;
+            int daysRequiredToGrow = (currentSeason == 0 || currentSeason == 2 || isInGreenhouse) ? 4 : 8;
             if (m_WaterLevel >= 60 && daysRequiredToGrow > 2) daysRequiredToGrow -= 1;
-            // Естественные изменения почвы за сутки
-            m_WaterLevel = Math.Max(0, m_WaterLevel - 25);
+            int waterLoss = isInGreenhouse ? 10 : 25;
+            m_WaterLevel = Math.Max(0, m_WaterLevel - waterLoss);
             m_FertilityLevel = Math.Max(0, m_FertilityLevel - 10);
             if (m_Stage < 2)
             {
-                if (Utility.RandomDouble() < BaseWeedsChance)
+                double weedChance = isInGreenhouse ? (BaseWeedsChance + 0.10) : BaseWeedsChance;
+                if (Utility.RandomDouble() < weedChance)
                     m_WeedsLevel = Math.Min(100, m_WeedsLevel + 15);
-                if (Utility.RandomDouble() < 0.25)
+                double pestsChance = isInGreenhouse ? 0.35 : 0.25;
+                if (Utility.RandomDouble() < pestsChance)
                     m_PestsCount = Math.Min(3, m_PestsCount + 1);
             }
             if (m_WeedsLevel >= 100)
@@ -302,7 +303,6 @@ namespace Server.Custom.Farms
                 TurnIntoWeedBush();
                 return;
             }
-            // КРИТИЧЕСКИЕ ПРОВЕРКИ ЗАСУХИ И ОПАСНОСТЕЙ
             if (m_WaterLevel <= 0 || m_PestsCount >= 3)
             {
                 m_DryCount++;
@@ -321,7 +321,6 @@ namespace Server.Custom.Farms
             {
                 m_GoodCareTicks++;
             }
-            // ПРОЦЕСС УСПЕШНОГО СОЗРЕВАНИЯ
             if (m_Stage < 2)
             {
                 m_DaysInStage++;
@@ -368,7 +367,7 @@ namespace Server.Custom.Farms
         }
         private void SpreadWeedsToNeighbors()
         {
-            if (this.Map == null || this.Map == Map.Internal) return;
+            if (this.Map != null && this.Map != Map.Internal) return;
             IPooledEnumerable eable = this.Map.GetItemsInRange(this.Location, 1);
             foreach (Item item in eable)
             {
@@ -448,20 +447,14 @@ namespace Server.Custom.Farms
                     return;
                 }
             }
-            // =========================================================================
-            // ОБНОВЛЕННЫЙ БЛОК: РАСЧЕТ ЛЕГЕНДАРНОГО УРОЖАЯ (ДО 8 ЕДИНГОК ОВОЩЕЙ 🌾)
-            // =========================================================================
-            int baseYield = Utility.RandomMinMax(2, 3); // Базовый сбор повышен до 2-3 штук
+            int baseYield = Utility.RandomMinMax(2, 3);
             int bonusItems = 0;
-            // 1. Бонус за накопленные дни идеального ухода (полив + питание почвы + отсутствие угроз)
             if (m_GoodCareTicks >= 2) bonusItems += 1;
             if (m_GoodCareTicks >= 4) bonusItems += 1;
             if (m_GoodCareTicks >= 6) bonusItems += 1;
-            // 2. Бонус за финальную подкормку (уровень питания почвы к моменту сбора)
             if (m_FertilityLevel >= 30) bonusItems += 1;
             if (m_FertilityLevel >= 70) bonusItems += 1;
             int finalYield = baseYield + bonusItems;
-            // Жесткий ограничитель сверху, чтобы случайно не вылезло больше 8
             if (finalYield > 8) finalYield = 8;
             bool totalSuccess = true;
             for (int i = 0; i < finalYield; i++)
