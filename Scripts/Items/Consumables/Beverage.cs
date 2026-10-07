@@ -1402,7 +1402,7 @@ namespace Server.Items
                     return;
                 }
 
-                if (plant.Watered)
+                if (plant.WaterLevel >= 100)
                 {
                     from.SendMessage("Эта грядка уже отлично увлажнена!");
                     return;
@@ -1421,7 +1421,7 @@ namespace Server.Items
                 }
 
                 // Успешный полив:
-                plant.Watered = true;
+                plant.PourWater(from, 5);
                 Quantity--; // Тратим 1 заряд воды кувшина (из максимума в 5 зарядов)
 
                 from.PlaySound(0x4E); // Стандартный звук брызг воды в UO
