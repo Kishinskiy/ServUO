@@ -4,6 +4,7 @@ using Server;
 using Server.Mobiles;
 using Server.Items;
 using Server.Regions;
+using Server.Commands;
 
 namespace Server.Custom.NightSpawns
 {
@@ -12,116 +13,122 @@ namespace Server.Custom.NightSpawns
         private static readonly List<BaseCreature> _ActiveNightMobs = new List<BaseCreature>();
         private static Timer _GlobalTimer;
 
-        // Фиксированные текущие города для осады
+        // Текущие города для осады
         private static Point3D _TrammelTargetCity = Point3D.Zero;
         private static Point3D _FeluccaTargetCity = Point3D.Zero;
         private static bool _TrammelRaidAnnounced = false;
         private static bool _FeluccaRaidAnnounced = false;
 
-        // Флаги, определяющие, был ли уже брошен кубик шанса на текущую ночь
-        private static bool _TrammelRollDone = false;
-        private static bool _FeluccaRollDone = false;
-        private static bool _TrammelRaidAllowedThisNight = false;
-        private static bool _FeluccaRaidAllowedThisNight = false;
+        // Флаги активной фазы штурма
+        private static bool _TrammelRaidActive = false;
+        private static bool _FeluccaRaidActive = false;
+
+        // Флаг того, что в текущие сутки набег уже БЫЛ (чтобы не спавнить волны бесконечно)
+        private static bool _TrammelRaidExecutedThisNight = false;
+        private static bool _FeluccaRaidExecutedThisNight = false;
 
         // НАСТРОЙКИ НАБЕГОВ
-        private static readonly double RaidChance = 0.10;       // ШАНС НАПАДЕНИЯ: 0.10 = 10% (можно изменить на 0.05 для 5%)
+        private static readonly double RaidChancePerTick = 0.02; // Шанс срабатывания за один тик таймера (2% каждые 30 сек с 20:00 до 06:00 дает ~15-20% шанс набега за всю ночь)
         private static readonly int MaxMobsTotal = 40;          // Максимальное количество осадных мобов в мире одновременно
         private static readonly int RaidPackSize = 4;           // Сколько монстров появляется в одной осадной пачке
-        private static readonly int CheckIntervalSeconds = 30;   // Как часто сервер отправляет новую волну штурма
+        private static readonly int CheckIntervalSeconds = 30;   // Как часто сервер проверяет условия и отправляет новую волну штурма
         private static readonly int SpawnRadiusFromCity = 35;   // На каком расстоянии от центра города спавнить мобов
 
-        // РАСШИРЕННЫЙ СПИСОК ГОРОДОВ ИЗ ЯДРА (Центральные точки всех городов UO)
+        // Центральные точки всех городов UO
         private static readonly Point3D[] CityCenters = new Point3D[]
         {
-            new Point3D(1417, 1695, 0),     // Britain (Центр у банка/моста)
+            new Point3D(1417, 1695, 0),     // Britain
             new Point3D(2465, 541, 0),      // Minoc
             new Point3D(2891, 683, 0),      // Vesper
             new Point3D(1015, 2197, 0),     // Trinsic
             new Point3D(4422, 1162, 0),     // Moonglow
             new Point3D(3704, 2174, 0),     // Magincia
             new Point3D(1313, 3779, 0),     // Jhelom
-            new Point3D(566, 984, 0),       // Yew 🌲
-            new Point3D(618, 2223, 0),      // Skara Brae ⚓
-            new Point3D(2238, 1214, 0),     // Cove 🌊
-            new Point3D(3765, 1297, 0),     // Nujel'm 🏜️
-            new Point3D(2900, 3400, 0),     // Serpent's Hold 🏰
-            new Point3D(1361, 895, 0)       // Wind 🌀
+            new Point3D(566, 984, 0),       // Yew
+            new Point3D(618, 2223, 0),      // Skara Brae
+            new Point3D(2238, 1214, 0),     // Cove
+            new Point3D(3765, 1297, 0),     // Nujel'm
+            new Point3D(2900, 3400, 0),     // Serpent's Hold
+            new Point3D(1361, 895, 0)       // Wind
         };
 
         public static void Initialize()
         {
             _GlobalTimer = Timer.DelayCall(TimeSpan.FromSeconds(CheckIntervalSeconds), TimeSpan.FromSeconds(CheckIntervalSeconds), CheckCitySiege);
             EventSink.WorldLoad += OnWorldLoad;
+
+            // РЕГИСТРАЦИЯ ГМ-КОМАНДЫ ДЛЯ СТЕРЕНИЯ ВСЕХ ВТОРЖЕНЦЕВ
+            CommandSystem.Register("WipeNightMobs", AccessLevel.GameMaster, new CommandEventHandler(WipeNightMobs_OnCommand));
         }
 
         private static void OnWorldLoad()
+        {
+            ResetSystemState();
+        }
+
+        private static void ResetSystemState()
         {
             _ActiveNightMobs.Clear();
             _TrammelTargetCity = Point3D.Zero;
             _FeluccaTargetCity = Point3D.Zero;
             _TrammelRaidAnnounced = false;
             _FeluccaRaidAnnounced = false;
-            _TrammelRollDone = false;
-            _FeluccaRollDone = false;
-            _TrammelRaidAllowedThisNight = false;
-            _FeluccaRaidAllowedThisNight = false;
+            _TrammelRaidActive = false;
+            _FeluccaRaidActive = false;
+            _TrammelRaidExecutedThisNight = false;
+            _FeluccaRaidExecutedThisNight = false;
         }
 
         private static void CheckCitySiege()
         {
-            ProcessCityRaid(Map.Trammel, ref _TrammelTargetCity, ref _TrammelRaidAnnounced, ref _TrammelRollDone, ref _TrammelRaidAllowedThisNight);
-            ProcessCityRaid(Map.Felucca, ref _FeluccaTargetCity, ref _FeluccaRaidAnnounced, ref _FeluccaRollDone, ref _FeluccaRaidAllowedThisNight);
+            ProcessCityRaid(Map.Trammel, ref _TrammelTargetCity, ref _TrammelRaidAnnounced, ref _TrammelRaidActive, ref _TrammelRaidExecutedThisNight);
+            ProcessCityRaid(Map.Felucca, ref _FeluccaTargetCity, ref _FeluccaRaidAnnounced, ref _FeluccaRaidActive, ref _FeluccaRaidExecutedThisNight);
 
             CleanUpDawnMobs();
         }
 
-        private static void ProcessCityRaid(Map map, ref Point3D targetCity, ref bool announced, ref bool rollDone, ref bool raidAllowed)
+        private static void ProcessCityRaid(Map map, ref Point3D targetCity, ref bool announced, ref bool raidActive, ref bool raidExecuted)
         {
             if (map == null || map == Map.Internal)
                 return;
 
             int uoHours, uoMinutes;
             Clock.GetTime(map, map.Width / 2, map.Height / 2, out uoHours, out uoMinutes);
-            MoonPhase currentMoonPhase = Clock.GetMoonPhase(map, map.Width / 2, map.Height / 2);
 
-            // ИСПРАВЛЕНО: Набеги происходят исключительно ГЛУБОКОЙ НОЧЬЮ (с 00:00 полуночи до 04:00 утра) 🌙
-            bool isDeepNight = (uoHours >= 0 && uoHours < 4);
+            // Период ночи: с 20:00 вечера до 06:00 утра 🌙
+            bool isNightTime = (uoHours >= 20 || uoHours < 6);
 
-            if (!isDeepNight)
+            if (!isNightTime)
             {
-                // Вечером и днем полностью сбрасываем состояние
+                // Днем полностью сбрасываем состояние и флаги прошедших рейдов
                 targetCity = Point3D.Zero;
                 announced = false;
-                rollDone = false;
-                raidAllowed = false;
-                SetGuardsStatus(map, false); // Гварды активны
+                raidActive = false;
+                raidExecuted = false;
+                SetGuardsStatus(map, false); // Включаем гвардов обратно днем
                 return;
             }
 
-            // ШАНС НАПАДЕНИЯ (5-10%): Кидаем кубик ровно ОДИН раз, когда на часах пробивает 00:00 🎲
-            if (!rollDone)
+            // Если набег в эту ночь еще не активен и еще не проводился, бросаем кубик вероятности
+            if (!raidActive && !raidExecuted)
             {
-                rollDone = true;
-                raidAllowed = (Utility.RandomDouble() < RaidChance);
+                if (Utility.RandomDouble() < RaidChancePerTick)
+                {
+                    raidActive = true;
+                    raidExecuted = true; // Помечаем, что лимит рейдов на эту ночь исчерпан
+                    targetCity = CityCenters[Utility.Random(CityCenters.Length)];
+                }
             }
 
-            // Если кубик решил, что этой ночью нападения не будет — выходим из метода, город спит спокойно
-            if (!raidAllowed)
+            // Если кубик не выпал и рейд не активен, город спит спокойно, стража работает
+            if (!raidActive)
             {
-                SetGuardsStatus(map, false); // Оставляем стражу защищать город
+                SetGuardsStatus(map, false);
                 return;
             }
 
-            // Если шанс выпал — отключаем городскую стражу на время штурма глубокой ночью
+            // Штурм активен! Отключаем городскую стражу, чтобы мобы могли заходить в город
             SetGuardsStatus(map, true);
-
-            // Выбираем случайный город из нашего расширенного списка один раз за ночь
-            if (targetCity == Point3D.Zero)
-            {
-                targetCity = CityCenters[Utility.Random(CityCenters.Length)];
-                announced = false;
-            }
 
             int currentMobsCount = 0;
             for (int i = 0; i < _ActiveNightMobs.Count; i++)
@@ -130,16 +137,19 @@ namespace Server.Custom.NightSpawns
                     currentMobsCount++;
             }
 
+            // Ограничение на спавн новой пачки, если достигнут лимит
             if (currentMobsCount >= MaxMobsTotal)
                 return;
+
+            MoonPhase currentMoonPhase = Clock.GetMoonPhase(map, map.Width / 2, map.Height / 2);
 
             if (!announced)
             {
                 string cityName = GetCityName(targetCity);
                 if (currentMoonPhase == MoonPhase.Full)
-                    World.Broadcast(0x26, true, $"[КРОВАВАЯ ЛУНА] Глубокой ночью армия проклятых пошла на штурм {cityName} в мире {map.Name}! Городская стража смята!");
+                    World.Broadcast(0x26, true, $"[КРОВАВАЯ ЛУНА] Среди ночи армия мертвых внезапно пошла на штурм {cityName} ({map.Name})! Стража уничтожена!");
                 else
-                    World.Broadcast(0x22, true, $"[НОЧНОЙ НАБЕГ] Под покровом кромешной тьмы полчища тварей прорываются в {cityName} ({map.Name})! Защитите город!");
+                    World.Broadcast(0x22, true, $"[НОЧНОЙ НАБЕГ] Под покровом темноты полчища монстров прорывают оборону {cityName} ({map.Name})! Защитите жителей!");
 
                 announced = true;
             }
@@ -175,7 +185,6 @@ namespace Server.Custom.NightSpawns
                     }
 
                     nightMob.Hits = nightMob.HitsMax;
-
                     nightMob.Home = targetCity;
                     nightMob.RangeHome = 30;
                     nightMob.FocusMob = null;
@@ -208,7 +217,6 @@ namespace Server.Custom.NightSpawns
             return Point3D.Zero;
         }
 
-        // Автоматическое определение названия города по координатам (ВКЛЮЧАЯ НОВЫЕ ГОРОДА 🗺️)
         private static string GetCityName(Point3D center)
         {
             if (center.X == 1417) return "Britain";
@@ -229,24 +237,20 @@ namespace Server.Custom.NightSpawns
 
         private static void CleanUpDawnMobs()
         {
-            bool isTrammelNight = false;
-            bool isFeluccaNight = false;
+            // Проверка защитных регионов стражи при наступлении утра (06:00)
             if (Map.Trammel != null && Map.Trammel != Map.Internal)
             {
                 Clock.GetTime(Map.Trammel, Map.Trammel.Width / 2, Map.Trammel.Height / 2, out int h, out int m);
-                // Защита гвардов проверяет глубокую ночь (0-4)
-                isTrammelNight = (h >= 0 && h < 4);
-                // Если штурма в эту ночь нет, гвардов насильно включаем обратно
-                if (!_TrammelRaidAllowedThisNight) isTrammelNight = false;
-                SetGuardsStatus(Map.Trammel, isTrammelNight);
+                bool trammelGuardsDisabled = (h >= 20 || h < 6) && _TrammelRaidActive;
+                SetGuardsStatus(Map.Trammel, trammelGuardsDisabled);
             }
             if (Map.Felucca != null && Map.Felucca != Map.Internal)
             {
                 Clock.GetTime(Map.Felucca, Map.Felucca.Width / 2, Map.Felucca.Height / 2, out int h, out int m);
-                isFeluccaNight = (h >= 0 && h < 4);
-                if (!_FeluccaRaidAllowedThisNight) isFeluccaNight = false;
-                SetGuardsStatus(Map.Felucca, isFeluccaNight);
+                bool feluccaGuardsDisabled = (h >= 20 || h < 6) && _FeluccaRaidActive;
+                SetGuardsStatus(Map.Felucca, feluccaGuardsDisabled);
             }
+            // Очистка выживших монстров с наступлением рассвета (06:00)
             for (int i = _ActiveNightMobs.Count - 1; i >= 0; i--)
             {
                 BaseCreature mob = _ActiveNightMobs[i];
@@ -254,8 +258,8 @@ namespace Server.Custom.NightSpawns
                 {
                     int hours, minutes;
                     Clock.GetTime(mob.Map, mob.X, mob.Y, out hours, out minutes);
-                    // Утро для осадной системы наступает после 04:00 утра
-                    if ((hours >= 4 || hours < 0) && mob.Combatant == null)
+                    // Если на часах 6 утра или день, и монстр не находится прямо сейчас в бою
+                    if ((hours >= 6 && hours < 20) && mob.Combatant == null)
                     {
                         Effects.SendLocationParticles(EffectItem.Create(mob.Location, mob.Map, TimeSpan.FromSeconds(2.0)), 0x376A, 9, 32, 5015);
                         mob.Delete();
@@ -295,11 +299,33 @@ namespace Server.Custom.NightSpawns
             foreach (var kvp in map.Regions)
             {
                 Region reg = kvp.Value;
-                if (reg is Regions.GuardedRegion guardedReg)
+                if (reg is GuardedRegion guardedReg)
                 {
                     guardedReg.Disabled = disabled;
                 }
             }
+        }
+        // РЕАЛИЗАЦИЯ КОМАНДЫ ОЧИСТКИ ОТРЯДОВ ВТОРЖЕНИЯ
+        private static void WipeNightMobs_OnCommand(CommandEventArgs e)
+        {
+            int count = 0;
+            // Удаляем всех живых осадных монстров
+            for (int i = _ActiveNightMobs.Count - 1; i >= 0; i--)
+            {
+                BaseCreature mob = _ActiveNightMobs[i];
+                if (mob != null && !mob.Deleted)
+                {
+                    Effects.SendLocationParticles(EffectItem.Create(mob.Location, mob.Map, TimeSpan.FromSeconds(1.0)), 0x376A, 9, 32, 5015);
+                    mob.Delete();
+                    count++;
+                }
+            }
+            // Сбрасываем все статусы системы
+            ResetSystemState();
+            // Гарантированно возвращаем стражу во все города на основных картах
+            if (Map.Trammel != null) SetGuardsStatus(Map.Trammel, false);
+            if (Map.Felucca != null) SetGuardsStatus(Map.Felucca, false);
+            e.Mobile.SendMessage(88, $"[NightSpawn] Успешно уничтожено {count} ночных вторженцев. Системные таймеры сброшены, стража городов восстановлена.");
         }
     }
 }
