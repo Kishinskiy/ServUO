@@ -267,7 +267,7 @@ public static void OnWeaponHit(Mobile attacker, Mobile defender, ref int damage)
                 {
                     // Стрела пригвождает монстра к месту на 2 реальные секунды
                     defender.Paralyze(TimeSpan.FromSeconds(2.0));
-                    defender.FixedParticles(0x376A, 9, 20, 1166, EffectLayer.Shoes); // Грязно-зеленый эффект на ногах моба
+                    defender.FixedParticles(0x376A, 9, 20, 1166, EffectLayer.Waist); // Грязно-зеленый эффект на ногах моба
                     Effects.PlaySound(defender.Location, defender.Map, 0x2F3); // Звук хруста/удара по ногам
                     
                     attacker.SendMessage(0x61, $"[ЗАГРАДИТЕЛЬНЫЙ ВЫСТРЕЛ!] Вы ранили {defender.Name} в ногу, обездвижив его на 2 секунды!");
