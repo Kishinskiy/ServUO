@@ -1,8 +1,6 @@
 using System;
-using Server;
-using Server.Items;
 using Server.Engines.ShameRevamped;
-using Server.Engines.PartySystem;
+using Server.Items;
 
 namespace Server.Mobiles
 {
@@ -11,10 +9,19 @@ namespace Server.Mobiles
         [CommandProperty(AccessLevel.GameMaster)]
         public ShameAltar Altar { get; set; }
 
+        public override bool AutoDispel => true;
+        public override bool AlwaysMurderer => true;
+        public override Poison PoisonImmune => Poison.Lethal;
+
         public ShameGuardian(AIType type)
             : base(type, FightMode.Aggressor, 10, 1, .4, .2)
         {
-			Title = "the guardian";
+            Title = "the guardian";
+        }
+
+        public ShameGuardian(Serial serial)
+            : base(serial)
+        {
         }
 
         public override void OnDeath(Container c)
@@ -35,49 +42,47 @@ namespace Server.Mobiles
                 return 0;
 
             if (Altar == null || Altar.Summoner == null)
+            {
                 amount = base.Damage(amount, from, informMount, checkfizzle);
+            }
             else
             {
-                bool good = false;
+                var good = false;
 
                 if (from == Altar.Summoner || (Altar.DeadLine > DateTime.UtcNow &&
                                                Altar.DeadLine - DateTime.UtcNow < TimeSpan.FromMinutes(10)))
+                {
                     good = true;
+                }
                 else if (from is BaseCreature && ((BaseCreature)from).GetMaster() == Altar.Summoner)
+                {
                     good = true;
+                }
                 else if (ShameAltar.AllowParties)
                 {
-                    Server.Engines.PartySystem.Party p = Server.Engines.PartySystem.Party.Get(from);
+                    var p = Engines.PartySystem.Party.Get(from);
 
-                    foreach (PartyMemberInfo info in p.Members)
-                    {
+                    foreach (var info in p.Members)
                         if (info.Mobile == from)
                         {
                             good = true;
                             break;
                         }
-                    }
                 }
 
                 if (good)
+                {
                     amount = base.Damage(amount, from, informMount, checkfizzle);
+                }
                 else
                 {
                     amount = 0;
-                    from.SendLocalizedMessage(1151633); // You did not summon this champion, so you may not attack it at this time.
+                    from.SendLocalizedMessage(
+                        1151633); // You did not summon this champion, so you may not attack it at this time.
                 }
             }
 
             return amount;
-        }
-
-        public override bool AutoDispel { get { return true; } }
-        public override bool AlwaysMurderer { get { return true; } }
-        public override Poison PoisonImmune { get { return Poison.Lethal; } }
-
-        public ShameGuardian(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -89,13 +94,15 @@ namespace Server.Mobiles
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     [CorpseName("a quartz elemental corpse")]
     public class QuartzElemental : ShameGuardian
     {
+        public override int TreasureMapLevel => 1;
+
         [Constructable]
         public QuartzElemental()
             : base(AIType.AI_Melee)
@@ -130,9 +137,14 @@ namespace Server.Mobiles
             Karma = -4500;
         }
 
+        public QuartzElemental(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void GenerateLoot()
         {
-            this.AddLoot(LootPack.UltraRich, 1);
+            AddLoot(LootPack.UltraRich, 1);
         }
 
         public override void OnDeath(Container c)
@@ -141,19 +153,6 @@ namespace Server.Mobiles
 
             if ((c.Map != null && c.Map.Rules == MapRules.FeluccaRules) || 0.5 > Utility.RandomDouble())
                 c.DropItem(new QuartzGrit());
-        }
-
-        public QuartzElemental(Serial serial)
-            : base(serial)
-        {
-        }
-		
-		public override int TreasureMapLevel
-        {
-            get
-            {
-                return 1;
-            }
         }
 
         public override void Serialize(GenericWriter writer)
@@ -165,7 +164,7 @@ namespace Server.Mobiles
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -216,6 +215,11 @@ namespace Server.Mobiles
             SetAreaEffect(AreaEffect.AuraDamage);
         }
 
+        public FlameElemental(Serial serial)
+            : base(serial)
+        {
+        }
+
         public void AuraEffect(Mobile m)
         {
             m.SendLocalizedMessage(1008112); // The intense heat is damaging you!
@@ -223,7 +227,7 @@ namespace Server.Mobiles
 
         public override void GenerateLoot()
         {
-            this.AddLoot(LootPack.UltraRich, 1);
+            AddLoot(LootPack.UltraRich, 1);
         }
 
         public override void OnDeath(Container c)
@@ -232,11 +236,6 @@ namespace Server.Mobiles
 
             if ((c.Map != null && c.Map.Rules == MapRules.FeluccaRules) || 0.5 > Utility.RandomDouble())
                 c.DropItem(new CorrosiveAsh());
-        }
-
-        public FlameElemental(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -248,7 +247,7 @@ namespace Server.Mobiles
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -293,10 +292,15 @@ namespace Server.Mobiles
             Karma = -4500;
         }
 
+        public WindElemental(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void GenerateLoot()
         {
-            this.AddLoot(LootPack.UltraRich, 1);
-            this.AddLoot(LootPack.HighScrolls, Utility.RandomMinMax(3, 5));
+            AddLoot(LootPack.UltraRich, 1);
+            AddLoot(LootPack.HighScrolls, Utility.RandomMinMax(3, 5));
         }
 
         public override void OnDeath(Container c)
@@ -305,11 +309,6 @@ namespace Server.Mobiles
 
             if ((c.Map != null && c.Map.Rules == MapRules.FeluccaRules) || 0.5 > Utility.RandomDouble())
                 c.DropItem(new CursedOilstone());
-        }
-
-        public WindElemental(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -321,7 +320,7 @@ namespace Server.Mobiles
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

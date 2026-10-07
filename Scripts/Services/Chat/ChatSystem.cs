@@ -1,6 +1,4 @@
 using System;
-using System.IO;
-
 using Server.Network;
 
 namespace Server.Engines.Chat
@@ -60,16 +58,12 @@ namespace Server.Engines.Chat
                     var channel = user.CurrentChannel;
 
                     if (handler.RequireConference && channel == null)
-                    {
                         /* You must be in a conference to do this.
                          * To join a conference, select one from the Conference menu.
                          */
                         user.SendMessage(31);
-                    }
                     else
-                    {
                         handler.Callback(user, channel, param);
-                    }
                 }
                 else
                 {

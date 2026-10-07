@@ -1,4 +1,3 @@
-using Server;
 using System;
 using Server.Guilds;
 
@@ -15,22 +14,36 @@ namespace Server.Services.TownCryer
         public DateTime Expires { get; private set; }
         public string EventLocation { get; set; }
 
-        public bool Expired { get { return DateTime.Now + TimeSpan.FromDays(32) < DateTime.Now; } }
+        public bool Expired => DateTime.Now + TimeSpan.FromDays(32) < DateTime.Now;
 
         public TownCryerGuildEntry(Mobile m, DateTime eventTime, string eventLocation, string title, string body)
         {
             Guild = m.Guild as Guild;
             Title = title;
-            FullTitle = String.Format("{0}-{1} [{2}] {3}", eventTime.Month, eventTime.Day, Guild.Abbreviation, title);
+            FullTitle = string.Format("{0}-{1} [{2}] {3}", eventTime.Month, eventTime.Day, Guild.Abbreviation, title);
             Body = body;
             Author = m.Name;
             EventTime = eventTime;
             EventLocation = eventLocation;
         }
 
+        public TownCryerGuildEntry(GenericReader reader)
+        {
+            var version = reader.ReadInt();
+
+            Title = reader.ReadString();
+            FullTitle = reader.ReadString();
+            Body = reader.ReadString();
+            Author = reader.ReadString();
+            Guild = reader.ReadGuild() as Guild;
+            EventTime = reader.ReadDateTime();
+            EventLocation = reader.ReadString();
+            Expires = reader.ReadDateTime();
+        }
+
         public void GetExpiration()
         {
-            DateTime dt = DateTime.Now.AddMonths(1);
+            var dt = DateTime.Now.AddMonths(1);
 
             Expires = new DateTime(dt.Year, dt.Month, DateTime.DaysInMonth(dt.Year, dt.Month));
         }
@@ -47,20 +60,6 @@ namespace Server.Services.TownCryer
             writer.Write(EventTime);
             writer.Write(EventLocation);
             writer.Write(Expires);
-        }
-
-        public TownCryerGuildEntry(GenericReader reader)
-        {
-            int version = reader.ReadInt();
-
-            Title = reader.ReadString();
-            FullTitle = reader.ReadString();
-            Body = reader.ReadString();
-            Author = reader.ReadString();
-            Guild = reader.ReadGuild() as Guild;
-            EventTime = reader.ReadDateTime();
-            EventLocation = reader.ReadString();
-            Expires = reader.ReadDateTime();
         }
     }
 }

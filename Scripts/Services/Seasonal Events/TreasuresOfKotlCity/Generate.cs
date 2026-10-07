@@ -1,7 +1,5 @@
-using System;
-using Server;
-using Server.Items;
 using Server.Engines.TreasuresOfKotlCity;
+using Server.Items;
 
 namespace Server.Commands
 {
@@ -14,9 +12,9 @@ namespace Server.Commands
 
         public static void Generate(CommandEventArgs e)
         {
-            CommandSystem.Handle(e.Mobile, Server.Commands.CommandSystem.Prefix + "XmlLoad Spawns/TreasuresOfKotl.xml");
+            CommandSystem.Handle(e.Mobile, CommandSystem.Prefix + "XmlLoad Spawns/TreasuresOfKotl.xml");
 
-            Map map = Map.TerMur;
+            var map = Map.TerMur;
 
             var door = new KotlDoor();
             door.MoveToWorld(new Point3D(610, 2319, 0), map);
@@ -94,9 +92,9 @@ namespace Server.Commands
 
         private static void GenTeleporters()
         {
-            Map map = Map.TerMur;
+            var map = Map.TerMur;
 
-            Teleporter tele = new Teleporter(new Point3D(542, 2478, 0), map);
+            var tele = new Teleporter(new Point3D(542, 2478, 0), map);
             tele.MoveToWorld(new Point3D(492, 1613, 40), map);
 
             tele = new Teleporter(new Point3D(543, 2478, 0), map);
@@ -159,9 +157,9 @@ namespace Server.Commands
 
         private static void GenStations()
         {
-            Map map = Map.TerMur;
+            var map = Map.TerMur;
 
-            PowerCoreDockingStation station = new PowerCoreDockingStation(true);
+            var station = new PowerCoreDockingStation(true);
             station.MoveToWorld(new Point3D(623, 2447, -20), map);
 
             station = new PowerCoreDockingStation(true);
@@ -190,7 +188,7 @@ namespace Server.Commands
         {
             LOSBlocker blocker = null;
 
-            for (int y = 2392; y < 2407; y++)
+            for (var y = 2392; y < 2407; y++)
             {
                 blocker = new LOSBlocker();
                 blocker.MoveToWorld(new Point3D(583, y, 0), Map.TerMur);
@@ -199,9 +197,9 @@ namespace Server.Commands
 
         private static void GenChests()
         {
-            Map map = Map.TerMur;
+            var map = Map.TerMur;
 
-            KotlRegalChest chest = new KotlRegalChest();
+            var chest = new KotlRegalChest();
             chest.MoveToWorld(new Point3D(484, 2289, 0), map);
 
             chest = new KotlRegalChest();

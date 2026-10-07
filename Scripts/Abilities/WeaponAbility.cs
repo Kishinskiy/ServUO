@@ -1,298 +1,70 @@
 using System;
 using System.Collections;
-
 using Server.Network;
 using Server.Spells;
+using Server.Spells.Bushido;
+using Server.Spells.Mysticism;
+using Server.Spells.Necromancy;
+using Server.Spells.Ninjitsu;
 using Server.Spells.SkillMasteries;
 
 namespace Server.Items
 {
     public abstract class WeaponAbility
     {
-        public virtual int BaseMana
-        {
-            get
-            {
-                return 0;
-            }
-        }
+        public static readonly WeaponAbility ArmorIgnore = Abilities[1];
+        public static readonly WeaponAbility BleedAttack = Abilities[2];
+        public static readonly WeaponAbility ConcussionBlow = Abilities[3];
+        public static readonly WeaponAbility CrushingBlow = Abilities[4];
+        public static readonly WeaponAbility Disarm = Abilities[5];
+        public static readonly WeaponAbility Dismount = Abilities[6];
+        public static readonly WeaponAbility DoubleStrike = Abilities[7];
+        public static readonly WeaponAbility InfectiousStrike = Abilities[8];
+        public static readonly WeaponAbility MortalStrike = Abilities[9];
+        public static readonly WeaponAbility MovingShot = Abilities[10];
+        public static readonly WeaponAbility ParalyzingBlow = Abilities[11];
+        public static readonly WeaponAbility ShadowStrike = Abilities[12];
+        public static readonly WeaponAbility WhirlwindAttack = Abilities[13];
 
-        public virtual int AccuracyBonus
-        {
-            get
-            {
-                return 0;
-            }
-        }
-        public virtual double DamageScalar
-        {
-            get
-            {
-                return 1.0;
-            }
-        }
+        public static readonly WeaponAbility RidingSwipe = Abilities[14];
+        public static readonly WeaponAbility FrenziedWhirlwind = Abilities[15];
+        public static readonly WeaponAbility Block = Abilities[16];
+        public static readonly WeaponAbility DefenseMastery = Abilities[17];
+        public static readonly WeaponAbility NerveStrike = Abilities[18];
+        public static readonly WeaponAbility TalonStrike = Abilities[19];
+        public static readonly WeaponAbility Feint = Abilities[20];
+        public static readonly WeaponAbility DualWield = Abilities[21];
+        public static readonly WeaponAbility DoubleShot = Abilities[22];
+        public static readonly WeaponAbility ArmorPierce = Abilities[23];
 
-        public virtual bool RequiresSE
-        {
-            get
-            {
-                return false;
-            }
-        }
+        public static readonly WeaponAbility Bladeweave = Abilities[24];
+        public static readonly WeaponAbility ForceArrow = Abilities[25];
+        public static readonly WeaponAbility LightningArrow = Abilities[26];
+        public static readonly WeaponAbility PsychicAttack = Abilities[27];
+        public static readonly WeaponAbility SerpentArrow = Abilities[28];
+        public static readonly WeaponAbility ForceOfNature = Abilities[29];
 
-		/// <summary>
-		///		Return false to make this special ability consume no ammo from ranged weapons
-		/// </summary>
-		public virtual bool ConsumeAmmo
-		{
-			get
-			{
-				return true;
-			}
-		}
+        public static readonly WeaponAbility InfusedThrow = Abilities[30];
+        public static readonly WeaponAbility MysticArc = Abilities[31];
 
-        public virtual void OnHit(Mobile attacker, Mobile defender, int damage)
-        {
-        }
+        public static readonly WeaponAbility Disrobe = Abilities[32];
+        public static readonly WeaponAbility ColdWind = Abilities[33];
 
-        public virtual void OnMiss(Mobile attacker, Mobile defender)
-        {
-        }
+        private static readonly Hashtable m_PlayersTable = new Hashtable();
+        public virtual int BaseMana => 0;
 
-        public virtual bool OnBeforeSwing(Mobile attacker, Mobile defender)
-        {
-            // Here because you must be sure you can use the skill before calling CheckHit if the ability has a HCI bonus for example
-            return true;
-        }
+        public virtual int AccuracyBonus => 0;
 
-        public virtual bool OnBeforeDamage(Mobile attacker, Mobile defender)
-        {
-            return true;
-        }
+        public virtual double DamageScalar => 1.0;
 
-        public virtual bool RequiresSecondarySkill(Mobile from)
-        {
-            return true;
-        }
+        public virtual bool RequiresSE => false;
 
-        public virtual double GetRequiredSkill(Mobile from)
-        {
-            BaseWeapon weapon = from.Weapon as BaseWeapon;
+        /// <summary>
+        ///     Return false to make this special ability consume no ammo from ranged weapons
+        /// </summary>
+        public virtual bool ConsumeAmmo => true;
 
-            if (weapon != null && (weapon.PrimaryAbility == this || weapon.PrimaryAbility == Bladeweave))
-                return 70.0;
-            else if (weapon != null && (weapon.SecondaryAbility == this || weapon.SecondaryAbility == Bladeweave))
-                return 90.0;
-
-            return 200.0;
-        }
-
-        public virtual double GetRequiredSecondarySkill(Mobile from)
-        {
-            if (!RequiresSecondarySkill(from))
-                return 0.0;
-
-            BaseWeapon weapon = from.Weapon as BaseWeapon;
-
-            if (weapon != null && (weapon.PrimaryAbility == this || weapon.PrimaryAbility == Bladeweave))
-                return Core.TOL ? 30.0 : 70.0;
-            else if (weapon != null && (weapon.SecondaryAbility == this || weapon.SecondaryAbility == Bladeweave))
-                return Core.TOL ? 60.0 : 90.0;
-
-            return 200.0;
-        }
-
-        public virtual SkillName GetSecondarySkill(Mobile from)
-        {
-            return SkillName.Tactics;
-        }
-
-        public virtual int CalculateMana(Mobile from)
-        {
-            int mana = BaseMana;
-
-            double skillTotal = GetSkillTotal(from);
-
-            if (skillTotal >= 300.0)
-                mana -= 10;
-            else if (skillTotal >= 200.0)
-                mana -= 5;
-
-            double scalar = 1.0;
-
-            if (!Server.Spells.Necromancy.MindRotSpell.GetMindRotScalar(from, ref scalar))
-            {
-                scalar = 1.0;
-            }
-
-            if (Server.Spells.Mysticism.PurgeMagicSpell.IsUnderCurseEffects(from))
-            {
-                scalar += .5;
-            }
-
-            // Lower Mana Cost = 40%
-            int lmc = Math.Min(AosAttributes.GetValue(from, AosAttribute.LowerManaCost), 40);
-
-            lmc += BaseArmor.GetInherentLowerManaCost(from);
-
-            scalar -= (double)lmc / 100;
-            mana = (int)(mana * scalar);
-
-            // Using a special move within 3 seconds of the previous special move costs double mana 
-            if (GetContext(from) != null)
-                mana *= 2;
-
-            return mana;
-        }
-
-        public virtual bool CheckWeaponSkill(Mobile from)
-        {
-            BaseWeapon weapon = from.Weapon as BaseWeapon;
-
-            if (weapon == null)
-                return false;
-
-            Skill skill = from.Skills[weapon.Skill];
-
-            double reqSkill = GetRequiredSkill(from);
-            double reqSecondarySkill = GetRequiredSecondarySkill(from);
-            SkillName secondarySkill = Core.TOL ? GetSecondarySkill(from) : SkillName.Tactics;
-
-            if (Core.ML && from.Skills[secondarySkill].Base < reqSecondarySkill)
-            {
-                int loc = GetSkillLocalization(secondarySkill);
-
-                if (loc == 1060184)
-                {
-                    from.SendLocalizedMessage(loc);
-                }
-                else
-                {
-                    from.SendLocalizedMessage(loc, reqSecondarySkill.ToString());
-                }
-
-                return false;
-            }
-
-            if (skill != null && skill.Base >= reqSkill)
-                return true;
-
-            /* <UBWS> */
-            if (weapon.WeaponAttributes.UseBestSkill > 0 && (from.Skills[SkillName.Swords].Base >= reqSkill || from.Skills[SkillName.Macing].Base >= reqSkill || from.Skills[SkillName.Fencing].Base >= reqSkill))
-                return true;
-            /* </UBWS> */
-
-            if (reqSecondarySkill != 0.0 && !Core.TOL)
-            {
-                from.SendLocalizedMessage(1079308, reqSkill.ToString()); // You need ~1_SKILL_REQUIREMENT~ weapon and tactics skill to perform that attack
-            }
-            else
-            {
-                from.SendLocalizedMessage(1060182, reqSkill.ToString()); // You need ~1_SKILL_REQUIREMENT~ weapon skill to perform that attack
-            }
-
-            return false;
-        }
-
-        private int GetSkillLocalization(SkillName skill)
-        {
-            switch (skill)
-            {
-                default: return Core.TOL ? 1157351 : 1079308;
-                    // You need ~1_SKILL_REQUIREMENT~ weapon and tactics skill to perform that attack                                                             
-                    // You need ~1_SKILL_REQUIREMENT~ tactics skill to perform that attack
-                case SkillName.Bushido:
-                case SkillName.Ninjitsu: return 1063347;
-                    // You need ~1_SKILL_REQUIREMENT~ Bushido or Ninjitsu skill to perform that attack!
-                case SkillName.Poisoning: return 1060184;
-                    // You lack the required poisoning to perform that attack
-            }
-        }
-
-        public virtual bool CheckSkills(Mobile from)
-        {
-            return CheckWeaponSkill(from);
-        }
-
-        public virtual double GetSkillTotal(Mobile from)
-        {
-            return GetSkill(from, SkillName.Swords) + GetSkill(from, SkillName.Macing) +
-                   GetSkill(from, SkillName.Fencing) + GetSkill(from, SkillName.Archery) + GetSkill(from, SkillName.Parry) +
-                   GetSkill(from, SkillName.Lumberjacking) + GetSkill(from, SkillName.Stealth) + GetSkill(from, SkillName.Throwing) +
-                   GetSkill(from, SkillName.Poisoning) + GetSkill(from, SkillName.Bushido) + GetSkill(from, SkillName.Ninjitsu);
-        }
-
-        public virtual double GetSkill(Mobile from, SkillName skillName)
-        {
-            Skill skill = from.Skills[skillName];
-
-            if (skill == null)
-                return 0.0;
-
-            return skill.Value;
-        }
-
-        public virtual bool CheckMana(Mobile from, bool consume)
-        {
-            int mana = CalculateMana(from);
-
-            if (from.Mana < mana)
-            {
-                from.SendLocalizedMessage(1060181, mana.ToString()); // You need ~1_MANA_REQUIREMENT~ mana to perform that attack
-                return false;
-            }
-
-            if (consume)
-            {
-                if (GetContext(from) == null)
-                {
-                    Timer timer = new WeaponAbilityTimer(from);
-                    timer.Start();
-
-                    AddContext(from, new WeaponAbilityContext(timer));
-                }
-
-                if (ManaPhasingOrb.IsInManaPhase(from))
-                    ManaPhasingOrb.RemoveFromTable(from);
-                else
-                    from.Mana -= mana;
-            }
-
-            return true;
-        }
-
-        public virtual bool Validate(Mobile from)
-        {
-            if (!from.Player && (!Core.TOL || CheckMana(from, false)))
-                return true;
-
-            NetState state = from.NetState;
-
-            if (state == null)
-                return false;
-
-            if (RequiresSE && !state.SupportsExpansion(Expansion.SE))
-            {
-                from.SendLocalizedMessage(1063456); // You must upgrade to Samurai Empire in order to use that ability.
-                return false;
-            }
-
-            if (Spells.Bushido.HonorableExecution.IsUnderPenalty(from) || Spells.Ninjitsu.AnimalForm.UnderTransformation(from))
-            {
-                from.SendLocalizedMessage(1063024); // You cannot perform this special move right now.
-                return false;
-            }
-
-            if (Core.ML && from.Spell != null)
-            {
-                from.SendLocalizedMessage(1063024); // You cannot perform this special move right now.
-                return false;
-            }
-
-            return CheckSkills(from) && CheckMana(from, false);
-        }
-
-        private static readonly WeaponAbility[] m_Abilities = new WeaponAbility[34]
+        public static WeaponAbility[] Abilities { get; } = new WeaponAbility[34]
         {
             null,
             new ArmorIgnore(),
@@ -330,61 +102,244 @@ namespace Server.Items
             new ColdWind()
         };
 
-        public static WeaponAbility[] Abilities
+        public static Hashtable Table { get; } = new Hashtable();
+
+        public virtual bool ValidatesDuringHit => true;
+
+        public virtual void OnHit(Mobile attacker, Mobile defender, int damage)
         {
-            get
+        }
+
+        public virtual void OnMiss(Mobile attacker, Mobile defender)
+        {
+        }
+
+        public virtual bool OnBeforeSwing(Mobile attacker, Mobile defender)
+        {
+            // Here because you must be sure you can use the skill before calling CheckHit if the ability has a HCI bonus for example
+            return true;
+        }
+
+        public virtual bool OnBeforeDamage(Mobile attacker, Mobile defender)
+        {
+            return true;
+        }
+
+        public virtual bool RequiresSecondarySkill(Mobile from)
+        {
+            return true;
+        }
+
+        public virtual double GetRequiredSkill(Mobile from)
+        {
+            var weapon = from.Weapon as BaseWeapon;
+
+            if (weapon != null && (weapon.PrimaryAbility == this || weapon.PrimaryAbility == Bladeweave))
+                return 70.0;
+            if (weapon != null && (weapon.SecondaryAbility == this || weapon.SecondaryAbility == Bladeweave))
+                return 90.0;
+
+            return 200.0;
+        }
+
+        public virtual double GetRequiredSecondarySkill(Mobile from)
+        {
+            if (!RequiresSecondarySkill(from))
+                return 0.0;
+
+            var weapon = from.Weapon as BaseWeapon;
+
+            if (weapon != null && (weapon.PrimaryAbility == this || weapon.PrimaryAbility == Bladeweave))
+                return Core.TOL ? 30.0 : 70.0;
+            if (weapon != null && (weapon.SecondaryAbility == this || weapon.SecondaryAbility == Bladeweave))
+                return Core.TOL ? 60.0 : 90.0;
+
+            return 200.0;
+        }
+
+        public virtual SkillName GetSecondarySkill(Mobile from)
+        {
+            return SkillName.Tactics;
+        }
+
+        public virtual int CalculateMana(Mobile from)
+        {
+            var mana = BaseMana;
+
+            var skillTotal = GetSkillTotal(from);
+
+            if (skillTotal >= 300.0)
+                mana -= 10;
+            else if (skillTotal >= 200.0)
+                mana -= 5;
+
+            var scalar = 1.0;
+
+            if (!MindRotSpell.GetMindRotScalar(from, ref scalar)) scalar = 1.0;
+
+            if (PurgeMagicSpell.IsUnderCurseEffects(from)) scalar += .5;
+
+            // Lower Mana Cost = 40%
+            var lmc = Math.Min(AosAttributes.GetValue(from, AosAttribute.LowerManaCost), 40);
+
+            lmc += BaseArmor.GetInherentLowerManaCost(from);
+
+            scalar -= (double)lmc / 100;
+            mana = (int)(mana * scalar);
+
+            // Using a special move within 3 seconds of the previous special move costs double mana 
+            if (GetContext(from) != null)
+                mana *= 2;
+
+            return mana;
+        }
+
+        public virtual bool CheckWeaponSkill(Mobile from)
+        {
+            var weapon = from.Weapon as BaseWeapon;
+
+            if (weapon == null)
+                return false;
+
+            var skill = from.Skills[weapon.Skill];
+
+            var reqSkill = GetRequiredSkill(from);
+            var reqSecondarySkill = GetRequiredSecondarySkill(from);
+            var secondarySkill = Core.TOL ? GetSecondarySkill(from) : SkillName.Tactics;
+
+            if (Core.ML && from.Skills[secondarySkill].Base < reqSecondarySkill)
             {
-                return m_Abilities;
+                var loc = GetSkillLocalization(secondarySkill);
+
+                if (loc == 1060184)
+                    from.SendLocalizedMessage(loc);
+                else
+                    from.SendLocalizedMessage(loc, reqSecondarySkill.ToString());
+
+                return false;
+            }
+
+            if (skill != null && skill.Base >= reqSkill)
+                return true;
+
+            /* <UBWS> */
+            if (weapon.WeaponAttributes.UseBestSkill > 0 && (from.Skills[SkillName.Swords].Base >= reqSkill ||
+                                                             from.Skills[SkillName.Macing].Base >= reqSkill ||
+                                                             from.Skills[SkillName.Fencing].Base >= reqSkill))
+                return true;
+            /* </UBWS> */
+
+            if (reqSecondarySkill != 0.0 && !Core.TOL)
+                from.SendLocalizedMessage(1079308,
+                    reqSkill.ToString()); // You need ~1_SKILL_REQUIREMENT~ weapon and tactics skill to perform that attack
+            else
+                from.SendLocalizedMessage(1060182,
+                    reqSkill.ToString()); // You need ~1_SKILL_REQUIREMENT~ weapon skill to perform that attack
+
+            return false;
+        }
+
+        private int GetSkillLocalization(SkillName skill)
+        {
+            switch (skill)
+            {
+                default: return Core.TOL ? 1157351 : 1079308;
+                // You need ~1_SKILL_REQUIREMENT~ weapon and tactics skill to perform that attack                                                             
+                // You need ~1_SKILL_REQUIREMENT~ tactics skill to perform that attack
+                case SkillName.Bushido:
+                case SkillName.Ninjitsu: return 1063347;
+                // You need ~1_SKILL_REQUIREMENT~ Bushido or Ninjitsu skill to perform that attack!
+                case SkillName.Poisoning: return 1060184;
+                // You lack the required poisoning to perform that attack
             }
         }
 
-        private static readonly Hashtable m_Table = new Hashtable();
-
-        public static Hashtable Table
+        public virtual bool CheckSkills(Mobile from)
         {
-            get
-            {
-                return m_Table;
-            }
+            return CheckWeaponSkill(from);
         }
 
-        public static readonly WeaponAbility ArmorIgnore = m_Abilities[1];
-        public static readonly WeaponAbility BleedAttack = m_Abilities[2];
-        public static readonly WeaponAbility ConcussionBlow = m_Abilities[3];
-        public static readonly WeaponAbility CrushingBlow = m_Abilities[4];
-        public static readonly WeaponAbility Disarm = m_Abilities[5];
-        public static readonly WeaponAbility Dismount = m_Abilities[6];
-        public static readonly WeaponAbility DoubleStrike = m_Abilities[7];
-        public static readonly WeaponAbility InfectiousStrike = m_Abilities[8];
-        public static readonly WeaponAbility MortalStrike = m_Abilities[9];
-        public static readonly WeaponAbility MovingShot = m_Abilities[10];
-        public static readonly WeaponAbility ParalyzingBlow = m_Abilities[11];
-        public static readonly WeaponAbility ShadowStrike = m_Abilities[12];
-        public static readonly WeaponAbility WhirlwindAttack = m_Abilities[13];
+        public virtual double GetSkillTotal(Mobile from)
+        {
+            return GetSkill(from, SkillName.Swords) + GetSkill(from, SkillName.Macing) +
+                   GetSkill(from, SkillName.Fencing) + GetSkill(from, SkillName.Archery) +
+                   GetSkill(from, SkillName.Parry) +
+                   GetSkill(from, SkillName.Lumberjacking) + GetSkill(from, SkillName.Stealth) +
+                   GetSkill(from, SkillName.Throwing) +
+                   GetSkill(from, SkillName.Poisoning) + GetSkill(from, SkillName.Bushido) +
+                   GetSkill(from, SkillName.Ninjitsu);
+        }
 
-        public static readonly WeaponAbility RidingSwipe = m_Abilities[14];
-        public static readonly WeaponAbility FrenziedWhirlwind = m_Abilities[15];
-        public static readonly WeaponAbility Block = m_Abilities[16];
-        public static readonly WeaponAbility DefenseMastery = m_Abilities[17];
-        public static readonly WeaponAbility NerveStrike = m_Abilities[18];
-        public static readonly WeaponAbility TalonStrike = m_Abilities[19];
-        public static readonly WeaponAbility Feint = m_Abilities[20];
-        public static readonly WeaponAbility DualWield = m_Abilities[21];
-        public static readonly WeaponAbility DoubleShot = m_Abilities[22];
-        public static readonly WeaponAbility ArmorPierce = m_Abilities[23];
+        public virtual double GetSkill(Mobile from, SkillName skillName)
+        {
+            var skill = from.Skills[skillName];
 
-        public static readonly WeaponAbility Bladeweave = m_Abilities[24];
-        public static readonly WeaponAbility ForceArrow = m_Abilities[25];
-        public static readonly WeaponAbility LightningArrow = m_Abilities[26];
-        public static readonly WeaponAbility PsychicAttack = m_Abilities[27];
-        public static readonly WeaponAbility SerpentArrow = m_Abilities[28];
-        public static readonly WeaponAbility ForceOfNature = m_Abilities[29];
+            if (skill == null)
+                return 0.0;
 
-        public static readonly WeaponAbility InfusedThrow = m_Abilities[30];
-        public static readonly WeaponAbility MysticArc = m_Abilities[31];
+            return skill.Value;
+        }
 
-        public static readonly WeaponAbility Disrobe = m_Abilities[32];
-        public static readonly WeaponAbility ColdWind = m_Abilities[33];
+        public virtual bool CheckMana(Mobile from, bool consume)
+        {
+            var mana = CalculateMana(from);
+
+            if (from.Mana < mana)
+            {
+                from.SendLocalizedMessage(1060181,
+                    mana.ToString()); // You need ~1_MANA_REQUIREMENT~ mana to perform that attack
+                return false;
+            }
+
+            if (consume)
+            {
+                if (GetContext(from) == null)
+                {
+                    Timer timer = new WeaponAbilityTimer(from);
+                    timer.Start();
+
+                    AddContext(from, new WeaponAbilityContext(timer));
+                }
+
+                if (ManaPhasingOrb.IsInManaPhase(from))
+                    ManaPhasingOrb.RemoveFromTable(from);
+                else
+                    from.Mana -= mana;
+            }
+
+            return true;
+        }
+
+        public virtual bool Validate(Mobile from)
+        {
+            if (!from.Player && (!Core.TOL || CheckMana(from, false)))
+                return true;
+
+            var state = from.NetState;
+
+            if (state == null)
+                return false;
+
+            if (RequiresSE && !state.SupportsExpansion(Expansion.SE))
+            {
+                from.SendLocalizedMessage(1063456); // You must upgrade to Samurai Empire in order to use that ability.
+                return false;
+            }
+
+            if (HonorableExecution.IsUnderPenalty(from) || AnimalForm.UnderTransformation(from))
+            {
+                from.SendLocalizedMessage(1063024); // You cannot perform this special move right now.
+                return false;
+            }
+
+            if (Core.ML && from.Spell != null)
+            {
+                from.SendLocalizedMessage(1063024); // You cannot perform this special move right now.
+                return false;
+            }
+
+            return CheckSkills(from) && CheckMana(from, false);
+        }
 
         public static bool IsWeaponAbility(Mobile m, WeaponAbility a)
         {
@@ -394,17 +349,9 @@ namespace Server.Items
             if (!m.Player)
                 return true;
 
-            BaseWeapon weapon = m.Weapon as BaseWeapon;
+            var weapon = m.Weapon as BaseWeapon;
 
-            return (weapon != null && (weapon.PrimaryAbility == a || weapon.SecondaryAbility == a));
-        }
-
-        public virtual bool ValidatesDuringHit
-        {
-            get
-            {
-                return true;
-            }
+            return weapon != null && (weapon.PrimaryAbility == a || weapon.SecondaryAbility == a);
         }
 
         public static WeaponAbility GetCurrentAbility(Mobile m)
@@ -415,7 +362,7 @@ namespace Server.Items
                 return null;
             }
 
-            WeaponAbility a = (WeaponAbility)m_Table[m];
+            var a = (WeaponAbility)Table[m];
 
             if (!IsWeaponAbility(m, a))
             {
@@ -454,13 +401,13 @@ namespace Server.Items
 
             if (a == null)
             {
-                m_Table.Remove(m);
+                Table.Remove(m);
             }
             else
             {
                 SpecialMove.ClearCurrentMove(m);
 
-                m_Table[m] = a;
+                Table[m] = a;
 
                 SkillMasterySpell.CancelWeaponAbility(m);
             }
@@ -470,7 +417,7 @@ namespace Server.Items
 
         public static void ClearCurrentAbility(Mobile m)
         {
-            m_Table.Remove(m);
+            Table.Remove(m);
 
             if (Core.AOS && m.NetState != null)
                 m.Send(ClearWeaponAbility.Instance);
@@ -478,24 +425,18 @@ namespace Server.Items
 
         public static void Initialize()
         {
-            EventSink.SetAbility += new SetAbilityEventHandler(EventSink_SetAbility);
-        }
-
-        public WeaponAbility()
-        {
+            EventSink.SetAbility += EventSink_SetAbility;
         }
 
         private static void EventSink_SetAbility(SetAbilityEventArgs e)
         {
-            int index = e.Index;
+            var index = e.Index;
 
             if (index == 0)
                 ClearCurrentAbility(e.Mobile);
-            else if (index >= 1 && index < m_Abilities.Length)
-                SetCurrentAbility(e.Mobile, m_Abilities[index]);
+            else if (index >= 1 && index < Abilities.Length)
+                SetCurrentAbility(e.Mobile, Abilities[index]);
         }
-
-        private static readonly Hashtable m_PlayersTable = new Hashtable();
 
         private static void AddContext(Mobile m, WeaponAbilityContext context)
         {
@@ -504,7 +445,7 @@ namespace Server.Items
 
         private static void RemoveContext(Mobile m)
         {
-            WeaponAbilityContext context = GetContext(m);
+            var context = GetContext(m);
 
             if (context != null)
                 RemoveContext(m, context);
@@ -519,7 +460,7 @@ namespace Server.Items
 
         private static WeaponAbilityContext GetContext(Mobile m)
         {
-            return (m_PlayersTable[m] as WeaponAbilityContext);
+            return m_PlayersTable[m] as WeaponAbilityContext;
         }
 
         private class WeaponAbilityTimer : Timer
@@ -542,19 +483,11 @@ namespace Server.Items
 
         private class WeaponAbilityContext
         {
-            private readonly Timer m_Timer;
-
-            public Timer Timer
-            {
-                get
-                {
-                    return m_Timer;
-                }
-            }
+            public Timer Timer { get; }
 
             public WeaponAbilityContext(Timer timer)
             {
-                m_Timer = timer;
+                Timer = timer;
             }
         }
     }

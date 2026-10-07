@@ -1,10 +1,18 @@
-using System;
-
 namespace Server.Mobiles
 {
     [CorpseName("a chicken corpse")]
     public class Chicken : BaseCreature
     {
+        public override int Meat => 1;
+
+        public override MeatType MeatType => MeatType.Bird;
+
+        public override FoodType FavoriteFood => FoodType.GrainsAndHay;
+
+        public override bool CanFly => true;
+
+        public override int Feathers => 25;
+
         [Constructable]
         public Chicken()
             : base(AIType.AI_Animal, FightMode.Aggressor, 10, 1, 0.2, 0.4)
@@ -45,53 +53,18 @@ namespace Server.Mobiles
         {
         }
 
-        public override int Meat
-        {
-            get
-            {
-                return 1;
-            }
-        }
-        public override MeatType MeatType
-        {
-            get
-            {
-                return MeatType.Bird;
-            }
-        }
-        public override FoodType FavoriteFood
-        {
-            get
-            {
-                return FoodType.GrainsAndHay;
-            }
-        }
-        public override bool CanFly
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override int Feathers
-        {
-            get
-            {
-                return 25;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

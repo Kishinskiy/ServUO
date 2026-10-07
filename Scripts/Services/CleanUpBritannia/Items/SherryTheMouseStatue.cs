@@ -6,8 +6,10 @@ namespace Server.Items
 {
     public class SherryTheMouseStatue : Item
     {
-        public override int LabelNumber { get { return 1080171; } } // Sherry the Mouse Statue
         private Timer m_NewsTimer;
+        public override int LabelNumber => 1080171; // Sherry the Mouse Statue
+
+        public override bool HandlesOnSpeech => true;
 
         [Constructable]
         public SherryTheMouseStatue()
@@ -17,13 +19,17 @@ namespace Server.Items
             Weight = 1.0;
         }
 
-        public override bool HandlesOnSpeech { get { return true; } }
+        public SherryTheMouseStatue(Serial serial)
+            : base(serial)
+        {
+        }
 
         public override void OnSpeech(SpeechEventArgs e)
         {
-            if (IsLockedDown && e.HasKeyword(0x30) && e.Mobile.Alive && e.Mobile.InLOS(Location) && e.Mobile.InRange(this, 12)) // *news*
+            if (IsLockedDown && e.HasKeyword(0x30) && e.Mobile.Alive && e.Mobile.InLOS(Location) &&
+                e.Mobile.InRange(this, 12)) // *news*
             {
-                TownCrierEntry tce = GlobalTownCrierEntryList.Instance.GetRandomEntry();
+                var tce = GlobalTownCrierEntryList.Instance.GetRandomEntry();
 
                 if (tce == null)
                 {
@@ -31,7 +37,8 @@ namespace Server.Items
                 }
                 else
                 {
-                    m_NewsTimer = Timer.DelayCall(TimeSpan.FromSeconds(1.0), TimeSpan.FromSeconds(3.0), new TimerStateCallback(ShoutNews_Callback), new object[] { tce, 0 });
+                    m_NewsTimer = Timer.DelayCall(TimeSpan.FromSeconds(1.0), TimeSpan.FromSeconds(3.0),
+                        new TimerStateCallback(ShoutNews_Callback), new object[] { tce, 0 });
 
                     PublicOverheadMessage(MessageType.Regular, 0x3B2, 502978); // Some of the latest news!
                 }
@@ -40,9 +47,9 @@ namespace Server.Items
 
         private void ShoutNews_Callback(object state)
         {
-            object[] states = (object[])state;
-            TownCrierEntry tce = (TownCrierEntry)states[0];
-            int index = (int)states[1];
+            var states = (object[])state;
+            var tce = (TownCrierEntry)states[0];
+            var index = (int)states[1];
 
             if (index < 0 || index >= tce.Lines.Length)
             {
@@ -58,21 +65,16 @@ namespace Server.Items
             }
         }
 
-        public SherryTheMouseStatue(Serial serial)
-            : base(serial)
-        {
-        }
-        
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -1,17 +1,16 @@
-using System;
 using System.Collections.Generic;
 
 namespace Server.Engines.BulkOrders
 {
     public class LargeCookingBOD : LargeBOD
     {
-        public override BODType BODType { get { return BODType.Cooking; } }
+        public override BODType BODType => BODType.Cooking;
 
         [Constructable]
         public LargeCookingBOD()
         {
             LargeBulkEntry[] entries;
-            bool nonexceptional = false;
+            var nonexceptional = false;
 
             switch (Utility.Random(7))
             {
@@ -41,19 +40,19 @@ namespace Server.Engines.BulkOrders
                     break;
             }
 
-            this.Hue = 1169;
-            this.AmountMax = Utility.RandomList(10, 15, 20, 20);
-            this.Entries = entries;
-            this.RequireExceptional = !nonexceptional && 0.825 > Utility.RandomDouble();
+            Hue = 1169;
+            AmountMax = Utility.RandomList(10, 15, 20, 20);
+            Entries = entries;
+            RequireExceptional = !nonexceptional && 0.825 > Utility.RandomDouble();
         }
 
         public LargeCookingBOD(int amountMax, bool reqExceptional, BulkMaterialType mat, LargeBulkEntry[] entries)
         {
-            this.Hue = 1169;
-            this.AmountMax = amountMax;
-            this.Entries = entries;
-            this.RequireExceptional = reqExceptional;
-            this.Material = mat;
+            Hue = 1169;
+            AmountMax = amountMax;
+            Entries = entries;
+            RequireExceptional = reqExceptional;
+            Material = mat;
         }
 
         public LargeCookingBOD(Serial serial)
@@ -73,17 +72,18 @@ namespace Server.Engines.BulkOrders
 
         public override List<Item> ComputeRewards(bool full)
         {
-            List<Item> list = new List<Item>();
+            var list = new List<Item>();
 
-            RewardGroup rewardGroup = CookingRewardCalculator.Instance.LookupRewards(CookingRewardCalculator.Instance.ComputePoints(this));
+            var rewardGroup =
+                CookingRewardCalculator.Instance.LookupRewards(CookingRewardCalculator.Instance.ComputePoints(this));
 
             if (rewardGroup != null)
             {
                 if (full)
                 {
-                    for (int i = 0; i < rewardGroup.Items.Length; ++i)
+                    for (var i = 0; i < rewardGroup.Items.Length; ++i)
                     {
-                        Item item = rewardGroup.Items[i].Construct();
+                        var item = rewardGroup.Items[i].Construct();
 
                         if (item != null)
                             list.Add(item);
@@ -91,11 +91,11 @@ namespace Server.Engines.BulkOrders
                 }
                 else
                 {
-                    RewardItem rewardItem = rewardGroup.AcquireItem();
+                    var rewardItem = rewardGroup.AcquireItem();
 
                     if (rewardItem != null)
                     {
-                        Item item = rewardItem.Construct();
+                        var item = rewardItem.Construct();
 
                         if (item != null)
                             list.Add(item);
@@ -110,14 +110,14 @@ namespace Server.Engines.BulkOrders
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -6,6 +6,12 @@ namespace Server.Mobiles
     [CorpseName("a juka corpse")]
     public class JukaWarrior : BaseCreature
     {
+        public override bool AlwaysMurderer => true;
+
+        public override bool CanRummageCorpses => true;
+
+        public override int Meat => 1;
+
         [Constructable]
         public JukaWarrior()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -51,27 +57,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool AlwaysMurderer
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool CanRummageCorpses
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override int Meat
-        {
-            get
-            {
-                return 1;
-            }
-        }
         public override void GenerateLoot()
         {
             AddLoot(LootPack.Average);
@@ -106,39 +91,39 @@ namespace Server.Mobiles
             if (0.2 < Utility.RandomDouble())
                 return;
 
-            switch ( Utility.Random(3) )
+            switch (Utility.Random(3))
             {
                 case 0:
-                    {
-                        defender.SendLocalizedMessage(1004014); // You have been stunned!
-                        defender.Freeze(TimeSpan.FromSeconds(4.0));
-                        break;
-                    }
+                {
+                    defender.SendLocalizedMessage(1004014); // You have been stunned!
+                    defender.Freeze(TimeSpan.FromSeconds(4.0));
+                    break;
+                }
                 case 1:
-                    {
-                        defender.SendAsciiMessage("You have been hit by a paralyzing blow!");
-                        defender.Freeze(TimeSpan.FromSeconds(3.0));
-                        break;
-                    }
+                {
+                    defender.SendAsciiMessage("You have been hit by a paralyzing blow!");
+                    defender.Freeze(TimeSpan.FromSeconds(3.0));
+                    break;
+                }
                 case 2:
-                    {
-                        AOS.Damage(defender, this, Utility.Random(10, 5), 100, 0, 0, 0, 0);
-                        defender.SendAsciiMessage("You have been hit by a critical strike!");
-                        break;
-                    }
+                {
+                    AOS.Damage(defender, this, Utility.Random(10, 5), 100, 0, 0, 0, 0);
+                    defender.SendAsciiMessage("You have been hit by a critical strike!");
+                    break;
+                }
             }
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

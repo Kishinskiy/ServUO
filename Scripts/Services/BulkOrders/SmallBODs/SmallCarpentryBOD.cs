@@ -6,7 +6,7 @@ namespace Server.Engines.BulkOrders
 {
     public class SmallCarpentryBOD : SmallBOD
     {
-        public static double[] m_CarpentryMaterialChances = new double[]
+        public static double[] m_CarpentryMaterialChances =
         {
             0.513718750, // None
             0.292968750, // Oak
@@ -17,51 +17,52 @@ namespace Server.Engines.BulkOrders
             0.003000000 // Frostwood
         };
 
-        public override BODType BODType { get { return BODType.Carpentry; } }
+        public override BODType BODType => BODType.Carpentry;
 
         [Constructable]
         public SmallCarpentryBOD()
         {
             SmallBulkEntry[] entries;
-            bool useMaterials = Utility.RandomBool();
+            var useMaterials = Utility.RandomBool();
 
             entries = SmallBulkEntry.CarpentrySmalls;
 
             if (entries.Length > 0)
             {
-                int amountMax = Utility.RandomList(10, 15, 20);
+                var amountMax = Utility.RandomList(10, 15, 20);
 
-                BulkMaterialType material = BulkMaterialType.None;
-                
-                if(useMaterials)
+                var material = BulkMaterialType.None;
+
+                if (useMaterials)
                     material = GetRandomMaterial(BulkMaterialType.OakWood, m_CarpentryMaterialChances);
 
-                bool reqExceptional = Utility.RandomBool() || (material == BulkMaterialType.None);
+                var reqExceptional = Utility.RandomBool() || material == BulkMaterialType.None;
 
-                SmallBulkEntry entry = entries[Utility.Random(entries.Length)];
+                var entry = entries[Utility.Random(entries.Length)];
 
-                this.Hue = 1512;
-                this.AmountMax = amountMax;
-                this.Type = entry.Type;
-                this.Number = entry.Number;
-                this.Graphic = entry.Graphic;
-                this.RequireExceptional = reqExceptional;
-                this.Material = material;
-                this.GraphicHue = entry.Hue;
+                Hue = 1512;
+                AmountMax = amountMax;
+                Type = entry.Type;
+                Number = entry.Number;
+                Graphic = entry.Graphic;
+                RequireExceptional = reqExceptional;
+                Material = material;
+                GraphicHue = entry.Hue;
             }
         }
 
-        public SmallCarpentryBOD(int amountCur, int amountMax, Type type, int number, int graphic, bool reqExceptional, BulkMaterialType mat, int hue)
+        public SmallCarpentryBOD(int amountCur, int amountMax, Type type, int number, int graphic, bool reqExceptional,
+            BulkMaterialType mat, int hue)
         {
-            this.Hue = 1512;
-            this.AmountMax = amountMax;
-            this.AmountCur = amountCur;
-            this.Type = type;
-            this.Number = number;
-            this.Graphic = graphic;
-            this.RequireExceptional = reqExceptional;
-            this.Material = mat;
-            this.GraphicHue = hue;
+            Hue = 1512;
+            AmountMax = amountMax;
+            AmountCur = amountCur;
+            Type = type;
+            Number = number;
+            Graphic = graphic;
+            RequireExceptional = reqExceptional;
+            Material = mat;
+            GraphicHue = hue;
         }
 
         public SmallCarpentryBOD(Serial serial)
@@ -71,21 +72,21 @@ namespace Server.Engines.BulkOrders
 
         private SmallCarpentryBOD(SmallBulkEntry entry, BulkMaterialType material, int amountMax, bool reqExceptional)
         {
-            this.Hue = 1512;
-            this.AmountMax = amountMax;
-            this.Type = entry.Type;
-            this.Number = entry.Number;
-            this.Graphic = entry.Graphic;
-            this.RequireExceptional = reqExceptional;
-            this.Material = material;
+            Hue = 1512;
+            AmountMax = amountMax;
+            Type = entry.Type;
+            Number = entry.Number;
+            Graphic = entry.Graphic;
+            RequireExceptional = reqExceptional;
+            Material = material;
         }
 
         public static SmallCarpentryBOD CreateRandomFor(Mobile m)
         {
             SmallBulkEntry[] entries;
-            bool useMaterials = Utility.RandomBool();
+            var useMaterials = Utility.RandomBool();
 
-            double theirSkill = BulkOrderSystem.GetBODSkill(m, SkillName.Carpentry);
+            var theirSkill = BulkOrderSystem.GetBODSkill(m, SkillName.Carpentry);
 
             entries = SmallBulkEntry.CarpentrySmalls;
 
@@ -100,14 +101,13 @@ namespace Server.Engines.BulkOrders
                 else
                     amountMax = Utility.RandomList(10, 10, 15, 20);
 
-                BulkMaterialType material = BulkMaterialType.None;
+                var material = BulkMaterialType.None;
 
                 if (useMaterials && theirSkill >= 70.1)
-                {
-                    for (int i = 0; i < 20; ++i)
+                    for (var i = 0; i < 20; ++i)
                     {
-                        BulkMaterialType check = GetRandomMaterial(BulkMaterialType.OakWood, m_CarpentryMaterialChances);
-                        double skillReq = GetRequiredSkill(check);
+                        var check = GetRandomMaterial(BulkMaterialType.OakWood, m_CarpentryMaterialChances);
+                        var skillReq = GetRequiredSkill(check);
 
                         if (theirSkill >= skillReq)
                         {
@@ -115,27 +115,26 @@ namespace Server.Engines.BulkOrders
                             break;
                         }
                     }
-                }
 
-                double excChance = 0.0;
+                var excChance = 0.0;
 
                 if (theirSkill >= 70.1)
                     excChance = (theirSkill + 80.0) / 200.0;
 
-                bool reqExceptional = (excChance > Utility.RandomDouble());
+                var reqExceptional = excChance > Utility.RandomDouble();
 
-                CraftSystem system = DefCarpentry.CraftSystem;
+                var system = DefCarpentry.CraftSystem;
 
-                List<SmallBulkEntry> validEntries = new List<SmallBulkEntry>();
+                var validEntries = new List<SmallBulkEntry>();
 
-                for (int i = 0; i < entries.Length; ++i)
+                for (var i = 0; i < entries.Length; ++i)
                 {
-                    CraftItem item = system.CraftItems.SearchFor(entries[i].Type);
+                    var item = system.CraftItems.SearchFor(entries[i].Type);
 
                     if (item != null)
                     {
-                        bool allRequiredSkills = true;
-                        double chance = item.GetSuccessChance(m, null, system, false, ref allRequiredSkills);
+                        var allRequiredSkills = true;
+                        var chance = item.GetSuccessChance(m, null, system, false, ref allRequiredSkills);
 
                         if (allRequiredSkills && chance >= 0.0)
                         {
@@ -150,7 +149,7 @@ namespace Server.Engines.BulkOrders
 
                 if (validEntries.Count > 0)
                 {
-                    SmallBulkEntry entry = validEntries[Utility.Random(validEntries.Count)];
+                    var entry = validEntries[Utility.Random(validEntries.Count)];
                     return new SmallCarpentryBOD(entry, material, amountMax, reqExceptional);
                 }
             }
@@ -177,14 +176,14 @@ namespace Server.Engines.BulkOrders
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

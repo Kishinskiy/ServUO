@@ -1,20 +1,24 @@
-using System;
+using System.Collections.Generic;
+using Server.ContextMenus;
+using Server.Engines.VeteranRewards;
 using Server.Gumps;
 using Server.Network;
-using Server.ContextMenus;
-using System.Collections.Generic;
-using Server.Engines.VeteranRewards;
 
 namespace Server.Items
 {
     public class GardenShedComponent : AddonContainerComponent
     {
-        public override int LabelNumber { get { return 1153492; } } // garden shed
+        public override int LabelNumber => 1153492; // garden shed
 
         public GardenShedComponent(int itemID)
             : base(itemID)
         {
             Weight = 0;
+        }
+
+        public GardenShedComponent(Serial serial)
+            : base(serial)
+        {
         }
 
         public override void OnDoubleClick(Mobile from)
@@ -25,45 +29,40 @@ namespace Server.Items
         {
         }
 
-        public GardenShedComponent(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class GardenShedAddon : BaseAddonContainer
     {
-        public override BaseAddonContainerDeed Deed { get { return new GardenShedDeed(); } }
-        public override int LabelNumber { get { return 1153492; } } // garden shed
-        public override int DefaultGumpID { get { return 0x10B; } }
-        public override int DefaultDropSound { get { return 0x42; } }
-        public BaseAddonContainer m_SecondContainer;
         private Point3D m_Offset;
+        public BaseAddonContainer m_SecondContainer;
+        public override BaseAddonContainerDeed Deed => new GardenShedDeed();
+        public override int LabelNumber => 1153492; // garden shed
+        public override int DefaultGumpID => 0x10B;
+        public override int DefaultDropSound => 0x42;
 
         [CommandProperty(AccessLevel.GameMaster)]
         public BaseAddonContainer SecondContainer
         {
-            get { return m_SecondContainer; }
-            set { m_SecondContainer = value; }
+            get => m_SecondContainer;
+            set => m_SecondContainer = value;
         }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public Point3D Offset
         {
-            get { return m_Offset; }
-            set { m_Offset = value; }
+            get => m_Offset;
+            set => m_Offset = value;
         }
 
         [Constructable]
@@ -73,7 +72,7 @@ namespace Server.Items
 
             if (east) // East
             {
-                AddComponent(new GardenShedComponent(0x4BEA), 0, 1, 0);                
+                AddComponent(new GardenShedComponent(0x4BEA), 0, 1, 0);
                 AddComponent(new GardenShedComponent(0x4BEC), 0, -1, 0);
                 AddComponent(new GardenShedComponent(0x4BF1), -1, 1, 0);
                 AddComponent(new GardenShedComponent(0x4BF0), -1, 0, 0);
@@ -84,7 +83,7 @@ namespace Server.Items
                 AddComponent(new GardenShedComponent(0x4BEA), -2, 1, 0);
                 Offset = new Point3D(0, -2, 0);
             }
-            else    // South
+            else // South
             {
                 AddComponent(new GardenShedComponent(0x4BE2), 2, -1, 0);
                 AddComponent(new GardenShedComponent(0x4BE5), -1, -1, 0);
@@ -92,7 +91,7 @@ namespace Server.Items
                 AddComponent(new GardenShedComponent(0x4BE1), 2, -2, 0);
                 AddComponent(new GardenShedComponent(0x4BE8), 1, 0, 0);
                 AddComponent(new GardenShedComponent(0x4BE3), 1, -1, 0);
-                AddComponent(new GardenShedComponent(0x4BE6), -1, 0, 0);                
+                AddComponent(new GardenShedComponent(0x4BE6), -1, 0, 0);
                 AddComponent(new GardenShedComponent(0x4BE0), 1, -2, 0);
                 AddComponent(new GardenShedComponent(0x4BE4), 0, -1, 0);
                 Offset = new Point3D(2, 0, 0);
@@ -108,9 +107,7 @@ namespace Server.Items
             base.OnLocationChange(old);
 
             if (SecondContainer != null)
-            {
                 SecondContainer.MoveToWorld(new Point3D(X + m_Offset.X, Y + m_Offset.Y, Z + m_Offset.Z), Map);
-            }
         }
 
         public override void OnMapChange()
@@ -120,10 +117,7 @@ namespace Server.Items
             if (Deleted)
                 return;
 
-            if (SecondContainer != null)
-            {
-                SecondContainer.Map = Map;
-            }
+            if (SecondContainer != null) SecondContainer.Map = Map;
         }
 
         public override void OnDelete()
@@ -150,7 +144,7 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
 
             writer.Write(m_SecondContainer);
             writer.Write(m_Offset);
@@ -159,7 +153,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             m_SecondContainer = reader.ReadItem() as BaseAddonContainer;
             m_Offset = reader.ReadPoint3D();
@@ -170,6 +164,11 @@ namespace Server.Items
     public class GardenShedBarrel : BaseAddonContainer
     {
         public GardenShedAddon m_MainContainer;
+
+        public override BaseAddonContainerDeed Deed => m_MainContainer.Deed;
+        public override int LabelNumber => 1153492; // garden shed
+        public override int DefaultGumpID => 0x3E;
+        public override int DefaultDropSound => 0x42;
 
         [Constructable]
         public GardenShedBarrel(GardenShedAddon container, bool east)
@@ -183,14 +182,10 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonContainerDeed Deed { get { return m_MainContainer.Deed; } }
-        public override int LabelNumber { get { return 1153492; } } // garden shed
-        public override int DefaultGumpID { get { return 0x3E; } }
-        public override int DefaultDropSound { get { return 0x42; } }
-
         public override void OnLocationChange(Point3D old)
         {
-            m_MainContainer.Location = new Point3D(X - m_MainContainer.Offset.X, Y - m_MainContainer.Offset.Y, Z - m_MainContainer.Offset.Z);
+            m_MainContainer.Location = new Point3D(X - m_MainContainer.Offset.X, Y - m_MainContainer.Offset.Y,
+                Z - m_MainContainer.Offset.Z);
         }
 
         public override void OnMapChange()
@@ -226,7 +221,7 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
 
             writer.Write(m_MainContainer);
         }
@@ -234,7 +229,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             m_MainContainer = reader.ReadItem() as GardenShedAddon;
         }
@@ -242,16 +237,12 @@ namespace Server.Items
 
     public class GardenShedDeed : BaseAddonContainerDeed, IRewardItem
     {
-        public override BaseAddonContainer Addon { get { return new GardenShedAddon(m_East); } }
-        public override int LabelNumber { get { return 1153491; } } // Garden Shed Deed
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public bool IsRewardItem { get; set; }
-
         private bool m_East;
+        public override BaseAddonContainer Addon => new GardenShedAddon(m_East);
+        public override int LabelNumber => 1153491; // Garden Shed Deed
 
         [Constructable]
-        public GardenShedDeed() : base()
+        public GardenShedDeed()
         {
             LootType = LootType.Blessed;
         }
@@ -259,6 +250,9 @@ namespace Server.Items
         public GardenShedDeed(Serial serial) : base(serial)
         {
         }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public bool IsRewardItem { get; set; }
 
         public override void OnDoubleClick(Mobile from)
         {
@@ -268,14 +262,16 @@ namespace Server.Items
                 from.SendGump(new InternalGump(this));
             }
             else
+            {
                 from.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.
+            }
         }
 
         public override void GetProperties(ObjectPropertyList list)
         {
             base.GetProperties(list);
 
-            if(IsRewardItem)
+            if (IsRewardItem)
                 list.Add(1113805); // 15th Year Veteran Reward
         }
 
@@ -295,7 +291,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
 
             if (version > 0)
                 IsRewardItem = reader.ReadBool();
@@ -303,7 +299,7 @@ namespace Server.Items
 
         private class InternalGump : Gump
         {
-            private GardenShedDeed m_Deed;
+            private readonly GardenShedDeed m_Deed;
 
             public InternalGump(GardenShedDeed deed) : base(60, 36)
             {
@@ -333,7 +329,7 @@ namespace Server.Items
                 if (m_Deed == null || m_Deed.Deleted || info.ButtonID == 0)
                     return;
 
-                m_Deed.m_East = (info.ButtonID != 1);
+                m_Deed.m_East = info.ButtonID != 1;
                 m_Deed.SendTarget(sender.Mobile);
             }
         }

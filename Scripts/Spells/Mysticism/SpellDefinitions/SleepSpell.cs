@@ -1,23 +1,24 @@
 using System;
-using Server;
-using Server.Targeting;
 using System.Collections.Generic;
 using Server.Network;
+using Server.Targeting;
 
 namespace Server.Spells.Mysticism
 {
     public class SleepSpell : MysticSpell
     {
-        public override SpellCircle Circle { get { return SpellCircle.Third; } }
+        private static readonly SpellInfo m_Info = new SpellInfo(
+            "Sleep", "In Zu",
+            230,
+            9022,
+            Reagent.Nightshade,
+            Reagent.SpidersSilk,
+            Reagent.BlackPearl
+        );
 
-        private static SpellInfo m_Info = new SpellInfo(
-                "Sleep", "In Zu",
-                230,
-                9022,
-                Reagent.Nightshade,
-                Reagent.SpidersSilk,
-                Reagent.BlackPearl
-            );
+        private static readonly Dictionary<Mobile, SleepTimer> m_Table = new Dictionary<Mobile, SleepTimer>();
+        private static readonly List<Mobile> m_ImmunityList = new List<Mobile>();
+        public override SpellCircle Circle => SpellCircle.Third;
 
         public SleepSpell(Mobile caster, Item scroll) : base(caster, scroll, m_Info)
         {
@@ -30,13 +31,11 @@ namespace Server.Spells.Mysticism
 
         public void OnTarget(object o)
         {
-            Mobile target = o as Mobile;
+            var target = o as Mobile;
 
-            if (target == null)
-            {
-                return;
-            }
-            else if (target.Paralyzed)
+            if (target == null) return;
+
+            if (target.Paralyzed)
             {
                 Caster.SendLocalizedMessage(1080134); //Your target is already immobilized and cannot be slept.
             }
@@ -48,7 +47,7 @@ namespace Server.Spells.Mysticism
             {
                 SpellHelper.CheckReflect((int)Circle, Caster, ref target);
 
-                double duration = ((Caster.Skills[CastSkill].Value + Caster.Skills[DamageSkill].Value) / 20) + 2;
+                var duration = (Caster.Skills[CastSkill].Value + Caster.Skills[DamageSkill].Value) / 20 + 2;
                 duration -= GetResistSkill(target) / 10;
 
                 if (duration <= 0 || StoneFormSpell.CheckImmunity(target))
@@ -57,14 +56,13 @@ namespace Server.Spells.Mysticism
                     target.SendLocalizedMessage(1080137); //You resist sleep.
                 }
                 else
+                {
                     DoSleep(Caster, target, TimeSpan.FromSeconds(duration));
+                }
             }
 
             FinishSequence();
         }
-
-        private static Dictionary<Mobile, SleepTimer> m_Table = new Dictionary<Mobile, SleepTimer>();
-        private static List<Mobile> m_ImmunityList = new List<Mobile>();
 
         public static void DoSleep(Mobile caster, Mobile target, TimeSpan duration)
         {
@@ -97,10 +95,39 @@ namespace Server.Spells.Mysticism
                 EndSleep(from);
         }
 
+        public static void EndSleep(Mobile target)
+        {
+            if (m_Table.ContainsKey(target))
+            {
+                target.SendSpeedControl(SpeedControlType.Disable);
+
+                m_Table[target].Stop();
+                m_Table.Remove(target);
+
+                BuffInfo.RemoveBuff(target, BuffIcon.Sleep);
+
+                var immduration = target.Skills[SkillName.MagicResist].Value / 10;
+
+                m_ImmunityList.Add(target);
+                Timer.DelayCall(TimeSpan.FromSeconds(immduration), new TimerStateCallback(RemoveImmunity_Callback),
+                    target);
+
+                target.Delta(MobileDelta.WeaponDamage);
+            }
+        }
+
+        public static void RemoveImmunity_Callback(object state)
+        {
+            var m = (Mobile)state;
+
+            if (m_ImmunityList.Contains(m))
+                m_ImmunityList.Remove(m);
+        }
+
         public class SleepTimer : Timer
         {
-            private Mobile m_Target;
-            private DateTime m_EndTime;
+            private readonly DateTime m_EndTime;
+            private readonly Mobile m_Target;
 
             public SleepTimer(Mobile target, TimeSpan duration)
                 : base(TimeSpan.Zero, TimeSpan.FromSeconds(0.5))
@@ -124,34 +151,6 @@ namespace Server.Spells.Mysticism
             }
         }
 
-        public static void EndSleep(Mobile target)
-        {
-            if (m_Table.ContainsKey(target))
-            {
-                target.SendSpeedControl(SpeedControlType.Disable);
-
-                m_Table[target].Stop();
-                m_Table.Remove(target);
-
-                BuffInfo.RemoveBuff(target, BuffIcon.Sleep);
-
-                double immduration = target.Skills[SkillName.MagicResist].Value / 10;
-
-                m_ImmunityList.Add(target);
-                Timer.DelayCall(TimeSpan.FromSeconds(immduration), new TimerStateCallback(RemoveImmunity_Callback), target);
-
-                target.Delta(MobileDelta.WeaponDamage);
-            }
-        }
-
-        public static void RemoveImmunity_Callback(object state)
-        {
-            Mobile m = (Mobile)state;
-
-            if (m_ImmunityList.Contains(m))
-                m_ImmunityList.Remove(m);
-        }
-
         public class InternalTarget : Target
         {
             public SleepSpell Owner { get; set; }
@@ -173,7 +172,9 @@ namespace Server.Spells.Mysticism
                     return;
 
                 if (!from.CanSee(o))
+                {
                     from.SendLocalizedMessage(500237); // Target can not be seen.
+                }
                 else
                 {
                     SpellHelper.Turn(from, o);

@@ -1,4 +1,3 @@
-using Server;
 using System;
 using Server.Engines.CityLoyalty;
 
@@ -12,7 +11,7 @@ namespace Server.Services.TownCryer
         public DateTime Expires { get; set; }
         public City City { get; set; }
 
-        public bool Expired { get { return Expires < DateTime.Now; } }
+        public bool Expired => Expires < DateTime.Now;
 
         public TownCryerCityEntry(Mobile author, City city, int duration, string title, string body)
         {
@@ -21,6 +20,17 @@ namespace Server.Services.TownCryer
             Title = title;
             Body = body;
             City = city;
+        }
+
+        public TownCryerCityEntry(GenericReader reader)
+        {
+            var version = reader.ReadInt();
+
+            Title = reader.ReadString();
+            Body = reader.ReadString();
+            Expires = reader.ReadDateTime();
+            Author = reader.ReadString();
+            City = (City)reader.ReadInt();
         }
 
         public void Serialize(GenericWriter writer)
@@ -32,17 +42,6 @@ namespace Server.Services.TownCryer
             writer.Write(Expires);
             writer.Write(Author);
             writer.Write((int)City);
-        }
-
-        public TownCryerCityEntry(GenericReader reader)
-        {
-            int version = reader.ReadInt();
-
-            Title = reader.ReadString();
-            Body = reader.ReadString();
-            Expires = reader.ReadDateTime();
-            Author = reader.ReadString();
-            City = (City)reader.ReadInt();
         }
     }
 }

@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +5,16 @@ namespace Server.Mobiles
     [CorpseName("an butcher corpse")]
     public class TheButcher : BaseCreature
     {
+        public override bool IgnoreYoungProtection => Core.ML;
+        public override bool AutoDispel => true;
+        public override bool BardImmune => !Core.SE;
+        public override bool Unprovokable => Core.SE;
+        public override bool AreaPeaceImmune => Core.SE;
+        public override Poison PoisonImmune => Poison.Lethal;
+        public override Poison HitPoison => 0.8 >= Utility.RandomDouble() ? Poison.Greater : Poison.Deadly;
+        public override int TreasureMapLevel => 1;
+        public override bool AlwaysMurderer => true;
+
         [Constructable]
         public TheButcher()
             : base(AIType.AI_Necro, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -57,16 +66,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool IgnoreYoungProtection { get { return Core.ML; } }
-        public override bool AutoDispel { get { return true; } }
-        public override bool BardImmune { get { return !Core.SE; } }
-        public override bool Unprovokable { get { return Core.SE; } }
-        public override bool AreaPeaceImmune { get { return Core.SE; } }
-        public override Poison PoisonImmune { get { return Poison.Lethal; } }
-        public override Poison HitPoison { get { return 0.8 >= Utility.RandomDouble() ? Poison.Greater : Poison.Deadly; } }
-        public override int TreasureMapLevel { get { return 1; } }
-        public override bool AlwaysMurderer { get { return true; } }
-
         public override WeaponAbility GetWeaponAbility()
         {
             return Utility.RandomBool() ? WeaponAbility.MortalStrike : WeaponAbility.BleedAttack;
@@ -80,13 +79,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

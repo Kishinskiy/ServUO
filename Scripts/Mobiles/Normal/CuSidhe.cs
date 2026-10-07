@@ -1,12 +1,25 @@
 using System;
 using Server.Items;
+using Server.SkillHandlers;
 
 namespace Server.Mobiles
 {
     [CorpseName("a cu sidhe corpse")]
     public class CuSidhe : BaseMount
     {
-        public override double HealChance { get { return 1.0; } }
+        public override double HealChance => 1.0;
+
+        public override int TreasureMapLevel => 5;
+
+        public override FoodType FavoriteFood => FoodType.FruitsAndVegies;
+
+        public override bool CanAngerOnTame => true;
+
+        public override bool StatLossAfterTame => true;
+
+        public override int Hides => 10;
+
+        public override int Meat => 3;
 
         [Constructable]
         public CuSidhe()
@@ -18,7 +31,7 @@ namespace Server.Mobiles
         public CuSidhe(string name)
             : base(name, 277, 0x3E91, AIType.AI_Animal, FightMode.Aggressor, 10, 1, 0.2, 0.4)
         {
-            double chance = Utility.RandomDouble() * 23301;
+            var chance = Utility.RandomDouble() * 23301;
 
             if (chance <= 1)
                 Hue = 0x489;
@@ -51,8 +64,8 @@ namespace Server.Mobiles
             SetSkill(SkillName.Anatomy, 65.5, 69.4);
             SetSkill(SkillName.Healing, 72.2, 98.9);
 
-            Fame = 5000;  //Guessing here
-            Karma = 5000;  //Guessing here
+            Fame = 5000; //Guessing here
+            Karma = 5000; //Guessing here
 
             Tamable = true;
             ControlSlots = 4;
@@ -68,46 +81,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override int TreasureMapLevel
-        {
-            get { return 5; }
-        }
-
-        public override FoodType FavoriteFood
-        {
-            get
-            {
-                return FoodType.FruitsAndVegies;
-            }
-        }
-        public override bool CanAngerOnTame
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool StatLossAfterTame
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override int Hides
-        {
-            get
-            {
-                return 10;
-            }
-        }
-        public override int Meat
-        {
-            get
-            {
-                return 3;
-            }
-        }
         public override void GenerateLoot()
         {
             AddLoot(LootPack.AosFilthyRich, 5);
@@ -139,10 +112,12 @@ namespace Server.Mobiles
         {
             if (from.Race != Race.Elf && from == ControlMaster && from.IsPlayer())
             {
-                Item pads = from.FindItemOnLayer(Layer.Shoes);
+                var pads = from.FindItemOnLayer(Layer.Shoes);
 
                 if (pads is PadsOfTheCuSidhe)
+                {
                     from.SendLocalizedMessage(1071981); // Your boots allow you to mount the Cu Sidhe.
+                }
                 else
                 {
                     from.SendLocalizedMessage(1072203); // Only Elves may use 
@@ -182,27 +157,22 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)3); // version
+            writer.Write(3); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (version < 3 && Controlled && RawStr >= 1200 && ControlSlots == ControlSlotsMin)
-            {
-                Server.SkillHandlers.AnimalTaming.ScaleStats(this, 0.5);
-            }
+                AnimalTaming.ScaleStats(this, 0.5);
 
             if (version < 1 && Name == "a Cu Sidhe")
                 Name = "a cu sidhe";
 
-            if (version == 1)
-            {
-                SetWeaponAbility(WeaponAbility.BleedAttack);
-            }
+            if (version == 1) SetWeaponAbility(WeaponAbility.BleedAttack);
         }
     }
 }

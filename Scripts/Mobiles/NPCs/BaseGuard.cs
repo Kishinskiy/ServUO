@@ -1,10 +1,11 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
 {
     public abstract class BaseGuard : Mobile
     {
+        public abstract Mobile Focus { get; set; }
+
         public BaseGuard(Mobile target)
         {
             GuardImmune = true;
@@ -14,7 +15,8 @@ namespace Server.Mobiles
                 Location = target.Location;
                 Map = target.Map;
 
-                Effects.SendLocationParticles(EffectItem.Create(Location, Map, EffectItem.DefaultDuration), 0x3728, 10, 10, 5023);
+                Effects.SendLocationParticles(EffectItem.Create(Location, Map, EffectItem.DefaultDuration), 0x3728, 10,
+                    10, 5023);
             }
         }
 
@@ -23,14 +25,9 @@ namespace Server.Mobiles
         {
         }
 
-        public abstract Mobile Focus { get; set; }
-
         public override bool CanBeHarmful(IDamageable target, bool message, bool ignoreOurBlessedness)
         {
-            if (target is Mobile && ((Mobile)target).GuardImmune)
-            {
-                return false;
-            }
+            if (target is Mobile && ((Mobile)target).GuardImmune) return false;
 
             return base.CanBeHarmful(target, message, ignoreOurBlessedness);
         }
@@ -48,10 +45,9 @@ namespace Server.Mobiles
             IPooledEnumerable eable = target.GetMobilesInRange(15);
 
             foreach (Mobile m in eable)
-            {
                 if (m is BaseGuard)
                 {
-                    BaseGuard g = (BaseGuard)m;
+                    var g = (BaseGuard)m;
 
                     if (g.Focus == null) // idling
                     {
@@ -64,7 +60,6 @@ namespace Server.Mobiles
                         --amount;
                     }
                 }
-            }
 
             eable.Free();
 
@@ -74,7 +69,8 @@ namespace Server.Mobiles
 
         public override bool OnBeforeDeath()
         {
-            Effects.SendLocationParticles(EffectItem.Create(Location, Map, EffectItem.DefaultDuration), 0x3728, 10, 10, 2023);
+            Effects.SendLocationParticles(EffectItem.Create(Location, Map, EffectItem.DefaultDuration), 0x3728, 10, 10,
+                2023);
 
             PlaySound(0x1FE);
 
@@ -87,14 +83,14 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -1,21 +1,10 @@
-using System;
-using Server;
 using Server.Engines.VeteranRewards;
 
 namespace Server.Items
 {
     public class AllegiancePouch : Backpack, IRewardItem
     {
-        private bool m_IsRewardItem;
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public bool IsRewardItem
-        {
-            get { return m_IsRewardItem; }
-            set { m_IsRewardItem = value; }
-        }
-
-        public override int LabelNumber { get { return 1113953; } } //Allegiance Pouch
+        public override int LabelNumber => 1113953; //Allegiance Pouch
 
         [Constructable]
         public AllegiancePouch()
@@ -28,29 +17,32 @@ namespace Server.Items
             DropItem(new ChaosBanner());
         }
 
-        public override void GetProperties(ObjectPropertyList list)
-        {
-            base.GetProperties(list);
-
-            if (m_IsRewardItem)
-                list.Add(1113802); // 12th Year Veteran Reward
-        }
-
         public AllegiancePouch(Serial serial)
             : base(serial)
         {
         }
 
+        [CommandProperty(AccessLevel.GameMaster)]
+        public bool IsRewardItem { get; set; }
+
+        public override void GetProperties(ObjectPropertyList list)
+        {
+            base.GetProperties(list);
+
+            if (IsRewardItem)
+                list.Add(1113802); // 12th Year Veteran Reward
+        }
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

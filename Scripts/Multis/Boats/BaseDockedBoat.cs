@@ -1,5 +1,3 @@
-using System;
-using Server;
 using Server.Gumps;
 using Server.Items;
 
@@ -31,6 +29,8 @@ namespace Server.Multis
         [CommandProperty(AccessLevel.GameMaster)]
         public BaseBoat BoatItem { get; set; }
 
+        public abstract BaseBoat Boat { get; }
+
         public BaseDockedBoat(int id, Point3D offset, BaseBoat boat)
             : base(0x14F4)
         {
@@ -46,6 +46,11 @@ namespace Server.Multis
             Hue = boat.Hue;
         }
 
+        public BaseDockedBoat(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void OnAfterDelete()
         {
             base.OnAfterDelete();
@@ -54,15 +59,10 @@ namespace Server.Multis
                 BoatItem.Delete();
         }
 
-        public BaseDockedBoat(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)6); // version
+            writer.Write(6); // version
 
             writer.Write(MultiID);
             writer.Write(Offset);
@@ -72,25 +72,25 @@ namespace Server.Multis
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             switch (version)
             {
                 case 6:
-                    {
-                        MultiID = reader.ReadInt();
-                        Offset = reader.ReadPoint3D();
-                        BoatItem = reader.ReadItem() as BaseBoat;
-                        break;
-                    }
+                {
+                    MultiID = reader.ReadInt();
+                    Offset = reader.ReadPoint3D();
+                    BoatItem = reader.ReadItem() as BaseBoat;
+                    break;
+                }
                 case 5:
-                    {
-                        MultiID = reader.ReadInt();
-                        Offset = reader.ReadPoint3D();
-                        reader.ReadString();
-                        BoatItem = reader.ReadItem() as BaseBoat;
-                        break;
-                    }
+                {
+                    MultiID = reader.ReadInt();
+                    Offset = reader.ReadPoint3D();
+                    reader.ReadString();
+                    BoatItem = reader.ReadItem() as BaseBoat;
+                    break;
+                }
             }
         }
 
@@ -110,8 +110,6 @@ namespace Server.Multis
                 from.SendGump(new BoatPlacementGump(this, from));
             }
         }
-
-        public abstract BaseBoat Boat { get; }
 
         public override void AddNameProperty(ObjectPropertyList list)
         {
@@ -136,7 +134,6 @@ namespace Server.Multis
         {
             if (Deleted)
             {
-                return;
             }
             else if (!IsChildOf(from.Backpack))
             {
@@ -144,13 +141,13 @@ namespace Server.Multis
             }
             else
             {
-                Map map = from.Map;
+                var map = from.Map;
 
                 if (map == null)
                     return;
 
                 BoatDirection = d;
-                BaseBoat boat = BoatItem;
+                var boat = BoatItem;
 
                 if (boat == null || boat.Deleted)
                     boat = Boat;
@@ -158,7 +155,7 @@ namespace Server.Multis
                 if (boat == null)
                     return;
 
-                Mobile oldOwner = boat.Owner;
+                var oldOwner = boat.Owner;
 
                 boat.BoatItem = this;
                 boat.Owner = from;
@@ -168,7 +165,8 @@ namespace Server.Multis
 
                 p = new Point3D(p.X - Offset.X, p.Y - Offset.Y, p.Z - Offset.Z);
 
-                if (BaseBoat.IsValidLocation(p, map) && boat.CanFit(p, map, itemID) && map != Map.Ilshenar && map != Map.Malas)
+                if (BaseBoat.IsValidLocation(p, map) && boat.CanFit(p, map, itemID) && map != Map.Ilshenar &&
+                    map != Map.Malas)
                 {
                     boat.SetFacing(d);
                     boat.MoveToWorld(p, map);
@@ -189,7 +187,7 @@ namespace Server.Multis
 
                     if (boat.IsClassicBoat)
                     {
-                        uint keyValue = boat.CreateKeys(from);
+                        var keyValue = boat.CreateKeys(from);
 
                         if (boat.PPlank != null)
                             boat.PPlank.KeyValue = keyValue;

@@ -6,6 +6,17 @@ namespace Server.Mobiles
     [CorpseName("an energy vortex corpse")]
     public class EnergyVortex : BaseCreature
     {
+        public override bool DeleteCorpseOnDeath => Summoned;
+
+        public override bool AlwaysMurderer => true; // Or Llama vortices will appear gray.
+        public override double DispelDifficulty => 80.0;
+
+        public override double DispelFocus => 20.0;
+
+        public override bool BleedImmune => true;
+
+        public override Poison PoisonImmune => Poison.Lethal;
+
         [Constructable]
         public EnergyVortex() : this(false)
         {
@@ -28,13 +39,13 @@ namespace Server.Mobiles
                 Body = 164;
             }
 
-            bool weak = summoned && Siege.SiegeShard;
+            var weak = summoned && Siege.SiegeShard;
 
             SetStr(weak ? 100 : 200);
             SetDex(weak ? 150 : 200);
             SetInt(100);
 
-            SetHits((Core.SE && !weak) ? 140 : 70);
+            SetHits(Core.SE && !weak ? 140 : 70);
             SetStam(250);
             SetMana(0);
 
@@ -57,7 +68,7 @@ namespace Server.Mobiles
             Karma = 0;
 
             VirtualArmor = 40;
-            ControlSlots = (Core.SE) ? 2 : 1;
+            ControlSlots = Core.SE ? 2 : 1;
         }
 
         public EnergyVortex(Serial serial)
@@ -65,48 +76,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool DeleteCorpseOnDeath
-        {
-            get
-            {
-                return Summoned;
-            }
-        }
-        public override bool AlwaysMurderer
-        {
-            get
-            {
-                return true;
-            }
-        }// Or Llama vortices will appear gray.
-        public override double DispelDifficulty
-        {
-            get
-            {
-                return 80.0;
-            }
-        }
-        public override double DispelFocus
-        {
-            get
-            {
-                return 20.0;
-            }
-        }
-        public override bool BleedImmune
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override Poison PoisonImmune
-        {
-            get
-            {
-                return Poison.Lethal;
-            }
-        }
         public override double GetFightModeRanking(Mobile m, FightMode acqType, bool bPlayerOnly)
         {
             return (m.Int + m.Skills[SkillName.Magery].Value) / Math.Max(GetDistanceToSqrt(m), 1.0);
@@ -126,25 +95,21 @@ namespace Server.Mobiles
         {
             if (Core.SE && Summoned)
             {
-                ArrayList spirtsOrVortexes = new ArrayList();
+                var spirtsOrVortexes = new ArrayList();
                 IPooledEnumerable eable = GetMobilesInRange(5);
 
                 foreach (Mobile m in eable)
-                {
                     if (m is EnergyVortex || m is BladeSpirits)
-                    {
                         if (((BaseCreature)m).Summoned)
                             spirtsOrVortexes.Add(m);
-                    }
-                }
 
                 eable.Free();
 
                 while (spirtsOrVortexes.Count > 6)
                 {
-                    int index = Utility.Random(spirtsOrVortexes.Count);
+                    var index = Utility.Random(spirtsOrVortexes.Count);
                     //TODO: Confim if it's the dispel with all the pretty effects or just a Deletion of it.
-                    Dispel(((Mobile)spirtsOrVortexes[index]));
+                    Dispel((Mobile)spirtsOrVortexes[index]);
                     spirtsOrVortexes.RemoveAt(index);
                 }
             }
@@ -156,14 +121,14 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (BaseSoundID == 263)
                 BaseSoundID = 0;

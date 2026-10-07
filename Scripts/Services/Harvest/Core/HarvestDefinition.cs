@@ -5,11 +5,6 @@ namespace Server.Engines.Harvest
 {
     public class HarvestDefinition
     {
-        public HarvestDefinition()
-        {
-            Banks = new Dictionary<Map, Dictionary<Point2D, HarvestBank>>();
-        }
-
         public int BankWidth { get; set; }
         public int BankHeight { get; set; }
         public int MinTotal { get; set; }
@@ -43,6 +38,11 @@ namespace Server.Engines.Harvest
         public bool RandomizeVeins { get; set; }
         public Dictionary<Map, Dictionary<Point2D, HarvestBank>> Banks { get; set; }
 
+        public HarvestDefinition()
+        {
+            Banks = new Dictionary<Map, Dictionary<Point2D, HarvestBank>>();
+        }
+
         public void SendMessageTo(Mobile from, object message)
         {
             if (message is int)
@@ -59,13 +59,13 @@ namespace Server.Engines.Harvest
             x /= BankWidth;
             y /= BankHeight;
 
-            Banks.TryGetValue(map, out Dictionary<Point2D, HarvestBank> banks);
+            Banks.TryGetValue(map, out var banks);
 
             if (banks == null)
                 Banks[map] = banks = new Dictionary<Point2D, HarvestBank>();
 
-            Point2D key = new Point2D(x, y);
-            banks.TryGetValue(key, out HarvestBank bank);
+            var key = new Point2D(x, y);
+            banks.TryGetValue(key, out var bank);
 
             if (bank == null)
                 banks[key] = bank = new HarvestBank(this, GetVeinAt(map, x, y));
@@ -86,7 +86,7 @@ namespace Server.Engines.Harvest
             }
             else
             {
-                Random random = new Random((x * 17) + (y * 11) + (map.MapID * 3));
+                var random = new Random(x * 17 + y * 11 + map.MapID * 3);
                 randomValue = random.NextDouble();
             }
 
@@ -100,7 +100,7 @@ namespace Server.Engines.Harvest
 
             randomValue *= 100;
 
-            for (int i = 0; i < Veins.Length; ++i)
+            for (var i = 0; i < Veins.Length; ++i)
             {
                 if (randomValue <= Veins[i].VeinChance)
                     return Veins[i];
@@ -116,9 +116,9 @@ namespace Server.Engines.Harvest
             if (BonusResources == null)
                 return null;
 
-            double randomValue = Utility.RandomDouble() * 100;
+            var randomValue = Utility.RandomDouble() * 100;
 
-            for (int i = 0; i < BonusResources.Length; ++i)
+            for (var i = 0; i < BonusResources.Length; ++i)
             {
                 if (randomValue <= BonusResources[i].Chance)
                     return BonusResources[i];
@@ -133,39 +133,37 @@ namespace Server.Engines.Harvest
         {
             if (RangedTiles)
             {
-                bool contains = false;
+                var contains = false;
 
-                for (int i = 0; !contains && i < Tiles.Length; i += 2)
+                for (var i = 0; !contains && i < Tiles.Length; i += 2)
                     contains = tileID >= Tiles[i] && tileID <= Tiles[i + 1];
 
                 return contains;
             }
-            else
-            {
-                int dist = -1;
 
-                for (int i = 0; dist < 0 && i < Tiles.Length; ++i)
-                    dist = Tiles[i] - tileID;
+            var dist = -1;
 
-                return dist == 0;
-            }
+            for (var i = 0; dist < 0 && i < Tiles.Length; ++i)
+                dist = Tiles[i] - tileID;
+
+            return dist == 0;
         }
 
         #region High Seas
+
         public bool ValidateSpecial(int tileID)
         {
             //No Special tiles were initiated so always true
             if (SpecialTiles == null || SpecialTiles.Length == 0)
                 return true;
 
-            for (int i = 0; i < SpecialTiles.Length; i++)
-            {
+            for (var i = 0; i < SpecialTiles.Length; i++)
                 if (tileID == SpecialTiles[i])
                     return true;
-            }
 
             return false;
         }
+
         #endregion
     }
 }

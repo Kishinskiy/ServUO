@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +5,10 @@ namespace Server.Mobiles
     [CorpseName("an ortanord corpse")]
     public class Ortanord : BaseCreature
     {
+        public override bool BardImmune => !Core.AOS;
+
+        public override Poison PoisonImmune => Poison.Lethal;
+
         [Constructable]
         public Ortanord()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.6, 1.2)
@@ -54,20 +57,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool BardImmune
-        {
-            get
-            {
-                return !Core.AOS;
-            }
-        }
-        public override Poison PoisonImmune
-        {
-            get
-            {
-                return Poison.Lethal;
-            }
-        }
         public override void GenerateLoot()
         {
             AddLoot(LootPack.Average, 2);
@@ -81,13 +70,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

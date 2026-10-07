@@ -1,5 +1,3 @@
-using System;
-
 namespace Server.Items
 {
     public class BlackthornWelcomeBook : RedBook
@@ -216,11 +214,14 @@ namespace Server.Items
             new BookPageInfo(
                 "human.",
                 "  You will be freed."));
+
+        public override BookContent DefaultContent => Content;
+
         [Constructable]
         public BlackthornWelcomeBook()
             : base(false)
         {
-            this.Hue = 0x89B;
+            Hue = 0x89B;
         }
 
         public BlackthornWelcomeBook(Serial serial)
@@ -228,25 +229,18 @@ namespace Server.Items
         {
         }
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

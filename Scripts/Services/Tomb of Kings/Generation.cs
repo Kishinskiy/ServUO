@@ -1,6 +1,5 @@
-﻿using System;
+﻿using Server.Commands;
 using Server.Items;
-using Server.Commands;
 using Server.Mobiles;
 
 namespace Server.Engines.TombOfKings
@@ -9,7 +8,7 @@ namespace Server.Engines.TombOfKings
     {
         public static void Initialize()
         {
-            CommandSystem.Register("GenToK", AccessLevel.Developer, new CommandEventHandler(GenToK_Command));
+            CommandSystem.Register("GenToK", AccessLevel.Developer, GenToK_Command);
         }
 
         [Usage("GenToK")]
@@ -18,7 +17,7 @@ namespace Server.Engines.TombOfKings
             e.Mobile.SendMessage("Creating Tomb of Kings...");
 
             // Bridge
-            Static st = new Static(16880);
+            var st = new Static(16880);
             WeakEntityCollection.Add("sa", st);
             st.MoveToWorld(new Point3D(36, 36, 0), Map.TerMur);
 
@@ -41,7 +40,7 @@ namespace Server.Engines.TombOfKings
             st = new Static(16884);
             st.MoveToWorld(new Point3D(38, 35, 0), Map.TerMur);
             WeakEntityCollection.Add("sa", st);
-            
+
             st = new Static(16878);
             st.MoveToWorld(new Point3D(36, 34, 0), Map.TerMur);
             WeakEntityCollection.Add("sa", st);
@@ -57,27 +56,27 @@ namespace Server.Engines.TombOfKings
             st = new Static(16878);
             st.MoveToWorld(new Point3D(36, 33, 0), Map.TerMur);
             WeakEntityCollection.Add("sa", st);
-            
+
             st = new Static(16884);
             st.MoveToWorld(new Point3D(37, 33, 0), Map.TerMur);
             WeakEntityCollection.Add("sa", st);
-            
+
             st = new Static(16884);
             st.MoveToWorld(new Point3D(38, 33, 0), Map.TerMur);
             WeakEntityCollection.Add("sa", st);
-            
+
             st = new Static(16878);
             st.MoveToWorld(new Point3D(36, 32, 0), Map.TerMur);
             WeakEntityCollection.Add("sa", st);
-            
+
             st = new Static(16884);
             st.MoveToWorld(new Point3D(37, 32, 0), Map.TerMur);
             WeakEntityCollection.Add("sa", st);
-            
+
             st = new Static(16884);
             st.MoveToWorld(new Point3D(38, 32, 0), Map.TerMur);
             WeakEntityCollection.Add("sa", st);
-            
+
             st = new Static(16872);
             st.MoveToWorld(new Point3D(36, 31, 0), Map.TerMur);
             WeakEntityCollection.Add("sa", st);
@@ -85,13 +84,13 @@ namespace Server.Engines.TombOfKings
             st = new Static(16873);
             st.MoveToWorld(new Point3D(37, 31, 0), Map.TerMur);
             WeakEntityCollection.Add("sa", st);
-            
+
             st = new Static(16874);
             st.MoveToWorld(new Point3D(38, 31, 0), Map.TerMur);
             WeakEntityCollection.Add("sa", st);
 
             //Sacred Quest Blocker
-            SacredQuestBlocker sq = new SacredQuestBlocker();
+            var sq = new SacredQuestBlocker();
             sq.MoveToWorld(new Point3D(35, 38, 0), Map.TerMur);
             WeakEntityCollection.Add("sa", sq);
 
@@ -112,18 +111,20 @@ namespace Server.Engines.TombOfKings
             WeakEntityCollection.Add("sa", sq);
 
             // Guardian
-            XmlSpawner spawner = new XmlSpawner(1, 300, 600, 0, 0, 0, "GargoyleDestroyer, /blessed/true/Frozen/true/Direction/West/Paralyzed/true/Hue/2401/Name/Guardian");
+            var spawner = new XmlSpawner(1, 300, 600, 0, 0, 0,
+                "GargoyleDestroyer, /blessed/true/Frozen/true/Direction/West/Paralyzed/true/Hue/2401/Name/Guardian");
             spawner.SmartSpawning = true;
             spawner.MoveToWorld(new Point3D(42, 38, 13), Map.TerMur);
             WeakEntityCollection.Add("sa", spawner);
 
-            spawner = new XmlSpawner(1, 300, 600, 0, 0, 0, "GargoyleDestroyer, /blessed/true/Frozen/true/Direction/East/Paralyzed/true/Hue/2401/Name/Guardian");
+            spawner = new XmlSpawner(1, 300, 600, 0, 0, 0,
+                "GargoyleDestroyer, /blessed/true/Frozen/true/Direction/East/Paralyzed/true/Hue/2401/Name/Guardian");
             spawner.SmartSpawning = true;
             spawner.MoveToWorld(new Point3D(33, 38, 13), Map.TerMur);
             WeakEntityCollection.Add("sa", spawner);
 
             // Teleporter
-            ToKTeleporter t = new ToKTeleporter();
+            var t = new ToKTeleporter();
             t.MoveToWorld(new Point3D(21, 99, 1), Map.TerMur);
             WeakEntityCollection.Add("sa", t);
 
@@ -135,7 +136,7 @@ namespace Server.Engines.TombOfKings
             st.MoveToWorld(new Point3D(18, 99, 0), Map.TerMur);
             WeakEntityCollection.Add("sa", st);
 
-            TombOfKingsSecretDoor door = new TombOfKingsSecretDoor(18304);
+            var door = new TombOfKingsSecretDoor(18304);
             door.MoveToWorld(new Point3D(52, 99, 0), Map.TerMur);
             WeakEntityCollection.Add("sa", door);
 
@@ -161,7 +162,7 @@ namespace Server.Engines.TombOfKings
             Chamber.Generate();
             ChamberSpawner.Generate();
 
-            CommandSystem.Handle(e.Mobile, Server.Commands.CommandSystem.Prefix + "ArisenGenerate");
+            CommandSystem.Handle(e.Mobile, CommandSystem.Prefix + "ArisenGenerate");
 
             e.Mobile.SendMessage("Generation completed!");
         }

@@ -1,21 +1,19 @@
-using System;
-
 namespace Server.Engines.PartySystem
 {
     public class PartyCommandHandlers : PartyCommands
     {
         public static void Initialize()
         {
-            PartyCommands.Handler = new PartyCommandHandlers();
+            Handler = new PartyCommandHandlers();
         }
 
         public override void OnAdd(Mobile from)
         {
-            Party p = Party.Get(from);
+            var p = Party.Get(from);
 
             if (p != null && p.Leader != from)
                 from.SendLocalizedMessage(1005453); // You may only add members to the party if you are the leader.
-            else if (p != null && (p.Members.Count + p.Candidates.Count) >= Party.Capacity)
+            else if (p != null && p.Members.Count + p.Candidates.Count >= Party.Capacity)
                 from.SendLocalizedMessage(1008095); // You may only have 10 in your party (this includes candidates).
             else
                 from.Target = new AddPartyTarget(from);
@@ -23,7 +21,7 @@ namespace Server.Engines.PartySystem
 
         public override void OnRemove(Mobile from, Mobile target)
         {
-            Party p = Party.Get(from);
+            var p = Party.Get(from);
 
             if (p == null)
             {
@@ -47,7 +45,7 @@ namespace Server.Engines.PartySystem
             if (text.Length > 128 || (text = text.Trim()).Length == 0)
                 return;
 
-            Party p = Party.Get(from);
+            var p = Party.Get(from);
 
             if (p != null && p.Contains(target))
                 p.SendPrivateMessage(from, target, text);
@@ -60,7 +58,7 @@ namespace Server.Engines.PartySystem
             if (text.Length > 128 || (text = text.Trim()).Length == 0)
                 return;
 
-            Party p = Party.Get(from);
+            var p = Party.Get(from);
 
             if (p != null)
                 p.SendPublicMessage(from, text);
@@ -70,7 +68,7 @@ namespace Server.Engines.PartySystem
 
         public override void OnSetCanLoot(Mobile from, bool canLoot)
         {
-            Party p = Party.Get(from);
+            var p = Party.Get(from);
 
             if (p == null)
             {
@@ -78,7 +76,7 @@ namespace Server.Engines.PartySystem
             }
             else
             {
-                PartyMemberInfo mi = p[from];
+                var mi = p[from];
 
                 if (mi != null)
                 {
@@ -87,30 +85,31 @@ namespace Server.Engines.PartySystem
                     if (canLoot)
                         from.SendLocalizedMessage(1005447); // You have chosen to allow your party to loot your corpse.
                     else
-                        from.SendLocalizedMessage(1005448); // You have chosen to prevent your party from looting your corpse.
+                        from.SendLocalizedMessage(
+                            1005448); // You have chosen to prevent your party from looting your corpse.
                 }
             }
         }
 
         public override void OnAccept(Mobile from, Mobile sentLeader)
         {
-            Mobile leader = from.Party as Mobile;
+            var leader = from.Party as Mobile;
             from.Party = null;
 
-            Party p = Party.Get(leader);
+            var p = Party.Get(leader);
 
             if (leader == null || p == null || !p.Candidates.Contains(from))
                 from.SendLocalizedMessage(3000222); // No one has invited you to be in a party.
-            else if ((p.Members.Count + p.Candidates.Count) <= Party.Capacity)
+            else if (p.Members.Count + p.Candidates.Count <= Party.Capacity)
                 p.OnAccept(from);
         }
 
         public override void OnDecline(Mobile from, Mobile sentLeader)
         {
-            Mobile leader = from.Party as Mobile;
+            var leader = from.Party as Mobile;
             from.Party = null;
 
-            Party p = Party.Get(leader);
+            var p = Party.Get(leader);
 
             if (leader == null || p == null || !p.Candidates.Contains(from))
                 from.SendLocalizedMessage(3000222); // No one has invited you to be in a party.

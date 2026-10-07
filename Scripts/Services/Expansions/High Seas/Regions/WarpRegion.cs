@@ -1,23 +1,21 @@
-﻿using Server;
-using System;
-using Server.Multis;
+﻿using System.Collections.Generic;
+using System.Linq;
 using Server.Items;
 using Server.Mobiles;
-using System.Collections.Generic;
-using System.Linq;
+using Server.Multis;
 
 namespace Server.Regions
 {
     public class CorgulWarpRegion : Region
     {
-        private CorgulAltar m_Pedestal;
         private Rectangle2D m_Bounds;
         private List<Item> m_Markers;
+        private CorgulAltar m_Pedestal;
 
-        public Rectangle2D Bounds { get { return m_Bounds; } }
+        public Rectangle2D Bounds => m_Bounds;
 
         public CorgulWarpRegion(CorgulAltar ped, Rectangle2D rec)
-            : base("Corgul Warp Region", ped.Map, Region.DefaultPriority, new Rectangle2D[] { rec })
+            : base("Corgul Warp Region", ped.Map, DefaultPriority, rec)
         {
             m_Pedestal = ped;
             m_Bounds = rec;
@@ -28,28 +26,26 @@ namespace Server.Regions
         {
             m_Markers = new List<Item>();
 
-            int w = rec.X + rec.Width;
-            int h = rec.Y + rec.Height;
-            int t = 0;
+            var w = rec.X + rec.Width;
+            var h = rec.Y + rec.Height;
+            var t = 0;
 
-            for (int x = rec.X; x <= w; x++)
-            {
-                for (int y = rec.Y; y <= h; y++)
+            for (var x = rec.X; x <= w; x++)
+            for (var y = rec.Y; y <= h; y++)
+                if (x == rec.X || x == rec.X + rec.Width || y == rec.Y || y == rec.Y + rec.Height)
                 {
-                    if (x == rec.X || x == rec.X + rec.Width || y == rec.Y || y == rec.Y + rec.Height)
+                    if (t >= 10)
                     {
-                        if (t >= 10)
-                        {
-                            MarkerItem i = new MarkerItem(14089);
-                            i.MoveToWorld(new Point3D(x, y, -5), this.Map);
-                            m_Markers.Add(i);
-                            t = 0;
-                        }
-                        else
-                            t++;
+                        var i = new MarkerItem(14089);
+                        i.MoveToWorld(new Point3D(x, y, -5), Map);
+                        m_Markers.Add(i);
+                        t = 0;
+                    }
+                    else
+                    {
+                        t++;
                     }
                 }
-            }
         }
 
         public override void OnUnregister()
@@ -57,7 +53,7 @@ namespace Server.Regions
             if (m_Markers == null)
                 return;
 
-            foreach (Item i in m_Markers)
+            foreach (var i in m_Markers)
                 i.Delete();
 
             m_Markers.Clear();
@@ -65,29 +61,29 @@ namespace Server.Regions
 
         public void CheckEnter(BaseBoat boat)
         {
-            if (boat == null || this.Map == null || this.Map == Map.Internal)
+            if (boat == null || Map == null || Map == Map.Internal)
                 return;
 
             //Do not enter corgul region if we aren't in this region anymore
-            Region r = Region.Find(boat.Location, boat.Map);
+            var r = Find(boat.Location, boat.Map);
             if (r != null && !r.IsPartOf(this))
                 return;
 
-            Map map = this.Map;
+            var map = Map;
 
-            List<PlayerMobile> pms = new List<PlayerMobile>();
-            bool hasMap = false;
+            var pms = new List<PlayerMobile>();
+            var hasMap = false;
 
             foreach (var i in boat.GetEntitiesOnBoard().OfType<PlayerMobile>().Where(pm => pm.NetState != null))
             {
-                pms.Add((PlayerMobile)i);
-                PlayerMobile pm = (PlayerMobile)i;
+                pms.Add(i);
+                var pm = i;
 
                 if (pm.Backpack == null)
                     continue;
 
-                Item item = pm.Backpack.FindItemByType(typeof(CorgulIslandMap));
-                if (item != null && item is CorgulIslandMap && this.Contains(((CorgulIslandMap)item).DestinationPoint))
+                var item = pm.Backpack.FindItemByType(typeof(CorgulIslandMap));
+                if (item != null && item is CorgulIslandMap && Contains(((CorgulIslandMap)item).DestinationPoint))
                 {
                     hasMap = true;
                     break;
@@ -96,17 +92,17 @@ namespace Server.Regions
 
             if (hasMap)
             {
-                int x = boat.X - m_Bounds.X;
-                int y = boat.Y - m_Bounds.Y;
-                int z = map.GetAverageZ(x, y);
+                var x = boat.X - m_Bounds.X;
+                var y = boat.Y - m_Bounds.Y;
+                var z = map.GetAverageZ(x, y);
 
-                Point3D ePnt = new Point3D(CorgulAltar.CorgulBounds.X + x, CorgulAltar.CorgulBounds.Y + y, 0);
+                var ePnt = new Point3D(CorgulAltar.CorgulBounds.X + x, CorgulAltar.CorgulBounds.Y + y, 0);
 
-                int offsetX = ePnt.X - boat.X;
-                int offsetY = ePnt.Y - boat.Y;
-                int offsetZ = map.GetAverageZ(ePnt.X, ePnt.Y) - boat.Z;
+                var offsetX = ePnt.X - boat.X;
+                var offsetY = ePnt.Y - boat.Y;
+                var offsetZ = map.GetAverageZ(ePnt.X, ePnt.Y) - boat.Z;
 
-                if (boat.CanFit(ePnt, this.Map, boat.ItemID))
+                if (boat.CanFit(ePnt, Map, boat.ItemID))
                 {
                     boat.Teleport(offsetX, offsetY, offsetZ);
 
@@ -122,7 +118,6 @@ namespace Server.Regions
                     boat.StopMove(true);
                     boat.SendMessageToAllOnBoard("The boat has struck a coral reef!");
                 }
-
             }
         }
     }
@@ -142,13 +137,13 @@ namespace Server.Regions
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             Delete();
         }

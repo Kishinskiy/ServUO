@@ -1,24 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
-using Server;
-using Server.Items;
 using Server.Commands;
+using Server.Items;
 using Server.Mobiles;
 
 namespace Server.Gumps
 {
     public class ItemPropertiesGump : BaseGump
     {
-        public static void Initialize()
-        {
-            CommandSystem.Register("ItemProps", AccessLevel.GameMaster, e =>
-            {
-                BaseGump.SendGump(new ItemPropertiesGump((PlayerMobile)e.Mobile));
-            });
-        }
-
         public enum PropFilter
         {
             All,
@@ -30,7 +20,7 @@ namespace Server.Gumps
             SkillName,
             SAAbsorption,
             ExtendedWeapon,
-            Other,
+            Other
         }
 
         public PropFilter Filter { get; set; }
@@ -42,16 +32,23 @@ namespace Server.Gumps
         {
         }
 
+        public static void Initialize()
+        {
+            CommandSystem.Register("ItemProps", AccessLevel.GameMaster,
+                e => { SendGump(new ItemPropertiesGump((PlayerMobile)e.Mobile)); });
+        }
+
         public override void AddGumpLayout()
         {
             AddBackground(0, 0, 900, 600, 0x2454);
             AddPage(0);
 
-            AddHtml(0, 5, 900, 20, String.Format("Item Properties: {0}", Filter.ToString()), false, false);
-            AddHtml(275, 15, 625, 20, Center("Item Description: (Imbuing/Runic Cap) - (Loot Cap) [Scale]"), false, false);
+            AddHtml(0, 5, 900, 20, string.Format("Item Properties: {0}", Filter.ToString()), false, false);
+            AddHtml(275, 15, 625, 20, Center("Item Description: (Imbuing/Runic Cap) - (Loot Cap) [Scale]"), false,
+                false);
 
             AddButton(5, 550, 4005, 4007, 1, GumpButtonType.Reply, 0);
-            AddHtml(40, 550, 200, 20, String.Format("Filter: {0}", Filter.ToString()), false, false);
+            AddHtml(40, 550, 200, 20, string.Format("Filter: {0}", Filter.ToString()), false, false);
 
             //
             AddButton(105, 575, TypeFilter == ItemType.Melee ? 4006 : 4005, 4007, 2, GumpButtonType.Reply, 0);
@@ -84,17 +81,17 @@ namespace Server.Gumps
             AddLabel(775, 30, 0, "Jewels");
 
             Infos = CompileList().ToList();
-            int index = 0;
-            int page = 1;
-            int y = 50;
-            int perPage = 25;
+            var index = 0;
+            var page = 1;
+            var y = 50;
+            var perPage = 25;
 
             AddPage(page);
 
-            for (int i = 0; i < Infos.Count; i++)
+            for (var i = 0; i < Infos.Count; i++)
             {
                 var info = Infos[i];
-                int scale = info.Scale;
+                var scale = info.Scale;
 
                 //AddLabel(5, y, 0, info.Attribute.ToString());
                 AddHtmlLocalized(5, y, 120, 20, 1114057, info.AttributeName.ToString(), 0x1, false, false);
@@ -130,108 +127,69 @@ namespace Server.Gumps
             var typeInfo = info.GetItemTypeInfo(type);
 
             if (typeInfo != null)
-            {
-                AddLabel(x, y, TypeFilter == type ? 0x9E : 0, String.Format("{0}-{1}[{2}]", typeInfo.StandardMax, typeInfo.LootMax, typeInfo.Scale > 1 ? typeInfo.Scale.ToString() : scale.ToString()));
-            }
+                AddLabel(x, y, TypeFilter == type ? 0x9E : 0,
+                    string.Format("{0}-{1}[{2}]", typeInfo.StandardMax, typeInfo.LootMax,
+                        typeInfo.Scale > 1 ? typeInfo.Scale.ToString() : scale.ToString()));
             else
-            {
                 AddLabel(x, y, 0, "N/A");
-            }
         }
 
         private IEnumerable<ItemPropertyInfo> CompileList()
         {
             if (TypeFilter > ItemType.Invalid)
             {
-                foreach (var i in ItemPropertyInfo.LootTable[TypeFilter])
-                {
-                    yield return ItemPropertyInfo.GetInfo(i);
-                }
+                foreach (var i in ItemPropertyInfo.LootTable[TypeFilter]) yield return ItemPropertyInfo.GetInfo(i);
 
                 yield break;
             }
 
             foreach (var info in ItemPropertyInfo.Table.Values)
-            {
                 switch (Filter)
                 {
                     case PropFilter.All:
                         yield return info;
                         break;
                     case PropFilter.AosAttributes:
-                        if (info.Attribute is AosAttribute)
-                        {
-                            yield return info;
-                        }
+                        if (info.Attribute is AosAttribute) yield return info;
                         break;
                     case PropFilter.AosWeaponAttributes:
-                        if (info.Attribute is AosWeaponAttribute)
-                        {
-                            yield return info;
-                        }
+                        if (info.Attribute is AosWeaponAttribute) yield return info;
                         break;
                     case PropFilter.AosArmorAttributes:
-                        if (info.Attribute is AosArmorAttribute)
-                        {
-                            yield return info;
-                        }
+                        if (info.Attribute is AosArmorAttribute) yield return info;
                         break;
                     case PropFilter.Slayer:
-                        if (info.Attribute is SlayerName)
-                        {
-                            yield return info;
-                        }
+                        if (info.Attribute is SlayerName) yield return info;
                         break;
                     case PropFilter.AosElemental:
-                        if (info.Attribute is AosElementAttribute)
-                        {
-                            yield return info;
-                        }
+                        if (info.Attribute is AosElementAttribute) yield return info;
                         break;
                     case PropFilter.SkillName:
-                        if (info.Attribute is SkillName)
-                        {
-                            yield return info;
-                        }
+                        if (info.Attribute is SkillName) yield return info;
                         break;
                     case PropFilter.SAAbsorption:
-                        if (info.Attribute is SAAbsorptionAttribute)
-                        {
-                            yield return info;
-                        }
+                        if (info.Attribute is SAAbsorptionAttribute) yield return info;
                         break;
                     case PropFilter.ExtendedWeapon:
-                        if (info.Attribute is ExtendedWeaponAttribute)
-                        {
-                            yield return info;
-                        }
+                        if (info.Attribute is ExtendedWeaponAttribute) yield return info;
                         break;
                     case PropFilter.Other:
-                        if (info.Attribute is string)
-                        {
-                            yield return info;
-                        }
+                        if (info.Attribute is string) yield return info;
                         break;
                 }
-            }
         }
 
         public override void OnResponse(RelayInfo info)
         {
             if (info.ButtonID == 0)
             {
-                return;
             }
             else if (info.ButtonID == 1)
             {
                 if (Filter == PropFilter.Other)
-                {
                     Filter = PropFilter.All;
-                }
                 else
-                {
                     Filter++;
-                }
 
                 TypeFilter = ItemType.Invalid;
                 Refresh();
@@ -266,13 +224,13 @@ namespace Server.Gumps
             {
                 Refresh();
 
-                int id = info.ButtonID - 10;
+                var id = info.ButtonID - 10;
 
                 if (id >= 0 && id < Infos.Count)
                 {
                     var propInfo = Infos[id];
 
-                    BaseGump.SendGump(new InfoSpecificGump(User, propInfo, TypeFilter));
+                    SendGump(new InfoSpecificGump(User, propInfo, TypeFilter));
                 }
             }
         }
@@ -304,9 +262,12 @@ namespace Server.Gumps
             AddLabel(5, 150, 0, "Default Max Intensity:");
 
             AddLabel(225, 30, 0, Info.Weight.ToString());
-            AddHtmlLocalized(225, 50, 250, 20, 1114057, Info.PrimaryName != null ? Info.PrimaryName.ToString() : "N/A", 0x1, false, false);
-            AddHtmlLocalized(225, 70, 250, 20, 1114057, Info.GemName != null ? Info.GemName.ToString() : "N/A", 0x1, false, false);
-            AddHtmlLocalized(225, 90, 250, 20, 1114057, Info.SpecialName != null ? Info.SpecialName.ToString() : "N/A", 0x1, false, false);
+            AddHtmlLocalized(225, 50, 250, 20, 1114057, Info.PrimaryName != null ? Info.PrimaryName.ToString() : "N/A",
+                0x1, false, false);
+            AddHtmlLocalized(225, 70, 250, 20, 1114057, Info.GemName != null ? Info.GemName.ToString() : "N/A", 0x1,
+                false, false);
+            AddHtmlLocalized(225, 90, 250, 20, 1114057, Info.SpecialName != null ? Info.SpecialName.ToString() : "N/A",
+                0x1, false, false);
             AddLabel(225, 110, 0, Info.Scale.ToString());
             AddLabel(225, 130, 0, Info.Start.ToString());
             AddLabel(225, 150, 0, Info.MaxIntensity.ToString());
@@ -317,16 +278,13 @@ namespace Server.Gumps
             AddLabel(325, 190, 0, "Loot Max");
             AddLabel(425, 190, 0, "Over Cap");
 
-            int y = 210;
+            var y = 210;
 
             foreach (var i in Enum.GetValues(typeof(ItemType)))
             {
                 var type = (ItemType)i;
 
-                if (type == ItemType.Invalid || (ItemType != ItemType.Invalid && type != ItemType))
-                {
-                    continue;
-                }
+                if (type == ItemType.Invalid || (ItemType != ItemType.Invalid && type != ItemType)) continue;
 
                 AddLabel(5, y, 0, type.ToString());
                 var typeInfo = Info.GetItemTypeInfo(type);
@@ -339,20 +297,16 @@ namespace Server.Gumps
 
                     if (typeInfo.PowerfulLootRange != null)
                     {
-                        var str = String.Empty;
+                        var str = string.Empty;
 
-                        for (int j = 0; j < typeInfo.PowerfulLootRange.Length; j++)
+                        for (var j = 0; j < typeInfo.PowerfulLootRange.Length; j++)
                         {
-                            int v = typeInfo.PowerfulLootRange[j];
+                            var v = typeInfo.PowerfulLootRange[j];
 
                             if (j == typeInfo.PowerfulLootRange.Length - 1)
-                            {
-                                str += String.Format(" {0}", v.ToString());
-                            }
+                                str += string.Format(" {0}", v.ToString());
                             else
-                            {
-                                str += String.Format(" {0},", v.ToString());
-                            }
+                                str += string.Format(" {0},", v.ToString());
                         }
 
                         AddLabel(425, y, 0, str);
@@ -370,5 +324,5 @@ namespace Server.Gumps
                 y += 20;
             }
         }
-    }   
+    }
 }

@@ -6,6 +6,9 @@ namespace Server.Mobiles
     public class BeverageBuyInfo : GenericBuyInfo
     {
         private readonly BeverageType m_Content;
+
+        public override bool CanCacheDisplay => false;
+
         public BeverageBuyInfo(Type type, BeverageType content, int price, int amount, int itemID, int hue)
             : this(null, type, content, price, amount, itemID, hue)
         {
@@ -24,16 +27,9 @@ namespace Server.Mobiles
                 Name = (1042965 + (int)content).ToString();
         }
 
-        public override bool CanCacheDisplay
-        {
-            get
-            {
-                return false;
-            }
-        }
         public override IEntity GetEntity()
         {
-            return (IEntity)Activator.CreateInstance(Type, new object[] { m_Content });
+            return (IEntity)Activator.CreateInstance(Type, m_Content);
         }
     }
 }

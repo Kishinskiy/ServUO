@@ -5,9 +5,14 @@ using Server.Commands;
 namespace Server.Items
 {
     public class StealableArtifactsSpawner : Item
-    { 
-        private static readonly StealableEntry[] m_Entries = new StealableEntry[]
-        {            
+    {
+        private static Type[] m_TypesOfEntries;
+        private StealableInstance[] m_Artifacts;
+        private Timer m_RespawnTimer;
+        private Hashtable m_Table;
+
+        public static StealableEntry[] Entries { get; } =
+        {
             // Doom - Artifact rarity 1
             new StealableEntry(Map.Malas, new Point3D(317, 56, -1), 72, 108, typeof(RockArtifact)),
             new StealableEntry(Map.Malas, new Point3D(360, 31, 8), 72, 108, typeof(SkullCandleArtifact)),
@@ -15,9 +20,11 @@ namespace Server.Items
             new StealableEntry(Map.Malas, new Point3D(378, 372, 0), 72, 108, typeof(DamagedBooksArtifact)),
             // Doom - Artifact rarity 2
             new StealableEntry(Map.Malas, new Point3D(432, 16, -1), 144, 216, typeof(StretchedHideArtifact)),
-            new StealableEntry(Map.Malas, Core.TOL ? new Point3D(462, 17, -1) : new Point3D(489, 9, 0), 144, 216, typeof(BrazierArtifact)),
+            new StealableEntry(Map.Malas, Core.TOL ? new Point3D(462, 17, -1) : new Point3D(489, 9, 0), 144, 216,
+                typeof(BrazierArtifact)),
             // Doom - Artifact rarity 3
-            new StealableEntry(Map.Malas, new Point3D(471, 96, -1), 288, 432, typeof(LampPostArtifact), GetLampPostHue()),
+            new StealableEntry(Map.Malas, new Point3D(471, 96, -1), 288, 432, typeof(LampPostArtifact),
+                GetLampPostHue()),
             new StealableEntry(Map.Malas, new Point3D(421, 198, 2), 288, 432, typeof(BooksNorthArtifact)),
             new StealableEntry(Map.Malas, new Point3D(431, 189, -1), 288, 432, typeof(BooksWestArtifact)),
             new StealableEntry(Map.Malas, new Point3D(435, 196, -1), 288, 432, typeof(BooksFaceDownArtifact)),
@@ -30,34 +37,49 @@ namespace Server.Items
             new StealableEntry(Map.Malas, new Point3D(489, 369, 2), 1152, 1728, typeof(TarotCardsArtifact)),
             new StealableEntry(Map.Malas, new Point3D(497, 369, 5), 1152, 1728, typeof(BackpackArtifact)),
             // Doom - Artifact rarity 6
-            new StealableEntry(Map.Malas, new Point3D(499,372, -1), 2304, 3456, typeof(BambooStoolArtifact)),
+            new StealableEntry(Map.Malas, new Point3D(499, 372, -1), 2304, 3456, typeof(BambooStoolArtifact)),
             // Doom - Artifact rarity 7
-            new StealableEntry(Map.Malas, Core.TOL ? new Point3D(485, 8, 6) : new Point3D(475, 23, 4), 4608, 6912, typeof(StuddedTunicArtifact)),
+            new StealableEntry(Map.Malas, Core.TOL ? new Point3D(485, 8, 6) : new Point3D(475, 23, 4), 4608, 6912,
+                typeof(StuddedTunicArtifact)),
             new StealableEntry(Map.Malas, new Point3D(423, 28, 0), 4608, 6912, typeof(CocoonArtifact)),
             // Doom - Artifact rarity 8
             new StealableEntry(Map.Malas, new Point3D(354, 36, -1), 9216, 13824, typeof(SkinnedDeerArtifact)),
+
             #region New Doom Artifacts
-			new StealableEntry(Map.Malas, new Point3D(274, 231, 0), 9216, 13824, typeof(HangingPlatemailTunic)),
+
+            new StealableEntry(Map.Malas, new Point3D(274, 231, 0), 9216, 13824, typeof(HangingPlatemailTunic)),
             new StealableEntry(Map.Malas, new Point3D(445, 119, -1), 9216, 13824, typeof(HangingPlatemailLeggings)),
             new StealableEntry(Map.Malas, new Point3D(421, 197, -1), 9216, 13824, typeof(HangingPlatemailArms)),
-			#endregion
+
+            #endregion
+
             // Doom - Artifact rarity 9
             new StealableEntry(Map.Malas, new Point3D(433, 11, -1), 18432, 27648, typeof(SaddleArtifact)),
             new StealableEntry(Map.Malas, new Point3D(403, 31, 4), 18432, 27648, typeof(LeatherTunicArtifact)),
+
             #region New Doom Artifacts
-			new StealableEntry(Map.Malas, new Point3D(378, 371, -1), 18432, 27648, typeof(ArtifactBookshelf)),
+
+            new StealableEntry(Map.Malas, new Point3D(378, 371, -1), 18432, 27648, typeof(ArtifactBookshelf)),
             new StealableEntry(Map.Malas, new Point3D(487, 364, -1), 18432, 27648, typeof(ArcaneTable)),
-			#endregion
+
+            #endregion
+
             // Doom - Artifact rarity 10
-            new StealableEntry(Map.Malas, Core.TOL ? new Point3D(396, 8, 4) : new Point3D(257, 70, -2), 36864, 55296, typeof(ZyronicClaw)),
-            new StealableEntry(Map.Malas, Core.TOL ? new Point3D(261, 97, -1) : new Point3D(354, 176, 7), 36864, 55296, typeof(TitansHammer)),
+            new StealableEntry(Map.Malas, Core.TOL ? new Point3D(396, 8, 4) : new Point3D(257, 70, -2), 36864, 55296,
+                typeof(ZyronicClaw)),
+            new StealableEntry(Map.Malas, Core.TOL ? new Point3D(261, 97, -1) : new Point3D(354, 176, 7), 36864, 55296,
+                typeof(TitansHammer)),
             new StealableEntry(Map.Malas, new Point3D(369, 389, -1), 36864, 55296, typeof(BladeOfTheRighteous)),
             new StealableEntry(Map.Malas, new Point3D(467, 92, 4), 36864, 55296, typeof(InquisitorsResolution)),
             // Doom - Artifact rarity 12
             new StealableEntry(Map.Malas, new Point3D(487, 364, -1), 147456, 221184, typeof(RuinedPaintingArtifact)),
+
             #region New Doom Artifacts
-			new StealableEntry(Map.Malas, Core.TOL ? new Point3D(263, 28, 0) : new Point3D(365, 7, -1), 147456, 221184, typeof(IncenseBurner)),
-			#endregion
+
+            new StealableEntry(Map.Malas, Core.TOL ? new Point3D(263, 28, 0) : new Point3D(365, 7, -1), 147456, 221184,
+                typeof(IncenseBurner)),
+
+            #endregion
 
             // Yomotsu Mines - Artifact rarity 1
             new StealableEntry(Map.Malas, new Point3D(18, 110, -1), 72, 108, typeof(Basket1Artifact)),
@@ -128,59 +150,73 @@ namespace Server.Items
             new StealableEntry(Map.Malas, new Point3D(178, 629, -1), 18432, 27648, typeof(ManStatuetteEastArtifact)),
 
             // Abyss - Artifact rarity 5
-	        new StealableEntry(Map.TerMur, new Point3D(717, 416, 50), 1152, 1728, typeof(DyingPlantArtifact)),
-	        new StealableEntry(Map.TerMur, new Point3D(951, 542, -14), 1152, 1728, typeof(LargePewterBowlArtifact)),
-			new StealableEntry(Map.TerMur, new Point3D(877, 527, -13), 1152, 1728, typeof(CrownOfArcaneTemperament)),
-			new StealableEntry(Map.TerMur, new Point3D(345, 621, 26), 1152, 1728, typeof(LightInTheVoid)),
-			new StealableEntry(Map.TerMur, new Point3D(585, 853, -45), 1152, 1728, typeof(StaffOfResonance)),
-			new StealableEntry(Map.TerMur, new Point3D(843, 665, 27), 1152, 1728, typeof(ValkyriesGlaive)),
-	        // Abyss - Artifact rarity 6
-	        new StealableEntry(Map.TerMur, new Point3D(785, 442, -15), 2304, 3456, typeof(LargeDyingPlantArtifact)),
-	        new StealableEntry(Map.TerMur, new Point3D(849, 281, -6), 2304, 3456, typeof(GargishLuckTotemArtifact)),
-	        new StealableEntry(Map.TerMur, new Point3D(916, 374, -6), 2304, 3456, typeof(BookOfTruthArtifact)),
-	        new StealableEntry(Map.TerMur, new Point3D(669, 819, -108), 2304, 3456, typeof(GargishTraditionalVaseArtifact)),
-	        new StealableEntry(Map.TerMur, new Point3D(715, 782, 27), 2304, 3456, typeof(GargishProtectiveTotemArtifact)),
-	        // Abyss - Artifact rarity 7
-	        new StealableEntry(Map.TerMur, new Point3D(368, 605, 26), 4608, 6912, typeof(GargishBentasVaseArtifact)),
-	        new StealableEntry(Map.TerMur, new Point3D(670, 441, 50), 4608, 6912, typeof(GargishPortraitArtifact)),
-	        new StealableEntry(Map.TerMur, new Point3D(555, 670, 55), 4608, 6912, typeof(GargishKnowledgeTotemArtifact)),
-	        new StealableEntry(Map.TerMur, new Point3D(948, 393, 88), 4608, 6912, typeof(GargishMemorialStatueArtifact)),
-	        // Abyss - Artifact rarity 8
-	        new StealableEntry(Map.TerMur, new Point3D(926, 598, -5), 9216, 13824, typeof(PushmePullyuArtifact)),
-	        // UnderWorld - Artifact rarity 3
-	        new StealableEntry(Map.TerMur, new Point3D(1046, 1106, -63), 288, 432, typeof(MysteriousSupperArtifact)),
-	        new StealableEntry(Map.TerMur, new Point3D(1239, 1019, -37), 288, 432, typeof(JugsOfGoblinRotgutArtifact)),
-	        // UnderWorld - Artifact rarity 4
-	        new StealableEntry(Map.TerMur, new Point3D(1015, 1013, -35), 576, 864, typeof(StolenBottlesOfLiquor1Artifact)), // [2a]
-	        new StealableEntry(Map.TerMur, new Point3D(1015, 1029, -35), 576, 864, typeof(StolenBottlesOfLiquor2Artifact)), // [2b]
-	        new StealableEntry(Map.TerMur, new Point3D(1210, 1035, -22), 576, 864, typeof(BottlesOfSpoiledWine1Artifact)), // [2]
-	        new StealableEntry(Map.TerMur, new Point3D(1077, 975, -23), 576, 864, typeof(NaverysWeb1Artifact)), // [1]
-	        new StealableEntry(Map.TerMur, new Point3D(1094, 990, -23), 576, 864, typeof(NaverysWeb2Artifact)), // [2]
-	        // UnderWorld - Artifact rarity 5
-	        new StealableEntry(Map.TerMur, new Point3D(1049, 1109, -65), 1152, 1728, typeof(BloodySpoonArtifact)),
+            new StealableEntry(Map.TerMur, new Point3D(717, 416, 50), 1152, 1728, typeof(DyingPlantArtifact)),
+            new StealableEntry(Map.TerMur, new Point3D(951, 542, -14), 1152, 1728, typeof(LargePewterBowlArtifact)),
+            new StealableEntry(Map.TerMur, new Point3D(877, 527, -13), 1152, 1728, typeof(CrownOfArcaneTemperament)),
+            new StealableEntry(Map.TerMur, new Point3D(345, 621, 26), 1152, 1728, typeof(LightInTheVoid)),
+            new StealableEntry(Map.TerMur, new Point3D(585, 853, -45), 1152, 1728, typeof(StaffOfResonance)),
+            new StealableEntry(Map.TerMur, new Point3D(843, 665, 27), 1152, 1728, typeof(ValkyriesGlaive)),
+            // Abyss - Artifact rarity 6
+            new StealableEntry(Map.TerMur, new Point3D(785, 442, -15), 2304, 3456, typeof(LargeDyingPlantArtifact)),
+            new StealableEntry(Map.TerMur, new Point3D(849, 281, -6), 2304, 3456, typeof(GargishLuckTotemArtifact)),
+            new StealableEntry(Map.TerMur, new Point3D(916, 374, -6), 2304, 3456, typeof(BookOfTruthArtifact)),
+            new StealableEntry(Map.TerMur, new Point3D(669, 819, -108), 2304, 3456,
+                typeof(GargishTraditionalVaseArtifact)),
+            new StealableEntry(Map.TerMur, new Point3D(715, 782, 27), 2304, 3456,
+                typeof(GargishProtectiveTotemArtifact)),
+            // Abyss - Artifact rarity 7
+            new StealableEntry(Map.TerMur, new Point3D(368, 605, 26), 4608, 6912, typeof(GargishBentasVaseArtifact)),
+            new StealableEntry(Map.TerMur, new Point3D(670, 441, 50), 4608, 6912, typeof(GargishPortraitArtifact)),
+            new StealableEntry(Map.TerMur, new Point3D(555, 670, 55), 4608, 6912,
+                typeof(GargishKnowledgeTotemArtifact)),
+            new StealableEntry(Map.TerMur, new Point3D(948, 393, 88), 4608, 6912,
+                typeof(GargishMemorialStatueArtifact)),
+            // Abyss - Artifact rarity 8
+            new StealableEntry(Map.TerMur, new Point3D(926, 598, -5), 9216, 13824, typeof(PushmePullyuArtifact)),
+            // UnderWorld - Artifact rarity 3
+            new StealableEntry(Map.TerMur, new Point3D(1046, 1106, -63), 288, 432, typeof(MysteriousSupperArtifact)),
+            new StealableEntry(Map.TerMur, new Point3D(1239, 1019, -37), 288, 432, typeof(JugsOfGoblinRotgutArtifact)),
+            // UnderWorld - Artifact rarity 4
+            new StealableEntry(Map.TerMur, new Point3D(1015, 1013, -35), 576, 864,
+                typeof(StolenBottlesOfLiquor1Artifact)), // [2a]
+            new StealableEntry(Map.TerMur, new Point3D(1015, 1029, -35), 576, 864,
+                typeof(StolenBottlesOfLiquor2Artifact)), // [2b]
+            new StealableEntry(Map.TerMur, new Point3D(1210, 1035, -22), 576, 864,
+                typeof(BottlesOfSpoiledWine1Artifact)), // [2]
+            new StealableEntry(Map.TerMur, new Point3D(1077, 975, -23), 576, 864, typeof(NaverysWeb1Artifact)), // [1]
+            new StealableEntry(Map.TerMur, new Point3D(1094, 990, -23), 576, 864, typeof(NaverysWeb2Artifact)), // [2]
+            // UnderWorld - Artifact rarity 5
+            new StealableEntry(Map.TerMur, new Point3D(1049, 1109, -65), 1152, 1728, typeof(BloodySpoonArtifact)),
             new StealableEntry(Map.TerMur, new Point3D(1047, 1108, -65), 1152, 1728, typeof(MysticsGuard)),
-            new StealableEntry(Map.TerMur, new Point3D(1137, 1134, -38), 1152, 1728, typeof(RemnantsOfMeatLoafArtifact)),
-	        new StealableEntry(Map.TerMur, new Point3D(1134, 1204, 7), 1152, 1728, typeof(HalfEatenSupperArtifact)),
-	        new StealableEntry(Map.TerMur, new Point3D(1083, 983, -19), 1152, 1728, typeof(NaverysWeb3Artifact)), // [3]
-	        new StealableEntry(Map.TerMur, new Point3D(1081, 992, -21), 1152, 1728, typeof(NaverysWeb4Artifact)), // [4]
-	        new StealableEntry(Map.TerMur, new Point3D(1146, 1011, -52), 1152, 1728, typeof(NaverysWeb5Artifact)), // [2]
-	        new StealableEntry(Map.TerMur, new Point3D(1119, 974, -41), 1152, 1728, typeof(NaverysWeb6Artifact)), // [1]
-	        // UnderWorld - Artifact rarity 6
-	        new StealableEntry(Map.TerMur, new Point3D(1015, 1018, -35), 2304, 3456, typeof(BatteredPanArtifact)),
-	        new StealableEntry(Map.TerMur, new Point3D(1007, 975, -22), 2304, 3456, typeof(RustedPanArtifact)),
-	        new StealableEntry(Map.TerMur, new Point3D(1188, 1015, -35), 2304, 3456, typeof(BottlesOfSpoiledWine2Artifact)),
-	        // UnderWorld - Artifact rarity 7
-	        new StealableEntry(Map.TerMur, new Point3D(1015, 1026, -35), 4608, 6912, typeof(StolenBottlesOfLiquor3Artifact)),
-	        new StealableEntry(Map.TerMur, new Point3D(1226, 963, -22), 4608, 6912, typeof(BottlesOfSpoiledWine3Artifact)),
-	        new StealableEntry(Map.TerMur, new Point3D(1089, 1126, -36), 4608, 6912, typeof(DriedUpInkWellArtifact)),
-	        new StealableEntry(Map.TerMur, new Point3D(1227, 964, -29), 4608, 6912, typeof(FakeCopperIngotsArtifact)),
-	        // UnderWorld - Artifact rarity 8
-	        new StealableEntry(Map.TerMur, new Point3D(1031, 998, -38), 9216, 13824, typeof(StolenBottlesOfLiquor4Artifact)),
-	        new StealableEntry(Map.TerMur, new Point3D(1017, 1150, -64), 9216, 13824, typeof(RottedOarsArtifact)),
-	        new StealableEntry(Map.TerMur, new Point3D(1226, 966, -29), 9216, 13824, typeof(PricelessTreasureArtifact)),
-	        // UnderWorld - Artifact rarity 9
-	        new StealableEntry(Map.TerMur, new Point3D(1066, 1193, -36), 18432, 27648, typeof(TyballsFlaskStandArtifact)),
-	        new StealableEntry(Map.TerMur, new Point3D(1131, 1128, -42), 18432, 27648, typeof(BlockAndTackleArtifact)),
+            new StealableEntry(Map.TerMur, new Point3D(1137, 1134, -38), 1152, 1728,
+                typeof(RemnantsOfMeatLoafArtifact)),
+            new StealableEntry(Map.TerMur, new Point3D(1134, 1204, 7), 1152, 1728, typeof(HalfEatenSupperArtifact)),
+            new StealableEntry(Map.TerMur, new Point3D(1083, 983, -19), 1152, 1728, typeof(NaverysWeb3Artifact)), // [3]
+            new StealableEntry(Map.TerMur, new Point3D(1081, 992, -21), 1152, 1728, typeof(NaverysWeb4Artifact)), // [4]
+            new StealableEntry(Map.TerMur, new Point3D(1146, 1011, -52), 1152, 1728,
+                typeof(NaverysWeb5Artifact)), // [2]
+            new StealableEntry(Map.TerMur, new Point3D(1119, 974, -41), 1152, 1728, typeof(NaverysWeb6Artifact)), // [1]
+            // UnderWorld - Artifact rarity 6
+            new StealableEntry(Map.TerMur, new Point3D(1015, 1018, -35), 2304, 3456, typeof(BatteredPanArtifact)),
+            new StealableEntry(Map.TerMur, new Point3D(1007, 975, -22), 2304, 3456, typeof(RustedPanArtifact)),
+            new StealableEntry(Map.TerMur, new Point3D(1188, 1015, -35), 2304, 3456,
+                typeof(BottlesOfSpoiledWine2Artifact)),
+            // UnderWorld - Artifact rarity 7
+            new StealableEntry(Map.TerMur, new Point3D(1015, 1026, -35), 4608, 6912,
+                typeof(StolenBottlesOfLiquor3Artifact)),
+            new StealableEntry(Map.TerMur, new Point3D(1226, 963, -22), 4608, 6912,
+                typeof(BottlesOfSpoiledWine3Artifact)),
+            new StealableEntry(Map.TerMur, new Point3D(1089, 1126, -36), 4608, 6912, typeof(DriedUpInkWellArtifact)),
+            new StealableEntry(Map.TerMur, new Point3D(1227, 964, -29), 4608, 6912, typeof(FakeCopperIngotsArtifact)),
+            // UnderWorld - Artifact rarity 8
+            new StealableEntry(Map.TerMur, new Point3D(1031, 998, -38), 9216, 13824,
+                typeof(StolenBottlesOfLiquor4Artifact)),
+            new StealableEntry(Map.TerMur, new Point3D(1017, 1150, -64), 9216, 13824, typeof(RottedOarsArtifact)),
+            new StealableEntry(Map.TerMur, new Point3D(1226, 966, -29), 9216, 13824, typeof(PricelessTreasureArtifact)),
+            // UnderWorld - Artifact rarity 9
+            new StealableEntry(Map.TerMur, new Point3D(1066, 1193, -36), 18432, 27648,
+                typeof(TyballsFlaskStandArtifact)),
+            new StealableEntry(Map.TerMur, new Point3D(1131, 1128, -42), 18432, 27648, typeof(BlockAndTackleArtifact)),
 
             //Ararat Stealables (Exploring the Deep) - Artifact rarity 8
             new StealableEntry(Map.Trammel, new Point3D(6303, 1664, 11), 9216, 13824, typeof(SternAnchorOfBmvArarat)),
@@ -211,7 +247,7 @@ namespace Server.Items
             new StealableEntry(Map.Trammel, new Point3D(5832, 576, 10), 18432, 27648, typeof(BlanketOfDarkness)),
             new StealableEntry(Map.Felucca, new Point3D(5832, 576, 10), 18432, 27648, typeof(BlanketOfDarkness)),
 
-			// Wrong - Arfifact rarity 10
+            // Wrong - Arfifact rarity 10
             new StealableEntry(Map.Trammel, new Point3D(5703, 521, 0), 36864, 55296, typeof(TortureRackSouth)),
             new StealableEntry(Map.Felucca, new Point3D(5703, 521, 0), 36864, 55296, typeof(TortureRackSouth)),
             new StealableEntry(Map.Trammel, new Point3D(5680, 537, 0), 46864, 55296, typeof(TortureRackEast)),
@@ -220,107 +256,80 @@ namespace Server.Items
             // Bedlam - Artifact Rarity 8
             new StealableEntry(Map.Malas, new Point3D(168, 1609, 0), 9216, 13824, typeof(AcademicBooksArtifact)),
             new StealableEntry(Map.Malas, new Point3D(165, 1650, 0), 9216, 13824, typeof(AcademicBooksArtifact)),
-            new StealableEntry(Map.Malas, new Point3D(85, 1644, 20), 9216, 13824, typeof(AcademicBooksArtifact)),
+            new StealableEntry(Map.Malas, new Point3D(85, 1644, 20), 9216, 13824, typeof(AcademicBooksArtifact))
         };
 
-        private static Type[] m_TypesOfEntries = null;
-        private static StealableArtifactsSpawner m_Instance;
-        private Timer m_RespawnTimer;
-        private StealableInstance[] m_Artifacts;
-        private Hashtable m_Table;
-        public StealableArtifactsSpawner(Serial serial)
-            : base(serial)
-        {
-            m_Instance = this;
-        }
-
-        private StealableArtifactsSpawner()
-            : base(1)
-        {
-            this.Movable = false;
-
-            this.m_Artifacts = new StealableInstance[m_Entries.Length];
-            this.m_Table = new Hashtable(m_Entries.Length);
-
-            for (int i = 0; i < m_Entries.Length; i++)
-            {
-                this.m_Artifacts[i] = new StealableInstance(m_Entries[i]);
-            }
-
-            this.m_RespawnTimer = Timer.DelayCall(TimeSpan.Zero, TimeSpan.FromMinutes(15.0), new TimerCallback(CheckRespawn));
-        }
-
-        public static StealableEntry[] Entries
-        {
-            get
-            {
-                return m_Entries;
-            }
-        }
         public static Type[] TypesOfEntires
         {
             get
             {
                 if (m_TypesOfEntries == null)
                 {
-                    m_TypesOfEntries = new Type[m_Entries.Length];
+                    m_TypesOfEntries = new Type[Entries.Length];
 
-                    for (int i = 0; i < m_Entries.Length; i++)
-                        m_TypesOfEntries[i] = m_Entries[i].Type;
+                    for (var i = 0; i < Entries.Length; i++)
+                        m_TypesOfEntries[i] = Entries[i].Type;
                 }
 
                 return m_TypesOfEntries;
             }
         }
-        public static StealableArtifactsSpawner Instance
+
+        public static StealableArtifactsSpawner Instance { get; private set; }
+
+        public override string DefaultName => "Stealable Artifacts Spawner - Internal";
+
+        public StealableArtifactsSpawner(Serial serial)
+            : base(serial)
         {
-            get
-            {
-                return m_Instance;
-            }
+            Instance = this;
         }
-        public override string DefaultName
+
+        private StealableArtifactsSpawner()
+            : base(1)
         {
-            get
-            {
-                return "Stealable Artifacts Spawner - Internal";
-            }
+            Movable = false;
+
+            m_Artifacts = new StealableInstance[Entries.Length];
+            m_Table = new Hashtable(Entries.Length);
+
+            for (var i = 0; i < Entries.Length; i++) m_Artifacts[i] = new StealableInstance(Entries[i]);
+
+            m_RespawnTimer = Timer.DelayCall(TimeSpan.Zero, TimeSpan.FromMinutes(15.0), CheckRespawn);
         }
+
         public static void Initialize()
         {
-            CommandSystem.Register("GenStealArties", AccessLevel.Administrator, new CommandEventHandler(GenStealArties_OnCommand));
-            CommandSystem.Register("RemoveStealArties", AccessLevel.Administrator, new CommandEventHandler(RemoveStealArties_OnCommand));
-            CommandSystem.Register("StealArtiesForceRespawn", AccessLevel.GameMaster, new CommandEventHandler(StealArtiesForceRespawn_OnCommand));
+            CommandSystem.Register("GenStealArties", AccessLevel.Administrator, GenStealArties_OnCommand);
+            CommandSystem.Register("RemoveStealArties", AccessLevel.Administrator, RemoveStealArties_OnCommand);
+            CommandSystem.Register("StealArtiesForceRespawn", AccessLevel.GameMaster,
+                StealArtiesForceRespawn_OnCommand);
         }
 
         private static void StealArtiesForceRespawn_OnCommand(CommandEventArgs e)
         {
-            if(Instance != null &&
+            if (Instance != null &&
                 Instance.m_Artifacts != null)
-            {
-                foreach (StealableInstance instance in Instance.m_Artifacts)
-                {
+                foreach (var instance in Instance.m_Artifacts)
                     instance.ForceRespawn();
-                }
-            }
         }
 
         public static bool Create()
         {
-            if (m_Instance != null && !m_Instance.Deleted)
+            if (Instance != null && !Instance.Deleted)
                 return false;
 
-            m_Instance = new StealableArtifactsSpawner();
+            Instance = new StealableArtifactsSpawner();
             return true;
         }
 
         public static bool Remove()
         {
-            if (m_Instance == null)
+            if (Instance == null)
                 return false;
 
-            m_Instance.Delete();
-            m_Instance = null;
+            Instance.Delete();
+            Instance = null;
             return true;
         }
 
@@ -336,27 +345,22 @@ namespace Server.Items
         {
             base.OnDelete();
 
-            if (this.m_RespawnTimer != null)
+            if (m_RespawnTimer != null)
             {
-                this.m_RespawnTimer.Stop();
-                this.m_RespawnTimer = null;
+                m_RespawnTimer.Stop();
+                m_RespawnTimer = null;
             }
 
-            foreach (StealableInstance si in this.m_Artifacts)
-            {
+            foreach (var si in m_Artifacts)
                 if (si.Item != null)
                     si.Item.Delete();
-            }
 
-            m_Instance = null;
+            Instance = null;
         }
 
         public void CheckRespawn()
         {
-            foreach (StealableInstance si in this.m_Artifacts)
-            {
-                si.CheckRespawn();
-            }
+            foreach (var si in m_Artifacts) si.CheckRespawn();
         }
 
         public override void Serialize(GenericWriter writer)
@@ -365,14 +369,14 @@ namespace Server.Items
 
             writer.WriteEncodedInt(0); // version
 
-            writer.WriteEncodedInt(this.m_Artifacts.Length);
+            writer.WriteEncodedInt(m_Artifacts.Length);
 
-            for (int i = 0; i < this.m_Artifacts.Length; i++)
+            for (var i = 0; i < m_Artifacts.Length; i++)
             {
-                StealableInstance si = this.m_Artifacts[i];
+                var si = m_Artifacts[i];
 
-                writer.Write((Item)si.Item);
-                writer.WriteDeltaTime((DateTime)si.NextRespawn);
+                writer.Write(si.Item);
+                writer.WriteDeltaTime(si.NextRespawn);
             }
         }
 
@@ -380,34 +384,31 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
 
-            this.m_Artifacts = new StealableInstance[m_Entries.Length];
-            this.m_Table = new Hashtable(m_Entries.Length);
+            m_Artifacts = new StealableInstance[Entries.Length];
+            m_Table = new Hashtable(Entries.Length);
 
-            int length = reader.ReadEncodedInt();
+            var length = reader.ReadEncodedInt();
 
-            for (int i = 0; i < length; i++)
+            for (var i = 0; i < length; i++)
             {
-                Item item = reader.ReadItem();
-                DateTime nextRespawn = reader.ReadDeltaTime();
+                var item = reader.ReadItem();
+                var nextRespawn = reader.ReadDeltaTime();
 
-                if (i < this.m_Artifacts.Length)
+                if (i < m_Artifacts.Length)
                 {
-                    StealableInstance si = new StealableInstance(m_Entries[i], item, nextRespawn);
-                    this.m_Artifacts[i] = si;
+                    var si = new StealableInstance(Entries[i], item, nextRespawn);
+                    m_Artifacts[i] = si;
 
                     if (si.Item != null)
-                        this.m_Table[si.Item] = si;
+                        m_Table[si.Item] = si;
                 }
             }
 
-            for (int i = length; i < m_Entries.Length; i++)
-            {
-                this.m_Artifacts[i] = new StealableInstance(m_Entries[i]);
-            }
+            for (var i = length; i < Entries.Length; i++) m_Artifacts[i] = new StealableInstance(Entries[i]);
 
-            this.m_RespawnTimer = Timer.DelayCall(TimeSpan.Zero, TimeSpan.FromMinutes(15.0), new TimerCallback(CheckRespawn));
+            m_RespawnTimer = Timer.DelayCall(TimeSpan.Zero, TimeSpan.FromMinutes(15.0), CheckRespawn);
         }
 
         private static int GetLampPostHue()
@@ -422,7 +423,7 @@ namespace Server.Items
         [Description("Generates the stealable artifacts spawner.")]
         private static void GenStealArties_OnCommand(CommandEventArgs args)
         {
-            Mobile from = args.Mobile;
+            var from = args.Mobile;
 
             if (Create())
                 from.SendMessage("Stealable artifacts spawner generated.");
@@ -434,7 +435,7 @@ namespace Server.Items
         [Description("Removes the stealable artifacts spawner and every not yet stolen stealable artifacts.")]
         private static void RemoveStealArties_OnCommand(CommandEventArgs args)
         {
-            Mobile from = args.Mobile;
+            var from = args.Mobile;
 
             if (Remove())
                 from.SendMessage("Stealable artifacts spawner removed.");
@@ -444,12 +445,18 @@ namespace Server.Items
 
         public class StealableEntry
         {
-            private readonly Map m_Map;
-            private readonly Point3D m_Location;
-            private readonly int m_MinDelay;
-            private readonly int m_MaxDelay;
-            private readonly Type m_Type;
-            private readonly int m_Hue;
+            public Map Map { get; }
+
+            public Point3D Location { get; }
+
+            public int MinDelay { get; }
+
+            public int MaxDelay { get; }
+
+            public Type Type { get; }
+
+            public int Hue { get; }
+
             public StealableEntry(Map map, Point3D location, int minDelay, int maxDelay, Type type)
                 : this(map, location, minDelay, maxDelay, type, 0)
             {
@@ -457,65 +464,23 @@ namespace Server.Items
 
             public StealableEntry(Map map, Point3D location, int minDelay, int maxDelay, Type type, int hue)
             {
-                this.m_Map = map;
-                this.m_Location = location;
-                this.m_MinDelay = minDelay;
-                this.m_MaxDelay = maxDelay;
-                this.m_Type = type;
-                this.m_Hue = hue;
+                Map = map;
+                Location = location;
+                MinDelay = minDelay;
+                MaxDelay = maxDelay;
+                Type = type;
+                Hue = hue;
             }
 
-            public Map Map
-            {
-                get
-                {
-                    return this.m_Map;
-                }
-            }
-            public Point3D Location
-            {
-                get
-                {
-                    return this.m_Location;
-                }
-            }
-            public int MinDelay
-            {
-                get
-                {
-                    return this.m_MinDelay;
-                }
-            }
-            public int MaxDelay
-            {
-                get
-                {
-                    return this.m_MaxDelay;
-                }
-            }
-            public Type Type
-            {
-                get
-                {
-                    return this.m_Type;
-                }
-            }
-            public int Hue
-            {
-                get
-                {
-                    return this.m_Hue;
-                }
-            }
             public Item CreateInstance()
             {
-                Item item = (Item)Activator.CreateInstance(this.m_Type);
+                var item = (Item)Activator.CreateInstance(Type);
 
-                if (this.m_Hue > 0)
-                    item.Hue = this.m_Hue;
+                if (Hue > 0)
+                    item.Hue = Hue;
 
                 item.Movable = false;
-                item.MoveToWorld(this.Location, this.Map);
+                item.MoveToWorld(Location, Map);
 
                 return item;
             }
@@ -523,9 +488,36 @@ namespace Server.Items
 
         public class StealableInstance
         {
-            private readonly StealableEntry m_Entry;
             private Item m_Item;
-            private DateTime m_NextRespawn;
+
+            public StealableEntry Entry { get; }
+
+            public Item Item
+            {
+                get => m_Item;
+                set
+                {
+                    if (m_Item != null && value == null)
+                    {
+                        var delay = Utility.RandomMinMax(Entry.MinDelay, Entry.MaxDelay);
+                        NextRespawn = DateTime.UtcNow + TimeSpan.FromMinutes(delay);
+                    }
+
+                    if (Instance != null)
+                    {
+                        if (m_Item != null)
+                            Instance.m_Table.Remove(m_Item);
+
+                        if (value != null)
+                            Instance.m_Table[value] = this;
+                    }
+
+                    m_Item = value;
+                }
+            }
+
+            public DateTime NextRespawn { get; set; }
+
             public StealableInstance(StealableEntry entry)
                 : this(entry, null, DateTime.UtcNow)
             {
@@ -533,74 +525,25 @@ namespace Server.Items
 
             public StealableInstance(StealableEntry entry, Item item, DateTime nextRespawn)
             {
-                this.m_Item = item;
-                this.m_NextRespawn = nextRespawn;
-                this.m_Entry = entry;
+                m_Item = item;
+                NextRespawn = nextRespawn;
+                Entry = entry;
             }
 
-            public StealableEntry Entry
-            {
-                get
-                {
-                    return this.m_Entry;
-                }
-            }
-            public Item Item
-            {
-                get
-                {
-                    return this.m_Item;
-                }
-                set
-                {
-                    if (this.m_Item != null && value == null)
-                    {
-                        int delay = Utility.RandomMinMax(this.Entry.MinDelay, this.Entry.MaxDelay);
-                        this.NextRespawn = DateTime.UtcNow + TimeSpan.FromMinutes(delay);
-                    }
-
-                    if (Instance != null)
-                    {
-                        if (this.m_Item != null)
-                            Instance.m_Table.Remove(this.m_Item);
-
-                        if (value != null)
-                            Instance.m_Table[value] = this;
-                    }
-
-                    this.m_Item = value;
-                }
-            }
-            public DateTime NextRespawn
-            {
-                get
-                {
-                    return this.m_NextRespawn;
-                }
-                set
-                {
-                    this.m_NextRespawn = value;
-                }
-            }
             public void CheckRespawn()
             {
-                if (this.Item != null && (this.Item.Deleted || this.Item.Movable || this.Item.Parent != null))
-                    this.Item = null;
+                if (Item != null && (Item.Deleted || Item.Movable || Item.Parent != null))
+                    Item = null;
 
-                if (this.Item == null && DateTime.UtcNow >= this.NextRespawn)
-                {
-                    this.Item = this.Entry.CreateInstance();
-                }
+                if (Item == null && DateTime.UtcNow >= NextRespawn) Item = Entry.CreateInstance();
             }
+
             public void ForceRespawn()
             {
-                if (this.Item != null && (this.Item.Deleted || this.Item.Movable || this.Item.Parent != null))
-                    this.Item = null;
+                if (Item != null && (Item.Deleted || Item.Movable || Item.Parent != null))
+                    Item = null;
 
-                if (this.Item == null)
-                {
-                    this.Item = this.Entry.CreateInstance();
-                }
+                if (Item == null) Item = Entry.CreateInstance();
             }
         }
     }

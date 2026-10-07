@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +7,12 @@ namespace Server.Mobiles
     [CorpseName("an ore elemental corpse")]
     public class ValoriteElemental : BaseCreature
     {
+        public override bool AutoDispel => true;
+
+        public override bool BleedImmune => true;
+
+        public override int TreasureMapLevel => 1;
+
         [Constructable]
         public ValoriteElemental()
             : this(25)
@@ -61,28 +68,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool AutoDispel
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool BleedImmune
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override int TreasureMapLevel
-        {
-            get
-            {
-                return 1;
-            }
-        }
-
         public override void GenerateLoot()
         {
             AddLoot(LootPack.FilthyRich);
@@ -93,7 +78,7 @@ namespace Server.Mobiles
         {
             if (from is BaseCreature)
             {
-                BaseCreature bc = (BaseCreature)from;
+                var bc = (BaseCreature)from;
 
                 if (bc.Controlled || bc.BardTarget == this)
                     damage = 0; // Immune to pets and provoked creatures
@@ -114,26 +99,20 @@ namespace Server.Mobiles
             FixedParticles(0x36BD, 20, 10, 5044, EffectLayer.Head);
 
             IPooledEnumerable eable = Map.GetMobilesInRange(Location, 4);
-            var list = new System.Collections.Generic.List<Mobile>();
+            var list = new List<Mobile>();
 
             foreach (Mobile m in eable)
-            {
                 if (m != this && m.Alive && m.AccessLevel == AccessLevel.Player &&
                     (m is PlayerMobile || (m is BaseCreature && !((BaseCreature)m).IsMonster)))
-                {
                     list.Add(m);
-                }
-            }
 
             foreach (var m in list)
-            {
-                Timer.DelayCall<Mobile>(TimeSpan.FromSeconds(.5), mob =>
+                Timer.DelayCall(TimeSpan.FromSeconds(.5), mob =>
                 {
                     mob.FixedParticles(0x36BD, 20, 10, 5044, EffectLayer.Head);
                     mob.PlaySound(0x307);
                     AOS.Damage(mob, this, Utility.RandomMinMax(25, 50), 50, 50, 0, 0, 0);
                 }, m);
-            }
 
             ColUtility.Free(list);
 
@@ -148,13 +127,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

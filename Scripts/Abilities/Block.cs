@@ -5,30 +5,26 @@ using Server.Mobiles;
 namespace Server.Items
 {
     /// <summary>
-    /// Raises your defenses for a short time. Requires Bushido or Ninjitsu skill.
+    ///     Raises your defenses for a short time. Requires Bushido or Ninjitsu skill.
     /// </summary>
-    /// 
     // spell/melee
     // 0 parry - 70/80
     // 100 parry - 40/65
     // 120 parry - 20/55
     // .6875
-
     public class Block : WeaponAbility
     {
         private static Dictionary<Mobile, BlockInfo> _Table;
 
-        public Block()
-        {
-        }
+        public override int BaseMana => 20;
 
-        public override int BaseMana { get { return 20; } }
-
-        public override int AccuracyBonus { get { return -15; } }
+        public override int AccuracyBonus => -15;
 
         public override SkillName GetSecondarySkill(Mobile from)
         {
-            return from.Skills[SkillName.Ninjitsu].Base > from.Skills[SkillName.Bushido].Base ? SkillName.Ninjitsu : SkillName.Bushido;
+            return from.Skills[SkillName.Ninjitsu].Base > from.Skills[SkillName.Bushido].Base
+                ? SkillName.Ninjitsu
+                : SkillName.Bushido;
         }
 
         public static bool IsBlocking(Mobile m)
@@ -52,10 +48,7 @@ namespace Server.Items
             if (m == null || _Table == null)
                 return 0;
 
-            if (_Table.ContainsKey(m))
-            {
-                return _Table[m]._SpellReduction;
-            }
+            if (_Table.ContainsKey(m)) return _Table[m]._SpellReduction;
 
             return 0;
         }
@@ -65,10 +58,7 @@ namespace Server.Items
             if (m == null || _Table == null)
                 return 0;
 
-            if (_Table.ContainsKey(m))
-            {
-                return _Table[m]._MeleeReduction;
-            }
+            if (_Table.ContainsKey(m)) return _Table[m]._MeleeReduction;
 
             return 0;
         }
@@ -80,17 +70,18 @@ namespace Server.Items
             if (_Table == null)
                 _Table = new Dictionary<Mobile, BlockInfo>();
 
-            BlockInfo info = new BlockInfo(dciBonus, spellblock, meleeblock);
+            var info = new BlockInfo(dciBonus, spellblock, meleeblock);
             _Table[m] = info;
 
-            string args = String.Format("{0}\t{1}\t{2}\t{3}\t{4}", dciBonus, spellblock, meleeblock, "15", "30");
+            var args = string.Format("{0}\t{1}\t{2}\t{3}\t{4}", dciBonus, spellblock, meleeblock, "15", "30");
 
-            BuffInfo.AddBuff(m, new BuffInfo(BuffIcon.Block, 1151291, 1151292, TimeSpan.FromSeconds(Core.TOL ? 6 : 3), m, args));
+            BuffInfo.AddBuff(m,
+                new BuffInfo(BuffIcon.Block, 1151291, 1151292, TimeSpan.FromSeconds(Core.TOL ? 6 : 3), m, args));
             // Next incoming damage reduced.<br>Defense Chance Increase: +~1_val~%<br>Incoming Spell Damage: -~2_val~%<br>Incoming Attack Damage: -~3_val~%<br>Hit Chance Penalty: ~4_val~%<br>Damage Penalty: ~5_val~%
 
             Timer.DelayCall(TimeSpan.FromSeconds(Core.TOL ? 6 : 3), () =>
             {
-                if(IsBlocking(m))
+                if (IsBlocking(m))
                     EndBlock(m);
             });
         }
@@ -112,7 +103,7 @@ namespace Server.Items
 
         public override void OnHit(Mobile attacker, Mobile defender, int damage)
         {
-            if (!this.Validate(attacker) || !this.CheckMana(attacker, true))
+            if (!Validate(attacker) || !CheckMana(attacker, true))
                 return;
 
             ClearCurrentAbility(attacker);
@@ -122,27 +113,28 @@ namespace Server.Items
 
             attacker.FixedParticles(0x37C4, 1, 16, 0x251D, 0x39D, 0x3, EffectLayer.RightHand);
 
-            int parry = (int)attacker.Skills[SkillName.Parry].Value;
+            var parry = (int)attacker.Skills[SkillName.Parry].Value;
 
-            bool creature = attacker is BaseCreature;
-            double skill = creature ? attacker.Skills[SkillName.Bushido].Value :
-                                      Math.Max(attacker.Skills[SkillName.Bushido].Value, attacker.Skills[SkillName.Ninjitsu].Value);
+            var creature = attacker is BaseCreature;
+            var skill = creature
+                ? attacker.Skills[SkillName.Bushido].Value
+                : Math.Max(attacker.Skills[SkillName.Bushido].Value, attacker.Skills[SkillName.Ninjitsu].Value);
 
-            int dcibonus = (int)(10.0 * ((skill - 50.0) / 70.0 + 5));
-            int spellblock = parry <= 70 ? 70 : parry <= 100 ? 40 : 20;
-            int meleeblock = parry <= 70 ? 80 : parry <= 100 ? 65 : 55;
+            var dcibonus = (int)(10.0 * ((skill - 50.0) / 70.0 + 5));
+            var spellblock = parry <= 70 ? 70 : parry <= 100 ? 40 : 20;
+            var meleeblock = parry <= 70 ? 80 : parry <= 100 ? 65 : 55;
 
             BeginBlock(attacker, dcibonus, spellblock, meleeblock);
 
-            if(creature)
+            if (creature)
                 PetTrainingHelper.OnWeaponAbilityUsed((BaseCreature)attacker, SkillName.Bushido);
         }
 
         private class BlockInfo
         {
             public readonly int _DCIBonus;
-            public readonly int _SpellReduction;
             public readonly int _MeleeReduction;
+            public readonly int _SpellReduction;
 
             public BlockInfo(int bonus, int spellred, int meleered)
             {

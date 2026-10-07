@@ -1,20 +1,27 @@
-using System;
 using Server.Items;
 
-namespace Server.Mobiles 
-{ 
-    [CorpseName("an evil mage lord corpse")] 
-    public class EvilMageLord : BaseCreature 
-    { 
-        [Constructable] 
+namespace Server.Mobiles
+{
+    [CorpseName("an evil mage lord corpse")]
+    public class EvilMageLord : BaseCreature
+    {
+        public override bool CanRummageCorpses => true;
+
+        public override bool AlwaysMurderer => true;
+
+        public override int Meat => 1;
+
+        public override int TreasureMapLevel => Core.AOS ? 2 : 0;
+
+        [Constructable]
         public EvilMageLord()
             : base(AIType.AI_Mage, FightMode.Closest, 10, 1, 0.2, 0.4)
-        { 
+        {
             Name = NameList.RandomName("evil mage lord");
             Body = Utility.RandomList(125, 126);
 
-            PackItem(new Robe(Utility.RandomMetalHue())); 
-            PackItem(new WizardsHat(Utility.RandomMetalHue())); 
+            PackItem(new Robe(Utility.RandomMetalHue()));
+            PackItem(new WizardsHat(Utility.RandomMetalHue()));
 
             SetStr(81, 105);
             SetDex(191, 215);
@@ -43,18 +50,24 @@ namespace Server.Mobiles
             Karma = -10500;
 
             VirtualArmor = 16;
-			switch (Utility.Random(16))
+            switch (Utility.Random(16))
             {
                 case 0: PackItem(new BloodOathScroll()); break;
                 case 1: PackItem(new CurseWeaponScroll()); break;
                 case 2: PackItem(new StrangleScroll()); break;
                 case 3: PackItem(new LichFormScroll()); break;
-			}
+            }
+
             PackReg(23);
             if (Utility.RandomBool())
                 PackItem(new Shoes());
             else
                 PackItem(new Sandals());
+        }
+
+        public EvilMageLord(Serial serial)
+            : base(serial)
+        {
         }
 
         public override int GetDeathSound()
@@ -67,39 +80,6 @@ namespace Server.Mobiles
             return 0x436;
         }
 
-        public EvilMageLord(Serial serial)
-            : base(serial)
-        { 
-        }
-
-        public override bool CanRummageCorpses
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool AlwaysMurderer
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override int Meat
-        {
-            get
-            {
-                return 1;
-            }
-        }
-        public override int TreasureMapLevel
-        {
-            get
-            {
-                return Core.AOS ? 2 : 0;
-            }
-        }
         public override void GenerateLoot()
         {
             AddLoot(LootPack.Average);
@@ -107,16 +87,16 @@ namespace Server.Mobiles
             AddLoot(LootPack.MedScrolls, 2);
         }
 
-        public override void Serialize(GenericWriter writer) 
-        { 
-            base.Serialize(writer); 
-            writer.Write((int)0); 
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
         }
 
-        public override void Deserialize(GenericReader reader) 
-        { 
-            base.Deserialize(reader); 
-            int version = reader.ReadInt(); 
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
         }
     }
 }

@@ -1,23 +1,20 @@
-using System;
 using System.Collections.Generic;
 using Server.ContextMenus;
-using Server.Multis;
-using Server.Mobiles;
 using Server.Gumps;
+using Server.Mobiles;
+using Server.Multis;
 
 namespace Server.Items
 {
     public class CustomizableSquaredDoorMatAddon : BaseAddon, ICustomizableMessageItem
     {
-        public string[] Lines { get; set; }
-
-        public override BaseAddonDeed Deed { get { return new CustomizableSquaredDoorMatDeed(); } }
+        public override BaseAddonDeed Deed => new CustomizableSquaredDoorMatDeed();
 
         [Constructable]
         public CustomizableSquaredDoorMatAddon(DirectionType type)
         {
             Lines = new string[3];
-            
+
             switch (type)
             {
                 case DirectionType.South:
@@ -36,35 +33,42 @@ namespace Server.Items
         {
         }
 
+        public string[] Lines { get; set; }
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
-            writer.Write((int)Lines.Length);
+            writer.Write(Lines.Length);
 
-            for (int i = 0; i < Lines.Length; i++)
-                writer.Write((string)Lines[i]);
+            for (var i = 0; i < Lines.Length; i++)
+                writer.Write(Lines[i]);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             Lines = new string[reader.ReadInt()];
 
-            for (int i = 0; i < Lines.Length; i++)
+            for (var i = 0; i < Lines.Length; i++)
                 Lines[i] = reader.ReadString();
         }
     }
 
     public class CustomizableSquaredDoorMatComponent : LocalizedAddonComponent
     {
-        public override bool ForceShowProperties { get { return true; } }
+        public override bool ForceShowProperties => true;
 
         public CustomizableSquaredDoorMatComponent(int id)
             : base(id, 1097996) // door mat
+        {
+        }
+
+        public CustomizableSquaredDoorMatComponent(Serial serial)
+            : base(serial)
         {
         }
 
@@ -72,38 +76,23 @@ namespace Server.Items
         {
             base.GetProperties(list);
 
-            CustomizableSquaredDoorMatAddon addon = Addon as CustomizableSquaredDoorMatAddon;
+            var addon = Addon as CustomizableSquaredDoorMatAddon;
 
             if (addon != null)
-            {
                 if (addon.Lines != null)
-                {
-                    for (int i = 0; i < addon.Lines.Length; i++)
-                    {
+                    for (var i = 0; i < addon.Lines.Length; i++)
                         if (!string.IsNullOrEmpty(addon.Lines[i]))
-                        {
                             list.Add(1150301 + i, addon.Lines[i]); // [ ~1_LINE0~ ]
-                        }
-                    }
-                }
-            }
         }
 
         public override void GetContextMenuEntries(Mobile from, List<ContextMenuEntry> list)
         {
             base.GetContextMenuEntries(from, list);
 
-            BaseHouse house = BaseHouse.FindHouseAt(from);
+            var house = BaseHouse.FindHouseAt(from);
 
             if (house != null && house.IsCoOwner(from) && from is PlayerMobile)
-            {
                 list.Add(new EditSign((CustomizableSquaredDoorMatAddon)Addon, (PlayerMobile)from));
-            }
-        }
-
-        public CustomizableSquaredDoorMatComponent(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -115,17 +104,16 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class CustomizableSquaredDoorMatDeed : BaseAddonDeed, IRewardOption
     {
-        public override BaseAddon Addon { get { return new CustomizableSquaredDoorMatAddon(m_CustomizableSquaredDoorMatType); } }
-
         private DirectionType m_CustomizableSquaredDoorMatType;
+        public override BaseAddon Addon => new CustomizableSquaredDoorMatAddon(m_CustomizableSquaredDoorMatType);
 
-        public override int LabelNumber { get { return 1151806; } } // squared door mat deed
+        public override int LabelNumber => 1151806; // squared door mat deed
 
         [Constructable]
         public CustomizableSquaredDoorMatDeed()
@@ -133,34 +121,9 @@ namespace Server.Items
             LootType = LootType.Blessed;
         }
 
-        public override void OnDoubleClick(Mobile from)
-        {
-            if (IsChildOf(from.Backpack))
-            {
-                from.CloseGump(typeof(AddonOptionGump));
-                from.SendGump(new AddonOptionGump(this, LabelNumber));
-            }
-            else
-            {
-                from.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.
-            }
-        }
-
         public CustomizableSquaredDoorMatDeed(Serial serial)
             : base(serial)
         {
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.Write((int)0); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            int version = reader.ReadInt();
         }
 
         public void GetOptions(RewardOptionList list)
@@ -176,5 +139,30 @@ namespace Server.Items
             if (!Deleted)
                 base.OnDoubleClick(from);
         }
-    }    
+
+        public override void OnDoubleClick(Mobile from)
+        {
+            if (IsChildOf(from.Backpack))
+            {
+                from.CloseGump(typeof(AddonOptionGump));
+                from.SendGump(new AddonOptionGump(this, LabelNumber));
+            }
+            else
+            {
+                from.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.
+            }
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0); // version
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
+        }
+    }
 }

@@ -1,7 +1,10 @@
 using System;
 using System.Collections;
+using System.IO;
 using System.Text;
 using Server.Accounting;
+using Server.Items;
+using Server.Misc;
 using Server.Network;
 
 namespace Server.RemoteAdmin
@@ -10,18 +13,18 @@ namespace Server.RemoteAdmin
     {
         private const string ProtocolVersion = "2";
 
+        private const string DateFormat = "MMMM dd hh:mm:ss.f tt";
+
         private static ArrayList m_Auth = new ArrayList();
         private static bool m_NewLine = true;
         private static readonly StringBuilder m_ConsoleData = new StringBuilder();
 
-        private const string DateFormat = "MMMM dd hh:mm:ss.f tt";
-
         public static void Configure()
         {
-            PacketHandlers.Register(0xF1, 0, false, new OnPacketReceive(OnReceive));
+            PacketHandlers.Register(0xF1, 0, false, OnReceive);
 
-			Core.MultiConsoleOut.Add(new EventTextWriter(new EventTextWriter.OnConsoleChar(OnConsoleChar), new EventTextWriter.OnConsoleLine(OnConsoleLine), new EventTextWriter.OnConsoleStr(OnConsoleString)));
-			Timer.DelayCall(TimeSpan.FromMinutes(2.5), TimeSpan.FromMinutes(2.5), new TimerCallback(CleanUp));
+            Core.MultiConsoleOut.Add(new EventTextWriter(OnConsoleChar, OnConsoleLine, OnConsoleString));
+            Timer.DelayCall(TimeSpan.FromMinutes(2.5), TimeSpan.FromMinutes(2.5), CleanUp);
         }
 
         public static void OnConsoleString(string str)
@@ -29,7 +32,7 @@ namespace Server.RemoteAdmin
             string outStr;
             if (m_NewLine)
             {
-                outStr = String.Format("[{0}]: {1}", DateTime.UtcNow.ToString(DateFormat), str);
+                outStr = string.Format("[{0}]: {1}", DateTime.UtcNow.ToString(DateFormat), str);
                 m_NewLine = false;
             }
             else
@@ -48,7 +51,7 @@ namespace Server.RemoteAdmin
             if (m_NewLine)
             {
                 string outStr;
-                outStr = String.Format("[{0}]: {1}", DateTime.UtcNow.ToString(DateFormat), ch);
+                outStr = string.Format("[{0}]: {1}", DateTime.UtcNow.ToString(DateFormat), ch);
 
                 m_ConsoleData.Append(outStr);
                 SendToAll(outStr);
@@ -68,9 +71,10 @@ namespace Server.RemoteAdmin
         {
             string outStr;
             if (m_NewLine)
-                outStr = String.Format("[{0}]: {1}{2}", DateTime.UtcNow.ToString(DateFormat), line, Console.Out.NewLine);
+                outStr = string.Format("[{0}]: {1}{2}", DateTime.UtcNow.ToString(DateFormat), line,
+                    Console.Out.NewLine);
             else
-                outStr = String.Format("{0}{1}", line, Console.Out.NewLine);
+                outStr = string.Format("{0}{1}", line, Console.Out.NewLine);
 
             m_ConsoleData.Append(outStr);
             RoughTrimConsoleData();
@@ -80,31 +84,31 @@ namespace Server.RemoteAdmin
             m_NewLine = true;
         }
 
-        static void SendToAll(string outStr)
+        private static void SendToAll(string outStr)
         {
             SendToAll(new ConsoleData(outStr));
         }
 
-        static void SendToAll(char ch)
+        private static void SendToAll(char ch)
         {
             SendToAll(new ConsoleData(ch));
         }
 
-        static void SendToAll(ConsoleData packet)
+        private static void SendToAll(ConsoleData packet)
         {
             packet.Acquire();
-            for (int i = 0; i < m_Auth.Count; i++)
+            for (var i = 0; i < m_Auth.Count; i++)
                 ((NetState)m_Auth[i]).Send(packet);
             packet.Release();
         }
 
-        static void RoughTrimConsoleData()
+        private static void RoughTrimConsoleData()
         {
             if (m_ConsoleData.Length >= 4096)
                 m_ConsoleData.Remove(0, 2048);
         }
 
-        static void TightTrimConsoleData()
+        private static void TightTrimConsoleData()
         {
             if (m_ConsoleData.Length > 1024)
                 m_ConsoleData.Remove(0, m_ConsoleData.Length - 1024);
@@ -112,7 +116,7 @@ namespace Server.RemoteAdmin
 
         public static void OnReceive(NetState state, PacketReader pvSrc)
         {
-            byte cmd = pvSrc.ReadByte();
+            var cmd = pvSrc.ReadByte();
             if (cmd == 0x02)
             {
                 Authenticate(state, pvSrc);
@@ -124,7 +128,10 @@ namespace Server.RemoteAdmin
             }
             else if (cmd == 0xFF)
             {
-                string statStr = String.Format(", Name={0}, Age={1}, Clients={2}, Items={3}, Chars={4}, Mem={5}K, Ver={6}", Server.Misc.ServerList.ServerName, (int)(DateTime.UtcNow - Server.Items.Clock.ServerStart).TotalHours, NetState.Instances.Count, World.Items.Count, World.Mobiles.Count, (int)(System.GC.GetTotalMemory(false) / 1024), ProtocolVersion);
+                var statStr = string.Format(", Name={0}, Age={1}, Clients={2}, Items={3}, Chars={4}, Mem={5}K, Ver={6}",
+                    ServerList.ServerName, (int)(DateTime.UtcNow - Clock.ServerStart).TotalHours,
+                    NetState.Instances.Count, World.Items.Count, World.Mobiles.Count,
+                    (int)(GC.GetTotalMemory(false) / 1024), ProtocolVersion);
                 state.Send(new UOGInfo(statStr));
                 state.Dispose();
             }
@@ -144,19 +151,19 @@ namespace Server.RemoteAdmin
         {
             Timer.DelayCall(TimeSpan.FromSeconds(15.0), new TimerStateCallback(Disconnect), state);
         }
-		
+
         private static void Disconnect(object state)
         {
             m_Auth.Remove(state);
             ((NetState)state).Dispose();
         }
-		
+
         public static void Authenticate(NetState state, PacketReader pvSrc)
         {
-            string user = pvSrc.ReadString(30);
-            string pw = pvSrc.ReadString(30);
+            var user = pvSrc.ReadString(30);
+            var pw = pvSrc.ReadString(30);
 
-            Account a = Accounts.GetAccount(user) as Account;
+            var a = Accounts.GetAccount(user) as Account;
             if (a == null)
             {
                 state.Send(new Login(LoginResponse.NoUser));
@@ -178,7 +185,7 @@ namespace Server.RemoteAdmin
             else if (a.AccessLevel < AccessLevel.Administrator || a.Banned)
             {
                 Console.WriteLine("ADMIN: Account '{0}' does not have admin access. Connection Denied.", user);
-                state.Send(new Login(LoginResponse.NoAccess)); 
+                state.Send(new Login(LoginResponse.NoAccess));
                 DelayedDisconnect(state);
             }
             else
@@ -201,11 +208,12 @@ namespace Server.RemoteAdmin
         }
 
         private static void CleanUp()
-        { //remove dead instances from m_Auth
-            ArrayList list = new ArrayList();
-            for (int i = 0; i < m_Auth.Count; i++)
+        {
+            //remove dead instances from m_Auth
+            var list = new ArrayList();
+            for (var i = 0; i < m_Auth.Count; i++)
             {
-                NetState ns = (NetState)m_Auth[i];
+                var ns = (NetState)m_Auth[i];
                 if (ns.Running)
                     list.Add(ns);
             }
@@ -216,73 +224,65 @@ namespace Server.RemoteAdmin
         public static Packet Compress(Packet p)
         {
             int length;
-            byte[] source = p.Compile(false, out length);
+            var source = p.Compile(false, out length);
 
             if (length > 100 && length < 60000)
             {
-                byte[] dest = new byte[(int)(length * 1.001) + 10];
-                int destSize = dest.Length;
+                var dest = new byte[(int)(length * 1.001) + 10];
+                var destSize = dest.Length;
 
-                ZLibError error = Compression.Pack(dest, ref destSize, source, length, ZLibQuality.Default);
+                var error = Compression.Pack(dest, ref destSize, source, length, ZLibQuality.Default);
 
                 if (error != ZLibError.Okay)
                 {
                     Console.WriteLine("WARNING: Unable to compress admin packet, zlib error: {0}", error);
                     return p;
                 }
-                else
-                {
-                    return new AdminCompressedPacket(dest, destSize, length);
-                }
+
+                return new AdminCompressedPacket(dest, destSize, length);
             }
-            else
-            {
-                return p;
-            }
+
+            return p;
         }
     }
-	
-    public class EventTextWriter : System.IO.TextWriter
+
+    public class EventTextWriter : TextWriter
     {
         public delegate void OnConsoleChar(char ch);
+
         public delegate void OnConsoleLine(string line);
+
         public delegate void OnConsoleStr(string str);
 
         private readonly OnConsoleChar m_OnChar;
         private readonly OnConsoleLine m_OnLine;
         private readonly OnConsoleStr m_OnStr;
 
+        public override Encoding Encoding => Encoding.ASCII;
+
         public EventTextWriter(OnConsoleChar onChar, OnConsoleLine onLine, OnConsoleStr onStr)
         {
-            this.m_OnChar = onChar;
-            this.m_OnLine = onLine;
-            this.m_OnStr = onStr;
+            m_OnChar = onChar;
+            m_OnLine = onLine;
+            m_OnStr = onStr;
         }
 
         public override void Write(char ch)
         {
-            if (this.m_OnChar != null)
-                this.m_OnChar(ch);
+            if (m_OnChar != null)
+                m_OnChar(ch);
         }
 
         public override void Write(string str)
         {
-            if (this.m_OnStr != null)
-                this.m_OnStr(str);
+            if (m_OnStr != null)
+                m_OnStr(str);
         }
 
         public override void WriteLine(string line)
         {
-            if (this.m_OnLine != null)
-                this.m_OnLine(line);
-        }
-
-        public override System.Text.Encoding Encoding
-        {
-            get
-            {
-                return System.Text.Encoding.ASCII;
-            }
+            if (m_OnLine != null)
+                m_OnLine(line);
         }
     }
 }

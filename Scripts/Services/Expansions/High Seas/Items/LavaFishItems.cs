@@ -1,50 +1,41 @@
-using Server;
-using System;
-using Server.Mobiles;
-
 namespace Server.Items
 {
     public class StoneFootwear : BaseShoes
     {
-        public static void Initialize()
-        {
-            EventSink.Movement += new MovementEventHandler(EventSink_Movement);
-        }
-
         [Constructable]
         public StoneFootwear() : this(Utility.Random(5899, 8))
         {
         }
 
         [Constructable]
-        public StoneFootwear(int itemID) 
+        public StoneFootwear(int itemID)
             : base(itemID)
         {
-            string name = GetNameInfo(ItemID);
+            var name = GetNameInfo(ItemID);
 
             if (name == "thigh boots")
-            {
                 Weight = 4.0;
-            }
             else if (name == "boots")
-            {
                 Weight = 3.0;
-            }
             else if (name == "shoes")
-            {
                 Weight = 2.0;
-            }
-            else if (name == "sandals")
-            {
-                Weight = 1.0;
-            }
+            else if (name == "sandals") Weight = 1.0;
 
             StrRequirement = 10;
         }
 
+        public StoneFootwear(Serial serial) : base(serial)
+        {
+        }
+
+        public static void Initialize()
+        {
+            EventSink.Movement += EventSink_Movement;
+        }
+
         public string GetNameInfo(int itemID)
         {
-            string name = "foot wear";
+            var name = "foot wear";
             switch (itemID)
             {
                 case 5899:
@@ -56,6 +47,7 @@ namespace Server.Items
                 case 5905:
                 case 5906: name = "thigh boots"; break;
             }
+
             return name;
         }
 
@@ -63,14 +55,12 @@ namespace Server.Items
         {
             if (parent is Mobile)
             {
-                Mobile m = (Mobile)parent as Mobile;                
+                var m = (Mobile)parent;
 
-                if (SpiderWebbing.IsTrapped(m))
-                {
-                    SpiderWebbing.RemoveEffects(m);                    
-                }
+                if (SpiderWebbing.IsTrapped(m)) SpiderWebbing.RemoveEffects(m);
 
-                m.SendLocalizedMessage(1151094, GetNameInfo(ItemID)); // You manage to equip the stone ~1_token~ and find you can no longer move!
+                m.SendLocalizedMessage(1151094,
+                    GetNameInfo(ItemID)); // You manage to equip the stone ~1_token~ and find you can no longer move!
             }
         }
 
@@ -81,50 +71,39 @@ namespace Server.Items
 
         public static void EventSink_Movement(MovementEventArgs e)
         {
-            Mobile from = e.Mobile;
+            var from = e.Mobile;
 
             if (from != null && from.Alive)
             {
-                Item item = from.FindItemOnLayer(Layer.Shoes);
+                var item = from.FindItemOnLayer(Layer.Shoes);
 
                 if (item is StoneFootwear)
                     e.Blocked = true;
             }
         }
 
-        public StoneFootwear(Serial serial) : base(serial) { }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1);
+            writer.Write(1);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (version < 1)
             {
-                string name = GetNameInfo(ItemID);
+                var name = GetNameInfo(ItemID);
 
                 if (name == "thigh boots")
-                {
                     Weight = 4.0;
-                }
                 else if (name == "boots")
-                {
                     Weight = 3.0;
-                }
                 else if (name == "shoes")
-                {
                     Weight = 2.0;
-                }
-                else if (name == "sandals")
-                {
-                    Weight = 1.0;
-                }
+                else if (name == "sandals") Weight = 1.0;
 
                 StrRequirement = 10;
             }
@@ -133,10 +112,14 @@ namespace Server.Items
 
     public class CrackedLavaRockSouth : Item
     {
-        public override int LabelNumber { get { return 1098151; } }
+        public override int LabelNumber => 1098151;
 
         [Constructable]
         public CrackedLavaRockSouth() : base(19279)
+        {
+        }
+
+        public CrackedLavaRockSouth(Serial serial) : base(serial)
         {
         }
 
@@ -162,27 +145,29 @@ namespace Server.Items
             }
         }
 
-        public CrackedLavaRockSouth(Serial serial) : base(serial) { }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class CrackedLavaRockEast : Item
     {
-        public override int LabelNumber { get { return 1098151; } }
+        public override int LabelNumber => 1098151;
 
         [Constructable]
         public CrackedLavaRockEast() : base(19275)
+        {
+        }
+
+        public CrackedLavaRockEast(Serial serial) : base(serial)
         {
         }
 
@@ -215,24 +200,22 @@ namespace Server.Items
             }
         }
 
-        public CrackedLavaRockEast(Serial serial) : base(serial) { }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class GeodeSouth : Item
     {
-        public override int LabelNumber { get { return 1098145; } }
+        public override int LabelNumber => 1098145;
 
         [Constructable]
         public GeodeSouth() : base(Utility.Random(19277, 2))
@@ -246,24 +229,26 @@ namespace Server.Items
             }
         }
 
-        public GeodeSouth(Serial serial) : base(serial) { }
+        public GeodeSouth(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class GeodeEast : Item
     {
-        public override int LabelNumber { get { return 1098145; } }
+        public override int LabelNumber => 1098145;
 
         [Constructable]
         public GeodeEast() : base(Utility.Random(19273, 2))
@@ -277,24 +262,26 @@ namespace Server.Items
             }
         }
 
-        public GeodeEast(Serial serial) : base(serial) { }
+        public GeodeEast(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class GeodeShardSouth : Item
     {
-        public override int LabelNumber { get { return 1098148; } }
+        public override int LabelNumber => 1098148;
 
         [Constructable]
         public GeodeShardSouth() : base(19276)
@@ -308,24 +295,26 @@ namespace Server.Items
             }
         }
 
-        public GeodeShardSouth(Serial serial) : base(serial) { }
+        public GeodeShardSouth(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class GeodeShardEast : Item
     {
-        public override int LabelNumber { get { return 1098148; } }
+        public override int LabelNumber => 1098148;
 
         [Constructable]
         public GeodeShardEast() : base(19272)
@@ -339,24 +328,26 @@ namespace Server.Items
             }
         }
 
-        public GeodeShardEast(Serial serial) : base(serial) { }
+        public GeodeShardEast(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class LavaRock : Item
     {
-        public override int LabelNumber { get { return 1151166; } }
+        public override int LabelNumber => 1151166;
 
         [Constructable]
         public LavaRock() : base(Utility.Random(4964, 6))
@@ -364,24 +355,26 @@ namespace Server.Items
             Hue = 1175;
         }
 
-        public LavaRock(Serial serial) : base(serial) { }
+        public LavaRock(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class StonePaver : Item
     {
-        public override int LabelNumber { get { return 1097277; } }
+        public override int LabelNumber => 1097277;
 
         [Constructable]
         public StonePaver()
@@ -390,18 +383,20 @@ namespace Server.Items
             Weight = 5;
         }
 
-        public StonePaver(Serial serial) : base(serial) { }
+        public StonePaver(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

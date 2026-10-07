@@ -1,18 +1,22 @@
-using System;
 using Server.Items;
 
-namespace Server.Mobiles 
-{ 
-    [CorpseName("an archmage corpse")] 
-    public class Archmage : BaseCreature 
-    { 
-        [Constructable] 
+namespace Server.Mobiles
+{
+    [CorpseName("an archmage corpse")]
+    public class Archmage : BaseCreature
+    {
+        public override bool CanRummageCorpses => true;
+        public override bool AlwaysMurderer => true;
+        public override int Meat => 1;
+        public override int TreasureMapLevel => Core.AOS ? 2 : 0;
+
+        [Constructable]
         public Archmage()
             : base(AIType.AI_Mage, FightMode.Closest, 10, 1, 0.2, 0.4)
         {
-            this.Name = NameList.RandomName("evil mage");
-            this.Title = "The Insane The Archmage";
-            this.Body = Utility.RandomList(125, 126);
+            Name = NameList.RandomName("evil mage");
+            Title = "The Insane The Archmage";
+            Body = Utility.RandomList(125, 126);
 
             PackItem(new Robe(Utility.RandomMetalHue()));
 
@@ -44,31 +48,24 @@ namespace Server.Mobiles
             Karma = -14500;
 
             VirtualArmor = 16;
-			switch (Utility.Random(16))
+            switch (Utility.Random(16))
             {
                 case 0: PackItem(new BloodOathScroll()); break;
                 case 1: PackItem(new CurseWeaponScroll()); break;
                 case 2: PackItem(new StrangleScroll()); break;
                 case 3: PackItem(new LichFormScroll()); break;
-			}
+            }
+
             PackReg(23);
             PackItem(new Sandals());
 
-            if (Utility.RandomDouble() < 0.75)
-            {
-                PackItem(new SeveredHumanEars());
-            }
+            if (Utility.RandomDouble() < 0.75) PackItem(new SeveredHumanEars());
         }
 
         public Archmage(Serial serial)
             : base(serial)
-        { 
+        {
         }
-
-        public override bool CanRummageCorpses { get { return true; } }
-        public override bool AlwaysMurderer { get { return true; } }
-        public override int Meat { get { return 1; } }
-        public override int TreasureMapLevel { get { return Core.AOS ? 2 : 0; } }
 
         public override void GenerateLoot()
         {
@@ -77,16 +74,16 @@ namespace Server.Mobiles
             AddLoot(LootPack.MedScrolls, 2);
         }
 
-        public override void Serialize(GenericWriter writer) 
-        { 
-            base.Serialize(writer); 
-            writer.Write((int)0); 
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
         }
 
-        public override void Deserialize(GenericReader reader) 
-        { 
-            base.Deserialize(reader); 
-            int version = reader.ReadInt(); 
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
         }
     }
 }

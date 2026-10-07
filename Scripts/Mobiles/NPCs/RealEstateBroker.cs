@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Server.Items;
 using Server.Multis.Deeds;
 using Server.Network;
 using Server.Targeting;
@@ -11,6 +10,9 @@ namespace Server.Mobiles
     {
         private readonly List<SBInfo> m_SBInfos = new List<SBInfo>();
         private DateTime m_NextCheckPack;
+
+        protected override List<SBInfo> SBInfos => m_SBInfos;
+
         [Constructable]
         public RealEstateBroker()
             : base("the real estate broker")
@@ -22,13 +24,6 @@ namespace Server.Mobiles
         {
         }
 
-        protected override List<SBInfo> SBInfos
-        {
-            get
-            {
-                return this.m_SBInfos;
-            }
-        }
         public override bool HandlesOnSpeech(Mobile from)
         {
             if (from.Alive && from.InRange(this, 3))
@@ -39,23 +34,23 @@ namespace Server.Mobiles
 
         public override void OnMovement(Mobile m, Point3D oldLocation)
         {
-            if (DateTime.UtcNow > this.m_NextCheckPack && this.InRange(m, 4) && !this.InRange(oldLocation, 4) && m.Player)
+            if (DateTime.UtcNow > m_NextCheckPack && InRange(m, 4) && !InRange(oldLocation, 4) && m.Player)
             {
-                Container pack = m.Backpack;
+                var pack = m.Backpack;
 
                 if (pack != null)
                 {
-                    this.m_NextCheckPack = DateTime.UtcNow + TimeSpan.FromSeconds(2.0);
+                    m_NextCheckPack = DateTime.UtcNow + TimeSpan.FromSeconds(2.0);
 
-                    Item deed = pack.FindItemByType(typeof(HouseDeed), false);
+                    var deed = pack.FindItemByType(typeof(HouseDeed), false);
 
                     if (deed != null)
                     {
                         // If you have a deed, I can appraise it or buy it from you...
-                        this.PrivateOverheadMessage(MessageType.Regular, 0x3B2, 500605, m.NetState);
+                        PrivateOverheadMessage(MessageType.Regular, 0x3B2, 500605, m.NetState);
 
                         // Simply hand me a deed to sell it.
-                        this.PrivateOverheadMessage(MessageType.Regular, 0x3B2, 500606, m.NetState);
+                        PrivateOverheadMessage(MessageType.Regular, 0x3B2, 500606, m.NetState);
                     }
                 }
             }
@@ -67,8 +62,8 @@ namespace Server.Mobiles
         {
             if (!e.Handled && e.Mobile.Alive && e.HasKeyword(0x38)) // *appraise*
             {
-                this.PublicOverheadMessage(MessageType.Regular, 0x3B2, 500608); // Which deed would you like appraised?
-                e.Mobile.BeginTarget(12, false, TargetFlags.None, new TargetCallback(Appraise_OnTarget));
+                PublicOverheadMessage(MessageType.Regular, 0x3B2, 500608); // Which deed would you like appraised?
+                e.Mobile.BeginTarget(12, false, TargetFlags.None, Appraise_OnTarget);
                 e.Handled = true;
             }
 
@@ -79,30 +74,27 @@ namespace Server.Mobiles
         {
             if (dropped is HouseDeed)
             {
-                HouseDeed deed = (HouseDeed)dropped;
-                int price = this.ComputePriceFor(deed);
+                var deed = (HouseDeed)dropped;
+                var price = ComputePriceFor(deed);
 
                 if (price > 0)
                 {
                     if (Banker.Deposit(from, price))
                     {
                         // For the deed I have placed gold in your bankbox : 
-                        this.PublicOverheadMessage(MessageType.Regular, 0x3B2, 1008000, AffixType.Append, price.ToString(), "");
+                        PublicOverheadMessage(MessageType.Regular, 0x3B2, 1008000, AffixType.Append, price.ToString(),
+                            "");
 
                         deed.Delete();
                         return true;
                     }
-                    else
-                    {
-                        this.PublicOverheadMessage(MessageType.Regular, 0x3B2, 500390); // Your bank box is full.
-                        return false;
-                    }
-                }
-                else
-                {
-                    this.PublicOverheadMessage(MessageType.Regular, 0x3B2, 500607); // I'm not interested in that.
+
+                    PublicOverheadMessage(MessageType.Regular, 0x3B2, 500390); // Your bank box is full.
                     return false;
                 }
+
+                PublicOverheadMessage(MessageType.Regular, 0x3B2, 500607); // I'm not interested in that.
+                return false;
             }
 
             return base.OnDragDrop(from, dropped);
@@ -112,32 +104,35 @@ namespace Server.Mobiles
         {
             if (obj is HouseDeed)
             {
-                HouseDeed deed = (HouseDeed)obj;
-                int price = this.ComputePriceFor(deed);
+                var deed = (HouseDeed)obj;
+                var price = ComputePriceFor(deed);
 
                 if (price > 0)
                 {
                     // I will pay you gold for this deed : 
-                    this.PublicOverheadMessage(MessageType.Regular, 0x3B2, 1008001, AffixType.Append, price.ToString(), "");
+                    PublicOverheadMessage(MessageType.Regular, 0x3B2, 1008001, AffixType.Append, price.ToString(), "");
 
-                    this.PublicOverheadMessage(MessageType.Regular, 0x3B2, 500610); // Simply hand me the deed if you wish to sell it.
+                    PublicOverheadMessage(MessageType.Regular, 0x3B2,
+                        500610); // Simply hand me the deed if you wish to sell it.
                 }
                 else
                 {
-                    this.PublicOverheadMessage(MessageType.Regular, 0x3B2, 500607); // I'm not interested in that.
+                    PublicOverheadMessage(MessageType.Regular, 0x3B2, 500607); // I'm not interested in that.
                 }
             }
             else
             {
-                this.PublicOverheadMessage(MessageType.Regular, 0x3B2, 500609); // I can't appraise things I know nothing about...
+                PublicOverheadMessage(MessageType.Regular, 0x3B2,
+                    500609); // I can't appraise things I know nothing about...
             }
         }
 
         public int ComputePriceFor(HouseDeed deed)
         {
-            int price = 0;
+            var price = 0;
 
-            if (deed is StonePlasterHouseDeed || deed is FieldStoneHouseDeed || deed is SmallBrickHouseDeed || deed is WoodHouseDeed || deed is WoodPlasterHouseDeed || deed is ThatchedRoofCottageDeed)
+            if (deed is StonePlasterHouseDeed || deed is FieldStoneHouseDeed || deed is SmallBrickHouseDeed ||
+                deed is WoodHouseDeed || deed is WoodPlasterHouseDeed || deed is ThatchedRoofCottageDeed)
                 price = 43800;
             else if (deed is BrickHouseDeed)
                 price = 144500;
@@ -171,21 +166,21 @@ namespace Server.Mobiles
 
         public override void InitSBInfo()
         {
-            this.m_SBInfos.Add(new SBRealEstateBroker());
+            m_SBInfos.Add(new SBRealEstateBroker());
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

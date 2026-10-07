@@ -1,10 +1,11 @@
-using System;
-
 namespace Server.Items
 {
     public class OrcishMachete : ElvenMachete
-	{
-		public override bool IsArtifact { get { return true; } }
+    {
+        public override bool IsArtifact => true;
+
+        public override int LabelNumber => 1073534; // Orcish Machete
+
         [Constructable]
         public OrcishMachete()
         {
@@ -17,13 +18,6 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1073534;
-            }
-        }// Orcish Machete
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -35,7 +29,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

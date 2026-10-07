@@ -1,5 +1,3 @@
-using System;
-using Server;
 using Server.Gumps;
 
 namespace Server.Items
@@ -10,30 +8,27 @@ namespace Server.Items
             : base(10, 10)
         {
             AddImage(0, 0, 0x761C);
-            int y = 20;
+            var y = 20;
 
             if (title != null)
             {
                 if (title.Number > 0)
                 {
-                    AddHtmlLocalized(50, y, 450, 20, 1154645, String.Format("#{0}", title.Number.ToString()), 0, false, false);
+                    AddHtmlLocalized(50, y, 450, 20, 1154645, string.Format("#{0}", title.Number.ToString()), 0, false,
+                        false);
                     y += 30;
                 }
                 else
                 {
-                    AddHtml(50, y, 450, 20, String.Format("<CENTER>{0}</CENTER>", title.String), false, false);
+                    AddHtml(50, y, 450, 20, string.Format("<CENTER>{0}</CENTER>", title.String), false, false);
                     y += 30;
                 }
             }
 
             if (body.Number > 0)
-            {
                 AddHtmlLocalized(95, y, 380, 600, body.Number, 1, false, true);
-            }
             else
-            {
                 AddHtml(95, y, 380, 600, body.String, false, true);
-            }
         }
     }
 
@@ -54,10 +49,7 @@ namespace Server.Items
 
         public override void OnDoubleClick(Mobile m)
         {
-            if (IsChildOf(m.Backpack))
-            {
-                m.SendGump(new BaseJournalGump(Title, Body));
-            }
+            if (IsChildOf(m.Backpack)) m.SendGump(new BaseJournalGump(Title, Body));
         }
 
         public override void GetProperties(ObjectPropertyList list)
@@ -67,13 +59,9 @@ namespace Server.Items
             if (Title != null)
             {
                 if (Title.Number > 0)
-                {
                     list.Add(Title.Number);
-                }
                 else
-                {
                     list.Add(Title.String);
-                }
             }
         }
 
@@ -86,7 +74,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

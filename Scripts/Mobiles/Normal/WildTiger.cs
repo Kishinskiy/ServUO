@@ -1,6 +1,4 @@
-using System;
-using Server.Mobiles;
-using Server.Network;
+using Server.Engines.Plants;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -9,11 +7,17 @@ namespace Server.Mobiles
     [CorpseName("a tiger corpse")]
     public class WildTiger : BaseMount
     {
-        public override double HealChance { get { return .167; } }
-        public virtual Item GetPelt { get { return new TigerPelt(4); } }
+        public override double HealChance => .167;
+        public virtual Item GetPelt => new TigerPelt(4);
 
         [CommandProperty(AccessLevel.GameMaster)]
         public virtual bool CanRide { get; set; }
+
+        public override double WeaponAbilityChance => 0.5;
+
+        public override int Meat => 2;
+        public override FoodType FavoriteFood => FoodType.Meat;
+        public override int TreasureMapLevel => 1;
 
         [Constructable]
         public WildTiger()
@@ -54,7 +58,7 @@ namespace Server.Mobiles
             Karma = -11000;
 
             if (Core.ML && Utility.RandomDouble() < .33)
-                PackItem(Engines.Plants.Seed.RandomPeculiarSeed(Utility.RandomList(1, 1, 1, 1, 2, 2, 2, 3, 3, 4)));
+                PackItem(Seed.RandomPeculiarSeed(Utility.RandomList(1, 1, 1, 1, 2, 2, 2, 3, 3, 4)));
 
             Tamable = true;
             ControlSlots = 2;
@@ -64,32 +68,45 @@ namespace Server.Mobiles
             SetSpecialAbility(SpecialAbility.GraspingClaw);
         }
 
+        public WildTiger(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void OnDoubleClick(Mobile from)
         {
             if (CanRide)
+            {
                 base.OnDoubleClick(from);
+            }
 
             else if (from.AccessLevel >= AccessLevel.GameMaster && !Body.IsHuman)
             {
-                Container pack = Backpack;
+                var pack = Backpack;
 
-                if (pack != null)
-                {
-                    pack.DisplayTo(from);
-                }
+                if (pack != null) pack.DisplayTo(from);
             }
         }
 
-        public override int GetIdleSound() { return 0x673; }
-        public override int GetAngerSound() { return 0x670; }
-        public override int GetHurtSound() { return 0x672; }
-        public override int GetDeathSound() { return 0x671; }
+        public override int GetIdleSound()
+        {
+            return 0x673;
+        }
 
-        public override double WeaponAbilityChance { get { return 0.5; } }
+        public override int GetAngerSound()
+        {
+            return 0x670;
+        }
 
-        public override int Meat { get { return 2; } }
-        public override FoodType FavoriteFood { get { return FoodType.Meat; } }	
-		public override int TreasureMapLevel { get { return 1; } }
+        public override int GetHurtSound()
+        {
+            return 0x672;
+        }
+
+        public override int GetDeathSound()
+        {
+            return 0x671;
+        }
 
         public override void GenerateLoot()
         {
@@ -107,16 +124,11 @@ namespace Server.Mobiles
             base.OnCarve(from, corpse, with);
         }
 
-        public WildTiger(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)2); // version
+            writer.Write(2); // version
 
             writer.Write(CanRide);
         }
@@ -125,7 +137,7 @@ namespace Server.Mobiles
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             switch (version)
             {
@@ -140,17 +152,14 @@ namespace Server.Mobiles
             if (version == 0 && Rider != null)
                 Rider = null;
 
-            if (version == 1)
-            {
-                SetWeaponAbility(WeaponAbility.BleedAttack);
-            }
+            if (version == 1) SetWeaponAbility(WeaponAbility.BleedAttack);
         }
     }
 
     [CorpseName("a tiger corpse")]
     public class WildWhiteTiger : WildTiger
     {
-        public override Item GetPelt { get { return new WhiteTigerPelt(4); } }
+        public override Item GetPelt => new WhiteTigerPelt(4);
 
         [Constructable]
         public WildWhiteTiger()
@@ -168,21 +177,21 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     [CorpseName("a tiger corpse")]
     public class WildBlackTiger : WildTiger
     {
-        public override Item GetPelt { get { return new BlackTigerPelt(4); } }
+        public override Item GetPelt => new BlackTigerPelt(4);
 
         [Constructable]
         public WildBlackTiger()
@@ -200,14 +209,14 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

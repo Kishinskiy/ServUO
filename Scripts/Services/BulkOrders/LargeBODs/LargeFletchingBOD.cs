@@ -1,13 +1,10 @@
-using System;
 using System.Collections.Generic;
 
 namespace Server.Engines.BulkOrders
 {
     public class LargeFletchingBOD : LargeBOD
     {
-        public override BODType BODType { get { return BODType.Fletching; } }
-
-        public static double[] m_FletchingingMaterialChances = new double[]
+        public static double[] m_FletchingingMaterialChances =
         {
             0.513718750, // None
             0.292968750, // Oak
@@ -18,11 +15,13 @@ namespace Server.Engines.BulkOrders
             0.003000000 // Frostwood
         };
 
+        public override BODType BODType => BODType.Fletching;
+
         [Constructable]
         public LargeFletchingBOD()
         {
             LargeBulkEntry[] entries;
-            bool useMaterials = true;
+            var useMaterials = true;
 
             switch (Utility.Random(5))
             {
@@ -45,9 +44,9 @@ namespace Server.Engines.BulkOrders
                     break;
             }
 
-            int hue = 1425;
-            int amountMax = Utility.RandomList(10, 15, 20, 20);
-            bool reqExceptional = useMaterials && 0.825 > Utility.RandomDouble();
+            var hue = 1425;
+            var amountMax = Utility.RandomList(10, 15, 20, 20);
+            var reqExceptional = useMaterials && 0.825 > Utility.RandomDouble();
 
             BulkMaterialType material;
 
@@ -56,20 +55,20 @@ namespace Server.Engines.BulkOrders
             else
                 material = BulkMaterialType.None;
 
-            this.Hue = hue;
-            this.AmountMax = amountMax;
-            this.Entries = entries;
-            this.RequireExceptional = reqExceptional;
-            this.Material = material;
+            Hue = hue;
+            AmountMax = amountMax;
+            Entries = entries;
+            RequireExceptional = reqExceptional;
+            Material = material;
         }
 
         public LargeFletchingBOD(int amountMax, bool reqExceptional, BulkMaterialType mat, LargeBulkEntry[] entries)
         {
-            this.Hue = 1425;
-            this.AmountMax = amountMax;
-            this.Entries = entries;
-            this.RequireExceptional = reqExceptional;
-            this.Material = mat;
+            Hue = 1425;
+            AmountMax = amountMax;
+            Entries = entries;
+            RequireExceptional = reqExceptional;
+            Material = mat;
         }
 
         public LargeFletchingBOD(Serial serial)
@@ -89,17 +88,19 @@ namespace Server.Engines.BulkOrders
 
         public override List<Item> ComputeRewards(bool full)
         {
-            List<Item> list = new List<Item>();
+            var list = new List<Item>();
 
-            RewardGroup rewardGroup = FletchingRewardCalculator.Instance.LookupRewards(FletchingRewardCalculator.Instance.ComputePoints(this));
+            var rewardGroup =
+                FletchingRewardCalculator.Instance.LookupRewards(FletchingRewardCalculator.Instance
+                    .ComputePoints(this));
 
             if (rewardGroup != null)
             {
                 if (full)
                 {
-                    for (int i = 0; i < rewardGroup.Items.Length; ++i)
+                    for (var i = 0; i < rewardGroup.Items.Length; ++i)
                     {
-                        Item item = rewardGroup.Items[i].Construct();
+                        var item = rewardGroup.Items[i].Construct();
 
                         if (item != null)
                             list.Add(item);
@@ -107,11 +108,11 @@ namespace Server.Engines.BulkOrders
                 }
                 else
                 {
-                    RewardItem rewardItem = rewardGroup.AcquireItem();
+                    var rewardItem = rewardGroup.AcquireItem();
 
                     if (rewardItem != null)
                     {
-                        Item item = rewardItem.Construct();
+                        var item = rewardItem.Construct();
 
                         if (item != null)
                             list.Add(item);
@@ -126,14 +127,14 @@ namespace Server.Engines.BulkOrders
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

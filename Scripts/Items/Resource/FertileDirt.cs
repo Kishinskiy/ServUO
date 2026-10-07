@@ -1,21 +1,13 @@
-using System;
-
 namespace Server.Items
 {
     public class FertileDirt : Item
     {
+        public override double DefaultWeight => 0.1;
+
         [Constructable]
         public FertileDirt()
             : this(1)
         {
-        }
-
-        public override double DefaultWeight
-        {
-            get
-            {
-                return 0.1;
-            }
         }
 
         [Constructable]
@@ -35,14 +27,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -1,19 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
-using Server;
-using Server.Items;
-using Server.Mobiles;
-using Server.Gumps;
-using Server.Network;
 using Server.Guilds;
-using Server.Engines.Points;
-using Server.Engines.CityLoyalty;
-using Server.SkillHandlers;
+using Server.Gumps;
+using Server.Misc;
+using Server.Mobiles;
 using Server.Multis;
 using Server.Regions;
-using Server.Misc;
 
 namespace Server.Engines.VvV
 {
@@ -23,7 +16,7 @@ namespace Server.Engines.VvV
         Assist,
         Steal,
         TurnInVice,
-        TurnInVirtue, 
+        TurnInVirtue,
         Disarm
     }
 
@@ -109,22 +102,18 @@ namespace Server.Engines.VvV
         {
             get
             {
-                CityInfo info = CityInfo.Infos[City];
+                var info = CityInfo.Infos[City];
 
-                if (info != null)
-                {
-                    return info.Region;
-                }
+                if (info != null) return info.Region;
 
                 return null;
             }
-
         }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public bool ForceStart
         {
-            get { return false; }
+            get => false;
             set
             {
                 if (!OnGoing && value)
@@ -135,7 +124,7 @@ namespace Server.Engines.VvV
         [CommandProperty(AccessLevel.GameMaster)]
         public bool ForceEnd
         {
-            get { return false; }
+            get => false;
             set
             {
                 if (OnGoing && value)
@@ -161,14 +150,18 @@ namespace Server.Engines.VvV
 
         public Timer Timer { get; private set; }
 
-        public int TrapCount { get { return Traps.Where(t => !t.Deleted).Count(); } }
-        public int TurretCount { get { return Turrets.Where(t => !t.Deleted).Count(); } }
+        public int TrapCount
+        {
+            get { return Traps.Where(t => !t.Deleted).Count(); }
+        }
+
+        public int TurretCount
+        {
+            get { return Turrets.Where(t => !t.Deleted).Count(); }
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public bool InCooldown
-        {
-            get { return CooldownEnds > DateTime.UtcNow; }
-        }
+        public bool InCooldown => CooldownEnds > DateTime.UtcNow;
 
         public DateTime NextCombatHeatCycle { get; private set; }
 
@@ -177,12 +170,99 @@ namespace Server.Engines.VvV
             System = sys;
         }
 
+        public VvVBattle(GenericReader reader, ViceVsVirtueSystem system)
+        {
+            var version = reader.ReadInt();
+            System = system;
+
+            Altars = new List<VvVAltar>();
+            KillCooldown = new Dictionary<Mobile, DateTime>();
+            Messages = new List<string>();
+            Traps = new List<VvVTrap>();
+            Warned = new List<Mobile>();
+            Turrets = new List<CannonTurret>();
+            Teams = new List<BattleTeam>();
+
+            OnGoing = reader.ReadBool();
+
+            if (reader.ReadInt() == 0)
+            {
+                StartTime = reader.ReadDateTime();
+                CooldownEnds = reader.ReadDateTime();
+                LastOccupationCheck = reader.ReadDateTime();
+                NextSigilSpawn = reader.ReadDateTime();
+                NextAnnouncement = reader.ReadDateTime();
+                NextAltarActivate = reader.ReadDateTime();
+                City = (VvVCity)reader.ReadInt();
+                Sigil = reader.ReadItem() as VvVSigil;
+                VicePriest = reader.ReadMobile() as VvVPriest;
+                VirtuePriest = reader.ReadMobile() as VvVPriest;
+
+                if (Sigil != null)
+                    Sigil.Battle = this;
+
+                if (VicePriest != null)
+                    VicePriest.Battle = this;
+
+                if (VirtuePriest != null)
+                    VirtuePriest.Battle = this;
+
+                var count = reader.ReadInt();
+                for (var i = 0; i < count; i++)
+                {
+                    var altar = reader.ReadItem() as VvVAltar;
+                    if (altar != null)
+                    {
+                        altar.Battle = this;
+                        Altars.Add(altar);
+                    }
+                }
+
+                if (version == 1)
+                {
+                    count = reader.ReadInt();
+                    for (var i = 0; i < count; i++)
+                    {
+                        var team = new BattleTeam(reader);
+                        Teams.Add(team);
+                    }
+                }
+                else
+                {
+                    count = reader.ReadInt();
+                    for (var i = 0; i < count; i++)
+                    {
+                        var g = reader.ReadGuild() as Guild;
+                        var stats = new VvVGuildBattleStats(reader, g);
+                    }
+                }
+
+                count = reader.ReadInt();
+                for (var i = 0; i < count; i++)
+                {
+                    var t = reader.ReadItem() as VvVTrap;
+
+                    if (t != null)
+                        Traps.Add(t);
+                }
+
+                Timer.DelayCall(TimeSpan.FromSeconds(10), () =>
+                {
+                    if (Region is GuardedRegion) GuardedRegion.Disable((GuardedRegion)Region);
+
+                    BeginTimer();
+
+                    ActivateArrows();
+                });
+            }
+        }
+
         public void Begin()
         {
             OnGoing = true;
             NextCombatHeatCycle = DateTime.UtcNow;
-            VvVCity newCity = City;
-            List<VvVCity> cities = new List<VvVCity>();
+            var newCity = City;
+            var cities = new List<VvVCity>();
 
             Teams = new List<BattleTeam>();
             KillCooldown = new Dictionary<Mobile, DateTime>();
@@ -192,11 +272,9 @@ namespace Server.Engines.VvV
             Warned = new List<Mobile>();
             Turrets = new List<CannonTurret>();
 
-            for (int i = 0; i < 8; i++)
-            {
+            for (var i = 0; i < 8; i++)
                 if (!System.ExemptCities.Contains((VvVCity)i) && (VvVCity)i != newCity)
                     cities.Add((VvVCity)i);
-            }
 
             if (cities.Count > 0)
             {
@@ -219,22 +297,20 @@ namespace Server.Engines.VvV
             SpawnAltars();
             SpawnPriests(false);
 
-            if (Region is GuardedRegion)
-            {
-                GuardedRegion.Disable((GuardedRegion)Region);
-            }
+            if (Region is GuardedRegion) GuardedRegion.Disable((GuardedRegion)Region);
 
             NextAltarActivate = DateTime.UtcNow + TimeSpan.FromMinutes(1);
 
-            System.SendVvVMessage(1154721, String.Format("#{0}", ViceVsVirtueSystem.GetCityLocalization(City).ToString())); 
+            System.SendVvVMessage(1154721,
+                string.Format("#{0}", ViceVsVirtueSystem.GetCityLocalization(City).ToString()));
             // A Battle between Vice and Virtue is active! To Arms! The City of ~1_CITY~ is besieged!
         }
 
         public void SpawnAltars()
         {
-            foreach (Point3D p in CityInfo.Infos[City].AltarLocs)
+            foreach (var p in CityInfo.Infos[City].AltarLocs)
             {
-                VvVAltar altar = new VvVAltar(this);
+                var altar = new VvVAltar(this);
                 altar.MoveToWorld(p, Map.Felucca);
 
                 Altars.Add(altar);
@@ -243,10 +319,10 @@ namespace Server.Engines.VvV
 
         public void SpawnPriests(bool movetoworld = true)
         {
-            if(VicePriest == null || VicePriest.Deleted)
+            if (VicePriest == null || VicePriest.Deleted)
                 VicePriest = new VvVPriest(VvVType.Vice, this);
 
-            if(VirtuePriest == null || VirtuePriest.Deleted)
+            if (VirtuePriest == null || VirtuePriest.Deleted)
                 VirtuePriest = new VvVPriest(VvVType.Virtue, this);
 
             if (movetoworld)
@@ -256,16 +332,14 @@ namespace Server.Engines.VvV
                 do
                 {
                     p = Map.Felucca.GetRandomSpawnPoint(CityInfo.Infos[City].PriestLocation);
-                }
-                while (!Map.Felucca.CanSpawnMobile(p));
+                } while (!Map.Felucca.CanSpawnMobile(p));
 
                 VicePriest.MoveToWorld(p, Map.Felucca);
 
                 do
                 {
                     p = Map.Felucca.GetRandomSpawnPoint(CityInfo.Infos[City].PriestLocation);
-                }
-                while (!Map.Felucca.CanSpawnMobile(p));
+                } while (!Map.Felucca.CanSpawnMobile(p));
 
                 VirtuePriest.MoveToWorld(p, Map.Felucca);
             }
@@ -316,31 +390,21 @@ namespace Server.Engines.VvV
             }
 
             if (NextSigilSpawn != DateTime.MinValue && NextSigilSpawn < DateTime.UtcNow)
-            {
                 if (Sigil == null || Sigil.Deleted)
-                {
                     SpawnSigil();
-                }
-            }
 
             ActivateArrows();
 
             if (KillCooldown != null)
             {
-                List<Mobile> list = KillCooldown.Keys.Where(mob => KillCooldown[mob] < DateTime.UtcNow).ToList();
+                var list = KillCooldown.Keys.Where(mob => KillCooldown[mob] < DateTime.UtcNow).ToList();
 
-                foreach (Mobile m in list)
-                {
-                    KillCooldown.Remove(m);
-                }
+                foreach (var m in list) KillCooldown.Remove(m);
 
                 ColUtility.Free(list);
             }
 
-            if (Turrets != null)
-            {
-                Turrets.ForEach(t => { t.Scan(); });
-            }
+            if (Turrets != null) Turrets.ForEach(t => { t.Scan(); });
         }
 
         public void CheckParticipation()
@@ -350,40 +414,33 @@ namespace Server.Engines.VvV
 
             BattleTeam team = null;
             UnContested = true;
-            bool checkAggression = ViceVsVirtueSystem.EnhancedRules && NextCombatHeatCycle < DateTime.UtcNow;
+            var checkAggression = ViceVsVirtueSystem.EnhancedRules && NextCombatHeatCycle < DateTime.UtcNow;
 
-            foreach (PlayerMobile pm in this.Region.GetEnumeratedMobiles().OfType<PlayerMobile>())
+            foreach (var pm in Region.GetEnumeratedMobiles().OfType<PlayerMobile>())
             {
-                bool vvv = ViceVsVirtueSystem.IsVvV(pm);
+                var vvv = ViceVsVirtueSystem.IsVvV(pm);
 
                 if (!vvv && !Warned.Contains(pm) && pm.AccessLevel == AccessLevel.Player)
                 {
                     pm.SendGump(new BattleWarningGump(pm));
                     Warned.Add(pm);
                 }
-                else if (vvv && pm.Alive && !pm.Hidden && BaseBoat.FindBoatAt(pm.Location, pm.Map) == null && BaseHouse.FindHouseAt(pm) == null)
+                else if (vvv && pm.Alive && !pm.Hidden && BaseBoat.FindBoatAt(pm.Location, pm.Map) == null &&
+                         BaseHouse.FindHouseAt(pm) == null)
                 {
-                    Guild g = pm.Guild as Guild;
+                    var g = pm.Guild as Guild;
 
                     if (g != null)
                     {
                         var t = GetTeam(g);
 
                         if (team == null)
-                        {
                             team = t;
-                        }
-                        else if (t != team && UnContested)
-                        {
-                            UnContested = false;
-                        }
+                        else if (t != team && UnContested) UnContested = false;
                     }
                 }
 
-                if (checkAggression && (vvv || ViceVsVirtueSystem.IsVvVCombatant(pm)))
-                {
-                    AddAggression(pm);
-                }
+                if (checkAggression && (vvv || ViceVsVirtueSystem.IsVvVCombatant(pm))) AddAggression(pm);
             }
 
             if (checkAggression)
@@ -398,12 +455,10 @@ namespace Server.Engines.VvV
         {
             if (m is PlayerMobile)
             {
-                if (BattleAggression == null)
-                {
-                    BattleAggression = new Dictionary<Mobile, DateTime>();
-                }
+                if (BattleAggression == null) BattleAggression = new Dictionary<Mobile, DateTime>();
 
-                BuffInfo.AddBuff(m, new BuffInfo(BuffIcon.HeatOfBattleStatus, 1153801, 1153827, Aggression.CombatHeatDelay, m, true));
+                BuffInfo.AddBuff(m,
+                    new BuffInfo(BuffIcon.HeatOfBattleStatus, 1153801, 1153827, Aggression.CombatHeatDelay, m, true));
                 BattleAggression[m] = DateTime.UtcNow + TimeSpan.FromMinutes(2);
             }
         }
@@ -416,22 +471,15 @@ namespace Server.Engines.VvV
             var list = new List<Mobile>(BattleAggression.Keys);
 
             foreach (var m in list)
-            {
                 if (BattleAggression[m] < DateTime.UtcNow && !m.Region.IsPartOf(Region))
-                {
                     BattleAggression.Remove(m);
-                }
-            }
 
             ColUtility.Free(list);
         }
 
         public bool HasBattleAggression(Mobile m)
         {
-            if (BattleAggression == null || !BattleAggression.ContainsKey(m))
-            {
-                return false;
-            }
+            if (BattleAggression == null || !BattleAggression.ContainsKey(m)) return false;
 
             if (BattleAggression[m] < DateTime.UtcNow)
             {
@@ -451,29 +499,20 @@ namespace Server.Engines.VvV
             {
                 ((GuardedRegion)Region).Disabled = false;
 
-                foreach (PlayerMobile pm in Region.GetEnumeratedMobiles().OfType<PlayerMobile>())
-                {
-                    pm.RecheckTownProtection();
-                }
+                foreach (var pm in Region.GetEnumeratedMobiles().OfType<PlayerMobile>()) pm.RecheckTownProtection();
             }
 
-            foreach (VvVAltar altar in Altars)
-            {
-                if(!altar.Deleted)
+            foreach (var altar in Altars)
+                if (!altar.Deleted)
                     altar.Delete();
-            }
 
-            foreach (VvVTrap trap in Traps)
-            {
-                if(!trap.Deleted)
+            foreach (var trap in Traps)
+                if (!trap.Deleted)
                     trap.Delete();
-            }
 
-            foreach (CannonTurret turret in Turrets)
-            {
+            foreach (var turret in Turrets)
                 if (!turret.Deleted)
                     turret.Delete();
-            }
 
             if (VicePriest != null)
             {
@@ -496,12 +535,10 @@ namespace Server.Engines.VvV
             TallyStats();
             SendBattleStatsGump();
 
-            System.SendVvVMessage(1154722); // A VvV battle has just concluded. The next battle will begin in less than five minutes!
+            System.SendVvVMessage(
+                1154722); // A VvV battle has just concluded. The next battle will begin in less than five minutes!
 
-            if (BattleAggression != null)
-            {
-                BattleAggression.Clear();
-            }
+            if (BattleAggression != null) BattleAggression.Clear();
 
             ColUtility.Free(Altars);
             ColUtility.Free(Teams);
@@ -511,10 +548,7 @@ namespace Server.Engines.VvV
             ColUtility.Free(Warned);
             ColUtility.Free(Turrets);
 
-            if (Region is GuardedRegion)
-            {
-                ((GuardedRegion)Region).Disabled = false;
-            }
+            if (Region is GuardedRegion) ((GuardedRegion)Region).Disabled = false;
 
             NextSigilSpawn = DateTime.MinValue;
             LastOccupationCheck = DateTime.MinValue;
@@ -526,36 +560,33 @@ namespace Server.Engines.VvV
 
             CooldownEnds = DateTime.UtcNow + TimeSpan.FromMinutes(Cooldown);
 
-            Timer.DelayCall(TimeSpan.FromMinutes(Cooldown), () =>
-                {
-                    System.CheckBattleStatus();
-                });
+            Timer.DelayCall(TimeSpan.FromMinutes(Cooldown), () => { System.CheckBattleStatus(); });
         }
 
         public void TallyStats()
         {
-            BattleTeam leader = GetLeader();
-            List<Guild> added = new List<Guild>();
+            var leader = GetLeader();
+            var added = new List<Guild>();
 
             if (leader == null || leader.Guild == null)
                 return;
 
-            leader.Silver += AwardSilver(WinSilver + (OppositionCount(leader.Guild) * 50));
+            leader.Silver += AwardSilver(WinSilver + OppositionCount(leader.Guild) * 50);
 
-            foreach (Mobile m in this.Region.GetEnumeratedMobiles())
+            foreach (var m in Region.GetEnumeratedMobiles())
             {
-                Guild g = m.Guild as Guild;
+                var g = m.Guild as Guild;
 
                 if (g == null)
                     continue;
 
-                PlayerMobile pm = m as PlayerMobile;
+                var pm = m as PlayerMobile;
 
                 if (pm != null)
                 {
-                    BattleTeam team = GetTeam(g);
-                    VvVPlayerBattleStats stats = GetPlayerStats(pm);
-                    VvVPlayerEntry entry = ViceVsVirtueSystem.Instance.GetPlayerEntry<VvVPlayerEntry>(pm);
+                    var team = GetTeam(g);
+                    var stats = GetPlayerStats(pm);
+                    var entry = ViceVsVirtueSystem.Instance.GetPlayerEntry<VvVPlayerEntry>(pm);
 
                     if (entry != null)
                     {
@@ -570,13 +601,12 @@ namespace Server.Engines.VvV
 
                         if (added.Contains(g))
                             continue;
-                        else
-                            added.Add(g);
+                        added.Add(g);
 
                         if (!ViceVsVirtueSystem.Instance.GuildStats.ContainsKey(g))
                             ViceVsVirtueSystem.Instance.GuildStats[g] = new VvVGuildStats(g);
 
-                        VvVGuildStats gstats = ViceVsVirtueSystem.Instance.GuildStats[g];
+                        var gstats = ViceVsVirtueSystem.Instance.GuildStats[g];
 
                         gstats.Kills += team.Kills;
                         gstats.ReturnedSigils += team.ReturnedSigils;
@@ -590,7 +620,7 @@ namespace Server.Engines.VvV
 
         public void SpawnSigil()
         {
-            Point3D p = CityInfo.Infos[City].SigilLocs[Utility.Random(CityInfo.Infos[City].SigilLocs.Length)];
+            var p = CityInfo.Infos[City].SigilLocs[Utility.Random(CityInfo.Infos[City].SigilLocs.Length)];
             Sigil = new VvVSigil(this, p);
 
             Sigil.MoveToWorld(p, Map.Felucca);
@@ -616,14 +646,12 @@ namespace Server.Engines.VvV
             if (pm.NetState == null)
                 return;
 
-            foreach (VvVAltar altar in Altars)
-            {
+            foreach (var altar in Altars)
                 if (altar.IsActive)
                 {
                     pm.QuestArrow = new AltarArrow(pm, altar);
                     break;
                 }
-            }
         }
 
         public void ActivateArrows()
@@ -631,20 +659,14 @@ namespace Server.Engines.VvV
             if (Altars == null || Region == null)
                 return;
 
-            foreach (PlayerMobile pm in this.Region.GetEnumeratedMobiles().OfType<PlayerMobile>())
-            {
+            foreach (var pm in Region.GetEnumeratedMobiles().OfType<PlayerMobile>())
                 if (pm.NetState != null && pm.QuestArrow == null)
-                {
-                    foreach (VvVAltar altar in Altars)
-                    {
+                    foreach (var altar in Altars)
                         if (altar.IsActive)
                         {
                             pm.QuestArrow = new AltarArrow(pm, altar);
                             break;
                         }
-                    }
-                }
-            }
         }
 
         public VvVPlayerBattleStats GetPlayerStats(PlayerMobile pm)
@@ -652,10 +674,10 @@ namespace Server.Engines.VvV
             if (pm == null || pm.Guild == null)
                 return null;
 
-            Guild g = pm.Guild as Guild;
+            var g = pm.Guild as Guild;
 
-            BattleTeam team = GetTeam(g);
-            VvVPlayerBattleStats stats = team.PlayerStats.FirstOrDefault(s => s.Player == pm);
+            var team = GetTeam(g);
+            var stats = team.PlayerStats.FirstOrDefault(s => s.Player == pm);
 
             if (stats == null)
             {
@@ -668,7 +690,7 @@ namespace Server.Engines.VvV
 
         public BattleTeam GetTeam(Guild g)
         {
-            BattleTeam team = Teams.FirstOrDefault(t => t.Guild != null && (t.Guild == g || t.Guild.IsAlly(g)));
+            var team = Teams.FirstOrDefault(t => t.Guild != null && (t.Guild == g || t.Guild.IsAlly(g)));
 
             if (team != null)
                 return team;
@@ -681,12 +703,9 @@ namespace Server.Engines.VvV
 
         public void Update(Mobile m, UpdateType type)
         {
-            VvVPlayerEntry entry = System.GetPlayerEntry<VvVPlayerEntry>(m);
+            var entry = System.GetPlayerEntry<VvVPlayerEntry>(m);
 
-            if (entry != null)
-            {
-                Update(null, entry, type);
-            }
+            if (entry != null) Update(null, entry, type);
         }
 
         public void Update(VvVPlayerEntry victim, VvVPlayerEntry killer, UpdateType type)
@@ -694,13 +713,13 @@ namespace Server.Engines.VvV
             if (killer == null || killer.Player == null || killer.Guild == null)
                 return;
 
-            VvVPlayerBattleStats killerStats = GetPlayerStats(killer.Player);
-            VvVPlayerBattleStats victimStats = victim == null ? null : GetPlayerStats(victim.Player);
+            var killerStats = GetPlayerStats(killer.Player);
+            var victimStats = victim == null ? null : GetPlayerStats(victim.Player);
 
-            BattleTeam killerTeam = GetTeam(killer.Guild);
+            var killerTeam = GetTeam(killer.Guild);
             BattleTeam victimTeam = null;
-            
-            if(victim != null)
+
+            if (victim != null)
                 victimTeam = GetTeam(victim.Guild);
 
             switch (type)
@@ -716,23 +735,22 @@ namespace Server.Engines.VvV
                         victimTeam.Deaths++;
 
                     if (victim != null && victim.Player != null)
-                    {
                         if (!KillCooldown.ContainsKey(victim.Player) || KillCooldown[victim.Player] < DateTime.UtcNow)
                         {
                             if (killerTeam != null)
                             {
                                 killerTeam.Score += (int)KillPoints;
-                                killerTeam.Silver += AwardSilver(KillSilver + (OppositionCount(killer.Guild) * 50));
+                                killerTeam.Silver += AwardSilver(KillSilver + OppositionCount(killer.Guild) * 50);
                             }
 
-                            SendStatusMessage(String.Format("{0} has killed {1}!", killer.Player.Name, victim.Player.Name));
+                            SendStatusMessage(string.Format("{0} has killed {1}!", killer.Player.Name,
+                                victim.Player.Name));
                             KillCooldown[victim.Player] = DateTime.UtcNow + TimeSpan.FromMinutes(KillCooldownDuration);
                         }
-                    }
 
                     break;
                 case UpdateType.Assist:
-                    if (killerStats != null) 
+                    if (killerStats != null)
                         killerStats.Assists++;
 
                     if (killerTeam != null)
@@ -743,7 +761,7 @@ namespace Server.Engines.VvV
                     if (killerStats != null)
                     {
                         killerStats.Stolen++;
-                        SendStatusMessage(String.Format("{0} has stolen the sigil!", killer.Player.Name));
+                        SendStatusMessage(string.Format("{0} has stolen the sigil!", killer.Player.Name));
                     }
 
                     if (killerTeam != null)
@@ -755,7 +773,7 @@ namespace Server.Engines.VvV
                     if (killerTeam != null)
                     {
                         killerTeam.Score += (int)TurnInPoints;
-                        killerTeam.Silver += AwardSilver(TurnInSilver + (OppositionCount(killer.Guild) * 50));
+                        killerTeam.Silver += AwardSilver(TurnInSilver + OppositionCount(killer.Guild) * 50);
                     }
 
                     if (killerStats != null && killerTeam != null)
@@ -772,25 +790,23 @@ namespace Server.Engines.VvV
                         }
                     }
 
-                    SendStatusMessage(String.Format("{0} has returned the sigil!", killer.Player.Name));
+                    SendStatusMessage(string.Format("{0} has returned the sigil!", killer.Player.Name));
 
                     NextSigilSpawn = DateTime.UtcNow + TimeSpan.FromMinutes(1);
                     RemovePriests();
 
                     break;
                 case UpdateType.Disarm:
-                    SendStatusMessage(String.Format("{0} has disarmed a trap!", killer.Player.Name));
+                    SendStatusMessage(string.Format("{0} has disarmed a trap!", killer.Player.Name));
 
-                    if (killerStats != null)
-                    {
-                        killerStats.Disarmed++;
-                    }
+                    if (killerStats != null) killerStats.Disarmed++;
 
                     if (killerTeam != null)
                     {
-                        killerTeam.Silver += AwardSilver(DisarmSilver + (OppositionCount(killer.Guild) * 50));
+                        killerTeam.Silver += AwardSilver(DisarmSilver + OppositionCount(killer.Guild) * 50);
                         killerTeam.Disarmed++;
                     }
+
                     break;
             }
 
@@ -799,19 +815,19 @@ namespace Server.Engines.VvV
 
         public int AwardSilver(int amount)
         {
-            return (int)((double)amount * SilverPenalty);
+            return (int)(amount * SilverPenalty);
         }
 
         public void RemovePriests()
         {
             Timer.DelayCall(TimeSpan.FromSeconds(4), () =>
-                {
-                    if (VicePriest != null)
-                        VicePriest.Internalize();
+            {
+                if (VicePriest != null)
+                    VicePriest.Internalize();
 
-                    if (VirtuePriest != null)
-                        VirtuePriest.Internalize();
-                });
+                if (VirtuePriest != null)
+                    VirtuePriest.Internalize();
+            });
         }
 
         public void OccupyAltar(Guild g)
@@ -819,18 +835,16 @@ namespace Server.Engines.VvV
             if (!OnGoing || g == null)
                 return;
 
-            BattleTeam team = GetTeam(g);
+            var team = GetTeam(g);
 
             team.Score += (int)AltarPoints;
-            team.Silver += AwardSilver(AltarSilver + (OppositionCount(g) * 50));
+            team.Silver += AwardSilver(AltarSilver + OppositionCount(g) * 50);
 
-            SendStatusMessage(String.Format("{0} claimed the altar!", g != null ? g.Abbreviation : "somebody"));
+            SendStatusMessage(string.Format("{0} claimed the altar!", g != null ? g.Abbreviation : "somebody"));
 
             foreach (PlayerMobile p in Region.GetEnumeratedMobiles().Where(player => player is PlayerMobile))
-            {
                 if (p.QuestArrow != null)
                     p.QuestArrow = null;
-            }
 
             CheckScore();
             NextAltarActivate = DateTime.UtcNow + TimeSpan.FromMinutes(2);
@@ -843,7 +857,7 @@ namespace Server.Engines.VvV
 
             if (Teams.Count == 1)
             {
-                BattleTeam team = Teams[0];
+                var team = Teams[0];
 
                 team.Score += (int)OccupyPoints;
                 UpdateAllGumps();
@@ -859,7 +873,8 @@ namespace Server.Engines.VvV
             {
                 if (NextAnnouncement < DateTime.UtcNow)
                 {
-                    System.SendVvVMessage(1154958); // The City is unoccupied! Slay opposing forces to claim the city for your guild!
+                    System.SendVvVMessage(
+                        1154958); // The City is unoccupied! Slay opposing forces to claim the city for your guild!
                     NextAnnouncement = DateTime.UtcNow + TimeSpan.FromMinutes(Announcement);
                 }
             }
@@ -886,7 +901,7 @@ namespace Server.Engines.VvV
         }
 
         /// <summary>
-        /// Gets real time leader of battle, out parameter of their score
+        ///     Gets real time leader of battle, out parameter of their score
         /// </summary>
         /// <param name="score"></param>
         /// <returns></returns>
@@ -894,7 +909,7 @@ namespace Server.Engines.VvV
         {
             score = 0;
 
-            List<BattleTeam> teams = new List<BattleTeam>(Teams);
+            var teams = new List<BattleTeam>(Teams);
             teams.Sort();
 
             if (teams.Count > 0)
@@ -902,21 +917,21 @@ namespace Server.Engines.VvV
                 score = teams[0].Score;
                 return teams[0];
             }
-            
+
             return null;
         }
 
         /// <summary>
-        /// Returns enemy count, by alliance
+        ///     Returns enemy count, by alliance
         /// </summary>
         /// <param name="g"></param>
         /// <returns></returns>
         public int OppositionCount(Guild g)
         {
-            List<Guild> exempt = new List<Guild>();
-            int count = 0;
+            var exempt = new List<Guild>();
+            var count = 0;
 
-            foreach (BattleTeam team in Teams)
+            foreach (var team in Teams)
             {
                 if (team.Guild == null || team.Guild == g || team.Guild.IsAlly(g) || exempt.Contains(g))
                     continue;
@@ -924,10 +939,8 @@ namespace Server.Engines.VvV
                 count++;
 
                 if (team.Guild.Alliance != null)
-                {
-                    foreach (Guild guil in team.Guild.Alliance.Members.Where(guil => !exempt.Contains(guil)))
+                    foreach (var guil in team.Guild.Alliance.Members.Where(guil => !exempt.Contains(guil)))
                         exempt.Add(guil);
-                }
             }
 
             ColUtility.Free(exempt);
@@ -945,9 +958,9 @@ namespace Server.Engines.VvV
             if (!OnGoing)
                 return false;
 
-            Region r = Region.Find(m.Location, m.Map);
+            var r = Region.Find(m.Location, m.Map);
 
-            return r == this.Region;
+            return r == Region;
         }
 
         public void OnEnterRegion(Mobile m)
@@ -963,10 +976,7 @@ namespace Server.Engines.VvV
 
         public void CheckGump(Mobile m)
         {
-            if (m is PlayerMobile && OnGoing)
-            {
-                BaseGump.SendGump(new VvVBattleStatusGump((PlayerMobile)m, this));
-            }
+            if (m is PlayerMobile && OnGoing) BaseGump.SendGump(new VvVBattleStatusGump((PlayerMobile)m, this));
         }
 
         public void UpdateAllGumps()
@@ -974,21 +984,17 @@ namespace Server.Engines.VvV
             if (Region == null)
                 return;
 
-            foreach (PlayerMobile m in this.Region.GetEnumeratedMobiles().OfType<PlayerMobile>())
+            foreach (var m in Region.GetEnumeratedMobiles().OfType<PlayerMobile>())
             {
                 if (!ViceVsVirtueSystem.IsVvV(m) || m.NetState == null)
                     continue;
 
-                VvVBattleStatusGump g = m.FindGump(typeof(VvVBattleStatusGump)) as VvVBattleStatusGump;
+                var g = m.FindGump(typeof(VvVBattleStatusGump)) as VvVBattleStatusGump;
 
                 if (g == null)
-                {
                     BaseGump.SendGump(new VvVBattleStatusGump(m, this));
-                }
                 else
-                {
                     g.Refresh(true, false);
-                }
             }
         }
 
@@ -997,21 +1003,19 @@ namespace Server.Engines.VvV
             if (Region == null)
                 return;
 
-            foreach (PlayerMobile m in this.Region.GetEnumeratedMobiles().OfType<PlayerMobile>())
-            {
+            foreach (var m in Region.GetEnumeratedMobiles().OfType<PlayerMobile>())
                 if (ViceVsVirtueSystem.IsVvV(m))
                 {
                     m.CloseGump(typeof(VvVBattleStatusGump));
-                    m.SendGump(new BattleStatsGump((PlayerMobile)m, this));
+                    m.SendGump(new BattleStatsGump(m, this));
                 }
-            }
         }
 
         public void SendStatusMessage(string message, bool sendgumps = false)
         {
             Messages.Add(message);
 
-            if(sendgumps)
+            if (sendgumps)
                 UpdateAllGumps();
         }
 
@@ -1019,96 +1023,6 @@ namespace Server.Engines.VvV
         {
             if (!Turrets.Contains(turret))
                 Turrets.Add(turret);
-        }
-
-        public VvVBattle(GenericReader reader, ViceVsVirtueSystem system)
-        {
-            int version = reader.ReadInt();
-            System = system;
-
-            Altars = new List<VvVAltar>();
-            KillCooldown = new Dictionary<Mobile, DateTime>();
-            Messages = new List<string>();
-            Traps = new List<VvVTrap>();
-            Warned = new List<Mobile>();
-            Turrets = new List<CannonTurret>();
-            Teams = new List<BattleTeam>();
-
-            OnGoing = reader.ReadBool();
-
-            if (reader.ReadInt() == 0)
-            {
-                StartTime = reader.ReadDateTime();
-                CooldownEnds = reader.ReadDateTime();
-                LastOccupationCheck = reader.ReadDateTime();
-                NextSigilSpawn = reader.ReadDateTime();
-                NextAnnouncement = reader.ReadDateTime();
-                NextAltarActivate = reader.ReadDateTime();
-                City = (VvVCity)reader.ReadInt();
-                Sigil = reader.ReadItem() as VvVSigil;
-                VicePriest = reader.ReadMobile() as VvVPriest;
-                VirtuePriest = reader.ReadMobile() as VvVPriest;
-
-                if (Sigil != null)
-                    Sigil.Battle = this;
-
-                if (VicePriest != null)
-                    VicePriest.Battle = this;
-
-                if (VirtuePriest != null)
-                    VirtuePriest.Battle = this;
-
-                int count = reader.ReadInt();
-                for (int i = 0; i < count; i++)
-                {
-                    VvVAltar altar = reader.ReadItem() as VvVAltar;
-                    if (altar != null)
-                    {
-                        altar.Battle = this;
-                        Altars.Add(altar);
-                    }
-                }
-
-                if (version == 1)
-                {
-                    count = reader.ReadInt();
-                    for (int i = 0; i < count; i++)
-                    {
-                        BattleTeam team = new BattleTeam(reader);
-                        Teams.Add(team);
-                    }
-                }
-                else
-                {
-                    count = reader.ReadInt();
-                    for (int i = 0; i < count; i++)
-                    {
-                        Guild g = reader.ReadGuild() as Guild;
-                        VvVGuildBattleStats stats = new VvVGuildBattleStats(reader, g);
-                    }
-                }
-
-                count = reader.ReadInt();
-                for (int i = 0; i < count; i++)
-                {
-                    VvVTrap t = reader.ReadItem() as VvVTrap;
-
-                    if (t != null)
-                        Traps.Add(t);
-                }
-
-                Timer.DelayCall(TimeSpan.FromSeconds(10), () =>
-                    {
-                        if (Region is GuardedRegion)
-                        {
-                            GuardedRegion.Disable((GuardedRegion)Region);
-                        }
-
-                        BeginTimer();
-
-                        ActivateArrows();
-                    });
-            }
         }
 
         public void Serialize(GenericWriter writer)
@@ -1141,17 +1055,15 @@ namespace Server.Engines.VvV
                     kvp.Value.Serialize(writer);
                 }*/
                 writer.Write(Teams.Count);
-                foreach (BattleTeam team in Teams)
-                {
-                    team.Serialize(writer);
-                }
+                foreach (var team in Teams) team.Serialize(writer);
 
                 writer.Write(Traps.Count);
                 Traps.ForEach(t => writer.Write(t));
             }
             else
+            {
                 writer.Write(1);
-            
+            }
         }
     }
 }

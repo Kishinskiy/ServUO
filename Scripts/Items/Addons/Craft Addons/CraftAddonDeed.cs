@@ -1,11 +1,3 @@
-using System;
-using Server;
-using Server.Engines.Craft;
-using System.Collections.Generic;
-using Server.Multis;
-using Server.Mobiles;
-using System.Linq;
-
 namespace Server.Items
 {
     public abstract class CraftAddonDeed : BaseAddonDeed
@@ -18,6 +10,11 @@ namespace Server.Items
             UsesRemaining = uses;
         }
 
+        public CraftAddonDeed(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void GetProperties(ObjectPropertyList list)
         {
             base.GetProperties(list);
@@ -25,16 +22,11 @@ namespace Server.Items
             list.Add(1060584, UsesRemaining.ToString());
         }
 
-        public CraftAddonDeed(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
 
             writer.Write(UsesRemaining);
         }
@@ -43,7 +35,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             UsesRemaining = reader.ReadInt();
         }

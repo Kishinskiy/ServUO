@@ -1,14 +1,20 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
 {
     [CorpseName("the remains of Grim")]
-    public class Grim : Drake 
+    public class Grim : Drake
     {
+        public override bool GivesMLMinorArtifact => true;
+
+        public override bool ReacquireOnMovement => true;
+
+        public override int Meat => 10;
+
+        public override int Hides => 20;
+
         [Constructable]
         public Grim()
-            : base()
         {
             Name = "Grim";
             Hue = 1744;
@@ -42,45 +48,16 @@ namespace Server.Mobiles
 
             Tamable = false;
 
-            for (int i = 0; i < Utility.RandomMinMax(0, 1); i++)
-            {
+            for (var i = 0; i < Utility.RandomMinMax(0, 1); i++)
                 PackItem(Loot.RandomScroll(0, Loot.ArcanistScrollTypes.Length, SpellbookType.Arcanist));
-            }
 
             SetWeaponAbility(WeaponAbility.CrushingBlow);
             SetSpecialAbility(SpecialAbility.DragonBreath);
         }
 
-        public override bool GivesMLMinorArtifact
-        {
-            get { return true; }
-        }
-
         public Grim(Serial serial)
             : base(serial)
         {
-        }
-
-        public override bool ReacquireOnMovement
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override int Meat
-        {
-            get
-            {
-                return 10;
-            }
-        }
-        public override int Hides
-        {
-            get
-            {
-                return 20;
-            }
         }
 
         public override void GenerateLoot()
@@ -93,13 +70,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

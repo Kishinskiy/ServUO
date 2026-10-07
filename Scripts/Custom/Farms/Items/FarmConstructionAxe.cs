@@ -1,10 +1,7 @@
-using System;
-using Server;
-using Server.Items;
-using Server.Regions;
-using Server.Targeting;
 using Server.Gumps;
+using Server.Items;
 using Server.Network;
+using Server.Targeting;
 
 namespace Server.Custom.Farms
 {
@@ -16,6 +13,10 @@ namespace Server.Custom.Farms
             Name = "Farmer's Construction Tool";
             Weight = 4.0;
             Hue = 1151; // Золотисто-деревянный цвет
+        }
+
+        public FarmConstructionAxe(Serial serial) : base(serial)
+        {
         }
 
         public override void OnDoubleClick(Mobile from)
@@ -31,15 +32,23 @@ namespace Server.Custom.Farms
             from.SendGump(new FarmConstructionGump(this));
         }
 
-        public FarmConstructionAxe(Serial serial) : base(serial) { }
-        public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write((int)0); }
-        public override void Deserialize(GenericReader reader) { base.Deserialize(reader); reader.ReadInt(); }
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            reader.ReadInt();
+        }
     }
 
     // --- ГРАФИЧЕСКОЕ МЕНЮ ИНСТРУМЕНТА ---
     public class FarmConstructionGump : Gump
     {
-        private FarmConstructionAxe m_Tool;
+        private readonly FarmConstructionAxe m_Tool;
 
         public FarmConstructionGump(FarmConstructionAxe tool) : base(150, 150)
         {
@@ -66,7 +75,7 @@ namespace Server.Custom.Farms
 
         public override void OnResponse(NetState sender, RelayInfo info)
         {
-            Mobile from = sender.Mobile;
+            var from = sender.Mobile;
 
             if (m_Tool == null || m_Tool.Deleted || !m_Tool.IsChildOf(from.Backpack))
                 return;
@@ -74,29 +83,31 @@ namespace Server.Custom.Farms
             switch (info.ButtonID)
             {
                 case 1: // Горизонтальный забор
+                {
+                    if (CheckMaterials(from))
                     {
-                        if (CheckMaterials(from))
-                        {
-                            from.SendMessage("Выберите точку на вашей ферме для установки ГОРИЗОНТАЛЬНОГО забора.");
-                            from.Target = new FarmBuildTarget(m_Tool, 0x844); // ID горизонтального забора
-                        }
-                        break;
+                        from.SendMessage("Выберите точку на вашей ферме для установки ГОРИЗОНТАЛЬНОГО забора.");
+                        from.Target = new FarmBuildTarget(m_Tool, 0x844); // ID горизонтального забора
                     }
+
+                    break;
+                }
                 case 2: // Вертикальный забор
+                {
+                    if (CheckMaterials(from))
                     {
-                        if (CheckMaterials(from))
-                        {
-                            from.SendMessage("Выберите точку на вашей ферме для установки ВЕРТИКАЛЬНОГО забора.");
-                            from.Target = new FarmBuildTarget(m_Tool, 0x845); // ID вертикального забора
-                        }
-                        break;
+                        from.SendMessage("Выберите точку на вашей ферме для установки ВЕРТИКАЛЬНОГО забора.");
+                        from.Target = new FarmBuildTarget(m_Tool, 0x845); // ID вертикального забора
                     }
+
+                    break;
+                }
                 case 3: // Демонтаж
-                    {
-                        from.SendMessage("Выберите секцию забора для удаления.");
-                        from.Target = new FarmAxeDemolishTarget(m_Tool);
-                        break;
-                    }
+                {
+                    from.SendMessage("Выберите секцию забора для удаления.");
+                    from.Target = new FarmAxeDemolishTarget(m_Tool);
+                    break;
+                }
             }
         }
 
@@ -107,6 +118,7 @@ namespace Server.Custom.Farms
                 from.SendMessage("У вас в инвентаре нет материала 'Farm Fence Section'!");
                 return false;
             }
+
             return true;
         }
     }
@@ -114,8 +126,8 @@ namespace Server.Custom.Farms
     // --- ТАРГЕТ СТРОИТЕЛЬСТВА ЗАБОРА (С ФИКСИРОВАННЫМ НАПРАВЛЕНИЕМ) ---
     public class FarmBuildTarget : Target
     {
-        private FarmConstructionAxe m_Tool;
-        private int m_FenceID;
+        private readonly int m_FenceID;
+        private readonly FarmConstructionAxe m_Tool;
 
         public FarmBuildTarget(FarmConstructionAxe tool, int fenceID) : base(4, true, TargetFlags.None)
         {
@@ -128,36 +140,37 @@ namespace Server.Custom.Farms
             if (m_Tool == null || m_Tool.Deleted || !m_Tool.IsChildOf(from.Backpack)) return;
 
             // Ищем материал в паке перед каждым кликом
-            SimpleFarmFence material = from.Backpack.FindItemByType(typeof(SimpleFarmFence)) as SimpleFarmFence;
+            var material = from.Backpack.FindItemByType(typeof(SimpleFarmFence)) as SimpleFarmFence;
             if (material == null || material.Deleted)
             {
                 from.SendMessage("Материалы для строительства забора закончились.");
                 return;
             }
 
-            IPoint3D p = targeted as IPoint3D;
+            var p = targeted as IPoint3D;
             if (p == null) return;
 
-            Point3D loc = new Point3D(p.X, p.Y, p.Z);
-            Map map = from.Map;
+            var loc = new Point3D(p.X, p.Y, p.Z);
+            var map = from.Map;
 
             // Проверяем регион фермы
-            Region reg = Region.Find(loc, map);
+            var reg = Region.Find(loc, map);
             if (!(reg is FarmRegion))
             {
                 from.SendMessage("Забор можно строить только в границах вашего поля!");
                 return;
             }
 
-            FarmRegion farmReg = reg as FarmRegion;
-            if (farmReg.Controller != null && farmReg.Controller.Owner != from && from.AccessLevel == AccessLevel.Player)
+            var farmReg = reg as FarmRegion;
+            if (farmReg.Controller != null && farmReg.Controller.Owner != from &&
+                from.AccessLevel == AccessLevel.Player)
             {
                 from.SendMessage("Вы не можете строить на чужой ферме.");
                 return;
             }
 
             // Спавним забор
-            Static fence = new Static(m_FenceID); // Используем переданный жесткий ID направления!
+            var fence = new Static(m_FenceID); // Используем переданный жесткий ID направления!
             fence.MoveToWorld(loc, map);
             fence.Movable = false;
             fence.Name = "Farm Fence";
@@ -167,16 +180,14 @@ namespace Server.Custom.Farms
 
             // Цепочка строительства в выбранном направлении!
             if (from.Backpack.FindItemByType(typeof(SimpleFarmFence)) != null)
-            {
                 from.Target = new FarmBuildTarget(m_Tool, m_FenceID);
-            }
         }
     }
 
     // --- ТАРГЕТ ДЕМОНТАЖА ЗАБОРА ---
     public class FarmAxeDemolishTarget : Target
     {
-        private FarmConstructionAxe m_Tool;
+        private readonly FarmConstructionAxe m_Tool;
 
         public FarmAxeDemolishTarget(FarmConstructionAxe tool) : base(3, false, TargetFlags.None)
         {
@@ -187,29 +198,30 @@ namespace Server.Custom.Farms
         {
             if (m_Tool == null || m_Tool.Deleted || !m_Tool.IsChildOf(from.Backpack)) return;
 
-            Static fence = targeted as Static;
+            var fence = targeted as Static;
             if (fence == null || (fence.ItemID != 0x844 && fence.ItemID != 0x845))
             {
                 from.SendMessage("Здесь нет забора, который можно убрать.");
                 return;
             }
 
-            Region reg = Region.Find(fence.Location, fence.Map);
+            var reg = Region.Find(fence.Location, fence.Map);
             if (!(reg is FarmRegion))
             {
                 from.SendMessage("Этот забор не принадлежит к ферме.");
                 return;
             }
 
-            FarmRegion farmReg = reg as FarmRegion;
-            if (farmReg.Controller != null && farmReg.Controller.Owner != from && from.AccessLevel == AccessLevel.Player)
+            var farmReg = reg as FarmRegion;
+            if (farmReg.Controller != null && farmReg.Controller.Owner != from &&
+                from.AccessLevel == AccessLevel.Player)
             {
                 from.SendMessage("Вы не можете ломать чужой забор.");
                 return;
             }
 
             // Возвращаем материал обратно в стак инвентаря
-            SimpleFarmFence returnedMaterial = new SimpleFarmFence(1);
+            var returnedMaterial = new SimpleFarmFence(1);
             if (from.Backpack.TryDropItem(from, returnedMaterial, false))
             {
                 fence.Delete();

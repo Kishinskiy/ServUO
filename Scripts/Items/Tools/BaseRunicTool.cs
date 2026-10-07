@@ -5,7 +5,9 @@ namespace Server.Items
 {
     public abstract class BaseRunicTool : BaseTool
     {
-        private static readonly SkillName[] m_PossibleBonusSkills = new SkillName[]
+        private const int MaxProperties = 32;
+
+        private static readonly SkillName[] m_PossibleBonusSkills =
         {
             SkillName.Swords,
             SkillName.Fencing,
@@ -37,7 +39,7 @@ namespace Server.Items
             SkillName.Ninjitsu
         };
 
-        private static readonly SkillName[] m_PossibleSpellbookSkills = new SkillName[]
+        private static readonly SkillName[] m_PossibleSpellbookSkills =
         {
             SkillName.Magery,
             SkillName.Meditation,
@@ -51,7 +53,13 @@ namespace Server.Items
         private static bool m_PlayerMade;
         private static int m_LuckChance;
 
-        private const int MaxProperties = 32;
+        private static readonly AosElementAttribute[] _DamageTypes =
+        {
+            AosElementAttribute.Cold,
+            AosElementAttribute.Energy,
+            AosElementAttribute.Fire,
+            AosElementAttribute.Poison
+        };
 
         public BaseRunicTool(CraftResource resource, int itemID)
             : base(itemID)
@@ -71,19 +79,21 @@ namespace Server.Items
         }
 
         #region Runic Reforging
+
         public override void OnDoubleClick(Mobile from)
         {
-            bool hasSkill = from.Skills[SkillName.Imbuing].Value >= 65;
+            var hasSkill = from.Skills[SkillName.Imbuing].Value >= 65;
 
             IPooledEnumerable eable = from.Map.GetItemsInRange(from.Location, 2);
 
             foreach (Item item in eable)
-            {
-                if ((item.ItemID >= 0x4263 && item.ItemID <= 0x4272) || (item.ItemID >= 0x4277 && item.ItemID <= 0x4286) || (item.ItemID >= 17607 && item.ItemID <= 17610))
+                if ((item.ItemID >= 0x4263 && item.ItemID <= 0x4272) ||
+                    (item.ItemID >= 0x4277 && item.ItemID <= 0x4286) || (item.ItemID >= 17607 && item.ItemID <= 17610))
                 {
                     if (!hasSkill)
                     {
-                        from.SendLocalizedMessage(1152333); // You do not have enough Imbuing skill to re-forge items. Using standard Runic Crafting instead.
+                        from.SendLocalizedMessage(
+                            1152333); // You do not have enough Imbuing skill to re-forge items. Using standard Runic Crafting instead.
                         break;
                     }
 
@@ -92,30 +102,29 @@ namespace Server.Items
                     eable.Free();
                     return;
                 }
-            }
 
             if (hasSkill)
-                from.SendLocalizedMessage(1152334); // You must be near a Soul Forge to re-forge items. Using standard Runic Crafting instead.
+                from.SendLocalizedMessage(
+                    1152334); // You must be near a Soul Forge to re-forge items. Using standard Runic Crafting instead.
 
             eable.Free();
             base.OnDoubleClick(from);
         }
+
         #endregion
 
         public static int GetUniqueRandom(int count)
         {
-            int avail = 0;
+            var avail = 0;
 
-            for (int i = 0; i < count; ++i)
-            {
+            for (var i = 0; i < count; ++i)
                 if (!m_Props[i])
                     m_Possible[avail++] = i;
-            }
 
             if (avail == 0)
                 return -1;
 
-            int v = m_Possible[Utility.Random(avail)];
+            var v = m_Possible[Utility.Random(avail)];
 
             m_Props.Set(v, true);
 
@@ -125,29 +134,16 @@ namespace Server.Items
         public static void ApplyAttributesTo(Item item, int attributeCount, int min, int max)
         {
             if (item is FishingPole)
-            {
                 ApplyAttributesTo((FishingPole)item, attributeCount, min, max);
-            }
             else if (item is BaseWeapon)
-            {
                 ApplyAttributesTo((BaseWeapon)item, attributeCount, min, max);
-            }
             else if (item is BaseArmor)
-            {
                 ApplyAttributesTo((BaseArmor)item, attributeCount, min, max);
-            }
             else if (item is BaseHat)
-            {
                 ApplyAttributesTo((BaseHat)item, attributeCount, min, max);
-            }
             else if (item is BaseJewel)
-            {
                 ApplyAttributesTo((BaseJewel)item, attributeCount, min, max);
-            }
-            else if (item is Spellbook)
-            {
-                ApplyAttributesTo((Spellbook)item, attributeCount, min, max);
-            }
+            else if (item is Spellbook) ApplyAttributesTo((Spellbook)item, attributeCount, min, max);
         }
 
         public static void ApplyAttributesTo(
@@ -159,105 +155,26 @@ namespace Server.Items
             int max)
         {
             if (item is FishingPole)
-            {
                 ApplyAttributesTo((FishingPole)item, isRunicTool, luckChance, attributeCount, min, max);
-            }
             else if (item is BaseWeapon)
-            {
                 ApplyAttributesTo((BaseWeapon)item, isRunicTool, luckChance, attributeCount, min, max);
-            }
             else if (item is BaseArmor)
-            {
                 ApplyAttributesTo((BaseArmor)item, isRunicTool, luckChance, attributeCount, min, max);
-            }
             else if (item is BaseHat)
-            {
                 ApplyAttributesTo((BaseHat)item, isRunicTool, luckChance, attributeCount, min, max);
-            }
             else if (item is BaseJewel)
-            {
                 ApplyAttributesTo((BaseJewel)item, isRunicTool, luckChance, attributeCount, min, max);
-            }
             else if (item is Spellbook)
-            {
                 ApplyAttributesTo((Spellbook)item, isRunicTool, luckChance, attributeCount, min, max);
-            }
         }
-
-        #region High Seas
-        public void ApplyAttributesTo(FishingPole pole)
-        {
-            CraftResourceInfo resInfo = CraftResources.GetInfo(Resource);
-
-            if (resInfo == null)
-                return;
-
-            CraftAttributeInfo attrs = resInfo.AttributeInfo;
-
-            int attributeCount = Utility.RandomMinMax(attrs.RunicMinAttributes, attrs.RunicMaxAttributes);
-            int min = attrs.RunicMinIntensity;
-            int max = attrs.RunicMaxIntensity;
-
-            ApplyAttributesTo(pole, true, 0, attributeCount, min, max);
-        }
-
-        public static void ApplyAttributesTo(FishingPole pole, bool playerMade, int luckChance, int attributeCount, int min, int max)
-        {
-            int delta;
-
-            if (min > max)
-            {
-                delta = min;
-                min = max;
-                max = delta;
-            }
-
-            m_PlayerMade = playerMade;
-            m_LuckChance = luckChance;
-
-            AosAttributes primary = pole.Attributes;
-            AosSkillBonuses skills = pole.SkillBonuses;
-
-            m_Props.SetAll(false);
-
-            for (int i = 0; i < attributeCount; ++i)
-            {
-                int random = GetUniqueRandom(21);
-
-                switch (random)
-                {
-                    case 0: ApplyAttribute(primary, min, max, AosAttribute.DefendChance, 1, 15); break;
-                    case 1: ApplyAttribute(primary, min, max, AosAttribute.CastSpeed, 1, 1); break;
-                    case 2: ApplyAttribute(primary, min, max, AosAttribute.CastRecovery, 1, 1); break;
-                    case 3: ApplyAttribute(primary, min, max, AosAttribute.AttackChance, 1, 15); break;
-                    case 4: ApplyAttribute(primary, min, max, AosAttribute.Luck, 1, 100); break;
-                    case 5: ApplyAttribute(primary, min, max, AosAttribute.SpellChanneling, 1, 1); break;
-                    case 6: ApplyAttribute(primary, min, max, AosAttribute.RegenHits, 1, 2); break;
-                    case 7: ApplyAttribute(primary, min, max, AosAttribute.RegenMana, 1, 2); break;
-                    case 8: ApplyAttribute(primary, min, max, AosAttribute.RegenStam, 1, 3); break;
-                    case 9: ApplyAttribute(primary, min, max, AosAttribute.BonusHits, 1, 8); break;
-                    case 10: ApplyAttribute(primary, min, max, AosAttribute.BonusMana, 1, 8); break;
-                    case 11: ApplyAttribute(primary, min, max, AosAttribute.BonusStam, 1, 8); break;
-                    case 12: ApplyAttribute(primary, min, max, AosAttribute.BonusStr, 1, 8); break;
-                    case 13: ApplyAttribute(primary, min, max, AosAttribute.BonusDex, 1, 8); break;
-                    case 14: ApplyAttribute(primary, min, max, AosAttribute.BonusInt, 1, 8); break;
-                    case 15: ApplyAttribute(primary, min, max, AosAttribute.SpellDamage, 1, 12); break;
-                    case 16: ApplySkillBonus(skills, min, max, 0, 1, 15); break;
-                    case 17: ApplySkillBonus(skills, min, max, 1, 1, 15); break;
-                    case 18: ApplySkillBonus(skills, min, max, 2, 1, 15); break;
-                    case 19: ApplySkillBonus(skills, min, max, 3, 1, 15); break;
-                    case 20: ApplySkillBonus(skills, min, max, 4, 1, 15); break;
-                }
-            }
-        }
-        #endregion
 
         public static void ApplyAttributesTo(BaseWeapon weapon, int attributeCount, int min, int max)
         {
             ApplyAttributesTo(weapon, false, 0, attributeCount, min, max);
         }
 
-        public static void ApplyAttributesTo(BaseWeapon weapon, bool playerMade, int luckChance, int attributeCount, int min, int max)
+        public static void ApplyAttributesTo(BaseWeapon weapon, bool playerMade, int luckChance, int attributeCount,
+            int min, int max)
         {
             int delta;
 
@@ -277,8 +194,8 @@ namespace Server.Items
             m_PlayerMade = playerMade;
             m_LuckChance = luckChance;
 
-            AosAttributes primary = weapon.Attributes;
-            AosWeaponAttributes secondary = weapon.WeaponAttributes;
+            var primary = weapon.Attributes;
+            var secondary = weapon.WeaponAttributes;
 
             m_Props.SetAll(false);
 
@@ -288,80 +205,80 @@ namespace Server.Items
             }
             else
             {
-            	m_Props.Set(25, true); // Only bows can be Balanced
-            	m_Props.Set(26, true); // Only bows have Velocity
+                m_Props.Set(25, true); // Only bows can be Balanced
+                m_Props.Set(26, true); // Only bows have Velocity
             }
 
-            for (int i = 0; i < attributeCount; ++i)
+            for (var i = 0; i < attributeCount; ++i)
             {
-                int random = GetUniqueRandom(27);
+                var random = GetUniqueRandom(27);
 
                 if (random == -1)
                     break;
 
-                switch ( random )
+                switch (random)
                 {
                     case 0:
+                    {
+                        switch (Utility.Random(5))
                         {
-                            switch ( Utility.Random(5) )
-                            {
-                                case 0:
-                                    ApplyAttribute(secondary, min, max, AosWeaponAttribute.HitPhysicalArea, 2, 50, 2);
-                                    break;
-                                case 1:
-                                    ApplyAttribute(secondary, min, max, AosWeaponAttribute.HitFireArea, 2, 50, 2);
-                                    break;
-                                case 2:
-                                    ApplyAttribute(secondary, min, max, AosWeaponAttribute.HitColdArea, 2, 50, 2);
-                                    break;
-                                case 3:
-                                    ApplyAttribute(secondary, min, max, AosWeaponAttribute.HitPoisonArea, 2, 50, 2);
-                                    break;
-                                case 4:
-                                    ApplyAttribute(secondary, min, max, AosWeaponAttribute.HitEnergyArea, 2, 50, 2);
-                                    break;
-                            }
-
-                            break;
+                            case 0:
+                                ApplyAttribute(secondary, min, max, AosWeaponAttribute.HitPhysicalArea, 2, 50, 2);
+                                break;
+                            case 1:
+                                ApplyAttribute(secondary, min, max, AosWeaponAttribute.HitFireArea, 2, 50, 2);
+                                break;
+                            case 2:
+                                ApplyAttribute(secondary, min, max, AosWeaponAttribute.HitColdArea, 2, 50, 2);
+                                break;
+                            case 3:
+                                ApplyAttribute(secondary, min, max, AosWeaponAttribute.HitPoisonArea, 2, 50, 2);
+                                break;
+                            case 4:
+                                ApplyAttribute(secondary, min, max, AosWeaponAttribute.HitEnergyArea, 2, 50, 2);
+                                break;
                         }
+
+                        break;
+                    }
                     case 1:
+                    {
+                        switch (Utility.Random(4))
                         {
-                            switch ( Utility.Random(4) )
-                            {
-                                case 0:
-                                    ApplyAttribute(secondary, min, max, AosWeaponAttribute.HitMagicArrow, 2, 50, 2);
-                                    break;
-                                case 1:
-                                    ApplyAttribute(secondary, min, max, AosWeaponAttribute.HitHarm, 2, 50, 2);
-                                    break;
-                                case 2:
-                                    ApplyAttribute(secondary, min, max, AosWeaponAttribute.HitFireball, 2, 50, 2);
-                                    break;
-                                case 3:
-                                    ApplyAttribute(secondary, min, max, AosWeaponAttribute.HitLightning, 2, 50, 2);
-                                    break;
-                            }
-
-                            break;
+                            case 0:
+                                ApplyAttribute(secondary, min, max, AosWeaponAttribute.HitMagicArrow, 2, 50, 2);
+                                break;
+                            case 1:
+                                ApplyAttribute(secondary, min, max, AosWeaponAttribute.HitHarm, 2, 50, 2);
+                                break;
+                            case 2:
+                                ApplyAttribute(secondary, min, max, AosWeaponAttribute.HitFireball, 2, 50, 2);
+                                break;
+                            case 3:
+                                ApplyAttribute(secondary, min, max, AosWeaponAttribute.HitLightning, 2, 50, 2);
+                                break;
                         }
+
+                        break;
+                    }
                     case 2:
+                    {
+                        switch (Utility.Random(2))
                         {
-                            switch ( Utility.Random(2) )
-                            {
-                                case 0:
-                                    ApplyAttribute(secondary, min, max, AosWeaponAttribute.UseBestSkill, 1, 1);
-                                    break;
-                                case 1:
-                                    ApplyAttribute(secondary, min, max, AosWeaponAttribute.MageWeapon, 1, 10);
-                                    break;
-                            }
-
-                            break;
+                            case 0:
+                                ApplyAttribute(secondary, min, max, AosWeaponAttribute.UseBestSkill, 1, 1);
+                                break;
+                            case 1:
+                                ApplyAttribute(secondary, min, max, AosWeaponAttribute.MageWeapon, 1, 10);
+                                break;
                         }
+
+                        break;
+                    }
                     case 3:
-						int dmgMin = primary.WeaponDamage;
-						int dmgMax = Math.Max(dmgMin, 50);
-						primary.WeaponDamage = 0;
+                        var dmgMin = primary.WeaponDamage;
+                        var dmgMax = Math.Max(dmgMin, 50);
+                        primary.WeaponDamage = 0;
                         ApplyAttribute(primary, min, max, AosAttribute.WeaponDamage, dmgMin, dmgMax);
                         break;
                     case 4:
@@ -386,7 +303,8 @@ namespace Server.Items
                         ApplyAttribute(secondary, min, max, AosWeaponAttribute.HitDispel, 2, 50, 2);
                         break;
                     case 11:
-                        ApplyAttribute(secondary, min, max, AosWeaponAttribute.HitLeechHits, 2, ItemPropertyInfo.GetMaxIntensity(weapon, AosWeaponAttribute.HitLeechHits), 2);
+                        ApplyAttribute(secondary, min, max, AosWeaponAttribute.HitLeechHits, 2,
+                            ItemPropertyInfo.GetMaxIntensity(weapon, AosWeaponAttribute.HitLeechHits), 2);
                         break;
                     case 12:
                         ApplyAttribute(secondary, min, max, AosWeaponAttribute.HitLowerAttack, 2, 50, 2);
@@ -395,7 +313,8 @@ namespace Server.Items
                         ApplyAttribute(secondary, min, max, AosWeaponAttribute.HitLowerDefend, 2, 50, 2);
                         break;
                     case 14:
-                        ApplyAttribute(secondary, min, max, AosWeaponAttribute.HitLeechMana, 2, ItemPropertyInfo.GetMaxIntensity(weapon, AosWeaponAttribute.HitLeechMana), 2);
+                        ApplyAttribute(secondary, min, max, AosWeaponAttribute.HitLeechMana, 2,
+                            ItemPropertyInfo.GetMaxIntensity(weapon, AosWeaponAttribute.HitLeechMana), 2);
                         break;
                     case 15:
                         ApplyAttribute(secondary, min, max, AosWeaponAttribute.HitLeechStam, 2, 50, 2);
@@ -432,7 +351,7 @@ namespace Server.Items
                         break;
                     case 26:
                         ApplyVelocityAttribute((BaseRanged)weapon, min, max, 2, 50, 2);
-                   		break;
+                        break;
                 }
             }
         }
@@ -440,12 +359,13 @@ namespace Server.Items
         public static SlayerName GetRandomSlayer()
         {
             // TODO: Check random algorithm on OSI
-            SlayerGroup[] groups = SlayerGroup.Groups;
+            var groups = SlayerGroup.Groups;
 
             if (groups.Length == 0)
                 return SlayerName.None;
 
-            SlayerGroup group = groups[Utility.Random(6)]; //-1 To Exclude the Fey Slayer which appears ONLY on a certain artifact.
+            var group = groups[
+                Utility.Random(6)]; //-1 To Exclude the Fey Slayer which appears ONLY on a certain artifact.
             SlayerEntry entry;
 
             if (group.Entries.Length == 0 || 10 > Utility.Random(100)) // 10% chance to do super slayer
@@ -454,7 +374,7 @@ namespace Server.Items
             }
             else
             {
-                SlayerEntry[] entries = group.Entries;
+                var entries = group.Entries;
                 entry = entries[Utility.Random(entries.Length)];
             }
 
@@ -466,7 +386,8 @@ namespace Server.Items
             ApplyAttributesTo(armor, false, 0, attributeCount, min, max);
         }
 
-        public static void ApplyAttributesTo(BaseArmor armor, bool playerMade, int luckChance, int attributeCount, int min, int max)
+        public static void ApplyAttributesTo(BaseArmor armor, bool playerMade, int luckChance, int attributeCount,
+            int min, int max)
         {
             int delta;
 
@@ -486,14 +407,14 @@ namespace Server.Items
             m_PlayerMade = playerMade;
             m_LuckChance = luckChance;
 
-            AosAttributes primary = armor.Attributes;
-            AosArmorAttributes secondary = armor.ArmorAttributes;
+            var primary = armor.Attributes;
+            var secondary = armor.ArmorAttributes;
 
             m_Props.SetAll(false);
 
-            bool isShield = (armor is BaseShield);
-            int baseCount = (isShield ? 7 : 20);
-            int baseOffset = (isShield ? 0 : 4);
+            var isShield = armor is BaseShield;
+            var baseCount = isShield ? 7 : 20;
+            var baseOffset = isShield ? 0 : 4;
 
             if (!isShield && armor.MeditationAllowance == ArmorMeditationAllowance.All)
                 m_Props.Set(3, true); // remove mage armor from possible properties
@@ -502,19 +423,21 @@ namespace Server.Items
                 m_Props.Set(0, true); // remove lower requirements from possible properties for leather armor
                 m_Props.Set(2, true); // remove durability bonus from possible properties
             }
-            if (armor.RequiredRace == Race.Elf)
-                m_Props.Set(7, true); // elves inherently have night sight and elf only armor doesn't get night sight as a mod
 
-            for (int i = 0; i < attributeCount; ++i)
+            if (armor.RequiredRace == Race.Elf)
+                m_Props.Set(7,
+                    true); // elves inherently have night sight and elf only armor doesn't get night sight as a mod
+
+            for (var i = 0; i < attributeCount; ++i)
             {
-                int random = GetUniqueRandom(baseCount);
+                var random = GetUniqueRandom(baseCount);
 
                 if (random == -1)
                     break;
 
                 random += baseOffset;
 
-                switch ( random )
+                switch (random)
                 {
                     /* Begin Sheilds */
                     case 0:
@@ -525,18 +448,14 @@ namespace Server.Items
                         break;
                     case 2:
                         if (Core.ML)
-                        {
                             ApplyAttribute(primary, min, max, AosAttribute.ReflectPhysical, 1, 15);
-                        }
                         else
-                        {
                             ApplyAttribute(primary, min, max, AosAttribute.AttackChance, 1, 15);
-                        }
                         break;
                     case 3:
                         ApplyAttribute(primary, min, max, AosAttribute.CastSpeed, 1, 1);
                         break;
-                        /* Begin Armor */
+                    /* Begin Armor */
                     case 4:
                         ApplyAttribute(secondary, min, max, AosArmorAttribute.LowerStatReq, 10, 100, 10);
                         break;
@@ -546,7 +465,7 @@ namespace Server.Items
                     case 6:
                         ApplyAttribute(secondary, min, max, AosArmorAttribute.DurabilityBonus, 10, 100, 10);
                         break;
-                        /* End Shields */
+                    /* End Shields */
                     case 7:
                         ApplyAttribute(secondary, min, max, AosArmorAttribute.MageArmor, 1, 1);
                         break;
@@ -598,7 +517,7 @@ namespace Server.Items
                     case 23:
                         ApplyResistance(armor, min, max, ResistanceType.Energy, 1, 15);
                         break;
-                /* End Armor */
+                    /* End Armor */
                 }
             }
         }
@@ -608,7 +527,8 @@ namespace Server.Items
             ApplyAttributesTo(hat, false, 0, attributeCount, min, max);
         }
 
-        public static void ApplyAttributesTo(BaseHat hat, bool playerMade, int luckChance, int attributeCount, int min, int max)
+        public static void ApplyAttributesTo(BaseHat hat, bool playerMade, int luckChance, int attributeCount, int min,
+            int max)
         {
             int delta;
 
@@ -628,20 +548,20 @@ namespace Server.Items
             m_PlayerMade = playerMade;
             m_LuckChance = luckChance;
 
-            AosAttributes primary = hat.Attributes;
-            AosArmorAttributes secondary = hat.ClothingAttributes;
-            AosElementAttributes resists = hat.Resistances;
+            var primary = hat.Attributes;
+            var secondary = hat.ClothingAttributes;
+            var resists = hat.Resistances;
 
             m_Props.SetAll(false);
 
-            for (int i = 0; i < attributeCount; ++i)
+            for (var i = 0; i < attributeCount; ++i)
             {
-                int random = GetUniqueRandom(19);
+                var random = GetUniqueRandom(19);
 
                 if (random == -1)
                     break;
 
-                switch ( random )
+                switch (random)
                 {
                     case 0:
                         ApplyAttribute(primary, min, max, AosAttribute.ReflectPhysical, 1, 15);
@@ -709,7 +629,8 @@ namespace Server.Items
             ApplyAttributesTo(jewelry, false, 0, attributeCount, min, max);
         }
 
-        public static void ApplyAttributesTo(BaseJewel jewelry, bool playerMade, int luckChance, int attributeCount, int min, int max)
+        public static void ApplyAttributesTo(BaseJewel jewelry, bool playerMade, int luckChance, int attributeCount,
+            int min, int max)
         {
             int delta;
 
@@ -729,20 +650,20 @@ namespace Server.Items
             m_PlayerMade = playerMade;
             m_LuckChance = luckChance;
 
-            AosAttributes primary = jewelry.Attributes;
-            AosElementAttributes resists = jewelry.Resistances;
-            AosSkillBonuses skills = jewelry.SkillBonuses;
+            var primary = jewelry.Attributes;
+            var resists = jewelry.Resistances;
+            var skills = jewelry.SkillBonuses;
 
             m_Props.SetAll(false);
 
-            for (int i = 0; i < attributeCount; ++i)
+            for (var i = 0; i < attributeCount; ++i)
             {
-                int random = GetUniqueRandom(24);
+                var random = GetUniqueRandom(24);
 
                 if (random == -1)
                     break;
 
-                switch ( random )
+                switch (random)
                 {
                     case 0:
                         ApplyAttribute(resists, min, max, AosElementAttribute.Physical, 1, 15);
@@ -825,7 +746,8 @@ namespace Server.Items
             ApplyAttributesTo(spellbook, false, 0, attributeCount, min, max);
         }
 
-        public static void ApplyAttributesTo(Spellbook spellbook, bool playerMade, int luckChance, int attributeCount, int min, int max)
+        public static void ApplyAttributesTo(Spellbook spellbook, bool playerMade, int luckChance, int attributeCount,
+            int min, int max)
         {
             int delta;
 
@@ -839,32 +761,32 @@ namespace Server.Items
             m_PlayerMade = playerMade;
             m_LuckChance = luckChance;
 
-            AosAttributes primary = spellbook.Attributes;
-            AosSkillBonuses skills = spellbook.SkillBonuses;
+            var primary = spellbook.Attributes;
+            var skills = spellbook.SkillBonuses;
 
             m_Props.SetAll(false);
 
-            for (int i = 0; i < attributeCount; ++i)
+            for (var i = 0; i < attributeCount; ++i)
             {
-                int random = GetUniqueRandom(16);
+                var random = GetUniqueRandom(16);
 
                 if (random == -1)
                     break;
 
-                switch ( random )
+                switch (random)
                 {
                     case 0:
                     case 1:
                     case 2:
                     case 3:
-                        {
-                            ApplyAttribute(primary, min, max, AosAttribute.BonusInt, 1, 8);
+                    {
+                        ApplyAttribute(primary, min, max, AosAttribute.BonusInt, 1, 8);
 
-                            for (int j = 0; j < 4; ++j)
-                                m_Props.Set(j, true);
+                        for (var j = 0; j < 4; ++j)
+                            m_Props.Set(j, true);
 
-                            break;
-                        }
+                        break;
+                    }
                     case 4:
                         ApplyAttribute(primary, min, max, AosAttribute.BonusMana, 1, 8);
                         break;
@@ -909,7 +831,7 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
             writer.Write((int)Resource);
         }
 
@@ -917,52 +839,52 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            switch ( version )
+            switch (version)
             {
                 case 0:
-                    {
-                        Resource = (CraftResource)reader.ReadInt();
-                        break;
-                    }
+                {
+                    Resource = (CraftResource)reader.ReadInt();
+                    break;
+                }
             }
         }
 
         public void ApplyAttributesTo(BaseWeapon weapon)
         {
-            CraftResourceInfo resInfo = CraftResources.GetInfo(Resource);
+            var resInfo = CraftResources.GetInfo(Resource);
 
             if (resInfo == null)
                 return;
 
-            CraftAttributeInfo attrs = resInfo.AttributeInfo;
+            var attrs = resInfo.AttributeInfo;
 
             if (attrs == null)
                 return;
 
-            int attributeCount = Utility.RandomMinMax(attrs.RunicMinAttributes, attrs.RunicMaxAttributes);
-            int min = attrs.RunicMinIntensity;
-            int max = attrs.RunicMaxIntensity;
+            var attributeCount = Utility.RandomMinMax(attrs.RunicMinAttributes, attrs.RunicMaxAttributes);
+            var min = attrs.RunicMinIntensity;
+            var max = attrs.RunicMaxIntensity;
 
             ApplyAttributesTo(weapon, true, 0, attributeCount, min, max);
         }
 
         public void ApplyAttributesTo(BaseArmor armor)
         {
-            CraftResourceInfo resInfo = CraftResources.GetInfo(Resource);
+            var resInfo = CraftResources.GetInfo(Resource);
 
             if (resInfo == null)
                 return;
 
-            CraftAttributeInfo attrs = resInfo.AttributeInfo;
+            var attrs = resInfo.AttributeInfo;
 
             if (attrs == null)
                 return;
 
-            int attributeCount = Utility.RandomMinMax(attrs.RunicMinAttributes, attrs.RunicMaxAttributes);
-            int min = attrs.RunicMinIntensity;
-            int max = attrs.RunicMaxIntensity;
+            var attributeCount = Utility.RandomMinMax(attrs.RunicMinAttributes, attrs.RunicMaxAttributes);
+            var min = attrs.RunicMinIntensity;
+            var max = attrs.RunicMaxIntensity;
 
             ApplyAttributesTo(armor, true, 0, attributeCount, min, max);
         }
@@ -977,7 +899,7 @@ namespace Server.Items
             }
             else
             {
-                int v = Utility.RandomMinMax(0, 10000);
+                var v = Utility.RandomMinMax(0, 10000);
 
                 v = (int)Math.Sqrt(v);
                 v = 100 - v;
@@ -985,17 +907,17 @@ namespace Server.Items
                 if (LootPack.CheckLuck(m_LuckChance))
                     v += 10;
 
-                percent = Math.Min(max, min + AOS.Scale((max - min), v));
+                percent = Math.Min(max, min + AOS.Scale(max - min, v));
             }
 
-            int scaledBy = Math.Abs(high - low) + 1;
+            var scaledBy = Math.Abs(high - low) + 1;
 
             if (scaledBy != 0)
                 scaledBy = 10000 / scaledBy;
 
-            percent *= (10000 + scaledBy);
+            percent *= 10000 + scaledBy;
 
-            return low + (((high - low) * percent) / 1000001);
+            return low + (high - low) * percent / 1000001;
         }
 
         private static void ApplyAttribute(AosAttributes attrs, int min, int max, AosAttribute attr, int low, int high)
@@ -1003,7 +925,8 @@ namespace Server.Items
             ApplyAttribute(attrs, min, max, attr, low, high, 1);
         }
 
-        private static void ApplyAttribute(AosAttributes attrs, int min, int max, AosAttribute attr, int low, int high, int scale)
+        private static void ApplyAttribute(AosAttributes attrs, int min, int max, AosAttribute attr, int low, int high,
+            int scale)
         {
             if (attr == AosAttribute.CastSpeed)
                 attrs[attr] += Scale(min, max, low / scale, high / scale) * scale;
@@ -1014,32 +937,38 @@ namespace Server.Items
                 attrs[AosAttribute.CastSpeed] -= 1;
         }
 
-        private static void ApplyAttribute(AosArmorAttributes attrs, int min, int max, AosArmorAttribute attr, int low, int high)
+        private static void ApplyAttribute(AosArmorAttributes attrs, int min, int max, AosArmorAttribute attr, int low,
+            int high)
         {
             attrs[attr] = Scale(min, max, low, high);
         }
 
-        private static void ApplyAttribute(AosArmorAttributes attrs, int min, int max, AosArmorAttribute attr, int low, int high, int scale)
+        private static void ApplyAttribute(AosArmorAttributes attrs, int min, int max, AosArmorAttribute attr, int low,
+            int high, int scale)
         {
             attrs[attr] = Scale(min, max, low / scale, high / scale) * scale;
         }
 
-        private static void ApplyAttribute(AosWeaponAttributes attrs, int min, int max, AosWeaponAttribute attr, int low, int high)
+        private static void ApplyAttribute(AosWeaponAttributes attrs, int min, int max, AosWeaponAttribute attr,
+            int low, int high)
         {
             attrs[attr] = Scale(min, max, low, high);
         }
 
-        private static void ApplyAttribute(AosWeaponAttributes attrs, int min, int max, AosWeaponAttribute attr, int low, int high, int scale)
+        private static void ApplyAttribute(AosWeaponAttributes attrs, int min, int max, AosWeaponAttribute attr,
+            int low, int high, int scale)
         {
             attrs[attr] = Scale(min, max, low / scale, high / scale) * scale;
         }
 
-        private static void ApplyAttribute(AosElementAttributes attrs, int min, int max, AosElementAttribute attr, int low, int high)
+        private static void ApplyAttribute(AosElementAttributes attrs, int min, int max, AosElementAttribute attr,
+            int low, int high)
         {
             attrs[attr] = Scale(min, max, low, high);
         }
 
-        private static void ApplyAttribute(AosElementAttributes attrs, int min, int max, AosElementAttribute attr, int low, int high, int scale)
+        private static void ApplyAttribute(AosElementAttributes attrs, int min, int max, AosElementAttribute attr,
+            int low, int high, int scale)
         {
             attrs[attr] = Scale(min, max, low / scale, high / scale) * scale;
         }
@@ -1055,25 +984,17 @@ namespace Server.Items
 
             weapon.GetDamageTypes(null, out phys, out fire, out cold, out pois, out nrgy, out chaos, out direct);
 
-            int intensity = Math.Min(phys, Scale(min, max, 10 / 10, 100 / 10) * 10);
+            var intensity = Math.Min(phys, Scale(min, max, 10 / 10, 100 / 10) * 10);
 
             weapon.AosElementDamages[_DamageTypes[Utility.Random(_DamageTypes.Length)]] = intensity;
 
             weapon.Hue = weapon.GetElementalDamageHue();
         }
 
-        private static AosElementAttribute[] _DamageTypes =
-        {
-            AosElementAttribute.Cold,
-            AosElementAttribute.Energy,
-            AosElementAttribute.Fire,
-            AosElementAttribute.Poison
-        };
-
         private static void ApplySkillBonus(AosSkillBonuses attrs, int min, int max, int index, int low, int high)
         {
-            SkillName[] possibleSkills = (attrs.Owner is Spellbook ? m_PossibleSpellbookSkills : m_PossibleBonusSkills);
-            int count = (Core.SE ? possibleSkills.Length : possibleSkills.Length - 2);
+            var possibleSkills = attrs.Owner is Spellbook ? m_PossibleSpellbookSkills : m_PossibleBonusSkills;
+            var count = Core.SE ? possibleSkills.Length : possibleSkills.Length - 2;
 
             SkillName sk, check;
             double bonus;
@@ -1084,17 +1005,16 @@ namespace Server.Items
                 found = false;
                 sk = possibleSkills[Utility.Random(count)];
 
-                for (int i = 0; !found && i < 5; ++i)
-                    found = (attrs.GetValues(i, out check, out bonus) && check == sk);
-            }
-            while (found);
+                for (var i = 0; !found && i < 5; ++i)
+                    found = attrs.GetValues(i, out check, out bonus) && check == sk;
+            } while (found);
 
             attrs.SetValues(index, sk, Scale(min, max, low, high));
         }
 
         private static void ApplyResistance(BaseArmor ar, int min, int max, ResistanceType res, int low, int high)
         {
-            switch ( res )
+            switch (res)
             {
                 case ResistanceType.Physical:
                     ar.PhysicalBonus += Scale(min, max, low, high);
@@ -1119,10 +1039,81 @@ namespace Server.Items
             if (totalDamage <= 0)
                 return 0;
 
-            int random = Utility.Random((int)(totalDamage / 10) + 1) * 10;
+            var random = Utility.Random(totalDamage / 10 + 1) * 10;
             weapon.AosElementDamages[attr] = random;
 
-            return (totalDamage - random);
+            return totalDamage - random;
         }
+
+        #region High Seas
+
+        public void ApplyAttributesTo(FishingPole pole)
+        {
+            var resInfo = CraftResources.GetInfo(Resource);
+
+            if (resInfo == null)
+                return;
+
+            var attrs = resInfo.AttributeInfo;
+
+            var attributeCount = Utility.RandomMinMax(attrs.RunicMinAttributes, attrs.RunicMaxAttributes);
+            var min = attrs.RunicMinIntensity;
+            var max = attrs.RunicMaxIntensity;
+
+            ApplyAttributesTo(pole, true, 0, attributeCount, min, max);
+        }
+
+        public static void ApplyAttributesTo(FishingPole pole, bool playerMade, int luckChance, int attributeCount,
+            int min, int max)
+        {
+            int delta;
+
+            if (min > max)
+            {
+                delta = min;
+                min = max;
+                max = delta;
+            }
+
+            m_PlayerMade = playerMade;
+            m_LuckChance = luckChance;
+
+            var primary = pole.Attributes;
+            var skills = pole.SkillBonuses;
+
+            m_Props.SetAll(false);
+
+            for (var i = 0; i < attributeCount; ++i)
+            {
+                var random = GetUniqueRandom(21);
+
+                switch (random)
+                {
+                    case 0: ApplyAttribute(primary, min, max, AosAttribute.DefendChance, 1, 15); break;
+                    case 1: ApplyAttribute(primary, min, max, AosAttribute.CastSpeed, 1, 1); break;
+                    case 2: ApplyAttribute(primary, min, max, AosAttribute.CastRecovery, 1, 1); break;
+                    case 3: ApplyAttribute(primary, min, max, AosAttribute.AttackChance, 1, 15); break;
+                    case 4: ApplyAttribute(primary, min, max, AosAttribute.Luck, 1, 100); break;
+                    case 5: ApplyAttribute(primary, min, max, AosAttribute.SpellChanneling, 1, 1); break;
+                    case 6: ApplyAttribute(primary, min, max, AosAttribute.RegenHits, 1, 2); break;
+                    case 7: ApplyAttribute(primary, min, max, AosAttribute.RegenMana, 1, 2); break;
+                    case 8: ApplyAttribute(primary, min, max, AosAttribute.RegenStam, 1, 3); break;
+                    case 9: ApplyAttribute(primary, min, max, AosAttribute.BonusHits, 1, 8); break;
+                    case 10: ApplyAttribute(primary, min, max, AosAttribute.BonusMana, 1, 8); break;
+                    case 11: ApplyAttribute(primary, min, max, AosAttribute.BonusStam, 1, 8); break;
+                    case 12: ApplyAttribute(primary, min, max, AosAttribute.BonusStr, 1, 8); break;
+                    case 13: ApplyAttribute(primary, min, max, AosAttribute.BonusDex, 1, 8); break;
+                    case 14: ApplyAttribute(primary, min, max, AosAttribute.BonusInt, 1, 8); break;
+                    case 15: ApplyAttribute(primary, min, max, AosAttribute.SpellDamage, 1, 12); break;
+                    case 16: ApplySkillBonus(skills, min, max, 0, 1, 15); break;
+                    case 17: ApplySkillBonus(skills, min, max, 1, 1, 15); break;
+                    case 18: ApplySkillBonus(skills, min, max, 2, 1, 15); break;
+                    case 19: ApplySkillBonus(skills, min, max, 3, 1, 15); break;
+                    case 20: ApplySkillBonus(skills, min, max, 4, 1, 15); break;
+                }
+            }
+        }
+
+        #endregion
     }
 }

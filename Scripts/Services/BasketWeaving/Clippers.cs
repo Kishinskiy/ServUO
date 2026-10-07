@@ -1,13 +1,14 @@
 #region References
-using System;
+
 using System.Collections.Generic;
-using Server.Gumps;
-using Server.Network;
 using Server.ContextMenus;
 using Server.Engines.Craft;
 using Server.Engines.Plants;
+using Server.Gumps;
 using Server.Mobiles;
+using Server.Network;
 using Server.Targeting;
+
 #endregion
 
 namespace Server.Items
@@ -15,7 +16,11 @@ namespace Server.Items
     [Flipable(0x0DFC, 0x0DFD)]
     public class Clippers : BaseTool
     {
-        public override int LabelNumber { get { return 1112117; } } // clippers
+        public override int LabelNumber => 1112117; // clippers
+
+        public virtual PlantHue PlantHue => PlantHue.None;
+
+        public override CraftSystem CraftSystem => DefTinkering.CraftSystem;
 
         [Constructable]
         public Clippers()
@@ -33,15 +38,17 @@ namespace Server.Items
             Hue = 1168;
         }
 
+        public Clippers(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void GetProperties(ObjectPropertyList list)
         {
             base.GetProperties(list);
 
             //Makers mark not displayed on OSI
-            if (Crafter != null)
-            {
-                list.Add(1050043, Crafter.TitleName); // crafted by ~1_NAME~
-            }
+            if (Crafter != null) list.Add(1050043, Crafter.TitleName); // crafted by ~1_NAME~
         }
 
         public override void GetContextMenuEntries(Mobile from, List<ContextMenuEntry> list)
@@ -56,7 +63,7 @@ namespace Server.Items
             if (!item.IsChildOf(from.Backpack) && item.Parent != from)
                 return;
 
-            PlayerMobile pm = from as PlayerMobile;
+            var pm = from as PlayerMobile;
 
             if (pm == null)
                 return;
@@ -66,6 +73,44 @@ namespace Server.Items
             list.Add(new ToggleClippings(pm, false, false, true, 1150660)); //Set to cut topiaries
         }
 
+        public void ConsumeUse(Mobile from)
+        {
+            if (UsesRemaining > 1)
+            {
+                --UsesRemaining;
+            }
+            else
+            {
+                if (from != null)
+                    from.SendLocalizedMessage(1112126); // Your clippers break as you use up the last charge..
+
+                Delete();
+            }
+        }
+
+        public override void OnDoubleClick(Mobile from)
+        {
+            if (IsChildOf(from.Backpack))
+            {
+                from.SendLocalizedMessage(1112118); // What plant do you wish to use these clippers on?
+                from.Target = new InternalTarget(this);
+            }
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+
+            writer.Write(0); // version
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+
+            var version = reader.ReadInt();
+        }
+
         private class ToggleClippings : ContextMenuEntry
         {
             private readonly PlayerMobile m_Mobile;
@@ -73,7 +118,8 @@ namespace Server.Items
             private readonly bool m_Valuereeds;
             private readonly bool m_Valuetopiaries;
 
-            public ToggleClippings(PlayerMobile mobile, bool valueclips, bool valuereeds, bool valuetopiaries, int number)
+            public ToggleClippings(PlayerMobile mobile, bool valueclips, bool valuereeds, bool valuetopiaries,
+                int number)
                 : base(number)
             {
                 m_Mobile = mobile;
@@ -84,9 +130,9 @@ namespace Server.Items
 
             public override void OnClick()
             {
-                bool oldValueclips = m_Mobile.ToggleCutClippings;
-                bool oldValuereeds = m_Mobile.ToggleCutReeds;
-                bool oldValuetopiaries = m_Mobile.ToggleCutTopiaries;
+                var oldValueclips = m_Mobile.ToggleCutClippings;
+                var oldValuereeds = m_Mobile.ToggleCutReeds;
+                var oldValuetopiaries = m_Mobile.ToggleCutTopiaries;
 
                 if (m_Valueclips)
                 {
@@ -142,44 +188,6 @@ namespace Server.Items
             }
         }
 
-        public Clippers(Serial serial)
-            : base(serial)
-        { }
-
-        public virtual PlantHue PlantHue { get { return PlantHue.None; } }
-
-        public override CraftSystem CraftSystem
-        {
-            get
-            {
-                return DefTinkering.CraftSystem;
-            }
-        }
-
-        public void ConsumeUse(Mobile from)
-        {
-            if (UsesRemaining > 1)
-            {
-                --UsesRemaining;
-            }
-            else
-            {
-                if (from != null)
-                    from.SendLocalizedMessage(1112126); // Your clippers break as you use up the last charge..
-
-                Delete();
-            }
-        }
-
-        public override void OnDoubleClick(Mobile from)
-        {
-            if (IsChildOf(from.Backpack))
-            {
-                from.SendLocalizedMessage(1112118); // What plant do you wish to use these clippers on?
-                from.Target = new InternalTarget(this);
-            }
-        }
-
         private class InternalTarget : Target
         {
             private readonly Clippers m_Item;
@@ -192,14 +200,11 @@ namespace Server.Items
 
             protected override void OnTarget(Mobile from, object targeted)
             {
-                PlayerMobile pm = from as PlayerMobile;
+                var pm = from as PlayerMobile;
 
-                if (pm == null || m_Item == null || m_Item.Deleted)
-                {
-                    return;
-                }
+                if (pm == null || m_Item == null || m_Item.Deleted) return;
 
-                PlantItem plant = targeted as PlantItem;
+                var plant = targeted as PlantItem;
 
                 if (null == plant || PlantStatus.DecorativePlant != plant.PlantStatus)
                 {
@@ -233,7 +238,8 @@ namespace Server.Items
                 }
                 else if (pm.ToggleCutTopiaries)
                 {
-                    if (plant.PlantType == PlantType.HedgeTall || plant.PlantType == PlantType.HedgeShort || plant.PlantType == PlantType.JuniperBush)
+                    if (plant.PlantType == PlantType.HedgeTall || plant.PlantType == PlantType.HedgeShort ||
+                        plant.PlantType == PlantType.JuniperBush)
                     {
                         from.CloseGump(typeof(TopiaryGump));
                         from.SendGump(new TopiaryGump(plant, m_Item));
@@ -241,26 +247,12 @@ namespace Server.Items
                 }
             }
         }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-
-            writer.Write((int)0); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
-        }
     }
 
     public class TopiaryGump : Gump
     {
-        PlantItem m_plant;
-        Clippers m_clippers;
+        private readonly Clippers m_clippers;
+        private readonly PlantItem m_plant;
 
         public TopiaryGump(PlantItem plant, Clippers clippers) : base(0, 0)
         {
@@ -303,77 +295,77 @@ namespace Server.Items
 
         public override void OnResponse(NetState sender, RelayInfo info)
         {
-            Mobile from = sender.Mobile;
+            var from = sender.Mobile;
 
             switch (info.ButtonID)
             {
                 case 0:
-                    {
-                        break;
-                    }
+                {
+                    break;
+                }
                 case 1:
-                    {
-                        from.PlaySound(0x248);
-                        m_plant.ItemID = 18713;
-                        m_clippers.ConsumeUse(from);
-                        break;
-                    }
+                {
+                    from.PlaySound(0x248);
+                    m_plant.ItemID = 18713;
+                    m_clippers.ConsumeUse(from);
+                    break;
+                }
                 case 2:
-                    {
-                        from.PlaySound(0x248);
-                        m_plant.ItemID = 18714;
-                        m_clippers.ConsumeUse(from);
-                        break;
-                    }
+                {
+                    from.PlaySound(0x248);
+                    m_plant.ItemID = 18714;
+                    m_clippers.ConsumeUse(from);
+                    break;
+                }
                 case 3:
-                    {
-                        from.PlaySound(0x248);
-                        m_plant.ItemID = 18715;
-                        m_clippers.ConsumeUse(from);
-                        break;
-                    }
+                {
+                    from.PlaySound(0x248);
+                    m_plant.ItemID = 18715;
+                    m_clippers.ConsumeUse(from);
+                    break;
+                }
                 case 4:
-                    {
-                        from.PlaySound(0x248);
-                        m_plant.ItemID = 18736;
-                        m_clippers.ConsumeUse(from);
-                        break;
-                    }
+                {
+                    from.PlaySound(0x248);
+                    m_plant.ItemID = 18736;
+                    m_clippers.ConsumeUse(from);
+                    break;
+                }
                 case 5:
-                    {
-                        from.PlaySound(0x248);
-                        m_plant.ItemID = 18813;
-                        m_clippers.ConsumeUse(from);
-                        break;
-                    }
+                {
+                    from.PlaySound(0x248);
+                    m_plant.ItemID = 18813;
+                    m_clippers.ConsumeUse(from);
+                    break;
+                }
                 case 6:
-                    {
-                        from.PlaySound(0x248);
-                        m_plant.ItemID = 18814;
-                        m_clippers.ConsumeUse(from);
-                        break;
-                    }
+                {
+                    from.PlaySound(0x248);
+                    m_plant.ItemID = 18814;
+                    m_clippers.ConsumeUse(from);
+                    break;
+                }
                 case 7:
-                    {
-                        from.PlaySound(0x248);
-                        m_plant.ItemID = 18814;
-                        m_clippers.ConsumeUse(from);
-                        break;
-                    }
+                {
+                    from.PlaySound(0x248);
+                    m_plant.ItemID = 18814;
+                    m_clippers.ConsumeUse(from);
+                    break;
+                }
                 case 8:
-                    {
-                        from.PlaySound(0x248);
-                        m_plant.ItemID = 18713;
-                        m_clippers.ConsumeUse(from);
-                        break;
-                    }
+                {
+                    from.PlaySound(0x248);
+                    m_plant.ItemID = 18713;
+                    m_clippers.ConsumeUse(from);
+                    break;
+                }
                 case 9:
-                    {
-                        from.PlaySound(0x248);
-                        m_plant.ItemID = 19369;
-                        m_clippers.ConsumeUse(from);
-                        break;
-                    }
+                {
+                    from.PlaySound(0x248);
+                    m_plant.ItemID = 19369;
+                    m_clippers.ConsumeUse(from);
+                    break;
+                }
             }
         }
     }

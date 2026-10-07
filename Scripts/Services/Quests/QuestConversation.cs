@@ -1,4 +1,3 @@
-using System;
 using System.Collections;
 using Server.Gumps;
 using Server.Network;
@@ -7,39 +6,26 @@ namespace Server.Engines.Quests
 {
     public abstract class QuestConversation
     {
-        private QuestSystem m_System;
-        private bool m_HasBeenRead;
-        public QuestConversation()
-        {
-        }
-
         public abstract object Message { get; }
-        public virtual QuestItemInfo[] Info { get { return null; } }
-        public virtual bool Logged { get { return true; } }
+        public virtual QuestItemInfo[] Info => null;
+        public virtual bool Logged => true;
 
-        public QuestSystem System
-        {
-            get { return m_System; }
-            set { m_System = value; }
-        }
-        public bool HasBeenRead
-        {
-            get { return m_HasBeenRead; }
-            set { m_HasBeenRead = value; }
-        }
+        public QuestSystem System { get; set; }
+
+        public bool HasBeenRead { get; set; }
 
         public virtual void BaseDeserialize(GenericReader reader)
         {
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
 
             switch (version)
             {
                 case 0:
-                    {
-                        m_HasBeenRead = reader.ReadBool();
+                {
+                    HasBeenRead = reader.ReadBool();
 
-                        break;
-                    }
+                    break;
+                }
             }
 
             ChildDeserialize(reader);
@@ -47,21 +33,21 @@ namespace Server.Engines.Quests
 
         public virtual void ChildDeserialize(GenericReader reader)
         {
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
 
         public virtual void BaseSerialize(GenericWriter writer)
         {
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
 
-            writer.Write((bool)m_HasBeenRead);
+            writer.Write(HasBeenRead);
 
             ChildSerialize(writer);
         }
 
         public virtual void ChildSerialize(GenericWriter writer)
         {
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public virtual void OnRead()
@@ -72,6 +58,7 @@ namespace Server.Engines.Quests
     public class QuestConversationsGump : BaseQuestGump
     {
         private readonly ArrayList m_Conversations;
+
         public QuestConversationsGump(QuestConversation conv)
             : this(BuildList(conv))
         {
@@ -114,9 +101,9 @@ namespace Server.Engines.Quests
 
             AddPage(1);
 
-            for (int i = 0; i < conversations.Count; ++i)
+            for (var i = 0; i < conversations.Count; ++i)
             {
-                QuestConversation conv = (QuestConversation)conversations[conversations.Count - 1 - i];
+                var conv = (QuestConversation)conversations[conversations.Count - 1 - i];
 
                 if (i > 0)
                 {
@@ -138,9 +125,9 @@ namespace Server.Engines.Quests
 
         public override void OnResponse(NetState sender, RelayInfo info)
         {
-            for (int i = m_Conversations.Count - 1; i >= 0; --i)
+            for (var i = m_Conversations.Count - 1; i >= 0; --i)
             {
-                QuestConversation qc = (QuestConversation)m_Conversations[i];
+                var qc = (QuestConversation)m_Conversations[i];
 
                 if (!qc.HasBeenRead)
                 {

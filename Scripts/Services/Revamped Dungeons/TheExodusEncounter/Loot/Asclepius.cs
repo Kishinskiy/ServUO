@@ -1,28 +1,24 @@
-using System;
-using Server;
-using Server.Spells;
-
 namespace Server.Items
 {
     public class Asclepius : GnarledStaff
     {
-        public override bool IsArtifact { get { return true; } }
+        public override bool IsArtifact => true;
+
+        public override bool CanFortify => false;
+
+        public override int InitMinHits => 255;
+        public override int InitMaxHits => 255;
+
+        public override int LabelNumber => 1153526; // Asclepius [Replica]
 
         [Constructable]
         public Asclepius()
-        { 
+        {
         }
-
-        public override bool CanFortify { get { return false; } }
 
         public Asclepius(Serial serial) : base(serial)
         {
         }
-
-        public override int InitMinHits { get { return 255; } }
-        public override int InitMaxHits { get { return 255; } }
-
-        public override int LabelNumber { get { return 1153526; } } // Asclepius [Replica]
 
         public override void AddNameProperties(ObjectPropertyList list)
         {
@@ -35,14 +31,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

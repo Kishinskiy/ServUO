@@ -1,4 +1,3 @@
-using System;
 using Server.Network;
 using Server.Targeting;
 
@@ -6,6 +5,8 @@ namespace Server.Items
 {
     public class HitchingRope : Item
     {
+        public override int LabelNumber => 1071124; //  hitching rope
+
         [Constructable]
         public HitchingRope()
             : base(0x14F8)
@@ -20,18 +21,12 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1071124;
-            }
-        }//  hitching rope
         public override void OnDoubleClick(Mobile from)
         {
             if (IsChildOf(from.Backpack) || (from.InRange(GetWorldLocation(), 2) && Movable))
             {
-                from.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1071159); // Select the hitching post you want to supply hitching rope.
+                from.LocalOverheadMessage(MessageType.Regular, 0x3B2,
+                    1071159); // Select the hitching post you want to supply hitching rope.
                 from.Target = new InternalTarget(this);
             }
             else
@@ -44,19 +39,20 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         private class InternalTarget : Target
         {
             private readonly HitchingRope m_Rope;
+
             public InternalTarget(HitchingRope rope)
                 : base(-1, false, TargetFlags.None)
             {
@@ -74,7 +70,7 @@ namespace Server.Items
                 }
                 else if (targeted is HitchingPost)
                 {
-                    HitchingPost postItem = (HitchingPost)targeted;
+                    var postItem = (HitchingPost)targeted;
 
                     if (postItem.UsesRemaining >= 1)
                     {
@@ -82,7 +78,8 @@ namespace Server.Items
                     }
                     else if (postItem.Replica && postItem.Charges <= 0 && postItem.UsesRemaining == 0)
                     {
-                        from.SendLocalizedMessage(1071157); // This hitching post is damaged. You can't use it any longer.
+                        from.SendLocalizedMessage(
+                            1071157); // This hitching post is damaged. You can't use it any longer.
                     }
                     else
                     {
@@ -91,10 +88,7 @@ namespace Server.Items
 
                         m_Rope.Delete();
 
-                        if (postItem is Item)
-                        {
-                            from.SendLocalizedMessage(1071158); // Supplied hitching rope.
-                        }
+                        if (postItem is Item) from.SendLocalizedMessage(1071158); // Supplied hitching rope.
                     }
                 }
                 else

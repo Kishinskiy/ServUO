@@ -1,51 +1,16 @@
-using System;
-
 namespace Server.Engines.Reports
 {
     public class ItemValue : PersistableObject
     {
-        #region Type Identification
-        public static readonly PersistableType ThisTypeID = new PersistableType("iv", new ConstructCallback(Construct));
-
-        private static PersistableObject Construct()
-        {
-            return new ItemValue();
-        }
-
-        public override PersistableType TypeID
-        {
-            get
-            {
-                return ThisTypeID;
-            }
-        }
-        #endregion
-
         private string m_Value;
-        private string m_Format;
 
         public string Value
         {
-            get
-            {
-                return this.m_Value;
-            }
-            set
-            {
-                this.m_Value = value;
-            }
+            get => m_Value;
+            set => m_Value = value;
         }
-        public string Format
-        {
-            get
-            {
-                return this.m_Format;
-            }
-            set
-            {
-                this.m_Format = value;
-            }
-        }
+
+        public string Format { get; set; }
 
         private ItemValue()
         {
@@ -58,23 +23,36 @@ namespace Server.Engines.Reports
 
         public ItemValue(string value, string format)
         {
-            this.m_Value = value;
-            this.m_Format = format;
+            m_Value = value;
+            Format = format;
         }
 
         public override void SerializeAttributes(PersistenceWriter op)
         {
-            op.SetString("v", this.m_Value);
-            op.SetString("f", this.m_Format);
+            op.SetString("v", m_Value);
+            op.SetString("f", Format);
         }
 
         public override void DeserializeAttributes(PersistenceReader ip)
         {
-            this.m_Value = ip.GetString("v");
-            this.m_Format = Utility.Intern(ip.GetString("f"));
+            m_Value = ip.GetString("v");
+            Format = Utility.Intern(ip.GetString("f"));
 
-            if (this.m_Format == null)
-                Utility.Intern(ref this.m_Value);
+            if (Format == null)
+                Utility.Intern(ref m_Value);
         }
+
+        #region Type Identification
+
+        public static readonly PersistableType ThisTypeID = new PersistableType("iv", Construct);
+
+        private static PersistableObject Construct()
+        {
+            return new ItemValue();
+        }
+
+        public override PersistableType TypeID => ThisTypeID;
+
+        #endregion
     }
 }

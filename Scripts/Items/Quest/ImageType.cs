@@ -31,7 +31,7 @@ namespace Server.Engines.Quests.Collector
 
     public class ImageTypeInfo
     {
-        private static readonly ImageTypeInfo[] m_Table = new ImageTypeInfo[]
+        private static readonly ImageTypeInfo[] m_Table =
         {
             new ImageTypeInfo(9734, typeof(Betrayer), 75, 45),
             new ImageTypeInfo(9735, typeof(Bogling), 75, 45),
@@ -55,73 +55,44 @@ namespace Server.Engines.Quests.Collector
             new ImageTypeInfo(8448, typeof(Wisp), 75, 45),
             new ImageTypeInfo(9746, typeof(Juggernaut), 55, 38)
         };
-        private readonly int m_Figurine;
-        private readonly Type m_Type;
-        private readonly int m_X;
-        private readonly int m_Y;
+
+        public int Figurine { get; }
+
+        public Type Type { get; }
+
+        public int Name => Figurine < 0x4000 ? 1020000 + Figurine : 1078872 + Figurine;
+
+        public int X { get; }
+
+        public int Y { get; }
+
         public ImageTypeInfo(int figurine, Type type, int x, int y)
         {
-            this.m_Figurine = figurine;
-            this.m_Type = type;
-            this.m_X = x;
-            this.m_Y = y;
+            Figurine = figurine;
+            Type = type;
+            X = x;
+            Y = y;
         }
 
-        public int Figurine
-        {
-            get
-            {
-                return this.m_Figurine;
-            }
-        }
-        public Type Type
-        {
-            get
-            {
-                return this.m_Type;
-            }
-        }
-        public int Name
-        {
-            get
-            {
-                return this.m_Figurine < 0x4000 ? 1020000 + this.m_Figurine : 1078872 + this.m_Figurine;
-            }
-        }
-        public int X
-        {
-            get
-            {
-                return this.m_X;
-            }
-        }
-        public int Y
-        {
-            get
-            {
-                return this.m_Y;
-            }
-        }
         public static ImageTypeInfo Get(ImageType image)
         {
-            int index = (int)image;
+            var index = (int)image;
             if (index >= 0 && index < m_Table.Length)
                 return m_Table[index];
-            else
-                return m_Table[0];
+            return m_Table[0];
         }
 
         public static ImageType[] RandomList(int count)
         {
-            ArrayList list = new ArrayList(m_Table.Length);
-            for (int i = 0; i < m_Table.Length; i++)
+            var list = new ArrayList(m_Table.Length);
+            for (var i = 0; i < m_Table.Length; i++)
                 list.Add((ImageType)i);
 
-            ImageType[] images = new ImageType[count];
+            var images = new ImageType[count];
 
-            for (int i = 0; i < images.Length; i++)
+            for (var i = 0; i < images.Length; i++)
             {
-                int index = Utility.Random(list.Count);
+                var index = Utility.Random(list.Count);
                 images[i] = (ImageType)list[index];
 
                 list.RemoveAt(index);

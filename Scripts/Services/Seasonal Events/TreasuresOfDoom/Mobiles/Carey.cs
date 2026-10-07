@@ -1,27 +1,33 @@
 using System;
-using Server;
-using Server.Items;
-using Server.Gumps;
-using System.Collections.Generic;
-using Server.ContextMenus;
 using Server.Engines.Points;
+using Server.Items;
 using Server.Mobiles;
 
 namespace Server.Engines.TreasuresOfDoom
 {
     public class Carey : BaseTurnInMobile
     {
-        public override int TitleLocalization { get { return 1155595; } } // Artifacts of Doom
-        public override int CancelLocalization { get { return 1155591; } }	// Bring me items of Doom and I will reward you with valuable items.
-        public override int TurnInLocalization { get { return 1155595; } } // Artifacts of Doom
+        public static readonly Point3D SpawnLocation = new Point3D(2373, 1278, -90);
+
+        private DateTime _NextSpeak;
+        public override int TitleLocalization => 1155595; // Artifacts of Doom
+
+        public override int CancelLocalization =>
+            1155591; // Bring me items of Doom and I will reward you with valuable items.
+
+        public override int TurnInLocalization => 1155595; // Artifacts of Doom
 
         public static Carey Instance { get; set; }
-        public static readonly Point3D SpawnLocation = new Point3D(2373, 1278, -90);
 
         [Constructable]
         public Carey() : base("the Researcher")
         {
             Instance = this;
+        }
+
+        public Carey(Serial serial)
+            : base(serial)
+        {
         }
 
         public override void InitBody()
@@ -47,8 +53,6 @@ namespace Server.Engines.TreasuresOfDoom
             base.GetProperties(list);
             list.Add(1155594); // Artifacts of Doom Trader
         }
-
-        private DateTime _NextSpeak;
 
         public override void OnMovement(Mobile m, Point3D oldLocation)
         {
@@ -80,11 +84,6 @@ namespace Server.Engines.TreasuresOfDoom
                 m.SendGump(new DoomRewardGump(this, m as PlayerMobile));
         }
 
-        public Carey(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -94,7 +93,7 @@ namespace Server.Engines.TreasuresOfDoom
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             Instance = this;
         }

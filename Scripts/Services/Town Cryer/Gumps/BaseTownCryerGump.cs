@@ -1,7 +1,5 @@
-using Server;
-using System;
-using Server.Mobiles;
 using Server.Gumps;
+using Server.Mobiles;
 
 namespace Server.Services.TownCryer
 {
@@ -10,7 +8,7 @@ namespace Server.Services.TownCryer
         public TownCrier Cryer { get; private set; }
 
         public BaseTownCryerGump(PlayerMobile pm, TownCrier cryer)
-            : base(pm, 50, 50)
+            : base(pm)
         {
             Cryer = cryer;
         }

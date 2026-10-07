@@ -1,4 +1,3 @@
-using System;
 using Server.Guilds;
 using Server.Items;
 
@@ -6,87 +5,92 @@ namespace Server.Mobiles
 {
     public abstract class BaseShieldGuard : BaseCreature
     {
+        public abstract int Keyword { get; }
+        public abstract BaseShield Shield { get; }
+        public abstract int SignupNumber { get; }
+        public abstract GuildType Type { get; }
+
         public BaseShieldGuard()
             : base(AIType.AI_Melee, FightMode.Aggressor, 14, 1, 0.8, 1.6)
         {
-            this.InitStats(1000, 1000, 1000);
-            this.Title = "the guard";
+            InitStats(1000, 1000, 1000);
+            Title = "the guard";
 
-            this.SpeechHue = Utility.RandomDyedHue();
+            SpeechHue = Utility.RandomDyedHue();
 
-            this.Hue = Utility.RandomSkinHue();
+            Hue = Utility.RandomSkinHue();
 
-            if (this.Female = Utility.RandomBool())
+            if (Female = Utility.RandomBool())
             {
-                this.Body = 0x191;
-                this.Name = NameList.RandomName("female");
+                Body = 0x191;
+                Name = NameList.RandomName("female");
 
-                this.AddItem(new FemalePlateChest());
-                this.AddItem(new PlateArms());
-                this.AddItem(new PlateLegs());
+                AddItem(new FemalePlateChest());
+                AddItem(new PlateArms());
+                AddItem(new PlateLegs());
 
-                switch( Utility.Random(2) )
+                switch (Utility.Random(2))
                 {
                     case 0:
-                        this.AddItem(new Doublet(Utility.RandomNondyedHue()));
+                        AddItem(new Doublet(Utility.RandomNondyedHue()));
                         break;
                     case 1:
-                        this.AddItem(new BodySash(Utility.RandomNondyedHue()));
+                        AddItem(new BodySash(Utility.RandomNondyedHue()));
                         break;
                 }
 
-                switch( Utility.Random(2) )
+                switch (Utility.Random(2))
                 {
                     case 0:
-                        this.AddItem(new Skirt(Utility.RandomNondyedHue()));
+                        AddItem(new Skirt(Utility.RandomNondyedHue()));
                         break;
                     case 1:
-                        this.AddItem(new Kilt(Utility.RandomNondyedHue()));
+                        AddItem(new Kilt(Utility.RandomNondyedHue()));
                         break;
                 }
             }
             else
             {
-                this.Body = 0x190;
-                this.Name = NameList.RandomName("male");
+                Body = 0x190;
+                Name = NameList.RandomName("male");
 
-                this.AddItem(new PlateChest());
-                this.AddItem(new PlateArms());
-                this.AddItem(new PlateLegs());
+                AddItem(new PlateChest());
+                AddItem(new PlateArms());
+                AddItem(new PlateLegs());
 
-                switch( Utility.Random(3) )
+                switch (Utility.Random(3))
                 {
                     case 0:
-                        this.AddItem(new Doublet(Utility.RandomNondyedHue()));
+                        AddItem(new Doublet(Utility.RandomNondyedHue()));
                         break;
                     case 1:
-                        this.AddItem(new Tunic(Utility.RandomNondyedHue()));
+                        AddItem(new Tunic(Utility.RandomNondyedHue()));
                         break;
                     case 2:
-                        this.AddItem(new BodySash(Utility.RandomNondyedHue()));
+                        AddItem(new BodySash(Utility.RandomNondyedHue()));
                         break;
                 }
             }
 
             Utility.AssignRandomHair(this);
             if (Utility.RandomBool())
-                Utility.AssignRandomFacialHair(this, this.HairHue);
+                Utility.AssignRandomFacialHair(this, HairHue);
 
-            VikingSword weapon = new VikingSword();
+            var weapon = new VikingSword();
             weapon.Movable = false;
-            this.AddItem(weapon);
+            AddItem(weapon);
 
-            BaseShield shield = this.Shield;
+            var shield = Shield;
             shield.Movable = false;
-            this.AddItem(shield);
+            AddItem(shield);
 
-            this.PackGold(250, 500);
+            PackGold(250, 500);
 
-            this.Skills[SkillName.Anatomy].Base = 120.0;
-            this.Skills[SkillName.Tactics].Base = 120.0;
-            this.Skills[SkillName.Swords].Base = 120.0;
-            this.Skills[SkillName.MagicResist].Base = 120.0;
-            this.Skills[SkillName.DetectHidden].Base = 100.0;
+            Skills[SkillName.Anatomy].Base = 120.0;
+            Skills[SkillName.Tactics].Base = 120.0;
+            Skills[SkillName.Swords].Base = 120.0;
+            Skills[SkillName.MagicResist].Base = 120.0;
+            Skills[SkillName.DetectHidden].Base = 100.0;
         }
 
         public BaseShieldGuard(Serial serial)
@@ -94,13 +98,9 @@ namespace Server.Mobiles
         {
         }
 
-        public abstract int Keyword { get; }
-        public abstract BaseShield Shield { get; }
-        public abstract int SignupNumber { get; }
-        public abstract GuildType Type { get; }
         public override bool HandlesOnSpeech(Mobile from)
         {
-            if (from.InRange(this.Location, 2))
+            if (from.InRange(Location, 2))
                 return true;
 
             return base.HandlesOnSpeech(from);
@@ -108,32 +108,33 @@ namespace Server.Mobiles
 
         public override void OnSpeech(SpeechEventArgs e)
         {
-            if (!e.Handled && e.HasKeyword(this.Keyword) && e.Mobile.InRange(this.Location, 2))
+            if (!e.Handled && e.HasKeyword(Keyword) && e.Mobile.InRange(Location, 2))
             {
                 e.Handled = true;
 
-                Mobile from = e.Mobile;
-                Guild g = from.Guild as Guild;
+                var from = e.Mobile;
+                var g = from.Guild as Guild;
 
-                if (g == null || g.Type != this.Type)
+                if (g == null || g.Type != Type)
                 {
-                    this.Say(this.SignupNumber);
+                    Say(SignupNumber);
                 }
                 else
                 {
-                    Container pack = from.Backpack;
-                    BaseShield shield = this.Shield;
-                    Item twoHanded = from.FindItemOnLayer(Layer.TwoHanded);
+                    var pack = from.Backpack;
+                    var shield = Shield;
+                    var twoHanded = from.FindItemOnLayer(Layer.TwoHanded);
 
-                    if ((pack != null && pack.FindItemByType(shield.GetType()) != null) || (twoHanded != null && shield.GetType().IsAssignableFrom(twoHanded.GetType())))
+                    if ((pack != null && pack.FindItemByType(shield.GetType()) != null) ||
+                        (twoHanded != null && shield.GetType().IsAssignableFrom(twoHanded.GetType())))
                     {
-                        this.Say(1007110); // Why dost thou ask about virtue guards when thou art one?
+                        Say(1007110); // Why dost thou ask about virtue guards when thou art one?
                         shield.Delete();
                     }
                     else if (from.PlaceInBackpack(shield))
                     {
-                        this.Say(Utility.Random(1007101, 5));
-                        this.Say(1007139); // I see you are in need of our shield, Here you go.
+                        Say(Utility.Random(1007101, 5));
+                        Say(1007139); // I see you are in need of our shield, Here you go.
                         from.AddToBackpack(shield);
                     }
                     else
@@ -151,14 +152,14 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

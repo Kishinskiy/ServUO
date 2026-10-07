@@ -1,4 +1,3 @@
-using System;
 using System.Collections;
 using Server.Network;
 using Server.Regions;
@@ -31,14 +30,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)1); // version
+            writer.Write(1); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (version == 0)
                 Weight = 1.0;
@@ -55,7 +54,7 @@ namespace Server.Items
                 return;
             }
 
-            Point3D fireLocation = GetFireLocation(from);
+            var fireLocation = GetFireLocation(from);
 
             if (fireLocation == Point3D.Zero)
             {
@@ -84,7 +83,7 @@ namespace Server.Items
             if (Parent == null)
                 return Location;
 
-            ArrayList list = new ArrayList(4);
+            var list = new ArrayList(4);
 
             AddOffsetLocation(from, 0, -1, list);
             AddOffsetLocation(from, -1, 0, list);
@@ -94,18 +93,18 @@ namespace Server.Items
             if (list.Count == 0)
                 return Point3D.Zero;
 
-            int idx = Utility.Random(list.Count);
+            var idx = Utility.Random(list.Count);
             return (Point3D)list[idx];
         }
 
         private void AddOffsetLocation(Mobile from, int offsetX, int offsetY, ArrayList list)
         {
-            Map map = from.Map;
+            var map = from.Map;
 
-            int x = from.X + offsetX;
-            int y = from.Y + offsetY;
+            var x = from.X + offsetX;
+            var y = from.Y + offsetY;
 
-            Point3D loc = new Point3D(x, y, from.Z);
+            var loc = new Point3D(x, y, from.Z);
 
             if (map.CanFit(loc, 1) && from.InLOS(loc))
             {

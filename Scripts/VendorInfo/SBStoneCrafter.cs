@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using Server.Items;
 
@@ -8,24 +7,10 @@ namespace Server.Mobiles
     {
         private readonly List<GenericBuyInfo> m_BuyInfo = new InternalBuyInfo();
         private readonly IShopSellInfo m_SellInfo = new InternalSellInfo();
-        public SBStoneCrafter()
-        {
-        }
 
-        public override IShopSellInfo SellInfo
-        {
-            get
-            {
-                return m_SellInfo;
-            }
-        }
-        public override List<GenericBuyInfo> BuyInfo
-        {
-            get
-            {
-                return m_BuyInfo;
-            }
-        }
+        public override IShopSellInfo SellInfo => m_SellInfo;
+
+        public override List<GenericBuyInfo> BuyInfo => m_BuyInfo;
 
         public class InternalBuyInfo : List<GenericBuyInfo>
         {
@@ -45,7 +30,8 @@ namespace Server.Mobiles
                 Add(new GenericBuyInfo(typeof(SmoothingPlane), 10, 20, 0x1032, 0));
                 Add(new GenericBuyInfo(typeof(JointingPlane), 11, 20, 0x1030, 0));
 
-                Add(new GenericBuyInfo("Making Valuables With Stonecrafting", typeof(MasonryBook), 10625, 10, 0xFBE, 0));
+                Add(new GenericBuyInfo("Making Valuables With Stonecrafting", typeof(MasonryBook), 10625, 10, 0xFBE,
+                    0));
                 Add(new GenericBuyInfo("Mining For Quality Stone", typeof(StoneMiningBook), 10625, 10, 0xFBE, 0));
                 Add(new GenericBuyInfo("1044515", typeof(MalletAndChisel), 3, 50, 0x12B3, 0));
             }
@@ -64,7 +50,7 @@ namespace Server.Mobiles
                 Add(typeof(MediumCrate), 6);
                 Add(typeof(LargeCrate), 7);
                 Add(typeof(WoodenChest), 15);
-              
+
                 Add(typeof(LargeTable), 10);
                 Add(typeof(Nightstand), 7);
                 Add(typeof(YewWoodTable), 10);

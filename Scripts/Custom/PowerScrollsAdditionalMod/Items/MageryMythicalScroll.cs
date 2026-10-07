@@ -1,6 +1,3 @@
-using System;
-using Server;
-
 namespace Server.Custom.PowerScrollsAdditional
 {
     public class MageryMythicalScroll : BaseAdditionalPowerScroll
@@ -11,18 +8,20 @@ namespace Server.Custom.PowerScrollsAdditional
             Name = $"Мифический Свиток: Магия (+{value})";
         }
 
-        public MageryMythicalScroll(Serial serial) : base(serial) { }
+        public MageryMythicalScroll(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -1,4 +1,3 @@
-using System;
 using Server.Engines.Craft;
 
 namespace Server.Items
@@ -7,11 +6,40 @@ namespace Server.Items
     [FlipableAttribute(0x2D22, 0x2D2E)]
     public class Leafblade : BaseKnife
     {
+        public override WeaponAbility PrimaryAbility => WeaponAbility.Feint;
+
+        public override WeaponAbility SecondaryAbility => WeaponAbility.ArmorIgnore;
+
+        public override int AosStrengthReq => 20;
+
+        public override int AosMinDamage => 11;
+
+        public override int AosMaxDamage => 15;
+
+        public override int AosSpeed => 42;
+
+        public override float MlSpeed => 2.75f;
+
+        public override int OldStrengthReq => 20;
+
+        public override int OldMinDamage => 13;
+
+        public override int OldMaxDamage => 15;
+
+        public override int OldSpeed => 42;
+
+        public override int DefMissSound => 0x239;
+
+        public override SkillName DefSkill => SkillName.Fencing;
+
+        public override int InitMinHits => 30; // TODO
+        public override int InitMaxHits => 60; // TODO
+
         [Constructable]
         public Leafblade()
             : base(0x2D22)
         {
-            this.Weight = 8.0;
+            Weight = 8.0;
         }
 
         public Leafblade(Serial serial)
@@ -19,111 +47,6 @@ namespace Server.Items
         {
         }
 
-        public override WeaponAbility PrimaryAbility
-        {
-            get
-            {
-                return WeaponAbility.Feint;
-            }
-        }
-        public override WeaponAbility SecondaryAbility
-        {
-            get
-            {
-                return WeaponAbility.ArmorIgnore;
-            }
-        }
-        public override int AosStrengthReq
-        {
-            get
-            {
-                return 20;
-            }
-        }
-        public override int AosMinDamage
-        {
-            get
-            {
-                return 11;
-            }
-        }
-        public override int AosMaxDamage
-        {
-            get
-            {
-                return 15;
-            }
-        }
-        public override int AosSpeed
-        {
-            get
-            {
-                return 42;
-            }
-        }
-        public override float MlSpeed
-        {
-            get
-            {
-                return 2.75f;
-            }
-        }
-        public override int OldStrengthReq
-        {
-            get
-            {
-                return 20;
-            }
-        }
-        public override int OldMinDamage
-        {
-            get
-            {
-                return 13;
-            }
-        }
-        public override int OldMaxDamage
-        {
-            get
-            {
-                return 15;
-            }
-        }
-        public override int OldSpeed
-        {
-            get
-            {
-                return 42;
-            }
-        }
-        public override int DefMissSound
-        {
-            get
-            {
-                return 0x239;
-            }
-        }
-        public override SkillName DefSkill
-        {
-            get
-            {
-                return SkillName.Fencing;
-            }
-        }
-        public override int InitMinHits
-        {
-            get
-            {
-                return 30;
-            }
-        }// TODO
-        public override int InitMaxHits
-        {
-            get
-            {
-                return 60;
-            }
-        }// TODO
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -135,7 +58,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

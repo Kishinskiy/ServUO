@@ -1,12 +1,8 @@
-using System;
-using Server;
-using Server.Regions;
-using Server.Targeting;
-using Server.Engines.CannedEvil;
-using Server.Network;
+using System.Linq;
 using Server.Gumps;
 using Server.Items;
-using System.Linq;
+using Server.Network;
+using Server.Regions;
 
 namespace Server.Multis
 {
@@ -20,6 +16,8 @@ namespace Server.Multis
 
         [CommandProperty(AccessLevel.GameMaster)]
         public Direction BoatDirection { get; set; }
+
+        public abstract BaseBoat Boat { get; }
 
         public BaseBoatDeed(int id, Point3D offset)
             : base(0x14F2)
@@ -42,7 +40,7 @@ namespace Server.Multis
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
             writer.Write(MultiID);
             writer.Write(Offset);
@@ -51,24 +49,24 @@ namespace Server.Multis
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             switch (version)
             {
                 case 0:
-                    {
-                        MultiID = reader.ReadInt();
-                        Offset = reader.ReadPoint3D();
+                {
+                    MultiID = reader.ReadInt();
+                    Offset = reader.ReadPoint3D();
 
-                        break;
-                    }
+                    break;
+                }
             }
         }
 
         public override void OnDoubleClick(Mobile from)
         {
-            BaseBoat boat = BaseBoat.FindBoatAt(from, from.Map);
-            
+            var boat = BaseBoat.FindBoatAt(from, from.Map);
+
             if (from.AccessLevel < AccessLevel.GameMaster && (from.Map == Map.Ilshenar || from.Map == Map.Malas))
             {
                 from.SendLocalizedMessage(1010567, null, 0x25); // You may not place a boat from this location.
@@ -77,32 +75,33 @@ namespace Server.Multis
             {
                 from.SendLocalizedMessage(1116758); // You already have a ship deployed!
             }
-            else if (from.Region.IsPartOf(typeof(HouseRegion)) || boat != null && (boat.GetType() == Boat.GetType() || !boat.IsRowBoat && !(this is RowBoatDeed)))
+            else if (from.Region.IsPartOf(typeof(HouseRegion)) || (boat != null &&
+                                                                   (boat.GetType() == Boat.GetType() ||
+                                                                    (!boat.IsRowBoat && !(this is RowBoatDeed)))))
             {
-                from.SendLocalizedMessage(1010568, null, 0x25); // You may not place a ship while on another ship or inside a house.
+                from.SendLocalizedMessage(1010568, null,
+                    0x25); // You may not place a ship while on another ship or inside a house.
             }
             else if (!from.HasGump(typeof(BoatPlacementGump)))
             {
                 if (Core.SE)
                     from.SendLocalizedMessage(502482); // Where do you wish to place the ship?
                 else
-                    from.LocalOverheadMessage(MessageType.Regular, 0x3B2, 502482); // Where do you wish to place the ship?
+                    from.LocalOverheadMessage(MessageType.Regular, 0x3B2,
+                        502482); // Where do you wish to place the ship?
 
                 from.SendGump(new BoatPlacementGump(this, from));
             }
         }
 
-        public abstract BaseBoat Boat { get; }
-
         public void OnPlacement(Mobile from, Point3D p, int itemID, Direction d)
         {
             if (Deleted)
             {
-                return;
-            }           
+            }
             else
             {
-                Map map = from.Map;
+                var map = from.Map;
 
                 if (map == null)
                     return;
@@ -113,16 +112,19 @@ namespace Server.Multis
                     return;
                 }
 
-                BaseBoat b = BaseBoat.FindBoatAt(from, from.Map);
+                var b = BaseBoat.FindBoatAt(from, from.Map);
 
-                if (from.Region.IsPartOf(typeof(HouseRegion)) || b != null && (b.GetType() == Boat.GetType() || !b.IsRowBoat && !(this is RowBoatDeed)))
+                if (from.Region.IsPartOf(typeof(HouseRegion)) || (b != null &&
+                                                                  (b.GetType() == Boat.GetType() ||
+                                                                   (!b.IsRowBoat && !(this is RowBoatDeed)))))
                 {
-                    from.SendLocalizedMessage(1010568, null, 0x25); // You may not place a ship while on another ship or inside a house.
+                    from.SendLocalizedMessage(1010568, null,
+                        0x25); // You may not place a ship while on another ship or inside a house.
                     return;
                 }
 
                 BoatDirection = d;
-                BaseBoat boat = Boat;
+                var boat = Boat;
 
                 if (boat == null)
                     return;
@@ -133,7 +135,9 @@ namespace Server.Multis
                 {
                     if (boat.IsRowBoat)
                     {
-                        BaseBoat lastrowboat = World.Items.Values.OfType<BaseBoat>().Where(x => x.Owner == from && x.IsRowBoat && x.Map != Map.Internal && !x.GetMobilesOnBoard().Any()).OrderByDescending(y => y.Serial).FirstOrDefault();
+                        var lastrowboat = World.Items.Values.OfType<BaseBoat>()
+                            .Where(x => x.Owner == from && x.IsRowBoat && x.Map != Map.Internal &&
+                                        !x.GetMobilesOnBoard().Any()).OrderByDescending(y => y.Serial).FirstOrDefault();
 
                         if (lastrowboat != null)
                             lastrowboat.Delete();
@@ -154,7 +158,7 @@ namespace Server.Multis
 
                     if (boat.IsClassicBoat)
                     {
-                        uint keyValue = boat.CreateKeys(from);
+                        var keyValue = boat.CreateKeys(from);
 
                         if (boat.PPlank != null)
                             boat.PPlank.KeyValue = keyValue;
@@ -186,10 +190,7 @@ namespace Server.Multis
 
         private int RandomBasePaintHue()
         {
-            if (0.6 > Utility.RandomDouble())
-            {
-                return Utility.RandomMinMax(1701, 1754);
-            }
+            if (0.6 > Utility.RandomDouble()) return Utility.RandomMinMax(1701, 1754);
 
             return Utility.RandomMinMax(1801, 1908);
         }

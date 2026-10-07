@@ -1,10 +1,12 @@
-using System;
-
 namespace Server.Mobiles
 {
     [CorpseName("a swamp dragon corpse")]
     public class ScaledSwampDragon : BaseMount
     {
+        public override bool AutoDispel => !Controlled;
+
+        public override FoodType FavoriteFood => FoodType.Meat;
+
         [Constructable]
         public ScaledSwampDragon()
             : this("a swamp dragon")
@@ -50,30 +52,13 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool AutoDispel
-        {
-            get
-            {
-                return !Controlled;
-            }
-        }
-        public override FoodType FavoriteFood
-        {
-            get
-            {
-                return FoodType.Meat;
-            }
-        }
         public override double GetControlChance(Mobile m, bool useBaseSkill)
         {
             if (PetTrainingHelper.Enabled)
             {
                 var profile = PetTrainingHelper.GetAbilityProfile(this);
 
-                if (profile != null && profile.HasCustomized())
-                {
-                    return base.GetControlChance(m, useBaseSkill);
-                }
+                if (profile != null && profile.HasCustomized()) return base.GetControlChance(m, useBaseSkill);
             }
 
             return 1.0;
@@ -83,14 +68,14 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -1,14 +1,16 @@
-using System;
-using Server.Engines.PartySystem;
-using Server.Targeting;
 using System.Linq;
+using Server.Engines.PartySystem;
 using Server.Mobiles;
+using Server.Targeting;
 
 namespace Server.Items
 {
     public class ExodusSummoningRite : BaseDecayingItem
     {
-        public override int LabelNumber { get { return 1153498; } } // exodus summoning rite 
+        public override int LabelNumber => 1153498; // exodus summoning rite 
+
+        public override int Lifespan => 604800;
+        public override bool UseSeconds => false;
 
         [Constructable]
         public ExodusSummoningRite() : base(0x2258)
@@ -18,17 +20,14 @@ namespace Server.Items
             LootType = LootType.Regular;
         }
 
-        public override int Lifespan { get { return 604800; } }
-        public override bool UseSeconds { get { return false; } }
-
         public ExodusSummoningRite(Serial serial) : base(serial)
         {
         }
 
         public override void OnDoubleClick(Mobile from)
         {
-            RobeofRite robe = from.FindItemOnLayer(Layer.OuterTorso) as RobeofRite;
-            ExodusSacrificalDagger dagger = from.FindItemOnLayer(Layer.OneHanded) as ExodusSacrificalDagger;
+            var robe = from.FindItemOnLayer(Layer.OuterTorso) as RobeofRite;
+            var dagger = from.FindItemOnLayer(Layer.OneHanded) as ExodusSacrificalDagger;
 
             if (!IsChildOf(from.Backpack))
             {
@@ -36,7 +35,8 @@ namespace Server.Items
             }
             else if (Party.Get(from) == null)
             {
-                from.SendLocalizedMessage(1153596); // You must join a party with the players you wish to perform the ritual with. 
+                from.SendLocalizedMessage(
+                    1153596); // You must join a party with the players you wish to perform the ritual with. 
             }
             else if (robe == null || dagger == null)
             {
@@ -49,9 +49,21 @@ namespace Server.Items
             }
         }
 
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0); // version
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
+        }
+
         public class RiteTarget : Target
         {
-            private Item m_Deed;
+            private readonly Item m_Deed;
 
             public RiteTarget(Item deed) : base(2, true, TargetFlags.None)
             {
@@ -62,16 +74,15 @@ namespace Server.Items
             {
                 if (targeted is ExodusTomeAltar)
                 {
-                    ExodusTomeAltar altar = (ExodusTomeAltar)targeted;
+                    var altar = (ExodusTomeAltar)targeted;
 
                     if (altar.CheckParty(altar.Owner, from))
                     {
                         if (altar.Rituals.Count(s => s.RitualMobile == from) == 0)
-                        {
-                            altar.Rituals.Add(new RitualArray { RitualMobile = from, Ritual1 = false, Ritual2 = false });
-                        }
+                            altar.Rituals.Add(new RitualArray
+                                { RitualMobile = from, Ritual1 = false, Ritual2 = false });
 
-                        bool RiteRitual = altar.Rituals.Find(s => s.RitualMobile == from).Ritual1;
+                        var RiteRitual = altar.Rituals.Find(s => s.RitualMobile == from).Ritual1;
 
                         if (!RiteRitual)
                         {
@@ -88,7 +99,8 @@ namespace Server.Items
                     }
                     else
                     {
-                        from.SendLocalizedMessage(1153595); // You must first join the party of the person who built this altar.
+                        from.SendLocalizedMessage(
+                            1153595); // You must first join the party of the person who built this altar.
                     }
                 }
                 else
@@ -96,18 +108,6 @@ namespace Server.Items
                     from.SendLocalizedMessage(1153601); // That is not a Summoning Tome. 
                 }
             }
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.Write((int)0); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            int version = reader.ReadInt();
         }
     }
 }

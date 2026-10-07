@@ -1,13 +1,18 @@
-using System;
-
 namespace Server.Items
 {
     public class DragonsEnd : Longsword
-	{
-		public override bool IsArtifact { get { return true; } }
+    {
+        public override bool IsArtifact => true;
+
+        public override int LabelNumber => 1079791; // Dragon's End
+        public override int ArtifactRarity => 11;
+
+        public override int InitMinHits => 225;
+
+        public override int InitMaxHits => 225;
+
         [Constructable]
         public DragonsEnd()
-            : base()
         {
             Hue = 0x554;
             Slayer = SlayerName.DragonSlaying;
@@ -21,35 +26,8 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1079791;
-            }
-        }// Dragon's End
-        public override int ArtifactRarity
-        {
-            get
-            {
-                return 11;
-            }
-        }
-        public override int InitMinHits
-        {
-            get
-            {
-                return 225;
-            }
-        }
-        public override int InitMaxHits
-        {
-            get
-            {
-                return 225;
-            }
-        }
-        public override void GetDamageTypes(Mobile wielder, out int phys, out int fire, out int cold, out int pois, out int nrgy, out int chaos, out int direct)
+        public override void GetDamageTypes(Mobile wielder, out int phys, out int fire, out int cold, out int pois,
+            out int nrgy, out int chaos, out int direct)
         {
             phys = fire = nrgy = pois = direct = chaos = 0;
             cold = 100;
@@ -59,19 +37,16 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)1);
+            writer.Write(1);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            if (version == 0)
-            {
-                NegativeAttributes.NoRepair = 0;
-            }
+            if (version == 0) NegativeAttributes.NoRepair = 0;
         }
     }
 }

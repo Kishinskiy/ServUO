@@ -1,24 +1,20 @@
-using Server;
 using System;
-using Server.Mobiles;
 using Server.Gumps;
+using Server.Mobiles;
 
 namespace Server.Services.TownCryer
 {
     public class CreateGuildEntryGump : BaseTownCryerGump
     {
         public TownCryerGuildEntry Entry { get; set; }
-        public bool Edit { get; private set; }
+        public bool Edit { get; }
 
         public CreateGuildEntryGump(PlayerMobile pm, TownCrier cryer, TownCryerGuildEntry entry = null)
             : base(pm, cryer)
         {
             Entry = entry;
 
-            if (Entry != null)
-            {
-                Edit = true;
-            }
+            if (Entry != null) Edit = true;
         }
 
         public override void AddGumpLayout()
@@ -26,7 +22,7 @@ namespace Server.Services.TownCryer
             base.AddGumpLayout();
 
             AddHtmlLocalized(58, 150, 100, 20, 1158027, false, false); // Author:
-            AddLabel(105, 150, 0, String.Format("{0}", Entry != null ? Entry.Author : User.Name));
+            AddLabel(105, 150, 0, string.Format("{0}", Entry != null ? Entry.Author : User.Name));
 
             AddHtmlLocalized(58, 170, 100, 20, 1158055, false, false); // Guild:
             AddLabel(105, 170, 0, Entry != null && Entry.Guild != null ? Entry.Guild.Name : "Unknown");
@@ -68,26 +64,24 @@ namespace Server.Services.TownCryer
         {
             if (info.ButtonID == 1)
             {
-                string headline = info.GetTextEntry(1).Text;
-                string m = info.GetTextEntry(2).Text;
-                string d = info.GetTextEntry(3).Text;
-                string t = info.GetTextEntry(4).Text;
-                string desc = info.GetTextEntry(5).Text;
-                string meet = info.GetTextEntry(6).Text;
+                var headline = info.GetTextEntry(1).Text;
+                var m = info.GetTextEntry(2).Text;
+                var d = info.GetTextEntry(3).Text;
+                var t = info.GetTextEntry(4).Text;
+                var desc = info.GetTextEntry(5).Text;
+                var meet = info.GetTextEntry(6).Text;
 
-                DateTime dt = DateTime.Now;
-                bool illegalDate = false;
+                var dt = DateTime.Now;
+                var illegalDate = false;
 
-                int year = dt.Year;
+                var year = dt.Year;
 
-                if (Utility.ToInt32(m) < DateTime.Now.Month)
-                {
-                    year++;
-                }
+                if (Utility.ToInt32(m) < DateTime.Now.Month) year++;
 
                 if (Entry == null)
                 {
-                    if (!DateTime.TryParse(String.Format("{0}/{1}/{2} {3}:00:00", m, d, year.ToString(), t), out dt)) // bad format
+                    if (!DateTime.TryParse(string.Format("{0}/{1}/{2} {3}:00:00", m, d, year.ToString(), t),
+                            out dt)) // bad format
                     {
                         illegalDate = true;
                         dt = DateTime.MinValue;
@@ -101,30 +95,27 @@ namespace Server.Services.TownCryer
                     Entry.Body = desc;
                     Entry.EventLocation = meet;
 
-                    if (DateTime.TryParse(String.Format("{0}/{1}/{2} {3}:00:00", m, d, year.ToString(), t), out dt))
-                    {
+                    if (DateTime.TryParse(string.Format("{0}/{1}/{2} {3}:00:00", m, d, year.ToString(), t), out dt))
                         Entry.EventTime = dt;
-                    }
                 }
 
                 if (string.IsNullOrEmpty(headline) || string.IsNullOrEmpty(desc) || string.IsNullOrEmpty(meet))
                 {
-                    User.SendLocalizedMessage(1158062); // All fields must be populated.  Please check your entries and try again.
+                    User.SendLocalizedMessage(
+                        1158062); // All fields must be populated.  Please check your entries and try again.
                 }
                 else if (illegalDate)
                 {
-                    User.SendLocalizedMessage(1158032); // You have made an illegal entry.  Check your entries and try again.
+                    User.SendLocalizedMessage(
+                        1158032); // You have made an illegal entry.  Check your entries and try again.
                 }
                 else
                 {
-                    if (!Edit)
-                    {
-                        TownCryerSystem.AddEntry(Entry);
-                    }
+                    if (!Edit) TownCryerSystem.AddEntry(Entry);
 
                     User.SendLocalizedMessage(1158039); // Your entry has been submitted.
 
-                    BaseGump.SendGump(new TownCryerGump(User, Cryer, 0, TownCryerGump.GumpCategory.Guild));
+                    SendGump(new TownCryerGump(User, Cryer, 0, TownCryerGump.GumpCategory.Guild));
                     return;
                 }
 

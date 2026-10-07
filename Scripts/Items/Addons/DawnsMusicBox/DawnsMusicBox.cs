@@ -9,18 +9,19 @@ namespace Server.Items
 {
     public sealed class StopMusic : Packet
     {
-        public static readonly Packet Instance = Packet.SetStatic(new StopMusic());
+        public static readonly Packet Instance = SetStatic(new StopMusic());
+
         public StopMusic()
             : base(0x6D, 3)
         {
-            this.m_Stream.Write((short)0x1FFF);
+            m_Stream.Write((short)0x1FFF);
         }
     }
 
     [Flipable(0x2AF9, 0x2AFD)]
     public class DawnsMusicBox : Item, ISecurable
     {
-        public static MusicName[] m_CommonTracks = new MusicName[]
+        public static MusicName[] m_CommonTracks =
         {
             MusicName.Samlethe, MusicName.Sailing, MusicName.Britain2, MusicName.Britain1,
             MusicName.Bucsden, MusicName.Forest_a, MusicName.Cove, MusicName.Death,
@@ -33,37 +34,44 @@ namespace Server.Items
             MusicName.OldUlt01, MusicName.Ocllo, MusicName.Vesper, MusicName.Victory,
             MusicName.Mountn_a, MusicName.Wind, MusicName.Yew, MusicName.Zento
         };
-        public static MusicName[] m_UncommonTracks = new MusicName[]
+
+        public static MusicName[] m_UncommonTracks =
         {
             MusicName.GwennoConversation, MusicName.DreadHornArea, MusicName.ElfCity,
             MusicName.GoodEndGame, MusicName.GoodVsEvil, MusicName.GreatEarthSerpents,
             MusicName.GrizzleDungeon, MusicName.Humanoids_U9, MusicName.MelisandesLair,
             MusicName.MinocNegative, MusicName.ParoxysmusLair, MusicName.Paws
         };
-        public static MusicName[] m_RareTracks = new MusicName[]
+
+        public static MusicName[] m_RareTracks =
         {
             MusicName.SelimsBar, MusicName.SerpentIsleCombat_U7, MusicName.ValoriaShips
         };
-        private static readonly Dictionary<MusicName, DawnsMusicInfo> m_Info = new Dictionary<MusicName, DawnsMusicInfo>();
-        private List<MusicName> m_Tracks;
-        private SecureLevel m_Level;
+
+        private static readonly Dictionary<MusicName, DawnsMusicInfo> m_Info =
+            new Dictionary<MusicName, DawnsMusicInfo>();
+
+        private int m_Count;
+        private int m_ItemID;
         private Timer m_Timer;
-        private int m_ItemID = 0;
-        private int m_Count = 0;
+
+        public override int LabelNumber => 1075198; // Dawnï¿½s Music Box
+        public List<MusicName> Tracks { get; private set; }
+
         [Constructable]
         public DawnsMusicBox()
             : base(0x2AF9)
         {
-            this.Weight = 1.0;
+            Weight = 1.0;
 
-            this.m_Tracks = new List<MusicName>();
+            Tracks = new List<MusicName>();
 
-            while (this.m_Tracks.Count < 4)
+            while (Tracks.Count < 4)
             {
-                MusicName name = RandomTrack(DawnsMusicRarity.Common);
+                var name = RandomTrack(DawnsMusicRarity.Common);
 
-                if (!this.m_Tracks.Contains(name))
-                    this.m_Tracks.Add(name);
+                if (!Tracks.Contains(name))
+                    Tracks.Add(name);
             }
         }
 
@@ -72,32 +80,9 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1075198;
-            }
-        }// Dawn’s Music Box
-        public List<MusicName> Tracks
-        {
-            get
-            {
-                return this.m_Tracks;
-            }
-        }
         [CommandProperty(AccessLevel.GameMaster)]
-        public SecureLevel Level
-        {
-            get
-            {
-                return this.m_Level;
-            }
-            set
-            {
-                this.m_Level = value;
-            }
-        }
+        public SecureLevel Level { get; set; }
+
         public static void Initialize()
         {
             m_Info.Add(MusicName.Samlethe, new DawnsMusicInfo(1075152, DawnsMusicRarity.Common));
@@ -171,7 +156,7 @@ namespace Server.Items
         {
             MusicName[] list = null;
 
-            switch ( rarity )
+            switch (rarity)
             {
                 default:
                 case DawnsMusicRarity.Common:
@@ -190,13 +175,13 @@ namespace Server.Items
 
         public override void OnAfterDuped(Item newItem)
         {
-            DawnsMusicBox box = newItem as DawnsMusicBox;
+            var box = newItem as DawnsMusicBox;
 
             if (box == null)
                 return;
 
-            box.m_Tracks = new List<MusicName>();
-            box.m_Tracks.AddRange(this.m_Tracks);
+            box.Tracks = new List<MusicName>();
+            box.Tracks.AddRange(Tracks);
 
             base.OnAfterDuped(newItem);
         }
@@ -205,15 +190,15 @@ namespace Server.Items
         {
             base.GetProperties(list);
 
-            int commonSongs = 0;
-            int uncommonSongs = 0;
-            int rareSongs = 0;
+            var commonSongs = 0;
+            var uncommonSongs = 0;
+            var rareSongs = 0;
 
-            for (int i = 0; i < this.m_Tracks.Count; i++)
+            for (var i = 0; i < Tracks.Count; i++)
             {
-                DawnsMusicInfo info = GetInfo(this.m_Tracks[i]);
+                var info = GetInfo(Tracks[i]);
 
-                switch ( info.Rarity )
+                switch (info.Rarity)
                 {
                     case DawnsMusicRarity.Common:
                         commonSongs++;
@@ -244,10 +229,15 @@ namespace Server.Items
 
         public override void OnDoubleClick(Mobile from)
         {
-            if (!this.IsChildOf(from.Backpack) && !this.IsLockedDown)
-                from.SendLocalizedMessage(1061856); // You must have the item in your backpack or locked down in order to use it.
-            else if (this.IsLockedDown && !this.HasAccces(from))
+            if (!IsChildOf(from.Backpack) && !IsLockedDown)
+            {
+                from.SendLocalizedMessage(
+                    1061856); // You must have the item in your backpack or locked down in order to use it.
+            }
+            else if (IsLockedDown && !HasAccces(from))
+            {
                 from.SendLocalizedMessage(502436); // That is not accessible.
+            }
             else
             {
                 from.CloseGump(typeof(DawnsMusicBoxGump));
@@ -260,33 +250,33 @@ namespace Server.Items
             if (m.AccessLevel >= AccessLevel.GameMaster)
                 return true;
 
-            BaseHouse house = BaseHouse.FindHouseAt(this);
+            var house = BaseHouse.FindHouseAt(this);
 
-            return (house != null && house.HasAccess(m));
+            return house != null && house.HasAccess(m);
         }
 
         public void PlayMusic(Mobile m, MusicName music)
         {
-            if (this.m_Timer != null && this.m_Timer.Running)
-                this.EndMusic(m);
+            if (m_Timer != null && m_Timer.Running)
+                EndMusic(m);
             else
-                this.m_ItemID = this.ItemID;
+                m_ItemID = ItemID;
 
             m.Send(new PlayMusic(music));
-            this.m_Timer = Timer.DelayCall(TimeSpan.FromSeconds(0.5), TimeSpan.FromSeconds(0.5), 4, new TimerCallback(Animate));
+            m_Timer = Timer.DelayCall(TimeSpan.FromSeconds(0.5), TimeSpan.FromSeconds(0.5), 4, Animate);
         }
 
         public void EndMusic(Mobile m)
         {
-            if (this.m_Timer != null && this.m_Timer.Running)
-                this.m_Timer.Stop();
+            if (m_Timer != null && m_Timer.Running)
+                m_Timer.Stop();
 
             m.Send(StopMusic.Instance);
 
-            if (this.m_Count > 0)
-                this.ItemID = this.m_ItemID;
+            if (m_Count > 0)
+                ItemID = m_ItemID;
 
-            this.m_Count = 0;
+            m_Count = 0;
         }
 
         public override void Serialize(GenericWriter writer)
@@ -295,42 +285,44 @@ namespace Server.Items
 
             writer.WriteEncodedInt(0); // version
 
-            writer.Write((int)this.m_Tracks.Count);
+            writer.Write(Tracks.Count);
 
-            for (int i = 0; i < this.m_Tracks.Count; i++)
-                writer.Write((int)this.m_Tracks[i]);
+            for (var i = 0; i < Tracks.Count; i++)
+                writer.Write((int)Tracks[i]);
 
-            writer.Write((int)this.m_Level);
-            writer.Write((int)this.m_ItemID);
+            writer.Write((int)Level);
+            writer.Write(m_ItemID);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
 
-            int count = reader.ReadInt();
-            this.m_Tracks = new List<MusicName>();
+            var count = reader.ReadInt();
+            Tracks = new List<MusicName>();
 
-            for (int i = 0; i < count; i++)
-                this.m_Tracks.Add((MusicName)reader.ReadInt());
+            for (var i = 0; i < count; i++)
+                Tracks.Add((MusicName)reader.ReadInt());
 
-            this.m_Level = (SecureLevel)reader.ReadInt();
-            this.m_ItemID = reader.ReadInt();
+            Level = (SecureLevel)reader.ReadInt();
+            m_ItemID = reader.ReadInt();
         }
 
         private void Animate()
         {
-            this.m_Count++;
+            m_Count++;
 
-            if (this.m_Count >= 4)
+            if (m_Count >= 4)
             {
-                this.m_Count = 0;
-                this.ItemID = this.m_ItemID;
+                m_Count = 0;
+                ItemID = m_ItemID;
             }
             else
-                this.ItemID++;
+            {
+                ItemID++;
+            }
         }
     }
 }

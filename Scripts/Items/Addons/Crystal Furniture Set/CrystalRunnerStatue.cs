@@ -1,10 +1,11 @@
-using System;
 using Server.Gumps;
 
 namespace Server.Items
 {
     public class CrystalRunnerStatueAddon : BaseAddon
     {
+        public override BaseAddonDeed Deed => new CrystalRunnerStatueDeed();
+
         [Constructable]
         public CrystalRunnerStatueAddon(DirectionType type)
         {
@@ -24,34 +25,30 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonDeed Deed { get { return new CrystalRunnerStatueDeed(); } }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class CrystalRunnerStatueDeed : BaseAddonDeed, IRewardOption
     {
-        public override int LabelNumber { get { return 1076670; } } // Crystal Runner Statue
-
-        public override bool ExcludeDeedHue { get { return true; } }
-
-        public override BaseAddon Addon { get { return new CrystalRunnerStatueAddon(_Direction); } }
-
         private DirectionType _Direction;
+        public override int LabelNumber => 1076670; // Crystal Runner Statue
+
+        public override bool ExcludeDeedHue => true;
+
+        public override BaseAddon Addon => new CrystalRunnerStatueAddon(_Direction);
 
         [Constructable]
         public CrystalRunnerStatueDeed()
-            : base()
         {
             LootType = LootType.Blessed;
             Hue = 1173;
@@ -92,13 +89,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

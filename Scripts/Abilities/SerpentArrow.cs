@@ -1,20 +1,8 @@
-using System;
-
 namespace Server.Items
 {
     public class SerpentArrow : WeaponAbility
     {
-        public SerpentArrow()
-        {
-        }
-
-        public override int BaseMana
-        {
-            get
-            {
-                return 25;
-            }
-        }
+        public override int BaseMana => 25;
 
         public override SkillName GetSecondarySkill(Mobile from)
         {
@@ -23,12 +11,12 @@ namespace Server.Items
 
         public override void OnHit(Mobile attacker, Mobile defender, int damage)
         {
-            if (!this.Validate(attacker) || !this.CheckMana(attacker, true))
+            if (!Validate(attacker) || !CheckMana(attacker, true))
                 return;
 
             ClearCurrentAbility(attacker);
 
-			defender.SendLocalizedMessage(1112369); // 	You have been poisoned by a lethal arrow!
+            defender.SendLocalizedMessage(1112369); // 	You have been poisoned by a lethal arrow!
 
             int level;
 
@@ -36,7 +24,7 @@ namespace Server.Items
             {
                 if (attacker.InRange(defender, 2))
                 {
-                    int total = (attacker.Skills.Poisoning.Fixed) / 2;
+                    var total = attacker.Skills.Poisoning.Fixed / 2;
 
                     if (total >= 1000)
                         level = 3;
@@ -54,9 +42,9 @@ namespace Server.Items
             }
             else
             {
-                double total = attacker.Skills[SkillName.Poisoning].Value;
+                var total = attacker.Skills[SkillName.Poisoning].Value;
 
-                double dist = attacker.GetDistanceToSqrt(defender);
+                var dist = attacker.GetDistanceToSqrt(defender);
 
                 if (dist >= 3.0)
                     total -= (dist - 3.0) * 10.0;

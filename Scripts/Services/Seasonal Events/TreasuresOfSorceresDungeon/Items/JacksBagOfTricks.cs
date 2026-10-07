@@ -1,22 +1,15 @@
 using System;
-
-using Server;
 using Server.Events.Halloween;
+using Server.Network;
 
 namespace Server.Items
 {
     public class JacksBagOfTricks : Item
     {
-        public override int LabelNumber { get { return 1157656; } } // Jack's Bag of Tricks
-
-        private DateTime _NextUse;
+        public override int LabelNumber => 1157656; // Jack's Bag of Tricks
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public DateTime NextUse
-        {
-            get { return _NextUse; }
-            set { _NextUse = value; }
-        }
+        public DateTime NextUse { get; set; }
 
         [Constructable]
         public JacksBagOfTricks()
@@ -24,20 +17,22 @@ namespace Server.Items
         {
         }
 
+        public JacksBagOfTricks(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void OnDoubleClick(Mobile from)
         {
             if (DateTime.Now.Month == 10 || from.AccessLevel > AccessLevel.Player)
             {
-                if (_NextUse < DateTime.UtcNow)
+                if (NextUse < DateTime.UtcNow)
                 {
                     Item item = null;
 
                     if (0.1 > Utility.RandomDouble())
-                    {
                         item = HolidaySettings.RandomTreat;
-                    }
                     else
-                    {
                         switch (Utility.Random(6))
                         {
                             case 0: item = new RancidReindeerMeat(); break;
@@ -47,7 +42,6 @@ namespace Server.Items
                             case 4: item = new InsultingDoll(); break;
                             case 5: item = new SpikedEggnog(); break;
                         }
-                    }
 
                     if (item != null)
                     {
@@ -68,15 +62,10 @@ namespace Server.Items
             }
         }
 
-        public JacksBagOfTricks(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
 
             writer.Write(NextUse);
         }
@@ -84,7 +73,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int v = reader.ReadInt();
+            var v = reader.ReadInt();
 
             NextUse = reader.ReadDateTime();
         }
@@ -93,7 +82,7 @@ namespace Server.Items
     [Flipable(0x1E90, 0x1E91)]
     public class RancidReindeerMeat : Item
     {
-        public override int LabelNumber { get { return 1157634; } } // Rancid Reindeer Meat
+        public override int LabelNumber => 1157634; // Rancid Reindeer Meat
 
         [Constructable]
         public RancidReindeerMeat()
@@ -110,28 +99,26 @@ namespace Server.Items
         public override void OnDoubleClick(Mobile m)
         {
             if (IsChildOf(m.Backpack))
-            {
-                PrivateOverheadMessage(Server.Network.MessageType.Regular, 0, 1157635, m.NetState); // *It smells terrible!*
-            }
+                PrivateOverheadMessage(MessageType.Regular, 0, 1157635, m.NetState); // *It smells terrible!*
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int v = reader.ReadInt();
+            var v = reader.ReadInt();
         }
     }
 
     [Flipable(0x9DC3, 0x9DC4)]
     public class GlassyCandyCane : Item
     {
-        public override int LabelNumber { get { return 1157636; } } // Glass Candy Cane
+        public override int LabelNumber => 1157636; // Glass Candy Cane
 
         [Constructable]
         public GlassyCandyCane()
@@ -148,19 +135,24 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int v = reader.ReadInt();
+            var v = reader.ReadInt();
         }
     }
 
     [Flipable(0x312D, 0x312E)]
     public class NamedSeveredElfEars : Item
     {
+        private readonly string[] _Names =
+        {
+            "Alabaster Snowball", "Pepper Minstix", "Wunorse Openslae", "Sugarplum Mary"
+        };
+
         private string _Name;
 
         [Constructable]
@@ -170,34 +162,28 @@ namespace Server.Items
             _Name = _Names[Utility.Random(_Names.Length)];
         }
 
-        public override void AddNameProperty(ObjectPropertyList list)
-        {
-            list.Add(1157637, _Name); // The Severed Ears of an Elf Named ~1_NAME~
-        }
-
-        private string[] _Names =
-        {
-            "Alabaster Snowball", "Pepper Minstix", "Wunorse Openslae", "Sugarplum Mary"
-        };
-
-
-        public override void OnDoubleClick(Mobile m)
-        {
-            if (IsChildOf(m.Backpack))
-            {
-                PrivateOverheadMessage(Server.Network.MessageType.Regular, 0, 1157638, m.NetState); // *You hear the faint jingle of cheery bells...*
-            }
-        }
-
         public NamedSeveredElfEars(Serial serial)
             : base(serial)
         {
         }
 
+        public override void AddNameProperty(ObjectPropertyList list)
+        {
+            list.Add(1157637, _Name); // The Severed Ears of an Elf Named ~1_NAME~
+        }
+
+
+        public override void OnDoubleClick(Mobile m)
+        {
+            if (IsChildOf(m.Backpack))
+                PrivateOverheadMessage(MessageType.Regular, 0, 1157638,
+                    m.NetState); // *You hear the faint jingle of cheery bells...*
+        }
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
 
             writer.Write(_Name);
         }
@@ -205,7 +191,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int v = reader.ReadInt();
+            var v = reader.ReadInt();
 
             _Name = reader.ReadString();
         }
@@ -213,7 +199,7 @@ namespace Server.Items
 
     public class SuspiciousGiftBox : Container
     {
-        public override int LabelNumber { get { return 1157639; } } // Suspicious Gift Box
+        public override int LabelNumber => 1157639; // Suspicious Gift Box
 
         [Constructable]
         public SuspiciousGiftBox()
@@ -222,36 +208,33 @@ namespace Server.Items
             Hue = 1976;
         }
 
-        public override void OnDoubleClick(Mobile m)
-        {
-            if (IsChildOf(m.Backpack))
-            {
-                PrivateOverheadMessage(Server.Network.MessageType.Regular, 0, 1157640, m.NetState); // Uh oh...
-            }
-        }
-
         public SuspiciousGiftBox(Serial serial)
             : base(serial)
         {
         }
 
+        public override void OnDoubleClick(Mobile m)
+        {
+            if (IsChildOf(m.Backpack)) PrivateOverheadMessage(MessageType.Regular, 0, 1157640, m.NetState); // Uh oh...
+        }
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int v = reader.ReadInt();
+            var v = reader.ReadInt();
         }
     }
 
     [Flipable(0x48E2, 0x48E3)]
     public class InsultingDoll : Item
     {
-        public override int LabelNumber { get { return 1157641; } } // Insulting Doll
+        public override int LabelNumber => 1157641; // Insulting Doll
 
         [Constructable]
         public InsultingDoll()
@@ -260,35 +243,33 @@ namespace Server.Items
             Hue = 1933;
         }
 
-        public override void OnDoubleClick(Mobile m)
-        {
-            if (IsChildOf(m.Backpack))
-            {
-                PrivateOverheadMessage(Server.Network.MessageType.Regular, 0, Utility.RandomMinMax(1157642, 1157646), m.NetState);
-            }
-        }
-
         public InsultingDoll(Serial serial)
             : base(serial)
         {
         }
 
+        public override void OnDoubleClick(Mobile m)
+        {
+            if (IsChildOf(m.Backpack))
+                PrivateOverheadMessage(MessageType.Regular, 0, Utility.RandomMinMax(1157642, 1157646), m.NetState);
+        }
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int v = reader.ReadInt();
+            var v = reader.ReadInt();
         }
     }
 
     public class SpikedEggnog : Item
     {
-        public override int LabelNumber { get { return 1157647; } } // Spiked Egg Nog
+        public override int LabelNumber => 1157647; // Spiked Egg Nog
 
         [Constructable]
         public SpikedEggnog()
@@ -305,13 +286,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int v = reader.ReadInt();
+            var v = reader.ReadInt();
         }
     }
 }

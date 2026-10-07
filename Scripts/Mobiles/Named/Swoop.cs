@@ -1,5 +1,3 @@
-using System;
-using System.Collections;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -7,10 +5,17 @@ namespace Server.Mobiles
     [CorpseName("a Swoop corpse")]
     public class Swoop : Eagle
     {
+        public override bool CanBeParagon => false;
+
+        public override bool CanFly => true;
+
+        public override bool GivesMLMinorArtifact => true;
+
+        public override int Feathers => 72;
+
         [Constructable]
         public Swoop()
         {
-
             Name = "Swoop";
             Hue = 0xE0;
 
@@ -43,77 +48,50 @@ namespace Server.Mobiles
 
             Tamable = false;
 
-            for (int i = 0; i < Utility.RandomMinMax(0, 1); i++)
-            {
+            for (var i = 0; i < Utility.RandomMinMax(0, 1); i++)
                 PackItem(Loot.RandomScroll(0, Loot.ArcanistScrollTypes.Length, SpellbookType.Arcanist));
-            }
 
             SetSpecialAbility(SpecialAbility.GraspingClaw);
         }
 
-		public override bool CanBeParagon { get { return false; } }
-
-        public override void OnDeath( Container c )
-        {
-            base.OnDeath( c );
-
-            if ( Utility.RandomDouble() < 0.025 )
-            {
-                switch ( Utility.Random( 20 ) )
-                {
-                    case 0: c.DropItem( new AssassinChest() ); break;
-                    case 1: c.DropItem( new AssassinArms() ); break;
-                    case 2: c.DropItem( new DeathChest() ); break;
-                    case 3: c.DropItem( new MyrmidonArms() ); break;
-                    case 4: c.DropItem( new MyrmidonLegs() ); break;
-                    case 5: c.DropItem( new MyrmidonGorget() ); break;
-                    case 6: c.DropItem( new LeafweaveGloves() ); break;
-                    case 7: c.DropItem( new LeafweaveLegs() ); break;
-                    case 8: c.DropItem( new LeafweavePauldrons() ); break;
-                    case 9: c.DropItem( new PaladinGloves() ); break;
-                    case 10: c.DropItem( new PaladinGorget() ); break;
-                    case 11: c.DropItem( new PaladinArms() ); break;
-                    case 12: c.DropItem( new HunterArms() ); break;
-                    case 13: c.DropItem( new HunterGloves() ); break;
-                    case 14: c.DropItem( new HunterLegs() ); break;
-                    case 15: c.DropItem( new HunterChest() ); break;
-                    case 16: c.DropItem( new GreymistArms() ); break;
-                    case 17: c.DropItem( new GreymistGloves() ); break;
-                    case 18: c.DropItem(new GreymistLegs()); break;
-                    case 19: c.DropItem(new MyrmidonChest()); break;
-                }
-            }
-
-            if ( Utility.RandomDouble() < 0.1 )
-            c.DropItem( new ParrotItem() );
-        }
-        
         public Swoop(Serial serial)
             : base(serial)
         {
         }
 
-        public override bool CanFly
+        public override void OnDeath(Container c)
         {
-            get
-            {
-                return true;
-            }
+            base.OnDeath(c);
+
+            if (Utility.RandomDouble() < 0.025)
+                switch (Utility.Random(20))
+                {
+                    case 0: c.DropItem(new AssassinChest()); break;
+                    case 1: c.DropItem(new AssassinArms()); break;
+                    case 2: c.DropItem(new DeathChest()); break;
+                    case 3: c.DropItem(new MyrmidonArms()); break;
+                    case 4: c.DropItem(new MyrmidonLegs()); break;
+                    case 5: c.DropItem(new MyrmidonGorget()); break;
+                    case 6: c.DropItem(new LeafweaveGloves()); break;
+                    case 7: c.DropItem(new LeafweaveLegs()); break;
+                    case 8: c.DropItem(new LeafweavePauldrons()); break;
+                    case 9: c.DropItem(new PaladinGloves()); break;
+                    case 10: c.DropItem(new PaladinGorget()); break;
+                    case 11: c.DropItem(new PaladinArms()); break;
+                    case 12: c.DropItem(new HunterArms()); break;
+                    case 13: c.DropItem(new HunterGloves()); break;
+                    case 14: c.DropItem(new HunterLegs()); break;
+                    case 15: c.DropItem(new HunterChest()); break;
+                    case 16: c.DropItem(new GreymistArms()); break;
+                    case 17: c.DropItem(new GreymistGloves()); break;
+                    case 18: c.DropItem(new GreymistLegs()); break;
+                    case 19: c.DropItem(new MyrmidonChest()); break;
+                }
+
+            if (Utility.RandomDouble() < 0.1)
+                c.DropItem(new ParrotItem());
         }
-        public override bool GivesMLMinorArtifact
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override int Feathers
-        {
-            get
-            {
-                return 72;
-            }
-        }
+
         public override void GenerateLoot()
         {
             AddLoot(LootPack.UltraRich, 2);
@@ -124,14 +102,14 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +5,15 @@ namespace Server.Mobiles
     [CorpseName("a slith corpse")]
     public class StoneSlith : BaseCreature
     {
+        public override int DragonBlood => 6;
+
+        public override int Meat => 1;
+
+        //public override int DragonBlood{ get{ return 6; } }
+        public override int Hides => 12;
+
+        public override HideType HideType => HideType.Spined;
+
         [Constructable]
         public StoneSlith()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -49,24 +57,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override int DragonBlood { get { return 6; } }
-
-        public override int Meat
-        {
-            get { return 1; }
-        }
-
-        //public override int DragonBlood{ get{ return 6; } }
-        public override int Hides
-        {
-            get { return 12; }
-        }
-
-        public override HideType HideType
-        {
-            get { return HideType.Spined; }
-        }
-
         public override void GenerateLoot()
         {
             AddLoot(LootPack.Average, 2);
@@ -75,19 +65,12 @@ namespace Server.Mobiles
         public override void OnDeath(Container c)
         {
             base.OnDeath(c);
-            
-            if (!Controlled && Utility.RandomDouble() <= 0.005)
-            {
-                c.DropItem(new StoneSlithClaw());
-            }
 
-            if (!Controlled && Utility.RandomDouble() < 0.05)
-            {
-                c.DropItem(new SlithEye());
-            }
+            if (!Controlled && Utility.RandomDouble() <= 0.005) c.DropItem(new StoneSlithClaw());
+
+            if (!Controlled && Utility.RandomDouble() < 0.05) c.DropItem(new SlithEye());
 
             if (!Controlled && Utility.RandomDouble() < 0.25)
-            {
                 switch (Utility.Random(2))
                 {
                     case 0:
@@ -97,8 +80,7 @@ namespace Server.Mobiles
                         c.DropItem(new TatteredAncientScroll());
                         break;
                 }
-            }        
-        }     
+        }
 
         public override void Serialize(GenericWriter writer)
         {

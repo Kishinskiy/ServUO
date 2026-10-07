@@ -13,11 +13,7 @@ namespace Server.Items
         public DateTime HonestyPickup { get; set; }
         public bool HonestyTimerTicking { get; set; }
 
-        public override TimeSpan TickDuration { get { return TimeSpan.FromSeconds(5); } }
-
-        public HonestyItemSocket()
-        {
-        }
+        public override TimeSpan TickDuration => TimeSpan.FromSeconds(5);
 
         public void StartHonestyTimer()
         {
@@ -28,21 +24,17 @@ namespace Server.Items
 
         protected override void OnTick()
         {
-            if ((HonestyPickup + TimeSpan.FromHours(ExpireTime)) < DateTime.UtcNow)
-            {
+            if (HonestyPickup + TimeSpan.FromHours(ExpireTime) < DateTime.UtcNow)
                 Remove();
-            }
             else
-            {
                 Owner.InvalidateProperties();
-            }
         }
 
         public override void GetProperties(ObjectPropertyList list)
         {
             if (HonestyPickup != DateTime.MinValue)
             {
-                int minutes = (int)(HonestyPickup + TimeSpan.FromHours(3) - DateTime.UtcNow).TotalMinutes;
+                var minutes = (int)(HonestyPickup + TimeSpan.FromHours(3) - DateTime.UtcNow).TotalMinutes;
                 list.Add(1151914, minutes.ToString()); // Minutes remaining for credit: ~1_val~
             }
 
@@ -56,9 +48,9 @@ namespace Server.Items
                 Owner.HonestyItem = false;
 
                 if (Owner.RootParent is Mobile)
-                {
-                    ((Mobile)Owner.RootParent).SendLocalizedMessage(1151519); // You claim the item as your own.  Finders keepers, losers weepers!
-                }
+                    ((Mobile)Owner.RootParent)
+                        .SendLocalizedMessage(
+                            1151519); // You claim the item as your own.  Finders keepers, losers weepers!
             }
         }
 
@@ -73,10 +65,7 @@ namespace Server.Items
                 HonestyPickup = honesty.HonestyPickup;
                 HonestyTimerTicking = honesty.HonestyTimerTicking;
 
-                if (HonestyTimerTicking)
-                {
-                    BeginTimer();
-                }
+                if (HonestyTimerTicking) BeginTimer();
             }
         }
 
@@ -103,18 +92,12 @@ namespace Server.Items
 
             Owner.HonestyItem = true;
 
-            if (HonestyTimerTicking)
-            {
-                BeginTimer();
-            }
+            if (HonestyTimerTicking) BeginTimer();
         }
 
         public static void Initialize()
         {
-            if (HonestyVirtue.Enabled)
-            {
-                EventSink.ContainerDroppedTo += OnDropped;
-            }
+            if (HonestyVirtue.Enabled) EventSink.ContainerDroppedTo += OnDropped;
         }
 
         public static void OnDropped(ContainerDroppedToEventArgs e)
@@ -132,12 +115,11 @@ namespace Server.Items
                     honestySocket.StartHonestyTimer();
 
                     if (honestySocket.HonestyOwner == null)
-                        Server.Services.Virtues.HonestyVirtue.AssignOwner(honestySocket);
+                        HonestyVirtue.AssignOwner(honestySocket);
 
                     if (from != null)
-                    {
-                        from.SendLocalizedMessage(1151536); // You have three hours to turn this item in for Honesty credit, otherwise it will cease to be a quest item.
-                    }
+                        from.SendLocalizedMessage(
+                            1151536); // You have three hours to turn this item in for Honesty credit, otherwise it will cease to be a quest item.
                 }
             }
         }

@@ -2,10 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
-using Server;
 using Server.Items;
-using Server.Mobiles;
-using Server.Accounting;
 
 namespace Server.Mobiles
 {
@@ -20,65 +17,61 @@ namespace Server.Mobiles
             Name = NameList.RandomName("male");
             Title = "Traveling Merchant"; // ASCII title to keep VendorSearch stable
             CantWalk = false;
-            this.HoldGold = 500000;
-            this.Direction = (Direction)Utility.Random(8);
+            HoldGold = 500000;
+            Direction = (Direction)Utility.Random(8);
 
             DressUp();
 
             // Generate initial inventory and start the update timer.
             ProcessMarketCycle();
-            Timer.DelayCall(UpdateInterval, UpdateInterval, new TimerCallback(ProcessMarketCycle));
+            Timer.DelayCall(UpdateInterval, UpdateInterval, ProcessMarketCycle);
+        }
+
+        public MerchantBot(Serial serial) : base(serial)
+        {
         }
 
         private void ProcessMarketCycle()
         {
-            if (this.Backpack == null || this.Deleted)
+            if (Backpack == null || Deleted)
                 return;
 
-            FieldInfo field = typeof(PlayerVendor).GetField("m_SellItems", BindingFlags.Instance | BindingFlags.NonPublic);
+            var field = typeof(PlayerVendor).GetField("m_SellItems", BindingFlags.Instance | BindingFlags.NonPublic);
             if (field == null) return;
 
-            Hashtable sellItems = field.GetValue(this) as Hashtable;
+            var sellItems = field.GetValue(this) as Hashtable;
             if (sellItems == null) return;
 
-            List<Item> toRemove = new List<Item>();
+            var toRemove = new List<Item>();
 
             foreach (DictionaryEntry de in sellItems)
             {
-                Item item = de.Key as Item;
+                var item = de.Key as Item;
                 if (item != null && !item.Deleted)
-                {
                     if (Utility.RandomDouble() < 0.30)
                         toRemove.Add(item);
-                }
             }
 
-            foreach (Item item in toRemove)
-            {
-                item.Delete();
-            }
+            foreach (var item in toRemove) item.Delete();
 
-            int currentOnSaleCount = sellItems.Count;
+            var currentOnSaleCount = sellItems.Count;
 
             if (currentOnSaleCount < MaxItemsOnSale)
             {
-                int itemsToGenerate = Utility.RandomMinMax(1, 3);
-                for (int i = 0; i < itemsToGenerate; i++)
-                {
-                    GenerateRareLoot(sellItems);
-                }
+                var itemsToGenerate = Utility.RandomMinMax(1, 3);
+                for (var i = 0; i < itemsToGenerate; i++) GenerateRareLoot(sellItems);
             }
 
-            this.InvalidateProperties();
+            InvalidateProperties();
         }
 
         private void GenerateRareLoot(Hashtable sellItems)
         {
             Item lootItem = null;
-            int roll = Utility.Random(100);
-            int finalPrice = 5000;
+            var roll = Utility.Random(100);
+            var finalPrice = 5000;
             // Base description – will be replaced with a detailed one per item below.
-            string customDescription = "[Редкий завоз от торгового бота]";
+            var customDescription = "[Редкий завоз от торгового бота]";
 
             if (roll > 85)
             {
@@ -95,22 +88,25 @@ namespace Server.Mobiles
                 if (lootItem != null)
                 {
                     if (lootItem is BaseWeapon)
-                        BaseRunicTool.ApplyAttributesTo((BaseWeapon)lootItem, false, 0, Utility.RandomMinMax(2, 4), 20, 70);
+                        BaseRunicTool.ApplyAttributesTo((BaseWeapon)lootItem, false, 0, Utility.RandomMinMax(2, 4), 20,
+                            70);
                     else if (lootItem is BaseArmor)
-                        BaseRunicTool.ApplyAttributesTo((BaseArmor)lootItem, false, 0, Utility.RandomMinMax(2, 4), 20, 70);
+                        BaseRunicTool.ApplyAttributesTo((BaseArmor)lootItem, false, 0, Utility.RandomMinMax(2, 4), 20,
+                            70);
                 }
+
                 finalPrice = Utility.RandomMinMax(25000, 75000);
             }
             else if (roll > 25)
             {
                 if (Utility.RandomBool())
                 {
-                    lootItem = new TreasureMap(Utility.RandomMinMax(3, 5), this.Map);
+                    lootItem = new TreasureMap(Utility.RandomMinMax(3, 5), Map);
                     finalPrice = Utility.RandomMinMax(15000, 35000);
                 }
                 else
                 {
-                    lootItem = Loot.RandomScroll(40, 63, (SpellbookType)0);
+                    lootItem = Loot.RandomScroll(40, 63, 0);
                     finalPrice = Utility.RandomMinMax(4000, 8000);
                 }
             }
@@ -119,7 +115,7 @@ namespace Server.Mobiles
                 // ИСПРАВЛЕНО ДЛЯ КИРИЛЛИЦЫ: Мы убрали жесткое присвоение lootItem.Name на русском языке!
                 // Вместо этого мы используем оригинальные имена Ultima, меняем цвет, а русское название
                 // выводим в vi.Description, которое Vendor Search переваривает абсолютно безопасно.
-                int resourceRoll = Utility.Random(3);
+                var resourceRoll = Utility.Random(3);
                 if (resourceRoll == 0)
                 {
                     lootItem = new IronIngot();
@@ -157,54 +153,50 @@ namespace Server.Mobiles
 
                 // Resolve the "%s%" placeholder that appears in some Ultima item names when the amount > 1.
                 if (lootItem.Amount > 1 && lootItem.Name != null && lootItem.Name.Contains("%s%"))
-                {
                     lootItem.Name = lootItem.Name.Replace("%s%", lootItem.Amount.ToString());
-                }
 
                 lootItem.InvalidateProperties();
                 lootItem.Weight = 0;
-                this.Backpack.DropItem(lootItem);
+                Backpack.DropItem(lootItem);
 
                 // Build a detailed description containing the main stats of the item.
-                string detailedDesc = GetItemDescription(lootItem) ?? customDescription;
-                VendorItem vi = new VendorItem(lootItem, finalPrice, detailedDesc, DateTime.UtcNow);
+                var detailedDesc = GetItemDescription(lootItem) ?? customDescription;
+                var vi = new VendorItem(lootItem, finalPrice, detailedDesc, DateTime.UtcNow);
                 sellItems[lootItem] = vi;
             }
         }
 
         private void DressUp()
         {
-            int randomHue = Utility.RandomList(1150, 1153, 1284, 2123);
-            this.AddItem(new FancyShirt(randomHue));
-            this.AddItem(new LongPants(1157));
-            this.AddItem(new ThighBoots(1175));
+            var randomHue = Utility.RandomList(1150, 1153, 1284, 2123);
+            AddItem(new FancyShirt(randomHue));
+            AddItem(new LongPants(1157));
+            AddItem(new ThighBoots(1175));
         }
-
-        public MerchantBot(Serial serial) : base(serial) { }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1);
+            writer.Write(1);
         }
 
         public override bool OnDragDrop(Mobile from, Item item)
         {
-            if (from == null || item == null || this.Deleted)
+            if (from == null || item == null || Deleted)
                 return false;
 
-            FieldInfo field = typeof(PlayerVendor).GetField("m_SellItems", BindingFlags.Instance | BindingFlags.NonPublic);
+            var field = typeof(PlayerVendor).GetField("m_SellItems", BindingFlags.Instance | BindingFlags.NonPublic);
             if (field == null) return false;
-            Hashtable sellItems = field.GetValue(this) as Hashtable;
+            var sellItems = field.GetValue(this) as Hashtable;
 
             if (sellItems != null && sellItems.Count >= MaxItemsOnSale)
             {
-                this.SayTo(from, "Моя лавка переполнена, приходи позже, когда я распродам старый товар!");
+                SayTo(from, "Моя лавка переполнена, приходи позже, когда я распродам старый товар!");
                 return false;
             }
 
-            int payoutGold = 0;
-            int resalePrice = 0;
+            var payoutGold = 0;
+            var resalePrice = 0;
 
             if (item is BaseWeapon)
             {
@@ -233,21 +225,21 @@ namespace Server.Mobiles
             }
             else
             {
-                this.SayTo(from, "Меня интересует только ценное снаряжение, магические свитки или карты сокровищ.");
+                SayTo(from, "Меня интересует только ценное снаряжение, магические свитки или карты сокровищ.");
                 return false;
             }
 
             if (payoutGold > 0)
             {
                 from.AddToBackpack(new Gold(payoutGold));
-                this.SayTo(from, $"Отличная вещь! Я забираю её и плачу тебе {payoutGold} золотых монет.");
-                this.PlaySound(0x2E6);
+                SayTo(from, $"Отличная вещь! Я забираю её и плачу тебе {payoutGold} золотых монет.");
+                PlaySound(0x2E6);
             }
 
             if (item is BaseWeapon) ((BaseWeapon)item).Crafter = null;
             else if (item is BaseArmor) ((BaseArmor)item).Crafter = null;
 
-            string origName = item.Name;
+            var origName = item.Name;
             if (string.IsNullOrEmpty(origName)) origName = item.ItemData.Name;
             if (string.IsNullOrEmpty(origName)) origName = item.GetType().Name;
             if (!string.IsNullOrEmpty(origName) && origName.StartsWith("#")) origName = item.ItemData.Name;
@@ -255,28 +247,27 @@ namespace Server.Mobiles
 
             item.InvalidateProperties();
             item.Weight = 0;
-            this.Backpack.DropItem(item);
+            Backpack.DropItem(item);
 
             // ИСПРАВЛЕНО ДЛЯ КИРИЛЛИЦЫ В КОМИССИОНКЕ:
             // Не пишем русские буквы в свойство item.Name, переносим информацию в vi.Description
             // Create a description that shows the main properties of the sold item.
-            string usedDesc = GetItemDescription(item) ?? $"[Used item from player {from.Name}]";
-            VendorItem vi = new VendorItem(item, resalePrice, usedDesc, DateTime.UtcNow);
+            var usedDesc = GetItemDescription(item) ?? $"[Used item from player {from.Name}]";
+            var vi = new VendorItem(item, resalePrice, usedDesc, DateTime.UtcNow);
             sellItems[item] = vi;
-            this.InvalidateProperties();
+            InvalidateProperties();
             return true;
         }
+
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
-            if (this.HoldGold < 100000)
-                this.HoldGold = 500000;
+            var version = reader.ReadInt();
+            if (HoldGold < 100000)
+                HoldGold = 500000;
             // Previously used reflection to inject a fake owner for VendorSearch compatibility.
             // This hack is no longer needed and has been removed for simplicity.
-            Timer.DelayCall(TimeSpan.FromMinutes(5.0), UpdateInterval, new TimerCallback(ProcessMarketCycle));
-
-
+            Timer.DelayCall(TimeSpan.FromMinutes(5.0), UpdateInterval, ProcessMarketCycle);
         }
 
         // Provides a concise tooltip description for items shown in Vendor Search.

@@ -1,12 +1,11 @@
-using System;
 using Server.Mobiles;
 
 namespace Server.Engines.Quests.Samurai
 {
     public class HaochisKatana : QuestItem
     {
-		public override int LabelNumber { get { return 1063165; } }// Daimyo Haochi's Katana
-		
+        public override int LabelNumber => 1063165; // Daimyo Haochi's Katana
+
         [Constructable]
         public HaochisKatana()
             : base(0x13FF)
@@ -18,10 +17,10 @@ namespace Server.Engines.Quests.Samurai
             : base(serial)
         {
         }
-       
+
         public override bool CanDrop(PlayerMobile player)
         {
-            HaochisTrialsQuest qs = player.Quest as HaochisTrialsQuest;
+            var qs = player.Quest as HaochisTrialsQuest;
 
             if (qs == null)
                 return true;
@@ -38,7 +37,7 @@ namespace Server.Engines.Quests.Samurai
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

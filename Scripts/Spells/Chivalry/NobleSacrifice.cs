@@ -12,58 +12,28 @@ namespace Server.Spells.Chivalry
             "Noble Sacrifice", "Dium Prostra",
             -1,
             9002);
+
+        public override TimeSpan CastDelayBase => TimeSpan.FromSeconds(1.5);
+
+        public override double RequiredSkill => 65.0;
+
+        public override int RequiredMana => 20;
+
+        public override int RequiredTithing => 30;
+
+        public override int MantraNumber => 1060725; // Dium Prostra
+        public override bool BlocksMovement => false;
+
         public NobleSacrificeSpell(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
         {
         }
 
-        public override TimeSpan CastDelayBase
-        {
-            get
-            {
-                return TimeSpan.FromSeconds(1.5);
-            }
-        }
-        public override double RequiredSkill
-        {
-            get
-            {
-                return 65.0;
-            }
-        }
-        public override int RequiredMana
-        {
-            get
-            {
-                return 20;
-            }
-        }
-        public override int RequiredTithing
-        {
-            get
-            {
-                return 30;
-            }
-        }
-        public override int MantraNumber
-        {
-            get
-            {
-                return 1060725;
-            }
-        }// Dium Prostra
-        public override bool BlocksMovement
-        {
-            get
-            {
-                return false;
-            }
-        }
         public override void OnCast()
         {
             if (CheckSequence())
             {
-                List<Mobile> targets = new List<Mobile>();
+                var targets = new List<Mobile>();
                 IPooledEnumerable eable = Caster.GetMobilesInRange(6);
 
                 foreach (Mobile m in eable)
@@ -71,9 +41,11 @@ namespace Server.Spells.Chivalry
                     if (m is BaseCreature || (m.Player && (m.Criminal || m.Murderer)))
                         continue;
 
-                    if (Caster != m && m.InLOS(Caster) && Caster.CanBeBeneficial(m, false, true) && !(m is IRepairableMobile))
+                    if (Caster != m && m.InLOS(Caster) && Caster.CanBeBeneficial(m, false, true) &&
+                        !(m is IRepairableMobile))
                         targets.Add(m);
                 }
+
                 eable.Free();
 
                 Caster.PlaySound(0x244);
@@ -81,25 +53,26 @@ namespace Server.Spells.Chivalry
                 Caster.FixedParticles(0x376A, 1, 30, 9502, 5, 3, EffectLayer.Waist);
 
                 /* Attempts to Resurrect, Cure and Heal all targets in a radius around the caster.
-                * If any target is successfully assisted, the Paladin's current
-                * Hit Points, Mana and Stamina are set to 1.
-                * Amount of damage healed is affected by the Caster's Karma, from 8 to 24 hit points.
-                */
+                 * If any target is successfully assisted, the Paladin's current
+                 * Hit Points, Mana and Stamina are set to 1.
+                 * Amount of damage healed is affected by the Caster's Karma, from 8 to 24 hit points.
+                 */
 
-                bool sacrifice = false;
+                var sacrifice = false;
 
                 // TODO: Is there really a resurrection chance?
-                double resChance = 0.1 + (0.9 * ((double)Caster.Karma / 10000));
+                var resChance = 0.1 + 0.9 * ((double)Caster.Karma / 10000);
 
-                for (int i = 0; i < targets.Count; ++i)
+                for (var i = 0; i < targets.Count; ++i)
                 {
-                    Mobile m = targets[i];
+                    var m = targets[i];
 
                     if (!m.Alive)
                     {
                         if (m.Region != null && m.Region.IsPartOf("Khaldun"))
                         {
-                            Caster.SendLocalizedMessage(1010395); // The veil of death in this area is too strong and resists thy efforts to restore life.
+                            Caster.SendLocalizedMessage(
+                                1010395); // The veil of death in this area is too strong and resists thy efforts to restore life.
                         }
                         else if (resChance > Utility.RandomDouble())
                         {
@@ -111,7 +84,7 @@ namespace Server.Spells.Chivalry
                     }
                     else
                     {
-                        bool sendEffect = false;
+                        var sendEffect = false;
 
                         if (m.Poisoned && m.CurePoison(Caster))
                         {
@@ -127,7 +100,7 @@ namespace Server.Spells.Chivalry
 
                         if (m.Hits < m.HitsMax)
                         {
-                            int toHeal = ComputePowerValue(10) + Utility.RandomMinMax(0, 2);
+                            var toHeal = ComputePowerValue(10) + Utility.RandomMinMax(0, 2);
 
                             // TODO: Should caps be applied?
                             if (toHeal < 8)
@@ -140,13 +113,13 @@ namespace Server.Spells.Chivalry
                             sendEffect = true;
                         }
 
-                        if(m.RemoveStatMod("[Magic] Str Offset"))
-							sendEffect = true;
-
-                        if(m.RemoveStatMod("[Magic] Dex Offset"))
+                        if (m.RemoveStatMod("[Magic] Str Offset"))
                             sendEffect = true;
 
-                        if(m.RemoveStatMod("[Magic] Int Offset"))
+                        if (m.RemoveStatMod("[Magic] Dex Offset"))
+                            sendEffect = true;
+
+                        if (m.RemoveStatMod("[Magic] Int Offset"))
                             sendEffect = true;
 
                         if (m.Paralyzed)

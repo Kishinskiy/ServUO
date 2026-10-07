@@ -1,34 +1,20 @@
-using Server.Network;
 using System;
 using System.Collections.Generic;
+using Server.Network;
 
 namespace Server.Items
 {
     /// <summary>
-    /// Currently on EA, this is only available for Creatures
+    ///     Currently on EA, this is only available for Creatures
     /// </summary>
     public class ColdWind : WeaponAbility
     {
         private static readonly Dictionary<Mobile, ExpireTimer> m_Table = new Dictionary<Mobile, ExpireTimer>();
 
-        public ColdWind()
-        {
-        }
+        public override int BaseMana => 20;
 
-        public override int BaseMana
-        {
-            get
-            {
-                return 20;
-            }
-        }
-        public override double DamageScalar
-        {
-            get
-            {
-                return 1.5;
-            }
-        }
+        public override double DamageScalar => 1.5;
+
         public override void OnHit(Mobile attacker, Mobile defender, int damage)
         {
             if (!Validate(attacker) || !CheckMana(attacker, true))
@@ -48,7 +34,10 @@ namespace Server.Items
                 defender.SendLocalizedMessage(1070831); // The freezing wind continues to blow!
             }
             else
-                defender.SendLocalizedMessage(1070832); // An icy wind surrounds you, freezing your lungs as you breathe!
+            {
+                defender.SendLocalizedMessage(
+                    1070832); // An icy wind surrounds you, freezing your lungs as you breathe!
+            }
 
             timer = new ExpireTimer(defender, attacker);
             timer.Start();
@@ -57,8 +46,8 @@ namespace Server.Items
 
         private class ExpireTimer : Timer
         {
-            private readonly Mobile m_Mobile;
             private readonly Mobile m_From;
+            private readonly Mobile m_Mobile;
             private int m_Count;
 
             public ExpireTimer(Mobile m, Mobile from)
@@ -80,7 +69,10 @@ namespace Server.Items
                 if (m_Mobile.Alive)
                 {
                     AOS.Damage(m_Mobile, m_From, 14, 0, 0, 100, 0, 0);
-                    Effects.SendPacket(m_Mobile.Location, m_Mobile.Map, new ParticleEffect(EffectType.FixedFrom, m_Mobile.Serial, Serial.Zero, 0x374A, m_Mobile.Location, m_Mobile.Location, 1, 15, false, false, 97, 0, 4, 9502, 1, m_Mobile.Serial, 163, 0));
+                    Effects.SendPacket(m_Mobile.Location, m_Mobile.Map,
+                        new ParticleEffect(EffectType.FixedFrom, m_Mobile.Serial, Serial.Zero, 0x374A,
+                            m_Mobile.Location, m_Mobile.Location, 1, 15, false, false, 97, 0, 4, 9502, 1,
+                            m_Mobile.Serial, 163, 0));
                 }
                 else
                 {

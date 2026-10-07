@@ -1,13 +1,8 @@
-using System;
-using Server;
-using Server.Mobiles;
-using Server.Engines.CityLoyalty;
-
 namespace Server.Items
 {
     public class SlimsShadowVeil : LeatherMempo
     {
-        public override int LabelNumber { get { return 1154906; } } // Slim's Shadow Veil
+        public override int LabelNumber => 1154906; // Slim's Shadow Veil
 
         [Constructable]
         public SlimsShadowVeil()
@@ -30,7 +25,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

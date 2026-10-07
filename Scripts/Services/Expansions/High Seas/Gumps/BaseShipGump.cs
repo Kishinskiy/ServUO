@@ -1,8 +1,4 @@
-using System;
-using Server;
-using Server.Items;
 using Server.Multis;
-using Server.Network;
 
 namespace Server.Gumps
 {
@@ -23,9 +19,10 @@ namespace Server.Gumps
             AddPage(0);
 
             AddBackground(0, 0, 320, 385, 0xA3C);
-            AddHtmlLocalized(10, 10, 300, 18, 1149724, 0x7FEF, false, false); //<CENTER>Passenger and Crew Manifest</CENTER>
+            AddHtmlLocalized(10, 10, 300, 18, 1149724, 0x7FEF, false,
+                false); //<CENTER>Passenger and Crew Manifest</CENTER>
 
-            string shipName = "unnamed ship";
+            var shipName = "unnamed ship";
 
             if (galleon.ShipName != null && galleon.ShipName != string.Empty && galleon.ShipName != "")
                 shipName = galleon.ShipName;

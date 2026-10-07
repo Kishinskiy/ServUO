@@ -1,25 +1,22 @@
 using System;
-using Server;
 using Server.Items;
-using Server.Mobiles;
 using Server.Network;
-using Server.Engines.Quests;
 
 namespace Server.Gumps
 {
     [Flags]
     public enum ReforgingOption
     {
-        None                = 0x00000000,
-        Powerful            = 0x00000001,
-        Structural          = 0x00000002,
-        Fortified           = 0x00000004,
-        Fundamental         = 0x00000008,
-        Integral            = 0x00000010,
-        GrandArtifice       = 0x00000020,
-        InspiredArtifice    = 0x00000040,
-        ExaltedArtifice     = 0x00000080,
-        SublimeArtifice     = 0x00000100,
+        None = 0x00000000,
+        Powerful = 0x00000001,
+        Structural = 0x00000002,
+        Fortified = 0x00000004,
+        Fundamental = 0x00000008,
+        Integral = 0x00000010,
+        GrandArtifice = 0x00000020,
+        InspiredArtifice = 0x00000040,
+        ExaltedArtifice = 0x00000080,
+        SublimeArtifice = 0x00000100,
 
         PowerfulAndStructural = Powerful | Structural,
         PowerfulAndFundamental = Powerful | Fundamental,
@@ -29,15 +26,7 @@ namespace Server.Gumps
 
     public class RunicReforgingGump : Gump
     {
-        private BaseRunicTool m_Tool;
-        private Item m_ToReforge;
-        private ReforgingOption m_Options;
-        private ReforgedPrefix m_Prefix;
-        private ReforgedSuffix m_Suffix;
-
-        private ReforgingContext m_Context;
-
-        private ReforgingOption[] Options =
+        private readonly ReforgingOption[] Options =
         {
             ReforgingOption.Powerful,
             ReforgingOption.Structural,
@@ -47,8 +36,15 @@ namespace Server.Gumps
             ReforgingOption.GrandArtifice,
             ReforgingOption.InspiredArtifice,
             ReforgingOption.ExaltedArtifice,
-            ReforgingOption.SublimeArtifice,
+            ReforgingOption.SublimeArtifice
         };
+
+        private readonly ReforgingContext m_Context;
+        private readonly Item m_ToReforge;
+        private readonly BaseRunicTool m_Tool;
+        private ReforgingOption m_Options;
+        private ReforgedPrefix m_Prefix;
+        private ReforgedSuffix m_Suffix;
 
         public RunicReforgingGump(Mobile from, Item toReforge, BaseRunicTool tool)
             : base(100, 100)
@@ -71,14 +67,14 @@ namespace Server.Gumps
             AddBackground(0, 0, 370, 440, 83);
             AddHtmlLocalized(10, 10, 350, 18, 1114513, "#1151952", 0x4BB7, false, false); // Runic Crafting Options
 
-            int buttonHue = 0x4BB2;
-            int buttonID = 0x4005;
-            int y = 40;
-            int idx = 0;
+            var buttonHue = 0x4BB2;
+            var buttonID = 0x4005;
+            var y = 40;
+            var idx = 0;
 
-            for(int i = 0; i < Options.Length; i++)
+            for (var i = 0; i < Options.Length; i++)
             {
-                ReforgingOption option = Options[i];
+                var option = Options[i];
 
                 if ((m_Options & option) != 0)
                 {
@@ -107,7 +103,7 @@ namespace Server.Gumps
                     }
                 }
 
-                if(HasMetPrerequisite(option) && CanReforge(from, option))
+                if (HasMetPrerequisite(option) && CanReforge(from, option))
                     AddButton(15, y, buttonID, buttonID, i + 100, GumpButtonType.Reply, 0);
 
                 AddHtmlLocalized(55, y, 250, 20, GetCliloc(option), buttonHue, false, false);
@@ -116,7 +112,7 @@ namespace Server.Gumps
                 idx++;
             }
 
-            int totalCharges = GetTotalCharges();
+            var totalCharges = GetTotalCharges();
 
             if ((m_Options & ReforgingOption.InspiredArtifice) != 0)
             {
@@ -161,8 +157,11 @@ namespace Server.Gumps
                 case ReforgingOption.GrandArtifice: return true;
                 case ReforgingOption.InspiredArtifice: return (m_Options & ReforgingOption.GrandArtifice) != 0;
                 case ReforgingOption.ExaltedArtifice: return (m_Options & ReforgingOption.GrandArtifice) != 0;
-                case ReforgingOption.SublimeArtifice: return (m_Options & ReforgingOption.ExaltedArtifice) != 0 && (m_Options & ReforgingOption.GrandArtifice) != 0;
+                case ReforgingOption.SublimeArtifice:
+                    return (m_Options & ReforgingOption.ExaltedArtifice) != 0 &&
+                           (m_Options & ReforgingOption.GrandArtifice) != 0;
             }
+
             return true;
         }
 
@@ -201,7 +200,7 @@ namespace Server.Gumps
 
         private bool CanReforge(Mobile from, ReforgingOption option)
         {
-            double skill = from.Skills[SkillName.Imbuing].Value;
+            var skill = from.Skills[SkillName.Imbuing].Value;
 
             switch (option)
             {
@@ -239,25 +238,20 @@ namespace Server.Gumps
 
         private int GetTotalCharges()
         {
-            int count = 1;
+            var count = 1;
 
             foreach (var option in Options)
-            {
                 if ((m_Options & option) != 0)
                     count++;
-            }
 
             return Math.Min(10, count);
         }
 
         public override void OnResponse(NetState state, RelayInfo info)
         {
-            Mobile from = state.Mobile;
+            var from = state.Mobile;
 
-            if (!BaseTool.CheckAccessible(m_Tool, from, true))
-            {
-                return;
-            }
+            if (!BaseTool.CheckAccessible(m_Tool, from, true)) return;
 
             switch (info.ButtonID)
             {
@@ -269,157 +263,156 @@ namespace Server.Gumps
                     from.SendGump(new ItemNameGump(m_ToReforge, m_Tool, m_Options, m_Prefix, m_Suffix, false));
                     break;
                 case 3: // Reforge Item
+                {
+                    if (!RunicReforging.CanReforge(from, m_ToReforge, m_Tool.CraftSystem)) return;
+
+                    var totalCharges = GetTotalCharges();
+
+                    if (m_Tool.UsesRemaining >= totalCharges)
                     {
-                        if (!RunicReforging.CanReforge(from, m_ToReforge, m_Tool.CraftSystem))
-                        {
+                        var resInfo = CraftResources.GetInfo(m_Tool.Resource);
+
+                        if (resInfo == null)
                             return;
-                        }
 
-                        int totalCharges = GetTotalCharges();
+                        var attrs = resInfo.AttributeInfo;
 
-                        if (m_Tool.UsesRemaining >= totalCharges)
+                        var min = 10;
+                        var max = 80;
+
+                        if (min < 10) min = 10;
+                        if (max > 100) max = 100;
+
+                        var budget = GetBudget();
+
+                        var prefix = ReforgedPrefix.None;
+                        var suffix = ReforgedSuffix.None;
+
+                        if ((m_Options & ReforgingOption.GrandArtifice) != 0)
                         {
-                            CraftResourceInfo resInfo = CraftResources.GetInfo(m_Tool.Resource);
-
-                            if (resInfo == null)
-                                return;
-
-                            CraftAttributeInfo attrs = resInfo.AttributeInfo;
-
-                            int min = 10;
-                            int max = 80;
-
-                            if (min < 10) min = 10;
-                            if (max > 100) max = 100;
-
-                            int budget = GetBudget();
-                            
-                            ReforgedPrefix prefix = ReforgedPrefix.None;
-                            ReforgedSuffix suffix = ReforgedSuffix.None;
-
-                            if ((m_Options & ReforgingOption.GrandArtifice) != 0)
+                            // choosing name 1
+                            if ((m_Options & ReforgingOption.InspiredArtifice) != 0)
                             {
-                                // choosing name 1
-                                if ((m_Options & ReforgingOption.InspiredArtifice) != 0)
+                                prefix = m_Prefix;
+
+                                if (prefix == ReforgedPrefix.None)
                                 {
-                                    prefix = m_Prefix;
-
-                                    if (prefix == ReforgedPrefix.None)
-                                    {
-                                        from.SendLocalizedMessage(1152287); // Re-forging failed. You did not choose a name! Please try again.
-                                        return;
-                                    }
-                                }
-                                else
-                                {
-                                    // Not choosing name 1 or 2
-                                    if ((m_Options & ReforgingOption.SublimeArtifice) == 0)
-                                    {
-                                        // random prefix AND suffix
-                                        if ((m_Options & ReforgingOption.ExaltedArtifice) != 0)
-                                        {
-                                            prefix = RunicReforging.ChooseRandomPrefix(m_ToReforge, budget);
-                                            suffix = RunicReforging.ChooseRandomSuffix(m_ToReforge, budget, m_Prefix);
-                                        }
-                                        else // random prefix OR suffix
-                                        {
-                                            if (0.5 > Utility.RandomDouble())
-                                            {
-                                                prefix = RunicReforging.ChooseRandomPrefix(m_ToReforge, budget);
-                                            }
-                                            else
-                                            {
-                                                suffix = RunicReforging.ChooseRandomSuffix(m_ToReforge, budget, m_Prefix);
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            if ((m_Options & ReforgingOption.ExaltedArtifice) != 0)
-                            {
-                                if ((m_Options & ReforgingOption.SublimeArtifice) != 0)
-                                {
-                                    suffix = m_Suffix;
-
-                                    if (suffix == ReforgedSuffix.None)
-                                    {
-                                        from.SendLocalizedMessage(1152287); // Re-forging failed. You did not choose a name! Please try again.
-                                        return;
-                                    }
-                                }
-                                else
-                                {
-                                    suffix = RunicReforging.ChooseRandomSuffix(m_ToReforge, budget, m_Prefix);
-                                    budget = Math.Min(800, budget + 50);
-                                }
-                            }
-
-                            // 50% chance to switch prefix/suffix around
-                            if ((prefix != ReforgedPrefix.None || suffix != ReforgedSuffix.None) && 0.5 > Utility.RandomDouble())
-                            {
-                                int pre = (int)prefix;
-                                int suf = (int)suffix;
-
-                                prefix = (ReforgedPrefix)suf;
-                                suffix = (ReforgedSuffix)pre;
-                            }
-
-                            RunicReforging.ApplyReforgedProperties(m_ToReforge, prefix, suffix, budget, min, max, RunicReforging.GetPropertyCount(m_Tool), 0, m_Tool, m_Options);
-
-                            OnAfterReforged(m_ToReforge);
-                            from.SendLocalizedMessage(1152286); // You re-forge the item!
-
-                            from.PlaySound(0x665);
-
-                            m_Tool.UsesRemaining -= totalCharges;
-
-                            if (m_Tool.UsesRemaining <= 0)
-                            {
-                                m_Tool.Delete();
-                                from.SendLocalizedMessage(1044038); // You have worn out your tool!
-                            }
-                        }
-
-                        break;
-                    }
-                case 4:
-                    from.SendGump(new ReforgingHelpGump());
-                    break;
-                default: // Option
-                    {
-                        ReforgingOption option = Options[info.ButtonID - 100];
-
-                        if (HasMetPrerequisite(option))
-                        {
-                            if ((m_Options & option) == 0)
-                            {
-                                m_Options |= option;
-
-                                if (m_Prefix != ReforgedPrefix.None && !RunicReforging.HasSelection((int)m_Prefix, m_ToReforge, m_Tool, m_Options, -1, -1))
-                                {
-                                    m_Prefix = ReforgedPrefix.None;
-                                    m_Context.Prefix = ReforgedPrefix.None;
-                                }
-
-                                if (m_Suffix != ReforgedSuffix.None && !RunicReforging.HasSelection((int)m_Suffix, m_ToReforge, m_Tool, m_Options, -1, -1))
-                                {
-                                    m_Suffix = ReforgedSuffix.None;
-                                    m_Context.Suffix = ReforgedSuffix.None;
+                                    from.SendLocalizedMessage(
+                                        1152287); // Re-forging failed. You did not choose a name! Please try again.
+                                    return;
                                 }
                             }
                             else
                             {
-                                m_Options ^= option;
-                                InvalidatePrerequisite(option);
+                                // Not choosing name 1 or 2
+                                if ((m_Options & ReforgingOption.SublimeArtifice) == 0)
+                                {
+                                    // random prefix AND suffix
+                                    if ((m_Options & ReforgingOption.ExaltedArtifice) != 0)
+                                    {
+                                        prefix = RunicReforging.ChooseRandomPrefix(m_ToReforge, budget);
+                                        suffix = RunicReforging.ChooseRandomSuffix(m_ToReforge, budget, m_Prefix);
+                                    }
+                                    else // random prefix OR suffix
+                                    {
+                                        if (0.5 > Utility.RandomDouble())
+                                            prefix = RunicReforging.ChooseRandomPrefix(m_ToReforge, budget);
+                                        else
+                                            suffix = RunicReforging.ChooseRandomSuffix(m_ToReforge, budget, m_Prefix);
+                                    }
+                                }
                             }
-
-                            m_Context.Contexts[m_Tool] = m_Options;
                         }
 
-                        from.SendGump(new RunicReforgingGump(from, m_ToReforge, m_Tool));
-                        break;
+                        if ((m_Options & ReforgingOption.ExaltedArtifice) != 0)
+                        {
+                            if ((m_Options & ReforgingOption.SublimeArtifice) != 0)
+                            {
+                                suffix = m_Suffix;
+
+                                if (suffix == ReforgedSuffix.None)
+                                {
+                                    from.SendLocalizedMessage(
+                                        1152287); // Re-forging failed. You did not choose a name! Please try again.
+                                    return;
+                                }
+                            }
+                            else
+                            {
+                                suffix = RunicReforging.ChooseRandomSuffix(m_ToReforge, budget, m_Prefix);
+                                budget = Math.Min(800, budget + 50);
+                            }
+                        }
+
+                        // 50% chance to switch prefix/suffix around
+                        if ((prefix != ReforgedPrefix.None || suffix != ReforgedSuffix.None) &&
+                            0.5 > Utility.RandomDouble())
+                        {
+                            var pre = (int)prefix;
+                            var suf = (int)suffix;
+
+                            prefix = (ReforgedPrefix)suf;
+                            suffix = (ReforgedSuffix)pre;
+                        }
+
+                        RunicReforging.ApplyReforgedProperties(m_ToReforge, prefix, suffix, budget, min, max,
+                            RunicReforging.GetPropertyCount(m_Tool), 0, m_Tool, m_Options);
+
+                        OnAfterReforged(m_ToReforge);
+                        from.SendLocalizedMessage(1152286); // You re-forge the item!
+
+                        from.PlaySound(0x665);
+
+                        m_Tool.UsesRemaining -= totalCharges;
+
+                        if (m_Tool.UsesRemaining <= 0)
+                        {
+                            m_Tool.Delete();
+                            from.SendLocalizedMessage(1044038); // You have worn out your tool!
+                        }
                     }
+
+                    break;
+                }
+                case 4:
+                    from.SendGump(new ReforgingHelpGump());
+                    break;
+                default: // Option
+                {
+                    var option = Options[info.ButtonID - 100];
+
+                    if (HasMetPrerequisite(option))
+                    {
+                        if ((m_Options & option) == 0)
+                        {
+                            m_Options |= option;
+
+                            if (m_Prefix != ReforgedPrefix.None &&
+                                !RunicReforging.HasSelection((int)m_Prefix, m_ToReforge, m_Tool, m_Options, -1, -1))
+                            {
+                                m_Prefix = ReforgedPrefix.None;
+                                m_Context.Prefix = ReforgedPrefix.None;
+                            }
+
+                            if (m_Suffix != ReforgedSuffix.None &&
+                                !RunicReforging.HasSelection((int)m_Suffix, m_ToReforge, m_Tool, m_Options, -1, -1))
+                            {
+                                m_Suffix = ReforgedSuffix.None;
+                                m_Context.Suffix = ReforgedSuffix.None;
+                            }
+                        }
+                        else
+                        {
+                            m_Options ^= option;
+                            InvalidatePrerequisite(option);
+                        }
+
+                        m_Context.Contexts[m_Tool] = m_Options;
+                    }
+
+                    from.SendGump(new RunicReforgingGump(from, m_ToReforge, m_Tool));
+                    break;
+                }
             }
         }
 
@@ -469,10 +462,10 @@ namespace Server.Gumps
 
         public void OnAfterReforged(Item item)
         {
-            AosAttributes attr = RunicReforging.GetAosAttributes(item);
-            NegativeAttributes neg = RunicReforging.GetNegativeAttributes(item);
+            var attr = RunicReforging.GetAosAttributes(item);
+            var neg = RunicReforging.GetNegativeAttributes(item);
 
-            int durability = 0;
+            var durability = 0;
 
             if (item is BaseWeapon)
                 attr = ((BaseWeapon)item).Attributes;
@@ -482,7 +475,7 @@ namespace Server.Gumps
 
             if (attr != null && (m_Options & ReforgingOption.Structural) != 0)
             {
-                if(neg != null)
+                if (neg != null)
                     neg.Brittle = 1;
 
                 if ((m_Options & ReforgingOption.Fortified) != 0)
@@ -514,18 +507,18 @@ namespace Server.Gumps
 
         public class ItemNameGump : Gump
         {
-            private BaseRunicTool m_Tool;
-            private Item m_ToReforge;
-            private ReforgingOption m_Options;
+            private static readonly int White = 0x6F7B;
+            private static readonly int Green = 0x4BB2;
+            private static readonly int Yellow = 0x6B55;
+            private readonly bool m_IsPrefix;
+            private readonly ReforgingOption m_Options;
+            private readonly Item m_ToReforge;
+            private readonly BaseRunicTool m_Tool;
             private ReforgedPrefix m_Prefix;
             private ReforgedSuffix m_Suffix;
-            private bool m_IsPrefix;
 
-            private static int White = 0x6F7B;
-            private static int Green = 0x4BB2;
-            private static int Yellow = 0x6B55;
-
-            public ItemNameGump(Item toreforge, BaseRunicTool tool, ReforgingOption options, ReforgedPrefix prefix, ReforgedSuffix suffix, bool isprefix)
+            public ItemNameGump(Item toreforge, BaseRunicTool tool, ReforgingOption options, ReforgedPrefix prefix,
+                ReforgedSuffix suffix, bool isprefix)
                 : base(100, 100)
             {
                 m_Tool = tool;
@@ -537,11 +530,12 @@ namespace Server.Gumps
 
                 AddBackground(0, 0, 370, 440, 83);
 
-                AddHtmlLocalized(10, 10, 350, 18, 1114513, "#1152089", 0x4BB7, false, false); // Runic Crafting - Item Name Selection
+                AddHtmlLocalized(10, 10, 350, 18, 1114513, "#1152089", 0x4BB7, false,
+                    false); // Runic Crafting - Item Name Selection
 
-                int buttonID = 4005;
-                int buttonHue = 0x4BB2;
-                int y = 50;
+                var buttonID = 4005;
+                var buttonHue = 0x4BB2;
+                var y = 50;
 
                 foreach (int i in Enum.GetValues(typeof(ReforgedPrefix)))
                 {
@@ -560,13 +554,9 @@ namespace Server.Gumps
                     }
 
                     if (RunicReforging.HasSelection(i, toreforge, tool, m_Options, (int)m_Prefix, (int)m_Suffix))
-                    {
                         AddButton(15, y, buttonID, buttonID, 100 + i, GumpButtonType.Reply, 0);
-                    }
                     else
-                    {
                         buttonHue = Yellow;
-                    }
 
                     AddHtmlLocalized(55, y, 250, 20, RunicReforging.GetName(i), buttonHue, false, false);
 
@@ -579,14 +569,15 @@ namespace Server.Gumps
 
             public override void OnResponse(NetState state, RelayInfo info)
             {
-                Mobile from = state.Mobile;
+                var from = state.Mobile;
 
                 if (info.ButtonID == 0)
                     return;
 
-                int index = info.ButtonID - 100;
+                var index = info.ButtonID - 100;
 
-                if (index >= 0 && index <= 12 && RunicReforging.HasSelection(index, m_ToReforge, m_Tool, m_Options, (int)m_Prefix, (int)m_Suffix))
+                if (index >= 0 && index <= 12 && RunicReforging.HasSelection(index, m_ToReforge, m_Tool, m_Options,
+                        (int)m_Prefix, (int)m_Suffix))
                 {
                     var context = ReforgingContext.GetContext(from);
 

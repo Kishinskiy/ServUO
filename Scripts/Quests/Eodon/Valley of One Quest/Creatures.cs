@@ -1,9 +1,10 @@
 using System;
-using Server;
-using Server.Items;
 using System.Collections.Generic;
-using Server.Engines.Quests;
 using System.Linq;
+using Server.Engines.Quests;
+using Server.Items;
+using Server.Network;
+using Server.Spells;
 
 namespace Server.Mobiles
 {
@@ -11,6 +12,14 @@ namespace Server.Mobiles
     public class TRex : BaseCreature
     {
         private DateTime _NextFreeze;
+
+        public override bool AutoDispel => true;
+        public override Poison PoisonImmune => Poison.Lethal;
+        public override bool UseSmartAI => true;
+        public override bool ReacquireOnMovement => true;
+        public override bool AttacksFocus => true;
+        public override bool CanFlee => false;
+        public override int TreasureMapLevel => 7;
 
         [Constructable]
         public TRex()
@@ -53,13 +62,10 @@ namespace Server.Mobiles
             SetSpecialAbility(SpecialAbility.TailSwipe);
         }
 
-        public override bool AutoDispel { get { return true; } }
-        public override Poison PoisonImmune { get { return Poison.Lethal; } }
-        public override bool UseSmartAI { get { return true; } }
-        public override bool ReacquireOnMovement { get { return true; } }
-        public override bool AttacksFocus { get { return true; } }
-        public override bool CanFlee { get { return false; } }
-        public override int TreasureMapLevel { get { return 7; } }
+        public TRex(Serial serial)
+            : base(serial)
+        {
+        }
 
         // Missing Tail Swipe Ability
 
@@ -86,11 +92,11 @@ namespace Server.Mobiles
 
         private bool DoEffects(Direction d)
         {
-            int x = X;
-            int y = Y;
-            int z = Z;
-            int range = 10;
-            int offset = 8;
+            var x = X;
+            var y = Y;
+            var z = Z;
+            var range = 10;
+            var offset = 8;
 
             switch (d)
             {
@@ -112,7 +118,7 @@ namespace Server.Mobiles
                     break;
             }
 
-            for (int i = 0; i < range; i++)
+            for (var i = 0; i < range; i++)
             {
                 switch (d)
                 {
@@ -123,11 +129,12 @@ namespace Server.Mobiles
                 }
 
                 z = Map.GetAverageZ(x, y);
-                Point3D p = new Point3D(x, y, z);
+                var p = new Point3D(x, y, z);
 
-                if (Server.Spells.SpellHelper.AdjustField(ref p, Map, 12, false))/*Map.CanFit(x, y, z, 16, false, false, true))/*Map.CanSpawnMobile(x, y, z)*/
+                if (SpellHelper.AdjustField(ref p, Map, 12,
+                        false)) /*Map.CanFit(x, y, z, 16, false, false, true))/*Map.CanSpawnMobile(x, y, z)*/
                 {
-                    MovementPath path = new MovementPath(this, p);
+                    var path = new MovementPath(this, p);
 
                     if (path.Success)
                     {
@@ -142,16 +149,17 @@ namespace Server.Mobiles
 
         private void DropCrack(MovementPath path)
         {
-            int time = 10;
-            int x = X;
-            int y = Y;
+            var time = 10;
+            var x = X;
+            var y = Y;
 
-            for (int i = 0; i < path.Directions.Length; ++i)
+            for (var i = 0; i < path.Directions.Length; ++i)
             {
                 Movement.Movement.Offset(path.Directions[i], ref x, ref y);
-                IPoint3D p = new Point3D(x, y, Map.GetAverageZ(x, y)) as IPoint3D;
+                var p = new Point3D(x, y, Map.GetAverageZ(x, y)) as IPoint3D;
 
-                Timer.DelayCall(TimeSpan.FromMilliseconds(time), new TimerStateCallback(ManaDrainEffects_Callback), new object[] { p, Map });
+                Timer.DelayCall(TimeSpan.FromMilliseconds(time), new TimerStateCallback(ManaDrainEffects_Callback),
+                    new object[] { p, Map });
 
                 time += 200;
             }
@@ -159,20 +167,39 @@ namespace Server.Mobiles
 
         private void ManaDrainEffects_Callback(object o)
         {
-            object[] objs = o as object[];
-            IPoint3D p = objs[0] as IPoint3D;
-            Map map = objs[1] as Map;
+            var objs = o as object[];
+            var p = objs[0] as IPoint3D;
+            var map = objs[1] as Map;
 
             var item = new FreezeItem(Utility.RandomList(6913, 6915, 6917, 6919), this);
-            Spells.SpellHelper.GetSurfaceTop(ref p);
+            SpellHelper.GetSurfaceTop(ref p);
 
             item.MoveToWorld(new Point3D(p), Map);
+        }
+
+        public override void GenerateLoot()
+        {
+            AddLoot(LootPack.SuperBoss, 2);
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+
+            writer.Write(0); // version
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+
+            var version = reader.ReadInt();
         }
 
         private class FreezeItem : Item
         {
             public Item Static { get; private set; }
-            public BaseCreature Owner { get; private set; }
+            public BaseCreature Owner { get; }
 
             public FreezeItem(int id, BaseCreature owner)
                 : base(id)
@@ -182,6 +209,11 @@ namespace Server.Mobiles
                 Movable = false;
                 Hue = 1152;
                 Timer.DelayCall(TimeSpan.FromSeconds(5), ChangeHue);
+            }
+
+            public FreezeItem(Serial serial)
+                : base(serial)
+            {
             }
 
             private void ChangeHue()
@@ -208,16 +240,14 @@ namespace Server.Mobiles
 
                 IPooledEnumerable eable = Map.GetMobilesInRange(Location, 0);
 
-                foreach (Mobile m in eable)
-                {
-                    OnMoveOver(m);
-                }
+                foreach (Mobile m in eable) OnMoveOver(m);
                 eable.Free();
             }
 
             public override bool OnMoveOver(Mobile m)
             {
-                if ((m is PlayerMobile || (m is BaseCreature && ((BaseCreature)m).GetMaster() is PlayerMobile)) && m.CanBeHarmful(Owner, false))
+                if ((m is PlayerMobile || (m is BaseCreature && ((BaseCreature)m).GetMaster() is PlayerMobile)) &&
+                    m.CanBeHarmful(Owner, false))
                 {
                     m.Freeze(TimeSpan.FromSeconds(Utility.RandomMinMax(5, 10)));
 
@@ -232,11 +262,6 @@ namespace Server.Mobiles
                 return true;
             }
 
-            public FreezeItem(Serial serial)
-                : base(serial)
-            {
-            }
-
             public override void Serialize(GenericWriter writer)
             {
                 base.Serialize(writer);
@@ -246,46 +271,29 @@ namespace Server.Mobiles
             public override void Deserialize(GenericReader reader)
             {
                 base.Deserialize(reader);
-                int version = reader.ReadInt();
+                var version = reader.ReadInt();
 
                 Delete();
             }
-        }
-
-        public override void GenerateLoot()
-        {
-            AddLoot(LootPack.SuperBoss, 2);
-        }
-
-        public TRex(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-
-            writer.Write((int)0); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
         }
     }
 
     [CorpseName("the corpse of a great ape")]
     public class GreatApe : BaseCreature
     {
-        private DateTime _NextSpecial;
-        private DateTime _NextBarrelThrow;
+        private readonly int[] _BarrelIDs =
+        {
+            3703, 4014, 5453, 7861,
+            17650
+        };
 
-        private int _LastTeleport;
+        private readonly Point3D[] _PlayerTeleList =
+        {
+            new Point3D(875, 1380, -20),
+            new Point3D(855, 1442, -20)
+        };
 
-        private Point3D[] _TeleList =
+        private readonly Point3D[] _TeleList =
         {
             new Point3D(874, 1439, 0),
             new Point3D(847, 1425, 0),
@@ -301,23 +309,20 @@ namespace Server.Mobiles
             new Point3D(858, 1412, 21),
             new Point3D(868, 1412, 20),
             new Point3D(869, 1409, 20),
-            new Point3D(869, 1404, 20),
+            new Point3D(869, 1404, 20)
         };
 
-        private Point3D[] _PlayerTeleList =
-        {
-            new Point3D(875, 1380, -20),
-            new Point3D(855, 1442, -20)
-        };
-
-        private int[] _BarrelIDs =
-        {
-            3703,   4014,   5453,   7861,
-            17650
-        };
+        private int _LastTeleport;
+        private DateTime _NextBarrelThrow;
+        private DateTime _NextSpecial;
 
         [CommandProperty(AccessLevel.GameMaster)]
         public bool Teleports { get; set; }
+
+        public override bool AutoDispel => true;
+        public override Poison PoisonImmune => Poison.Lethal;
+        public override bool UseSmartAI => true;
+        public override int TreasureMapLevel => 7;
 
         [Constructable]
         public GreatApe(bool teleports = false)
@@ -356,19 +361,14 @@ namespace Server.Mobiles
             _NextBarrelThrow = DateTime.UtcNow;
         }
 
-        public override void GenerateLoot()
-        {
-            AddLoot(LootPack.SuperBoss, 2);
-        }
-
-        public override bool AutoDispel { get { return true; } }
-        public override Poison PoisonImmune { get { return Poison.Lethal; } }
-        public override bool UseSmartAI { get { return true; } }
-        public override int TreasureMapLevel { get { return 7; } }
-
         public GreatApe(Serial serial)
             : base(serial)
         {
+        }
+
+        public override void GenerateLoot()
+        {
+            AddLoot(LootPack.SuperBoss, 2);
         }
 
         public override void OnThink()
@@ -382,87 +382,84 @@ namespace Server.Mobiles
             {
                 _NextSpecial = DateTime.UtcNow + TimeSpan.FromSeconds(Utility.RandomMinMax(45, 60));
 
-                switch(Utility.Random(Teleports ? 3 : 2))
+                switch (Utility.Random(Teleports ? 3 : 2))
                 {
                     case 0:
                         IPooledEnumerable eable = Map.GetMobilesInRange(Location, 10);
 
                         foreach (Mobile m in eable)
-                        {
-                            if (m.Alive && m.AccessLevel == AccessLevel.Player && m is PlayerMobile && .75 > Utility.RandomDouble())
+                            if (m.Alive && m.AccessLevel == AccessLevel.Player && m is PlayerMobile &&
+                                .75 > Utility.RandomDouble())
                                 DoDismount(m);
-                        }
 
                         eable.Free();
                         break;
                     case 1:
                         IPooledEnumerable eable2 = Map.GetMobilesInRange(Location, 10);
-                        List<Mobile> mobiles = new List<Mobile>();
+                        var mobiles = new List<Mobile>();
 
                         foreach (Mobile m in eable2)
-                        {
                             if (m.Alive && m.AccessLevel == AccessLevel.Player && m is PlayerMobile)
                                 mobiles.Add(m);
-                        }
 
                         eable2.Free();
 
                         if (mobiles.Count > 0)
                         {
-                            Mobile m = mobiles[Utility.Random(mobiles.Count)];
-                            Point3D old2 = m.Location;
-                            Point3D p2 = _PlayerTeleList[Utility.Random(_PlayerTeleList.Length)];
+                            var m = mobiles[Utility.Random(mobiles.Count)];
+                            var old2 = m.Location;
+                            var p2 = _PlayerTeleList[Utility.Random(_PlayerTeleList.Length)];
 
                             m.MoveToWorld(p2, Map);
                             m.ProcessDelta();
 
-                            Effects.SendLocationParticles(EffectItem.Create(old2, Map, EffectItem.DefaultDuration), 0x3728, 10, 10, 2023);
-                            Effects.SendLocationParticles(EffectItem.Create(p2, Map, EffectItem.DefaultDuration), 0x3728, 10, 10, 5023);
+                            Effects.SendLocationParticles(EffectItem.Create(old2, Map, EffectItem.DefaultDuration),
+                                0x3728, 10, 10, 2023);
+                            Effects.SendLocationParticles(EffectItem.Create(p2, Map, EffectItem.DefaultDuration),
+                                0x3728, 10, 10, 5023);
                         }
 
                         ColUtility.Free(mobiles);
                         break;
                     case 2:
-                        int ran = -1;
+                        var ran = -1;
 
                         while (ran < 0 || ran > _TeleList.Length || ran == _LastTeleport)
-                        {
                             ran = Utility.Random(_TeleList.Length);
-                        }
 
                         _LastTeleport = ran;
-                        Point3D p = _TeleList[ran];
-                        Point3D old = Location;
+                        var p = _TeleList[ran];
+                        var old = Location;
 
                         MoveToWorld(p, Map);
                         ProcessDelta();
 
-                        Effects.SendLocationParticles(EffectItem.Create(old, Map, EffectItem.DefaultDuration), 0x3728, 10, 10, 2023);
-                        Effects.SendLocationParticles(EffectItem.Create(p, Map, EffectItem.DefaultDuration), 0x3728, 10, 10, 5023);
+                        Effects.SendLocationParticles(EffectItem.Create(old, Map, EffectItem.DefaultDuration), 0x3728,
+                            10, 10, 2023);
+                        Effects.SendLocationParticles(EffectItem.Create(p, Map, EffectItem.DefaultDuration), 0x3728, 10,
+                            10, 5023);
                         break;
                 }
             }
             else if (_NextBarrelThrow < DateTime.UtcNow && .25 > Utility.RandomDouble())
             {
                 _NextBarrelThrow = DateTime.UtcNow + TimeSpan.FromSeconds(Utility.RandomMinMax(5, 10));
-                int barrel = CheckBarrel();
+                var barrel = CheckBarrel();
 
                 if (barrel >= 0)
                 {
                     IPooledEnumerable eable = Map.GetMobilesInRange(Location, 10);
-                    List<Mobile> mobiles = new List<Mobile>();
+                    var mobiles = new List<Mobile>();
 
                     foreach (Mobile m in eable)
-                    {
                         if (m.Alive && m.AccessLevel == AccessLevel.Player && m is PlayerMobile)
                             mobiles.Add(m);
-                    }
 
                     eable.Free();
 
                     if (mobiles.Count > 0)
                     {
-                        Mobile m = mobiles[Utility.Random(mobiles.Count)];
+                        var m = mobiles[Utility.Random(mobiles.Count)];
                         DoHarmful(m);
 
                         MovingParticles(m, barrel, 10, 0, false, true, 0, 0, 9502, 6014, 0x11D, EffectLayer.Waist, 0);
@@ -484,11 +481,11 @@ namespace Server.Mobiles
             MovingParticles(m, 0x36D4, 7, 0, false, true, 9502, 4019, 0x160);
             PlaySound(0x15E);
 
-            double range = m.GetDistanceToSqrt(this);
+            var range = m.GetDistanceToSqrt(this);
 
             Timer.DelayCall(TimeSpan.FromMilliseconds(250 * range), () =>
             {
-                IMount mount = m.Mount;
+                var mount = m.Mount;
 
                 if (mount != null)
                 {
@@ -511,13 +508,11 @@ namespace Server.Mobiles
         public int CheckBarrel()
         {
             IPooledEnumerable eable = Map.GetItemsInRange(Location, 2);
-            List<Item> items = new List<Item>();
+            var items = new List<Item>();
 
             foreach (Item item in eable)
-            {
                 if (!item.Movable && _BarrelIDs.Any(id => id == item.ItemID))
                     items.Add(item);
-            }
 
             eable.Free();
             int itemid;
@@ -535,7 +530,7 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
             writer.Write(Teleports);
         }
 
@@ -543,7 +538,7 @@ namespace Server.Mobiles
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
             Teleports = reader.ReadBool();
 
             _NextSpecial = DateTime.UtcNow;
@@ -556,6 +551,10 @@ namespace Server.Mobiles
     {
         [CommandProperty(AccessLevel.GameMaster)]
         public Mobile Protector { get; set; }
+
+        public override int Meat => 1;
+        public override FoodType FavoriteFood => FoodType.Meat | FoodType.Fish;
+        public override PackInstinct PackInstinct => PackInstinct.Feline;
 
         [Constructable]
         public TigerCub()
@@ -589,19 +588,27 @@ namespace Server.Mobiles
             MinTameSkill = 0;
         }
 
+        public TigerCub(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void OnThink()
         {
             base.OnThink();
 
             if (Protector != null && Protector is PlayerMobile && InRange(Home, 2))
             {
-                PrideOfTheAmbushQuest quest = QuestHelper.GetQuest((PlayerMobile)Protector, typeof(PrideOfTheAmbushQuest)) as PrideOfTheAmbushQuest;
+                var quest =
+                    QuestHelper.GetQuest((PlayerMobile)Protector, typeof(PrideOfTheAmbushQuest)) as
+                        PrideOfTheAmbushQuest;
 
                 if (quest != null && !quest.Completed)
                     quest.Update(this);
 
-                Protector.PrivateOverheadMessage(Server.Network.MessageType.Regular, 0x35, 1156501, Protector.NetState); // *You watch as the Tiger Cub safely returns to the Kurak Tribe*
-                
+                Protector.PrivateOverheadMessage(MessageType.Regular, 0x35, 1156501,
+                    Protector.NetState); // *You watch as the Tiger Cub safely returns to the Kurak Tribe*
+
                 Timer.DelayCall(TimeSpan.FromSeconds(.25), Delete);
                 Protector = null;
             }
@@ -611,27 +618,19 @@ namespace Server.Mobiles
         {
             if (from == Protector)
             {
-                PrivateOverheadMessage(Server.Network.MessageType.Regular, 0x35, 1156500, from.NetState); // *The cub looks at you playfully. Your attack fails as you are overwhelmed by its cuteness*
+                PrivateOverheadMessage(MessageType.Regular, 0x35, 1156500,
+                    from.NetState); // *The cub looks at you playfully. Your attack fails as you are overwhelmed by its cuteness*
                 return 0;
             }
 
             return base.Damage(amount, from, informMount, checkfizzle);
         }
 
-        public override int Meat { get { return 1; } }
-        public override FoodType FavoriteFood { get { return FoodType.Meat | FoodType.Fish; } }
-        public override PackInstinct PackInstinct { get { return PackInstinct.Feline; } }
-
-        public TigerCub(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)1);
+            writer.Write(1);
             writer.Write(Protector);
         }
 
@@ -639,10 +638,10 @@ namespace Server.Mobiles
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
             Protector = reader.ReadMobile();
 
-            if(version == 0)
+            if (version == 0)
             {
                 ControlSlots = 1;
                 MinTameSkill = 0;
@@ -676,12 +675,6 @@ namespace Server.Mobiles
             Karma = -12000;
 
             Timer.DelayCall(TimeSpan.FromMinutes(10), Delete);
-            
-        }
-
-        public override void GenerateLoot()
-        {
-            AddLoot(LootPack.Rich, 3);
         }
 
         public Trapper(Serial serial)
@@ -689,18 +682,23 @@ namespace Server.Mobiles
         {
         }
 
+        public override void GenerateLoot()
+        {
+            AddLoot(LootPack.Rich, 3);
+        }
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             Delete();
         }
@@ -718,14 +716,14 @@ namespace Server.Mobiles
             Nest = nest;
         }
 
-        public override void GenerateLoot()
-        {
-            AddLoot(LootPack.Rich, 3);
-        }
-
         public Poacher(Serial serial)
             : base(serial)
         {
+        }
+
+        public override void GenerateLoot()
+        {
+            AddLoot(LootPack.Rich, 3);
         }
 
         public override void OnDeath(Container c)
@@ -740,14 +738,14 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -759,7 +757,7 @@ namespace Server.Mobiles
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
         {
             Name = "a volcano elemental";
-            Body = 15; 
+            Body = 15;
             Hue = 2726;
 
             SetStr(446, 510);
@@ -793,16 +791,16 @@ namespace Server.Mobiles
             SetSpecialAbility(SpecialAbility.DragonBreath);
         }
 
+        public VolcanoElemental(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void GenerateLoot()
         {
             AddLoot(LootPack.FilthyRich, 3);
             AddLoot(LootPack.Gems, 2);
             AddLoot(LootPack.MedScrolls);
-        }
-
-        public VolcanoElemental(Serial serial)
-            : base(serial)
-        {
         }
 
         public override int GetIdleSound()
@@ -828,13 +826,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

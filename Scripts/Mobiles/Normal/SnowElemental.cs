@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +5,10 @@ namespace Server.Mobiles
     [CorpseName("a snow elemental corpse")]
     public class SnowElemental : BaseCreature, IAuraCreature
     {
+        public override bool BleedImmune => true;
+
+        public override int TreasureMapLevel => 2;
+
         [Constructable]
         public SnowElemental()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -53,21 +56,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool BleedImmune
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override int TreasureMapLevel
-        {
-            get
-            {
-                return 2;
-            }
-        }
-
         public void AuraEffect(Mobile m)
         {
             m.FixedParticles(0x374A, 10, 30, 5052, Hue, 0, EffectLayer.Waist);
@@ -84,13 +72,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

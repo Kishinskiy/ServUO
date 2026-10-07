@@ -1,6 +1,4 @@
-﻿using System;
-using Server;
-using Server.Items;
+﻿using Server.Items;
 
 namespace Server.Engines.TombOfKings
 {
@@ -11,7 +9,7 @@ namespace Server.Engines.TombOfKings
 
         public bool Active
         {
-            get { return Visible; }
+            get => Visible;
             set
             {
                 if (Visible != value)
@@ -59,42 +57,36 @@ namespace Server.Engines.TombOfKings
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
-            writer.Write((bool)(m_Blocker != null));
+            writer.Write(m_Blocker != null);
 
             if (m_Blocker != null)
-                writer.Write((Item)m_Blocker);
+                writer.Write(m_Blocker);
 
-            writer.Write((bool)(m_LOSBlocker != null));
+            writer.Write(m_LOSBlocker != null);
 
             if (m_LOSBlocker != null)
-                writer.Write((Item)m_LOSBlocker);
+                writer.Write(m_LOSBlocker);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (reader.ReadBool())
             {
                 m_Blocker = reader.ReadItem() as Blocker;
 
-                if (m_Blocker != null)
-                {
-                    m_Blocker.Delete();
-                }
+                if (m_Blocker != null) m_Blocker.Delete();
             }
 
             if (reader.ReadBool())
             {
                 m_LOSBlocker = reader.ReadItem() as LOSBlocker;
 
-                if (m_LOSBlocker != null)
-                {
-                    m_LOSBlocker.Delete();
-                }
+                if (m_LOSBlocker != null) m_LOSBlocker.Delete();
             }
 
             Delete();

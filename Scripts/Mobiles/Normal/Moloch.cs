@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +5,8 @@ namespace Server.Mobiles
     [CorpseName("a moloch corpse")]
     public class Moloch : BaseCreature
     {
+        public override Poison PoisonImmune => Poison.Regular;
+
         [Constructable]
         public Moloch()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -45,14 +46,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override Poison PoisonImmune
-        {
-            get
-            {
-                return Poison.Regular;
-            }
-        }
-
         public override void GenerateLoot()
         {
             AddLoot(LootPack.Rich);
@@ -61,13 +54,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

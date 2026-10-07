@@ -1,5 +1,6 @@
 using System;
 using Server.Commands;
+using Server.Engines;
 
 namespace Server.Items
 {
@@ -7,9 +8,62 @@ namespace Server.Items
     {
         private bool m_AutoLock;
         private InternalTimer m_RelockTimer;
-        private Map m_TargetMap;
-        private Point3D m_Target;
-        private string m_Description;
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public bool AutoLock
+        {
+            get => m_AutoLock;
+            set
+            {
+                m_AutoLock = value;
+
+                if (!m_AutoLock)
+                    StopTimer();
+                else if (!Locked && m_RelockTimer == null)
+                    m_RelockTimer = new InternalTimer(this);
+            }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public Map TargetMap { get; set; }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public Point3D Target { get; set; }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public bool Bone
+        {
+            get => ItemID == 0xECA;
+            set
+            {
+                ItemID = value ? 0xECA : 0xE79;
+                Hue = value ? 1102 : 0;
+            }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public string Description { get; set; }
+
+        public override bool IsDecoContainer => false;
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public override bool Locked
+        {
+            get => base.Locked;
+            set
+            {
+                base.Locked = value;
+
+                if (m_AutoLock)
+                {
+                    StopTimer();
+
+                    if (!Locked)
+                        m_RelockTimer = new InternalTimer(this);
+                }
+            }
+        }
+
         [Constructable]
         public MarkContainer()
             : this(false)
@@ -26,16 +80,16 @@ namespace Server.Items
         public MarkContainer(bool bone, bool locked)
             : base(bone ? 0xECA : 0xE79)
         {
-            this.Movable = false;
+            Movable = false;
 
             if (bone)
-                this.Hue = 1102;
+                Hue = 1102;
 
-            this.m_AutoLock = locked;
-            this.Locked = locked;
+            m_AutoLock = locked;
+            Locked = locked;
 
             if (locked)
-                this.LockLevel = -255;
+                LockLevel = -255;
         }
 
         public MarkContainer(Serial serial)
@@ -43,113 +97,20 @@ namespace Server.Items
         {
         }
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public bool AutoLock
-        {
-            get
-            {
-                return this.m_AutoLock;
-            }
-            set
-            {
-                this.m_AutoLock = value;
-
-                if (!this.m_AutoLock)
-                    this.StopTimer();
-                else if (!this.Locked && this.m_RelockTimer == null)
-                    this.m_RelockTimer = new InternalTimer(this);
-            }
-        }
-        [CommandProperty(AccessLevel.GameMaster)]
-        public Map TargetMap
-        {
-            get
-            {
-                return this.m_TargetMap;
-            }
-            set
-            {
-                this.m_TargetMap = value;
-            }
-        }
-        [CommandProperty(AccessLevel.GameMaster)]
-        public Point3D Target
-        {
-            get
-            {
-                return this.m_Target;
-            }
-            set
-            {
-                this.m_Target = value;
-            }
-        }
-        [CommandProperty(AccessLevel.GameMaster)]
-        public bool Bone
-        {
-            get
-            {
-                return this.ItemID == 0xECA;
-            }
-            set
-            {
-                this.ItemID = value ? 0xECA : 0xE79;
-                this.Hue = value ? 1102 : 0;
-            }
-        }
-        [CommandProperty(AccessLevel.GameMaster)]
-        public string Description
-        {
-            get
-            {
-                return this.m_Description;
-            }
-            set
-            {
-                this.m_Description = value;
-            }
-        }
-        public override bool IsDecoContainer
-        {
-            get
-            {
-                return false;
-            }
-        }
-        [CommandProperty(AccessLevel.GameMaster)]
-        public override bool Locked
-        {
-            get
-            {
-                return base.Locked;
-            }
-            set
-            {
-                base.Locked = value;
-
-                if (this.m_AutoLock)
-                {
-                    this.StopTimer();
-
-                    if (!this.Locked)
-                        this.m_RelockTimer = new InternalTimer(this);
-                }
-            }
-        }
         public static void Initialize()
         {
-            CommandSystem.Register("SecretLocGen", AccessLevel.Administrator, new CommandEventHandler(SecretLocGen_OnCommand));
-			CommandSystem.Register("SecretLocDelete", AccessLevel.Administrator, new CommandEventHandler(SecretLocDelete_OnCommand));
-		}
+            CommandSystem.Register("SecretLocGen", AccessLevel.Administrator, SecretLocGen_OnCommand);
+            CommandSystem.Register("SecretLocDelete", AccessLevel.Administrator, SecretLocDelete_OnCommand);
+        }
 
-		[Usage("SecretLocDelete")]
-		[Description("Deletes mark containers to Malas secret locations.")]
-		public static void SecretLocDelete_OnCommand(CommandEventArgs e)
-		{
-			WeakEntityCollection.Delete("malas");
-		}
+        [Usage("SecretLocDelete")]
+        [Description("Deletes mark containers to Malas secret locations.")]
+        public static void SecretLocDelete_OnCommand(CommandEventArgs e)
+        {
+            WeakEntityCollection.Delete("malas");
+        }
 
-		[Usage("SecretLocGen")]
+        [Usage("SecretLocGen")]
         [Description("Generates mark containers to Malas secret locations.")]
         public static void SecretLocGen_OnCommand(CommandEventArgs e)
         {
@@ -165,91 +126,87 @@ namespace Server.Items
 
             e.Mobile.SendMessage("Secret mark containers have been created.");
 
-            Server.Engines.GenerateForgottenPyramid.Generate(e.Mobile);
+            GenerateForgottenPyramid.Generate(e.Mobile);
         }
 
         public void StopTimer()
         {
-            if (this.m_RelockTimer != null)
-                this.m_RelockTimer.Stop();
+            if (m_RelockTimer != null)
+                m_RelockTimer.Stop();
 
-            this.m_RelockTimer = null;
+            m_RelockTimer = null;
         }
 
         public void Mark(RecallRune rune)
         {
-            if (this.TargetMap != null)
+            if (TargetMap != null)
             {
                 rune.Marked = true;
-                rune.TargetMap = this.m_TargetMap;
-                rune.Target = this.m_Target;
-                rune.Description = this.m_Description;
+                rune.TargetMap = TargetMap;
+                rune.Target = Target;
+                rune.Description = Description;
                 rune.House = null;
             }
         }
 
         public override bool OnDragDrop(Mobile from, Item dropped)
         {
-            RecallRune rune = dropped as RecallRune;
+            var rune = dropped as RecallRune;
 
             if (rune != null && base.OnDragDrop(from, dropped))
             {
-                this.Mark(rune);
+                Mark(rune);
 
                 return true;
             }
-            else
-            {
-                return false;
-            }
+
+            return false;
         }
 
         public override bool OnDragDropInto(Mobile from, Item dropped, Point3D p)
         {
-            RecallRune rune = dropped as RecallRune;
+            var rune = dropped as RecallRune;
 
             if (rune != null && base.OnDragDropInto(from, dropped, p))
             {
-                this.Mark(rune);
+                Mark(rune);
 
                 return true;
             }
-            else
-            {
-                return false;
-            }
+
+            return false;
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
-            writer.Write(this.m_AutoLock);
+            writer.Write(m_AutoLock);
 
-            if (!this.Locked && this.m_AutoLock)
-                writer.WriteDeltaTime(this.m_RelockTimer.RelockTime);
+            if (!Locked && m_AutoLock)
+                writer.WriteDeltaTime(m_RelockTimer.RelockTime);
 
-            writer.Write(this.m_TargetMap);
-            writer.Write(this.m_Target);
-            writer.Write(this.m_Description);
+            writer.Write(TargetMap);
+            writer.Write(Target);
+            writer.Write(Description);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            this.m_AutoLock = reader.ReadBool();
+            m_AutoLock = reader.ReadBool();
 
-            if (!this.Locked && this.m_AutoLock)
-                this.m_RelockTimer = new InternalTimer(this, reader.ReadDeltaTime() - DateTime.UtcNow);
+            if (!Locked && m_AutoLock)
+                m_RelockTimer = new InternalTimer(this, reader.ReadDeltaTime() - DateTime.UtcNow);
 
-            this.m_TargetMap = reader.ReadMap();
-            this.m_Target = reader.ReadPoint3D();
-            this.m_Description = reader.ReadString();
+            TargetMap = reader.ReadMap();
+            Target = reader.ReadPoint3D();
+            Description = reader.ReadString();
         }
 
         private static bool FindMarkContainer(Point3D p, Map map)
@@ -257,27 +214,26 @@ namespace Server.Items
             IPooledEnumerable eable = map.GetItemsInRange(p, 0);
 
             foreach (Item item in eable)
-            {
                 if (item.Z == p.Z && item is MarkContainer)
                 {
                     eable.Free();
                     return true;
                 }
-            }
 
             eable.Free();
             return false;
         }
 
-        private static void CreateMalasPassage(int x, int y, int z, int xTarget, int yTarget, int zTarget, bool bone, bool locked)
+        private static void CreateMalasPassage(int x, int y, int z, int xTarget, int yTarget, int zTarget, bool bone,
+            bool locked)
         {
-            Point3D location = new Point3D(x, y, z);
+            var location = new Point3D(x, y, z);
 
             if (FindMarkContainer(location, Map.Malas))
                 return;
 
-            MarkContainer cont = new MarkContainer(bone, locked);
-			WeakEntityCollection.Add("malas", cont);
+            var cont = new MarkContainer(bone, locked);
+            WeakEntityCollection.Add("malas", cont);
             cont.TargetMap = Map.Malas;
             cont.Target = new Point3D(xTarget, yTarget, zTarget);
             cont.Description = "strange location";
@@ -287,8 +243,10 @@ namespace Server.Items
 
         private class InternalTimer : Timer
         {
-            private readonly MarkContainer m_Container;
-            private readonly DateTime m_RelockTime;
+            public MarkContainer Container { get; }
+
+            public DateTime RelockTime { get; }
+
             public InternalTimer(MarkContainer container)
                 : this(container, TimeSpan.FromMinutes(5.0))
             {
@@ -297,30 +255,16 @@ namespace Server.Items
             public InternalTimer(MarkContainer container, TimeSpan delay)
                 : base(delay)
             {
-                this.m_Container = container;
-                this.m_RelockTime = DateTime.UtcNow + delay;
+                Container = container;
+                RelockTime = DateTime.UtcNow + delay;
 
-                this.Start();
+                Start();
             }
 
-            public MarkContainer Container
-            {
-                get
-                {
-                    return this.m_Container;
-                }
-            }
-            public DateTime RelockTime
-            {
-                get
-                {
-                    return this.m_RelockTime;
-                }
-            }
             protected override void OnTick()
             {
-                this.m_Container.Locked = true;
-                this.m_Container.LockLevel = -255;
+                Container.Locked = true;
+                Container.LockLevel = -255;
             }
         }
     }

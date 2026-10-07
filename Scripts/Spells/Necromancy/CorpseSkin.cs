@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using Server.Targeting;
 using Server.Spells.SkillMasteries;
+using Server.Targeting;
 
 namespace Server.Spells.Necromancy
 {
@@ -16,32 +16,17 @@ namespace Server.Spells.Necromancy
 
         private static readonly Dictionary<Mobile, ExpireTimer> m_Table = new Dictionary<Mobile, ExpireTimer>();
 
+        public override TimeSpan CastDelayBase => TimeSpan.FromSeconds(1.75);
+
+        public override double RequiredSkill => 20.0;
+
+        public override int RequiredMana => 11;
+
         public CorpseSkinSpell(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
         {
         }
 
-        public override TimeSpan CastDelayBase
-        {
-            get
-            {
-                return TimeSpan.FromSeconds(1.75);
-            }
-        }
-        public override double RequiredSkill
-        {
-            get
-            {
-                return 20.0;
-            }
-        }
-        public override int RequiredMana
-        {
-            get
-            {
-                return 11;
-            }
-        }
         public static bool RemoveCurse(Mobile m)
         {
             if (m_Table.ContainsKey(m))
@@ -60,10 +45,7 @@ namespace Server.Spells.Necromancy
 
         public static int GetResistMalus(Mobile m)
         {
-            if (m_Table.ContainsKey(m))
-            {
-                return 70 - m_Table[m].Malus;
-            }
+            if (m_Table.ContainsKey(m)) return 70 - m_Table[m].Malus;
 
             return 70;
         }
@@ -89,21 +71,18 @@ namespace Server.Spells.Necromancy
         public void ApplyEffects(Mobile m, double strength = 1.0)
         {
             /* Transmogrifies the flesh of the target creature or player to resemble rotted corpse flesh,
-                * making them more vulnerable to Fire and Poison damage,
-                * but increasing their resistance to Physical and Cold damage.
-                * 
-                * The effect lasts for ((Spirit Speak skill level - target's Resist Magic skill level) / 25 ) + 40 seconds.
-                * 
-                * NOTE: Algorithm above is fixed point, should be:
-                * ((ss-mr)/2.5) + 40
-                * 
-                * NOTE: Resistance is not checked if targeting yourself
-                */
+             * making them more vulnerable to Fire and Poison damage,
+             * but increasing their resistance to Physical and Cold damage.
+             *
+             * The effect lasts for ((Spirit Speak skill level - target's Resist Magic skill level) / 25 ) + 40 seconds.
+             *
+             * NOTE: Algorithm above is fixed point, should be:
+             * ((ss-mr)/2.5) + 40
+             *
+             * NOTE: Resistance is not checked if targeting yourself
+             */
 
-            if (m_Table.ContainsKey(m))
-            {
-                m_Table[m].DoExpire(false);
-            }
+            if (m_Table.ContainsKey(m)) m_Table[m].DoExpire(false);
 
             m.SendLocalizedMessage(1061689); // Your skin turns dry and corpselike.
 
@@ -113,23 +92,23 @@ namespace Server.Spells.Necromancy
             m.FixedParticles(0x373A, 1, 15, 9913, 67, 7, EffectLayer.Head);
             m.PlaySound(0x1BB);
 
-            double ss = GetDamageSkill(Caster);
-            double mr = GetResistSkill(m);
-            m.CheckSkill(SkillName.MagicResist, 0.0, m.Skills[SkillName.MagicResist].Cap);	//Skill check for gain
+            var ss = GetDamageSkill(Caster);
+            var mr = GetResistSkill(m);
+            m.CheckSkill(SkillName.MagicResist, 0.0, m.Skills[SkillName.MagicResist].Cap); //Skill check for gain
 
-            TimeSpan duration = TimeSpan.FromSeconds((((ss - mr) / 2.5) + 40.0) * strength);
+            var duration = TimeSpan.FromSeconds(((ss - mr) / 2.5 + 40.0) * strength);
 
-            int malus = (int)Math.Min(15, (Caster.Skills[CastSkill].Value + Caster.Skills[DamageSkill].Value) * 0.075);
+            var malus = (int)Math.Min(15, (Caster.Skills[CastSkill].Value + Caster.Skills[DamageSkill].Value) * 0.075);
 
-            ResistanceMod[] mods = new ResistanceMod[4]
-					{
-						new ResistanceMod( ResistanceType.Fire, (int)(-malus * strength) ),
-						new ResistanceMod( ResistanceType.Poison, (int)(-malus * strength) ),
-						new ResistanceMod( ResistanceType.Cold, (int)(+10.0 * strength) ),
-						new ResistanceMod( ResistanceType.Physical, (int)(+10.0 * strength) )
-					};
+            var mods = new ResistanceMod[4]
+            {
+                new ResistanceMod(ResistanceType.Fire, (int)(-malus * strength)),
+                new ResistanceMod(ResistanceType.Poison, (int)(-malus * strength)),
+                new ResistanceMod(ResistanceType.Cold, (int)(+10.0 * strength)),
+                new ResistanceMod(ResistanceType.Physical, (int)(+10.0 * strength))
+            };
 
-            ExpireTimer timer = new ExpireTimer(m, mods, malus, duration);
+            var timer = new ExpireTimer(m, mods, malus, duration);
             timer.Start();
 
             BuffInfo.AddBuff(m, new BuffInfo(BuffIcon.CorpseSkin, 1075663, duration, m));
@@ -138,7 +117,7 @@ namespace Server.Spells.Necromancy
 
             m.UpdateResistances();
 
-            for (int i = 0; i < mods.Length; ++i)
+            for (var i = 0; i < mods.Length; ++i)
                 m.AddResistanceMod(mods[i]);
 
             HarmfulSpell(m);
@@ -148,32 +127,31 @@ namespace Server.Spells.Necromancy
         {
             private readonly Mobile m_Mobile;
             private readonly ResistanceMod[] m_Mods;
-            private readonly int m_Malus;
 
-            public int Malus { get { return m_Malus; } }
+            public int Malus { get; }
 
             public ExpireTimer(Mobile m, ResistanceMod[] mods, int malus, TimeSpan delay)
                 : base(delay)
             {
                 m_Mobile = m;
                 m_Mods = mods;
-                m_Malus = malus;
+                Malus = malus;
             }
 
             public void DoExpire(bool message = true)
             {
-                for (int i = 0; i < m_Mods.Length; ++i)
+                for (var i = 0; i < m_Mods.Length; ++i)
                     m_Mobile.RemoveResistanceMod(m_Mods[i]);
 
                 Stop();
                 BuffInfo.RemoveBuff(m_Mobile, BuffIcon.CorpseSkin);
 
-                if(m_Table.ContainsKey(m_Mobile))
+                if (m_Table.ContainsKey(m_Mobile))
                     m_Table.Remove(m_Mobile);
 
                 m_Mobile.UpdateResistances();
 
-                if(message)
+                if (message)
                     m_Mobile.SendLocalizedMessage(1061688); // Your skin returns to normal.
             }
 
@@ -186,6 +164,7 @@ namespace Server.Spells.Necromancy
         private class InternalTarget : Target
         {
             private readonly CorpseSkinSpell m_Owner;
+
             public InternalTarget(CorpseSkinSpell owner)
                 : base(Core.ML ? 10 : 12, false, TargetFlags.Harmful)
             {

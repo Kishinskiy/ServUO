@@ -7,9 +7,9 @@ namespace Server.Commands
     {
         public static void Initialize()
         {
-            CommandSystem.Register("SetSkill", AccessLevel.GameMaster, new CommandEventHandler(SetSkill_OnCommand));
-            CommandSystem.Register("GetSkill", AccessLevel.GameMaster, new CommandEventHandler(GetSkill_OnCommand));
-            CommandSystem.Register("SetAllSkills", AccessLevel.GameMaster, new CommandEventHandler(SetAllSkills_OnCommand));
+            CommandSystem.Register("SetSkill", AccessLevel.GameMaster, SetSkill_OnCommand);
+            CommandSystem.Register("GetSkill", AccessLevel.GameMaster, GetSkill_OnCommand);
+            CommandSystem.Register("SetAllSkills", AccessLevel.GameMaster, SetAllSkills_OnCommand);
         }
 
         [Usage("SetSkill <name> <value>")]
@@ -25,13 +25,9 @@ namespace Server.Commands
                 SkillName skill;
 
                 if (Enum.TryParse(arg.GetString(0), true, out skill))
-                {
                     arg.Mobile.Target = new SkillTarget(skill, arg.GetDouble(1));
-                }
                 else
-                {
                     arg.Mobile.SendLocalizedMessage(1005631); // You have specified an invalid skill to set.
-                }
             }
         }
 
@@ -40,13 +36,9 @@ namespace Server.Commands
         public static void SetAllSkills_OnCommand(CommandEventArgs arg)
         {
             if (arg.Length != 1)
-            {
                 arg.Mobile.SendMessage("SetAllSkills <value>");
-            }
             else
-            {
                 arg.Mobile.Target = new AllSkillsTarget(arg.GetDouble(0));
-            }
         }
 
         [Usage("GetSkill <name>")]
@@ -62,36 +54,33 @@ namespace Server.Commands
                 SkillName skill;
 
                 if (Enum.TryParse(arg.GetString(0), true, out skill))
-                {
                     arg.Mobile.Target = new SkillTarget(skill);
-                }
                 else
-                {
                     arg.Mobile.SendMessage("You have specified an invalid skill to get.");
-                }
             }
         }
 
         public class AllSkillsTarget : Target
         {
             private readonly double m_Value;
+
             public AllSkillsTarget(double value)
                 : base(-1, false, TargetFlags.None)
             {
-                this.m_Value = value;
+                m_Value = value;
             }
 
             protected override void OnTarget(Mobile from, object targeted)
             {
                 if (targeted is Mobile)
                 {
-                    Mobile targ = (Mobile)targeted;
-                    Server.Skills skills = targ.Skills;
+                    var targ = (Mobile)targeted;
+                    var skills = targ.Skills;
 
-                    for (int i = 0; i < skills.Length; ++i)
-                        skills[i].Base = this.m_Value;
+                    for (var i = 0; i < skills.Length; ++i)
+                        skills[i].Base = m_Value;
 
-                    CommandLogging.LogChangeProperty(from, targ, "EverySkill.Base", this.m_Value.ToString());
+                    CommandLogging.LogChangeProperty(from, targ, "EverySkill.Base", m_Value.ToString());
                 }
                 else
                 {
@@ -105,38 +94,40 @@ namespace Server.Commands
             private readonly bool m_Set;
             private readonly SkillName m_Skill;
             private readonly double m_Value;
+
             public SkillTarget(SkillName skill, double value)
                 : base(-1, false, TargetFlags.None)
             {
-                this.m_Set = true;
-                this.m_Skill = skill;
-                this.m_Value = value;
+                m_Set = true;
+                m_Skill = skill;
+                m_Value = value;
             }
 
             public SkillTarget(SkillName skill)
                 : base(-1, false, TargetFlags.None)
             {
-                this.m_Set = false;
-                this.m_Skill = skill;
+                m_Set = false;
+                m_Skill = skill;
             }
 
             protected override void OnTarget(Mobile from, object targeted)
             {
                 if (targeted is Mobile)
                 {
-                    Mobile targ = (Mobile)targeted;
-                    Skill skill = targ.Skills[this.m_Skill];
+                    var targ = (Mobile)targeted;
+                    var skill = targ.Skills[m_Skill];
 
                     if (skill == null)
                         return;
 
-                    if (this.m_Set)
+                    if (m_Set)
                     {
-                        skill.Base = this.m_Value;
-                        CommandLogging.LogChangeProperty(from, targ, String.Format("{0}.Base", this.m_Skill), this.m_Value.ToString());
+                        skill.Base = m_Value;
+                        CommandLogging.LogChangeProperty(from, targ, string.Format("{0}.Base", m_Skill),
+                            m_Value.ToString());
                     }
 
-                    from.SendMessage("{0} : {1} (Base: {2})", this.m_Skill, skill.Value, skill.Base);
+                    from.SendMessage("{0} : {1} (Base: {2})", m_Skill, skill.Value, skill.Base);
                 }
                 else
                 {

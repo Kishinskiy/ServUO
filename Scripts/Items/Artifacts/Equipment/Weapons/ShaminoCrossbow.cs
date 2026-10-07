@@ -1,10 +1,14 @@
-using System;
-
 namespace Server.Items
 {
     public class ShaminoCrossbow : RepeatingCrossbow
-	{
-		public override bool IsArtifact { get { return true; } }
+    {
+        public override bool IsArtifact => true;
+
+        public override int LabelNumber => 1062915; // Shaminoï¿½s Best Crossbow
+        public override int InitMinHits => 255;
+
+        public override int InitMaxHits => 255;
+
         [Constructable]
         public ShaminoCrossbow()
         {
@@ -21,39 +25,18 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1062915;
-            }
-        }// Shamino’s Best Crossbow
-        public override int InitMinHits
-        {
-            get
-            {
-                return 255;
-            }
-        }
-        public override int InitMaxHits
-        {
-            get
-            {
-                return 255;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

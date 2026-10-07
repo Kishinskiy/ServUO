@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
-
-using Server;
-using Server.SkillHandlers;
 using Server.Gumps;
 using Server.Mobiles;
+using Server.SkillHandlers;
 
 namespace Server.Items
 {
@@ -18,29 +16,43 @@ namespace Server.Items
 
     public class SliderTrapTrainingKit : Item, ISliderKit, IRemoveTrapTrainingKit
     {
-        public override int LabelNumber { get { return 1159016; } } // Slider Trap Training Kit
-
         private int _Style;
-
-        public int[] Order { get; set; } = new int[9];
+        public override int LabelNumber => 1159016; // Slider Trap Training Kit
 
         [CommandProperty(AccessLevel.GameMaster)]
         public bool Test
         {
-            get { return false; }
+            get => false;
             set
             {
-                if (value)
-                {
-                    TestOrder();
-                }
+                if (value) TestOrder();
             }
         }
+
+        [Constructable]
+        public SliderTrapTrainingKit()
+            : base(41875)
+        {
+            _Style = -1;
+            Style = Utility.Random(8);
+        }
+
+        public SliderTrapTrainingKit(Serial serial)
+            : base(serial)
+        {
+        }
+
+        public void OnRemoveTrap(Mobile from)
+        {
+            if (from is PlayerMobile) BaseGump.SendGump(new SliderTrapGump((PlayerMobile)from, this));
+        }
+
+        public int[] Order { get; set; } = new int[9];
 
         [CommandProperty(AccessLevel.GameMaster)]
         public int Style
         {
-            get { return _Style; }
+            get => _Style;
             set
             {
                 if (_Style != value)
@@ -58,87 +70,6 @@ namespace Server.Items
             }
         }
 
-        [Constructable]
-        public SliderTrapTrainingKit()
-            : base(41875)
-        {
-            _Style = -1;
-            Style = Utility.Random(8);
-        }
-
-        public void Reset()
-        {
-            for (int i = 0; i < Order.Length; i++)
-            {
-                Order[i] = 0;
-            }
-
-            var randomIndex = Utility.Random(Order.Length);
-            var startID = 0x9CEE + (_Style * 9); // start at 1+ because the upper left picture is alwasy omitted
-            var list = new List<int>();
-
-            for (int i = 0; i < 8; i++)
-            {
-                list.Add(startID + i);
-            }
-
-            for (int i = 0; i < Order.Length; i++)
-            {
-                if (i != randomIndex)
-                {
-                    var add = list[Utility.Random(list.Count)];
-                    Order[i] = add;
-                    list.Remove(add);
-                }
-            }
-			
-			int invCount = 0;
-			for (int i = 0; i < Order.Length - 1; i++)
-			{
-				for (int j = i + 1; j < Order.Length; j++)
-				{
-					if (Order[j] != 0 && Order[i] != 0 && Order[i] > Order[j])
-						invCount++;
-				}
-			}
-			
-			if (invCount % 2 == 1)
-			{
-				if (randomIndex > 2)
-				{
-					var temp = Order[0];
-					Order[0] = Order[1];
-					Order[1] = temp;
-				}
-				else
-				{
-					var temp = Order[Order.Length-1];
-					Order[Order.Length-1] = Order[Order.Length-2];
-					Order[Order.Length-2] = temp;
-				}
-			}
-        }
-
-        public override void OnDoubleClick(Mobile m)
-        {
-            if (IsChildOf(m.Backpack))
-            {
-                m.SendLocalizedMessage(1159008); // That appears to be trapped, using the remove trap skill would yield better results...
-            }
-            else
-            {
-                m.SendMessage("That is not your chest!"); // TODO: Could not find cliloc, but this is the message given
-            }
-        }
-
-        public void OnRemoveTrap(Mobile from)
-        {
-            if (from is PlayerMobile)
-            {
-                BaseGump.SendGump(new SliderTrapGump((PlayerMobile)from, this));
-            }
-        }
-
         public void Complete(Mobile from)
         {
             from.SendLocalizedMessage(1159009); // You successfully disarm the trap!
@@ -148,18 +79,64 @@ namespace Server.Items
             Reset();
         }
 
-        private void TestOrder()
+        public void Reset()
         {
-            var startID = 0x9CEE + (_Style * 9); // start at 1+ because the upper left picture is alwasy omitted
+            for (var i = 0; i < Order.Length; i++) Order[i] = 0;
+
+            var randomIndex = Utility.Random(Order.Length);
+            var startID = 0x9CEE + _Style * 9; // start at 1+ because the upper left picture is alwasy omitted
             var list = new List<int>();
 
-            for (int i = 0; i < 8; i++)
-            {
-                list.Add(startID + i);
-            }
+            for (var i = 0; i < 8; i++) list.Add(startID + i);
 
-            for (int i = 0; i < Order.Length; i++)
+            for (var i = 0; i < Order.Length; i++)
+                if (i != randomIndex)
+                {
+                    var add = list[Utility.Random(list.Count)];
+                    Order[i] = add;
+                    list.Remove(add);
+                }
+
+            var invCount = 0;
+            for (var i = 0; i < Order.Length - 1; i++)
+            for (var j = i + 1; j < Order.Length; j++)
+                if (Order[j] != 0 && Order[i] != 0 && Order[i] > Order[j])
+                    invCount++;
+
+            if (invCount % 2 == 1)
             {
+                if (randomIndex > 2)
+                {
+                    var temp = Order[0];
+                    Order[0] = Order[1];
+                    Order[1] = temp;
+                }
+                else
+                {
+                    var temp = Order[Order.Length - 1];
+                    Order[Order.Length - 1] = Order[Order.Length - 2];
+                    Order[Order.Length - 2] = temp;
+                }
+            }
+        }
+
+        public override void OnDoubleClick(Mobile m)
+        {
+            if (IsChildOf(m.Backpack))
+                m.SendLocalizedMessage(
+                    1159008); // That appears to be trapped, using the remove trap skill would yield better results...
+            else
+                m.SendMessage("That is not your chest!"); // TODO: Could not find cliloc, but this is the message given
+        }
+
+        private void TestOrder()
+        {
+            var startID = 0x9CEE + _Style * 9; // start at 1+ because the upper left picture is alwasy omitted
+            var list = new List<int>();
+
+            for (var i = 0; i < 8; i++) list.Add(startID + i);
+
+            for (var i = 0; i < Order.Length; i++)
                 if (i != 1)
                 {
                     Order[i] = list[0];
@@ -169,12 +146,6 @@ namespace Server.Items
                 {
                     Order[i] = 0;
                 }
-            }
-        }
-
-        public SliderTrapTrainingKit(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -185,31 +156,25 @@ namespace Server.Items
 
             writer.Write(_Style);
 
-            for (int i = 0; i < Order.Length; i++)
-            {
-                writer.Write(Order[i]);
-            }
+            for (var i = 0; i < Order.Length; i++) writer.Write(Order[i]);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             _Style = reader.ReadInt();
 
-            for (int i = 0; i < Order.Length; i++)
-            {
-                Order[i] = reader.ReadInt();
-            }
+            for (var i = 0; i < Order.Length; i++) Order[i] = reader.ReadInt();
         }
     }
 
     public class SliderTrapGump : BaseGump
     {
         public ISliderKit Kit { get; set; }
-        public int[] Order { get { return Kit.Order; } }
+        public int[] Order => Kit.Order;
 
         public SliderTrapGump(PlayerMobile pm, ISliderKit kit)
             : base(pm, 100, 100)
@@ -221,10 +186,10 @@ namespace Server.Items
         public override void AddGumpLayout()
         {
             AddBackground(0, 0, 270, 445, 0x6DB);
-            AddImage(15, 20, 0x9CED + (Kit.Style * 9));
+            AddImage(15, 20, 0x9CED + Kit.Style * 9);
             AddAlphaRegion(15, 20, 80, 133);
 
-            for (int i = 0; i < Order.Length; i++)
+            for (var i = 0; i < Order.Length; i++)
             {
                 var order = Order[i];
 
@@ -254,13 +219,9 @@ namespace Server.Items
                     Order[empty] = id;
 
                     if (CheckSolution(User))
-                    {
                         Kit.Complete(User);
-                    }
                     else
-                    {
                         Refresh();
-                    }
                 }
                 else
                 {
@@ -290,17 +251,17 @@ namespace Server.Items
 
         private bool CheckSolution(Mobile m)
         {
-            var start = 0x9CEE + (Kit.Style * 9);
+            var start = 0x9CEE + Kit.Style * 9;
 
             return Order[0] == 0 &&
-                Order[1] == start &&
-                Order[2] == start + 1 &&
-                Order[3] == start + 2 &&
-                Order[4] == start + 3 &&
-                Order[5] == start + 4 &&
-                Order[6] == start + 5 &&
-                Order[7] == start + 6 &&
-                Order[8] == start + 7;
+                   Order[1] == start &&
+                   Order[2] == start + 1 &&
+                   Order[3] == start + 2 &&
+                   Order[4] == start + 3 &&
+                   Order[5] == start + 4 &&
+                   Order[6] == start + 5 &&
+                   Order[7] == start + 6 &&
+                   Order[8] == start + 7;
         }
     }
 }

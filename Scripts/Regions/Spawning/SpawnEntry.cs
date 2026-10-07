@@ -12,178 +12,91 @@ namespace Server.Regions
         public static readonly TimeSpan DefaultMinSpawnTime = TimeSpan.FromMinutes(2.0);
         public static readonly TimeSpan DefaultMaxSpawnTime = TimeSpan.FromMinutes(5.0);
         public static readonly Direction InvalidDirection = Direction.Running;
-        private static readonly Hashtable m_Table = new Hashtable();
         private static List<IEntity> m_RemoveList;
-        private readonly int m_ID;
-        private readonly BaseRegion m_Region;
-        private readonly Point3D m_Home;
-        private readonly int m_Range;
-        private readonly Direction m_Direction;
-        private readonly SpawnDefinition m_Definition;
-        private readonly List<ISpawnable> m_SpawnedObjects;
-        private readonly TimeSpan m_MinSpawnTime;
-        private readonly TimeSpan m_MaxSpawnTime;
-        private int m_Max;
-        private bool m_Running;
         private DateTime m_NextSpawn;
         private Timer m_SpawnTimer;
-        public SpawnEntry(int id, BaseRegion region, Point3D home, int range, Direction direction, SpawnDefinition definition, int max, TimeSpan minSpawnTime, TimeSpan maxSpawnTime)
-        {
-            this.m_ID = id;
-            this.m_Region = region;
-            this.m_Home = home;
-            this.m_Range = range;
-            this.m_Direction = direction;
-            this.m_Definition = definition;
-            this.m_SpawnedObjects = new List<ISpawnable>();
-            this.m_Max = max;
-            this.m_MinSpawnTime = minSpawnTime;
-            this.m_MaxSpawnTime = maxSpawnTime;
-            this.m_Running = false;
 
-            if (m_Table.Contains(id))
+        public static Hashtable Table { get; } = new Hashtable();
+
+        // When a creature's AI is deactivated (PlayerRangeSensitive optimization) does it return home?
+        public bool ReturnOnDeactivate => true;
+
+        // Are unlinked and untamed creatures removed after 20 hours?
+        public bool RemoveIfUntamed => true;
+
+        public int ID { get; }
+
+        public BaseRegion Region { get; }
+
+        public Direction Direction { get; }
+
+        public SpawnDefinition Definition { get; }
+
+        public List<ISpawnable> SpawnedObjects { get; }
+
+        public int Max { get; private set; }
+
+        public TimeSpan MinSpawnTime { get; }
+
+        public TimeSpan MaxSpawnTime { get; }
+
+        public bool Running { get; private set; }
+
+        public bool Complete => SpawnedObjects.Count >= Max;
+
+        public bool Spawning => Running && !Complete;
+
+        public SpawnEntry(int id, BaseRegion region, Point3D home, int range, Direction direction,
+            SpawnDefinition definition, int max, TimeSpan minSpawnTime, TimeSpan maxSpawnTime)
+        {
+            ID = id;
+            Region = region;
+            HomeLocation = home;
+            HomeRange = range;
+            Direction = direction;
+            Definition = definition;
+            SpawnedObjects = new List<ISpawnable>();
+            Max = max;
+            MinSpawnTime = minSpawnTime;
+            MaxSpawnTime = maxSpawnTime;
+            Running = false;
+
+            if (Table.Contains(id))
                 Console.WriteLine("Warning: double SpawnEntry ID '{0}'", id);
             else
-                m_Table[id] = this;
+                Table[id] = this;
         }
 
-        public static Hashtable Table
-        {
-            get
-            {
-                return m_Table;
-            }
-        }
-        // When a creature's AI is deactivated (PlayerRangeSensitive optimization) does it return home?
-        public bool ReturnOnDeactivate
-        {
-            get
-            {
-                return true;
-            }
-        }
         // Are creatures unlinked on taming (true) or should they also go out of the region (false)?
-        public bool UnlinkOnTaming
-        {
-            get
-            {
-                return false;
-            }
-        }
-        // Are unlinked and untamed creatures removed after 20 hours?
-        public bool RemoveIfUntamed
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public int ID
-        {
-            get
-            {
-                return this.m_ID;
-            }
-        }
-        public BaseRegion Region
-        {
-            get
-            {
-                return this.m_Region;
-            }
-        }
-        public Point3D HomeLocation
-        {
-            get
-            {
-                return this.m_Home;
-            }
-        }
-        public int HomeRange
-        {
-            get
-            {
-                return this.m_Range;
-            }
-        }
-        public Direction Direction
-        {
-            get
-            {
-                return this.m_Direction;
-            }
-        }
-        public SpawnDefinition Definition
-        {
-            get
-            {
-                return this.m_Definition;
-            }
-        }
-        public List<ISpawnable> SpawnedObjects
-        {
-            get
-            {
-                return this.m_SpawnedObjects;
-            }
-        }
-        public int Max
-        {
-            get
-            {
-                return this.m_Max;
-            }
-        }
-        public TimeSpan MinSpawnTime
-        {
-            get
-            {
-                return this.m_MinSpawnTime;
-            }
-        }
-        public TimeSpan MaxSpawnTime
-        {
-            get
-            {
-                return this.m_MaxSpawnTime;
-            }
-        }
-        public bool Running
-        {
-            get
-            {
-                return this.m_Running;
-            }
-        }
-        public bool Complete
-        {
-            get
-            {
-                return this.m_SpawnedObjects.Count >= this.m_Max;
-            }
-        }
-        public bool Spawning
-        {
-            get
-            {
-                return this.m_Running && !this.Complete;
-            }
-        }
+        public bool UnlinkOnTaming => false;
+
+        public Point3D HomeLocation { get; }
+
+        public int HomeRange { get; }
 
         public virtual void GetSpawnProperties(ISpawnable spawn, ObjectPropertyList list)
-        { }
+        {
+        }
 
         public virtual void GetSpawnContextEntries(ISpawnable spawn, Mobile m, List<ContextMenuEntry> list)
-        { }
+        {
+        }
+
+        void ISpawner.Remove(ISpawnable spawn)
+        {
+            SpawnedObjects.Remove(spawn);
+
+            CheckTimer();
+        }
 
         public static void Remove(GenericReader reader, int version)
         {
-            int count = reader.ReadInt();
+            var count = reader.ReadInt();
 
-            for (int i = 0; i < count; i++)
+            for (var i = 0; i < count; i++)
             {
-                int serial = reader.ReadInt();
-                IEntity entity = World.FindEntity(serial);
+                var serial = reader.ReadInt();
+                var entity = World.FindEntity(serial);
 
                 if (entity != null)
                 {
@@ -204,102 +117,99 @@ namespace Server.Regions
         {
             if (m_RemoveList != null)
             {
-                foreach (IEntity ent in m_RemoveList)
-                {
-                    ent.Delete();
-                }
+                foreach (var ent in m_RemoveList) ent.Delete();
 
                 m_RemoveList = null;
             }
 
             SpawnPersistence.EnsureExistence();
 
-            CommandSystem.Register("RespawnAllRegions", AccessLevel.Administrator, new CommandEventHandler(RespawnAllRegions_OnCommand));
-            CommandSystem.Register("RespawnRegion", AccessLevel.GameMaster, new CommandEventHandler(RespawnRegion_OnCommand));
-            CommandSystem.Register("DelAllRegionSpawns", AccessLevel.Administrator, new CommandEventHandler(DelAllRegionSpawns_OnCommand));
-            CommandSystem.Register("DelRegionSpawns", AccessLevel.GameMaster, new CommandEventHandler(DelRegionSpawns_OnCommand));
-            CommandSystem.Register("StartAllRegionSpawns", AccessLevel.Administrator, new CommandEventHandler(StartAllRegionSpawns_OnCommand));
-            CommandSystem.Register("StartRegionSpawns", AccessLevel.GameMaster, new CommandEventHandler(StartRegionSpawns_OnCommand));
-            CommandSystem.Register("StopAllRegionSpawns", AccessLevel.Administrator, new CommandEventHandler(StopAllRegionSpawns_OnCommand));
-            CommandSystem.Register("StopRegionSpawns", AccessLevel.GameMaster, new CommandEventHandler(StopRegionSpawns_OnCommand));
+            CommandSystem.Register("RespawnAllRegions", AccessLevel.Administrator, RespawnAllRegions_OnCommand);
+            CommandSystem.Register("RespawnRegion", AccessLevel.GameMaster, RespawnRegion_OnCommand);
+            CommandSystem.Register("DelAllRegionSpawns", AccessLevel.Administrator, DelAllRegionSpawns_OnCommand);
+            CommandSystem.Register("DelRegionSpawns", AccessLevel.GameMaster, DelRegionSpawns_OnCommand);
+            CommandSystem.Register("StartAllRegionSpawns", AccessLevel.Administrator, StartAllRegionSpawns_OnCommand);
+            CommandSystem.Register("StartRegionSpawns", AccessLevel.GameMaster, StartRegionSpawns_OnCommand);
+            CommandSystem.Register("StopAllRegionSpawns", AccessLevel.Administrator, StopAllRegionSpawns_OnCommand);
+            CommandSystem.Register("StopRegionSpawns", AccessLevel.GameMaster, StopRegionSpawns_OnCommand);
         }
 
         public Point3D RandomSpawnLocation(int spawnHeight, bool land, bool water)
         {
-            return this.m_Region.RandomSpawnLocation(spawnHeight, land, water, this.m_Home, this.m_Range);
+            return Region.RandomSpawnLocation(spawnHeight, land, water, HomeLocation, HomeRange);
         }
 
         public void Start()
         {
-            if (this.m_Running)
+            if (Running)
                 return;
 
-            this.m_Running = true;
-            this.CheckTimer();
+            Running = true;
+            CheckTimer();
         }
 
         public void Stop()
         {
-            if (!this.m_Running)
+            if (!Running)
                 return;
 
-            this.m_Running = false;
-            this.CheckTimer();
+            Running = false;
+            CheckTimer();
         }
 
         public void DeleteSpawnedObjects()
         {
-            this.InternalDeleteSpawnedObjects();
+            InternalDeleteSpawnedObjects();
 
-            this.m_Running = false;
-            this.CheckTimer();
+            Running = false;
+            CheckTimer();
         }
 
         public void Respawn()
         {
-            this.InternalDeleteSpawnedObjects();
+            InternalDeleteSpawnedObjects();
 
-            for (int i = 0; !this.Complete && i < this.m_Max; i++)
-                this.Spawn();
+            for (var i = 0; !Complete && i < Max; i++)
+                Spawn();
 
-            this.m_Running = true;
-            this.CheckTimer();
+            Running = true;
+            CheckTimer();
         }
 
         public void Delete()
         {
-            this.m_Max = 0;
-            this.InternalDeleteSpawnedObjects();
+            Max = 0;
+            InternalDeleteSpawnedObjects();
 
-            if (this.m_SpawnTimer != null)
+            if (m_SpawnTimer != null)
             {
-                this.m_SpawnTimer.Stop();
-                this.m_SpawnTimer = null;
+                m_SpawnTimer.Stop();
+                m_SpawnTimer = null;
             }
 
-            if (m_Table[this.m_ID] == this)
-                m_Table.Remove(this.m_ID);
+            if (Table[ID] == this)
+                Table.Remove(ID);
         }
 
         public void Serialize(GenericWriter writer)
         {
-            writer.Write((int)this.m_SpawnedObjects.Count);
+            writer.Write(SpawnedObjects.Count);
 
-            for (int i = 0; i < this.m_SpawnedObjects.Count; i++)
+            for (var i = 0; i < SpawnedObjects.Count; i++)
             {
-                ISpawnable spawn = this.m_SpawnedObjects[i];
+                var spawn = SpawnedObjects[i];
 
                 int serial = spawn.Serial;
 
-                writer.Write((int)serial);
+                writer.Write(serial);
             }
 
-            writer.Write((bool)this.m_Running);
+            writer.Write(Running);
 
-            if (this.m_SpawnTimer != null)
+            if (m_SpawnTimer != null)
             {
                 writer.Write(true);
-                writer.WriteDeltaTime((DateTime)this.m_NextSpawn);
+                writer.WriteDeltaTime(m_NextSpawn);
             }
             else
             {
@@ -309,39 +219,39 @@ namespace Server.Regions
 
         public void Deserialize(GenericReader reader, int version)
         {
-            int count = reader.ReadInt();
+            var count = reader.ReadInt();
 
-            for (int i = 0; i < count; i++)
+            for (var i = 0; i < count; i++)
             {
-                int serial = reader.ReadInt();
-                ISpawnable spawnableEntity = World.FindEntity(serial) as ISpawnable;
+                var serial = reader.ReadInt();
+                var spawnableEntity = World.FindEntity(serial) as ISpawnable;
 
                 if (spawnableEntity != null)
-                    this.Add(spawnableEntity);
+                    Add(spawnableEntity);
             }
 
-            this.m_Running = reader.ReadBool();
+            Running = reader.ReadBool();
 
             if (reader.ReadBool())
             {
-                this.m_NextSpawn = reader.ReadDeltaTime();
+                m_NextSpawn = reader.ReadDeltaTime();
 
-                if (this.Spawning)
+                if (Spawning)
                 {
-                    if (this.m_SpawnTimer != null)
-                        this.m_SpawnTimer.Stop();
+                    if (m_SpawnTimer != null)
+                        m_SpawnTimer.Stop();
 
-                    TimeSpan delay = this.m_NextSpawn - DateTime.UtcNow;
-                    this.m_SpawnTimer = Timer.DelayCall(delay > TimeSpan.Zero ? delay : TimeSpan.Zero, new TimerCallback(TimerCallback)); 
+                    var delay = m_NextSpawn - DateTime.UtcNow;
+                    m_SpawnTimer = Timer.DelayCall(delay > TimeSpan.Zero ? delay : TimeSpan.Zero, TimerCallback);
                 }
             }
 
-            this.CheckTimer();
+            CheckTimer();
         }
 
         private static BaseRegion GetCommandData(CommandEventArgs args)
         {
-            Mobile from = args.Mobile;
+            var from = args.Mobile;
 
             Region reg;
             if (args.Length == 0)
@@ -350,7 +260,7 @@ namespace Server.Regions
             }
             else
             {
-                string name = args.GetString(0);
+                var name = args.GetString(0);
                 //reg = (Region) from.Map.Regions[name];
 
                 if (!from.Map.Regions.TryGetValue(name, out reg))
@@ -360,7 +270,7 @@ namespace Server.Regions
                 }
             }
 
-            BaseRegion br = reg as BaseRegion;
+            var br = reg as BaseRegion;
 
             if (br == null || br.Spawns == null)
             {
@@ -375,10 +285,7 @@ namespace Server.Regions
         [Description("Respawns all regions and sets the spawners as running.")]
         private static void RespawnAllRegions_OnCommand(CommandEventArgs args)
         {
-            foreach (SpawnEntry entry in m_Table.Values)
-            {
-                entry.Respawn();
-            }
+            foreach (SpawnEntry entry in Table.Values) entry.Respawn();
 
             args.Mobile.SendMessage("All regions have respawned.");
         }
@@ -387,12 +294,12 @@ namespace Server.Regions
         [Description("Respawns the region in which you are (or that you provided) and sets the spawners as running.")]
         private static void RespawnRegion_OnCommand(CommandEventArgs args)
         {
-            BaseRegion region = GetCommandData(args);
+            var region = GetCommandData(args);
 
             if (region == null)
                 return;
 
-            for (int i = 0; i < region.Spawns.Length; i++)
+            for (var i = 0; i < region.Spawns.Length; i++)
                 region.Spawns[i].Respawn();
 
             args.Mobile.SendMessage("Region '{0}' has respawned.", region);
@@ -402,24 +309,22 @@ namespace Server.Regions
         [Description("Deletes all spawned objects of every regions and sets the spawners as not running.")]
         private static void DelAllRegionSpawns_OnCommand(CommandEventArgs args)
         {
-            foreach (SpawnEntry entry in m_Table.Values)
-            {
-                entry.DeleteSpawnedObjects();
-            }
+            foreach (SpawnEntry entry in Table.Values) entry.DeleteSpawnedObjects();
 
             args.Mobile.SendMessage("All region spawned objects have been deleted.");
         }
 
         [Usage("DelRegionSpawns [<region name>]")]
-        [Description("Deletes all spawned objects of the region in which you are (or that you provided) and sets the spawners as not running.")]
+        [Description(
+            "Deletes all spawned objects of the region in which you are (or that you provided) and sets the spawners as not running.")]
         private static void DelRegionSpawns_OnCommand(CommandEventArgs args)
         {
-            BaseRegion region = GetCommandData(args);
+            var region = GetCommandData(args);
 
             if (region == null)
                 return;
 
-            for (int i = 0; i < region.Spawns.Length; i++)
+            for (var i = 0; i < region.Spawns.Length; i++)
                 region.Spawns[i].DeleteSpawnedObjects();
 
             args.Mobile.SendMessage("Spawned objects of region '{0}' have been deleted.", region);
@@ -429,10 +334,7 @@ namespace Server.Regions
         [Description("Sets the region spawners of all regions as running.")]
         private static void StartAllRegionSpawns_OnCommand(CommandEventArgs args)
         {
-            foreach (SpawnEntry entry in m_Table.Values)
-            {
-                entry.Start();
-            }
+            foreach (SpawnEntry entry in Table.Values) entry.Start();
 
             args.Mobile.SendMessage("All region spawners have started.");
         }
@@ -441,12 +343,12 @@ namespace Server.Regions
         [Description("Sets the region spawners of the region in which you are (or that you provided) as running.")]
         private static void StartRegionSpawns_OnCommand(CommandEventArgs args)
         {
-            BaseRegion region = GetCommandData(args);
+            var region = GetCommandData(args);
 
             if (region == null)
                 return;
 
-            for (int i = 0; i < region.Spawns.Length; i++)
+            for (var i = 0; i < region.Spawns.Length; i++)
                 region.Spawns[i].Start();
 
             args.Mobile.SendMessage("Spawners of region '{0}' have started.", region);
@@ -456,10 +358,7 @@ namespace Server.Regions
         [Description("Sets the region spawners of all regions as not running.")]
         private static void StopAllRegionSpawns_OnCommand(CommandEventArgs args)
         {
-            foreach (SpawnEntry entry in m_Table.Values)
-            {
-                entry.Stop();
-            }
+            foreach (SpawnEntry entry in Table.Values) entry.Stop();
 
             args.Mobile.SendMessage("All region spawners have stopped.");
         }
@@ -468,12 +367,12 @@ namespace Server.Regions
         [Description("Sets the region spawners of the region in which you are (or that you provided) as not running.")]
         private static void StopRegionSpawns_OnCommand(CommandEventArgs args)
         {
-            BaseRegion region = GetCommandData(args);
+            var region = GetCommandData(args);
 
             if (region == null)
                 return;
 
-            for (int i = 0; i < region.Spawns.Length; i++)
+            for (var i = 0; i < region.Spawns.Length; i++)
                 region.Spawns[i].Stop();
 
             args.Mobile.SendMessage("Spawners of region '{0}' have stopped.", region);
@@ -481,80 +380,73 @@ namespace Server.Regions
 
         private void Spawn()
         {
-            ISpawnable spawn = this.m_Definition.Spawn(this);
+            var spawn = Definition.Spawn(this);
 
             if (spawn != null)
-                this.Add(spawn);
+                Add(spawn);
         }
 
         private void Add(ISpawnable spawn)
         {
-            this.m_SpawnedObjects.Add(spawn);
+            SpawnedObjects.Add(spawn);
 
             spawn.Spawner = this;
 
             if (spawn is BaseCreature)
-                ((BaseCreature)spawn).RemoveIfUntamed = this.RemoveIfUntamed;
-        }
-
-        void ISpawner.Remove(ISpawnable spawn)
-        {
-            this.m_SpawnedObjects.Remove(spawn);
-
-            this.CheckTimer();
+                ((BaseCreature)spawn).RemoveIfUntamed = RemoveIfUntamed;
         }
 
         private TimeSpan RandomTime()
         {
-            int min = (int)this.m_MinSpawnTime.TotalSeconds;
-            int max = (int)this.m_MaxSpawnTime.TotalSeconds;
+            var min = (int)MinSpawnTime.TotalSeconds;
+            var max = (int)MaxSpawnTime.TotalSeconds;
 
-            int rand = Utility.RandomMinMax(min, max);
+            var rand = Utility.RandomMinMax(min, max);
             return TimeSpan.FromSeconds(rand);
         }
 
         private void CheckTimer()
         {
-            if (this.Spawning)
+            if (Spawning)
             {
-                if (this.m_SpawnTimer == null)
+                if (m_SpawnTimer == null)
                 {
-                    TimeSpan time = this.RandomTime();
-                    this.m_SpawnTimer = Timer.DelayCall(time, new TimerCallback(TimerCallback));
-                    this.m_NextSpawn = DateTime.UtcNow + time;
+                    var time = RandomTime();
+                    m_SpawnTimer = Timer.DelayCall(time, TimerCallback);
+                    m_NextSpawn = DateTime.UtcNow + time;
                 }
             }
-            else if (this.m_SpawnTimer != null)
+            else if (m_SpawnTimer != null)
             {
-                this.m_SpawnTimer.Stop();
-                this.m_SpawnTimer = null;
+                m_SpawnTimer.Stop();
+                m_SpawnTimer = null;
             }
         }
 
         private void TimerCallback()
         {
-            int amount = Math.Max((this.m_Max - this.m_SpawnedObjects.Count) / 3, 1);
+            var amount = Math.Max((Max - SpawnedObjects.Count) / 3, 1);
 
-            for (int i = 0; i < amount; i++)
-                this.Spawn();
+            for (var i = 0; i < amount; i++)
+                Spawn();
 
-            this.m_SpawnTimer = null;
-            this.CheckTimer();
+            m_SpawnTimer = null;
+            CheckTimer();
         }
 
         private void InternalDeleteSpawnedObjects()
         {
-            foreach (ISpawnable spawnable in this.m_SpawnedObjects)
+            foreach (var spawnable in SpawnedObjects)
             {
                 spawnable.Spawner = null;
 
-                bool uncontrolled = !(spawnable is BaseCreature) || !((BaseCreature)spawnable).Controlled;
+                var uncontrolled = !(spawnable is BaseCreature) || !((BaseCreature)spawnable).Controlled;
 
                 if (uncontrolled)
                     spawnable.Delete();
             }
 
-            this.m_SpawnedObjects.Clear();
+            SpawnedObjects.Clear();
         }
     }
 }

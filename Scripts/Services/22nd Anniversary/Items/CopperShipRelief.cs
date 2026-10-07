@@ -1,19 +1,25 @@
-using System;
 using Server.Gumps;
 
 namespace Server.Items
 {
     public class CopperShipReliefAddon : BaseAddon
     {
-        public override BaseAddonDeed Deed { get { return new CopperShipReliefAddonDeed(DisplayName); } }
-
         private string _DisplayName;
+        public override BaseAddonDeed Deed => new CopperShipReliefAddonDeed(DisplayName);
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public string DisplayName { get { return _DisplayName; } set { _DisplayName = value; InvalidateProperties(); } }
+        public string DisplayName
+        {
+            get => _DisplayName;
+            set
+            {
+                _DisplayName = value;
+                InvalidateProperties();
+            }
+        }
 
         public AddonFacing Facing { get; set; }
-        
+
         [Constructable]
         public CopperShipReliefAddon(AddonFacing facing, string name)
         {
@@ -30,50 +36,6 @@ namespace Server.Items
                     AddComponent(new CopperShipReliefComponent(41957), 0, 1, 0);
                     AddComponent(new CopperShipReliefComponent(41958), 0, -1, 0);
                     break;
-
-            }
-        }
-
-        private class CopperShipReliefComponent : LocalizedAddonComponent
-        {
-            public override bool ForceShowProperties { get { return true; } }
-
-            public CopperShipReliefComponent(int id)
-                : base(id, 1159148) // Copper Ship Relief
-            {
-                Weight = 0;
-            }
-
-            public override void GetProperties(ObjectPropertyList list)
-            {
-                base.GetProperties(list);
-
-                string name = ((CopperShipReliefAddon)Addon).DisplayName;
-
-                if (!string.IsNullOrEmpty(name))
-                {
-                    list.Add(1159152, name); // <BASEFONT COLOR=#FFD24D>Depicting the Maiden Voyage of ~1_NAME~<BASEFONT COLOR=#FFFFFF>
-                }
-
-                if (Hue == 2951)
-                    list.Add(1076187); // Antique
-            }
-
-            public CopperShipReliefComponent(Serial serial)
-                : base(serial)
-            {
-            }
-
-            public override void Serialize(GenericWriter writer)
-            {
-                base.Serialize(writer);
-                writer.WriteEncodedInt(0); // version
-            }
-
-            public override void Deserialize(GenericReader reader)
-            {
-                base.Deserialize(reader);
-                int version = reader.ReadEncodedInt();
             }
         }
 
@@ -93,31 +55,84 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
 
             if (version == 0)
-            {
-                _DisplayName = CopperShipReliefAddonDeed._Names[Utility.Random(CopperShipReliefAddonDeed._Names.Length)];
-            }
+                _DisplayName =
+                    CopperShipReliefAddonDeed._Names[Utility.Random(CopperShipReliefAddonDeed._Names.Length)];
             else
-            {
                 _DisplayName = reader.ReadString();
+        }
+
+        private class CopperShipReliefComponent : LocalizedAddonComponent
+        {
+            public override bool ForceShowProperties => true;
+
+            public CopperShipReliefComponent(int id)
+                : base(id, 1159148) // Copper Ship Relief
+            {
+                Weight = 0;
+            }
+
+            public CopperShipReliefComponent(Serial serial)
+                : base(serial)
+            {
+            }
+
+            public override void GetProperties(ObjectPropertyList list)
+            {
+                base.GetProperties(list);
+
+                var name = ((CopperShipReliefAddon)Addon).DisplayName;
+
+                if (!string.IsNullOrEmpty(name))
+                    list.Add(1159152,
+                        name); // <BASEFONT COLOR=#FFD24D>Depicting the Maiden Voyage of ~1_NAME~<BASEFONT COLOR=#FFFFFF>
+
+                if (Hue == 2951)
+                    list.Add(1076187); // Antique
+            }
+
+            public override void Serialize(GenericWriter writer)
+            {
+                base.Serialize(writer);
+                writer.WriteEncodedInt(0); // version
+            }
+
+            public override void Deserialize(GenericReader reader)
+            {
+                base.Deserialize(reader);
+                var version = reader.ReadEncodedInt();
             }
         }
     }
 
     public class CopperShipReliefAddonDeed : BaseAddonDeed, IRewardOption
     {
-        public override BaseAddon Addon { get { return new CopperShipReliefAddon(Facing, DisplayName); } }
+        public static string[] _Names =
+        {
+            "The HMS Cape", "The Mustang", "The Dragon's Breath", "The Crown Jewel", "The Empire", "The Scaly Eel",
+            "The Spartan", "The Beast", "The Ararat", "The Arabella", "The Lusty Wench", "The Golden Ankh",
+            "The Poseidon's Fury", "The Silver Hart"
+        };
 
         private string _DisplayName;
+        public override BaseAddon Addon => new CopperShipReliefAddon(Facing, DisplayName);
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public string DisplayName { get { return _DisplayName; } set { _DisplayName = value; InvalidateProperties(); } }
+        public string DisplayName
+        {
+            get => _DisplayName;
+            set
+            {
+                _DisplayName = value;
+                InvalidateProperties();
+            }
+        }
 
         private AddonFacing Facing { get; set; }
 
-        public override int LabelNumber { get { return 1159148; } } // Copper Ship Relief
+        public override int LabelNumber => 1159148; // Copper Ship Relief
 
         [Constructable]
         public CopperShipReliefAddonDeed()
@@ -136,49 +151,9 @@ namespace Server.Items
                 _DisplayName = name;
         }
 
-        public override void OnDoubleClick(Mobile from)
-        {
-            if (IsChildOf(from.Backpack))
-            {
-                from.CloseGump(typeof(AddonOptionGump));
-                from.SendGump(new AddonOptionGump(this));
-            }
-            else
-                from.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.       	
-        }
-
-        public override void GetProperties(ObjectPropertyList list)
-        {
-            base.GetProperties(list);
-
-            if (!string.IsNullOrEmpty(_DisplayName))
-            {
-                list.Add(1159152, _DisplayName); // <BASEFONT COLOR=#FFD24D>Depicting the Maiden Voyage of ~1_NAME~<BASEFONT COLOR=#FFFFFF>
-            }
-
-            if (Hue == 2951)
-                list.Add(1076187); // Antique
-        }
-
         public CopperShipReliefAddonDeed(Serial serial)
             : base(serial)
         {
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.Write((int)0); // version
-
-            writer.Write(_DisplayName);
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            int version = reader.ReadInt();
-
-            _DisplayName = reader.ReadString();
         }
 
         public void GetOptions(RewardOptionList list)
@@ -196,10 +171,45 @@ namespace Server.Items
                 base.OnDoubleClick(from);
         }
 
-        public static string[] _Names =
+        public override void OnDoubleClick(Mobile from)
         {
-            "The HMS Cape", "The Mustang", "The Dragon's Breath", "The Crown Jewel", "The Empire", "The Scaly Eel", "The Spartan", "The Beast", "The Ararat", "The Arabella", "The Lusty Wench", "The Golden Ankh",
-            "The Poseidon's Fury", "The Silver Hart"
-        };
+            if (IsChildOf(from.Backpack))
+            {
+                from.CloseGump(typeof(AddonOptionGump));
+                from.SendGump(new AddonOptionGump(this));
+            }
+            else
+            {
+                from.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.       	
+            }
+        }
+
+        public override void GetProperties(ObjectPropertyList list)
+        {
+            base.GetProperties(list);
+
+            if (!string.IsNullOrEmpty(_DisplayName))
+                list.Add(1159152,
+                    _DisplayName); // <BASEFONT COLOR=#FFD24D>Depicting the Maiden Voyage of ~1_NAME~<BASEFONT COLOR=#FFFFFF>
+
+            if (Hue == 2951)
+                list.Add(1076187); // Antique
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0); // version
+
+            writer.Write(_DisplayName);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
+
+            _DisplayName = reader.ReadString();
+        }
     }
 }

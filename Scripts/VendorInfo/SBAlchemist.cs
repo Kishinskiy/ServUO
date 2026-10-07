@@ -1,7 +1,6 @@
-using System;
 using System.Collections.Generic;
-using Server.Items;
 using Server.Engines.Quests;
+using Server.Items;
 
 namespace Server.Mobiles
 {
@@ -10,34 +9,20 @@ namespace Server.Mobiles
         private readonly List<GenericBuyInfo> m_BuyInfo;
         private readonly IShopSellInfo m_SellInfo = new InternalSellInfo();
 
+        public override IShopSellInfo SellInfo => m_SellInfo;
+
+        public override List<GenericBuyInfo> BuyInfo => m_BuyInfo;
+
         public SBAlchemist(Mobile m)
         {
-            if (m != null)
-            {
-                m_BuyInfo = new InternalBuyInfo(m);
-            }
-        }
-
-        public override IShopSellInfo SellInfo
-        {
-            get
-            {
-                return m_SellInfo;
-            }
-        }
-        public override List<GenericBuyInfo> BuyInfo
-        {
-            get
-            {
-                return m_BuyInfo;
-            }
+            if (m != null) m_BuyInfo = new InternalBuyInfo(m);
         }
 
         public class InternalBuyInfo : List<GenericBuyInfo>
         {
             public InternalBuyInfo(Mobile m)
             {
-                Add(new GenericBuyInfo(typeof(Bottle), 5, 100, 0xF0E, 0, true)); 
+                Add(new GenericBuyInfo(typeof(Bottle), 5, 100, 0xF0E, 0, true));
                 Add(new GenericBuyInfo(typeof(HeatingStand), 2, 100, 0x1849, 0));
                 Add(new GenericBuyInfo(typeof(SkinTingeingTincture), 1255, 20, 0xEFF, 90));
 
@@ -61,7 +46,6 @@ namespace Server.Mobiles
                 Add(new GenericBuyInfo(typeof(MortarPestle), 8, 10, 0xE9B, 0));
 
 
-
                 if (m.Map != Map.TerMur)
                 {
                     Add(new GenericBuyInfo(typeof(HairDye), 37, 10, 0xEFF, 0));
@@ -79,14 +63,14 @@ namespace Server.Mobiles
         {
             public InternalSellInfo()
             {
-                Add(typeof(BlackPearl), 3); 
-                Add(typeof(Bloodmoss), 3); 
-                Add(typeof(MandrakeRoot), 2); 
-                Add(typeof(Garlic), 2); 
-                Add(typeof(Ginseng), 2); 
-                Add(typeof(Nightshade), 2); 
-                Add(typeof(SpidersSilk), 2); 
-                Add(typeof(SulfurousAsh), 2); 
+                Add(typeof(BlackPearl), 3);
+                Add(typeof(Bloodmoss), 3);
+                Add(typeof(MandrakeRoot), 2);
+                Add(typeof(Garlic), 2);
+                Add(typeof(Ginseng), 2);
+                Add(typeof(Nightshade), 2);
+                Add(typeof(SpidersSilk), 2);
+                Add(typeof(SulfurousAsh), 2);
                 Add(typeof(Bottle), 3);
                 Add(typeof(MortarPestle), 4);
                 Add(typeof(HairDye), 19);
@@ -96,18 +80,18 @@ namespace Server.Mobiles
                 Add(typeof(StrengthPotion), 7);
                 Add(typeof(RefreshPotion), 7);
                 Add(typeof(LesserCurePotion), 7);
-				Add(typeof(CurePotion), 11);
-				Add(typeof(GreaterCurePotion), 15);
+                Add(typeof(CurePotion), 11);
+                Add(typeof(GreaterCurePotion), 15);
                 Add(typeof(LesserHealPotion), 7);
-				Add(typeof(HealPotion), 11);
-				Add(typeof(GreaterHealPotion), 15);
-				Add(typeof(LesserPoisonPotion), 7);
-				Add(typeof(PoisonPotion), 9);
-				Add(typeof(GreaterPoisonPotion), 13);
-				Add(typeof(DeadlyPoisonPotion), 21);
-				Add(typeof(LesserExplosionPotion), 10);
-				Add(typeof(ExplosionPotion), 15);
-				Add(typeof(GreaterExplosionPotion), 25);
+                Add(typeof(HealPotion), 11);
+                Add(typeof(GreaterHealPotion), 15);
+                Add(typeof(LesserPoisonPotion), 7);
+                Add(typeof(PoisonPotion), 9);
+                Add(typeof(GreaterPoisonPotion), 13);
+                Add(typeof(DeadlyPoisonPotion), 21);
+                Add(typeof(LesserExplosionPotion), 10);
+                Add(typeof(ExplosionPotion), 15);
+                Add(typeof(GreaterExplosionPotion), 25);
             }
         }
     }

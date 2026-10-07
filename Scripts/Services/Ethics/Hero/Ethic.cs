@@ -1,4 +1,3 @@
-using System;
 using Server.Factions;
 
 namespace Server.Ethics.Hero
@@ -7,7 +6,7 @@ namespace Server.Ethics.Hero
     {
         public HeroEthic()
         {
-            this.m_Definition = new EthicDefinition(
+            m_Definition = new EthicDefinition(
                 0x482,
                 "Hero", "(Hero)",
                 "I will defend the virtues",
@@ -29,9 +28,9 @@ namespace Server.Ethics.Hero
             if (mob.Murderer)
                 return false;
 
-            Faction fac = Faction.Find(mob);
+            var fac = Faction.Find(mob);
 
-            return (fac is TrueBritannians || fac is CouncilOfMages);
+            return fac is TrueBritannians || fac is CouncilOfMages;
         }
     }
 }

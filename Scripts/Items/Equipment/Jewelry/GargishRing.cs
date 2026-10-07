@@ -1,9 +1,11 @@
-using System;
-
 namespace Server.Items
 {
     public class GargishRing : BaseRing
     {
+        public override Race RequiredRace => Race.Gargoyle;
+
+        public override bool CanBeWornByGargoyles => true;
+
         [Constructable]
         public GargishRing()
             : base(0x4212)
@@ -16,30 +18,16 @@ namespace Server.Items
         {
         }
 
-        public override Race RequiredRace
-        {
-            get
-            {
-                return Race.Gargoyle;
-            }
-        }
-        public override bool CanBeWornByGargoyles
-        {
-            get
-            {
-                return true;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

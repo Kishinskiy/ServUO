@@ -1,4 +1,4 @@
-using System;
+using Server.Engines.Plants;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +6,10 @@ namespace Server.Mobiles
     [CorpseName("a plant corpse")]
     public class Bogling : BaseCreature
     {
+        public override int Hides => 6;
+
+        public override int Meat => 1;
+
         [Constructable]
         public Bogling()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -40,7 +44,7 @@ namespace Server.Mobiles
             VirtualArmor = 28;
 
             PackItem(new Log(4));
-            PackItem(new Engines.Plants.Seed());
+            PackItem(new Seed());
         }
 
         public Bogling(Serial serial)
@@ -48,20 +52,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override int Hides
-        {
-            get
-            {
-                return 6;
-            }
-        }
-        public override int Meat
-        {
-            get
-            {
-                return 1;
-            }
-        }
         public override void GenerateLoot()
         {
             AddLoot(LootPack.Meager);
@@ -70,13 +60,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

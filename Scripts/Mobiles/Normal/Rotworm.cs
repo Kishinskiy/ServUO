@@ -1,8 +1,6 @@
-using Server;
 using System;
-using System.Collections.Generic;
-using Server.Items;
 using Server.Engines.Quests;
+using Server.Items;
 
 namespace Server.Mobiles
 {
@@ -10,6 +8,10 @@ namespace Server.Mobiles
     [TypeAlias("Server.Mobiles.RotWorm")]
     public class Rotworm : BaseCreature
     {
+        public override int Meat => 2;
+        public override MeatType MeatType => MeatType.Rotworm;
+        public override FoodType FavoriteFood => FoodType.Fish;
+
         [Constructable]
         public Rotworm()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.25, 0.5)
@@ -51,15 +53,30 @@ namespace Server.Mobiles
         {
         }
 
-        public override int GetAngerSound() { return 0x62D; }
-        public override int GetIdleSound() { return 0x62D; }
-        public override int GetAttackSound() { return 0x62A; }
-        public override int GetHurtSound() { return 0x62C; }
-        public override int GetDeathSound() { return 0x62B; }
+        public override int GetAngerSound()
+        {
+            return 0x62D;
+        }
 
-        public override int Meat { get { return 2; } }
-        public override MeatType MeatType { get { return MeatType.Rotworm; } }
-        public override FoodType FavoriteFood { get { return FoodType.Fish; } }
+        public override int GetIdleSound()
+        {
+            return 0x62D;
+        }
+
+        public override int GetAttackSound()
+        {
+            return 0x62A;
+        }
+
+        public override int GetHurtSound()
+        {
+            return 0x62C;
+        }
+
+        public override int GetDeathSound()
+        {
+            return 0x62B;
+        }
 
         public override void GenerateLoot()
         {
@@ -72,7 +89,7 @@ namespace Server.Mobiles
 
             if (mob is PlayerMobile && 0.2 > Utility.RandomDouble())
             {
-                PlayerMobile pm = mob as PlayerMobile;
+                var pm = mob as PlayerMobile;
 
                 if (QuestHelper.HasQuest<Missing>(pm))
                 {
@@ -86,7 +103,7 @@ namespace Server.Mobiles
 
         public override void OnMovement(Mobile m, Point3D oldLocation)
         {
-            CandlewoodTorch torch = m.FindItemOnLayer(Layer.TwoHanded) as CandlewoodTorch;
+            var torch = m.FindItemOnLayer(Layer.TwoHanded) as CandlewoodTorch;
 
             if (torch != null && torch.Burning)
                 BeginFlee(TimeSpan.FromSeconds(5.0));
@@ -95,13 +112,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

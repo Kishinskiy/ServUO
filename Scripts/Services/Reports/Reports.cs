@@ -1,9 +1,9 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Threading;
 using Server.Accounting;
 using Server.Commands;
+using Server.Engines.Help;
 using Server.Factions;
 using Server.Mobiles;
 using Server.Network;
@@ -15,35 +15,29 @@ namespace Server.Engines.Reports
         public static bool Enabled = Config.Get("Reports.AutoGenerate", false);
         private static DateTime m_GenerateTime;
         private static SnapshotHistory m_StatsHistory;
-        private static StaffHistory m_StaffHistory;
-        public static StaffHistory StaffHistory
-        {
-            get
-            {
-                return m_StaffHistory;
-            }
-        }
+        public static StaffHistory StaffHistory { get; private set; }
+
         public static void Initialize()
         {
-            CommandSystem.Register("GenReports", AccessLevel.Administrator, new CommandEventHandler(GenReports_OnCommand));
+            CommandSystem.Register("GenReports", AccessLevel.Administrator, GenReports_OnCommand);
 
             m_StatsHistory = new SnapshotHistory();
             m_StatsHistory.Load();
 
-            m_StaffHistory = new StaffHistory();
-            m_StaffHistory.Load();
+            StaffHistory = new StaffHistory();
+            StaffHistory.Load();
 
-            DateTime now = DateTime.UtcNow;
-            
+            var now = DateTime.UtcNow;
+
             if (!Enabled)
                 return;
 
-            DateTime date = now.Date;
-            TimeSpan timeOfDay = now.TimeOfDay;
+            var date = now.Date;
+            var timeOfDay = now.TimeOfDay;
 
             m_GenerateTime = date + TimeSpan.FromHours(Math.Ceiling(timeOfDay.TotalHours));
 
-            Timer.DelayCall(TimeSpan.FromMinutes(0.5), TimeSpan.FromMinutes(0.5), new TimerCallback(CheckRegenerate));
+            Timer.DelayCall(TimeSpan.FromMinutes(0.5), TimeSpan.FromMinutes(0.5), CheckRegenerate);
         }
 
         public static void CheckRegenerate()
@@ -54,26 +48,26 @@ namespace Server.Engines.Reports
             Generate();
             m_GenerateTime += TimeSpan.FromHours(1.0);
         }
-        
+
         [Usage("GenReports")]
         [Description("Generates Reports on Command.")]
         public static void GenReports_OnCommand(CommandEventArgs e)
         {
-			Generate();
+            Generate();
         }
 
         public static void Generate()
         {
-            Snapshot ss = new Snapshot();
+            var ss = new Snapshot();
 
             ss.TimeStamp = DateTime.UtcNow;
 
             FillSnapshot(ss);
 
             m_StatsHistory.Snapshots.Add(ss);
-            m_StaffHistory.QueueStats.Add(new QueueStatus(Engines.Help.PageQueue.List.Count));
+            StaffHistory.QueueStats.Add(new QueueStatus(PageQueue.List.Count));
 
-            ThreadPool.QueueUserWorkItem(new WaitCallback(UpdateOutput), ss);
+            ThreadPool.QueueUserWorkItem(UpdateOutput, ss);
         }
 
         public static void FillSnapshot(Snapshot ss)
@@ -81,33 +75,31 @@ namespace Server.Engines.Reports
             ss.Children.Add(CompileGeneralStats());
             ss.Children.Add(CompileStatChart());
 
-            PersistableObject[] obs = CompileSkillReports();
+            var obs = CompileSkillReports();
 
-            for (int i = 0; i < obs.Length; ++i)
+            for (var i = 0; i < obs.Length; ++i)
                 ss.Children.Add(obs[i]);
 
             obs = CompileFactionReports();
 
-            for (int i = 0; i < obs.Length; ++i)
+            for (var i = 0; i < obs.Length; ++i)
                 ss.Children.Add(obs[i]);
         }
 
         public static Report CompileGeneralStats()
         {
-            Report report = new Report("General Stats", "200");
+            var report = new Report("General Stats", "200");
 
             report.Columns.Add("50%", "left");
             report.Columns.Add("50%", "left");
 
             int npcs = 0, players = 0;
 
-            foreach (Mobile mob in World.Mobiles.Values)
-            {
+            foreach (var mob in World.Mobiles.Values)
                 if (mob.Player)
                     ++players;
                 else
                     ++npcs;
-            }
 
             report.Items.Add("NPCs", npcs, "N0");
             report.Items.Add("Players", players, "N0");
@@ -120,21 +112,19 @@ namespace Server.Engines.Reports
 
         public static Chart CompileStatChart()
         {
-            PieChart chart = new PieChart("Stat Distribution", "graphs_strdexint_distrib", true);
+            var chart = new PieChart("Stat Distribution", "graphs_strdexint_distrib", true);
 
-            ChartItem strItem = new ChartItem("Strength", 0);
-            ChartItem dexItem = new ChartItem("Dexterity", 0);
-            ChartItem intItem = new ChartItem("Intelligence", 0);
+            var strItem = new ChartItem("Strength", 0);
+            var dexItem = new ChartItem("Dexterity", 0);
+            var intItem = new ChartItem("Intelligence", 0);
 
-            foreach (Mobile mob in World.Mobiles.Values)
-            {
+            foreach (var mob in World.Mobiles.Values)
                 if (mob.RawStatTotal == mob.StatCap && mob is PlayerMobile)
                 {
                     strItem.Value += mob.RawStr;
                     dexItem.Value += mob.RawDex;
                     intItem.Value += mob.RawInt;
                 }
-            }
 
             chart.Items.Add(strItem);
             chart.Items.Add(dexItem);
@@ -145,35 +135,34 @@ namespace Server.Engines.Reports
 
         public static SkillDistribution[] GetSkillDistribution()
         {
-            int skip = (Core.ML ? 0 : Core.SE ? 1 : Core.AOS ? 3 : 6);
+            var skip = Core.ML ? 0 : Core.SE ? 1 : Core.AOS ? 3 : 6;
 
-            SkillDistribution[] distribs = new SkillDistribution[SkillInfo.Table.Length - skip];
+            var distribs = new SkillDistribution[SkillInfo.Table.Length - skip];
 
-            for (int i = 0; i < distribs.Length; ++i)
+            for (var i = 0; i < distribs.Length; ++i)
                 distribs[i] = new SkillDistribution(SkillInfo.Table[i]);
 
-            foreach (Mobile mob in World.Mobiles.Values)
-            {
-                if (mob.SkillsTotal >= 1500 && mob.SkillsTotal <= (Config.Get("PlayerCaps.TotalSkillCap", 7000) + 200) && mob is PlayerMobile)
+            foreach (var mob in World.Mobiles.Values)
+                if (mob.SkillsTotal >= 1500 && mob.SkillsTotal <= Config.Get("PlayerCaps.TotalSkillCap", 7000) + 200 &&
+                    mob is PlayerMobile)
                 {
-                    Skills skills = mob.Skills;
+                    var skills = mob.Skills;
 
-                    for (int i = 0; i < skills.Length - skip; ++i)
+                    for (var i = 0; i < skills.Length - skip; ++i)
                     {
-                        Skill skill = skills[i];
+                        var skill = skills[i];
 
                         if (skill.BaseFixedPoint >= 1000)
                             distribs[i].m_NumberOfGMs++;
                     }
                 }
-            }
 
             return distribs;
         }
 
         public static PersistableObject[] CompileSkillReports()
         {
-            SkillDistribution[] distribs = GetSkillDistribution();
+            var distribs = GetSkillDistribution();
 
             Array.Sort(distribs);
 
@@ -182,12 +171,12 @@ namespace Server.Engines.Reports
 
         public static Report CompileSkillReport(SkillDistribution[] distribs)
         {
-            Report report = new Report("Skill Report", "300");
+            var report = new Report("Skill Report", "300");
 
             report.Columns.Add("70%", "left", "Name");
             report.Columns.Add("30%", "center", "GMs");
 
-            for (int i = 0; i < distribs.Length; ++i)
+            for (var i = 0; i < distribs.Length; ++i)
                 report.Items.Add(distribs[i].m_Skill.Name, distribs[i].m_NumberOfGMs, "N0");
 
             return report;
@@ -195,14 +184,14 @@ namespace Server.Engines.Reports
 
         public static Chart CompileSkillChart(SkillDistribution[] distribs)
         {
-            PieChart chart = new PieChart("GM Skill Distribution", "graphs_skill_distrib", true);
+            var chart = new PieChart("GM Skill Distribution", "graphs_skill_distrib", true);
 
-            for (int i = 0; i < 12; ++i)
+            for (var i = 0; i < 12; ++i)
                 chart.Items.Add(distribs[i].m_Skill.Name, distribs[i].m_NumberOfGMs);
 
-            int rem = 0;
+            var rem = 0;
 
-            for (int i = 12; i < distribs.Length; ++i)
+            for (var i = 12; i < distribs.Length; ++i)
                 rem += distribs[i].m_NumberOfGMs;
 
             chart.Items.Add("Other", rem);
@@ -212,16 +201,20 @@ namespace Server.Engines.Reports
 
         public static PersistableObject[] CompileFactionReports()
         {
-            return new PersistableObject[] { CompileFactionMembershipChart(), CompileFactionReport(), CompileFactionTownReport(), CompileSigilReport(), CompileFactionLeaderboard() };
+            return new PersistableObject[]
+            {
+                CompileFactionMembershipChart(), CompileFactionReport(), CompileFactionTownReport(),
+                CompileSigilReport(), CompileFactionLeaderboard()
+            };
         }
 
         public static Chart CompileFactionMembershipChart()
         {
-            PieChart chart = new PieChart("Faction Membership", "graphs_faction_membership", true);
+            var chart = new PieChart("Faction Membership", "graphs_faction_membership", true);
 
-            List<Faction> factions = Faction.Factions;
+            var factions = Faction.Factions;
 
-            for (int i = 0; i < factions.Count; ++i)
+            for (var i = 0; i < factions.Count; ++i)
                 chart.Items.Add(factions[i].Definition.FriendlyName, factions[i].Members.Count);
 
             return chart;
@@ -229,20 +222,20 @@ namespace Server.Engines.Reports
 
         public static Report CompileFactionLeaderboard()
         {
-            Report report = new Report("Faction Leaderboard", "60%");
+            var report = new Report("Faction Leaderboard", "60%");
 
             report.Columns.Add("28%", "center", "Name");
             report.Columns.Add("28%", "center", "Faction");
             report.Columns.Add("28%", "center", "Office");
             report.Columns.Add("16%", "center", "Kill Points");
 
-            ArrayList list = new ArrayList();
+            var list = new ArrayList();
 
-            List<Faction> factions = Faction.Factions;
+            var factions = Faction.Factions;
 
-            for (int i = 0; i < factions.Count; ++i)
+            for (var i = 0; i < factions.Count; ++i)
             {
-                Faction faction = factions[i];
+                var faction = factions[i];
 
                 list.AddRange(faction.Members);
             }
@@ -250,22 +243,22 @@ namespace Server.Engines.Reports
             list.Sort();
             list.Reverse();
 
-            for (int i = 0; i < list.Count && i < 15; ++i)
+            for (var i = 0; i < list.Count && i < 15; ++i)
             {
-                PlayerState pl = (PlayerState)list[i];
+                var pl = (PlayerState)list[i];
 
                 string office;
 
                 if (pl.Faction.Commander == pl.Mobile)
                     office = "Commanding Lord";
                 else if (pl.Finance != null)
-                    office = String.Format("{0} Finance Minister", pl.Finance.Definition.FriendlyName);
+                    office = string.Format("{0} Finance Minister", pl.Finance.Definition.FriendlyName);
                 else if (pl.Sheriff != null)
-                    office = String.Format("{0} Sheriff", pl.Sheriff.Definition.FriendlyName);
+                    office = string.Format("{0} Sheriff", pl.Sheriff.Definition.FriendlyName);
                 else
                     office = "";
 
-                ReportItem item = new ReportItem();
+                var item = new ReportItem();
 
                 item.Values.Add(pl.Mobile.Name);
                 item.Values.Add(pl.Faction.Definition.FriendlyName);
@@ -280,7 +273,7 @@ namespace Server.Engines.Reports
 
         public static Report CompileFactionReport()
         {
-            Report report = new Report("Faction Statistics", "80%");
+            var report = new Report("Faction Statistics", "80%");
 
             report.Columns.Add("20%", "center", "Name");
             report.Columns.Add("20%", "center", "Commander");
@@ -289,17 +282,17 @@ namespace Server.Engines.Reports
             report.Columns.Add("15%", "center", "Kill Points");
             report.Columns.Add("15%", "center", "Silver");
 
-            List<Faction> factions = Faction.Factions;
+            var factions = Faction.Factions;
 
-            for (int i = 0; i < factions.Count; ++i)
+            for (var i = 0; i < factions.Count; ++i)
             {
-                Faction faction = factions[i];
-                List<PlayerState> members = faction.Members;
+                var faction = factions[i];
+                var members = faction.Members;
 
-                int totalKillPoints = 0;
-                int totalMerchants = 0;
+                var totalKillPoints = 0;
+                var totalMerchants = 0;
 
-                for (int j = 0; j < members.Count; ++j)
+                for (var j = 0; j < members.Count; ++j)
                 {
                     totalKillPoints += members[j].KillPoints;
 
@@ -307,7 +300,7 @@ namespace Server.Engines.Reports
                         ++totalMerchants;
                 }
 
-                ReportItem item = new ReportItem();
+                var item = new ReportItem();
 
                 item.Values.Add(faction.Definition.FriendlyName);
                 item.Values.Add(faction.Commander == null ? "" : faction.Commander.Name);
@@ -324,25 +317,25 @@ namespace Server.Engines.Reports
 
         public static Report CompileSigilReport()
         {
-            Report report = new Report("Faction Town Sigils", "50%");
+            var report = new Report("Faction Town Sigils", "50%");
 
             report.Columns.Add("35%", "center", "Town");
             report.Columns.Add("35%", "center", "Controller");
             report.Columns.Add("30%", "center", "Capturable");
 
-            List<Sigil> sigils = Sigil.Sigils;
+            var sigils = Sigil.Sigils;
 
-            for (int i = 0; i < sigils.Count; ++i)
+            for (var i = 0; i < sigils.Count; ++i)
             {
-                Sigil sigil = sigils[i];
+                var sigil = sigils[i];
 
-                string controller = "Unknown";
+                var controller = "Unknown";
 
-                Mobile mob = sigil.RootParent as Mobile;
+                var mob = sigil.RootParent as Mobile;
 
                 if (mob != null)
                 {
-                    Faction faction = Faction.Find(mob);
+                    var faction = Faction.Find(mob);
 
                     if (faction != null)
                         controller = faction.Definition.FriendlyName;
@@ -352,7 +345,7 @@ namespace Server.Engines.Reports
                     controller = sigil.LastMonolith.Faction.Definition.FriendlyName;
                 }
 
-                ReportItem item = new ReportItem();
+                var item = new ReportItem();
 
                 item.Values.Add(sigil.Town == null ? "" : sigil.Town.Definition.FriendlyName);
                 item.Values.Add(controller);
@@ -366,7 +359,7 @@ namespace Server.Engines.Reports
 
         public static Report CompileFactionTownReport()
         {
-            Report report = new Report("Faction Towns", "80%");
+            var report = new Report("Faction Towns", "80%");
 
             report.Columns.Add("20%", "center", "Name");
             report.Columns.Add("20%", "center", "Owner");
@@ -375,20 +368,20 @@ namespace Server.Engines.Reports
             report.Columns.Add("13%", "center", "Silver");
             report.Columns.Add("13%", "center", "Prices");
 
-            List<Town> towns = Town.Towns;
+            var towns = Town.Towns;
 
-            for (int i = 0; i < towns.Count; ++i)
+            for (var i = 0; i < towns.Count; ++i)
             {
-                Town town = towns[i];
+                var town = towns[i];
 
-                string prices = "Normal";
+                var prices = "Normal";
 
                 if (town.Tax < 0)
-                    prices = town.Tax.ToString() + "%";
+                    prices = town.Tax + "%";
                 else if (town.Tax > 0)
-                    prices = "+" + town.Tax.ToString() + "%";
+                    prices = "+" + town.Tax + "%";
 
-                ReportItem item = new ReportItem();
+                var item = new ReportItem();
 
                 item.Values.Add(town.Definition.FriendlyName);
                 item.Values.Add(town.Owner == null ? "Neutral" : town.Owner.Definition.FriendlyName);
@@ -406,29 +399,30 @@ namespace Server.Engines.Reports
         private static void UpdateOutput(object state)
         {
             m_StatsHistory.Save();
-            m_StaffHistory.Save();
+            StaffHistory.Save();
 
-            HtmlRenderer renderer = new HtmlRenderer("stats", (Snapshot)state, m_StatsHistory);
+            var renderer = new HtmlRenderer("stats", (Snapshot)state, m_StatsHistory);
             renderer.Render();
             renderer.Upload();
 
-            renderer = new HtmlRenderer("staff", m_StaffHistory);
+            renderer = new HtmlRenderer("staff", StaffHistory);
             renderer.Render();
             renderer.Upload();
         }
-                
+
         public class SkillDistribution : IComparable
         {
-            public SkillInfo m_Skill;
             public int m_NumberOfGMs;
+            public SkillInfo m_Skill;
+
             public SkillDistribution(SkillInfo skill)
             {
-                this.m_Skill = skill;
+                m_Skill = skill;
             }
 
             public int CompareTo(object obj)
             {
-                return (((SkillDistribution)obj).m_NumberOfGMs - this.m_NumberOfGMs);
+                return ((SkillDistribution)obj).m_NumberOfGMs - m_NumberOfGMs;
             }
         }
     }

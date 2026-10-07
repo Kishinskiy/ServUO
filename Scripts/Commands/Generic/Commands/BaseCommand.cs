@@ -1,4 +1,3 @@
-using System;
 using System.Collections;
 using Server.Gumps;
 
@@ -14,98 +13,29 @@ namespace Server.Commands.Generic
 
     public abstract class BaseCommand
     {
-        private readonly ArrayList m_Responses;
         private readonly ArrayList m_Failures;
-        private string[] m_Commands;
-        private AccessLevel m_AccessLevel;
-        private CommandSupport m_Implementors;
-        private ObjectTypes m_ObjectTypes;
-        private bool m_ListOptimized;
-        private string m_Usage;
-        private string m_Description;
+        private readonly ArrayList m_Responses;
+
+        public bool ListOptimized { get; set; }
+
+        public string[] Commands { get; set; }
+
+        public string Usage { get; set; }
+
+        public string Description { get; set; }
+
+        public AccessLevel AccessLevel { get; set; }
+
+        public ObjectTypes ObjectTypes { get; set; }
+
+        public CommandSupport Supports { get; set; }
+
         public BaseCommand()
         {
-            this.m_Responses = new ArrayList();
-            this.m_Failures = new ArrayList();
+            m_Responses = new ArrayList();
+            m_Failures = new ArrayList();
         }
 
-        public bool ListOptimized
-        {
-            get
-            {
-                return this.m_ListOptimized;
-            }
-            set
-            {
-                this.m_ListOptimized = value;
-            }
-        }
-        public string[] Commands
-        {
-            get
-            {
-                return this.m_Commands;
-            }
-            set
-            {
-                this.m_Commands = value;
-            }
-        }
-        public string Usage
-        {
-            get
-            {
-                return this.m_Usage;
-            }
-            set
-            {
-                this.m_Usage = value;
-            }
-        }
-        public string Description
-        {
-            get
-            {
-                return this.m_Description;
-            }
-            set
-            {
-                this.m_Description = value;
-            }
-        }
-        public AccessLevel AccessLevel
-        {
-            get
-            {
-                return this.m_AccessLevel;
-            }
-            set
-            {
-                this.m_AccessLevel = value;
-            }
-        }
-        public ObjectTypes ObjectTypes
-        {
-            get
-            {
-                return this.m_ObjectTypes;
-            }
-            set
-            {
-                this.m_ObjectTypes = value;
-            }
-        }
-        public CommandSupport Supports
-        {
-            get
-            {
-                return this.m_Implementors;
-            }
-            set
-            {
-                this.m_Implementors = value;
-            }
-        }
         public static bool IsAccessible(Mobile from, object obj)
         {
             if (from.AccessLevel >= AccessLevel.Administrator || obj == null)
@@ -128,8 +58,8 @@ namespace Server.Commands.Generic
 
         public virtual void ExecuteList(CommandEventArgs e, ArrayList list)
         {
-            for (int i = 0; i < list.Count; ++i)
-                this.Execute(e, list[i]);
+            for (var i = 0; i < list.Count; ++i)
+                Execute(e, list[i]);
         }
 
         public virtual void Execute(CommandEventArgs e, object obj)
@@ -143,9 +73,9 @@ namespace Server.Commands.Generic
 
         public void AddResponse(string message)
         {
-            for (int i = 0; i < this.m_Responses.Count; ++i)
+            for (var i = 0; i < m_Responses.Count; ++i)
             {
-                MessageEntry entry = (MessageEntry)this.m_Responses[i];
+                var entry = (MessageEntry)m_Responses[i];
 
                 if (entry.m_Message == message)
                 {
@@ -154,22 +84,22 @@ namespace Server.Commands.Generic
                 }
             }
 
-            if (this.m_Responses.Count == 10)
+            if (m_Responses.Count == 10)
                 return;
 
-            this.m_Responses.Add(new MessageEntry(message));
+            m_Responses.Add(new MessageEntry(message));
         }
 
         public void AddResponse(Gump gump)
         {
-            this.m_Responses.Add(gump);
+            m_Responses.Add(gump);
         }
 
         public void LogFailure(string message)
         {
-            for (int i = 0; i < this.m_Failures.Count; ++i)
+            for (var i = 0; i < m_Failures.Count; ++i)
             {
-                MessageEntry entry = (MessageEntry)this.m_Failures[i];
+                var entry = (MessageEntry)m_Failures[i];
 
                 if (entry.m_Message == message)
                 {
@@ -178,19 +108,18 @@ namespace Server.Commands.Generic
                 }
             }
 
-            if (this.m_Failures.Count == 10)
+            if (m_Failures.Count == 10)
                 return;
 
-            this.m_Failures.Add(new MessageEntry(message));
+            m_Failures.Add(new MessageEntry(message));
         }
 
         public void Flush(Mobile from, bool flushToLog)
         {
-            if (this.m_Responses.Count > 0)
-            {
-                for (int i = 0; i < this.m_Responses.Count; ++i)
+            if (m_Responses.Count > 0)
+                for (var i = 0; i < m_Responses.Count; ++i)
                 {
-                    object obj = this.m_Responses[i];
+                    var obj = m_Responses[i];
 
                     if (obj is MessageEntry)
                     {
@@ -204,33 +133,31 @@ namespace Server.Commands.Generic
                         from.SendGump((Gump)obj);
                     }
                 }
-            }
             else
-            {
-                for (int i = 0; i < this.m_Failures.Count; ++i)
-                    from.SendMessage(((MessageEntry)this.m_Failures[i]).ToString());
-            }
+                for (var i = 0; i < m_Failures.Count; ++i)
+                    from.SendMessage(((MessageEntry)m_Failures[i]).ToString());
 
-            this.m_Responses.Clear();
-            this.m_Failures.Clear();
+            m_Responses.Clear();
+            m_Failures.Clear();
         }
 
         private class MessageEntry
         {
             public readonly string m_Message;
             public int m_Count;
+
             public MessageEntry(string message)
             {
-                this.m_Message = message;
-                this.m_Count = 1;
+                m_Message = message;
+                m_Count = 1;
             }
 
             public override string ToString()
             {
-                if (this.m_Count > 1)
-                    return String.Format("{0} ({1})", this.m_Message, this.m_Count);
+                if (m_Count > 1)
+                    return string.Format("{0} ({1})", m_Message, m_Count);
 
-                return this.m_Message;
+                return m_Message;
             }
         }
     }

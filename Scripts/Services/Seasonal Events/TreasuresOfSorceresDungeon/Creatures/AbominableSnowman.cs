@@ -1,13 +1,14 @@
-using System;
-
-using Server.Mobiles;
 using Server.Items;
+using Server.Mobiles;
 
 namespace Server.Engines.SorcerersDungeon
 {
     [CorpseName("an abominable snowmans corpse")]
     public class AbominableSnowman : BaseCreature
     {
+        public override bool AlwaysMurderer => true;
+        public override Poison PoisonImmune => Poison.Deadly;
+
         [Constructable]
         public AbominableSnowman()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -54,9 +55,6 @@ namespace Server.Engines.SorcerersDungeon
         {
         }
 
-        public override bool AlwaysMurderer { get { return true; } }
-        public override Poison PoisonImmune { get { return Poison.Deadly; } }
-
         public override void GenerateLoot()
         {
             AddLoot(LootPack.UltraRich, 2);
@@ -65,13 +63,13 @@ namespace Server.Engines.SorcerersDungeon
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

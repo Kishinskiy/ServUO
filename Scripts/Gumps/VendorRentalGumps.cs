@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 using Server.Mobiles;
 using Server.Multis;
@@ -68,7 +67,8 @@ namespace Server.Gumps
                 AddImage(49, 170, 0x61);
                 AddHtmlLocalized(60, 170, 250, 20, 1062355, 0x1, false, false); // Renew On Expiration?
 
-                if (type == GumpType.LockedContract || type == GumpType.UnlockedContract || type == GumpType.VendorLandlord)
+                if (type == GumpType.LockedContract || type == GumpType.UnlockedContract ||
+                    type == GumpType.VendorLandlord)
                     AddButton(30, 192, 0x15E1, 0x15E5, 3, GumpButtonType.Reply, 0);
                 AddHtmlLocalized(85, 190, 250, 20, 1062359, 0x1, false, false); // Landlord:
                 AddHtmlLocalized(230, 190, 270, 20, landlordRenew ? 1049717 : 1049718, 0x1, false, false); // YES / NO
@@ -114,9 +114,9 @@ namespace Server.Gumps
             {
                 AddPage(2);
 
-                for (int i = 0; i < VendorRentalDuration.Instances.Length; i++)
+                for (var i = 0; i < VendorRentalDuration.Instances.Length; i++)
                 {
-                    VendorRentalDuration durationItem = VendorRentalDuration.Instances[i];
+                    var durationItem = VendorRentalDuration.Instances[i];
 
                     AddButton(30, 76 + i * 20, 0x15E1, 0x15E5, 0x10 | i, GumpButtonType.Reply, 1);
                     AddHtmlLocalized(50, 75 + i * 20, 150, 20, durationItem.Name, 0x1, false, false);
@@ -124,33 +124,23 @@ namespace Server.Gumps
             }
         }
 
-        protected enum GumpType
-        {
-            UnlockedContract,
-            LockedContract,
-            Offer,
-            VendorLandlord,
-            VendorRenter
-        }
         public override void OnResponse(NetState sender, RelayInfo info)
         {
-            Mobile from = sender.Mobile;
+            var from = sender.Mobile;
 
             if (!IsValidResponse(from))
                 return;
 
             if ((info.ButtonID & 0x10) != 0) // Contract duration
             {
-                int index = info.ButtonID & 0xF;
+                var index = info.ButtonID & 0xF;
 
                 if (index < VendorRentalDuration.Instances.Length)
-                {
                     SetContractDuration(from, VendorRentalDuration.Instances[index]);
-                }
             }
             else
             {
-                switch ( info.ButtonID )
+                switch (info.ButtonID)
                 {
                     case 1: // Price Per Rental
                         SetPricePerRental(from);
@@ -210,15 +200,25 @@ namespace Server.Gumps
         protected virtual void Cancel(Mobile from)
         {
         }
+
+        protected enum GumpType
+        {
+            UnlockedContract,
+            LockedContract,
+            Offer,
+            VendorLandlord,
+            VendorRenter
+        }
     }
 
     public class VendorRentalContractGump : BaseVendorRentalGump
     {
         private readonly VendorRentalContract m_Contract;
+
         public VendorRentalContractGump(VendorRentalContract contract, Mobile from)
             : base(
-            contract.IsLockedDown ? GumpType.LockedContract : GumpType.UnlockedContract, contract.Duration,
-            contract.Price, contract.Price, from, null, contract.LandlordRenew, false, false)
+                contract.IsLockedDown ? GumpType.LockedContract : GumpType.UnlockedContract, contract.Duration,
+                contract.Price, contract.Price, from, null, contract.LandlordRenew, false, false)
         {
             m_Contract = contract;
         }
@@ -237,7 +237,8 @@ namespace Server.Gumps
 
         protected override void SetPricePerRental(Mobile from)
         {
-            from.SendLocalizedMessage(1062365); // Please enter the amount of gold that should be charged for this contract (ESC to cancel):
+            from.SendLocalizedMessage(
+                1062365); // Please enter the amount of gold that should be charged for this contract (ESC to cancel):
             from.Prompt = new PricePerRentalPrompt(m_Contract);
         }
 
@@ -259,8 +260,9 @@ namespace Server.Gumps
 
         private class PricePerRentalPrompt : Prompt
         {
-            public override int MessageCliloc { get { return 1062365; } }
             private readonly VendorRentalContract m_Contract;
+            public override int MessageCliloc => 1062365;
+
             public PricePerRentalPrompt(VendorRentalContract contract)
             {
                 m_Contract = contract;
@@ -305,6 +307,7 @@ namespace Server.Gumps
         private class OfferContractTarget : Target
         {
             private readonly VendorRentalContract m_Contract;
+
             public OfferContractTarget(VendorRentalContract contract)
                 : base(-1, false, TargetFlags.None)
             {
@@ -316,7 +319,7 @@ namespace Server.Gumps
                 if (!m_Contract.IsUsableBy(from, true, false, true, true))
                     return;
 
-                Mobile mob = targeted as Mobile;
+                var mob = targeted as Mobile;
 
                 if (mob == null || !mob.Player || !mob.Alive || mob == from)
                 {
@@ -330,7 +333,8 @@ namespace Server.Gumps
                 {
                     from.SendLocalizedMessage(1062372); // Please wait while that person considers your offer.
 
-                    mob.SendLocalizedMessage(1062373, from.Name); // ~1_NAME~ is offering you a vendor rental.   If you choose to accept this offer, you have 30 seconds to do so.
+                    mob.SendLocalizedMessage(1062373,
+                        from.Name); // ~1_NAME~ is offering you a vendor rental.   If you choose to accept this offer, you have 30 seconds to do so.
                     mob.SendGump(new VendorRentalOfferGump(m_Contract, from));
 
                     m_Contract.Offeree = mob;
@@ -348,10 +352,11 @@ namespace Server.Gumps
     {
         private readonly VendorRentalContract m_Contract;
         private readonly Mobile m_Landlord;
+
         public VendorRentalOfferGump(VendorRentalContract contract, Mobile landlord)
             : base(
-            GumpType.Offer, contract.Duration, contract.Price, contract.Price,
-            landlord, null, contract.LandlordRenew, false, false)
+                GumpType.Offer, contract.Duration, contract.Price, contract.Price,
+                landlord, null, contract.LandlordRenew, false, false)
         {
             m_Contract = contract;
             m_Landlord = landlord;
@@ -359,7 +364,8 @@ namespace Server.Gumps
 
         protected override bool IsValidResponse(Mobile from)
         {
-            return m_Contract.IsUsableBy(m_Landlord, true, false, false, false) && from.CheckAlive() && m_Contract.Offeree == from;
+            return m_Contract.IsUsableBy(m_Landlord, true, false, false, false) && from.CheckAlive() &&
+                   m_Contract.Offeree == from;
         }
 
         protected override void AcceptOffer(Mobile from)
@@ -372,32 +378,36 @@ namespace Server.Gumps
                 return;
             }
 
-            BaseHouse house = BaseHouse.FindHouseAt(m_Contract);
+            var house = BaseHouse.FindHouseAt(m_Contract);
             if (house == null)
                 return;
 
-            int price = m_Contract.Price;
+            var price = m_Contract.Price;
             int goldToGive;
 
             if (price > 0)
             {
                 if (Banker.Withdraw(from, price))
                 {
-                    from.SendLocalizedMessage(1060398, price.ToString()); // ~1_AMOUNT~ gold has been withdrawn from your bank box.
+                    from.SendLocalizedMessage(1060398,
+                        price.ToString()); // ~1_AMOUNT~ gold has been withdrawn from your bank box.
 
-                    int depositedGold = Banker.DepositUpTo(m_Landlord, price);
+                    var depositedGold = Banker.DepositUpTo(m_Landlord, price);
                     goldToGive = price - depositedGold;
 
                     if (depositedGold > 0)
-                        m_Landlord.SendLocalizedMessage(1060397, price.ToString()); // ~1_AMOUNT~ gold has been deposited into your bank box.
+                        m_Landlord.SendLocalizedMessage(1060397,
+                            price.ToString()); // ~1_AMOUNT~ gold has been deposited into your bank box.
 
                     if (goldToGive > 0)
                         m_Landlord.SendLocalizedMessage(500390); // Your bank box is full.
                 }
                 else
                 {
-                    from.SendLocalizedMessage(1062378); // You do not have enough gold in your bank account to cover the cost of the contract.
-                    m_Landlord.SendLocalizedMessage(1062374, from.Name); // ~1_NAME~ has declined your vendor rental offer.
+                    from.SendLocalizedMessage(
+                        1062378); // You do not have enough gold in your bank account to cover the cost of the contract.
+                    m_Landlord.SendLocalizedMessage(1062374,
+                        from.Name); // ~1_NAME~ has declined your vendor rental offer.
 
                     return;
                 }
@@ -407,13 +417,16 @@ namespace Server.Gumps
                 goldToGive = 0;
             }
 
-            PlayerVendor vendor = new RentedVendor(from, house, m_Contract.Duration, price, m_Contract.LandlordRenew, goldToGive);
+            PlayerVendor vendor = new RentedVendor(from, house, m_Contract.Duration, price, m_Contract.LandlordRenew,
+                goldToGive);
             vendor.MoveToWorld(m_Contract.Location, m_Contract.Map);
 
             m_Contract.Delete();
 
-            from.SendLocalizedMessage(1062377); // You have accepted the offer and now own a vendor in this house.  Rental contract options and details may be viewed on this vendor via the 'Contract Options' context menu.
-            m_Landlord.SendLocalizedMessage(1062376, from.Name); // ~1_NAME~ has accepted your vendor rental offer.  Rental contract details and options may be viewed on this vendor via the 'Contract Options' context menu.
+            from.SendLocalizedMessage(
+                1062377); // You have accepted the offer and now own a vendor in this house.  Rental contract options and details may be viewed on this vendor via the 'Contract Options' context menu.
+            m_Landlord.SendLocalizedMessage(1062376,
+                from.Name); // ~1_NAME~ has accepted your vendor rental offer.  Rental contract details and options may be viewed on this vendor via the 'Contract Options' context menu.
 
             EventSink.InvokePlacePlayerVendor(new PlacePlayerVendorEventArgs(from, vendor));
         }
@@ -430,10 +443,11 @@ namespace Server.Gumps
     public class RenterVendorRentalGump : BaseVendorRentalGump
     {
         private readonly RentedVendor m_Vendor;
+
         public RenterVendorRentalGump(RentedVendor vendor)
             : base(
-            GumpType.VendorRenter, vendor.RentalDuration, vendor.RentalPrice, vendor.RenewalPrice,
-            vendor.Landlord, vendor.Owner, vendor.LandlordRenew, vendor.RenterRenew, vendor.Renew)
+                GumpType.VendorRenter, vendor.RentalDuration, vendor.RentalPrice, vendor.RenewalPrice,
+                vendor.Landlord, vendor.Owner, vendor.LandlordRenew, vendor.RenterRenew, vendor.Renew)
         {
             m_Vendor = vendor;
         }
@@ -454,10 +468,11 @@ namespace Server.Gumps
     public class LandlordVendorRentalGump : BaseVendorRentalGump
     {
         private readonly RentedVendor m_Vendor;
+
         public LandlordVendorRentalGump(RentedVendor vendor)
             : base(
-            GumpType.VendorLandlord, vendor.RentalDuration, vendor.RentalPrice, vendor.RenewalPrice,
-            vendor.Landlord, vendor.Owner, vendor.LandlordRenew, vendor.RenterRenew, vendor.Renew)
+                GumpType.VendorLandlord, vendor.RentalDuration, vendor.RentalPrice, vendor.RenewalPrice,
+                vendor.Landlord, vendor.Owner, vendor.LandlordRenew, vendor.RenterRenew, vendor.Renew)
         {
             m_Vendor = vendor;
         }
@@ -483,8 +498,9 @@ namespace Server.Gumps
 
         private class ContractRenewalPricePrompt : Prompt
         {
-            public override int MessageCliloc { get { return 1062500; } }
             private readonly RentedVendor m_Vendor;
+            public override int MessageCliloc => 1062500;
+
             public ContractRenewalPricePrompt(RentedVendor vendor)
             {
                 m_Vendor = vendor;
@@ -531,9 +547,10 @@ namespace Server.Gumps
 
     public class VendorRentalRefundGump : Gump
     {
-        private readonly RentedVendor m_Vendor;
         private readonly Mobile m_Landlord;
         private readonly int m_RefundAmount;
+        private readonly RentedVendor m_Vendor;
+
         public VendorRentalRefundGump(RentedVendor vendor, Mobile landlord, int refundAmount)
             : base(50, 50)
         {
@@ -547,12 +564,12 @@ namespace Server.Gumps
             AddAlphaRegion(10, 10, 400, 300);
 
             /* The landlord for this vendor is offering you a partial refund of your rental fee
-            * in exchange for immediate termination of your rental contract.<BR><BR>
-            * 
-            * If you accept this offer, the vendor will be immediately dismissed.  You will then
-            * be able to claim the inventory and any funds the vendor may be holding for you via
-            * a context menu on the house sign for this house.
-            */
+             * in exchange for immediate termination of your rental contract.<BR><BR>
+             *
+             * If you accept this offer, the vendor will be immediately dismissed.  You will then
+             * be able to claim the inventory and any funds the vendor may be holding for you via
+             * a context menu on the house sign for this house.
+             */
             AddHtmlLocalized(10, 10, 400, 150, 1062501, 0x7FFF, false, true);
 
             AddHtmlLocalized(10, 180, 150, 20, 1062508, 0x7FFF, false, false); // Vendor Name:
@@ -565,35 +582,41 @@ namespace Server.Gumps
             AddLabel(160, 220, 0x480, refundAmount.ToString());
 
             AddButton(10, 268, 0xFA5, 0xFA7, 1, GumpButtonType.Reply, 0);
-            AddHtmlLocalized(45, 268, 350, 20, 1062511, 0x7FFF, false, false); // Agree, and <strong>dismiss vendor</strong>
+            AddHtmlLocalized(45, 268, 350, 20, 1062511, 0x7FFF, false,
+                false); // Agree, and <strong>dismiss vendor</strong>
 
             AddButton(10, 288, 0xFA5, 0xFA7, 0, GumpButtonType.Reply, 0);
-            AddHtmlLocalized(45, 288, 350, 20, 1062512, 0x7FFF, false, false); // No, I want to <strong>keep my vendor</strong>
+            AddHtmlLocalized(45, 288, 350, 20, 1062512, 0x7FFF, false,
+                false); // No, I want to <strong>keep my vendor</strong>
         }
 
         public override void OnResponse(NetState sender, RelayInfo info)
         {
-            Mobile from = sender.Mobile;
+            var from = sender.Mobile;
 
-            if (!m_Vendor.CanInteractWith(from, true) || !m_Vendor.CanInteractWith(m_Landlord, false) || !m_Vendor.IsLandlord(m_Landlord))
+            if (!m_Vendor.CanInteractWith(from, true) || !m_Vendor.CanInteractWith(m_Landlord, false) ||
+                !m_Vendor.IsLandlord(m_Landlord))
                 return;
 
             if (info.ButtonID == 1)
             {
                 if (Banker.Withdraw(m_Landlord, m_RefundAmount))
                 {
-                    m_Landlord.SendLocalizedMessage(1060398, m_RefundAmount.ToString()); // ~1_AMOUNT~ gold has been withdrawn from your bank box.
+                    m_Landlord.SendLocalizedMessage(1060398,
+                        m_RefundAmount.ToString()); // ~1_AMOUNT~ gold has been withdrawn from your bank box.
 
-                    int depositedGold = Banker.DepositUpTo(from, m_RefundAmount);
+                    var depositedGold = Banker.DepositUpTo(from, m_RefundAmount);
 
                     if (depositedGold > 0)
-                        from.SendLocalizedMessage(1060397, depositedGold.ToString()); // ~1_AMOUNT~ gold has been deposited into your bank box.
+                        from.SendLocalizedMessage(1060397,
+                            depositedGold.ToString()); // ~1_AMOUNT~ gold has been deposited into your bank box.
 
                     m_Vendor.HoldGold += m_RefundAmount - depositedGold;
 
                     m_Vendor.Destroy(false);
 
-                    from.SendLocalizedMessage(1071990); //Remember to claim your vendor's belongings from the house sign!
+                    from.SendLocalizedMessage(
+                        1071990); //Remember to claim your vendor's belongings from the house sign!
                 }
                 else
                 {

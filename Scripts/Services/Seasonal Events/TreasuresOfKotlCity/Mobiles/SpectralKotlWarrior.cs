@@ -1,13 +1,11 @@
-using System;
-using Server;
-using Server.Items;
-using Server.Engines.MyrmidexInvasion;
-
 namespace Server.Mobiles
 {
     [CorpseName("a kotl warrior corpse")]
     public class SpectralKotlWarrior : BaseCreature
     {
+        public override Poison HitPoison => Poison.Deadly;
+        public override Poison PoisonImmune => Poison.Deadly;
+
         [Constructable]
         public SpectralKotlWarrior(bool weak)
             : base(AIType.AI_Mage, FightMode.Closest, 10, 1, .2, .4)
@@ -60,13 +58,15 @@ namespace Server.Mobiles
             Karma = -16000;
         }
 
-        public override void GenerateLoot()
+        public SpectralKotlWarrior(Serial serial)
+            : base(serial)
         {
-            this.AddLoot(LootPack.Rich, 2);
         }
 
-        public override Poison HitPoison { get { return Poison.Deadly; } }
-        public override Poison PoisonImmune { get { return Poison.Deadly; } }
+        public override void GenerateLoot()
+        {
+            AddLoot(LootPack.Rich, 2);
+        }
 
         public override bool IsEnemy(Mobile m)
         {
@@ -74,11 +74,6 @@ namespace Server.Mobiles
                 return true;
 
             return base.IsEnemy(m);
-        }
-
-        public SpectralKotlWarrior(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -90,7 +85,7 @@ namespace Server.Mobiles
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +5,12 @@ namespace Server.Mobiles
     [CorpseName("an Irk corpse")]
     public class Irk : Changeling
     {
+        public override bool CanBeParagon => false;
+
+        public override string DefaultName => "Irk";
+
+        public override int DefaultHue => 0x489;
+
         [Constructable]
         public Irk()
         {
@@ -37,43 +42,26 @@ namespace Server.Mobiles
             Fame = 21000;
             Karma = -21000;
 
-            for (int i = 0; i < Utility.RandomMinMax(0, 1); i++)
-            {
+            for (var i = 0; i < Utility.RandomMinMax(0, 1); i++)
                 PackItem(Loot.RandomScroll(0, Loot.ArcanistScrollTypes.Length, SpellbookType.Arcanist));
-            }
 
             SetSpecialAbility(SpecialAbility.AngryFire);
         }
-		public override bool CanBeParagon { get { return false; } }
-        public override void OnDeath( Container c )
-        {
-            base.OnDeath( c );
 
-            if ( Utility.RandomDouble() < 0.25 )
-            c.DropItem( new IrksBrain() );
-
-            if ( Utility.RandomDouble() < 0.025 )
-            c.DropItem( new PaladinGloves() );
-        }
- 
         public Irk(Serial serial)
             : base(serial)
         {
         }
 
-        public override string DefaultName
+        public override void OnDeath(Container c)
         {
-            get
-            {
-                return "Irk";
-            }
-        }
-        public override int DefaultHue
-        {
-            get
-            {
-                return 0x489;
-            }
+            base.OnDeath(c);
+
+            if (Utility.RandomDouble() < 0.25)
+                c.DropItem(new IrksBrain());
+
+            if (Utility.RandomDouble() < 0.025)
+                c.DropItem(new PaladinGloves());
         }
 
         public override void GenerateLoot()
@@ -85,14 +73,14 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

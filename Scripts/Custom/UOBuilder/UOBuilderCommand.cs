@@ -1,7 +1,7 @@
-using Server.Gumps;
-using Server.Mobiles;
 using Server.Commands;
 using Server.Commands.Generic;
+using Server.Gumps;
+using Server.Mobiles;
 
 namespace Server.Custom.UOBuilder
 {
@@ -9,7 +9,7 @@ namespace Server.Custom.UOBuilder
     {
         public static void Initialize()
         {
-            CommandSystem.Register("ViewUOBuilds", AccessLevel.Administrator, new CommandEventHandler(ViewUOBuilder_OnCommand));
+            CommandSystem.Register("ViewUOBuilds", AccessLevel.Administrator, ViewUOBuilder_OnCommand);
         }
 
         [Usage("ViewUOBuilds")]
@@ -17,13 +17,9 @@ namespace Server.Custom.UOBuilder
         private static void ViewUOBuilder_OnCommand(CommandEventArgs e)
         {
             if (UOBuilderCore.HasBuilds())
-            {
                 BaseGump.SendGump(new UOBuilderAdminGump(e.Mobile as PlayerMobile));
-            }
             else
-            {
                 e.Mobile.SendMessage("There Are No Builds to View!");
-            }
         }
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using Server.Items;
+using Server.Misc;
 using Server.Targeting;
 
 namespace Server.SkillHandlers
@@ -8,7 +9,7 @@ namespace Server.SkillHandlers
     {
         public static void Initialize()
         {
-            SkillInfo.Table[(int)SkillName.Poisoning].Callback = new SkillUseCallback(OnUse);
+            SkillInfo.Table[(int)SkillName.Poisoning].Callback = OnUse;
         }
 
         public static TimeSpan OnUse(Mobile m)
@@ -43,6 +44,7 @@ namespace Server.SkillHandlers
             private class InternalTarget : Target
             {
                 private readonly BasePoisonPotion m_Potion;
+
                 public InternalTarget(BasePoisonPotion potion)
                     : base(2, false, TargetFlags.None)
                 {
@@ -54,7 +56,7 @@ namespace Server.SkillHandlers
                     if (m_Potion.Deleted)
                         return;
 
-                    bool startTimer = false;
+                    var startTimer = false;
 
                     if (targeted is Food || targeted is FukiyaDarts || targeted is Shuriken)
                     {
@@ -62,17 +64,14 @@ namespace Server.SkillHandlers
                     }
                     else if (targeted is BaseWeapon)
                     {
-                        BaseWeapon weapon = (BaseWeapon)targeted;
+                        var weapon = (BaseWeapon)targeted;
 
                         if (Core.AOS)
-                        {
-                            startTimer = (weapon.PrimaryAbility == WeaponAbility.InfectiousStrike || weapon.SecondaryAbility == WeaponAbility.InfectiousStrike);
-                        }
+                            startTimer = weapon.PrimaryAbility == WeaponAbility.InfectiousStrike ||
+                                         weapon.SecondaryAbility == WeaponAbility.InfectiousStrike;
                         else if (weapon.Layer == Layer.OneHanded)
-                        {
                             // Only Bladed or Piercing weapon can be poisoned
-                            startTimer = (weapon.Type == WeaponType.Slashing || weapon.Type == WeaponType.Piercing);
-                        }
+                            startTimer = weapon.Type == WeaponType.Slashing || weapon.Type == WeaponType.Piercing;
                     }
 
                     if (startTimer)
@@ -86,19 +85,21 @@ namespace Server.SkillHandlers
                     else // Target can't be poisoned
                     {
                         if (Core.AOS)
-                            from.SendLocalizedMessage(1060204); // You cannot poison that! You can only poison infectious weapons, food or drink.
+                            from.SendLocalizedMessage(
+                                1060204); // You cannot poison that! You can only poison infectious weapons, food or drink.
                         else
-                            from.SendLocalizedMessage(502145); // You cannot poison that! You can only poison bladed or piercing weapons, food or drink.
+                            from.SendLocalizedMessage(
+                                502145); // You cannot poison that! You can only poison bladed or piercing weapons, food or drink.
                     }
                 }
 
                 private class InternalTimer : Timer
                 {
                     private readonly Mobile m_From;
-                    private readonly Item m_Target;
-                    private readonly Poison m_Poison;
-                    private readonly double m_MinSkill;
                     private readonly double m_MaxSkill;
+                    private readonly double m_MinSkill;
+                    private readonly Poison m_Poison;
+                    private readonly Item m_Target;
 
                     public InternalTimer(Mobile from, Item target, BasePoisonPotion potion)
                         : base(TimeSpan.FromSeconds(2.0))
@@ -122,45 +123,51 @@ namespace Server.SkillHandlers
                             else if (m_Target is BaseWeapon)
                             {
                                 ((BaseWeapon)m_Target).Poison = m_Poison;
-                                ((BaseWeapon)m_Target).PoisonCharges = 18 - (m_Poison.RealLevel * 2);
+                                ((BaseWeapon)m_Target).PoisonCharges = 18 - m_Poison.RealLevel * 2;
                             }
                             else if (m_Target is FukiyaDarts)
                             {
                                 ((FukiyaDarts)m_Target).Poison = m_Poison;
-                                ((FukiyaDarts)m_Target).PoisonCharges = Math.Min(18 - (m_Poison.RealLevel * 2), ((FukiyaDarts)m_Target).UsesRemaining);
+                                ((FukiyaDarts)m_Target).PoisonCharges = Math.Min(18 - m_Poison.RealLevel * 2,
+                                    ((FukiyaDarts)m_Target).UsesRemaining);
                             }
                             else if (m_Target is Shuriken)
                             {
                                 ((Shuriken)m_Target).Poison = m_Poison;
-                                ((Shuriken)m_Target).PoisonCharges = Math.Min(18 - (m_Poison.RealLevel * 2), ((Shuriken)m_Target).UsesRemaining);
+                                ((Shuriken)m_Target).PoisonCharges = Math.Min(18 - m_Poison.RealLevel * 2,
+                                    ((Shuriken)m_Target).UsesRemaining);
                             }
 
                             m_From.SendLocalizedMessage(1010517); // You apply the poison
 
-                            Misc.Titles.AwardKarma(m_From, -20, true);
+                            Titles.AwardKarma(m_From, -20, true);
                         }
                         else // Failed
                         {
                             // 5% of chance of getting poisoned if failed
                             if (m_From.Skills[SkillName.Poisoning].Base < 80.0 && Utility.Random(20) == 0)
                             {
-                                m_From.SendLocalizedMessage(502148); // You make a grave mistake while applying the poison.
+                                m_From.SendLocalizedMessage(
+                                    502148); // You make a grave mistake while applying the poison.
                                 m_From.ApplyPoison(m_From, m_Poison);
                             }
                             else
                             {
                                 if (m_Target is BaseWeapon)
                                 {
-                                    BaseWeapon weapon = (BaseWeapon)m_Target;
+                                    var weapon = (BaseWeapon)m_Target;
 
                                     if (weapon.Type == WeaponType.Slashing)
-                                        m_From.SendLocalizedMessage(1010516); // You fail to apply a sufficient dose of poison on the blade
+                                        m_From.SendLocalizedMessage(
+                                            1010516); // You fail to apply a sufficient dose of poison on the blade
                                     else
-                                        m_From.SendLocalizedMessage(1010518); // You fail to apply a sufficient dose of poison
+                                        m_From.SendLocalizedMessage(
+                                            1010518); // You fail to apply a sufficient dose of poison
                                 }
                                 else
                                 {
-                                    m_From.SendLocalizedMessage(1010518); // You fail to apply a sufficient dose of poison
+                                    m_From.SendLocalizedMessage(
+                                        1010518); // You fail to apply a sufficient dose of poison
                                 }
                             }
                         }

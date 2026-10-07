@@ -1,8 +1,9 @@
 using System;
-using Server.Engines.CannedEvil;
-using Server.Items;
 using System.Collections.Generic;
 using System.Linq;
+using Server.Engines.CannedEvil;
+using Server.Items;
+using Server.Misc;
 using Server.Network;
 
 namespace Server.Mobiles
@@ -10,10 +11,41 @@ namespace Server.Mobiles
     [CorpseName("an abyssal infernal corpse")]
     public class AbyssalInfernal : BaseChampion
     {
-        private static Dictionary<Mobile, Point3D> m_Table = new Dictionary<Mobile, Point3D>();
+        private static readonly Dictionary<Mobile, Point3D> m_Table = new Dictionary<Mobile, Point3D>();
 
         private DateTime m_NextAbility;
-        
+
+        public override ChampionSkullType SkullType => ChampionSkullType.None;
+
+        public override Type[] UniqueList
+        {
+            get
+            {
+                return new[]
+                    { typeof(TongueOfTheBeast), typeof(DeathsHead), typeof(WallOfHungryMouths), typeof(AbyssalBlade) };
+            }
+        }
+
+        public override Type[] SharedList
+        {
+            get { return new[] { typeof(RoyalGuardInvestigatorsCloak), typeof(DetectiveBoots), typeof(JadeArmband) }; }
+        }
+
+        public override Type[] DecorativeList
+        {
+            get { return new[] { typeof(MagicalDoor) }; }
+        }
+
+        public override MonsterStatuetteType[] StatueTypes
+        {
+            get { return new[] { MonsterStatuetteType.AbyssalInfernal, MonsterStatuetteType.ArchDemon }; }
+        }
+
+        public override Poison PoisonImmune => Poison.Lethal;
+
+        public override ScaleType ScaleType => ScaleType.All;
+        public override int Scales => 20;
+
         [Constructable]
         public AbyssalInfernal()
             : base(AIType.AI_Mage)
@@ -57,23 +89,27 @@ namespace Server.Mobiles
         public AbyssalInfernal(Serial serial)
             : base(serial)
         {
-        }        
+        }
 
-        public override ChampionSkullType SkullType { get { return ChampionSkullType.None; } }
-        public override Type[] UniqueList { get { return new Type[] { typeof(TongueOfTheBeast), typeof(DeathsHead), typeof(WallOfHungryMouths), typeof(AbyssalBlade) }; } }
-        public override Type[] SharedList { get { return new Type[] { typeof(RoyalGuardInvestigatorsCloak), typeof(DetectiveBoots), typeof(JadeArmband) }; } }
-        public override Type[] DecorativeList { get { return new Type[] { typeof(MagicalDoor) }; } }
-        public override MonsterStatuetteType[] StatueTypes { get { return new MonsterStatuetteType[] { MonsterStatuetteType.AbyssalInfernal, MonsterStatuetteType.ArchDemon }; } }
+        public override int GetAttackSound()
+        {
+            return 0x5D4;
+        }
 
-        public override Poison PoisonImmune { get { return Poison.Lethal; } }
+        public override int GetDeathSound()
+        {
+            return 0x5D5;
+        }
 
-        public override ScaleType ScaleType { get { return ScaleType.All; } }
-        public override int Scales { get { return 20; } }
+        public override int GetHurtSound()
+        {
+            return 0x5D6;
+        }
 
-        public override int GetAttackSound() { return 0x5D4; }
-        public override int GetDeathSound() { return 0x5D5; }
-        public override int GetHurtSound() { return 0x5D6; }
-        public override int GetIdleSound() { return 0x5D7; }
+        public override int GetIdleSound()
+        {
+            return 0x5D7;
+        }
 
         public override void GenerateLoot()
         {
@@ -85,7 +121,6 @@ namespace Server.Mobiles
             base.OnDeath(c);
 
             if (Utility.RandomBool())
-            {
                 switch (Utility.Random(2))
                 {
                     case 0:
@@ -95,7 +130,6 @@ namespace Server.Mobiles
                         c.DropItem(new NetherCycloneScroll());
                         break;
                 }
-            }
         }
 
         public override void OnThink()
@@ -109,9 +143,21 @@ namespace Server.Mobiles
             {
                 switch (Utility.Random(3))
                 {
-                    case 0: { DoCondemn(); break; }
-                    case 1: { DoSummon(); break; }
-                    case 2: { DoNuke(); break; }
+                    case 0:
+                    {
+                        DoCondemn();
+                        break;
+                    }
+                    case 1:
+                    {
+                        DoSummon();
+                        break;
+                    }
+                    case 2:
+                    {
+                        DoNuke();
+                        break;
+                    }
                 }
 
                 m_NextAbility = DateTime.UtcNow + TimeSpan.FromSeconds(Utility.RandomMinMax(35, 45));
@@ -120,7 +166,7 @@ namespace Server.Mobiles
 
         private Mobile GetRandomTarget(int range, bool playersOnly)
         {
-            List<Mobile> list = GetTargets(range, playersOnly);
+            var list = GetTargets(range, playersOnly);
             Mobile m = null;
 
             if (list != null && list.Count > 0)
@@ -134,7 +180,7 @@ namespace Server.Mobiles
 
         private List<Mobile> GetTargets(int range, bool playersOnly)
         {
-            List<Mobile> targets = new List<Mobile>();
+            var targets = new List<Mobile>();
 
             IPooledEnumerable eable = GetMobilesInRange(range);
             foreach (Mobile m in eable)
@@ -142,64 +188,17 @@ namespace Server.Mobiles
                 if (m == this || !CanBeHarmful(m))
                     continue;
 
-                if (!playersOnly && m is BaseCreature && (((BaseCreature)m).Controlled || ((BaseCreature)m).Summoned || ((BaseCreature)m).Team != Team))
+                if (!playersOnly && m is BaseCreature && (((BaseCreature)m).Controlled || ((BaseCreature)m).Summoned ||
+                                                          ((BaseCreature)m).Team != Team))
                     targets.Add(m);
                 else if (m.Player)
                     targets.Add(m);
             }
+
             eable.Free();
 
             return targets;
         }
-
-        #region Condemn
-        private static Point3D[] _Locs = new Point3D[]
-        {
-            new Point3D(6949, 701, 32),
-            new Point3D(6941, 761, 32),
-            new Point3D(7015, 688, 32),
-            new Point3D(7043, 751, 32),
-            new Point3D(6999, 798, 32),
-        };
-
-        public void DoCondemn()
-        {
-            Map map = Map;
-
-            if (map != null)
-            {
-                Mobile toCondemn = GetRandomTarget(8, true);
-
-                if (toCondemn != null && !m_Table.ContainsKey(toCondemn))
-                {
-                    m_Table[toCondemn] = toCondemn.Location;
-
-                    var loc = _Locs[Utility.Random(_Locs.Length)];
-                    toCondemn.MoveToWorld(loc, map);
-
-                    toCondemn.FixedParticles(0x376A, 9, 32, 0x13AF, EffectLayer.Waist);
-                    toCondemn.PlaySound(0x1FE);
-
-                    toCondemn.Frozen = true;
-
-                    int seconds = 15;
-
-                    BuffInfo.AddBuff(toCondemn, new BuffInfo(BuffIcon.TrueFear, 1153791, 1153827, TimeSpan.FromSeconds(seconds), toCondemn));
-
-                    Timer.DelayCall(TimeSpan.FromSeconds(seconds), () =>
-                    {
-                        toCondemn.Frozen = false;
-                        toCondemn.SendLocalizedMessage(1005603); // You can move again!
-
-                        loc = m_Table.ToList().Find(x => x.Key == toCondemn).Value;
-                        toCondemn.MoveToWorld(loc, map);
-
-                        m_Table.Remove(toCondemn);
-                    });
-                }
-            }
-        }
-        #endregion
 
         public void DoNuke()
         {
@@ -208,18 +207,18 @@ namespace Server.Mobiles
 
             Say(1112362); // You will burn to a pile of ash!
 
-            int range = 8;
+            var range = 8;
 
             Effects.PlaySound(Location, Map, 0x349);
 
             //Flame Columns
-            for (int i = 0; i < 2; i++)
-            {
-                Misc.Geometry.Circle2D(Location, Map, i, (pnt, map) =>
-                {
-                    Effects.SendLocationParticles(EffectItem.Create(pnt, map, EffectItem.DefaultDuration), 0x3709, 10, 30, 5052);                    
-                });
-            }
+            for (var i = 0; i < 2; i++)
+                Geometry.Circle2D(Location, Map, i,
+                    (pnt, map) =>
+                    {
+                        Effects.SendLocationParticles(EffectItem.Create(pnt, map, EffectItem.DefaultDuration), 0x3709,
+                            10, 30, 5052);
+                    });
 
             //Flash then boom
             Timer.DelayCall(TimeSpan.FromSeconds(1), () =>
@@ -228,45 +227,42 @@ namespace Server.Mobiles
                 {
                     Effects.PlaySound(Location, Map, 0x44B);
 
-                    Packet flash = ScreenLightFlash.Instance;
-                    IPooledEnumerable e = Map.GetClientsInRange(Location, (range * 4) + 5);
+                    var flash = ScreenLightFlash.Instance;
+                    IPooledEnumerable e = Map.GetClientsInRange(Location, range * 4 + 5);
 
                     foreach (NetState ns in e)
-                    {
                         if (ns.Mobile != null)
                             ns.Mobile.Send(flash);
-                    }
 
                     e.Free();
 
-                    for (int i = 0; i < range; i++)
-                    {
-                        Misc.Geometry.Circle2D(Location, Map, i, (pnt, map) =>
-                        {
-                            Effects.SendLocationEffect(pnt, map, 14000, 14, 10, Utility.RandomMinMax(2497, 2499), 2);
-                        });
-                    }
+                    for (var i = 0; i < range; i++)
+                        Geometry.Circle2D(Location, Map, i,
+                            (pnt, map) =>
+                            {
+                                Effects.SendLocationEffect(pnt, map, 14000, 14, 10, Utility.RandomMinMax(2497, 2499),
+                                    2);
+                            });
                 }
             });
 
             IPooledEnumerable eable = GetMobilesInRange(range);
 
             foreach (Mobile m in eable)
-            {
-                if ((m is PlayerMobile || (m is BaseCreature && ((BaseCreature)m).GetMaster() is PlayerMobile)) && CanBeHarmful(m))
+                if ((m is PlayerMobile || (m is BaseCreature && ((BaseCreature)m).GetMaster() is PlayerMobile)) &&
+                    CanBeHarmful(m))
                     Timer.DelayCall(TimeSpan.FromSeconds(1.75), new TimerStateCallback(DoDamage_Callback), m);
-            }
 
             eable.Free();
         }
 
         private void DoDamage_Callback(object o)
         {
-            Mobile m = o as Mobile;
+            var m = o as Mobile;
 
             if (m != null && Map != null)
             {
-                IMount mount = m.Mount;
+                var mount = m.Mount;
 
                 if (mount != null)
                 {
@@ -293,17 +289,105 @@ namespace Server.Mobiles
             }
         }
 
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
+
+            writer.Write(SummonedHelpers == null ? 0 : SummonedHelpers.Count);
+
+            if (SummonedHelpers != null)
+                SummonedHelpers.ForEach(m => writer.Write(m));
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
+
+            var count = reader.ReadInt();
+
+            if (count > 0)
+                for (var i = 0; i < count; i++)
+                {
+                    var summon = reader.ReadMobile() as BaseCreature;
+
+                    if (summon != null)
+                    {
+                        if (SummonedHelpers == null)
+                            SummonedHelpers = new List<BaseCreature>();
+
+                        SummonedHelpers.Add(summon);
+                    }
+                }
+
+            m_NextAbility = DateTime.UtcNow;
+        }
+
+        #region Condemn
+
+        private static readonly Point3D[] _Locs =
+        {
+            new Point3D(6949, 701, 32),
+            new Point3D(6941, 761, 32),
+            new Point3D(7015, 688, 32),
+            new Point3D(7043, 751, 32),
+            new Point3D(6999, 798, 32)
+        };
+
+        public void DoCondemn()
+        {
+            var map = Map;
+
+            if (map != null)
+            {
+                var toCondemn = GetRandomTarget(8, true);
+
+                if (toCondemn != null && !m_Table.ContainsKey(toCondemn))
+                {
+                    m_Table[toCondemn] = toCondemn.Location;
+
+                    var loc = _Locs[Utility.Random(_Locs.Length)];
+                    toCondemn.MoveToWorld(loc, map);
+
+                    toCondemn.FixedParticles(0x376A, 9, 32, 0x13AF, EffectLayer.Waist);
+                    toCondemn.PlaySound(0x1FE);
+
+                    toCondemn.Frozen = true;
+
+                    var seconds = 15;
+
+                    BuffInfo.AddBuff(toCondemn,
+                        new BuffInfo(BuffIcon.TrueFear, 1153791, 1153827, TimeSpan.FromSeconds(seconds), toCondemn));
+
+                    Timer.DelayCall(TimeSpan.FromSeconds(seconds), () =>
+                    {
+                        toCondemn.Frozen = false;
+                        toCondemn.SendLocalizedMessage(1005603); // You can move again!
+
+                        loc = m_Table.ToList().Find(x => x.Key == toCondemn).Value;
+                        toCondemn.MoveToWorld(loc, map);
+
+                        m_Table.Remove(toCondemn);
+                    });
+                }
+            }
+        }
+
+        #endregion
+
 
         #region Spawn
+
         public List<BaseCreature> SummonedHelpers { get; set; }
 
-        private static Type[] SummonTypes = new Type[]
+        private static readonly Type[] SummonTypes =
         {
-            typeof(HellHound),      typeof(Phoenix),
-            typeof(FireSteed),      typeof(FireElemental),
-            typeof(LavaElemental),  typeof(FireGargoyle),
-            typeof(Efreet),         typeof(Gargoyle),
-            typeof(Nightmare),      typeof(HellCat)
+            typeof(HellHound), typeof(Phoenix),
+            typeof(FireSteed), typeof(FireElemental),
+            typeof(LavaElemental), typeof(FireGargoyle),
+            typeof(Efreet), typeof(Gargoyle),
+            typeof(Nightmare), typeof(HellCat)
         };
 
         public int TotalSummons()
@@ -318,21 +402,21 @@ namespace Server.Mobiles
         {
             if (Map == null || TotalSummons() > 0)
                 return;
-            
-            Type type = SummonTypes[Utility.Random(SummonTypes.Length)];
 
-            for (int i = 0; i < 3; i++)
+            var type = SummonTypes[Utility.Random(SummonTypes.Length)];
+
+            for (var i = 0; i < 3; i++)
             {
                 if (Combatant == null)
                     return;
 
-                Point3D p = Combatant.Location;
+                var p = Combatant.Location;
 
-                for (int j = 0; j < 10; j++)
+                for (var j = 0; j < 10; j++)
                 {
-                    int x = Utility.RandomMinMax(p.X - 3, p.X + 3);
-                    int y = Utility.RandomMinMax(p.Y - 3, p.Y + 3);
-                    int z = Map.GetAverageZ(x, y);
+                    var x = Utility.RandomMinMax(p.X - 3, p.X + 3);
+                    var y = Utility.RandomMinMax(p.Y - 3, p.Y + 3);
+                    var z = Map.GetAverageZ(x, y);
 
                     if (Map.CanSpawnMobile(x, y, z))
                     {
@@ -341,7 +425,7 @@ namespace Server.Mobiles
                     }
                 }
 
-                BaseCreature spawn = Activator.CreateInstance(type) as BaseCreature;
+                var spawn = Activator.CreateInstance(type) as BaseCreature;
 
                 if (spawn != null)
                 {
@@ -349,16 +433,13 @@ namespace Server.Mobiles
                     spawn.Team = Team;
                     spawn.SummonMaster = this;
 
-                    Timer.DelayCall(TimeSpan.FromSeconds(1), (o) =>
+                    Timer.DelayCall(TimeSpan.FromSeconds(1), o =>
                     {
-                        BaseCreature s = o as BaseCreature;
+                        var s = o;
 
                         if (s != null && s.Combatant != null)
-                        {
                             if (!(s.Combatant is PlayerMobile) || !((PlayerMobile)s.Combatant).HonorActive)
                                 s.Combatant = Combatant;
-                        }
-
                     }, spawn);
 
                     AddHelper(spawn);
@@ -379,48 +460,9 @@ namespace Server.Mobiles
         {
             base.Delete();
 
-            if (SummonedHelpers != null)
-            {
-                ColUtility.Free(SummonedHelpers);
-            }
+            if (SummonedHelpers != null) ColUtility.Free(SummonedHelpers);
         }
+
         #endregion
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.Write((int)0);
-
-            writer.Write(SummonedHelpers == null ? 0 : SummonedHelpers.Count);
-
-            if (SummonedHelpers != null)
-                SummonedHelpers.ForEach(m => writer.Write(m));
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            int version = reader.ReadInt();
-
-            int count = reader.ReadInt();
-
-            if (count > 0)
-            {
-                for (int i = 0; i < count; i++)
-                {
-                    BaseCreature summon = reader.ReadMobile() as BaseCreature;
-
-                    if (summon != null)
-                    {
-                        if (SummonedHelpers == null)
-                            SummonedHelpers = new List<BaseCreature>();
-
-                        SummonedHelpers.Add(summon);
-                    }
-                }
-            }
-
-            m_NextAbility = DateTime.UtcNow;
-        }
     }
 }

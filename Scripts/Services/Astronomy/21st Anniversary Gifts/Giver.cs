@@ -1,19 +1,18 @@
 using System;
-using Server;
 using Server.Items;
 
 namespace Server.Misc
 {
     public class AnniversaryGiver21st : GiftGiver
     {
+        public override DateTime Start => new DateTime(2019, 4, 05);
+        public override DateTime Finish => new DateTime(2019, 5, 31);
+        public override TimeSpan MinimumAge => TimeSpan.FromHours(12);
+
         public static void Initialize()
         {
             GiftGiving.Register(new AnniversaryGiver21st());
         }
-
-        public override DateTime Start { get { return new DateTime(2019, 4, 05); } }
-        public override DateTime Finish { get { return new DateTime(2019, 5, 31); } }
-        public override TimeSpan MinimumAge { get { return TimeSpan.FromHours(12); } }
 
         public override void GiveGift(Mobile mob)
         {
@@ -22,10 +21,12 @@ namespace Server.Misc
             switch (GiveGift(mob, bag))
             {
                 case GiftResult.Backpack:
-                    mob.SendLocalizedMessage(1158482); // Happy 21st Anniversary! We have placed a gift for you in your backpack.
+                    mob.SendLocalizedMessage(
+                        1158482); // Happy 21st Anniversary! We have placed a gift for you in your backpack.
                     break;
                 case GiftResult.BankBox:
-                    mob.SendLocalizedMessage(1158483); // Happy 21st Anniversary! We have placed a gift for you in your bank box.
+                    mob.SendLocalizedMessage(
+                        1158483); // Happy 21st Anniversary! We have placed a gift for you in your bank box.
                     break;
             }
         }

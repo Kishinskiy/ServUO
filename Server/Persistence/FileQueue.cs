@@ -198,9 +198,9 @@ namespace Server
                 this.owner = owner;
                 this.slot = slot;
 
-                this.Buffer = buffer;
+                Buffer = buffer;
                 this.offset = offset;
-                this.Size = size;
+                Size = size;
             }
 
             public void Commit()

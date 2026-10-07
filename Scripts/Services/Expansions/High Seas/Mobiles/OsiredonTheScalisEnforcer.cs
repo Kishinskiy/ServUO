@@ -1,8 +1,8 @@
 using System;
-using Server;
-using Server.Multis;
 using System.Collections.Generic;
 using Server.Items;
+using Server.Multis;
+using Server.Spells;
 
 namespace Server.Mobiles
 {
@@ -11,31 +11,49 @@ namespace Server.Mobiles
         public static readonly TimeSpan SpawnRate = TimeSpan.FromSeconds(30);
         public static readonly int SpawnMax = 25;
 
-        private List<Mobile> m_Eels = new List<Mobile>();
+        private readonly List<Mobile> m_Eels = new List<Mobile>();
         private DateTime m_NextSpawn;
         private DateTime m_NextSpecial;
         private DateTime m_NextWaterBall;
 
-        public override bool CanDamageBoats { get { return true; } }
-        public override bool TaintedLifeAura { get { return true; } }
-        public override TimeSpan BoatDamageCooldown { get { return TimeSpan.FromSeconds(120); } }
-        public override int MinBoatDamage { get { return 3; } }
-        public override int MaxBoatDamage { get { return 8; } }
-        public override int DamageRange { get { return 2; } }
+        public override bool CanDamageBoats => true;
+        public override bool TaintedLifeAura => true;
+        public override TimeSpan BoatDamageCooldown => TimeSpan.FromSeconds(120);
+        public override int MinBoatDamage => 3;
+        public override int MaxBoatDamage => 8;
+        public override int DamageRange => 2;
 
-        public override int Meat { get { return 5; } }
+        public override int Meat => 5;
 
-        public override ScaleType ScaleType { get { return ScaleType.All; } }
-        public override int Scales { get { return 20; } }
+        public override ScaleType ScaleType => ScaleType.All;
+        public override int Scales => 20;
 
-        public override double TreasureMapChance { get { return .50; } }
-        public override int TreasureMapLevel { get { return 7; } }
+        public override double TreasureMapChance => .50;
+        public override int TreasureMapLevel => 7;
 
-        public override Type[] UniqueList { get { return new Type[] { typeof(EnchantedCoralBracelet), typeof(WandOfThunderingGlory), typeof(LeviathanHideBracers), typeof(SmilingMoonBlade) }; } }
-        public override Type[] SharedList { get { return new Type[] { typeof(MiniSoulForgeDeed) }; } }
-        public override Type[] DecorativeList { get { return new Type[] { typeof(EnchantedBladeDeed), typeof(EnchantedVortexDeed) }; } }
+        public override Type[] UniqueList
+        {
+            get
+            {
+                return new[]
+                {
+                    typeof(EnchantedCoralBracelet), typeof(WandOfThunderingGlory), typeof(LeviathanHideBracers),
+                    typeof(SmilingMoonBlade)
+                };
+            }
+        }
 
-        public override bool NoGoodies { get { return true; } }
+        public override Type[] SharedList
+        {
+            get { return new[] { typeof(MiniSoulForgeDeed) }; }
+        }
+
+        public override Type[] DecorativeList
+        {
+            get { return new[] { typeof(EnchantedBladeDeed), typeof(EnchantedVortexDeed) }; }
+        }
+
+        public override bool NoGoodies => true;
 
         [Constructable]
         public Osiredon()
@@ -94,6 +112,11 @@ namespace Server.Mobiles
                 IsSoulbound = true;
         }
 
+        public Osiredon(Serial serial)
+            : base(serial)
+        {
+        }
+
         public void AddEel(Mobile eel)
         {
             if (!m_Eels.Contains(eel) && eel is ParasiticEel)
@@ -124,7 +147,8 @@ namespace Server.Mobiles
         {
             base.OnGotMeleeAttack(attacker);
 
-            if (attacker.Weapon is BaseRanged && m_NextSpawn < DateTime.UtcNow && m_Eels.Count < SpawnMax && 0.25 > Utility.RandomDouble())
+            if (attacker.Weapon is BaseRanged && m_NextSpawn < DateTime.UtcNow && m_Eels.Count < SpawnMax &&
+                0.25 > Utility.RandomDouble())
                 SpawnEel(attacker);
         }
 
@@ -138,28 +162,28 @@ namespace Server.Mobiles
 
         public override void OnActionCombat()
         {
-            Mobile combatant = this.Combatant as Mobile;
+            var combatant = Combatant as Mobile;
 
-            if (combatant == null || combatant.Deleted || combatant.Map != this.Map || !this.InRange(combatant, 12) || !this.CanBeHarmful(combatant) || !this.InLOS(combatant))
+            if (combatant == null || combatant.Deleted || combatant.Map != Map || !InRange(combatant, 12) ||
+                !CanBeHarmful(combatant) || !InLOS(combatant))
                 return;
 
-            if (DateTime.UtcNow >= this.m_NextWaterBall)
+            if (DateTime.UtcNow >= m_NextWaterBall)
             {
-                double damage = combatant.Hits * 0.3;
+                var damage = combatant.Hits * 0.3;
 
                 if (damage < 10.0)
                     damage = 10.0;
                 else if (damage > 40.0)
                     damage = 40.0;
 
-                this.DoHarmful(combatant);
-                this.MovingParticles(combatant, 0x36D4, 5, 0, false, false, 195, 0, 9502, 3006, 0, 0, 0);
+                DoHarmful(combatant);
+                MovingParticles(combatant, 0x36D4, 5, 0, false, false, 195, 0, 9502, 3006, 0, 0, 0);
                 AOS.Damage(combatant, this, (int)damage, 100, 0, 0, 0, 0);
 
                 if (combatant is PlayerMobile && combatant.Mount != null)
-                {
-                    (combatant as PlayerMobile).SetMountBlock(BlockMountType.DismountRecovery, TimeSpan.FromSeconds(10), true);
-                }
+                    (combatant as PlayerMobile).SetMountBlock(BlockMountType.DismountRecovery, TimeSpan.FromSeconds(10),
+                        true);
 
                 m_NextWaterBall = DateTime.UtcNow + TimeSpan.FromMinutes(1);
             }
@@ -167,29 +191,29 @@ namespace Server.Mobiles
 
         public void SpawnEel(Mobile m)
         {
-            Map map = this.Map;
+            var map = Map;
 
-            int x = m.X; int y = m.Y; int z = m.Z;
+            var x = m.X;
+            var y = m.Y;
+            var z = m.Z;
 
-            Point3D loc = m.Location;
+            var loc = m.Location;
 
-            for (int j = 0; j < 3; j++)
+            for (var j = 0; j < 3; j++)
+            for (var i = 0; i < 25; i++)
             {
-                for (int i = 0; i < 25; i++)
+                x = Utility.RandomMinMax(loc.X - 1, loc.X + 1);
+                y = Utility.RandomMinMax(loc.Y - 1, loc.Y + 1);
+
+                if (SpellHelper.CheckMulti(new Point3D(x, y, m.Z), map) || map.CanSpawnMobile(x, y, z))
                 {
-                    x = Utility.RandomMinMax(loc.X - 1, loc.X + 1);
-                    y = Utility.RandomMinMax(loc.Y - 1, loc.Y + 1);
+                    var eel = new ParasiticEel(this);
+                    eel.MoveToWorld(new Point3D(x, y, loc.Z), map);
 
-                    if (Spells.SpellHelper.CheckMulti(new Point3D(x, y, m.Z), map) || map.CanSpawnMobile(x, y, z))
-                    {
-                        ParasiticEel eel = new ParasiticEel(this);
-                        eel.MoveToWorld(new Point3D(x, y, loc.Z), map);
+                    if (m is PlayerMobile)
+                        eel.Combatant = m;
 
-                        if (m is PlayerMobile)
-                            eel.Combatant = m;
-
-                        break;
-                    }
+                    break;
                 }
             }
 
@@ -198,26 +222,29 @@ namespace Server.Mobiles
 
         public void DoAreaExplosion()
         {
-            List<Mobile> toExplode = new List<Mobile>();
+            var toExplode = new List<Mobile>();
 
-            IPooledEnumerable eable = this.GetMobilesInRange(8);
+            IPooledEnumerable eable = GetMobilesInRange(8);
             foreach (Mobile mob in eable)
             {
-                if (!CanBeHarmful(mob, false) || mob == this || (mob is BaseCreature && ((BaseCreature)mob).GetMaster() == this))
+                if (!CanBeHarmful(mob, false) || mob == this ||
+                    (mob is BaseCreature && ((BaseCreature)mob).GetMaster() == this))
                     continue;
                 if (mob.Player)
                     toExplode.Add(mob);
-                if (mob is BaseCreature && (((BaseCreature)mob).Controlled || ((BaseCreature)mob).Summoned || ((BaseCreature)mob).Team != this.Team))
+                if (mob is BaseCreature && (((BaseCreature)mob).Controlled || ((BaseCreature)mob).Summoned ||
+                                            ((BaseCreature)mob).Team != Team))
                     toExplode.Add(mob);
             }
+
             eable.Free();
 
-            foreach (Mobile mob in toExplode)
+            foreach (var mob in toExplode)
             {
                 mob.FixedParticles(0x36BD, 20, 10, 5044, EffectLayer.Head);
                 mob.PlaySound(0x307);
 
-                int damage = Utility.RandomMinMax(50, 125);
+                var damage = Utility.RandomMinMax(50, 125);
                 AOS.Damage(mob, this, damage, 0, 100, 0, 0, 0);
             }
 
@@ -228,7 +255,7 @@ namespace Server.Mobiles
         {
             base.OnDeath(c);
 
-            FishingPole pole = new FishingPole();
+            var pole = new FishingPole();
             BaseRunicTool.ApplyAttributesTo(pole, false, 0, Utility.RandomMinMax(2, 5), 50, 100);
             c.DropItem(pole);
 
@@ -237,8 +264,10 @@ namespace Server.Mobiles
             c.DropItem(new SpecialFishingNet());
 
             #region TOL
+
             if (Core.TOL)
                 SkillMasteryPrimer.CheckPrimerDrop(this);
+
             #endregion
         }
 
@@ -246,12 +275,10 @@ namespace Server.Mobiles
         {
             if (m_Eels != null)
             {
-                List<Mobile> eels = new List<Mobile>(m_Eels);
-                for (int i = 0; i < eels.Count; i++)
-                {
+                var eels = new List<Mobile>(m_Eels);
+                for (var i = 0; i < eels.Count; i++)
                     if (eels[i] != null)
                         eels[i].Kill();
-                }
             }
 
             base.Delete();
@@ -262,21 +289,16 @@ namespace Server.Mobiles
             AddLoot(LootPack.SuperBoss, 5);
         }
 
-        public Osiredon(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             m_NextSpawn = DateTime.UtcNow;
             m_NextSpecial = DateTime.UtcNow;
@@ -288,6 +310,9 @@ namespace Server.Mobiles
     public class ParasiticEel : BaseCreature
     {
         private Mobile m_Master;
+
+        public override Poison PoisonImmune => Poison.Parasitic;
+        public override Poison HitPoison => Poison.Parasitic;
 
         public ParasiticEel(Mobile master)
             : base(AIType.AI_Mage, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -336,8 +361,10 @@ namespace Server.Mobiles
             Karma = -2500;
         }
 
-        public override Poison PoisonImmune { get { return Poison.Parasitic; } }
-        public override Poison HitPoison { get { return Poison.Parasitic; } }
+        public ParasiticEel(Serial serial)
+            : base(serial)
+        {
+        }
 
         public override void Delete()
         {
@@ -352,22 +379,17 @@ namespace Server.Mobiles
             AddLoot(LootPack.FilthyRich, 1);
         }
 
-        public ParasiticEel(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
             writer.Write(m_Master);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
             m_Master = reader.ReadMobile();
         }
     }

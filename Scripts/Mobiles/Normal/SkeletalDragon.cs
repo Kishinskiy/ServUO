@@ -1,10 +1,19 @@
-using System;
-
 namespace Server.Mobiles
 {
     [CorpseName("a skeletal dragon corpse")]
     public class SkeletalDragon : BaseCreature
     {
+        public override bool AutoDispel => !Controlled;
+        public override bool BleedImmune => true;
+        public override bool ReacquireOnMovement => !Controlled;
+        public override double BonusPetDamageScalar => Core.SE ? 3.0 : 1.0;
+        public override int Hides => 20;
+        public override int Meat => 19; // where's it hiding these? :)
+        public override HideType HideType => HideType.Barbed;
+        public override OppositionGroup OppositionGroup => OppositionGroup.FeyAndUndead;
+        public override Poison PoisonImmune => Poison.Lethal;
+        public override TribeType Tribe => TribeType.Undead;
+
         [Constructable]
         public SkeletalDragon()
             : base(AIType.AI_NecroMage, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -51,17 +60,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool AutoDispel { get { return !Controlled; } }
-        public override bool BleedImmune { get { return true; } }
-        public override bool ReacquireOnMovement { get { return !Controlled; } }
-        public override double BonusPetDamageScalar { get { return (Core.SE) ? 3.0 : 1.0; } }
-        public override int Hides { get { return 20; } }
-        public override int Meat { get { return 19; } } // where's it hiding these? :)
-        public override HideType HideType { get { return HideType.Barbed; } }
-        public override OppositionGroup OppositionGroup { get { return OppositionGroup.FeyAndUndead; } }
-        public override Poison PoisonImmune { get { return Poison.Lethal; } }
-        public override TribeType Tribe { get { return TribeType.Undead; } }
-
         public override void GenerateLoot()
         {
             AddLoot(LootPack.FilthyRich, 4);
@@ -71,13 +69,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

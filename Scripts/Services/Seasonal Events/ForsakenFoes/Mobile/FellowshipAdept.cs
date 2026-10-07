@@ -1,23 +1,19 @@
-using Server;
-using System;
 using System.Collections.Generic;
-using Server.Mobiles;
-using Server.Items;
 using Server.ContextMenus;
+using Server.Items;
+using Server.Mobiles;
 
 namespace Server.Engines.Fellowship
 {
     public class FellowshipAdept : BaseVendor
     {
-        public override bool IsActiveVendor { get { return false; } }
-        public override bool IsInvulnerable { get { return true; } }
-        public override bool DisallowAllMoves { get { return true; } }
-        public override bool ClickTitle { get { return true; } }
-        public override bool CanTeach { get { return false; } }
-
         protected List<SBInfo> m_SBInfos = new List<SBInfo>();
-        protected override List<SBInfo> SBInfos { get { return m_SBInfos; } }
-        public override void InitSBInfo() { }
+        public override bool IsActiveVendor => false;
+        public override bool IsInvulnerable => true;
+        public override bool DisallowAllMoves => true;
+        public override bool ClickTitle => true;
+        public override bool CanTeach => false;
+        protected override List<SBInfo> SBInfos => m_SBInfos;
 
         public static FellowshipAdept InstanceTram { get; set; }
         public static FellowshipAdept InstanceFel { get; set; }
@@ -25,6 +21,15 @@ namespace Server.Engines.Fellowship
         [Constructable]
         public FellowshipAdept()
             : base("the Fellowship Adept")
+        {
+        }
+
+        public FellowshipAdept(Serial serial)
+            : base(serial)
+        {
+        }
+
+        public override void InitSBInfo()
         {
         }
 
@@ -56,8 +61,8 @@ namespace Server.Engines.Fellowship
                 };
 
                 AddItem(backpack);
-            }    
-        }        
+            }
+        }
 
         public override void GetProperties(ObjectPropertyList list)
         {
@@ -68,19 +73,31 @@ namespace Server.Engines.Fellowship
 
         public override void AddCustomContextEntries(Mobile from, List<ContextMenuEntry> list)
         {
-
-            if (from.Alive)
-            {
-                list.Add(new BrowseShopEntry(from, this));
-            }
+            if (from.Alive) list.Add(new BrowseShopEntry(from, this));
 
             base.AddCustomContextEntries(from, list);
         }
 
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
+
+            if (Map == Map.Trammel) InstanceTram = this;
+
+            if (Map == Map.Felucca) InstanceFel = this;
+        }
+
         private class BrowseShopEntry : ContextMenuEntry
         {
-            private Mobile m_From;
-            private BaseVendor m_Vendor;
+            private readonly Mobile m_From;
+            private readonly BaseVendor m_Vendor;
 
             public BrowseShopEntry(Mobile from, BaseVendor vendor)
                 : base(1159181, 2) // Browse the Fellowship Shop
@@ -99,32 +116,5 @@ namespace Server.Engines.Fellowship
                 m_From.SendGump(new FellowshipRewardGump(m_Vendor, m_From as PlayerMobile));
             }
         }
-
-        public FellowshipAdept(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.Write(0);
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            int version = reader.ReadInt();
-
-            if (Map == Map.Trammel)
-            {
-                InstanceTram = this;
-            }
-
-            if (Map == Map.Felucca)
-            {
-                InstanceFel = this;
-            }
-        }
-    }    
+    }
 }

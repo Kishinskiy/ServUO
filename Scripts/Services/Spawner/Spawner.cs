@@ -1,34 +1,194 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Text;
-using System.Linq;
 using Server.Commands;
 using Server.ContextMenus;
-using Server.Items;
-using CPA = Server.CommandPropertyAttribute;
 using Server.Gumps;
+using Server.Items;
 
 namespace Server.Mobiles
 {
     public class Spawner : Item, ISpawner
     {
         private static WarnTimer m_WarnTimer;
-        private int m_Team;
-        private int m_HomeRange;
-        private int m_SpawnRange;
-        private int m_WalkingRange;
-        private TimeSpan m_MinDelay;
-        private TimeSpan m_MaxDelay;
-        private DateTime m_End;
-        private InternalTimer m_Timer;
-        private bool m_Running;
         private bool m_Group;
-        private WayPoint m_WayPoint;
+        private int m_HomeRange;
+        private int m_MaxCount;
+        private TimeSpan m_MaxDelay;
+        private TimeSpan m_MinDelay;
+        private bool m_Running;
 
         private List<SpawnObject> m_SpawnObjects;
-        private int m_MaxCount;
+        private int m_SpawnRange;
+        private int m_Team;
+        private InternalTimer m_Timer;
+        private int m_WalkingRange;
+
+        public override bool IsVirtualItem => true;
+
+        public bool IsFull => SpawnCount >= m_MaxCount;
+        public bool IsEmpty => SpawnCount == 0;
+
+        public List<SpawnObject> SpawnObjects
+        {
+            get => m_SpawnObjects;
+            set
+            {
+                m_SpawnObjects = value;
+
+                if (m_SpawnObjects.Count < 1)
+                    Stop();
+
+                InvalidateProperties();
+            }
+        }
+
+        [CommandProperty(AccessLevel.Spawner)]
+        public int MaxCount
+        {
+            get => m_MaxCount;
+            set
+            {
+                m_MaxCount = value;
+                InvalidateProperties();
+            }
+        }
+
+        [CommandProperty(AccessLevel.Spawner)] public virtual int SpawnObjectCount => m_SpawnObjects.Count;
+
+        [CommandProperty(AccessLevel.Spawner)] public WayPoint WayPoint { get; set; }
+
+        [CommandProperty(AccessLevel.Spawner)]
+        public bool Running
+        {
+            get => m_Running;
+            set
+            {
+                if (value)
+                    Start();
+                else
+                    Stop();
+
+                InvalidateProperties();
+            }
+        }
+
+        [CommandProperty(AccessLevel.Spawner)]
+        public int SpawnRange
+        {
+            get => m_SpawnRange;
+            set
+            {
+                m_SpawnRange = value;
+                InvalidateProperties();
+            }
+        }
+
+        [CommandProperty(AccessLevel.Spawner)]
+        public int WalkingRange
+        {
+            get => m_WalkingRange;
+            set
+            {
+                m_WalkingRange = value;
+                InvalidateProperties();
+            }
+        }
+
+        [CommandProperty(AccessLevel.Spawner)]
+        public int Team
+        {
+            get => m_Team;
+            set
+            {
+                m_Team = value;
+                InvalidateProperties();
+            }
+        }
+
+        [CommandProperty(AccessLevel.Spawner)]
+        public TimeSpan MinDelay
+        {
+            get => m_MinDelay;
+            set
+            {
+                var old = m_MinDelay;
+
+                m_MinDelay = value;
+
+                if (old != m_MinDelay && m_Running)
+                    DoTimer();
+
+                InvalidateProperties();
+            }
+        }
+
+        [CommandProperty(AccessLevel.Spawner)]
+        public TimeSpan MaxDelay
+        {
+            get => m_MaxDelay;
+            set
+            {
+                var old = m_MaxDelay;
+
+                m_MaxDelay = value;
+
+                if (old != m_MaxDelay && m_Running)
+                    DoTimer();
+
+                InvalidateProperties();
+            }
+        }
+
+        public DateTime End { get; set; }
+
+        [CommandProperty(AccessLevel.Spawner)]
+        public TimeSpan NextSpawn
+        {
+            get
+            {
+                if (m_Running)
+                    return End - DateTime.UtcNow;
+                return TimeSpan.FromSeconds(0);
+            }
+            set
+            {
+                Start();
+                DoTimer(value);
+            }
+        }
+
+        [CommandProperty(AccessLevel.Spawner)]
+        public bool Group
+        {
+            get => m_Group;
+            set
+            {
+                m_Group = value;
+                InvalidateProperties();
+            }
+        }
+
+        public override string DefaultName => "Spawner";
+
+        [CommandProperty(AccessLevel.Spawner)]
+        public int SpawnCount
+        {
+            get
+            {
+                var count = 0;
+
+                foreach (var so in m_SpawnObjects) count += GetSpawnCount(so);
+
+                return count;
+            }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public bool GuardImmune { get; set; }
 
         [Constructable]
         public Spawner()
@@ -46,28 +206,28 @@ namespace Server.Mobiles
         public Spawner(int amount, int minDelay, int maxDelay, int team, int spawnRange, string spawnName)
             : base(0x1f13)
         {
-            List<SpawnObject> objects = new List<SpawnObject>();
+            var objects = new List<SpawnObject>();
 
-            if (!String.IsNullOrEmpty(spawnName))
+            if (!string.IsNullOrEmpty(spawnName))
                 objects.Add(new SpawnObject(spawnName));
 
-            InitSpawner(amount, TimeSpan.FromMinutes(minDelay), TimeSpan.FromMinutes(maxDelay), team, spawnRange, objects);
+            InitSpawner(amount, TimeSpan.FromMinutes(minDelay), TimeSpan.FromMinutes(maxDelay), team, spawnRange,
+                objects);
         }
 
-        public Spawner(int amount, TimeSpan minDelay, TimeSpan maxDelay, int team, int spawnRange, List<string> spawnNames)
+        public Spawner(int amount, TimeSpan minDelay, TimeSpan maxDelay, int team, int spawnRange,
+            List<string> spawnNames)
             : base(0x1f13)
         {
-            List<SpawnObject> objects = new List<SpawnObject>();
+            var objects = new List<SpawnObject>();
 
-            foreach (var name in spawnNames)
-            {
-                objects.Add(new SpawnObject(name));
-            }
+            foreach (var name in spawnNames) objects.Add(new SpawnObject(name));
 
             InitSpawner(amount, minDelay, maxDelay, team, spawnRange, objects);
         }
 
-        public Spawner(int amount, TimeSpan minDelay, TimeSpan maxDelay, int team, int spawnRange, List<SpawnObject> objects)
+        public Spawner(int amount, TimeSpan minDelay, TimeSpan maxDelay, int team, int spawnRange,
+            List<SpawnObject> objects)
             : base(0x1f13)
         {
             InitSpawner(amount, minDelay, maxDelay, team, spawnRange, objects);
@@ -78,151 +238,37 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool IsVirtualItem { get { return true; } }
-
-        public bool IsFull { get { return (SpawnCount >= m_MaxCount); } }
-        public bool IsEmpty { get { return (SpawnCount == 0); } }
-
-        public List<SpawnObject> SpawnObjects
+        [CommandProperty(AccessLevel.Spawner)]
+        public int HomeRange
         {
-            get { return m_SpawnObjects; }
+            get => m_HomeRange;
             set
             {
-                m_SpawnObjects = value;
-
-                if (m_SpawnObjects.Count < 1)
-                    Stop();
-
+                m_HomeRange = value;
                 InvalidateProperties();
             }
         }
 
-        [CommandProperty(AccessLevel.Spawner)]
-        public int MaxCount
+        public Point3D HomeLocation => Location;
+        bool ISpawner.UnlinkOnTaming => true;
+
+        public virtual void GetSpawnProperties(ISpawnable spawn, ObjectPropertyList list)
         {
-            get { return m_MaxCount; }
-            set
-            {
-                m_MaxCount = value;
-                InvalidateProperties();
-            }
         }
 
-        [CommandProperty(AccessLevel.Spawner)]
-        public virtual int SpawnObjectCount {  get{ return m_SpawnObjects.Count; } }
-
-        [CommandProperty(AccessLevel.Spawner)]
-        public WayPoint WayPoint { get { return m_WayPoint; } set { m_WayPoint = value; } }
-
-        [CommandProperty(AccessLevel.Spawner)]
-        public bool Running
+        public virtual void GetSpawnContextEntries(ISpawnable spawn, Mobile user, List<ContextMenuEntry> list)
         {
-            get { return m_Running; }
-            set
-            {
-                if (value)
-                    Start();
-                else
-                    Stop();
-
-                InvalidateProperties();
-            }
         }
 
-        [CommandProperty(AccessLevel.Spawner)]
-        public int HomeRange { get { return m_HomeRange; } set { m_HomeRange = value; InvalidateProperties(); } }
-
-        [CommandProperty(AccessLevel.Spawner)]
-        public int SpawnRange { get { return m_SpawnRange; } set { m_SpawnRange = value; InvalidateProperties(); } }
-
-        [CommandProperty(AccessLevel.Spawner)]
-        public int WalkingRange { get { return m_WalkingRange; } set { m_WalkingRange = value; InvalidateProperties(); } }
-
-        [CommandProperty(AccessLevel.Spawner)]
-        public int Team { get { return m_Team;  } set { m_Team = value; InvalidateProperties(); } }
-
-        [CommandProperty(AccessLevel.Spawner)]
-        public TimeSpan MinDelay 
-        { 
-            get { return m_MinDelay; } 
-            set 
-            {
-                var old = m_MinDelay;
-
-                m_MinDelay = value;
-                
-                if(old != m_MinDelay && m_Running)
-                    DoTimer(); 
-                
-                InvalidateProperties();
-            } 
-        }
-
-        [CommandProperty(AccessLevel.Spawner)]
-        public TimeSpan MaxDelay
-        { 
-            get { return m_MaxDelay; } 
-            set 
-            {
-                var old = m_MaxDelay;
-
-                m_MaxDelay = value;
-
-                if (old != m_MaxDelay && m_Running)
-                    DoTimer(); 
-                
-                InvalidateProperties();
-            }
-        }
-
-        public DateTime End { get { return m_End; } set { m_End = value; } }
-
-        [CommandProperty(AccessLevel.Spawner)]
-        public TimeSpan NextSpawn
+        void ISpawner.Remove(ISpawnable spawn)
         {
-            get
-            {
-                if (m_Running)
-                    return m_End - DateTime.UtcNow;
-                else
-                    return TimeSpan.FromSeconds(0);
-            }
-            set
-            {
-                Start();
-                DoTimer(value);
-            }
+            RemoveSpawn(spawn);
+            InvalidateProperties();
         }
-
-        [CommandProperty(AccessLevel.Spawner)]
-        public bool Group { get { return m_Group; } set { m_Group = value; InvalidateProperties(); } }
-
-        public override string DefaultName { get { return "Spawner"; } }
-        public Point3D HomeLocation { get { return Location; } }
-        bool ISpawner.UnlinkOnTaming { get { return true; } }
-
-        [CommandProperty(AccessLevel.Spawner)]
-        public int SpawnCount
-        {
-            get
-            {
-                int count = 0;
-
-                foreach (var so in m_SpawnObjects)
-                {
-                    count += GetSpawnCount(so);
-                }
-
-                return count;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public bool GuardImmune { get; set; }
 
         public override void OnAfterDuped(Item newItem)
         {
-            Spawner s = newItem as Spawner;
+            var s = newItem as Spawner;
 
             if (s == null)
                 return;
@@ -237,16 +283,12 @@ namespace Server.Mobiles
             if (!from.Player || from.AccessLevel < AccessLevel.Spawner)
                 return;
 
-            SpawnerGump gump = BaseGump.GetGump<SpawnerGump>((PlayerMobile)from, g => g.Spawner == this);
+            var gump = BaseGump.GetGump<SpawnerGump>((PlayerMobile)from, g => g.Spawner == this);
 
             if (gump != null)
-            {
                 gump.Refresh();
-            }
             else
-            {
                 BaseGump.SendGump(new SpawnerGump(from, this));
-            }
         }
 
         public override void GetProperties(ObjectPropertyList list)
@@ -287,13 +329,11 @@ namespace Server.Mobiles
         public void Start()
         {
             if (!m_Running)
-            {
                 if (SpawnObjectCount > 0)
                 {
                     m_Running = true;
                     DoTimer();
                 }
-            }
         }
 
         public void Stop()
@@ -309,25 +349,24 @@ namespace Server.Mobiles
 
         public void Defrag()
         {
-            bool removed = false;
-            List<ISpawnable> toRemove = new List<ISpawnable>();
+            var removed = false;
+            var toRemove = new List<ISpawnable>();
 
-            for (int i = 0; i < m_SpawnObjects.Count; ++i)
-            {
+            for (var i = 0; i < m_SpawnObjects.Count; ++i)
                 foreach (var e in m_SpawnObjects[i].SpawnedObjects)
                 {
-                    bool remove = false;
+                    var remove = false;
 
                     if (e is Item)
                     {
-                        Item item = (Item)e;
+                        var item = (Item)e;
 
                         if (item.Deleted || item.Parent != null)
                             remove = true;
                     }
                     else if (e is Mobile)
                     {
-                        Mobile m = (Mobile)e;
+                        var m = (Mobile)e;
 
                         if (m.Deleted)
                         {
@@ -335,12 +374,9 @@ namespace Server.Mobiles
                         }
                         else if (m is BaseCreature)
                         {
-                            BaseCreature bc = (BaseCreature)m;
+                            var bc = (BaseCreature)m;
 
-                            if (bc.Controlled || bc.IsStabled)
-                            {
-                                remove = true;
-                            }
+                            if (bc.Controlled || bc.IsStabled) remove = true;
                         }
                     }
 
@@ -350,14 +386,10 @@ namespace Server.Mobiles
                         removed = true;
                     }
                 }
-            }
 
             if (removed)
             {
-                foreach (var spawnable in toRemove)
-                {
-                    RemoveSpawn(spawnable);
-                }
+                foreach (var spawnable in toRemove) RemoveSpawn(spawnable);
 
                 InvalidateProperties();
             }
@@ -371,27 +403,21 @@ namespace Server.Mobiles
                 yield break;
 
             foreach (var so in m_SpawnObjects)
-            {
-                foreach (var spawnable in so.SpawnedObjects)
-                {
-                    yield return spawnable;
-                }
-            }
+            foreach (var spawnable in so.SpawnedObjects)
+                yield return spawnable;
         }
 
         public void RemoveSpawn(ISpawnable e)
         {
-            SpawnObject so = m_SpawnObjects.FirstOrDefault(s => s.SpawnedObjects.Contains(e));
+            var so = m_SpawnObjects.FirstOrDefault(s => s.SpawnedObjects.Contains(e));
 
-            if (so != null)
-            {
-                so.SpawnedObjects.Remove(e);
-            }
+            if (so != null) so.SpawnedObjects.Remove(e);
         }
 
         public bool AddSpawnObject(SpawnObject so)
         {
-            if(m_SpawnObjects.FirstOrDefault(s => ParseType(s.SpawnName.ToLower()) == ParseType(so.SpawnName.ToLower())) == null
+            if (m_SpawnObjects.FirstOrDefault(s =>
+                    ParseType(s.SpawnName.ToLower()) == ParseType(so.SpawnName.ToLower())) == null
                 && m_SpawnObjects.Count < SpawnerGump.MaxEntries)
             {
                 SpawnObjects.Add(so);
@@ -409,14 +435,7 @@ namespace Server.Mobiles
             {
                 Defrag();
 
-                if (SpawnCount == 0)
-                {
-                    Respawn();
-                }
-                else
-                {
-                    return;
-                }
+                if (SpawnCount == 0) Respawn();
             }
             else
             {
@@ -426,25 +445,22 @@ namespace Server.Mobiles
 
         public virtual bool CheckSpawnerFull()
         {
-            return (SpawnCount >= m_MaxCount);
+            return SpawnCount >= m_MaxCount;
         }
 
         public virtual void Respawn()
         {
             RemoveSpawned();
 
-            for (int i = 0; i < m_MaxCount; i++)
+            for (var i = 0; i < m_MaxCount; i++)
                 Spawn();
         }
 
         public virtual void Spawn()
         {
-            List<SpawnObject> avail = GetAvailableSpawnObjects();
+            var avail = GetAvailableSpawnObjects();
 
-            if (avail != null && avail.Count > 0)
-            {
-                Spawn(avail[Utility.Random(avail.Count)]);
-            }
+            if (avail != null && avail.Count > 0) Spawn(avail[Utility.Random(avail.Count)]);
         }
 
         public void Spawn(int index)
@@ -455,12 +471,9 @@ namespace Server.Mobiles
 
                 if (m_Group)
                 {
-                    int toSpawn = so.MaxCount - GetSpawnCount(so);
+                    var toSpawn = so.MaxCount - GetSpawnCount(so);
 
-                    for (int i = 0; i < toSpawn; i++)
-                    {
-                        Spawn(so);
-                    }
+                    for (var i = 0; i < toSpawn; i++) Spawn(so);
                 }
                 else
                 {
@@ -471,9 +484,10 @@ namespace Server.Mobiles
 
         public void Spawn(SpawnObject so)
         {
-            Map map = Map;
+            var map = Map;
 
-            if (map == null || map == Map.Internal || SpawnObjectCount == 0 || so == null || Parent != null || GetSpawnCount(so) >= so.MaxCount)
+            if (map == null || map == Map.Internal || SpawnObjectCount == 0 || so == null || Parent != null ||
+                GetSpawnCount(so) >= so.MaxCount)
                 return;
 
             Defrag();
@@ -481,7 +495,7 @@ namespace Server.Mobiles
             if (CheckSpawnerFull())
                 return;
 
-            ISpawnable spawned = CreateSpawnedObject(so);
+            var spawned = CreateSpawnedObject(so);
 
             if (spawned == null)
                 return;
@@ -489,7 +503,7 @@ namespace Server.Mobiles
             spawned.Spawner = this;
             so.SpawnedObjects.Add(spawned);
 
-            Point3D loc = (spawned is BaseVendor ? Location : GetSpawnPosition(spawned));
+            var loc = spawned is BaseVendor ? Location : GetSpawnPosition(spawned);
 
             spawned.OnBeforeSpawn(loc, map);
 
@@ -497,14 +511,14 @@ namespace Server.Mobiles
 
             if (spawned is BaseCreature)
             {
-                BaseCreature bc = (BaseCreature)spawned;
+                var bc = (BaseCreature)spawned;
 
                 if (m_WalkingRange >= 0)
                     bc.RangeHome = m_WalkingRange;
                 else
                     bc.RangeHome = m_HomeRange;
 
-                bc.CurrentWayPoint = m_WayPoint;
+                bc.CurrentWayPoint = WayPoint;
 
                 if (m_Team > 0)
                     bc.Team = m_Team;
@@ -514,7 +528,7 @@ namespace Server.Mobiles
 
             if (spawned is Mobile)
             {
-                Mobile m = (Mobile)spawned;
+                var m = (Mobile)spawned;
 
                 m.GuardImmune = GuardImmune;
             }
@@ -531,7 +545,7 @@ namespace Server.Mobiles
 
         public Point3D GetSpawnPosition(ISpawnable spawned)
         {
-            Map map = Map;
+            var map = Map;
 
             if (map == null)
                 return Location;
@@ -540,10 +554,10 @@ namespace Server.Mobiles
 
             if (spawned is Mobile)
             {
-                Mobile mob = (Mobile)spawned;
+                var mob = (Mobile)spawned;
 
                 waterMob = mob.CanSwim;
-                waterOnlyMob = (mob.CanSwim && mob.CantWalk);
+                waterOnlyMob = mob.CanSwim && mob.CantWalk;
             }
             else
             {
@@ -552,14 +566,14 @@ namespace Server.Mobiles
             }
 
             // Try 10 times to find a spawnable location.
-            for (int i = 0; i < 10; ++i)
+            for (var i = 0; i < 10; ++i)
             {
                 int x, y;
 
                 if (m_HomeRange > 0)
                 {
-                    x = Location.X + (Utility.Random((m_SpawnRange * 2) + 1) - m_HomeRange);
-                    y = Location.Y + (Utility.Random((m_SpawnRange * 2) + 1) - m_HomeRange);
+                    x = Location.X + (Utility.Random(m_SpawnRange * 2 + 1) - m_HomeRange);
+                    y = Location.Y + (Utility.Random(m_SpawnRange * 2 + 1) - m_HomeRange);
                 }
                 else
                 {
@@ -567,13 +581,13 @@ namespace Server.Mobiles
                     y = Location.Y;
                 }
 
-                int mapZ = map.GetAverageZ(x, y);
+                var mapZ = map.GetAverageZ(x, y);
 
                 if (waterMob)
                 {
                     if (IsValidWater(map, x, y, Z))
                         return new Point3D(x, y, Z);
-                    else if (IsValidWater(map, x, y, mapZ))
+                    if (IsValidWater(map, x, y, mapZ))
                         return new Point3D(x, y, mapZ);
                 }
 
@@ -581,7 +595,7 @@ namespace Server.Mobiles
                 {
                     if (map.CanSpawnMobile(x, y, Z))
                         return new Point3D(x, y, Z);
-                    else if (map.CanSpawnMobile(x, y, mapZ))
+                    if (map.CanSpawnMobile(x, y, mapZ))
                         return new Point3D(x, y, mapZ);
                 }
             }
@@ -597,15 +611,13 @@ namespace Server.Mobiles
             List<SpawnObject> objects = null;
 
             foreach (var so in m_SpawnObjects)
-            {
                 if (so.CurrentCount < so.MaxCount)
                 {
-                    if(objects == null)
+                    if (objects == null)
                         objects = new List<SpawnObject>();
 
                     objects.Add(so);
                 }
-            }
 
             return objects;
         }
@@ -620,10 +632,10 @@ namespace Server.Mobiles
             if (!m_Running)
                 return;
 
-            int minSeconds = (int)m_MinDelay.TotalSeconds;
-            int maxSeconds = (int)m_MaxDelay.TotalSeconds;
+            var minSeconds = (int)m_MinDelay.TotalSeconds;
+            var maxSeconds = (int)m_MaxDelay.TotalSeconds;
 
-            TimeSpan delay = TimeSpan.FromSeconds(Utility.RandomMinMax(minSeconds, maxSeconds));
+            var delay = TimeSpan.FromSeconds(Utility.RandomMinMax(minSeconds, maxSeconds));
             DoTimer(delay);
         }
 
@@ -632,7 +644,7 @@ namespace Server.Mobiles
             if (!m_Running)
                 return;
 
-            m_End = DateTime.UtcNow + delay;
+            End = DateTime.UtcNow + delay;
 
             if (m_Timer != null)
             {
@@ -648,12 +660,12 @@ namespace Server.Mobiles
         {
             Defrag();
 
-            Dictionary<string, int> counts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            var counts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var entry in m_SpawnObjects)
             {
-                string name = ParseType(entry.SpawnName);
-                Type type = ScriptCompiler.FindTypeByName(name);
+                var name = ParseType(entry.SpawnName);
+                var type = ScriptCompiler.FindTypeByName(name);
 
                 if (type == null)
                     counts[name] = 0;
@@ -663,7 +675,7 @@ namespace Server.Mobiles
 
             foreach (var spawned in GetSpawn())
             {
-                string name = spawned.GetType().Name;
+                var name = spawned.GetType().Name;
 
                 if (counts.ContainsKey(name))
                     ++counts[name];
@@ -671,13 +683,13 @@ namespace Server.Mobiles
                     counts[name] = 1;
             }
 
-            List<string> names = new List<string>(counts.Keys);
+            var names = new List<string>(counts.Keys);
             names.Sort();
 
-            StringBuilder result = new StringBuilder();
+            var result = new StringBuilder();
 
-            for (int i = 0; i < names.Count; ++i)
-                result.AppendFormat("{0}{1}: {2}", (i == 0) ? "" : "<BR>", names[i], counts[names[i]]);
+            for (var i = 0; i < names.Count; ++i)
+                result.AppendFormat("{0}{1}: {2}", i == 0 ? "" : "<BR>", names[i], counts[names[i]]);
 
             return result.ToString();
         }
@@ -697,12 +709,9 @@ namespace Server.Mobiles
 
                 if (m_Group)
                 {
-                    int count = GetSpawnCount(so);
+                    var count = GetSpawnCount(so);
 
-                    for (int i = 0; i < count; i++)
-                    {
-                        RemoveSpawned(so);
-                    }
+                    for (var i = 0; i < count; i++) RemoveSpawned(so);
                 }
                 else
                 {
@@ -725,12 +734,9 @@ namespace Server.Mobiles
         {
             Defrag();
 
-            List<ISpawnable> toRemove = new List<ISpawnable>();
+            var toRemove = new List<ISpawnable>();
 
-            foreach (var spawn in GetSpawn())
-            {
-                toRemove.Add(spawn);
-            }
+            foreach (var spawn in GetSpawn()) toRemove.Add(spawn);
 
             foreach (var spawn in toRemove)
                 spawn.Delete();
@@ -743,10 +749,7 @@ namespace Server.Mobiles
         {
             Defrag();
 
-            foreach (var spawn in GetSpawn())
-            {
-                spawn.MoveToWorld(Location, Map);
-            }
+            foreach (var spawn in GetSpawn()) spawn.MoveToWorld(Location, Map);
         }
 
         public override void OnDelete()
@@ -763,7 +766,7 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)7); // version
+            writer.Write(7); // version
 
             writer.Write(GuardImmune);
 
@@ -771,7 +774,7 @@ namespace Server.Mobiles
 
             writer.Write(m_WalkingRange);
 
-            writer.Write(m_WayPoint);
+            writer.Write(WayPoint);
 
             writer.Write(m_Group);
 
@@ -783,100 +786,80 @@ namespace Server.Mobiles
             writer.Write(m_Running);
 
             if (m_Running)
-                writer.WriteDeltaTime(m_End);
+                writer.WriteDeltaTime(End);
 
             writer.Write(m_SpawnObjects.Count);
-            for (int i = 0; i < m_SpawnObjects.Count; ++i)
-            {
-                m_SpawnObjects[i].Serialize(writer);
-            }
+            for (var i = 0; i < m_SpawnObjects.Count; ++i) m_SpawnObjects[i].Serialize(writer);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            switch ( version )
+            switch (version)
             {
                 case 7:
-                    {
-                        GuardImmune = reader.ReadBool();
+                {
+                    GuardImmune = reader.ReadBool();
 
-                        goto case 6;
-                    }
+                    goto case 6;
+                }
                 case 6:
-                    {
-                        m_SpawnRange = reader.ReadInt();
+                {
+                    m_SpawnRange = reader.ReadInt();
 
-                        goto case 5;
-                    }
+                    goto case 5;
+                }
                 case 5:
                 case 4:
-                    {
-                        m_WalkingRange = reader.ReadInt();
+                {
+                    m_WalkingRange = reader.ReadInt();
 
-                        goto case 3;
-                    }
+                    goto case 3;
+                }
                 case 3:
                 case 2:
-                    {
-                        m_WayPoint = reader.ReadItem() as WayPoint;
+                {
+                    WayPoint = reader.ReadItem() as WayPoint;
 
-                        goto case 1;
-                    }
+                    goto case 1;
+                }
 
                 case 1:
-                    {
-                        m_Group = reader.ReadBool();
+                {
+                    m_Group = reader.ReadBool();
 
-                        goto case 0;
-                    }
+                    goto case 0;
+                }
 
                 case 0:
-                    {
-                        m_MinDelay = reader.ReadTimeSpan();
-                        m_MaxDelay = reader.ReadTimeSpan();
-                        m_MaxCount = reader.ReadInt();
-                        m_Team = reader.ReadInt();
-                        m_HomeRange = reader.ReadInt();
-                        m_Running = reader.ReadBool();
+                {
+                    m_MinDelay = reader.ReadTimeSpan();
+                    m_MaxDelay = reader.ReadTimeSpan();
+                    m_MaxCount = reader.ReadInt();
+                    m_Team = reader.ReadInt();
+                    m_HomeRange = reader.ReadInt();
+                    m_Running = reader.ReadBool();
 
-                        TimeSpan ts = TimeSpan.Zero;
+                    var ts = TimeSpan.Zero;
 
-                        if (m_Running)
-                            ts = reader.ReadDeltaTime() - DateTime.UtcNow;
+                    if (m_Running)
+                        ts = reader.ReadDeltaTime() - DateTime.UtcNow;
 
-                        int size = reader.ReadInt();
+                    var size = reader.ReadInt();
 
-                        m_SpawnObjects = new List<SpawnObject>(size);
+                    m_SpawnObjects = new List<SpawnObject>(size);
 
-                        for (int i = 0; i < size; ++i)
+                    for (var i = 0; i < size; ++i)
+                        if (version > 4)
                         {
-                            if (version > 4)
+                            var so = new SpawnObject(reader);
+
+                            if (AddSpawnObject(so))
                             {
-                                SpawnObject so = new SpawnObject(reader);
-
-                                if (AddSpawnObject(so))
-                                {
-                                    string typeName = ParseType(so.SpawnName);
-
-                                    if (ScriptCompiler.FindTypeByName(typeName) == null)
-                                    {
-                                        if (m_WarnTimer == null)
-                                            m_WarnTimer = new WarnTimer();
-
-                                        m_WarnTimer.Add(Location, Map, typeName);
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                string creatureString = reader.ReadString();
-
-                                AddSpawnObject(new SpawnObject(creatureString));
-                                string typeName = ParseType(creatureString);
+                                var typeName = ParseType(so.SpawnName);
 
                                 if (ScriptCompiler.FindTypeByName(typeName) == null)
                                 {
@@ -887,26 +870,38 @@ namespace Server.Mobiles
                                 }
                             }
                         }
-
-                        if (version < 5)
+                        else
                         {
-                            int count = reader.ReadInt();
-                            for (int i = 0; i < count; ++i)
-                            {
-                                ISpawnable e = World.FindEntity(reader.ReadInt()) as ISpawnable;
+                            var creatureString = reader.ReadString();
 
-                                if (e != null)
-                                {
-                                    e.Delete(); // lets make this easy
-                                }
+                            AddSpawnObject(new SpawnObject(creatureString));
+                            var typeName = ParseType(creatureString);
+
+                            if (ScriptCompiler.FindTypeByName(typeName) == null)
+                            {
+                                if (m_WarnTimer == null)
+                                    m_WarnTimer = new WarnTimer();
+
+                                m_WarnTimer.Add(Location, Map, typeName);
                             }
                         }
 
-                        if (m_Running)
-                            DoTimer(ts);
+                    if (version < 5)
+                    {
+                        var count = reader.ReadInt();
+                        for (var i = 0; i < count; ++i)
+                        {
+                            var e = World.FindEntity(reader.ReadInt()) as ISpawnable;
 
-                        break;
+                            if (e != null) e.Delete(); // lets make this easy
+                        }
                     }
+
+                    if (m_Running)
+                        DoTimer(ts);
+
+                    break;
+                }
             }
 
             if (version < 3 && Weight == 0)
@@ -918,10 +913,9 @@ namespace Server.Mobiles
             if (!m_SpawnObjects.Contains(obj))
                 return null;
 
-            Type type = ScriptCompiler.FindTypeByName(ParseType(obj.SpawnName));
+            var type = ScriptCompiler.FindTypeByName(ParseType(obj.SpawnName));
 
             if (type != null)
-            {
                 try
                 {
                     return Build(type, CommandSystem.Split(obj.SpawnName));
@@ -929,12 +923,12 @@ namespace Server.Mobiles
                 catch
                 {
                 }
-            }
 
             return null;
         }
 
-        private void InitSpawner(int amount, TimeSpan minDelay, TimeSpan maxDelay, int team, int spawnRange, List<SpawnObject> spawnObjects)
+        private void InitSpawner(int amount, TimeSpan minDelay, TimeSpan maxDelay, int team, int spawnRange,
+            List<SpawnObject> spawnObjects)
         {
             Visible = false;
             Movable = false;
@@ -951,27 +945,11 @@ namespace Server.Mobiles
 
             m_HomeRange = 5;
 
-            int max = 1;
+            var max = 1;
 
             if (spawnObjects != null)
-            {
                 foreach (var obj in spawnObjects)
-                {
                     max += obj.MaxCount;
-                }
-            }
-        }
-
-        public virtual void GetSpawnProperties(ISpawnable spawn, ObjectPropertyList list)
-        { }
-
-        public virtual void GetSpawnContextEntries(ISpawnable spawn, Mobile user, List<ContextMenuEntry> list)
-        { }
-
-        void ISpawner.Remove(ISpawnable spawn)
-        {
-            RemoveSpawn(spawn);
-            InvalidateProperties();
         }
 
         public static string ParseType(string s)
@@ -981,22 +959,18 @@ namespace Server.Mobiles
 
         public static ISpawnable Build(Type type, string[] args)
         {
-            bool isISpawnable = typeof(ISpawnable).IsAssignableFrom(type);
+            var isISpawnable = typeof(ISpawnable).IsAssignableFrom(type);
 
-            if (!isISpawnable)
-            {
-                return null;
-            }
+            if (!isISpawnable) return null;
 
             Add.FixArgs(ref args);
 
             string[,] props = null;
 
-            for (int i = 0; i < args.Length; ++i)
-            {
+            for (var i = 0; i < args.Length; ++i)
                 if (Insensitive.Equals(args[i], "set"))
                 {
-                    int remains = args.Length - i - 1;
+                    var remains = args.Length - i - 1;
 
                     if (remains >= 2)
                     {
@@ -1004,10 +978,10 @@ namespace Server.Mobiles
 
                         remains /= 2;
 
-                        for (int j = 0; j < remains; ++j)
+                        for (var j = 0; j < remains; ++j)
                         {
-                            props[j, 0] = args[i + (j * 2) + 1];
-                            props[j, 1] = args[i + (j * 2) + 2];
+                            props[j, 0] = args[i + j * 2 + 1];
+                            props[j, 1] = args[i + j * 2 + 2];
                         }
 
                         Add.FixSetString(ref args, i);
@@ -1015,7 +989,6 @@ namespace Server.Mobiles
 
                     break;
                 }
-            }
 
             PropertyInfo[] realProps = null;
 
@@ -1023,60 +996,57 @@ namespace Server.Mobiles
             {
                 realProps = new PropertyInfo[props.GetLength(0)];
 
-                PropertyInfo[] allProps = type.GetProperties(BindingFlags.Static | BindingFlags.Instance | BindingFlags.Public);
+                var allProps = type.GetProperties(BindingFlags.Static | BindingFlags.Instance | BindingFlags.Public);
 
-                for (int i = 0; i < realProps.Length; ++i)
+                for (var i = 0; i < realProps.Length; ++i)
                 {
                     PropertyInfo thisProp = null;
 
-                    string propName = props[i, 0];
+                    var propName = props[i, 0];
 
-                    for (int j = 0; thisProp == null && j < allProps.Length; ++j)
-                    {
+                    for (var j = 0; thisProp == null && j < allProps.Length; ++j)
                         if (Insensitive.Equals(propName, allProps[j].Name))
                             thisProp = allProps[j];
-                    }
 
                     if (thisProp != null)
                     {
-                        CPA attr = Properties.GetCPA(thisProp);
+                        var attr = Properties.GetCPA(thisProp);
 
-                        if (attr != null && AccessLevel.Spawner >= attr.WriteLevel && thisProp.CanWrite && !attr.ReadOnly)
+                        if (attr != null && AccessLevel.Spawner >= attr.WriteLevel && thisProp.CanWrite &&
+                            !attr.ReadOnly)
                             realProps[i] = thisProp;
                     }
                 }
             }
 
-            ConstructorInfo[] ctors = type.GetConstructors();
+            var ctors = type.GetConstructors();
 
-            for (int i = 0; i < ctors.Length; ++i)
+            for (var i = 0; i < ctors.Length; ++i)
             {
-                ConstructorInfo ctor = ctors[i];
+                var ctor = ctors[i];
 
                 if (!Add.IsConstructable(ctor, AccessLevel.Spawner))
                     continue;
 
-                ParameterInfo[] paramList = ctor.GetParameters();
+                var paramList = ctor.GetParameters();
 
                 if (args.Length == paramList.Length)
                 {
-                    object[] paramValues = Add.ParseValues(paramList, args);
+                    var paramValues = Add.ParseValues(paramList, args);
 
                     if (paramValues == null)
                         continue;
 
-                    object built = ctor.Invoke(paramValues);
+                    var built = ctor.Invoke(paramValues);
 
                     if (built != null && realProps != null)
-                    {
-                        for (int j = 0; j < realProps.Length; ++j)
+                        for (var j = 0; j < realProps.Length; ++j)
                         {
                             if (realProps[j] == null)
                                 continue;
 
                             Properties.InternalSetValue(built, realProps[j], props[j, 1]);
                         }
-                    }
 
                     return (ISpawnable)built;
                 }
@@ -1090,18 +1060,19 @@ namespace Server.Mobiles
             if (!Region.Find(new Point3D(x, y, z), map).AllowSpawn() || !map.CanFit(x, y, z, 16, false, true, false))
                 return false;
 
-            LandTile landTile = map.Tiles.GetLandTile(x, y);
+            var landTile = map.Tiles.GetLandTile(x, y);
 
             if (landTile.Z == z && (TileData.LandTable[landTile.ID & TileData.MaxLandValue].Flags & TileFlag.Wet) != 0)
                 return true;
 
-            StaticTile[] staticTiles = map.Tiles.GetStaticTiles(x, y, true);
+            var staticTiles = map.Tiles.GetStaticTiles(x, y, true);
 
-            for (int i = 0; i < staticTiles.Length; ++i)
+            for (var i = 0; i < staticTiles.Length; ++i)
             {
-                StaticTile staticTile = staticTiles[i];
+                var staticTile = staticTiles[i];
 
-                if (staticTile.Z == z && (TileData.ItemTable[staticTile.ID & TileData.MaxItemValue].Flags & TileFlag.Wet) != 0)
+                if (staticTile.Z == z &&
+                    (TileData.ItemTable[staticTile.ID & TileData.MaxItemValue].Flags & TileFlag.Wet) != 0)
                     return true;
             }
 
@@ -1111,6 +1082,7 @@ namespace Server.Mobiles
         private class InternalTimer : Timer
         {
             private readonly Spawner m_Spawner;
+
             public InternalTimer(Spawner spawner, TimeSpan delay)
                 : base(delay)
             {
@@ -1132,6 +1104,7 @@ namespace Server.Mobiles
         private class WarnTimer : Timer
         {
             private readonly List<WarnEntry> m_List;
+
             public WarnTimer()
                 : base(TimeSpan.FromSeconds(1.0))
             {
@@ -1150,14 +1123,15 @@ namespace Server.Mobiles
                 {
                     Console.WriteLine("Warning: {0} bad spawns detected, logged: 'badspawn.log'", m_List.Count);
 
-                    using (StreamWriter op = new StreamWriter("badspawn.log", true))
+                    using (var op = new StreamWriter("badspawn.log", true))
                     {
                         op.WriteLine("# Bad spawns : {0}", DateTime.UtcNow);
                         op.WriteLine("# Format: X Y Z F Name");
                         op.WriteLine();
 
-                        foreach (WarnEntry e in m_List)
-                            op.WriteLine("{0}\t{1}\t{2}\t{3}\t{4}", e.m_Point.X, e.m_Point.Y, e.m_Point.Z, e.m_Map, e.m_Name);
+                        foreach (var e in m_List)
+                            op.WriteLine("{0}\t{1}\t{2}\t{3}\t{4}", e.m_Point.X, e.m_Point.Y, e.m_Point.Z, e.m_Map,
+                                e.m_Name);
 
                         op.WriteLine();
                         op.WriteLine();
@@ -1170,9 +1144,10 @@ namespace Server.Mobiles
 
             private class WarnEntry
             {
-                public readonly Point3D m_Point;
                 public readonly Map m_Map;
                 public readonly string m_Name;
+                public readonly Point3D m_Point;
+
                 public WarnEntry(Point3D p, Map map, string name)
                 {
                     m_Point = p;

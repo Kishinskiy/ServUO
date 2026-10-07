@@ -1,10 +1,10 @@
-using System;
-
 namespace Server.Items
 {
     [Flipable(0x3DAA, 0x3DA9)]
     public class SuitOfGoldArmorComponent : AddonComponent
     {
+        public override int LabelNumber => 1076265; // Suit of Gold Armor
+
         public SuitOfGoldArmorComponent()
             : base(0x3DAA)
         {
@@ -15,13 +15,6 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1076265;
-            }
-        }// Suit of Gold Armor
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -33,17 +26,18 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class SuitOfGoldArmorAddon : BaseAddon
     {
+        public override BaseAddonDeed Deed => new SuitOfGoldArmorDeed();
+
         [Constructable]
         public SuitOfGoldArmorAddon()
-            : base()
         {
-            this.AddComponent(new SuitOfGoldArmorComponent(), 0, 0, 0);
+            AddComponent(new SuitOfGoldArmorComponent(), 0, 0, 0);
         }
 
         public SuitOfGoldArmorAddon(Serial serial)
@@ -51,13 +45,6 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonDeed Deed
-        {
-            get
-            {
-                return new SuitOfGoldArmorDeed();
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -69,17 +56,20 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class SuitOfGoldArmorDeed : BaseAddonDeed
     {
+        public override BaseAddon Addon => new SuitOfGoldArmorAddon();
+
+        public override int LabelNumber => 1076265; // Suit of Gold Armor
+
         [Constructable]
         public SuitOfGoldArmorDeed()
-            : base()
         {
-            this.LootType = LootType.Blessed;
+            LootType = LootType.Blessed;
         }
 
         public SuitOfGoldArmorDeed(Serial serial)
@@ -87,20 +77,6 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddon Addon
-        {
-            get
-            {
-                return new SuitOfGoldArmorAddon();
-            }
-        }
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1076265;
-            }
-        }// Suit of Gold Armor
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -112,7 +88,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

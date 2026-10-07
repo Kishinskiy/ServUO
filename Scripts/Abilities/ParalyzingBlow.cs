@@ -4,26 +4,21 @@ using System.Collections;
 namespace Server.Items
 {
     /// <summary>
-    /// A successful Paralyzing Blow will leave the target stunned, unable to move, attack, or cast spells, for a few seconds.
+    ///     A successful Paralyzing Blow will leave the target stunned, unable to move, attack, or cast spells, for a few
+    ///     seconds.
     /// </summary>
     public class ParalyzingBlow : WeaponAbility
     {
         public static readonly TimeSpan PlayerFreezeDuration = TimeSpan.FromSeconds(3.0);
         public static readonly TimeSpan NPCFreezeDuration = TimeSpan.FromSeconds(6.0);
+
         public static readonly TimeSpan FreezeDelayDuration = TimeSpan.FromSeconds(8.0);
+
         // No longer active in pub21:
         private static readonly Hashtable m_Table = new Hashtable();
-        public ParalyzingBlow()
-        {
-        }
 
-        public override int BaseMana
-        {
-            get
-            {
-                return 30;
-            }
-        }
+        public override int BaseMana => 30;
+
         public static bool IsImmune(Mobile m)
         {
             return m_Table.Contains(m);
@@ -31,7 +26,7 @@ namespace Server.Items
 
         public static void BeginImmunity(Mobile m, TimeSpan duration)
         {
-            Timer t = (Timer)m_Table[m];
+            var t = (Timer)m_Table[m];
 
             if (t != null)
                 t.Stop();
@@ -44,7 +39,7 @@ namespace Server.Items
 
         public static void EndImmunity(Mobile m)
         {
-            Timer t = (Timer)m_Table[m];
+            var t = (Timer)m_Table[m];
 
             if (t != null)
                 t.Stop();
@@ -54,7 +49,7 @@ namespace Server.Items
 
         public override bool RequiresSecondarySkill(Mobile from)
         {
-            BaseWeapon weapon = from.Weapon as BaseWeapon;
+            var weapon = from.Weapon as BaseWeapon;
 
             if (weapon == null)
                 return true;
@@ -64,15 +59,12 @@ namespace Server.Items
 
         public override bool OnBeforeSwing(Mobile attacker, Mobile defender)
         {
-            if(defender == null)
+            if (defender == null)
                 return false;
-                
+
             if (defender.Paralyzed)
             {
-                if (attacker != null)
-                {
-                    attacker.SendLocalizedMessage(1061923); // The target is already frozen.
-                }
+                if (attacker != null) attacker.SendLocalizedMessage(1061923); // The target is already frozen.
 
                 return false;
             }
@@ -82,12 +74,12 @@ namespace Server.Items
 
         public override void OnHit(Mobile attacker, Mobile defender, int damage)
         {
-            if (!this.Validate(attacker) || !this.CheckMana(attacker, true))
+            if (!Validate(attacker) || !CheckMana(attacker, true))
                 return;
 
             ClearCurrentAbility(attacker);
 
-            if (IsImmune(defender))	//Intentionally going after Mana consumption
+            if (IsImmune(defender)) //Intentionally going after Mana consumption
             {
                 attacker.SendLocalizedMessage(1070804); // Your target resists paralysis.
                 defender.SendLocalizedMessage(1070813); // You resist paralysis.
@@ -100,7 +92,7 @@ namespace Server.Items
             attacker.SendLocalizedMessage(1060163); // You deliver a paralyzing blow!
             defender.SendLocalizedMessage(1060164); // The attack has temporarily paralyzed you!
 
-            TimeSpan duration = defender.Player ? PlayerFreezeDuration : NPCFreezeDuration;
+            var duration = defender.Player ? PlayerFreezeDuration : NPCFreezeDuration;
 
             // Treat it as paralyze not as freeze, effect must be removed when damaged.
             defender.Paralyze(duration);
@@ -111,16 +103,17 @@ namespace Server.Items
         private class InternalTimer : Timer
         {
             private readonly Mobile m_Mobile;
+
             public InternalTimer(Mobile m, TimeSpan duration)
                 : base(duration)
             {
-                this.m_Mobile = m;
-                this.Priority = TimerPriority.TwoFiftyMS;
+                m_Mobile = m;
+                Priority = TimerPriority.TwoFiftyMS;
             }
 
             protected override void OnTick()
             {
-                EndImmunity(this.m_Mobile);
+                EndImmunity(m_Mobile);
             }
         }
     }

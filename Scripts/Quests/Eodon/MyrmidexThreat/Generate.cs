@@ -1,21 +1,17 @@
-using Server;
-using System;
-using Server.Engines.Quests;
-using System.Collections.Generic;
 using Server.Items;
 using Server.Mobiles;
 using Server.Multis;
 
 namespace Server.Engines.MyrmidexInvasion
 {
-	public static class GenerateMyrmidexQuest
-	{
+    public static class GenerateMyrmidexQuest
+    {
         public static void Generate()
         {
-            Map map = Map.TerMur;
-            int z = -19;
+            var map = Map.TerMur;
+            var z = -19;
 
-            Static s = new Static(40142);
+            var s = new Static(40142);
             s.MoveToWorld(new Point3D(888, 2303, z), map);
 
             s = new Static(40142);
@@ -71,7 +67,7 @@ namespace Server.Engines.MyrmidexInvasion
             s = new Static(40165);
             s.MoveToWorld(new Point3D(894, 2306, z), map);
 
-            MoonstonePowerGeneratorAddon addon = new MoonstonePowerGeneratorAddon(true);
+            var addon = new MoonstonePowerGeneratorAddon(true);
             addon.MoveToWorld(new Point3D(884, 2292, z), map);
 
             addon = new MoonstonePowerGeneratorAddon(true);
@@ -98,7 +94,7 @@ namespace Server.Engines.MyrmidexInvasion
             var idol = new MyrmidexIdol();
             idol.MoveToWorld(new Point3D(488, 1856, 111), map);
 
-            Teleporter teleporter = new Teleporter(new Point3D(487, 1857, 95), map);
+            var teleporter = new Teleporter(new Point3D(487, 1857, 95), map);
             teleporter.MoveToWorld(new Point3D(896, 2304, 45), map);
 
             teleporter = new MyrmidexQueenTeleporter(new Point3D(711, 2302, 0), map);
@@ -164,14 +160,14 @@ namespace Server.Engines.MyrmidexInvasion
             allegianceIdol = new AllegianceIdol(Allegiance.Myrmidex);
             allegianceIdol.MoveToWorld(new Point3D(176, 1813, 91), map);
 
-            HealerCamp camp = new HealerCamp();
+            var camp = new HealerCamp();
             camp.Map = Map.TerMur;
             camp.Location = new Point3D(262, 1716, 80);
 
-            GeoffreyCampAddon gcamp = new GeoffreyCampAddon();
+            var gcamp = new GeoffreyCampAddon();
             gcamp.MoveToWorld(new Point3D(264, 1732, 80), Map.TerMur);
 
-            BattleSpawner spawner = new BattleSpawner();
+            var spawner = new BattleSpawner();
             spawner.MoveToWorld(new Point3D(851, 1776, 0), Map.TerMur);
 
             Item st = new Static(0xA1F);
@@ -180,7 +176,7 @@ namespace Server.Engines.MyrmidexInvasion
             st = new Static(0xA1F);
             st.MoveToWorld(new Point3D(914, 1871, 0), Map.TerMur);
 
-            BattleFlag bflag = new BattleFlag(0x42CB, 0);
+            var bflag = new BattleFlag(0x42CB, 0);
             bflag.MoveToWorld(new Point3D(914, 1872, 5), Map.TerMur);
 
             st = new Static(0xA1F);
@@ -251,7 +247,6 @@ namespace Server.Engines.MyrmidexInvasion
             sp.HomeRange = 1;
             sp.MoveToWorld(new Point3D(768, 2303, 0), map);
             sp.Respawn();
-
         }
-	}
+    }
 }

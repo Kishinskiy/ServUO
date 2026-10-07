@@ -1,12 +1,23 @@
 using System;
 using Server.Items;
-using Server.Misc;
 
 namespace Server.Mobiles
 {
     [CorpseName("Green Goblin Alchemist [Renowned] corpse")]
     public class GreenGoblinAlchemistRenowned : BaseRenowned
     {
+        public override Type[] UniqueSAList
+        {
+            get { return new[] { typeof(ObsidianEarrings), typeof(TheImpalersPick) }; }
+        }
+
+        public override Type[] SharedSAList
+        {
+            get { return new Type[] { }; }
+        }
+
+        public override bool AllureImmune => true;
+
         [Constructable]
         public GreenGoblinAlchemistRenowned()
             : base(AIType.AI_Melee)
@@ -41,7 +52,7 @@ namespace Server.Mobiles
 
             VirtualArmor = 28;
 
-            switch ( Utility.Random(20) )
+            switch (Utility.Random(20))
             {
                 case 0:
                     PackItem(new Scimitar());
@@ -65,7 +76,7 @@ namespace Server.Mobiles
 
             PackItem(new ThighBoots());
 
-            switch ( Utility.Random(3) )
+            switch (Utility.Random(3))
             {
                 case 0:
                     PackItem(new Ribs());
@@ -87,50 +98,46 @@ namespace Server.Mobiles
         {
         }
 
-        public override Type[] UniqueSAList
+        public override int GetAngerSound()
         {
-            get
-            {
-                return new Type[] { typeof(ObsidianEarrings), typeof(TheImpalersPick) };
-            }
+            return 0x600;
         }
-        public override Type[] SharedSAList
+
+        public override int GetIdleSound()
         {
-            get
-            {
-                return new Type[] { };
-            }
+            return 0x600;
         }
-        
-        public override bool AllureImmune
+
+        public override int GetAttackSound()
         {
-            get
-            {
-                return true;
-            }
+            return 0x5FD;
         }
-		
-		public override int GetAngerSound() { return 0x600; }
-        public override int GetIdleSound() { return 0x600; }
-        public override int GetAttackSound() { return 0x5FD; }
-        public override int GetHurtSound() { return 0x5FF; }
-        public override int GetDeathSound() { return 0x5FE; }
-		
+
+        public override int GetHurtSound()
+        {
+            return 0x5FF;
+        }
+
+        public override int GetDeathSound()
+        {
+            return 0x5FE;
+        }
+
         public override void GenerateLoot()
         {
-            this.AddLoot(LootPack.FilthyRich, 2);
+            AddLoot(LootPack.FilthyRich, 2);
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

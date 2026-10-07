@@ -1,10 +1,10 @@
-using System;
-
 namespace Server.Items
 {
     [Flipable(0x1E34, 0x1E35)]
     public class ScarecrowComponent : AddonComponent
     {
+        public override int LabelNumber => 1076608; // Scarecrow
+
         public ScarecrowComponent()
             : base(0x1E34)
         {
@@ -15,13 +15,6 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1076608;
-            }
-        }// Scarecrow
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -33,17 +26,18 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class ScarecrowAddon : BaseAddon
     {
+        public override BaseAddonDeed Deed => new ScarecrowDeed();
+
         [Constructable]
         public ScarecrowAddon()
-            : base()
         {
-            this.AddComponent(new ScarecrowComponent(), 0, 0, 0);
+            AddComponent(new ScarecrowComponent(), 0, 0, 0);
         }
 
         public ScarecrowAddon(Serial serial)
@@ -51,13 +45,6 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonDeed Deed
-        {
-            get
-            {
-                return new ScarecrowDeed();
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -69,17 +56,20 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class ScarecrowDeed : BaseAddonDeed
     {
+        public override BaseAddon Addon => new ScarecrowAddon();
+
+        public override int LabelNumber => 1076608; // Scarecrow
+
         [Constructable]
         public ScarecrowDeed()
-            : base()
         {
-            this.LootType = LootType.Blessed;
+            LootType = LootType.Blessed;
         }
 
         public ScarecrowDeed(Serial serial)
@@ -87,20 +77,6 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddon Addon
-        {
-            get
-            {
-                return new ScarecrowAddon();
-            }
-        }
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1076608;
-            }
-        }// Scarecrow
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -112,7 +88,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

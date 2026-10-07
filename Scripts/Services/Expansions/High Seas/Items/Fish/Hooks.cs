@@ -1,6 +1,4 @@
-﻿using Server;
-using System;
-using Server.Targeting;
+﻿using Server.Targeting;
 
 namespace Server.Items
 {
@@ -15,17 +13,11 @@ namespace Server.Items
     [Flipable(19270, 19271)]
     public class BaseFishingHook : Item
     {
-        private int m_Uses;
-
         [CommandProperty(AccessLevel.GameMaster)]
-        public int Uses 
-        {
-            get { return m_Uses; } 
-            set { m_Uses = value; } 
-        }
+        public int Uses { get; set; }
 
-        public virtual HookType HookType { get { return HookType.None; } }
-        public override int LabelNumber { get { return 1098140; } }
+        public virtual HookType HookType => HookType.None;
+        public override int LabelNumber => 1098140;
 
         public BaseFishingHook() : this(50)
         {
@@ -33,40 +25,40 @@ namespace Server.Items
 
         public BaseFishingHook(int uses) : base(19270)
         {
-            m_Uses = uses;
+            Uses = uses;
+        }
+
+        public BaseFishingHook(Serial serial) : base(serial)
+        {
         }
 
         public override void GetProperties(ObjectPropertyList list)
         {
             base.GetProperties(list);
 
-            int condition = GetCondition(m_Uses);
-            list.Add(1149847, String.Format("#{0}", condition)); //Condition: ~1_val~
+            var condition = GetCondition(Uses);
+            list.Add(1149847, string.Format("#{0}", condition)); //Condition: ~1_val~
         }
 
         public static int GetCondition(int uses)
         {
             if (uses < 10)
                 return 1149853; //worn
-            else if (uses < 20)
+            if (uses < 20)
                 return 1149852; //fair
-            else if (uses < 30)
+            if (uses < 30)
                 return 1149851; //very good
-            else if (uses < 40)
+            if (uses < 40)
                 return 1149850; //good
-            else if (uses < 50)
+            if (uses < 50)
                 return 1149849; //excellent
-            else
-                return 1149848; //new
+            return 1149848; //new
         }
 
         public override void OnDoubleClick(Mobile from)
         {
-            if (IsChildOf(from.Backpack))
-            {
-                from.Target = new InternalTarget(this);
-                //TODO: Message?
-            }
+            if (IsChildOf(from.Backpack)) from.Target = new InternalTarget(this);
+            //TODO: Message?
         }
 
         public static int GetHookType(HookType type)
@@ -80,12 +72,27 @@ namespace Server.Items
                 case HookType.JunkProof:
                     return 1150883;
             }
+
             return 0;
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
+            writer.Write(Uses);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
+            Uses = reader.ReadInt();
         }
 
         private class InternalTarget : Target
         {
-            private BaseFishingHook m_Hook;
+            private readonly BaseFishingHook m_Hook;
 
             public InternalTarget(BaseFishingHook hook)
                 : base(-1, false, TargetFlags.None)
@@ -97,7 +104,7 @@ namespace Server.Items
             {
                 if (targeted is FishingPole)
                 {
-                    FishingPole pole = (FishingPole)targeted;
+                    var pole = (FishingPole)targeted;
 
                     if (pole.HookType != HookType.None)
                     {
@@ -124,30 +131,13 @@ namespace Server.Items
                 }
             }
         }
-
-        public BaseFishingHook(Serial serial) : base(serial) { }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.Write((int)0);
-            writer.Write(m_Uses);
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            int version = reader.ReadInt();
-            m_Uses = reader.ReadInt();
-        }
-
     }
 
     [Flipable(19268, 19269)]
     public class LavaHook : BaseFishingHook
     {
-        public override HookType HookType { get { return HookType.Lava; } }
-        public override int LabelNumber { get { return 1150888; } }
+        public override HookType HookType => HookType.Lava;
+        public override int LabelNumber => 1150888;
 
         [Constructable]
         public LavaHook(int uses) : base(uses)
@@ -161,26 +151,28 @@ namespace Server.Items
             Hue = 2075;
         }
 
-        public LavaHook(Serial serial) : base(serial) { }
+        public LavaHook(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     [Flipable(19268, 19269)]
     public class DredgingHook : BaseFishingHook
     {
-        public override HookType HookType { get { return HookType.Dredging; } }
-        public override int LabelNumber { get { return 1150890; } }
+        public override HookType HookType => HookType.Dredging;
+        public override int LabelNumber => 1150890;
 
         [Constructable]
         public DredgingHook(int uses) : base(uses)
@@ -194,26 +186,28 @@ namespace Server.Items
             Hue = 33;
         }
 
-        public DredgingHook(Serial serial) : base(serial) { }
+        public DredgingHook(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     [Flipable(19268, 19269)]
     public class JunkProofHook : BaseFishingHook
     {
-        public override HookType HookType { get { return HookType.JunkProof; } }
-        public override int LabelNumber { get { return 1150883; } }
+        public override HookType HookType => HookType.JunkProof;
+        public override int LabelNumber => 1150883;
 
         [Constructable]
         public JunkProofHook(int uses) : base(uses)
@@ -227,19 +221,20 @@ namespace Server.Items
             Hue = 99;
         }
 
-        public JunkProofHook(Serial serial) : base(serial) { }
+        public JunkProofHook(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }
-

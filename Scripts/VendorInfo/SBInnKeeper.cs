@@ -1,7 +1,7 @@
-using System;
 using System.Collections.Generic;
-using Server.Items;
 using Server.Custom.SurvivalSystem;
+using Server.Items;
+using Server.Multis;
 
 namespace Server.Mobiles
 {
@@ -9,24 +9,10 @@ namespace Server.Mobiles
     {
         private readonly List<GenericBuyInfo> m_BuyInfo = new InternalBuyInfo();
         private readonly IShopSellInfo m_SellInfo = new InternalSellInfo();
-        public SBInnKeeper()
-        {
-        }
 
-        public override IShopSellInfo SellInfo
-        {
-            get
-            {
-                return m_SellInfo;
-            }
-        }
-        public override List<GenericBuyInfo> BuyInfo
-        {
-            get
-            {
-                return m_BuyInfo;
-            }
-        }
+        public override IShopSellInfo SellInfo => m_SellInfo;
+
+        public override List<GenericBuyInfo> BuyInfo => m_BuyInfo;
 
         public class InternalBuyInfo : List<GenericBuyInfo>
         {
@@ -67,7 +53,8 @@ namespace Server.Mobiles
                 Add(new GenericBuyInfo(typeof(WoodenBowlOfStew), 3, 20, 0x1604, 0));
                 Add(new GenericBuyInfo(typeof(WoodenBowlOfTomatoSoup), 3, 20, 0x1606, 0));
 
-                Add(new GenericBuyInfo(typeof(ApplePie), 7, 20, 0x1041, 0, true)); //OSI just has Pie, not Apple/Fruit/Meat
+                Add(new GenericBuyInfo(typeof(ApplePie), 7, 20, 0x1041, 0,
+                    true)); //OSI just has Pie, not Apple/Fruit/Meat
 
                 Add(new GenericBuyInfo(typeof(Peach), 3, 20, 0x9D2, 0, true));
                 Add(new GenericBuyInfo(typeof(Pear), 3, 20, 0x994, 0, true));
@@ -78,7 +65,6 @@ namespace Server.Mobiles
                 Add(new GenericBuyInfo(typeof(Candle), 6, 20, 0xA28, 0, true));
                 Add(new GenericBuyInfo(typeof(Beeswax), 1, 20, 0x1422, 0, true));
 
-                
 
                 Add(new GenericBuyInfo(typeof(Backpack), 15, 20, 0x9B2, 0));
                 Add(new GenericBuyInfo("1016450", typeof(Chessboard), 2, 20, 0xFA6, 0));
@@ -88,7 +74,7 @@ namespace Server.Mobiles
                 Add(new GenericBuyInfo("1041243", typeof(ContractOfEmployment), 1252, 20, 0x14F0, 0));
                 Add(new GenericBuyInfo("a barkeep contract", typeof(BarkeepContract), 1252, 20, 0x14F0, 0));
 
-                if (Multis.BaseHouse.NewVendorSystem)
+                if (BaseHouse.NewVendorSystem)
                     Add(new GenericBuyInfo("1062332", typeof(VendorRentalContract), 1252, 20, 0x14F0, 0x672));
             }
         }

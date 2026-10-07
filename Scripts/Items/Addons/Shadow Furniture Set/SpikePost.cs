@@ -1,10 +1,10 @@
-using System;
-
 namespace Server.Items
 {
     [FlipableAddon(Direction.South, Direction.East)]
     public class SpikePostAddon : BaseAddon
     {
+        public override BaseAddonDeed Deed => new SpikePostDeed();
+
         [Constructable]
         public SpikePostAddon()
         {
@@ -15,8 +15,6 @@ namespace Server.Items
             : base(serial)
         {
         }
-
-        public override BaseAddonDeed Deed { get { return new SpikePostDeed(); } }
 
         public virtual void Flip(Mobile from, Direction direction)
         {
@@ -34,21 +32,23 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class SpikePostDeed : BaseAddonDeed
     {
-        public override int LabelNumber { get { return 1076676; } } // Spike Post
+        public override int LabelNumber => 1076676; // Spike Post
 
-        public override bool ExcludeDeedHue { get { return true; } }
+        public override bool ExcludeDeedHue => true;
+
+        public override BaseAddon Addon => new SpikePostAddon();
 
         [Constructable]
         public SpikePostDeed()
@@ -62,19 +62,17 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddon Addon { get { return new SpikePostAddon(); } }
 
-        
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -1,26 +1,24 @@
-using System;
 using Reward = Server.Engines.Quests.BaseReward;
 
 namespace Server.Items
 {
     public class BaseRewardBag : Bag
     {
+        public virtual int ItemAmount => 0;
+
         public BaseRewardBag()
-            : base()
         {
             Hue = Reward.RewardBagHue();
-			
+
             while (Items.Count < ItemAmount)
-            { 
                 if (0.05 > Utility.RandomDouble()) // check
                     DropItem(Loot.RandomTalisman());
-                else 
-                {
-                    switch ( Utility.Random(4) )
+                else
+                    switch (Utility.Random(4))
                     {
                         case 0:
                             DropItem(Reward.Armor());
-                            break;	
+                            break;
                         case 1:
                             DropItem(Reward.RangedWeapon());
                             break;
@@ -31,8 +29,6 @@ namespace Server.Items
                             DropItem(Reward.Jewlery());
                             break;
                     }
-                }
-            }
         }
 
         public BaseRewardBag(Serial serial)
@@ -40,34 +36,28 @@ namespace Server.Items
         {
         }
 
-        public virtual int ItemAmount
-        {
-            get
-            {
-                return 0;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class SmallTrinketBag : BaseRewardBag
     {
+        public override int ItemAmount => 1;
+
         [Constructable]
         public SmallTrinketBag()
-            : base()
-        { 
+        {
         }
 
         public SmallTrinketBag(Serial serial)
@@ -75,34 +65,28 @@ namespace Server.Items
         {
         }
 
-        public override int ItemAmount
-        {
-            get
-            {
-                return 1;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class TrinketBag : BaseRewardBag
     {
+        public override int ItemAmount => 2;
+
         [Constructable]
         public TrinketBag()
-            : base()
-        { 
+        {
         }
 
         public TrinketBag(Serial serial)
@@ -110,34 +94,28 @@ namespace Server.Items
         {
         }
 
-        public override int ItemAmount
-        {
-            get
-            {
-                return 2;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class TreasureBag : BaseRewardBag
     {
+        public override int ItemAmount => 3;
+
         [Constructable]
         public TreasureBag()
-            : base()
-        { 
+        {
         }
 
         public TreasureBag(Serial serial)
@@ -145,34 +123,28 @@ namespace Server.Items
         {
         }
 
-        public override int ItemAmount
-        {
-            get
-            {
-                return 3;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class LargeTreasureBag : BaseRewardBag
     {
+        public override int ItemAmount => 4;
+
         [Constructable]
         public LargeTreasureBag()
-            : base()
-        { 
+        {
         }
 
         public LargeTreasureBag(Serial serial)
@@ -180,25 +152,18 @@ namespace Server.Items
         {
         }
 
-        public override int ItemAmount
-        {
-            get
-            {
-                return 4;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

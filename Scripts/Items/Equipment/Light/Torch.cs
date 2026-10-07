@@ -1,14 +1,15 @@
 using System;
+using Server.Mobiles;
 
 namespace Server.Items
 {
     public class Torch : BaseEquipableLight
     {
-        public override int LitItemID { get { return 0xA12; } }
-        public override int UnlitItemID { get { return 0xF6B; } }
+        public override int LitItemID => 0xA12;
+        public override int UnlitItemID => 0xF6B;
 
-        public override int LitSound { get { return 0x54; } }
-        public override int UnlitSound { get { return 0x4BB; } }
+        public override int LitSound => 0x54;
+        public override int UnlitSound => 0x4BB;
 
         [Constructable]
         public Torch()
@@ -35,7 +36,7 @@ namespace Server.Items
 
             if (parent is Mobile && Burning)
             {
-                Mobiles.MeerMage.StopEffect((Mobile)parent, true);
+                MeerMage.StopEffect((Mobile)parent, true);
                 SwarmContext.CheckRemove((Mobile)parent);
             }
         }
@@ -46,7 +47,7 @@ namespace Server.Items
 
             if (Parent is Mobile && Burning)
             {
-                Mobiles.MeerMage.StopEffect((Mobile)Parent, true);
+                MeerMage.StopEffect((Mobile)Parent, true);
                 SwarmContext.CheckRemove((Mobile)Parent);
             }
         }
@@ -54,13 +55,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

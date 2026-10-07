@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +5,8 @@ namespace Server.Mobiles
     [CorpseName("an arcane daemon corpse")]
     public class ArcaneDaemon : BaseCreature
     {
+        public override Poison PoisonImmune => Poison.Deadly;
+
         [Constructable]
         public ArcaneDaemon()
             : base(AIType.AI_Mage, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -51,14 +52,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override Poison PoisonImmune
-        {
-            get
-            {
-                return Poison.Deadly;
-            }
-        }
-
         public override void GenerateLoot()
         {
             AddLoot(LootPack.Average, 2);
@@ -67,13 +60,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

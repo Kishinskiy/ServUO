@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,15 +5,17 @@ namespace Server.Mobiles
     [CorpseName("a troglodyte corpse")]
     public class Troglodyte : BaseCreature
     {
-        public override double HealChance { get { return 1.0; } }
+        public override double HealChance => 1.0;
+
+        public override int TreasureMapLevel => 2;
 
         [Constructable]
         public Troglodyte()
-            : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)// NEED TO CHECK
+            : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4) // NEED TO CHECK
         {
             Name = "a troglodyte";
             Body = 267;
-            BaseSoundID = 0x59F; 
+            BaseSoundID = 0x59F;
 
             SetStr(148, 217);
             SetDex(91, 120);
@@ -43,51 +44,41 @@ namespace Server.Mobiles
 
             VirtualArmor = 28; // Don't know what it should be
 
-            PackItem(new Bandage(5));  // How many?
+            PackItem(new Bandage(5)); // How many?
             PackItem(new Ribs());
 
-            for (int i = 0; i < Utility.RandomMinMax(0, 1); i++)
-            {
+            for (var i = 0; i < Utility.RandomMinMax(0, 1); i++)
                 PackItem(Loot.RandomScroll(0, Loot.ArcanistScrollTypes.Length, SpellbookType.Arcanist));
-            }
         }
 
         public Troglodyte(Serial serial)
             : base(serial)
         {
         }
-		
-		public override int TreasureMapLevel
-        {
-            get
-            {
-                return 2;
-            }
-        }
 
         public override void GenerateLoot()
         {
-            this.AddLoot(LootPack.Rich);  // Need to verify
+            AddLoot(LootPack.Rich); // Need to verify
         }
-		
-		public override void OnDeath( Container c )
-        {
-        base.OnDeath( c );
 
-            if ( Utility.RandomDouble() < 0.1 )
-            c.DropItem( new PrimitiveFetish() );
+        public override void OnDeath(Container c)
+        {
+            base.OnDeath(c);
+
+            if (Utility.RandomDouble() < 0.1)
+                c.DropItem(new PrimitiveFetish());
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

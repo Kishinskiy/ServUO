@@ -11,32 +11,18 @@ namespace Server.Spells.Sixth
             9041,
             Reagent.Bloodmoss,
             Reagent.MandrakeRoot);
+
+        public override SpellCircle Circle => SpellCircle.Sixth;
+
+        public override bool DelayedDamageStacking => !Core.AOS;
+
+        public override bool DelayedDamage => false;
+
         public ExplosionSpell(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
         {
         }
 
-        public override SpellCircle Circle
-        {
-            get
-            {
-                return SpellCircle.Sixth;
-            }
-        }
-        public override bool DelayedDamageStacking
-        {
-            get
-            {
-                return !Core.AOS;
-            }
-        }
-        public override bool DelayedDamage
-        {
-            get
-            {
-                return false;
-            }
-        }
         public override void OnCast()
         {
             Caster.Target = new InternalTarget(this);
@@ -56,13 +42,13 @@ namespace Server.Spells.Sixth
             }
             else if (Caster.CanBeHarmful(m) && CheckSequence())
             {
-                Mobile attacker = Caster;
+                var attacker = Caster;
 
                 SpellHelper.Turn(Caster, m);
 
                 SpellHelper.CheckReflect((int)Circle, Caster, ref m);
 
-                InternalTimer t = new InternalTimer(this, attacker, m);
+                var t = new InternalTimer(this, attacker, m);
                 t.Start();
             }
 
@@ -71,9 +57,9 @@ namespace Server.Spells.Sixth
 
         private class InternalTimer : Timer
         {
+            private readonly Mobile m_Attacker;
             private readonly MagerySpell m_Spell;
             private readonly IDamageable m_Target;
-            private readonly Mobile m_Attacker;
 
             public InternalTimer(MagerySpell spell, Mobile attacker, IDamageable target)
                 : base(TimeSpan.FromSeconds(Core.AOS ? 3.0 : 2.5))
@@ -90,7 +76,7 @@ namespace Server.Spells.Sixth
 
             protected override void OnTick()
             {
-                Mobile defender = m_Target as Mobile;
+                var defender = m_Target as Mobile;
 
                 if (m_Attacker.HarmfulCheck(m_Target))
                 {
@@ -125,10 +111,7 @@ namespace Server.Spells.Sixth
                         Effects.PlaySound(m_Target.Location, m_Target.Map, 0x307);
                     }
 
-                    if (damage > 0)
-                    {
-                        SpellHelper.Damage(m_Spell, m_Target, damage, 0, 100, 0, 0, 0);
-                    }
+                    if (damage > 0) SpellHelper.Damage(m_Spell, m_Target, damage, 0, 100, 0, 0, 0);
 
                     if (m_Spell != null)
                         m_Spell.RemoveDelayedDamageContext(m_Attacker);
@@ -139,6 +122,7 @@ namespace Server.Spells.Sixth
         private class InternalTarget : Target
         {
             private readonly ExplosionSpell m_Owner;
+
             public InternalTarget(ExplosionSpell owner)
                 : base(Core.ML ? 10 : 12, false, TargetFlags.Harmful)
             {

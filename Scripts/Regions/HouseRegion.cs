@@ -1,43 +1,49 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using Server.ContextMenus;
 using Server.Gumps;
 using Server.Items;
 using Server.Mobiles;
 using Server.Multis;
-using Server.ContextMenus;
-using Server.Network;
 
 namespace Server.Regions
 {
     public class HouseRegion : BaseRegion
     {
-        public static readonly int HousePriority = Region.DefaultPriority + 1;
+        public static readonly int HousePriority = DefaultPriority + 1;
         public static TimeSpan CombatHeatDelay = TimeSpan.FromSeconds(30.0);
+
+        private static readonly Type[] m_ItemTypes =
+        {
+            typeof(BaseHouse), typeof(HouseTeleporter),
+            typeof(BaseDoor), typeof(Static),
+            typeof(HouseSign)
+        };
+
         private bool m_Recursion;
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public BaseHouse House { get; }
 
         public HouseRegion(BaseHouse house)
             : base(null, house.Map, HousePriority, GetArea(house))
         {
             House = house;
 
-            Point3D ban = house.RelativeBanLocation;
+            var ban = house.RelativeBanLocation;
 
             GoLocation = new Point3D(house.X + ban.X, house.Y + ban.Y, house.Z + ban.Z);
         }
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public BaseHouse House { get; }
-
         public static void Initialize()
         {
-            EventSink.Login += new LoginEventHandler(OnLogin);
+            EventSink.Login += OnLogin;
         }
 
         public static void OnLogin(LoginEventArgs e)
         {
-            BaseHouse house = BaseHouse.FindHouseAt(e.Mobile);
+            var house = BaseHouse.FindHouseAt(e.Mobile);
 
             if (house != null && !house.Public && !house.IsFriend(e.Mobile))
                 e.Mobile.Location = house.BanLocation;
@@ -51,27 +57,21 @@ namespace Server.Regions
         public override void OnEnter(Mobile m)
         {
             if (m.AccessLevel == AccessLevel.Player && House != null && House.IsFriend(m))
-            {
                 if (Core.AOS && House is HouseFoundation)
-                {
                     House.RefreshDecay();
-                }
-            }
 
             m.SendEverything();
         }
 
         public override bool CanSee(Mobile m, IEntity e)
         {
-            Item item = e as Item;
+            var item = e as Item;
 
             if ((m.PublicHouseContent && House.Public) ||
-                    House.IsInside(m) ||
-                    ExcludeItem(item) ||
-                    (item.RootParent != null && m.CanSee(item.RootParent)))
-            {
+                House.IsInside(m) ||
+                ExcludeItem(item) ||
+                (item.RootParent != null && m.CanSee(item.RootParent)))
                 return true;
-            }
 
             return false;
         }
@@ -80,13 +80,6 @@ namespace Server.Regions
         {
             return IsStairArea(item) || m_ItemTypes.Any(t => t == item.GetType() || item.GetType().IsSubclassOf(t));
         }
-
-        private static Type[] m_ItemTypes = new Type[]
-        {
-            typeof(BaseHouse),  typeof(HouseTeleporter),
-            typeof(BaseDoor),   typeof(Static),
-            typeof(HouseSign)
-        };
 
         public bool IsStairArea(Item item)
         {
@@ -121,7 +114,8 @@ namespace Server.Regions
             if (m is BaseCreature && ((BaseCreature)m).NoHouseRestrictions)
             {
             }
-            else if (m is BaseCreature && ((BaseCreature)m).IsHouseSummonable && !(BaseCreature.Summoning || House.IsInside(oldLocation, 16)))
+            else if (m is BaseCreature && ((BaseCreature)m).IsHouseSummonable &&
+                     !(BaseCreature.Summoning || House.IsInside(oldLocation, 16)))
             {
             }
             else if ((House.Public || !House.IsAosRules) && House.IsBanned(m) && House.IsInside(m))
@@ -145,22 +139,21 @@ namespace Server.Regions
             }
             else if (House is HouseFoundation)
             {
-                HouseFoundation foundation = (HouseFoundation)House;
+                var foundation = (HouseFoundation)House;
 
                 if (foundation.Customizer != null && foundation.Customizer != m && House.IsInside(m))
                     m.Location = House.BanLocation;
             }
 
-            if (House.InternalizedVendors.Count > 0 && House.IsInside(m) && !House.IsInside(oldLocation, 16) && House.IsOwner(m) && m.Alive && !m.HasGump(typeof(NoticeGump)))
-            {
+            if (House.InternalizedVendors.Count > 0 && House.IsInside(m) && !House.IsInside(oldLocation, 16) &&
+                House.IsOwner(m) && m.Alive && !m.HasGump(typeof(NoticeGump)))
                 /* This house has been customized recently, and vendors that work out of this
-                * house have been temporarily relocated.  You must now put your vendors back to work.
-                * To do this, walk to a location inside the house where you wish to station
-                * your vendor, then activate the context-sensitive menu on your avatar and
-                * select "Get Vendor".
-                */
+                 * house have been temporarily relocated.  You must now put your vendors back to work.
+                 * To do this, walk to a location inside the house where you wish to station
+                 * your vendor, then activate the context-sensitive menu on your avatar and
+                 * select "Get Vendor".
+                 */
                 m.SendGump(new NoticeGump(1060635, 30720, 1061826, 32512, 320, 180, null, null));
-            }
 
             m_Recursion = false;
         }
@@ -173,11 +166,13 @@ namespace Server.Regions
             if (from is BaseCreature && ((BaseCreature)from).NoHouseRestrictions)
             {
             }
-            else if (from is BaseCreature && !((BaseCreature)from).Controlled) // Untamed creatures cannot enter public houses
+            else if (from is BaseCreature &&
+                     !((BaseCreature)from).Controlled) // Untamed creatures cannot enter public houses
             {
                 return false;
             }
-            else if (from is BaseCreature && ((BaseCreature)from).IsHouseSummonable && !(BaseCreature.Summoning || House.IsInside(oldLocation, 16)))
+            else if (from is BaseCreature && ((BaseCreature)from).IsHouseSummonable &&
+                     !(BaseCreature.Summoning || House.IsInside(oldLocation, 16)))
             {
                 return false;
             }
@@ -201,31 +196,31 @@ namespace Server.Regions
 
                 return false;
             }
-            else if (House.IsCombatRestricted(from) && !House.IsInside(oldLocation, 16) && House.IsInside(newLocation, 16))
+            else if (House.IsCombatRestricted(from) && !House.IsInside(oldLocation, 16) &&
+                     House.IsInside(newLocation, 16))
             {
                 from.SendLocalizedMessage(1061637); // You are not allowed to access 
                 return false;
             }
             else if (House is HouseFoundation)
             {
-                HouseFoundation foundation = (HouseFoundation)House;
+                var foundation = (HouseFoundation)House;
 
                 if (foundation.Customizer != null && foundation.Customizer != from && House.IsInside(newLocation, 16))
                     return false;
             }
 
-            if (House.InternalizedVendors.Count > 0 && House.IsInside(from) && !House.IsInside(oldLocation, 16) && House.IsOwner(from) && from.Alive && !from.HasGump(typeof(NoticeGump)))
-            {
+            if (House.InternalizedVendors.Count > 0 && House.IsInside(from) && !House.IsInside(oldLocation, 16) &&
+                House.IsOwner(from) && from.Alive && !from.HasGump(typeof(NoticeGump)))
                 /* This house has been customized recently, and vendors that work out of this
-                * house have been temporarily relocated.  You must now put your vendors back to work.
-                * To do this, walk to a location inside the house where you wish to station
-                * your vendor, then activate the context-sensitive menu on your avatar and
-                * select "Get Vendor".
-                */
+                 * house have been temporarily relocated.  You must now put your vendors back to work.
+                 * To do this, walk to a location inside the house where you wish to station
+                 * your vendor, then activate the context-sensitive menu on your avatar and
+                 * select "Get Vendor".
+                 */
                 from.SendGump(new NoticeGump(1060635, 30720, 1061826, 32512, 320, 180, null, null));
-            }
 
-            if(Core.AOS)
+            if (Core.AOS)
                 House.AddVisit(from);
 
             return true;
@@ -233,19 +228,15 @@ namespace Server.Regions
 
         public override void GetContextMenuEntries(Mobile from, List<ContextMenuEntry> list, Item item)
         {
-            if (House.IsOwner(from) && item.Parent == null && 
-                (House.IsLockedDown(item) || House.IsSecure(item)) && 
+            if (House.IsOwner(from) && item.Parent == null &&
+                (House.IsLockedDown(item) || House.IsSecure(item)) &&
                 !House.Addons.ContainsKey(item))
-            {
                 list.Add(new ReleaseEntry(from, item, House));
-            }
 
             if (item is BaseContainer && House.IsSecure(item) &&
                 !House.IsLockedDown(item) && item.Parent == null && House.IsOwner(from) &&
                 !House.Addons.ContainsKey(item))
-            {
                 list.Add(new ReLocateEntry(from, item, House));
-            }
 
             base.GetContextMenuEntries(from, list, item);
         }
@@ -254,19 +245,18 @@ namespace Server.Regions
         {
             if ((House.IsLockedDown(item) || House.IsSecure(item)) && House.IsInside(item))
                 return false;
-            else
-                return base.OnDecay(item);
+            return base.OnDecay(item);
         }
 
         public override TimeSpan GetLogoutDelay(Mobile m)
         {
             if (House.IsFriend(m) && House.IsInside(m))
             {
-                for (int i = 0; i < m.Aggressed.Count; ++i)
+                for (var i = 0; i < m.Aggressed.Count; ++i)
                 {
-                    AggressorInfo info = m.Aggressed[i];
+                    var info = m.Aggressed[i];
 
-                    if (info.Defender.Player && (DateTime.UtcNow - info.LastCombatTime) < CombatHeatDelay)
+                    if (info.Defender.Player && DateTime.UtcNow - info.LastCombatTime < CombatHeatDelay)
                         return base.GetLogoutDelay(m);
                 }
 
@@ -280,19 +270,19 @@ namespace Server.Regions
         {
             base.OnSpeech(e);
 
-            Mobile from = e.Mobile;
+            var from = e.Mobile;
             Item sign = House.Sign;
 
-            bool isOwner = House.IsOwner(from);
-            bool isCoOwner = isOwner || House.IsCoOwner(from);
-            bool isFriend = isCoOwner || House.IsFriend(from);
+            var isOwner = House.IsOwner(from);
+            var isCoOwner = isOwner || House.IsCoOwner(from);
+            var isFriend = isCoOwner || House.IsFriend(from);
 
             if (!isFriend)
                 return;
-			
+
             if (!from.Alive)
                 return;
-			
+
             if (Core.ML && Insensitive.Equals(e.Speech, "I wish to resize my house"))
             {
                 if (from.Map != sign.Map || !from.InRange(sign, 0))
@@ -307,18 +297,18 @@ namespace Server.Regions
                 {
                     from.CloseGump(typeof(ConfirmHouseResize));
                     from.CloseGump(typeof(HouseGumpAOS));
-                    from.SendGump(new ConfirmHouseResize(from, House));	
+                    from.SendGump(new ConfirmHouseResize(from, House));
                 }
                 else
                 {
                     from.SendLocalizedMessage(501320); // Only the house owner may do 
                 }
             }
-			
+
             if (!House.IsInside(from) || !House.IsActive)
                 return;
 
-            else if (e.HasKeyword(0x33)) // remove thyself
+            if (e.HasKeyword(0x33)) // remove thyself
             {
                 if (isFriend)
                 {
@@ -338,7 +328,8 @@ namespace Server.Regions
                 }
                 else if (!House.Public && House.IsAosRules)
                 {
-                    from.SendLocalizedMessage(1062521); // You cannot ban someone from a private house.  Revoke their access instead.
+                    from.SendLocalizedMessage(
+                        1062521); // You cannot ban someone from a private house.  Revoke their access instead.
                 }
                 else
                 {
@@ -397,36 +388,22 @@ namespace Server.Regions
             else if (e.HasKeyword(0x27)) // I wish to place a strongbox
             {
                 if (isOwner)
-                {
                     from.SendLocalizedMessage(502109); // Owners do not get a strongbox of their own.
-                }
                 else if (isCoOwner)
-                {
                     House.AddStrongBox(from);
-                }
                 else if (isFriend)
-                {
                     from.SendLocalizedMessage(1010587); // You are not a co-owner of this house.
-                }
                 else
-                {
                     from.SendLocalizedMessage(502094); // You must be in your house to do this. 
-                }
             }
             else if (e.HasKeyword(0x28)) // trash barrel
             {
                 if (isCoOwner)
-                {
                     House.AddTrashBarrel(from);
-                }
                 else if (isFriend)
-                {
                     from.SendLocalizedMessage(1010587); // You are not a co-owner of this house.
-                }
                 else
-                {
                     from.SendLocalizedMessage(502094); // You must be in your house to do this. 
-                }
             }
         }
 
@@ -434,11 +411,11 @@ namespace Server.Regions
         {
             if (o is Container)
             {
-                Container c = (Container)o;
+                var c = (Container)o;
 
-                SecureAccessResult res = House.CheckSecureAccess(from, c);
+                var res = House.CheckSecureAccess(from, c);
 
-                switch ( res )
+                switch (res)
                 {
                     case SecureAccessResult.Insecure:
                         break;
@@ -457,7 +434,7 @@ namespace Server.Regions
         {
             if (o is Item)
             {
-                Item item = (Item)o;
+                var item = (Item)o;
 
                 if (House.IsLockedDown(item))
                     item.LabelTo(from, 501643); // [locked down]
@@ -470,25 +447,22 @@ namespace Server.Regions
 
         public override void OnDelete(Item item)
         {
-            if (House.IsLockedDown(item) || House.IsSecure(item))
-            {
-                House.SetLockdown(null, item, false); 
-            }
+            if (House.IsLockedDown(item) || House.IsSecure(item)) House.SetLockdown(null, item, false);
         }
 
         private static Rectangle3D[] GetArea(BaseHouse house)
         {
-            int x = house.X;
-            int y = house.Y;
-            int z = house.Z;
+            var x = house.X;
+            var y = house.Y;
+            var z = house.Z;
 
-            Rectangle2D[] houseArea = house.Area;
-            Rectangle3D[] area = new Rectangle3D[houseArea.Length];
+            var houseArea = house.Area;
+            var area = new Rectangle3D[houseArea.Length];
 
-            for (int i = 0; i < area.Length; i++)
+            for (var i = 0; i < area.Length; i++)
             {
-                Rectangle2D rect = houseArea[i];
-                area[i] = Region.ConvertTo3D(new Rectangle2D(x + rect.Start.X, y + rect.Start.Y, rect.Width, rect.Height));
+                var rect = houseArea[i];
+                area[i] = ConvertTo3D(new Rectangle2D(x + rect.Start.X, y + rect.Start.Y, rect.Width, rect.Height));
             }
 
             return area;

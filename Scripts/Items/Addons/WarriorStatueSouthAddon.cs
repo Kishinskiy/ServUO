@@ -1,13 +1,13 @@
-using System;
-
 namespace Server.Items
 {
     public class WarriorStatueSouthAddon : BaseAddon
     {
+        public override BaseAddonDeed Deed => new WarriorStatueSouthDeed();
+
         [Constructable]
         public WarriorStatueSouthAddon()
         {
-            this.AddComponent(new AddonComponent(0x2D13), 0, 0, 0);
+            AddComponent(new AddonComponent(0x2D13), 0, 0, 0);
         }
 
         public WarriorStatueSouthAddon(Serial serial)
@@ -15,13 +15,6 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonDeed Deed
-        {
-            get
-            {
-                return new WarriorStatueSouthDeed();
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -33,12 +26,16 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class WarriorStatueSouthDeed : BaseAddonDeed
     {
+        public override BaseAddon Addon => new WarriorStatueSouthAddon();
+
+        public override int LabelNumber => 1072887; // warrior statue (south)
+
         [Constructable]
         public WarriorStatueSouthDeed()
         {
@@ -49,20 +46,6 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddon Addon
-        {
-            get
-            {
-                return new WarriorStatueSouthAddon();
-            }
-        }
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1072887;
-            }
-        }// warrior statue (south)
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -74,7 +57,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

@@ -1,7 +1,4 @@
-﻿using System;
-using Server;
-
-namespace Server.Items
+﻿namespace Server.Items
 {
     public class SBMessageTrigger : Item
     {
@@ -26,10 +23,10 @@ namespace Server.Items
 
         public override bool OnMoveOver(Mobile m)
         {
-            if (m.Location.Y < Location.Y && !m_Flame.Deleted && m_Flame.Visible)
-            {
-                m.SendLocalizedMessage(1112225); // The Serpent's Breath burns brighter than ever, blocking your escape! You shall have to venture further into the tomb in search of an exit.
-            }
+            if (m.Location.Y < Location.Y && !m_Flame.Deleted &&
+                m_Flame.Visible)
+                m.SendLocalizedMessage(
+                    1112225); // The Serpent's Breath burns brighter than ever, blocking your escape! You shall have to venture further into the tomb in search of an exit.
 
             return base.OnMoveOver(m);
         }
@@ -37,15 +34,15 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
-            writer.Write((Item)m_Flame);
+            writer.Write(m_Flame);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             m_Flame = reader.ReadItem() as FlameOfOrder;
         }

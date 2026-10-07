@@ -1,9 +1,8 @@
-using Server;
 using System;
-using Server.Items;
-using Server.Multis;
 using System.Collections.Generic;
 using Server.Engines.Quests;
+using Server.Items;
+using Server.Multis;
 
 namespace Server.Mobiles
 {
@@ -11,39 +10,16 @@ namespace Server.Mobiles
     {
         public static List<string> m_RedNames;
 
-        public static void Initialize()
-        {
-            m_RedNames = new List<string>();
-
-            foreach (Mobile mob in World.Mobiles.Values)
-            {
-                if (mob != null && mob is PlayerMobile && mob.Murderer)
-                    m_RedNames.Add(mob.Name);
-            }
-        }
-
         private DateTime m_NextTalk;
-        private int m_PirateName;
-        private int m_Adjective;
-        private int m_Noun;
 
-        public int PirateName { get { return m_PirateName; } }
-        public int Adjective { get { return m_Adjective; } }
-        public int Noun { get { return m_Noun; } }
+        public int PirateName { get; private set; }
 
-        public override bool AlwaysMurderer { get { return true; } }
-        public override bool Commandable { get { return false; } }
-        
-        #region Bounty Quest
-        private ProfessionalBountyQuest m_Quest;
-        private bool m_IsCaught;
+        public int Adjective { get; private set; }
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public bool IsCaught { get { return m_IsCaught; } set { m_IsCaught = value; } }
+        public int Noun { get; private set; }
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public ProfessionalBountyQuest Quest { get { return m_Quest; } set { m_Quest = value; } }
-        #endregion
+        public override bool AlwaysMurderer => true;
+        public override bool Commandable => false;
 
         [Constructable]
         public PirateCaptain()
@@ -56,7 +32,7 @@ namespace Server.Mobiles
         {
             PickRandomName();
 
-            if(m_PirateName > 0 && (m_PirateName == 1116679 || m_PirateName == 1116680 || m_PirateName == 1116683))
+            if (PirateName > 0 && (PirateName == 1116679 || PirateName == 1116680 || PirateName == 1116683))
                 Female = true;
 
             SpeechHue = Utility.RandomDyedHue();
@@ -116,6 +92,20 @@ namespace Server.Mobiles
                 IsSoulbound = true;
         }
 
+        public PirateCaptain(Serial serial)
+            : base(serial)
+        {
+        }
+
+        public static void Initialize()
+        {
+            m_RedNames = new List<string>();
+
+            foreach (var mob in World.Mobiles.Values)
+                if (mob != null && mob is PlayerMobile && mob.Murderer)
+                    m_RedNames.Add(mob.Name);
+        }
+
         public static int GetRandomShirtHue()
         {
             return Utility.RandomMinMax(2498, 2644);
@@ -128,14 +118,16 @@ namespace Server.Mobiles
 
         public void PickRandomName()
         {
-            m_Adjective = Utility.RandomMinMax(1116631, 1116650);
-            m_Noun = Utility.RandomMinMax(1116651, 1116670);
+            Adjective = Utility.RandomMinMax(1116631, 1116650);
+            Noun = Utility.RandomMinMax(1116651, 1116670);
 
             if (m_RedNames.Count == 0 || 0.90 > Utility.RandomDouble())
-                m_PirateName = Utility.RandomMinMax(1116671, 1116686);
+            {
+                PirateName = Utility.RandomMinMax(1116671, 1116686);
+            }
             else
             {
-                m_PirateName = -1;
+                PirateName = -1;
                 Name = GetRandomRedName();
             }
         }
@@ -148,11 +140,11 @@ namespace Server.Mobiles
         public override void AddNameProperties(ObjectPropertyList list)
         {
             string args;
-            
-            if(m_PirateName > 0)
-                args = String.Format("#{0}\t#{1}\t#{2}", m_Adjective, m_Noun, m_PirateName);
+
+            if (PirateName > 0)
+                args = string.Format("#{0}\t#{1}\t#{2}", Adjective, Noun, PirateName);
             else
-                args = String.Format("#{0}\t#{1}\t{2}", m_Adjective, m_Noun, Name);
+                args = string.Format("#{0}\t#{1}\t{2}", Adjective, Noun, Name);
 
             list.Add(1116690, args);
         }
@@ -164,15 +156,14 @@ namespace Server.Mobiles
             if (!IsCaught || m_NextTalk > DateTime.UtcNow)
                 return;
 
-            IPooledEnumerable eable = this.GetMobilesInRange(7);
-            foreach(Mobile mob in eable)
-            {
-                if (mob is PlayerMobile) 
+            IPooledEnumerable eable = GetMobilesInRange(7);
+            foreach (Mobile mob in eable)
+                if (mob is PlayerMobile)
                 {
                     OnTalk();
                     break;
                 }
-            }
+
             eable.Free();
         }
 
@@ -182,13 +173,51 @@ namespace Server.Mobiles
             m_NextTalk = DateTime.UtcNow + TimeSpan.FromMinutes(1);
         }
 
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(1);
+
+            writer.Write(IsCaught);
+            writer.Write(Adjective);
+            writer.Write(Noun);
+            writer.Write(PirateName);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
+
+            IsCaught = reader.ReadBool();
+            Adjective = reader.ReadInt();
+            Noun = reader.ReadInt();
+            PirateName = reader.ReadInt();
+
+            if (IsCaught)
+                Frozen = true;
+
+            m_NextTalk = DateTime.UtcNow;
+        }
+
+        #region Bounty Quest
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public bool IsCaught { get; set; }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public ProfessionalBountyQuest Quest { get; set; }
+
+        #endregion
+
         #region Quest Stuff
+
         public bool TryBound(Mobile from, BaseQuest quest)
         {
             if (from == null || Galleon == null || !Galleon.Contains(this) || quest == null)
                 return false;
 
-            if (m_IsCaught)
+            if (IsCaught)
             {
                 from.SendMessage("That pirate is already bound to a ship!");
                 return false;
@@ -196,7 +225,7 @@ namespace Server.Mobiles
 
             Combatant = null;
             Warmode = false;
-            m_IsCaught = true;
+            IsCaught = true;
             return true;
         }
 
@@ -205,10 +234,10 @@ namespace Server.Mobiles
             if (quest == null || quest.Pole == null)
                 return;
 
-            BindingPole pole = quest.Pole;
+            var pole = quest.Pole;
 
-            int x = pole.X;
-            int y = pole.Y;
+            var x = pole.X;
+            var y = pole.Y;
 
             while (x == pole.X && y == pole.Y)
             {
@@ -218,7 +247,7 @@ namespace Server.Mobiles
 
             Frozen = true;
 
-            Item toDisarm = FindItemOnLayer(Layer.OneHanded);
+            var toDisarm = FindItemOnLayer(Layer.OneHanded);
             if (toDisarm == null || !toDisarm.Movable)
                 toDisarm = FindItemOnLayer(Layer.TwoHanded);
 
@@ -230,20 +259,21 @@ namespace Server.Mobiles
                     toDisarm.Delete();
             }
 
-            m_Quest = quest;
+            Quest = quest;
 
             if (quest != null && quest.Galleon != null)
                 quest.Galleon.CapturedCaptain = this;
 
-            Timer.DelayCall(TimeSpan.FromSeconds(2.5), new TimerStateCallback(MoveCaptainToShip), new object[] { x, y, pole });
+            Timer.DelayCall(TimeSpan.FromSeconds(2.5), new TimerStateCallback(MoveCaptainToShip),
+                new object[] { x, y, pole });
         }
 
         private void MoveCaptainToShip(object obj)
         {
-            object[] objs = (object[])obj;
-            int x = (int)objs[0];
-            int y = (int)objs[1];
-            Item pole = objs[2] as Item;
+            var objs = (object[])obj;
+            var x = (int)objs[0];
+            var y = (int)objs[1];
+            var pole = objs[2] as Item;
 
             if (pole != null)
                 MoveToWorld(new Point3D(x, y, pole.Z), pole.Map);
@@ -254,24 +284,25 @@ namespace Server.Mobiles
 
         public override bool OnBeforeDeath()
         {
-            List<PlayerMobile> hasQuest = new List<PlayerMobile>();
-            List<DamageStore> rights = GetLootingRights();
-            for (int i = 0; i < rights.Count; i++)
+            var hasQuest = new List<PlayerMobile>();
+            var rights = GetLootingRights();
+            for (var i = 0; i < rights.Count; i++)
             {
                 if (!rights[i].m_HasRight)
                     continue;
 
-                Mobile mob = rights[i].m_Mobile;
+                var mob = rights[i].m_Mobile;
 
                 //if they have the quest and looting rights, give them a certificate
-                if (mob is PlayerMobile && mob.NetState != null && QuestHelper.GetQuest((PlayerMobile)mob, typeof(ProfessionalBountyQuest)) != null)
+                if (mob is PlayerMobile && mob.NetState != null &&
+                    QuestHelper.GetQuest((PlayerMobile)mob, typeof(ProfessionalBountyQuest)) != null)
                     hasQuest.Add((PlayerMobile)mob);
             }
 
             if (hasQuest.Count > 0)
             {
-                PlayerMobile questee = hasQuest[Utility.Random(hasQuest.Count)];
-                BaseQuest q = QuestHelper.GetQuest(questee, typeof(ProfessionalBountyQuest));
+                var questee = hasQuest[Utility.Random(hasQuest.Count)];
+                var q = QuestHelper.GetQuest(questee, typeof(ProfessionalBountyQuest));
 
                 if (q != null && q is ProfessionalBountyQuest)
                 {
@@ -280,53 +311,19 @@ namespace Server.Mobiles
                 }
             }
 
-            if (m_IsCaught && m_Quest != null)
-            {
-                for (int i = 0; i < m_Quest.Objectives.Count; i++)
-                {
-                    if (m_Quest.Objectives[i] is BountyQuestObjective && ((BountyQuestObjective)m_Quest.Objectives[i]).CapturedCaptain == this)
+            if (IsCaught && Quest != null)
+                for (var i = 0; i < Quest.Objectives.Count; i++)
+                    if (Quest.Objectives[i] is BountyQuestObjective &&
+                        ((BountyQuestObjective)Quest.Objectives[i]).CapturedCaptain == this)
                     {
-                        ((BountyQuestObjective)m_Quest.Objectives[i]).CapturedCaptain = null;
-                        ((BountyQuestObjective)m_Quest.Objectives[i]).Captured = false;
-                        m_Quest = null;
+                        ((BountyQuestObjective)Quest.Objectives[i]).CapturedCaptain = null;
+                        ((BountyQuestObjective)Quest.Objectives[i]).Captured = false;
+                        Quest = null;
                     }
-                }
-            }
 
             return base.OnBeforeDeath();
         }
+
         #endregion
-
-        public PirateCaptain(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.Write((int)1);
-
-            writer.Write(m_IsCaught);
-            writer.Write(m_Adjective);
-            writer.Write(m_Noun);
-            writer.Write(m_PirateName);
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            int version = reader.ReadInt();
-
-            m_IsCaught = reader.ReadBool();
-            m_Adjective = reader.ReadInt();
-            m_Noun = reader.ReadInt();
-            m_PirateName = reader.ReadInt();
-
-            if (IsCaught)
-                Frozen = true;
-
-            m_NextTalk = DateTime.UtcNow;
-        }
     }
 }

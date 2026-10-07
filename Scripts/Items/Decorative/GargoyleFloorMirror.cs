@@ -1,5 +1,3 @@
-using System;
-
 namespace Server.Items
 {
     [FlipableAttribute(0x403A, 0x4046)]
@@ -9,7 +7,7 @@ namespace Server.Items
         public GargoyleFloorMirror()
             : base(0x403A)
         {
-            this.Weight = 10;
+            Weight = 10;
         }
 
         public GargoyleFloorMirror(Serial serial)
@@ -21,14 +19,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

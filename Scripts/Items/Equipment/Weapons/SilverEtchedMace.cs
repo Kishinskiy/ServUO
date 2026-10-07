@@ -1,13 +1,13 @@
-using System;
-
 namespace Server.Items
 {
     public class SilverEtchedMace : DiamondMace
     {
+        public override int LabelNumber => 1073532; // silver-etched mace
+
         [Constructable]
         public SilverEtchedMace()
         {
-            this.Slayer = SlayerName.Exorcism;
+            Slayer = SlayerName.Exorcism;
         }
 
         public SilverEtchedMace(Serial serial)
@@ -15,13 +15,6 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1073532;
-            }
-        }// silver-etched mace
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -33,7 +26,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

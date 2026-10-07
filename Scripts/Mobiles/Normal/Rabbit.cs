@@ -1,10 +1,14 @@
-using System;
-
 namespace Server.Mobiles
 {
     [CorpseName("a hare corpse")]
     public class Rabbit : BaseCreature
     {
+        public override int Meat => 1;
+
+        public override int Hides => 1;
+
+        public override FoodType FavoriteFood => FoodType.FruitsAndVegies;
+
         [Constructable]
         public Rabbit()
             : base(AIType.AI_Animal, FightMode.Aggressor, 10, 1, 0.2, 0.4)
@@ -47,54 +51,33 @@ namespace Server.Mobiles
         {
         }
 
-        public override int Meat
+        public override int GetAttackSound()
         {
-            get
-            {
-                return 1;
-            }
-        }
-        public override int Hides
-        {
-            get
-            {
-                return 1;
-            }
-        }
-        public override FoodType FavoriteFood
-        {
-            get
-            {
-                return FoodType.FruitsAndVegies;
-            }
-        }
-        public override int GetAttackSound() 
-        { 
-            return 0xC9; 
+            return 0xC9;
         }
 
-        public override int GetHurtSound() 
-        { 
-            return 0xCA; 
+        public override int GetHurtSound()
+        {
+            return 0xCA;
         }
 
-        public override int GetDeathSound() 
-        { 
-            return 0xCB; 
+        public override int GetDeathSound()
+        {
+            return 0xCB;
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

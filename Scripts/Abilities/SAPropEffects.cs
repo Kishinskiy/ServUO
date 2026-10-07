@@ -1,11 +1,7 @@
 using System;
-using System.Linq;
 using System.Collections.Generic;
-
-using Server;
+using System.Linq;
 using Server.Mobiles;
-using Server.Spells;
-using Server.Spells.Ninjitsu;
 using Server.Network;
 using Server.Spells.SkillMasteries;
 
@@ -19,47 +15,45 @@ namespace Server.Items
         Splintering,
         Searing,
         Bane,
-        BoneBreaker, 
+        BoneBreaker,
         Swarm,
-        Sparks,
+        Sparks
     }
 
     /// <summary>
-    /// Used for complex weapon/armor properties introduced in Stagyian Abyss
+    ///     Used for complex weapon/armor properties introduced in Stagyian Abyss
     /// </summary>
     public class PropertyEffect
     {
-        private Mobile m_Mobile;
-        private Mobile m_Victim;
-        private Item m_Owner;
-        private EffectsType m_Effect;
-        private TimeSpan m_Duration;
-        private TimeSpan m_TickDuration;
-        private Timer m_Timer;
+        public Mobile Mobile { get; }
 
-        public Mobile Mobile { get { return m_Mobile; } }
-        public Mobile Victim { get { return m_Victim; } }
-        public Item Owner { get { return m_Owner; } }
-        public EffectsType Effect { get { return m_Effect; } }
-        public TimeSpan Duration { get { return m_Duration; } }
-        public TimeSpan TickDuration { get { return m_TickDuration; } }
-        public Timer Timer { get { return m_Timer; } }
+        public Mobile Victim { get; }
 
-        private static List<PropertyEffect> m_Effects = new List<PropertyEffect>();
-        public static List<PropertyEffect> Effects { get { return m_Effects; } }
+        public Item Owner { get; }
 
-        public PropertyEffect(Mobile from, Mobile victim, Item owner, EffectsType effect, TimeSpan duration, TimeSpan tickduration)
+        public EffectsType Effect { get; }
+
+        public TimeSpan Duration { get; }
+
+        public TimeSpan TickDuration { get; }
+
+        public Timer Timer { get; private set; }
+
+        public static List<PropertyEffect> Effects { get; } = new List<PropertyEffect>();
+
+        public PropertyEffect(Mobile from, Mobile victim, Item owner, EffectsType effect, TimeSpan duration,
+            TimeSpan tickduration)
         {
-            m_Mobile = from;
-            m_Victim = victim;
-            m_Owner = owner;
-            m_Effect = effect;
-            m_Duration = duration;
-            m_TickDuration = tickduration;
+            Mobile = from;
+            Victim = victim;
+            Owner = owner;
+            Effect = effect;
+            Duration = duration;
+            TickDuration = tickduration;
 
-            m_Effects.Add(this);
+            Effects.Add(this);
 
-            if (m_TickDuration > TimeSpan.MinValue)
+            if (TickDuration > TimeSpan.MinValue)
                 StartTimer();
         }
 
@@ -67,34 +61,34 @@ namespace Server.Items
         {
             StopTimer();
 
-            if(m_Effects.Contains(this))
-                m_Effects.Remove(this);
+            if (Effects.Contains(this))
+                Effects.Remove(this);
         }
 
         public void StartTimer()
         {
-            if (m_Timer == null)
+            if (Timer == null)
             {
-                m_Timer = new InternalTimer(this);
-                m_Timer.Start();
+                Timer = new InternalTimer(this);
+                Timer.Start();
             }
         }
 
         public void StopTimer()
         {
-            if (m_Timer != null)
+            if (Timer != null)
             {
-                m_Timer.Stop();
-                m_Timer = null;
+                Timer.Stop();
+                Timer = null;
             }
         }
 
         public bool IsEquipped()
         {
-            if (m_Owner == null)
+            if (Owner == null)
                 return false;
 
-            return m_Mobile.FindItemOnLayer(m_Owner.Layer) == m_Owner;
+            return Mobile.FindItemOnLayer(Owner.Layer) == Owner;
         }
 
         public virtual void OnTick()
@@ -109,10 +103,34 @@ namespace Server.Items
         {
         }
 
+        public static bool IsUnderEffects(Mobile from, EffectsType effect)
+        {
+            foreach (var e in Effects)
+                if (e.Mobile == from && e.Effect == effect)
+                    return true;
+            return false;
+        }
+
+        public static T GetContext<T>(Mobile from, EffectsType type) where T : PropertyEffect
+        {
+            return Effects.FirstOrDefault(e => e.Mobile == from && e.Effect == type) as T;
+        }
+
+        public static T GetContext<T>(Mobile from, Mobile victim, EffectsType type) where T : PropertyEffect
+        {
+            return Effects.FirstOrDefault(e => e.Mobile == from && e.Victim == victim && e.Effect == type) as T;
+        }
+
+        public static IEnumerable<T> GetContexts<T>(Mobile victim, EffectsType type) where T : PropertyEffect
+        {
+            foreach (PropertyEffect effect in Effects.OfType<T>().Where(e => e.Victim == victim))
+                yield return effect as T;
+        }
+
         private class InternalTimer : Timer
         {
-            private PropertyEffect m_Effect;
-            private DateTime m_Expires;
+            private readonly PropertyEffect m_Effect;
+            private readonly DateTime m_Expires;
 
             public InternalTimer(PropertyEffect effect)
                 : base(effect.TickDuration, effect.TickDuration)
@@ -127,11 +145,13 @@ namespace Server.Items
 
             protected override void OnTick()
             {
-                if (m_Effect.Mobile == null || (m_Effect.Mobile.Deleted || !m_Effect.Mobile.Alive || m_Effect.Mobile.IsDeadBondedPet))
+                if (m_Effect.Mobile == null || m_Effect.Mobile.Deleted || !m_Effect.Mobile.Alive ||
+                    m_Effect.Mobile.IsDeadBondedPet)
                 {
                     m_Effect.RemoveEffects();
                 }
-                else if (m_Effect.Victim != null && (m_Effect.Victim.Deleted || !m_Effect.Victim.Alive || m_Effect.Mobile.IsDeadBondedPet))
+                else if (m_Effect.Victim != null &&
+                         (m_Effect.Victim.Deleted || !m_Effect.Victim.Alive || m_Effect.Mobile.IsDeadBondedPet))
                 {
                     m_Effect.RemoveEffects();
                 }
@@ -139,39 +159,8 @@ namespace Server.Items
                 {
                     m_Effect.OnTick();
 
-                    if (m_Expires > DateTime.MinValue && m_Expires <= DateTime.UtcNow)
-                    {
-                        m_Effect.RemoveEffects();
-                    }
+                    if (m_Expires > DateTime.MinValue && m_Expires <= DateTime.UtcNow) m_Effect.RemoveEffects();
                 }
-            }
-        }
-
-        public static bool IsUnderEffects(Mobile from, EffectsType effect)
-        {
-            foreach (PropertyEffect e in m_Effects)
-            {
-                if (e.Mobile == from && e.Effect == effect)
-                    return true;
-            }
-            return false;
-        }
-
-        public static T GetContext<T>(Mobile from, EffectsType type) where T : PropertyEffect
-        {
-            return m_Effects.FirstOrDefault(e => e.Mobile == from && e.Effect == type) as T;
-        }
-
-        public static T GetContext<T>(Mobile from, Mobile victim, EffectsType type) where T : PropertyEffect
-        {
-            return m_Effects.FirstOrDefault(e => e.Mobile == from && e.Victim == victim && e.Effect == type) as T;
-        }
-
-        public static IEnumerable<T> GetContexts<T>(Mobile victim, EffectsType type) where T : PropertyEffect
-        {
-            foreach (PropertyEffect effect in m_Effects.OfType<T>().Where(e => e.Victim == victim))
-            {
-                yield return effect as T;
             }
         }
     }
@@ -188,25 +177,27 @@ namespace Server.Items
 
         public override void OnDamaged(int damage)
         {
-            if (m_Active && IsEquipped() && this.Mobile != null)
+            if (m_Active && IsEquipped() && Mobile != null)
             {
-                double mod = BaseFishPie.IsUnderEffects(this.Mobile, FishPieEffect.SoulCharge) ? .50 : .30;
-                this.Mobile.Mana += (int)Math.Min(this.Mobile.ManaMax, damage * mod);
+                var mod = BaseFishPie.IsUnderEffects(Mobile, FishPieEffect.SoulCharge) ? .50 : .30;
+                Mobile.Mana += (int)Math.Min(Mobile.ManaMax, damage * mod);
                 m_Active = false;
 
-                Server.Effects.SendTargetParticles(this.Mobile, 0x375A, 0x1, 0xA, 0x71, 0x2, 0x1AE9, (EffectLayer)0, 0);
+                Server.Effects.SendTargetParticles(Mobile, 0x375A, 0x1, 0xA, 0x71, 0x2, 0x1AE9, 0, 0);
 
-                this.Mobile.SendLocalizedMessage(1113636); //The soul charge effect converts some of the damage you received into mana.
+                Mobile.SendLocalizedMessage(
+                    1113636); //The soul charge effect converts some of the damage you received into mana.
             }
         }
 
         public static void CheckHit(Mobile attacker, Mobile defender, int damage)
         {
-            BaseShield shield = defender.FindItemOnLayer(Layer.TwoHanded) as BaseShield;
+            var shield = defender.FindItemOnLayer(Layer.TwoHanded) as BaseShield;
 
-            if (shield != null && shield.ArmorAttributes.SoulCharge > 0 && shield.ArmorAttributes.SoulCharge > Utility.Random(100))
+            if (shield != null && shield.ArmorAttributes.SoulCharge > 0 &&
+                shield.ArmorAttributes.SoulCharge > Utility.Random(100))
             {
-                SoulChargeContext sc = PropertyEffect.GetContext<SoulChargeContext>(defender, EffectsType.SoulCharge);
+                var sc = GetContext<SoulChargeContext>(defender, EffectsType.SoulCharge);
 
                 if (sc == null)
                     sc = new SoulChargeContext(defender, shield);
@@ -241,16 +232,19 @@ namespace Server.Items
             if (m_Charges >= 20)
                 return;
 
-            double pd = 0; double fd = 0; 
-            double cd = 0; double pod = 0; 
-            double ed = 0; double dd = 0;
+            double pd = 0;
+            double fd = 0;
+            double cd = 0;
+            double pod = 0;
+            double ed = 0;
+            double dd = 0;
 
-            double k = (double)GetValue(DamageType.Kinetic,  this.Mobile) / 100;
-            double f = (double)GetValue(DamageType.Fire, this.Mobile) / 100;
-            double c = (double)GetValue(DamageType.Cold, this.Mobile) / 100;
-            double p = (double)GetValue(DamageType.Poison, this.Mobile) / 100;
-            double e = (double)GetValue(DamageType.Energy, this.Mobile) / 100;
-            double a = (double)GetValue(DamageType.AllTypes, this.Mobile) / 100;
+            var k = (double)GetValue(DamageType.Kinetic, Mobile) / 100;
+            var f = (double)GetValue(DamageType.Fire, Mobile) / 100;
+            var c = (double)GetValue(DamageType.Cold, Mobile) / 100;
+            var p = (double)GetValue(DamageType.Poison, Mobile) / 100;
+            var e = (double)GetValue(DamageType.Energy, Mobile) / 100;
+            var a = (double)GetValue(DamageType.AllTypes, Mobile) / 100;
 
             if (phys > 0 && (k > 0 || a > 0))
             {
@@ -328,14 +322,16 @@ namespace Server.Items
 
         public void DoHeal(object obj)
         {
-            double dam = (double)obj;
+            var dam = (double)obj;
 
             if (dam < 0)
                 return;
 
             Mobile.Heal((int)dam, Mobile, false);
             Mobile.SendLocalizedMessage(1113617); // Some of the damage you received has been converted to heal you.
-            Server.Effects.SendPacket(Mobile.Location, Mobile.Map, new ParticleEffect(EffectType.FixedFrom, Mobile.Serial, Serial.Zero, 0x375A, Mobile.Location, Mobile.Location, 1, 10, false, false, 33, 0, 2, 6889, 1, Mobile.Serial, 45, 0));
+            Server.Effects.SendPacket(Mobile.Location, Mobile.Map,
+                new ParticleEffect(EffectType.FixedFrom, Mobile.Serial, Serial.Zero, 0x375A, Mobile.Location,
+                    Mobile.Location, 1, 10, false, false, 33, 0, 2, 6889, 1, Mobile.Serial, 45, 0));
             m_Charges--;
         }
 
@@ -369,19 +365,23 @@ namespace Server.Items
 
             switch (type)
             {
-                case DamageType.Kinetic: return (int)SAAbsorptionAttributes.GetValue(from, SAAbsorptionAttribute.EaterKinetic);
-                case DamageType.Fire: return (int)SAAbsorptionAttributes.GetValue(from, SAAbsorptionAttribute.EaterFire);
-                case DamageType.Cold: return (int)SAAbsorptionAttributes.GetValue(from, SAAbsorptionAttribute.EaterCold);
-                case DamageType.Poison: return (int)SAAbsorptionAttributes.GetValue(from, SAAbsorptionAttribute.EaterPoison);
-                case DamageType.Energy: return (int)SAAbsorptionAttributes.GetValue(from, SAAbsorptionAttribute.EaterEnergy);
-                case DamageType.AllTypes: return (int)SAAbsorptionAttributes.GetValue(from, SAAbsorptionAttribute.EaterDamage);
+                case DamageType.Kinetic:
+                    return SAAbsorptionAttributes.GetValue(from, SAAbsorptionAttribute.EaterKinetic);
+                case DamageType.Fire: return SAAbsorptionAttributes.GetValue(from, SAAbsorptionAttribute.EaterFire);
+                case DamageType.Cold: return SAAbsorptionAttributes.GetValue(from, SAAbsorptionAttribute.EaterCold);
+                case DamageType.Poison: return SAAbsorptionAttributes.GetValue(from, SAAbsorptionAttribute.EaterPoison);
+                case DamageType.Energy: return SAAbsorptionAttributes.GetValue(from, SAAbsorptionAttribute.EaterEnergy);
+                case DamageType.AllTypes:
+                    return SAAbsorptionAttributes.GetValue(from, SAAbsorptionAttribute.EaterDamage);
             }
+
             return 0;
         }
 
-        public static void CheckDamage(Mobile from, int damage, int phys, int fire, int cold, int pois, int ergy, int direct)
+        public static void CheckDamage(Mobile from, int damage, int phys, int fire, int cold, int pois, int ergy,
+            int direct)
         {
-            DamageEaterContext context = PropertyEffect.GetContext<DamageEaterContext>(from, EffectsType.DamageEater);
+            var context = GetContext<DamageEaterContext>(from, EffectsType.DamageEater);
 
             if (context == null && HasValue(from))
                 context = new DamageEaterContext(from);
@@ -418,7 +418,8 @@ namespace Server.Items
 
             Server.Effects.PlaySound(defender.Location, defender.Map, 0x1DF);
 
-            BuffInfo.AddBuff(defender, new BuffInfo(BuffIcon.SplinteringEffect, 1154670, 1152144, TimeSpan.FromSeconds(10), defender));
+            BuffInfo.AddBuff(defender,
+                new BuffInfo(BuffIcon.SplinteringEffect, 1154670, 1152144, TimeSpan.FromSeconds(10), defender));
         }
 
         public override void OnTick()
@@ -449,10 +450,12 @@ namespace Server.Items
 
         public static bool CheckHit(Mobile attacker, Mobile defender, WeaponAbility ability, Item weapon)
         {
-            if (defender == null || (Core.EJ && (ability == WeaponAbility.Disarm || ability == WeaponAbility.InfectiousStrike || SkillMasterySpell.HasSpell(attacker, typeof(SkillMasterySpell)))))
+            if (defender == null || (Core.EJ && (ability == WeaponAbility.Disarm ||
+                                                 ability == WeaponAbility.InfectiousStrike ||
+                                                 SkillMasterySpell.HasSpell(attacker, typeof(SkillMasterySpell)))))
                 return false;
 
-            SplinteringWeaponContext context = PropertyEffect.GetContext<SplinteringWeaponContext>(attacker, defender, EffectsType.Splintering);
+            var context = GetContext<SplinteringWeaponContext>(attacker, defender, EffectsType.Splintering);
 
             if (context == null)
             {
@@ -480,7 +483,7 @@ namespace Server.Items
 
     public class SearingWeaponContext : PropertyEffect
     {
-        public static int Damage { get { return Utility.RandomMinMax(10, 15); } }
+        public static int Damage => Utility.RandomMinMax(10, 15);
 
         public SearingWeaponContext(Mobile from, Mobile defender)
             : base(from, defender, null, EffectsType.Searing, TimeSpan.FromSeconds(4), TimeSpan.FromSeconds(4))
@@ -490,7 +493,7 @@ namespace Server.Items
 
         public static void CheckHit(Mobile attacker, Mobile defender)
         {
-            SearingWeaponContext context = PropertyEffect.GetContext<SearingWeaponContext>(attacker, defender, EffectsType.Searing);
+            var context = GetContext<SearingWeaponContext>(attacker, defender, EffectsType.Searing);
 
             if (context == null)
                 new SearingWeaponContext(attacker, defender);
@@ -498,7 +501,7 @@ namespace Server.Items
 
         public static bool HasContext(Mobile defender)
         {
-            return PropertyEffect.GetContext<SearingWeaponContext>(defender, EffectsType.Searing) != null;
+            return GetContext<SearingWeaponContext>(defender, EffectsType.Searing) != null;
         }
     }
 
@@ -507,13 +510,14 @@ namespace Server.Items
         public static Dictionary<Mobile, DateTime> _Immunity;
 
         public BoneBreakerContext(Mobile attacker, Mobile defender, Item weapon)
-            : base(attacker, defender, weapon, EffectsType.BoneBreaker, TimeSpan.FromSeconds(4), TimeSpan.FromSeconds(1))
+            : base(attacker, defender, weapon, EffectsType.BoneBreaker, TimeSpan.FromSeconds(4),
+                TimeSpan.FromSeconds(1))
         {
         }
 
         public override void OnTick()
         {
-            int toReduce = Victim.StamMax / 10;
+            var toReduce = Victim.StamMax / 10;
 
             if (Victim.Stam - toReduce >= 3)
                 Victim.Stam -= toReduce;
@@ -530,8 +534,9 @@ namespace Server.Items
 
         public static int CheckHit(Mobile attacker, Mobile defender)
         {
-            int mana = (int)(30.0 * ((double)(AosAttributes.GetValue(attacker, AosAttribute.LowerManaCost) + BaseArmor.GetInherentLowerManaCost(attacker)) / 100.0));
-            int damage = 0;
+            var mana = (int)(30.0 * ((AosAttributes.GetValue(attacker, AosAttribute.LowerManaCost) +
+                                      BaseArmor.GetInherentLowerManaCost(attacker)) / 100.0));
+            var damage = 0;
 
             if (attacker.Mana >= mana)
             {
@@ -549,7 +554,7 @@ namespace Server.Items
 
             if (20 > Utility.Random(100))
             {
-                BoneBreakerContext context = PropertyEffect.GetContext<BoneBreakerContext>(attacker, defender, EffectsType.BoneBreaker);
+                var context = GetContext<BoneBreakerContext>(attacker, defender, EffectsType.BoneBreaker);
 
                 if (context == null)
                 {
@@ -571,13 +576,11 @@ namespace Server.Items
             if (_Immunity == null)
                 return false;
 
-            List<Mobile> list = new List<Mobile>(_Immunity.Keys);
+            var list = new List<Mobile>(_Immunity.Keys);
 
-            foreach (Mobile mob in list)
-            {
+            foreach (var mob in list)
                 if (_Immunity[mob] < DateTime.UtcNow)
                     _Immunity.Remove(mob);
-            }
 
             ColUtility.Free(list);
 
@@ -597,7 +600,7 @@ namespace Server.Items
     {
         public static Dictionary<Mobile, DateTime> _Immunity;
 
-        private int _ID;
+        private readonly int _ID;
 
         public SwarmContext(Mobile attacker, Mobile defender, Item weapon)
             : base(attacker, defender, weapon, EffectsType.Swarm, TimeSpan.FromSeconds(15), TimeSpan.FromSeconds(5))
@@ -615,17 +618,16 @@ namespace Server.Items
                 return;
             }
 
-            SwarmContext context = PropertyEffect.GetContext<SwarmContext>(attacker, defender, EffectsType.Swarm);
+            var context = GetContext<SwarmContext>(attacker, defender, EffectsType.Swarm);
 
-            if (context != null)
-            {
-                context.RemoveEffects();
-            }
+            if (context != null) context.RemoveEffects();
 
             context = new SwarmContext(attacker, defender, null);
 
-            defender.NonlocalOverheadMessage(MessageType.Regular, 0x5C, 1114447, defender.Name); // * ~1_NAME~ is stung by a swarm of insects *
-            defender.LocalOverheadMessage(MessageType.Regular, 0x5C, 1071905); // * The swarm of insects bites and stings your flesh! *
+            defender.NonlocalOverheadMessage(MessageType.Regular, 0x5C, 1114447,
+                defender.Name); // * ~1_NAME~ is stung by a swarm of insects *
+            defender.LocalOverheadMessage(MessageType.Regular, 0x5C,
+                1071905); // * The swarm of insects bites and stings your flesh! *
         }
 
         public override void OnTick()
@@ -639,7 +641,8 @@ namespace Server.Items
             if (Victim.FindItemOnLayer(Layer.OneHanded) is Torch)
             {
                 if (Victim.NetState != null)
-                    Victim.LocalOverheadMessage(MessageType.Regular, 0x61, 1071925); // * The open flame begins to scatter the swarm of insects! *
+                    Victim.LocalOverheadMessage(MessageType.Regular, 0x61,
+                        1071925); // * The open flame begins to scatter the swarm of insects! *
             }
             else
             {
@@ -666,10 +669,8 @@ namespace Server.Items
 
         public static void CheckRemove(Mobile victim)
         {
-            ColUtility.ForEach(PropertyEffect.GetContexts<SwarmContext>(victim, EffectsType.Swarm), context =>
-            {
-                context.RemoveEffects();
-            });
+            ColUtility.ForEach(GetContexts<SwarmContext>(victim, EffectsType.Swarm),
+                context => { context.RemoveEffects(); });
         }
 
         public static bool IsImmune(Mobile m)
@@ -677,13 +678,11 @@ namespace Server.Items
             if (_Immunity == null)
                 return false;
 
-            List<Mobile> list = new List<Mobile>(_Immunity.Keys);
+            var list = new List<Mobile>(_Immunity.Keys);
 
-            foreach (Mobile mob in list)
-            {
+            foreach (var mob in list)
                 if (_Immunity[mob] < DateTime.UtcNow)
                     _Immunity.Remove(mob);
-            }
 
             ColUtility.Free(list);
 
@@ -716,7 +715,7 @@ namespace Server.Items
                 return;
             }
 
-            SparksContext context = PropertyEffect.GetContext<SparksContext>(attacker, defender, EffectsType.Sparks);
+            var context = GetContext<SparksContext>(attacker, defender, EffectsType.Sparks);
 
             if (context == null)
             {
@@ -744,13 +743,11 @@ namespace Server.Items
             if (_Immunity == null)
                 return false;
 
-            List<Mobile> list = new List<Mobile>(_Immunity.Keys);
+            var list = new List<Mobile>(_Immunity.Keys);
 
-            foreach (Mobile mob in list)
-            {
+            foreach (var mob in list)
                 if (_Immunity[mob] < DateTime.UtcNow)
                     _Immunity.Remove(mob);
-            }
 
             ColUtility.Free(list);
 

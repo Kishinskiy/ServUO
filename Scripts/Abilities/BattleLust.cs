@@ -7,6 +7,7 @@ namespace Server
     public class BattleLust
     {
         private static readonly Dictionary<Mobile, BattleLustTimer> m_Table = new Dictionary<Mobile, BattleLustTimer>();
+
         public static bool UnderBattleLust(Mobile m)
         {
             return m_Table.ContainsKey(m);
@@ -17,7 +18,7 @@ namespace Server
             if (!m_Table.ContainsKey(attacker))
                 return 0;
 
-            int bonus = m_Table[attacker].Bonus * attacker.Aggressed.Count;
+            var bonus = m_Table[attacker].Bonus * attacker.Aggressed.Count;
 
             if (defender is PlayerMobile && bonus > 45)
                 bonus = 45;
@@ -31,9 +32,9 @@ namespace Server
         {
             if (damage < 30)
                 return;
-            else if (AosWeaponAttributes.GetValue(m, AosWeaponAttribute.BattleLust) == 0)
+            if (AosWeaponAttributes.GetValue(m, AosWeaponAttribute.BattleLust) == 0)
                 return;
-            else if (m_Table.ContainsKey(m))
+            if (m_Table.ContainsKey(m))
             {
                 if (m_Table[m].CanGain)
                 {
@@ -45,7 +46,7 @@ namespace Server
             }
             else
             {
-                BattleLustTimer blt = new BattleLustTimer(m, 1);
+                var blt = new BattleLustTimer(m, 1);
                 blt.Start();
                 m_Table.Add(m, blt);
                 m.SendLocalizedMessage(1113748); // The damage you received fuels your battle fury.
@@ -74,33 +75,34 @@ namespace Server
 
         public class BattleLustTimer : Timer
         {
+            private readonly Mobile m_Mobile;
             public int Bonus;
             public bool CanGain;
-            private readonly Mobile m_Mobile;
             private int m_Count;
+
             public BattleLustTimer(Mobile m, int bonus)
                 : base(TimeSpan.FromSeconds(2.0), TimeSpan.FromSeconds(2.0))
             {
-                this.m_Mobile = m;
-                this.Bonus = bonus;
-                this.m_Count = 1;
+                m_Mobile = m;
+                Bonus = bonus;
+                m_Count = 1;
             }
 
             protected override void OnTick()
             {
-                this.m_Count %= 3;
+                m_Count %= 3;
 
-                if (this.m_Count == 0)
+                if (m_Count == 0)
                 {
-                    if (!DecreaseBattleLust(this.m_Mobile))
-                        this.Stop();
+                    if (!DecreaseBattleLust(m_Mobile))
+                        Stop();
                 }
                 else
                 {
-                    this.CanGain = true;
+                    CanGain = true;
                 }
 
-                this.m_Count++;
+                m_Count++;
             }
         }
     }

@@ -1,22 +1,27 @@
-using System;
 using Server.Mobiles;
 
 namespace Server.Items
 {
     public class ParrotPerchAddon : BaseAddon
     {
-        private PetParrot m_Parrot;
+        public override BaseAddonDeed Deed => new ParrotPerchAddonDeed(Parrot);
+
+        public override bool RetainDeedHue => true;
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public PetParrot Parrot { get; set; }
+
         [Constructable]
         public ParrotPerchAddon()
             : this(null)
-        { 
+        {
         }
 
         public ParrotPerchAddon(PetParrot parrot)
         {
             AddComponent(new AddonComponent(0x2FB6), 0, 0, 0);
-			
-            m_Parrot = parrot;
+
+            Parrot = parrot;
         }
 
         public ParrotPerchAddon(Serial serial)
@@ -24,72 +29,46 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonDeed Deed
-        {
-            get
-            {
-                return new ParrotPerchAddonDeed(m_Parrot);
-            }
-        }
-        public override bool RetainDeedHue
-        {
-            get
-            {
-                return true;
-            }
-        }
-        [CommandProperty(AccessLevel.GameMaster)]
-        public PetParrot Parrot
-        {
-            get
-            {
-                return m_Parrot;
-            }
-            set
-            {
-                m_Parrot = value;
-            }
-        }
         public override void OnLocationChange(Point3D oldLocation)
         {
             base.OnLocationChange(oldLocation);
-			
-            if (m_Parrot != null)
-                m_Parrot.Location = new Point3D(X, Y, Z + 12);
+
+            if (Parrot != null)
+                Parrot.Location = new Point3D(X, Y, Z + 12);
         }
 
         public override void OnMapChange()
         {
             base.OnMapChange();
-			
-            if (m_Parrot != null)
-                m_Parrot.Map = Map;
+
+            if (Parrot != null)
+                Parrot.Map = Map;
         }
 
         public override void OnAfterDelete()
         {
             base.OnAfterDelete();
-			
-            if (m_Parrot != null)
-                m_Parrot.Internalize();
+
+            if (Parrot != null)
+                Parrot.Internalize();
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); //  version
-			
-            writer.Write((Mobile)m_Parrot);
+            writer.Write(0); //  version
+
+            writer.Write(Parrot);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
-			
-            m_Parrot = reader.ReadMobile() as PetParrot;
+            var version = reader.ReadInt();
+
+            Parrot = reader.ReadMobile() as PetParrot;
         }
     }
 
@@ -97,6 +76,21 @@ namespace Server.Items
     {
         private PetParrot m_Parrot;
         private bool m_Safety;
+
+        public override int LabelNumber => 1072619; // A deed for a Parrot Perch		
+        public override BaseAddon Addon => new ParrotPerchAddon(m_Parrot);
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public PetParrot Parrot
+        {
+            get => m_Parrot;
+            set
+            {
+                m_Parrot = value;
+                InvalidateProperties();
+            }
+        }
+
         [Constructable]
         public ParrotPerchAddonDeed()
             : this(null)
@@ -106,7 +100,7 @@ namespace Server.Items
         public ParrotPerchAddonDeed(PetParrot parrot)
         {
             LootType = LootType.Blessed;
-		
+
             m_Parrot = parrot;
         }
 
@@ -115,46 +109,19 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1072619;
-            }
-        }// A deed for a Parrot Perch		
-        public override BaseAddon Addon
-        {
-            get
-            {
-                return new ParrotPerchAddon(m_Parrot);
-            }
-        }
-        [CommandProperty(AccessLevel.GameMaster)]
-        public PetParrot Parrot
-        {
-            get
-            {
-                return m_Parrot;
-            }
-            set
-            {
-                m_Parrot = value;
-                InvalidateProperties();
-            }
-        }
         public override void GetProperties(ObjectPropertyList list)
         {
             base.GetProperties(list);
-			
+
             if (m_Parrot != null)
             {
                 if (m_Parrot.Name != null)
                     list.Add(1072624, m_Parrot.Name); // Includes a pet Parrot named ~1_NAME~
                 else
                     list.Add(1072620); // Includes a pet Parrot
-					
-                int weeks = PetParrot.GetWeeks(m_Parrot.Birth);
-				
+
+                var weeks = PetParrot.GetWeeks(m_Parrot.Birth);
+
                 if (weeks == 1)
                     list.Add(1072626); // 1 week old
                 else if (weeks > 1)
@@ -165,17 +132,17 @@ namespace Server.Items
         public override void DeleteDeed()
         {
             m_Safety = true;
-			
+
             base.DeleteDeed();
         }
 
         public override void OnAfterDelete()
-        { 
+        {
             base.OnAfterDelete();
-			
+
             if (!m_Safety && m_Parrot != null)
                 m_Parrot.Delete();
-				
+
             m_Safety = false;
         }
 
@@ -183,28 +150,28 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)1); //  version
-			
-            writer.Write((Mobile)m_Parrot);
+            writer.Write(1); //  version
+
+            writer.Write(m_Parrot);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
-			
-            switch ( version )
+            var version = reader.ReadInt();
+
+            switch (version)
             {
                 case 1:
                     m_Parrot = reader.ReadMobile() as PetParrot;
-					
+
                     break;
-                case 0: 
+                case 0:
                     reader.ReadDateTime();
                     reader.ReadString();
                     reader.ReadInt();
-					
+
                     break;
             }
         }

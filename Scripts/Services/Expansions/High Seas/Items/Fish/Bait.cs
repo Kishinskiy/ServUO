@@ -1,7 +1,6 @@
 ﻿using System;
-using Server;
-using Server.Targeting;
 using Server.Prompts;
+using Server.Targeting;
 
 namespace Server.Items
 {
@@ -9,22 +8,29 @@ namespace Server.Items
     {
         public static readonly bool UsePrompt = true;
 
-        private Type m_BaitType;
+        private bool m_Enhanced;
+        private int m_Index;
         private object m_Label;
         private int m_UsesRemaining;
-        private int m_Index;
-        private bool m_Enhanced;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public Type BaitType { get { return m_BaitType; } }
+        public Type BaitType { get; private set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int UsesRemaining { get { return m_UsesRemaining; } set { m_UsesRemaining = value; InvalidateProperties(); } }
+        public int UsesRemaining
+        {
+            get => m_UsesRemaining;
+            set
+            {
+                m_UsesRemaining = value;
+                InvalidateProperties();
+            }
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public int Index
         {
-            get { return m_Index; }
+            get => m_Index;
             set
             {
                 m_Index = value;
@@ -34,7 +40,7 @@ namespace Server.Items
                 if (value >= FishInfo.FishInfos.Count)
                     m_Index = FishInfo.FishInfos.Count - 1;
 
-                m_BaitType = FishInfo.GetTypeFromIndex(m_Index);
+                BaitType = FishInfo.GetTypeFromIndex(m_Index);
                 Hue = FishInfo.GetFishHue(m_Index);
                 m_Label = FishInfo.GetFishLabel(m_Index);
                 InvalidateProperties();
@@ -42,7 +48,15 @@ namespace Server.Items
         }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public bool Enhanced { get { return m_Enhanced; } set { m_Enhanced = value; InvalidateProperties(); } }
+        public bool Enhanced
+        {
+            get => m_Enhanced;
+            set
+            {
+                m_Enhanced = value;
+                InvalidateProperties();
+            }
+        }
 
         [Constructable]
         public Bait(int index) : base(2454)
@@ -57,6 +71,10 @@ namespace Server.Items
             m_UsesRemaining = 1;
         }
 
+        public Bait(Serial serial) : base(serial)
+        {
+        }
+
         public override void OnDoubleClick(Mobile from)
         {
             if (IsChildOf(from.Backpack))
@@ -69,7 +87,8 @@ namespace Server.Items
                 else
                 {
                     from.Target = new InternalTarget(this, 1);
-                    from.SendMessage("Target the fishing pole or lobster trap that you would like to apply the bait to.");
+                    from.SendMessage(
+                        "Target the fishing pole or lobster trap that you would like to apply the bait to.");
                 }
             }
         }
@@ -85,7 +104,7 @@ namespace Server.Items
 
         public override void AddNameProperty(ObjectPropertyList list)
         {
-            object label = FishInfo.GetFishLabel(m_Index);
+            var label = FishInfo.GetFishLabel(m_Index);
 
             if (m_Enhanced)
             {
@@ -96,21 +115,62 @@ namespace Server.Items
                     list.Add(1116464, "#{0}\t{1}", 1116470, (string)label);
             }
             else if (label is int)
-                list.Add(1116465, String.Format("#{0}", (int)label)); //~1_token~ bait
+            {
+                list.Add(1116465, string.Format("#{0}", (int)label)); //~1_token~ bait
+            }
             else if (label is string)
+            {
                 list.Add(1116465, (string)label);
+            }
         }
 
         public override void GetProperties(ObjectPropertyList list)
         {
             base.GetProperties(list);
 
-            list.Add(1116466, m_UsesRemaining.ToString());  //amount: ~1_val~
+            list.Add(1116466, m_UsesRemaining.ToString()); //amount: ~1_val~
+        }
+
+        public bool IsFishBait()
+        {
+            if (BaitType == null)
+                Index = Utility.RandomMinMax(0, 34);
+
+            return !BaitType.IsSubclassOf(typeof(BaseCrabAndLobster));
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
+
+            writer.Write(m_UsesRemaining);
+            writer.Write(m_Index);
+            writer.Write(m_Enhanced);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
+
+            m_UsesRemaining = reader.ReadInt();
+            m_Index = reader.ReadInt();
+            m_Enhanced = reader.ReadBool();
+
+            if (m_Index < 0)
+                m_Index = 0;
+            if (m_Index >= FishInfo.FishInfos.Count)
+                m_Index = FishInfo.FishInfos.Count - 1;
+
+            BaitType = FishInfo.FishInfos[m_Index].Type;
+            //Hue = FishInfo.FishInfos[m_Index].Hue;
+            m_Label = FishInfo.GetFishLabel(m_Index);
         }
 
         private class InternalPrompt : Prompt
         {
-            private Bait m_Bait;
+            private readonly Bait m_Bait;
 
             public InternalPrompt(Bait bait)
             {
@@ -119,7 +179,7 @@ namespace Server.Items
 
             public override void OnResponse(Mobile from, string text)
             {
-                int amount = Utility.ToInt32( text );
+                var amount = Utility.ToInt32(text);
                 m_Bait.TryBeginTarget(from, amount);
             }
 
@@ -131,8 +191,8 @@ namespace Server.Items
 
         private class InternalTarget : Target
         {
-            private Bait m_Bait;
-            private int m_Amount;
+            private readonly int m_Amount;
+            private readonly Bait m_Bait;
 
             public InternalTarget(Bait bait, int amount)
                 : base(0, false, TargetFlags.None)
@@ -154,15 +214,17 @@ namespace Server.Items
                         return;
                     }
 
-                    FishingPole pole = (FishingPole)targeted;
+                    var pole = (FishingPole)targeted;
 
-                    bool hasBait = pole.BaitType != null;
+                    var hasBait = pole.BaitType != null;
 
                     if (hasBait && pole.BaitType != m_Bait.BaitType)
                         from.SendMessage("You swap out the old bait for new.");
 
                     if (pole.BaitType == m_Bait.BaitType)
+                    {
                         pole.BaitUses += m_Amount;
+                    }
                     else
                     {
                         pole.BaitType = m_Bait.BaitType;
@@ -172,7 +234,7 @@ namespace Server.Items
                     if (m_Bait.Enhanced)
                         pole.EnhancedBait = true;
 
-                    from.SendLocalizedMessage(1149759);  //You bait the hook.
+                    from.SendLocalizedMessage(1149759); //You bait the hook.
                     m_Bait.UsesRemaining -= m_Amount;
                 }
                 else if (targeted is LobsterTrap)
@@ -183,9 +245,9 @@ namespace Server.Items
                         return;
                     }
 
-                    LobsterTrap trap = (LobsterTrap)targeted;
+                    var trap = (LobsterTrap)targeted;
 
-                    bool hasBait = trap.BaitType != null;
+                    var hasBait = trap.BaitType != null;
 
                     trap.BaitType = m_Bait.BaitType;
                     //trap.Hue = m_Bait.Hue;
@@ -194,7 +256,9 @@ namespace Server.Items
                         from.SendMessage("You swap out the old bait for new.");
 
                     if (trap.BaitType == m_Bait.BaitType)
+                    {
                         trap.BaitUses += m_Amount;
+                    }
                     else
                     {
                         trap.BaitType = m_Bait.BaitType;
@@ -207,9 +271,10 @@ namespace Server.Items
                     from.SendLocalizedMessage(1149760); //You bait the trap.
                     m_Bait.UsesRemaining -= m_Amount;
                 }
-                else if (targeted is Bait && ((Bait)targeted).IsChildOf(from.Backpack) && ((Bait)targeted).BaitType == m_Bait.BaitType)
+                else if (targeted is Bait && ((Bait)targeted).IsChildOf(from.Backpack) &&
+                         ((Bait)targeted).BaitType == m_Bait.BaitType)
                 {
-                    Bait bait = (Bait)targeted;
+                    var bait = (Bait)targeted;
 
                     bait.UsesRemaining += m_Amount;
                     m_Bait.UsesRemaining -= m_Amount;
@@ -217,10 +282,13 @@ namespace Server.Items
                     if (m_Bait.UsesRemaining <= 0)
                     {
                         m_Bait.Delete();
-                        from.SendLocalizedMessage(1116469); //You combine these baits into one cup and destroy the other cup.
+                        from.SendLocalizedMessage(
+                            1116469); //You combine these baits into one cup and destroy the other cup.
                     }
                     else
+                    {
                         from.SendMessage("You combine these baits into one cup.");
+                    }
 
                     return;
                 }
@@ -231,45 +299,6 @@ namespace Server.Items
                     from.SendLocalizedMessage(1116467); //Your bait is used up so you destroy the container.
                 }
             }
-        }
-
-        public bool IsFishBait()
-        {
-            if (m_BaitType == null)
-                Index = Utility.RandomMinMax(0, 34);
-
-            return !m_BaitType.IsSubclassOf(typeof(BaseCrabAndLobster));
-        }
-
-        public Bait(Serial serial) : base(serial) { }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.Write((int)0);
-
-            writer.Write(m_UsesRemaining);
-            writer.Write(m_Index);
-            writer.Write(m_Enhanced);
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            int version = reader.ReadInt();
-
-            m_UsesRemaining = reader.ReadInt();
-            m_Index = reader.ReadInt();
-            m_Enhanced = reader.ReadBool();
-
-            if (m_Index < 0)
-                m_Index = 0;
-            if (m_Index >= FishInfo.FishInfos.Count)
-                m_Index = FishInfo.FishInfos.Count - 1;
-
-            m_BaitType = FishInfo.FishInfos[m_Index].Type;
-            //Hue = FishInfo.FishInfos[m_Index].Hue;
-            m_Label = FishInfo.GetFishLabel(m_Index);
         }
     }
 }

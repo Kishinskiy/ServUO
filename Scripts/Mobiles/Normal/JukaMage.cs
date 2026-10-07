@@ -1,14 +1,23 @@
 using System;
+using Server.Engines.Plants;
 using Server.Items;
 using Server.Spells;
 
 namespace Server.Mobiles
 {
-    [CorpseName("a juka corpse")] 
+    [CorpseName("a juka corpse")]
     public class JukaMage : BaseCreature
     {
         private DateTime m_NextAbilityTime;
-		
+
+        public override bool AlwaysMurderer => true;
+
+        public override bool CanRummageCorpses => true;
+
+        public override int TreasureMapLevel => 3;
+
+        public override int Meat => 1;
+
         [Constructable]
         public JukaMage()
             : base(AIType.AI_Mage, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -47,11 +56,11 @@ namespace Server.Mobiles
 
             Container bag = new Bag();
 
-            int count = Utility.RandomMinMax(10, 20);
+            var count = Utility.RandomMinMax(10, 20);
 
-            for (int i = 0; i < count; ++i)
+            for (var i = 0; i < count; ++i)
             {
-                Item item = Loot.RandomReagent();
+                var item = Loot.RandomReagent();
 
                 if (item == null)
                     continue;
@@ -65,7 +74,7 @@ namespace Server.Mobiles
             PackItem(new ArcaneGem());
 
             if (Core.ML && Utility.RandomDouble() < .33)
-                PackItem(Engines.Plants.Seed.RandomPeculiarSeed(2));
+                PackItem(Seed.RandomPeculiarSeed(2));
 
             m_NextAbilityTime = DateTime.UtcNow + TimeSpan.FromSeconds(Utility.RandomMinMax(2, 5));
         }
@@ -75,30 +84,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool AlwaysMurderer
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool CanRummageCorpses
-        {
-            get
-            {
-                return true;
-            }
-        }
-		
-		public override int TreasureMapLevel { get { return 3; } }
-		
-        public override int Meat
-        {
-            get
-            {
-                return 1;
-            }
-        }
         public override void GenerateLoot()
         {
             AddLoot(LootPack.Average, 2);
@@ -127,37 +112,37 @@ namespace Server.Mobiles
 
         public override void OnThink()
         {
-            if (DateTime.UtcNow >= this.m_NextAbilityTime)
+            if (DateTime.UtcNow >= m_NextAbilityTime)
             {
                 JukaLord toBuff = null;
                 IPooledEnumerable eable = GetMobilesInRange(8);
 
                 foreach (Mobile m in eable)
-                {
-                    if (m is JukaLord && this.IsFriend(m) && m.Combatant != null && this.CanBeBeneficial(m) && m.CanBeginAction(typeof(JukaMage)) && this.InLOS(m))
+                    if (m is JukaLord && IsFriend(m) && m.Combatant != null && CanBeBeneficial(m) &&
+                        m.CanBeginAction(typeof(JukaMage)) && InLOS(m))
                     {
                         toBuff = (JukaLord)m;
                         break;
                     }
-                }
+
                 eable.Free();
 
                 if (toBuff != null)
                 {
-                    if (this.CanBeBeneficial(toBuff) && toBuff.BeginAction(typeof(JukaMage)))
+                    if (CanBeBeneficial(toBuff) && toBuff.BeginAction(typeof(JukaMage)))
                     {
-                        this.m_NextAbilityTime = DateTime.UtcNow + TimeSpan.FromSeconds(Utility.RandomMinMax(30, 60));
+                        m_NextAbilityTime = DateTime.UtcNow + TimeSpan.FromSeconds(Utility.RandomMinMax(30, 60));
 
                         toBuff.Say(true, "Give me the power to destroy my enemies!");
-                        this.Say(true, "Fight well my lord!");
+                        Say(true, "Fight well my lord!");
 
-                        this.DoBeneficial(toBuff);
+                        DoBeneficial(toBuff);
 
-                        object[] state = new object[] { toBuff, toBuff.HitsMaxSeed, toBuff.RawStr, toBuff.RawDex };
+                        var state = new object[] { toBuff, toBuff.HitsMaxSeed, toBuff.RawStr, toBuff.RawDex };
 
                         SpellHelper.Turn(this, toBuff);
 
-                        int toScale = toBuff.HitsMaxSeed;
+                        var toScale = toBuff.HitsMaxSeed;
 
                         if (toScale > 0)
                         {
@@ -189,7 +174,7 @@ namespace Server.Mobiles
                 }
                 else
                 {
-                    this.m_NextAbilityTime = DateTime.UtcNow + TimeSpan.FromSeconds(Utility.RandomMinMax(2, 5));
+                    m_NextAbilityTime = DateTime.UtcNow + TimeSpan.FromSeconds(Utility.RandomMinMax(2, 5));
                 }
             }
 
@@ -199,20 +184,20 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         private void Unbuff(object state)
         {
-            object[] states = (object[])state;
+            var states = (object[])state;
 
-            JukaLord toDebuff = (JukaLord)states[0];
+            var toDebuff = (JukaLord)states[0];
 
             toDebuff.EndAction(typeof(JukaMage));
 

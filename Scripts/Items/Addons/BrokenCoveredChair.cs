@@ -1,10 +1,10 @@
-using System;
-
 namespace Server.Items
 {
     [Flipable(0xC17, 0xC18)]
     public class BrokenCoveredChairComponent : AddonComponent
     {
+        public override int LabelNumber => 1076257; // Broken Covered Chair
+
         public BrokenCoveredChairComponent()
             : base(0xC17)
         {
@@ -15,13 +15,6 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1076257;
-            }
-        }// Broken Covered Chair
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -33,17 +26,18 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class BrokenCoveredChairAddon : BaseAddon
     {
+        public override BaseAddonDeed Deed => new BrokenCoveredChairDeed();
+
         [Constructable]
         public BrokenCoveredChairAddon()
-            : base()
         {
-            this.AddComponent(new BrokenCoveredChairComponent(), 0, 0, 0);
+            AddComponent(new BrokenCoveredChairComponent(), 0, 0, 0);
         }
 
         public BrokenCoveredChairAddon(Serial serial)
@@ -51,13 +45,6 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonDeed Deed
-        {
-            get
-            {
-                return new BrokenCoveredChairDeed();
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -69,17 +56,20 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class BrokenCoveredChairDeed : BaseAddonDeed
     {
+        public override BaseAddon Addon => new BrokenCoveredChairAddon();
+
+        public override int LabelNumber => 1076257; // Broken Covered Chair
+
         [Constructable]
         public BrokenCoveredChairDeed()
-            : base()
         {
-            this.LootType = LootType.Blessed;
+            LootType = LootType.Blessed;
         }
 
         public BrokenCoveredChairDeed(Serial serial)
@@ -87,20 +77,6 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddon Addon
-        {
-            get
-            {
-                return new BrokenCoveredChairAddon();
-            }
-        }
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1076257;
-            }
-        }// Broken Covered Chair
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -112,7 +88,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

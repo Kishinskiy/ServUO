@@ -1,16 +1,18 @@
-using System;
-
 namespace Server.Factions
 {
     public class FactionTrapRemovalKit : Item
     {
-        private int m_Charges;
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int Charges { get; set; }
+
+        public override int LabelNumber => 1041508; // a faction trap removal kit
+
         [Constructable]
         public FactionTrapRemovalKit()
             : base(7867)
         {
-            this.LootType = LootType.Blessed;
-            this.m_Charges = 25;
+            LootType = LootType.Blessed;
+            Charges = 25;
         }
 
         public FactionTrapRemovalKit(Serial serial)
@@ -18,32 +20,13 @@ namespace Server.Factions
         {
         }
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int Charges
-        {
-            get
-            {
-                return this.m_Charges;
-            }
-            set
-            {
-                this.m_Charges = value;
-            }
-        }
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1041508;
-            }
-        }// a faction trap removal kit
         public void ConsumeCharge(Mobile consumer)
         {
-            --this.m_Charges;
+            --Charges;
 
-            if (this.m_Charges <= 0)
+            if (Charges <= 0)
             {
-                this.Delete();
+                Delete();
 
                 if (consumer != null)
                     consumer.SendLocalizedMessage(1042531); // You have used all of the parts in your trap removal kit.
@@ -55,36 +38,36 @@ namespace Server.Factions
             base.GetProperties(list);
 
             // NOTE: OSI does not list uses remaining; intentional difference
-            list.Add(1060584, this.m_Charges.ToString()); // uses remaining: ~1_val~
+            list.Add(1060584, Charges.ToString()); // uses remaining: ~1_val~
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)1); // version
+            writer.Write(1); // version
 
-            writer.WriteEncodedInt((int)this.m_Charges);
+            writer.WriteEncodedInt(Charges);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            switch ( version )
+            switch (version)
             {
                 case 1:
-                    {
-                        this.m_Charges = reader.ReadEncodedInt();
-                        break;
-                    }
+                {
+                    Charges = reader.ReadEncodedInt();
+                    break;
+                }
                 case 0:
-                    {
-                        this.m_Charges = 25;
-                        break;
-                    }
+                {
+                    Charges = 25;
+                    break;
+                }
             }
         }
     }

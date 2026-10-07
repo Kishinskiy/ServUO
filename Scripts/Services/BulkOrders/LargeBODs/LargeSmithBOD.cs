@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 
 namespace Server.Engines.BulkOrders
@@ -6,9 +5,7 @@ namespace Server.Engines.BulkOrders
     [TypeAlias("Scripts.Engines.BulkOrders.LargeSmithBOD")]
     public class LargeSmithBOD : LargeBOD
     {
-        public override BODType BODType { get { return BODType.Smith; } }
-
-        public static double[] m_BlacksmithMaterialChances = new double[]
+        public static double[] m_BlacksmithMaterialChances =
         {
             0.501953125, // None
             0.250000000, // Dull Copper
@@ -18,17 +15,20 @@ namespace Server.Engines.BulkOrders
             0.015625000, // Gold
             0.007812500, // Agapite
             0.003906250, // Verite
-            0.001953125  // Valorite
+            0.001953125 // Valorite
         };
+
+        public override BODType BODType => BODType.Smith;
+
         [Constructable]
         public LargeSmithBOD()
         {
             LargeBulkEntry[] entries;
-            bool useMaterials = true;
-			
-            int rand = Utility.Random(8);
+            var useMaterials = true;
 
-            switch ( rand )
+            var rand = Utility.Random(8);
+
+            switch (rand)
             {
                 default:
                 case 0:
@@ -56,13 +56,13 @@ namespace Server.Engines.BulkOrders
                     entries = LargeBulkEntry.ConvertEntries(this, LargeBulkEntry.LargeSwords);
                     break;
             }
-			
+
             if (rand > 2 && rand < 8)
                 useMaterials = false;
 
-            int hue = 0x44E;
-            int amountMax = Utility.RandomList(10, 15, 20, 20);
-            bool reqExceptional = (0.825 > Utility.RandomDouble());
+            var hue = 0x44E;
+            var amountMax = Utility.RandomList(10, 15, 20, 20);
+            var reqExceptional = 0.825 > Utility.RandomDouble();
 
             BulkMaterialType material;
 
@@ -71,20 +71,20 @@ namespace Server.Engines.BulkOrders
             else
                 material = BulkMaterialType.None;
 
-            this.Hue = hue;
-            this.AmountMax = amountMax;
-            this.Entries = entries;
-            this.RequireExceptional = reqExceptional;
-            this.Material = material;
+            Hue = hue;
+            AmountMax = amountMax;
+            Entries = entries;
+            RequireExceptional = reqExceptional;
+            Material = material;
         }
 
         public LargeSmithBOD(int amountMax, bool reqExceptional, BulkMaterialType mat, LargeBulkEntry[] entries)
         {
-            this.Hue = 0x44E;
-            this.AmountMax = amountMax;
-            this.Entries = entries;
-            this.RequireExceptional = reqExceptional;
-            this.Material = mat;
+            Hue = 0x44E;
+            AmountMax = amountMax;
+            Entries = entries;
+            RequireExceptional = reqExceptional;
+            Material = mat;
         }
 
         public LargeSmithBOD(Serial serial)
@@ -104,17 +104,18 @@ namespace Server.Engines.BulkOrders
 
         public override List<Item> ComputeRewards(bool full)
         {
-            List<Item> list = new List<Item>();
+            var list = new List<Item>();
 
-            RewardGroup rewardGroup = SmithRewardCalculator.Instance.LookupRewards(SmithRewardCalculator.Instance.ComputePoints(this));
+            var rewardGroup =
+                SmithRewardCalculator.Instance.LookupRewards(SmithRewardCalculator.Instance.ComputePoints(this));
 
             if (rewardGroup != null)
             {
                 if (full)
                 {
-                    for (int i = 0; i < rewardGroup.Items.Length; ++i)
+                    for (var i = 0; i < rewardGroup.Items.Length; ++i)
                     {
-                        Item item = rewardGroup.Items[i].Construct();
+                        var item = rewardGroup.Items[i].Construct();
 
                         if (item != null)
                             list.Add(item);
@@ -122,11 +123,11 @@ namespace Server.Engines.BulkOrders
                 }
                 else
                 {
-                    RewardItem rewardItem = rewardGroup.AcquireItem();
+                    var rewardItem = rewardGroup.AcquireItem();
 
                     if (rewardItem != null)
                     {
-                        Item item = rewardItem.Construct();
+                        var item = rewardItem.Construct();
 
                         if (item != null)
                             list.Add(item);
@@ -141,14 +142,14 @@ namespace Server.Engines.BulkOrders
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

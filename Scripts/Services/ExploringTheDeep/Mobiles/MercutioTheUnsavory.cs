@@ -1,8 +1,8 @@
 using System;
-using Server.Items;
 using System.Collections.Generic;
-using Server.Engines.Quests;
 using System.Linq;
+using Server.Engines.Quests;
+using Server.Items;
 
 namespace Server.Mobiles
 {
@@ -10,6 +10,9 @@ namespace Server.Mobiles
     public class MercutioTheUnsavory : BaseCreature
     {
         public static List<MercutioTheUnsavory> Instances { get; set; }
+
+        public override bool ClickTitle => false;
+        public override bool AlwaysMurderer => true;
 
         [Constructable]
         public MercutioTheUnsavory()
@@ -62,38 +65,35 @@ namespace Server.Mobiles
             SelfDeleteTimer.Start();
         }
 
+        public MercutioTheUnsavory(Serial serial)
+            : base(serial)
+        {
+        }
+
         private void AddImmovableItem(Item item)
         {
             item.LootType = LootType.Blessed;
             AddItem(item);
         }
 
-        public override bool ClickTitle { get { return false; } }
-        public override bool AlwaysMurderer { get { return true; } }
-
         public override void OnDeath(Container c)
         {
-            List<DamageStore> rights = GetLootingRights();            
+            var rights = GetLootingRights();
 
-            foreach (Mobile m in rights.Select(x => x.m_Mobile).Distinct())
-            {
+            foreach (var m in rights.Select(x => x.m_Mobile).Distinct())
                 if (m is PlayerMobile)
                 {
-                    PlayerMobile pm = m as PlayerMobile;
+                    var pm = m as PlayerMobile;
 
                     if (pm.ExploringTheDeepQuest == ExploringTheDeepQuestChain.CollectTheComponent)
                     {
-						Item item = new MercutiosCutlass();
-						
-                        if (m.Backpack == null || !m.Backpack.TryDropItem(m, item, false))
-                        {
-                            m.BankBox.DropItem(item);
-                        }
+                        Item item = new MercutiosCutlass();
+
+                        if (m.Backpack == null || !m.Backpack.TryDropItem(m, item, false)) m.BankBox.DropItem(item);
 
                         m.SendLocalizedMessage(1154489); // You received a Quest Item!
                     }
                 }
-            }
 
             if (Instances != null && Instances.Contains(this))
                 Instances.Remove(this);
@@ -106,7 +106,7 @@ namespace Server.Mobiles
             if (Instances != null && Instances.Count > 0)
                 return null;
 
-            MercutioTheUnsavory creature = new MercutioTheUnsavory();
+            var creature = new MercutioTheUnsavory();
             creature.Home = platLoc;
             creature.RangeHome = 4;
             creature.MoveToWorld(platLoc, platMap);
@@ -114,33 +114,9 @@ namespace Server.Mobiles
             return creature;
         }
 
-        public MercutioTheUnsavory(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void GenerateLoot()
         {
             AddLoot(LootPack.Average);
-        }
-
-        public class InternalSelfDeleteTimer : Timer
-        {
-            private MercutioTheUnsavory Mare;
-
-            public InternalSelfDeleteTimer(Mobile p) : base(TimeSpan.FromMinutes(60))
-            {
-                Priority = TimerPriority.FiveSeconds;
-                Mare = ((MercutioTheUnsavory)p);
-            }
-            protected override void OnTick()
-            {
-                if (Mare.Map != Map.Internal)
-                {
-                    Mare.Delete();
-                    Stop();
-                }
-            }
         }
 
         public override void OnAfterDelete()
@@ -167,22 +143,21 @@ namespace Server.Mobiles
         }
 
         #region Helpers
+
         public void SpawnBrigand(Mobile target)
         {
-            Map map = Map;
+            var map = Map;
 
             if (map == null)
                 return;
 
-            int brigands = 0;
+            var brigands = 0;
 
             IPooledEnumerable eable = GetMobilesInRange(10);
 
             foreach (Mobile m in eable)
-            {
                 if (m is Brigand)
                     ++brigands;
-            }
 
             eable.Free();
 
@@ -190,22 +165,22 @@ namespace Server.Mobiles
             {
                 PlaySound(0x3D);
 
-                int newBrigands = Utility.RandomMinMax(3, 6);
+                var newBrigands = Utility.RandomMinMax(3, 6);
 
-                for (int i = 0; i < newBrigands; ++i)
+                for (var i = 0; i < newBrigands; ++i)
                 {
                     BaseCreature brigand = new Brigand();
 
                     brigand.Team = Team;
 
-                    bool validLocation = false;
-                    Point3D loc = Location;
+                    var validLocation = false;
+                    var loc = Location;
 
-                    for (int j = 0; !validLocation && j < 10; ++j)
+                    for (var j = 0; !validLocation && j < 10; ++j)
                     {
-                        int x = X + Utility.Random(3) - 1;
-                        int y = Y + Utility.Random(3) - 1;
-                        int z = map.GetAverageZ(x, y);
+                        var x = X + Utility.Random(3) - 1;
+                        var y = Y + Utility.Random(3) - 1;
+                        var z = map.GetAverageZ(x, y);
 
                         if (validLocation = map.CanFit(x, y, Z, 16, false, false))
                             loc = new Point3D(x, y, Z);
@@ -218,25 +193,45 @@ namespace Server.Mobiles
                 }
             }
         }
+
         #endregion
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
-
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             Instances = new List<MercutioTheUnsavory>();
             Instances.Add(this);
 
             Timer SelfDeleteTimer = new InternalSelfDeleteTimer(this);
             SelfDeleteTimer.Start();
+        }
+
+        public class InternalSelfDeleteTimer : Timer
+        {
+            private readonly MercutioTheUnsavory Mare;
+
+            public InternalSelfDeleteTimer(Mobile p) : base(TimeSpan.FromMinutes(60))
+            {
+                Priority = TimerPriority.FiveSeconds;
+                Mare = (MercutioTheUnsavory)p;
+            }
+
+            protected override void OnTick()
+            {
+                if (Mare.Map != Map.Internal)
+                {
+                    Mare.Delete();
+                    Stop();
+                }
+            }
         }
     }
 }

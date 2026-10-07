@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,8 +5,18 @@ namespace Server.Mobiles
     [CorpseName("a Ballem corpse")]
     public class Ballem : BaseVoidCreature
     {
-        public override VoidEvolution Evolution { get { return VoidEvolution.Killing; } }
-        public override int Stage { get { return 2; } }
+        public override VoidEvolution Evolution => VoidEvolution.Killing;
+        public override int Stage => 2;
+
+        public override Poison PoisonImmune => Poison.Lethal;
+
+        public override bool Unprovokable => true;
+
+        public override bool BardImmune => true;
+
+        public override bool CanRummageCorpses => true;
+
+        public override bool BleedImmune => true;
 
         [Constructable]
         public Ballem()
@@ -53,56 +62,16 @@ namespace Server.Mobiles
             SetWeaponAbility(WeaponAbility.CrushingBlow);
         }
 
-        public override void OnDeath(Container c)
-        {
-            base.OnDeath(c);
-
-            if (Utility.RandomDouble() < 0.10)
-            {
-                c.DropItem(new AncientPotteryFragments());
-            }
-        }
-
         public Ballem(Serial serial)
             : base(serial)
         {
         }
 
-        public override Poison PoisonImmune
+        public override void OnDeath(Container c)
         {
-            get
-            {
-                return Poison.Lethal;
-            }
-        }
-        public override bool Unprovokable
-        {
-            get
-            {
-                return true;
-            }
-        }
+            base.OnDeath(c);
 
-        public override bool BardImmune
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool CanRummageCorpses
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool BleedImmune
-        {
-            get
-            {
-                return true;
-            }
+            if (Utility.RandomDouble() < 0.10) c.DropItem(new AncientPotteryFragments());
         }
 
         public override void GenerateLoot()
@@ -114,13 +83,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -1,4 +1,3 @@
-using Server;
 using System;
 using Server.Items;
 using Server.Mobiles;
@@ -7,6 +6,9 @@ namespace Server.Engines.Shadowguard
 {
     public class ShadowguardPirate : BaseCreature
     {
+        public override bool AlwaysMurderer => true;
+        public bool BlockReflect { get; set; }
+
         public ShadowguardPirate() : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
         {
             Name = NameList.RandomName("male");
@@ -52,32 +54,29 @@ namespace Server.Engines.Shadowguard
             Utility.AssignRandomHair(this);
         }
 
+        public ShadowguardPirate(Serial serial) : base(serial)
+        {
+        }
+
         public override void GenerateLoot()
         {
             AddLoot(LootPack.Rich, 3);
         }
 
-        public override bool AlwaysMurderer { get { return true; } }
-        public bool BlockReflect { get; set; }
-
         public override int Damage(int amount, Mobile from, bool informMount, bool checkDisrupt)
         {
-            int dam = base.Damage(amount, from, informMount, checkDisrupt);
+            var dam = base.Damage(amount, from, informMount, checkDisrupt);
 
             if (!BlockReflect && from != null && dam > 0)
             {
                 BlockReflect = true;
-                AOS.Damage(from, this, Math.Max(1, (int)((double)dam * .37)), 0, 0, 0, 0, 0, 0, 100);
+                AOS.Damage(from, this, Math.Max(1, (int)(dam * .37)), 0, 0, 0, 0, 0, 0, 100);
                 BlockReflect = false;
-                
+
                 from.PlaySound(0x1F1);
             }
 
             return dam;
-        }
-
-        public ShadowguardPirate(Serial serial) : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -89,7 +88,7 @@ namespace Server.Engines.Shadowguard
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -115,13 +114,13 @@ namespace Server.Engines.Shadowguard
             BlockReflect = true;
         }
 
+        public ShantyThePirate(Serial serial) : base(serial)
+        {
+        }
+
         public override void GenerateLoot()
         {
             AddLoot(LootPack.FilthyRich, 3);
-        }
-
-        public ShantyThePirate(Serial serial) : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -133,7 +132,7 @@ namespace Server.Engines.Shadowguard
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             BlockReflect = true;
         }
@@ -141,7 +140,9 @@ namespace Server.Engines.Shadowguard
 
     public class VileWaterElemental : WaterElemental
     {
-        public override bool CanMoveOverObstacles { get { return false; } }
+        public override bool CanMoveOverObstacles => false;
+
+        public override bool DeleteCorpseOnDeath => true;
 
         [Constructable]
         public VileWaterElemental()
@@ -151,11 +152,13 @@ namespace Server.Engines.Shadowguard
             Body = 13;
         }
 
-        public override bool DeleteCorpseOnDeath { get { return true; } }
+        public VileWaterElemental(Serial serial) : base(serial)
+        {
+        }
 
         public override bool OnBeforeDeath()
         {
-            FountainEncounter encounter = ShadowguardController.GetEncounter(Location, Map) as FountainEncounter;
+            var encounter = ShadowguardController.GetEncounter(Location, Map) as FountainEncounter;
 
             if (encounter != null)
             {
@@ -167,10 +170,6 @@ namespace Server.Engines.Shadowguard
             return base.OnBeforeDeath();
         }
 
-        public VileWaterElemental(Serial serial) : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -180,13 +179,13 @@ namespace Server.Engines.Shadowguard
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class HurricaneElemental : VileWaterElemental
     {
-        public override bool CanMoveOverObstacles { get { return false; } }
+        public override bool CanMoveOverObstacles => false;
 
         [Constructable]
         public HurricaneElemental()
@@ -234,7 +233,7 @@ namespace Server.Engines.Shadowguard
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -265,6 +264,10 @@ namespace Server.Engines.Shadowguard
             SetWeaponAbility(WeaponAbility.ForceOfNature);
         }
 
+        public VileTreefellow(Serial serial) : base(serial)
+        {
+        }
+
         public override void OnGaveMeleeAttack(Mobile defender)
         {
             base.OnGaveMeleeAttack(defender);
@@ -273,6 +276,7 @@ namespace Server.Engines.Shadowguard
         }
 
         #region Paralyze
+
         private void Paralyze(Mobile defender)
         {
             defender.Paralyze(TimeSpan.FromSeconds(Utility.Random(3)));
@@ -282,15 +286,12 @@ namespace Server.Engines.Shadowguard
 
             defender.SendLocalizedMessage(1060164); // The attack has temporarily paralyzed you!
         }
+
         #endregion
 
         public override void GenerateLoot()
         {
             AddLoot(LootPack.Rich, 3);
-        }
-
-        public VileTreefellow(Serial serial) : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -302,7 +303,7 @@ namespace Server.Engines.Shadowguard
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -310,6 +311,8 @@ namespace Server.Engines.Shadowguard
     public class EnsorcelledArmor : BaseCreature
     {
         public ArmoryEncounter Encounter { get; set; }
+
+        public override bool AlwaysMurderer => true;
 
         [Constructable]
         public EnsorcelledArmor() : this(null)
@@ -381,7 +384,9 @@ namespace Server.Engines.Shadowguard
             Karma = -8500;
         }
 
-        public override bool AlwaysMurderer { get { return true; } }
+        public EnsorcelledArmor(Serial serial) : base(serial)
+        {
+        }
 
         public override bool OnBeforeDeath()
         {
@@ -399,10 +404,6 @@ namespace Server.Engines.Shadowguard
             AddLoot(LootPack.Rich, 3);
         }
 
-        public EnsorcelledArmor(Serial serial) : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -412,7 +413,7 @@ namespace Server.Engines.Shadowguard
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -438,14 +439,15 @@ namespace Server.Engines.Shadowguard
             SetWeaponAbility(WeaponAbility.TalonStrike);
         }
 
+        public VileDrake(Serial serial) : base(serial)
+        {
+        }
+
         public override void OnDeath(Container c)
         {
-            BelfryEncounter encounter = ShadowguardController.GetEncounter(c.Location, c.Map) as BelfryEncounter;
+            var encounter = ShadowguardController.GetEncounter(c.Location, c.Map) as BelfryEncounter;
 
-            if (encounter != null)
-            {
-                c.DropItem(new MagicDrakeWing());
-            }
+            if (encounter != null) c.DropItem(new MagicDrakeWing());
 
             base.OnDeath(c);
         }
@@ -453,10 +455,6 @@ namespace Server.Engines.Shadowguard
         public override void GenerateLoot()
         {
             AddLoot(LootPack.Rich, 3);
-        }
-
-        public VileDrake(Serial serial) : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -468,12 +466,14 @@ namespace Server.Engines.Shadowguard
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class ShadowguardGreaterDragon : GreaterDragon
     {
+        public override double TeleportChance => 0;
+
         public ShadowguardGreaterDragon()
         {
             Tamable = false;
@@ -493,17 +493,20 @@ namespace Server.Engines.Shadowguard
             SetSkill(SkillName.Parry, 120.0);
         }
 
-        public override double TeleportChance { get { return 0; } }
+        public ShadowguardGreaterDragon(Serial serial)
+            : base(serial)
+        {
+        }
 
         public override void OnThink()
         {
             base.OnThink();
 
-            BelfryEncounter encounter = ShadowguardController.GetEncounter(Location, Map) as BelfryEncounter;
+            var encounter = ShadowguardController.GetEncounter(Location, Map) as BelfryEncounter;
 
             if (encounter != null && Z == -20)
             {
-                Point3D p = encounter.SpawnPoints[0];
+                var p = encounter.SpawnPoints[0];
                 encounter.ConvertOffset(ref p);
 
                 MoveToWorld(p, Map);
@@ -514,29 +517,25 @@ namespace Server.Engines.Shadowguard
         {
             if (ShadowguardController.GetEncounter(Location, Map) != null)
             {
-                int x = X;
-                int y = Y;
+                var x = X;
+                var y = Y;
 
                 Movement.Movement.Offset(d, ref x, ref y);
 
-                Point3D p = new Point3D(x, y, Map.GetAverageZ(x, y));
-                int z = p.Z;
+                var p = new Point3D(x, y, Map.GetAverageZ(x, y));
+                var z = p.Z;
 
                 IPooledEnumerable eable = Map.GetItemsInRange(p, 0);
 
                 foreach (Item item in eable)
-                {
                     if (item.Z + item.ItemData.CalcHeight > z)
-                    {
                         z = item.Z + item.ItemData.CalcHeight;
-                    }
-                }
 
-                StaticTile[] staticTiles = Map.Tiles.GetStaticTiles(x, y, true);
+                var staticTiles = Map.Tiles.GetStaticTiles(x, y, true);
 
-                foreach (StaticTile tile in staticTiles)
+                foreach (var tile in staticTiles)
                 {
-                    ItemData itemData = TileData.ItemTable[tile.ID & TileData.MaxItemValue];
+                    var itemData = TileData.ItemTable[tile.ID & TileData.MaxItemValue];
 
                     if (tile.Z + itemData.CalcHeight > z)
                         z = tile.Z + itemData.CalcHeight;
@@ -554,9 +553,7 @@ namespace Server.Engines.Shadowguard
         public override int Damage(int amount, Mobile from, bool informmount, bool checkfizzle)
         {
             if (from == null || (ShadowguardController.GetEncounter(Location, Map) != null && Z == from.Z))
-            {
                 return base.Damage(amount, from, informmount, checkfizzle);
-            }
 
             return 0;
         }
@@ -573,36 +570,29 @@ namespace Server.Engines.Shadowguard
 
             if (Map != null && 0.5 > Utility.RandomDouble())
             {
-                int pushRange = Utility.RandomMinMax(2, 4);
+                var pushRange = Utility.RandomMinMax(2, 4);
 
-                Direction d = Utility.GetDirection(this, defender);
-                int x = defender.X;
-                int y = defender.Y;
+                var d = Utility.GetDirection(this, defender);
+                var x = defender.X;
+                var y = defender.Y;
 
-                for (int i = 0; i < pushRange; i++)
-                {
-                    Movement.Movement.Offset(d, ref x, ref y);
-                }
+                for (var i = 0; i < pushRange; i++) Movement.Movement.Offset(d, ref x, ref y);
 
-                int z = Map.GetAverageZ(x, y);
+                var z = Map.GetAverageZ(x, y);
 
                 IPooledEnumerable eable = Map.GetItemsInRange(new Point3D(x, y, z), 0);
 
                 foreach (Item item in eable)
-                {
                     if (item.Z + item.ItemData.CalcHeight > z)
-                    {
                         z = item.Z + item.ItemData.CalcHeight;
-                    }
-                }
 
                 eable.Free();
 
-                StaticTile[] staticTiles = Map.Tiles.GetStaticTiles(x, y, true);
+                var staticTiles = Map.Tiles.GetStaticTiles(x, y, true);
 
-                foreach (StaticTile tile in staticTiles)
+                foreach (var tile in staticTiles)
                 {
-                    ItemData itemData = TileData.ItemTable[tile.ID & TileData.MaxItemValue];
+                    var itemData = TileData.ItemTable[tile.ID & TileData.MaxItemValue];
 
                     if (tile.Z + itemData.CalcHeight > z)
                         z = tile.Z + itemData.CalcHeight;
@@ -610,11 +600,6 @@ namespace Server.Engines.Shadowguard
 
                 defender.MoveToWorld(new Point3D(x, y, Z), Map);
             }
-        }
-
-        public ShadowguardGreaterDragon(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -626,12 +611,15 @@ namespace Server.Engines.Shadowguard
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class LadyMinax : BaseCreature
     {
+        public override bool AlwaysMurderer => true;
+        public override double TeleportChance => 0;
+
         public LadyMinax()
             : base(AIType.AI_Mage, FightMode.Closest, 10, 1, 0.2, 0.4)
         {
@@ -675,24 +663,26 @@ namespace Server.Engines.Shadowguard
             SetWearable(new LeatherGloves(), 1157);
         }
 
-        public override bool AlwaysMurderer { get { return true; } }
-        public override double TeleportChance { get { return 0; } }
+        public LadyMinax(Serial serial)
+            : base(serial)
+        {
+        }
 
         protected override bool OnMove(Direction d)
         {
-            RoofEncounter encounter = ShadowguardController.GetEncounter(Location, Map) as RoofEncounter;
+            var encounter = ShadowguardController.GetEncounter(Location, Map) as RoofEncounter;
 
             if (encounter != null)
             {
-                Point3D spawn = encounter.SpawnPoints[0];
+                var spawn = encounter.SpawnPoints[0];
 
-                int x = X;
-                int y = Y;
+                var x = X;
+                var y = Y;
 
                 Movement.Movement.Offset(d, ref x, ref y);
 
-                Point3D p = new Point3D(x, y, Map.GetAverageZ(x, y));
-                int z = p.Z;
+                var p = new Point3D(x, y, Map.GetAverageZ(x, y));
+                var z = p.Z;
 
                 if (p.Y < spawn.Y - 5 || p.Y > spawn.Y + 4 || p.X > spawn.X + 4 || p.X < spawn.X - 5)
                     return false;
@@ -701,19 +691,17 @@ namespace Server.Engines.Shadowguard
                 Item i = null;
 
                 foreach (Item item in eable)
-                {
                     if (item.Z + item.ItemData.CalcHeight > z)
                     {
                         i = item;
                         z = item.Z + item.ItemData.CalcHeight;
                     }
-                }
 
-                StaticTile[] staticTiles = Map.Tiles.GetStaticTiles(x, y, true);
+                var staticTiles = Map.Tiles.GetStaticTiles(x, y, true);
 
-                foreach (StaticTile tile in staticTiles)
+                foreach (var tile in staticTiles)
                 {
-                    ItemData itemData = TileData.ItemTable[tile.ID & TileData.MaxItemValue];
+                    var itemData = TileData.ItemTable[tile.ID & TileData.MaxItemValue];
 
                     if (tile.Z + itemData.CalcHeight > z)
                         z = tile.Z + itemData.CalcHeight;
@@ -732,37 +720,31 @@ namespace Server.Engines.Shadowguard
         {
             base.OnThink();
 
-            RoofEncounter encounter = ShadowguardController.GetEncounter(Location, Map) as RoofEncounter;
+            var encounter = ShadowguardController.GetEncounter(Location, Map) as RoofEncounter;
 
             if (encounter != null)
             {
-                Point3D spawn = encounter.SpawnPoints[0];
-                Point3D p = Location;
+                var spawn = encounter.SpawnPoints[0];
+                var p = Location;
                 encounter.ConvertOffset(ref spawn);
 
                 if (Z < 30 || p.Y < spawn.Y - 5 || p.Y > spawn.Y + 4 || p.X > spawn.X + 4 || p.X < spawn.X - 5)
-                {
                     MoveToWorld(spawn, Map.TerMur);
-                }
             }
         }
 
         public override int Damage(int amount, Mobile from, bool informMount, bool checkfizzle)
         {
-            RoofEncounter encounter = ShadowguardController.GetEncounter(Location, Map) as RoofEncounter;
+            var encounter = ShadowguardController.GetEncounter(Location, Map) as RoofEncounter;
 
             if (encounter != null && from != null)
             {
-                from.SendLocalizedMessage(1156254); // Minax laughs as she deflects your puny attacks! Defeat her minions to close the Time Gate!
+                from.SendLocalizedMessage(
+                    1156254); // Minax laughs as she deflects your puny attacks! Defeat her minions to close the Time Gate!
                 return 0;
             }
 
             return base.Damage(amount, from, informMount, checkfizzle);
-        }
-
-        public LadyMinax(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -774,7 +756,7 @@ namespace Server.Engines.Shadowguard
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

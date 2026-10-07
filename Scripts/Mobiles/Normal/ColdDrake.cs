@@ -1,5 +1,3 @@
-using System;
-using Server;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -7,6 +5,15 @@ namespace Server.Mobiles
     [CorpseName("a drake corpse")]
     public class ColdDrake : BaseCreature, IAuraCreature
     {
+        public override bool CanAngerOnTame => true;
+        public override bool ReacquireOnMovement => !Controlled;
+        public override int TreasureMapLevel => 3;
+        public override int Meat => 10;
+        public override int Hides => 22;
+        public override HideType HideType => HideType.Horned;
+        public override int DragonBlood => 8;
+        public override FoodType FavoriteFood => FoodType.Fish;
+
         [Constructable]
         public ColdDrake() : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
         {
@@ -50,7 +57,7 @@ namespace Server.Mobiles
 
             PackReg(3);
 
-            for (int i = 0; i <= 1; i++)
+            for (var i = 0; i <= 1; i++)
             {
                 Item item;
 
@@ -66,19 +73,9 @@ namespace Server.Mobiles
             SetAreaEffect(AreaEffect.AuraDamage);
         }
 
-        public override void GenerateLoot()
+        public ColdDrake(Serial serial) : base(serial)
         {
-            AddLoot(LootPack.FilthyRich, 3);
         }
-
-        public override bool CanAngerOnTame { get { return true; } }
-        public override bool ReacquireOnMovement { get { return !Controlled; } }
-		public override int TreasureMapLevel { get { return 3; } }
-        public override int Meat { get { return 10; } }
-        public override int Hides { get { return 22; } }
-        public override HideType HideType { get { return HideType.Horned; } }
-        public override int DragonBlood { get { return 8; } }
-        public override FoodType FavoriteFood { get { return FoodType.Fish; } }
 
         public virtual void AuraEffect(Mobile m)
         {
@@ -88,20 +85,21 @@ namespace Server.Mobiles
             m.SendLocalizedMessage(1008111, false, Name); //  : The intense cold is damaging you!
         }
 
-        public ColdDrake(Serial serial) : base(serial)
+        public override void GenerateLoot()
         {
+            AddLoot(LootPack.FilthyRich, 3);
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

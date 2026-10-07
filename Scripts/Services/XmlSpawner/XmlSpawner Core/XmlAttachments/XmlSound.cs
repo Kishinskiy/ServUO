@@ -1,233 +1,207 @@
 using System;
-using Server;
-using Server.Items;
-using Server.Network;
-using Server.Mobiles;
 
 namespace Server.Engines.XmlSpawner2
 {
-	public class XmlSound : XmlAttachment
-	{
-		private int m_SoundValue = 500;    // default sound
-		private string m_Word = null;     // no word activation by default
-		private TimeSpan m_Refractory = TimeSpan.FromSeconds(5);    // 5 seconds default time between activations
-		private DateTime m_EndTime;
-		private int m_Charges = 0;                        // no charge limit
-		private int proximityrange = 5;                 // default movement activation from 5 tiles away
+    public class XmlSound : XmlAttachment
+    {
+        private DateTime m_EndTime;
 
-		[CommandProperty( AccessLevel.GameMaster )]
-		public int Range { get { return proximityrange; } set { proximityrange  = value; } }
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int Range { get; set; } = 5;
 
-		[CommandProperty( AccessLevel.GameMaster )]
-		public int SoundValue { get { return m_SoundValue; } set { m_SoundValue  = value; } }
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int SoundValue { get; set; } = 500;
 
-		[CommandProperty( AccessLevel.GameMaster )]
-		public string ActivationWord { get { return m_Word; } set { m_Word  = value; } }
+        [CommandProperty(AccessLevel.GameMaster)]
+        public string ActivationWord { get; set; }
 
-		[CommandProperty( AccessLevel.GameMaster )]
-		public int Charges { get { return m_Charges; } set { m_Charges  = value; } }
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int Charges { get; set; }
 
-		[CommandProperty( AccessLevel.GameMaster )]
-		public TimeSpan Refractory { get { return m_Refractory; } set { m_Refractory  = value; } }
+        [CommandProperty(AccessLevel.GameMaster)]
+        public TimeSpan Refractory { get; set; } = TimeSpan.FromSeconds(5);
 
-		// These are the various ways in which the message attachment can be constructed.
-		// These can be called via the [addatt interface, via scripts, via the spawner ATTACH keyword.
-		// Other overloads could be defined to handle other types of arguments
+        public override bool HandlesOnSpeech => ActivationWord != null;
 
-		// a serial constructor is REQUIRED
-		public XmlSound(ASerial serial) : base(serial)
-		{
-		}
+        public override bool HandlesOnMovement => ActivationWord == null;
 
-		[Attachable]
-		public XmlSound()
-		{
-		}
+        // These are the various ways in which the message attachment can be constructed.
+        // These can be called via the [addatt interface, via scripts, via the spawner ATTACH keyword.
+        // Other overloads could be defined to handle other types of arguments
 
-		[Attachable]
-		public XmlSound(int sound)
-		{
-			SoundValue = sound;
-		}
+        // a serial constructor is REQUIRED
+        public XmlSound(ASerial serial) : base(serial)
+        {
+        }
 
-		[Attachable]
-		public XmlSound(int sound, double refractory)
-		{
-			SoundValue = sound;
-			Refractory = TimeSpan.FromSeconds(refractory);
-		}
+        [Attachable]
+        public XmlSound()
+        {
+        }
 
-		[Attachable]
-		public XmlSound(int sound, double refractory, string word )
-		{
-			ActivationWord = word;
-			SoundValue = sound;
-			Refractory = TimeSpan.FromSeconds(refractory);
-		}
-        
-		[Attachable]
-		public XmlSound(int sound, double refractory, string word, int charges )
-		{
-			ActivationWord = word;
-			SoundValue = sound;
-			Refractory = TimeSpan.FromSeconds(refractory);
-			Charges = charges;
-		}
-        
-		[Attachable]
-		public XmlSound(int sound, double refractory, int charges )
-		{
-			SoundValue = sound;
-			Refractory = TimeSpan.FromSeconds(refractory);
-			Charges = charges;
-		}
+        [Attachable]
+        public XmlSound(int sound)
+        {
+            SoundValue = sound;
+        }
 
-		public override void Serialize( GenericWriter writer )
-		{
-			base.Serialize(writer);
+        [Attachable]
+        public XmlSound(int sound, double refractory)
+        {
+            SoundValue = sound;
+            Refractory = TimeSpan.FromSeconds(refractory);
+        }
 
-			writer.Write( (int) 1 );
-			// version 1
-			writer.Write(proximityrange);
-			// version 0
-			writer.Write(m_SoundValue);
-			writer.Write(m_Word);
-			writer.Write(m_Charges);
-			writer.Write(m_Refractory);
-			writer.Write(m_EndTime - DateTime.UtcNow);
-		}
+        [Attachable]
+        public XmlSound(int sound, double refractory, string word)
+        {
+            ActivationWord = word;
+            SoundValue = sound;
+            Refractory = TimeSpan.FromSeconds(refractory);
+        }
 
-		public override void Deserialize(GenericReader reader)
-		{
-			base.Deserialize(reader);
+        [Attachable]
+        public XmlSound(int sound, double refractory, string word, int charges)
+        {
+            ActivationWord = word;
+            SoundValue = sound;
+            Refractory = TimeSpan.FromSeconds(refractory);
+            Charges = charges;
+        }
 
-			int version = reader.ReadInt();
-			switch(version)
-			{
-				case 1:
-					// version 1
-					proximityrange = reader.ReadInt();
-					goto case 0;
-				case 0:
-					// version 0
-					SoundValue = reader.ReadInt();
-					ActivationWord = reader.ReadString();
-					Charges = reader.ReadInt();
-					Refractory = reader.ReadTimeSpan();
-					TimeSpan remaining = reader.ReadTimeSpan();
-					m_EndTime = DateTime.UtcNow + remaining;
-					break;
-			}
-		}
+        [Attachable]
+        public XmlSound(int sound, double refractory, int charges)
+        {
+            SoundValue = sound;
+            Refractory = TimeSpan.FromSeconds(refractory);
+            Charges = charges;
+        }
 
-		public override string OnIdentify(Mobile from)
-		{
-			if(from == null || from.AccessLevel == AccessLevel.Player) return null;
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
 
-			string msg = null;
+            writer.Write(1);
+            // version 1
+            writer.Write(Range);
+            // version 0
+            writer.Write(SoundValue);
+            writer.Write(ActivationWord);
+            writer.Write(Charges);
+            writer.Write(Refractory);
+            writer.Write(m_EndTime - DateTime.UtcNow);
+        }
 
-			if(Charges > 0)
-			{
-				msg = String.Format("Sound #{0} : {1} secs between uses - {2} charges left",SoundValue,Refractory.TotalSeconds, Charges);
-			} 
-			else
-			{
-				msg = String.Format("Sound #{0} : {1} secs between uses",SoundValue,Refractory.TotalSeconds);
-			}
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
 
-			if(ActivationWord == null)
-			{
-				return msg;
-			} 
-			else
-			{
-				return String.Format("{0} : trigger on '{1}'",msg, ActivationWord);
-			}
+            var version = reader.ReadInt();
+            switch (version)
+            {
+                case 1:
+                    // version 1
+                    Range = reader.ReadInt();
+                    goto case 0;
+                case 0:
+                    // version 0
+                    SoundValue = reader.ReadInt();
+                    ActivationWord = reader.ReadString();
+                    Charges = reader.ReadInt();
+                    Refractory = reader.ReadTimeSpan();
+                    var remaining = reader.ReadTimeSpan();
+                    m_EndTime = DateTime.UtcNow + remaining;
+                    break;
+            }
+        }
 
-		}
+        public override string OnIdentify(Mobile from)
+        {
+            if (from == null || from.AccessLevel == AccessLevel.Player) return null;
 
-		public override bool HandlesOnSpeech { get { return (ActivationWord != null); } }
+            string msg = null;
 
-		public override void OnSpeech(SpeechEventArgs e )
-		{
-			base.OnSpeech(e);
-		    
-			if(e.Mobile == null || e.Mobile.AccessLevel > AccessLevel.Player) return;
+            if (Charges > 0)
+                msg = string.Format("Sound #{0} : {1} secs between uses - {2} charges left", SoundValue,
+                    Refractory.TotalSeconds, Charges);
+            else
+                msg = string.Format("Sound #{0} : {1} secs between uses", SoundValue, Refractory.TotalSeconds);
 
-			if(e.Speech == ActivationWord)
-			{
-				OnTrigger(null, e.Mobile);
-			}
-		}
+            if (ActivationWord == null) return msg;
 
-		public override bool HandlesOnMovement { get { return (ActivationWord == null); } }
+            return string.Format("{0} : trigger on '{1}'", msg, ActivationWord);
+        }
 
-		public override void OnMovement(MovementEventArgs e )
-		{
-			base.OnMovement(e);
+        public override void OnSpeech(SpeechEventArgs e)
+        {
+            base.OnSpeech(e);
 
-			if(e.Mobile == null || e.Mobile.AccessLevel > AccessLevel.Player) return;
+            if (e.Mobile == null || e.Mobile.AccessLevel > AccessLevel.Player) return;
 
-			if(AttachedTo is Item && (((Item)AttachedTo).Parent == null) && Utility.InRange( e.Mobile.Location, ((Item)AttachedTo).Location, proximityrange ))
-			{
-				OnTrigger(null, e.Mobile);
-			} 
-			else
-				return;
-		}
+            if (e.Speech == ActivationWord) OnTrigger(null, e.Mobile);
+        }
+
+        public override void OnMovement(MovementEventArgs e)
+        {
+            base.OnMovement(e);
+
+            if (e.Mobile == null || e.Mobile.AccessLevel > AccessLevel.Player) return;
+
+            if (AttachedTo is Item && ((Item)AttachedTo).Parent == null &&
+                Utility.InRange(e.Mobile.Location, ((Item)AttachedTo).Location, Range))
+                OnTrigger(null, e.Mobile);
+            else
+                return;
+        }
 
 
-		public override void OnTrigger(object activator, Mobile m)
-		{
-			if(m == null ) return;
+        public override void OnTrigger(object activator, Mobile m)
+        {
+            if (m == null) return;
 
-			if(DateTime.UtcNow < m_EndTime) return;
+            if (DateTime.UtcNow < m_EndTime) return;
 
 
-			// play a sound
-			if(AttachedTo is Mobile )
-			{
-				try
-				{
-					Effects.PlaySound(((Mobile)AttachedTo).Location, ((IEntity)AttachedTo).Map,  SoundValue);
-				} 
-				catch{}
-			} 
-			else
-				if(AttachedTo is Item )
-			{
-				Item i = AttachedTo as Item;
+            // play a sound
+            if (AttachedTo is Mobile)
+            {
+                try
+                {
+                    Effects.PlaySound(((Mobile)AttachedTo).Location, ((IEntity)AttachedTo).Map, SoundValue);
+                }
+                catch
+                {
+                }
+            }
+            else if (AttachedTo is Item)
+            {
+                var i = AttachedTo as Item;
 
-				if(i.Parent == null)
-				{
-					try
-					{
-						Effects.PlaySound(i.Location, i.Map,  SoundValue);
-					} 
-					catch{}
-				} 
-				else
-					if(i.RootParent is IEntity)
-				{
-					try
-					{
-						Effects.PlaySound(((IEntity)i.RootParent).Location, ((IEntity)i.RootParent).Map,  SoundValue);
-					} 
-					catch{}
-				}
-			}
+                if (i.Parent == null)
+                    try
+                    {
+                        Effects.PlaySound(i.Location, i.Map, SoundValue);
+                    }
+                    catch
+                    {
+                    }
+                else if (i.RootParent is IEntity)
+                    try
+                    {
+                        Effects.PlaySound(((IEntity)i.RootParent).Location, ((IEntity)i.RootParent).Map, SoundValue);
+                    }
+                    catch
+                    {
+                    }
+            }
 
-			Charges--;
+            Charges--;
 
-			// remove the attachment either after the charges run out or if refractory is zero, then it is one use only
-			if(Refractory == TimeSpan.Zero || Charges == 0)
-			{
-				Delete();
-			} 
-			else
-			{
-				m_EndTime = DateTime.UtcNow + Refractory;
-			}
-		}
-	}
+            // remove the attachment either after the charges run out or if refractory is zero, then it is one use only
+            if (Refractory == TimeSpan.Zero || Charges == 0)
+                Delete();
+            else
+                m_EndTime = DateTime.UtcNow + Refractory;
+        }
+    }
 }

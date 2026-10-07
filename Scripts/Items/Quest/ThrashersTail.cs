@@ -1,15 +1,15 @@
-using System;
-
 namespace Server.Items
 {
     public class ThrashersTail : Item
     {
+        public override int LabelNumber => 1074230; // Thrasher's Tail
+
         [Constructable]
         public ThrashersTail()
             : base(0x1A9D)
         {
-            this.LootType = LootType.Blessed;
-            this.Hue = 0x455;
+            LootType = LootType.Blessed;
+            Hue = 0x455;
         }
 
         public ThrashersTail(Serial serial)
@@ -17,25 +17,18 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1074230;
-            }
-        }// Thrasher's Tail
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

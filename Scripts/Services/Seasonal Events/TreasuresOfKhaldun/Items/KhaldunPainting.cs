@@ -1,11 +1,9 @@
-using System;
-
 namespace Server.Items
 {
     [FlipableAttribute(0xA1DE, 0xA1DF)]
     public class ZombiePainting : Item
     {
-        public override int LabelNumber { get { return 1023744; } } // painting
+        public override int LabelNumber => 1023744; // painting
 
         [Constructable]
         public ZombiePainting()
@@ -22,20 +20,20 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     [FlipableAttribute(0xA1E0, 0xA1E1)]
     public class SkeletonPortrait : Item
     {
-        public override int LabelNumber { get { return 1023744; } } // painting
+        public override int LabelNumber => 1023744; // painting
 
         [Constructable]
         public SkeletonPortrait()
@@ -52,20 +50,20 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     [FlipableAttribute(0xA1E2, 0xA1E3)]
     public class LichPainting : Item
     {
-        public override int LabelNumber { get { return 1023744; } } // painting
+        public override int LabelNumber => 1023744; // painting
 
         [Constructable]
         public LichPainting()
@@ -76,19 +74,19 @@ namespace Server.Items
 
         public LichPainting(Serial serial)
             : base(serial)
-        {            
+        {
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

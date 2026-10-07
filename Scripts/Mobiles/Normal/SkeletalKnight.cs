@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +5,12 @@ namespace Server.Mobiles
     [CorpseName("a skeletal corpse")]
     public class SkeletalKnight : BaseCreature
     {
+        public override bool BleedImmune => true;
+
+        public override TribeType Tribe => TribeType.Undead;
+
+        public override OppositionGroup OppositionGroup => OppositionGroup.FeyAndUndead;
+
         [Constructable]
         public SkeletalKnight()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -40,7 +45,7 @@ namespace Server.Mobiles
 
             VirtualArmor = 40;
 
-            switch ( Utility.Random(6) )
+            switch (Utility.Random(6))
             {
                 case 0:
                     PackItem(new PlateArms());
@@ -71,23 +76,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool BleedImmune
-        {
-            get
-            {
-                return true;
-            }
-        }
-
-        public override TribeType Tribe { get { return TribeType.Undead; } }
-
-        public override OppositionGroup OppositionGroup
-        {
-            get
-            {
-                return OppositionGroup.FeyAndUndead;
-            }
-        }
         public override void GenerateLoot()
         {
             AddLoot(LootPack.Average);
@@ -97,13 +85,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

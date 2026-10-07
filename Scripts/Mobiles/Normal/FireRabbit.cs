@@ -5,6 +5,9 @@ namespace Server.Mobiles
     [CorpseName("a hare corpse")]
     public class FireRabbit : VorpalBunny
     {
+        public override bool IsScaryToPets => true;
+        public override bool BardImmune => true;
+
         [Constructable]
         public FireRabbit()
         {
@@ -42,9 +45,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool IsScaryToPets { get { return true; } }
-        public override bool BardImmune { get { return true; } }
-		
         public override void OnDeath(Container c)
         {
             base.OnDeath(c);
@@ -63,14 +63,14 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

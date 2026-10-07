@@ -1,10 +1,9 @@
-﻿using Server;
-using System;
-
-namespace Server.Mobiles
+﻿namespace Server.Mobiles
 {
     public class SoulboundSpellSlinger : EvilMageLord
     {
+        public override int TreasureMapLevel => 3;
+
         [Constructable]
         public SoulboundSpellSlinger()
         {
@@ -39,28 +38,26 @@ namespace Server.Mobiles
             Karma = -3000;
         }
 
-		public override int TreasureMapLevel { get { return 3; } }
+        public SoulboundSpellSlinger(Serial serial)
+            : base(serial)
+        {
+        }
 
         public override void GenerateLoot()
         {
             AddLoot(LootPack.FilthyRich, 1);
         }
 
-        public SoulboundSpellSlinger(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -1,12 +1,10 @@
-using System;
-
 namespace Server.Items
 {
     public class SecretStoneDoor1 : BaseDoor
     {
         [Constructable]
         public SecretStoneDoor1(DoorFacing facing)
-            : base(0xE8 + (2 * (int)facing), 0xE9 + (2 * (int)facing), 0xED, 0xF4, BaseDoor.GetOffset(facing))
+            : base(0xE8 + 2 * (int)facing, 0xE9 + 2 * (int)facing, 0xED, 0xF4, GetOffset(facing))
         {
         }
 
@@ -19,14 +17,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader) // Default Deserialize method
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -34,7 +32,7 @@ namespace Server.Items
     {
         [Constructable]
         public SecretDungeonDoor(DoorFacing facing)
-            : base(0x314 + (2 * (int)facing), 0x315 + (2 * (int)facing), 0xED, 0xF4, BaseDoor.GetOffset(facing))
+            : base(0x314 + 2 * (int)facing, 0x315 + 2 * (int)facing, 0xED, 0xF4, GetOffset(facing))
         {
         }
 
@@ -47,14 +45,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader) // Default Deserialize method
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -62,7 +60,7 @@ namespace Server.Items
     {
         [Constructable]
         public SecretStoneDoor2(DoorFacing facing)
-            : base(0x324 + (2 * (int)facing), 0x325 + (2 * (int)facing), 0xED, 0xF4, BaseDoor.GetOffset(facing))
+            : base(0x324 + 2 * (int)facing, 0x325 + 2 * (int)facing, 0xED, 0xF4, GetOffset(facing))
         {
         }
 
@@ -75,14 +73,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader) // Default Deserialize method
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -90,7 +88,7 @@ namespace Server.Items
     {
         [Constructable]
         public SecretWoodenDoor(DoorFacing facing)
-            : base(0x334 + (2 * (int)facing), 0x335 + (2 * (int)facing), 0xED, 0xF4, BaseDoor.GetOffset(facing))
+            : base(0x334 + 2 * (int)facing, 0x335 + 2 * (int)facing, 0xED, 0xF4, GetOffset(facing))
         {
         }
 
@@ -103,14 +101,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader) // Default Deserialize method
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -118,7 +116,7 @@ namespace Server.Items
     {
         [Constructable]
         public SecretLightWoodDoor(DoorFacing facing)
-            : base(0x344 + (2 * (int)facing), 0x345 + (2 * (int)facing), 0xED, 0xF4, BaseDoor.GetOffset(facing))
+            : base(0x344 + 2 * (int)facing, 0x345 + 2 * (int)facing, 0xED, 0xF4, GetOffset(facing))
         {
         }
 
@@ -131,14 +129,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader) // Default Deserialize method
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -146,7 +144,7 @@ namespace Server.Items
     {
         [Constructable]
         public SecretStoneDoor3(DoorFacing facing)
-            : base(0x354 + (2 * (int)facing), 0x355 + (2 * (int)facing), 0xED, 0xF4, BaseDoor.GetOffset(facing))
+            : base(0x354 + 2 * (int)facing, 0x355 + 2 * (int)facing, 0xED, 0xF4, GetOffset(facing))
         {
         }
 
@@ -159,14 +157,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader) // Default Deserialize method
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

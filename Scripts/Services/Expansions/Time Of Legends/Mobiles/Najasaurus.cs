@@ -1,12 +1,14 @@
-using System;
-using Server;
-
 namespace Server.Mobiles
 {
     [CorpseName("a najasaurus corpse")]
     public class Najasaurus : BaseCreature
     {
-        public override bool AttacksFocus { get { return !Controlled; } }
+        public override bool AttacksFocus => !Controlled;
+
+        public override Poison HitPoison => Poison.Lethal;
+        public override Poison PoisonImmune => Poison.Lethal;
+        public override bool CanAngerOnTame => true;
+        public override int TreasureMapLevel => 2;
 
         [Constructable]
         public Najasaurus()
@@ -46,19 +48,14 @@ namespace Server.Mobiles
             MinTameSkill = 102.0;
         }
 
-        public override Poison HitPoison { get { return Poison.Lethal; } }
-        public override Poison PoisonImmune { get { return Poison.Lethal; } }
-        public override bool CanAngerOnTame { get { return true; } }
-        public override int TreasureMapLevel { get { return 2; } }
+        public Najasaurus(Serial serial)
+            : base(serial)
+        {
+        }
 
         public override void GenerateLoot()
         {
             AddLoot(LootPack.FilthyRich);
-        }
-
-        public Najasaurus(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -70,12 +67,9 @@ namespace Server.Mobiles
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            if (version == 0)
-            {
-                SetMagicalAbility(MagicalAbility.Poisoning);
-            }
+            if (version == 0) SetMagicalAbility(MagicalAbility.Poisoning);
         }
     }
 }

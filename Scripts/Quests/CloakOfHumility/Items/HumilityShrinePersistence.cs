@@ -1,12 +1,28 @@
-using System;
 using Server.Items;
 using Server.Mobiles;
-using System.Collections.Generic;
-using Server.Gumps;
+
 namespace Server.Engines.Quests
 {
     public class HumilityShrinePersistence : Item
     {
+        private static HumilityShrinePersistence m_TramInstance;
+        private static HumilityShrinePersistence m_FelInstance;
+
+        private Rectangle2D m_Rec = new Rectangle2D(4273, 3696, 2, 2);
+
+        public override bool HandlesOnMovement => true;
+
+        [Constructable]
+        public HumilityShrinePersistence() : base(219)
+        {
+            Movable = false;
+        }
+
+        public HumilityShrinePersistence(Serial serial)
+            : base(serial)
+        {
+        }
+
         public static void Initialize()
         {
             if (Core.ML)
@@ -27,31 +43,19 @@ namespace Server.Engines.Quests
             }
         }
 
-        private static HumilityShrinePersistence m_TramInstance;
-        private static HumilityShrinePersistence m_FelInstance;
-
-        [Constructable]
-        public HumilityShrinePersistence() : base(219)
-        {
-            Movable = false;
-        }
-
-        private Rectangle2D m_Rec = new Rectangle2D(4273, 3696, 2, 2);
-
-        public override bool HandlesOnMovement { get { return true; } }
-
         public override void OnMovement(Mobile m, Point3D oldLocation)
         {
             if (m is PlayerMobile && m_Rec.Contains(m) && m.Backpack != null)
             {
-                Item item = m.Backpack.FindItemByType(typeof(GreyCloak));
+                var item = m.Backpack.FindItemByType(typeof(GreyCloak));
 
                 if (item == null)
                     item = m.FindItemOnLayer(Layer.Cloak);
 
                 if (item != null && item is GreyCloak && ((GreyCloak)item).Owner == m)
                 {
-                    m.SendLocalizedMessage(1075897); // As you near the shrine a strange energy envelops you. Suddenly, your cloak is transformed into the Cloak of Humility!
+                    m.SendLocalizedMessage(
+                        1075897); // As you near the shrine a strange energy envelops you. Suddenly, your cloak is transformed into the Cloak of Humility!
 
                     m.Backpack.DropItem(new HumilityCloak());
                     item.Delete();
@@ -59,23 +63,18 @@ namespace Server.Engines.Quests
             }
         }
 
-        public HumilityShrinePersistence(Serial serial)
-            : base(serial)
-        {
-        }
- 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (Map == Map.Trammel)
                 m_TramInstance = this;

@@ -1,10 +1,14 @@
-using System;
-
 namespace Server.Mobiles
 {
     [CorpseName("a phoenix corpse")]
     public class Phoenix : BaseCreature, IAuraCreature
     {
+        public override bool CanAngerOnTame => true;
+        public override int Meat => 1;
+        public override MeatType MeatType => MeatType.Bird;
+        public override int Feathers => 36;
+        public override bool CanFly => true;
+
         [Constructable]
         public Phoenix()
             : base(AIType.AI_Mage, FightMode.Aggressor, 10, 1, 0.2, 0.4)
@@ -54,12 +58,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool CanAngerOnTame { get { return true; } }
-        public override int Meat { get { return 1; } }
-        public override MeatType MeatType { get { return MeatType.Bird; } }
-        public override int Feathers { get { return 36; } }
-        public override bool CanFly { get { return true; } }
-
         public void AuraEffect(Mobile m)
         {
             m.SendLocalizedMessage(1008112); // The intense heat is damaging you!
@@ -71,10 +69,7 @@ namespace Server.Mobiles
 
             var profile = PetTrainingHelper.GetAbilityProfile(this);
 
-            if (profile != null)
-            {
-                profile.RemoveAbility(AreaEffect.AuraDamage);
-            }
+            if (profile != null) profile.RemoveAbility(AreaEffect.AuraDamage);
         }
 
         public override void GenerateLoot()
@@ -86,13 +81,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

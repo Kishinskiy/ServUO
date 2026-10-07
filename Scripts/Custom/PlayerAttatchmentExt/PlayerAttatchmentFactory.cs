@@ -1,242 +1,233 @@
-using Server.Accounting;
-using Server.Commands;
-using Server.Commands.Generic;
-using Server.ContextMenus;
-using Server.Items;
-using Server.Network;
-using Server.Targeting;
 using System;
 using System.Collections.Generic;
-using System.Data;
-using System.Diagnostics;
-using System.IO;
 using System.Reflection;
-using System.Xml;
+using Server.Commands;
 
 namespace Server.Engines.PlayerAttatchmentExtensions
 {
     public class PlayerAttatchmentFactory
     {
-		private static char[] slashdelim = new char[1] { '/' };
-		private static char[] commadelim = new char[1] { ',' };
-		private static char[] spacedelim = new char[1] { ' ' };
-		
-		public static string[] ParseSlashArgs(string str, int nitems)
-		{
-			if (str == null) return null;
+        private static readonly char[] slashdelim = new char[1] { '/' };
+        private static readonly char[] commadelim = new char[1] { ',' };
+        private static readonly char[] spacedelim = new char[1] { ' ' };
 
-			string[] args = null;
+        public static string[] ParseSlashArgs(string str, int nitems)
+        {
+            if (str == null) return null;
 
-			str = str.Trim();
+            string[] args = null;
 
-			// this supports strings that may have special html formatting in them that use the /
-			if (str.IndexOf("</") >= 0 || str.IndexOf("/>") >= 0)
-			{
-				// or use indexof to do it with more context control
-				List<string> tmparray = new List<string>();
-				// find the next slash char
-				int index = 0;
-				int preindex = 0;
-				int searchindex = 0;
-				int length = str.Length;
-				while (index >= 0 && searchindex < length && tmparray.Count < nitems - 1)
-				{
-					index = str.IndexOf('/', searchindex);
+            str = str.Trim();
 
-					if (index >= 0)
-					{
-						// check the char before it and after it to ignore </ and />
-						if ((index > 0 && str[index - 1] == '<') || (index < length - 1 && str[index + 1] == '>'))
-						{
-							// skip it
-							searchindex = index + 1;
-						}
-						else
-						{
-							// split it
-							tmparray.Add(str.Substring(preindex, index - preindex));
+            // this supports strings that may have special html formatting in them that use the /
+            if (str.IndexOf("</") >= 0 || str.IndexOf("/>") >= 0)
+            {
+                // or use indexof to do it with more context control
+                var tmparray = new List<string>();
+                // find the next slash char
+                var index = 0;
+                var preindex = 0;
+                var searchindex = 0;
+                var length = str.Length;
+                while (index >= 0 && searchindex < length && tmparray.Count < nitems - 1)
+                {
+                    index = str.IndexOf('/', searchindex);
 
-							preindex = index + 1;
-							searchindex = preindex;
-						}
-					}
+                    if (index >= 0)
+                    {
+                        // check the char before it and after it to ignore </ and />
+                        if ((index > 0 && str[index - 1] == '<') || (index < length - 1 && str[index + 1] == '>'))
+                        {
+                            // skip it
+                            searchindex = index + 1;
+                        }
+                        else
+                        {
+                            // split it
+                            tmparray.Add(str.Substring(preindex, index - preindex));
 
-				}
+                            preindex = index + 1;
+                            searchindex = preindex;
+                        }
+                    }
+                }
 
-				// is there still room for more args?
-				if (tmparray.Count <= nitems - 1 && preindex < length)
-				{
-					// searched past the end and didnt find anything
-					tmparray.Add(str.Substring(preindex, length - preindex));
-				}
+                // is there still room for more args?
+                if (tmparray.Count <= nitems - 1 && preindex < length)
+                    // searched past the end and didnt find anything
+                    tmparray.Add(str.Substring(preindex, length - preindex));
 
-				// turn tmparray into a string[]
+                // turn tmparray into a string[]
 
-				args = new string[tmparray.Count];
-				tmparray.CopyTo(args);
-			}
-			else
-			{
-				// just use split to do it with no context control
-				args = str.Split(slashdelim, nitems);
+                args = new string[tmparray.Count];
+                tmparray.CopyTo(args);
+            }
+            else
+            {
+                // just use split to do it with no context control
+                args = str.Split(slashdelim, nitems);
+            }
 
-			}
+            return args;
+        }
 
-			return args;
-		}
-		public static string[] ParseSpaceArgs(string str, int nitems)
-		{
+        public static string[] ParseSpaceArgs(string str, int nitems)
+        {
+            if (str == null) return null;
 
-			if (str == null) return null;
+            string[] args = null;
 
-			string[] args = null;
+            str = str.Trim();
 
-			str = str.Trim();
+            args = str.Split(spacedelim, nitems);
 
-			args = str.Split(spacedelim, nitems);
-
-			return args;
-		}
+            return args;
+        }
 
 
-		public static string[] ParseCommaArgs(string str, int nitems)
-		{
-			if (str == null) return null;
+        public static string[] ParseCommaArgs(string str, int nitems)
+        {
+            if (str == null) return null;
 
-			string[] args = null;
+            string[] args = null;
 
-			str = str.Trim();
+            str = str.Trim();
 
-			args = str.Split(commadelim, nitems);
+            args = str.Split(commadelim, nitems);
 
-			return args;
-		}
-		public static string[] ParseObjectArgs(string str)
-		{
-			string[] arglist = ParseSlashArgs(str, 2);
-			if (arglist != null && arglist.Length > 0)
-			{
-				string itemtypestring = arglist[0];
-				// parse out any arguments of the form typename,arg,arg,..
-				// find the first arg if it is there
-				string[] typeargs = null;
-				int argstart = 0;
-				if (itemtypestring != null && itemtypestring.Length > 0)
-					argstart = itemtypestring.IndexOf(",") + 1;
+            return args;
+        }
 
-				if (argstart > 1 && argstart < itemtypestring.Length)
-				{
-					typeargs = ParseCommaArgs(itemtypestring.Substring(argstart), 15);
-				}
-				return (typeargs);
+        public static string[] ParseObjectArgs(string str)
+        {
+            var arglist = ParseSlashArgs(str, 2);
+            if (arglist != null && arglist.Length > 0)
+            {
+                var itemtypestring = arglist[0];
+                // parse out any arguments of the form typename,arg,arg,..
+                // find the first arg if it is there
+                string[] typeargs = null;
+                var argstart = 0;
+                if (itemtypestring != null && itemtypestring.Length > 0)
+                    argstart = itemtypestring.IndexOf(",") + 1;
 
-			}
-			else
-				return null;
-		}
-		
-		private static bool IsConstructable(ConstructorInfo ctor)
+                if (argstart > 1 && argstart < itemtypestring.Length)
+                    typeargs = ParseCommaArgs(itemtypestring.Substring(argstart), 15);
+                return typeargs;
+            }
+
+            return null;
+        }
+
+        private static bool IsConstructable(ConstructorInfo ctor)
         {
             return ctor.IsDefined(typeof(ConstructableAttribute), false);
         }
-		
 
-		#region Object Creation
 
-		public static object CreateObjectExt(Type type, string itemtypestring)
-		{
-			return CreateObjectExt(type, itemtypestring, true);
-		}
+        #region Object Creation
 
-		public static object CreateObjectExt(Type type, string itemtypestring, bool requireconstructable)
-		{
-			// look for constructor arguments to be passed to it with the syntax type,arg1,arg2,.../
-			string[] typewordargs = ParseObjectArgs(itemtypestring);
+        public static object CreateObjectExt(Type type, string itemtypestring)
+        {
+            return CreateObjectExt(type, itemtypestring, true);
+        }
 
-			return CreateObjectExt(type, typewordargs, requireconstructable, false);
-		}
+        public static object CreateObjectExt(Type type, string itemtypestring, bool requireconstructable)
+        {
+            // look for constructor arguments to be passed to it with the syntax type,arg1,arg2,.../
+            var typewordargs = ParseObjectArgs(itemtypestring);
 
-		public static object CreateObjectExt(Type type, string itemtypestring, bool requireconstructable, bool requireattachable)
-		{
-			// look for constructor arguments to be passed to it with the syntax type,arg1,arg2,.../
-			string[] typewordargs = ParseObjectArgs(itemtypestring);
+            return CreateObjectExt(type, typewordargs, requireconstructable, false);
+        }
 
-			return CreateObjectExt(type, typewordargs, requireconstructable, requireattachable);
-		}
+        public static object CreateObjectExt(Type type, string itemtypestring, bool requireconstructable,
+            bool requireattachable)
+        {
+            // look for constructor arguments to be passed to it with the syntax type,arg1,arg2,.../
+            var typewordargs = ParseObjectArgs(itemtypestring);
 
-		public static object CreateObjectExt(Type type, string[] typewordargs, bool requireconstructable, bool requireattachable)
-		{
-			if (type == null) return null;
+            return CreateObjectExt(type, typewordargs, requireconstructable, requireattachable);
+        }
 
-			object o = null;
+        public static object CreateObjectExt(Type type, string[] typewordargs, bool requireconstructable,
+            bool requireattachable)
+        {
+            if (type == null) return null;
 
-			int typearglen = 0;
-			if (typewordargs != null)
-				typearglen = typewordargs.Length;
+            object o = null;
 
-			// ok, there are args in the typename, so we need to invoke the proper constructor
-			ConstructorInfo[] ctors = type.GetConstructors();
+            var typearglen = 0;
+            if (typewordargs != null)
+                typearglen = typewordargs.Length;
 
-			if (ctors == null) return null;
+            // ok, there are args in the typename, so we need to invoke the proper constructor
+            var ctors = type.GetConstructors();
 
-			// go through all the constructors for this type
-			for (int i = 0; i < ctors.Length; ++i)
-			{
-				ConstructorInfo ctor = ctors[i];
+            if (ctors == null) return null;
 
-				if (ctor == null) continue;
+            // go through all the constructors for this type
+            for (var i = 0; i < ctors.Length; ++i)
+            {
+                var ctor = ctors[i];
 
-				// if both requireconstructable and requireattachable are true, then allow either condition
-				if (!(requireconstructable && IsConstructable(ctor)) && !(requireattachable && PlayerAttatchmentExt.IsAttachable(ctor)))
-					continue;
+                if (ctor == null) continue;
 
-				// check the parameter list of the constructor
-				ParameterInfo[] paramList = ctor.GetParameters();
+                // if both requireconstructable and requireattachable are true, then allow either condition
+                if (!(requireconstructable && IsConstructable(ctor)) &&
+                    !(requireattachable && PlayerAttatchmentExt.IsAttachable(ctor)))
+                    continue;
 
-				// and compare with the argument list provided
-				if (paramList != null && typearglen == paramList.Length)
-				{
-					// this is a constructor that takes args and matches the number of args passed in to CreateObjectExt
-					if (paramList.Length > 0)
-					{
-						object[] paramValues = null;
+                // check the parameter list of the constructor
+                var paramList = ctor.GetParameters();
 
-						try
-						{
-							paramValues = Add.ParseValues(paramList, typewordargs);
-						}
-						catch { }
+                // and compare with the argument list provided
+                if (paramList != null && typearglen == paramList.Length)
+                {
+                    // this is a constructor that takes args and matches the number of args passed in to CreateObjectExt
+                    if (paramList.Length > 0)
+                    {
+                        object[] paramValues = null;
 
-						if (paramValues == null)
-							continue;
+                        try
+                        {
+                            paramValues = Add.ParseValues(paramList, typewordargs);
+                        }
+                        catch
+                        {
+                        }
 
-						// ok, have a match on args, so try to construct it
-						try
-						{
-							o = Activator.CreateInstance(type, paramValues);
-						}
-						catch { }
-					}
-					else
-					{
-						// zero argument constructor
-						try
-						{
-							o = Activator.CreateInstance(type);
-						}
-						catch { }
-					}
+                        if (paramValues == null)
+                            continue;
 
-					// successfully constructed the object, otherwise try another matching constructor
-					if (o != null) break;
-				}
-			}
+                        // ok, have a match on args, so try to construct it
+                        try
+                        {
+                            o = Activator.CreateInstance(type, paramValues);
+                        }
+                        catch
+                        {
+                        }
+                    }
+                    else
+                    {
+                        // zero argument constructor
+                        try
+                        {
+                            o = Activator.CreateInstance(type);
+                        }
+                        catch
+                        {
+                        }
+                    }
 
-			return o;
-		}
+                    // successfully constructed the object, otherwise try another matching constructor
+                    if (o != null) break;
+                }
+            }
 
-		#endregion
+            return o;
+        }
 
-	}
-	
+        #endregion
+    }
 }

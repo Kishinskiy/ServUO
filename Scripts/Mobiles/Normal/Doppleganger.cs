@@ -1,10 +1,12 @@
-using System;
-
 namespace Server.Mobiles
 {
     [CorpseName("a doppleganger corpse")]
     public class Doppleganger : BaseCreature
     {
+        public override int Hides => 6;
+
+        public override int Meat => 1;
+
         [Constructable]
         public Doppleganger()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -42,20 +44,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override int Hides
-        {
-            get
-            {
-                return 6;
-            }
-        }
-        public override int Meat
-        {
-            get
-            {
-                return 1;
-            }
-        }
         public override void GenerateLoot()
         {
             AddLoot(LootPack.Average);
@@ -64,13 +52,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

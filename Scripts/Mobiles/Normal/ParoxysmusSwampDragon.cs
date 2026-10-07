@@ -1,13 +1,13 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
 {
     public class ParoxysmusSwampDragon : SwampDragon
     {
+        public override bool DeleteOnRelease => true;
+
         [Constructable]
         public ParoxysmusSwampDragon()
-            : base()
         {
             Name = "Chief Paroxysmus' Swamp Dragon";
 
@@ -22,8 +22,6 @@ namespace Server.Mobiles
             : base(serial)
         {
         }
-
-        public override bool DeleteOnRelease { get { return true; } }
 
         public override void GetProperties(ObjectPropertyList list)
         {
@@ -41,7 +39,7 @@ namespace Server.Mobiles
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

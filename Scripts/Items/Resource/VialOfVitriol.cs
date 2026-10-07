@@ -1,10 +1,10 @@
-using System;
-
 namespace Server.Items
 {
     [TypeAlias("Server.Items.VialVitirol")]
     public class VialOfVitriol : Item, ICommodity
     {
+        public override int LabelNumber => 1113331; // vial of vitriol
+
         [Constructable]
         public VialOfVitriol()
             : this(1)
@@ -24,28 +24,21 @@ namespace Server.Items
         {
         }
 
-        TextDefinition ICommodity.Description { get { return LabelNumber; } }
-        bool ICommodity.IsDeedable { get { return true; } }
+        TextDefinition ICommodity.Description => LabelNumber;
+        bool ICommodity.IsDeedable => true;
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1113331;
-            }
-        }// vial of vitriol
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

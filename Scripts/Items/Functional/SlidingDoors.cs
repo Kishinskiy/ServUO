@@ -1,12 +1,10 @@
-using System;
-
 namespace Server.Items
-{ 
+{
     public class PaperSlidingDoor : BaseDoor
     {
         [Constructable]
         public PaperSlidingDoor(DoorFacing facing)
-            : base(0x2A05 + (2 * (int)facing), 0x2A06 + (2 * (int)facing), 0x539, 0x539, new Point3D(0, 0, 0))
+            : base(0x2A05 + 2 * (int)facing, 0x2A06 + 2 * (int)facing, 0x539, 0x539, new Point3D(0, 0, 0))
         {
         }
 
@@ -19,14 +17,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -34,7 +32,7 @@ namespace Server.Items
     {
         [Constructable]
         public ClothSlidingDoor(DoorFacing facing)
-            : base(0x2A0D + (2 * (int)facing), 0x2A0E + (2 * (int)facing), 0x539, 0x539, new Point3D(0, 0, 0))
+            : base(0x2A0D + 2 * (int)facing, 0x2A0E + 2 * (int)facing, 0x539, 0x539, new Point3D(0, 0, 0))
         {
         }
 
@@ -47,14 +45,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -62,7 +60,7 @@ namespace Server.Items
     {
         [Constructable]
         public WoodenSlidingDoor(DoorFacing facing)
-            : base(0x2A15 + (2 * (int)facing), 0x2A16 + (2 * (int)facing), 0x539, 0x539, new Point3D(0, 0, 0))
+            : base(0x2A15 + 2 * (int)facing, 0x2A16 + 2 * (int)facing, 0x539, 0x539, new Point3D(0, 0, 0))
         {
         }
 
@@ -75,14 +73,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

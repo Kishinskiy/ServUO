@@ -6,7 +6,7 @@ namespace Server.Items
 {
     public class BedrollSpawner : Item
     {
-        public static Point3D[] m_RoomDestinations = new Point3D[]
+        public static Point3D[] m_RoomDestinations =
         {
             new Point3D(5651, 555, 20),
             new Point3D(5658, 562, 20),
@@ -22,10 +22,10 @@ namespace Server.Items
             new Point3D(5864, 578, 15),
             new Point3D(5863, 570, 15),
             new Point3D(5865, 562, 15),
-            new Point3D(5868, 554 ,15)
+            new Point3D(5868, 554, 15)
         };
 
-        public static Point3D[] m_OutsideTunnels = new Point3D[]
+        public static Point3D[] m_OutsideTunnels =
         {
             new Point3D(5670, 550, 22),
             new Point3D(5721, 550, 20),
@@ -34,7 +34,7 @@ namespace Server.Items
             new Point3D(5782, 536, 10)
         };
 
-        private static readonly BedrollEntry[] m_Entries = new BedrollEntry[]
+        private static readonly BedrollEntry[] m_Entries =
         {
             // Upper Floor Room 1
             new BedrollEntry(new Point3D(5653, 565, 20), typeof(WrongBedrollEast)),
@@ -54,7 +54,7 @@ namespace Server.Items
             new BedrollEntry(new Point3D(5658, 563, 20), typeof(WrongBedrollEast)),
             new BedrollEntry(new Point3D(5657, 565, 20), typeof(WrongBedrollEast)),
             new BedrollEntry(new Point3D(5661, 563, 20), typeof(WrongBedrollEast)),
-                     
+
             // Upper Floor Room 3
             new BedrollEntry(new Point3D(5666, 554, 20), typeof(WrongBedrollEast)),
             new BedrollEntry(new Point3D(5665, 557, 20), typeof(WrongBedrollEast)),
@@ -142,7 +142,7 @@ namespace Server.Items
             new BedrollEntry(new Point3D(5864, 563, 15), typeof(WrongBedrollEast)),
             new BedrollEntry(new Point3D(5864, 561, 15), typeof(WrongBedrollEast)),
             new BedrollEntry(new Point3D(5866, 564, 15), typeof(WrongBedrollEast)),
-            new BedrollEntry(new Point3D(5867, 561, 15), typeof(WrongBedrollEast)),
+            new BedrollEntry(new Point3D(5867, 561, 15), typeof(WrongBedrollEast))
         };
 
         public readonly TimeSpan RestartDelay = TimeSpan.FromHours(2.0);
@@ -152,22 +152,29 @@ namespace Server.Items
 
         public static List<BedrollSpawner> Instances { get; set; }
 
+        public override string DefaultName => "Wrong Bedrolls Spawner " + Map;
+
         public BedrollSpawner()
             : base(3796)
         {
             Movable = false;
             Visible = false;
             Bedrolls = new List<WrongBedrollBase>();
-            MysteriousTunnels = new List<MysteriousTunnel>();            
+            MysteriousTunnels = new List<MysteriousTunnel>();
             Timer.DelayCall(TimeSpan.FromSeconds(10), CheckRespawn);
-            m_Timer = Timer.DelayCall(RestartDelay, RestartDelay, new TimerCallback(CheckRespawn));
+            m_Timer = Timer.DelayCall(RestartDelay, RestartDelay, CheckRespawn);
             m_Timer.Start();
 
             if (Instances == null)
                 Instances = new List<BedrollSpawner>();
 
             Instances.Add(this);
-        }        
+        }
+
+        public BedrollSpawner(Serial serial)
+            : base(serial)
+        {
+        }
 
         private void CheckRespawn()
         {
@@ -175,9 +182,9 @@ namespace Server.Items
 
             // Bedrolls Spawn
 
-            foreach (BedrollEntry entry in m_Entries)
+            foreach (var entry in m_Entries)
             {
-                WrongBedrollBase item = (WrongBedrollBase)Activator.CreateInstance(entry.Type);
+                var item = (WrongBedrollBase)Activator.CreateInstance(entry.Type);
 
                 item.Movable = false;
                 item.MoveToWorld(entry.Location, Map);
@@ -190,7 +197,7 @@ namespace Server.Items
             WrongBedrollBase bedroll;
             int mtrandom;
 
-            for (int i = 0; i < m_OutsideTunnels.Length; i++)
+            for (var i = 0; i < m_OutsideTunnels.Length; i++)
             {
                 mt = new MysteriousTunnel();
 
@@ -204,7 +211,8 @@ namespace Server.Items
                 else
                 {
                     mt.PointDest = m_RoomDestinations[Utility.Random(m_RoomDestinations.Length)];
-                    bedroll = Bedrolls.Where(x => x.InRange(mt.PointDest, 4) && x.PointDest == Point3D.Zero).FirstOrDefault();
+                    bedroll = Bedrolls.Where(x => x.InRange(mt.PointDest, 4) && x.PointDest == Point3D.Zero)
+                        .FirstOrDefault();
 
                     if (bedroll != null)
                     {
@@ -215,12 +223,7 @@ namespace Server.Items
 
                 mt.MoveToWorld(m_OutsideTunnels[i], Map);
                 MysteriousTunnels.Add(mt);
-            }            
-        }
-
-        public BedrollSpawner(Serial serial)
-            : base(serial)
-        {
+            }
         }
 
         public void Cleanup()
@@ -251,8 +254,6 @@ namespace Server.Items
             base.OnDelete();
         }
 
-        public override string DefaultName { get { return "Wrong Bedrolls Spawner " + Map; } }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -265,81 +266,71 @@ namespace Server.Items
 
             writer.Write(Bedrolls == null ? 0 : Bedrolls.Count);
 
-            if (Bedrolls != null)
-            {
-                Bedrolls.ForEach(x => writer.Write(x));
-            }
+            if (Bedrolls != null) Bedrolls.ForEach(x => writer.Write(x));
 
             writer.Write(MysteriousTunnels == null ? 0 : MysteriousTunnels.Count);
 
-            if (MysteriousTunnels != null)
-            {
-                MysteriousTunnels.ForEach(y => writer.Write(y));
-            }
+            if (MysteriousTunnels != null) MysteriousTunnels.ForEach(y => writer.Write(y));
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (Instances == null)
                 Instances = new List<BedrollSpawner>();
 
             Instances.Add(this);
 
-            DateTime next = reader.ReadDateTime();
+            var next = reader.ReadDateTime();
 
             if (next < DateTime.UtcNow)
                 next = DateTime.UtcNow;
 
-            m_Timer = Timer.DelayCall(next - DateTime.UtcNow, RestartDelay, new TimerCallback(CheckRespawn));
+            m_Timer = Timer.DelayCall(next - DateTime.UtcNow, RestartDelay, CheckRespawn);
             m_Timer.Start();
 
             Bedrolls = new List<WrongBedrollBase>();
             MysteriousTunnels = new List<MysteriousTunnel>();
 
-            int bedrollcount = reader.ReadInt();
-            for (int x = 0; x < bedrollcount; x++)
+            var bedrollcount = reader.ReadInt();
+            for (var x = 0; x < bedrollcount; x++)
             {
-                WrongBedrollBase wb = reader.ReadItem() as WrongBedrollBase;
+                var wb = reader.ReadItem() as WrongBedrollBase;
 
                 if (wb != null)
                     Bedrolls.Add(wb);
             }
 
-            int mysteriouscount = reader.ReadInt();
-            for (int y = 0; y < mysteriouscount; y++)
+            var mysteriouscount = reader.ReadInt();
+            for (var y = 0; y < mysteriouscount; y++)
             {
-                MysteriousTunnel mt = reader.ReadItem() as MysteriousTunnel;
+                var mt = reader.ReadItem() as MysteriousTunnel;
 
                 if (mt != null)
                     MysteriousTunnels.Add(mt);
             }
 
             if (version == 0)
-            {
-                Timer.DelayCall<Map>(TimeSpan.FromSeconds(5), map => 
-                    {
-                        EnchantedHotItem.SpawnChests(map);
-                        Console.WriteLine("Hot Item chests spawned for {0}.", this.Map);
-                    }, Map);
-            }
+                Timer.DelayCall(TimeSpan.FromSeconds(5), map =>
+                {
+                    EnchantedHotItem.SpawnChests(map);
+                    Console.WriteLine("Hot Item chests spawned for {0}.", Map);
+                }, Map);
         }
 
         public class BedrollEntry
         {
-            private readonly Point3D m_Location;
-            private readonly Type m_Type;
+            public Point3D Location { get; }
+
+            public Type Type { get; }
 
             public BedrollEntry(Point3D location, Type type)
             {
-                m_Location = location;
-                m_Type = type;
+                Location = location;
+                Type = type;
             }
-
-            public Point3D Location { get { return m_Location; } }
-            public Type Type { get { return m_Type; } }
         }
     }
 }

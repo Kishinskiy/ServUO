@@ -1,11 +1,10 @@
-using System;
 using Server.Mobiles;
 
 namespace Server.Items
 {
     public class SandMiningBook : Item
     {
-        public override int LabelNumber { get { return 1153531; } } // Find Glass-Quality Sand
+        public override int LabelNumber => 1153531; // Find Glass-Quality Sand
 
         [Constructable]
         public SandMiningBook()
@@ -22,28 +21,22 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            if (Weight != 2.0)
-            {
-                Weight = 2.0;
-            }
+            if (Weight != 2.0) Weight = 2.0;
         }
 
         public override void OnDoubleClick(Mobile from)
         {
-            PlayerMobile pm = from as PlayerMobile;
+            var pm = from as PlayerMobile;
 
-            if (pm == null)
-            {
-                return;
-            }
+            if (pm == null) return;
 
             if (!IsChildOf(pm.Backpack))
             {
@@ -60,7 +53,8 @@ namespace Server.Items
             else
             {
                 pm.SandMining = true;
-                pm.SendLocalizedMessage(1111701); // You have learned how to mine fine sand.  Target sand areas when mining to look for fine sand.
+                pm.SendLocalizedMessage(
+                    1111701); // You have learned how to mine fine sand.  Target sand areas when mining to look for fine sand.
 
                 Delete();
             }

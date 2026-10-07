@@ -9,7 +9,9 @@ namespace Server.Items
         public static readonly TimeSpan AttackEffectDuration = TimeSpan.FromSeconds(10.0);
         public static readonly TimeSpan DefenseEffectDuration = TimeSpan.FromSeconds(8.0);
         private static readonly Dictionary<Mobile, AttackTimer> m_AttackTable = new Dictionary<Mobile, AttackTimer>();
-        private static readonly Dictionary<Mobile, DefenseTimer> m_DefenseTable = new Dictionary<Mobile, DefenseTimer>();
+
+        private static readonly Dictionary<Mobile, DefenseTimer>
+            m_DefenseTable = new Dictionary<Mobile, DefenseTimer>();
 
         public static bool IsUnderAttackEffect(Mobile m)
         {
@@ -43,46 +45,46 @@ namespace Server.Items
                     return false;
 
                 m_DefenseTable[m] = new DefenseTimer(m, 25);
-                BuffInfo.AddBuff(m, new BuffInfo(BuffIcon.HitLowerDefense, 1151313, 1151286, DefenseEffectDuration, m, "35"));
+                BuffInfo.AddBuff(m,
+                    new BuffInfo(BuffIcon.HitLowerDefense, 1151313, 1151286, DefenseEffectDuration, m, "35"));
                 m.SendLocalizedMessage(1062318); // Your defense chance has been reduced!
 
                 m.Delta(MobileDelta.WeaponDamage);
 
                 return true;
+            }
+
+            if (m_DefenseTable.ContainsKey(m))
+            {
+                var timer = m_DefenseTable[m];
+
+                if (timer != null)
+                {
+                    timer.Stop();
+                    timer.DefenseMalus = 0;
+                }
+            }
+
+            int malus;
+
+            if (m is PlayerMobile)
+            {
+                malus = 45 + BaseArmor.GetRefinedDefenseChance(m);
+                malus = malus - (int)(malus * .35);
             }
             else
             {
-                if (m_DefenseTable.ContainsKey(m))
-                {
-                    var timer = m_DefenseTable[m];
-
-                    if (timer != null)
-                    {
-                        timer.Stop();
-                        timer.DefenseMalus = 0;
-                    }
-                }
-
-                int malus;
-
-                if (m is PlayerMobile)
-                {
-                    malus = 45 + BaseArmor.GetRefinedDefenseChance(m);
-                    malus = malus - (int)((double)malus * .35);
-                }
-                else
-                {
-                    malus = 25;
-                }
-
-                m_DefenseTable[m] = new DefenseTimer(m, malus);
-                BuffInfo.AddBuff(m, new BuffInfo(BuffIcon.HitLowerDefense, 1151313, 1151286, DefenseEffectDuration, m, malus.ToString()));
-                m.SendLocalizedMessage(1062318); // Your defense chance has been reduced!
-
-                m.Delta(MobileDelta.WeaponDamage);
-
-                return true;
+                malus = 25;
             }
+
+            m_DefenseTable[m] = new DefenseTimer(m, malus);
+            BuffInfo.AddBuff(m,
+                new BuffInfo(BuffIcon.HitLowerDefense, 1151313, 1151286, DefenseEffectDuration, m, malus.ToString()));
+            m.SendLocalizedMessage(1062318); // Your defense chance has been reduced!
+
+            m.Delta(MobileDelta.WeaponDamage);
+
+            return true;
         }
 
         private static void RemoveAttack(Mobile m)
@@ -107,10 +109,7 @@ namespace Server.Items
 
         public static int GetDefenseMalus(Mobile m)
         {
-            if (m_DefenseTable.ContainsKey(m))
-            {
-                return m_DefenseTable[m].DefenseMalus;
-            }
+            if (m_DefenseTable.ContainsKey(m)) return m_DefenseTable[m].DefenseMalus;
 
             return 0;
         }

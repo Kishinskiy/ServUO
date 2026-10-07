@@ -1,53 +1,55 @@
 using System;
 using System.Collections.Generic;
-
+using Server.Items;
 using Server.Network;
+using Server.Spells.Necromancy;
 
 namespace Server.Spells.Mysticism
 {
-	public class StoneFormSpell : MysticTransformationSpell
-	{
-		private static HashSet<Mobile> m_Effected = new HashSet<Mobile>();
-		public static bool IsEffected(Mobile m)
-		{
-			return m_Effected.Contains(m);
-		}
+    public class StoneFormSpell : MysticTransformationSpell
+    {
+        private static readonly HashSet<Mobile> m_Effected = new HashSet<Mobile>();
 
-		private static SpellInfo m_Info = new SpellInfo(
-				"Stone Form", "In Rel Ylem",
-				230,
-				9022,
-				Reagent.Bloodmoss,
-				Reagent.FertileDirt,
-				Reagent.Garlic
-			);
+        private static readonly SpellInfo m_Info = new SpellInfo(
+            "Stone Form", "In Rel Ylem",
+            230,
+            9022,
+            Reagent.Bloodmoss,
+            Reagent.FertileDirt,
+            Reagent.Garlic
+        );
 
         private int m_ResisMod;
 
-        public override SpellCircle Circle { get { return SpellCircle.Fourth; } }
+        public override SpellCircle Circle => SpellCircle.Fourth;
 
-		public override TimeSpan CastDelayBase { get { return TimeSpan.FromSeconds( 2.0 ); } }
+        public override TimeSpan CastDelayBase => TimeSpan.FromSeconds(2.0);
 
-		public override int Body{ get{ return 705; } }
-        public override int PhysResistOffset { get { return m_ResisMod; } }
-        public override int FireResistOffset { get { return m_ResisMod; } }
-        public override int ColdResistOffset { get { return m_ResisMod; } }
-        public override int PoisResistOffset { get { return m_ResisMod; } }
-        public override int NrgyResistOffset { get { return m_ResisMod; } }
+        public override int Body => 705;
+        public override int PhysResistOffset => m_ResisMod;
+        public override int FireResistOffset => m_ResisMod;
+        public override int ColdResistOffset => m_ResisMod;
+        public override int PoisResistOffset => m_ResisMod;
+        public override int NrgyResistOffset => m_ResisMod;
 
-		public StoneFormSpell( Mobile caster, Item scroll ) : base( caster, scroll, m_Info )
-		{
-		}
+        public StoneFormSpell(Mobile caster, Item scroll) : base(caster, scroll, m_Info)
+        {
+        }
+
+        public static bool IsEffected(Mobile m)
+        {
+            return m_Effected.Contains(m);
+        }
 
         public override bool CheckCast()
         {
-            bool doCast = base.CheckCast();
+            var doCast = base.CheckCast();
 
-			if (doCast && Caster.Flying)
-			{
-				Caster.SendLocalizedMessage(1112567); // You are flying.
-				doCast = false;
-			}
+            if (doCast && Caster.Flying)
+            {
+                Caster.SendLocalizedMessage(1112567); // You are flying.
+                doCast = false;
+            }
 
             if (doCast)
                 m_ResisMod = GetResBonus(Caster);
@@ -55,24 +57,22 @@ namespace Server.Spells.Mysticism
             return doCast;
         }
 
-		public override void DoEffect( Mobile m )
-		{
-			m.PlaySound( 0x65A );
-			m.FixedParticles( 0x3728, 1, 13, 9918, 92, 3, EffectLayer.Head );
+        public override void DoEffect(Mobile m)
+        {
+            m.PlaySound(0x65A);
+            m.FixedParticles(0x3728, 1, 13, 9918, 92, 3, EffectLayer.Head);
 
-            Timer.DelayCall(new TimerCallback(MobileDelta_Callback));
-			m_Effected.Add(m);
+            Timer.DelayCall(MobileDelta_Callback);
+            m_Effected.Add(m);
 
 
-            if (!Core.HS)
-            {
-                m.SendSpeedControl(SpeedControlType.WalkSpeed);
-            }
+            if (!Core.HS) m.SendSpeedControl(SpeedControlType.WalkSpeed);
 
-            string args = String.Format("{0}\t{1}\t{2}\t{3}\t{4}", "-10", "-2", GetResBonus(m).ToString(), GetMaxResistance(m).ToString(), GetDamBonus(m).ToString());
+            var args = string.Format("{0}\t{1}\t{2}\t{3}\t{4}", "-10", "-2", GetResBonus(m).ToString(),
+                GetMaxResistance(m).ToString(), GetDamBonus(m).ToString());
             BuffInfo.AddBuff(m, new BuffInfo(BuffIcon.StoneForm, 1080145, 1080146, args));
             BuffInfo.AddBuff(m, new BuffInfo(BuffIcon.PoisonImmunity, 1153785, 1153814));
-		}
+        }
 
         public void MobileDelta_Callback()
         {
@@ -80,30 +80,24 @@ namespace Server.Spells.Mysticism
             Caster.UpdateResistances();
         }
 
-		public override void RemoveEffect( Mobile m )
-		{
-            if (!Core.HS)
-            {
-                m.SendSpeedControl(SpeedControlType.Disable);
-            }
+        public override void RemoveEffect(Mobile m)
+        {
+            if (!Core.HS) m.SendSpeedControl(SpeedControlType.Disable);
 
-            m.Delta( MobileDelta.WeaponDamage );
-			m_Effected.Remove(m);
+            m.Delta(MobileDelta.WeaponDamage);
+            m_Effected.Remove(m);
             BuffInfo.RemoveBuff(m, BuffIcon.StoneForm);
             BuffInfo.RemoveBuff(m, BuffIcon.PoisonImmunity);
-		}
+        }
 
         public static void Initialize()
         {
-            if (!Core.HS)
-            {
-                EventSink.Login += new LoginEventHandler(OnLogin);
-            }
+            if (!Core.HS) EventSink.Login += OnLogin;
         }
 
         public static void OnLogin(LoginEventArgs e)
         {
-            TransformContext context = TransformationSpellHelper.GetContext(e.Mobile);
+            var context = TransformationSpellHelper.GetContext(e.Mobile);
 
             if (context != null && context.Type == typeof(StoneFormSpell))
                 e.Mobile.SendSpeedControl(SpeedControlType.WalkSpeed);
@@ -111,30 +105,21 @@ namespace Server.Spells.Mysticism
 
         public static int GetMaxResistBonus(Mobile m)
         {
-            if (TransformationSpellHelper.UnderTransformation(m, typeof(StoneFormSpell)))
-            {
-                return GetMaxResistance(m);
-            }
+            if (TransformationSpellHelper.UnderTransformation(m, typeof(StoneFormSpell))) return GetMaxResistance(m);
 
             return 0;
         }
 
         public static int GetResistanceBonus(Mobile m)
         {
-            if (TransformationSpellHelper.UnderTransformation(m, typeof(StoneFormSpell)))
-            {
-                return GetResBonus(m);
-            }
+            if (TransformationSpellHelper.UnderTransformation(m, typeof(StoneFormSpell))) return GetResBonus(m);
 
             return 0;
         }
 
         public static int GetDamageBonus(Mobile m)
         {
-            if (TransformationSpellHelper.UnderTransformation(m, typeof(StoneFormSpell)))
-            {
-                return GetDamBonus(m);
-            }
+            if (TransformationSpellHelper.UnderTransformation(m, typeof(StoneFormSpell))) return GetDamBonus(m);
 
             return 0;
         }
@@ -143,8 +128,8 @@ namespace Server.Spells.Mysticism
         {
             if (TransformationSpellHelper.UnderTransformation(m, typeof(StoneFormSpell)))
             {
-                int prim = (int)m.Skills[SkillName.Mysticism].Value;
-                int sec = (int)m.Skills[SkillName.Imbuing].Value;
+                var prim = (int)m.Skills[SkillName.Mysticism].Value;
+                var sec = (int)m.Skills[SkillName.Imbuing].Value;
 
                 if (m.Skills[SkillName.Focus].Value > sec)
                     sec = (int)m.Skills[SkillName.Focus].Value;
@@ -159,8 +144,8 @@ namespace Server.Spells.Mysticism
 
         private static int GetResBonus(Mobile m)
         {
-            int prim = (int)m.Skills[SkillName.Mysticism].Value;
-            int sec = (int)m.Skills[SkillName.Imbuing].Value;
+            var prim = (int)m.Skills[SkillName.Mysticism].Value;
+            var sec = (int)m.Skills[SkillName.Imbuing].Value;
 
             if (m.Skills[SkillName.Focus].Value > sec)
                 sec = (int)m.Skills[SkillName.Focus].Value;
@@ -170,11 +155,11 @@ namespace Server.Spells.Mysticism
 
         private static int GetMaxResistance(Mobile m)
         {
-            if (Server.Items.BaseArmor.HasRefinedResist(m))
+            if (BaseArmor.HasRefinedResist(m))
                 return 0;
 
-            int prim = (int)m.Skills[SkillName.Mysticism].Value;
-            int sec = (int)m.Skills[SkillName.Imbuing].Value;
+            var prim = (int)m.Skills[SkillName.Mysticism].Value;
+            var sec = (int)m.Skills[SkillName.Imbuing].Value;
 
             if (m.Skills[SkillName.Focus].Value > sec)
                 sec = (int)m.Skills[SkillName.Focus].Value;
@@ -184,8 +169,8 @@ namespace Server.Spells.Mysticism
 
         private static int GetDamBonus(Mobile m)
         {
-            int prim = (int)m.Skills[SkillName.Mysticism].Value;
-            int sec = (int)m.Skills[SkillName.Imbuing].Value;
+            var prim = (int)m.Skills[SkillName.Mysticism].Value;
+            var sec = (int)m.Skills[SkillName.Imbuing].Value;
 
             if (m.Skills[SkillName.Focus].Value > sec)
                 sec = (int)m.Skills[SkillName.Focus].Value;
@@ -197,15 +182,15 @@ namespace Server.Spells.Mysticism
         {
             if (TransformationSpellHelper.UnderTransformation(from, typeof(StoneFormSpell)))
             {
-                int prim = (int)from.Skills[SkillName.Mysticism].Value;
-                int sec = (int)from.Skills[SkillName.Imbuing].Value;
+                var prim = (int)from.Skills[SkillName.Mysticism].Value;
+                var sec = (int)from.Skills[SkillName.Imbuing].Value;
 
                 if (from.Skills[SkillName.Focus].Value > sec)
                     sec = (int)from.Skills[SkillName.Focus].Value;
 
-                int immunity = (int)(((double)(prim + sec) / 480) * 100);
+                var immunity = (int)((double)(prim + sec) / 480 * 100);
 
-                if (Server.Spells.Necromancy.EvilOmenSpell.TryEndEffect(from))
+                if (EvilOmenSpell.TryEndEffect(from))
                     immunity -= 30;
 
                 return immunity > Utility.Random(100);
@@ -213,5 +198,5 @@ namespace Server.Spells.Mysticism
 
             return false;
         }
-	}
+    }
 }

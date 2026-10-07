@@ -5,7 +5,10 @@ namespace Server.Multis
 {
     public class DynamicDecay
     {
-        private static Dictionary<DecayLevel, DecayStageInfo> m_Stages;
+        private static readonly Dictionary<DecayLevel, DecayStageInfo> m_Stages;
+
+        public static bool Enabled => Core.ML;
+
         static DynamicDecay()
         {
             m_Stages = new Dictionary<DecayLevel, DecayStageInfo>();
@@ -18,16 +21,9 @@ namespace Server.Multis
             Register(DecayLevel.IDOC, TimeSpan.FromHours(12), TimeSpan.FromHours(24));
         }
 
-        public static bool Enabled
-        {
-            get
-            {
-                return Core.ML;
-            }
-        }
         public static void Register(DecayLevel level, TimeSpan min, TimeSpan max)
         {
-            DecayStageInfo info = new DecayStageInfo(min, max);
+            var info = new DecayStageInfo(min, max);
 
             if (m_Stages.ContainsKey(level))
                 m_Stages[level] = info;
@@ -45,9 +41,9 @@ namespace Server.Multis
             if (!m_Stages.ContainsKey(level))
                 return TimeSpan.Zero;
 
-            DecayStageInfo info = m_Stages[level];
-            long min = info.MinDuration.Ticks;
-            long max = info.MaxDuration.Ticks;
+            var info = m_Stages[level];
+            var min = info.MinDuration.Ticks;
+            var max = info.MaxDuration.Ticks;
 
             return TimeSpan.FromTicks(min + (long)(Utility.RandomDouble() * (max - min)));
         }
@@ -55,27 +51,14 @@ namespace Server.Multis
 
     public class DecayStageInfo
     {
-        private readonly TimeSpan m_MinDuration;
-        private readonly TimeSpan m_MaxDuration;
+        public TimeSpan MinDuration { get; }
+
+        public TimeSpan MaxDuration { get; }
+
         public DecayStageInfo(TimeSpan min, TimeSpan max)
         {
-            this.m_MinDuration = min;
-            this.m_MaxDuration = max;
-        }
-
-        public TimeSpan MinDuration
-        {
-            get
-            {
-                return this.m_MinDuration;
-            }
-        }
-        public TimeSpan MaxDuration
-        {
-            get
-            {
-                return this.m_MaxDuration;
-            }
+            MinDuration = min;
+            MaxDuration = max;
         }
     }
 }

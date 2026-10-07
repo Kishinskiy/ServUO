@@ -1,9 +1,13 @@
-using System;
-
 namespace Server.Items
 {
     public class SpellweavingBook : Spellbook
     {
+        public override SpellbookType SpellbookType => SpellbookType.Arcanist;
+
+        public override int BookOffset => 600;
+
+        public override int BookCount => 16;
+
         [Constructable]
         public SpellweavingBook()
             : this((ulong)0)
@@ -14,9 +18,9 @@ namespace Server.Items
         public SpellweavingBook(ulong content)
             : base(content, 0x2D50)
         {
-            this.Hue = 0x8A2;
+            Hue = 0x8A2;
 
-            this.Layer = Layer.OneHanded;
+            Layer = Layer.OneHanded;
         }
 
         public SpellweavingBook(Serial serial)
@@ -24,27 +28,6 @@ namespace Server.Items
         {
         }
 
-        public override SpellbookType SpellbookType
-        {
-            get
-            {
-                return SpellbookType.Arcanist;
-            }
-        }
-        public override int BookOffset
-        {
-            get
-            {
-                return 600;
-            }
-        }
-        public override int BookCount
-        {
-            get
-            {
-                return 16;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -56,7 +39,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

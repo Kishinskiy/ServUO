@@ -1,10 +1,16 @@
-using System;
-
 namespace Server.Items
 {
     public class RoyalGuardSurvivalKnife : SkinningKnife
-	{
-		public override bool IsArtifact { get { return true; } }
+    {
+        public override bool IsArtifact => true;
+
+        public override int LabelNumber => 1094918; // Royal Guard Survival Knife [Replica]
+        public override int InitMinHits => 150;
+
+        public override int InitMaxHits => 150;
+
+        public override bool CanFortify => false;
+
         [Constructable]
         public RoyalGuardSurvivalKnife()
         {
@@ -20,46 +26,18 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1094918;
-            }
-        }// Royal Guard Survival Knife [Replica]
-        public override int InitMinHits
-        {
-            get
-            {
-                return 150;
-            }
-        }
-        public override int InitMaxHits
-        {
-            get
-            {
-                return 150;
-            }
-        }
-        public override bool CanFortify
-        {
-            get
-            {
-                return false;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

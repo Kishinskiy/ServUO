@@ -1,11 +1,27 @@
 using System;
-using Server.Items;
 
 namespace Server.Mobiles
 {
     [CorpseName("a grubber corpse")]
     public class Grubber : BaseCreature
     {
+        public override IDamageable Combatant
+        {
+            get => base.Combatant;
+            set
+            {
+                base.Combatant = value;
+
+                if (0.10 > Utility.RandomDouble())
+                    StopFlee();
+                else if (!CheckFlee())
+                    BeginFlee(TimeSpan.FromSeconds(10));
+            }
+        }
+
+        public override int Meat => 1;
+        public override int Hides => 1;
+
         [Constructable]
         public Grubber()
             : base(AIType.AI_Animal, FightMode.None, 10, 1, 0.06, 0.1)
@@ -35,27 +51,10 @@ namespace Server.Mobiles
             VirtualArmor = 4;
         }
 
-        public override IDamageable Combatant
-        {
-            get { return base.Combatant; }
-            set
-            {
-                base.Combatant = value;
-
-                if (0.10 > Utility.RandomDouble())
-                    StopFlee();
-                else if (!CheckFlee())
-                    BeginFlee(TimeSpan.FromSeconds(10));
-            }
-        }
-
         public Grubber(Serial serial)
             : base(serial)
         {
         }
-
-        public override int Meat { get { return 1; } }
-        public override int Hides { get { return 1; } }
 
         public override int GetAttackSound()
         {
@@ -76,14 +75,14 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

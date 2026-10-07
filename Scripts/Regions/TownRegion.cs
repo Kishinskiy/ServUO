@@ -1,7 +1,5 @@
-using System;
-using System.Xml;
 using System.Linq;
-
+using System.Xml;
 using Server.Engines.VvV;
 using Server.Mobiles;
 
@@ -18,16 +16,14 @@ namespace Server.Regions
         {
             base.OnEnter(m);
 
-            if (ViceVsVirtueSystem.EnhancedRules && 
+            if (ViceVsVirtueSystem.EnhancedRules &&
                 IsVvVBattleRegion() &&
                 ViceVsVirtueSystem.IsVvVCombatant(m) &&
                 ViceVsVirtueSystem.Instance != null &&
-                ViceVsVirtueSystem.Instance.Battle != null && 
+                ViceVsVirtueSystem.Instance.Battle != null &&
                 ViceVsVirtueSystem.Instance.Battle.OnGoing &&
                 ViceVsVirtueSystem.Instance.Battle.Region == this)
-            {
                 ViceVsVirtueSystem.Instance.Battle.AddAggression(m);
-            }
         }
 
         public override void OnExit(Mobile m)
@@ -35,9 +31,7 @@ namespace Server.Regions
             base.OnExit(m);
 
             if (IsVvVBattleRegion() && m is PlayerMobile && m.HasGump(typeof(BattleWarningGump)))
-            {
                 m.CloseGump(typeof(BattleWarningGump));
-            }
         }
 
         private bool IsVvVBattleRegion()

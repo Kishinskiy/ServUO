@@ -1,12 +1,13 @@
-using System;
-using Server;
-using Server.Spells;
-
 namespace Server.Items
 {
     public class DupresSword : VikingSword
     {
-        public override bool IsArtifact { get { return true; } }
+        public override bool IsArtifact => true;
+
+        public override int InitMinHits => 255;
+        public override int InitMaxHits => 255;
+
+        public override int LabelNumber => 1153551;
 
         [Constructable]
         public DupresSword()
@@ -18,28 +19,23 @@ namespace Server.Items
             Attributes.WeaponDamage = 100;
             WeaponAttributes.HitManaDrain = 50;
         }
-        
+
         public DupresSword(Serial serial) : base(serial)
         {
         }
 
-        public override int InitMinHits { get { return 255; } }
-        public override int InitMaxHits { get { return 255; } }
-
-        public override int LabelNumber { get { return 1153551; } }       
-
-        public override void Serialize( GenericWriter writer )
+        public override void Serialize(GenericWriter writer)
         {
-            base.Serialize( writer );
+            base.Serialize(writer);
 
-            writer.Write( (int) 0 );
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
-            base.Deserialize( reader );
+            base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

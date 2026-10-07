@@ -1,15 +1,16 @@
-using Server;
 using System;
 using System.Collections.Generic;
-using Server.Mobiles;
+using System.Linq;
 using Server.Commands;
 using Server.Items;
-using System.Linq;
+using Server.Mobiles;
 
 namespace Server.Engines.VoidPool
 {
-	public static class Generate
-	{
+    public static class Generate
+    {
+        private static Rectangle2D _SpawnerBounds = new Rectangle2D(5383, 1845, 125, 115);
+
         public static void Initialize()
         {
             CommandSystem.Register("SetupNewCovetous", AccessLevel.Administrator, Setup);
@@ -26,7 +27,9 @@ namespace Server.Engines.VoidPool
         public static void Setup(CommandEventArgs e)
         {
             if (VoidPoolController.InstanceTram != null || VoidPoolController.InstanceFel != null)
+            {
                 e.Mobile.SendMessage("This has already been setup!");
+            }
             else
             {
                 var one = new VoidPoolController(Map.Trammel);
@@ -37,44 +40,40 @@ namespace Server.Engines.VoidPool
                 WeakEntityCollection.Add("newcovetous", two);
                 two.MoveToWorld(new Point3D(5605, 1998, 10), Map.Felucca);
 
-                int id = 0;
-                int hue = 0;
+                var id = 0;
+                var hue = 0;
 
-                for (int x = 5497; x <= 5503; x++)
+                for (var x = 5497; x <= 5503; x++)
+                for (var y = 1995; y <= 2001; y++)
                 {
-                    for (int y = 1995; y <= 2001; y++)
-                    {
-                        if (x == 5497 && y == 1995) id = 1886;
-                        else if (x == 5497 && y == 2001) id = 1887;
-                        else if (x == 5503 && y == 1995) id = 1888;
-                        else if (x == 5503 && y == 2001) id = 1885;
-                        else if (x == 5497) id = 1874;
-                        else if (x == 5503) id = 1876;
-                        else if (y == 1995) id = 1873;
-                        else if (y == 2001) id = 1875;
-                        else
-                        {
-                            //id = 1168;
-                            id = Utility.Random(8511, 6);
-                        }
+                    if (x == 5497 && y == 1995) id = 1886;
+                    else if (x == 5497 && y == 2001) id = 1887;
+                    else if (x == 5503 && y == 1995) id = 1888;
+                    else if (x == 5503 && y == 2001) id = 1885;
+                    else if (x == 5497) id = 1874;
+                    else if (x == 5503) id = 1876;
+                    else if (y == 1995) id = 1873;
+                    else if (y == 2001) id = 1875;
+                    else
+                        //id = 1168;
+                        id = Utility.Random(8511, 6);
 
-                        hue = id >= 8511 ? 0 : 1954;
+                    hue = id >= 8511 ? 0 : 1954;
 
-                        var item = new Static(id);
-                        item.Name = "Void Pool";
-                        item.Hue = hue;
-                        WeakEntityCollection.Add("newcovetous", item);
-                        item.MoveToWorld(new Point3D(x, y, 5), Map.Trammel);
+                    var item = new Static(id);
+                    item.Name = "Void Pool";
+                    item.Hue = hue;
+                    WeakEntityCollection.Add("newcovetous", item);
+                    item.MoveToWorld(new Point3D(x, y, 5), Map.Trammel);
 
-                        item = new Static(id);
-                        item.Name = "Void Pool";
-                        item.Hue = hue;
-                        WeakEntityCollection.Add("newcovetous", item);
-                        item.MoveToWorld(new Point3D(x, y, 5), Map.Felucca);
-                    }
+                    item = new Static(id);
+                    item.Name = "Void Pool";
+                    item.Hue = hue;
+                    WeakEntityCollection.Add("newcovetous", item);
+                    item.MoveToWorld(new Point3D(x, y, 5), Map.Felucca);
                 }
 
-                XmlSpawner spawner = new XmlSpawner("corathesorceress");
+                var spawner = new XmlSpawner("corathesorceress");
                 WeakEntityCollection.Add("newcovetous", spawner);
                 spawner.MoveToWorld(new Point3D(5457, 1808, 0), Map.Trammel);
                 spawner.SpawnRange = 5;
@@ -118,7 +117,7 @@ namespace Server.Engines.VoidPool
             foreach (var w in one.WaypointsA.Where(w => w != null && !w.Deleted)) w.Delete();
             foreach (var w in one.WaypointsB.Where(w => w != null && !w.Deleted)) w.Delete();
 
-            foreach(var w in two.WaypointsA.Where(w => w != null && !w.Deleted)) w.Delete();
+            foreach (var w in two.WaypointsA.Where(w => w != null && !w.Deleted)) w.Delete();
             foreach (var w in two.WaypointsB.Where(w => w != null && !w.Deleted)) w.Delete();
 
             // patha
@@ -311,33 +310,33 @@ namespace Server.Engines.VoidPool
             wp.MoveToWorld(new Point3D(5500, 1998, 0), Map.Felucca);
             two.WaypointsB.Add(wp);
 
-            for (int i = 0; i < one.WaypointsA.Count; i++)
+            for (var i = 0; i < one.WaypointsA.Count; i++)
             {
-                WayPoint waypoint = one.WaypointsA[i];
+                var waypoint = one.WaypointsA[i];
 
                 if (i < one.WaypointsA.Count - 1)
                     waypoint.NextPoint = one.WaypointsA[i + 1];
             }
 
-            for (int i = 0; i < one.WaypointsB.Count; i++)
+            for (var i = 0; i < one.WaypointsB.Count; i++)
             {
-                WayPoint waypoint = one.WaypointsB[i];
+                var waypoint = one.WaypointsB[i];
 
                 if (i < one.WaypointsB.Count - 1)
                     waypoint.NextPoint = one.WaypointsB[i + 1];
             }
 
-            for (int i = 0; i < two.WaypointsA.Count; i++)
+            for (var i = 0; i < two.WaypointsA.Count; i++)
             {
-                WayPoint waypoint = two.WaypointsA[i];
+                var waypoint = two.WaypointsA[i];
 
                 if (i < two.WaypointsA.Count - 1)
                     waypoint.NextPoint = two.WaypointsA[i + 1];
             }
 
-            for (int i = 0; i < two.WaypointsB.Count; i++)
+            for (var i = 0; i < two.WaypointsB.Count; i++)
             {
-                WayPoint waypoint = two.WaypointsB[i];
+                var waypoint = two.WaypointsB[i];
 
                 if (i < two.WaypointsB.Count - 1)
                     waypoint.NextPoint = two.WaypointsB[i + 1];
@@ -350,12 +349,10 @@ namespace Server.Engines.VoidPool
             two.WaypointBCount = two.WaypointsB.Count;
         }
 
-        private static Rectangle2D _SpawnerBounds = new Rectangle2D(5383, 1845, 125, 115);
-
         public static void ConvertSpawners()
         {
-            Region tram = Region.Regions.FirstOrDefault(r => r.Map == Map.Trammel && r.Name == "Covetous");
-            Region fel = Region.Regions.FirstOrDefault(r => r.Map == Map.Felucca && r.Name == "Covetous");
+            var tram = Region.Regions.FirstOrDefault(r => r.Map == Map.Trammel && r.Name == "Covetous");
+            var fel = Region.Regions.FirstOrDefault(r => r.Map == Map.Felucca && r.Name == "Covetous");
 
             ConvertRegionSpawners(tram);
             ConvertRegionSpawners(fel);
@@ -366,38 +363,34 @@ namespace Server.Engines.VoidPool
             if (r == null)
                 return;
 
-            List<XmlSpawner> list = new List<XmlSpawner>();
+            var list = new List<XmlSpawner>();
 
-            foreach (Sector s in r.Sectors)
+            foreach (var s in r.Sectors)
+            foreach (var i in s.Items.Where(i => i is XmlSpawner && _SpawnerBounds.Contains(i)))
             {
-                foreach (Item i in s.Items.Where(i => i is XmlSpawner && _SpawnerBounds.Contains(i)))
-                {
-                    XmlSpawner spawner = i as XmlSpawner;
+                var spawner = i as XmlSpawner;
 
-                    foreach (XmlSpawner.SpawnObject obj in spawner.SpawnObjects)
+                foreach (var obj in spawner.SpawnObjects)
+                    if (obj.TypeName != null)
                     {
-                        if (obj.TypeName != null)
-                        {
-                            string name = obj.TypeName.ToLower();
+                        var name = obj.TypeName.ToLower();
 
-                            if (name == "gazer" || name == "gazerlarva")
-                                obj.TypeName = "StrangeGazer";
-                            else if (name == "headlessone")
-                                obj.TypeName = "HeadlessMiner";
-                            else if (name == "harpy")
-                                obj.TypeName = "DazzledHarpy";
-                            else if (name == "stoneharpy")
-                                obj.TypeName = "VampireMongbat";
-                        }
+                        if (name == "gazer" || name == "gazerlarva")
+                            obj.TypeName = "StrangeGazer";
+                        else if (name == "headlessone")
+                            obj.TypeName = "HeadlessMiner";
+                        else if (name == "harpy")
+                            obj.TypeName = "DazzledHarpy";
+                        else if (name == "stoneharpy")
+                            obj.TypeName = "VampireMongbat";
                     }
 
-                    list.Add(spawner);
-                }
+                list.Add(spawner);
             }
 
             list.ForEach(spawner => spawner.DoRespawn = true);
 
             ColUtility.Free(list);
         }
-	}
+    }
 }

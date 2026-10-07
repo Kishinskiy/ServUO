@@ -1,7 +1,5 @@
-﻿using System;
-using Server;
+﻿using Server.Gumps;
 using Server.Mobiles;
-using Server.Gumps;
 using Server.Network;
 
 namespace Server.Items
@@ -10,7 +8,18 @@ namespace Server.Items
     {
         private int m_UsesRemaining;
 
-        public override int LabelNumber { get { return 1149868; } } // Forged Metal of Artifacts
+        public override int LabelNumber => 1149868; // Forged Metal of Artifacts
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int UsesRemaining
+        {
+            get => m_UsesRemaining;
+            set
+            {
+                m_UsesRemaining = value;
+                InvalidateProperties();
+            }
+        }
 
         [Constructable]
         public ForgedMetalOfArtifacts(int uses)
@@ -34,25 +43,18 @@ namespace Server.Items
         {
         }
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int UsesRemaining
-        {
-            get { return m_UsesRemaining; }
-            set { m_UsesRemaining = value; InvalidateProperties(); }
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
-            writer.Write((int)m_UsesRemaining);
+            writer.Write(m_UsesRemaining);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             m_UsesRemaining = reader.ReadInt();
         }
@@ -66,7 +68,7 @@ namespace Server.Items
 
         public override void OnDoubleClick(Mobile from)
         {
-            PlayerMobile pm = from as PlayerMobile;
+            var pm = from as PlayerMobile;
 
             from.CloseGump(typeof(InternalGump));
             from.CloseGump(typeof(CancelGump));
@@ -74,13 +76,9 @@ namespace Server.Items
             if (IsChildOf(from.Backpack))
             {
                 if (pm.NextEnhanceSuccess)
-                {
                     from.SendGump(new CancelGump(pm, this));
-                }
                 else
-                {
                     from.SendGump(new InternalGump(pm, this));
-                }
             }
             else
             {
@@ -93,12 +91,13 @@ namespace Server.Items
             if (IsChildOf(from.Backpack))
             {
                 from.NextEnhanceSuccess = true;
-                from.SendLocalizedMessage(1149956); // A magical aura surrounds you and you feel your next item enhancing attempt will most certainly be successful.
-                this.m_UsesRemaining -= 1;
+                from.SendLocalizedMessage(
+                    1149956); // A magical aura surrounds you and you feel your next item enhancing attempt will most certainly be successful.
+                m_UsesRemaining -= 1;
                 InvalidateProperties();
-                if (this.m_UsesRemaining <= 0)
+                if (m_UsesRemaining <= 0)
                 {
-                    this.Delete();
+                    Delete();
                     from.SendLocalizedMessage(1044038); // You have worn out your tool!
                 }
             }
@@ -110,8 +109,8 @@ namespace Server.Items
 
         public class InternalGump : Gump
         {
-            private PlayerMobile m_Mobile;
-            private ForgedMetalOfArtifacts m_Tool;
+            private readonly PlayerMobile m_Mobile;
+            private readonly ForgedMetalOfArtifacts m_Tool;
 
             public InternalGump(PlayerMobile from, ForgedMetalOfArtifacts tool)
                 : base(50, 50)
@@ -124,16 +123,17 @@ namespace Server.Items
                 AddBackground(0, 0, 400, 230, 0x13BE);
 
                 AddImageTiled(5, 5, 390, 25, 0xA40);
-                AddHtmlLocalized(5, 8, 390, 25, 1113302, "#1149868", 0x7FFF, false, false); // <CENTER>Forged Metal of Artifacts</CENTER>
+                AddHtmlLocalized(5, 8, 390, 25, 1113302, "#1149868", 0x7FFF, false,
+                    false); // <CENTER>Forged Metal of Artifacts</CENTER>
 
                 AddImageTiled(5, 35, 390, 125, 0xA40);
 
-                /* 
-				 * The next time that you try to enhance an item the success rate will be the value listed
-				 * below regardless of your skill and total intensity of the item. Skill requirements still
-				 * apply to material usage.  One charge on this item will be consumed per use and only one
-				 * instance of this buff can be active at any time.
-				 */
+                /*
+                 * The next time that you try to enhance an item the success rate will be the value listed
+                 * below regardless of your skill and total intensity of the item. Skill requirements still
+                 * apply to material usage.  One charge on this item will be consumed per use and only one
+                 * instance of this buff can be active at any time.
+                 */
                 AddHtmlLocalized(10, 40, 380, 125, 1149920, 0x7FFF, false, false);
 
                 AddImageTiled(5, 165, 120, 30, 0xA40);
@@ -155,17 +155,14 @@ namespace Server.Items
 
             public override void OnResponse(NetState sender, RelayInfo info)
             {
-                if (info.ButtonID == 1)
-                {
-                    m_Tool.Use(m_Mobile);
-                }
+                if (info.ButtonID == 1) m_Tool.Use(m_Mobile);
             }
         }
 
         public class CancelGump : Gump
         {
-            private PlayerMobile m_Mobile;
-            private ForgedMetalOfArtifacts m_Tool;
+            private readonly PlayerMobile m_Mobile;
+            private readonly ForgedMetalOfArtifacts m_Tool;
 
             public CancelGump(PlayerMobile from, ForgedMetalOfArtifacts tool)
                 : base(50, 50)
@@ -179,7 +176,8 @@ namespace Server.Items
                 AddImageTiled(5, 5, 390, 25, 0xA40);
                 AddHtmlLocalized(5, 8, 390, 25, 1113302, "#1149868", 0x7FFF, false, false); // <CENTER>~1_VAL~</CENTER>
                 AddImageTiled(5, 35, 390, 52, 0xA40);
-                AddHtmlLocalized(10, 40, 380, 52, 1149967, 0x7FFF, false, false); // *CAUTION* You are under the following ENHANCE ITEM buff. Do you want to remove it?
+                AddHtmlLocalized(10, 40, 380, 52, 1149967, 0x7FFF, false,
+                    false); // *CAUTION* You are under the following ENHANCE ITEM buff. Do you want to remove it?
                 AddImageTiled(5, 92, 120, 29, 0xA40);
                 AddHtmlLocalized(10, 97, 120, 29, 1149921, 0x7FFF, false, false); // Skill:
                 AddImageTiled(5, 121, 120, 29, 0xA40);
@@ -199,19 +197,23 @@ namespace Server.Items
                 {
                     if (m_Tool == null || m_Tool.Deleted)
                     {
-                        m_Mobile.SendLocalizedMessage(1155766); // A charge could not be refunded to the last Forged Metal of Artifacts tool you used, you must use this charge.
+                        m_Mobile.SendLocalizedMessage(
+                            1155766); // A charge could not be refunded to the last Forged Metal of Artifacts tool you used, you must use this charge.
                     }
                     else if (!m_Tool.IsChildOf(m_Mobile.Backpack))
                     {
-                        m_Mobile.SendLocalizedMessage(1155767); // A charge could not be refunded to the last Forged Metal of Artifacts tool you used because the item is not in your backpack.
+                        m_Mobile.SendLocalizedMessage(
+                            1155767); // A charge could not be refunded to the last Forged Metal of Artifacts tool you used because the item is not in your backpack.
                     }
                     else
                     {
                         m_Mobile.NextEnhanceSuccess = false;
-                        m_Mobile.SendLocalizedMessage(1149969); // The magical aura that surrounded you disipates and you feel that your item enhancement chances have returned to normal.
+                        m_Mobile.SendLocalizedMessage(
+                            1149969); // The magical aura that surrounded you disipates and you feel that your item enhancement chances have returned to normal.
 
                         m_Tool.UsesRemaining += 1;
-                        m_Mobile.SendLocalizedMessage(1155768); // A charged has been refunded to your Forged Metal of Artifacts tool.
+                        m_Mobile.SendLocalizedMessage(
+                            1155768); // A charged has been refunded to your Forged Metal of Artifacts tool.
                     }
                 }
             }

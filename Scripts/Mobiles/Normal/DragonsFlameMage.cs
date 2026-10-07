@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +5,9 @@ namespace Server.Mobiles
     [CorpseName("a black order mage corpse")]
     public class DragonsFlameMage : BaseCreature
     {
+        public override bool AlwaysMurderer => true;
+        public override bool ShowFameTitle => false;
+
         [Constructable]
         public DragonsFlameMage()
             : base(AIType.AI_Mage, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -60,9 +62,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool AlwaysMurderer { get { return true; } }
-        public override bool ShowFameTitle { get { return false; } }
-
         public override void GenerateLoot()
         {
             AddLoot(LootPack.AosFilthyRich, 4);
@@ -79,19 +78,19 @@ namespace Server.Mobiles
             base.OnDeath(c);
 
             if (Utility.RandomDouble() < 0.3)
-                c.DropItem(new DragonFlameSectBadge());      
+                c.DropItem(new DragonFlameSectBadge());
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

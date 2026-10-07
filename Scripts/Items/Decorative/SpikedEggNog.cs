@@ -1,23 +1,19 @@
 using System;
-using Server.Gumps;
-using Server.Multis;
 using System.Collections.Generic;
 using Server.ContextMenus;
+using Server.Gumps;
+using Server.Multis;
 using Server.Network;
 
 namespace Server.Items
 {
     public class SpikedEggNog : Item, ISecurable
     {
-        public override int LabelNumber { get { return 1157647; } } // Spiked Egg Nog
+        private Timer m_Timer;
+        public override int LabelNumber => 1157647; // Spiked Egg Nog
 
         [CommandProperty(AccessLevel.GameMaster)]
         public DateTime NextUseTime { get; set; }
-
-        private Timer m_Timer;
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public SecureLevel Level { get; set; }
 
         [Constructable]
         public SpikedEggNog()
@@ -26,12 +22,20 @@ namespace Server.Items
             Hue = 2711;
         }
 
+        public SpikedEggNog(Serial serial)
+            : base(serial)
+        {
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public SecureLevel Level { get; set; }
+
         public bool CheckAccessible(Mobile from, Item item)
         {
             if (from.AccessLevel >= AccessLevel.GameMaster)
                 return true; // Staff can access anything
 
-            BaseHouse house = BaseHouse.FindHouseAt(item);
+            var house = BaseHouse.FindHouseAt(item);
 
             if (house == null)
                 return false;
@@ -51,17 +55,10 @@ namespace Server.Items
         public override void OnDoubleClick(Mobile from)
         {
             if (!from.InRange(GetWorldLocation(), 2))
-            {
                 from.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1019045); // I can't reach that.
-            }
             else if (!IsLockedDown && !IsSecure)
-            {
                 from.SendLocalizedMessage(1112573); // This must be locked down or secured in order to use it.
-            }
-            else if (CheckAccessible(from, this))
-            {
-                BeginBleed(from);
-            }
+            else if (CheckAccessible(from, this)) BeginBleed(from);
         }
 
         public void BeginBleed(Mobile m)
@@ -74,7 +71,9 @@ namespace Server.Items
                 return;
             }
 
-            BuffInfo.AddBuff(m, new BuffInfo(BuffIcon.Bleed, 1075829, 1075830, TimeSpan.FromSeconds(12), m, String.Format("{0}\t{1}\t{2}", "1", "10", "2")));
+            BuffInfo.AddBuff(m,
+                new BuffInfo(BuffIcon.Bleed, 1075829, 1075830, TimeSpan.FromSeconds(12), m,
+                    string.Format("{0}\t{1}\t{2}", "1", "10", "2")));
 
             m_Timer = new BleedTimer(m, this);
             m_Timer.Start();
@@ -102,7 +101,7 @@ namespace Server.Items
                 m.PlaySound(0x133);
                 AOS.Damage(m, Utility.Random(1, 10), false, 0, 0, 0, 0, 100);
 
-                Blood blood = new Blood();
+                var blood = new Blood();
                 blood.ItemID = Utility.Random(0x122A, 5);
                 blood.MoveToWorld(m.Location, m.Map);
             }
@@ -112,12 +111,37 @@ namespace Server.Items
             }
         }
 
+        public override void GetContextMenuEntries(Mobile from, List<ContextMenuEntry> list)
+        {
+            base.GetContextMenuEntries(from, list);
+
+            SetSecureLevelEntry.AddTo(from, this, list);
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
+
+            writer.Write(NextUseTime);
+            writer.Write((int)Level);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
+
+            NextUseTime = reader.ReadDateTime();
+            Level = (SecureLevel)reader.ReadInt();
+        }
+
         private class BleedTimer : Timer
         {
-            private readonly Mobile m_Mobile;
             private readonly SpikedEggNog m_Item;
+            private readonly int m_MaxCount;
+            private readonly Mobile m_Mobile;
             private int m_Count;
-            private int m_MaxCount;
 
             public BleedTimer(Mobile m, SpikedEggNog item)
                 : base(TimeSpan.FromSeconds(2.0), TimeSpan.FromSeconds(2.0))
@@ -143,36 +167,6 @@ namespace Server.Items
                         m_Item.EndBleed(m_Mobile);
                 }
             }
-        }
-
-        public SpikedEggNog(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override void GetContextMenuEntries(Mobile from, List<ContextMenuEntry> list)
-        {
-            base.GetContextMenuEntries(from, list);
-
-            SetSecureLevelEntry.AddTo(from, this, list);
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.Write((int)0);
-
-            writer.Write(NextUseTime);
-            writer.Write((int)Level);
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            int version = reader.ReadInt();
-
-            NextUseTime = reader.ReadDateTime();
-            Level = (SecureLevel)reader.ReadInt();
         }
     }
 }

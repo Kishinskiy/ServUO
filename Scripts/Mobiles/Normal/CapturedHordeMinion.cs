@@ -1,13 +1,13 @@
-using System;
-
 namespace Server.Mobiles
 {
     public class CapturedHordeMinion : HordeMinion
     {
+        public override bool InitialInnocent => true;
+
         [Constructable]
         public CapturedHordeMinion()
         {
-            this.FightMode = FightMode.None;
+            FightMode = FightMode.None;
         }
 
         public CapturedHordeMinion(Serial serial)
@@ -15,13 +15,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool InitialInnocent
-        {
-            get
-            {
-                return true;
-            }
-        }
         public override bool CanBeDamaged()
         {
             return false;
@@ -38,7 +31,7 @@ namespace Server.Mobiles
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

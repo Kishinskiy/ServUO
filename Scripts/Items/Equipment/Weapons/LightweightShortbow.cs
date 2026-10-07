@@ -1,13 +1,13 @@
-using System;
-
 namespace Server.Items
 {
     public class LightweightShortbow : MagicalShortbow
     {
+        public override int LabelNumber => 1073510; // lightweight shortbow
+
         [Constructable]
         public LightweightShortbow()
         {
-            this.Balanced = true;
+            Balanced = true;
         }
 
         public LightweightShortbow(Serial serial)
@@ -15,13 +15,6 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1073510;
-            }
-        }// lightweight shortbow
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -33,7 +26,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

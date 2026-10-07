@@ -1,5 +1,3 @@
-using System;
-using Server.Items;
 using Server.Mobiles;
 
 namespace Server.Engines.Quests.Samurai
@@ -54,7 +52,7 @@ namespace Server.Engines.Quests.Samurai
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

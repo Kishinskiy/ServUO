@@ -1,7 +1,4 @@
-﻿using Server;
-using System;
-
-namespace Server.Mobiles
+﻿namespace Server.Mobiles
 {
     public class SoulboundBattleMage : EvilMageLord
     {
@@ -43,27 +40,27 @@ namespace Server.Mobiles
             Karma = -5000;
         }
 
+        public SoulboundBattleMage(Serial serial)
+            : base(serial)
+        {
+        }
+
 
         public override void GenerateLoot()
         {
             AddLoot(LootPack.FilthyRich, 3);
         }
 
-        public SoulboundBattleMage(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

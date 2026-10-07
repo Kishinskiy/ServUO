@@ -1,7 +1,8 @@
 using System;
 using System.Collections;
-using Server.Targeting;
+using Server.Spells.Mysticism;
 using Server.Spells.SkillMasteries;
+using Server.Targeting;
 
 namespace Server.Spells.Necromancy
 {
@@ -13,32 +14,18 @@ namespace Server.Spells.Necromancy
             9031,
             Reagent.DaemonBlood,
             Reagent.NoxCrystal);
+
         private static readonly Hashtable m_Table = new Hashtable();
+
+        public override TimeSpan CastDelayBase => TimeSpan.FromSeconds(2.25);
+
+        public override double RequiredSkill => 65.0;
+
+        public override int RequiredMana => 29;
+
         public StrangleSpell(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
         {
-        }
-
-        public override TimeSpan CastDelayBase
-        {
-            get
-            {
-                return TimeSpan.FromSeconds(2.25);
-            }
-        }
-        public override double RequiredSkill
-        {
-            get
-            {
-                return 65.0;
-            }
-        }
-        public override int RequiredMana
-        {
-            get
-            {
-                return 29;
-            }
         }
 
         public static bool UnderEffects(Mobile m)
@@ -48,7 +35,7 @@ namespace Server.Spells.Necromancy
 
         public static bool RemoveCurse(Mobile m)
         {
-            Timer t = (Timer)m_Table[m];
+            var t = (Timer)m_Table[m];
 
             if (t == null)
                 return false;
@@ -64,14 +51,14 @@ namespace Server.Spells.Necromancy
 
         public override void OnCast()
         {
-            this.Caster.Target = new InternalTarget(this);
+            Caster.Target = new InternalTarget(this);
         }
 
         public void Target(Mobile m)
         {
-            if (this.CheckHSequence(m))
+            if (CheckHSequence(m))
             {
-                SpellHelper.Turn(this.Caster, m);
+                SpellHelper.Turn(Caster, m);
 
                 ApplyEffects(m);
                 ConduitSpell.CheckAffected(Caster, m, ApplyEffects);
@@ -105,7 +92,7 @@ namespace Server.Spells.Necromancy
             m.FixedParticles(0x36CB, 1, 9, 9911, 67, 5, EffectLayer.Head);
             m.FixedParticles(0x374A, 1, 17, 9502, 1108, 4, (EffectLayer)255);
 
-            if (Server.Spells.Mysticism.StoneFormSpell.CheckImmunity(m))
+            if (StoneFormSpell.CheckImmunity(m))
             {
                 Caster.SendLocalizedMessage(1095250); // Your target resists strangle.
             }
@@ -117,17 +104,17 @@ namespace Server.Spells.Necromancy
                 m_Table[m] = t;
 
                 //Calculations for the buff bar
-                double spiritlevel = Caster.Skills[SkillName.SpiritSpeak].Value / 10;
+                var spiritlevel = Caster.Skills[SkillName.SpiritSpeak].Value / 10;
                 if (spiritlevel < 4)
                     spiritlevel = 4;
-                int d_MinDamage = (int)(4.0 * strength);
-                int d_MaxDamage = (int)(((spiritlevel + 1) * 3) * strength);
-                string args = String.Format("{0}\t{1}", d_MinDamage, d_MaxDamage);
+                var d_MinDamage = (int)(4.0 * strength);
+                var d_MaxDamage = (int)((spiritlevel + 1) * 3 * strength);
+                var args = string.Format("{0}\t{1}", d_MinDamage, d_MaxDamage);
 
-                int i_Count = (int)spiritlevel;
-                int i_MaxCount = i_Count;
-                int i_HitDelay = 5;
-                int i_Length = i_HitDelay;
+                var i_Count = (int)spiritlevel;
+                var i_MaxCount = i_Count;
+                var i_HitDelay = 5;
+                var i_Length = i_HitDelay;
 
                 while (i_Count > 1)
                 {
@@ -140,7 +127,7 @@ namespace Server.Spells.Necromancy
                         }
                         else
                         {
-                            int delay = (int)(Math.Ceiling((1.0 + (5 * i_Count)) / i_MaxCount));
+                            var delay = (int)Math.Ceiling((1.0 + 5 * i_Count) / i_MaxCount);
 
                             if (delay <= 5)
                                 i_HitDelay = delay;
@@ -148,11 +135,12 @@ namespace Server.Spells.Necromancy
                                 i_HitDelay = 5;
                         }
                     }
+
                     i_Length += i_HitDelay;
                 }
 
-                TimeSpan t_Duration = TimeSpan.FromSeconds(i_Length * strength);
-                BuffInfo.AddBuff(m, new BuffInfo(BuffIcon.Strangle, 1075794, 1075795, t_Duration, m, args.ToString()));
+                var t_Duration = TimeSpan.FromSeconds(i_Length * strength);
+                BuffInfo.AddBuff(m, new BuffInfo(BuffIcon.Strangle, 1075794, 1075795, t_Duration, m, args));
             }
 
             HarmfulSpell(m);
@@ -160,13 +148,16 @@ namespace Server.Spells.Necromancy
 
         private class InternalTimer : Timer
         {
-            private Mobile m_Target, m_From;
-            private double m_MinBaseDamage, m_MaxBaseDamage;
+            private readonly Mobile m_From;
+            private readonly double m_MaxBaseDamage;
+            private readonly int m_MaxCount;
+            private readonly double m_MinBaseDamage;
+            private readonly Mobile m_Target;
 
-            private DateTime m_NextHit;
+            private int m_Count;
             private int m_HitDelay;
 
-            private int m_Count, m_MaxCount;
+            private DateTime m_NextHit;
 
             public InternalTimer(Mobile target, Mobile from, double strength)
                 : base(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1))
@@ -176,7 +167,7 @@ namespace Server.Spells.Necromancy
                 m_Target = target;
                 m_From = from;
 
-                double spiritLevel = from.Skills[SkillName.SpiritSpeak].Value / 10;
+                var spiritLevel = from.Skills[SkillName.SpiritSpeak].Value / 10;
 
                 m_MinBaseDamage = (spiritLevel - 2) * strength;
                 m_MaxBaseDamage = (spiritLevel + 1) * strength;
@@ -213,7 +204,7 @@ namespace Server.Spells.Necromancy
                     }
                     else
                     {
-                        int delay = (int)(Math.Ceiling((1.0 + (5 * m_Count)) / m_MaxCount));
+                        var delay = (int)Math.Ceiling((1.0 + 5 * m_Count) / m_MaxCount);
 
                         if (delay <= 5)
                             m_HitDelay = delay;
@@ -232,9 +223,9 @@ namespace Server.Spells.Necromancy
                 {
                     m_NextHit = DateTime.UtcNow + TimeSpan.FromSeconds(m_HitDelay);
 
-                    double damage = m_MinBaseDamage + (Utility.RandomDouble() * (m_MaxBaseDamage - m_MinBaseDamage));
+                    var damage = m_MinBaseDamage + Utility.RandomDouble() * (m_MaxBaseDamage - m_MinBaseDamage);
 
-                    damage *= (3 - (((double)m_Target.Stam / m_Target.StamMax) * 2));
+                    damage *= 3 - (double)m_Target.Stam / m_Target.StamMax * 2;
 
                     if (damage < 1)
                         damage = 1;
@@ -244,7 +235,8 @@ namespace Server.Spells.Necromancy
 
                     AOS.Damage(m_Target, m_From, (int)damage, 0, 0, 0, 100, 0);
 
-                    if (0.60 <= Utility.RandomDouble()) // OSI: randomly revealed between first and third damage tick, guessing 60% chance
+                    if (0.60 <= Utility
+                            .RandomDouble()) // OSI: randomly revealed between first and third damage tick, guessing 60% chance
                         m_Target.RevealingAction();
                 }
             }
@@ -253,21 +245,22 @@ namespace Server.Spells.Necromancy
         private class InternalTarget : Target
         {
             private readonly StrangleSpell m_Owner;
+
             public InternalTarget(StrangleSpell owner)
                 : base(Core.ML ? 10 : 12, false, TargetFlags.Harmful)
             {
-                this.m_Owner = owner;
+                m_Owner = owner;
             }
 
             protected override void OnTarget(Mobile from, object o)
             {
                 if (o is Mobile)
-                    this.m_Owner.Target((Mobile)o);
+                    m_Owner.Target((Mobile)o);
             }
 
             protected override void OnTargetFinish(Mobile from)
             {
-                this.m_Owner.FinishSequence();
+                m_Owner.FinishSequence();
             }
         }
     }

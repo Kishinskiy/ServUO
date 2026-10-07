@@ -1,13 +1,14 @@
 using System;
 using System.Collections.Generic;
-using Server.Mobiles;
 
 namespace Server.Custom.ExileHunterBestiary
 {
     public class HunterProfile
     {
         public Serial MobileSerial { get; set; }
-        public HashSet<string> LearnedCreatures { get; private set; }
+        public HashSet<string> LearnedCreatures { get; }
+
+        public int TotalMastered => LearnedCreatures.Count;
 
         public HunterProfile(Serial serial)
         {
@@ -29,9 +30,7 @@ namespace Server.Custom.ExileHunterBestiary
                 return false;
 
             if (HunterBestiaryEngine.RegistryByType.TryGetValue(creatureType, out var entry))
-            {
                 return HasLearned(entry.Id);
-            }
 
             return false;
         }
@@ -47,18 +46,13 @@ namespace Server.Custom.ExileHunterBestiary
 
         public int GetCategoryMasteredCount(BestiaryCategory category)
         {
-            int count = 0;
+            var count = 0;
             if (HunterBestiaryEngine.EntriesByCategory.TryGetValue(category, out var list))
-            {
-                for (int i = 0; i < list.Count; i++)
-                {
+                for (var i = 0; i < list.Count; i++)
                     if (LearnedCreatures.Contains(list[i].Id))
                         count++;
-                }
-            }
+
             return count;
         }
-
-        public int TotalMastered => LearnedCreatures.Count;
     }
 }

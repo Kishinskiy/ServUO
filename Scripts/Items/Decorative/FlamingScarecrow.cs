@@ -4,7 +4,10 @@ namespace Server.Items
 {
     public class FlamingScarecrow : BaseLight, IFlipable
     {
-        public override int LabelNumber { get { return 1027732; } } // scarecrow
+        public override int LabelNumber => 1027732; // scarecrow
+
+        public override int LitItemID => ItemID == 0x9F33 ? 0x9F34 : 0x9F3A;
+        public override int UnlitItemID => ItemID == 0x9F34 ? 0x9F33 : 0x9F39;
 
         [Constructable]
         public FlamingScarecrow()
@@ -12,6 +15,11 @@ namespace Server.Items
         {
             Duration = TimeSpan.Zero;
             Burning = false;
+        }
+
+        public FlamingScarecrow(Serial serial)
+            : base(serial)
+        {
         }
 
         public void OnFlip(Mobile from)
@@ -22,24 +30,16 @@ namespace Server.Items
                 ItemID = ItemID - 6;
         }
 
-        public override int LitItemID { get { return ItemID == 0x9F33 ? 0x9F34 : 0x9F3A; } }
-        public override int UnlitItemID { get { return ItemID == 0x9F34 ? 0x9F33 : 0x9F39; } }
-
-        public FlamingScarecrow(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

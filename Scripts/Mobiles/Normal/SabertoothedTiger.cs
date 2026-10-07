@@ -1,12 +1,20 @@
 using System;
-using Server.Items;
 
 namespace Server.Mobiles
 {
     [CorpseName("a saber-toothed tiger corpse")]
     public class SabertoothedTiger : BaseCreature
     {
-        public override double HealChance { get { return .167; } }
+        public override double HealChance => .167;
+
+        public override double WeaponAbilityChance => 0.5;
+
+        public override int Hides => 11;
+        public override HideType HideType => HideType.Regular;
+        public override int Meat => 3;
+        public override FoodType FavoriteFood => FoodType.Meat;
+        public override bool StatLossAfterTame => true;
+        public override bool CanAngerOnTame => true;
 
         [Constructable]
         public SabertoothedTiger()
@@ -40,7 +48,7 @@ namespace Server.Mobiles
 
             Fame = 11000;
             Karma = -11000;
-            
+
             Tamable = true;
             ControlSlots = 2;
             MinTameSkill = 102.0;
@@ -48,19 +56,30 @@ namespace Server.Mobiles
             SetMagicalAbility(MagicalAbility.Slashing);
         }
 
-        public override int GetIdleSound() { return 0x673; }
-        public override int GetAngerSound() { return 0x670; }
-        public override int GetHurtSound() { return 0x672; }
-        public override int GetDeathSound() { return 0x671; }
+        public SabertoothedTiger(Serial serial)
+            : base(serial)
+        {
+        }
 
-        public override double WeaponAbilityChance { get { return 0.5; } }
-        
-        public override int Hides { get { return 11; } }
-        public override HideType HideType { get { return HideType.Regular; } }
-        public override int Meat { get { return 3; } }
-        public override FoodType FavoriteFood { get { return FoodType.Meat; } }
-        public override bool StatLossAfterTame { get { return true; } }
-        public override bool CanAngerOnTame { get { return true; } }
+        public override int GetIdleSound()
+        {
+            return 0x673;
+        }
+
+        public override int GetAngerSound()
+        {
+            return 0x670;
+        }
+
+        public override int GetHurtSound()
+        {
+            return 0x672;
+        }
+
+        public override int GetDeathSound()
+        {
+            return 0x671;
+        }
 
         public override void OnAfterTame(Mobile tamer)
         {
@@ -86,26 +105,18 @@ namespace Server.Mobiles
             AddLoot(LootPack.Rich, 1);
         }
 
-        public SabertoothedTiger(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1); // version
+            writer.Write(1); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            if (version == 0)
-            {
-                SetMagicalAbility(MagicalAbility.Slashing);
-            }
+            if (version == 0) SetMagicalAbility(MagicalAbility.Slashing);
         }
     }
 }

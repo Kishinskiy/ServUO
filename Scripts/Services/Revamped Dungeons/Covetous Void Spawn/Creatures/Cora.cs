@@ -1,17 +1,26 @@
-using Server;
 using System;
-using Server.Items;
+using Server.Engines.Despise;
 using Server.Engines.VoidPool;
+using Server.Items;
+using Server.Services.TownCryer;
+using Server.Spells;
 
- namespace Server.Mobiles
- {
-	public class CoraTheSorceress : BaseCreature, IElementalCreature, IAuraCreature
-	{
-        public ElementType ElementType { get { return ElementType.Chaos; } }
-
+namespace Server.Mobiles
+{
+    public class CoraTheSorceress : BaseCreature, IElementalCreature, IAuraCreature
+    {
         public DateTime NextManaDrain { get; set; }
 
-        public TimeSpan ManaDrainInterval { get { return TimeSpan.FromSeconds(Utility.RandomMinMax(15, 120)); } }
+        public TimeSpan ManaDrainInterval => TimeSpan.FromSeconds(Utility.RandomMinMax(15, 120));
+
+        public override bool AlwaysMurderer => true;
+        public override bool ClickTitle => false;
+        public override bool ShowFameTitle => false;
+
+        public override bool TeleportsTo => true;
+        public override TimeSpan TeleportDuration => TimeSpan.FromSeconds(Utility.RandomMinMax(30, 60));
+        public override double TeleportProb => 1.0;
+        public override bool TeleportsPets => true;
 
         [Constructable]
         public CoraTheSorceress() : base(AIType.AI_Mage, FightMode.Closest, 10, 1, 0.2, 0.1)
@@ -60,23 +69,24 @@ using Server.Engines.VoidPool;
             SetAreaEffect(AreaEffect.AuraDamage);
         }
 
-        public override bool AlwaysMurderer { get { return true; } }
-        public override bool ClickTitle { get { return false; } }
-        public override bool ShowFameTitle { get { return false; } }
+        public CoraTheSorceress(Serial serial)
+            : base(serial)
+        {
+        }
 
         public void AuraEffect(Mobile m)
         {
-            int mana = Utility.Random(1, m.Mana);
+            var mana = Utility.Random(1, m.Mana);
             m.Mana -= mana;
             m.SendLocalizedMessage(1153114, mana.ToString()); // Cora drains ~1_VAL~ points of your mana!
         }
 
-        public override bool TeleportsTo { get { return true; } }
-        public override TimeSpan TeleportDuration { get { return TimeSpan.FromSeconds(Utility.RandomMinMax(30, 60)); } }
-        public override double TeleportProb { get { return 1.0; } }
-        public override bool TeleportsPets { get { return true; } }
+        public ElementType ElementType => ElementType.Chaos;
 
-        public override int GetDeathSound() { return 0x316; }
+        public override int GetDeathSound()
+        {
+            return 0x316;
+        }
 
         public override void GenerateLoot()
         {
@@ -113,33 +123,33 @@ using Server.Engines.VoidPool;
 
         private bool DoEffects(Direction d)
         {
-            int x = this.X;
-            int y = this.Y;
-            int z = this.Z;
-            int range = 10;
-            int offset = 8;
+            var x = X;
+            var y = Y;
+            var z = Z;
+            var range = 10;
+            var offset = 8;
 
             switch (d)
             {
                 case Direction.North:
-                    x = this.X + Utility.RandomMinMax(-offset, offset);
-                    y = this.Y - range;
+                    x = X + Utility.RandomMinMax(-offset, offset);
+                    y = Y - range;
                     break;
                 case Direction.West:
-                    x = this.X - range;
-                    y = this.Y + Utility.RandomMinMax(-offset, offset); 
+                    x = X - range;
+                    y = Y + Utility.RandomMinMax(-offset, offset);
                     break;
                 case Direction.South:
-                    x = this.X + Utility.RandomMinMax(-offset, offset);
-                    y = this.Y + range;
+                    x = X + Utility.RandomMinMax(-offset, offset);
+                    y = Y + range;
                     break;
                 case Direction.East:
-                    x = this.X + range;
-                    y = this.Y + Utility.RandomMinMax(-offset, offset); 
+                    x = X + range;
+                    y = Y + Utility.RandomMinMax(-offset, offset);
                     break;
             }
 
-            for (int i = 0; i < range; i++)
+            for (var i = 0; i < range; i++)
             {
                 switch (d)
                 {
@@ -149,12 +159,13 @@ using Server.Engines.VoidPool;
                     case Direction.East: x -= i; break;
                 }
 
-                z = this.Map.GetAverageZ(x, y);
-                Point3D p = new Point3D(x, y, z);
+                z = Map.GetAverageZ(x, y);
+                var p = new Point3D(x, y, z);
 
-                if (Server.Spells.SpellHelper.AdjustField(ref p, this.Map, 12, false))/*this.Map.CanFit(x, y, z, 16, false, false, true))/*this.Map.CanSpawnMobile(x, y, z)*/
+                if (SpellHelper.AdjustField(ref p, Map, 12,
+                        false)) /*this.Map.CanFit(x, y, z, 16, false, false, true))/*this.Map.CanSpawnMobile(x, y, z)*/
                 {
-                    MovementPath path = new MovementPath(this, p);
+                    var path = new MovementPath(this, p);
 
                     if (path.Success)
                     {
@@ -169,16 +180,17 @@ using Server.Engines.VoidPool;
 
         private void DropCrack(MovementPath path)
         {
-            int time = 10;
-            int x = this.X;
-            int y = this.Y;
+            var time = 10;
+            var x = X;
+            var y = Y;
 
-            for (int i = 0; i < path.Directions.Length; ++i)
+            for (var i = 0; i < path.Directions.Length; ++i)
             {
                 Movement.Movement.Offset(path.Directions[i], ref x, ref y);
-                IPoint3D p = new Point3D(x, y, this.Map.GetAverageZ(x, y)) as IPoint3D;
+                var p = new Point3D(x, y, Map.GetAverageZ(x, y)) as IPoint3D;
 
-                Timer.DelayCall(TimeSpan.FromMilliseconds(time), new TimerStateCallback(ManaDrainEffects_Callback), new object[] { p, this.Map });
+                Timer.DelayCall(TimeSpan.FromMilliseconds(time), new TimerStateCallback(ManaDrainEffects_Callback),
+                    new object[] { p, Map });
 
                 time += 200;
             }
@@ -186,20 +198,91 @@ using Server.Engines.VoidPool;
 
         private void ManaDrainEffects_Callback(object o)
         {
-            object[] objs = o as object[];
-            IPoint3D p = objs[0] as IPoint3D;
-            Map map = objs[1] as Map;
+            var objs = o as object[];
+            var p = objs[0] as IPoint3D;
+            var map = objs[1] as Map;
 
             var item = new ManaDrainItem(Utility.RandomList(6913, 6915, 6917, 6919), this);
-            Spells.SpellHelper.GetSurfaceTop(ref p);
+            SpellHelper.GetSurfaceTop(ref p);
 
-            item.MoveToWorld(new Point3D(p), this.Map);
+            item.MoveToWorld(new Point3D(p), Map);
+        }
+
+        public override void OnDeath(Container c)
+        {
+            base.OnDeath(c);
+
+            if (0.30 > Utility.RandomDouble())
+            {
+                var m = DemonKnight.FindRandomPlayer(this);
+
+                if (m != null)
+                {
+                    var artifact = VoidPoolRewards.DropRandomArtifact();
+
+                    if (artifact != null)
+                    {
+                        var pack = m.Backpack;
+
+                        if (pack == null || !pack.TryDropItem(m, artifact, false))
+                            m.BankBox.DropItem(artifact);
+
+                        m.SendLocalizedMessage(
+                            1062317); // For your valor in combating the fallen beast, a special artifact has been bestowed on you.
+                    }
+                }
+            }
+        }
+
+        public override void OnKilledBy(Mobile mob)
+        {
+            if (Siege.SiegeShard && mob is PlayerMobile)
+            {
+                var chance = DespiseBoss.ArtifactChance + Math.Min(10, ((PlayerMobile)mob).Luck / 180);
+
+                if (chance >= Utility.Random(100))
+                {
+                    var t = DespiseBoss.Artifacts[Utility.Random(DespiseBoss.Artifacts.Length)];
+
+                    if (t != null)
+                    {
+                        var arty = Loot.Construct(t);
+
+                        if (arty != null)
+                        {
+                            var pack = mob.Backpack;
+
+                            if (pack == null || !pack.TryDropItem(mob, arty, false))
+                            {
+                                mob.BankBox.DropItem(arty);
+                                mob.SendMessage("An artifact has been placed in your bankbox!");
+                            }
+                            else
+                            {
+                                mob.SendLocalizedMessage(1153440); // An artifact has been placed in your backpack!
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
         }
 
         private class ManaDrainItem : Item
         {
             public Item Static { get; private set; }
-            public Mobile Owner { get; private set; }
+            public Mobile Owner { get; }
 
             public ManaDrainItem(int id, Mobile owner) : base(id)
             {
@@ -208,6 +291,11 @@ using Server.Engines.VoidPool;
                 Movable = false;
                 Hue = 1152;
                 Timer.DelayCall(TimeSpan.FromSeconds(5), ChangeHue);
+            }
+
+            public ManaDrainItem(Serial serial)
+                : base(serial)
+            {
             }
 
             private void ChangeHue()
@@ -229,23 +317,21 @@ using Server.Engines.VoidPool;
 
             public override void OnLocationChange(Point3D oldLocation)
             {
-                Static = new Static(this.ItemID + 1);
-                Static.MoveToWorld(this.Location, this.Map);
+                Static = new Static(ItemID + 1);
+                Static.MoveToWorld(Location, Map);
 
-                IPooledEnumerable eable = this.Map.GetMobilesInRange(this.Location, 0);
+                IPooledEnumerable eable = Map.GetMobilesInRange(Location, 0);
 
-                foreach (Mobile m in eable)
-                {
-                    OnMoveOver(m);
-                }
+                foreach (Mobile m in eable) OnMoveOver(m);
                 eable.Free();
             }
 
             public override bool OnMoveOver(Mobile m)
             {
-                if ((m is PlayerMobile || (m is BaseCreature && !((BaseCreature)m).IsMonster)) && m.CanBeHarmful(Owner, false))
+                if ((m is PlayerMobile || (m is BaseCreature && !((BaseCreature)m).IsMonster)) &&
+                    m.CanBeHarmful(Owner, false))
                 {
-                    if (m is PlayerMobile && Services.TownCryer.TownCryerSystem.UnderMysteriousPotionEffects((PlayerMobile)m, true))
+                    if (m is PlayerMobile && TownCryerSystem.UnderMysteriousPotionEffects((PlayerMobile)m, true))
                     {
                         m.SayTo(m, 1158288, 1154); // *You resist Cora's attack!*
                     }
@@ -259,11 +345,6 @@ using Server.Engines.VoidPool;
                 return true;
             }
 
-            public ManaDrainItem(Serial serial)
-                : base(serial)
-            {
-            }
-
             public override void Serialize(GenericWriter writer)
             {
                 base.Serialize(writer);
@@ -275,7 +356,7 @@ using Server.Engines.VoidPool;
             public override void Deserialize(GenericReader reader)
             {
                 base.Deserialize(reader);
-                int version = reader.ReadInt();
+                var version = reader.ReadInt();
 
                 Static = reader.ReadItem();
 
@@ -285,78 +366,5 @@ using Server.Engines.VoidPool;
                 Delete();
             }
         }
-
-        public override void OnDeath(Container c)
-        {
-            base.OnDeath(c);
-
-            if (0.30 > Utility.RandomDouble())
-            {            
-                Mobile m = DemonKnight.FindRandomPlayer(this);
-
-                if (m != null)
-                {
-                    Item artifact = VoidPoolRewards.DropRandomArtifact();
-
-                    if (artifact != null)
-                    {
-                        Container pack = m.Backpack;
-
-                        if (pack == null || !pack.TryDropItem(m, artifact, false))
-                            m.BankBox.DropItem(artifact);
-
-                        m.SendLocalizedMessage(1062317); // For your valor in combating the fallen beast, a special artifact has been bestowed on you.
-                    }
-                }
-            }
-        }
-
-        public override void OnKilledBy(Mobile mob)
-        {
-            if (Siege.SiegeShard && mob is PlayerMobile)
-            {
-                int chance = Server.Engines.Despise.DespiseBoss.ArtifactChance + (int)Math.Min(10, ((PlayerMobile)mob).Luck / 180);
-
-                if (chance >= Utility.Random(100))
-                {
-                    Type t = Server.Engines.Despise.DespiseBoss.Artifacts[Utility.Random(Server.Engines.Despise.DespiseBoss.Artifacts.Length)];
-
-                    if (t != null)
-                    {
-                        Item arty = Loot.Construct(t);
-
-                        if (arty != null)
-                        {
-                            Container pack = mob.Backpack;
-
-                            if (pack == null || !pack.TryDropItem(mob, arty, false))
-                            {
-                                mob.BankBox.DropItem(arty);
-                                mob.SendMessage("An artifact has been placed in your bankbox!");
-                            }
-                            else
-                                mob.SendLocalizedMessage(1153440); // An artifact has been placed in your backpack!
-                        }
-                    }
-                }
-            }
-        }
-
-        public CoraTheSorceress(Serial serial)
-            : base(serial)
-		{
-		}
-		
-		public override void Serialize(GenericWriter writer)
-		{
-			base.Serialize(writer);
-			writer.Write(0);
-		}
-		
-		public override void Deserialize(GenericReader reader)
-		{
-			base.Deserialize(reader);
-			int version = reader.ReadInt();
-		}
-	}
- }
+    }
+}

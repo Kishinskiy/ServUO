@@ -1,13 +1,13 @@
-using System;
-
 namespace Server.Items
 {
     public class ButchersWarCleaver : WarCleaver
-	{
-		public override bool IsArtifact { get { return true; } }
+    {
+        public override bool IsArtifact => true;
+
+        public override int LabelNumber => 1073526; // butcher's war cleaver
+
         [Constructable]
         public ButchersWarCleaver()
-            : base()
         {
             Slayer3 = TalismanSlayerName.Bovine;
         }
@@ -17,17 +17,10 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1073526;
-            }
-        }// butcher's war cleaver
         public override void AppendChildNameProperties(ObjectPropertyList list)
         {
             base.AppendChildNameProperties(list);
-			
+
             list.Add(1072512); // Bovine Slayer
         }
 
@@ -42,7 +35,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

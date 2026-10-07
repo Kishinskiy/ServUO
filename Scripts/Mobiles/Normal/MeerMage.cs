@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using Server.Items;
+using Server.Network;
 
 namespace Server.Mobiles
 {
@@ -9,6 +10,17 @@ namespace Server.Mobiles
     {
         private static readonly Hashtable m_Table = new Hashtable();
         private DateTime m_NextAbilityTime;
+
+        public override bool AutoDispel => true;
+
+        public override Poison PoisonImmune => Poison.Lethal;
+
+        public override bool CanRummageCorpses => true;
+
+        public override int TreasureMapLevel => 3;
+
+        public override bool InitialInnocent => true;
+
         [Constructable]
         public MeerMage()
             : base(AIType.AI_Spellweaving, FightMode.Aggressor, 10, 1, 0.2, 0.4)
@@ -45,11 +57,11 @@ namespace Server.Mobiles
 
             VirtualArmor = 16;
 
-			switch (Utility.Random(8))
+            switch (Utility.Random(8))
             {
                 case 0: PackItem(new StrangleScroll()); break;
                 case 1: PackItem(new WitherScroll()); break;
-			}
+            }
 
             m_NextAbilityTime = DateTime.UtcNow + TimeSpan.FromSeconds(Utility.RandomMinMax(2, 5));
         }
@@ -59,41 +71,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool AutoDispel
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override Poison PoisonImmune
-        {
-            get
-            {
-                return Poison.Lethal;
-            }
-        }
-        public override bool CanRummageCorpses
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override int TreasureMapLevel
-        {
-            get
-            {
-                return 3;
-            }
-        }
-        public override bool InitialInnocent
-        {
-            get
-            {
-                return true;
-            }
-        }
         public static bool UnderEffect(Mobile m)
         {
             return m_Table.Contains(m);
@@ -101,12 +78,13 @@ namespace Server.Mobiles
 
         public static void StopEffect(Mobile m, bool message)
         {
-            Timer t = (Timer)m_Table[m];
+            var t = (Timer)m_Table[m];
 
             if (t != null)
             {
                 if (message)
-                    m.PublicOverheadMessage(Network.MessageType.Emote, m.SpeechHue, true, "* The open flame begins to scatter the swarm of insects *");
+                    m.PublicOverheadMessage(MessageType.Emote, m.SpeechHue, true,
+                        "* The open flame begins to scatter the swarm of insects *");
 
                 t.Stop();
                 m_Table.Remove(m);
@@ -139,45 +117,44 @@ namespace Server.Mobiles
         {
             if (DateTime.UtcNow >= m_NextAbilityTime)
             {
-                Mobile combatant = Combatant as Mobile;
+                var combatant = Combatant as Mobile;
 
-                if (combatant != null && combatant.Map == Map && combatant.InRange(this, 12) && IsEnemy(combatant) && !UnderEffect(combatant))
+                if (combatant != null && combatant.Map == Map && combatant.InRange(this, 12) && IsEnemy(combatant) &&
+                    !UnderEffect(combatant))
                 {
                     m_NextAbilityTime = DateTime.UtcNow + TimeSpan.FromSeconds(Utility.RandomMinMax(20, 30));
 
                     if (combatant is BaseCreature)
                     {
-                        BaseCreature bc = (BaseCreature)combatant;
+                        var bc = (BaseCreature)combatant;
 
-                        if (bc.Controlled && bc.ControlMaster != null && !bc.ControlMaster.Deleted && bc.ControlMaster.Alive)
-                        {
-                            if (bc.ControlMaster.Map == Map && bc.ControlMaster.InRange(this, 12) && !UnderEffect(bc.ControlMaster))
-                            {
+                        if (bc.Controlled && bc.ControlMaster != null && !bc.ControlMaster.Deleted &&
+                            bc.ControlMaster.Alive)
+                            if (bc.ControlMaster.Map == Map && bc.ControlMaster.InRange(this, 12) &&
+                                !UnderEffect(bc.ControlMaster))
                                 Combatant = combatant = bc.ControlMaster;
-                            }
-                        }
                     }
 
                     if (Utility.RandomDouble() < .1)
                     {
-                        int[][] coord = 
+                        int[][] coord =
                         {
-                            new int[] { -4, -6 }, new int[] { 4, -6 }, new int[] { 0, -8 }, new int[] { -5, 5 }, new int[] { 5, 5 }
+                            new[] { -4, -6 }, new[] { 4, -6 }, new[] { 0, -8 }, new[] { -5, 5 }, new[] { 5, 5 }
                         };
 
                         BaseCreature rabid;
 
-                        for (int i = 0; i < 5; i++)
+                        for (var i = 0; i < 5; i++)
                         {
-                            int x = combatant.X + coord[i][0];
-                            int y = combatant.Y + coord[i][1];
+                            var x = combatant.X + coord[i][0];
+                            var y = combatant.Y + coord[i][1];
 
-                            Point3D loc = new Point3D(x, y, combatant.Map.GetAverageZ(x, y));
+                            var loc = new Point3D(x, y, combatant.Map.GetAverageZ(x, y));
 
                             if (!combatant.Map.CanSpawnMobile(loc))
                                 continue;
 
-                            switch ( i )
+                            switch (i)
                             {
                                 case 0:
                                     rabid = new EnragedRabbit(this);
@@ -199,12 +176,14 @@ namespace Server.Mobiles
                             rabid.FocusMob = combatant;
                             rabid.MoveToWorld(loc, combatant.Map);
                         }
+
                         Say(1071932); //Creatures of the forest, I call to thee!  Aid me in the fight against all that is evil!
                     }
                     else if (combatant.Player)
                     {
                         Say(true, "I call a plague of insects to sting your flesh!");
-                        m_Table[combatant] = Timer.DelayCall(TimeSpan.FromSeconds(0.5), TimeSpan.FromSeconds(7.0), new TimerStateCallback(DoEffect), new object[] { combatant, 0 });
+                        m_Table[combatant] = Timer.DelayCall(TimeSpan.FromSeconds(0.5), TimeSpan.FromSeconds(7.0),
+                            new TimerStateCallback(DoEffect), new object[] { combatant, 0 });
                     }
                 }
             }
@@ -214,10 +193,10 @@ namespace Server.Mobiles
 
         public void DoEffect(object state)
         {
-            object[] states = (object[])state;
+            var states = (object[])state;
 
-            Mobile m = (Mobile)states[0];
-            int count = (int)states[1];
+            var m = (Mobile)states[0];
+            var count = (int)states[1];
 
             if (!m.Alive)
             {
@@ -225,7 +204,7 @@ namespace Server.Mobiles
             }
             else
             {
-                Torch torch = m.FindItemOnLayer(Layer.TwoHanded) as Torch;
+                var torch = m.FindItemOnLayer(Layer.TwoHanded) as Torch;
 
                 if (torch != null && torch.Burning)
                 {
@@ -233,10 +212,12 @@ namespace Server.Mobiles
                 }
                 else
                 {
-                    if ((count % 4) == 0)
+                    if (count % 4 == 0)
                     {
-                        m.LocalOverheadMessage(Network.MessageType.Emote, m.SpeechHue, true, "* The swarm of insects bites and stings your flesh! *");
-                        m.NonlocalOverheadMessage(Network.MessageType.Emote, m.SpeechHue, true, String.Format("* {0} is stung by a swarm of insects *", m.Name));
+                        m.LocalOverheadMessage(MessageType.Emote, m.SpeechHue, true,
+                            "* The swarm of insects bites and stings your flesh! *");
+                        m.NonlocalOverheadMessage(MessageType.Emote, m.SpeechHue, true,
+                            string.Format("* {0} is stung by a swarm of insects *", m.Name));
                     }
 
                     m.FixedParticles(0x91C, 10, 180, 9539, EffectLayer.Waist);
@@ -256,13 +237,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

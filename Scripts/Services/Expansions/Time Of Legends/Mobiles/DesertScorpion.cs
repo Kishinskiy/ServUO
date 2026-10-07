@@ -1,12 +1,13 @@
-using System;
-using Server;
-using Server.Items;
-
 namespace Server.Mobiles
 {
     [CorpseName("a desert scorpion corpse")]
     public class DesertScorpion : BaseCreature
     {
+        public override Poison HitPoison => Poison.Lethal;
+        public override Poison PoisonImmune => Poison.Lethal;
+        public override int Meat => 3;
+        public override int TreasureMapLevel => 1;
+
         [Constructable]
         public DesertScorpion()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, .2, .4)
@@ -41,19 +42,14 @@ namespace Server.Mobiles
             Karma = -8100;
         }
 
-        public override void GenerateLoot()
-        {
-            AddLoot(LootPack.FilthyRich, 1);
-        }
-
-        public override Poison HitPoison { get { return Poison.Lethal; } }
-        public override Poison PoisonImmune { get { return Poison.Lethal; } }
-        public override int Meat { get { return 3; } }
-        public override int TreasureMapLevel { get { return 1; } }
-
         public DesertScorpion(Serial serial)
             : base(serial)
         {
+        }
+
+        public override void GenerateLoot()
+        {
+            AddLoot(LootPack.FilthyRich, 1);
         }
 
         public override void Serialize(GenericWriter writer)
@@ -65,8 +61,7 @@ namespace Server.Mobiles
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
-	
 }

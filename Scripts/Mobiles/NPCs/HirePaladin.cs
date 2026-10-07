@@ -1,22 +1,23 @@
-using System;
 using Server.Items;
 
-namespace Server.Mobiles 
+namespace Server.Mobiles
 {
-    public class HirePaladin : BaseHire 
+    public class HirePaladin : BaseHire
     {
-        [Constructable] 
+        public override bool ClickTitle => false;
+
+        [Constructable]
         public HirePaladin()
         {
             SpeechHue = Utility.RandomDyedHue();
             Hue = Utility.RandomSkinHue();
 
-            if (Female = Utility.RandomBool()) 
+            if (Female = Utility.RandomBool())
             {
                 Body = 0x191;
                 Name = NameList.RandomName("female");
             }
-            else 
+            else
             {
                 Body = 0x190;
                 Name = NameList.RandomName("male");
@@ -27,7 +28,7 @@ namespace Server.Mobiles
             HairHue = Race.RandomHairHue();
             Race.RandomFacialHair(this);
 
-            switch( Utility.Random(5) )
+            switch (Utility.Random(5))
             {
                 case 0:
                     break;
@@ -67,7 +68,7 @@ namespace Server.Mobiles
             AddItem(new Shirt());
             AddItem(new VikingSword());
             AddItem(new MetalKiteShield());
- 
+
             AddItem(new PlateChest());
             AddItem(new PlateLegs());
             AddItem(new PlateArms());
@@ -80,25 +81,18 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool ClickTitle
-        {
-            get
-            {
-                return false;
-            }
-        }
-        public override void Serialize(GenericWriter writer) 
+        public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);// version 
+            writer.Write(0); // version 
         }
 
-        public override void Deserialize(GenericReader reader) 
+        public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

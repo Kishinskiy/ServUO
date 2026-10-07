@@ -1,41 +1,28 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-
-using Server;
-using Server.Items;
-using Server.Mobiles;
-using Server.Network;
-using Server.Engines.Points;
 using Server.ContextMenus;
+using Server.Engines.Points;
+using Server.Items;
 
 namespace Server.Engines.TreasuresOfDoom
 {
     public class VaseSpawner : ISpawner
     {
-        public List<AncientClayVase> Vases { get; set; }
-        public readonly int VaseCount = 3;
-        public readonly Rectangle2D SpawnRecs = new Rectangle2D(257, 5, 249, 257);
-
         public static readonly int MinSpawn = 1;
         public static readonly int MaxSpawn = 3;
-
-        public bool UnlinkOnTaming { get { return false; } }
-        public Point3D HomeLocation { get { return Point3D.Zero; } }
-        public int HomeRange { get { return 0; } }
+        public readonly Rectangle2D SpawnRecs = new Rectangle2D(257, 5, 249, 257);
+        public readonly int VaseCount = 3;
+        public List<AncientClayVase> Vases { get; set; }
 
         public static VaseSpawner Instance { get; set; }
 
-        public VaseSpawner()
-        {
-        }
+        public bool UnlinkOnTaming => false;
+        public Point3D HomeLocation => Point3D.Zero;
+        public int HomeRange => 0;
 
         public void Remove(ISpawnable spawn)
         {
-            if (spawn is AncientClayVase)
-            {
-                RemoveVase((AncientClayVase)spawn);
-            }
+            if (spawn is AncientClayVase) RemoveVase((AncientClayVase)spawn);
         }
 
         public void GetSpawnProperties(ISpawnable spawn, ObjectPropertyList list)
@@ -48,56 +35,37 @@ namespace Server.Engines.TreasuresOfDoom
 
         public void AddVase(AncientClayVase vase)
         {
-            if (Vases == null)
-            {
-                Vases = new List<AncientClayVase>();
-            }
+            if (Vases == null) Vases = new List<AncientClayVase>();
 
-            if (!Vases.Contains(vase))
-            {
-                Vases.Add(vase);
-            }
+            if (!Vases.Contains(vase)) Vases.Add(vase);
         }
 
         public void RemoveVase(AncientClayVase vase)
         {
             if (Vases != null)
             {
-                if (Vases.Contains(vase))
-                {
-                    Vases.Remove(vase);
-                }
+                if (Vases.Contains(vase)) Vases.Remove(vase);
 
                 if (PointsSystem.TreasuresOfDoom.InSeason && Vases.Count < VaseCount)
-                {
-                    Timer.DelayCall(TimeSpan.FromMinutes(Utility.RandomMinMax(MinSpawn, MaxSpawn)), () =>
-                    {
-                        CreateVases(1);
-                    });
-                }
+                    Timer.DelayCall(TimeSpan.FromMinutes(Utility.RandomMinMax(MinSpawn, MaxSpawn)),
+                        () => { CreateVases(1); });
             }
         }
 
         public void CheckVases()
         {
-            int count = 0;
+            var count = 0;
 
-            if (Vases == null)
-            {
-                Vases = new List<AncientClayVase>();
-            }
+            if (Vases == null) Vases = new List<AncientClayVase>();
 
             count = VaseCount - Vases.Count;
 
-            if (count > 0)
-            {
-                CreateVases(count);
-            }
+            if (count > 0) CreateVases(count);
         }
 
         public void CreateVases(int count)
         {
-            for (int i = 0; i < count; i++)
+            for (var i = 0; i < count; i++)
             {
                 var vase = new AncientClayVase(true);
                 ItemFlags.SetStealable(vase, true);
@@ -107,13 +75,12 @@ namespace Server.Engines.TreasuresOfDoom
 
                 AddVase(vase);
 
-                Point3D p = Point3D.Zero;
+                var p = Point3D.Zero;
 
                 do
                 {
                     p = Map.Malas.GetRandomSpawnPoint(SpawnRecs);
-                }
-                while (p == Point3D.Zero || !Map.Malas.CanSpawnMobile(p));
+                } while (p == Point3D.Zero || !Map.Malas.CanSpawnMobile(p));
 
                 vase.OnBeforeSpawn(p, Map.Malas);
                 vase.MoveToWorld(p, Map.Malas);
@@ -122,10 +89,7 @@ namespace Server.Engines.TreasuresOfDoom
 
         public static void AddToSpawner(AncientClayVase vase)
         {
-            if (Instance == null)
-            {
-                Instance = new VaseSpawner();
-            }
+            if (Instance == null) Instance = new VaseSpawner();
 
             Instance.AddVase(vase);
         }

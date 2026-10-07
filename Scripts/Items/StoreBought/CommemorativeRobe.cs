@@ -1,11 +1,8 @@
-using System;
-using Server.Gumps;
-
 namespace Server.Items
 {
     public class CommemorativeRobe : BaseOuterTorso
     {
-        public override int LabelNumber { get { return 1157009; } } // Commemorative Robe
+        public override int LabelNumber => 1157009; // Commemorative Robe
 
         [Constructable]
         public CommemorativeRobe()
@@ -23,14 +20,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

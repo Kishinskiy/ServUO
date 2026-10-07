@@ -1,12 +1,10 @@
-﻿using System;
-
-namespace Server.Items
+﻿namespace Server.Items
 {
     public class OssianGrimoire : NecromancerSpellbook
-	{
-		public override int LabelNumber { get { return 1078148; } }// Ossian Grimoire
-		public override bool IsArtifact { get { return true; } }
-		
+    {
+        public override int LabelNumber => 1078148; // Ossian Grimoire
+        public override bool IsArtifact => true;
+
         [Constructable]
         public OssianGrimoire()
         {
@@ -21,6 +19,7 @@ namespace Server.Items
             : base(serial)
         {
         }
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -32,7 +31,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
 
             if (version == 0)
                 Attributes.IncreasedKarmaLoss = 5;

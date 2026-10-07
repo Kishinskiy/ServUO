@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,9 +5,11 @@ namespace Server.Mobiles
     [CorpseName("a minotaur corpse")]
     public class MinotaurCaptain : BaseCreature
     {
+        public override int TreasureMapLevel => 3;
+
         [Constructable]
         public MinotaurCaptain()
-            : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)// NEED TO CHECK
+            : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4) // NEED TO CHECK
         {
             Name = "a minotaur captain";
             Body = 280;
@@ -43,10 +44,8 @@ namespace Server.Mobiles
 
             VirtualArmor = 28; // Don't know what it should be
 
-            for (int i = 0; i < Utility.RandomMinMax(0, 1); i++)
-            {
+            for (var i = 0; i < Utility.RandomMinMax(0, 1); i++)
                 PackItem(Loot.RandomScroll(0, Loot.ArcanistScrollTypes.Length, SpellbookType.Arcanist));
-            }
 
             SetWeaponAbility(WeaponAbility.ParalyzingBlow);
         }
@@ -55,12 +54,10 @@ namespace Server.Mobiles
             : base(serial)
         {
         }
-		
-		public override int TreasureMapLevel { get { return 3; } }
 
         public override void GenerateLoot()
         {
-            AddLoot(LootPack.Rich);  // Need to verify
+            AddLoot(LootPack.Rich); // Need to verify
         }
 
         // Using Tormented Minotaur sounds - Need to veryfy
@@ -92,13 +89,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -1,11 +1,28 @@
 using System;
+using Server.Items;
 
 namespace Server.Mobiles
 {
     [CorpseName("a clockwork scorpion corpse")]
     public class ClockworkScorpion : BaseCreature, IRepairableMobile
     {
-        public Type RepairResource { get { return typeof(Server.Items.IronIngot); } }
+        public override bool IsScaredOfScaryThings => false;
+
+        public override bool IsScaryToPets => true;
+
+        public override bool IsBondable => false;
+
+        public override FoodType FavoriteFood => FoodType.Meat;
+
+        public override bool AutoDispel => !Controlled;
+
+        public override bool BleedImmune => true;
+
+        public override bool DeleteOnRelease => true;
+
+        public override bool BardImmune => !Core.AOS || Controlled;
+
+        public override Poison PoisonImmune => Poison.Lethal;
 
         [Constructable]
         public ClockworkScorpion()
@@ -47,69 +64,8 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool IsScaredOfScaryThings
-        {
-            get
-            {
-                return false;
-            }
-        }
-        public override bool IsScaryToPets
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool IsBondable
-        {
-            get
-            {
-                return false;
-            }
-        }
-        public override FoodType FavoriteFood
-        {
-            get
-            {
-                return FoodType.Meat;
-            }
-        }
-        public override bool AutoDispel
-        {
-            get
-            {
-                return !Controlled;
-            }
-        }
-        public override bool BleedImmune
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool DeleteOnRelease
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool BardImmune
-        {
-            get
-            {
-                return !Core.AOS || Controlled;
-            }
-        }
-        public override Poison PoisonImmune
-        {
-            get
-            {
-                return Poison.Lethal;
-            }
-        }
+        public Type RepairResource => typeof(IronIngot);
+
         public override void GenerateLoot()
         {
             AddLoot(LootPack.Meager, 2);
@@ -148,10 +104,10 @@ namespace Server.Mobiles
 
             return base.GetHurtSound();
         }
-  
+
         public override void OnDamage(int amount, Mobile from, bool willKill)
         {
-            Mobile master = GetMaster();
+            var master = GetMaster();
 
             if (master != null && master.Player && master.Map == Map && master.InRange(Location, 20))
             {
@@ -173,18 +129,16 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1);
+            writer.Write(1);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (version == 0 && (AbilityProfile == null || AbilityProfile.MagicalAbility == MagicalAbility.None))
-            {
                 SetMagicalAbility(MagicalAbility.Poisoning);
-            }
         }
     }
 }

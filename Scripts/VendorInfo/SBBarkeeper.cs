@@ -1,7 +1,7 @@
-using System;
 using System.Collections.Generic;
-using Server.Items;
 using Server.Custom.SurvivalSystem;
+using Server.Items;
+using Server.Multis;
 
 namespace Server.Mobiles
 {
@@ -9,24 +9,10 @@ namespace Server.Mobiles
     {
         private readonly List<GenericBuyInfo> m_BuyInfo = new InternalBuyInfo();
         private readonly IShopSellInfo m_SellInfo = new InternalSellInfo();
-        public SBBarkeeper()
-        {
-        }
 
-        public override IShopSellInfo SellInfo
-        {
-            get
-            {
-                return m_SellInfo;
-            }
-        }
-        public override List<GenericBuyInfo> BuyInfo
-        {
-            get
-            {
-                return m_BuyInfo;
-            }
-        }
+        public override IShopSellInfo SellInfo => m_SellInfo;
+
+        public override List<GenericBuyInfo> BuyInfo => m_BuyInfo;
 
         public class InternalBuyInfo : List<GenericBuyInfo>
         {
@@ -44,7 +30,7 @@ namespace Server.Mobiles
                 Add(new BeverageBuyInfo(typeof(Pitcher), BeverageType.Wine, 11, 20, 0x1F9B, 0));
                 Add(new BeverageBuyInfo(typeof(Pitcher), BeverageType.Water, 11, 20, 0x1F9D, 0));
                 Add(new BeverageBuyInfo(typeof(Jug), BeverageType.Cider, 13, 20, 0x9C8, 0));
-                
+
 
                 Add(new GenericBuyInfo(typeof(BreadLoaf), 6, 10, 0x103B, 0, true));
                 Add(new GenericBuyInfo(typeof(CheeseWheel), 21, 10, 0x97E, 0, true));
@@ -63,7 +49,8 @@ namespace Server.Mobiles
                 Add(new GenericBuyInfo(typeof(WoodenBowlOfStew), 3, 20, 0x1604, 0));
                 Add(new GenericBuyInfo(typeof(WoodenBowlOfTomatoSoup), 3, 20, 0x1606, 0));
 
-                Add(new GenericBuyInfo(typeof(ApplePie), 7, 20, 0x1041, 0, true)); //OSI just has Pie, not Apple/Fruit/Meat
+                Add(new GenericBuyInfo(typeof(ApplePie), 7, 20, 0x1041, 0,
+                    true)); //OSI just has Pie, not Apple/Fruit/Meat
 
                 Add(new GenericBuyInfo("1016450", typeof(Chessboard), 2, 20, 0xFA6, 0));
                 Add(new GenericBuyInfo("1016449", typeof(CheckerBoard), 2, 20, 0xFA6, 0));
@@ -71,7 +58,7 @@ namespace Server.Mobiles
                 Add(new GenericBuyInfo(typeof(Dices), 2, 20, 0xFA7, 0));
                 Add(new GenericBuyInfo("1041243", typeof(ContractOfEmployment), 1252, 20, 0x14F0, 0));
                 Add(new GenericBuyInfo("a barkeep contract", typeof(BarkeepContract), 1252, 20, 0x14F0, 0));
-                if (Multis.BaseHouse.NewVendorSystem)
+                if (BaseHouse.NewVendorSystem)
                     Add(new GenericBuyInfo("1062332", typeof(VendorRentalContract), 1252, 20, 0x14F0, 0x672));
                 /*if ( Map == Tokuno )
                 {

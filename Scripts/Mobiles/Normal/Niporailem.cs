@@ -1,25 +1,57 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
 using Server.Items;
-using Server.Targeting;
 
 namespace Server.Mobiles
 {
     [CorpseName("the corpse of niporailem")]
     public class Niporailem : BaseSABoss
     {
-        public override Type[] UniqueSAList { get { return new Type[] { typeof(HelmOfVillainousEpiphany), typeof(GorgetOfVillainousEpiphany), typeof(BreastplateOfVillainousEpiphany),
-                                                                        typeof(ArmsOfVillainousEpiphany), typeof(GauntletsOfVillainousEpiphany), typeof(LegsOfVillainousEpiphany),
-                                                                        typeof(KiltOfVillainousEpiphany), typeof(EarringsOfVillainousEpiphany), typeof(GargishBreastplateOfVillainousEpiphany),
-                                                                        typeof(GargishArmsOfVillainousEpiphany), typeof(NecklaceOfVillainousEpiphany), typeof(GargishLegsOfVillainousEpiphany),
-                                                                        typeof(HelmOfVirtuousEpiphany), typeof(GorgetOfVirtuousEpiphany), typeof(BreastplateOfVirtuousEpiphany),
-                                                                        typeof(ArmsOfVirtuousEpiphany), typeof(GauntletsOfVirtuousEpiphany), typeof(LegsOfVirtuousEpiphany),
-                                                                        typeof(KiltOfVirtuousEpiphany), typeof(EarringsOfVirtuousEpiphany), typeof(GargishBreastplateOfVirtuousEpiphany),
-                                                                        typeof(GargishArmsOfVirtuousEpiphany), typeof(NecklaceOfVirtuousEpiphany), typeof(GargishLegsOfVirtuousEpiphany)}; } }
-        
-        public override Type[] SharedSAList { get { return new Type[] { typeof(BladeOfBattle), typeof(DemonBridleRing), typeof(GiantSteps), typeof(SwordOfShatteredHopes) }; } }
+        private DateTime m_NextSpawn;
+        private DateTime m_NextTreasure;
+        private int m_Thrown;
+
+        public override Type[] UniqueSAList
+        {
+            get
+            {
+                return new[]
+                {
+                    typeof(HelmOfVillainousEpiphany), typeof(GorgetOfVillainousEpiphany),
+                    typeof(BreastplateOfVillainousEpiphany),
+                    typeof(ArmsOfVillainousEpiphany), typeof(GauntletsOfVillainousEpiphany),
+                    typeof(LegsOfVillainousEpiphany),
+                    typeof(KiltOfVillainousEpiphany), typeof(EarringsOfVillainousEpiphany),
+                    typeof(GargishBreastplateOfVillainousEpiphany),
+                    typeof(GargishArmsOfVillainousEpiphany), typeof(NecklaceOfVillainousEpiphany),
+                    typeof(GargishLegsOfVillainousEpiphany),
+                    typeof(HelmOfVirtuousEpiphany), typeof(GorgetOfVirtuousEpiphany),
+                    typeof(BreastplateOfVirtuousEpiphany),
+                    typeof(ArmsOfVirtuousEpiphany), typeof(GauntletsOfVirtuousEpiphany), typeof(LegsOfVirtuousEpiphany),
+                    typeof(KiltOfVirtuousEpiphany), typeof(EarringsOfVirtuousEpiphany),
+                    typeof(GargishBreastplateOfVirtuousEpiphany),
+                    typeof(GargishArmsOfVirtuousEpiphany), typeof(NecklaceOfVirtuousEpiphany),
+                    typeof(GargishLegsOfVirtuousEpiphany)
+                };
+            }
+        }
+
+        public override Type[] SharedSAList
+        {
+            get
+            {
+                return new[]
+                {
+                    typeof(BladeOfBattle), typeof(DemonBridleRing), typeof(GiantSteps), typeof(SwordOfShatteredHopes)
+                };
+            }
+        }
+
+        public override int Meat => 1;
+        public override bool AlwaysMurderer => true;
+
+        public List<BaseCreature> Helpers { get; set; } = new List<BaseCreature>();
 
         [Constructable]
         public Niporailem()
@@ -64,29 +96,41 @@ namespace Server.Mobiles
             Karma = -15000;
         }
 
+        public Niporailem(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void GenerateLoot()
         {
             AddLoot(LootPack.FilthyRich, 6);
             AddLoot(LootPack.Gems, 6);
         }
 
-        public override int Meat { get { return 1; } }
-        public override bool AlwaysMurderer { get { return true; } }
-
-        public override int GetIdleSound() { return 1609; }
-        public override int GetAngerSound() { return 1606; }
-        public override int GetHurtSound() { return 1608; }
-        public override int GetDeathSound() { return 1607; }
-
-        public Niporailem(Serial serial)
-            : base(serial)
+        public override int GetIdleSound()
         {
+            return 1609;
+        }
+
+        public override int GetAngerSound()
+        {
+            return 1606;
+        }
+
+        public override int GetHurtSound()
+        {
+            return 1608;
+        }
+
+        public override int GetDeathSound()
+        {
+            return 1607;
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1);
+            writer.Write(1);
 
             writer.WriteMobileList(Helpers, true);
         }
@@ -94,7 +138,7 @@ namespace Server.Mobiles
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             switch (version)
             {
@@ -104,11 +148,6 @@ namespace Server.Mobiles
             }
         }
 
-        public List<BaseCreature> Helpers { get; set; } = new List<BaseCreature>();
-        private DateTime m_NextTreasure;
-        private int m_Thrown;
-        private DateTime m_NextSpawn;
-
         public override void OnGotMeleeAttack(Mobile attacker)
         {
             base.OnGotMeleeAttack(attacker);
@@ -116,12 +155,9 @@ namespace Server.Mobiles
             if (m_NextSpawn > DateTime.UtcNow || Helpers.Where(bc => bc.Deleted).Count() > 10)
                 return;
 
-            if (this.Hits > (this.HitsMax / 4))
+            if (Hits > HitsMax / 4)
             {
-                if (0.25 >= Utility.RandomDouble())
-                {
-                    SpawnSpectralArmour(attacker);
-                }
+                if (0.25 >= Utility.RandomDouble()) SpawnSpectralArmour(attacker);
             }
             else if (0.10 >= Utility.RandomDouble())
             {
@@ -131,9 +167,10 @@ namespace Server.Mobiles
 
         public override void OnActionCombat()
         {
-            Mobile combatant = Combatant as Mobile;
+            var combatant = Combatant as Mobile;
 
-            if (combatant == null || combatant.Deleted || combatant.Map != Map || !InRange(combatant, 20) || !CanBeHarmful(combatant) || !InLOS(combatant))
+            if (combatant == null || combatant.Deleted || combatant.Map != Map || !InRange(combatant, 20) ||
+                !CanBeHarmful(combatant) || !InLOS(combatant))
                 return;
 
             if (DateTime.UtcNow >= m_NextTreasure)
@@ -142,42 +179,44 @@ namespace Server.Mobiles
 
                 m_Thrown++;
 
-                if (0.75 >= Utility.RandomDouble() && (m_Thrown % 2) == 1) // 75% chance to toss a second one
+                if (0.75 >= Utility.RandomDouble() && m_Thrown % 2 == 1) // 75% chance to toss a second one
                     m_NextTreasure = DateTime.UtcNow + TimeSpan.FromSeconds(3.0);
                 else
-                    m_NextTreasure = DateTime.UtcNow + TimeSpan.FromSeconds(5.0 + (10.0 * Utility.RandomDouble())); // 5-15 seconds
+                    m_NextTreasure =
+                        DateTime.UtcNow + TimeSpan.FromSeconds(5.0 + 10.0 * Utility.RandomDouble()); // 5-15 seconds
             }
         }
 
         public void SpawnSpectralArmour(Mobile m)
         {
-            Map map = this.Map;
+            var map = Map;
 
             if (map == null)
                 return;
 
-            SpectralArmour spawned = new SpectralArmour();
+            var spawned = new SpectralArmour();
 
-            spawned.Team = this.Team;
+            spawned.Team = Team;
             spawned.SummonMaster = this;
 
-            bool validLocation = false;
-            Point3D loc = this.Location;
+            var validLocation = false;
+            var loc = Location;
 
-            for (int j = 0; !validLocation && j < 10; ++j)
+            for (var j = 0; !validLocation && j < 10; ++j)
             {
-                int x = X + Utility.Random(3) - 1;
-                int y = Y + Utility.Random(3) - 1;
-                int z = map.GetAverageZ(x, y);
+                var x = X + Utility.Random(3) - 1;
+                var y = Y + Utility.Random(3) - 1;
+                var z = map.GetAverageZ(x, y);
 
-                if (validLocation = map.CanFit(x, y, this.Z, 16, false, false))
+                if (validLocation = map.CanFit(x, y, Z, 16, false, false))
                     loc = new Point3D(x, y, Z);
                 else if (validLocation = map.CanFit(x, y, z, 16, false, false))
                     loc = new Point3D(x, y, z);
             }
 
             spawned.MoveToWorld(loc, map);
-            spawned.Combatant = m; spawned.SummonMaster = this;
+            spawned.Combatant = m;
+            spawned.SummonMaster = this;
 
             m_NextSpawn = DateTime.UtcNow + TimeSpan.FromSeconds(Utility.RandomMinMax(30, 60));
 
@@ -186,10 +225,7 @@ namespace Server.Mobiles
 
         public void DeleteSpectralArmour(Mobile target)
         {
-            foreach (var m in Helpers.Where(bc => bc != null && !bc.Deleted))
-            {
-                m.Delete();
-            }
+            foreach (var m in Helpers.Where(bc => bc != null && !bc.Deleted)) m.Delete();
 
             ColUtility.Free(Helpers);
         }
@@ -205,7 +241,7 @@ namespace Server.Mobiles
         {
             DoHarmful(m);
 
-            this.MovingParticles(m, 0xEEF, 9, 0, false, true, 0, 0, 9502, 6014, 0x11D, EffectLayer.Waist, 0);
+            MovingParticles(m, 0xEEF, 9, 0, false, true, 0, 0, 9502, 6014, 0x11D, EffectLayer.Waist, 0);
 
             Timer.DelayCall(TimeSpan.FromSeconds(1), () =>
             {

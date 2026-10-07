@@ -1,10 +1,10 @@
-using System;
-
 namespace Server.Mobiles
 {
     [CorpseName("a corporeal brume corpse")]
     public class CorporealBrume : BaseCreature, IAuraCreature
     {
+        public override bool CanBeParagon => false;
+
         [Constructable]
         public CorporealBrume()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -44,8 +44,7 @@ namespace Server.Mobiles
             : base(serial)
         {
         }
-		public override bool CanBeParagon { get { return false; } }
-  
+
         public void AuraEffect(Mobile m)
         {
             m.FixedParticles(0x374A, 10, 15, 5038, 1181, 2, EffectLayer.Head);
@@ -64,14 +63,14 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

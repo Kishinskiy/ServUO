@@ -1,22 +1,7 @@
-using System;
-using Server.Network;
-
 namespace Server.Items
 {
     public class Blackrock : Item
     {
-        [Constructable]
-        public Blackrock()
-            : base(Utility.RandomList(0x136C, 0x1EA7))
-        {
-            Hue = 1954;
-        }
-
-        public Blackrock(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override int LabelNumber
         {
             get
@@ -29,19 +14,31 @@ namespace Server.Items
                 }
             }
         }
-		
+
+        [Constructable]
+        public Blackrock()
+            : base(Utility.RandomList(0x136C, 0x1EA7))
+        {
+            Hue = 1954;
+        }
+
+        public Blackrock(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

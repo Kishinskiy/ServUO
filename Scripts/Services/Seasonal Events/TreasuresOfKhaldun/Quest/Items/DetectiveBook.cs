@@ -1,5 +1,3 @@
-using System;
-using Server;
 using Server.Gumps;
 
 namespace Server.Items
@@ -8,6 +6,11 @@ namespace Server.Items
     {
         [Constructable]
         public DetectiveBook() : base(4082)
+        {
+        }
+
+        public DetectiveBook(Serial serial)
+            : base(serial)
         {
         }
 
@@ -23,17 +26,12 @@ namespace Server.Items
         {
             if (IsChildOf(m.Backpack))
             {
-                Gump g = new Gump(150, 150);
+                var g = new Gump(150, 150);
                 g.AddImage(0, 0, 30236);
                 g.AddHtmlLocalized(110, 30, 350, 630, 1158600, false, false); // Book content
 
                 m.SendGump(g);
             }
-        }
-
-        public DetectiveBook(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -45,7 +43,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

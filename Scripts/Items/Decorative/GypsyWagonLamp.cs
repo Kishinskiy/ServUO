@@ -4,13 +4,13 @@ namespace Server.Items
 {
     public class GypsyWagonLamp : BaseLight, IFlipable
     {
-        public override int LabelNumber { get { return 1124268; } } // Gypsy Wagon Lamp
+        public override int LabelNumber => 1124268; // Gypsy Wagon Lamp
 
-        public override int LitItemID { get { return ItemID == 0x9D36 ? 0x9D34 : 0x9D35; } }
-        public override int UnlitItemID { get { return ItemID == 0x9D34 ? 0x9D36 : 0x9D37; } }
+        public override int LitItemID => ItemID == 0x9D36 ? 0x9D34 : 0x9D35;
+        public override int UnlitItemID => ItemID == 0x9D34 ? 0x9D36 : 0x9D37;
 
-        public int NorthID { get { return Burning ? 0x9D34 : 0x9D36; } }
-        public int WestID { get { return Burning ? 0x9D35 : 0x9D37; } }
+        public int NorthID => Burning ? 0x9D34 : 0x9D36;
+        public int WestID => Burning ? 0x9D35 : 0x9D37;
 
         [Constructable]
         public GypsyWagonLamp()
@@ -22,6 +22,11 @@ namespace Server.Items
             Weight = 1.0;
         }
 
+        public GypsyWagonLamp(Serial serial)
+            : base(serial)
+        {
+        }
+
         public void OnFlip(Mobile from)
         {
             if (ItemID == NorthID)
@@ -30,21 +35,16 @@ namespace Server.Items
                 ItemID = NorthID;
         }
 
-        public GypsyWagonLamp(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

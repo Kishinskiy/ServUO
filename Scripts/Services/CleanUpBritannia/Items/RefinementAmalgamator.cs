@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-
+﻿using System.Collections.Generic;
 using Server.Targeting;
 
 namespace Server.Items
@@ -10,6 +7,8 @@ namespace Server.Items
     {
         public List<RefinementComponent> ToCombine { get; set; }
         public RefinementComponent ToUpgrade { get; set; }
+
+        public override int LabelNumber => 1154340; // Refinement Amalgamator
 
         [Constructable]
         public RefinementAmalgamator()
@@ -23,14 +22,6 @@ namespace Server.Items
             : base(serial)
         {
         }
-
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1154340;
-            }
-        }// Refinement Amalgamator
 
         public override void OnDoubleClick(Mobile from)
         {
@@ -66,28 +57,31 @@ namespace Server.Items
                     m.SendLocalizedMessage(1154353); // You can't upgrade this refinement.
                 }
             }
-            else 
+            else
             {
                 if (ToUpgrade.RefinementType != component.RefinementType
-                            || ToUpgrade.CraftType != component.CraftType
-                            || ToUpgrade.SubCraftType != component.SubCraftType
-                            || ToUpgrade.ModType != component.ModType)
+                    || ToUpgrade.CraftType != component.CraftType
+                    || ToUpgrade.SubCraftType != component.SubCraftType
+                    || ToUpgrade.ModType != component.ModType)
                 {
-                    m.SendLocalizedMessage(1154354); // This refinement does not match the type currently being combined.
+                    m.SendLocalizedMessage(
+                        1154354); // This refinement does not match the type currently being combined.
                 }
                 else
                 {
                     ToCombine.Add(component);
                     ValidateList(m);
 
-                    if (ToCombine.Count >= GetCombineTotal(component.ModType) - 1) // -1 because we're counting ToUpgrade
+                    if (ToCombine.Count >=
+                        GetCombineTotal(component.ModType) - 1) // -1 because we're counting ToUpgrade
                     {
                         foreach (var comp in ToCombine)
                             comp.Delete();
 
                         ToUpgrade.ModType++;
 
-                        m.SendLocalizedMessage(1154352); // You've completed the amalgamation and received an upgraded version of your refinement.
+                        m.SendLocalizedMessage(
+                            1154352); // You've completed the amalgamation and received an upgraded version of your refinement.
                     }
                     else
                     {
@@ -108,12 +102,8 @@ namespace Server.Items
             var copy = new List<RefinementComponent>(ToCombine);
 
             foreach (var comp in copy)
-            {
                 if (comp == null || comp.Deleted || !comp.IsChildOf(m.Backpack))
-                {
                     ToCombine.Remove(comp);
-                }
-            }
 
             ColUtility.Free(copy);
         }
@@ -131,10 +121,24 @@ namespace Server.Items
             }
         }
 
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+
+            writer.Write(0); // version
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+
+            var version = reader.ReadInt();
+        }
+
         private class InternalTarget : Target
         {
+            private readonly RefinementAmalgamator m_Amalgamator;
             private Mobile m_Mobile;
-            private RefinementAmalgamator m_Amalgamator;
 
             public InternalTarget(Mobile m, RefinementAmalgamator amalgamator)
                 : base(-1, true, TargetFlags.None)
@@ -145,7 +149,7 @@ namespace Server.Items
 
             protected override void OnTarget(Mobile from, object targeted)
             {
-                RefinementComponent item = targeted as RefinementComponent;
+                var item = targeted as RefinementComponent;
 
                 if (item == null)
                 {
@@ -157,10 +161,7 @@ namespace Server.Items
                 }
                 else
                 {
-                    if (m_Amalgamator != null && !m_Amalgamator.Deleted)
-                    {
-                        m_Amalgamator.CheckCombine(from, item);
-                    }
+                    if (m_Amalgamator != null && !m_Amalgamator.Deleted) m_Amalgamator.CheckCombine(from, item);
                     /*RefinementComponent comp = (RefinementComponent)targeted;
 
                     if (ToCombine == null)
@@ -194,20 +195,6 @@ namespace Server.Items
                     }*/
                 }
             }
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-
-            writer.Write((int)0); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
         }
     }
 }

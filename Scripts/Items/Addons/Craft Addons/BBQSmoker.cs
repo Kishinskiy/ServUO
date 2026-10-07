@@ -1,14 +1,11 @@
-using System;
-using Server;
 using Server.Engines.Craft;
-using System.Collections.Generic;
 
 namespace Server.Items
 {
     public class BBQSmoker : CraftAddon
     {
-        public override BaseAddonDeed Deed { get { return new BBQSmokerDeed(Tools.Count > 0 ? Tools[0].UsesRemaining : 0); } }
-        public override CraftSystem CraftSystem { get { return DefCooking.CraftSystem; } }
+        public override BaseAddonDeed Deed => new BBQSmokerDeed(Tools.Count > 0 ? Tools[0].UsesRemaining : 0);
+        public override CraftSystem CraftSystem => DefCooking.CraftSystem;
 
         [Constructable]
         public BBQSmoker(bool south, int uses)
@@ -34,23 +31,22 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class BBQSmokerDeed : CraftAddonDeed
     {
-        public override int LabelNumber { get { return 1157071; } } // BBQ Smoker
-        public override BaseAddon Addon { get { return new BBQSmoker(_South, UsesRemaining); } }
-
         private bool _South;
+        public override int LabelNumber => 1157071; // BBQ Smoker
+        public override BaseAddon Addon => new BBQSmoker(_South, UsesRemaining);
 
         [Constructable]
         public BBQSmokerDeed() : this(0)
@@ -62,35 +58,33 @@ namespace Server.Items
         {
         }
 
+        public BBQSmokerDeed(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void OnDoubleClick(Mobile from)
         {
             if (IsChildOf(from.Backpack))
-            {
                 from.SendGump(new SouthEastGump(s =>
                 {
                     _South = s;
                     base.OnDoubleClick(from);
                 }));
-            }
-        }
-
-        public BBQSmokerDeed(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

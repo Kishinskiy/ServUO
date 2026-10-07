@@ -1,5 +1,3 @@
-using System;
-
 namespace Server.Items
 {
     public class FarmableCabbage : FarmableCrop
@@ -22,7 +20,7 @@ namespace Server.Items
 
         public override Item GetCropObject()
         {
-            Cabbage cabbage = new Cabbage();
+            var cabbage = new Cabbage();
 
             cabbage.ItemID = Utility.Random(3195, 2);
 
@@ -45,7 +43,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

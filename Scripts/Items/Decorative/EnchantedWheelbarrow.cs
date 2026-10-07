@@ -1,21 +1,29 @@
 using System;
 using Server.Gumps;
 using Server.Multis;
+using Server.Network;
 
 namespace Server.Items
 {
     public class EnchantedWheelbarrow : Item, IFlipable, ISecurable
     {
-        public override int LabelNumber { get { return 1125214; } } // enchanted wheelbarrow
+        private static readonly Type[] DecorativePlants =
+        {
+            typeof(DecorativePlant), typeof(DecorativePlantWhiteFlowers), typeof(DecorativePlantVines),
+            typeof(DecorativePlantFlax), typeof(DecorativePlantPoppies), typeof(DecorativePlantLilypad)
+        };
 
         private bool m_Harvest;
+
+        private Timer m_Timer;
+        public override int LabelNumber => 1125214; // enchanted wheelbarrow
+
         [CommandProperty(AccessLevel.GameMaster)]
         public bool Harvest
         {
-            get { return m_Harvest; }
+            get => m_Harvest;
             set
             {
-
                 if (value && (ItemID == 0xA0E6 || ItemID == 0xA0E7))
                     ItemID = ItemID + 2;
                 else if (ItemID == 0xA0E8 || ItemID == 0xA0E9)
@@ -26,17 +34,7 @@ namespace Server.Items
         }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public SecureLevel Level { get; set; }
-
-        private Timer m_Timer;
-        [CommandProperty(AccessLevel.GameMaster)]
         public DateTime NextHarvest { get; set; }
-
-        private static Type[] DecorativePlants = new Type[]
-        {
-            typeof(DecorativePlant),    typeof(DecorativePlantWhiteFlowers),     typeof(DecorativePlantVines),
-            typeof(DecorativePlantFlax),     typeof(DecorativePlantPoppies),          typeof(DecorativePlantLilypad)
-        };
 
         [Constructable]
         public EnchantedWheelbarrow()
@@ -45,6 +43,22 @@ namespace Server.Items
             Harvest = true;
             Weight = 5.0;
         }
+
+        public EnchantedWheelbarrow(Serial serial)
+            : base(serial)
+        {
+        }
+
+        public void OnFlip(Mobile from)
+        {
+            if (ItemID == 0xA0E6 || ItemID == 0xA0E8)
+                ItemID = ItemID + 1;
+            else
+                ItemID = ItemID - 1;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public SecureLevel Level { get; set; }
 
         public void StopTimer()
         {
@@ -59,7 +73,7 @@ namespace Server.Items
             if (m_Timer != null)
                 return;
 
-            m_Timer = Timer.DelayCall(TimeSpan.FromHours(1.0), TimeSpan.FromHours(1.0), new TimerCallback(OnTick));
+            m_Timer = Timer.DelayCall(TimeSpan.FromHours(1.0), TimeSpan.FromHours(1.0), OnTick);
         }
 
         public void OnTick()
@@ -70,10 +84,7 @@ namespace Server.Items
             }
             else
             {
-                if (NextHarvest < DateTime.UtcNow)
-                {
-                    Harvest = true;
-                }
+                if (NextHarvest < DateTime.UtcNow) Harvest = true;
             }
         }
 
@@ -82,7 +93,7 @@ namespace Server.Items
             if (from.AccessLevel >= AccessLevel.GameMaster)
                 return true; // Staff can access anything
 
-            BaseHouse house = BaseHouse.FindHouseAt(item);
+            var house = BaseHouse.FindHouseAt(item);
 
             if (house == null)
                 return false;
@@ -99,19 +110,11 @@ namespace Server.Items
             return false;
         }
 
-        public void OnFlip(Mobile from)
-        {
-            if (ItemID == 0xA0E6 || ItemID == 0xA0E8)
-                ItemID = ItemID + 1;
-            else
-                ItemID = ItemID - 1;
-        }
-
         public override void OnDoubleClick(Mobile m)
         {
             if (!m.InRange(GetWorldLocation(), 3))
             {
-                m.LocalOverheadMessage(Network.MessageType.Regular, 0x3B2, 1019045); // I can't reach that.
+                m.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1019045); // I can't reach that.
             }
             else if (!IsLockedDown)
             {
@@ -123,16 +126,18 @@ namespace Server.Items
                 {
                     if (Harvest)
                     {
-                        Item i = Activator.CreateInstance(DecorativePlants[Utility.Random(DecorativePlants.Length)]) as Item;
+                        var i =
+                            Activator.CreateInstance(DecorativePlants[Utility.Random(DecorativePlants.Length)]) as Item;
 
                         if (i != null)
                         {
-                            m.LocalOverheadMessage(Network.MessageType.Regular, 0x3B2, 1158330); // *You collect a plant from the wheelbarrow*
+                            m.LocalOverheadMessage(MessageType.Regular, 0x3B2,
+                                1158330); // *You collect a plant from the wheelbarrow*
                             m.AddToBackpack(i);
                             Harvest = false;
                             NextHarvest = DateTime.UtcNow + TimeSpan.FromDays(7);
                             StartTimer();
-                        }                            
+                        }
                     }
                     else
                     {
@@ -142,25 +147,20 @@ namespace Server.Items
             }
         }
 
-        public EnchantedWheelbarrow(Serial serial)
-            : base(serial)
-        {
-        }
-        
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
 
-            writer.Write((bool)m_Harvest);
+            writer.Write(m_Harvest);
             writer.Write((int)Level);
-            writer.Write((DateTime)NextHarvest);
+            writer.Write(NextHarvest);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             m_Harvest = reader.ReadBool();
             Level = (SecureLevel)reader.ReadInt();
@@ -173,12 +173,13 @@ namespace Server.Items
 
     public class DecorativePlant : Item
     {
-        public override int LabelNumber { get { return 1125205; } } // decorative plant
-
-        private static readonly int[] DecorativePlants = new[]
+        private static readonly int[] DecorativePlants =
         {
-            0xA0E1, 0xA0E2, 0xA0E3, 0xA0E4, 0xA0E5, 0xA0ED, 0xA11B, 0xA11C, 0xA11F, 0xA120, 0xA121, 0xA122, 0xA123, 0xA124, 0xA125, 0xA128, 0xA12B
+            0xA0E1, 0xA0E2, 0xA0E3, 0xA0E4, 0xA0E5, 0xA0ED, 0xA11B, 0xA11C, 0xA11F, 0xA120, 0xA121, 0xA122, 0xA123,
+            0xA124, 0xA125, 0xA128, 0xA12B
         };
+
+        public override int LabelNumber => 1125205; // decorative plant
 
         [Constructable]
         public DecorativePlant()
@@ -200,13 +201,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -227,13 +228,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -254,13 +255,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -281,13 +282,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -308,13 +309,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -335,13 +336,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

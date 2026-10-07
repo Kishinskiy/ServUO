@@ -1,10 +1,14 @@
-using System;
-
 namespace Server.Mobiles
 {
     [CorpseName("a dream wraith corpse")]
     public class DreamWraith : BaseCreature
     {
+        public override bool BleedImmune => true;
+
+        public override OppositionGroup OppositionGroup => OppositionGroup.FeyAndUndead;
+
+        public override Poison PoisonImmune => Poison.Lethal;
+
         [Constructable]
         public DreamWraith()
             : base(AIType.AI_NecroMage, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -55,27 +59,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool BleedImmune
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override OppositionGroup OppositionGroup
-        {
-            get
-            {
-                return OppositionGroup.FeyAndUndead;
-            }
-        }
-        public override Poison PoisonImmune
-        {
-            get
-            {
-                return Poison.Lethal;
-            }
-        }
         public override void GenerateLoot()
         {
             AddLoot(LootPack.Rich);
@@ -104,13 +87,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

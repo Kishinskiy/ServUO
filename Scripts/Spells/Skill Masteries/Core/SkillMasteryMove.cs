@@ -1,11 +1,8 @@
 using System;
-using Server;
-using System.Globalization;
-using Server.Spells;
-using Server.Network;
-using Server.Mobiles;
 using System.Collections.Generic;
+using System.Globalization;
 using Server.Items;
+using Server.Network;
 
 namespace Server.Spells.SkillMasteries
 {
@@ -13,26 +10,22 @@ namespace Server.Spells.SkillMasteries
     {
         public Dictionary<Mobile, DateTime> Cooldown { get; set; }
 
-        public virtual TimeSpan CooldownPeriod { get { return TimeSpan.MinValue; } }
-        public override bool ValidatesDuringHit { get { return false; } }
-
-        public SkillMasteryMove()
-        {
-        }
+        public virtual TimeSpan CooldownPeriod => TimeSpan.MinValue;
+        public override bool ValidatesDuringHit => false;
 
         public override void SendAbilityMessage(Mobile m)
         {
-            if(AbilityMessage.Number > 0)
-                m.PrivateOverheadMessage(MessageType.Regular, 1150, AbilityMessage.Number, m.NetState); 
+            if (AbilityMessage.Number > 0)
+                m.PrivateOverheadMessage(MessageType.Regular, 1150, AbilityMessage.Number, m.NetState);
             else
-                m.PrivateOverheadMessage(MessageType.Regular, 1150, false, AbilityMessage.String, m.NetState); 
+                m.PrivateOverheadMessage(MessageType.Regular, 1150, false, AbilityMessage.String, m.NetState);
         }
 
         public override bool Validate(Mobile from)
         {
-            SkillMasteryMove move = SpecialMove.GetCurrentMove(from) as SkillMasteryMove;
+            var move = GetCurrentMove(from) as SkillMasteryMove;
 
-            if ((move == null || move.GetType() != this.GetType()) && !CheckCooldown(from))
+            if ((move == null || move.GetType() != GetType()) && !CheckCooldown(from))
                 return false;
 
             if (from.Player && from.Skills.CurrentMastery != MoveSkill)
@@ -48,16 +41,20 @@ namespace Server.Spells.SkillMasteries
         {
             if (CooldownPeriod > TimeSpan.MinValue && IsInCooldown(from))
             {
-                double left = (Cooldown[from] - DateTime.UtcNow).TotalMinutes;
+                var left = (Cooldown[from] - DateTime.UtcNow).TotalMinutes;
 
                 if (left > 1)
                 {
-                    from.SendLocalizedMessage(1155787, ((int)left).ToString()); // You must wait ~1_minutes~ minutes before you can use this ability.
+                    from.SendLocalizedMessage(1155787,
+                        ((int)left).ToString()); // You must wait ~1_minutes~ minutes before you can use this ability.
                 }
                 else
                 {
                     left = (Cooldown[from] - DateTime.UtcNow).TotalSeconds;
-                    from.SendLocalizedMessage(1079335, left.ToString("F", CultureInfo.InvariantCulture)); // You must wait ~1_seconds~ seconds before you can use this ability again.
+                    from.SendLocalizedMessage(1079335,
+                        left.ToString("F",
+                            CultureInfo
+                                .InvariantCulture)); // You must wait ~1_seconds~ seconds before you can use this ability again.
                 }
 
                 return false;
@@ -71,7 +68,7 @@ namespace Server.Spells.SkillMasteries
             if (!from.Player)
                 return true;
 
-            BaseWeapon wep = from.Weapon as BaseWeapon;
+            var wep = from.Weapon as BaseWeapon;
 
             return wep != null && wep.DefSkill == MoveSkill;
         }

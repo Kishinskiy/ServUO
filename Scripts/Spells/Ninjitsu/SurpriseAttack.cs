@@ -7,41 +7,19 @@ namespace Server.Spells.Ninjitsu
     public class SurpriseAttack : NinjaMove
     {
         private static readonly Hashtable m_Table = new Hashtable();
-        public SurpriseAttack()
-        {
-        }
 
-        public override int BaseMana
-        {
-            get
-            {
-                return 20;
-            }
-        }
-        public override double RequiredSkill
-        {
-            get
-            {
-                return Core.ML ? 60.0 : 30.0;
-            }
-        }
-        public override TextDefinition AbilityMessage
-        {
-            get
-            {
-                return new TextDefinition(1063128);
-            }
-        }// You prepare to surprise your prey.
-        public override bool ValidatesDuringHit
-        {
-            get
-            {
-                return false;
-            }
-        }
+        public override int BaseMana => 20;
+
+        public override double RequiredSkill => Core.ML ? 60.0 : 30.0;
+
+        public override TextDefinition AbilityMessage =>
+            new TextDefinition(1063128); // You prepare to surprise your prey.
+
+        public override bool ValidatesDuringHit => false;
+
         public static bool GetMalus(Mobile target, ref int malus)
         {
-            SurpriseAttackInfo info = m_Table[target] as SurpriseAttackInfo;
+            var info = m_Table[target] as SurpriseAttackInfo;
 
             if (info == null)
                 return false;
@@ -63,7 +41,7 @@ namespace Server.Spells.Ninjitsu
 
         public override bool OnBeforeSwing(Mobile attacker, Mobile defender)
         {
-            bool valid = this.Validate(attacker) && this.CheckMana(attacker, true);
+            var valid = Validate(attacker) && CheckMana(attacker, true);
 
             if (valid)
             {
@@ -98,16 +76,16 @@ namespace Server.Spells.Ninjitsu
                 m_Table.Remove(defender);
             }
 
-            int ninjitsu = attacker.Skills[SkillName.Ninjitsu].Fixed;
+            var ninjitsu = attacker.Skills[SkillName.Ninjitsu].Fixed;
 
-            int malus = ninjitsu / 60 + (int)Tracking.GetStalkingBonus(attacker, defender);
+            var malus = ninjitsu / 60 + (int)Tracking.GetStalkingBonus(attacker, defender);
 
             info = new SurpriseAttackInfo(defender, malus);
             info.m_Timer = Timer.DelayCall(TimeSpan.FromSeconds(8.0), new TimerStateCallback(EndSurprise), info);
 
             m_Table[defender] = info;
 
-            this.CheckGain(attacker);
+            CheckGain(attacker);
         }
 
         public override void OnMiss(Mobile attacker, Mobile defender)
@@ -121,7 +99,7 @@ namespace Server.Spells.Ninjitsu
 
         private static void EndSurprise(object state)
         {
-            SurpriseAttackInfo info = (SurpriseAttackInfo)state;
+            var info = (SurpriseAttackInfo)state;
 
             if (info.m_Timer != null)
                 info.m_Timer.Stop();
@@ -133,13 +111,14 @@ namespace Server.Spells.Ninjitsu
 
         private class SurpriseAttackInfo
         {
-            public readonly Mobile m_Target;
             public readonly int m_Malus;
+            public readonly Mobile m_Target;
             public Timer m_Timer;
+
             public SurpriseAttackInfo(Mobile target, int effect)
             {
-                this.m_Target = target;
-                this.m_Malus = effect;
+                m_Target = target;
+                m_Malus = effect;
             }
         }
     }

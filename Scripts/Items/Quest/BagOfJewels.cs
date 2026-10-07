@@ -1,12 +1,9 @@
-using System;
-using Server;
-
 namespace Server.Items
 {
     public class BagOfJewels : Item
     {
-        public override int LabelNumber { get { return 1075307; } } // Bag of Jewels
-        public override bool HiddenQuestItemHue { get { return true; } } 
+        public override int LabelNumber => 1075307; // Bag of Jewels
+        public override bool HiddenQuestItemHue => true;
 
         [Constructable]
         public BagOfJewels()
@@ -17,6 +14,11 @@ namespace Server.Items
             Hue = 155;
         }
 
+        public BagOfJewels(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void GetProperties(ObjectPropertyList list)
         {
             base.GetProperties(list);
@@ -24,21 +26,16 @@ namespace Server.Items
             list.Add(1075453); // Contents: 30 jewels
         }
 
-        public BagOfJewels(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

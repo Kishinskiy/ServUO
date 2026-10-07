@@ -5,13 +5,11 @@ namespace Server.Items
 {
     public class MysticalPolymorphTotem : Item
     {
-        public override int LabelNumber { get { return 1158780; } } // Mystical Polymorph Totem
-
-        private int m_Body = 0;
-        private int m_Hue = -1;
+        private Timer m_Timer;
+        public override int LabelNumber => 1158780; // Mystical Polymorph Totem
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int Duration { get; set; }        
+        public int Duration { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public string CostumeCreatureName { get; set; }
@@ -20,18 +18,10 @@ namespace Server.Items
         public bool Transformed { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int CostumeBody
-        {
-            get { return m_Body; }
-            set { m_Body = value; }
-        }
+        public int CostumeBody { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int CostumeHue
-        {
-            get { return m_Hue; }
-            set { m_Hue = value; }
-        }
+        public int CostumeHue { get; set; } = -1;
 
         [Constructable]
         public MysticalPolymorphTotem()
@@ -50,9 +40,7 @@ namespace Server.Items
             base.GetProperties(list);
 
             if (CostumeCreatureName != null)
-            {
-                list.Add(1158707, String.Format("{0}", CostumeCreatureName)); // a ~1_name~ costume
-            }
+                list.Add(1158707, string.Format("{0}", CostumeCreatureName)); // a ~1_name~ costume
         }
 
         public override void OnDoubleClick(Mobile from)
@@ -65,36 +53,28 @@ namespace Server.Items
             {
                 if (CostumeBody == 0)
                 {
-                    from.SendLocalizedMessage(1158781); // Target the costume that you wish to merge with this Mystical Polymorph Totem.  Please be aware that this selection cannot be undone.
+                    from.SendLocalizedMessage(
+                        1158781); // Target the costume that you wish to merge with this Mystical Polymorph Totem.  Please be aware that this selection cannot be undone.
                     from.Target = new InternalTarget(this);
                 }
                 else
                 {
                     if (!Transformed)
-                    {
                         EnMask(from);
-                    }
                     else
-                    {
                         DeMask(from);
-                    }
                 }
             }
         }
 
         public override bool DropToWorld(Mobile from, Point3D p)
         {
-            bool drop = base.DropToWorld(from, p);
+            var drop = base.DropToWorld(from, p);
 
-            if (Transformed)
-            {
-                DeMask(from);
-            }
+            if (Transformed) DeMask(from);
 
             return drop;
         }
-
-        private Timer m_Timer;
 
         private void EnMask(Mobile from)
         {
@@ -111,13 +91,16 @@ namespace Server.Items
                 Duration = 28800;
 
                 if (m_Timer == null || !m_Timer.Running)
-                    m_Timer = Timer.DelayCall(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1), delegate { Slice(from); });
+                    m_Timer = Timer.DelayCall(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1),
+                        delegate { Slice(from); });
 
-                BuffInfo.AddBuff(from, new BuffInfo(BuffIcon.MysticalPolymorphTotem, 1158780, 1158017, TimeSpan.FromSeconds(Duration), from, CostumeCreatureName));
+                BuffInfo.AddBuff(from,
+                    new BuffInfo(BuffIcon.MysticalPolymorphTotem, 1158780, 1158017, TimeSpan.FromSeconds(Duration),
+                        from, CostumeCreatureName));
 
                 ItemID = 0xA20B;
-                from.BodyMod = m_Body;
-                from.HueMod = m_Hue;
+                from.BodyMod = CostumeBody;
+                from.HueMod = CostumeHue;
                 Transformed = true;
             }
         }
@@ -125,7 +108,9 @@ namespace Server.Items
         public virtual void Slice(Mobile from)
         {
             if (Duration > 0)
+            {
                 Duration--;
+            }
             else
             {
                 DeMask(from);
@@ -143,9 +128,32 @@ namespace Server.Items
             from.BodyMod = 0;
             from.HueMod = -1;
             Transformed = false;
-            Effects.SendLocationParticles(EffectItem.Create(from.Location, from.Map, EffectItem.DefaultDuration), 0x3728, 8, 20, 5042);
+            Effects.SendLocationParticles(EffectItem.Create(from.Location, from.Map, EffectItem.DefaultDuration),
+                0x3728, 8, 20, 5042);
             from.PlaySound(250);
             BuffInfo.RemoveBuff(from, BuffIcon.MysticalPolymorphTotem);
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
+
+            writer.Write(CostumeCreatureName);
+            writer.Write(CostumeBody);
+            writer.Write(CostumeHue);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
+
+            CostumeCreatureName = reader.ReadString();
+            CostumeBody = reader.ReadInt();
+            CostumeHue = reader.ReadInt();
+
+            ItemID = 0xA276;
         }
 
         private class InternalTarget : Target
@@ -171,7 +179,7 @@ namespace Server.Items
 
                 if (targeted is BaseCostume)
                 {
-                    BaseCostume costume = targeted as BaseCostume;
+                    var costume = targeted as BaseCostume;
 
                     m_Totem.CostumeCreatureName = costume.CreatureName;
                     m_Totem.CostumeBody = costume.CostumeBody;
@@ -181,28 +189,6 @@ namespace Server.Items
                     costume.Delete();
                 }
             }
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.Write((int)0);
-
-            writer.Write(CostumeCreatureName);
-            writer.Write((int)CostumeBody);
-            writer.Write((int)CostumeHue);
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            int version = reader.ReadInt();
-
-            CostumeCreatureName = reader.ReadString();
-            CostumeBody = reader.ReadInt();
-            CostumeHue = reader.ReadInt();
-
-            ItemID = 0xA276;
         }
     }
 }

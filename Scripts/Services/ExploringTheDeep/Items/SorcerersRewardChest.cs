@@ -1,48 +1,51 @@
-﻿using System;
-using Server.Mobiles;
-using Server.Targeting;
+﻿using Server.Mobiles;
 using Server.Network;
+using Server.Targeting;
 
 namespace Server.Items
 {
     public class SorcerersRewardChest : Item
     {
-        public override int LabelNumber { get { return 1023712; } } // strong box
-        
+        public override int LabelNumber => 1023712; // strong box
+
         [Constructable]
         public SorcerersRewardChest() : base(0x9AA)
         {
-            this.Movable = false;
-            this.Hue = 1912;
-        }
-
-        public override void OnDoubleClick(Mobile from)
-        {
-            from.PublicOverheadMessage(MessageType.Regular, 0x3B2, 1154226); // *It's an unassuming strong box. You examine the lock more closely and determine there is no way to pick it. You'll need to find a key.*
-            
-            base.OnDoubleClick(from);
+            Movable = false;
+            Hue = 1912;
         }
 
         public SorcerersRewardChest(Serial serial) : base(serial)
         {
         }
 
+        public override void OnDoubleClick(Mobile from)
+        {
+            from.PublicOverheadMessage(MessageType.Regular, 0x3B2,
+                1154226); // *It's an unassuming strong box. You examine the lock more closely and determine there is no way to pick it. You'll need to find a key.*
+
+            base.OnDoubleClick(from);
+        }
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class StrongboxKey : BaseDecayingItem
     {
-        public override int LabelNumber { get { return 1154227; } } // Strongbox Key        
+        public override int LabelNumber => 1154227; // Strongbox Key        
+
+        public override int Lifespan => 3600;
+        public override bool UseSeconds => false;
 
         [Constructable]
         public StrongboxKey() : base(0x410A)
@@ -53,8 +56,9 @@ namespace Server.Items
             LootType = LootType.Blessed;
         }
 
-        public override int Lifespan { get { return 3600; } }
-        public override bool UseSeconds { get { return false; } }
+        public StrongboxKey(Serial serial) : base(serial)
+        {
+        }
 
         public override void GetProperties(ObjectPropertyList list)
         {
@@ -63,16 +67,12 @@ namespace Server.Items
             list.Add(1072351); // Quest Item
         }
 
-        public StrongboxKey(Serial serial) : base(serial)
-        {
-        }
-
         public override void OnDoubleClick(Mobile from)
         {
             if (!(from is PlayerMobile))
                 return;
 
-            if (!this.IsChildOf(from.Backpack))
+            if (!IsChildOf(from.Backpack))
             {
                 from.SendLocalizedMessage(1054107); // This item must be in your backpack.
                 return;
@@ -85,13 +85,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -111,13 +111,14 @@ namespace Server.Items
             if (o is SorcerersRewardChest)
             {
                 Item item = new SalvagerSuitPlans();
-                Container pack = from.Backpack;
+                var pack = from.Backpack;
 
                 if (pack == null || !pack.TryDropItem(from, item, false))
                     from.BankBox.DropItem(item);
 
-                m_From.PublicOverheadMessage(MessageType.Regular, 0x3B2, 1154228); // *You insert the key into the mechanism and turn it. To your delight the lock opens with a click and you remove the contents*
-                
+                m_From.PublicOverheadMessage(MessageType.Regular, 0x3B2,
+                    1154228); // *You insert the key into the mechanism and turn it. To your delight the lock opens with a click and you remove the contents*
+
                 m_Key.Delete();
             }
             else

@@ -1,7 +1,6 @@
 using System;
-using Server;
-using Server.Items;
 using System.Linq;
+using Server.Items;
 
 namespace Server.Mobiles
 {
@@ -10,9 +9,9 @@ namespace Server.Mobiles
         public Type CreatureType { get; private set; }
         public Class Class { get; private set; }
         public MagicalAbility MagicalAbilities { get; private set; }
-        public SpecialAbility[] SpecialAbilities { get; private set; }
+        public SpecialAbility[] SpecialAbilities { get; }
         public WeaponAbility[] WeaponAbilities { get; private set; }
-        public AreaEffect[] AreaEffects { get; private set; }
+        public AreaEffect[] AreaEffects { get; }
 
         public int ControlSlotsMin { get; private set; }
         public int ControlSlotsMax { get; private set; }
@@ -22,7 +21,7 @@ namespace Server.Mobiles
             Class classificaion,
             MagicalAbility magicalAbility,
             SpecialAbility[] specialAbility,
-            WeaponAbility[] weaponAbility, 
+            WeaponAbility[] weaponAbility,
             AreaEffect[] areaEffect,
             int controlmin,
             int controlmax)

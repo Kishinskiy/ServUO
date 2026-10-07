@@ -1,20 +1,15 @@
-using System;
 using System.Collections.Generic;
-
+using Server.ContextMenus;
 using Server.Gumps;
 using Server.Multis;
 using Server.Targeting;
-using Server.ContextMenus;
 
 namespace Server.Items
 {
     [Flipable(0x9A97, 0x9A98)]
     public class Grinder : Item, ISecurable
     {
-        public override int LabelNumber { get { return 1123599; } } // Grinder
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public SecureLevel Level { get; set; }
+        public override int LabelNumber => 1123599; // Grinder
 
         [Constructable]
         public Grinder()
@@ -22,6 +17,14 @@ namespace Server.Items
         {
             LootType = LootType.Blessed;
         }
+
+        public Grinder(Serial serial)
+            : base(serial)
+        {
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public SecureLevel Level { get; set; }
 
         /*public bool CheckAccessible(Mobile from, Item item)
         {
@@ -52,23 +55,30 @@ namespace Server.Items
             SetSecureLevelEntry.AddTo(from, this, list);
         }
 
-        public Grinder(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void OnDoubleClick(Mobile from)
         {
             var house = BaseHouse.FindHouseAt(this);
 
             if (house == null || !house.IsLockedDown(this))
-            {
                 from.SendLocalizedMessage(1114298); // This must be locked down in order to use it.
-            }
-            else if (from.InRange(GetWorldLocation(), 2) /*&& CheckAccessible(from, this)*/)
-            {
-                from.Target = new InternalTarget(this);
-            }
+            else if (from.InRange(GetWorldLocation(), 2) /*&& CheckAccessible(from, this)*/
+                    ) from.Target = new InternalTarget(this);
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0); // version
+
+            writer.Write((int)Level);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
+
+            Level = (SecureLevel)reader.ReadInt();
         }
 
         private class InternalTarget : Target
@@ -99,22 +109,6 @@ namespace Server.Items
                     from.SendLocalizedMessage(1155729); // That is not something that can be ground.
                 }
             }
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.Write((int)0); // version
-
-            writer.Write((int)Level);
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            int version = reader.ReadInt();
-
-            Level = (SecureLevel)reader.ReadInt();
         }
     }
 }

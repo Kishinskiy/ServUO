@@ -1,12 +1,11 @@
-using System;
-
 namespace Server.Items
 {
     public class FountainAddon : StoneFountainAddon
     {
+        public override BaseAddonDeed Deed => new FountainDeed();
+
         [Constructable]
         public FountainAddon()
-            : base()
         {
         }
 
@@ -15,13 +14,6 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonDeed Deed
-        {
-            get
-            {
-                return new FountainDeed();
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -33,17 +25,20 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class FountainDeed : BaseAddonDeed
     {
+        public override BaseAddon Addon => new FountainAddon();
+
+        public override int LabelNumber => 1076283; // Fountain
+
         [Constructable]
         public FountainDeed()
-            : base()
         {
-            this.LootType = LootType.Blessed;
+            LootType = LootType.Blessed;
         }
 
         public FountainDeed(Serial serial)
@@ -51,20 +46,6 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddon Addon
-        {
-            get
-            {
-                return new FountainAddon();
-            }
-        }
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1076283;
-            }
-        }// Fountain
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -76,7 +57,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

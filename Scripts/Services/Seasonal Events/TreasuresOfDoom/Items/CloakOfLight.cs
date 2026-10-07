@@ -1,16 +1,18 @@
-using System;
 using Server.Engines.Craft;
 
 namespace Server.Items
 {
     [Alterable(typeof(DefTailoring), typeof(WingArmorOfLight))]
     public class CloakOfLight : Cloak
-	{
-		public override bool IsArtifact { get { return true; } }
+    {
+        public override bool IsArtifact => true;
+
+        public override int LabelNumber => 1155608; // Cloak of Light
+
         [Constructable]
         public CloakOfLight()
         {
-			Attributes.NightSight = 1;
+            Attributes.NightSight = 1;
             Attributes.RegenHits = 2;
             Attributes.AttackChance = 5;
         }
@@ -20,24 +22,24 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber { get{return 1155608;} }// Cloak of Light
-       
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class WingArmorOfLight : GargishClothWingArmor
     {
-        public override bool IsArtifact { get { return true; } }
+        public override bool IsArtifact => true;
+
+        public override int LabelNumber => 1155683; // Wing Armor of Light
 
         [Constructable]
         public WingArmorOfLight()
@@ -52,18 +54,16 @@ namespace Server.Items
         {
         }
 
-		public override int LabelNumber { get{return 1155683;} }// Wing Armor of Light
-  
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

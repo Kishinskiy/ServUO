@@ -1,15 +1,15 @@
-using System;
-
 namespace Server.Items
 {
     public class SealingWaxOrder : Item
     {
+        public override int LabelNumber => 1073132; // Sealing Wax Order addressed to Petrus
+
         [Constructable]
         public SealingWaxOrder()
             : base(0xEBF)
         {
-            this.LootType = LootType.Blessed;
-            this.Weight = 1.0;
+            LootType = LootType.Blessed;
+            Weight = 1.0;
         }
 
         public SealingWaxOrder(Serial serial)
@@ -17,25 +17,18 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1073132;
-            }
-        }// Sealing Wax Order addressed to Petrus
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

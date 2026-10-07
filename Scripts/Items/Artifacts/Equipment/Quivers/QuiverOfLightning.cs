@@ -1,13 +1,13 @@
-using System;
-
 namespace Server.Items
 {
     public class QuiverOfLightning : ElvenQuiver
-	{
-		public override bool IsArtifact { get { return true; } }
+    {
+        public override bool IsArtifact => true;
+
+        public override int LabelNumber => 1073112; // Quiver of Lightning
+
         [Constructable]
         public QuiverOfLightning()
-            : base()
         {
             Hue = 0x4F9;
         }
@@ -17,14 +17,8 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1073112;
-            }
-        }// Quiver of Lightning
-        public override void AlterBowDamage(ref int phys, ref int fire, ref int cold, ref int pois, ref int nrgy, ref int chaos, ref int direct)
+        public override void AlterBowDamage(ref int phys, ref int fire, ref int cold, ref int pois, ref int nrgy,
+            ref int chaos, ref int direct)
         {
             fire = cold = pois = chaos = direct = 0;
             phys = nrgy = 50;
@@ -41,7 +35,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

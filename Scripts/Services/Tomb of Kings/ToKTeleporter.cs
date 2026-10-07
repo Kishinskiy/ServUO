@@ -1,6 +1,4 @@
-﻿using System;
-using Server;
-using Server.Mobiles;
+﻿using Server.Mobiles;
 
 namespace Server.Items
 {
@@ -32,8 +30,9 @@ namespace Server.Items
 
                 m.PlaySound(0x1FE);
                 Effects.SendLocationParticles(m, 0x3728, 10, 10, 0x139F);
-                
-                m.SendLocalizedMessage(1112182); // You have been returned to the antechamber of the tomb, directly in front of the Serpent's Breath.
+
+                m.SendLocalizedMessage(
+                    1112182); // You have been returned to the antechamber of the tomb, directly in front of the Serpent's Breath.
 
                 return false;
             }
@@ -44,13 +43,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

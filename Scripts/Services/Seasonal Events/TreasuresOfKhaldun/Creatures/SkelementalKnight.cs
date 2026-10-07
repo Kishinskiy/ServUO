@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -13,6 +12,12 @@ namespace Server.Mobiles
             Poison,
             Energy
         }
+
+        public override bool BleedImmune => true;
+
+        public override TribeType Tribe => TribeType.Undead;
+
+        public override OppositionGroup OppositionGroup => OppositionGroup.FeyAndUndead;
 
         [Constructable]
         public SkelementalKnight()
@@ -33,33 +38,33 @@ namespace Server.Mobiles
             switch (type)
             {
                 case SkeletalType.Fire:
-                    {
-                        Hue = 2634;
-                        SetDamageType(ResistanceType.Fire, 100);
-                        cold = 5;
-                        break;
-                    }
+                {
+                    Hue = 2634;
+                    SetDamageType(ResistanceType.Fire, 100);
+                    cold = 5;
+                    break;
+                }
                 case SkeletalType.Cold:
-                    {
-                        Hue = 2581;
-                        SetDamageType(ResistanceType.Cold, 100);
-                        fire = 5;
-                        break;
-                    }
+                {
+                    Hue = 2581;
+                    SetDamageType(ResistanceType.Cold, 100);
+                    fire = 5;
+                    break;
+                }
                 case SkeletalType.Poison:
-                    {
-                        Hue = 2688;
-                        SetDamageType(ResistanceType.Poison, 100);
-                        energy = 5;
-                        break;
-                    }
+                {
+                    Hue = 2688;
+                    SetDamageType(ResistanceType.Poison, 100);
+                    energy = 5;
+                    break;
+                }
                 case SkeletalType.Energy:
-                    {
-                        Hue = 2717;
-                        SetDamageType(ResistanceType.Energy, 100);
-                        poison = 5;
-                        break;
-                    }
+                {
+                    Hue = 2717;
+                    SetDamageType(ResistanceType.Energy, 100);
+                    poison = 5;
+                    break;
+                }
             }
 
             SetStr(200, 250);
@@ -114,32 +119,18 @@ namespace Server.Mobiles
             PackItem(new WoodenShield());
         }
 
-        public override void OnBeforeDamage(Mobile from, ref int totalDamage, Server.DamageType type)
-        {
-            if (Region.IsPartOf("Khaldun") && IsChampionSpawn && !Caddellite.CheckDamage(from, type))
-            {
-                totalDamage = 0;
-            }
-
-            base.OnBeforeDamage(from, ref totalDamage, type);
-        }
-
         public SkelementalKnight(Serial serial)
             : base(serial)
         {
         }
 
-        public override bool BleedImmune { get { return true; } }
-
-        public override TribeType Tribe { get { return TribeType.Undead; } }
-
-        public override OppositionGroup OppositionGroup
+        public override void OnBeforeDamage(Mobile from, ref int totalDamage, DamageType type)
         {
-            get
-            {
-                return OppositionGroup.FeyAndUndead;
-            }
+            if (Region.IsPartOf("Khaldun") && IsChampionSpawn && !Caddellite.CheckDamage(from, type)) totalDamage = 0;
+
+            base.OnBeforeDamage(from, ref totalDamage, type);
         }
+
         public override void GenerateLoot()
         {
             AddLoot(LootPack.Average);
@@ -149,13 +140,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

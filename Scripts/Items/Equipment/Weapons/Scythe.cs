@@ -1,6 +1,5 @@
-using System;
-using Server.Engines.Harvest;
 using Server.Engines.Craft;
+using Server.Engines.Harvest;
 
 namespace Server.Items
 {
@@ -8,6 +7,34 @@ namespace Server.Items
     [FlipableAttribute(0x26BA, 0x26C4)]
     public class Scythe : BasePoleArm
     {
+        public override WeaponAbility PrimaryAbility => WeaponAbility.BleedAttack;
+
+        public override WeaponAbility SecondaryAbility => WeaponAbility.ParalyzingBlow;
+
+        public override int AosStrengthReq => 45;
+
+        public override int AosMinDamage => 16;
+
+        public override int AosMaxDamage => 19;
+
+        public override int AosSpeed => 32;
+
+        public override float MlSpeed => 3.50f;
+
+        public override int OldStrengthReq => 45;
+
+        public override int OldMinDamage => 15;
+
+        public override int OldMaxDamage => 18;
+
+        public override int OldSpeed => 32;
+
+        public override int InitMinHits => 31;
+
+        public override int InitMaxHits => 100;
+
+        public override HarvestSystem HarvestSystem => null;
+
         [Constructable]
         public Scythe()
             : base(0x26BA)
@@ -20,114 +47,16 @@ namespace Server.Items
         {
         }
 
-        public override WeaponAbility PrimaryAbility
-        {
-            get
-            {
-                return WeaponAbility.BleedAttack;
-            }
-        }
-        public override WeaponAbility SecondaryAbility
-        {
-            get
-            {
-                return WeaponAbility.ParalyzingBlow;
-            }
-        }
-        public override int AosStrengthReq
-        {
-            get
-            {
-                return 45;
-            }
-        }
-        public override int AosMinDamage
-        {
-            get
-            {
-                return 16;
-            }
-        }
-        public override int AosMaxDamage
-        {
-            get
-            {
-                return 19;
-            }
-        }
-        public override int AosSpeed
-        {
-            get
-            {
-                return 32;
-            }
-        }
-        public override float MlSpeed
-        {
-            get
-            {
-                return 3.50f;
-            }
-        }
-        public override int OldStrengthReq
-        {
-            get
-            {
-                return 45;
-            }
-        }
-        public override int OldMinDamage
-        {
-            get
-            {
-                return 15;
-            }
-        }
-        public override int OldMaxDamage
-        {
-            get
-            {
-                return 18;
-            }
-        }
-        public override int OldSpeed
-        {
-            get
-            {
-                return 32;
-            }
-        }
-        public override int InitMinHits
-        {
-            get
-            {
-                return 31;
-            }
-        }
-        public override int InitMaxHits
-        {
-            get
-            {
-                return 100;
-            }
-        }
-        public override HarvestSystem HarvestSystem
-        {
-            get
-            {
-                return null;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

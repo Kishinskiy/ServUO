@@ -5,6 +5,9 @@ namespace Server.Items
     public class ElvenSpinningwheelSouthAddon : BaseAddon, ISpinningWheel
     {
         private Timer m_Timer;
+
+        public override BaseAddonDeed Deed => new ElvenSpinningwheelSouthDeed();
+
         [Constructable]
         public ElvenSpinningwheelSouthAddon()
         {
@@ -16,20 +19,22 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonDeed Deed
+        public bool Spinning => m_Timer != null;
+
+        public void BeginSpin(SpinCallback callback, Mobile from, int hue)
         {
-            get
-            {
-                return new ElvenSpinningwheelSouthDeed();
-            }
+            m_Timer = new SpinTimer(this, callback, from, hue);
+            m_Timer.Start();
+
+            foreach (var c in Components)
+                switch (c.ItemID)
+                {
+                    case 0x2E3F:
+                        --c.ItemID;
+                        break;
+                }
         }
-        public bool Spinning
-        {
-            get
-            {
-                return m_Timer != null;
-            }
-        }
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -41,32 +46,16 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
 
         public override void OnComponentLoaded(AddonComponent c)
         {
-            switch ( c.ItemID )
+            switch (c.ItemID)
             {
                 case 0x2E3E:
                     ++c.ItemID;
                     break;
-            }
-        }
-
-        public void BeginSpin(SpinCallback callback, Mobile from, int hue)
-        {
-            m_Timer = new SpinTimer(this, callback, from, hue);
-            m_Timer.Start();
-
-            foreach (AddonComponent c in Components)
-            {
-                switch ( c.ItemID )
-                {
-                    case 0x2E3F:
-                        --c.ItemID;
-                        break;
-                }
             }
         }
 
@@ -77,15 +66,13 @@ namespace Server.Items
 
             m_Timer = null;
 
-            foreach (AddonComponent c in Components)
-            {
-                switch ( c.ItemID )
+            foreach (var c in Components)
+                switch (c.ItemID)
                 {
                     case 0x2E3E:
                         ++c.ItemID;
                         break;
                 }
-            }
 
             if (callback != null)
                 callback(this, from, hue);
@@ -93,10 +80,11 @@ namespace Server.Items
 
         private class SpinTimer : Timer
         {
-            private readonly ElvenSpinningwheelSouthAddon m_Wheel;
             private readonly SpinCallback m_Callback;
             private readonly Mobile m_From;
             private readonly int m_Hue;
+            private readonly ElvenSpinningwheelSouthAddon m_Wheel;
+
             public SpinTimer(ElvenSpinningwheelSouthAddon wheel, SpinCallback callback, Mobile from, int hue)
                 : base(TimeSpan.FromSeconds(6.0))
             {
@@ -116,6 +104,10 @@ namespace Server.Items
 
     public class ElvenSpinningwheelSouthDeed : BaseAddonDeed
     {
+        public override BaseAddon Addon => new ElvenSpinningwheelSouthAddon();
+
+        public override int LabelNumber => 1072878; // spinning wheel (south)
+
         [Constructable]
         public ElvenSpinningwheelSouthDeed()
         {
@@ -126,20 +118,6 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddon Addon
-        {
-            get
-            {
-                return new ElvenSpinningwheelSouthAddon();
-            }
-        }
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1072878;
-            }
-        }// spinning wheel (south)
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -151,7 +129,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

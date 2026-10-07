@@ -1,9 +1,7 @@
-using System;
-using System.Collections.Generic;
-using Server;
-using Server.Items;
-using Server.Targeting;
 using Server.ContextMenus;
+using Server.Items;
+using Server.Network;
+using Server.Targeting;
 
 namespace Server.Custom.MageCircles
 {
@@ -17,24 +15,22 @@ namespace Server.Custom.MageCircles
 
         private static void OnContextMenu(ContextMenuEventArgs e)
         {
-            Mobile from = e.Mobile;
+            var from = e.Mobile;
 
             // Проверяем, что меню вызвано для свитка магии
             if (from == null || !(e.Target is SpellScroll))
                 return;
 
-            SpellScroll scroll = (SpellScroll)e.Target;
+            var scroll = (SpellScroll)e.Target;
             ContextMenuEntry originalEntry = null;
 
             // Ищем оригинальный пункт меню "Add to Spellbook" (ID 6144)
-            foreach (ContextMenuEntry entry in e.Entries)
-            {
+            foreach (var entry in e.Entries)
                 if (entry.Number == 6144)
                 {
                     originalEntry = entry;
                     break;
                 }
-            }
 
             // Если нашли — удаляем оригинал и вставляем наш безопасный аналог
             if (originalEntry != null)
@@ -52,16 +48,14 @@ namespace Server.Custom.MageCircles
             public CustomAddToSpellbookEntry(SpellScroll scroll)
                 : base(6144, 3) // 6144 - ID текста "Add to Spellbook", 3 - дальность клика
             {
-                this.m_Scroll = scroll;
+                m_Scroll = scroll;
             }
 
             public override void OnClick()
             {
-                if (this.Owner.From.CheckAlive() && this.m_Scroll != null && !this.m_Scroll.Deleted)
-                {
+                if (Owner.From.CheckAlive() && m_Scroll != null && !m_Scroll.Deleted)
                     // При клике вызываем наш кастомный безопасный прицел (таргет)
-                    this.Owner.From.Target = new CustomSpellbookTarget(this.m_Scroll);
-                }
+                    Owner.From.Target = new CustomSpellbookTarget(m_Scroll);
             }
         }
 
@@ -73,23 +67,22 @@ namespace Server.Custom.MageCircles
             public CustomSpellbookTarget(SpellScroll scroll)
                 : base(3, false, TargetFlags.None)
             {
-                this.m_Scroll = scroll;
+                m_Scroll = scroll;
             }
 
             protected override void OnTarget(Mobile from, object targeted)
             {
                 if (targeted is Spellbook)
-                {
-                    if (from.CheckAlive() && !this.m_Scroll.Deleted && this.m_Scroll.Movable && this.m_Scroll.Amount >= 1 && this.m_Scroll.CheckItemUse(from))
+                    if (from.CheckAlive() && !m_Scroll.Deleted && m_Scroll.Movable && m_Scroll.Amount >= 1 &&
+                        m_Scroll.CheckItemUse(from))
                     {
-                        Spellbook book = (Spellbook)targeted;
-                        SpellbookType type = Spellbook.GetTypeForSpell(this.m_Scroll.SpellID);
+                        var book = (Spellbook)targeted;
+                        var type = Spellbook.GetTypeForSpell(m_Scroll.SpellID);
 
                         if (type != book.SpellbookType)
                         {
-                            return;
                         }
-                        else if (book.HasSpell(this.m_Scroll.SpellID))
+                        else if (book.HasSpell(m_Scroll.SpellID))
                         {
                             from.SendLocalizedMessage(500179); // That spell is already present in that spellbook.
                         }
@@ -98,10 +91,10 @@ namespace Server.Custom.MageCircles
                             // Проверка круга магии на соответствие навыку Magery
                             if (book.SpellbookType == SpellbookType.Regular)
                             {
-                                int circleIndex = (this.m_Scroll.SpellID - book.BookOffset) / 8;
-                                double magerySkill = from.Skills[SkillName.Magery].Base;
+                                var circleIndex = (m_Scroll.SpellID - book.BookOffset) / 8;
+                                var magerySkill = from.Skills[SkillName.Magery].Base;
 
-                                double requiredSkill = 0.0;
+                                var requiredSkill = 0.0;
                                 switch (circleIndex)
                                 {
                                     case 0: requiredSkill = 0.0; break;
@@ -116,23 +109,24 @@ namespace Server.Custom.MageCircles
 
                                 if (magerySkill < requiredSkill)
                                 {
-                                    from.SendMessage("Ваш навык магии слишком мал! Чтобы записать заклинание {0}-го круга, требуется {1} Magery.", circleIndex + 1, requiredSkill);
+                                    from.SendMessage(
+                                        "Ваш навык магии слишком мал! Чтобы записать заклинание {0}-го круга, требуется {1} Magery.",
+                                        circleIndex + 1, requiredSkill);
                                     return; // Прерываем добавление, свиток цел
                                 }
                             }
 
                             // Если проверка успешна — добавляем заклинание в книгу
-                            int val = this.m_Scroll.SpellID - book.BookOffset;
+                            var val = m_Scroll.SpellID - book.BookOffset;
 
                             if (val >= 0 && val < book.BookCount)
                             {
                                 book.Content |= (ulong)1 << val;
-                                this.m_Scroll.Consume();
-                                from.Send(new Network.PlaySound(0x249, book.GetWorldLocation()));
+                                m_Scroll.Consume();
+                                from.Send(new PlaySound(0x249, book.GetWorldLocation()));
                             }
                         }
                     }
-                }
             }
         }
     }

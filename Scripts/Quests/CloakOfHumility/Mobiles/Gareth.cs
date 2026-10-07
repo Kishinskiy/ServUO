@@ -6,6 +6,13 @@ namespace Server.Engines.Quests
 {
     public class Gareth : MondainQuester
     {
+        private DateTime m_NextTalk;
+
+        public override Type[] Quests
+        {
+            get { return new[] { typeof(TheQuestionsQuest) }; }
+        }
+
         [Constructable]
         public Gareth()
             : base("Gareth", "the Emissary of the RBC")
@@ -16,11 +23,6 @@ namespace Server.Engines.Quests
         public Gareth(Serial serial)
             : base(serial)
         {
-        }
-
-        public override Type[] Quests
-        {
-            get { return new Type[]  { typeof(TheQuestionsQuest) }; }
         }
 
         public override void OnOfferFailed()
@@ -49,19 +51,17 @@ namespace Server.Engines.Quests
             AddItem(new LongPants());
         }
 
-        private DateTime m_NextTalk;
-
         public override void OnMovement(Mobile m, Point3D oldLocation)
         {
             if (m_NextTalk < DateTime.UtcNow && m is PlayerMobile && m.Backpack != null && m.InRange(Location, 8))
             {
-                PlayerMobile pm = (PlayerMobile)m;
+                var pm = (PlayerMobile)m;
 
-                WhosMostHumbleQuest quest = QuestHelper.GetQuest(pm, typeof(WhosMostHumbleQuest)) as WhosMostHumbleQuest;
+                var quest = QuestHelper.GetQuest(pm, typeof(WhosMostHumbleQuest)) as WhosMostHumbleQuest;
 
                 if (quest != null)
                 {
-                    Item chain = pm.Backpack.FindItemByType(typeof(IronChain));
+                    var chain = pm.Backpack.FindItemByType(typeof(IronChain));
 
                     if (chain != null && chain.QuestItem)
                     {
@@ -75,13 +75,13 @@ namespace Server.Engines.Quests
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             m_NextTalk = DateTime.UtcNow;
         }

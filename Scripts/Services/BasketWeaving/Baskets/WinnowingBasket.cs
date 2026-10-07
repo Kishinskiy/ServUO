@@ -1,4 +1,3 @@
-using System;
 using Server;
 using Server.Items;
 
@@ -8,7 +7,7 @@ public class WinnowingBasket : BaseContainer
     public WinnowingBasket()
         : base(0x1882)
     {
-        Weight = 1.0; 
+        Weight = 1.0;
     }
 
     public WinnowingBasket(Serial serial)
@@ -20,13 +19,13 @@ public class WinnowingBasket : BaseContainer
     {
         base.Serialize(writer);
 
-        writer.Write((int)0); // version
+        writer.Write(0); // version
     }
 
     public override void Deserialize(GenericReader reader)
     {
         base.Deserialize(reader);
 
-        int version = reader.ReadInt();
+        var version = reader.ReadInt();
     }
 }

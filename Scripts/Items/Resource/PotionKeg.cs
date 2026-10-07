@@ -1,11 +1,59 @@
 using System;
+using Server.Network;
 
 namespace Server.Items
 {
     public class PotionKeg : Item
     {
-        private PotionEffect m_Type;
         private int m_Held;
+        private PotionEffect m_Type;
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int Held
+        {
+            get => m_Held;
+            set
+            {
+                if (m_Held != value)
+                {
+                    m_Held = value;
+                    UpdateWeight();
+                    InvalidateProperties();
+                }
+            }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public PotionEffect Type
+        {
+            get => m_Type;
+            set
+            {
+                m_Type = value;
+                InvalidateProperties();
+            }
+        }
+
+        public override int LabelNumber
+        {
+            get
+            {
+                if (m_Held > 0 && (int)m_Type >= (int)PotionEffect.Conflagration)
+                    switch (m_Type)
+                    {
+                        case PotionEffect.Parasitic: return 1080069;
+                        case PotionEffect.Darkglow: return 1080070;
+                        case PotionEffect.Invisibility: return 1080071;
+                        case PotionEffect.Conflagration: return 1072658;
+                        case PotionEffect.ConflagrationGreater: return 1072659;
+                        case PotionEffect.ConfusionBlast: return 1072662;
+                        case PotionEffect.ConfusionBlastGreater: return 1072663;
+                    }
+
+                return m_Held > 0 ? 1041620 + (int)m_Type : 1041641;
+            }
+        }
+
         [Constructable]
         public PotionKeg()
             : base(0x1940)
@@ -18,57 +66,6 @@ namespace Server.Items
         {
         }
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int Held
-        {
-            get
-            {
-                return m_Held;
-            }
-            set
-            {
-                if (m_Held != value)
-                {
-                    m_Held = value;
-                    UpdateWeight();
-                    InvalidateProperties();
-                }
-            }
-        }
-        [CommandProperty(AccessLevel.GameMaster)]
-        public PotionEffect Type
-        {
-            get
-            {
-                return m_Type;
-            }
-            set
-            {
-                m_Type = value;
-                InvalidateProperties();
-            }
-        }
-        public override int LabelNumber
-        { 
-            get
-            {
-                if (m_Held > 0 && (int)m_Type >= (int)PotionEffect.Conflagration)
-                {
-                    switch (m_Type)
-                    {
-                        case PotionEffect.Parasitic: return 1080069;
-                        case PotionEffect.Darkglow: return 1080070;
-                        case PotionEffect.Invisibility: return 1080071;
-                        case PotionEffect.Conflagration: return 1072658;
-                        case PotionEffect.ConflagrationGreater: return 1072659;
-                        case PotionEffect.ConfusionBlast: return 1072662;
-                        case PotionEffect.ConfusionBlastGreater: return 1072663;
-                    }
-                }
-
-                return (m_Held > 0 ? 1041620 + (int)m_Type : 1041641); 
-            }
-        }
         public static void Initialize()
         {
             TileData.ItemTable[0x1940].Height = 4;
@@ -76,41 +73,41 @@ namespace Server.Items
 
         public virtual void UpdateWeight()
         {
-            int held = Math.Max(0, Math.Min(m_Held, 100));
+            var held = Math.Max(0, Math.Min(m_Held, 100));
 
-            Weight = 20 + ((held * 80) / 100);
+            Weight = 20 + held * 80 / 100;
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)1); // version
+            writer.Write(1); // version
 
             writer.Write((int)m_Type);
-            writer.Write((int)m_Held);
+            writer.Write(m_Held);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            switch ( version )
+            switch (version)
             {
                 case 1:
                 case 0:
-                    {
-                        m_Type = (PotionEffect)reader.ReadInt();
-                        m_Held = reader.ReadInt();
+                {
+                    m_Type = (PotionEffect)reader.ReadInt();
+                    m_Held = reader.ReadInt();
 
-                        break;
-                    }
+                    break;
+                }
             }
 
             if (version < 1)
-                Timer.DelayCall(TimeSpan.Zero, new TimerCallback(UpdateWeight));
+                Timer.DelayCall(TimeSpan.Zero, UpdateWeight);
         }
 
         public override void GetProperties(ObjectPropertyList list)
@@ -187,13 +184,14 @@ namespace Server.Items
             {
                 if (m_Held > 0)
                 {
-                    Container pack = from.Backpack;
+                    var pack = from.Backpack;
 
                     if (pack != null && pack.ConsumeTotal(typeof(Bottle), 1))
                     {
-                        from.SendLocalizedMessage(502242); // You pour some of the keg's contents into an empty bottle...
+                        from.SendLocalizedMessage(
+                            502242); // You pour some of the keg's contents into an empty bottle...
 
-                        BasePotion pot = FillBottle();
+                        var pot = FillBottle();
 
                         if (pack.TryDropItem(from, pot, false))
                         {
@@ -205,14 +203,12 @@ namespace Server.Items
                         }
                         else
                         {
-                            from.SendLocalizedMessage(502244); // ...but there is no room for the bottle in your backpack.
+                            from.SendLocalizedMessage(
+                                502244); // ...but there is no room for the bottle in your backpack.
                             pot.Delete();
                         }
                     }
-                    else
-                    {
-                        // TODO: Target a bottle
-                    }
+                    // TODO: Target a bottle
                 }
                 else
                 {
@@ -221,7 +217,7 @@ namespace Server.Items
             }
             else
             {
-                from.LocalOverheadMessage(Network.MessageType.Regular, 0x3B2, 1019045); // I can't reach that.
+                from.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1019045); // I can't reach that.
             }
         }
 
@@ -229,20 +225,22 @@ namespace Server.Items
         {
             if (item is BasePotion)
             {
-                BasePotion pot = (BasePotion)item;
-                int toHold = Math.Min(100 - m_Held, pot.Amount);
+                var pot = (BasePotion)item;
+                var toHold = Math.Min(100 - m_Held, pot.Amount);
 
                 if (pot.PotionEffect == PotionEffect.Darkglow || pot.PotionEffect == PotionEffect.Parasitic)
                 {
                     from.SendLocalizedMessage(502232); // The keg is not designed to hold that type of object.
                     return false;
                 }
-                else if (toHold <= 0)
+
+                if (toHold <= 0)
                 {
                     from.SendLocalizedMessage(502233); // The keg will not hold any more!
                     return false;
                 }
-                else if (m_Held == 0)
+
+                if (m_Held == 0)
                 {
                     if (GiveBottle(from, toHold))
                     {
@@ -260,53 +258,47 @@ namespace Server.Items
 
                         return true;
                     }
-                    else
-                    {
-                        from.SendLocalizedMessage(502238); // You don't have room for the empty bottle in your backpack.
-                        return false;
-                    }
-                }
-                else if (pot.PotionEffect != m_Type)
-                {
-                    from.SendLocalizedMessage(502236); // You decide that it would be a bad idea to mix different types of potions.
+
+                    from.SendLocalizedMessage(502238); // You don't have room for the empty bottle in your backpack.
                     return false;
                 }
-                else
+
+                if (pot.PotionEffect != m_Type)
                 {
-                    if (GiveBottle(from, toHold))
-                    {
-                        Held += toHold;
-
-                        from.PlaySound(0x240);
-
-                        from.SendLocalizedMessage(502237); // You place the empty bottle in your backpack.
-
-                        item.Consume(toHold);
-
-                        if (!item.Deleted)
-                            item.Bounce(from);
-
-                        return true;
-                    }
-                    else
-                    {
-                        from.SendLocalizedMessage(502238); // You don't have room for the empty bottle in your backpack.
-                        return false;
-                    }
+                    from.SendLocalizedMessage(
+                        502236); // You decide that it would be a bad idea to mix different types of potions.
+                    return false;
                 }
-            }
-            else
-            {
-                from.SendLocalizedMessage(502232); // The keg is not designed to hold that type of object.
+
+                if (GiveBottle(from, toHold))
+                {
+                    Held += toHold;
+
+                    from.PlaySound(0x240);
+
+                    from.SendLocalizedMessage(502237); // You place the empty bottle in your backpack.
+
+                    item.Consume(toHold);
+
+                    if (!item.Deleted)
+                        item.Bounce(from);
+
+                    return true;
+                }
+
+                from.SendLocalizedMessage(502238); // You don't have room for the empty bottle in your backpack.
                 return false;
             }
+
+            from.SendLocalizedMessage(502232); // The keg is not designed to hold that type of object.
+            return false;
         }
 
         public bool GiveBottle(Mobile m, int amount)
         {
-            Container pack = m.Backpack;
+            var pack = m.Backpack;
 
-            Bottle bottle = new Bottle(amount);
+            var bottle = new Bottle(amount);
 
             if (pack == null || !pack.TryDropItem(m, bottle, false))
             {
@@ -319,7 +311,7 @@ namespace Server.Items
 
         public BasePotion FillBottle()
         {
-            switch ( m_Type )
+            switch (m_Type)
             {
                 default:
                 case PotionEffect.Nightsight:
@@ -369,7 +361,7 @@ namespace Server.Items
                     return new ExplosionPotion();
                 case PotionEffect.ExplosionGreater:
                     return new GreaterExplosionPotion();
-				
+
                 case PotionEffect.Conflagration:
                     return new ConflagrationPotion();
                 case PotionEffect.ConflagrationGreater:

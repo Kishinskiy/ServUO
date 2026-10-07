@@ -1,5 +1,3 @@
-using Server;
-using System;
 using Server.Engines.Plants;
 using Server.Gumps;
 using Server.Network;
@@ -14,10 +12,11 @@ namespace Server.Items
         Small
     }
 
-    [TypeAlias("Server.Items.RaisedGardenSmallAddon", "Server.Items.RaisedGardenSouthAddon", "Server.Items.RaisedGardenEastAddon", "Server.Items.RaisedGardenLargeAddon")]
+    [TypeAlias("Server.Items.RaisedGardenSmallAddon", "Server.Items.RaisedGardenSouthAddon",
+        "Server.Items.RaisedGardenEastAddon", "Server.Items.RaisedGardenLargeAddon")]
     public class RaisedGardenAddon : BaseAddon
     {
-        public override BaseAddonDeed Deed { get { return new RaisedGardenDeed(); } }
+        public override BaseAddonDeed Deed => new RaisedGardenDeed();
 
         [Constructable]
         public RaisedGardenAddon(RaisedGardenDirection direction)
@@ -25,65 +24,51 @@ namespace Server.Items
             switch (direction)
             {
                 case RaisedGardenDirection.Large:
-                    {
-                        AddComponent(new GardenAddonComponent(19234), 0, 0, 0);
-                        AddComponent(new GardenAddonComponent(19240), 1, 0, 0);
-                        AddComponent(new GardenAddonComponent(19235), 2, 0, 0);
-                        AddComponent(new GardenAddonComponent(19237), 2, 1, 0);
-                        AddComponent(new GardenAddonComponent(19239), 2, 2, 0);
-                        AddComponent(new GardenAddonComponent(19242), 1, 2, 0);
-                        AddComponent(new GardenAddonComponent(19238), 0, 2, 0);
-                        AddComponent(new GardenAddonComponent(19236), 0, 1, 0);
-                        AddComponent(new GardenAddonComponent(19241), 1, 1, 0);
-
-                        break;
-                    }
-                case RaisedGardenDirection.East:
-                    {
-                        AddComponent(new GardenAddonComponent(19234), 0, 0, 0);
-                        AddComponent(new GardenAddonComponent(19235), 1, 0, 0);
-                        AddComponent(new GardenAddonComponent(19237), 1, 1, 0);
-                        AddComponent(new GardenAddonComponent(19239), 1, 2, 0);
-                        AddComponent(new GardenAddonComponent(19238), 0, 2, 0);
-                        AddComponent(new GardenAddonComponent(19236), 0, 1, 0);
-
-                        break;
-                    }
-                case RaisedGardenDirection.South:
-                    {
-                        AddComponent(new GardenAddonComponent(19234), 0, 0, 0);
-                        AddComponent(new GardenAddonComponent(19240), 1, 0, 0);
-                        AddComponent(new GardenAddonComponent(19235), 2, 0, 0);
-                        AddComponent(new GardenAddonComponent(19239), 2, 1, 0);
-                        AddComponent(new GardenAddonComponent(19242), 1, 1, 0);
-                        AddComponent(new GardenAddonComponent(19238), 0, 1, 0);
-
-                        break;
-                    }
-                case RaisedGardenDirection.Small:
-                    {
-                        AddComponent(new GardenAddonComponent(19234), 0, 0, 0);
-                        AddComponent(new GardenAddonComponent(19235), 1, 0, 0);
-                        AddComponent(new GardenAddonComponent(19239), 1, 1, 0);
-                        AddComponent(new GardenAddonComponent(19238), 0, 1, 0);
-
-                        break;
-                    }
-            }
-        }
-
-        public override void OnChop(Mobile from)
-        {
-            foreach (AddonComponent comp in Components)
-            {
-                if (comp is GardenAddonComponent && ((GardenAddonComponent)comp).Plant != null)
                 {
-                    from.SendLocalizedMessage(1150383); // You need to remove all plants through the plant menu before destroying this.
-                    return;
+                    AddComponent(new GardenAddonComponent(19234), 0, 0, 0);
+                    AddComponent(new GardenAddonComponent(19240), 1, 0, 0);
+                    AddComponent(new GardenAddonComponent(19235), 2, 0, 0);
+                    AddComponent(new GardenAddonComponent(19237), 2, 1, 0);
+                    AddComponent(new GardenAddonComponent(19239), 2, 2, 0);
+                    AddComponent(new GardenAddonComponent(19242), 1, 2, 0);
+                    AddComponent(new GardenAddonComponent(19238), 0, 2, 0);
+                    AddComponent(new GardenAddonComponent(19236), 0, 1, 0);
+                    AddComponent(new GardenAddonComponent(19241), 1, 1, 0);
+
+                    break;
+                }
+                case RaisedGardenDirection.East:
+                {
+                    AddComponent(new GardenAddonComponent(19234), 0, 0, 0);
+                    AddComponent(new GardenAddonComponent(19235), 1, 0, 0);
+                    AddComponent(new GardenAddonComponent(19237), 1, 1, 0);
+                    AddComponent(new GardenAddonComponent(19239), 1, 2, 0);
+                    AddComponent(new GardenAddonComponent(19238), 0, 2, 0);
+                    AddComponent(new GardenAddonComponent(19236), 0, 1, 0);
+
+                    break;
+                }
+                case RaisedGardenDirection.South:
+                {
+                    AddComponent(new GardenAddonComponent(19234), 0, 0, 0);
+                    AddComponent(new GardenAddonComponent(19240), 1, 0, 0);
+                    AddComponent(new GardenAddonComponent(19235), 2, 0, 0);
+                    AddComponent(new GardenAddonComponent(19239), 2, 1, 0);
+                    AddComponent(new GardenAddonComponent(19242), 1, 1, 0);
+                    AddComponent(new GardenAddonComponent(19238), 0, 1, 0);
+
+                    break;
+                }
+                case RaisedGardenDirection.Small:
+                {
+                    AddComponent(new GardenAddonComponent(19234), 0, 0, 0);
+                    AddComponent(new GardenAddonComponent(19235), 1, 0, 0);
+                    AddComponent(new GardenAddonComponent(19239), 1, 1, 0);
+                    AddComponent(new GardenAddonComponent(19238), 0, 1, 0);
+
+                    break;
                 }
             }
-
-            base.OnChop(from);
         }
 
         public RaisedGardenAddon(Serial serial)
@@ -91,25 +76,39 @@ namespace Server.Items
         {
         }
 
+        public override void OnChop(Mobile from)
+        {
+            foreach (var comp in Components)
+                if (comp is GardenAddonComponent && ((GardenAddonComponent)comp).Plant != null)
+                {
+                    from.SendLocalizedMessage(
+                        1150383); // You need to remove all plants through the plant menu before destroying this.
+                    return;
+                }
+
+            base.OnChop(from);
+        }
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
-    [TypeAlias("Server.Items.RaisedGardenSmallAddonDeed", "Server.Items.RaisedGardenEastAddonDeed", "Server.Items.RaisedGardenSouthAddonDeed", "Server.Items.RaisedGardenLargeAddonDeed")]
+    [TypeAlias("Server.Items.RaisedGardenSmallAddonDeed", "Server.Items.RaisedGardenEastAddonDeed",
+        "Server.Items.RaisedGardenSouthAddonDeed", "Server.Items.RaisedGardenLargeAddonDeed")]
     public class RaisedGardenDeed : BaseAddonDeed
     {
-        public override int LabelNumber { get { return 1150359; } } // Raised Garden Bed
-        public override BaseAddon Addon { get { return new RaisedGardenAddon(m_Direction); } }
         public RaisedGardenDirection m_Direction;
+        public override int LabelNumber => 1150359; // Raised Garden Bed
+        public override BaseAddon Addon => new RaisedGardenAddon(m_Direction);
 
         [Constructable]
         public RaisedGardenDeed()
@@ -130,7 +129,9 @@ namespace Server.Items
                 from.SendGump(new InternalGump(this));
             }
             else
+            {
                 from.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.
+            }
         }
 
         public override void GetProperties(ObjectPropertyList list)
@@ -154,12 +155,12 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
 
         private class InternalGump : Gump
         {
-            private RaisedGardenDeed m_Deed;
+            private readonly RaisedGardenDeed m_Deed;
 
             public InternalGump(RaisedGardenDeed deed) : base(60, 36)
             {
@@ -212,10 +213,8 @@ namespace Server.Items
             get
             {
                 if (m_Plant != null)
-                {
                     if (m_Plant.X != X || m_Plant.Y != Y || m_Plant.Map != Map || m_Plant.Deleted)
                         m_Plant = null;
-                }
 
                 return m_Plant;
             }
@@ -224,16 +223,18 @@ namespace Server.Items
                 m_Plant = value;
 
                 if (m_Plant != null)
-                {
                     if (m_Plant.X != X || m_Plant.Y != Y || m_Plant.Map != Map || m_Plant.Deleted)
                         m_Plant = null;
-                }
             }
         }
 
-        public override int LabelNumber { get { return 1150359; } } // Raised Garden Bed
+        public override int LabelNumber => 1150359; // Raised Garden Bed
 
         public GardenAddonComponent(int itemID) : base(itemID)
+        {
+        }
+
+        public GardenAddonComponent(Serial serial) : base(serial)
         {
         }
 
@@ -245,14 +246,10 @@ namespace Server.Items
                 m_Plant.Z -= 5;
         }
 
-        public GardenAddonComponent(Serial serial) : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
             writer.Write(m_Plant);
         }
@@ -260,11 +257,12 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             m_Plant = reader.ReadItem() as PlantItem;
 
-            if (m_Plant != null && m_Plant is RaisedGardenPlantItem && ((RaisedGardenPlantItem)m_Plant).Component == null)
+            if (m_Plant != null && m_Plant is RaisedGardenPlantItem &&
+                ((RaisedGardenPlantItem)m_Plant).Component == null)
                 ((RaisedGardenPlantItem)m_Plant).Component = this;
         }
     }

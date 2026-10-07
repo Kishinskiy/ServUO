@@ -1,13 +1,13 @@
-using System;
-
 namespace Server.Items
 {
     public class ShadowPillarAddon : BaseAddon
     {
+        public override BaseAddonDeed Deed => new ShadowPillarDeed();
+
         [Constructable]
         public ShadowPillarAddon()
         {
-            AddComponent(new LocalizedAddonComponent(0x3650, 1076679), 0, 0, 0);            
+            AddComponent(new LocalizedAddonComponent(0x3650, 1076679), 0, 0, 0);
         }
 
         public ShadowPillarAddon(Serial serial)
@@ -15,26 +15,26 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonDeed Deed { get { return new ShadowPillarDeed(); } }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class ShadowPillarDeed : BaseAddonDeed
     {
-        public override int LabelNumber { get { return 1076679; } } // Shadow Pillar
+        public override int LabelNumber => 1076679; // Shadow Pillar
 
-        public override bool ExcludeDeedHue { get { return true; } }
+        public override bool ExcludeDeedHue => true;
+
+        public override BaseAddon Addon => new ShadowPillarAddon();
 
         [Constructable]
         public ShadowPillarDeed()
@@ -48,19 +48,17 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddon Addon { get { return new ShadowPillarAddon(); } }
 
-        
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

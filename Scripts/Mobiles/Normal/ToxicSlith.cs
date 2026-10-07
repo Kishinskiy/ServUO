@@ -5,6 +5,15 @@ namespace Server.Mobiles
     [CorpseName("a slith corpse")]
     public class ToxicSlith : BaseCreature
     {
+        public override int DragonBlood => 6;
+
+        public override int Meat => 6;
+
+        //public override int DragonBlood{ get{ return 6; } }
+        public override int Hides => 11;
+
+        public override HideType HideType => HideType.Horned;
+
         [Constructable]
         public ToxicSlith() : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
         {
@@ -37,26 +46,8 @@ namespace Server.Mobiles
             SetSpecialAbility(SpecialAbility.DragonBreath);
         }
 
-        public override int DragonBlood { get { return 6; } }
-
         public ToxicSlith(Serial serial) : base(serial)
         {
-        }
-
-        public override int Meat
-        {
-            get { return 6; }
-        }
-
-        //public override int DragonBlood{ get{ return 6; } }
-        public override int Hides
-        {
-            get { return 11; }
-        }
-
-        public override HideType HideType
-        {
-            get { return HideType.Horned; }
         }
 
         public override void GenerateLoot()
@@ -69,7 +60,6 @@ namespace Server.Mobiles
             base.OnDeath(c);
 
             if (Utility.RandomDouble() < 0.05)
-            {
                 switch (Utility.Random(2))
                 {
                     case 0:
@@ -78,19 +68,18 @@ namespace Server.Mobiles
                     case 2:
                         c.DropItem(new SlithEye());
                         break;
-				}
-            }
-			
-			if (Utility.RandomDouble() < 0.25)
-            {
-				switch (Utility.Random(2))
-                {
-					case 0: c.DropItem(new AncientPotteryFragments());
-						break;
-                    case 1: c.DropItem(new TatteredAncientScroll());
-						break;
                 }
-            }
+
+            if (Utility.RandomDouble() < 0.25)
+                switch (Utility.Random(2))
+                {
+                    case 0:
+                        c.DropItem(new AncientPotteryFragments());
+                        break;
+                    case 1:
+                        c.DropItem(new TatteredAncientScroll());
+                        break;
+                }
         }
 
         public override void Serialize(GenericWriter writer)
@@ -104,10 +93,7 @@ namespace Server.Mobiles
             base.Deserialize(reader);
             var version = reader.ReadInt();
 
-            if (version == 0)
-            {
-                Hue = 476;
-            }
+            if (version == 0) Hue = 476;
         }
     }
 }

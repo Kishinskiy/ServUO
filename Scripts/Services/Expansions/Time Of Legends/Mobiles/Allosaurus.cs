@@ -1,5 +1,3 @@
-using System;
-using Server;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -7,7 +5,13 @@ namespace Server.Mobiles
     [CorpseName("an allosaurus corpse")]
     public class Allosaurus : BaseCreature
     {
-        public override bool AttacksFocus { get { return true; } }
+        public override bool AttacksFocus => true;
+
+        public override int TreasureMapLevel => 7;
+
+        public override int Meat => 3;
+        public override int Hides => 11;
+        public override HideType HideType => HideType.Horned;
 
         [Constructable]
         public Allosaurus() : base(AIType.AI_Melee, FightMode.Closest, 10, 1, .2, .4)
@@ -50,6 +54,10 @@ namespace Server.Mobiles
             SetWeaponAbility(WeaponAbility.Disarm);
         }
 
+        public Allosaurus(Serial serial) : base(serial)
+        {
+        }
+
         public override void GenerateLoot()
         {
             if (IsChampionSpawn)
@@ -83,20 +91,10 @@ namespace Server.Mobiles
             return 0x2C3;
         }
 
-        public override int TreasureMapLevel { get { return 7; } }
-
         public override void SetToChampionSpawn()
         {
             SetStr(347, 387);
             SetHits(940, 1000);
-        }
-
-        public override int Meat { get { return 3; } }
-        public override int Hides { get { return 11; } }
-        public override HideType HideType { get { return HideType.Horned; } }
-
-        public Allosaurus(Serial serial) : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -108,7 +106,7 @@ namespace Server.Mobiles
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

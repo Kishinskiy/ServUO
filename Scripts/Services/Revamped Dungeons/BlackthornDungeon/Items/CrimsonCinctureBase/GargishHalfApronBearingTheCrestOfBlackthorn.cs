@@ -1,15 +1,11 @@
-using Server;
-using System;
-
 namespace Server.Items
 {
     public class GargishHalfApronBearingTheCrestOfBlackthorn2 : GargoyleHalfApron
     {
-        public override bool IsArtifact { get { return true; } }
-        
+        public override bool IsArtifact => true;
+
         [Constructable]
         public GargishHalfApronBearingTheCrestOfBlackthorn2()
-            : base()
         {
             ReforgedSuffix = ReforgedSuffix.Blackthorn;
             Attributes.BonusDex = 5;
@@ -17,7 +13,7 @@ namespace Server.Items
             Attributes.RegenHits = 2;
             StrRequirement = 10;
             Hue = 1157;
-        }   
+        }
 
         public GargishHalfApronBearingTheCrestOfBlackthorn2(Serial serial)
             : base(serial)
@@ -33,7 +29,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -1,10 +1,8 @@
-using System;
-
 namespace Server.Items
 {
     public class DecorativeDungeonStool : Item
     {
-        public override int LabelNumber { get { return 1159471; } } // decorative dungeon stool
+        public override int LabelNumber => 1159471; // decorative dungeon stool
 
         [Constructable]
         public DecorativeDungeonStool()
@@ -22,13 +20,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

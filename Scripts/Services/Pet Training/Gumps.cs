@@ -1,22 +1,23 @@
 using System;
-using Server;
-using Server.Gumps;
-using Server.Items;
-using Server.SkillHandlers;
 using System.Collections.Generic;
 using System.Linq;
+using Server.Engines.Quests;
+using Server.Gumps;
+using Server.Items;
 using Server.Misc;
+using Server.SkillHandlers;
+using Server.Spells;
 
 namespace Server.Mobiles
 {
     public class NewAnimalLoreGump : BaseGump
     {
-        private int _Label = 0xF424E5;
+        private readonly int _Label = 0xF424E5;
 
-        public BaseCreature Creature { get; private set; }
+        public BaseCreature Creature { get; }
 
         public NewAnimalLoreGump(PlayerMobile pm, BaseCreature bc)
-            : base(pm, 250, 50)
+            : base(pm, 250)
         {
             Creature = bc;
         }
@@ -47,12 +48,9 @@ namespace Server.Mobiles
 
                     AddHtmlLocalized(47, 270, 160, 18, 1157491, 0xC8, false, false); // Pet Training Progress:
 
-                    double progress = trainProfile.TrainingProgressPercentile * 100;
+                    var progress = trainProfile.TrainingProgressPercentile * 100;
 
-                    if (progress >= 1)
-                    {
-                        AddBackground(53, 290, (int)(109.0 * (progress / 100)), 11, 0x806);
-                    }
+                    if (progress >= 1) AddBackground(53, 290, (int)(109.0 * (progress / 100)), 11, 0x806);
 
                     AddHtml(162, 285, 50, 18, FormatDouble(progress, false, true), false, false);
                     AddButton(215, 288, 0x15E1, 0x15E5, 1, GumpButtonType.Reply, 0);
@@ -97,7 +95,7 @@ namespace Server.Mobiles
             AddHtmlLocalized(53, 182, 160, 18, 3000112, _Label, false, false); // Intelligence
             AddHtml(180, 182, 75, 18, FormatStat(Creature.Int), false, false);
 
-            double bd = Items.BaseInstrument.GetBaseDifficulty(Creature);
+            var bd = BaseInstrument.GetBaseDifficulty(Creature);
 
             if (Creature.Uncalmable)
                 bd = 0;
@@ -108,7 +106,9 @@ namespace Server.Mobiles
             AddImage(28, 220, 0x826);
 
             AddHtmlLocalized(47, 220, 160, 18, 1049594, 0xC8, false, false); // Loyalty Rating
-            AddHtmlLocalized(53, 236, 160, 18, (!Creature.Controlled || Creature.Loyalty == 0) ? 1061643 : 1049595 + (Creature.Loyalty / 10), _Label, false, false);
+            AddHtmlLocalized(53, 236, 160, 18,
+                !Creature.Controlled || Creature.Loyalty == 0 ? 1061643 : 1049595 + Creature.Loyalty / 10, _Label,
+                false, false);
 
             AddButton(240, 328, 0x15E1, 0x15E5, 0, GumpButtonType.Page, 2);
             AddButton(217, 328, 0x15E3, 0x15E7, 0, GumpButtonType.Page, Pages(profile));
@@ -175,7 +175,7 @@ namespace Server.Mobiles
             AddHtmlLocalized(53, 164, 160, 18, 1061650, _Label, false, false); // Energy
             AddHtml(180, 164, 75, 18, FormatElement(Creature.EnergyDamage, "#BF80FF"), false, false);
 
-            AddHtmlLocalized(53, 182, 160, 18, 1076750, _Label, false, false);  // Base Damage
+            AddHtmlLocalized(53, 182, 160, 18, 1076750, _Label, false, false); // Base Damage
             AddHtml(180, 182, 75, 18, FormatDamage(Creature.DamageMin, Creature.DamageMax), false, false);
 
             AddButton(240, 328, 0x15E1, 0x15E5, 0, GumpButtonType.Page, 5);
@@ -272,7 +272,7 @@ namespace Server.Mobiles
 
             AddHtmlLocalized(47, 144, 160, 18, 1049563, 0xC8, false, false); // Preferred Foods
 
-            int foodPref = 3000340;
+            var foodPref = 3000340;
 
             if ((Creature.FavoriteFood & FoodType.FruitsAndVegies) != 0)
                 foodPref = 1049565; // Fruits and Vegetables
@@ -291,7 +291,7 @@ namespace Server.Mobiles
 
             AddHtmlLocalized(47, 182, 160, 18, 1049569, 0xC8, false, false); // Pack Instincts
 
-            int packInstinct = 3000340;
+            var packInstinct = 3000340;
 
             if ((Creature.PackInstinct & PackInstinct.Canine) != 0)
                 packInstinct = 1049570; // Canine
@@ -322,7 +322,8 @@ namespace Server.Mobiles
                 AddHtmlLocalized(47, 216, 160, 18, 1115783, 0xC8, false, false); // Pet Slots
                 AddHtml(53, 236, 80, 18, FormatPetSlots(Creature.ControlSlots, Creature.ControlSlotsMax), false, false);
 
-                AddHtmlLocalized(158, 236, 115, 18, 1157600, Creature.CurrentTameSkill.ToString("0.0"), _Label, false, false);
+                AddHtmlLocalized(158, 236, 115, 18, 1157600, Creature.CurrentTameSkill.ToString("0.0"), _Label, false,
+                    false);
                 AddTooltip(1157586);
             }
 
@@ -337,9 +338,9 @@ namespace Server.Mobiles
 
             if (profile != null)
             {
-                int y = 92;
+                var y = 92;
 
-                foreach (object o in profile.EnumerateAllAbilities())
+                foreach (var o in profile.EnumerateAllAbilities())
                 {
                     var loc = PetTrainingHelper.GetLocalization(o);
 
@@ -347,34 +348,26 @@ namespace Server.Mobiles
                         continue;
 
                     if (loc[0].Number > 0)
-                    {
                         AddHtmlLocalized(53, y, 180, 18, loc[0].Number, _Label, false, false);
-                    }
-                    else if (loc[0].String != null)
-                    {
-                        AddHtml(53, y, 180, 18, loc[0].String, false, false);
-                    }
+                    else if (loc[0].String != null) AddHtml(53, y, 180, 18, loc[0].String, false, false);
 
-                    if (loc[1] != null && loc[1].Number > 0)
-                    {
-                        AddTooltip(loc[1]);
-                    }
+                    if (loc[1] != null && loc[1].Number > 0) AddTooltip(loc[1]);
 
                     y += 18;
-                }                
+                }
 
                 if (profile.Advancements != null)
                 {
                     AddButton(240, 328, 0x15E1, 0x15E5, 0, GumpButtonType.Page, 9);
                     AddButton(217, 328, 0x15E3, 0x15E7, 0, GumpButtonType.Page, 7);
 
-                    int advpage = AdvPage(profile);
+                    var advpage = AdvPage(profile);
 
-                    int profileadvcount = profile.Advancements.Count - 1;
+                    var profileadvcount = profile.Advancements.Count - 1;
 
-                    int idx = 0;
+                    var idx = 0;
 
-                    for (int p = 1; p <= advpage; p++)
+                    for (var p = 1; p <= advpage; p++)
                     {
                         y = 92;
 
@@ -383,8 +376,8 @@ namespace Server.Mobiles
                         AddImage(28, 76, 0x826);
 
                         AddHtmlLocalized(47, 74, 160, 18, 1157505, 0xC8, false, false); // Pet Advancements
-                        
-                        for (int i = profileadvcount; i >= 0; i--)
+
+                        for (var i = profileadvcount; i >= 0; i--)
                         {
                             if (++idx > 9)
                             {
@@ -394,18 +387,19 @@ namespace Server.Mobiles
                             }
 
                             var loc = PetTrainingHelper.GetLocalization(profile.Advancements[i]);
-                            bool skill = profile.Advancements[i] is SkillName; // ? "#228B22" : "#FF4500";
+                            var skill = profile.Advancements[i] is SkillName; // ? "#228B22" : "#FF4500";
 
                             if (loc[0] != null)
                             {
                                 if (loc[0].Number > 0)
                                 {
-                                    AddHtmlLocalized(53, y, 180, 18, loc[0], C32216(skill ? 0x008000 : 0xFF4500), false, false);
+                                    AddHtmlLocalized(53, y, 180, 18, loc[0], C32216(skill ? 0x008000 : 0xFF4500), false,
+                                        false);
 
                                     if (skill)
-                                    {
-                                        AddHtml(180, y, 75, 18, String.Format("<div align=right>{0:F1}</div>", Creature.Skills[(SkillName)profile.Advancements[i]].Cap), false, false);
-                                    }
+                                        AddHtml(180, y, 75, 18,
+                                            string.Format("<div align=right>{0:F1}</div>",
+                                                Creature.Skills[(SkillName)profile.Advancements[i]].Cap), false, false);
                                 }
                                 else if (loc[0].String != null)
                                 {
@@ -426,7 +420,6 @@ namespace Server.Mobiles
                 {
                     AddButton(240, 328, 0x15E1, 0x15E5, 0, GumpButtonType.Page, 1);
                     AddButton(217, 328, 0x15E3, 0x15E7, 0, GumpButtonType.Page, 7);
-
                 }
             }
             else
@@ -438,9 +431,10 @@ namespace Server.Mobiles
 
         public override void OnResponse(RelayInfo info)
         {
-            int id = info.ButtonID;
+            var id = info.ButtonID;
 
-            if (Creature == null || Creature.Map == null || Creature.Map == Map.Internal || !Creature.Alive || Creature.Deleted || Creature.IsDeadBondedPet)
+            if (Creature == null || Creature.Map == null || Creature.Map == Map.Internal || !Creature.Alive ||
+                Creature.Deleted || Creature.IsDeadBondedPet)
                 id = 0;
 
             switch (id)
@@ -455,16 +449,14 @@ namespace Server.Mobiles
                 case 1: // training tracker
                     User.CloseGump(typeof(PetTrainingProgressGump));
 
-                    Timer.DelayCall(TimeSpan.FromSeconds(.5), () =>
-                        {
-                            BaseGump.SendGump(new PetTrainingProgressGump(User, Creature));
-                        });
+                    Timer.DelayCall(TimeSpan.FromSeconds(.5),
+                        () => { SendGump(new PetTrainingProgressGump(User, Creature)); });
                     break;
                 case 2: // pet training options
                     if (User.HasGump(typeof(PetTrainingConfirmationGump)) ||
-                    User.HasGump(typeof(PetTrainingOptionsGump)) ||
-                    User.HasGump(typeof(PetTrainingPlanningGump)) ||
-                    User.HasGump(typeof(PetTrainingConfirmGump)))
+                        User.HasGump(typeof(PetTrainingOptionsGump)) ||
+                        User.HasGump(typeof(PetTrainingPlanningGump)) ||
+                        User.HasGump(typeof(PetTrainingConfirmGump)))
                     {
                         Refresh();
                         break;
@@ -479,61 +471,55 @@ namespace Server.Mobiles
                             trainProfile.HasRecievedControlSlotWarning = true;
 
                             Timer.DelayCall(TimeSpan.FromSeconds(.5), () =>
+                            {
+                                SendGump(new PetTrainingConfirmGump(User, 1157571, 1157572, () =>
                                 {
-                                    BaseGump.SendGump(new PetTrainingConfirmGump(User, 1157571, 1157572, () =>
-                                    {
-                                        Refresh();
-                                        User.CloseGump(typeof(PetTrainingOptionsGump));
-                                        BaseGump.SendGump(new PetTrainingOptionsGump(User, Creature));
-                                    }));
-                                });
+                                    Refresh();
+                                    User.CloseGump(typeof(PetTrainingOptionsGump));
+                                    SendGump(new PetTrainingOptionsGump(User, Creature));
+                                }));
+                            });
                         }
                         else
                         {
                             Timer.DelayCall(TimeSpan.FromSeconds(.5), () =>
-                                {
-                                    Refresh();
-                                    User.CloseGump(typeof(PetTrainingOptionsGump));
-                                    BaseGump.SendGump(new PetTrainingOptionsGump(User, Creature));
-                                });
+                            {
+                                Refresh();
+                                User.CloseGump(typeof(PetTrainingOptionsGump));
+                                SendGump(new PetTrainingOptionsGump(User, Creature));
+                            });
                         }
                     }
+
                     break;
                 case 3: // cancel
-                    BaseGump.SendGump(new PetTrainingConfirmGump(User, 1153093, 1158019, () =>
-                        {
-                            var trainProfile1 = PetTrainingHelper.GetTrainingProfile(Creature, true);
+                    SendGump(new PetTrainingConfirmGump(User, 1153093, 1158019, () =>
+                    {
+                        var trainProfile1 = PetTrainingHelper.GetTrainingProfile(Creature, true);
 
-                            if (trainProfile1 != null)
-                            {
-                                trainProfile1.EndTraining();
-                            }
-                        }));
+                        if (trainProfile1 != null) trainProfile1.EndTraining();
+                    }));
                     break;
                 case 4: // begin training
                     var trainProfile2 = PetTrainingHelper.GetTrainingProfile(Creature, true);
                     trainProfile2.BeginTraining();
                     Refresh();
 
-                    Server.Engines.Quests.UsingAnimalLoreQuest.CheckComplete(User);
+                    UsingAnimalLoreQuest.CheckComplete(User);
                     break;
             }
         }
 
         public int AdvPage(AbilityProfile profile)
         {
-            int advcount = profile.Advancements.Count;
+            var advcount = profile.Advancements.Count;
 
-            int advpage = 0;
+            var advpage = 0;
 
             if (advcount % 9 == 0)
-            {
                 advpage = advcount / 9;
-            }
             else
-            {
                 advpage = advcount / 9 + 1;
-            }
 
             return advpage;
         }
@@ -541,7 +527,7 @@ namespace Server.Mobiles
         public int Pages(AbilityProfile profile)
         {
             if (profile == null || profile.Advancements == null || profile.Advancements.Count == 0)
-                return 8;            
+                return 8;
 
             return 8 + AdvPage(profile);
         }
@@ -551,7 +537,7 @@ namespace Server.Mobiles
             if (c.Skills[name].Base < 10.0)
                 return "<div align=right>---</div>";
 
-            return String.Format("<div align=right>{0:F1}/{1}</div>", c.Skills[name].Value, c.Skills[name].Cap);
+            return string.Format("<div align=right>{0:F1}/{1}</div>", c.Skills[name].Value, c.Skills[name].Cap);
         }
 
         private static string FormatAttributes(int cur, int max)
@@ -566,17 +552,11 @@ namespace Server.Mobiles
 
         public static string FormatDouble(double val, bool dontshowzero = true, bool percentage = false)
         {
-            if (dontshowzero)
-            {
-                return AnimalLoreGump.FormatDouble(val);
-            }
+            if (dontshowzero) return AnimalLoreGump.FormatDouble(val);
 
-            if (percentage)
-            {
-                return String.Format("<div align=right>{0:F1}%</div>", val);
-            }
+            if (percentage) return string.Format("<div align=right>{0:F1}%</div>", val);
 
-            return String.Format("<div align=right>{0:F1}</div>", val);
+            return string.Format("<div align=right>{0:F1}</div>", val);
         }
 
         public static string FormatElement(int val, string color)
@@ -584,15 +564,15 @@ namespace Server.Mobiles
             if (color == null)
             {
                 if (val <= 0)
-                    return String.Format("<div align=right>---</div>");
+                    return "<div align=right>---</div>";
 
-                return String.Format("<div align=right>{0}%</div>", val);
+                return string.Format("<div align=right>{0}%</div>", val);
             }
 
             if (val <= 0)
-                return String.Format("<BASEFONT COLOR={0}><div align=right>---</div>", color);
+                return string.Format("<BASEFONT COLOR={0}><div align=right>---</div>", color);
 
-            return String.Format("<BASEFONT COLOR={1}><div align=right>{0}%</div>", val, color);
+            return string.Format("<BASEFONT COLOR={1}><div align=right>{0}%</div>", val, color);
         }
 
         public static string FormatDamage(int min, int max)
@@ -602,18 +582,13 @@ namespace Server.Mobiles
 
         public string FormatPetSlots(int min, int max)
         {
-            return String.Format("<BASEFONT COLOR=#57412F>{0} => {1}", min.ToString(), max.ToString());
+            return string.Format("<BASEFONT COLOR=#57412F>{0} => {1}", min.ToString(), max.ToString());
         }
     }
 
     public class PetTrainingProgressGump : BaseGump
     {
-        public override int GetTypeID()
-        {
-            return 0xF3EE3;
-        }
-
-        public BaseCreature Creature { get; private set; }
+        public BaseCreature Creature { get; }
 
         public PetTrainingProgressGump(PlayerMobile pm, BaseCreature bc)
             : base(pm, 50, 200)
@@ -621,9 +596,14 @@ namespace Server.Mobiles
             Creature = bc;
         }
 
+        public override int GetTypeID()
+        {
+            return 0xF3EE3;
+        }
+
         public override void AddGumpLayout()
         {
-            List<BaseCreature> pets = new List<BaseCreature>(User.AllFollowers.OfType<BaseCreature>().Where(p => 
+            var pets = new List<BaseCreature>(User.AllFollowers.OfType<BaseCreature>().Where(p =>
                 p.TrainingProfile != null &&
                 p.TrainingProfile.HasBegunTraining &&
                 p.Map == User.Map));
@@ -640,7 +620,7 @@ namespace Server.Mobiles
                 pets.Insert(0, Creature);
             }
 
-            int length = 254 + ((pets.Count - 1) * 60);
+            var length = 254 + (pets.Count - 1) * 60;
 
             AddBackground(0, 24, 254, length, 0x24A4);
 
@@ -648,42 +628,40 @@ namespace Server.Mobiles
 
             AddButton(120, 0, 0x82D, 0x82D, 0, GumpButtonType.Reply, 0);
 
-            for (int i = 0; i < pets.Count; i++)
+            for (var i = 0; i < pets.Count; i++)
             {
                 var pet = pets[i];
 
-                AddHtml(53, 60 + (40 * i), 210, 18, Color("#000080", pet.Name), false, false);
+                AddHtml(53, 60 + 40 * i, 210, 18, Color("#000080", pet.Name), false, false);
 
                 var trainProfile = PetTrainingHelper.GetTrainingProfile(pet);
-                double progress = 0.0;
+                var progress = 0.0;
 
-                AddImage(53, 80 + (40 * i), 0x805);
+                AddImage(53, 80 + 40 * i, 0x805);
 
                 if (trainProfile != null)
                 {
                     progress = trainProfile.TrainingProgressPercentile * 100;
 
-                    if (progress >= 1)
-                    {
-                        AddBackground(53, 80 + (40 * i), (int)(109.0 * (progress / 100)), 11, 0x806);
-                    }
+                    if (progress >= 1) AddBackground(53, 80 + 40 * i, (int)(109.0 * (progress / 100)), 11, 0x806);
                 }
 
-                AddHtml(162, 78 + (40 * i), 50, 18, NewAnimalLoreGump.FormatDouble(progress, false, true), false, false);
+                AddHtml(162, 78 + 40 * i, 50, 18, NewAnimalLoreGump.FormatDouble(progress, false, true), false, false);
             }
         }
     }
 
     public class PetTrainingConfirmGump : BaseGump
     {
-        private int _Title;
-        private int _Body;
+        private readonly int _Body;
+        private readonly int _Title;
 
-        private Action ConfirmCallback { get; set; }
-        private Action CancelCallback { get; set; }
+        private Action ConfirmCallback { get; }
+        private Action CancelCallback { get; }
 
-        public PetTrainingConfirmGump(PlayerMobile pm, int title, int body, Action confirmCallback, Action cancelCallback = null)
-            : base(pm, 250, 50)
+        public PetTrainingConfirmGump(PlayerMobile pm, int title, int body, Action confirmCallback,
+            Action cancelCallback = null)
+            : base(pm, 250)
         {
             pm.CloseGump(GetType());
 
@@ -697,7 +675,8 @@ namespace Server.Mobiles
         {
             AddBackground(0, 0, 454, 240, 0x24A4);
 
-            AddHtmlLocalized(0, 12, 454, 16, CenterLoc, String.Format("#{0}", _Title.ToString()), 0xF424E5, false, false);
+            AddHtmlLocalized(0, 12, 454, 16, CenterLoc, string.Format("#{0}", _Title.ToString()), 0xF424E5, false,
+                false);
             AddHtmlLocalized(55, 65, 344, 80, _Body, C32216(0x8B0000), false, false);
 
             AddECHandleInput();
@@ -718,19 +697,13 @@ namespace Server.Mobiles
         {
             if (info.ButtonID == 1)
             {
-                if (ConfirmCallback != null)
-                {
-                    ConfirmCallback();
-                }
+                if (ConfirmCallback != null) ConfirmCallback();
 
                 OnConfirm();
             }
             else if (info.ButtonID == 2)
             {
-                if (CancelCallback != null)
-                {
-                    CancelCallback();
-                }
+                if (CancelCallback != null) CancelCallback();
 
                 OnCancel();
             }
@@ -747,12 +720,12 @@ namespace Server.Mobiles
 
     public class PetTrainingOptionsGump : BaseGump
     {
-        public BaseCreature Creature { get; private set; }
+        public BaseCreature Creature { get; }
         public int Category { get; private set; }
 
-        public AbilityProfile AbilityProfile { get; private set; }
+        public AbilityProfile AbilityProfile { get; }
         public TrainingProfile TrainingProfile { get; private set; }
-        public TrainingDefinition Definition { get; private set; }
+        public TrainingDefinition Definition { get; }
 
         public PetTrainingOptionsGump(PlayerMobile pm, BaseCreature bc)
             : base(pm, 40, 200)
@@ -797,7 +770,7 @@ namespace Server.Mobiles
             AddButton(410, 490, 0x9CC8, 0x9CC7, 2, GumpButtonType.Reply, 0);
             AddHtml(410, 493, 126, 20, Center("INFO"), false, false);
 
-            int y = 90;
+            var y = 90;
             var def = PetTrainingHelper.GetTrainingDefinition(Creature);
 
             AddButton(40, y, 4005, 4007, 3, GumpButtonType.Reply, 0);
@@ -864,7 +837,7 @@ namespace Server.Mobiles
 
         private void BuildStatsPage()
         {
-            int y = 90;
+            var y = 90;
 
             foreach (int i in Enum.GetValues(typeof(PetStat)))
             {
@@ -876,9 +849,10 @@ namespace Server.Mobiles
                 y += 22;
             }
         }
+
         private void BuildResistsPage()
         {
-            int y = 90;
+            var y = 90;
 
             foreach (int i in Enum.GetValues(typeof(ResistanceType)))
             {
@@ -893,11 +867,12 @@ namespace Server.Mobiles
 
         private void BuildMagicSkillCapsPage()
         {
-            int y = 90;
+            var y = 90;
 
             foreach (var skill in PetTrainingHelper.MagicSkills)
             {
-                if ((!PetTrainingHelper.CommonSkill(Creature, skill) && Creature.Skills[skill].Base <= 0) || Creature.Skills[skill].Cap >= 120)
+                if ((!PetTrainingHelper.CommonSkill(Creature, skill) && Creature.Skills[skill].Base <= 0) ||
+                    Creature.Skills[skill].Cap >= 120)
                     continue;
 
                 var tp = PetTrainingHelper.GetTrainingPoint(skill);
@@ -911,11 +886,12 @@ namespace Server.Mobiles
 
         private void BuildCombatSkillCapsPage()
         {
-            int y = 90;
+            var y = 90;
 
             foreach (var skill in PetTrainingHelper.CombatSkills)
             {
-                if ((!PetTrainingHelper.CommonSkill(Creature, skill) && Creature.Skills[skill].Base <= 0) || Creature.Skills[skill].Cap >= 120)
+                if ((!PetTrainingHelper.CommonSkill(Creature, skill) && Creature.Skills[skill].Base <= 0) ||
+                    Creature.Skills[skill].Cap >= 120)
                     continue;
 
                 var tp = PetTrainingHelper.GetTrainingPoint(skill);
@@ -929,26 +905,24 @@ namespace Server.Mobiles
 
         private void BuildMagicalAbilitiesPage()
         {
-            int y = 90;
+            var y = 90;
 
-            for (int i = 0; i < PetTrainingHelper.MagicalAbilities.Length; i++)
+            for (var i = 0; i < PetTrainingHelper.MagicalAbilities.Length; i++)
             {
-                MagicalAbility abil = PetTrainingHelper.MagicalAbilities[i];
+                var abil = PetTrainingHelper.MagicalAbilities[i];
                 var master = Creature.ControlMaster;
 
                 if ((abil == MagicalAbility.Chivalry && master != null && master.Karma < 0) ||
                     (abil == MagicalAbility.Necromancy && master != null && master.Karma > 0) ||
                     (abil == MagicalAbility.Necromage && master != null && master.Karma > 0))
-                {
                     continue;
-                }
 
-                if ((Definition.MagicalAbilities & abil) == 0 ||  AbilityProfile.HasAbility(abil) ||
-                    !AbilityProfile.CanChooseMagicalAbility(abil) || /*(abil <= MagicalAbility.WrestlingMastery && AbilityProfile.AbilityCount() >= 3) ||*/
+                if ((Definition.MagicalAbilities & abil) == 0 || AbilityProfile.HasAbility(abil) ||
+                    !AbilityProfile
+                        .CanChooseMagicalAbility(
+                            abil) || /*(abil <= MagicalAbility.WrestlingMastery && AbilityProfile.AbilityCount() >= 3) ||*/
                     ((abil & MagicalAbility.Tokuno) != 0 && !AbilityProfile.TokunoTame))
-                {
                     continue;
-                }
 
                 var tp = PetTrainingHelper.GetTrainingPoint(abil);
 
@@ -961,16 +935,18 @@ namespace Server.Mobiles
 
         private void BuildSpecialAbilitiesPage()
         {
-            int y = 90;
+            var y = 90;
 
-            for (int i = 0; i < SpecialAbility.Abilities.Length; i++)
+            for (var i = 0; i < SpecialAbility.Abilities.Length; i++)
             {
                 var abil = SpecialAbility.Abilities[i];
 
-                if (AbilityProfile.HasAbility(abil) || (AbilityProfile.HasSpecialMagicalAbility() && !AbilityProfile.IsRuleBreaker(abil)))
+                if (AbilityProfile.HasAbility(abil) ||
+                    (AbilityProfile.HasSpecialMagicalAbility() && !AbilityProfile.IsRuleBreaker(abil)))
                     continue;
 
-                if (Definition.HasSpecialAbility(abil) || (AbilityProfile.HasAbility(MagicalAbility.Poisoning) && abil is VenomousBite))
+                if (Definition.HasSpecialAbility(abil) ||
+                    (AbilityProfile.HasAbility(MagicalAbility.Poisoning) && abil is VenomousBite))
                 {
                     var tp = PetTrainingHelper.GetTrainingPoint(abil);
 
@@ -984,9 +960,9 @@ namespace Server.Mobiles
 
         private void BuildSpecialMovesPage()
         {
-            int y = 90;
+            var y = 90;
 
-            for (int i = 0; i < Definition.WeaponAbilities.Length; i++)
+            for (var i = 0; i < Definition.WeaponAbilities.Length; i++)
             {
                 var abil = Definition.WeaponAbilities[i];
 
@@ -1004,16 +980,17 @@ namespace Server.Mobiles
 
         private void BuildAreaEffectsPage()
         {
-            int y = 90;
+            var y = 90;
 
-            for (int i = 0; i < AreaEffect.Effects.Length; i++)
+            for (var i = 0; i < AreaEffect.Effects.Length; i++)
             {
                 var abil = AreaEffect.Effects[i];
 
                 if (AbilityProfile.HasAbility(abil))
                     continue;
 
-                if (Definition.HasAreaEffect(abil) || (AbilityProfile.HasAbility(MagicalAbility.Poisoning) && abil is PoisonBreath))
+                if (Definition.HasAreaEffect(abil) ||
+                    (AbilityProfile.HasAbility(MagicalAbility.Poisoning) && abil is PoisonBreath))
                 {
                     var tp = PetTrainingHelper.GetTrainingPoint(abil);
 
@@ -1034,13 +1011,8 @@ namespace Server.Mobiles
             }
 
             if (tp.Name.Number > 0)
-            {
                 AddHtmlLocalized(x, y, 215, 20, tp.Name.Number, 0, false, false);
-            }
-            else if (tp.Name.String != null)
-            {
-                AddLabel(x, y, 0, tp.Name.String);
-            }
+            else if (tp.Name.String != null) AddLabel(x, y, 0, tp.Name.String);
         }
 
         private bool HasAvailable(object o)
@@ -1055,68 +1027,41 @@ namespace Server.Mobiles
                     var ability = (MagicalAbility)i;
 
                     if ((Definition.MagicalAbilities & ability) != 0 && !AbilityProfile.HasAbility(ability))
-                    {
                         return true;
-                    }
                 }
 
                 return false;
             }
- 
+
             if (o is SpecialAbility[])
             {
-                if (!AbilityProfile.CanChooseSpecialAbility((SpecialAbility[])o))
-                {
-                    return false;
-                }
+                if (!AbilityProfile.CanChooseSpecialAbility((SpecialAbility[])o)) return false;
 
-                if (AbilityProfile.HasAbility(MagicalAbility.Poisoning) && !AbilityProfile.HasAbility(SpecialAbility.VenomousBite))
-                {
-                    return true;
-                }
+                if (AbilityProfile.HasAbility(MagicalAbility.Poisoning) &&
+                    !AbilityProfile.HasAbility(SpecialAbility.VenomousBite)) return true;
 
                 foreach (var ability in (SpecialAbility[])o)
-                {
                     if (!AbilityProfile.HasAbility(ability))
-                    {
                         return true;
-                    }
-                }
             }
             else if (o is WeaponAbility[])
             {
-                if (!AbilityProfile.CanChooseWeaponAbility())
-                {
-                    return false;
-                }
+                if (!AbilityProfile.CanChooseWeaponAbility()) return false;
 
                 foreach (var ability in (WeaponAbility[])o)
-                {
                     if (!AbilityProfile.HasAbility(ability))
-                    {
                         return true;
-                    }
-                }
             }
             else if (o is AreaEffect[])
             {
-                if (!AbilityProfile.CanChooseAreaEffect())
-                {
-                    return false;
-                }
+                if (!AbilityProfile.CanChooseAreaEffect()) return false;
 
-                if (AbilityProfile.HasAbility(MagicalAbility.Poisoning) && !AbilityProfile.HasAbility(AreaEffect.PoisonBreath))
-                {
-                    return true;
-                }
+                if (AbilityProfile.HasAbility(MagicalAbility.Poisoning) &&
+                    !AbilityProfile.HasAbility(AreaEffect.PoisonBreath)) return true;
 
                 foreach (var ability in (AreaEffect[])o)
-                {
                     if (!AbilityProfile.HasAbility(ability))
-                    {
                         return true;
-                    }
-                }
             }
             else if (o is SkillName[])
             {
@@ -1124,10 +1069,7 @@ namespace Server.Mobiles
                 {
                     var skill = Creature.Skills[name];
 
-                    if (skill.Base > 0 && skill.Cap < 120)
-                    {
-                        return true;
-                    }
+                    if (skill.Base > 0 && skill.Cap < 120) return true;
                 }
 
                 return false;
@@ -1138,51 +1080,48 @@ namespace Server.Mobiles
 
         public override void OnResponse(RelayInfo info)
         {
-            int id = info.ButtonID;
+            var id = info.ButtonID;
 
-            if (id == 0)
-            {
-                return;
-            }
+            if (id == 0) return;
 
             if (id == 1)
             {
                 Timer.DelayCall(TimeSpan.FromSeconds(.5), () =>
+                {
+                    if (User.HasGump(typeof(NewAnimalLoreGump)))
                     {
-                        if (User.HasGump(typeof(NewAnimalLoreGump)))
-                        {
-                            Refresh();
-                            User.CloseGump(typeof(PetTrainingPlanningGump));
-                            BaseGump.SendGump(new PetTrainingPlanningGump(User, Creature));
-                        }
-                    });
+                        Refresh();
+                        User.CloseGump(typeof(PetTrainingPlanningGump));
+                        SendGump(new PetTrainingPlanningGump(User, Creature));
+                    }
+                });
                 return;
             }
 
             if (id == 2)
             {
                 Timer.DelayCall(TimeSpan.FromSeconds(.5), () =>
+                {
+                    if (User.HasGump(typeof(NewAnimalLoreGump)))
                     {
-                        if (User.HasGump(typeof(NewAnimalLoreGump)))
-                        {
-                            Refresh();
-                            User.CloseGump(typeof(PetTrainingInfoGump));
-                            BaseGump.SendGump(new PetTrainingInfoGump(User));
-                        }
-                    });
+                        Refresh();
+                        User.CloseGump(typeof(PetTrainingInfoGump));
+                        SendGump(new PetTrainingInfoGump(User));
+                    }
+                });
                 return;
             }
 
             if (id <= 11)
             {
                 Timer.DelayCall(TimeSpan.FromSeconds(.5), () =>
+                {
+                    if (User.HasGump(typeof(NewAnimalLoreGump)))
                     {
-                        if (User.HasGump(typeof(NewAnimalLoreGump)))
-                        {
-                            Category = id - 3;
-                            Refresh();
-                        }
-                    });
+                        Category = id - 3;
+                        Refresh();
+                    }
+                });
                 return;
             }
 
@@ -1191,55 +1130,52 @@ namespace Server.Mobiles
             switch (Category)
             {
                 case 0: // stats
-                    PetStat stat = (PetStat)id - 100;
+                    var stat = (PetStat)id - 100;
                     tp = PetTrainingHelper.GetTrainingPoint(stat);
                     break;
                 case 1: // resists
-                    ResistanceType r = (ResistanceType)id - 100;
+                    var r = (ResistanceType)id - 100;
                     tp = PetTrainingHelper.GetTrainingPoint(r);
                     break;
                 case 2: // mag skill
                 case 3: // combat skill
-                    SkillName sk = (SkillName)id - 100;
+                    var sk = (SkillName)id - 100;
                     tp = PetTrainingHelper.GetTrainingPoint(sk);
                     break;
                 case 4: // mag abil
-                    MagicalAbility mabil = PetTrainingHelper.MagicalAbilities[id - 100];
+                    var mabil = PetTrainingHelper.MagicalAbilities[id - 100];
                     tp = PetTrainingHelper.GetTrainingPoint(mabil);
                     break;
                 case 5: // spec abil
-                    SpecialAbility sabil = SpecialAbility.Abilities[id - 100];
+                    var sabil = SpecialAbility.Abilities[id - 100];
                     tp = PetTrainingHelper.GetTrainingPoint(sabil);
                     break;
                 case 6: // spec moves
-                    WeaponAbility wabil = Definition.WeaponAbilities[id - 100];
+                    var wabil = Definition.WeaponAbilities[id - 100];
                     tp = PetTrainingHelper.GetTrainingPoint(wabil);
                     break;
                 case 7: // area effects
-                    AreaEffect aabil = AreaEffect.Effects[id - 100];
+                    var aabil = AreaEffect.Effects[id - 100];
                     tp = PetTrainingHelper.GetTrainingPoint(aabil);
                     break;
-
             }
 
             if (tp != null)
-            {
                 Timer.DelayCall(TimeSpan.FromSeconds(.5), () =>
+                {
+                    if (User.HasGump(typeof(NewAnimalLoreGump)))
                     {
-                        if (User.HasGump(typeof(NewAnimalLoreGump)))
-                        {
-                            User.CloseGump(typeof(PetTrainingConfirmationGump));
-                            BaseGump.SendGump(new PetTrainingConfirmationGump(User, Creature, tp));
-                        }
-                    });
-            }
+                        User.CloseGump(typeof(PetTrainingConfirmationGump));
+                        SendGump(new PetTrainingConfirmationGump(User, Creature, tp));
+                    }
+                });
         }
     }
 
     public class PetTrainingConfirmationGump : BaseGump
     {
-        public BaseCreature Creature { get; private set; }
-        public TrainingPoint TrainingPoint { get; private set; }
+        public BaseCreature Creature { get; }
+        public TrainingPoint TrainingPoint { get; }
 
         public int Value { get; private set; }
         public int StartValue { get; private set; }
@@ -1278,8 +1214,10 @@ namespace Server.Mobiles
             AddButton(40, 410, 0x9CC8, 0x9CC7, 1, GumpButtonType.Reply, 0);
             AddHtml(40, 413, 126, 20, Center("Back"), false, false);
 
-            AddButton(415, 410, 0x9CC8, 0x9CC7, profile.TrainingMode == TrainingMode.Regular ? 8 : 9, GumpButtonType.Reply, 0);
-            AddHtml(415, 413, 126, 20, Center(profile.TrainingMode == TrainingMode.Regular ? "Train Pet" : "Add To Plan"), false, false);
+            AddButton(415, 410, 0x9CC8, 0x9CC7, profile.TrainingMode == TrainingMode.Regular ? 8 : 9,
+                GumpButtonType.Reply, 0);
+            AddHtml(415, 413, 126, 20,
+                Center(profile.TrainingMode == TrainingMode.Regular ? "Train Pet" : "Add To Plan"), false, false);
 
             AddHtmlLocalized(35, 55, 245, 20, CenterLoc, "#1114269", 0, false, false); // PROPERTY INFORMATION
             AddHtmlLocalized(50, 85, 60, 16, 1114270, false, false); // Property:
@@ -1299,50 +1237,43 @@ namespace Server.Mobiles
 
             AddHtmlLocalized(290, 205, 245, 20, CenterLoc, "#1113650", 0, false, false); // RESULTS
 
-            int start = -1;
-            int max = TrainingPoint.GetMax(Creature);
+            var start = -1;
+            var max = TrainingPoint.GetMax(Creature);
             PetTrainingHelper.GetStartValue(TrainingPoint, Creature, ref start);
             StartValue = start;
-            
-            if (StartValue > Value)
-            {
-                Value = StartValue;
-            }
+
+            if (StartValue > Value) Value = StartValue;
 
             if (Value > max)
                 Value = max;
 
-            int cost = PetTrainingHelper.GetTotalCost(TrainingPoint, Creature, Value, StartValue);
-            double weight = TrainingPoint.Weight;
+            var cost = PetTrainingHelper.GetTotalCost(TrainingPoint, Creature, Value, StartValue);
+            var weight = TrainingPoint.Weight;
 
             if (CanAdjust() && cost > profile.TrainingPoints)
-            {
                 Value = StartValue + (int)(profile.TrainingPoints / weight);
-            }
 
             if (StartValue > 0)
             {
-                double valueWeight = ((double)Value * weight);
-                double maxWeight = max * weight;
-                double nonAdjustedWeight = (Value - StartValue) * weight;
+                var valueWeight = Value * weight;
+                var maxWeight = max * weight;
+                var nonAdjustedWeight = (Value - StartValue) * weight;
 
-                double originalValueWeight = valueWeight;
+                var originalValueWeight = valueWeight;
 
                 if (TrainingPoint.TrainPoint is PetStat && (PetStat)TrainingPoint.TrainPoint <= PetStat.Mana)
                 {
                     var stat = (PetStat)TrainingPoint.TrainPoint;
 
                     double maxTotalCap = PetTrainingHelper.GetTrainingCapTotal(stat);
-                    double currentTotal = stat <= PetStat.Int ? PetTrainingHelper.GetTotalStatWeight(Creature) : PetTrainingHelper.GetTotalAttributeWeight(Creature);
+                    double currentTotal = stat <= PetStat.Int
+                        ? PetTrainingHelper.GetTotalStatWeight(Creature)
+                        : PetTrainingHelper.GetTotalAttributeWeight(Creature);
 
                     if (currentTotal >= maxTotalCap)
-                    {
                         valueWeight = 0;
-                    }
                     else if (currentTotal + nonAdjustedWeight > maxTotalCap)
-                    {
-                        valueWeight -= (currentTotal + nonAdjustedWeight) - maxTotalCap;
-                    }
+                        valueWeight -= currentTotal + nonAdjustedWeight - maxTotalCap;
                 }
                 else if (TrainingPoint.TrainPoint is ResistanceType)
                 {
@@ -1351,34 +1282,24 @@ namespace Server.Mobiles
                     double currentTotal = PetTrainingHelper.GetTotalResistWeight(Creature);
 
                     if (currentTotal >= maxTotalCap)
-                    {
                         valueWeight = 0;
-                    }
                     else if (currentTotal + nonAdjustedWeight > maxTotalCap)
-                    {
-                        valueWeight -= (currentTotal + nonAdjustedWeight) - maxTotalCap;
-                    }
+                        valueWeight -= currentTotal + nonAdjustedWeight - maxTotalCap;
                 }
 
-                if (valueWeight > maxWeight)
-                {
-                    valueWeight = maxWeight;
-                }
+                if (valueWeight > maxWeight) valueWeight = maxWeight;
 
-                if (originalValueWeight != valueWeight)
-                {
-                    Value = Math.Max(StartValue, (int)(valueWeight / weight));
-                }
+                if (originalValueWeight != valueWeight) Value = Math.Max(StartValue, (int)(valueWeight / weight));
             }
 
             cost = PetTrainingHelper.GetTotalCost(TrainingPoint, Creature, Value, StartValue);
-            int avail = profile.TrainingPoints - cost;
+            var avail = profile.TrainingPoints - cost;
 
             AddHtmlLocalized(35, 205, 245, 20, CenterLoc, "#1157493", 0, false, false); // REQUIREMENTS
 
             if (TrainingPoint.Requirements != null && TrainingPoint.Requirements.Length > 0)
             {
-                for (int i = 0; i < TrainingPoint.Requirements.Length; i++)
+                for (var i = 0; i < TrainingPoint.Requirements.Length; i++)
                 {
                     var req = TrainingPoint.Requirements[i];
 
@@ -1386,21 +1307,20 @@ namespace Server.Mobiles
                         continue;
 
                     if (req.Name.Number > 0)
-                        AddHtmlLocalized(45, 225 + (i * 20), 190, 18, req.Name.Number, false, false);
+                        AddHtmlLocalized(45, 225 + i * 20, 190, 18, req.Name.Number, false, false);
                     else if (req.Name.String != null)
-                        AddHtml(45, 225 + (i * 20), 190, 18, req.Name.String, false, false);
+                        AddHtml(45, 225 + i * 20, 190, 18, req.Name.String, false, false);
 
                     AddTooltip(1157523);
 
-                    int reqCost = req.Cost;
+                    var reqCost = req.Cost;
 
                     if (req.Requirement is SkillName && Creature.Skills[(SkillName)req.Requirement].Value > 0)
                         reqCost = 0;
 
-                    AddLabel(245, 225 + (i * 20), 0x26, reqCost.ToString());
+                    AddLabel(245, 225 + i * 20, 0x26, reqCost.ToString());
                     AddTooltip(1157523);
                 }
-
             }
             else if (TrainingPoint.TrainPoint is SkillName)
             {
@@ -1415,14 +1335,16 @@ namespace Server.Mobiles
                     case 200: cliloc = 1049642; break;
                 }
 
-                AddHtmlLocalized(45, 225, 225, 60, cliloc, String.Format("#{0}", TrainingPoint.Name.Number), 0, false, false);
+                AddHtmlLocalized(45, 225, 225, 60, cliloc, string.Format("#{0}", TrainingPoint.Name.Number), 0, false,
+                    false);
             }
 
             AddHtmlLocalized(305, 225, 145, 18, 1157490, false, false); // Avail. Training Points:
             AddLabel(455, 225, avail <= 0 ? 0x26 : 0, avail.ToString());
 
             AddHtmlLocalized(305, 245, 145, 18, 1113646, false, false); // Total Property Weight:
-            AddLabel(455, 245, 0, String.Format("{0}/{1}", ((int)(Value * weight)).ToString(), (max * weight).ToString()));
+            AddLabel(455, 245, 0,
+                string.Format("{0}/{1}", ((int)(Value * weight)).ToString(), (max * weight).ToString()));
 
             if (TrainingPoint.Name.Number > 0)
                 AddHtmlLocalized(305, 265, 145, 18, TrainingPoint.Name.Number, false, false);
@@ -1430,13 +1352,9 @@ namespace Server.Mobiles
                 AddLabel(305, 265, 0, TrainingPoint.Name.String);
 
             if (TrainingPoint.TrainPoint is SkillName)
-            {
-                AddLabel(455, 265, 0, (100.0 + ((double)Value / 10)).ToString("0.0"));
-            }
+                AddLabel(455, 265, 0, (100.0 + (double)Value / 10).ToString("0.0"));
             else
-            {
                 AddLabel(455, 265, 0, StartValue > Value ? StartValue.ToString() : Value.ToString());
-            }
 
             AddHtmlLocalized(230, 352, 150, 18, 1113586, false, false); // Property Weight:
             AddHtml(267, 373, 40, 18, Center(((int)(Value * weight)).ToString()), false, false);
@@ -1514,18 +1432,13 @@ namespace Server.Mobiles
                     break;
                 case 1:
                     Timer.DelayCall(TimeSpan.FromSeconds(.5), () =>
-                        {
-                            if (User.HasGump(typeof(NewAnimalLoreGump)))
-                            {
-                                BaseGump.SendGump(new PetTrainingOptionsGump(User, Creature));
-                            }
-                        });
+                    {
+                        if (User.HasGump(typeof(NewAnimalLoreGump)))
+                            SendGump(new PetTrainingOptionsGump(User, Creature));
+                    });
                     break;
                 case 2: // <<<
-                    if (TrainingPoint.Start != TrainingPoint.GetMax(Creature))
-                    {
-                        Value = TrainingPoint.Start;
-                    }
+                    if (TrainingPoint.Start != TrainingPoint.GetMax(Creature)) Value = TrainingPoint.Start;
 
                     Refresh();
                     break;
@@ -1533,14 +1446,11 @@ namespace Server.Mobiles
                     if (TrainingPoint.Start != TrainingPoint.GetMax(Creature))
                     {
                         if (TrainingPoint.TrainPoint is SkillName)
-                        {
                             Value = Math.Max(TrainingPoint.Start, Value -= 50);
-                        }
                         else
-                        {
-                            Value = Value - (TrainingPoint.GetMax(Creature) / 10);
-                        }
+                            Value = Value - TrainingPoint.GetMax(Creature) / 10;
                     }
+
                     Refresh();
                     break;
                 case 4: // <
@@ -1553,15 +1463,12 @@ namespace Server.Mobiles
                         else
                         {
                             if (TrainingPoint.Weight < 1.0)
-                            {
                                 Value -= (int)(TrainingPoint.Weight * 100);
-                            }
                             else
-                            {
                                 Value--;
-                            }
                         }
                     }
+
                     Refresh();
                     break;
                 case 5: // >
@@ -1574,77 +1481,59 @@ namespace Server.Mobiles
                         else
                         {
                             if (TrainingPoint.Weight < 1.0)
-                            {
                                 Value += (int)(TrainingPoint.Weight * 100);
-                            }
                             else
-                            {
                                 Value++;
-                            }
                         }
                     }
+
                     Refresh();
                     break;
                 case 6: // >>
                     if (TrainingPoint.Start != TrainingPoint.GetMax(Creature))
                     {
                         if (TrainingPoint.TrainPoint is SkillName)
-                        {
                             Value = Math.Min(TrainingPoint.GetMax(Creature), Value += 50);
-                        }
                         else
-                        {
-                            Value += (TrainingPoint.GetMax(Creature) / 10);
-                        }
+                            Value += TrainingPoint.GetMax(Creature) / 10;
                     }
+
                     Refresh();
                     break;
                 case 7: // >>>
-                    if (TrainingPoint.Start != TrainingPoint.GetMax(Creature))
-                    {
-                        Value = TrainingPoint.GetMax(Creature);
-                    }
+                    if (TrainingPoint.Start != TrainingPoint.GetMax(Creature)) Value = TrainingPoint.GetMax(Creature);
 
                     Refresh();
                     break;
                 case 8: // train pet
                     var profile = PetTrainingHelper.GetTrainingProfile(Creature, true);
-                    int cost = PetTrainingHelper.GetTotalCost(TrainingPoint, Creature, Value, StartValue);
+                    var cost = PetTrainingHelper.GetTotalCost(TrainingPoint, Creature, Value, StartValue);
 
                     Item scroll = null;
 
                     if (!Creature.Controlled || User != Creature.ControlMaster)
-                    {
                         User.SendLocalizedMessage(1114368); // This is not your pet!
-                    }
                     else if (!Creature.InRange(User.Location, 12))
-                    {
                         User.SendLocalizedMessage(1153204); // The pet is too far away from you!
-                    }
-                    else if (Server.Spells.SpellHelper.CheckCombat(User) || Server.Spells.SpellHelper.CheckCombat(Creature) ||
-                        Creature.Aggressed.Count > 0 || Creature.Combatant != null)
-                    {
-                        User.SendLocalizedMessage(1156876); // Since you have been in combat recently you may not use this feature.
-                    }
+                    else if (SpellHelper.CheckCombat(User) || SpellHelper.CheckCombat(Creature) ||
+                             Creature.Aggressed.Count > 0 || Creature.Combatant != null)
+                        User.SendLocalizedMessage(
+                            1156876); // Since you have been in combat recently you may not use this feature.
                     else if (!profile.HasIncreasedControlSlot && User.Followers >= User.FollowersMax)
-                    {
-                        User.SendLocalizedMessage(1157498); // You do not have the available pet slots to train this pet. Please free up pet slots and try again.
-                    }
+                        User.SendLocalizedMessage(
+                            1157498); // You do not have the available pet slots to train this pet. Please free up pet slots and try again.
                     else if (cost > profile.TrainingPoints)
-                    {
-                        User.SendLocalizedMessage(1157500); // Your pet lacks the required points to complete this training.
-                    }
-                    else if (TrainingPoint.TrainPoint is SkillName && !CheckPowerScroll((SkillName)TrainingPoint.TrainPoint, Value, ref scroll))
-                    {
-                        User.SendLocalizedMessage(1157499); // You are unable to train your pet. The required powerscroll was not found in your main backpack. 
-                    }
+                        User.SendLocalizedMessage(
+                            1157500); // Your pet lacks the required points to complete this training.
+                    else if (TrainingPoint.TrainPoint is SkillName &&
+                             !CheckPowerScroll((SkillName)TrainingPoint.TrainPoint, Value, ref scroll))
+                        User.SendLocalizedMessage(
+                            1157499); // You are unable to train your pet. The required powerscroll was not found in your main backpack. 
                     else if (StartValue >= Value)
-                    {
                         User.SendLocalizedMessage(1157501); // Your pet looks to have already completed that training. 
-                    }
                     else if (PetTrainingHelper.CanControl(User, Creature, profile))
-                    {
-                        BaseGump.SendGump(new PetTrainingConfirmGump(User, 1157502, TrainingPoint.TrainPoint is MagicalAbility ? 1157566 : 1157503, () =>
+                        SendGump(new PetTrainingConfirmGump(User, 1157502,
+                            TrainingPoint.TrainPoint is MagicalAbility ? 1157566 : 1157503, () =>
                             {
                                 if (PetTrainingHelper.ApplyTrainingPoint(Creature, TrainingPoint, Value))
                                 {
@@ -1652,14 +1541,29 @@ namespace Server.Mobiles
 
                                     if (TrainingPoint.TrainPoint is SkillName)
                                     {
-                                        Effects.SendLocationParticles(EffectItem.Create(Creature.Location, Creature.Map, EffectItem.DefaultDuration), 0, 0, 0, 0, 0, 5060, 0);
+                                        Effects.SendLocationParticles(
+                                            EffectItem.Create(Creature.Location, Creature.Map,
+                                                EffectItem.DefaultDuration), 0, 0, 0, 0, 0, 5060, 0);
                                         Effects.PlaySound(Creature.Location, Creature.Map, 0x243);
 
-                                        Effects.SendMovingParticles(new Entity(Server.Serial.Zero, new Point3D(Creature.X - 6, Creature.Y - 6, Creature.Z + 15), Creature.Map), Creature, 0x36D4, 7, 0, false, true, 0x497, 0, 9502, 1, 0, (EffectLayer)255, 0x100);
-                                        Effects.SendMovingParticles(new Entity(Server.Serial.Zero, new Point3D(Creature.X - 4, Creature.Y - 6, Creature.Z + 15), Creature.Map), Creature, 0x36D4, 7, 0, false, true, 0x497, 0, 9502, 1, 0, (EffectLayer)255, 0x100);
-                                        Effects.SendMovingParticles(new Entity(Server.Serial.Zero, new Point3D(Creature.X - 6, Creature.Y - 4, Creature.Z + 15), Creature.Map), Creature, 0x36D4, 7, 0, false, true, 0x497, 0, 9502, 1, 0, (EffectLayer)255, 0x100);
+                                        Effects.SendMovingParticles(
+                                            new Entity(Server.Serial.Zero,
+                                                new Point3D(Creature.X - 6, Creature.Y - 6, Creature.Z + 15),
+                                                Creature.Map), Creature, 0x36D4, 7, 0, false, true, 0x497, 0, 9502, 1,
+                                            0, (EffectLayer)255, 0x100);
+                                        Effects.SendMovingParticles(
+                                            new Entity(Server.Serial.Zero,
+                                                new Point3D(Creature.X - 4, Creature.Y - 6, Creature.Z + 15),
+                                                Creature.Map), Creature, 0x36D4, 7, 0, false, true, 0x497, 0, 9502, 1,
+                                            0, (EffectLayer)255, 0x100);
+                                        Effects.SendMovingParticles(
+                                            new Entity(Server.Serial.Zero,
+                                                new Point3D(Creature.X - 6, Creature.Y - 4, Creature.Z + 15),
+                                                Creature.Map), Creature, 0x36D4, 7, 0, false, true, 0x497, 0, 9502, 1,
+                                            0, (EffectLayer)255, 0x100);
 
-                                        Effects.SendTargetParticles(Creature, 0x375A, 35, 90, 0x00, 0x00, 9502, (EffectLayer)255, 0x100);
+                                        Effects.SendTargetParticles(Creature, 0x375A, 35, 90, 0x00, 0x00, 9502,
+                                            (EffectLayer)255, 0x100);
 
                                         if (scroll != null)
                                             scroll.Delete();
@@ -1674,23 +1578,19 @@ namespace Server.Mobiles
 
                                     ResendGumps(profile.HasBegunTraining);
 
-                                    Server.Engines.Quests.TeachingSomethingNewQuest.CheckComplete(User);
+                                    TeachingSomethingNewQuest.CheckComplete(User);
                                 }
                             },
-                            () =>
-                            {
-                                ResendGumps(profile.HasBegunTraining);
-                            }));
-                    }
+                            () => { ResendGumps(profile.HasBegunTraining); }));
                     else
-                    {
-                        User.SendLocalizedMessage(1157550); // You lack the taming skill required to train this creature.
-                    }
+                        User.SendLocalizedMessage(
+                            1157550); // You lack the taming skill required to train this creature.
                     break;
                 case 9:
                     if (Value > StartValue)
                     {
-                        PetTrainingHelper.GetPlanningProfile(Creature, true).AddToPlan(TrainingPoint.TrainPoint, Value, PetTrainingHelper.GetTotalCost(TrainingPoint, Creature, Value, StartValue));
+                        PetTrainingHelper.GetPlanningProfile(Creature, true).AddToPlan(TrainingPoint.TrainPoint, Value,
+                            PetTrainingHelper.GetTotalCost(TrainingPoint, Creature, Value, StartValue));
 
                         User.SendLocalizedMessage(1157592); // Your selection has been added to your training plan.
                     }
@@ -1704,13 +1604,9 @@ namespace Server.Mobiles
                             BaseGump gump = User.FindGump<PetTrainingPlanningGump>();
 
                             if (gump != null)
-                            {
                                 gump.Refresh();
-                            }
                             else
-                            {
-                                BaseGump.SendGump(new PetTrainingPlanningGump(User, Creature));
-                            }
+                                SendGump(new PetTrainingPlanningGump(User, Creature));
                         }
                     });
                     break;
@@ -1724,26 +1620,18 @@ namespace Server.Mobiles
                 BaseGump gump = User.FindGump<NewAnimalLoreGump>();
 
                 if (gump != null)
-                {
                     gump.Refresh();
-                }
                 else
-                {
-                    BaseGump.SendGump(new NewAnimalLoreGump(User, Creature));
-                }
+                    SendGump(new NewAnimalLoreGump(User, Creature));
 
                 if (sendOptions)
                 {
                     gump = User.FindGump<PetTrainingOptionsGump>();
 
                     if (gump != null)
-                    {
                         gump.Refresh();
-                    }
                     else
-                    {
-                        BaseGump.SendGump(new PetTrainingOptionsGump(User, Creature));
-                    }
+                        SendGump(new PetTrainingOptionsGump(User, Creature));
                 }
             });
         }
@@ -1753,15 +1641,16 @@ namespace Server.Mobiles
             if (User.Backpack == null)
                 return false;
 
-            scroll = User.Backpack.Items.OfType<PowerScroll>().FirstOrDefault(ps => ps.Skill == name && ps.Value == 100 + (value / 10));
-            
+            scroll = User.Backpack.Items.OfType<PowerScroll>()
+                .FirstOrDefault(ps => ps.Skill == name && ps.Value == 100 + value / 10);
+
             return scroll != null;
         }
     }
 
     public class PetTrainingPlanningGump : BaseGump
     {
-        public BaseCreature Creature { get; private set; }
+        public BaseCreature Creature { get; }
 
         public PetTrainingPlanningGump(PlayerMobile pm, BaseCreature bc)
             : base(pm, 50, 200)
@@ -1777,7 +1666,8 @@ namespace Server.Mobiles
             AddBackground(0, 0, 654, 524, 0x24A4);
 
             AddButton(275, 35, 0x9CC8, 0x9CC7, 1, GumpButtonType.Reply, 0);
-            AddHtml(275, 38, 126, 20, Center(profile.TrainingMode == TrainingMode.Planning ? "DISABLE" : "ENABLE"), false, false);
+            AddHtml(275, 38, 126, 20, Center(profile.TrainingMode == TrainingMode.Planning ? "DISABLE" : "ENABLE"),
+                false, false);
 
             AddHtmlLocalized(0, 11, 654, 18, CenterLoc, "#1157591", 0xF424E5, false, false); // Pet Training Planning 
             AddHtmlLocalized(60, 60, 216, 18, 1044010, 0, false, false); // <CENTER>CATEGORIES</CENTER>
@@ -1787,40 +1677,36 @@ namespace Server.Mobiles
             AddHtmlLocalized(260, 80, 150, 16, 1157490, C32216(0x8B0000), false, false); // Avail. Training Points:
             AddLabel(510, 80, 0, profile.TrainingPoints.ToString());
 
-            int y = 95;
-            int total = 0;
+            var y = 95;
+            var total = 0;
 
-            for (int i = 0; i < plan.Entries.Count; i++)
+            for (var i = 0; i < plan.Entries.Count; i++)
             {
                 var entry = plan.Entries[i];
 
                 AddButton(25, y, 4017, 4019, i + 100, GumpButtonType.Reply, 0);
-                AddHtmlLocalized(60, y, 200, 18, PetTrainingHelper.GetCategoryLocalization(entry.TrainPoint), false, false);
-                
+                AddHtmlLocalized(60, y, 200, 18, PetTrainingHelper.GetCategoryLocalization(entry.TrainPoint), false,
+                    false);
+
                 var loc = PetTrainingHelper.GetLocalization(entry.TrainPoint);
 
                 if (loc[0] != null)
                 {
                     if (loc[0].Number > 0)
-                    {
                         AddHtmlLocalized(260, y, 200, 18, loc[0], false, false);
-                    }
-                    else if (loc[0].String != null)
-                    {
-                        AddHtml(260, y, 200, 18, loc[0].String, false, false);
-                    }
+                    else if (loc[0].String != null) AddHtml(260, y, 200, 18, loc[0].String, false, false);
                 }
 
                 var value = entry.TrainPoint is SkillName ? entry.Value + 1000 : entry.Value;
 
                 AddLabel(460, y, entry.Value == 0 ? 0x27 : 0, value.ToString());
-                AddLabel(510, y, entry.Cost == 0 ? 0x27 : 0, String.Format("-{0}", entry.Cost));
+                AddLabel(510, y, entry.Cost == 0 ? 0x27 : 0, string.Format("-{0}", entry.Cost));
 
                 total += entry.Cost;
                 y += 22;
             }
 
-            int remaining = profile.TrainingPoints - total;
+            var remaining = profile.TrainingPoints - total;
 
             AddHtmlLocalized(260, y, 200, 18, 1157599, C32216(0x8B0000), false, false); // Remaining Training Points:
             AddLabel(510, y + 5, remaining < profile.TrainingPoints ? 0x27 : 0, remaining.ToString());
@@ -1828,7 +1714,7 @@ namespace Server.Mobiles
 
         public override void OnResponse(RelayInfo info)
         {
-            int id = info.ButtonID;
+            var id = info.ButtonID;
 
             if (id == 0)
                 return;
@@ -1846,15 +1732,13 @@ namespace Server.Mobiles
                 else
                 {
                     profile.TrainingMode = TrainingMode.Planning;
-                    User.SendLocalizedMessage(1157597); // You have enabled pet training planning. All pet training selections will be added to the planning gump which will display up to 20 training options. For more details view the information gump.
+                    User.SendLocalizedMessage(
+                        1157597); // You have enabled pet training planning. All pet training selections will be added to the planning gump which will display up to 20 training options. For more details view the information gump.
                 }
 
                 BaseGump gump = User.FindGump<PetTrainingConfirmationGump>();
 
-                if (gump != null)
-                {
-                    gump.Refresh();
-                }
+                if (gump != null) gump.Refresh();
 
                 Refresh();
             }
@@ -1884,7 +1768,8 @@ namespace Server.Mobiles
         {
             AddPage(0);
             AddBackground(0, 0, 654, 500, 0x24A4);
-            AddHtmlLocalized(0, 45, 654, 16, CenterLoc, "#1157527", 0xF424E5, false, false); // Discovering Animal Training
+            AddHtmlLocalized(0, 45, 654, 16, CenterLoc, "#1157527", 0xF424E5, false,
+                false); // Discovering Animal Training
 
             AddPage(1);
 

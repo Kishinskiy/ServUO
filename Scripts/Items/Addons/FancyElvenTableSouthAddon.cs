@@ -1,15 +1,15 @@
-using System;
-
 namespace Server.Items
 {
     public class FancyElvenTableSouthAddon : BaseAddon
     {
+        public override BaseAddonDeed Deed => new FancyElvenTableSouthDeed();
+
         [Constructable]
         public FancyElvenTableSouthAddon()
         {
-            this.AddComponent(new AddonComponent(0x3095), 0, 1, 0);
-            this.AddComponent(new AddonComponent(0x3096), 0, 0, 0);
-            this.AddComponent(new AddonComponent(0x3097), 0, -1, 0);
+            AddComponent(new AddonComponent(0x3095), 0, 1, 0);
+            AddComponent(new AddonComponent(0x3096), 0, 0, 0);
+            AddComponent(new AddonComponent(0x3097), 0, -1, 0);
         }
 
         public FancyElvenTableSouthAddon(Serial serial)
@@ -17,13 +17,6 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonDeed Deed
-        {
-            get
-            {
-                return new FancyElvenTableSouthDeed();
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -35,12 +28,16 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class FancyElvenTableSouthDeed : BaseAddonDeed
     {
+        public override BaseAddon Addon => new FancyElvenTableSouthAddon();
+
+        public override int LabelNumber => 1073385; // hardwood table (south)
+
         [Constructable]
         public FancyElvenTableSouthDeed()
         {
@@ -51,20 +48,6 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddon Addon
-        {
-            get
-            {
-                return new FancyElvenTableSouthAddon();
-            }
-        }
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1073385;
-            }
-        }// hardwood table (south)
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -76,7 +59,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

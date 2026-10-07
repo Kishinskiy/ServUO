@@ -1,44 +1,38 @@
 using System;
-using Server;
-using Server.Mobiles;
 using System.Collections.Generic;
-
 using Server.ContextMenus;
 using Server.Items;
+using Server.Mobiles;
 
 namespace Server.Engines.TreasuresOfKotlCity
 {
     public class KotlBattleSimulator : Item, ISpawner
     {
-        public static KotlBattleSimulator Instance { get; set; }
-
         public static int Levels = 7;
         public static Rectangle2D SpawnBounds = new Rectangle2D(500, 2272, 87, 71);
-        public static Type[] SpawnTypes = new Type[] { typeof(SpectralKotlWarrior), typeof(SpectralMyrmidexWarrior) };
+        public static Type[] SpawnTypes = { typeof(SpectralKotlWarrior), typeof(SpectralMyrmidexWarrior) };
 
         public static TimeSpan BattleDuration = TimeSpan.FromMinutes(60);
-        public static TimeSpan NextSpawnDuration { get { return TimeSpan.FromSeconds(Utility.RandomMinMax(2, 25)); } }
 
         private bool _Active;
+        public static KotlBattleSimulator Instance { get; set; }
+        public static TimeSpan NextSpawnDuration => TimeSpan.FromSeconds(Utility.RandomMinMax(2, 25));
 
         [CommandProperty(AccessLevel.GameMaster)]
         public bool Active
         {
-            get { return _Active; }
+            get => _Active;
             set
             {
-                bool active = _Active;
+                var active = _Active;
                 _Active = value;
 
-                if (!active && _Active)
-                {
-                    StartSpawn();
-                }
+                if (!active && _Active) StartSpawn();
             }
         }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int SpawnCount { get { return Spawn != null ? Spawn.Count : 0; } }
+        public int SpawnCount => Spawn != null ? Spawn.Count : 0;
 
         [CommandProperty(AccessLevel.GameMaster)]
         public int Level { get; set; }
@@ -48,12 +42,8 @@ namespace Server.Engines.TreasuresOfKotlCity
 
         public List<ISpawnable> Spawn { get; set; }
 
-        public bool UnlinkOnTaming { get { return true; } }
-        public Point3D HomeLocation { get { return new Point3D(544, 2303, 0); } }
-        public int HomeRange { get { return 30; } }
-
-        public int SpawnPerWave { get { return 10 + (Level * 2); } }
-        public int KillsPerWave { get { return 20 + (Level * 2); } }
+        public int SpawnPerWave => 10 + Level * 2;
+        public int KillsPerWave => 20 + Level * 2;
 
         public Timer Timer { get; set; }
 
@@ -66,6 +56,45 @@ namespace Server.Engines.TreasuresOfKotlCity
             Instance = this;
         }
 
+        public KotlBattleSimulator(Serial serial)
+            : base(serial)
+        {
+        }
+
+        public bool UnlinkOnTaming => true;
+        public Point3D HomeLocation => new Point3D(544, 2303, 0);
+        public int HomeRange => 30;
+
+        public virtual void GetSpawnProperties(ISpawnable spawn, ObjectPropertyList list)
+        {
+        }
+
+        public virtual void GetSpawnContextEntries(ISpawnable spawn, Mobile user, List<ContextMenuEntry> list)
+        {
+        }
+
+        public void Remove(ISpawnable spawn)
+        {
+            if (Spawn != null && Spawn.Contains(spawn))
+            {
+                Kills++;
+                Spawn.Remove(spawn);
+
+                if (Kills >= KillsPerWave)
+                {
+                    if (Level >= Levels)
+                    {
+                        EndSimulation();
+                        return;
+                    }
+
+                    IncreaseLevel();
+                }
+
+                Timer.DelayCall(NextSpawnDuration, DoSpawn);
+            }
+        }
+
         private void StartSpawn()
         {
             Kills = 0;
@@ -73,10 +102,7 @@ namespace Server.Engines.TreasuresOfKotlCity
 
             StartTimer();
 
-            for (int i = 0; i < SpawnPerWave; i++)
-            {
-                Timer.DelayCall(NextSpawnDuration, DoSpawn);
-            }
+            for (var i = 0; i < SpawnPerWave; i++) Timer.DelayCall(NextSpawnDuration, DoSpawn);
         }
 
         public void StartTimer()
@@ -96,74 +122,34 @@ namespace Server.Engines.TreasuresOfKotlCity
             }
         }
 
-        public virtual void GetSpawnProperties(ISpawnable spawn, ObjectPropertyList list)
-        { }
-
-        public virtual void GetSpawnContextEntries(ISpawnable spawn, Mobile user, List<ContextMenuEntry> list)
-        { }
-
-        public void Remove(ISpawnable spawn)
-        {
-            if (Spawn != null && Spawn.Contains(spawn))
-            {
-                Kills++;
-                Spawn.Remove(spawn);
-
-                if (Kills >= KillsPerWave)
-                {
-                    if (Level >= Levels)
-                    {
-                        EndSimulation();
-                        return;
-                    }
-                    else
-                    {
-                        IncreaseLevel();
-                    }
-                }
-
-                Timer.DelayCall(NextSpawnDuration, DoSpawn);
-            }
-        }
-
         private void IncreaseLevel()
         {
-            int oldMaxCount = SpawnPerWave;
+            var oldMaxCount = SpawnPerWave;
 
             Level++;
             Kills = 0;
 
-            int inc = SpawnPerWave - oldMaxCount;
+            var inc = SpawnPerWave - oldMaxCount;
 
             if (inc > 0)
-            {
-                for (int i = 0; i < inc; i++)
-                {
+                for (var i = 0; i < inc; i++)
                     Timer.DelayCall(NextSpawnDuration, DoSpawn);
-                }
-            }
         }
 
         public void EndSimulation()
         {
             EndTimer();
 
-            if (WheelsOfTime.Instance != null && (WheelsOfTime.Instance.RockBarrier == null || WheelsOfTime.Instance.RockBarrier.Deleted))
-            {
+            if (WheelsOfTime.Instance != null &&
+                (WheelsOfTime.Instance.RockBarrier == null || WheelsOfTime.Instance.RockBarrier.Deleted))
                 WheelsOfTime.Instance.RockBarrier = new KotlWallAddon();
-            }
 
             WheelsOfTime.Instance.RockBarrier.MoveToWorld(WheelsOfTime.RockBarrierLocation, Map.TerMur);
 
             if (WheelsOfTime.Instance != null)
-            {
                 WheelsOfTime.Instance.TimeWarpEnds = DateTime.UtcNow + TimeSpan.FromSeconds(10);
-            }
 
-            PowerCoreDockingStation.Stations.ForEach(station =>
-            {
-                station.Deactivate();
-            });
+            PowerCoreDockingStation.Stations.ForEach(station => { station.Deactivate(); });
 
             Active = false;
             Level = 0;
@@ -182,11 +168,10 @@ namespace Server.Engines.TreasuresOfKotlCity
 
             do
             {
-                loc = Map.TerMur.GetRandomSpawnPoint(SpawnBounds); 
-            }
-            while (!Map.TerMur.CanSpawnMobile(loc));
+                loc = Map.TerMur.GetRandomSpawnPoint(SpawnBounds);
+            } while (!Map.TerMur.CanSpawnMobile(loc));
 
-            bool strong = Map.Tiles.GetStaticTiles(loc.X, loc.Y, true).Length > 0;
+            var strong = Map.Tiles.GetStaticTiles(loc.X, loc.Y, true).Length > 0;
             BaseCreature bc;
 
             switch (Utility.Random(2))
@@ -203,20 +188,15 @@ namespace Server.Engines.TreasuresOfKotlCity
                 bc.Home = HomeLocation;
                 bc.RangeHome = HomeRange;
 
-				bc.OnBeforeSpawn(loc, Map.TerMur);
+                bc.OnBeforeSpawn(loc, Map.TerMur);
                 bc.MoveToWorld(loc, Map.TerMur);
-				bc.OnAfterSpawn();
+                bc.OnAfterSpawn();
 
                 if (Spawn == null)
                     Spawn = new List<ISpawnable>();
 
                 Spawn.Add(bc);
             }
-        }
-
-        public KotlBattleSimulator(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -242,7 +222,7 @@ namespace Server.Engines.TreasuresOfKotlCity
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             Instance = this;
 
@@ -250,10 +230,10 @@ namespace Server.Engines.TreasuresOfKotlCity
             Level = reader.ReadInt();
             Kills = reader.ReadInt();
 
-            int count = reader.ReadInt();
-            for (int i = 0; i < count; i++)
+            var count = reader.ReadInt();
+            for (var i = 0; i < count; i++)
             {
-                BaseCreature bc = reader.ReadMobile() as BaseCreature;
+                var bc = reader.ReadMobile() as BaseCreature;
 
                 if (bc != null)
                 {
@@ -282,44 +262,32 @@ namespace Server.Engines.TreasuresOfKotlCity
                         EndSimulation();
                         return;
                     }
-                    else
-                    {
-                        IncreaseLevel();
-                    }
+
+                    IncreaseLevel();
                 }
                 else
                 {
-                    int toSpawn = Math.Max(0, SpawnPerWave - (Spawn.Count + Kills));
+                    var toSpawn = Math.Max(0, SpawnPerWave - (Spawn.Count + Kills));
 
                     if (toSpawn > 0)
-                    {
-                        for (int i = 0; i < toSpawn; i++)
-                        {
+                        for (var i = 0; i < toSpawn; i++)
                             Timer.DelayCall(NextSpawnDuration, DoSpawn);
-                        }
-                    }
                 }
             }
 
             // Teleporter Fix
             if (version == 0)
-            {
                 Timer.DelayCall(TimeSpan.FromSeconds(20), () =>
+                {
+                    if (Map != null)
                     {
-                        if (Map != null)
-                        {
-                            IPooledEnumerable eable = Map.GetItemsInRange(new Point3D(644, 2308, 0), 0);
+                        IPooledEnumerable eable = Map.GetItemsInRange(new Point3D(644, 2308, 0), 0);
 
-                            foreach (Item i in eable)
-                            {
-                                if (i is Teleporter)
-                                {
-                                    ((Teleporter)i).PointDest = new Point3D(543, 2479, 2);
-                                }
-                            }
-                        }
-                    });
-            }
+                        foreach (Item i in eable)
+                            if (i is Teleporter)
+                                ((Teleporter)i).PointDest = new Point3D(543, 2479, 2);
+                    }
+                });
         }
     }
 }

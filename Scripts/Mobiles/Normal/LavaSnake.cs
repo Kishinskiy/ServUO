@@ -1,5 +1,4 @@
 using Server.Items;
-using Server.Services;
 
 namespace Server.Mobiles
 {
@@ -7,6 +6,10 @@ namespace Server.Mobiles
     [TypeAlias("Server.Mobiles.Lavasnake")]
     public class LavaSnake : BaseCreature
     {
+        public override bool DeathAdderCharmable => true;
+
+        public override int Meat => 1;
+
         [Constructable]
         public LavaSnake()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -49,16 +52,6 @@ namespace Server.Mobiles
         public LavaSnake(Serial serial)
             : base(serial)
         {
-        }
-
-        public override bool DeathAdderCharmable
-        {
-            get { return true; }
-        }
-
-        public override int Meat
-        {
-            get { return 1; }
         }
 
         public override void GenerateLoot()

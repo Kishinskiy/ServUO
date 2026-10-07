@@ -1,26 +1,23 @@
-using Server;
-using System;
-
 namespace Server.Items
 {
     public class EpauletteBearingTheCrestOfBlackthorn7 : Cloak
     {
-        public override bool IsArtifact { get { return true; } }
+        public override bool IsArtifact => true;
 
-        public override int LabelNumber { get { return 1123325; } } // Epaulette
+        public override int LabelNumber => 1123325; // Epaulette
 
         [Constructable]
         public EpauletteBearingTheCrestOfBlackthorn7()
         {
             ReforgedSuffix = ReforgedSuffix.Blackthorn;
-            ItemID = 0x9985;            
+            ItemID = 0x9985;
             Attributes.RegenMana = 2;
             Attributes.DefendChance = 5;
             Attributes.Luck = 140;
             Hue = 1194;
 
-			Layer = Layer.OuterTorso;			
-        }   
+            Layer = Layer.OuterTorso;
+        }
 
         public EpauletteBearingTheCrestOfBlackthorn7(Serial serial)
             : base(serial)
@@ -36,19 +33,16 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
-			
-			if (version == 0)
+            var version = reader.ReadInt();
+
+            if (version == 0)
             {
                 MaxHitPoints = 0;
                 HitPoints = 0;
 
                 if (Layer != Layer.OuterTorso)
                 {
-                    if (Parent is Mobile)
-                    {
-                        ((Mobile)Parent).AddToBackpack(this);
-                    }
+                    if (Parent is Mobile) ((Mobile)Parent).AddToBackpack(this);
 
                     Layer = Layer.OuterTorso;
                 }

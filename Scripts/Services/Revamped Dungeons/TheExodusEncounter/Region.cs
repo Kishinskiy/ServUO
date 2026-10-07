@@ -1,16 +1,14 @@
-using Server;
 using System;
-using Server.Mobiles;
-using Server.Gumps;
 using System.Linq;
-using Server.Regions;
 using System.Xml;
+using Server.Mobiles;
+using Server.Regions;
 using Server.Spells;
 
 namespace Server.Engines.Exodus
 {
-	public class VerLorRegCity : DungeonRegion
-	{
+    public class VerLorRegCity : DungeonRegion
+    {
         private static readonly Point3D[] Random_Locations =
         {
             new Point3D(1217, 469, -13),
@@ -20,7 +18,7 @@ namespace Server.Engines.Exodus
             new Point3D(987, 1007, -35),
             new Point3D(1175, 1287, -30),
             new Point3D(1532, 1341, -3),
-            new Point3D(527, 218, -44),
+            new Point3D(527, 218, -44)
         };
 
         public VerLorRegCity(XmlElement xml, Map map, Region parent)
@@ -28,32 +26,12 @@ namespace Server.Engines.Exodus
         {
         }
 
-        public class ExitTimer : Timer
-        {
-            private static TimeSpan m_Delay = TimeSpan.FromMinutes(2);
-            private static TimeSpan m_Warning = TimeSpan.FromMinutes(8);
-            VerLorRegCity m_region;
-
-            public ExitTimer(VerLorRegCity region) : base(m_Warning)
-            {
-                m_region = region;
-            }
-            protected override void OnTick()
-            {
-                foreach (Mobile m in m_region.GetEnumeratedMobiles().Where(m => m is PlayerMobile && m.AccessLevel == AccessLevel.Player))
-                {
-                    m.SendLocalizedMessage(1010589);
-                }
-
-                Timer.DelayCall(m_Delay, new TimerCallback(m_region.MoveLocation));
-            }
-        }
-
         public void MoveLocation()
         {
-            foreach (Mobile m in this.GetEnumeratedMobiles().Where(m => m is PlayerMobile && m.AccessLevel == AccessLevel.Player))
+            foreach (var m in GetEnumeratedMobiles()
+                         .Where(m => m is PlayerMobile && m.AccessLevel == AccessLevel.Player))
             {
-                Point3D p = Random_Locations[Utility.Random(Random_Locations.Length)];
+                var p = Random_Locations[Utility.Random(Random_Locations.Length)];
 
                 m.MoveToWorld(p, m.Map);
                 BaseCreature.TeleportPets(m, p, m.Map);
@@ -76,6 +54,27 @@ namespace Server.Engines.Exodus
             {
                 VerLorRegController.Stop();
                 new ExitTimer(this).Start();
+            }
+        }
+
+        public class ExitTimer : Timer
+        {
+            private static readonly TimeSpan m_Delay = TimeSpan.FromMinutes(2);
+            private static readonly TimeSpan m_Warning = TimeSpan.FromMinutes(8);
+            private readonly VerLorRegCity m_region;
+
+            public ExitTimer(VerLorRegCity region) : base(m_Warning)
+            {
+                m_region = region;
+            }
+
+            protected override void OnTick()
+            {
+                foreach (var m in m_region.GetEnumeratedMobiles()
+                             .Where(m => m is PlayerMobile && m.AccessLevel == AccessLevel.Player))
+                    m.SendLocalizedMessage(1010589);
+
+                DelayCall(m_Delay, m_region.MoveLocation);
             }
         }
     }

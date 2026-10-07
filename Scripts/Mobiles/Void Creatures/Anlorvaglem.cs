@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,8 +5,16 @@ namespace Server.Mobiles
     [CorpseName("an anlorvaglem corpse")]
     public class Anlorvaglem : BaseVoidCreature
     {
-        public override VoidEvolution Evolution { get { return VoidEvolution.Grouping; } }
-        public override int Stage { get { return 3; } }
+        public override VoidEvolution Evolution => VoidEvolution.Grouping;
+        public override int Stage => 3;
+
+        public override Poison PoisonImmune => Poison.Lethal;
+
+        public override bool Unprovokable => true;
+
+        public override bool BardImmune => true;
+
+        public override bool ReacquireOnMovement => true;
 
         [Constructable]
         public Anlorvaglem()
@@ -54,34 +61,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override Poison PoisonImmune
-        {
-            get
-            {
-                return Poison.Lethal;
-            }
-        }
-        public override bool Unprovokable
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool BardImmune
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool ReacquireOnMovement
-        {
-            get
-            {
-                return true;
-            }
-        }
         public override void GenerateLoot()
         {
             AddLoot(LootPack.UltraRich);
@@ -90,15 +69,15 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-			
-            writer.Write((int)0); // version
+
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-			
-            int version = reader.ReadInt();
+
+            var version = reader.ReadInt();
         }
     }
 }

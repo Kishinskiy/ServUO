@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using Server.Items;
 using Server.Mobiles;
@@ -10,15 +9,38 @@ namespace Server.Mobiles
     [CorpseName("a medusa corpse")]
     public class Medusa : BaseSABoss, ICarvable
     {
-        private List<Mobile> m_TurnedToStone = new List<Mobile>();
-        public List<Mobile> AffectedMobiles { get { return m_TurnedToStone; } }
+        private DateTime m_GazeDelay;
 
         public List<Mobile> m_Helpers = new List<Mobile>();
+        private DateTime m_NextCarve;
 
         private int m_Scales;
-        private DateTime m_GazeDelay;
         private DateTime m_StoneDelay;
-        private DateTime m_NextCarve;
+        public List<Mobile> AffectedMobiles { get; } = new List<Mobile>();
+
+        public override Type[] UniqueSAList
+        {
+            get
+            {
+                return new[]
+                {
+                    typeof(Slither), typeof(IronwoodCompositeBow), typeof(Venom), typeof(PetrifiedSnake),
+                    typeof(StoneDragonsTooth), typeof(MedusaFloorTileAddonDeed)
+                };
+            }
+        }
+
+        public override Type[] SharedSAList
+        {
+            get { return new[] { typeof(SummonersKilt) }; }
+        }
+
+        public override bool IgnoreYoungProtection => true;
+        public override bool AutoDispel => true;
+        public override double AutoDispelChance => 1.0;
+        public override bool BardImmune => true;
+        public override Poison PoisonImmune => Poison.Lethal;
+        public override Poison HitPoison => 0.8 >= Utility.RandomDouble() ? Poison.Deadly : Poison.Lethal;
 
         [Constructable]
         public Medusa()
@@ -60,7 +82,7 @@ namespace Server.Mobiles
 
             PackItem(new Arrow(Utility.RandomMinMax(100, 200)));
 
-            IronwoodCompositeBow Bow = new IronwoodCompositeBow();
+            var Bow = new IronwoodCompositeBow();
             Bow.Movable = false;
             AddItem(Bow);
 
@@ -75,35 +97,70 @@ namespace Server.Mobiles
         {
         }
 
-        public override Type[] UniqueSAList
+        public bool Carve(Mobile from, Item item)
         {
-            get { return new Type[] { typeof(Slither), typeof(IronwoodCompositeBow), typeof(Venom), typeof(PetrifiedSnake), typeof(StoneDragonsTooth), typeof(MedusaFloorTileAddonDeed) }; }
+            if (m_Scales > 0)
+            {
+                if (DateTime.UtcNow < m_NextCarve)
+                {
+                    from.SendLocalizedMessage(
+                        1112677); // The creature is still recovering from the previous harvest. Try again in a few seconds.
+                }
+                else
+                {
+                    var amount = Math.Min(m_Scales, Utility.RandomMinMax(2, 3));
+
+                    m_Scales -= amount;
+
+                    Item scales = new MedusaLightScales(amount);
+
+                    if (from.PlaceInBackpack(scales))
+                        // You harvest magical resources from the creature and place it in your bag.
+                        from.SendLocalizedMessage(1112676);
+                    else
+                        scales.MoveToWorld(from.Location, from.Map);
+
+                    new Blood(0x122D).MoveToWorld(Location, Map);
+
+                    m_NextCarve = DateTime.UtcNow + TimeSpan.FromMinutes(1.0);
+                    return true;
+                }
+            }
+            else
+            {
+                from.SendLocalizedMessage(1112674); // There's nothing left to harvest from this creature.
+            }
+
+            return false;
         }
 
-        public override Type[] SharedSAList
+        public override int GetIdleSound()
         {
-            get { return new Type[] { typeof(SummonersKilt) }; }
+            return 1557;
         }
 
-        public override bool IgnoreYoungProtection { get { return true; } }
-        public override bool AutoDispel { get { return true; } }
-        public override double AutoDispelChance { get { return 1.0; } }
-        public override bool BardImmune { get { return true; } }
-        public override Poison PoisonImmune { get { return Poison.Lethal; } }
-        public override Poison HitPoison { get { return (0.8 >= Utility.RandomDouble() ? Poison.Deadly : Poison.Lethal); } }
+        public override int GetAngerSound()
+        {
+            return 1554;
+        }
 
-        public override int GetIdleSound() { return 1557; }
-        public override int GetAngerSound() { return 1554; }
-        public override int GetHurtSound() { return 1556; }
-        public override int GetDeathSound() { return 1555; }
+        public override int GetHurtSound()
+        {
+            return 1556;
+        }
+
+        public override int GetDeathSound()
+        {
+            return 1555;
+        }
 
         public override void OnCarve(Mobile from, Corpse corpse, Item with)
         {
-            int amount = Utility.Random(5) + 1;
+            var amount = Utility.Random(5) + 1;
 
             corpse.DropItem(new MedusaDarkScales(amount));
 
-            if(0.20 > Utility.RandomDouble())
+            if (0.20 > Utility.RandomDouble())
                 corpse.DropItem(new MedusaBlood());
 
             base.OnCarve(from, corpse, with);
@@ -137,27 +194,29 @@ namespace Server.Mobiles
 
         public void RemoveAffectedMobiles(Mobile toRemove)
         {
-            if (m_TurnedToStone.Contains(toRemove))
-                m_TurnedToStone.Remove(toRemove);
+            if (AffectedMobiles.Contains(toRemove))
+                AffectedMobiles.Remove(toRemove);
         }
 
         public Mobile FindRandomMedusaTarget()
         {
-            List<Mobile> list = new List<Mobile>();
+            var list = new List<Mobile>();
 
-            IPooledEnumerable eable = this.GetMobilesInRange(12);
+            IPooledEnumerable eable = GetMobilesInRange(12);
             foreach (Mobile m in eable)
             {
-                if ( m == null || m == this || m_TurnedToStone.Contains(m) || !CanBeHarmful(m) || !InLOS(m) || m.AccessLevel > AccessLevel.Player)
+                if (m == null || m == this || AffectedMobiles.Contains(m) || !CanBeHarmful(m) || !InLOS(m) ||
+                    m.AccessLevel > AccessLevel.Player)
                     continue;
 
                 //Pets
-                if (m is BaseCreature && (((BaseCreature)m).GetMaster() is PlayerMobile))
+                if (m is BaseCreature && ((BaseCreature)m).GetMaster() is PlayerMobile)
                     list.Add(m);
                 //players
                 else if (m is PlayerMobile)
                     list.Add(m);
             }
+
             eable.Free();
 
             if (list.Count == 0)
@@ -173,13 +232,13 @@ namespace Server.Mobiles
             if (m == null)
                 return false;
 
-            Item helm = m.FindItemOnLayer(Layer.Helm);
-            Item neck = m.FindItemOnLayer(Layer.Neck);
-            Item ear = m.FindItemOnLayer(Layer.Earrings);
-            Item shi = m.FindItemOnLayer(Layer.TwoHanded);
+            var helm = m.FindItemOnLayer(Layer.Helm);
+            var neck = m.FindItemOnLayer(Layer.Neck);
+            var ear = m.FindItemOnLayer(Layer.Earrings);
+            var shi = m.FindItemOnLayer(Layer.TwoHanded);
 
-            bool deflect = false;
-            int perc = 0;
+            var deflect = false;
+            var perc = 0;
 
             if (helm != null)
             {
@@ -251,7 +310,6 @@ namespace Server.Mobiles
             }
 
             if (!deflect && ear != null)
-            {
                 if (ear is BaseJewel && ((BaseJewel)ear).GorgonLenseCharges > 0)
                 {
                     perc = GetScaleEffectiveness(((BaseJewel)ear).GorgonLenseType);
@@ -262,7 +320,6 @@ namespace Server.Mobiles
                         deflect = true;
                     }
                 }
-            }
 
             return deflect;
         }
@@ -278,44 +335,6 @@ namespace Server.Mobiles
             }
 
             return 0;
-        }
-
-        public bool Carve(Mobile from, Item item)
-        {
-            if (m_Scales > 0)
-            {
-                if (DateTime.UtcNow < m_NextCarve)
-                {
-                    from.SendLocalizedMessage(1112677); // The creature is still recovering from the previous harvest. Try again in a few seconds.
-                }
-                else
-                {
-                    int amount = Math.Min(m_Scales, Utility.RandomMinMax(2, 3));
-
-                    m_Scales -= amount;
-
-                    Item scales = new MedusaLightScales(amount);
-
-                    if (from.PlaceInBackpack(scales))
-                    {
-                        // You harvest magical resources from the creature and place it in your bag.
-                        from.SendLocalizedMessage(1112676);
-                    }
-                    else
-                    {
-                        scales.MoveToWorld(from.Location, from.Map);
-                    }
-
-                    new Blood(0x122D).MoveToWorld(Location, Map);
-
-                    m_NextCarve = DateTime.UtcNow + TimeSpan.FromMinutes(1.0);
-                    return true;
-                }
-            }
-            else
-                from.SendLocalizedMessage(1112674); // There's nothing left to harvest from this creature.
-
-            return false;
         }
 
         public override void OnThink()
@@ -334,8 +353,8 @@ namespace Server.Mobiles
 
         public void DoGaze()
         {
-            Mobile target = FindRandomMedusaTarget();
-            Map map = Map;
+            var target = FindRandomMedusaTarget();
+            var map = Map;
 
             if (map == null || target == null)
                 return;
@@ -345,7 +364,8 @@ namespace Server.Mobiles
                 if (CheckBlockGaze(target))
                 {
                     if (GorgonLense.TotalCharges(target) == 0)
-                        target.SendLocalizedMessage(1112600); // Your lenses crumble. You are no longer protected from Medusa's gaze!
+                        target.SendLocalizedMessage(
+                            1112600); // Your lenses crumble. You are no longer protected from Medusa's gaze!
                     else
                         target.SendLocalizedMessage(1112599); //Your Gorgon Lens deflect Medusa's petrifying gaze!
                 }
@@ -353,14 +373,14 @@ namespace Server.Mobiles
                 {
                     BaseCreature clone = new MedusaClone(target);
 
-                    bool validLocation = false;
-                    Point3D loc = Location;
+                    var validLocation = false;
+                    var loc = Location;
 
-                    for (int j = 0; !validLocation && j < 10; ++j)
+                    for (var j = 0; !validLocation && j < 10; ++j)
                     {
-                        int x = X + Utility.Random(10) - 1;
-                        int y = Y + Utility.Random(10) - 1;
-                        int z = map.GetAverageZ(x, y);
+                        var x = X + Utility.Random(10) - 1;
+                        var y = Y + Utility.Random(10) - 1;
+                        var z = map.GetAverageZ(x, y);
 
                         if (validLocation = map.CanFit(x, y, Z, 16, false, false))
                             loc = new Point3D(x, y, Z);
@@ -376,10 +396,12 @@ namespace Server.Mobiles
                     target.SolidHueOverride = 761;
 
                     //clone.MoveToWorld(loc, target.Map);
-                    BaseCreature.Summon(clone, false, this, loc, 0, TimeSpan.FromMinutes(90));
+                    Summon(clone, false, this, loc, 0, TimeSpan.FromMinutes(90));
 
-                    if (target is BaseCreature && !((BaseCreature)target).Summoned && ((BaseCreature)target).GetMaster() != null)
-                        ((BaseCreature)target).GetMaster().SendLocalizedMessage(1113281, null, 43); // Your pet has been petrified!
+                    if (target is BaseCreature && !((BaseCreature)target).Summoned &&
+                        ((BaseCreature)target).GetMaster() != null)
+                        ((BaseCreature)target).GetMaster()
+                            .SendLocalizedMessage(1113281, null, 43); // Your pet has been petrified!
                     else
                         target.SendLocalizedMessage(1112768); // You have been turned to stone!!!
 
@@ -387,7 +409,7 @@ namespace Server.Mobiles
                     m_GazeDelay = DateTime.UtcNow + TimeSpan.FromSeconds(Utility.RandomMinMax(45, 75));
 
                     m_Helpers.Add(clone);
-                    m_TurnedToStone.Add(target);
+                    AffectedMobiles.Add(target);
 
                     BuffInfo.AddBuff(target, new BuffInfo(BuffIcon.MedusaStone, 1153790, 1153825));
                     return;
@@ -401,70 +423,63 @@ namespace Server.Mobiles
         {
             DefragHelpers();
 
-            Map map = Map;
+            var map = Map;
 
             if (map == null)
                 return;
 
-            int stones = 0;
+            var stones = 0;
 
-            foreach (Mobile m in m_Helpers)
-            {
+            foreach (var m in m_Helpers)
                 if (!(m is MedusaClone))
                     ++stones;
-            }
 
             if (stones >= 5)
                 return;
-            else
+            var stone = GetRandomStoneMonster();
+
+            var validLocation = false;
+            var loc = Location;
+
+            for (var j = 0; !validLocation && j < 10; ++j)
             {
-                BaseCreature stone = GetRandomStoneMonster();
+                var x = X + Utility.Random(10) - 1;
+                var y = Y + Utility.Random(10) - 1;
+                var z = map.GetAverageZ(x, y);
 
-                bool validLocation = false;
-                Point3D loc = Location;
-
-                for (int j = 0; !validLocation && j < 10; ++j)
-                {
-                    int x = X + Utility.Random(10) - 1;
-                    int y = Y + Utility.Random(10) - 1;
-                    int z = map.GetAverageZ(x, y);
-
-                    if (validLocation = map.CanFit(x, y, Z, 16, false, false))
-                        loc = new Point3D(x, y, Z);
-                    else if (validLocation = map.CanFit(x, y, z, 16, false, false))
-                        loc = new Point3D(x, y, z);
-                }
-
-                BaseCreature.Summon(stone, false, this, loc, 0, TimeSpan.FromMinutes(90));
-                //stone.MoveToWorld(loc, map);
-                stone.Frozen = stone.Blessed = true;
-                stone.SolidHueOverride = 761;
-                stone.Combatant = null;
-
-                m_Helpers.Add(stone);
+                if (validLocation = map.CanFit(x, y, Z, 16, false, false))
+                    loc = new Point3D(x, y, Z);
+                else if (validLocation = map.CanFit(x, y, z, 16, false, false))
+                    loc = new Point3D(x, y, z);
             }
+
+            Summon(stone, false, this, loc, 0, TimeSpan.FromMinutes(90));
+            //stone.MoveToWorld(loc, map);
+            stone.Frozen = stone.Blessed = true;
+            stone.SolidHueOverride = 761;
+            stone.Combatant = null;
+
+            m_Helpers.Add(stone);
 
             m_StoneDelay = DateTime.UtcNow + TimeSpan.FromSeconds(Utility.RandomMinMax(30, 150));
         }
 
         private void DefragHelpers()
         {
-            List<Mobile> toDelete = new List<Mobile>();
+            var toDelete = new List<Mobile>();
 
-            foreach (Mobile m in m_Helpers)
+            foreach (var m in m_Helpers)
             {
-                if(m == null)
+                if (m == null)
                     continue;
 
                 if (!m.Alive || m.Deleted)
                     toDelete.Add(m);
             }
 
-            foreach (Mobile m in toDelete)
-            {
+            foreach (var m in toDelete)
                 if (m_Helpers.Contains(m))
                     m_Helpers.Remove(m);
-            }
         }
 
         private BaseCreature GetRandomStoneMonster()
@@ -483,25 +498,23 @@ namespace Server.Mobiles
 
         public void ReleaseStoneMonster()
         {
-            List<Mobile> stones = new List<Mobile>();
+            var stones = new List<Mobile>();
 
-            foreach (Mobile mob in m_Helpers)
-            {
+            foreach (var mob in m_Helpers)
                 if (!(mob is MedusaClone) && mob.Alive)
                     stones.Add(mob);
-            }
 
-            if(stones.Count == 0)
+            if (stones.Count == 0)
                 return;
 
-            Mobile m = stones[Utility.Random(stones.Count)];
+            var m = stones[Utility.Random(stones.Count)];
 
             if (m != null)
             {
                 m.Frozen = m.Blessed = false;
                 m.SolidHueOverride = -1;
                 Mobile closest = null;
-                int dist = 12;
+                var dist = 12;
 
                 m_Helpers.Remove(m);
 
@@ -510,13 +523,15 @@ namespace Server.Mobiles
                 {
                     if (targ != null && targ.Player)
                     {
-                        targ.SendLocalizedMessage(1112767, null, 43); // Medusa releases one of the petrified creatures!!
+                        targ.SendLocalizedMessage(1112767, null,
+                            43); // Medusa releases one of the petrified creatures!!
                         targ.Combatant = targ;
                     }
 
-                    if (targ is PlayerMobile || (targ is BaseCreature && ((BaseCreature)targ).GetMaster() is PlayerMobile))
+                    if (targ is PlayerMobile ||
+                        (targ is BaseCreature && ((BaseCreature)targ).GetMaster() is PlayerMobile))
                     {
-                        int d = (int)m.GetDistanceToSqrt(targ.Location);
+                        var d = (int)m.GetDistanceToSqrt(targ.Location);
 
                         if (d < dist)
                         {
@@ -525,6 +540,7 @@ namespace Server.Mobiles
                         }
                     }
                 }
+
                 eable.Free();
 
                 if (closest != null)
@@ -547,11 +563,9 @@ namespace Server.Mobiles
 
         public override void OnAfterDelete()
         {
-            foreach (Mobile m in m_Helpers)
-            {
+            foreach (var m in m_Helpers)
                 if (m != null && !m.Deleted)
                     m.Delete();
-            }
 
             base.OnAfterDelete();
         }
@@ -559,28 +573,28 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
 
-            writer.Write((int)m_Scales);
+            writer.Write(m_Scales);
 
             writer.Write(m_Helpers.Count);
 
-            foreach (Mobile helper in m_Helpers)
+            foreach (var helper in m_Helpers)
                 writer.Write(helper);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             m_Scales = reader.ReadInt();
 
-            int count = reader.ReadInt();
+            var count = reader.ReadInt();
 
-            for (int i = 0; i < count; i++)
+            for (var i = 0; i < count; i++)
             {
-                Mobile m = reader.ReadMobile();
+                var m = reader.ReadMobile();
 
                 if (m != null && m.Alive)
                     m_Helpers.Add(m);
@@ -589,9 +603,9 @@ namespace Server.Mobiles
 
         public class GazeTimer : Timer
         {
-            private Mobile target;
-            private Mobile clone;
-            private Medusa m_Medusa;
+            private readonly Mobile clone;
+            private readonly Medusa m_Medusa;
+            private readonly Mobile target;
             private int m_Count;
 
             public GazeTimer(Mobile m, Mobile mc, Medusa medusa, int duration)
@@ -614,8 +628,10 @@ namespace Server.Mobiles
                     target.Blessed = false;
                     m_Medusa.RemoveAffectedMobiles(target);
 
-                    if (target is BaseCreature && !((BaseCreature)target).Summoned && ((BaseCreature)target).GetMaster() != null)
-                        ((BaseCreature)target).GetMaster().SendLocalizedMessage(1113285, null, 43); // Beware! A statue of your pet has been created!
+                    if (target is BaseCreature && !((BaseCreature)target).Summoned &&
+                        ((BaseCreature)target).GetMaster() != null)
+                        ((BaseCreature)target).GetMaster()
+                            .SendLocalizedMessage(1113285, null, 43); // Beware! A statue of your pet has been created!
 
                     BuffInfo.RemoveBuff(target, BuffIcon.MedusaStone);
                 }
@@ -623,15 +639,16 @@ namespace Server.Mobiles
                 {
                     clone.SolidHueOverride = -1;
                     clone.Frozen = clone.Blessed = false;
-                    int dist = 12;
+                    var dist = 12;
                     Mobile closest = null;
 
                     IPooledEnumerable eable = clone.GetMobilesInRange(12);
                     foreach (Mobile m in eable)
                     {
-                        int d = (int)clone.GetDistanceToSqrt(m.Location);
+                        var d = (int)clone.GetDistanceToSqrt(m.Location);
 
-                        if (m != null && m is PlayerMobile || (m is BaseCreature && ((BaseCreature)m).GetMaster() is PlayerMobile))
+                        if ((m != null && m is PlayerMobile) ||
+                            (m is BaseCreature && ((BaseCreature)m).GetMaster() is PlayerMobile))
                         {
                             if (m.NetState != null)
                             {
@@ -647,19 +664,28 @@ namespace Server.Mobiles
                             }
                         }
                     }
+
                     eable.Free();
 
                     if (closest != null)
                         clone.Combatant = closest;
                 }
                 else
+                {
                     Stop();
+                }
             }
         }
     }
 
     public class MedusaClone : BaseCreature, IFreezable
     {
+        public override bool DeleteCorpseOnDeath => true;
+
+        public override bool ReacquireOnMovement => true;
+
+        public override bool AlwaysMurderer => !Frozen;
+
         public MedusaClone(Mobile m)
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
         {
@@ -672,27 +698,11 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool DeleteCorpseOnDeath
+        public void OnRequestedAnimation(Mobile from)
         {
-            get
-            {
-                return true;
-            }
+            if (Frozen) from.Send(new UpdateStatueAnimation(this, 1, 31, 5));
         }
-        public override bool ReacquireOnMovement
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool AlwaysMurderer
-        {
-            get
-            {
-                return !Frozen;
-            }
-        }
+
         public void Clone(Mobile m)
         {
             if (m == null)
@@ -726,22 +736,21 @@ namespace Server.Mobiles
 
             BaseSoundID = m.BaseSoundID;
 
-            for (int i = 0; i < m.Skills.Length; ++i)
+            for (var i = 0; i < m.Skills.Length; ++i)
             {
                 Skills[i].Base = m.Skills[i].Base;
                 Skills[i].Cap = m.Skills[i].Cap;
             }
 
-            for (int i = 0; i < m.Items.Count; i++)
-            {
-                if (m.Items[i].Layer != Layer.Backpack && m.Items[i].Layer != Layer.Mount && m.Items[i].Layer != Layer.Bank)
+            for (var i = 0; i < m.Items.Count; i++)
+                if (m.Items[i].Layer != Layer.Backpack && m.Items[i].Layer != Layer.Mount &&
+                    m.Items[i].Layer != Layer.Bank)
                     AddItem(CloneItem(m.Items[i]));
-            }
         }
 
         public Item CloneItem(Item item)
         {
-            Item cloned = new Item(item.ItemID);
+            var cloned = new Item(item.ItemID);
             cloned.Layer = item.Layer;
             cloned.Name = item.Name;
             cloned.Hue = item.Hue;
@@ -759,17 +768,10 @@ namespace Server.Mobiles
                 base.OnDoubleClick(from);
         }
 
-        public void OnRequestedAnimation(Mobile from)
-        {
-            if (Frozen)
-            {
-                from.Send(new UpdateStatueAnimation(this, 1, 31, 5));
-            }
-        }
-
         public override void OnDelete()
         {
-            Effects.SendLocationParticles(EffectItem.Create(Location, Map, EffectItem.DefaultDuration), 0x3728, 10, 15, 5042);
+            Effects.SendLocationParticles(EffectItem.Create(Location, Map, EffectItem.DefaultDuration), 0x3728, 10, 15,
+                5042);
 
             base.OnDelete();
         }
@@ -777,13 +779,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
             Delete();
         }
     }
@@ -795,7 +797,7 @@ namespace Server.Commands
     {
         public static void Initialize()
         {
-            CommandSystem.Register("addclone", AccessLevel.Seer, new CommandEventHandler(AddClone_OnCommand));
+            CommandSystem.Register("addclone", AccessLevel.Seer, AddClone_OnCommand);
         }
 
         [Description("")]

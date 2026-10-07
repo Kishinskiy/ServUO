@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +5,14 @@ namespace Server.Mobiles
     [CorpseName("a wolf spider spider corpse")]
     public class WolfSpider : BaseCreature
     {
+        public override FoodType FavoriteFood => FoodType.Meat;
+
+        public override PackInstinct PackInstinct => PackInstinct.Arachnid;
+
+        public override Poison PoisonImmune => Poison.Regular;
+
+        public override Poison HitPoison => Poison.Regular;
+
         [Constructable]
         public WolfSpider()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -19,8 +26,8 @@ namespace Server.Mobiles
             SetInt(285, 310);
 
             SetHits(150, 160);
-			SetMana(285, 310);
-			SetStam(145, 165);
+            SetMana(285, 310);
+            SetStam(145, 165);
 
             SetDamage(15, 18);
 
@@ -51,34 +58,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override FoodType FavoriteFood
-        {
-            get
-            {
-                return FoodType.Meat;
-            }
-        }
-        public override PackInstinct PackInstinct
-        {
-            get
-            {
-                return PackInstinct.Arachnid;
-            }
-        }
-        public override Poison PoisonImmune
-        {
-            get
-            {
-                return Poison.Regular;
-            }
-        }
-        public override Poison HitPoison
-        {
-            get
-            {
-                return Poison.Regular;
-            }
-        }
         public override void GenerateLoot()
         {
             PackItem(new SpidersSilk(8));
@@ -117,13 +96,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)2);
+            writer.Write(2);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (version == 0)
             {
@@ -132,9 +111,7 @@ namespace Server.Mobiles
             }
 
             if (version == 1 && (AbilityProfile == null || AbilityProfile.MagicalAbility == MagicalAbility.None))
-            {
                 SetMagicalAbility(MagicalAbility.Poisoning);
-            }
         }
     }
 }

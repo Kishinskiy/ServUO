@@ -11,123 +11,28 @@ namespace Server.Engines.Reports
 
     public class BarGraph : Chart
     {
-        #region Type Identification
-        public static readonly PersistableType ThisTypeID = new PersistableType("bg", new ConstructCallback(Construct));
+        public int Ticks { get; set; }
 
-        private static PersistableObject Construct()
-        {
-            return new BarGraph();
-        }
+        public BarGraphRenderMode RenderMode { get; set; }
 
-        public override PersistableType TypeID
-        {
-            get
-            {
-                return ThisTypeID;
-            }
-        }
-        #endregion
+        public string xTitle { get; set; }
 
-        private int m_Ticks;
-        private BarGraphRenderMode m_RenderMode;
+        public string yTitle { get; set; }
 
-        private string m_xTitle;
-        private string m_yTitle;
+        public int FontSize { get; set; } = 7;
 
-        private int m_FontSize = 7;
-        private int m_Interval = 1;
+        public int Interval { get; set; } = 1;
 
-        private BarRegion[] m_Regions;
-
-        public int Ticks
-        {
-            get
-            {
-                return this.m_Ticks;
-            }
-            set
-            {
-                this.m_Ticks = value;
-            }
-        }
-        public BarGraphRenderMode RenderMode
-        {
-            get
-            {
-                return this.m_RenderMode;
-            }
-            set
-            {
-                this.m_RenderMode = value;
-            }
-        }
-
-        public string xTitle
-        {
-            get
-            {
-                return this.m_xTitle;
-            }
-            set
-            {
-                this.m_xTitle = value;
-            }
-        }
-        public string yTitle
-        {
-            get
-            {
-                return this.m_yTitle;
-            }
-            set
-            {
-                this.m_yTitle = value;
-            }
-        }
-
-        public int FontSize
-        {
-            get
-            {
-                return this.m_FontSize;
-            }
-            set
-            {
-                this.m_FontSize = value;
-            }
-        }
-        public int Interval
-        {
-            get
-            {
-                return this.m_Interval;
-            }
-            set
-            {
-                this.m_Interval = value;
-            }
-        }
-
-        public BarRegion[] Regions
-        {
-            get
-            {
-                return this.m_Regions;
-            }
-            set
-            {
-                this.m_Regions = value;
-            }
-        }
+        public BarRegion[] Regions { get; set; }
 
         public BarGraph(string name, string fileName, int ticks, string xTitle, string yTitle, BarGraphRenderMode rm)
         {
-            this.m_Name = name;
-            this.m_FileName = fileName;
-            this.m_Ticks = ticks;
-            this.m_xTitle = xTitle;
-            this.m_yTitle = yTitle;
-            this.m_RenderMode = rm;
+            m_Name = name;
+            m_FileName = fileName;
+            Ticks = ticks;
+            this.xTitle = xTitle;
+            this.yTitle = yTitle;
+            RenderMode = rm;
         }
 
         private BarGraph()
@@ -138,42 +43,42 @@ namespace Server.Engines.Reports
         {
             base.SerializeAttributes(op);
 
-            op.SetInt32("t", this.m_Ticks);
-            op.SetInt32("r", (int)this.m_RenderMode);
+            op.SetInt32("t", Ticks);
+            op.SetInt32("r", (int)RenderMode);
 
-            op.SetString("x", this.m_xTitle);
-            op.SetString("y", this.m_yTitle);
+            op.SetString("x", xTitle);
+            op.SetString("y", yTitle);
 
-            op.SetInt32("s", this.m_FontSize);
-            op.SetInt32("i", this.m_Interval);
+            op.SetInt32("s", FontSize);
+            op.SetInt32("i", Interval);
         }
 
         public override void DeserializeAttributes(PersistenceReader ip)
         {
             base.DeserializeAttributes(ip);
 
-            this.m_Ticks = ip.GetInt32("t");
-            this.m_RenderMode = (BarGraphRenderMode)ip.GetInt32("r");
+            Ticks = ip.GetInt32("t");
+            RenderMode = (BarGraphRenderMode)ip.GetInt32("r");
 
-            this.m_xTitle = Utility.Intern(ip.GetString("x"));
-            this.m_yTitle = Utility.Intern(ip.GetString("y"));
+            xTitle = Utility.Intern(ip.GetString("x"));
+            yTitle = Utility.Intern(ip.GetString("y"));
 
-            this.m_FontSize = ip.GetInt32("s");
-            this.m_Interval = ip.GetInt32("i");
+            FontSize = ip.GetInt32("s");
+            Interval = ip.GetInt32("i");
         }
 
         public static int LookupReportValue(Snapshot ss, string reportName, string valueName)
         {
-            for (int j = 0; j < ss.Children.Count; ++j)
+            for (var j = 0; j < ss.Children.Count; ++j)
             {
-                Report report = ss.Children[j] as Report;
+                var report = ss.Children[j] as Report;
 
                 if (report == null || report.Name != reportName)
                     continue;
 
-                for (int k = 0; k < report.Items.Count; ++k)
+                for (var k = 0; k < report.Items.Count; ++k)
                 {
-                    ReportItem item = report.Items[k];
+                    var item = report.Items[k];
 
                     if (item.Values[0].Value == valueName)
                         return Utility.ToInt32(item.Values[1].Value);
@@ -187,43 +92,44 @@ namespace Server.Engines.Reports
 
         public static BarGraph DailyAverage(SnapshotHistory history, string reportName, string valueName)
         {
-            int[] totals = new int[24];
-            int[] counts = new int[24];
+            var totals = new int[24];
+            var counts = new int[24];
 
-            int min = history.Snapshots.Count - (7 * 24); // averages over one week
+            var min = history.Snapshots.Count - 7 * 24; // averages over one week
 
             if (min < 0)
                 min = 0;
 
-            for (int i = min; i < history.Snapshots.Count; ++i)
+            for (var i = min; i < history.Snapshots.Count; ++i)
             {
-                Snapshot ss = history.Snapshots[i];
+                var ss = history.Snapshots[i];
 
-                int val = LookupReportValue(ss, reportName, valueName);
+                var val = LookupReportValue(ss, reportName, valueName);
 
                 if (val == -1)
                     continue;
 
-                int hour = ss.TimeStamp.TimeOfDay.Hours;
+                var hour = ss.TimeStamp.TimeOfDay.Hours;
 
                 totals[hour] += val;
                 counts[hour]++;
             }
 
-            BarGraph barGraph = new BarGraph("Hourly average " + valueName, "graphs_" + valueName.ToLower() + "_avg", 10, "Time", valueName, BarGraphRenderMode.Lines);
+            var barGraph = new BarGraph("Hourly average " + valueName, "graphs_" + valueName.ToLower() + "_avg", 10,
+                "Time", valueName, BarGraphRenderMode.Lines);
 
-            barGraph.m_FontSize = 6;
+            barGraph.FontSize = 6;
 
-            for (int i = 7; i <= totals.Length + 7; ++i)
+            for (var i = 7; i <= totals.Length + 7; ++i)
             {
                 int val;
 
                 if (counts[i % totals.Length] == 0)
                     val = 0;
                 else
-                    val = (totals[i % totals.Length] + (counts[i % totals.Length] / 2)) / counts[i % totals.Length];
+                    val = (totals[i % totals.Length] + counts[i % totals.Length] / 2) / counts[i % totals.Length];
 
-                int realHours = i % totals.Length;
+                var realHours = i % totals.Length;
                 int hours;
 
                 if (realHours == 0)
@@ -241,37 +147,38 @@ namespace Server.Engines.Reports
 
         public static BarGraph Growth(SnapshotHistory history, string reportName, string valueName)
         {
-            BarGraph barGraph = new BarGraph("Growth of " + valueName + " over time", "graphs_" + valueName.ToLower() + "_growth", 10, "Time", valueName, BarGraphRenderMode.Lines);
+            var barGraph = new BarGraph("Growth of " + valueName + " over time",
+                "graphs_" + valueName.ToLower() + "_growth", 10, "Time", valueName, BarGraphRenderMode.Lines);
 
             barGraph.FontSize = 6;
             barGraph.Interval = 7;
 
-            DateTime startPeriod = history.Snapshots[0].TimeStamp.Date + TimeSpan.FromDays(1.0);
-            DateTime endPeriod = history.Snapshots[history.Snapshots.Count - 1].TimeStamp.Date;
+            var startPeriod = history.Snapshots[0].TimeStamp.Date + TimeSpan.FromDays(1.0);
+            var endPeriod = history.Snapshots[history.Snapshots.Count - 1].TimeStamp.Date;
 
-            ArrayList regions = new ArrayList();
+            var regions = new ArrayList();
 
-            DateTime curDate = DateTime.MinValue;
-            int curPeak = -1;
-            int curLow = 1000;
-            int curTotl = 0;
-            int curCont = 0;
-            int curValu = 0;
+            var curDate = DateTime.MinValue;
+            var curPeak = -1;
+            var curLow = 1000;
+            var curTotl = 0;
+            var curCont = 0;
+            var curValu = 0;
 
-            for (int i = 0; i < history.Snapshots.Count; ++i)
+            for (var i = 0; i < history.Snapshots.Count; ++i)
             {
-                Snapshot ss = history.Snapshots[i];
-                DateTime timeStamp = ss.TimeStamp;
+                var ss = history.Snapshots[i];
+                var timeStamp = ss.TimeStamp;
 
                 if (timeStamp < startPeriod || timeStamp >= endPeriod)
                     continue;
 
-                int val = LookupReportValue(ss, reportName, valueName);
+                var val = LookupReportValue(ss, reportName, valueName);
 
                 if (val == -1)
                     continue;
 
-                DateTime thisDate = timeStamp.Date;
+                var thisDate = timeStamp.Date;
 
                 if (curDate == DateTime.MinValue)
                     curDate = thisDate;
@@ -282,7 +189,7 @@ namespace Server.Engines.Reports
 
                 if (curDate != thisDate && curValu >= 0)
                 {
-                    string mnthName = thisDate.ToString("MMMM");
+                    var mnthName = thisDate.ToString("MMMM");
 
                     if (regions.Count == 0)
                     {
@@ -290,7 +197,7 @@ namespace Server.Engines.Reports
                     }
                     else
                     {
-                        BarRegion region = (BarRegion)regions[regions.Count - 1];
+                        var region = (BarRegion)regions[regions.Count - 1];
 
                         if (region.m_Name == mnthName)
                             region.m_RangeTo = barGraph.Items.Count;
@@ -320,37 +227,39 @@ namespace Server.Engines.Reports
             return barGraph;
         }
 
-        public static BarGraph OverTime(SnapshotHistory history, string reportName, string valueName, int step, int max, int ival)
+        public static BarGraph OverTime(SnapshotHistory history, string reportName, string valueName, int step, int max,
+            int ival)
         {
-            BarGraph barGraph = new BarGraph(valueName + " over time", "graphs_" + valueName.ToLower() + "_ot", 10, "Time", valueName, BarGraphRenderMode.Lines);
+            var barGraph = new BarGraph(valueName + " over time", "graphs_" + valueName.ToLower() + "_ot", 10, "Time",
+                valueName, BarGraphRenderMode.Lines);
 
-            TimeSpan ts = TimeSpan.FromHours((max * step) - 0.5);
+            var ts = TimeSpan.FromHours(max * step - 0.5);
 
-            DateTime mostRecent = history.Snapshots[history.Snapshots.Count - 1].TimeStamp;
-            DateTime minTime = mostRecent - ts;
+            var mostRecent = history.Snapshots[history.Snapshots.Count - 1].TimeStamp;
+            var minTime = mostRecent - ts;
 
             barGraph.FontSize = 6;
             barGraph.Interval = ival;
 
-            ArrayList regions = new ArrayList();
+            var regions = new ArrayList();
 
-            for (int i = 0; i < history.Snapshots.Count; ++i)
+            for (var i = 0; i < history.Snapshots.Count; ++i)
             {
-                Snapshot ss = history.Snapshots[i];
-                DateTime timeStamp = ss.TimeStamp;
+                var ss = history.Snapshots[i];
+                var timeStamp = ss.TimeStamp;
 
                 if (timeStamp < minTime)
                     continue;
 
-                if ((i % step) != 0)
+                if (i % step != 0)
                     continue;
 
-                int val = LookupReportValue(ss, reportName, valueName);
+                var val = LookupReportValue(ss, reportName, valueName);
 
                 if (val == -1)
                     continue;
 
-                int realHours = timeStamp.TimeOfDay.Hours;
+                var realHours = timeStamp.TimeOfDay.Hours;
                 int hours;
 
                 if (realHours == 0)
@@ -360,7 +269,7 @@ namespace Server.Engines.Reports
                 else
                     hours = realHours;
 
-                string dayName = timeStamp.DayOfWeek.ToString();
+                var dayName = timeStamp.DayOfWeek.ToString();
 
                 if (regions.Count == 0)
                 {
@@ -368,7 +277,7 @@ namespace Server.Engines.Reports
                 }
                 else
                 {
-                    BarRegion region = (BarRegion)regions[regions.Count - 1];
+                    var region = (BarRegion)regions[regions.Count - 1];
 
                     if (region.m_Name == dayName)
                         region.m_RangeTo = barGraph.Items.Count;
@@ -383,5 +292,18 @@ namespace Server.Engines.Reports
 
             return barGraph;
         }
+
+        #region Type Identification
+
+        public static readonly PersistableType ThisTypeID = new PersistableType("bg", Construct);
+
+        private static PersistableObject Construct()
+        {
+            return new BarGraph();
+        }
+
+        public override PersistableType TypeID => ThisTypeID;
+
+        #endregion
     }
 }

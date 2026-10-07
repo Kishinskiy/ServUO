@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 using Server.Network;
 
@@ -8,6 +7,19 @@ namespace Server.Mobiles
     public class RuddyBoura : BaseCreature, ICarvable
     {
         private bool GatheredFur { get; set; }
+
+        public override int Meat => 10;
+
+        public override int Hides => 20;
+
+        public override int DragonBlood => 8;
+
+        public override HideType HideType => HideType.Spined;
+
+        public override FoodType FavoriteFood => FoodType.FruitsAndVegies;
+
+        public override int Fur => GatheredFur ? 0 : 30;
+        public override FurType FurType => FurType.LightBrown;
 
         [Constructable]
         public RuddyBoura() : base(AIType.AI_Animal, FightMode.Aggressor, 10, 1, 0.2, 0.4)
@@ -53,28 +65,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override int Meat
-        {
-            get { return 10; }
-        }
-
-        public override int Hides
-        {
-            get { return 20; }
-        }
-
-        public override int DragonBlood{ get{ return 8; } }
-
-        public override HideType HideType
-        {
-            get { return HideType.Spined; }
-        }
-
-        public override FoodType FavoriteFood { get { return FoodType.FruitsAndVegies; } }
-
-        public override int Fur { get { return GatheredFur ? 0 : 30; } }
-        public override FurType FurType { get { return FurType.LightBrown; } }
-
         public bool Carve(Mobile from, Item item)
         {
             if (!GatheredFur)
@@ -83,7 +73,8 @@ namespace Server.Mobiles
 
                 if (from.Backpack == null || !from.Backpack.TryDropItem(from, fur, false))
                 {
-                    from.SendLocalizedMessage(1112352); // You would not be able to place the gathered boura fur in your backpack!
+                    from.SendLocalizedMessage(
+                        1112352); // You would not be able to place the gathered boura fur in your backpack!
                     fur.Delete();
                 }
                 else
@@ -96,7 +87,8 @@ namespace Server.Mobiles
             }
             else
             {
-                PrivateOverheadMessage(MessageType.Regular, 0x3B2, 1112354, from.NetState); // The boura glares at you and will not let you shear its fur.
+                PrivateOverheadMessage(MessageType.Regular, 0x3B2, 1112354,
+                    from.NetState); // The boura glares at you and will not let you shear its fur.
             }
 
             return false;
@@ -127,7 +119,7 @@ namespace Server.Mobiles
             base.OnDeath(c);
 
             if (!Controlled)
-            c.DropItem(new BouraSkin());
+                c.DropItem(new BouraSkin());
         }
 
         public override void Serialize(GenericWriter writer)
@@ -145,9 +137,7 @@ namespace Server.Mobiles
             if (version == 1)
                 reader.ReadDeltaTime();
             else
-            {
                 GatheredFur = reader.ReadBool();
-            }
         }
     }
 }

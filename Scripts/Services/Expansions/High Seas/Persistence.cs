@@ -1,11 +1,8 @@
-using Server;
-using System;
+using System.IO;
+using Server.Commands;
 using Server.Engines.Quests;
 using Server.Mobiles;
 using Server.Regions;
-using Server.Commands;
-using System.Collections.Generic;
-using System.IO;
 
 namespace Server.Items
 {
@@ -13,6 +10,17 @@ namespace Server.Items
     {
         public static string FilePath = Path.Combine("Saves", "Highseas.bin");
         public static bool DefaultRestrictBoats = true;
+
+        public static HighSeasPersistance Instance { get; private set; }
+
+        public bool HighSeasActive { get; set; }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public CharydbisSpawner CharydbisSpawner
+        {
+            get => CharydbisSpawner.SpawnInstance;
+            set { }
+        }
 
         public static void Configure()
         {
@@ -23,22 +31,11 @@ namespace Server.Items
 
                 SeaMarketRegion.RestrictBoats = DefaultRestrictBoats;
 
-                m_Instance = new HighSeasPersistance();
+                Instance = new HighSeasPersistance();
 
-                CommandSystem.Register("RestrictBoats", AccessLevel.GameMaster, new CommandEventHandler(SeaMarketRegion.SetRestriction_OnCommand));
+                CommandSystem.Register("RestrictBoats", AccessLevel.GameMaster,
+                    SeaMarketRegion.SetRestriction_OnCommand);
             }
-        }
-
-        private static HighSeasPersistance m_Instance;
-        public static HighSeasPersistance Instance { get { return m_Instance; } }
-
-        public bool HighSeasActive { get; set; }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public CharydbisSpawner CharydbisSpawner { get { return CharydbisSpawner.SpawnInstance; } set { } }
-
-        public HighSeasPersistance()
-        {
         }
 
         public static void OnSave(WorldSaveEventArgs e)
@@ -47,13 +44,13 @@ namespace Server.Items
                 FilePath,
                 writer =>
                 {
-                    writer.Write((int)1);
+                    writer.Write(1);
 
-                    Server.Regions.SeaMarketRegion.Save(writer);
+                    SeaMarketRegion.Save(writer);
 
                     writer.Write(PlayerFishingEntry.FishingEntries.Count);
 
-                    foreach (PlayerFishingEntry entry in PlayerFishingEntry.FishingEntries.Values)
+                    foreach (var entry in PlayerFishingEntry.FishingEntries.Values)
                         entry.Serialize(writer);
 
                     if (CharydbisSpawner.SpawnInstance != null)
@@ -62,7 +59,9 @@ namespace Server.Items
                         CharydbisSpawner.SpawnInstance.Serialize(writer);
                     }
                     else
+                    {
                         writer.Write(1);
+                    }
 
                     ForgedPardon.Save(writer);
                 });
@@ -74,11 +73,11 @@ namespace Server.Items
                 FilePath,
                 reader =>
                 {
-                    int version = reader.ReadInt();
+                    var version = reader.ReadInt();
 
-                    Server.Regions.SeaMarketRegion.Load(reader);
-                    int count = reader.ReadInt();
-                    for (int i = 0; i < count; i++)
+                    SeaMarketRegion.Load(reader);
+                    var count = reader.ReadInt();
+                    for (var i = 0; i < count; i++)
                         new PlayerFishingEntry(reader);
 
                     if (version == 0 || reader.ReadInt() == 0)

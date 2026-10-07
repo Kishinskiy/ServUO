@@ -1,23 +1,27 @@
 using System;
-using Server;
-using Server.Items;
-using Server.Gumps;
-using System.Collections.Generic;
-using Server.ContextMenus;
 using Server.Engines.Points;
+using Server.Items;
 using Server.Mobiles;
 
 namespace Server.Engines.TreasuresOfKotlCity
 {
     public class Hal : BaseTurnInMobile
     {
-        public override int TitleLocalization { get { return 1154520; } } // Click a minor artifact to turn in for reward points.
-        public override int CancelLocalization { get { return 1156903; } }	// Bring me items of the Kotl and I will reward you with valuable items.
-        public override int TurnInLocalization { get { return 1155592; } } // Turn In Artifacts of the Kotl
-        
+        private DateTime _NextSpeak;
+        public override int TitleLocalization => 1154520; // Click a minor artifact to turn in for reward points.
+
+        public override int CancelLocalization =>
+            1156903; // Bring me items of the Kotl and I will reward you with valuable items.
+
+        public override int TurnInLocalization => 1155592; // Turn In Artifacts of the Kotl
+
 
         [Constructable]
         public Hal() : base("the Researcher")
+        {
+        }
+
+        public Hal(Serial serial) : base(serial)
         {
         }
 
@@ -46,8 +50,6 @@ namespace Server.Engines.TreasuresOfKotlCity
             list.Add(1157038); // Artifacts of the Kotl City Trader
         }
 
-        private DateTime _NextSpeak;
-
         public override void OnMovement(Mobile m, Point3D oldLocation)
         {
             base.OnMovement(m, oldLocation);
@@ -75,10 +77,6 @@ namespace Server.Engines.TreasuresOfKotlCity
                 m.SendGump(new KotlCityRewardGump(this, m as PlayerMobile));
         }
 
-        public Hal(Serial serial) : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -88,7 +86,7 @@ namespace Server.Engines.TreasuresOfKotlCity
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

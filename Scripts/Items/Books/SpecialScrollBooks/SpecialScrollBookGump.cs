@@ -1,16 +1,13 @@
-using System;
-using Server;
-using Server.Gumps;
-using Server.Mobiles;
-using Server.Items;
 using System.Collections.Generic;
 using System.Linq;
+using Server.Items;
+using Server.Mobiles;
 
 namespace Server.Gumps
 {
     public class SpecialScrollBookGump : BaseGump
     {
-        public BaseSpecialScrollBook Book { get; private set; }
+        public BaseSpecialScrollBook Book { get; }
 
         public SkillCat Category { get; set; }
         public SkillName Skill { get; set; }
@@ -27,14 +24,14 @@ namespace Server.Gumps
         {
             AddImage(0, 0, 2200);
 
-            for (int i = 0; i < 2; ++i)
+            for (var i = 0; i < 2; ++i)
             {
-                int xOffset = 25 + (i * 165);
+                var xOffset = 25 + i * 165;
 
                 AddImage(xOffset, 45, 57);
                 xOffset += 20;
 
-                for (int j = 0; j < 6; ++j, xOffset += 15)
+                for (var j = 0; j < 6; ++j, xOffset += 15)
                     AddImage(xOffset, 45, 58);
 
                 AddImage(xOffset - 5, 45, 59);
@@ -63,20 +60,19 @@ namespace Server.Gumps
 
         public virtual void BuildCategoriesPage()
         {
-            AddHtmlLocalized(0, 15, 175, 20, CenterLoc, String.Format("#{0}", Book.GumpTitle), 0, false, false);
+            AddHtmlLocalized(0, 15, 175, 20, CenterLoc, string.Format("#{0}", Book.GumpTitle), 0, false, false);
 
             if (Book == null || Book.Deleted || Book.SkillInfo == null)
                 return;
 
-            int index = 0;
+            var index = 0;
             foreach (var kvp in Book.SkillInfo)
             {
-                AddHtmlLocalized(45, 55 + (index * 15), 100, 20, BaseSpecialScrollBook.GetCategoryLocalization(kvp.Key), false, false);
+                AddHtmlLocalized(45, 55 + index * 15, 100, 20, BaseSpecialScrollBook.GetCategoryLocalization(kvp.Key),
+                    false, false);
 
                 if (HasScroll(kvp.Value))
-                {
-                    AddButton(30, 59 + (index * 15), 2103, 2104, 10 + (int)kvp.Key, GumpButtonType.Reply, 0);
-                }
+                    AddButton(30, 59 + index * 15, 2103, 2104, 10 + (int)kvp.Key, GumpButtonType.Reply, 0);
 
                 index++;
             }
@@ -84,21 +80,23 @@ namespace Server.Gumps
 
         public virtual void BuildSkillsPage()
         {
-            AddHtmlLocalized(0, 15, 175, 20, CenterLoc, String.Format("#{0}", BaseSpecialScrollBook.GetCategoryLocalization(Category)), 0, false, false); // Power Scrolls
+            AddHtmlLocalized(0, 15, 175, 20, CenterLoc,
+                string.Format("#{0}", BaseSpecialScrollBook.GetCategoryLocalization(Category)), 0, false,
+                false); // Power Scrolls
 
             if (Category == SkillCat.None || Book == null || Book.Deleted || Book.SkillInfo == null)
                 return;
 
-            List<SkillName> list = Book.SkillInfo[Category];
+            var list = Book.SkillInfo[Category];
 
-            int x = 45;
-            int y = 55;
-            int buttonX = 30;
-            int split = list.Count >= 9 ? list.Count / 2 : -1;
+            var x = 45;
+            var y = 55;
+            var buttonX = 30;
+            var split = list.Count >= 9 ? list.Count / 2 : -1;
 
-            for (int i = 0; i < list.Count; i++)
+            for (var i = 0; i < list.Count; i++)
             {
-                SkillName skill = list[i];
+                var skill = list[i];
 
                 if (split > -1 && i == split)
                 {
@@ -109,10 +107,7 @@ namespace Server.Gumps
 
                 AddHtmlLocalized(x, y, 110, 20, SkillInfo.Table[(int)skill].Localization, false, false);
 
-                if (HasScroll(skill))
-                {
-                    AddButton(buttonX, y + 4, 2103, 2104, 100 + i, GumpButtonType.Reply, 0);
-                }
+                if (HasScroll(skill)) AddButton(buttonX, y + 4, 2103, 2104, 100 + i, GumpButtonType.Reply, 0);
 
                 y += 15;
             }
@@ -120,18 +115,19 @@ namespace Server.Gumps
 
         public virtual void BuildSkillPage()
         {
-            AddHtmlLocalized(0, 15, 175, 20, CenterLoc, String.Format("#{0}", SkillInfo.Table[(int)Skill].Localization), 0, false, false);
+            AddHtmlLocalized(0, 15, 175, 20, CenterLoc, string.Format("#{0}", SkillInfo.Table[(int)Skill].Localization),
+                0, false, false);
 
             if (Skill == SkillName.Alchemy || Book == null || Book.Deleted || Book.ValueInfo == null)
                 return;
 
-            int x = 40;
-            int buttonX = 30;
-            int y = 55;
-            int index = 0;
-            int split = Book.ValueInfo.Count >= 9 ? Book.ValueInfo.Count / 2 : -1;
+            var x = 40;
+            var buttonX = 30;
+            var y = 55;
+            var index = 0;
+            var split = Book.ValueInfo.Count >= 9 ? Book.ValueInfo.Count / 2 : -1;
 
-            foreach(var kvp in Book.ValueInfo)
+            foreach (var kvp in Book.ValueInfo)
             {
                 if (split > -1 && index == split)
                 {
@@ -140,15 +136,13 @@ namespace Server.Gumps
                     y = 55;
                 }
 
-                int total = GetTotalScrolls(Skill, kvp.Value);
+                var total = GetTotalScrolls(Skill, kvp.Value);
 
                 AddHtmlLocalized(x, y, 100, 20, kvp.Key, false, false);
                 AddLabel(x + 100, y, 0, total.ToString());
 
                 if (total > 0)
-                {
                     AddButton(buttonX, y + 4, 2437, 2438, 1000 + (int)(kvp.Value * 10), GumpButtonType.Reply, 0);
-                }
 
                 y += 15;
                 index++;
@@ -172,7 +166,7 @@ namespace Server.Gumps
             }
             else
             {
-                int id = info.ButtonID;
+                var id = info.ButtonID;
 
                 if (id < 100)
                 {
@@ -190,7 +184,7 @@ namespace Server.Gumps
 
                     if (Category > SkillCat.None)
                     {
-                        List<SkillName> list = Book.SkillInfo[Category];
+                        var list = Book.SkillInfo[Category];
 
                         if (id >= 0 && id < list.Count)
                         {
@@ -211,7 +205,8 @@ namespace Server.Gumps
 
         public bool HasScroll(List<SkillName> skills)
         {
-            return Book.Items.FirstOrDefault(i => i is SpecialScroll && skills.Contains(((SpecialScroll)i).Skill)) != null;
+            return Book.Items.FirstOrDefault(i => i is SpecialScroll && skills.Contains(((SpecialScroll)i).Skill)) !=
+                   null;
         }
 
         public bool HasScroll(SkillName skill)
@@ -221,7 +216,7 @@ namespace Server.Gumps
 
         public int GetTotalScrolls(SkillName skill, double value)
         {
-            int count = 0;
+            var count = 0;
 
             foreach (var scroll in Book.Items.OfType<SpecialScroll>().Where(s => s.Skill == skill && value == s.Value))
                 count++;

@@ -1,10 +1,11 @@
-using System;
 using Server.Gumps;
 
 namespace Server.Items
 {
     public class MetalTubAddon : BaseAddon, IWaterSource
     {
+        public override BaseAddonDeed Deed => new MetalTubDeed();
+
         [Constructable]
         public MetalTubAddon(DirectionType type)
         {
@@ -19,43 +20,39 @@ namespace Server.Items
             }
         }
 
-        public int Quantity
-        {
-            get { return 500; }
-            set { }
-        }
-
         public MetalTubAddon(Serial serial)
             : base(serial)
         {
         }
 
-        public override BaseAddonDeed Deed { get { return new MetalTubDeed(); } }
+        public int Quantity
+        {
+            get => 500;
+            set { }
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class MetalTubDeed : BaseAddonDeed, IRewardOption
     {
-        public override int LabelNumber { get { return 1126234; } } // metal tub
-
-        public override BaseAddon Addon { get { return new MetalTubAddon(_Direction); } }
-
         private DirectionType _Direction;
+        public override int LabelNumber => 1126234; // metal tub
+
+        public override BaseAddon Addon => new MetalTubAddon(_Direction);
 
         [Constructable]
         public MetalTubDeed()
-            : base()
         {
             LootType = LootType.Blessed;
         }
@@ -95,13 +92,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

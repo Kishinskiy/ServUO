@@ -1,40 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
-using Server;
-using Server.Mobiles;
-using Server.Items;
 using Server.Commands;
 using Server.Gumps;
+using Server.Mobiles;
 
 namespace Server.Engines.SorcerersDungeon
 {
     public class TOSDSpawner
     {
-        public static void Initialize()
-        {
-            CommandSystem.Register("TOSDSpawner", AccessLevel.Administrator, e =>
-                {
-                    if (e.Mobile is PlayerMobile)
-                    {
-                        if (Instance != null)
-                        {
-                            BaseGump.SendGump(new TOSDSpawnerGump((PlayerMobile)e.Mobile));
-                        }
-                        else
-                        {
-                            e.Mobile.SendMessage("This spawner is not set up at this time. Enabled Treasures of Sorcerer's Dungeon to enable the spawner.");
-                        }
-                    }
-                });
-
-            if (Instance != null)
-            {
-                Instance.BeginTimer();
-            }
-        }
-
         public static TOSDSpawner Instance { get; set; }
 
         public BaseCreature Boss { get; set; }
@@ -57,6 +31,23 @@ namespace Server.Engines.SorcerersDungeon
             Activate();
         }
 
+        public static void Initialize()
+        {
+            CommandSystem.Register("TOSDSpawner", AccessLevel.Administrator, e =>
+            {
+                if (e.Mobile is PlayerMobile)
+                {
+                    if (Instance != null)
+                        BaseGump.SendGump(new TOSDSpawnerGump((PlayerMobile)e.Mobile));
+                    else
+                        e.Mobile.SendMessage(
+                            "This spawner is not set up at this time. Enabled Treasures of Sorcerer's Dungeon to enable the spawner.");
+                }
+            });
+
+            if (Instance != null) Instance.BeginTimer();
+        }
+
         private void Activate()
         {
             foreach (var rec in Entries.Select(e => e.SpawnArea))
@@ -64,12 +55,8 @@ namespace Server.Engines.SorcerersDungeon
                 IPooledEnumerable eable = Map.Ilshenar.GetItemsInBounds(rec);
 
                 foreach (Item item in eable)
-                {
                     if (item is XmlSpawner)
-                    {
                         ((XmlSpawner)item).DoReset = true;
-                    }
-                }
             }
         }
 
@@ -80,20 +67,13 @@ namespace Server.Engines.SorcerersDungeon
                 IPooledEnumerable eable = Map.Ilshenar.GetItemsInBounds(rec);
 
                 foreach (Item item in eable)
-                {
                     if (item is XmlSpawner)
-                    {
                         ((XmlSpawner)item).DoRespawn = true;
-                    }
-                }
             }
 
             EndTimer();
 
-            foreach (var bc in Spawn)
-            {
-                bc.Delete();
-            }
+            foreach (var bc in Spawn) bc.Delete();
 
             Instance = null;
         }
@@ -117,21 +97,14 @@ namespace Server.Engines.SorcerersDungeon
 
         private void OnTick()
         {
-            if (Spawning)
-            {
-                return;
-            }
+            if (Spawning) return;
 
             if (Boss != null && Boss.Deleted)
             {
                 if (Index == Entries.Count - 1)
-                {
                     Index = 0;
-                }
                 else
-                {
                     Index++;
-                }
 
                 Reset();
             }
@@ -156,7 +129,7 @@ namespace Server.Engines.SorcerersDungeon
         {
             var spawn = Activator.CreateInstance(t) as BaseCreature;
 
-            for (int i = 0; i < 20; i++)
+            for (var i = 0; i < 20; i++)
             {
                 var p = Map.Ilshenar.GetRandomSpawnPoint(Entries[Index].SpawnArea);
 
@@ -165,13 +138,9 @@ namespace Server.Engines.SorcerersDungeon
                     spawn.MoveToWorld(p, Map.Ilshenar);
 
                     if (boss)
-                    {
                         Boss = spawn;
-                    }
                     else
-                    {
                         AddSpawn(spawn);
-                    }
 
                     return;
                 }
@@ -196,20 +165,17 @@ namespace Server.Engines.SorcerersDungeon
         }
 
         public void Reset()
-		{
-			ColUtility.Free(Spawn);
+        {
+            ColUtility.Free(Spawn);
             Boss = null;
             Spawning = false;
 
-			KillCount = 0;
-			
-			EndTimer();
-			
-			Timer.DelayCall(TimeSpan.FromMinutes(Utility.RandomMinMax(1, 3)), () =>
-			{
-				BeginTimer();
-			});
-		}
+            KillCount = 0;
+
+            EndTimer();
+
+            Timer.DelayCall(TimeSpan.FromMinutes(Utility.RandomMinMax(1, 3)), () => { BeginTimer(); });
+        }
 
         public void Serialize(GenericWriter writer)
         {
@@ -221,70 +187,82 @@ namespace Server.Engines.SorcerersDungeon
 
             writer.Write(Spawn.Count);
 
-            foreach (var bc in Spawn)
+            foreach (var bc in Spawn) writer.Write(bc);
+        }
+
+        public void Deserialize(GenericReader reader)
+        {
+            reader.ReadInt(); // version
+
+            Boss = reader.ReadMobile() as BaseCreature;
+            KillCount = reader.ReadInt();
+            Index = reader.ReadInt();
+
+            var count = reader.ReadInt();
+
+            for (var i = 0; i < count; i++)
             {
-                writer.Write(bc);
+                var bc = reader.ReadMobile() as BaseCreature;
+
+                if (bc != null) AddSpawn(bc);
             }
         }
-		
-		public void Deserialize(GenericReader reader)
-		{
-			reader.ReadInt(); // version
-			
-			Boss = reader.ReadMobile() as BaseCreature;
-			KillCount = reader.ReadInt();
-			Index = reader.ReadInt();
-			
-			int count = reader.ReadInt();
-			
-			for(int i = 0; i < count; i++)
-			{
-				var bc = reader.ReadMobile() as BaseCreature;
-				
-				if(bc != null)
-				{
-					AddSpawn(bc);
-				}
-			}
-		}
 
         public void BuildEntries()
         {
-            Entries.Add(new TOSDSpawnEntry(typeof(NightmareFairy), new Type[] { typeof(Zombie), typeof(Skeleton), typeof(Gargoyle), typeof(Lich), typeof(LichLord) }, new Rectangle2D(327, 26, 29, 32), 80, 15));
-            Entries.Add(new TOSDSpawnEntry(typeof(JackInTheBox), new Type[] { typeof(Zombie), typeof(Skeleton), typeof(Gargoyle), typeof(Lich), typeof(LichLord) }, new Rectangle2D(296, 10, 17, 26), 80, 15));
-            Entries.Add(new TOSDSpawnEntry(typeof(HeadlessElf), new Type[] { typeof(Zombie), typeof(Skeleton), typeof(Gargoyle), typeof(Lich), typeof(LichLord) }, new Rectangle2D(271, 4, 20, 33), 80, 15));
-            Entries.Add(new TOSDSpawnEntry(typeof(AbominableSnowman), new Type[] { typeof(Zombie), typeof(Skeleton), typeof(Gargoyle), typeof(Lich), typeof(LichLord) }, new Rectangle2D(227, 39, 21, 19), 80, 15));
-            Entries.Add(new TOSDSpawnEntry(typeof(TwistedHolidayTree), new Type[] { typeof(Zombie), typeof(Skeleton), typeof(Gargoyle), typeof(Lich), typeof(LichLord) }, new Rectangle2D(251, 68, 25, 32), 80, 15));
-            Entries.Add(new TOSDSpawnEntry(typeof(RabidReindeer), new Type[] { typeof(Zombie), typeof(Skeleton), typeof(Gargoyle), typeof(Lich), typeof(LichLord) }, new Rectangle2D(144, 5, 23, 19), 80, 15));
-            Entries.Add(new TOSDSpawnEntry(typeof(GarishGingerman), new Type[] { typeof(Zombie), typeof(Skeleton), typeof(Gargoyle), typeof(Lich), typeof(LichLord) }, new Rectangle2D(60, 53, 13, 34), 80, 15));
-            Entries.Add(new TOSDSpawnEntry(typeof(StockingSerpent), new Type[] { typeof(Zombie), typeof(Skeleton), typeof(Gargoyle), typeof(Lich), typeof(LichLord) }, new Rectangle2D(152, 48, 16, 23), 80, 15));
-            Entries.Add(new TOSDSpawnEntry(typeof(JackThePumpkinKing), new Type[] { typeof(Zombie), typeof(Skeleton), typeof(Gargoyle), typeof(Lich), typeof(LichLord) }, new Rectangle2D(291, 73, 37, 36), 80, 15));
+            Entries.Add(new TOSDSpawnEntry(typeof(NightmareFairy),
+                new[] { typeof(Zombie), typeof(Skeleton), typeof(Gargoyle), typeof(Lich), typeof(LichLord) },
+                new Rectangle2D(327, 26, 29, 32), 80, 15));
+            Entries.Add(new TOSDSpawnEntry(typeof(JackInTheBox),
+                new[] { typeof(Zombie), typeof(Skeleton), typeof(Gargoyle), typeof(Lich), typeof(LichLord) },
+                new Rectangle2D(296, 10, 17, 26), 80, 15));
+            Entries.Add(new TOSDSpawnEntry(typeof(HeadlessElf),
+                new[] { typeof(Zombie), typeof(Skeleton), typeof(Gargoyle), typeof(Lich), typeof(LichLord) },
+                new Rectangle2D(271, 4, 20, 33), 80, 15));
+            Entries.Add(new TOSDSpawnEntry(typeof(AbominableSnowman),
+                new[] { typeof(Zombie), typeof(Skeleton), typeof(Gargoyle), typeof(Lich), typeof(LichLord) },
+                new Rectangle2D(227, 39, 21, 19), 80, 15));
+            Entries.Add(new TOSDSpawnEntry(typeof(TwistedHolidayTree),
+                new[] { typeof(Zombie), typeof(Skeleton), typeof(Gargoyle), typeof(Lich), typeof(LichLord) },
+                new Rectangle2D(251, 68, 25, 32), 80, 15));
+            Entries.Add(new TOSDSpawnEntry(typeof(RabidReindeer),
+                new[] { typeof(Zombie), typeof(Skeleton), typeof(Gargoyle), typeof(Lich), typeof(LichLord) },
+                new Rectangle2D(144, 5, 23, 19), 80, 15));
+            Entries.Add(new TOSDSpawnEntry(typeof(GarishGingerman),
+                new[] { typeof(Zombie), typeof(Skeleton), typeof(Gargoyle), typeof(Lich), typeof(LichLord) },
+                new Rectangle2D(60, 53, 13, 34), 80, 15));
+            Entries.Add(new TOSDSpawnEntry(typeof(StockingSerpent),
+                new[] { typeof(Zombie), typeof(Skeleton), typeof(Gargoyle), typeof(Lich), typeof(LichLord) },
+                new Rectangle2D(152, 48, 16, 23), 80, 15));
+            Entries.Add(new TOSDSpawnEntry(typeof(JackThePumpkinKing),
+                new[] { typeof(Zombie), typeof(Skeleton), typeof(Gargoyle), typeof(Lich), typeof(LichLord) },
+                new Rectangle2D(291, 73, 37, 36), 80, 15));
         }
-	}
-	
-	public class TOSDSpawnEntry
-	{
-		public Type Boss { get; set; }
-		public Type[] Spawn { get; set; }
-		public Rectangle2D SpawnArea { get; set; }
-		
-		public int ToKill { get; set; }
-		public int MaxSpawn { get; set; }
-		
-		public TOSDSpawnEntry(Type boss, Type[] spawn, Rectangle2D area, int toKill, int maxSpawn)
-		{
-			Boss = boss;
-			Spawn = spawn;
-			SpawnArea = area;
-			ToKill = toKill;
-			MaxSpawn = maxSpawn;
-		}
-	}
+    }
+
+    public class TOSDSpawnEntry
+    {
+        public Type Boss { get; set; }
+        public Type[] Spawn { get; set; }
+        public Rectangle2D SpawnArea { get; set; }
+
+        public int ToKill { get; set; }
+        public int MaxSpawn { get; set; }
+
+        public TOSDSpawnEntry(Type boss, Type[] spawn, Rectangle2D area, int toKill, int maxSpawn)
+        {
+            Boss = boss;
+            Spawn = spawn;
+            SpawnArea = area;
+            ToKill = toKill;
+            MaxSpawn = maxSpawn;
+        }
+    }
 
     public class TOSDSpawnerGump : BaseGump
     {
         public TOSDSpawnerGump(PlayerMobile pm)
-            : base(pm, 50, 50)
+            : base(pm)
         {
         }
 
@@ -301,7 +279,7 @@ namespace Server.Engines.SorcerersDungeon
             }
             else
             {
-                int y = 60;
+                var y = 60;
 
                 AddLabel(10, 40, 0, "Go");
                 AddLabel(40, 40, 0, "Boss");
@@ -309,7 +287,7 @@ namespace Server.Engines.SorcerersDungeon
                 AddLabel(320, 40, 0, "Max");
                 AddLabel(400, 40, 0, "Killed");
 
-                for (int i = 0; i < spawner.Entries.Count; i++)
+                for (var i = 0; i < spawner.Entries.Count; i++)
                 {
                     var entry = spawner.Entries[i];
                     var hue = i == spawner.Index ? "green" : "red";
@@ -338,7 +316,7 @@ namespace Server.Engines.SorcerersDungeon
         {
             if (info.ButtonID > 0)
             {
-                int id = info.ButtonID - 100;
+                var id = info.ButtonID - 100;
                 var spawner = TOSDSpawner.Instance;
 
                 if (spawner != null && id >= 0 && id < spawner.Entries.Count)
@@ -356,11 +334,9 @@ namespace Server.Engines.SorcerersDungeon
 
                             break;
                         }
-                    }
-                    while (true);
+                    } while (true);
                 }
             }
         }
     }
 }
-			

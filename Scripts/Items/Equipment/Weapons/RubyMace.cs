@@ -1,13 +1,13 @@
-using System;
-
 namespace Server.Items
 {
     public class RubyMace : DiamondMace
     {
+        public override int LabelNumber => 1073529; // ruby mace
+
         [Constructable]
         public RubyMace()
         {
-            this.Attributes.WeaponDamage = 5;
+            Attributes.WeaponDamage = 5;
         }
 
         public RubyMace(Serial serial)
@@ -15,13 +15,6 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1073529;
-            }
-        }// ruby mace
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -33,7 +26,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

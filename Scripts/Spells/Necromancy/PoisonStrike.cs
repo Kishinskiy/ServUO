@@ -1,9 +1,8 @@
 using System;
-using System.Collections.Generic;
 using Server.Items;
 using Server.Mobiles;
-using Server.Targeting;
 using Server.Spells.SkillMasteries;
+using Server.Targeting;
 
 namespace Server.Spells.Necromancy
 {
@@ -15,41 +14,21 @@ namespace Server.Spells.Necromancy
             9031,
             Reagent.NoxCrystal);
 
+        public override DamageType SpellDamageType => DamageType.SpellAOE;
+
+        public override TimeSpan CastDelayBase => TimeSpan.FromSeconds(Core.ML ? 2.0 : 1.5);
+
+        public override double RequiredSkill => 50.0;
+
+        public override int RequiredMana => 17;
+
+        public override bool DelayedDamage => false;
+
         public PoisonStrikeSpell(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
         {
         }
 
-        public override DamageType SpellDamageType { get { return DamageType.SpellAOE; } }
-
-        public override TimeSpan CastDelayBase
-        {
-            get
-            {
-                return TimeSpan.FromSeconds((Core.ML ? 2.0 : 1.5));
-            }
-        }
-        public override double RequiredSkill
-        {
-            get
-            {
-                return 50.0;
-            }
-        }
-        public override int RequiredMana
-        {
-            get
-            {
-                return 17;
-            }
-        }
-        public override bool DelayedDamage
-        {
-            get
-            {
-                return false;
-            }
-        }
         public override void OnCast()
         {
             Caster.Target = new InternalTarget(this);
@@ -59,7 +38,7 @@ namespace Server.Spells.Necromancy
         {
             if (CheckHSequence(m))
             {
-                Mobile mob = m as Mobile;
+                var mob = m as Mobile;
                 SpellHelper.Turn(Caster, m);
 
                 ApplyEffects(m);
@@ -72,14 +51,15 @@ namespace Server.Spells.Necromancy
         public void ApplyEffects(IDamageable m, double strength = 1.0)
         {
             /* Creates a blast of poisonous energy centered on the target.
-                * The main target is inflicted with a large amount of Poison damage, and all valid targets in a radius of 2 tiles around the main target are inflicted with a lesser effect.
-                * One tile from main target receives 50% damage, two tiles from target receives 33% damage.
-                */
+             * The main target is inflicted with a large amount of Poison damage, and all valid targets in a radius of 2 tiles around the main target are inflicted with a lesser effect.
+             * One tile from main target receives 50% damage, two tiles from target receives 33% damage.
+             */
 
-            Effects.SendLocationParticles(EffectItem.Create(m.Location, m.Map, EffectItem.DefaultDuration), 0x36B0, 1, 14, 63, 7, 9915, 0);
+            Effects.SendLocationParticles(EffectItem.Create(m.Location, m.Map, EffectItem.DefaultDuration), 0x36B0, 1,
+                14, 63, 7, 9915, 0);
             Effects.PlaySound(m.Location, m.Map, 0x229);
 
-            double damage = Utility.RandomMinMax((Core.ML ? 32 : 36), 40) * ((300 + (GetDamageSkill(Caster) * 9)) / 1000);
+            var damage = Utility.RandomMinMax(Core.ML ? 32 : 36, 40) * ((300 + GetDamageSkill(Caster) * 9) / 1000);
             damage *= strength;
 
             double sdiBonus;
@@ -104,13 +84,12 @@ namespace Server.Spells.Necromancy
                 sdiBonus = (double)AosAttributes.GetValue(Caster, AosAttribute.SpellDamage) / 100;
             }
 
-            double pvmDamage = (damage * (1 + sdiBonus)) * strength;
-            double pvpDamage = damage * (1 + sdiBonus);
+            var pvmDamage = damage * (1 + sdiBonus) * strength;
+            var pvpDamage = damage * (1 + sdiBonus);
 
-            Map map = m.Map;
+            var map = m.Map;
 
             if (map != null)
-            {
                 foreach (var id in AcquireIndirectTargets(m.Location, 2))
                 {
                     int num;
@@ -123,14 +102,15 @@ namespace Server.Spells.Necromancy
                         num = 3;
 
                     Caster.DoHarmful(id);
-                    SpellHelper.Damage(this, id, ((id is PlayerMobile && Caster.Player) ? pvpDamage : pvmDamage) / num, 0, 0, 0, 100, 0);
+                    SpellHelper.Damage(this, id, (id is PlayerMobile && Caster.Player ? pvpDamage : pvmDamage) / num, 0,
+                        0, 0, 100, 0);
                 }
-            }
         }
 
         private class InternalTarget : Target
         {
             private readonly PoisonStrikeSpell m_Owner;
+
             public InternalTarget(PoisonStrikeSpell owner)
                 : base(Core.ML ? 10 : 12, false, TargetFlags.Harmful)
             {

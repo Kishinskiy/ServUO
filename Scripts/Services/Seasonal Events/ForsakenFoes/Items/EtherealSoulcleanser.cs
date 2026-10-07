@@ -1,4 +1,3 @@
-using System;
 using Server.Engines.Points;
 using Server.Network;
 
@@ -6,16 +5,16 @@ namespace Server.Items
 {
     public class EtherealSoulcleanser : BaseContainer
     {
-        public override int LabelNumber { get { return 1159196; } } // Ethereal Soulcleanser
+        public override int LabelNumber => 1159196; // Ethereal Soulcleanser
 
-        public override int DefaultGumpID { get { return 0x10C; } }
-        public override bool DisplaysContent { get { return false; } }
+        public override int DefaultGumpID => 0x10C;
+        public override bool DisplaysContent => false;
 
         public static EtherealSoulcleanser InstanceTram { get; set; }
         public static EtherealSoulcleanser InstanceFel { get; set; }
 
         [Constructable]
-        public EtherealSoulcleanser() 
+        public EtherealSoulcleanser()
             : base(0x2DF4)
         {
             Hue = 2591;
@@ -39,21 +38,21 @@ namespace Server.Items
 
         public bool Check(Mobile from, Item item)
         {
-            if (from == null || from.Deleted || item == null)
-            {
-                return false;
-            }
+            if (from == null || from.Deleted || item == null) return false;
 
-            if (!(item is EtherealSoulbinder) || item is EtherealSoulbinder && ((EtherealSoulbinder)item).SoulPoint <= 0)
+            if (!(item is EtherealSoulbinder) ||
+                (item is EtherealSoulbinder && ((EtherealSoulbinder)item).SoulPoint <= 0))
             {
                 from.SendLocalizedMessage(1159170); // The machine only accepts filled ethereal soulbinders.
                 return false;
             }
 
-            double amount = 100 * ((EtherealSoulbinder)item).SoulPoint;
+            var amount = 100 * ((EtherealSoulbinder)item).SoulPoint;
             PointsSystem.FellowshipData.AwardPoints(from, amount);
 
-            Effects.SendPacket(from.Location, from.Map, new GraphicalEffect(EffectType.FixedXYZ, from.Serial, Serial.Zero, 0x373A, from.Location, from.Location, 10, 15, true, true));
+            Effects.SendPacket(from.Location, from.Map,
+                new GraphicalEffect(EffectType.FixedXYZ, from.Serial, Serial.Zero, 0x373A, from.Location, from.Location,
+                    10, 15, true, true));
             from.PlaySound(0x1F2);
 
             item.Delete();
@@ -64,23 +63,17 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            if (Map == Map.Trammel)
-            {
-                InstanceTram = this;
-            }
+            if (Map == Map.Trammel) InstanceTram = this;
 
-            if (Map == Map.Felucca)
-            {
-                InstanceFel = this;
-            }
+            if (Map == Map.Felucca) InstanceFel = this;
         }
     }
 }

@@ -1,15 +1,13 @@
-using Server;
-
 namespace Server.Items
 {
     public class PropheticManuscript : BaseJournal
     {
-        public override int LabelNumber { get { return 1155631; } } // Prophetic Manuscript
+        public override int LabelNumber => 1155631; // Prophetic Manuscript
 
         public int Index { get; set; }
 
-        public override TextDefinition Title { get { return 1155638 + Index; } }
-        public override TextDefinition Body { get { return 1155632 + Index; } }
+        public override TextDefinition Title => 1155638 + Index;
+        public override TextDefinition Body => 1155632 + Index;
 
         [Constructable]
         public PropheticManuscript()
@@ -23,16 +21,16 @@ namespace Server.Items
             Index = index;
         }
 
+        public PropheticManuscript(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void GetProperties(ObjectPropertyList list)
         {
             base.GetProperties(list);
 
             list.Add(1154760, "#1155637"); // By: Owain the Blind Prophet
-        }
-
-        public PropheticManuscript(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -46,7 +44,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             Index = reader.ReadInt();
         }

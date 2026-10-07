@@ -5,6 +5,23 @@ namespace Server.Items
 {
     public class BaseShield : BaseArmor
     {
+        public override ArmorMaterialType MaterialType => ArmorMaterialType.Plate;
+
+        public override double ArmorRating
+        {
+            get
+            {
+                var m = Parent as Mobile;
+                var ar = base.ArmorRating;
+
+                if (m != null)
+                    return m.Skills[SkillName.Parry].Value * ar / 200.0 + 1.0;
+                return ar;
+            }
+        }
+
+        public int LastParryChance { get; set; }
+
         public BaseShield(int itemID)
             : base(itemID)
         {
@@ -15,42 +32,18 @@ namespace Server.Items
         {
         }
 
-        public override ArmorMaterialType MaterialType
-        {
-            get
-            {
-                return ArmorMaterialType.Plate;
-            }
-        }
-
-        public override double ArmorRating
-        {
-            get
-            {
-                Mobile m = Parent as Mobile;
-                double ar = base.ArmorRating;
-
-                if (m != null)
-                    return ((m.Skills[SkillName.Parry].Value * ar) / 200.0) + 1.0;
-                else
-                    return ar;
-            }
-        }
-
-        public int LastParryChance { get; set; }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)1);//version
+            writer.Write(1); //version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (version < 1)
             {
@@ -71,9 +64,7 @@ namespace Server.Items
             base.AddNameProperties(list);
 
             if (Core.EJ && LastParryChance > 0)
-            {
                 list.Add(1158861, LastParryChance.ToString()); // Last Parry Chance: ~1_val~%
-            }
         }
 
         public override void OnRemoved(object parent)
@@ -93,8 +84,8 @@ namespace Server.Items
                 }
                 else
                 {
-                    double halfArmor = ArmorRating / 2.0;
-                    int absorbed = (int)(halfArmor + (halfArmor * Utility.RandomDouble()));
+                    var halfArmor = ArmorRating / 2.0;
+                    var absorbed = (int)(halfArmor + halfArmor * Utility.RandomDouble());
 
                     if (absorbed < 2)
                         absorbed = 2;
@@ -102,7 +93,7 @@ namespace Server.Items
                     int wear;
 
                     if (weapon.Type == WeaponType.Bashing)
-                        wear = (absorbed / 2);
+                        wear = absorbed / 2;
                     else
                         wear = Utility.Random(2);
 
@@ -126,7 +117,8 @@ namespace Server.Items
                                 MaxHitPoints -= wear;
 
                                 if (Parent is Mobile)
-                                    ((Mobile)Parent).LocalOverheadMessage(MessageType.Regular, 0x3B2, 1061121); // Your equipment is severely damaged.
+                                    ((Mobile)Parent).LocalOverheadMessage(MessageType.Regular, 0x3B2,
+                                        1061121); // Your equipment is severely damaged.
                             }
                             else
                             {
@@ -138,90 +130,84 @@ namespace Server.Items
 
                 return 0;
             }
-            else
-            {
-                Mobile owner = Parent as Mobile;
-                if (owner == null)
-                    return damage;
 
-                double ar = ArmorRating;
-                double chance = (owner.Skills[SkillName.Parry].Value - (ar * 2.0)) / 100.0;
+            var owner = Parent as Mobile;
+            if (owner == null)
+                return damage;
 
-                if (chance < 0.01)
-                    chance = 0.01;
-                /*
-                FORMULA: Displayed AR = ((Parrying Skill * Base AR of Shield) / 200) + 1 
+            var ar = ArmorRating;
+            var chance = (owner.Skills[SkillName.Parry].Value - ar * 2.0) / 100.0;
+
+            if (chance < 0.01)
+                chance = 0.01;
+            /*
+                FORMULA: Displayed AR = ((Parrying Skill * Base AR of Shield) / 200) + 1
 
                 FORMULA: % Chance of Blocking = parry skill - (shieldAR * 2)
 
-                FORMULA: Melee Damage Absorbed = (AR of Shield) / 2 | Archery Damage Absorbed = AR of Shield 
+                FORMULA: Melee Damage Absorbed = (AR of Shield) / 2 | Archery Damage Absorbed = AR of Shield
                 */
-                if (owner.CheckSkill(SkillName.Parry, chance))
+            if (owner.CheckSkill(SkillName.Parry, chance))
+            {
+                if (weapon.Skill == SkillName.Archery)
+                    damage -= (int)ar;
+                else
+                    damage -= (int)(ar / 2.0);
+
+                if (damage < 0)
+                    damage = 0;
+
+                owner.FixedEffect(0x37B9, 10, 16);
+
+                if (25 > Utility.Random(100)) // 25% chance to lower durability
                 {
-                    if (weapon.Skill == SkillName.Archery)
-                        damage -= (int)ar;
-                    else
-                        damage -= (int)(ar / 2.0);
+                    var wear = Utility.Random(2);
 
-                    if (damage < 0)
-                        damage = 0;
-
-                    owner.FixedEffect(0x37B9, 10, 16);
-
-                    if (25 > Utility.Random(100)) // 25% chance to lower durability
+                    if (wear > 0 && MaxHitPoints > 0)
                     {
-                        int wear = Utility.Random(2);
-
-                        if (wear > 0 && MaxHitPoints > 0)
+                        if (HitPoints >= wear)
                         {
-                            if (HitPoints >= wear)
+                            HitPoints -= wear;
+                            wear = 0;
+                        }
+                        else
+                        {
+                            wear -= HitPoints;
+                            HitPoints = 0;
+                        }
+
+                        if (wear > 0)
+                        {
+                            if (MaxHitPoints > wear)
                             {
-                                HitPoints -= wear;
-                                wear = 0;
+                                MaxHitPoints -= wear;
+
+                                if (Parent is Mobile)
+                                    ((Mobile)Parent).LocalOverheadMessage(MessageType.Regular, 0x3B2,
+                                        1061121); // Your equipment is severely damaged.
                             }
                             else
                             {
-                                wear -= HitPoints;
-                                HitPoints = 0;
-                            }
-
-                            if (wear > 0)
-                            {
-                                if (MaxHitPoints > wear)
-                                {
-                                    MaxHitPoints -= wear;
-
-                                    if (Parent is Mobile)
-                                        ((Mobile)Parent).LocalOverheadMessage(MessageType.Regular, 0x3B2, 1061121); // Your equipment is severely damaged.
-                                }
-                                else
-                                {
-                                    Delete();
-                                }
+                                Delete();
                             }
                         }
                     }
                 }
-
-                return damage;
             }
+
+            return damage;
         }
 
         public override int GetLuckBonus()
         {
-            if (CraftResources.GetType(Resource) != CraftResourceType.Wood)
-            {
-                return base.GetLuckBonus();
-            }
-            else
-            {
-                CraftAttributeInfo attrInfo = GetResourceAttrs(Resource);
+            if (CraftResources.GetType(Resource) != CraftResourceType.Wood) return base.GetLuckBonus();
 
-                if (attrInfo == null)
-                    return 0;
+            var attrInfo = GetResourceAttrs(Resource);
 
-                return attrInfo.ShieldLuck;
-            }
+            if (attrInfo == null)
+                return 0;
+
+            return attrInfo.ShieldLuck;
         }
 
         public override void DistributeExceptionalBonuses(Mobile from, int amount)

@@ -1,7 +1,9 @@
-using System;
 using System.Collections.Generic;
+using Server.Engines.Mahjong;
+using Server.Engines.Plants;
 using Server.Guilds;
 using Server.Items;
+using Server.Multis;
 
 namespace Server.Mobiles
 {
@@ -10,30 +12,15 @@ namespace Server.Mobiles
         private readonly List<GenericBuyInfo> m_BuyInfo = new InternalBuyInfo();
         private readonly IShopSellInfo m_SellInfo = new InternalSellInfo();
 
-        public SBProvisioner()
-        {
-        }
+        public override IShopSellInfo SellInfo => m_SellInfo;
 
-        public override IShopSellInfo SellInfo
-        {
-            get
-            {
-                return m_SellInfo;
-            }
-        }
-        public override List<GenericBuyInfo> BuyInfo
-        {
-            get
-            {
-                return m_BuyInfo;
-            }
-        }
+        public override List<GenericBuyInfo> BuyInfo => m_BuyInfo;
 
         public class InternalBuyInfo : List<GenericBuyInfo>
         {
             public InternalBuyInfo()
             {
-                Add(new GenericBuyInfo("1060834", typeof(Engines.Plants.PlantBowl), 2, 20, 0x15FD, 0));
+                Add(new GenericBuyInfo("1060834", typeof(PlantBowl), 2, 20, 0x15FD, 0));
 
                 Add(new GenericBuyInfo(typeof(Arrow), 2, 20, 0xF3F, 0, true));
                 Add(new GenericBuyInfo(typeof(Bolt), 5, 20, 0x1BFB, 0, true));
@@ -41,7 +28,7 @@ namespace Server.Mobiles
                 Add(new GenericBuyInfo(typeof(Backpack), 15, 20, 0x9B2, 0));
                 Add(new GenericBuyInfo(typeof(Pouch), 6, 20, 0xE79, 0));
                 Add(new GenericBuyInfo(typeof(Bag), 6, 20, 0xE76, 0));
-				
+
                 Add(new GenericBuyInfo(typeof(Candle), 6, 20, 0xA28, 0));
                 Add(new GenericBuyInfo(typeof(Torch), 8, 20, 0xF6B, 0));
                 Add(new GenericBuyInfo(typeof(Lantern), 2, 20, 0xA25, 0));
@@ -91,7 +78,7 @@ namespace Server.Mobiles
                 Add(new GenericBuyInfo(typeof(Bedroll), 5, 20, 0xA59, 0));
                 Add(new GenericBuyInfo(typeof(Kindling), 2, 20, 0xDE1, 0, true));
 
-                Add(new GenericBuyInfo("1041205", typeof(Multis.SmallBoatDeed), 10177, 20, 0x14F2, 0));
+                Add(new GenericBuyInfo("1041205", typeof(SmallBoatDeed), 10177, 20, 0x14F2, 0));
 
                 Add(new GenericBuyInfo("1041060", typeof(HairDye), 60, 20, 0xEFF, 0));
 
@@ -99,7 +86,7 @@ namespace Server.Mobiles
                 Add(new GenericBuyInfo("1016449", typeof(CheckerBoard), 2, 20, 0xFA6, 0));
                 Add(new GenericBuyInfo(typeof(Backgammon), 2, 20, 0xE1C, 0));
                 if (Core.AOS)
-                    Add(new GenericBuyInfo(typeof(Engines.Mahjong.MahjongGame), 6, 20, 0xFAA, 0));
+                    Add(new GenericBuyInfo(typeof(MahjongGame), 6, 20, 0xFAA, 0));
                 Add(new GenericBuyInfo(typeof(Dices), 2, 20, 0xFA7, 0));
 
                 if (Core.AOS)

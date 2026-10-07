@@ -5,6 +5,14 @@ namespace Server.Mobiles
     [CorpseName("a slith corpse")]
     public class Slith : BaseCreature
     {
+        public override int DragonBlood => 8;
+
+        public override int TreasureMapLevel => 2;
+
+        public override int Meat => 6;
+
+        public override int Hides => 10;
+
         [Constructable]
         public Slith() : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
         {
@@ -41,25 +49,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override int DragonBlood { get { return 8; } }
-
-		public override int TreasureMapLevel
-        {
-            get
-            {
-                return 2;
-            }
-        }
-        public override int Meat
-        {
-            get { return 6; }
-        }
-
-        public override int Hides
-        {
-            get { return 10; }
-        }
-
         public override void GenerateLoot()
         {
             AddLoot(LootPack.Average, 2);
@@ -69,13 +58,9 @@ namespace Server.Mobiles
         {
             base.OnDeath(c);
 
-            if (!Controlled && Utility.RandomDouble() < 0.05)
-            {
-                c.DropItem(new SlithEye());
-            }
+            if (!Controlled && Utility.RandomDouble() < 0.05) c.DropItem(new SlithEye());
 
             if (!Controlled && Utility.RandomDouble() < 0.25)
-            {
                 switch (Utility.Random(2))
                 {
                     case 0:
@@ -85,7 +70,6 @@ namespace Server.Mobiles
                         c.DropItem(new TatteredAncientScroll());
                         break;
                 }
-            }
         }
 
         public override void Serialize(GenericWriter writer)

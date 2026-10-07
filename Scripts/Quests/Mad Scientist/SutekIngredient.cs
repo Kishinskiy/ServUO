@@ -1,6 +1,4 @@
-﻿using System;
-using Server;
-using Server.Engines.Quests;
+﻿using Server.Engines.Quests;
 
 namespace Server.Items
 {
@@ -48,15 +46,15 @@ namespace Server.Items
 
     public class SutekIngredientInfo
     {
-        private SutekIngredient m_Ingredient;
-        private int m_ItemId, m_TextId, m_Hue;
-        private Point3D m_Location;
+        public SutekIngredient Ingredient { get; }
 
-        public SutekIngredient Ingredient { get { return m_Ingredient; } }
-        public int ItemId { get { return m_ItemId; } }
-        public int TextId { get { return m_TextId; } }
-        public int Hue { get { return m_Hue; } }
-        public Point3D Location { get { return m_Location; } }
+        public int ItemId { get; }
+
+        public int TextId { get; }
+
+        public int Hue { get; }
+
+        public Point3D Location { get; }
 
         public SutekIngredientInfo(SutekIngredient ingredient, Point3D location, int itemId, int textId)
             : this(ingredient, location, itemId, textId, 0)
@@ -65,21 +63,20 @@ namespace Server.Items
 
         public SutekIngredientInfo(SutekIngredient ingredient, Point3D location, int itemId, int textId, int hue)
         {
-            m_Ingredient = ingredient;
-            m_Location = location;
-            m_ItemId = itemId;
-            m_TextId = textId;
-            m_Hue = hue;
+            Ingredient = ingredient;
+            Location = location;
+            ItemId = itemId;
+            TextId = textId;
+            Hue = hue;
         }
     }
 
     public class SutekIngredientItem : Item
     {
-        public override int LabelNumber { get { return m_TextId; } }
-        public override bool ForceShowProperties { get { return true; } }
-
         private SutekIngredient m_Ingredient;
         private int m_TextId;
+        public override int LabelNumber => m_TextId;
+        public override bool ForceShowProperties => true;
 
         [Constructable]
         public SutekIngredientItem(SutekIngredientInfo info)
@@ -95,30 +92,30 @@ namespace Server.Items
             MoveToWorld(info.Location, Map.TerMur);
         }
 
+        public SutekIngredientItem(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void OnDoubleClick(Mobile from)
         {
             if (from.InRange(this, 2))
                 MadScientistQuest.OnDoubleClickIngredient(from, m_Ingredient);
         }
 
-        public SutekIngredientItem(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
             writer.Write((int)m_Ingredient);
-            writer.Write((int)m_TextId);
+            writer.Write(m_TextId);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             m_Ingredient = (SutekIngredient)reader.ReadInt();
             m_TextId = reader.ReadInt();

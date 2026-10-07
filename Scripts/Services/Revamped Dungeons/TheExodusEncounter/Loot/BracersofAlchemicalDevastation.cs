@@ -1,11 +1,19 @@
-using System;
-
 namespace Server.Items
 {
     public class BracersofAlchemicalDevastation : BoneArms
     {
-        public override bool IsArtifact { get { return true; } }
-        public override int LabelNumber { get { return 1153523; } }//Bracers of Alchemical Devastation [Replica]
+        public override bool IsArtifact => true;
+        public override int LabelNumber => 1153523; //Bracers of Alchemical Devastation [Replica]
+
+        public override int BasePhysicalResistance => 10;
+        public override int BaseFireResistance => 8;
+        public override int BaseColdResistance => 8;
+        public override int BasePoisonResistance => 8;
+        public override int BaseEnergyResistance => 8;
+        public override int InitMinHits => 255;
+        public override int InitMaxHits => 255;
+
+        public override bool CanFortify => false;
 
         [Constructable]
         public BracersofAlchemicalDevastation()
@@ -19,28 +27,18 @@ namespace Server.Items
         public BracersofAlchemicalDevastation(Serial serial)
             : base(serial)
         {
-        }        
-
-        public override int BasePhysicalResistance { get { return 10; } }
-        public override int BaseFireResistance { get { return 8; } }
-        public override int BaseColdResistance { get { return 8; } }
-        public override int BasePoisonResistance { get { return 8; } }
-        public override int BaseEnergyResistance { get { return 8; } }
-        public override int InitMinHits { get { return 255; } }
-        public override int InitMaxHits { get { return 255; } }
-
-        public override bool CanFortify { get { return false; } }
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1); // version
+            writer.Write(1); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();          
+            var version = reader.ReadInt();
         }
     }
 }

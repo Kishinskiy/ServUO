@@ -1,10 +1,11 @@
-using System;
 using Server.Gumps;
 
 namespace Server.Items
 {
     public class BuffetTableAddon : BaseAddon
     {
+        public override BaseAddonDeed Deed => new BuffetTableDeed();
+
         [Constructable]
         public BuffetTableAddon(DirectionType type)
         {
@@ -42,32 +43,28 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonDeed Deed { get { return new BuffetTableDeed(); } }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class BuffetTableDeed : BaseAddonDeed, IRewardOption
     {
-        public override int LabelNumber { get { return 1157068; } } // Buffet Table
-
-        public override BaseAddon Addon { get { return new BuffetTableAddon(_Direction); } }
-
         private DirectionType _Direction;
+        public override int LabelNumber => 1157068; // Buffet Table
+
+        public override BaseAddon Addon => new BuffetTableAddon(_Direction);
 
         [Constructable]
         public BuffetTableDeed()
-            : base()
         {
             LootType = LootType.Blessed;
         }
@@ -107,13 +104,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

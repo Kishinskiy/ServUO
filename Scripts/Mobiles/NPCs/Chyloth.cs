@@ -1,5 +1,4 @@
 using System;
-using Server.Engines.PartySystem;
 using Server.Gumps;
 using Server.Items;
 using Server.Mobiles;
@@ -9,7 +8,7 @@ namespace Server.Engines.Quests.Doom
 {
     public class Chyloth : BaseQuester
     {
-        private static readonly int[] m_Offsets = new int[]
+        private static readonly int[] m_Offsets =
         {
             -1, -1,
             -1, 0,
@@ -21,8 +20,9 @@ namespace Server.Engines.Quests.Doom
             1, 1
         };
 
-        private Mobile m_AngryAt;
-        private BellOfTheDead m_Bell;
+        public BellOfTheDead Bell { get; set; }
+
+        public Mobile AngryAt { get; set; }
 
         [Constructable]
         public Chyloth()
@@ -35,37 +35,16 @@ namespace Server.Engines.Quests.Doom
         {
         }
 
-        public BellOfTheDead Bell
-        {
-            get
-            {
-                return m_Bell;
-            }
-            set
-            {
-                m_Bell = value;
-            }
-        }
-        public Mobile AngryAt
-        {
-            get
-            {
-                return m_AngryAt;
-            }
-            set
-            {
-                m_AngryAt = value;
-            }
-        }
         public static void TeleportToFerry(Mobile from)
         {
-            Point3D loc = new Point3D(408, 251, 2);
-            Map map = Map.Malas;
+            var loc = new Point3D(408, 251, 2);
+            var map = Map.Malas;
 
-            Effects.SendLocationParticles(EffectItem.Create(loc, map, EffectItem.DefaultDuration), 0x3728, 10, 10, 0, 0, 2023, 0);
+            Effects.SendLocationParticles(EffectItem.Create(loc, map, EffectItem.DefaultDuration), 0x3728, 10, 10, 0, 0,
+                2023, 0);
             Effects.PlaySound(loc, map, 0x1FE);
 
-            BaseCreature.TeleportPets(from, loc, map);
+            TeleportPets(from, loc, map);
 
             from.MoveToWorld(loc, map);
         }
@@ -88,18 +67,19 @@ namespace Server.Engines.Quests.Doom
 
         public virtual void BeginGiveWarning()
         {
-            if (Deleted || m_AngryAt == null)
+            if (Deleted || AngryAt == null)
                 return;
 
-            Timer.DelayCall(TimeSpan.FromSeconds(4.0), new TimerCallback(EndGiveWarning));
+            Timer.DelayCall(TimeSpan.FromSeconds(4.0), EndGiveWarning);
         }
 
         public virtual void EndGiveWarning()
         {
-            if (Deleted || m_AngryAt == null)
+            if (Deleted || AngryAt == null)
                 return;
 
-            PublicOverheadMessage(MessageType.Regular, 0x3B2, 1050013, m_AngryAt.Name); // You have summoned me in vain ~1_NAME~!  Only the dead may cross!
+            PublicOverheadMessage(MessageType.Regular, 0x3B2, 1050013,
+                AngryAt.Name); // You have summoned me in vain ~1_NAME~!  Only the dead may cross!
             PublicOverheadMessage(MessageType.Regular, 0x3B2, 1050014); // Why have you disturbed me, mortal?!?
 
             BeginSummonDragon();
@@ -107,15 +87,15 @@ namespace Server.Engines.Quests.Doom
 
         public virtual void BeginSummonDragon()
         {
-            if (Deleted || m_AngryAt == null)
+            if (Deleted || AngryAt == null)
                 return;
 
-            Timer.DelayCall(TimeSpan.FromSeconds(30.0), new TimerCallback(EndSummonDragon));
+            Timer.DelayCall(TimeSpan.FromSeconds(30.0), EndSummonDragon);
         }
 
         public virtual void BeginRemove(TimeSpan delay)
         {
-            Timer.DelayCall(delay, new TimerCallback(EndRemove));
+            Timer.DelayCall(delay, EndRemove);
         }
 
         public virtual void EndRemove()
@@ -123,10 +103,11 @@ namespace Server.Engines.Quests.Doom
             if (Deleted)
                 return;
 
-            Point3D loc = Location;
-            Map map = Map;
+            var loc = Location;
+            var map = Map;
 
-            Effects.SendLocationParticles(EffectItem.Create(loc, map, EffectItem.DefaultDuration), 0x3728, 10, 10, 0, 0, 2023, 0);
+            Effects.SendLocationParticles(EffectItem.Create(loc, map, EffectItem.DefaultDuration), 0x3728, 10, 10, 0, 0,
+                2023, 0);
             Effects.PlaySound(loc, map, 0x1FE);
 
             Delete();
@@ -134,57 +115,56 @@ namespace Server.Engines.Quests.Doom
 
         public virtual void EndSummonDragon()
         {
-            if (Deleted || m_AngryAt == null)
+            if (Deleted || AngryAt == null)
                 return;
 
-            Map map = m_AngryAt.Map;
+            var map = AngryAt.Map;
 
             if (map == null)
                 return;
 
-            if (!m_AngryAt.Region.IsPartOf("Doom"))
+            if (!AngryAt.Region.IsPartOf("Doom"))
                 return;
 
             PublicOverheadMessage(MessageType.Regular, 0x3B2, 1050015); // Feel the wrath of my legions!!!
-            PublicOverheadMessage(MessageType.Regular, 0x3B2, false, "MUHAHAHAHA HAHAH HAHA"); // A wee bit crazy, aren't we?
+            PublicOverheadMessage(MessageType.Regular, 0x3B2, false,
+                "MUHAHAHAHA HAHAH HAHA"); // A wee bit crazy, aren't we?
 
-            SkeletalDragon dragon = new SkeletalDragon();
+            var dragon = new SkeletalDragon();
 
-            int offset = Utility.Random(8) * 2;
+            var offset = Utility.Random(8) * 2;
 
-            bool foundLoc = false;
+            var foundLoc = false;
 
-            for (int i = 0; i < m_Offsets.Length; i += 2)
+            for (var i = 0; i < m_Offsets.Length; i += 2)
             {
-                int x = m_AngryAt.X + m_Offsets[(offset + i) % m_Offsets.Length];
-                int y = m_AngryAt.Y + m_Offsets[(offset + i + 1) % m_Offsets.Length];
+                var x = AngryAt.X + m_Offsets[(offset + i) % m_Offsets.Length];
+                var y = AngryAt.Y + m_Offsets[(offset + i + 1) % m_Offsets.Length];
 
-                if (map.CanSpawnMobile(x, y, m_AngryAt.Z))
+                if (map.CanSpawnMobile(x, y, AngryAt.Z))
                 {
-                    dragon.MoveToWorld(new Point3D(x, y, m_AngryAt.Z), map);
+                    dragon.MoveToWorld(new Point3D(x, y, AngryAt.Z), map);
                     foundLoc = true;
                     break;
                 }
-                else
-                {
-                    int z = map.GetAverageZ(x, y);
 
-                    if (map.CanSpawnMobile(x, y, z))
-                    {
-                        dragon.MoveToWorld(new Point3D(x, y, z), map);
-                        foundLoc = true;
-                        break;
-                    }
+                var z = map.GetAverageZ(x, y);
+
+                if (map.CanSpawnMobile(x, y, z))
+                {
+                    dragon.MoveToWorld(new Point3D(x, y, z), map);
+                    foundLoc = true;
+                    break;
                 }
             }
 
             if (!foundLoc)
-                dragon.MoveToWorld(m_AngryAt.Location, map);
+                dragon.MoveToWorld(AngryAt.Location, map);
 
-            dragon.Combatant = m_AngryAt;
+            dragon.Combatant = AngryAt;
 
-            if (m_Bell != null)
-                m_Bell.Dragon = dragon;
+            if (Bell != null)
+                Bell.Dragon = dragon;
         }
 
         public override bool OnDragDrop(Mobile from, Item dropped)
@@ -193,31 +173,30 @@ namespace Server.Engines.Quests.Doom
             {
                 dropped.Delete();
 
-                PublicOverheadMessage(MessageType.Regular, 0x3B2, 1050046, from.Name); // Very well, ~1_NAME~, I accept your token. You may cross.
+                PublicOverheadMessage(MessageType.Regular, 0x3B2, 1050046,
+                    from.Name); // Very well, ~1_NAME~, I accept your token. You may cross.
                 BeginRemove(TimeSpan.FromSeconds(4.0));
 
-                Party p = PartySystem.Party.Get(from);
+                var p = PartySystem.Party.Get(from);
 
                 if (p != null)
-                {
-                    for (int i = 0; i < p.Members.Count; ++i)
+                    for (var i = 0; i < p.Members.Count; ++i)
                     {
-                        PartyMemberInfo pmi = (PartyMemberInfo)p.Members[i];
-                        Mobile member = pmi.Mobile;
+                        var pmi = p.Members[i];
+                        var member = pmi.Mobile;
 
                         if (member != from && member.Map == Map.Malas && member.Region.IsPartOf("Doom"))
                         {
-                            if (m_AngryAt == member)
-                                m_AngryAt = null;
+                            if (AngryAt == member)
+                                AngryAt = null;
 
                             member.CloseGump(typeof(ChylothPartyGump));
                             member.SendGump(new ChylothPartyGump(from, member));
                         }
                     }
-                }
 
-                if (m_AngryAt == from)
-                    m_AngryAt = null;
+                if (AngryAt == from)
+                    AngryAt = null;
 
                 TeleportToFerry(from);
 
@@ -240,14 +219,14 @@ namespace Server.Engines.Quests.Doom
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -255,6 +234,7 @@ namespace Server.Engines.Quests.Doom
     {
         private readonly Mobile m_Leader;
         private readonly Mobile m_Member;
+
         public ChylothPartyGump(Mobile leader, Mobile member)
             : base(150, 50)
         {
@@ -282,9 +262,11 @@ namespace Server.Engines.Quests.Doom
             AddRadio(30, 175, 9727, 9730, false, 0);
             AddHtmlLocalized(65, 178, 300, 25, 1050049, 0x7FFF, false, false); // No thanks, I'd rather stay here.
 
-            AddHtmlLocalized(30, 20, 360, 35, 1050047, 0x7FFF, false, false); // Another player has paid Chyloth for your passage across lake Mortis:
+            AddHtmlLocalized(30, 20, 360, 35, 1050047, 0x7FFF, false,
+                false); // Another player has paid Chyloth for your passage across lake Mortis:
 
-            AddHtmlLocalized(30, 105, 345, 40, 1050048, 0x5B2D, false, false); // Do you wish to accept their invitation at this time?
+            AddHtmlLocalized(30, 105, 345, 40, 1050048, 0x5B2D, false,
+                false); // Do you wish to accept their invitation at this time?
 
             AddImage(65, 72, 5605);
 
@@ -311,7 +293,8 @@ namespace Server.Engines.Quests.Doom
             {
                 if (m_Member.Region.IsPartOf("Doom"))
                 {
-                    m_Leader.SendLocalizedMessage(1050054, m_Member.Name); // ~1_NAME~ has accepted your invitation to cross lake Mortis.
+                    m_Leader.SendLocalizedMessage(1050054,
+                        m_Member.Name); // ~1_NAME~ has accepted your invitation to cross lake Mortis.
 
                     Chyloth.TeleportToFerry(m_Member);
                 }
@@ -323,7 +306,8 @@ namespace Server.Engines.Quests.Doom
             else
             {
                 m_Member.SendLocalizedMessage(1050052); // You have declined their invitation.
-                m_Leader.SendLocalizedMessage(1050053, m_Member.Name); // ~1_NAME~ has declined your invitation to cross lake Mortis.
+                m_Leader.SendLocalizedMessage(1050053,
+                    m_Member.Name); // ~1_NAME~ has declined your invitation to cross lake Mortis.
             }
         }
     }

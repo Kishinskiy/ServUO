@@ -1,20 +1,20 @@
-using System;
-
 namespace Server.Items
 {
     public abstract class BaseSuit : Item
     {
-        private AccessLevel m_AccessLevel;
+        [CommandProperty(AccessLevel.Administrator)]
+        public AccessLevel AccessLevel { get; set; }
+
         public BaseSuit(AccessLevel level, int hue, int itemID)
             : base(itemID)
         {
-            this.Hue = hue;
-            this.Weight = 1.0;
-            this.Movable = false;
-            this.LootType = LootType.Newbied;
-            this.Layer = Layer.OuterTorso;
+            Hue = hue;
+            Weight = 1.0;
+            Movable = false;
+            LootType = LootType.Newbied;
+            Layer = Layer.OuterTorso;
 
-            this.m_AccessLevel = level;
+            AccessLevel = level;
         }
 
         public BaseSuit(Serial serial)
@@ -22,50 +22,38 @@ namespace Server.Items
         {
         }
 
-        [CommandProperty(AccessLevel.Administrator)]
-        public AccessLevel AccessLevel
-        {
-            get
-            {
-                return this.m_AccessLevel;
-            }
-            set
-            {
-                this.m_AccessLevel = value;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
-            writer.Write((int)this.m_AccessLevel);
+            writer.Write((int)AccessLevel);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            switch ( version )
+            switch (version)
             {
                 case 0:
-                    {
-                        this.m_AccessLevel = (AccessLevel)reader.ReadInt();
-                        break;
-                    }
+                {
+                    AccessLevel = (AccessLevel)reader.ReadInt();
+                    break;
+                }
             }
         }
 
         public bool Validate()
         {
-            object root = this.RootParent;
+            var root = RootParent;
 
-            if (root is Mobile && ((Mobile)root).AccessLevel < this.m_AccessLevel)
+            if (root is Mobile && ((Mobile)root).AccessLevel < AccessLevel)
             {
-                this.Delete();
+                Delete();
                 return false;
             }
 
@@ -74,27 +62,27 @@ namespace Server.Items
 
         public override void OnSingleClick(Mobile from)
         {
-            if (this.Validate())
+            if (Validate())
                 base.OnSingleClick(from);
         }
 
         public override void OnDoubleClick(Mobile from)
         {
-            if (this.Validate())
+            if (Validate())
                 base.OnDoubleClick(from);
         }
 
         public override bool VerifyMove(Mobile from)
         {
-            return (from.AccessLevel >= this.m_AccessLevel);
+            return from.AccessLevel >= AccessLevel;
         }
 
         public override bool OnEquip(Mobile from)
         {
-            if (from.AccessLevel < this.m_AccessLevel)
+            if (from.AccessLevel < AccessLevel)
                 from.SendMessage("You may not wear this.");
 
-            return (from.AccessLevel >= this.m_AccessLevel);
+            return from.AccessLevel >= AccessLevel;
         }
     }
 }

@@ -1,5 +1,7 @@
 using System;
+using Server.Network;
 using Server.Spells;
+using Server.Targeting;
 
 namespace Server.Ethics.Evil
 {
@@ -7,7 +9,7 @@ namespace Server.Ethics.Evil
     {
         public BlightPower()
         {
-            this.m_Definition = new PowerDefinition(
+            m_Definition = new PowerDefinition(
                 15,
                 "Blight",
                 "Velgo Ontawl",
@@ -16,23 +18,23 @@ namespace Server.Ethics.Evil
 
         public override void BeginInvoke(Player from)
         {
-            from.Mobile.BeginTarget(12, true, Targeting.TargetFlags.None, new TargetStateCallback(Power_OnTarget), from);
+            from.Mobile.BeginTarget(12, true, TargetFlags.None, new TargetStateCallback(Power_OnTarget), from);
             from.Mobile.SendMessage("Where do you wish to blight?");
         }
 
         private void Power_OnTarget(Mobile fromMobile, object obj, object state)
         {
-            Player from = state as Player;
+            var from = state as Player;
 
-            IPoint3D p = obj as IPoint3D;
+            var p = obj as IPoint3D;
 
             if (p == null)
                 return;
 
-            if (!this.CheckInvoke(from))
+            if (!CheckInvoke(from))
                 return;
 
-            bool powerFunctioned = false;
+            var powerFunctioned = false;
 
             SpellHelper.GetSurfaceTop(ref p);
             IPooledEnumerable eable = from.Mobile.GetMobilesInRange(6);
@@ -66,9 +68,9 @@ namespace Server.Ethics.Evil
 
                 Effects.PlaySound(p, from.Mobile.Map, 0x1FB);
 
-                from.Mobile.LocalOverheadMessage(Server.Network.MessageType.Regular, 0x3B2, false, "You curse the area.");
+                from.Mobile.LocalOverheadMessage(MessageType.Regular, 0x3B2, false, "You curse the area.");
 
-                this.FinishInvoke(from);
+                FinishInvoke(from);
             }
             else
             {

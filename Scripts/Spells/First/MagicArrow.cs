@@ -1,4 +1,5 @@
 using System;
+using Server.Spells.Mysticism;
 using Server.Targeting;
 
 namespace Server.Spells.First
@@ -10,33 +11,23 @@ namespace Server.Spells.First
             212,
             9041,
             Reagent.SulfurousAsh);
+
+        public override SpellCircle Circle => SpellCircle.First;
+
+        public override bool DelayedDamageStacking => !Core.AOS;
+
+        public override bool DelayedDamage => true;
+
+        public override Type[] DelayDamageFamily
+        {
+            get { return new[] { typeof(NetherBoltSpell) }; }
+        }
+
         public MagicArrowSpell(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
         {
         }
 
-        public override SpellCircle Circle
-        {
-            get
-            {
-                return SpellCircle.First;
-            }
-        }
-        public override bool DelayedDamageStacking
-        {
-            get
-            {
-                return !Core.AOS;
-            }
-        }
-        public override bool DelayedDamage
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override Type[] DelayDamageFamily { get { return new Type[] { typeof(Server.Spells.Mysticism.NetherBoltSpell) }; } }
         public override void OnCast()
         {
             Caster.Target = new InternalTarget(this);
@@ -51,7 +42,7 @@ namespace Server.Spells.First
             else if (CheckHSequence(d))
             {
                 IDamageable source = Caster;
-                IDamageable target = d;
+                var target = d;
 
                 SpellHelper.Turn(Caster, d);
 
@@ -62,16 +53,14 @@ namespace Server.Spells.First
                 }
 
                 if (SpellHelper.CheckReflect((int)Circle, ref source, ref target))
-                {
                     Timer.DelayCall(TimeSpan.FromSeconds(.5), () =>
                     {
                         source.MovingParticles(target, 0x36E4, 5, 0, false, true, 3043, 4043, 0x211);
                         source.PlaySound(0x1E5);
                     });
-                }
 
                 double damage = 0;
-				
+
                 if (Core.AOS)
                 {
                     damage = GetNewAosDamage(10, 1, 4, d);
@@ -105,6 +94,7 @@ namespace Server.Spells.First
         private class InternalTarget : Target
         {
             private readonly MagicArrowSpell m_Owner;
+
             public InternalTarget(MagicArrowSpell owner)
                 : base(Core.ML ? 10 : 12, false, TargetFlags.Harmful)
             {
@@ -113,10 +103,7 @@ namespace Server.Spells.First
 
             protected override void OnTarget(Mobile from, object o)
             {
-                if (o is IDamageable)
-                {
-                    m_Owner.Target((IDamageable)o);
-                }
+                if (o is IDamageable) m_Owner.Target((IDamageable)o);
             }
 
             protected override void OnTargetFinish(Mobile from)

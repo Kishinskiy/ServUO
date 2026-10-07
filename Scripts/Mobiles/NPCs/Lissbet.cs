@@ -6,22 +6,18 @@ namespace Server.Engines.Quests
 {
     public class Lissbet : BaseEscort
     {
-        public static void Initialize()
+        public static Point3D HomeLocation => new Point3D(1569, 1041, -7);
+        public static int HomeRange => 5;
+
+        public override Type[] Quests
         {
-            if (Core.ML)
-                Spawn();
+            get { return new[] { typeof(ResponsibilityQuest) }; }
         }
-
-        public static Point3D HomeLocation { get { return new Point3D(1569, 1041, -7); } }
-        public static int HomeRange { get { return 5; } }
-
-        public override Type[] Quests { get { return new Type[] { typeof(ResponsibilityQuest) }; } }
 
         public static List<Lissbet> Instances { get; set; }
 
         [Constructable]
         public Lissbet()
-            : base()
         {
             Name = "Lissbet";
             Title = "The Flower Girl";
@@ -35,6 +31,12 @@ namespace Server.Engines.Quests
         public Lissbet(Serial serial)
             : base(serial)
         {
+        }
+
+        public static void Initialize()
+        {
+            if (Core.ML)
+                Spawn();
         }
 
         public override void Advertise()
@@ -65,11 +67,7 @@ namespace Server.Engines.Quests
             if (Instances != null && Instances.Contains(this))
                 Instances.Remove(this);
 
-            Timer.DelayCall(TimeSpan.FromSeconds(3), new TimerCallback(
-                delegate
-                {
-                    Spawn();
-                }));
+            Timer.DelayCall(TimeSpan.FromSeconds(3), delegate { Spawn(); });
 
             base.OnDelete();
         }
@@ -79,7 +77,7 @@ namespace Server.Engines.Quests
             if (Instances != null && Instances.Count > 0)
                 return;
 
-            Lissbet creature = new Lissbet();
+            var creature = new Lissbet();
             creature.Home = HomeLocation;
             creature.RangeHome = HomeRange;
             creature.MoveToWorld(HomeLocation, Map.Ilshenar);
@@ -88,13 +86,13 @@ namespace Server.Engines.Quests
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (Instances == null)
                 Instances = new List<Lissbet>();

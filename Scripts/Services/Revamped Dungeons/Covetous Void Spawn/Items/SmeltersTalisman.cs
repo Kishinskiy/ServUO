@@ -1,7 +1,4 @@
-using Server;
 using System;
-using System.Collections.Generic;
-using Server.Mobiles;
 
 namespace Server.Items
 {
@@ -16,7 +13,7 @@ namespace Server.Items
         [CommandProperty(AccessLevel.GameMaster)]
         public CraftResource Resource
         {
-            get { return _Resource; }
+            get => _Resource;
             set
             {
                 if (_Resource != value)
@@ -27,24 +24,6 @@ namespace Server.Items
                 }
             }
         }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int UsesRemaining 
-        {
-            get { return _UsesRemaining; }
-            set 
-            { 
-                _UsesRemaining = value;
-
-                if (_UsesRemaining <= 0 && this.RootParent is Mobile)
-                    ((Mobile)RootParent).SendLocalizedMessage(1152621); // Your talisman's magic is exhausted.
-
-                InvalidateProperties();
-            } 
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public bool ShowUsesRemaining { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public DateTime Expires { get; set; }
@@ -62,6 +41,29 @@ namespace Server.Items
             m_Timer = Timer.DelayCall(TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10), CheckDecay);
         }
 
+        public SmeltersTalisman(Serial serial)
+            : base(serial)
+        {
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int UsesRemaining
+        {
+            get => _UsesRemaining;
+            set
+            {
+                _UsesRemaining = value;
+
+                if (_UsesRemaining <= 0 && RootParent is Mobile)
+                    ((Mobile)RootParent).SendLocalizedMessage(1152621); // Your talisman's magic is exhausted.
+
+                InvalidateProperties();
+            }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public bool ShowUsesRemaining { get; set; }
+
         public void CheckDecay()
         {
             if (Expires < DateTime.UtcNow)
@@ -74,20 +76,22 @@ namespace Server.Items
         {
             if (RootParent is Mobile)
             {
-                Mobile parent = (Mobile)RootParent;
+                var parent = (Mobile)RootParent;
 
                 if (Name == null)
                     parent.SendLocalizedMessage(1072515, "#" + LabelNumber); // The ~1_name~ expired...
                 else
                     parent.SendLocalizedMessage(1072515, Name); // The ~1_name~ expired...
 
-                Effects.SendLocationParticles(EffectItem.Create(parent.Location, parent.Map, EffectItem.DefaultDuration), 0x3728, 8, 20, 5042);
+                Effects.SendLocationParticles(
+                    EffectItem.Create(parent.Location, parent.Map, EffectItem.DefaultDuration), 0x3728, 8, 20, 5042);
                 Effects.PlaySound(parent.Location, parent.Map, 0x201);
             }
             else
             {
-                Effects.SendLocationParticles(EffectItem.Create(this.Location, this.Map, EffectItem.DefaultDuration), 0x3728, 8, 20, 5042);
-                Effects.PlaySound(this.Location, this.Map, 0x201);
+                Effects.SendLocationParticles(EffectItem.Create(Location, Map, EffectItem.DefaultDuration), 0x3728, 8,
+                    20, 5042);
+                Effects.PlaySound(Location, Map, 0x201);
             }
 
             Delete();
@@ -106,7 +110,9 @@ namespace Server.Items
 
         public override void AddNameProperty(ObjectPropertyList list)
         {
-            list.Add(1152599, String.Format("#{0}\t#1152606", CraftResources.GetLocalizationNumber(_Resource))); // ~1_RES~ ~2_TYPE~ Talisman
+            list.Add(1152599,
+                string.Format("#{0}\t#1152606",
+                    CraftResources.GetLocalizationNumber(_Resource))); // ~1_RES~ ~2_TYPE~ Talisman
         }
 
         public override void AddUsesRemainingProperties(ObjectPropertyList list)
@@ -118,16 +124,11 @@ namespace Server.Items
         {
             base.GetProperties(list);
 
-            int left = 0;
+            var left = 0;
             if (DateTime.UtcNow < Expires)
                 left = (int)(Expires - DateTime.UtcNow).TotalSeconds;
 
             list.Add(1072517, left.ToString()); // Lifespan: ~1_val~ seconds
-        }
-
-        public SmeltersTalisman(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -143,7 +144,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             Resource = (CraftResource)reader.ReadInt();
             Expires = reader.ReadDateTime();

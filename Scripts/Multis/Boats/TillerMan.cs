@@ -1,17 +1,18 @@
 using System;
-using Server;
+using System.Collections.Generic;
+using Server.ContextMenus;
 using Server.Multis;
 using Server.Network;
-using Server.ContextMenus;
-using System.Collections.Generic;
 
 namespace Server.Items
 {
     public class TillerMan : Item
     {
-        public virtual bool Babbles { get { return true; } }
-        public BaseBoat Boat { get; private set; }
         private DateTime _NextBabble;
+        public virtual bool Babbles => true;
+        public BaseBoat Boat { get; private set; }
+
+        public Mobile Pilot => Boat != null ? Boat.Pilot : null;
 
         public TillerMan(BaseBoat boat)
             : base(0x3E4E)
@@ -42,7 +43,7 @@ namespace Server.Items
 
             if (Boat.IsRowBoat)
                 return;
-            
+
             list.Add(Boat.Status);
             list.Add(1116580 + (int)Boat.DamageTaken); //State: Prisine            
         }
@@ -73,8 +74,6 @@ namespace Server.Items
                 base.OnSingleClick(from);
         }
 
-        public Mobile Pilot { get { return Boat != null ? Boat.Pilot : null; } }
-
         public override void OnDoubleClickDead(Mobile m)
         {
             OnDoubleClick(m);
@@ -84,8 +83,8 @@ namespace Server.Items
         {
             from.RevealingAction();
 
-            BaseBoat boat = BaseBoat.FindBoatAt(from, from.Map);
-            Item mount = from.FindItemOnLayer(Layer.Mount);
+            var boat = BaseBoat.FindBoatAt(from, from.Map);
+            var mount = from.FindItemOnLayer(Layer.Mount);
 
             if (boat == null || Boat == null || Boat != boat)
             {
@@ -128,9 +127,7 @@ namespace Server.Items
         public override bool OnDragDrop(Mobile from, Item dropped)
         {
             if (dropped is MapItem && Boat != null && Boat.CanCommand(from) && Boat.Contains(from))
-            {
                 Boat.AssociateMap((MapItem)dropped);
-            }
 
             return false;
         }
@@ -179,22 +176,46 @@ namespace Server.Items
         private string RandomBabbleArgs()
         {
             return string.Format("#{0}\t#{1}\t#{2}", Utility.Random(1114138, 13).ToString(),
-                                                     Utility.Random(1114151, 2).ToString(),
-                                                     Utility.RandomMinMax(1114153, 1114221).ToString());
+                Utility.Random(1114151, 2).ToString(),
+                Utility.RandomMinMax(1114153, 1114221).ToString());
         }
 
         public override void OnLocationChange(Point3D oldLocation)
         {
-            if (_NextBabble < DateTime.UtcNow && 0.1 > Utility.RandomDouble())
+            if (_NextBabble < DateTime.UtcNow && 0.1 > Utility.RandomDouble()) Babble();
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0); //version
+
+            writer.Write(Boat);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
+
+            switch (version)
             {
-                Babble();
+                case 0:
+                {
+                    Boat = reader.ReadItem() as BaseBoat;
+
+                    if (Boat == null)
+                        Delete();
+
+                    break;
+                }
             }
         }
 
         private class EmergencyRepairEntry : ContextMenuEntry
         {
-            private TillerMan m_TillerMan;
-            private Mobile m_From;
+            private readonly Mobile m_From;
+            private readonly TillerMan m_TillerMan;
 
             public EmergencyRepairEntry(TillerMan tillerman, Mobile from)
                 : base(1116589, 5)
@@ -207,25 +228,36 @@ namespace Server.Items
             {
                 if (m_TillerMan != null && m_TillerMan.Boat != null)
                 {
-                    BaseBoat g = m_TillerMan.Boat;
+                    var g = m_TillerMan.Boat;
 
                     if (!g.Scuttled)
-                        m_From.SendLocalizedMessage(1116595); //Your ship is not in need of emergency repairs in order to sail.
+                    {
+                        m_From.SendLocalizedMessage(
+                            1116595); //Your ship is not in need of emergency repairs in order to sail.
+                    }
                     else if (g.IsUnderEmergencyRepairs())
                     {
-                        TimeSpan left = g.GetEndEmergencyRepairs();
-                        m_From.SendLocalizedMessage(1116592, left != TimeSpan.Zero ? left.TotalMinutes.ToString() : "0"); //Your ship is underway with emergency repairs holding for an estimated ~1_TIME~ more minutes.
+                        var left = g.GetEndEmergencyRepairs();
+                        m_From.SendLocalizedMessage(1116592,
+                            left != TimeSpan.Zero
+                                ? left.TotalMinutes.ToString()
+                                : "0"); //Your ship is underway with emergency repairs holding for an estimated ~1_TIME~ more minutes.
                     }
                     else if (!g.TryEmergencyRepair(m_From))
-                        m_From.SendLocalizedMessage(1116591, String.Format("{0}\t{1}", BaseGalleon.EmergencyRepairClothCost.ToString(), BaseGalleon.EmergencyRepairWoodCost)); //You need a minimum of ~1_CLOTH~ yards of cloth and ~2_WOOD~ pieces of lumber to effect emergency repairs.
+                    {
+                        m_From.SendLocalizedMessage(1116591,
+                            string.Format("{0}\t{1}", BaseGalleon.EmergencyRepairClothCost.ToString(),
+                                BaseGalleon
+                                    .EmergencyRepairWoodCost)); //You need a minimum of ~1_CLOTH~ yards of cloth and ~2_WOOD~ pieces of lumber to effect emergency repairs.
+                    }
                 }
             }
         }
 
         private class ShipRepairEntry : ContextMenuEntry
         {
-            private TillerMan m_TillerMan;
-            private Mobile m_From;
+            private readonly Mobile m_From;
+            private readonly TillerMan m_TillerMan;
 
             public ShipRepairEntry(TillerMan tillerman, Mobile from)
                 : base(1116590, 5)
@@ -239,9 +271,11 @@ namespace Server.Items
                 if (m_TillerMan != null && m_TillerMan.Boat != null)
                 {
                     if (!BaseGalleon.IsNearLandOrDocks(m_TillerMan.Boat))
-                        m_From.SendLocalizedMessage(1116594); //Your ship must be near shore or a sea market in order to effect permanent repairs.
+                        m_From.SendLocalizedMessage(
+                            1116594); //Your ship must be near shore or a sea market in order to effect permanent repairs.
                     else if (m_TillerMan.Boat.DamageTaken == DamageLevel.Pristine)
-                        m_From.SendLocalizedMessage(1116596); //Your ship is in pristine condition and does not need repairs.
+                        m_From.SendLocalizedMessage(
+                            1116596); //Your ship is in pristine condition and does not need repairs.
                     else
                         m_TillerMan.Boat.TryRepairs(m_From);
                 }
@@ -250,8 +284,8 @@ namespace Server.Items
 
         private class RenameShipEntry : ContextMenuEntry
         {
-            private TillerMan m_TillerMan;
             private readonly Mobile m_From;
+            private readonly TillerMan m_TillerMan;
 
             public RenameShipEntry(TillerMan tillerman, Mobile from)
                 : base(1111680, 3)
@@ -264,33 +298,6 @@ namespace Server.Items
             {
                 if (m_TillerMan != null && m_TillerMan.Boat != null)
                     m_TillerMan.Boat.BeginRename(m_From);
-            }
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.Write((int)0);//version
-
-            writer.Write(Boat);
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            int version = reader.ReadInt();
-
-            switch (version)
-            {
-                case 0:
-                    {
-                        Boat = reader.ReadItem() as BaseBoat;
-
-                        if (Boat == null)
-                            Delete();
-
-                        break;
-                    }
             }
         }
     }

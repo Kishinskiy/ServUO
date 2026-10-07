@@ -1,5 +1,4 @@
-﻿using Server;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Server.Mobiles;
 using Server.Targeting;
@@ -10,12 +9,12 @@ namespace Server.Items
     {
         public static Dictionary<BaseCreature, DateTime> m_Table = new Dictionary<BaseCreature, DateTime>();
 
-        public override int LabelNumber { get { return 1112774; } }
+        public override int LabelNumber => 1112774;
 
-        public virtual double Bonus { get { return 0.05; } }
-        public virtual TimeSpan Duration { get { return TimeSpan.FromMinutes(20); } }
-        public virtual TimeSpan CoolDown { get { return TimeSpan.FromMinutes(2); } }
-        public virtual int DamageBonus { get { return 0; } }
+        public virtual double Bonus => 0.05;
+        public virtual TimeSpan Duration => TimeSpan.FromMinutes(20);
+        public virtual TimeSpan CoolDown => TimeSpan.FromMinutes(2);
+        public virtual int DamageBonus => 0;
 
         [Constructable]
         public TastyTreat()
@@ -28,6 +27,11 @@ namespace Server.Items
         {
             Stackable = true;
             Amount = amount;
+        }
+
+        public TastyTreat(Serial serial)
+            : base(serial)
+        {
         }
 
         public override void AddNameProperties(ObjectPropertyList list)
@@ -57,33 +61,24 @@ namespace Server.Items
         public override void OnDoubleClick(Mobile m)
         {
             if (IsChildOf(m.Backpack))
-            {
                 m.BeginTarget(2, false, TargetFlags.Beneficial, (from, targeted) =>
-                    {
-                        if (targeted is Mobile)
-                        {
-                            TryFeed(from, (Mobile)targeted);
-                        }
-                    });
-            }
+                {
+                    if (targeted is Mobile) TryFeed(from, (Mobile)targeted);
+                });
         }
 
         private void TryFeed(Mobile from, Mobile target)
         {
             if (target is BaseCreature && !((BaseCreature)target).IsDeadBondedPet)
             {
-                BaseCreature bc = (BaseCreature)target;
+                var bc = (BaseCreature)target;
 
                 if (UnderInfluence(bc))
                 {
                     if (m_Table[bc] + (CoolDown + Duration) < DateTime.UtcNow)
-                    {
                         from.SendLocalizedMessage(1113049); //Your pet is still recovering from the last tasty treat.
-                    }
                     else
-                    {
                         from.SendLocalizedMessage(1113051); //Your pet is still enjoying the last tasty treat!
-                    }
                 }
                 else if (bc.ControlMaster == from)
                 {
@@ -94,25 +89,25 @@ namespace Server.Items
         }
 
         public bool DoEffects(BaseCreature bc)
-		{
-			string modName = Serial.ToString();
+        {
+            var modName = Serial.ToString();
 
             bc.AddStatMod(new StatMod(StatType.Str, bc.Serial + "Str", (int)(bc.RawStr * Bonus), Duration));
             bc.AddStatMod(new StatMod(StatType.Int, bc.Serial + "Int", (int)(bc.RawInt * Bonus), Duration));
             bc.AddStatMod(new StatMod(StatType.Dex, bc.Serial + "Dex", (int)(bc.RawDex * Bonus), Duration));
 
-			bc.PlaySound( 0x1EA );
-			bc.FixedParticles( 0x373A, 10, 15, 5018, EffectLayer.Waist );
+            bc.PlaySound(0x1EA);
+            bc.FixedParticles(0x373A, 10, 15, 5018, EffectLayer.Waist);
 
             bc.TempDamageBonus = DamageBonus;
             bc.Loyalty = BaseCreature.MaxLoyalty;
 
-			m_Table.Add(bc, DateTime.UtcNow);
+            m_Table.Add(bc, DateTime.UtcNow);
             Timer.DelayCall(Duration + CoolDown, new TimerStateCallback(RemoveInfluence), bc);
 
-			Consume();
+            Consume();
             return true;
-		}
+        }
 
         public static bool UnderInfluence(BaseCreature bc)
         {
@@ -121,7 +116,7 @@ namespace Server.Items
 
         public static void RemoveInfluence(object obj)
         {
-            BaseCreature bc = (BaseCreature)obj;
+            var bc = (BaseCreature)obj;
 
             if (m_Table.ContainsKey(bc))
                 m_Table.Remove(bc);
@@ -129,41 +124,31 @@ namespace Server.Items
             bc.TempDamageBonus = 0;
         }
 
-        public TastyTreat(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1);
+            writer.Write(1);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (version == 0)
             {
-                m_InheritsItem = true;
+                InheritsItem = true;
 
                 reader.ReadBool();
             }
         }
 
         #region Old Item Serialization Vars
-        /* DO NOT USE! Only used in serialization of tasty treats that originally derived from Item */
-        private bool m_InheritsItem;
 
-        protected bool InheritsItem
-        {
-            get
-            {
-                return this.m_InheritsItem;
-            }
-        }
+        /* DO NOT USE! Only used in serialization of tasty treats that originally derived from Item */
+
+        protected bool InheritsItem { get; private set; }
+
         #endregion
     }
 }

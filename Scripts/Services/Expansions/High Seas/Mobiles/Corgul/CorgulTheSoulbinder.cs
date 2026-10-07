@@ -1,51 +1,76 @@
-using Server;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Server.Items;
 using Server.Misc;
 using Server.Regions;
-using System.Linq;
 
 namespace Server.Mobiles
 {
     public class CorgulTheSoulBinder : BaseSeaChampion
     {
-        private DateTime m_NextDismount;
-        private DateTime m_NextArea;
-        private DateTime m_NextReturn;
-        private bool m_HasDone2ndSpawn;
-        private CorgulAltar m_Altar;
-        private List<BaseCreature> m_Helpers = new List<BaseCreature>();
-
-        public override bool CanDamageBoats { get { return false; } }
-        public override bool TaintedLifeAura { get { return true; } }
-        public override int Meat { get { return 5; } }
-        public override double TreasureMapChance { get { return .25; } }
-        public override int TreasureMapLevel { get { return 7; } }
-        public override Poison PoisonImmune { get { return Poison.Deadly; } }
-
-        public override bool TeleportsTo { get { return true; } }
-        public override TimeSpan TeleportDuration { get { return TimeSpan.FromSeconds(Utility.RandomMinMax(10, 50)); } }
-        public override double TeleportProb { get { return 1.0; } }
-        public override bool TeleportsPets { get { return true; } }
-
-        public override Type[] UniqueList { get { return new Type[] { typeof(CorgulsEnchantedSash), typeof(CorgulsHandbookOnMysticism), typeof(CorgulsHandbookOnTheUndead) }; } }
-        public override Type[] SharedList { get { return new Type[] { typeof(HelmOfVengence), typeof(RingOfTheSoulbinder), typeof(RuneEngravedPegLeg), typeof(CullingBlade) }; } }
-        public override Type[] DecorativeList { get { return new Type[] { typeof(EnchantedBladeDeed), typeof(EnchantedVortexDeed) }; } }
-
-        public override bool NoGoodies { get { return true; } }
-        public override bool CanGivePowerscrolls { get { return false; } }
-
-        private readonly int _SpawnPerLoc = 15;
-
-        private Point3D[] _SpawnLocs =
+        private readonly Point3D[] _SpawnLocs =
         {
             new Point3D(6447, 1262, 10),
             new Point3D(6424, 1279, 10),
             new Point3D(6406, 1250, 10),
             new Point3D(6423, 1220, 10),
-            new Point3D(6461, 1237, 10),
+            new Point3D(6461, 1237, 10)
         };
+
+        private readonly int _SpawnPerLoc = 15;
+        private readonly List<BaseCreature> m_Helpers = new List<BaseCreature>();
+        private CorgulAltar m_Altar;
+        private bool m_HasDone2ndSpawn;
+        private DateTime m_NextArea;
+        private DateTime m_NextDismount;
+        private DateTime m_NextReturn;
+
+        public override bool CanDamageBoats => false;
+        public override bool TaintedLifeAura => true;
+        public override int Meat => 5;
+        public override double TreasureMapChance => .25;
+        public override int TreasureMapLevel => 7;
+        public override Poison PoisonImmune => Poison.Deadly;
+
+        public override bool TeleportsTo => true;
+        public override TimeSpan TeleportDuration => TimeSpan.FromSeconds(Utility.RandomMinMax(10, 50));
+        public override double TeleportProb => 1.0;
+        public override bool TeleportsPets => true;
+
+        public override Type[] UniqueList
+        {
+            get
+            {
+                return new[]
+                {
+                    typeof(CorgulsEnchantedSash), typeof(CorgulsHandbookOnMysticism), typeof(CorgulsHandbookOnTheUndead)
+                };
+            }
+        }
+
+        public override Type[] SharedList
+        {
+            get
+            {
+                return new[]
+                {
+                    typeof(HelmOfVengence), typeof(RingOfTheSoulbinder), typeof(RuneEngravedPegLeg),
+                    typeof(CullingBlade)
+                };
+            }
+        }
+
+        public override Type[] DecorativeList
+        {
+            get { return new[] { typeof(EnchantedBladeDeed), typeof(EnchantedVortexDeed) }; }
+        }
+
+        public override bool NoGoodies => true;
+        public override bool CanGivePowerscrolls => false;
+
+        public double SharedChance => Map != null && Map.Rules == MapRules.FeluccaRules ? .12 : .08;
+        public double DecorativeChance => Map != null && Map.Rules == MapRules.FeluccaRules ? .40 : .25;
 
         [Constructable]
         public CorgulTheSoulBinder()
@@ -104,12 +129,14 @@ namespace Server.Mobiles
                 IsSoulbound = true;
         }
 
-        public double SharedChance { get { return Map != null && Map.Rules == MapRules.FeluccaRules ? .12 : .08; } }
-        public double DecorativeChance { get { return Map != null && Map.Rules == MapRules.FeluccaRules ? .40 : .25; } }
+        public CorgulTheSoulBinder(Serial serial)
+            : base(serial)
+        {
+        }
 
         public override bool OnBeforeDeath()
         {
-            List<DamageStore> rights = GetLootingRights();
+            var rights = GetLootingRights();
 
             Mobile winner = null;
 
@@ -117,15 +144,15 @@ namespace Server.Mobiles
             {
                 rights.Sort();
 
-                if(rights.Count >= 5)
+                if (rights.Count >= 5)
                     winner = rights[Utility.Random(5)].m_Mobile;
-                else if(rights.Count > 1)
+                else if (rights.Count > 1)
                     winner = rights[Utility.Random(rights.Count)].m_Mobile;
                 else
                     winner = rights[0].m_Mobile;
             }
 
-            if(winner != null)
+            if (winner != null)
                 GiveArtifact(winner, CreateArtifact(UniqueList));
 
             if (IsSoulboundEnemies)
@@ -136,11 +163,11 @@ namespace Server.Mobiles
 
         public override Item GetArtifact()
         {
-            double random = Utility.RandomDouble();
+            var random = Utility.RandomDouble();
 
             if (SharedChance >= random)
                 return CreateArtifact(SharedList);
-            else if (DecorativeChance >= random)
+            if (DecorativeChance >= random)
                 return CreateArtifact(DecorativeList);
             return null;
         }
@@ -148,8 +175,7 @@ namespace Server.Mobiles
         public void SpawnHelpers()
         {
             foreach (var pnt in _SpawnLocs)
-            {
-                for (int i = 0; i < _SpawnPerLoc; i++)
+                for (var i = 0; i < _SpawnPerLoc; i++)
                 {
                     BaseCreature bc;
 
@@ -168,21 +194,20 @@ namespace Server.Mobiles
                     m_Helpers.Add(bc);
                     SpawnMobile(bc, pnt);
                 }
-            }
         }
 
         public void SpawnMobile(BaseCreature bc, Point3D p)
         {
-            if(Map == null || bc == null)
+            if (Map == null || bc == null)
             {
-                if(bc != null)
+                if (bc != null)
                     bc.Delete();
                 return;
             }
 
             int x, y, z = 0;
 
-            for(int i = 0; i < 25; i++)
+            for (var i = 0; i < 25; i++)
             {
                 x = Utility.RandomMinMax(p.X - 4, p.X + 4);
                 y = Utility.RandomMinMax(p.Y - 4, p.Y + 4);
@@ -206,7 +231,7 @@ namespace Server.Mobiles
 
             if (m_NextReturn < DateTime.UtcNow)
             {
-                Point3D p = CorgulAltar.SpawnLoc;
+                var p = CorgulAltar.SpawnLoc;
 
                 if (Region.IsPartOf<CorgulRegion>() && !Utility.InRange(Location, p, 15))
                 {
@@ -233,47 +258,45 @@ namespace Server.Mobiles
                 DoAreaAttack();
 
             if (!m_HasDone2ndSpawn && m_Helpers.Count > 0)
-            {
                 if (m_Helpers.Where(bc => bc.Alive && !bc.Deleted).Count() == 0)
                 {
                     Timer.DelayCall(TimeSpan.FromSeconds(5), SpawnHelpers);
                     m_HasDone2ndSpawn = true;
                 }
-            }
         }
 
         public void DoDismount()
         {
-            List<Mobile> targets = new List<Mobile>();
+            var targets = new List<Mobile>();
 
             IPooledEnumerable eable = GetMobilesInRange(12);
             foreach (Mobile mob in eable)
             {
                 if (!CanBeHarmful(mob) || mob == this)
                     continue;
-                if (mob is BaseCreature && (((BaseCreature)mob).Controlled || ((BaseCreature)mob).Summoned || ((BaseCreature)mob).Team != Team))
+                if (mob is BaseCreature && (((BaseCreature)mob).Controlled || ((BaseCreature)mob).Summoned ||
+                                            ((BaseCreature)mob).Team != Team))
                     targets.Add(mob);
                 else if (mob is PlayerMobile && mob.Alive)
                     targets.Add(mob);
             }
+
             eable.Free();
 
             PlaySound(0x2F3);
-            for (int i = 0; i < targets.Count; ++i)
+            for (var i = 0; i < targets.Count; ++i)
             {
-                Mobile m = (Mobile)targets[i];
+                var m = targets[i];
 
                 if (m != null && !m.Deleted && m is PlayerMobile)
                 {
-                    PlayerMobile pm = m as PlayerMobile;
+                    var pm = m as PlayerMobile;
 
                     if (pm != null && (pm.Mounted || pm.Flying))
-                    {
                         pm.SetMountBlock(BlockMountType.DismountRecovery, TimeSpan.FromSeconds(10), true);
-                    }
                 }
 
-                double damage = m.Hits * 0.6;
+                var damage = m.Hits * 0.6;
                 if (damage < 10.0)
                     damage = 10.0;
                 else if (damage > 75.0)
@@ -290,16 +313,15 @@ namespace Server.Mobiles
 
         public void DoAreaAttack()
         {
-            int range = 18;
+            var range = 18;
 
             new InternalTimer(this, range);
 
             IPooledEnumerable eable = GetMobilesInRange(range);
             foreach (Mobile m in eable)
-            {
-                if ((m is PlayerMobile || (m is BaseCreature && ((BaseCreature)m).GetMaster() is PlayerMobile)) && CanBeHarmful(m))
+                if ((m is PlayerMobile || (m is BaseCreature && ((BaseCreature)m).GetMaster() is PlayerMobile)) &&
+                    CanBeHarmful(m))
                     Timer.DelayCall(TimeSpan.FromSeconds(1), new TimerStateCallback(DoDamage_Callback), m);
-            }
             eable.Free();
 
             m_NextArea = DateTime.UtcNow + TimeSpan.FromSeconds(Utility.RandomMinMax(60, 180));
@@ -307,7 +329,7 @@ namespace Server.Mobiles
 
         public void DoDamage_Callback(object o)
         {
-            Mobile m = (Mobile)o;
+            var m = (Mobile)o;
 
             if (m != null)
             {
@@ -316,7 +338,7 @@ namespace Server.Mobiles
 
                 if (Utility.RandomBool())
                 {
-                    WeaponAbility bleed = WeaponAbility.BleedAttack;
+                    var bleed = WeaponAbility.BleedAttack;
                     bleed.OnHit(this, m, 0);
                 }
             }
@@ -324,31 +346,9 @@ namespace Server.Mobiles
 
         public void DoEffect(Point3D p, Map map)
         {
-            int[] effect = new int[] { 14000, 14013 };
+            var effect = new[] { 14000, 14013 };
             Effects.PlaySound(p, map, 0x307);
             Effects.SendLocationEffect(p, map, Utility.RandomBool() ? 14000 : 14013, 20);
-        }
-
-        private class InternalTimer : Timer
-        {
-            private CorgulTheSoulBinder m_Mobile;
-            private int m_Tick;
-
-            public InternalTimer(CorgulTheSoulBinder mob, int range)
-                : base(TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(100), range)
-            {
-                m_Tick = 1;
-                m_Mobile = mob;
-                Priority = TimerPriority.FiftyMS;
-                Start();
-            }
-
-            protected override void OnTick()
-            {
-                Geometry.Circle2D(m_Mobile.Location, m_Mobile.Map, m_Tick, new DoEffect_Callback(m_Mobile.DoEffect));
-
-                m_Tick++;
-            }
         }
 
         public override void GenerateLoot()
@@ -368,37 +368,30 @@ namespace Server.Mobiles
             c.DropItem(new SpecialFishingNet());
 
             if (m_Helpers != null)
-            {
-                foreach (BaseCreature bc in m_Helpers)
+                foreach (var bc in m_Helpers)
                 {
                     RegisterDamageTo(bc);
 
                     if (bc != null && bc.Alive)
                         bc.Kill();
                 }
-            }
-        }
-
-        public CorgulTheSoulBinder(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1);
+            writer.Write(1);
             writer.Write(m_HasDone2ndSpawn);
             writer.Write(m_Altar);
             writer.Write(m_Helpers.Count);
-            foreach (BaseCreature bc in m_Helpers)
+            foreach (var bc in m_Helpers)
                 writer.Write(bc);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             switch (version)
             {
@@ -408,18 +401,41 @@ namespace Server.Mobiles
                 case 0:
                     m_Altar = reader.ReadItem() as CorgulAltar;
 
-                    int cnt = reader.ReadInt();
-                    for (int i = 0; i < cnt; i++)
+                    var cnt = reader.ReadInt();
+                    for (var i = 0; i < cnt; i++)
                     {
-                        BaseCreature bc = reader.ReadMobile() as BaseCreature;
+                        var bc = reader.ReadMobile() as BaseCreature;
                         if (bc != null)
                             m_Helpers.Add(bc);
                     }
+
                     break;
             }
 
             m_NextDismount = DateTime.UtcNow;
             m_NextArea = DateTime.UtcNow;
+        }
+
+        private class InternalTimer : Timer
+        {
+            private readonly CorgulTheSoulBinder m_Mobile;
+            private int m_Tick;
+
+            public InternalTimer(CorgulTheSoulBinder mob, int range)
+                : base(TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(100), range)
+            {
+                m_Tick = 1;
+                m_Mobile = mob;
+                Priority = TimerPriority.FiftyMS;
+                Start();
+            }
+
+            protected override void OnTick()
+            {
+                Geometry.Circle2D(m_Mobile.Location, m_Mobile.Map, m_Tick, m_Mobile.DoEffect);
+
+                m_Tick++;
+            }
         }
     }
 
@@ -432,12 +448,12 @@ namespace Server.Mobiles
 
         private class GoodiesTimer : Timer
         {
-            private readonly Map m_Map;
             private readonly Point3D m_Location;
-            private readonly int m_PilesMax;
-            private int m_PilesDone = 0;
-            private readonly int m_MinAmount;
+            private readonly Map m_Map;
             private readonly int m_MaxAmount;
+            private readonly int m_MinAmount;
+            private readonly int m_PilesMax;
+            private int m_PilesDone;
 
             public GoodiesTimer(Point3D center, Map map, int piles, int minAmount, int maxAmount)
                 : base(TimeSpan.FromSeconds(0.25d), TimeSpan.FromSeconds(0.25d))
@@ -457,50 +473,53 @@ namespace Server.Mobiles
                     return;
                 }
 
-                Point3D p = FindGoldLocation(m_Map, m_Location, m_PilesMax / 8);
-                EtherealSand g = new EtherealSand(m_MinAmount, m_MaxAmount);
+                var p = FindGoldLocation(m_Map, m_Location, m_PilesMax / 8);
+                var g = new EtherealSand(m_MinAmount, m_MaxAmount);
                 g.MoveToWorld(p, m_Map);
 
                 switch (Utility.Random(3))
                 {
                     case 0: // Fire column
-                        Effects.SendLocationParticles(EffectItem.Create(g.Location, g.Map, EffectItem.DefaultDuration), 0x3709, 10, 30, 5052);
+                        Effects.SendLocationParticles(EffectItem.Create(g.Location, g.Map, EffectItem.DefaultDuration),
+                            0x3709, 10, 30, 5052);
                         Effects.PlaySound(g, g.Map, 0x208);
                         break;
                     case 1: // Explosion
-                        Effects.SendLocationParticles(EffectItem.Create(g.Location, g.Map, EffectItem.DefaultDuration), 0x36BD, 20, 10, 5044);
+                        Effects.SendLocationParticles(EffectItem.Create(g.Location, g.Map, EffectItem.DefaultDuration),
+                            0x36BD, 20, 10, 5044);
                         Effects.PlaySound(g, g.Map, 0x307);
                         break;
                     case 2: // Ball of fire
-                        Effects.SendLocationParticles(EffectItem.Create(g.Location, g.Map, EffectItem.DefaultDuration), 0x36FE, 10, 10, 5052);
+                        Effects.SendLocationParticles(EffectItem.Create(g.Location, g.Map, EffectItem.DefaultDuration),
+                            0x36FE, 10, 10, 5052);
                         break;
                 }
+
                 ++m_PilesDone;
             }
 
             private static Point3D FindGoldLocation(Map map, Point3D center, int range)
             {
-                int cx = center.X;
-                int cy = center.Y;
+                var cx = center.X;
+                var cy = center.Y;
 
-                for (int i = 0; i < 20; ++i)
+                for (var i = 0; i < 20; ++i)
                 {
-                    int x = cx + Utility.Random(range * 2) - range;
-                    int y = cy + Utility.Random(range * 2) - range;
+                    var x = cx + Utility.Random(range * 2) - range;
+                    var y = cy + Utility.Random(range * 2) - range;
                     if ((cx - x) * (cx - x) + (cy - y) * (cy - y) > range * range)
                         continue;
 
-                    int z = map.GetAverageZ(x, y);
+                    var z = map.GetAverageZ(x, y);
                     if (!map.CanFit(x, y, z, 6, false, false))
                         continue;
 
-                    int topZ = z;
-                    foreach (Item item in map.GetItemsInRange(new Point3D(x, y, z), 0))
-                    {
+                    var topZ = z;
+                    foreach (var item in map.GetItemsInRange(new Point3D(x, y, z), 0))
                         topZ = Math.Max(topZ, item.Z + item.ItemData.CalcHeight);
-                    }
                     return new Point3D(x, y, topZ);
                 }
+
                 return center;
             }
         }

@@ -1,31 +1,31 @@
-using System;
+using Server.Targeting;
 
 namespace Server.Items
 {
     [FlipableAttribute(0x13B2, 0x13B1)]
     public class JukaBow : Bow
     {
-        [Constructable]
-        public JukaBow()
-        { }
-
-        public JukaBow(Serial serial)
-            : base(serial)
-        { }
-
         [CommandProperty(AccessLevel.GameMaster)]
         public bool IsModified => Slayer != SlayerName.None;
+
         public override int AosStrengthReq => 80;
         public override int AosDexterityReq => 80;
         public override int OldStrengthReq => 80;
         public override int OldDexterityReq => 80;
 
+        [Constructable]
+        public JukaBow()
+        {
+        }
+
+        public JukaBow(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override bool CanEquip(Mobile from)
         {
-            if (IsModified)
-            {
-                return base.CanEquip(from);
-            }
+            if (IsModified) return base.CanEquip(from);
 
             from.SendMessage("You cannot equip this bow until a bowyer modifies it.");
             return false;
@@ -47,18 +47,19 @@ namespace Server.Items
             }
             else
             {
-                from.BeginTarget(2, false, Targeting.TargetFlags.None, new TargetCallback(OnTargetGears));
+                from.BeginTarget(2, false, TargetFlags.None, OnTargetGears);
                 from.SendMessage("Select the gears you wish to use.");
             }
         }
 
         public void OnTargetGears(Mobile from, object targ)
         {
-            Gears g = targ as Gears;
+            var g = targ as Gears;
 
             if (g == null || !g.IsChildOf(from.Backpack))
             {
-                from.SendMessage("Those are not gears."); // Apparently gears that aren't in your backpack aren't really gears at all. :-(
+                from.SendMessage(
+                    "Those are not gears."); // Apparently gears that aren't in your backpack aren't really gears at all. :-(
             }
             else if (IsModified)
             {
@@ -92,7 +93,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

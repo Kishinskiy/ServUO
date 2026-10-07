@@ -1,10 +1,8 @@
-using System;
-
 namespace Server.Items
 {
     public class DecorativeKitchenSet : Backpack
     {
-        public override int LabelNumber { get { return 1158970; } } // Decorative Kitchen Set
+        public override int LabelNumber => 1158970; // Decorative Kitchen Set
 
         [Constructable]
         public DecorativeKitchenSet()
@@ -15,7 +13,7 @@ namespace Server.Items
             DropItem(new WashBasinDeed());
             DropItem(new WoodStoveDeed());
 
-            Bag bag = new Bag();
+            var bag = new Bag();
             bag.DropItem(new Countertop());
             bag.DropItem(new Countertop());
             bag.DropItem(new Countertop());
@@ -38,7 +36,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

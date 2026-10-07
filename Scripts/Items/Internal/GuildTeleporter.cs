@@ -1,4 +1,3 @@
-using System;
 using Server.Guilds;
 using Server.Multis;
 
@@ -7,6 +6,10 @@ namespace Server.Items
     public class GuildTeleporter : Item
     {
         private Item m_Stone;
+
+        public override int LabelNumber => 1041054; // guildstone teleporter
+        public override bool DisplayLootType => false;
+
         [Constructable]
         public GuildTeleporter()
             : this(null)
@@ -16,10 +19,10 @@ namespace Server.Items
         public GuildTeleporter(Item stone)
             : base(0x1869)
         {
-            this.Weight = 1.0;
-            this.LootType = LootType.Blessed;
+            Weight = 1.0;
+            LootType = LootType.Blessed;
 
-            this.m_Stone = stone;
+            m_Stone = stone;
         }
 
         public GuildTeleporter(Serial serial)
@@ -27,48 +30,34 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1041054;
-            }
-        }// guildstone teleporter
-        public override bool DisplayLootType
-        {
-            get
-            {
-                return false;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
-            writer.Write(this.m_Stone);
+            writer.Write(m_Stone);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            this.LootType = LootType.Blessed;
+            LootType = LootType.Blessed;
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            switch ( version )
+            switch (version)
             {
                 case 0:
-                    {
-                        this.m_Stone = reader.ReadItem();
+                {
+                    m_Stone = reader.ReadItem();
 
-                        break;
-                    }
+                    break;
+                }
             }
 
-            if (this.Weight == 0.0)
-                this.Weight = 1.0;
+            if (Weight == 0.0)
+                Weight = 1.0;
         }
 
         public override void OnDoubleClick(Mobile from)
@@ -76,19 +65,20 @@ namespace Server.Items
             if (Guild.NewGuildSystem)
                 return;
 
-            Guildstone stone = this.m_Stone as Guildstone;
+            var stone = m_Stone as Guildstone;
 
-            if (!this.IsChildOf(from.Backpack))
+            if (!IsChildOf(from.Backpack))
             {
                 from.SendLocalizedMessage(1042001); // That must be in your pack for you to use it.
             }
             else if (stone == null || stone.Deleted || stone.Guild == null || stone.Guild.Teleporter != this)
             {
-                from.SendLocalizedMessage(501197); // This teleporting object can not determine what guildstone to teleport
+                from.SendLocalizedMessage(
+                    501197); // This teleporting object can not determine what guildstone to teleport
             }
             else
             {
-                BaseHouse house = BaseHouse.FindHouseAt(from);
+                var house = BaseHouse.FindHouseAt(from);
 
                 if (house == null)
                 {
@@ -100,12 +90,12 @@ namespace Server.Items
                 }
                 else if (house.FindGuildstone() != null)
                 {
-                    from.SendLocalizedMessage(501142);//Only one guildstone may reside in a given house.
+                    from.SendLocalizedMessage(501142); //Only one guildstone may reside in a given house.
                 }
                 else
                 {
-                    this.m_Stone.MoveToWorld(from.Location, from.Map);
-                    this.Delete();
+                    m_Stone.MoveToWorld(from.Location, from.Map);
+                    Delete();
                     stone.Guild.Teleporter = null;
                 }
             }

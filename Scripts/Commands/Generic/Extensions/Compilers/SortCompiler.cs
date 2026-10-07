@@ -7,65 +7,39 @@ namespace Server.Commands.Generic
 {
     public sealed class OrderInfo
     {
-        private Property m_Property;
         private int m_Order;
 
-        public Property Property
-        {
-            get
-            {
-                return this.m_Property;
-            }
-            set
-            {
-                this.m_Property = value;
-            }
-        }
+        public Property Property { get; set; }
 
         public bool IsAscending
         {
-            get
-            {
-                return (this.m_Order > 0);
-            }
-            set
-            {
-                this.m_Order = (value ? +1 : -1);
-            }
+            get => m_Order > 0;
+            set => m_Order = value ? +1 : -1;
         }
 
         public bool IsDescending
         {
-            get
-            {
-                return (this.m_Order < 0);
-            }
-            set
-            {
-                this.m_Order = (value ? -1 : +1);
-            }
+            get => m_Order < 0;
+            set => m_Order = value ? -1 : +1;
         }
 
         public int Sign
         {
-            get
-            {
-                return Math.Sign(this.m_Order);
-            }
+            get => Math.Sign(m_Order);
             set
             {
-                this.m_Order = Math.Sign(value);
+                m_Order = Math.Sign(value);
 
-                if (this.m_Order == 0)
+                if (m_Order == 0)
                     throw new InvalidOperationException("Sign cannot be zero.");
             }
         }
 
         public OrderInfo(Property property, bool isAscending)
         {
-            this.m_Property = property;
+            Property = property;
 
-            this.IsAscending = isAscending;
+            IsAscending = isAscending;
         }
     }
 
@@ -73,19 +47,20 @@ namespace Server.Commands.Generic
     {
         public static IComparer Compile(AssemblyEmitter assembly, Type objectType, OrderInfo[] orders)
         {
-            TypeBuilder typeBuilder = assembly.DefineType(
+            var typeBuilder = assembly.DefineType(
                 "__sort",
                 TypeAttributes.Public,
                 typeof(object));
 
             #region Constructor
+
             {
-                ConstructorBuilder ctor = typeBuilder.DefineConstructor(
+                var ctor = typeBuilder.DefineConstructor(
                     MethodAttributes.Public,
                     CallingConventions.Standard,
                     Type.EmptyTypes);
 
-                ILGenerator il = ctor.GetILGenerator();
+                var il = ctor.GetILGenerator();
 
                 // : base()
                 il.Emit(OpCodes.Ldarg_0);
@@ -94,27 +69,30 @@ namespace Server.Commands.Generic
                 // return;
                 il.Emit(OpCodes.Ret);
             }
+
             #endregion
 
             #region IComparer
+
             typeBuilder.AddInterfaceImplementation(typeof(IComparer));
 
             MethodBuilder compareMethod;
 
             #region Compare
+
             {
-                MethodEmitter emitter = new MethodEmitter(typeBuilder);
+                var emitter = new MethodEmitter(typeBuilder);
 
                 emitter.Define(
                     /*  name  */ "Compare",
                     /*  attr  */ MethodAttributes.Public | MethodAttributes.Virtual,
                     /* return */ typeof(int),
-                    /* params */ new Type[] { typeof(object), typeof(object) });
+                    /* params */ new[] { typeof(object), typeof(object) });
 
-                LocalBuilder a = emitter.CreateLocal(objectType);
-                LocalBuilder b = emitter.CreateLocal(objectType);
+                var a = emitter.CreateLocal(objectType);
+                var b = emitter.CreateLocal(objectType);
 
-                LocalBuilder v = emitter.CreateLocal(typeof(int));
+                var v = emitter.CreateLocal(typeof(int));
 
                 emitter.LoadArgument(1);
                 emitter.CastAs(objectType);
@@ -127,9 +105,9 @@ namespace Server.Commands.Generic
                 emitter.Load(0);
                 emitter.StoreLocal(v);
 
-                Label end = emitter.CreateLabel();
+                var end = emitter.CreateLabel();
 
-                for (int i = 0; i < orders.Length; ++i)
+                for (var i = 0; i < orders.Length; ++i)
                 {
                     if (i > 0)
                     {
@@ -137,16 +115,16 @@ namespace Server.Commands.Generic
                         emitter.BranchIfTrue(end); // if ( v != 0 ) return v;
                     }
 
-                    OrderInfo orderInfo = orders[i];
+                    var orderInfo = orders[i];
 
-                    Property prop = orderInfo.Property;
-                    int sign = orderInfo.Sign;
+                    var prop = orderInfo.Property;
+                    var sign = orderInfo.Sign;
 
                     emitter.LoadLocal(a);
                     emitter.Chain(prop);
 
-                    bool couldCompare =
-                        emitter.CompareTo(sign, delegate()
+                    var couldCompare =
+                        emitter.CompareTo(sign, delegate
                         {
                             emitter.LoadLocal(b);
                             emitter.Chain(prop);
@@ -167,7 +145,7 @@ namespace Server.Commands.Generic
                     emitter.Method,
                     typeof(IComparer).GetMethod(
                         "Compare",
-                        new Type[]
+                        new[]
                         {
                             typeof(object),
                             typeof(object)
@@ -175,10 +153,12 @@ namespace Server.Commands.Generic
 
                 compareMethod = emitter.Method;
             }
-            #endregion
+
             #endregion
 
-            Type comparerType = typeBuilder.CreateType();
+            #endregion
+
+            var comparerType = typeBuilder.CreateType();
 
             return (IComparer)Activator.CreateInstance(comparerType);
         }

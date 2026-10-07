@@ -14,54 +14,45 @@ namespace Server.Spells.Fourth
             Reagent.Garlic,
             Reagent.Ginseng,
             Reagent.MandrakeRoot);
+
+        public override SpellCircle Circle => SpellCircle.Fourth;
+
+        // Arch cure is now 1/4th of a second faster
+        public override TimeSpan CastDelayBase => base.CastDelayBase - TimeSpan.FromSeconds(0.25);
+
         public ArchCureSpell(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
         {
         }
 
-        public override SpellCircle Circle
-        {
-            get
-            {
-                return SpellCircle.Fourth;
-            }
-        }
-        // Arch cure is now 1/4th of a second faster
-        public override TimeSpan CastDelayBase
-        {
-            get
-            {
-                return base.CastDelayBase - TimeSpan.FromSeconds(0.25);
-            }
-        }
         public override void OnCast()
         {
-            this.Caster.Target = new InternalTarget(this);
+            Caster.Target = new InternalTarget(this);
         }
 
         public void Target(IPoint3D p)
         {
-            if (!this.Caster.CanSee(p))
+            if (!Caster.CanSee(p))
             {
-                this.Caster.SendLocalizedMessage(500237); // Target can not be seen.
+                Caster.SendLocalizedMessage(500237); // Target can not be seen.
             }
-            else if (this.CheckSequence())
+            else if (CheckSequence())
             {
-                SpellHelper.Turn(this.Caster, p);
+                SpellHelper.Turn(Caster, p);
 
                 SpellHelper.GetSurfaceTop(ref p);
 
-                List<Mobile> targets = new List<Mobile>();
+                var targets = new List<Mobile>();
 
-                Map map = this.Caster.Map;
-                Mobile directTarget = p as Mobile;
+                var map = Caster.Map;
+                var directTarget = p as Mobile;
 
                 if (map != null)
                 {
-                    bool feluccaRules = (map.Rules == MapRules.FeluccaRules);
+                    var feluccaRules = map.Rules == MapRules.FeluccaRules;
 
                     // You can target any living mobile directly, beneficial checks apply
-                    if (directTarget != null && this.Caster.CanBeBeneficial(directTarget, false))
+                    if (directTarget != null && Caster.CanBeBeneficial(directTarget, false))
                         targets.Add(directTarget);
 
                     IPooledEnumerable eable = map.GetMobilesInRange(new Point3D(p), 2);
@@ -71,34 +62,35 @@ namespace Server.Spells.Fourth
                         if (m == directTarget)
                             continue;
 
-                        if (this.AreaCanTarget(m, feluccaRules))
+                        if (AreaCanTarget(m, feluccaRules))
                             targets.Add(m);
                     }
 
                     eable.Free();
                 }
 
-                Effects.PlaySound(p, this.Caster.Map, 0x299);
+                Effects.PlaySound(p, Caster.Map, 0x299);
 
                 if (targets.Count > 0)
                 {
-                    int cured = 0;
+                    var cured = 0;
 
-                    for (int i = 0; i < targets.Count; ++i)
+                    for (var i = 0; i < targets.Count; ++i)
                     {
-                        Mobile m = targets[i];
+                        var m = targets[i];
 
-                        this.Caster.DoBeneficial(m);
+                        Caster.DoBeneficial(m);
 
-                        Poison poison = m.Poison;
+                        var poison = m.Poison;
 
                         if (poison != null)
                         {
-                            int chanceToCure = 10000 + (int)(this.Caster.Skills[SkillName.Magery].Value * 75) - ((poison.RealLevel + 1) * 1750);
+                            var chanceToCure = 10000 + (int)(Caster.Skills[SkillName.Magery].Value * 75) -
+                                               (poison.RealLevel + 1) * 1750;
                             chanceToCure /= 100;
                             chanceToCure -= 1;
 
-                            if (chanceToCure > Utility.Random(100) && m.CurePoison(this.Caster))
+                            if (chanceToCure > Utility.Random(100) && m.CurePoison(Caster))
                                 ++cured;
                         }
 
@@ -107,38 +99,38 @@ namespace Server.Spells.Fourth
                     }
 
                     if (cured > 0)
-                        this.Caster.SendLocalizedMessage(1010058); // You have cured the target of all poisons!
+                        Caster.SendLocalizedMessage(1010058); // You have cured the target of all poisons!
                 }
             }
 
-            this.FinishSequence();
+            FinishSequence();
         }
 
         private static bool IsInnocentTo(Mobile from, Mobile to)
         {
-            return (Notoriety.Compute(from, (Mobile)to) == Notoriety.Innocent);
+            return Notoriety.Compute(from, to) == Notoriety.Innocent;
         }
 
         private static bool IsAllyTo(Mobile from, Mobile to)
         {
-            return (Notoriety.Compute(from, (Mobile)to) == Notoriety.Ally);
+            return Notoriety.Compute(from, to) == Notoriety.Ally;
         }
 
         private bool AreaCanTarget(Mobile target, bool feluccaRules)
         {
             /* Arch cure area effect won't cure aggressors, victims, murderers, criminals or monsters.
-            * In Felucca, it will also not cure summons and pets.
-            * For red players it will only cure themselves and guild members.
-            */
-            if (!this.Caster.CanBeBeneficial(target, false))
+             * In Felucca, it will also not cure summons and pets.
+             * For red players it will only cure themselves and guild members.
+             */
+            if (!Caster.CanBeBeneficial(target, false))
                 return false;
 
-            if (Core.AOS && target != this.Caster)
+            if (Core.AOS && target != Caster)
             {
-                if (this.IsAggressor(target) || this.IsAggressed(target))
+                if (IsAggressor(target) || IsAggressed(target))
                     return false;
 
-                if ((!IsInnocentTo(this.Caster, target) || !IsInnocentTo(target, this.Caster)) && !IsAllyTo(this.Caster, target))
+                if ((!IsInnocentTo(Caster, target) || !IsInnocentTo(target, Caster)) && !IsAllyTo(Caster, target))
                     return false;
 
                 if (feluccaRules && !(target is PlayerMobile))
@@ -150,22 +142,18 @@ namespace Server.Spells.Fourth
 
         private bool IsAggressor(Mobile m)
         {
-            foreach (AggressorInfo info in this.Caster.Aggressors)
-            {
+            foreach (var info in Caster.Aggressors)
                 if (m == info.Attacker && !info.Expired)
                     return true;
-            }
 
             return false;
         }
 
         private bool IsAggressed(Mobile m)
         {
-            foreach (AggressorInfo info in this.Caster.Aggressed)
-            {
+            foreach (var info in Caster.Aggressed)
                 if (m == info.Defender && !info.Expired)
                     return true;
-            }
 
             return false;
         }
@@ -173,23 +161,24 @@ namespace Server.Spells.Fourth
         public class InternalTarget : Target
         {
             private readonly ArchCureSpell m_Owner;
+
             public InternalTarget(ArchCureSpell owner)
                 : base(Core.ML ? 10 : 12, true, TargetFlags.None)
             {
-                this.m_Owner = owner;
+                m_Owner = owner;
             }
 
             protected override void OnTarget(Mobile from, object o)
             {
-                IPoint3D p = o as IPoint3D;
+                var p = o as IPoint3D;
 
                 if (p != null)
-                    this.m_Owner.Target(p);
+                    m_Owner.Target(p);
             }
 
             protected override void OnTargetFinish(Mobile from)
             {
-                this.m_Owner.FinishSequence();
+                m_Owner.FinishSequence();
             }
         }
     }

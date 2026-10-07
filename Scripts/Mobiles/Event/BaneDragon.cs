@@ -7,13 +7,16 @@ namespace Server.Mobiles
     {
         public static readonly int MaxPower = 10;
 
+        private DateTime _NextSpecial;
+        private int _PowerDecay;
+
         [CommandProperty(AccessLevel.GameMaster)]
         public int PowerLevel { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public int PowerDecay
         {
-            get { return _PowerDecay; }
+            get => _PowerDecay;
             set
             {
                 _PowerDecay = value;
@@ -26,8 +29,9 @@ namespace Server.Mobiles
             }
         }
 
-        private DateTime _NextSpecial;
-        private int _PowerDecay;
+        public override Poison HitPoison => Poison.Lethal;
+        public override bool AlwaysMurderer => true;
+        public override FoodType FavoriteFood => FoodType.BlackrockStew;
 
         [Constructable]
         public BaneDragon()
@@ -73,9 +77,10 @@ namespace Server.Mobiles
             _NextSpecial = DateTime.UtcNow;
         }
 
-        public override Poison HitPoison { get { return Poison.Lethal; } }
-        public override bool AlwaysMurderer { get { return true; } }
-        public override FoodType FavoriteFood { get { return FoodType.BlackrockStew; } }
+        public BaneDragon(Serial serial)
+            : base(serial)
+        {
+        }
 
         public override bool CheckFeed(Mobile from, Item dropped)
         {
@@ -90,13 +95,11 @@ namespace Server.Mobiles
                     PowerLevel++;
 
                     if (PowerLevel >= MaxPower)
-                    {
-                        from.SendLocalizedMessage(1115753); // Your bane dragon is returned to maximum power by this stew.
-                    }
+                        from.SendLocalizedMessage(
+                            1115753); // Your bane dragon is returned to maximum power by this stew.
                     else
-                    {
-                        from.SendLocalizedMessage(1115754); // Your bane dragon seems a bit peckish today and is not at full power.
-                    }
+                        from.SendLocalizedMessage(
+                            1115754); // Your bane dragon seems a bit peckish today and is not at full power.
 
                     return base.CheckFeed(from, dropped);
                 }
@@ -111,37 +114,30 @@ namespace Server.Mobiles
             {
                 DoSpecial(from);
 
-                _NextSpecial = DateTime.UtcNow + TimeSpan.FromSeconds((double)Utility.RandomMinMax(15, 30) * (double)(11.0 - PowerLevel));
+                _NextSpecial = DateTime.UtcNow +
+                               TimeSpan.FromSeconds(Utility.RandomMinMax(15, 30) * (11.0 - PowerLevel));
             }
         }
 
         public void DoSpecial(Mobile from)
         {
-            if (Controlled)
-            {
-                PowerDecay++;
-            }
+            if (Controlled) PowerDecay++;
 
             MovingParticles(from, 0x36D4, 7, 0, false, true, 1163, 0, 9502, 4019, 0x160, 0);
             PlaySound(0x15E);
 
             Timer.DelayCall(TimeSpan.FromSeconds(1), m =>
-                {
-                    AOS.Damage(m, this, Utility.RandomMinMax(8 * PowerLevel, 10 * PowerLevel), 0, 50, 0, 50, 0);
-                    m.ApplyPoison(this, GetHitPoison());
-                }, from);
-        }
-
-        public BaneDragon(Serial serial)
-            : base(serial)
-        {
+            {
+                AOS.Damage(m, this, Utility.RandomMinMax(8 * PowerLevel, 10 * PowerLevel), 0, 50, 0, 50, 0);
+                m.ApplyPoison(this, GetHitPoison());
+            }, from);
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)1); // version
+            writer.Write(1); // version
             writer.Write(PowerLevel);
             writer.Write(PowerDecay);
         }
@@ -150,7 +146,7 @@ namespace Server.Mobiles
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             switch (version)
             {

@@ -1,25 +1,28 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
 {
     public class SeekerOfAdventure : BaseEscortable
     {
-        private static readonly string[] m_Dungeons = new string[]
+        private static readonly string[] m_Dungeons =
         {
             "Covetous", "Deceit", "Despise",
             "Destard", "Hythloth", "Shame", // Old Code for Pre-ML shards.
             "Wrong"
         };
-        private static readonly string[] m_MLDestinations = new string[]
+
+        private static readonly string[] m_MLDestinations =
         {
             "Cove", "Serpent's Hold", "Jhelom", // ML List
             "Nujel'm"
         };
+
+        public override bool ClickTitle => false; // Do not display 'the seeker of adventure' when single-clicking
+
         [Constructable]
         public SeekerOfAdventure()
         {
-            this.Title = "the seeker of adventure";
+            Title = "the seeker of adventure";
         }
 
         public SeekerOfAdventure(Serial serial)
@@ -27,66 +30,58 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool ClickTitle
-        {
-            get
-            {
-                return false;
-            }
-        }// Do not display 'the seeker of adventure' when single-clicking
         public override string[] GetPossibleDestinations()
         {
             if (Core.ML)
                 return m_MLDestinations;
-            else
-                return m_Dungeons;
+            return m_Dungeons;
         }
 
         public override void InitOutfit()
         {
-            if (this.Female)
-                this.AddItem(new FancyDress(GetRandomHue()));
+            if (Female)
+                AddItem(new FancyDress(GetRandomHue()));
             else
-                this.AddItem(new FancyShirt(GetRandomHue()));
+                AddItem(new FancyShirt(GetRandomHue()));
 
-            int lowHue = GetRandomHue();
+            var lowHue = GetRandomHue();
 
-            this.AddItem(new ShortPants(lowHue));
+            AddItem(new ShortPants(lowHue));
 
-            if (this.Female)
-                this.AddItem(new ThighBoots(lowHue));
+            if (Female)
+                AddItem(new ThighBoots(lowHue));
             else
-                this.AddItem(new Boots(lowHue));
+                AddItem(new Boots(lowHue));
 
-            if (!this.Female)
-                this.AddItem(new BodySash(lowHue));
+            if (!Female)
+                AddItem(new BodySash(lowHue));
 
-            this.AddItem(new Cloak(GetRandomHue()));
+            AddItem(new Cloak(GetRandomHue()));
 
-            this.AddItem(new Longsword());
+            AddItem(new Longsword());
 
             Utility.AssignRandomHair(this);
 
-            this.PackGold(100, 150);
+            PackGold(100, 150);
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         private static int GetRandomHue()
         {
-            switch ( Utility.Random(6) )
+            switch (Utility.Random(6))
             {
                 default:
                 case 0:

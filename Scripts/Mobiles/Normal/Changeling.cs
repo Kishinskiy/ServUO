@@ -7,21 +7,58 @@ namespace Server.Mobiles
     [CorpseName("a changeling corpse")]
     public class Changeling : BaseCreature
     {
-        private static readonly int[] m_FireNorth = new int[]
+        private static readonly int[] m_FireNorth =
         {
             -1, -1,
             1, -1,
             -1, 2,
             1, 2
         };
-        private static readonly int[] m_FireEast = new int[]
+
+        private static readonly int[] m_FireEast =
         {
             -1, 0,
             2, 0
         };
 
-        private Mobile m_MorphedInto;
         private DateTime m_LastMorph;
+
+        private Mobile m_MorphedInto;
+
+        public virtual string DefaultName => "a changeling";
+
+        public virtual int DefaultHue => 0;
+
+        public override bool UseSmartAI => true;
+
+        public override bool ShowFameTitle => false;
+
+        public override bool InitialInnocent => m_MorphedInto != null;
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public Mobile MorphedInto
+        {
+            get => m_MorphedInto;
+            set
+            {
+                if (value == this)
+                    value = null;
+
+                if (m_MorphedInto != value)
+                {
+                    Revert();
+
+                    if (value != null)
+                    {
+                        Morph(value);
+                        m_LastMorph = DateTime.UtcNow;
+                    }
+
+                    m_MorphedInto = value;
+                    Delta(MobileDelta.Noto);
+                }
+            }
+        }
 
         [Constructable]
         public Changeling()
@@ -65,10 +102,8 @@ namespace Server.Mobiles
             PackItem(new Bolt(25));
             PackGem(2);
 
-            for (int i = 0; i < Utility.RandomMinMax(0, 1); i++)
-            {
+            for (var i = 0; i < Utility.RandomMinMax(0, 1); i++)
                 PackItem(Loot.RandomScroll(0, Loot.ArcanistScrollTypes.Length, SpellbookType.Arcanist));
-            }
         }
 
         public Changeling(Serial serial)
@@ -78,72 +113,11 @@ namespace Server.Mobiles
 
         public override bool IsEnemy(Mobile m)
         {
-            if (m is BaseCreature && ((BaseCreature)m).IsMonster && m.Karma > 0)
-            {
-                return true;
-            }
+            if (m is BaseCreature && ((BaseCreature)m).IsMonster && m.Karma > 0) return true;
 
             return base.IsEnemy(m);
         }
 
-        public virtual string DefaultName
-        {
-            get
-            {
-                return "a changeling";
-            }
-        }
-        public virtual int DefaultHue
-        {
-            get
-            {
-                return 0;
-            }
-        }
-
-        public override bool UseSmartAI { get { return true; } }
-
-        public override bool ShowFameTitle
-        {
-            get
-            {
-                return false;
-            }
-        }
-        public override bool InitialInnocent
-        {
-            get
-            {
-                return (m_MorphedInto != null);
-            }
-        }
-        [CommandProperty(AccessLevel.GameMaster)]
-        public Mobile MorphedInto
-        {
-            get
-            {
-                return m_MorphedInto;
-            }
-            set
-            {
-                if (value == this)
-                    value = null;
-
-                if (m_MorphedInto != value)
-                {
-                    Revert();
-
-                    if (value != null)
-                    {
-                        Morph(value);
-                        m_LastMorph = DateTime.UtcNow;
-                    }
-
-                    m_MorphedInto = value;
-                    Delta(MobileDelta.Noto);
-                }
-            }
-        }
         public override void GenerateLoot()
         {
             AddLoot(LootPack.AosRich, 3);
@@ -181,14 +155,12 @@ namespace Server.Mobiles
             base.OnThink();
 
             if (Combatant is PlayerMobile && m_MorphedInto != Combatant && Utility.RandomDouble() < 0.05)
-            {
                 MorphedInto = Combatant as Mobile;
-            }
         }
 
         public override bool CheckIdle()
         {
-            bool idle = base.CheckIdle();
+            var idle = base.CheckIdle();
 
             if (idle && m_MorphedInto != null && DateTime.UtcNow - m_LastMorph > TimeSpan.FromSeconds(30))
                 MorphedInto = null;
@@ -198,24 +170,22 @@ namespace Server.Mobiles
 
         public void DeleteClonedItems()
         {
-            for (int i = Items.Count - 1; i >= 0; --i)
+            for (var i = Items.Count - 1; i >= 0; --i)
             {
-                Item item = Items[i];
+                var item = Items[i];
 
                 if (item is ClonedItem)
                     item.Delete();
             }
 
             if (Backpack != null)
-            {
-                for (int i = Backpack.Items.Count - 1; i >= 0; --i)
+                for (var i = Backpack.Items.Count - 1; i >= 0; --i)
                 {
-                    Item item = Backpack.Items[i];
+                    var item = Backpack.Items[i];
 
                     if (item is ClonedItem)
                         item.Delete();
                 }
-            }
         }
 
         public override void OnAfterDelete()
@@ -233,15 +203,15 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
-            writer.Write((m_MorphedInto != null));
+            writer.Write(0); // version
+            writer.Write(m_MorphedInto != null);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (reader.ReadBool())
                 ValidationQueue<Changeling>.Add(this);
@@ -268,11 +238,9 @@ namespace Server.Mobiles
 
             // TODO: Skills?
 
-            foreach (Item item in m.Items)
-            {
+            foreach (var item in m.Items)
                 if (item.Layer != Layer.Backpack && item.Layer != Layer.Mount && item.Layer != Layer.Bank)
                     AddItem(new ClonedItem(item)); // TODO: Clone weapon/armor attributes
-            }
 
             PlaySound(0x511);
             FixedParticles(0x376A, 1, 14, 5045, EffectLayer.Waist);
@@ -281,7 +249,7 @@ namespace Server.Mobiles
         protected virtual void Revert()
         {
             Body = 264;
-            Hue = (IsParagon && DefaultHue == 0) ? Paragon.Hue : DefaultHue;
+            Hue = IsParagon && DefaultHue == 0 ? Paragon.Hue : DefaultHue;
             Female = false;
             Name = DefaultName;
             NameHue = -1;
@@ -300,9 +268,9 @@ namespace Server.Mobiles
 
         private void FireEffects(int itemID, int[] offsets)
         {
-            for (int i = 0; i < offsets.Length; i += 2)
+            for (var i = 0; i < offsets.Length; i += 2)
             {
-                Point3D p = Location;
+                var p = Location;
 
                 p.X += offsets[i];
                 p.Y += offsets[i + 1];
@@ -333,14 +301,14 @@ namespace Server.Mobiles
             {
                 base.Serialize(writer);
 
-                writer.Write((int)0); // version
+                writer.Write(0); // version
             }
 
             public override void Deserialize(GenericReader reader)
             {
                 base.Deserialize(reader);
 
-                int version = reader.ReadInt();
+                var version = reader.ReadInt();
             }
         }
     }

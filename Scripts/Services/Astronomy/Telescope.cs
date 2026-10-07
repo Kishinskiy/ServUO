@@ -1,30 +1,46 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-
-using Server;
+using Server.ContextMenus;
+using Server.Engines.Astronomy;
+using Server.Gumps;
 using Server.Mobiles;
 using Server.Multis;
-using Server.Gumps;
-using Server.Engines.Astronomy;
-using Server.ContextMenus;
+using Server.Network;
 
 namespace Server.Items
 {
     [Flipable(0xA12C, 0xA12D)]
     public class PersonalTelescope : Item, ISecurable
     {
-        private string _DisplayName;
+        private static readonly string[] _Names =
+        {
+            "Adranath", "Aeluva the Arcanist", "Aesthyron", "Anon", "Balaki", "Clanin", "Dexter", "Doctor Spector",
+            "Dryus Doost",
+            "Gilform", "Grizelda the Hag", "Hawkwind", "Heigel of Moonglow", "Intanya", "Juo'Nar", "King Blackthorn",
+            "Koole the Arcanist",
+            "Kronos", "Kyrnia", "Lathiari", "Leoric Gathenwale", "Lysander Gathenwale", "Malabelle", "Mariah",
+            "Melissa", "Minax",
+            "Mondain", "Mordra", "Mythran", "Neira the Necromancer", "Nystul", "Queen Zhah", "Relvinian",
+            "Selsius the Astronomer",
+            "Sutek", "Uzeraan", "Wexton the Apprentice"
+        };
+
         private double _DEC;
+        private string _DisplayName;
 
         //[CommandProperty(AccessLevel.GameMaster)]
         //public static TimeCoordinate ForceTimeCoordinate { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public string DisplayName { get { return _DisplayName; } set { _DisplayName = value; InvalidateProperties(); } }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public SecureLevel Level { get; set; }
+        public string DisplayName
+        {
+            get => _DisplayName;
+            set
+            {
+                _DisplayName = value;
+                InvalidateProperties();
+            }
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public int RA { get; set; }
@@ -32,7 +48,7 @@ namespace Server.Items
         [CommandProperty(AccessLevel.GameMaster)]
         public double DEC
         {
-            get { return _DEC; }
+            get => _DEC;
             set
             {
                 _DEC = value;
@@ -42,11 +58,11 @@ namespace Server.Items
         }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public TimeCoordinate TimeCoordinate { get { return AstronomySystem.GetTimeCoordinate(this); } }
+        public TimeCoordinate TimeCoordinate => AstronomySystem.GetTimeCoordinate(this);
 
         public DateTime LastUse { get; set; }
 
-        public override int LabelNumber { get { return 1125284; } }
+        public override int LabelNumber => 1125284;
 
         [Constructable]
         public PersonalTelescope()
@@ -56,6 +72,14 @@ namespace Server.Items
 
             _DisplayName = _Names[Utility.Random(_Names.Length)];
         }
+
+        public PersonalTelescope(Serial serial)
+            : base(serial)
+        {
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public SecureLevel Level { get; set; }
 
         public override void OnDoubleClick(Mobile m)
         {
@@ -85,7 +109,7 @@ namespace Server.Items
             }
             else
             {
-                m.LocalOverheadMessage(Server.Network.MessageType.Regular, 0x3B2, 1019045); // I can't reach that.
+                m.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1019045); // I can't reach that.
             }
         }
 
@@ -93,10 +117,9 @@ namespace Server.Items
         {
             base.GetProperties(list);
 
-            if (!String.IsNullOrEmpty(_DisplayName))
-            {
-                list.Add(1158477, _DisplayName); // <BASEFONT COLOR=#FFD24D>From the personal study of ~1_NAME~<BASEFONT COLOR=#FFFFFF>
-            }
+            if (!string.IsNullOrEmpty(_DisplayName))
+                list.Add(1158477,
+                    _DisplayName); // <BASEFONT COLOR=#FFD24D>From the personal study of ~1_NAME~<BASEFONT COLOR=#FFFFFF>
         }
 
         public override void GetContextMenuEntries(Mobile from, List<ContextMenuEntry> list)
@@ -104,11 +127,6 @@ namespace Server.Items
             base.GetContextMenuEntries(from, list);
 
             SetSecureLevelEntry.AddTo(from, this, list);
-        }
-
-        public PersonalTelescope(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -126,7 +144,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             switch (version)
             {
@@ -140,20 +158,8 @@ namespace Server.Items
                     break;
             }
 
-            if (version == 0)
-            {
-                _DisplayName = _Names[Utility.Random(_Names.Length)];
-            }
+            if (version == 0) _DisplayName = _Names[Utility.Random(_Names.Length)];
         }
-
-        private static string[] _Names =
-        {
-            "Adranath", "Aeluva the Arcanist", "Aesthyron", "Anon", "Balaki", "Clanin", "Dexter", "Doctor Spector", "Dryus Doost",
-            "Gilform", "Grizelda the Hag", "Hawkwind", "Heigel of Moonglow", "Intanya", "Juo'Nar", "King Blackthorn", "Koole the Arcanist",
-            "Kronos", "Kyrnia", "Lathiari", "Leoric Gathenwale", "Lysander Gathenwale", "Malabelle", "Mariah", "Melissa", "Minax",
-            "Mondain", "Mordra", "Mythran", "Neira the Necromancer", "Nystul", "Queen Zhah", "Relvinian", "Selsius the Astronomer",
-            "Sutek", "Uzeraan", "Wexton the Apprentice"
-        };
     }
 
     public class TelescopeGump : BaseGump
@@ -176,10 +182,7 @@ namespace Server.Items
         {
             AddPage(0);
 
-            if (ImageID == 0)
-            {
-                ImageID = AstronomySystem.RandomSkyImage(User);
-            }
+            if (ImageID == 0) ImageID = AstronomySystem.RandomSkyImage(User);
 
             AddImage(0, 0, ImageID);
 
@@ -225,13 +228,8 @@ namespace Server.Items
             AddTooltip(1158498); // Declination
 
             if (Constellation != null)
-            {
                 RenderConstellation();
-            }
-            else if (InterstellarObject != null)
-            {
-                RenderInterstellarObject();
-            }
+            else if (InterstellarObject != null) RenderInterstellarObject();
         }
 
         private void RenderInterstellarObject()
@@ -241,18 +239,12 @@ namespace Server.Items
 
         private void RenderConstellation()
         {
-            foreach (var pos in Constellation.StarPositions)
-            {
-                AddImage(pos.X, pos.Y, pos.ImageID);
-            }
+            foreach (var pos in Constellation.StarPositions) AddImage(pos.X, pos.Y, pos.ImageID);
         }
 
         public override void OnResponse(RelayInfo info)
         {
-            if (!User.InRange(Tele.Location, 2) || User.Map != Tele.Map)
-            {
-                return;
-            }
+            if (!User.InRange(Tele.Location, 2) || User.Map != Tele.Map) return;
 
             Tele.LastUse = DateTime.UtcNow;
 
@@ -273,7 +265,7 @@ namespace Server.Items
                     User.SendSound(0x4A);
                     break;
                 case 60002: // RA 1's Up
-                    int raOnes = GetPlace(Tele.RA, 1);
+                    var raOnes = GetPlace(Tele.RA, 1);
 
                     if (raOnes >= 9)
                         Tele.RA -= 9;
@@ -282,7 +274,7 @@ namespace Server.Items
                     User.SendSound(0x4A);
                     break;
                 case 60003: // RA 1's Down
-                    int raOnes1 = GetPlace(Tele.RA, 1);
+                    var raOnes1 = GetPlace(Tele.RA, 1);
 
                     if (raOnes1 == 0)
                         Tele.RA += 9;
@@ -305,7 +297,7 @@ namespace Server.Items
                     User.SendSound(0x4A);
                     break;
                 case 60006: // DEC 1's Up
-                    int decOnes = GetPlace((int)Math.Truncate(Tele.DEC), 1);
+                    var decOnes = GetPlace((int)Math.Truncate(Tele.DEC), 1);
 
                     if (decOnes >= 9)
                         Tele.DEC -= 9;
@@ -314,7 +306,7 @@ namespace Server.Items
                     User.SendSound(0x4A);
                     break;
                 case 60007: // DEC 1's Down
-                    int decOnes1 = GetPlace((int)Math.Truncate(Tele.DEC), 1);
+                    var decOnes1 = GetPlace((int)Math.Truncate(Tele.DEC), 1);
 
                     if (decOnes1 <= 0)
                         Tele.DEC += 9;
@@ -323,7 +315,7 @@ namespace Server.Items
                     User.SendSound(0x4A);
                     break;
                 case 60008: // DEC .2 Up
-                    int dec = GetDecimalPlace(Tele.DEC);
+                    var dec = GetDecimalPlace(Tele.DEC);
 
                     if (dec >= 8)
                         Tele.DEC = Math.Truncate(Tele.DEC);
@@ -332,7 +324,7 @@ namespace Server.Items
                     User.SendSound(0x4A);
                     break;
                 case 60009: // DEC .2 Down
-                    int dec1 = GetDecimalPlace(Tele.DEC);
+                    var dec1 = GetDecimalPlace(Tele.DEC);
 
                     if (dec1 < 2)
                         Tele.DEC += 0.8;
@@ -344,7 +336,7 @@ namespace Server.Items
                     User.SendSound(0x4A);
                     break;
                 case 70000: // View Coord
-                    if (Tele.RA > AstronomySystem.MaxRA || Tele.DEC > (double)AstronomySystem.MaxDEC)
+                    if (Tele.RA > AstronomySystem.MaxRA || Tele.DEC > AstronomySystem.MaxDEC)
                     {
                         User.SendLocalizedMessage(1158488); // You have entered invalid coordinates.
                         User.SendSound(81);
@@ -359,7 +351,8 @@ namespace Server.Items
 
                         if (timeCoord == TimeCoordinate.Day)
                         {
-                            User.SendLocalizedMessage(1158513); // You won't have much luck seeing the night sky during the day...
+                            User.SendLocalizedMessage(
+                                1158513); // You won't have much luck seeing the night sky during the day...
                         }
                         else
                         {
@@ -369,7 +362,8 @@ namespace Server.Items
                             {
                                 Constellation = constellation;
 
-                                User.SendLocalizedMessage(1158492, "", 0xBF); // You peer into the heavens and see...a constellation!
+                                User.SendLocalizedMessage(1158492, "",
+                                    0xBF); // You peer into the heavens and see...a constellation!
                                 User.SendSound(User.Female ? 0x32B : 0x43D);
                             }
                             else if (0.2 > Utility.RandomDouble())
@@ -381,7 +375,8 @@ namespace Server.Items
                             }
                             else
                             {
-                                User.SendLocalizedMessage(1158491, "", 0xBF); // You peer into the heavens and see...only empty space...
+                                User.SendLocalizedMessage(1158491, "",
+                                    0xBF); // You peer into the heavens and see...only empty space...
                             }
                         }
                     }
@@ -390,20 +385,17 @@ namespace Server.Items
                     return;
             }
 
-            if (info.ButtonID != 0)
-            {
-                Refresh();
-            }
+            if (info.ButtonID != 0) Refresh();
         }
 
         private int GetPlace(int value, int place)
         {
-            return ((value % (place * 10)) - (value % place)) / place;
+            return (value % (place * 10) - value % place) / place;
         }
 
         private int GetDecimalPlace(double value)
         {
-            decimal dec = decimal.Round((decimal)(value - Math.Truncate(value)), 2);
+            var dec = decimal.Round((decimal)(value - Math.Truncate(value)), 2);
 
             return (int)(dec * 10);
         }

@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 using Server.Mobiles;
 using Server.Targeting;
@@ -7,17 +6,45 @@ namespace Server.Engines.CannedEvil
 {
     public class ChampionSkullBrazier : AddonComponent
     {
-        private ChampionSkullPlatform m_Platform;
-        private ChampionSkullType m_Type;
         private Item m_Skull;
+        private ChampionSkullType m_Type;
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public ChampionSkullPlatform Platform { get; private set; }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public ChampionSkullType Type
+        {
+            get => m_Type;
+            set
+            {
+                m_Type = value;
+                InvalidateProperties();
+            }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public Item Skull
+        {
+            get => m_Skull;
+            set
+            {
+                m_Skull = value;
+                if (Platform != null)
+                    Platform.Validate();
+            }
+        }
+
+        public override int LabelNumber => 1049489 + (int)m_Type;
+
         public ChampionSkullBrazier(ChampionSkullPlatform platform, ChampionSkullType type)
             : base(0x19BB)
         {
-            this.Hue = 0x455;
-            this.Light = LightType.Circle300;
+            Hue = 0x455;
+            Light = LightType.Circle300;
 
-            this.m_Platform = platform;
-            this.m_Type = type;
+            Platform = platform;
+            m_Type = type;
         }
 
         public ChampionSkullBrazier(Serial serial)
@@ -25,65 +52,23 @@ namespace Server.Engines.CannedEvil
         {
         }
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public ChampionSkullPlatform Platform
-        {
-            get
-            {
-                return this.m_Platform;
-            }
-        }
-        [CommandProperty(AccessLevel.GameMaster)]
-        public ChampionSkullType Type
-        {
-            get
-            {
-                return this.m_Type;
-            }
-            set
-            {
-                this.m_Type = value;
-                this.InvalidateProperties();
-            }
-        }
-        [CommandProperty(AccessLevel.GameMaster)]
-        public Item Skull
-        {
-            get
-            {
-                return this.m_Skull;
-            }
-            set
-            {
-                this.m_Skull = value;
-                if (this.m_Platform != null)
-                    this.m_Platform.Validate();
-            }
-        }
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1049489 + (int)this.m_Type;
-            }
-        }
         public override void OnDoubleClick(Mobile from)
         {
-            if (this.m_Platform != null)
-                this.m_Platform.Validate();
+            if (Platform != null)
+                Platform.Validate();
 
-            this.BeginSacrifice(from);
+            BeginSacrifice(from);
         }
 
         public void BeginSacrifice(Mobile from)
         {
-            if (this.Deleted)
+            if (Deleted)
                 return;
 
-            if (this.m_Skull != null && this.m_Skull.Deleted)
-                this.Skull = null;
+            if (m_Skull != null && m_Skull.Deleted)
+                Skull = null;
 
-            if (from.Map != this.Map || !from.InRange(this.GetWorldLocation(), 3))
+            if (from.Map != Map || !from.InRange(GetWorldLocation(), 3))
             {
                 from.SendLocalizedMessage(500446); // That is too far away.
             }
@@ -91,26 +76,26 @@ namespace Server.Engines.CannedEvil
             {
                 from.SendMessage("The harrower has already been spawned.");
             }
-            else if (this.m_Skull == null)
+            else if (m_Skull == null)
             {
                 from.SendLocalizedMessage(1049485); // What would you like to sacrifice?
                 from.Target = new SacrificeTarget(this);
             }
             else
             {
-                this.SendLocalizedMessageTo(from, 1049487, ""); // I already have my champions awakening skull!
+                SendLocalizedMessageTo(from, 1049487, ""); // I already have my champions awakening skull!
             }
         }
 
         public void EndSacrifice(Mobile from, ChampionSkull skull)
         {
-            if (this.Deleted)
+            if (Deleted)
                 return;
 
-            if (this.m_Skull != null && this.m_Skull.Deleted)
-                this.Skull = null;
+            if (m_Skull != null && m_Skull.Deleted)
+                Skull = null;
 
-            if (from.Map != this.Map || !from.InRange(this.GetWorldLocation(), 3))
+            if (from.Map != Map || !from.InRange(GetWorldLocation(), 3))
             {
                 from.SendLocalizedMessage(500446); // That is too far away.
             }
@@ -120,11 +105,11 @@ namespace Server.Engines.CannedEvil
             }
             else if (skull == null)
             {
-                this.SendLocalizedMessageTo(from, 1049488, ""); // That is not my champions awakening skull!
+                SendLocalizedMessageTo(from, 1049488, ""); // That is not my champions awakening skull!
             }
-            else if (this.m_Skull != null)
+            else if (m_Skull != null)
             {
-                this.SendLocalizedMessageTo(from, 1049487, ""); // I already have my champions awakening skull!
+                SendLocalizedMessageTo(from, 1049487, ""); // I already have my champions awakening skull!
             }
             else if (!skull.IsChildOf(from.Backpack))
             {
@@ -132,16 +117,16 @@ namespace Server.Engines.CannedEvil
             }
             else
             {
-                if (skull.Type == this.Type)
+                if (skull.Type == Type)
                 {
                     skull.Movable = false;
-                    skull.MoveToWorld(this.GetWorldTop(), this.Map);
+                    skull.MoveToWorld(GetWorldTop(), Map);
 
-                    this.Skull = skull;
+                    Skull = skull;
                 }
                 else
                 {
-                    this.SendLocalizedMessageTo(from, 1049488, ""); // That is not my champions awakening skull!
+                    SendLocalizedMessageTo(from, 1049488, ""); // That is not my champions awakening skull!
                 }
             }
         }
@@ -150,53 +135,54 @@ namespace Server.Engines.CannedEvil
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
-            writer.Write((int)this.m_Type);
-            writer.Write(this.m_Platform);
-            writer.Write(this.m_Skull);
+            writer.Write((int)m_Type);
+            writer.Write(Platform);
+            writer.Write(m_Skull);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            switch ( version )
+            switch (version)
             {
                 case 0:
-                    {
-                        this.m_Type = (ChampionSkullType)reader.ReadInt();
-                        this.m_Platform = reader.ReadItem() as ChampionSkullPlatform;
-                        this.m_Skull = reader.ReadItem();
+                {
+                    m_Type = (ChampionSkullType)reader.ReadInt();
+                    Platform = reader.ReadItem() as ChampionSkullPlatform;
+                    m_Skull = reader.ReadItem();
 
-                        if (this.m_Platform == null)
-                            this.Delete();
+                    if (Platform == null)
+                        Delete();
 
-                        break;
-                    }
+                    break;
+                }
             }
 
-            if (this.Hue == 0x497)
-                this.Hue = 0x455;
+            if (Hue == 0x497)
+                Hue = 0x455;
 
-            if (this.Light != LightType.Circle300)
-                this.Light = LightType.Circle300;
+            if (Light != LightType.Circle300)
+                Light = LightType.Circle300;
         }
 
         private class SacrificeTarget : Target
         {
             private readonly ChampionSkullBrazier m_Brazier;
+
             public SacrificeTarget(ChampionSkullBrazier brazier)
                 : base(12, false, TargetFlags.None)
             {
-                this.m_Brazier = brazier;
+                m_Brazier = brazier;
             }
 
             protected override void OnTarget(Mobile from, object targeted)
             {
-                this.m_Brazier.EndSacrifice(from, targeted as ChampionSkull);
+                m_Brazier.EndSacrifice(from, targeted as ChampionSkull);
             }
         }
     }

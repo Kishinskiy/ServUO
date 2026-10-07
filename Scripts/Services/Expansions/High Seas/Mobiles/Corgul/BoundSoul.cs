@@ -1,11 +1,10 @@
-﻿using Server;
-using System;
-
-namespace Server.Mobiles
+﻿namespace Server.Mobiles
 {
     public class BoundSoul : BaseCreature
     {
-        public override bool AlwaysMurderer { get { return true; } }
+        public override bool AlwaysMurderer => true;
+
+        public override int TreasureMapLevel => 3;
 
         public BoundSoul()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -41,29 +40,27 @@ namespace Server.Mobiles
             Karma = -5000;
         }
 
+        public BoundSoul(Serial serial)
+            : base(serial)
+        {
+        }
+
 
         public override void GenerateLoot()
         {
             AddLoot(LootPack.FilthyRich, 3);
         }
 
-        public BoundSoul(Serial serial)
-            : base(serial)
-        {
-        }
-		
-		public override int TreasureMapLevel { get { return 3; } }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

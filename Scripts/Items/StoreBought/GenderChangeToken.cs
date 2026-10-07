@@ -1,16 +1,16 @@
 ﻿using System;
-using Server;
-using Server.Mobiles;
 using Server.Gumps;
+using Server.Mobiles;
+using Server.Spells.Fifth;
 
 namespace Server.Items
 {
     public class GenderChangeToken : Item, IPromotionalToken
     {
-        public override int LabelNumber { get { return 1070997; } } // a promotional token
-        public TextDefinition ItemName { get { return 1075252; } } // gender change
+        private int _BeardID;
 
-        public Type GumpType { get { return typeof(GenderChangeConfirmGump); } }
+        private int _HairID;
+        public override int LabelNumber => 1070997; // a promotional token
 
         [Constructable]
         public GenderChangeToken()
@@ -19,13 +19,22 @@ namespace Server.Items
             LootType = LootType.Blessed;
         }
 
+        public GenderChangeToken(Serial serial)
+            : base(serial)
+        {
+        }
+
+        public TextDefinition ItemName => 1075252; // gender change
+
+        public Type GumpType => typeof(GenderChangeConfirmGump);
+
         public override void OnDoubleClick(Mobile from)
         {
             if (!IsChildOf(from.Backpack))
             {
                 from.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.
             }
-            else if (from.IsBodyMod || from.HueMod > 0 || !from.CanBeginAction(typeof(Server.Spells.Fifth.IncognitoSpell)))
+            else if (from.IsBodyMod || from.HueMod > 0 || !from.CanBeginAction(typeof(IncognitoSpell)))
             {
                 from.SendLocalizedMessage(1073648); // You may only proceed while in your original state...
             }
@@ -39,37 +48,29 @@ namespace Server.Items
             }
         }
 
-        private int _HairID;
-        private int _BeardID;
-
         public void OnChangeHairstyle(Mobile from, bool facialHair, int itemID)
         {
             if (!IsChildOf(from.Backpack))
                 return;
 
-            if (from.IsBodyMod || from.HueMod > 0 || !from.CanBeginAction(typeof(Server.Spells.Fifth.IncognitoSpell)))
+            if (from.IsBodyMod || from.HueMod > 0 || !from.CanBeginAction(typeof(IncognitoSpell)))
             {
                 from.SendLocalizedMessage(1073648); // You may only proceed while in your original state...
             }
             else
             {
                 if (facialHair)
-                {
                     _BeardID = itemID;
-                }
                 else
-                {
                     _HairID = itemID;
-                }
 
                 if (!from.Female || from.Race == Race.Elf || facialHair)
-                {
                     EndGenderChange(from);
-                }
                 else
-                {
-                    from.SendGump(new ChangeHairstyleGump(!from.Female, from, null, 0, true, from.Race == Race.Gargoyle ? ChangeHairstyleEntry.BeardEntriesGargoyle : ChangeHairstyleEntry.BeardEntries, this));
-                }
+                    from.SendGump(new ChangeHairstyleGump(!from.Female, from, null, 0, true,
+                        from.Race == Race.Gargoyle
+                            ? ChangeHairstyleEntry.BeardEntriesGargoyle
+                            : ChangeHairstyleEntry.BeardEntries, this));
             }
         }
 
@@ -85,13 +86,12 @@ namespace Server.Items
             else
             {
                 if (from.Female && from.Race != Race.Elf)
-                {
-                    from.SendGump(new ChangeHairstyleGump(!from.Female, from, null, 0, true, from.Race == Race.Gargoyle ? ChangeHairstyleEntry.BeardEntriesGargoyle : ChangeHairstyleEntry.BeardEntries, this));
-                }
+                    from.SendGump(new ChangeHairstyleGump(!from.Female, from, null, 0, true,
+                        from.Race == Race.Gargoyle
+                            ? ChangeHairstyleEntry.BeardEntriesGargoyle
+                            : ChangeHairstyleEntry.BeardEntries, this));
                 else
-                {
                     EndGenderChange(from);
-                }
             }
         }
 
@@ -125,11 +125,6 @@ namespace Server.Items
             list.Add(1070998, ItemName.ToString()); // Use this to redeem<br>Your ~1_PROMO~ : gender change
         }
 
-        public GenderChangeToken(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -139,13 +134,13 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class GenderChangeConfirmGump : BaseGump
     {
-        public GenderChangeToken Token { get; private set; }
+        public GenderChangeToken Token { get; }
 
         public GenderChangeConfirmGump(PlayerMobile pm, GenderChangeToken token)
             : base(pm, 100, 100)
@@ -164,30 +159,29 @@ namespace Server.Items
             AddButton(5, 132, 0xFB1, 0xFB3, 0, GumpButtonType.Reply, 0);
             AddHtmlLocalized(40, 132, 100, 20, 1011012, 0x7FFF, false, false); // CANCEL
 
-            AddHtmlLocalized(8, 30, 279, 124, User.Female ? 1075254 : 1075253, 0x7FFF, false, false); // Click OK to change your gender to female. This change is permanent. Reversing this requires the purchase of an additional gender change token. For more details, <A HREF="http://www.uo.com/genderchange.html">visit our web site</A>.
+            AddHtmlLocalized(8, 30, 279, 124, User.Female ? 1075254 : 1075253, 0x7FFF, false,
+                false); // Click OK to change your gender to female. This change is permanent. Reversing this requires the purchase of an additional gender change token. For more details, <A HREF="http://www.uo.com/genderchange.html">visit our web site</A>.
 
             AddButton(126, 132, 0xFB7, 0xFB9, 1, GumpButtonType.Reply, 0);
-            AddHtmlLocalized(160, 132, 120, 20, User.Female ? 1075251 : 1075250, 0x7FFF, false, false); // Make me a woman!
+            AddHtmlLocalized(160, 132, 120, 20, User.Female ? 1075251 : 1075250, 0x7FFF, false,
+                false); // Make me a woman!
         }
 
         public override void OnResponse(RelayInfo info)
         {
             if (info.ButtonID == 1 && Token.IsChildOf(User.Backpack))
             {
-                if (User.IsBodyMod || User.HueMod > 0 || !User.CanBeginAction(typeof(Server.Spells.Fifth.IncognitoSpell)))
-                {
+                if (User.IsBodyMod || User.HueMod > 0 || !User.CanBeginAction(typeof(IncognitoSpell)))
                     User.SendLocalizedMessage(1073648); // You may only proceed while in your original state...
-                }
                 else
-                {
-                    User.SendGump(new ChangeHairstyleGump(!User.Female, User, null, 0, false, GetHairstyleEntries(User), Token));
-                }
+                    User.SendGump(new ChangeHairstyleGump(!User.Female, User, null, 0, false, GetHairstyleEntries(User),
+                        Token));
             }
         }
 
         public static ChangeHairstyleEntry[] GetHairstyleEntries(Mobile m)
         {
-            ChangeHairstyleEntry[] entries = ChangeHairstyleEntry.HairEntries;
+            var entries = ChangeHairstyleEntry.HairEntries;
 
             if (m.Race == Race.Elf)
                 entries = ChangeHairstyleEntry.HairEntriesElf;

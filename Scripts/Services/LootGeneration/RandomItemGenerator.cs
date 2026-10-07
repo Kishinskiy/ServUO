@@ -1,8 +1,6 @@
 using System;
-using Server;
-using Server.Items;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
 using Server.Engines.Despise;
 using Server.Engines.Shadowguard;
 using Server.Mobiles;
@@ -11,7 +9,7 @@ namespace Server.Items
 {
     public class RandomItemGenerator
     {
-        public static bool Enabled { get { return Core.HS; } }
+        public static bool Enabled => Core.HS;
         public static int FeluccaLuckBonus { get; private set; }
         public static int FeluccaBudgetBonus { get; private set; }
 
@@ -21,6 +19,10 @@ namespace Server.Items
 
         public static int MaxAdjustedBudget { get; private set; }
         public static int MinAdjustedBudget { get; private set; }
+
+        private RandomItemGenerator()
+        {
+        }
 
         public static void Configure()
         {
@@ -35,46 +37,43 @@ namespace Server.Items
             MinAdjustedBudget = Config.Get("Loot.MinAdjustedBudget", 150);
         }
 
-        private RandomItemGenerator()
-        {
-        }
-
         /// <summary>
-        /// This is called for every item that is dropped to a loot pack.
-        /// Change the conditions here to add/remove Random Item Drops with REGULAR loot.
+        ///     This is called for every item that is dropped to a loot pack.
+        ///     Change the conditions here to add/remove Random Item Drops with REGULAR loot.
         /// </summary>
         /// <param name="item">item to be mutated</param>
         /// <param name="killer">Mobile.LastKiller</param>
         /// <param name="victim">the victim</param>
         public static bool GenerateRandomItem(Item item, Mobile killer, BaseCreature victim)
         {
-            if(Enabled)
+            if (Enabled)
                 return RunicReforging.GenerateRandomItem(item, killer, victim);
             return false;
         }
 
         /// <summary>
-        /// This is called in BaseRunicTool to ensure all items use the new system, as long as its not palyermade.
+        ///     This is called in BaseRunicTool to ensure all items use the new system, as long as its not palyermade.
         /// </summary>
         /// <param name="item"></param>
         /// <param name="luckChance">adjusted luck chance</param>
         /// <param name="attributeCount"></param>
         /// <param name="minIntensity"></param>
         /// <param name="maxIntensity"></param>
-        public static void GenerateRandomItem(Item item, int luckChance, int attributeCount, int minIntensity, int maxIntensity)
+        public static void GenerateRandomItem(Item item, int luckChance, int attributeCount, int minIntensity,
+            int maxIntensity)
         {
-            int min = (attributeCount * 2) * minIntensity;
-            min = min + (int)((double)min * ((double)Utility.RandomMinMax(1, 4) / 10));
+            var min = attributeCount * 2 * minIntensity;
+            min = min + (int)(min * ((double)Utility.RandomMinMax(1, 4) / 10));
 
-            int max = (attributeCount * 2) * maxIntensity;
-            max = max + (int)((double)max * ((double)Utility.RandomMinMax(1, 4) / 10));
+            var max = attributeCount * 2 * maxIntensity;
+            max = max + (int)(max * ((double)Utility.RandomMinMax(1, 4) / 10));
 
             RunicReforging.GenerateRandomItem(item, luckChance, min, max);
         }
 
         /// <summary>
-        /// 24000 is the normalized fame for MaxBaseBudget, ie Balron.  
-        /// Called in BaseCreature.cs virtual BaseLootBudget Property
+        ///     24000 is the normalized fame for MaxBaseBudget, ie Balron.
+        ///     Called in BaseCreature.cs virtual BaseLootBudget Property
         /// </summary>
         /// <param name="bc">Creature to be evaluated</param>
         /// <returns></returns>
@@ -91,11 +90,11 @@ namespace Server.Items
             if (bc == null)
                 return 0;
 
-            int fame = bc.Fame;
+            var fame = bc.Fame;
 
             if (fame > 0)
             {
-                int budget = Math.Min(MaxBaseBudget, GetBaseBudget(bc));
+                var budget = Math.Min(MaxBaseBudget, GetBaseBudget(bc));
 
                 BossEntry.CheckBoss(bc, ref budget);
 
@@ -108,8 +107,10 @@ namespace Server.Items
 
     public class BossEntry
     {
-        public int Bonus { get; private set; }
-        public List<Type> List { get; private set; }
+        public int Bonus { get; }
+        public List<Type> List { get; }
+
+        public static List<BossEntry> Entries { get; set; }
 
         public BossEntry(int bonus, params Type[] list)
         {
@@ -117,18 +118,14 @@ namespace Server.Items
             List = list.ToList();
         }
 
-        public static List<BossEntry> Entries { get; set; }
-
         public static void CheckBoss(BaseCreature bc, ref int budget)
         {
             foreach (var entry in Entries)
-            {
                 if (entry.List.FirstOrDefault(t => t == bc.GetType() || bc.GetType().IsSubclassOf(t)) != null)
                 {
                     budget += entry.Bonus;
                     return;
                 }
-            }
         }
 
         public static void Initialize()
@@ -139,14 +136,18 @@ namespace Server.Items
                 new BossEntry(100, typeof(BaseRenowned), typeof(TRex), typeof(BaseShipCaptain), typeof(Navrey)));
 
             Entries.Add(
-                new BossEntry(150, typeof(BaseChampion), typeof(Impaler), typeof(DarknightCreeper), typeof(FleshRenderer), 
-                                   typeof(ShadowKnight), typeof(AbysmalHorror), typeof(AdrianTheGloriousLord), typeof(AndrosTheDreadLord)));
+                new BossEntry(150, typeof(BaseChampion), typeof(Impaler), typeof(DarknightCreeper),
+                    typeof(FleshRenderer),
+                    typeof(ShadowKnight), typeof(AbysmalHorror), typeof(AdrianTheGloriousLord),
+                    typeof(AndrosTheDreadLord)));
 
             Entries.Add(
-                new BossEntry(250, typeof(BasePeerless), typeof(Harrower), typeof(DemonKnight), typeof(ShadowguardBoss), typeof(Osiredon)));
+                new BossEntry(250, typeof(BasePeerless), typeof(Harrower), typeof(DemonKnight), typeof(ShadowguardBoss),
+                    typeof(Osiredon)));
 
             Entries.Add(
-                new BossEntry(350, typeof(ClockworkExodus), typeof(CoraTheSorceress), typeof(Charydbis), typeof(Zipactriotl), typeof(MyrmidexQueen)));
+                new BossEntry(350, typeof(ClockworkExodus), typeof(CoraTheSorceress), typeof(Charydbis),
+                    typeof(Zipactriotl), typeof(MyrmidexQueen)));
         }
     }
 }

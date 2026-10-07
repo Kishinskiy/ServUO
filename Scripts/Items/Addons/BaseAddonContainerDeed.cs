@@ -1,6 +1,7 @@
 using System;
 using Server.Engines.Craft;
 using Server.Multis;
+using Server.Spells;
 using Server.Targeting;
 
 namespace Server.Items
@@ -8,24 +9,20 @@ namespace Server.Items
     [Flipable(0x14F0, 0x14EF)]
     public abstract class BaseAddonContainerDeed : Item, ICraftable
     {
-        public abstract BaseAddonContainer Addon { get; }
-		
         private CraftResource m_Resource;
+        public abstract BaseAddonContainer Addon { get; }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public CraftResource Resource
         {
-            get
-            {
-                return m_Resource;
-            }
+            get => m_Resource;
             set
             {
-                if (this.m_Resource != value)
+                if (m_Resource != value)
                 {
                     m_Resource = value;
-                    Hue = CraftResources.GetHue(this.m_Resource);
-					
+                    Hue = CraftResources.GetHue(m_Resource);
+
                     InvalidateProperties();
                 }
             }
@@ -45,6 +42,28 @@ namespace Server.Items
         {
         }
 
+        #region ICraftable
+
+        public virtual int OnCraft(int quality, bool makersMark, Mobile from, CraftSystem craftSystem, Type typeRes,
+            ITool tool, CraftItem craftItem, int resHue)
+        {
+            var resourceType = typeRes;
+
+            if (resourceType == null)
+                resourceType = craftItem.Resources.GetAt(0).ItemType;
+
+            Resource = CraftResources.GetFromType(resourceType);
+
+            var context = craftSystem.GetContext(from);
+
+            if (context != null && context.DoNotColor)
+                Hue = 0;
+
+            return quality;
+        }
+
+        #endregion
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -59,9 +78,9 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            switch ( version )
+            switch (version)
             {
                 case 1:
                     m_Resource = (CraftResource)reader.ReadInt();
@@ -81,29 +100,9 @@ namespace Server.Items
         {
             base.GetProperties(list);
 
-            if (!CraftResources.IsStandard(this.m_Resource))
-                list.Add(CraftResources.GetLocalizationNumber(this.m_Resource));
+            if (!CraftResources.IsStandard(m_Resource))
+                list.Add(CraftResources.GetLocalizationNumber(m_Resource));
         }
-
-        #region ICraftable
-        public virtual int OnCraft(int quality, bool makersMark, Mobile from, CraftSystem craftSystem, Type typeRes, ITool tool, CraftItem craftItem, int resHue)
-        {
-            Type resourceType = typeRes;
-
-            if (resourceType == null)
-                resourceType = craftItem.Resources.GetAt(0).ItemType;
-
-            Resource = CraftResources.GetFromType(resourceType);
-
-            CraftContext context = craftSystem.GetContext(from);
-
-            if (context != null && context.DoNotColor)
-                Hue = 0;
-
-            return quality;
-        }
-
-        #endregion
 
         private class InternalTarget : Target
         {
@@ -119,22 +118,22 @@ namespace Server.Items
 
             protected override void OnTarget(Mobile from, object targeted)
             {
-                IPoint3D p = targeted as IPoint3D;
-                Map map = from.Map;
+                var p = targeted as IPoint3D;
+                var map = from.Map;
 
-                if (p == null || map == null || this.m_Deed.Deleted)
+                if (p == null || map == null || m_Deed.Deleted)
                     return;
 
-                if (this.m_Deed.IsChildOf(from.Backpack))
+                if (m_Deed.IsChildOf(from.Backpack))
                 {
-                    BaseAddonContainer addon = this.m_Deed.Addon;
-                    addon.Resource = this.m_Deed.Resource;
+                    var addon = m_Deed.Addon;
+                    addon.Resource = m_Deed.Resource;
 
-                    Server.Spells.SpellHelper.GetSurfaceTop(ref p);
+                    SpellHelper.GetSurfaceTop(ref p);
 
                     BaseHouse house = null;
 
-                    AddonFitResult res = addon.CouldFit(p, map, from, ref house);
+                    var res = addon.CouldFit(p, map, from, ref house);
 
                     if (res == AddonFitResult.Valid)
                         addon.MoveToWorld(new Point3D(p), map);
@@ -151,19 +150,16 @@ namespace Server.Items
 
                     if (res == AddonFitResult.Valid)
                     {
-                        this.m_Deed.Delete();
-                        house.Addons[addon] = from;                        
+                        m_Deed.Delete();
+                        house.Addons[addon] = from;
 
                         if (addon is GardenShedAddon)
                         {
-                            GardenShedAddon ad = addon as GardenShedAddon;
+                            var ad = addon as GardenShedAddon;
                             house.Addons[ad.SecondContainer] = from;
                         }
 
-                        if (addon.Security)
-                        {
-                            house.AddSecure(from, addon);
-                        }
+                        if (addon.Security) house.AddSecure(from, addon);
                     }
                     else
                     {

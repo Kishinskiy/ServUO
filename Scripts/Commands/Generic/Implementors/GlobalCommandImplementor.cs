@@ -7,44 +7,37 @@ namespace Server.Commands.Generic
     {
         public GlobalCommandImplementor()
         {
-            this.Accessors = new string[] { "Global" };
-            this.SupportRequirement = CommandSupport.Global;
-            this.SupportsConditionals = true;
-            this.AccessLevel = AccessLevel.Administrator;
-            this.Usage = "Global <command> [condition]";
-            this.Description = "Invokes the command on all appropriate objects in the world. Optional condition arguments can further restrict the set of objects.";
+            Accessors = new[] { "Global" };
+            SupportRequirement = CommandSupport.Global;
+            SupportsConditionals = true;
+            AccessLevel = AccessLevel.Administrator;
+            Usage = "Global <command> [condition]";
+            Description =
+                "Invokes the command on all appropriate objects in the world. Optional condition arguments can further restrict the set of objects.";
         }
 
         public override void Compile(Mobile from, BaseCommand command, ref string[] args, ref object obj)
         {
             try
             {
-                Extensions ext = Extensions.Parse(from, ref args);
+                var ext = Extensions.Parse(from, ref args);
 
                 bool items, mobiles;
 
-                if (!this.CheckObjectTypes(from, command, ext, out items, out mobiles))
+                if (!CheckObjectTypes(from, command, ext, out items, out mobiles))
                     return;
 
-                ArrayList list = new ArrayList();
+                var list = new ArrayList();
 
                 if (items)
-                {
-                    foreach (Item item in World.Items.Values)
-                    {
+                    foreach (var item in World.Items.Values)
                         if (ext.IsValid(item))
                             list.Add(item);
-                    }
-                }
 
                 if (mobiles)
-                {
-                    foreach (Mobile mob in World.Mobiles.Values)
-                    {
+                    foreach (var mob in World.Mobiles.Values)
                         if (ext.IsValid(mob))
                             list.Add(mob);
-                    }
-                }
 
                 ext.Filter(list);
 

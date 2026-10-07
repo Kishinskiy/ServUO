@@ -1,10 +1,9 @@
 using System;
 using System.Collections.Generic;
-using Server;
+using Server.Accounting;
+using Server.Gumps;
 using Server.Items;
 using Server.Mobiles;
-using Server.Gumps;
-using Server.Accounting;
 using Server.Network;
 
 namespace Server.Custom.PremiumCurrency
@@ -13,12 +12,12 @@ namespace Server.Custom.PremiumCurrency
     {
         public static void Initialize()
         {
-            EventSink.Speech += new SpeechEventHandler(EventSink_Speech);
+            EventSink.Speech += EventSink_Speech;
         }
 
         private static void EventSink_Speech(SpeechEventArgs e)
         {
-            Mobile from = e.Mobile;
+            var from = e.Mobile;
 
             if (from == null || from.Backpack == null || e.Handled)
                 return;
@@ -26,14 +25,12 @@ namespace Server.Custom.PremiumCurrency
             if (e.Speech.Trim().IndexOf("bank", StringComparison.OrdinalIgnoreCase) >= 0)
             {
                 Banker banker = null;
-                foreach (Mobile m in from.GetMobilesInRange(3))
-                {
+                foreach (var m in from.GetMobilesInRange(3))
                     if (m is Banker)
                     {
                         banker = (Banker)m;
                         break;
                     }
-                }
 
                 if (banker != null)
                 {
@@ -42,16 +39,13 @@ namespace Server.Custom.PremiumCurrency
                     // Насильно приказываем ядру ServUO открыть физический сейф банка на экране!
                     // Это гарантирует открытие ячейки, даже если клиент перегружен пакетами.
                     // =========================================================================
-                    if (from.BankBox != null)
-                    {
-                        from.BankBox.Open(); 
-                    }
+                    if (from.BankBox != null) from.BankBox.Open();
                     // =========================================================================
 
                     // Открываем наше просторное окно обмена
                     from.CloseGump(typeof(SovereignsExchangeGump));
                     from.SendGump(new SovereignsExchangeGump(from, banker));
-                    
+
                     // Помечаем речь как обработанную, так как мы сами открыли и банк, и окно обмена
                     e.Handled = true;
                 }
@@ -64,37 +58,33 @@ namespace Server.Custom.PremiumCurrency
     // =========================================================================
     public class SovereignsExchangeGump : Gump
     {
+        private readonly Banker m_Banker;
         private Mobile m_From;
-        private Banker m_Banker;
 
         public SovereignsExchangeGump(Mobile from, Banker banker) : base(100, 100)
         {
             m_From = from;
             m_Banker = banker;
 
-            Account acct = from.Account as Account;
-            int currentSovereigns = acct != null ? acct.Sovereigns : 0;
+            var acct = from.Account as Account;
+            var currentSovereigns = acct != null ? acct.Sovereigns : 0;
 
-            int totalCoins = 0;
+            var totalCoins = 0;
 
             // 1. Считаем монеты в рюкзаке
             var backpackCoins = from.Backpack.FindItemsByType<PremiumCoin>();
             if (backpackCoins != null)
-            {
-                foreach (PremiumCoin coin in backpackCoins)
+                foreach (var coin in backpackCoins)
                     totalCoins += coin.Amount;
-            }
 
             // 2. Считаем монеты в банке
-            BankBox box = from.FindBankNoCreate();
+            var box = from.FindBankNoCreate();
             if (box != null)
             {
                 var bankCoins = box.FindItemsByType<PremiumCoin>();
                 if (bankCoins != null)
-                {
-                    foreach (PremiumCoin coin in bankCoins)
+                    foreach (var coin in bankCoins)
                         totalCoins += coin.Amount;
-                }
             }
 
             Closable = true;
@@ -103,12 +93,12 @@ namespace Server.Custom.PremiumCurrency
             Resizable = false;
 
             AddPage(0);
-            
-            AddBackground(0, 0, 500, 220, 9270); 
+
+            AddBackground(0, 0, 500, 220, 9270);
             AddAlphaRegion(10, 10, 480, 200);
 
             AddLabel(150, 20, 1161, "ОБМЕННЫЙ ПУНКТ СУВЕРЕНОВ");
-            AddImage(15, 17, 9005); 
+            AddImage(15, 17, 9005);
             AddImage(280, 17, 9005);
 
             AddImage(35, 75, 5545);
@@ -129,7 +119,7 @@ namespace Server.Custom.PremiumCurrency
 
         public override void OnResponse(NetState sender, RelayInfo info)
         {
-            Mobile from = sender.Mobile;
+            var from = sender.Mobile;
 
             if (from == null || from.Backpack == null || m_Banker == null || info.ButtonID != 1)
                 return;
@@ -140,20 +130,24 @@ namespace Server.Custom.PremiumCurrency
                 return;
             }
 
-            Account acct = from.Account as Account;
+            var acct = from.Account as Account;
             if (acct == null) return;
 
-            int totalCoinsFound = 0;
+            var totalCoinsFound = 0;
 
             var backpackCoins = from.Backpack.FindItemsByType<PremiumCoin>();
             var bankCoins = new List<PremiumCoin>();
 
-            BankBox box = from.FindBankNoCreate();
+            var box = from.FindBankNoCreate();
             if (box != null)
                 bankCoins = box.FindItemsByType<PremiumCoin>();
 
-            if (backpackCoins != null) { foreach (PremiumCoin c in backpackCoins) totalCoinsFound += c.Amount; }
-            if (bankCoins != null) { foreach (PremiumCoin c in bankCoins) totalCoinsFound += c.Amount; }
+            if (backpackCoins != null)
+                foreach (var c in backpackCoins)
+                    totalCoinsFound += c.Amount;
+            if (bankCoins != null)
+                foreach (var c in bankCoins)
+                    totalCoinsFound += c.Amount;
 
             if (totalCoinsFound <= 0)
             {
@@ -162,22 +156,19 @@ namespace Server.Custom.PremiumCurrency
             }
 
             if (backpackCoins != null)
-            {
-                for (int i = backpackCoins.Count - 1; i >= 0; i--)
+                for (var i = backpackCoins.Count - 1; i >= 0; i--)
                     backpackCoins[i].Delete();
-            }
 
             if (bankCoins != null)
-            {
-                for (int i = bankCoins.Count - 1; i >= 0; i--)
+                for (var i = bankCoins.Count - 1; i >= 0; i--)
                     bankCoins[i].Delete();
-            }
 
             acct.DepositSovereigns(totalCoinsFound);
 
-            m_Banker.PlaySound(0x35); 
+            m_Banker.PlaySound(0x35);
             m_Banker.Say($"Прекрасно! Я изъял монеты и зачислил {totalCoinsFound} Суверен(ов) на ваш баланс.");
-            from.SendMessage(88, $"Успешная конвертация! Совместный баланс пополнен на +{totalCoinsFound} Суверен(ов).");
+            from.SendMessage(88,
+                $"Успешная конвертация! Совместный баланс пополнен на +{totalCoinsFound} Суверен(ов).");
 
             from.SendGump(new SovereignsExchangeGump(from, m_Banker));
         }

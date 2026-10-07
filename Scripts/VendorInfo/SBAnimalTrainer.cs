@@ -1,7 +1,5 @@
-using System;
 using System.Collections.Generic;
 using Server.Custom.ExileHunterBestiary.Items;
-
 
 namespace Server.Mobiles
 {
@@ -9,24 +7,10 @@ namespace Server.Mobiles
     {
         private readonly List<GenericBuyInfo> m_BuyInfo = new InternalBuyInfo();
         private readonly IShopSellInfo m_SellInfo = new InternalSellInfo();
-        public SBAnimalTrainer()
-        {
-        }
 
-        public override IShopSellInfo SellInfo
-        {
-            get
-            {
-                return m_SellInfo;
-            }
-        }
-        public override List<GenericBuyInfo> BuyInfo
-        {
-            get
-            {
-                return m_BuyInfo;
-            }
-        }
+        public override IShopSellInfo SellInfo => m_SellInfo;
+
+        public override List<GenericBuyInfo> BuyInfo => m_BuyInfo;
 
         public class InternalBuyInfo : List<GenericBuyInfo>
         {
@@ -40,7 +24,6 @@ namespace Server.Mobiles
                 Add(new AnimalBuyInfo(1, typeof(Rabbit), 106, 10, 205, 0));
                 Add(new GenericBuyInfo(typeof(HunterBestiary), 100, 25, 0x2252, 1153));
 
-                
 
                 if (!Core.AOS)
                 {
@@ -56,9 +39,6 @@ namespace Server.Mobiles
 
         public class InternalSellInfo : GenericSellInfo
         {
-            public InternalSellInfo()
-            {
-            }
         }
     }
 }

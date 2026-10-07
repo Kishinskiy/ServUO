@@ -1,25 +1,26 @@
-using Server;
-using System;
-using System.Collections.Generic;
-using Server.Mobiles;
-using Server.Items;
-using Server.ContextMenus;
-using Server.Gumps;
-using System.Collections;
-using Server.Network;
 using Server.Engines.Points;
+using Server.Items;
+using Server.Mobiles;
 
 namespace Server.Engines.Blackthorn
 {
     public class AgentOfTheCrown : BaseTurnInMobile
     {
-        public override int TitleLocalization { get { return 1154520; } } // Click a minor artifact to turn in for reward points.
-        public override int CancelLocalization { get { return 1154519; } }	// Bring me items bearing the crest of Minax and I will reward you with valuable items.     
-        public override int TurnInLocalization { get { return 1154571; } } // Turn In Minax Artifacts
-        public override int ClaimLocalization { get { return 1154572; } } // Claim Blackthorn Artifacts
+        public override int TitleLocalization => 1154520; // Click a minor artifact to turn in for reward points.
+
+        public override int CancelLocalization =>
+            1154519; // Bring me items bearing the crest of Minax and I will reward you with valuable items.     
+
+        public override int TurnInLocalization => 1154571; // Turn In Minax Artifacts
+        public override int ClaimLocalization => 1154572; // Claim Blackthorn Artifacts
 
         [Constructable]
         public AgentOfTheCrown() : base("the Agent Of The Crown")
+        {
+        }
+
+        public AgentOfTheCrown(Serial serial)
+            : base(serial)
         {
         }
 
@@ -650,11 +651,6 @@ namespace Server.Engines.Blackthorn
                 m.SendGump(new BlackthornRewardGump(this, m as PlayerMobile));
         }
 
-        public AgentOfTheCrown(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -664,7 +660,7 @@ namespace Server.Engines.Blackthorn
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

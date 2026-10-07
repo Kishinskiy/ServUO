@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using Server.Engines.CannedEvil;
 using Server.Items;
 
@@ -7,6 +6,37 @@ namespace Server.Mobiles
 {
     public class Semidar : BaseChampion
     {
+        public override ChampionSkullType SkullType => ChampionSkullType.Pain;
+
+        public override Type[] UniqueList
+        {
+            get { return new[] { typeof(GladiatorsCollar) }; }
+        }
+
+        public override Type[] SharedList
+        {
+            get
+            {
+                return new[]
+                {
+                    typeof(RoyalGuardSurvivalKnife), typeof(TheMostKnowledgePerson),
+                    typeof(LieutenantOfTheBritannianRoyalGuard)
+                };
+            }
+        }
+
+        public override Type[] DecorativeList
+        {
+            get { return new[] { typeof(LavaTile), typeof(DemonSkull) }; }
+        }
+
+        public override MonsterStatuetteType[] StatueTypes
+        {
+            get { return new MonsterStatuetteType[] { }; }
+        }
+
+        public override Poison PoisonImmune => Poison.Lethal;
+
         [Constructable]
         public Semidar()
             : base(AIType.AI_Mage)
@@ -55,49 +85,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override ChampionSkullType SkullType
-        {
-            get
-            {
-                return ChampionSkullType.Pain;
-            }
-        }
-        public override Type[] UniqueList
-        {
-            get
-            {
-                return new Type[] { typeof(GladiatorsCollar) };
-            }
-        }
-        public override Type[] SharedList
-        {
-            get
-            {
-                return new Type[] { typeof(RoyalGuardSurvivalKnife), typeof(TheMostKnowledgePerson), typeof(LieutenantOfTheBritannianRoyalGuard) };
-            }
-        }
-        public override Type[] DecorativeList
-        {
-            get
-            {
-                return new Type[] { typeof(LavaTile), typeof(DemonSkull) };
-            }
-        }
-        public override MonsterStatuetteType[] StatueTypes
-        {
-            get
-            {
-                return new MonsterStatuetteType[] { };
-            }
-        }
-        public override Poison PoisonImmune
-        {
-            get
-            {
-                return Poison.Lethal;
-            }
-        }
-
         public override void GenerateLoot()
         {
             AddLoot(LootPack.UltraRich, 4);
@@ -119,13 +106,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

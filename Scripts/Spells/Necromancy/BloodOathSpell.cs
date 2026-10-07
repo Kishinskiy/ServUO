@@ -1,8 +1,7 @@
 using System;
 using System.Collections;
-using Server.Mobiles;
-using Server.Targeting;
 using Server.Spells.SkillMasteries;
+using Server.Targeting;
 
 namespace Server.Spells.Necromancy
 {
@@ -13,37 +12,24 @@ namespace Server.Spells.Necromancy
             203,
             9031,
             Reagent.DaemonBlood);
+
         private static readonly Hashtable m_OathTable = new Hashtable();
         private static readonly Hashtable m_Table = new Hashtable();
+
+        public override TimeSpan CastDelayBase => TimeSpan.FromSeconds(1.75);
+
+        public override double RequiredSkill => 20.0;
+
+        public override int RequiredMana => 13;
+
         public BloodOathSpell(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
         {
         }
 
-        public override TimeSpan CastDelayBase
-        {
-            get
-            {
-                return TimeSpan.FromSeconds(1.75);
-            }
-        }
-        public override double RequiredSkill
-        {
-            get
-            {
-                return 20.0;
-            }
-        }
-        public override int RequiredMana
-        {
-            get
-            {
-                return 13;
-            }
-        }
         public static bool RemoveCurse(Mobile m)
         {
-            ExpireTimer t = (ExpireTimer)m_Table[m];
+            var t = (ExpireTimer)m_Table[m];
 
             if (t == null)
                 return false;
@@ -57,7 +43,7 @@ namespace Server.Spells.Necromancy
             if (m == null)
                 return null;
 
-            Mobile oath = (Mobile)m_OathTable[m];
+            var oath = (Mobile)m_OathTable[m];
 
             if (oath == m)
                 oath = null;
@@ -101,14 +87,14 @@ namespace Server.Spells.Necromancy
         public void ApplyEffects(Mobile m, double strength = 1.0)
         {
             /* Temporarily creates a dark pact between the caster and the target.
-                * Any damage dealt by the target to the caster is increased, but the target receives the same amount of damage.
-                * The effect lasts for ((Spirit Speak skill level - target's Resist Magic skill level) / 80 ) + 8 seconds.
-                * 
-                * NOTE: The above algorithm must be fixed point, it should be:
-                * ((ss-rm)/8)+8
-                */
+             * Any damage dealt by the target to the caster is increased, but the target receives the same amount of damage.
+             * The effect lasts for ((Spirit Speak skill level - target's Resist Magic skill level) / 80 ) + 8 seconds.
+             *
+             * NOTE: The above algorithm must be fixed point, it should be:
+             * ((ss-rm)/8)+8
+             */
 
-            ExpireTimer timer = (ExpireTimer)m_Table[m];
+            var timer = (ExpireTimer)m_Table[m];
             if (timer != null)
                 timer.DoExpire();
 
@@ -126,14 +112,14 @@ namespace Server.Spells.Necromancy
             m.FixedParticles(0x375A, 1, 17, 9919, 33, 7, EffectLayer.Waist);
             m.FixedParticles(0x3728, 1, 13, 9502, 33, 7, (EffectLayer)255);
 
-            TimeSpan duration = TimeSpan.FromSeconds((((GetDamageSkill(Caster) - GetResistSkill(m)) / 8) + 8) * strength);
-            m.CheckSkill(SkillName.MagicResist, 0.0, 120.0);	//Skill check for gain
+            var duration = TimeSpan.FromSeconds(((GetDamageSkill(Caster) - GetResistSkill(m)) / 8 + 8) * strength);
+            m.CheckSkill(SkillName.MagicResist, 0.0, 120.0); //Skill check for gain
 
             timer = new ExpireTimer(Caster, m, duration);
             timer.Start();
 
-            BuffInfo.AddBuff(Caster, new BuffInfo(BuffIcon.BloodOathCaster, 1075659, duration, Caster, m.Name.ToString()));
-            BuffInfo.AddBuff(m, new BuffInfo(BuffIcon.BloodOathCurse, 1075661, duration, m, Caster.Name.ToString()));
+            BuffInfo.AddBuff(Caster, new BuffInfo(BuffIcon.BloodOathCaster, 1075659, duration, Caster, m.Name));
+            BuffInfo.AddBuff(m, new BuffInfo(BuffIcon.BloodOathCurse, 1075661, duration, m, Caster.Name));
 
             m_Table[m] = timer;
             HarmfulSpell(m);
@@ -142,8 +128,9 @@ namespace Server.Spells.Necromancy
         private class ExpireTimer : Timer
         {
             private readonly Mobile m_Caster;
-            private readonly Mobile m_Target;
             private readonly DateTime m_End;
+            private readonly Mobile m_Target;
+
             public ExpireTimer(Mobile caster, Mobile target, TimeSpan delay)
                 : base(TimeSpan.FromSeconds(1.0), TimeSpan.FromSeconds(1.0))
             {
@@ -178,16 +165,15 @@ namespace Server.Spells.Necromancy
 
             protected override void OnTick()
             {
-                if (m_Caster.Deleted || m_Target.Deleted || !m_Caster.Alive || !m_Target.Alive || DateTime.UtcNow >= m_End)
-                {
-                    DoExpire();
-                }
+                if (m_Caster.Deleted || m_Target.Deleted || !m_Caster.Alive || !m_Target.Alive ||
+                    DateTime.UtcNow >= m_End) DoExpire();
             }
         }
 
         private class InternalTarget : Target
         {
             private readonly BloodOathSpell m_Owner;
+
             public InternalTarget(BloodOathSpell owner)
                 : base(Core.ML ? 10 : 12, false, TargetFlags.Harmful)
             {

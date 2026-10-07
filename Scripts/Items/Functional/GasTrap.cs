@@ -12,7 +12,37 @@ namespace Server.Items
 
     public class GasTrap : BaseTrap
     {
-        private Poison m_Poison;
+        [CommandProperty(AccessLevel.GameMaster)]
+        public Poison Poison { get; set; }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public GasTrapType Type
+        {
+            get
+            {
+                switch (ItemID)
+                {
+                    case 0x113C:
+                        return GasTrapType.NorthWall;
+                    case 0x1147:
+                        return GasTrapType.WestWall;
+                    case 0x11A8:
+                        return GasTrapType.Floor;
+                }
+
+                return GasTrapType.WestWall;
+            }
+            set => ItemID = GetBaseID(value);
+        }
+
+        public override bool PassivelyTriggered => false;
+
+        public override TimeSpan PassiveTriggerDelay => TimeSpan.Zero;
+
+        public override int PassiveTriggerRange => 0;
+
+        public override TimeSpan ResetDelay => TimeSpan.FromSeconds(0.0);
+
         [Constructable]
         public GasTrap()
             : this(GasTrapType.Floor)
@@ -35,7 +65,7 @@ namespace Server.Items
         public GasTrap(GasTrapType type, Poison poison)
             : base(GetBaseID(type))
         {
-            this.m_Poison = poison;
+            Poison = poison;
         }
 
         public GasTrap(Serial serial)
@@ -43,71 +73,9 @@ namespace Server.Items
         {
         }
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public Poison Poison
-        {
-            get
-            {
-                return this.m_Poison;
-            }
-            set
-            {
-                this.m_Poison = value;
-            }
-        }
-        [CommandProperty(AccessLevel.GameMaster)]
-        public GasTrapType Type
-        {
-            get
-            {
-                switch ( this.ItemID )
-                {
-                    case 0x113C:
-                        return GasTrapType.NorthWall;
-                    case 0x1147:
-                        return GasTrapType.WestWall;
-                    case 0x11A8:
-                        return GasTrapType.Floor;
-                }
-
-                return GasTrapType.WestWall;
-            }
-            set
-            {
-                this.ItemID = GetBaseID(value);
-            }
-        }
-        public override bool PassivelyTriggered
-        {
-            get
-            {
-                return false;
-            }
-        }
-        public override TimeSpan PassiveTriggerDelay
-        {
-            get
-            {
-                return TimeSpan.Zero;
-            }
-        }
-        public override int PassiveTriggerRange
-        {
-            get
-            {
-                return 0;
-            }
-        }
-        public override TimeSpan ResetDelay
-        {
-            get
-            {
-                return TimeSpan.FromSeconds(0.0);
-            }
-        }
         public static int GetBaseID(GasTrapType type)
         {
-            switch ( type )
+            switch (type)
             {
                 case GasTrapType.NorthWall:
                     return 0x113C;
@@ -122,13 +90,13 @@ namespace Server.Items
 
         public override void OnTrigger(Mobile from)
         {
-            if (this.m_Poison == null || !from.Player || !from.Alive || from.IsStaff())
+            if (Poison == null || !from.Player || !from.Alive || from.IsStaff())
                 return;
 
-            Effects.SendLocationEffect(this.Location, this.Map, GetBaseID(this.Type) - 2, 16, 3, this.GetEffectHue(), 0);
-            Effects.PlaySound(this.Location, this.Map, 0x231);
+            Effects.SendLocationEffect(Location, Map, GetBaseID(Type) - 2, 16, 3, GetEffectHue(), 0);
+            Effects.PlaySound(Location, Map, 0x231);
 
-            from.ApplyPoison(from, this.m_Poison);
+            from.ApplyPoison(from, Poison);
 
             from.LocalOverheadMessage(MessageType.Regular, 0x22, 500855); // You are enveloped by a noxious gas cloud!
         }
@@ -137,24 +105,24 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
-            Poison.Serialize(this.m_Poison, writer);
+            Poison.Serialize(Poison, writer);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            switch ( version )
+            switch (version)
             {
                 case 0:
-                    {
-                        this.m_Poison = Poison.Deserialize(reader);
-                        break;
-                    }
+                {
+                    Poison = Poison.Deserialize(reader);
+                    break;
+                }
             }
         }
     }

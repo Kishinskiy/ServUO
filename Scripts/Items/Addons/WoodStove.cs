@@ -1,4 +1,3 @@
-using System;
 using Server.Gumps;
 using Server.Multis;
 using Server.Network;
@@ -7,6 +6,8 @@ namespace Server.Items
 {
     public class WoodStoveAddon : BaseAddon
     {
+        public override BaseAddonDeed Deed => new WoodStoveDeed();
+
         [Constructable]
         public WoodStoveAddon(DirectionType type)
         {
@@ -21,13 +22,19 @@ namespace Server.Items
             }
         }
 
+        public WoodStoveAddon(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void OnComponentUsed(AddonComponent c, Mobile from)
         {
-            if ((from.InRange(c.Location, 3)))
+            if (from.InRange(c.Location, 3))
             {
-                BaseHouse house = BaseHouse.FindHouseAt(from);
+                var house = BaseHouse.FindHouseAt(from);
 
-                if (house != null && (house.IsOwner(from) || (house.LockDowns.ContainsKey(this) && house.LockDowns[this] == from)))
+                if (house != null && (house.IsOwner(from) ||
+                                      (house.LockDowns.ContainsKey(this) && house.LockDowns[this] == from)))
                 {
                     Components.ForEach(x =>
                     {
@@ -37,7 +44,9 @@ namespace Server.Items
                             from.PlaySound(958);
                         }
                         else
+                        {
                             x.ItemID--;
+                        }
                     });
 
                     from.PlaySound(958);
@@ -53,37 +62,28 @@ namespace Server.Items
             }
         }
 
-        public WoodStoveAddon(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override BaseAddonDeed Deed { get { return new WoodStoveDeed(); } }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class WoodStoveDeed : BaseAddonDeed, IRewardOption
     {
-        public override int LabelNumber { get { return 1158967; } } // Wood Stove
-
-        public override BaseAddon Addon { get { return new WoodStoveAddon(_Direction); } }
-
         private DirectionType _Direction;
+        public override int LabelNumber => 1158967; // Wood Stove
+
+        public override BaseAddon Addon => new WoodStoveAddon(_Direction);
 
         [Constructable]
         public WoodStoveDeed()
-            : base()
         {
             LootType = LootType.Blessed;
         }
@@ -123,13 +123,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

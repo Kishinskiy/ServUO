@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using Server.Engines.PartySystem;
@@ -12,9 +11,7 @@ namespace Server.Spells.Mysticism
 {
     public class CleansingWindsSpell : MysticSpell
     {
-        public override SpellCircle Circle { get { return SpellCircle.Sixth; } }
-
-        private static SpellInfo m_Info = new SpellInfo(
+        private static readonly SpellInfo m_Info = new SpellInfo(
             "Cleansing Winds", "In Vas Mani Hur",
             230,
             9022,
@@ -23,6 +20,8 @@ namespace Server.Spells.Mysticism
             Reagent.MandrakeRoot,
             Reagent.DragonBlood
         );
+
+        public override SpellCircle Circle => SpellCircle.Sixth;
 
         public CleansingWindsSpell(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
@@ -51,10 +50,11 @@ namespace Server.Spells.Mysticism
                 Caster.PlaySound(0x64C);
 
                 var targets = new List<Mobile> { targeted };
-                targets.AddRange(FindAdditionalTargets(targeted).Take(3)); // This effect can hit up to 3 additional players beyond the primary target.
+                targets.AddRange(FindAdditionalTargets(targeted)
+                    .Take(3)); // This effect can hit up to 3 additional players beyond the primary target.
 
-                double primarySkill = Caster.Skills[CastSkill].Value;
-                double secondarySkill = Caster.Skills[DamageSkill].Value;
+                var primarySkill = Caster.Skills[CastSkill].Value;
+                var secondarySkill = Caster.Skills[DamageSkill].Value;
 
                 var toHeal = (int)((primarySkill + secondarySkill) / 4.0) + Utility.RandomMinMax(-3, 3);
                 toHeal /= targets.Count; // The effectiveness of the spell is reduced by the number of targets affected.
@@ -67,38 +67,32 @@ namespace Server.Spells.Mysticism
 
                     PlayEffect(target);
 
-                    int toHealMod = toHeal;
+                    var toHealMod = toHeal;
 
                     if (target.Poisoned)
                     {
-                        int poisonLevel = target.Poison.RealLevel + 1;
-                        int chanceToCure = (10000 + (int)((primarySkill + secondarySkill) / 2 * 75) - (poisonLevel * 1750)) / 100;
+                        var poisonLevel = target.Poison.RealLevel + 1;
+                        var chanceToCure =
+                            (10000 + (int)((primarySkill + secondarySkill) / 2 * 75) - poisonLevel * 1750) / 100;
 
                         if (chanceToCure > Utility.Random(100) && target.CurePoison(Caster))
-                        {
                             // Poison reduces healing factor by 15% per level of poison.
                             toHealMod -= (int)(toHeal * poisonLevel * 0.15);
-                        }
                         else
-                        {
                             // If the cure fails, the target will not be healed.
                             toHealMod = 0;
-                        }
                     }
 
                     // Cleansing Winds will not heal the target after removing mortal wound.
-                    if (MortalStrike.IsWounded(target))
-                    {
-                        toHealMod = 0;
-                    }
+                    if (MortalStrike.IsWounded(target)) toHealMod = 0;
 
                     var curseLevel = RemoveCurses(target);
 
                     if (toHealMod > 0 && curseLevel > 0)
                     {
                         // Each Curse reduces healing by 3 points + 1% per curse level.
-                        toHealMod = toHealMod - (curseLevel * 3);
-                        toHealMod = toHealMod - (int)((double)toHealMod * ((double)curseLevel / 100.0));
+                        toHealMod = toHealMod - curseLevel * 3;
+                        toHealMod = toHealMod - (int)(toHealMod * (curseLevel / 100.0));
                     }
 
                     if (toHealMod > 0)
@@ -115,7 +109,8 @@ namespace Server.Spells.Mysticism
 
             var from = new Entity(Serial.Zero, new Point3D(m.X, m.Y, m.Z - 10), m.Map);
             var to = new Entity(Serial.Zero, new Point3D(m.X, m.Y, m.Z + 50), m.Map);
-            Effects.SendMovingParticles(from, to, 0x2255, 1, 0, false, false, 13, 3, 9501, 1, 0, EffectLayer.Head, 0x100);
+            Effects.SendMovingParticles(from, to, 0x2255, 1, 0, false, false, 13, 3, 9501, 1, 0, EffectLayer.Head,
+                0x100);
         }
 
         private IEnumerable<Mobile> FindAdditionalTargets(Mobile targeted)
@@ -142,7 +137,7 @@ namespace Server.Spells.Mysticism
 
         public static int RemoveCurses(Mobile m)
         {
-            int curseLevel = 0;
+            var curseLevel = 0;
 
             if (SleepSpell.IsUnderSleepEffects(m))
             {
@@ -150,20 +145,11 @@ namespace Server.Spells.Mysticism
                 curseLevel += 2;
             }
 
-            if (EvilOmenSpell.TryEndEffect(m))
-            {
-                curseLevel += 1;
-            }
+            if (EvilOmenSpell.TryEndEffect(m)) curseLevel += 1;
 
-            if (StrangleSpell.RemoveCurse(m))
-            {
-                curseLevel += 2;
-            }
+            if (StrangleSpell.RemoveCurse(m)) curseLevel += 2;
 
-            if (CorpseSkinSpell.RemoveCurse(m))
-            {
-                curseLevel += 3;
-            }
+            if (CorpseSkinSpell.RemoveCurse(m)) curseLevel += 3;
 
             if (CurseSpell.UnderEffect(m))
             {
@@ -171,10 +157,7 @@ namespace Server.Spells.Mysticism
                 curseLevel += 4;
             }
 
-            if (BloodOathSpell.RemoveCurse(m))
-            {
-                curseLevel += 3;
-            }
+            if (BloodOathSpell.RemoveCurse(m)) curseLevel += 3;
 
             if (MindRotSpell.HasMindRotScalar(m))
             {
@@ -247,7 +230,9 @@ namespace Server.Spells.Mysticism
                     return;
 
                 if (!from.CanSee(o))
+                {
                     from.SendLocalizedMessage(500237); // Target can not be seen.
+                }
                 else
                 {
                     SpellHelper.Turn(from, o);

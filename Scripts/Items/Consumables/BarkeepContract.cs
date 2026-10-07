@@ -1,4 +1,3 @@
-using System;
 using Server.Mobiles;
 using Server.Multis;
 using Server.Network;
@@ -7,8 +6,8 @@ namespace Server.Items
 {
     public class BarkeepContract : Item
     {
-		public override int LabelNumber {get {return 1153779;} } // a barkeep contract
-		
+        public override int LabelNumber => 1153779; // a barkeep contract
+
         [Constructable]
         public BarkeepContract()
             : base(0x14F0)
@@ -21,47 +20,50 @@ namespace Server.Items
             : base(serial)
         {
         }
-       
+
         public override void Serialize(GenericWriter writer)
         {
-            base.Serialize(writer);		
-            writer.Write((int)0); //version
+            base.Serialize(writer);
+            writer.Write(0); //version
         }
 
         public override void Deserialize(GenericReader reader)
         {
-            base.Deserialize(reader);		
-            int version = reader.ReadInt();
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
         }
 
         public override void OnDoubleClick(Mobile from)
         {
-            if (!this.IsChildOf(from.Backpack))
+            if (!IsChildOf(from.Backpack))
             {
                 from.SendLocalizedMessage(1042001); // That must be in your pack for you to use it.
             }
             else if (from.AccessLevel >= AccessLevel.GameMaster)
             {
-                from.SendLocalizedMessage(503248); // Your godly powers allow you to place this vendor whereever you wish.
+                from.SendLocalizedMessage(
+                    503248); // Your godly powers allow you to place this vendor whereever you wish.
 
                 Mobile v = new PlayerBarkeeper(from, BaseHouse.FindHouseAt(from));
 
                 v.Direction = from.Direction & Direction.Mask;
                 v.MoveToWorld(from.Location, from.Map);
 
-                this.Delete();
+                Delete();
             }
             else
             {
-                BaseHouse house = BaseHouse.FindHouseAt(from);
+                var house = BaseHouse.FindHouseAt(from);
 
                 if (house == null || !house.IsOwner(from))
                 {
-                    from.LocalOverheadMessage(MessageType.Regular, 0x3B2, false, "You are not the full owner of this house.");
+                    from.LocalOverheadMessage(MessageType.Regular, 0x3B2, false,
+                        "You are not the full owner of this house.");
                 }
                 else if (!house.CanPlaceNewBarkeep())
                 {
-                    from.SendLocalizedMessage(1062490); // That action would exceed the maximum number of barkeeps for this house.
+                    from.SendLocalizedMessage(
+                        1062490); // That action would exceed the maximum number of barkeeps for this house.
                 }
                 else
                 {
@@ -74,7 +76,8 @@ namespace Server.Items
                     }
                     else if (contract)
                     {
-                        from.SendLocalizedMessage(1062678); // You cannot place a vendor or barkeep on top of a rental contract!
+                        from.SendLocalizedMessage(
+                            1062678); // You cannot place a vendor or barkeep on top of a rental contract!
                     }
                     else
                     {
@@ -82,8 +85,8 @@ namespace Server.Items
 
                         v.Direction = from.Direction & Direction.Mask;
                         v.MoveToWorld(from.Location, from.Map);
-						
-                        this.Delete();
+
+                        Delete();
                     }
                 }
             }

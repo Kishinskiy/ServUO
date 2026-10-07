@@ -1,15 +1,13 @@
 using System;
-using System.Linq;
 using System.Collections.Generic;
-
-using Server;
-using Server.Mobiles;
-using Server.Items;
-using Server.Guilds;
+using System.Linq;
 using Server.Accounting;
-using Server.Engines.PartySystem;
 using Server.ContextMenus;
+using Server.Engines.PartySystem;
+using Server.Guilds;
 using Server.Gumps;
+using Server.Items;
+using Server.Mobiles;
 
 namespace Server.Multis
 {
@@ -37,13 +35,17 @@ namespace Server.Multis
 
     public abstract class BaseGalleon : BaseBoat
     {
+        private GalleonHold _Hold;
+
+        private Dictionary<Item, Item> _InternalCannon;
+        private BindingPole _Pole;
+
+        private ShipWheel _Wheel;
         private SecurityEntry m_SecurityEntry;
 
         public List<Item> Fixtures { get; set; } = new List<Item>();
         public List<Item> Cannons { get; set; }
         public Dictionary<Item, DeckItem> Addons { get; set; }
-
-        private Dictionary<Item, Item> _InternalCannon;
 
         [CommandProperty(AccessLevel.GameMaster)]
         public Mobile GalleonPilot { get; private set; }
@@ -64,32 +66,47 @@ namespace Server.Multis
             }
         }
 
-        private ShipWheel _Wheel;
-        private GalleonHold _Hold;
-        private BindingPole _Pole;
-
         [CommandProperty(AccessLevel.GameMaster)]
-        public ShipWheel Wheel { get { return _Wheel ?? (_Wheel = Fixtures.FirstOrDefault(f => f.GetType() == typeof(ShipWheel)) as ShipWheel); } }
+        public ShipWheel Wheel
+        {
+            get
+            {
+                return _Wheel ?? (_Wheel = Fixtures.FirstOrDefault(f => f.GetType() == typeof(ShipWheel)) as ShipWheel);
+            }
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public GalleonHold GalleonHold
-        { get { return _Hold ?? (_Hold = Fixtures.FirstOrDefault(f => f.GetType() == typeof(GalleonHold)) as GalleonHold); } }
+        {
+            get
+            {
+                return _Hold ??
+                       (_Hold = Fixtures.FirstOrDefault(f => f.GetType() == typeof(GalleonHold)) as GalleonHold);
+            }
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public BindingPole Pole { get { return _Pole ?? (_Pole = Fixtures.FirstOrDefault(f => f.GetType() == typeof(BindingPole)) as BindingPole); } }
+        public BindingPole Pole
+        {
+            get
+            {
+                return _Pole ??
+                       (_Pole = Fixtures.FirstOrDefault(f => f.GetType() == typeof(BindingPole)) as BindingPole);
+            }
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public Mobile CapturedCaptain { get; set; }
 
-        public override int LabelNumber { get { return 1035980; } } // mast
+        public override int LabelNumber => 1035980; // mast
 
-        public override bool IsClassicBoat { get { return false; } }
+        public override bool IsClassicBoat => false;
 
-        public virtual int MaxCannons { get { return 0; } }
-        public virtual int WheelDistance { get { return 0; } }
-        public virtual int CaptiveOffset { get { return 0; } }
-        public virtual int MaxAddons { get { return 0; } }
-        public virtual double CannonDamageMod { get { return 1.0; } }
+        public virtual int MaxCannons => 0;
+        public virtual int WheelDistance => 0;
+        public virtual int CaptiveOffset => 0;
+        public virtual int MaxAddons => 0;
+        public virtual double CannonDamageMod => 1.0;
 
         public abstract int[][] CannonTileIDs { get; }
         public abstract int[][] FillerIDs { get; }
@@ -97,20 +114,34 @@ namespace Server.Multis
         public abstract int[][] HoldItemIDs { get; }
         public abstract int[][] WheelItemIDs { get; }
 
+        public static int[][] CannonIDs { get; } =
+        {
+            //Light  Heavy, Blunder, Pumpkin
+            new[] { 16918, 16922, 41664, 41979 }, //South
+            new[] { 16919, 16923, 41665, 41980 }, //West
+            new[] { 16920, 16924, 41666, 41981 }, //North
+            new[] { 16921, 16925, 41667, 41982 } //East
+        };
+
         public BaseGalleon(Direction direction) : base(direction, false)
         {
             m_BaseBoatHue = 0;
             AddFixtures(true);
 
             AddGalleonPilot(direction);
-            Timer.DelayCall(TimeSpan.FromSeconds(2), new TimerCallback(MarkRunes));
+            Timer.DelayCall(TimeSpan.FromSeconds(2), MarkRunes);
+        }
+
+        public BaseGalleon(Serial serial)
+            : base(serial)
+        {
         }
 
         private void AddFixtures(bool fromConstruct)
         {
             var mcl = MultiData.GetComponents(ItemID);
 
-            foreach (var mte in mcl.List.Where(e => (TileFlag)e.m_Flags == TileFlag.None || (TileFlag)e.m_Flags == TileFlag.Generic))
+            foreach (var mte in mcl.List.Where(e => e.m_Flags == TileFlag.None || e.m_Flags == TileFlag.Generic))
             {
                 var itemID = mte.m_ItemID;
                 var x = mte.m_OffsetX;
@@ -149,10 +180,7 @@ namespace Server.Multis
                 }
             }
 
-            if (!fromConstruct && Hue != 0)
-            {
-                PaintComponents();
-            }
+            if (!fromConstruct && Hue != 0) PaintComponents();
         }
 
         protected void AddMooringLine(int id, int x, int y, int z)
@@ -205,26 +233,17 @@ namespace Server.Multis
 
         public void AddFixture(Item item)
         {
-            if (item != null && !Fixtures.Contains(item))
-            {
-                Fixtures.Add(item);
-            }
+            if (item != null && !Fixtures.Contains(item)) Fixtures.Add(item);
         }
 
         public void RemoveFixture(Item item)
         {
-            if (Fixtures != null && Fixtures.Contains(item))
-            {
-                Fixtures.Remove(item);
-            }
+            if (Fixtures != null && Fixtures.Contains(item)) Fixtures.Remove(item);
         }
 
         protected void AddCannon(Item item)
         {
-            if (Cannons == null)
-            {
-                Cannons = new List<Item>();
-            }
+            if (Cannons == null) Cannons = new List<Item>();
 
             Cannons.Add(item);
         }
@@ -251,9 +270,9 @@ namespace Server.Multis
 
         public void AddGalleonPilot(Direction direction)
         {
-            int dir = GetValueForDirection(Facing);
+            var dir = GetValueForDirection(Facing);
 
-            GalleonPilot pilot = new GalleonPilot(this);
+            var pilot = new GalleonPilot(this);
             pilot.Direction = direction;
 
             TillerMan = pilot;
@@ -303,9 +322,10 @@ namespace Server.Multis
 
             if (_InternalCannon != null)
             {
-                foreach (KeyValuePair<Item, Item> kvp in _InternalCannon)
+                foreach (var kvp in _InternalCannon)
                 {
-                    Point3D p = new Point3D(kvp.Value.X, kvp.Value.Y, kvp.Value.Z + TileData.ItemTable[kvp.Value.ItemID & TileData.MaxItemValue].CalcHeight);
+                    var p = new Point3D(kvp.Value.X, kvp.Value.Y,
+                        kvp.Value.Z + TileData.ItemTable[kvp.Value.ItemID & TileData.MaxItemValue].CalcHeight);
 
                     kvp.Key.MoveToWorld(p, kvp.Value.Map);
                 }
@@ -332,17 +352,15 @@ namespace Server.Multis
 
         public override bool IsExcludedTile(StaticTile[] tiles)
         {
-            foreach (StaticTile tile in tiles)
-            {
+            foreach (var tile in tiles)
                 if (!IsMastTile(tile))
                     return false;
-            }
             return true;
         }
 
         public bool IsMastTile(StaticTile tile)
         {
-            int id = tile.ID;
+            var id = tile.ID;
 
             if ((id >= 30150 && id <= 30193) || (id >= 30650 && id <= 30693))
                 return true;
@@ -379,33 +397,24 @@ namespace Server.Multis
 
         public override bool CheckAddon(Item item)
         {
-            if(Addons == null)
-            {
-                return false;
-            }
-        
-            if (Addons.ContainsKey(item))
-            {
-                return true;
-            }
+            if (Addons == null) return false;
+
+            if (Addons.ContainsKey(item)) return true;
 
             BaseAddon addon;
 
             if (item is AddonComponent)
-            {
                 addon = ((AddonComponent)item).Addon;
-            }
             else
-            {
                 addon = item as BaseAddon;
-            }
 
             return addon != null && Addons.ContainsKey(addon);
         }
 
         public override bool CanMoveOver(IEntity entity)
         {
-            if (entity.Z <= Z && entity is Item && !((Item)entity).ItemData.Impassable && ((Item)entity).ItemData.Height < ZSurface / 2)
+            if (entity.Z <= Z && entity is Item && !((Item)entity).ItemData.Impassable &&
+                ((Item)entity).ItemData.Height < ZSurface / 2)
                 return true;
 
             return base.CanMoveOver(entity);
@@ -413,10 +422,10 @@ namespace Server.Multis
 
         public bool TryMarkRune(RecallRune rune, Mobile from)
         {
-            RecallRune newRune = new RecallRune();
+            var newRune = new RecallRune();
             newRune.SetGalleon(this);
 
-            Container c = rune.Parent as Container;
+            var c = rune.Parent as Container;
 
             if (c != null)
                 c.AddItem(newRune);
@@ -429,13 +438,13 @@ namespace Server.Multis
 
         public void MarkRunes()
         {
-            Direction d = Facing;
-            string name = Name;
+            var d = Facing;
+            var name = Name;
 
             if (Owner == null || !(Owner is PlayerMobile))
                 return;
 
-            RecallRune rune = new RecallRune();
+            var rune = new RecallRune();
             rune.SetGalleon(this);
             DistributeRune(rune, false);
 
@@ -446,32 +455,33 @@ namespace Server.Multis
 
         public override Point3D GetMarkedLocation()
         {
-            Point3D pnt = Point3D.Zero;
-            int z = ZSurface;
+            var pnt = Point3D.Zero;
+            var z = ZSurface;
 
             switch (Facing)
             {
                 case Direction.North:
-                    {
-                        pnt = new Point3D(X, Y + RuneOffset, z);
-                        break;
-                    }
+                {
+                    pnt = new Point3D(X, Y + RuneOffset, z);
+                    break;
+                }
                 case Direction.South:
-                    {
-                        pnt = new Point3D(X, Y - RuneOffset, z);
-                        break;
-                    }
+                {
+                    pnt = new Point3D(X, Y - RuneOffset, z);
+                    break;
+                }
                 case Direction.East:
-                    {
-                        pnt = new Point3D(X - RuneOffset, Y, z);
-                        break;
-                    }
+                {
+                    pnt = new Point3D(X - RuneOffset, Y, z);
+                    break;
+                }
                 case Direction.West:
-                    {
-                        pnt = new Point3D(X + RuneOffset, Y, z);
-                        break;
-                    }
+                {
+                    pnt = new Point3D(X + RuneOffset, Y, z);
+                    break;
+                }
             }
+
             return pnt;
         }
 
@@ -484,11 +494,13 @@ namespace Server.Multis
                     if (!Owner.BankBox.TryDropItem(Owner, rune, false))
                     {
                         GalleonHold.DropItem(rune);
-                        Owner.SendLocalizedMessage(1149579); //A rune to your ship could not be created in your bank box. It has been placed in the ship's cargo hold instead.
+                        Owner.SendLocalizedMessage(
+                            1149579); //A rune to your ship could not be created in your bank box. It has been placed in the ship's cargo hold instead.
                     }
                     else
                     {
-                        Owner.SendLocalizedMessage(1149581); //A recall rune for your new ship has been placed in your bank box.
+                        Owner.SendLocalizedMessage(
+                            1149581); //A recall rune for your new ship has been placed in your bank box.
                     }
                 }
                 else
@@ -496,16 +508,20 @@ namespace Server.Multis
                     if (Owner.Backpack == null || !Owner.Backpack.TryDropItem(Owner, rune, false))
                     {
                         GalleonHold.DropItem(rune);
-                        Owner.SendLocalizedMessage(1149577); //A recall rune for your new ship could not be created in your backpack. It has been placed in the ship hold instead.
+                        Owner.SendLocalizedMessage(
+                            1149577); //A recall rune for your new ship could not be created in your backpack. It has been placed in the ship hold instead.
                     }
                     else
                     {
-                        Owner.SendLocalizedMessage(1149581); //A recall rune for your new ship has been placed in your bank box.
+                        Owner.SendLocalizedMessage(
+                            1149581); //A recall rune for your new ship has been placed in your bank box.
                     }
                 }
             }
             else
+            {
                 rune.Delete();
+            }
         }
 
         public SecurityLevel GetSecurityLevel(Mobile from)
@@ -534,7 +550,7 @@ namespace Server.Multis
 
         public override bool HasAccess(Mobile from)
         {
-            if (Owner == null || (Scuttled && IsEnemy(from))/* || (Owner is BaseCreature && !Owner.Alive)*/)
+            if (Owner == null || (Scuttled && IsEnemy(from)) /* || (Owner is BaseCreature && !Owner.Alive)*/)
                 return true;
 
             return GetSecurityLevel(from) > SecurityLevel.Denied;
@@ -555,10 +571,9 @@ namespace Server.Multis
 
         public void AutoAddCannons(Mobile captain)
         {
-            bool heavy = Utility.RandomBool();
+            var heavy = Utility.RandomBool();
 
             foreach (var pad in Fixtures.OfType<WeaponPad>())
-            {
                 if (pad.Map != Map.Internal && !pad.Deleted)
                 {
                     IShipCannon cannon;
@@ -566,32 +581,20 @@ namespace Server.Multis
                     if (heavy)
                     {
                         if (Core.EJ)
-                        {
                             cannon = new Carronade(this);
-                        }
                         else
-                        {
                             cannon = new HeavyShipCannon(this);
-                        }
                     }
                     else
                     {
                         if (Core.EJ)
-                        {
                             cannon = new Culverin(this);
-                        }
                         else
-                        {
                             cannon = new LightShipCannon(this);
-                        }
                     }
 
-                    if (!TryAddCannon(captain, pad.Location, cannon, null))
-                    {
-                        cannon.Delete();
-                    }
+                    if (!TryAddCannon(captain, pad.Location, cannon, null)) cannon.Delete();
                 }
-            }
         }
 
         public bool TryAddCannon(Mobile from, Point3D pnt, ShipCannonDeed deed, bool force = false)
@@ -599,9 +602,8 @@ namespace Server.Multis
             if (!IsNearLandOrDocks(this) && !force)
             {
                 if (from != null)
-                {
-                    from.SendLocalizedMessage(1116076); // The ship must be near shore or a sea market to deploy this weapon.
-                }
+                    from.SendLocalizedMessage(
+                        1116076); // The ship must be near shore or a sea market to deploy this weapon.
             }
             else
             {
@@ -611,39 +613,27 @@ namespace Server.Multis
                 {
                     default:
                     case CannonPower.Pumpkin:
-                        {
-                            cannon = new PumpkinCannon(this);
-                            break;
-                        }
+                    {
+                        cannon = new PumpkinCannon(this);
+                        break;
+                    }
                     case CannonPower.Light:
                         if (Core.EJ)
-                        {
                             cannon = new Culverin(this);
-                        }
                         else
-                        {
                             cannon = new LightShipCannon(this);
-                        }
                         break;
                     case CannonPower.Heavy:
                         if (Core.EJ)
-                        {
                             cannon = new Carronade(this);
-                        }
                         else
-                        {
                             cannon = new HeavyShipCannon(this);
-                        }
                         break;
                     case CannonPower.Massive:
                         if (Core.EJ)
-                        {
                             cannon = new Blundercannon(this);
-                        }
                         else
-                        {
                             cannon = new HeavyShipCannon(this);
-                        }
                         break;
                 }
 
@@ -655,10 +645,7 @@ namespace Server.Multis
 
         public bool TryAddCannon(Mobile from, Point3D pnt, IShipCannon cannon, ShipCannonDeed deed)
         {
-            if (cannon == null || !(cannon is Item))
-            {
-                return false;
-            }
+            if (cannon == null || !(cannon is Item)) return false;
 
             if (IsValidCannonSpot(ref pnt, from))
             {
@@ -667,24 +654,16 @@ namespace Server.Multis
                 UpdateCannonID((Item)cannon);
                 cannon.Position = GetCannonPosition(pnt);
 
-                if (from != null)
-                {
-                    cannon.DoAreaMessage(1116074, 10, from); //~1_NAME~ deploys a ship cannon.
-                }
+                if (from != null) cannon.DoAreaMessage(1116074, 10, from); //~1_NAME~ deploys a ship cannon.
 
                 if (from != null && from.NetState != null)
-                {
                     Timer.DelayCall(() =>
                     {
                         from.ClearScreen();
                         from.SendEverything();
                     });
-                }
 
-                if (deed != null && (from == null || from.AccessLevel == AccessLevel.Player))
-                {
-                    deed.Delete();
-                }
+                if (deed != null && (from == null || from.AccessLevel == AccessLevel.Player)) deed.Delete();
 
                 return true;
             }
@@ -695,10 +674,7 @@ namespace Server.Multis
 
         public void RemoveCannon(Item cannon)
         {
-            if (Cannons != null && Cannons.Contains(cannon))
-            {
-                Cannons.Remove(cannon);
-            }
+            if (Cannons != null && Cannons.Contains(cannon)) Cannons.Remove(cannon);
         }
 
         public bool IsValidCannonSpot(ref Point3D pnt, Mobile from)
@@ -708,9 +684,7 @@ namespace Server.Multis
 
             //Lets see if a cannon exists here
             if (Cannons != null)
-            {
-                foreach (Item cannon in Cannons)
-                {
+                foreach (var cannon in Cannons)
                     if (cannon.X == pnt.X && cannon.Y == pnt.Y)
                     {
                         if (from != null)
@@ -718,12 +692,9 @@ namespace Server.Multis
 
                         return false;
                     }
-                }
-            }
 
             //Now we can check for a valid cannon tile ID
             foreach (var pad in Fixtures.OfType<WeaponPad>())
-            {
                 if (pad.X == pnt.X && pad.Y == pnt.Y)
                 {
                     pnt.Z = pad.Z + TileData.ItemTable[pad.ItemID & TileData.MaxItemValue].CalcHeight;
@@ -731,7 +702,6 @@ namespace Server.Multis
 
                     //Lets check for mobiles
                     foreach (Mobile mob in eable)
-                    {
                         if (!mob.Hidden && mob.AccessLevel == AccessLevel.Player)
                         {
                             if (from != null)
@@ -740,12 +710,10 @@ namespace Server.Multis
                             eable.Free();
                             return false;
                         }
-                    }
 
                     eable.Free();
                     return true;
                 }
-            }
 
             if (from != null)
                 from.SendLocalizedMessage(1116626); //You must use this on a ship weapon pad.
@@ -758,51 +726,32 @@ namespace Server.Multis
             base.OnLocationChange(old);
 
             foreach (var fixture in Fixtures)
-            {
-                fixture.Location = new Point3D(X + (fixture.X - old.X), Y + (fixture.Y - old.Y), Z + (fixture.Z - old.Z));
-            }
+                fixture.Location = new Point3D(X + (fixture.X - old.X), Y + (fixture.Y - old.Y),
+                    Z + (fixture.Z - old.Z));
 
             if (Addons != null)
-            {
                 foreach (var addon in Addons.Keys)
-                {
                     addon.Location = new Point3D(X + (addon.X - old.X), Y + (addon.Y - old.Y), Z + (addon.Z - old.Z));
-                }
-            }
 
             if (Cannons != null)
-            {
                 foreach (var cannon in Cannons)
-                {
-                    cannon.Location = new Point3D(X + (cannon.X - old.X), Y + (cannon.Y - old.Y), Z + (cannon.Z - old.Z));
-                }
-            }
+                    cannon.Location = new Point3D(X + (cannon.X - old.X), Y + (cannon.Y - old.Y),
+                        Z + (cannon.Z - old.Z));
         }
 
         public override void OnMapChange()
         {
             base.OnMapChange();
 
-            foreach (var fixture in Fixtures)
-            {
-                fixture.Map = Map;
-            }
+            foreach (var fixture in Fixtures) fixture.Map = Map;
 
             if (Addons != null)
-            {
                 foreach (var addon in Addons.Keys)
-                {
                     addon.Map = Map;
-                }
-            }
 
             if (Cannons != null)
-            {
                 foreach (var cannon in Cannons)
-                {
                     cannon.Map = Map;
-                }
-            }
         }
 
         public override TimeSpan GetMovementInterval(bool fast, bool drifting, out int clientSpeed)
@@ -825,83 +774,60 @@ namespace Server.Multis
             if (!(entity is Item))
                 return false;
 
-            Item item = (Item)entity;
+            var item = (Item)entity;
 
-            if (Fixtures.Contains(item))
-            {
-                return true;
-            }
+            if (Fixtures.Contains(item)) return true;
 
             if (Addons != null)
             {
-                if (item is BaseAddon && Addons.ContainsKey(item))
-                {
-                    return true;
-                }
-                else if (item is AddonComponent && ((AddonComponent)item).Addon != null && Addons.ContainsKey(((AddonComponent)item).Addon))
-                {
-                    return true;
-                }
+                if (item is BaseAddon && Addons.ContainsKey(item)) return true;
+
+                if (item is AddonComponent && ((AddonComponent)item).Addon != null &&
+                    Addons.ContainsKey(((AddonComponent)item).Addon)) return true;
             }
 
-            if (Cannons != null && Cannons.Contains(item))
-            {
-                return true;
-            }
+            if (Cannons != null && Cannons.Contains(item)) return true;
 
             return base.IsComponentItem(entity);
         }
 
         public override void OnAfterDelete()
         {
-            foreach (var fixture in Fixtures.Where(f => !f.Deleted))
-            {
-                fixture.Delete();
-            }
+            foreach (var fixture in Fixtures.Where(f => !f.Deleted)) fixture.Delete();
 
             if (Cannons != null)
             {
-                List<Item> cannons = new List<Item>(Cannons);
+                var cannons = new List<Item>(Cannons);
 
-                foreach (var cannon in cannons.Where(c => c != null && !c.Deleted))
-                {
-                    cannon.Delete();
-                }
+                foreach (var cannon in cannons.Where(c => c != null && !c.Deleted)) cannon.Delete();
 
                 ColUtility.Free(cannons);
             }
 
             if (Addons != null)
-            {
                 foreach (var addon in Addons.Keys.Where(a => a != null && !a.Deleted))
-                {
                     addon.Delete();
-                }
-            }
 
-            if (CapturedCaptain != null)
-            {
-                CapturedCaptain.Kill();
-            }
+            if (CapturedCaptain != null) CapturedCaptain.Kill();
 
             base.OnAfterDelete();
         }
 
         public override DryDockResult CheckDryDock(Mobile from, Mobile dockmaster)
         {
-            if (this is BaseGalleon && ((BaseGalleon)this).GalleonHold.Items.Count > 0)
+            if (this is BaseGalleon && this.GalleonHold.Items.Count > 0)
                 return DryDockResult.Hold;
 
-            Container pack = from.Backpack;
+            var pack = from.Backpack;
 
-            if (dockmaster != null && pack != null && pack.GetAmount(typeof(Gold)) < DockMaster.DryDockAmount && Banker.GetBalance(from) < DockMaster.DryDockAmount)
+            if (dockmaster != null && pack != null && pack.GetAmount(typeof(Gold)) < DockMaster.DryDockAmount &&
+                Banker.GetBalance(from) < DockMaster.DryDockAmount)
                 return DryDockResult.NotEnoughGold;
 
             if (DamageTaken != DamageLevel.Pristine)
                 return DryDockResult.Damaged;
 
             if (Cannons != null && Cannons.Count > 0)
-            {
                 foreach (var cannon in Cannons.OfType<IShipCannon>())
                 {
                     if (cannon == null)
@@ -910,7 +836,6 @@ namespace Server.Multis
                     if (cannon.AmmoType != AmmunitionType.Empty)
                         return DryDockResult.Cannon;
                 }
-            }
 
             return base.CheckDryDock(from, dockmaster);
         }
@@ -934,51 +859,45 @@ namespace Server.Multis
             base.OnDryDock(from);
         }
 
-        public override void SetFacingComponents(Direction newDirection, Direction oldDirection, bool ignoreLastDirection)
+        public override void SetFacingComponents(Direction newDirection, Direction oldDirection,
+            bool ignoreLastDirection)
         {
             if (oldDirection == newDirection && !ignoreLastDirection)
                 return;
 
             var mcl = MultiData.GetComponents(ItemID);
 
-            foreach (var mte in mcl.List.Where(e => (TileFlag)e.m_Flags == TileFlag.None))
-            {
-                foreach (var fixture in Fixtures.Where(f => f.X - X == mte.m_OffsetX && f.Y - Y == mte.m_OffsetY && f.Z - Z == mte.m_OffsetZ))
-                {
-                    fixture.ItemID = mte.m_ItemID;
-                }
-            }
+            foreach (var mte in mcl.List.Where(e => e.m_Flags == TileFlag.None))
+            foreach (var fixture in Fixtures.Where(f =>
+                         f.X - X == mte.m_OffsetX && f.Y - Y == mte.m_OffsetY && f.Z - Z == mte.m_OffsetZ))
+                fixture.ItemID = mte.m_ItemID;
 
             if (Addons != null)
-            {
                 foreach (var addon in Addons.Keys)
                 {
                     var tile = Addons[addon];
 
                     addon.MoveToWorld(new Point3D(tile.X, tile.Y, tile.Z), Map);
                 }
-            }
 
             UpdateCannonIDs();
         }
 
         public int GetIndex(int[][] list, int check)
         {
-            for (int i = 0; i < list.Length; i++)
+            for (var i = 0; i < list.Length; i++)
             {
-                int index = Array.IndexOf(list[i], check);
+                var index = Array.IndexOf(list[i], check);
                 if (index > -1)
                     return index;
             }
+
             return check;
         }
 
         public override IEnumerable<IEntity> GetComponents()
         {
-            foreach (var fixture in Fixtures)
-            {
-                yield return fixture;
-            }
+            foreach (var fixture in Fixtures) yield return fixture;
 
             if (GalleonPilot != null)
                 yield return GalleonPilot;
@@ -991,7 +910,9 @@ namespace Server.Multis
                 default:
                 case Direction.South: return 0;
                 case Direction.West: return 1;
-                case Direction.North: return 2; ;
+                case Direction.North:
+                    return 2;
+                    ;
                 case Direction.East: return 3;
             }
         }
@@ -999,12 +920,8 @@ namespace Server.Multis
         public void UpdateCannonIDs()
         {
             if (Cannons != null)
-            {
                 foreach (var cannon in Cannons)
-                {
                     UpdateCannonID(cannon);
-                }
-            }
         }
 
         public void UpdateCannonID(Item cannon)
@@ -1012,52 +929,268 @@ namespace Server.Multis
             if (cannon == null)
                 return;
 
-            int type = cannon is PumpkinCannon ? 3 : cannon is Blundercannon ? 2 : cannon is LightShipCannon || cannon is Culverin ? 0 : 1;
+            var type = cannon is PumpkinCannon ? 3 :
+                cannon is Blundercannon ? 2 :
+                cannon is LightShipCannon || cannon is Culverin ? 0 : 1;
 
             switch (Facing)
             {
                 default:
                 case Direction.South:
                 case Direction.North:
-                    {
-                        if (cannon.X == X)
-                            cannon.ItemID = m_CannonIDs[GetValueForDirection(Facing)][type];
-                        else if (cannon.X < X)
-                            cannon.ItemID = m_CannonIDs[GetValueForDirection(Direction.West)][type];
-                        else
-                            cannon.ItemID = m_CannonIDs[GetValueForDirection(Direction.East)][type];
-                        break;
-                    }
+                {
+                    if (cannon.X == X)
+                        cannon.ItemID = CannonIDs[GetValueForDirection(Facing)][type];
+                    else if (cannon.X < X)
+                        cannon.ItemID = CannonIDs[GetValueForDirection(Direction.West)][type];
+                    else
+                        cannon.ItemID = CannonIDs[GetValueForDirection(Direction.East)][type];
+                    break;
+                }
                 case Direction.West:
                 case Direction.East:
-                    {
-                        if (cannon.Y == Y)
-                            cannon.ItemID = m_CannonIDs[GetValueForDirection(Facing)][type];
-                        else if (cannon.Y < Y)
-                            cannon.ItemID = m_CannonIDs[GetValueForDirection(Direction.North)][type];
-                        else
-                            cannon.ItemID = m_CannonIDs[GetValueForDirection(Direction.South)][type];
-                        break;
-                    }
+                {
+                    if (cannon.Y == Y)
+                        cannon.ItemID = CannonIDs[GetValueForDirection(Facing)][type];
+                    else if (cannon.Y < Y)
+                        cannon.ItemID = CannonIDs[GetValueForDirection(Direction.North)][type];
+                    else
+                        cannon.ItemID = CannonIDs[GetValueForDirection(Direction.South)][type];
+                    break;
+                }
             }
         }
-
-        public static int[][] CannonIDs { get { return m_CannonIDs; } }
-        private static int[][] m_CannonIDs = new int[][]
-        { 
-                      //Light  Heavy, Blunder, Pumpkin
-            new int[] { 16918, 16922, 41664, 41979 }, //South
-            new int[] { 16919, 16923, 41665, 41980 }, //West
-            new int[] { 16920, 16924, 41666, 41981 }, //North
-            new int[] { 16921, 16925, 41667, 41982 }, //East
-        };
 
         public virtual ShipPosition GetCannonPosition(Point3D pnt)
         {
             return ShipPosition.Bow;
         }
 
+        public Point3D GetRecallOffset()
+        {
+            switch (Facing)
+            {
+                default:
+                case Direction.North: return new Point3D(X, Y + RuneOffset, GalleonPilot.Z);
+                case Direction.South: return new Point3D(X, Y - RuneOffset, GalleonPilot.Z);
+                case Direction.East: return new Point3D(X + RuneOffset, Y, GalleonPilot.Z);
+                case Direction.West: return new Point3D(X - RuneOffset, Y, GalleonPilot.Z);
+            }
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(6);
+
+            writer.WriteItemList(Fixtures, true);
+
+            writer.Write(CapturedCaptain);
+
+            writer.Write(m_BaseBoatHue);
+
+            writer.Write(GalleonPilot);
+
+            writer.Write(m_BasePaintHue);
+            writer.Write(m_PaintCoats);
+            writer.Write(m_NextPaintDecay);
+
+            SecurityEntry.Serialize(writer);
+
+            writer.Write(Cannons != null ? Cannons.Count : 0);
+
+            if (Cannons != null)
+                for (var i = 0; i < Cannons.Count; i++)
+                    writer.Write(Cannons[i]);
+
+            writer.Write(Addons != null ? Addons.Count : 0);
+
+            if (Addons != null)
+                foreach (var kvp in Addons)
+                {
+                    writer.Write(kvp.Key);
+                    writer.WriteItem(kvp.Value);
+                }
+
+            Timer.DelayCall(TimeSpan.FromSeconds(25), CheckPaintDecay);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
+
+            switch (version)
+            {
+                case 6:
+                    Fixtures = reader.ReadStrongItemList();
+                    goto case 5;
+                case 5:
+                case 4:
+                case 3:
+                case 2:
+                    if (version == 5)
+                    {
+                        var pole = reader.ReadItem();
+                        AddFixture(pole);
+                    }
+
+                    CapturedCaptain = reader.ReadMobile();
+                    goto case 1;
+                case 1:
+                    m_BaseBoatHue = reader.ReadInt();
+                    goto case 0;
+                case 0:
+                    GalleonPilot = reader.ReadMobile();
+
+                    if (version < 5) m_Hits = reader.ReadInt();
+
+                    #region Version 5
+
+                    if (version < 6)
+                    {
+                        var wheel = reader.ReadItem();
+                        var hold = reader.ReadItem();
+
+                        AddFixture(wheel);
+                        AddFixture(hold);
+                    }
+
+                    #endregion
+
+                    if (version < 3)
+                    {
+                        reader.ReadItem();
+                        reader.ReadItem();
+                    }
+
+                    if (version < 5) m_DamageTaken = (DamageLevel)reader.ReadInt();
+
+                    m_BasePaintHue = reader.ReadInt();
+                    m_PaintCoats = reader.ReadInt();
+                    m_NextPaintDecay = reader.ReadDateTime();
+
+                    m_SecurityEntry = new SecurityEntry(this, reader);
+                    int count;
+
+                    #region Version 5
+
+                    if (version < 6)
+                    {
+                        count = reader.ReadInt();
+                        var pads = new List<Item>();
+
+                        for (var i = 0; i < count; i++)
+                        {
+                            var weaponPad = reader.ReadItem();
+                            pads.Add(weaponPad);
+                        }
+
+                        Timer.DelayCall(() => pads.ForEach(p => p.Delete()));
+                    }
+
+                    #endregion
+
+                    count = reader.ReadInt();
+                    for (var i = 0; i < count; i++)
+                    {
+                        var cannon = reader.ReadItem();
+                        if (cannon != null && !cannon.Deleted)
+                            AddCannon(cannon);
+                    }
+
+                    #region Version 5
+
+                    if (version < 6)
+                    {
+                        count = reader.ReadInt();
+                        var list = new List<Item>();
+
+                        for (var i = 0; i < count; i++)
+                        {
+                            var filler = reader.ReadItem();
+                            list.Add(filler);
+                        }
+
+                        count = reader.ReadInt();
+                        for (var i = 0; i < count; i++)
+                        {
+                            var line = reader.ReadItem();
+                            list.Add(line);
+                        }
+
+                        count = reader.ReadInt();
+                        for (var i = 0; i < count; i++)
+                        {
+                            var hItem = reader.ReadItem();
+                            list.Add(hItem);
+                        }
+
+                        Timer.DelayCall(() => list.ForEach(i => i.Delete()));
+                    }
+
+                    #endregion
+
+                    count = reader.ReadInt();
+
+                    #region Version 5
+
+                    if (version < 6)
+                    {
+                        for (var i = 0; i < count; i++)
+                        {
+                            var addon = reader.ReadItem();
+
+                            if (addon != null && !addon.Deleted)
+                                Timer.DelayCall(() => AddAddon(addon));
+                        }
+                    }
+
+                    #endregion
+
+                    else
+                    {
+                        if (Addons == null) Addons = new Dictionary<Item, DeckItem>();
+
+                        for (var i = 0; i < count; i++)
+                        {
+                            var addon = reader.ReadItem();
+                            var tile = reader.ReadItem<DeckItem>();
+
+                            if (addon != null) Addons[addon] = tile;
+                        }
+                    }
+
+                    #region Version 5
+
+                    if (version < 6)
+                    {
+                        count = reader.ReadInt();
+                        var list = new List<Item>();
+
+                        for (var i = 0; i < count; i++)
+                        {
+                            var atile = reader.ReadItem();
+                            list.Add(atile);
+                        }
+
+                        Timer.DelayCall(() => list.ForEach(i => i.Delete()));
+                    }
+
+                    #endregion
+
+                    break;
+            }
+
+            if (version < 6)
+                AddFixtures(false);
+            else
+                foreach (var fixture in Fixtures.OfType<IGalleonFixture>())
+                    fixture.Galleon = this;
+        }
+
         #region Painting
+
         private int m_BaseBoatHue;
         private int m_BasePaintHue;
         private int m_PaintCoats;
@@ -1066,7 +1199,7 @@ namespace Server.Multis
         [CommandProperty(AccessLevel.GameMaster)]
         public int BaseBoatHue
         {
-            get { return m_BaseBoatHue; }
+            get => m_BaseBoatHue;
             set
             {
                 m_BaseBoatHue = value;
@@ -1080,7 +1213,7 @@ namespace Server.Multis
         }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public bool HasPaint { get { return m_BasePaintHue != 0; } }
+        public bool HasPaint => m_BasePaintHue != 0;
 
         private static readonly TimeSpan DecayPeriod = TimeSpan.FromDays(14);
         private static readonly int MaxPaintCoats = 4;
@@ -1088,23 +1221,31 @@ namespace Server.Multis
         public bool TryPermanentPaintBoat(Mobile from, int hue)
         {
             if (m_PaintCoats > 0)
-                from.SendLocalizedMessage(1149826); //You cannot apply this paint to your ship while it has other paints on it. Please use paint remover to restore your ship to its permanent base color and then try again.
+            {
+                from.SendLocalizedMessage(
+                    1149826); //You cannot apply this paint to your ship while it has other paints on it. Please use paint remover to restore your ship to its permanent base color and then try again.
+            }
             else
             {
                 m_BaseBoatHue = hue;
                 Hue = hue;
 
-                from.SendLocalizedMessage(1116775); //You apply the permanent paint to your ship.  This is now the base color of your ship.
+                from.SendLocalizedMessage(
+                    1116775); //You apply the permanent paint to your ship.  This is now the base color of your ship.
                 PaintComponents();
                 return true;
             }
+
             return false;
         }
 
         public bool TryPaintBoat(Mobile from, int baseHue)
         {
             if (m_PaintCoats > 0 && m_BasePaintHue != baseHue)
-                from.SendLocalizedMessage(1149826); //You cannot apply this paint to your ship while it has other paints on it. Please use paint remover to restore your ship to its permanent base color and then try again.
+            {
+                from.SendLocalizedMessage(
+                    1149826); //You cannot apply this paint to your ship while it has other paints on it. Please use paint remover to restore your ship to its permanent base color and then try again.
+            }
             else
             {
                 if (Hue == m_BaseBoatHue)
@@ -1124,20 +1265,19 @@ namespace Server.Multis
                     from.SendLocalizedMessage(1116771); //You apply a fresh coat of paint to your ship.
                     return true;
                 }
-                else
-                    from.SendLocalizedMessage(1116774); //You have reached this paint color's maximum intensity.
+
+                from.SendLocalizedMessage(1116774); //You have reached this paint color's maximum intensity.
             }
+
             return false;
         }
 
         public void PaintComponents()
         {
             foreach (var fixture in Fixtures.Where(f =>
-                f.GetType() != typeof(MooringLine) &&
-                f.GetType() != typeof(ShipWheel)))
-            {
+                         f.GetType() != typeof(MooringLine) &&
+                         f.GetType() != typeof(ShipWheel)))
                 fixture.Hue = Hue;
-            }
 
             if (SecureContainer != null)
                 SecureContainer.Hue = Hue;
@@ -1151,7 +1291,9 @@ namespace Server.Multis
                 m_NextPaintDecay = DateTime.UtcNow + DecayPeriod;
 
                 if (m_PaintCoats <= 0)
+                {
                     RemovePaint();
+                }
                 else
                 {
                     if (m_BasePaintHue == 1900 || m_BasePaintHue == 2213)
@@ -1176,12 +1318,14 @@ namespace Server.Multis
             PaintComponents();
             return true;
         }
+
         #endregion
 
         #region Static Methods
+
         public static BaseGalleon FindGalleonAt(IPoint2D pnt, Map map)
         {
-            BaseBoat boat = FindBoatAt(pnt, map);
+            var boat = FindBoatAt(pnt, map);
 
             if (boat is BaseGalleon)
                 return boat as BaseGalleon;
@@ -1191,8 +1335,8 @@ namespace Server.Multis
 
         public static bool CheckForBoat(IPoint3D p, Mobile caster)
         {
-            BaseBoat boat = FindBoatAt(caster, caster.Map);
-            BaseGalleon galleon = FindGalleonAt(p, caster.Map);
+            var boat = FindBoatAt(caster, caster.Map);
+            var galleon = FindGalleonAt(p, caster.Map);
 
             if (galleon == null || caster.AccessLevel > AccessLevel.Player)
                 return false;
@@ -1231,20 +1375,19 @@ namespace Server.Multis
             if (boat == null)
                 return false;
 
-            Map map = boat.Map;
+            var map = boat.Map;
 
-            for (int x = boat.X - range; x <= boat.X + range; x++)
+            for (var x = boat.X - range; x <= boat.X + range; x++)
+            for (var y = boat.Y - range; y <= boat.Y + range; y++)
             {
-                for (int y = boat.Y - range; y <= boat.Y + range; y++)
-                {
-                    LandTile lt = map.Tiles.GetLandTile(x, y);
+                var lt = map.Tiles.GetLandTile(x, y);
 
-                    TileFlag landFlags = TileData.LandTable[lt.ID & TileData.MaxLandValue].Flags;
+                var landFlags = TileData.LandTable[lt.ID & TileData.MaxLandValue].Flags;
 
-                    if ((landFlags & TileFlag.Impassable) == 0)
-                        return true;
-                }
+                if ((landFlags & TileFlag.Impassable) == 0)
+                    return true;
             }
+
             return false;
         }
 
@@ -1258,43 +1401,34 @@ namespace Server.Multis
             if (boat == null)
                 return false;
 
-            Map map = boat.Map;
+            var map = boat.Map;
 
-            for (int x = boat.X - range; x <= boat.X + range; x++)
+            for (var x = boat.X - range; x <= boat.X + range; x++)
+            for (var y = boat.Y - range; y <= boat.Y + range; y++)
             {
-                for (int y = boat.Y - range; y <= boat.Y + range; y++)
+                var staticTiles = map.Tiles.GetStaticTiles(x, y, true);
+
+                for (var i = 0; i < staticTiles.Length; i++)
                 {
-                    StaticTile[] staticTiles = map.Tiles.GetStaticTiles(x, y, true);
+                    var id = TileData.ItemTable[staticTiles[i].ID & TileData.MaxItemValue];
 
-                    for (int i = 0; i < staticTiles.Length; i++)
-                    {
-                        ItemData id = TileData.ItemTable[staticTiles[i].ID & TileData.MaxItemValue];
-
-                        if (id.Name != null && (id.Name.ToLower() == "wooden plank" || id.Name.ToLower() == "pier"))
-                            return true;
-                    }
+                    if (id.Name != null && (id.Name.ToLower() == "wooden plank" || id.Name.ToLower() == "pier"))
+                        return true;
                 }
             }
+
             return false;
         }
+
         #endregion
 
-        public Point3D GetRecallOffset()
-        {
-            switch (Facing)
-            {
-                default:
-                case Direction.North: return new Point3D(X, Y + RuneOffset, GalleonPilot.Z);
-                case Direction.South: return new Point3D(X, Y - RuneOffset, GalleonPilot.Z);
-                case Direction.East: return new Point3D(X + RuneOffset, Y, GalleonPilot.Z);
-                case Direction.West: return new Point3D(X - RuneOffset, Y, GalleonPilot.Z);
-            }
-        }
-
         #region Addons
-        public static int[] ShipAddonTiles { get { return m_ShipAddonTiles; } }
-        private static readonly int[] m_ShipAddonTiles =
-            {23664, 23665, 23718, 23719, 23610, 23611, 23556, 23557, 23664, 23665, 23718, 23719, 23610, 23611, 23556, 23557};
+
+        public static int[] ShipAddonTiles { get; } =
+        {
+            23664, 23665, 23718, 23719, 23610, 23611, 23556, 23557, 23664, 23665, 23718, 23719, 23610, 23611, 23556,
+            23557
+        };
 
         public bool CanAddAddon(Point3D p)
         {
@@ -1304,13 +1438,11 @@ namespace Server.Multis
             IPooledEnumerable eable = Map.GetItemsInRange(p, 0);
 
             foreach (var item in eable.OfType<DeckItem>())
-            {
-                if (m_ShipAddonTiles.Any(id => id == item.ItemID) && Addons?.ContainsValue(item) != true)
+                if (ShipAddonTiles.Any(id => id == item.ItemID) && Addons?.ContainsValue(item) != true)
                 {
                     eable.Free();
                     return true;
                 }
-            }
 
             eable.Free();
             return false;
@@ -1318,30 +1450,20 @@ namespace Server.Multis
 
         public void AddAddon(Item addon)
         {
-            if (Addons == null)
-            {
-                Addons = new Dictionary<Item, DeckItem>();
-            }
+            if (Addons == null) Addons = new Dictionary<Item, DeckItem>();
 
             IPooledEnumerable eable = Map.GetItemsInRange(addon.Location, 0);
 
             foreach (var item in eable.OfType<DeckItem>())
-            {
-                if (m_ShipAddonTiles.Any(id => id == item.ItemID))
-                {
+                if (ShipAddonTiles.Any(id => id == item.ItemID))
                     Addons[addon] = item;
-                }
-            }
 
             eable.Free();
         }
 
         public void RemoveAddon(Item item)
         {
-            if (Addons.ContainsKey(item))
-            {
-                Addons.Remove(item);
-            }
+            if (Addons.ContainsKey(item)) Addons.Remove(item);
         }
 
         public void OnChop(BaseAddon addon, Mobile from)
@@ -1352,22 +1474,20 @@ namespace Server.Multis
             Effects.PlaySound(addon.GetWorldLocation(), addon.Map, 0x3B3);
             from.SendLocalizedMessage(500461); // You destroy the item.
 
-            int hue = 0;
+            var hue = 0;
 
             if (addon.RetainDeedHue)
-            {
-                for (int i = 0; hue == 0 && i < addon.Components.Count; ++i)
+                for (var i = 0; hue == 0 && i < addon.Components.Count; ++i)
                 {
-                    AddonComponent c = addon.Components[i];
+                    var c = addon.Components[i];
 
                     if (c.Hue != 0)
                         hue = c.Hue;
                 }
-            }
 
             addon.Delete();
             RemoveAddon(addon);
-            BaseAddonDeed deed = addon.Deed;
+            var deed = addon.Deed;
 
             if (deed != null)
             {
@@ -1378,242 +1498,15 @@ namespace Server.Multis
 
                 from.AddToBackpack(deed);
             }
-
         }
+
         #endregion
-
-        public BaseGalleon(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.Write((int)6);
-
-            writer.WriteItemList(Fixtures, true);
-
-            writer.Write(CapturedCaptain);
-
-            writer.Write(m_BaseBoatHue);
-
-            writer.Write(GalleonPilot);
-
-            writer.Write(m_BasePaintHue);
-            writer.Write(m_PaintCoats);
-            writer.Write(m_NextPaintDecay);
-
-            SecurityEntry.Serialize(writer);
-
-            writer.Write(Cannons != null ? Cannons.Count : 0);
-
-            if (Cannons != null)
-            {
-                for (int i = 0; i < Cannons.Count; i++)
-                    writer.Write(Cannons[i]);
-            }
-
-            writer.Write(Addons != null ? Addons.Count : 0);
-
-            if (Addons != null)
-            {
-                foreach (var kvp in Addons)
-                {
-                    writer.Write(kvp.Key);
-                    writer.WriteItem<DeckItem>(kvp.Value);
-                }
-            }
-
-            Timer.DelayCall(TimeSpan.FromSeconds(25), new TimerCallback(CheckPaintDecay));
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            int version = reader.ReadInt();
-
-            switch (version)
-            {
-                case 6:
-                    Fixtures = reader.ReadStrongItemList();
-                    goto case 5;
-                case 5:
-                case 4:
-                case 3:
-                case 2:
-                    if (version == 5)
-                    {
-                        var pole = reader.ReadItem();
-                        AddFixture(pole);
-                    }
-
-                    CapturedCaptain = reader.ReadMobile();
-                    goto case 1;
-                case 1:
-                    m_BaseBoatHue = reader.ReadInt();
-                    goto case 0;
-                case 0:
-                    GalleonPilot = reader.ReadMobile();
-
-                    if (version < 5)
-                    {
-                        m_Hits = reader.ReadInt();
-                    }
-
-                    #region Version 5
-                    if (version < 6)
-                    {
-                        var wheel = reader.ReadItem();
-                        var hold = reader.ReadItem();
-
-                        AddFixture(wheel);
-                        AddFixture(hold);
-                    }
-                    #endregion
-
-                    if (version < 3)
-                    {
-                        reader.ReadItem();
-                        reader.ReadItem();
-                    }
-
-                    if (version < 5)
-                    {
-                        m_DamageTaken = (DamageLevel)reader.ReadInt();
-                    }
-
-                    m_BasePaintHue = reader.ReadInt();
-                    m_PaintCoats = reader.ReadInt();
-                    m_NextPaintDecay = reader.ReadDateTime();
-
-                    m_SecurityEntry = new SecurityEntry(this, reader);
-                    int count;
-
-                    #region Version 5
-                    if (version < 6)
-                    {
-                        count = reader.ReadInt();
-                        var pads = new List<Item>();
-
-                        for (int i = 0; i < count; i++)
-                        {
-                            var weaponPad = reader.ReadItem();
-                            pads.Add(weaponPad);
-                        }
-
-                        Timer.DelayCall(() => pads.ForEach(p => p.Delete()));
-                    }
-                    #endregion
-
-                    count = reader.ReadInt();
-                    for (int i = 0; i < count; i++)
-                    {
-                        Item cannon = reader.ReadItem();
-                        if (cannon != null && !cannon.Deleted)
-                            AddCannon(cannon);
-                    }
-
-                    #region Version 5
-                    if (version < 6)
-                    {
-                        count = reader.ReadInt();
-                        var list = new List<Item>(); 
-
-                        for (int i = 0; i < count; i++)
-                        {
-                            var filler = reader.ReadItem();
-                            list.Add(filler);
-                        }
-
-                        count = reader.ReadInt();
-                        for (int i = 0; i < count; i++)
-                        {
-                            var line = reader.ReadItem();
-                            list.Add(line);
-                        }
-
-                        count = reader.ReadInt();
-                        for (int i = 0; i < count; i++)
-                        {
-                            var hItem = reader.ReadItem();
-                            list.Add(hItem);
-                        }
-
-                        Timer.DelayCall(() => list.ForEach(i => i.Delete()));
-                    }
-                    #endregion
-
-                    count = reader.ReadInt();
-
-                    #region Version 5
-                    if (version < 6)
-                    {
-                        for (int i = 0; i < count; i++)
-                        {
-                            Item addon = reader.ReadItem();
-
-                            if (addon != null && !addon.Deleted)
-                                Timer.DelayCall(() => AddAddon(addon));
-                        }
-                    }
-                    #endregion
-                    else
-                    {
-                        if (Addons == null)
-                        {
-                            Addons = new Dictionary<Item, DeckItem>();
-                        }
-
-                        for (int i = 0; i < count; i++)
-                        {
-                            var addon = reader.ReadItem();
-                            var tile = reader.ReadItem<DeckItem>();
-
-                            if (addon != null)
-                            {
-                                Addons[addon] = tile;
-                            }
-                        }
-                    }
-
-                    #region Version 5
-                    if (version < 6)
-                    {
-                        count = reader.ReadInt();
-                        var list = new List<Item>();
-
-                        for (int i = 0; i < count; i++)
-                        {
-                            var atile = reader.ReadItem();
-                            list.Add(atile);
-                        }
-
-                        Timer.DelayCall(() => list.ForEach(i => i.Delete()));
-                    }
-                    #endregion
-                    break;
-            }
-
-            if (version < 6)
-            {
-                AddFixtures(false);
-            }
-            else
-            {
-                foreach (var fixture in Fixtures.OfType<IGalleonFixture>())
-                {
-                    fixture.Galleon = this;
-                }
-            }
-        }
     }
 
     [PropertyObject]
     public class SecurityEntry
     {
         private readonly SecurityLevel DefaultImpliedAccessLevel = SecurityLevel.Passenger;
-        private Dictionary<Mobile, SecurityLevel> m_Manifest;
 
         [CommandProperty(AccessLevel.GameMaster)]
         public BaseGalleon Galleon { get; set; }
@@ -1630,41 +1523,63 @@ namespace Server.Multis
         [CommandProperty(AccessLevel.GameMaster)]
         public SecurityLevel DefaultGuildAccess { get; set; }
 
-        public Dictionary<Mobile, SecurityLevel> Manifest { get { return m_Manifest; } }
+        public Dictionary<Mobile, SecurityLevel> Manifest { get; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public bool IsPublic { get { return DefaultPublicAccess != SecurityLevel.Denied; } }
+        public bool IsPublic => DefaultPublicAccess != SecurityLevel.Denied;
 
         public SecurityEntry(BaseGalleon galleon)
         {
             Galleon = galleon;
-            m_Manifest = new Dictionary<Mobile, SecurityLevel>();
+            Manifest = new Dictionary<Mobile, SecurityLevel>();
 
             AddToManifest(Galleon.Owner, SecurityLevel.Captain);
             SetToDefault();
         }
 
+        public SecurityEntry(BaseGalleon galleon, GenericReader reader)
+        {
+            Manifest = new Dictionary<Mobile, SecurityLevel>();
+            Galleon = galleon;
+
+            var version = reader.ReadInt();
+
+            PartyAccess = (PartyAccess)reader.ReadInt();
+            DefaultPublicAccess = (SecurityLevel)reader.ReadInt();
+            DefaultPartyAccess = (SecurityLevel)reader.ReadInt();
+            DefaultGuildAccess = (SecurityLevel)reader.ReadInt();
+
+            var count = reader.ReadInt();
+            for (var i = 0; i < count; i++)
+            {
+                var mob = reader.ReadMobile();
+                var sl = (SecurityLevel)reader.ReadInt();
+
+                AddToManifest(mob, sl);
+            }
+        }
+
         public void AddToManifest(Mobile from, SecurityLevel access)
         {
-            if (from == null || m_Manifest == null)
+            if (from == null || Manifest == null)
                 return;
 
-            m_Manifest[from] = access;
+            Manifest[from] = access;
         }
 
         public void RemoveFromAccessList(Mobile from)
         {
-            if (!m_Manifest.ContainsKey(from))
+            if (!Manifest.ContainsKey(from))
                 return;
 
-            m_Manifest.Remove(from);
+            Manifest.Remove(from);
         }
 
         public bool HasImpliedAccess(Account acct, Mobile from)
         {
-            for (int i = 0; i < acct.Length; ++i)
+            for (var i = 0; i < acct.Length; ++i)
             {
-                Mobile m = acct[i];
+                var m = acct[i];
 
                 if (m == from)
                     continue;
@@ -1681,13 +1596,11 @@ namespace Server.Multis
             if (from == null)
                 return SecurityLevel.Denied;
 
-            Account acct = from.Account as Account;
+            var acct = from.Account as Account;
 
             if (acct != null)
-            {
                 if (HasImpliedAccess(acct, from))
                     return DefaultImpliedAccessLevel;
-            }
 
             return SecurityLevel.Denied;
         }
@@ -1706,14 +1619,14 @@ namespace Server.Multis
             if (from == Galleon.Owner)
                 return SecurityLevel.Captain;
 
-            SecurityLevel highest = SecurityLevel.Denied;
+            var highest = SecurityLevel.Denied;
 
-            if (m_Manifest.ContainsKey(from))
+            if (Manifest.ContainsKey(from))
             {
-                if (m_Manifest[from] == highest) //denied
+                if (Manifest[from] == highest) //denied
                     return highest;
 
-                highest = m_Manifest[from];
+                highest = Manifest[from];
             }
 
             if (highest < DefaultPublicAccess)
@@ -1736,21 +1649,20 @@ namespace Server.Multis
             if (from == null || Galleon == null || Galleon.Owner == null)
                 return false;
 
-            Party fromParty = Party.Get(from);
-            Party ownerParty = Party.Get(Galleon.Owner);
+            var fromParty = Party.Get(from);
+            var ownerParty = Party.Get(Galleon.Owner);
 
             if (fromParty == null || ownerParty == null)
                 return false;
 
             if (fromParty == ownerParty)
-            {
                 switch (PartyAccess)
                 {
                     case PartyAccess.Never: return false;
                     case PartyAccess.LeaderOnly: return ownerParty.Leader == Galleon.Owner;
                     case PartyAccess.MemberOnly: return true;
                 }
-            }
+
             return false;
         }
 
@@ -1759,8 +1671,8 @@ namespace Server.Multis
             if (from == null || Galleon == null || Galleon.Owner == null)
                 return false;
 
-            Guild fromGuild = from.Guild as Guild;
-            Guild ownerGuild = Galleon.Owner.Guild as Guild;
+            var fromGuild = from.Guild as Guild;
+            var ownerGuild = Galleon.Owner.Guild as Guild;
 
             return fromGuild != null && ownerGuild != null && fromGuild == ownerGuild;
         }
@@ -1775,40 +1687,18 @@ namespace Server.Multis
 
         public void Serialize(GenericWriter writer)
         {
-            writer.Write((int)0);
+            writer.Write(0);
 
             writer.Write((int)PartyAccess);
             writer.Write((int)DefaultPublicAccess);
             writer.Write((int)DefaultPartyAccess);
             writer.Write((int)DefaultGuildAccess);
 
-            writer.Write(m_Manifest.Count);
-            foreach (KeyValuePair<Mobile, SecurityLevel> kvp in m_Manifest)
+            writer.Write(Manifest.Count);
+            foreach (var kvp in Manifest)
             {
                 writer.Write(kvp.Key);
                 writer.Write((int)kvp.Value);
-            }
-        }
-
-        public SecurityEntry(BaseGalleon galleon, GenericReader reader)
-        {
-            m_Manifest = new Dictionary<Mobile, SecurityLevel>();
-            Galleon = galleon;
-
-            int version = reader.ReadInt();
-
-            PartyAccess = (PartyAccess)reader.ReadInt();
-            DefaultPublicAccess = (SecurityLevel)reader.ReadInt();
-            DefaultPartyAccess = (SecurityLevel)reader.ReadInt();
-            DefaultGuildAccess = (SecurityLevel)reader.ReadInt();
-
-            int count = reader.ReadInt();
-            for (int i = 0; i < count; i++)
-            {
-                Mobile mob = reader.ReadMobile();
-                SecurityLevel sl = (SecurityLevel)reader.ReadInt();
-
-                AddToManifest(mob, sl);
             }
         }
 
@@ -1820,9 +1710,9 @@ namespace Server.Multis
 
     public class ShipAccessEntry : ContextMenuEntry
     {
-        private Mobile m_From;
-        private Mobile m_Clicker;
-        private BaseGalleon m_Galleon;
+        private readonly Mobile m_Clicker;
+        private readonly Mobile m_From;
+        private readonly BaseGalleon m_Galleon;
 
         public ShipAccessEntry(Mobile from, Mobile clicker, BaseGalleon galleon)
             : base(1116566, 15)
@@ -1834,7 +1724,8 @@ namespace Server.Multis
 
         public override void OnClick()
         {
-            if (m_From == null || m_Galleon == null || m_Galleon.Deleted || m_Galleon.SecurityEntry == null || m_Clicker == null)
+            if (m_From == null || m_Galleon == null || m_Galleon.Deleted || m_Galleon.SecurityEntry == null ||
+                m_Clicker == null)
                 return;
 
             m_Clicker.CloseGump(typeof(BaseShipGump));

@@ -1,25 +1,24 @@
-﻿using Server;
-using System;
-
-namespace Server.Items
+﻿namespace Server.Items
 {
     public class SmugglersCache : Container
     {
-        public override int LabelNumber { get { return 1150042; } }
+        public override int LabelNumber => 1150042;
 
         public SmugglersCache()
             : base(Utility.RandomList(3644, 3645, 3646, 3647, 3648, 3649, 3650, 3651))
         {
-            int toDrop = Utility.RandomMinMax(15, 20);
-            for (int i = 0; i < toDrop; i++)
-            {
-                DropItem(GetRandomBeverage());
-            }
+            var toDrop = Utility.RandomMinMax(15, 20);
+            for (var i = 0; i < toDrop; i++) DropItem(GetRandomBeverage());
 
             if (0.5 < Utility.RandomDouble())
                 DropItem(SmugglersLiquor.GetRandom());
 
             DropItem(SmugglersLiquor.GetRandom());
+        }
+
+        public SmugglersCache(Serial serial)
+            : base(serial)
+        {
         }
 
         public BeverageType RandomBeverageType()
@@ -45,21 +44,16 @@ namespace Server.Items
             }
         }
 
-        public SmugglersCache(Serial serial)
-            : base(serial)
-		{
-		}
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
+        }
 
-		public override void Deserialize( GenericReader reader )
-		{
-			base.Deserialize( reader );
-			int version = reader.ReadInt();
-		}
-
-		public override void Serialize( GenericWriter writer )
-		{
-			base.Serialize( writer );
-			writer.Write( (int)0 );
-		}
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
+        }
     }
 }

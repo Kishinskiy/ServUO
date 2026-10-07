@@ -1,42 +1,33 @@
-using System;
-using Server;
-
 namespace Server.Items
 {
-	public class WolfSpiderCostume : BaseCostume
-	{
-        public override string CreatureName { get { return "wolf spider"; } }
+    public class WolfSpiderCostume : BaseCostume
+    {
+        public override string CreatureName => "wolf spider";
+
+        public override int LabelNumber => 1114232; // wolf spider costume
 
         [Constructable]
-		public WolfSpiderCostume() : base( )
-		{
-            CostumeBody = 736;
-		}
-		
-		public override int LabelNumber
+        public WolfSpiderCostume()
         {
-            get
-            {
-                return 1114232;
-            }
-        }// wolf spider costume
+            CostumeBody = 736;
+        }
 
-		public WolfSpiderCostume( Serial serial ) : base( serial )
-		{
-		}
+        public WolfSpiderCostume(Serial serial) : base(serial)
+        {
+        }
 
-		public override void Serialize( GenericWriter writer )
-		{
-			base.Serialize( writer );
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
 
-			writer.Write( (int) 0 );
-		}
-		
-		public override void Deserialize(GenericReader reader)
-		{
-			base.Deserialize( reader );
+            writer.Write(0);
+        }
 
-			int version = reader.ReadInt();
-		}
-	}
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+
+            var version = reader.ReadInt();
+        }
+    }
 }

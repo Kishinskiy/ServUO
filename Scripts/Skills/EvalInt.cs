@@ -9,12 +9,12 @@ namespace Server.SkillHandlers
     {
         public static void Initialize()
         {
-            SkillInfo.Table[16].Callback = new SkillUseCallback(OnUse);
+            SkillInfo.Table[16].Callback = OnUse;
         }
 
         public static TimeSpan OnUse(Mobile m)
         {
-            m.Target = new EvalInt.InternalTarget();
+            m.Target = new InternalTarget();
 
             m.SendLocalizedMessage(500906); // What do you wish to evaluate?
 
@@ -32,27 +32,31 @@ namespace Server.SkillHandlers
             {
                 if (from == targeted)
                 {
-                    from.LocalOverheadMessage(MessageType.Regular, 0x3B2, 500910); // Hmm, that person looks really silly.
+                    from.LocalOverheadMessage(MessageType.Regular, 0x3B2,
+                        500910); // Hmm, that person looks really silly.
                 }
                 else if (targeted is TownCrier)
                 {
-                    ((TownCrier)targeted).PrivateOverheadMessage(MessageType.Regular, 0x3B2, 500907, from.NetState); // He looks smart enough to remember the news.  Ask him about it.
+                    ((TownCrier)targeted).PrivateOverheadMessage(MessageType.Regular, 0x3B2, 500907,
+                        from.NetState); // He looks smart enough to remember the news.  Ask him about it.
                 }
                 else if (targeted is BaseVendor && ((BaseVendor)targeted).IsInvulnerable)
                 {
-                    ((BaseVendor)targeted).PrivateOverheadMessage(MessageType.Regular, 0x3B2, 500909, from.NetState); // That person could probably calculate the cost of what you buy from them.
+                    ((BaseVendor)targeted).PrivateOverheadMessage(MessageType.Regular, 0x3B2, 500909,
+                        from.NetState); // That person could probably calculate the cost of what you buy from them.
                 }
                 else if (targeted is Mobile)
                 {
-                    Mobile targ = (Mobile)targeted;
+                    var targ = (Mobile)targeted;
 
-                    int marginOfError = Math.Max(0, 20 - (int)(from.Skills[SkillName.EvalInt].Value / 5));
+                    var marginOfError = Math.Max(0, 20 - (int)(from.Skills[SkillName.EvalInt].Value / 5));
 
-                    int intel = targ.Int + Utility.RandomMinMax(-marginOfError, +marginOfError);
-                    int mana = ((targ.Mana * 100) / Math.Max(targ.ManaMax, 1)) + Utility.RandomMinMax(-marginOfError, +marginOfError);
+                    var intel = targ.Int + Utility.RandomMinMax(-marginOfError, +marginOfError);
+                    var mana = targ.Mana * 100 / Math.Max(targ.ManaMax, 1) +
+                               Utility.RandomMinMax(-marginOfError, +marginOfError);
 
-                    int intMod = intel / 10;
-                    int mnMod = mana / 10;
+                    var intMod = intel / 10;
+                    var mnMod = mana / 10;
 
                     if (intMod > 10)
                         intMod = 10;
@@ -73,19 +77,23 @@ namespace Server.SkillHandlers
 
                     if (from.CheckTargetSkill(SkillName.EvalInt, targ, 0.0, 120.0))
                     {
-                        targ.PrivateOverheadMessage(MessageType.Regular, 0x3B2, 1038169 + intMod + body, from.NetState); // He/She/It looks [slighly less intelligent than a rock.]  [Of Average intellect] [etc...]
+                        targ.PrivateOverheadMessage(MessageType.Regular, 0x3B2, 1038169 + intMod + body,
+                            from.NetState); // He/She/It looks [slighly less intelligent than a rock.]  [Of Average intellect] [etc...]
 
                         if (from.Skills[SkillName.EvalInt].Base >= 76.0)
-                            targ.PrivateOverheadMessage(MessageType.Regular, 0x3B2, 1038202 + mnMod, from.NetState); // That being is at [10,20,...] percent mental strength.
+                            targ.PrivateOverheadMessage(MessageType.Regular, 0x3B2, 1038202 + mnMod,
+                                from.NetState); // That being is at [10,20,...] percent mental strength.
                     }
-                    else 
+                    else
                     {
-                        targ.PrivateOverheadMessage(MessageType.Regular, 0x3B2, 1038166 + (body / 11), from.NetState); // You cannot judge his/her/its mental abilities.
+                        targ.PrivateOverheadMessage(MessageType.Regular, 0x3B2, 1038166 + body / 11,
+                            from.NetState); // You cannot judge his/her/its mental abilities.
                     }
                 }
                 else if (targeted is Item)
                 {
-                    ((Item)targeted).SendLocalizedMessageTo(from, 500908, ""); // It looks smarter than a rock, but dumber than a piece of wood.
+                    ((Item)targeted).SendLocalizedMessageTo(from, 500908,
+                        ""); // It looks smarter than a rock, but dumber than a piece of wood.
                 }
             }
         }

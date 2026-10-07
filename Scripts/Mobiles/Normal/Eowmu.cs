@@ -5,20 +5,21 @@ namespace Server.Mobiles
 {
     public class EowmuStatue : Item, ICreatureStatuette
     {
-        public override int LabelNumber { get { return 1158082; } } // Eowmu
-
-        public Type CreatureType { get { return typeof(Eowmu); } }
+        public override int LabelNumber => 1158082; // Eowmu
 
         [Constructable]
-        public EowmuStatue() 
+        public EowmuStatue()
             : base(0xA0C0)
         {
             LootType = LootType.Blessed;
         }
+
         public EowmuStatue(Serial serial)
             : base(serial)
         {
         }
+
+        public Type CreatureType => typeof(Eowmu);
 
         public override void OnDoubleClick(Mobile from)
         {
@@ -31,19 +32,23 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     [CorpseName("an eowmu corpse")]
     public class Eowmu : BaseMount
     {
+        public override int Meat => 3;
+        public override int Hides => 10;
+        public override FoodType FavoriteFood => FoodType.FruitsAndVegies;
+
         [Constructable]
         public Eowmu()
             : this("Eowmu")
@@ -90,20 +95,16 @@ namespace Server.Mobiles
         {
         }
 
-        public override int Meat { get { return 3; } }
-        public override int Hides { get { return 10; } }
-        public override FoodType FavoriteFood { get { return FoodType.FruitsAndVegies; } }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

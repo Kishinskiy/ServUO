@@ -1,4 +1,3 @@
-using Server;
 using System;
 using Server.Items;
 using Server.Multis;
@@ -8,71 +7,60 @@ namespace Server.Engines.Plants
 {
     public class RaisedGardenPlantItem : PlantItem
     {
-        public override bool RequiresUpkeep { get { return false; } }
-        public override int BowlOfDirtID { get { return 2323; } }
+        private GardenAddonComponent m_Component;
+        public override bool RequiresUpkeep => false;
+        public override int BowlOfDirtID => 2323;
+
         public override int GreenBowlID
         {
             get
             {
                 if (PlantStatus <= PlantStatus.Stage3)
                     return 0xC7E;
-                else
-                    return 0xC62;
+                return 0xC62;
             }
         }
 
-        public override int ContainerLocalization { get { return 1150436; } } // mound
-        public override int OnPlantLocalization { get { return 1150442; } } // You plant the seed in the mound of dirt.
-        public override int CantUseLocalization { get { return 1150511; } } // That is not your gardening plot.
+        public override int ContainerLocalization => 1150436; // mound
+        public override int OnPlantLocalization => 1150442; // You plant the seed in the mound of dirt.
+        public override int CantUseLocalization => 1150511; // That is not your gardening plot.
 
         public override int LabelNumber
         {
             get
             {
-                int label = base.LabelNumber;
+                var label = base.LabelNumber;
 
                 if (label == 1029913)
-                    label = 1022321;   // dirt patch
+                    label = 1022321; // dirt patch
 
                 return label;
             }
         }
 
-        private GardenAddonComponent m_Component;
-
         [CommandProperty(AccessLevel.GameMaster)]
-        public GardenAddonComponent Component 
-        { 
-            get 
-            {
-                if (m_Component != null)
-                {
-                    if (m_Component.X != X || m_Component.Y != Y || m_Component.Map != Map || m_Component.Deleted)
-                        m_Component = null;
-                }
-
-                return m_Component;
-            }
-            set 
-            { 
-                m_Component = value;
-
-                if (m_Component != null)
-                {
-                    if (m_Component.X != X || m_Component.Y != Y || m_Component.Map != Map || m_Component.Deleted)
-                        m_Component = null;
-                }
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public override bool ValidGrowthLocation
+        public GardenAddonComponent Component
         {
             get
             {
-                return RootParent == null && Component != null && !Movable && !Deleted;
+                if (m_Component != null)
+                    if (m_Component.X != X || m_Component.Y != Y || m_Component.Map != Map || m_Component.Deleted)
+                        m_Component = null;
+
+                return m_Component;
+            }
+            set
+            {
+                m_Component = value;
+
+                if (m_Component != null)
+                    if (m_Component.X != X || m_Component.Y != Y || m_Component.Map != Map || m_Component.Deleted)
+                        m_Component = null;
             }
         }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public override bool ValidGrowthLocation => RootParent == null && Component != null && !Movable && !Deleted;
 
         [CommandProperty(AccessLevel.GameMaster)]
         public DateTime NextGrowth
@@ -99,7 +87,7 @@ namespace Server.Engines.Plants
         [CommandProperty(AccessLevel.GameMaster)]
         public bool ForceGrow
         {
-            get { return false; }
+            get => false;
             set
             {
                 if (value = true && PlantSystem != null)
@@ -111,51 +99,14 @@ namespace Server.Engines.Plants
         }
 
         [Constructable]
-        public RaisedGardenPlantItem() : this(false) 
-        { 
+        public RaisedGardenPlantItem() : this(false)
+        {
         }
 
         [Constructable]
         public RaisedGardenPlantItem(bool fertileDirt) : base(2323, fertileDirt)
         {
             Movable = false;
-        }
-
-        public override void Delete()
-        {
-            if (m_Component != null && m_Component.Plant == this)
-                m_Component.Plant = null;
-
-            base.Delete();
-        }
-
-        public override void OnDoubleClick(Mobile from)
-        {
-            if (PlantStatus >= PlantStatus.DecorativePlant)
-                return;
-
-            Point3D loc = GetWorldLocation();
-
-            if (!from.InLOS(loc) || !from.InRange(loc, 4))
-            {
-                from.LocalOverheadMessage(MessageType.Regular, 0x3E9, 1019045); // I can't reach that.
-                return;
-            }
-
-            if (!IsUsableBy(from))
-            {
-                LabelTo(from, 1150327); // Only the house owner and co-owners can use the raised garden bed.
-
-                return;
-            }
-
-            from.SendGump(new MainPlantGump(this));
-        }
-
-        public override bool IsUsableBy(Mobile from)
-        {
-            BaseHouse house = BaseHouse.FindHouseAt(this);
-            return house != null && house.IsCoOwner(from) && IsAccessibleTo(from);
         }
 
         /*public override void GetContextMenuEntries(Mobile from, List<ContextMenuEntry> list)
@@ -196,15 +147,52 @@ namespace Server.Engines.Plants
             }
         }*/
 
-        public RaisedGardenPlantItem( Serial serial ) : base( serial )
-		{
-		}
+        public RaisedGardenPlantItem(Serial serial) : base(serial)
+        {
+        }
+
+        public override void Delete()
+        {
+            if (m_Component != null && m_Component.Plant == this)
+                m_Component.Plant = null;
+
+            base.Delete();
+        }
+
+        public override void OnDoubleClick(Mobile from)
+        {
+            if (PlantStatus >= PlantStatus.DecorativePlant)
+                return;
+
+            var loc = GetWorldLocation();
+
+            if (!from.InLOS(loc) || !from.InRange(loc, 4))
+            {
+                from.LocalOverheadMessage(MessageType.Regular, 0x3E9, 1019045); // I can't reach that.
+                return;
+            }
+
+            if (!IsUsableBy(from))
+            {
+                LabelTo(from, 1150327); // Only the house owner and co-owners can use the raised garden bed.
+
+                return;
+            }
+
+            from.SendGump(new MainPlantGump(this));
+        }
+
+        public override bool IsUsableBy(Mobile from)
+        {
+            var house = BaseHouse.FindHouseAt(this);
+            return house != null && house.IsCoOwner(from) && IsAccessibleTo(from);
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
             writer.Write(m_Component);
         }
 
@@ -212,7 +200,7 @@ namespace Server.Engines.Plants
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
             m_Component = reader.ReadItem() as GardenAddonComponent;
         }
     }

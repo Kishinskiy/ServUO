@@ -1,18 +1,15 @@
-using System;
-using System.Collections;
 using Server.Items;
 using Server.Network;
-using System.Collections.Generic;
-using Server.Spells.Mysticism;
 using Server.Spells;
+using Server.Spells.Mysticism;
 
 namespace Server.Gumps
 {
     public class EnchantSpellGump : Gump
     {
-        private Mobile m_Caster;
-        private Item m_Scroll;
-        private BaseWeapon m_Weapon;
+        private readonly Mobile m_Caster;
+        private readonly Item m_Scroll;
+        private readonly BaseWeapon m_Weapon;
 
         public EnchantSpellGump(Mobile caster, Item scroll, BaseWeapon weapon)
             : base(20, 20)
@@ -21,7 +18,7 @@ namespace Server.Gumps
             m_Scroll = scroll;
             m_Weapon = weapon;
 
-            int font = 0x07FF;
+            var font = 0x07FF;
 
             AddBackground(0, 0, 260, 187, 3600);
             AddAlphaRegion(5, 15, 242, 170);
@@ -53,7 +50,7 @@ namespace Server.Gumps
 
         public override void OnResponse(NetState sender, RelayInfo info)
         {
-            AosWeaponAttribute attr = AosWeaponAttribute.HitLightning;
+            var attr = AosWeaponAttribute.HitLightning;
 
             switch (info.ButtonID)
             {
@@ -61,30 +58,30 @@ namespace Server.Gumps
                     m_Caster.SendLocalizedMessage(1080132); //You decide not to enchant your weapon.
                     return;
                 case 1: //Hit Lightning
-                    {
-                        attr = AosWeaponAttribute.HitLightning;
-                        break;
-                    }
+                {
+                    attr = AosWeaponAttribute.HitLightning;
+                    break;
+                }
                 case 2: //Hit Fireball
-                    {
-                        attr = AosWeaponAttribute.HitFireball;
-                        break;
-                    }
+                {
+                    attr = AosWeaponAttribute.HitFireball;
+                    break;
+                }
                 case 3: //Hit Harm
-                    {
-                        attr = AosWeaponAttribute.HitHarm;
-                        break;
-                    }
+                {
+                    attr = AosWeaponAttribute.HitHarm;
+                    break;
+                }
                 case 4: //Hit Magic Arrow
-                    {
-                        attr = AosWeaponAttribute.HitMagicArrow;
-                        break;
-                    }
+                {
+                    attr = AosWeaponAttribute.HitMagicArrow;
+                    break;
+                }
                 case 5: //Hit Dispel
-                    {
-                        attr = AosWeaponAttribute.HitDispel;
-                        break;
-                    }
+                {
+                    attr = AosWeaponAttribute.HitDispel;
+                    break;
+                }
             }
 
             Spell spell = new EnchantSpell(m_Caster, m_Scroll, m_Weapon, attr);

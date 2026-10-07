@@ -18,8 +18,8 @@ namespace Server.Items
         public MistletoeAddon(int hue)
             : base(0x2375)
         {
-            this.Hue = hue;
-            this.Movable = false;
+            Hue = hue;
+            Movable = false;
         }
 
         public MistletoeAddon(Serial serial)
@@ -27,38 +27,16 @@ namespace Server.Items
         {
         }
 
-        public Item Deed
-        {
-            get
-            {
-                return new MistletoeDeed(this.Hue);
-            }
-        }
+        public Item Deed => new MistletoeDeed(Hue);
+
         public bool CouldFit(IPoint3D p, Map map)
         {
-            if (!map.CanFit(p.X, p.Y, p.Z, this.ItemData.Height))
+            if (!map.CanFit(p.X, p.Y, p.Z, ItemData.Height))
                 return false;
 
-            if (this.ItemID == 0x2375)
+            if (ItemID == 0x2375)
                 return BaseAddon.IsWall(p.X, p.Y - 1, p.Z, map); // North wall
-            else
-                return BaseAddon.IsWall(p.X - 1, p.Y, p.Z, map); // West wall
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-
-            writer.Write((int)0); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
-
-            Timer.DelayCall(TimeSpan.Zero, new TimerCallback(FixMovingCrate));
+            return BaseAddon.IsWall(p.X - 1, p.Y, p.Z, map); // West wall
         }
 
         void IChopable.OnChop(Mobile user)
@@ -66,13 +44,51 @@ namespace Server.Items
             OnDoubleClick(user);
         }
 
-        public override void OnDoubleClick(Mobile from)
+        public virtual bool Dye(Mobile from, DyeTub sender)
         {
-            BaseHouse house = BaseHouse.FindHouseAt(this);
+            if (Deleted)
+                return false;
+
+            var house = BaseHouse.FindHouseAt(this);
 
             if (house != null && house.IsCoOwner(from))
             {
-                if (from.InRange(this.GetWorldLocation(), 3))
+                if (from.InRange(GetWorldLocation(), 1))
+                {
+                    Hue = sender.DyedHue;
+                    return true;
+                }
+
+                from.SendLocalizedMessage(500295); // You are too far away to do that.
+                return false;
+            }
+
+            return false;
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+
+            writer.Write(0); // version
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+
+            var version = reader.ReadInt();
+
+            Timer.DelayCall(TimeSpan.Zero, FixMovingCrate);
+        }
+
+        public override void OnDoubleClick(Mobile from)
+        {
+            var house = BaseHouse.FindHouseAt(this);
+
+            if (house != null && house.IsCoOwner(from))
+            {
+                if (from.InRange(GetWorldLocation(), 3))
                 {
                     from.CloseGump(typeof(MistletoeAddonGump));
                     from.SendGump(new MistletoeAddonGump(from, this));
@@ -84,91 +100,66 @@ namespace Server.Items
             }
         }
 
-        public virtual bool Dye(Mobile from, DyeTub sender)
-        {
-            if (this.Deleted)
-                return false;
-
-            BaseHouse house = BaseHouse.FindHouseAt(this);
-
-            if (house != null && house.IsCoOwner(from))
-            {
-                if (from.InRange(this.GetWorldLocation(), 1))
-                {
-                    this.Hue = sender.DyedHue;
-                    return true;
-                }
-                else
-                {
-                    from.SendLocalizedMessage(500295); // You are too far away to do that.
-                    return false;
-                }
-            }
-            else 
-            {
-                return false;
-            }
-        }
-
         private void FixMovingCrate()
         {
-            if (this.Deleted)
+            if (Deleted)
                 return;
 
-            if (this.Movable || this.IsLockedDown)
+            if (Movable || IsLockedDown)
             {
-                Item deed = this.Deed;
+                var deed = Deed;
 
-                if (this.Parent is Item)
+                if (Parent is Item)
                 {
-                    ((Item)this.Parent).AddItem(deed);
-                    deed.Location = this.Location;
+                    ((Item)Parent).AddItem(deed);
+                    deed.Location = Location;
                 }
                 else
                 {
-                    deed.MoveToWorld(this.Location, this.Map);
+                    deed.MoveToWorld(Location, Map);
                 }
 
-                this.Delete();
+                Delete();
             }
         }
 
         private class MistletoeAddonGump : Gump
         {
-            private readonly Mobile m_From;
             private readonly MistletoeAddon m_Addon;
+            private readonly Mobile m_From;
+
             public MistletoeAddonGump(Mobile from, MistletoeAddon addon)
                 : base(150, 50)
             {
-                this.m_From = from;
-                this.m_Addon = addon;
+                m_From = from;
+                m_Addon = addon;
 
-                this.AddPage(0);
+                AddPage(0);
 
-                this.AddBackground(0, 0, 220, 170, 0x13BE);
-                this.AddBackground(10, 10, 200, 150, 0xBB8);
-                this.AddHtmlLocalized(20, 30, 180, 60, 1062839, false, false); // Do you wish to re-deed this decoration?
-                this.AddHtmlLocalized(55, 100, 160, 25, 1011011, false, false); // CONTINUE
-                this.AddButton(20, 100, 0xFA5, 0xFA7, 1, GumpButtonType.Reply, 0);
-                this.AddHtmlLocalized(55, 125, 160, 25, 1011012, false, false); // CANCEL
-                this.AddButton(20, 125, 0xFA5, 0xFA7, 0, GumpButtonType.Reply, 0);
+                AddBackground(0, 0, 220, 170, 0x13BE);
+                AddBackground(10, 10, 200, 150, 0xBB8);
+                AddHtmlLocalized(20, 30, 180, 60, 1062839, false, false); // Do you wish to re-deed this decoration?
+                AddHtmlLocalized(55, 100, 160, 25, 1011011, false, false); // CONTINUE
+                AddButton(20, 100, 0xFA5, 0xFA7, 1, GumpButtonType.Reply, 0);
+                AddHtmlLocalized(55, 125, 160, 25, 1011012, false, false); // CANCEL
+                AddButton(20, 125, 0xFA5, 0xFA7, 0, GumpButtonType.Reply, 0);
             }
 
             public override void OnResponse(NetState sender, RelayInfo info)
             {
-                if (this.m_Addon.Deleted)
+                if (m_Addon.Deleted)
                     return;
 
                 if (info.ButtonID == 1)
                 {
-                    if (this.m_From.InRange(this.m_Addon.GetWorldLocation(), 3))
+                    if (m_From.InRange(m_Addon.GetWorldLocation(), 3))
                     {
-                        this.m_From.AddToBackpack(this.m_Addon.Deed);
-                        this.m_Addon.Delete();
+                        m_From.AddToBackpack(m_Addon.Deed);
+                        m_Addon.Delete();
                     }
                     else
                     {
-                        this.m_From.SendLocalizedMessage(500295); // You are too far away to do that.
+                        m_From.SendLocalizedMessage(500295); // You are too far away to do that.
                     }
                 }
             }
@@ -178,6 +169,8 @@ namespace Server.Items
     [Flipable(0x14F0, 0x14EF)]
     public class MistletoeDeed : Item
     {
+        public override int LabelNumber => 1070882; // Mistletoe Deed
+
         [Constructable]
         public MistletoeDeed()
             : this(0)
@@ -188,9 +181,9 @@ namespace Server.Items
         public MistletoeDeed(int hue)
             : base(0x14F0)
         {
-            this.Hue = hue;
-            this.Weight = 1.0;
-            this.LootType = LootType.Blessed;
+            Hue = hue;
+            Weight = 1.0;
+            LootType = LootType.Blessed;
         }
 
         public MistletoeDeed(Serial serial)
@@ -198,32 +191,25 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1070882;
-            }
-        }// Mistletoe Deed
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         public override void OnSingleClick(Mobile from)
         {
             base.OnSingleClick(from);
 
-            this.LabelTo(from, 1070880); // Winter 2004
+            LabelTo(from, 1070880); // Winter 2004
         }
 
         public override void GetProperties(ObjectPropertyList list)
@@ -235,14 +221,14 @@ namespace Server.Items
 
         public override void OnDoubleClick(Mobile from)
         {
-            if (this.IsChildOf(from.Backpack))
+            if (IsChildOf(from.Backpack))
             {
-                BaseHouse house = BaseHouse.FindHouseAt(from);
+                var house = BaseHouse.FindHouseAt(from);
 
                 if (house != null && house.IsCoOwner(from))
                 {
                     from.SendLocalizedMessage(1062838); // Where would you like to place this decoration?
-                    from.BeginTarget(-1, true, TargetFlags.None, new TargetStateCallback(Placement_OnTarget), null);
+                    from.BeginTarget(-1, true, TargetFlags.None, Placement_OnTarget, null);
                 }
                 else
                 {
@@ -257,24 +243,24 @@ namespace Server.Items
 
         public void Placement_OnTarget(Mobile from, object targeted, object state)
         {
-            IPoint3D p = targeted as IPoint3D;
+            var p = targeted as IPoint3D;
 
             if (p == null)
                 return;
 
-            Point3D loc = new Point3D(p);
+            var loc = new Point3D(p);
 
-            BaseHouse house = BaseHouse.FindHouseAt(loc, from.Map, 16);
+            var house = BaseHouse.FindHouseAt(loc, from.Map, 16);
 
             if (house != null && house.IsCoOwner(from))
             {
-                bool northWall = BaseAddon.IsWall(loc.X, loc.Y - 1, loc.Z, from.Map);
-                bool westWall = BaseAddon.IsWall(loc.X - 1, loc.Y, loc.Z, from.Map);
+                var northWall = BaseAddon.IsWall(loc.X, loc.Y - 1, loc.Z, from.Map);
+                var westWall = BaseAddon.IsWall(loc.X - 1, loc.Y, loc.Z, from.Map);
 
                 if (northWall && westWall)
                     from.SendGump(new MistletoeDeedGump(from, loc, this));
                 else
-                    this.PlaceAddon(from, loc, northWall, westWall);
+                    PlaceAddon(from, loc, northWall, westWall);
             }
             else
             {
@@ -284,10 +270,10 @@ namespace Server.Items
 
         private void PlaceAddon(Mobile from, Point3D loc, bool northWall, bool westWall)
         {
-            if (this.Deleted)
+            if (Deleted)
                 return;
 
-            BaseHouse house = BaseHouse.FindHouseAt(loc, from.Map, 16);
+            var house = BaseHouse.FindHouseAt(loc, from.Map, 16);
 
             if (house == null || !house.IsCoOwner(from))
             {
@@ -295,7 +281,7 @@ namespace Server.Items
                 return;
             }
 
-            int itemID = 0;
+            var itemID = 0;
 
             if (northWall)
                 itemID = 0x2374;
@@ -306,50 +292,51 @@ namespace Server.Items
 
             if (itemID > 0)
             {
-                Item addon = new MistletoeAddon(this.Hue);
+                Item addon = new MistletoeAddon(Hue);
 
                 addon.ItemID = itemID;
                 addon.MoveToWorld(loc, from.Map);
 
                 house.Addons[addon] = from;
-                this.Delete();
+                Delete();
             }
         }
 
         private class MistletoeDeedGump : Gump
         {
+            private readonly MistletoeDeed m_Deed;
             private readonly Mobile m_From;
             private readonly Point3D m_Loc;
-            private readonly MistletoeDeed m_Deed;
+
             public MistletoeDeedGump(Mobile from, Point3D loc, MistletoeDeed deed)
                 : base(150, 50)
             {
-                this.m_From = from;
-                this.m_Loc = loc;
-                this.m_Deed = deed;
+                m_From = from;
+                m_Loc = loc;
+                m_Deed = deed;
 
-                this.AddBackground(0, 0, 300, 150, 0xA28);
+                AddBackground(0, 0, 300, 150, 0xA28);
 
-                this.AddPage(0);
+                AddPage(0);
 
-                this.AddItem(90, 30, 0x2375);
-                this.AddItem(180, 30, 0x2374);
-                this.AddButton(50, 35, 0x868, 0x869, 1, GumpButtonType.Reply, 0);
-                this.AddButton(145, 35, 0x868, 0x869, 2, GumpButtonType.Reply, 0);
+                AddItem(90, 30, 0x2375);
+                AddItem(180, 30, 0x2374);
+                AddButton(50, 35, 0x868, 0x869, 1, GumpButtonType.Reply, 0);
+                AddButton(145, 35, 0x868, 0x869, 2, GumpButtonType.Reply, 0);
             }
 
             public override void OnResponse(NetState sender, RelayInfo info)
             {
-                if (this.m_Deed.Deleted)
+                if (m_Deed.Deleted)
                     return;
 
-                switch( info.ButtonID )
+                switch (info.ButtonID)
                 {
                     case 1:
-                        this.m_Deed.PlaceAddon(this.m_From, this.m_Loc, false, true);
+                        m_Deed.PlaceAddon(m_From, m_Loc, false, true);
                         break;
                     case 2:
-                        this.m_Deed.PlaceAddon(this.m_From, this.m_Loc, true, false);
+                        m_Deed.PlaceAddon(m_From, m_Loc, true, false);
                         break;
                 }
             }

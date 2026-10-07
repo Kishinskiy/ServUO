@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,7 +5,18 @@ namespace Server.Mobiles
     [CorpseName("a exodus minion lord's corpse")]
     public class ExodusMinionLord : BaseCreature
     {
-        private bool m_FieldActive;
+        public bool FieldActive { get; private set; }
+
+        public bool CanUseField => Hits >= HitsMax * 9 / 10; // TODO: an OSI bug prevents to verify this
+        public override bool IsScaredOfScaryThings => false;
+
+        public override bool IsScaryToPets => true;
+
+        public override bool AutoDispel => true;
+
+        public override bool BardImmune => !Core.AOS;
+
+        public override Poison PoisonImmune => Poison.Lethal;
 
         [Constructable]
         public ExodusMinionLord() : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -39,8 +49,12 @@ namespace Server.Mobiles
             PackItem(new PowerCrystal());
             PackItem(new ArcaneGem());
             PackItem(new ClockworkAssembly());
+        }
 
-		}
+        public ExodusMinionLord(Serial serial)
+            : base(serial)
+        {
+        }
 
         public override void GenerateLoot()
         {
@@ -48,7 +62,6 @@ namespace Server.Mobiles
             AddLoot(LootPack.Rich);
 
             if (Utility.RandomDouble() < 0.1)
-            {
                 switch (Utility.Random(4))
                 {
                     case 0:
@@ -64,64 +77,8 @@ namespace Server.Mobiles
                         PackItem(new ExodusSummoningAlter());
                         break;
                 }
-            }
 
-            m_FieldActive = CanUseField;
-        }
-
-        public ExodusMinionLord(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public bool FieldActive
-        {
-            get
-            {
-                return m_FieldActive;
-            }
-        }
-        public bool CanUseField
-        {
-            get
-            {
-                return Hits >= HitsMax * 9 / 10;
-            }
-        }// TODO: an OSI bug prevents to verify this
-        public override bool IsScaredOfScaryThings
-        {
-            get
-            {
-                return false;
-            }
-        }
-        public override bool IsScaryToPets
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool AutoDispel
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool BardImmune
-        {
-            get
-            {
-                return !Core.AOS;
-            }
-        }
-        public override Poison PoisonImmune
-        {
-            get
-            {
-                return Poison.Lethal;
-            }
+            FieldActive = CanUseField;
         }
 
         public override int GetIdleSound()
@@ -151,31 +108,28 @@ namespace Server.Mobiles
 
         public override void AlterMeleeDamageFrom(Mobile from, ref int damage)
         {
-            if (m_FieldActive)
+            if (FieldActive)
                 damage = 0; // no melee damage when the field is up
         }
 
         public override void AlterSpellDamageFrom(Mobile from, ref int damage)
         {
-            if (!m_FieldActive)
+            if (!FieldActive)
                 damage = 0; // no spell damage when the field is down
         }
 
         public override void OnDamagedBySpell(Mobile from)
         {
-            if (from != null && from.Alive && 0.4 > Utility.RandomDouble())
-            {
-                SendEBolt(from);
-            }
+            if (from != null && from.Alive && 0.4 > Utility.RandomDouble()) SendEBolt(from);
 
-            if (!m_FieldActive)
+            if (!FieldActive)
             {
                 // should there be an effect when spells nullifying is on?
                 FixedParticles(0, 10, 0, 0x2522, EffectLayer.Waist);
             }
-            else if (m_FieldActive && !CanUseField)
+            else if (FieldActive && !CanUseField)
             {
-                m_FieldActive = false;
+                FieldActive = false;
 
                 // TODO: message and effect when field turns down; cannot be verified on OSI due to a bug
                 FixedParticles(0x3735, 1, 30, 0x251F, EffectLayer.Waist);
@@ -186,7 +140,7 @@ namespace Server.Mobiles
         {
             base.OnGotMeleeAttack(attacker);
 
-            if (m_FieldActive)
+            if (FieldActive)
             {
                 FixedParticles(0x376A, 20, 10, 0x2530, EffectLayer.Waist);
 
@@ -196,9 +150,7 @@ namespace Server.Mobiles
             }
 
             if (attacker != null && attacker.Alive && attacker.Weapon is BaseRanged && 0.4 > Utility.RandomDouble())
-            {
                 SendEBolt(attacker);
-            }
         }
 
         public override void OnThink()
@@ -206,15 +158,15 @@ namespace Server.Mobiles
             base.OnThink();
 
             // TODO: an OSI bug prevents to verify if the field can regenerate or not
-            if (!m_FieldActive && !IsHurt())
-                m_FieldActive = true;
+            if (!FieldActive && !IsHurt())
+                FieldActive = true;
         }
 
         public override bool Move(Direction d)
         {
-            bool move = base.Move(d);
+            var move = base.Move(d);
 
-            if (move && m_FieldActive && Combatant != null)
+            if (move && FieldActive && Combatant != null)
                 FixedParticles(0, 10, 0, 0x2530, EffectLayer.Waist);
 
             return move;
@@ -231,15 +183,15 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            m_FieldActive = CanUseField;
+            FieldActive = CanUseField;
 
             if (Name == "Exodus Minion Lord")
                 Name = "exodus minion lord";

@@ -1,12 +1,19 @@
-using System;
 using System.Collections.Generic;
 using Server.Items;
 
-namespace Server.Mobiles 
+namespace Server.Mobiles
 {
     [CorpseName("a Tyball Shadow corpse")]
     public class TyballsShadow : BaseCreature
     {
+        public override bool BardImmune => true;
+
+        public override bool Unprovokable => true;
+
+        public override bool Uncalmable => true;
+
+        public override bool AlwaysMurderer => true;
+
         [Constructable]
         public TyballsShadow()
             : base(AIType.AI_Mage, FightMode.Closest, 10, 1, 0.15, 0.4)
@@ -15,7 +22,7 @@ namespace Server.Mobiles
             Hue = 0x4001;
             Female = false;
             Name = "Tyball's Shadow";
-                            
+
             SetStr(400, 450);
             SetDex(210, 250);
             SetInt(310, 330);
@@ -42,7 +49,7 @@ namespace Server.Mobiles
 
             SetWearable(new ShroudOfTheCondemned(), -1, 0.1);
 
-            Fame = 20000; 
+            Fame = 20000;
             Karma = -20000;
             VirtualArmor = 65;
         }
@@ -52,34 +59,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool BardImmune
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool Unprovokable
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool Uncalmable
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool AlwaysMurderer
-        {
-            get
-            {
-                return true;
-            }
-        }
         public override void GenerateLoot()
         {
             AddLoot(LootPack.FilthyRich, 3);
@@ -89,12 +68,12 @@ namespace Server.Mobiles
         {
             if (Map == Map.TerMur)
             {
-                List<DamageStore> rights = GetLootingRights();
-                List<Mobile> toGive = new List<Mobile>();
+                var rights = GetLootingRights();
+                var toGive = new List<Mobile>();
 
-                for (int i = rights.Count - 1; i >= 0; --i)
+                for (var i = rights.Count - 1; i >= 0; --i)
                 {
-                    DamageStore ds = rights[i];
+                    var ds = rights[i];
                     if (ds.m_HasRight)
                         toGive.Add(ds.m_Mobile);
                 }
@@ -104,6 +83,7 @@ namespace Server.Mobiles
 
                 ColUtility.Free(toGive);
             }
+
             base.OnDeath(c);
         }
 
@@ -112,22 +92,20 @@ namespace Server.Mobiles
             base.OnThink();
 
             if (Map != null && Region.Find(Location, Map).IsPartOf("Underworld"))
-            {
                 if (Z < 0 && X >= 1177 && X <= 1183 && Y >= 877 && Y <= 886)
                     Z = 0;
-            }
         }
 
-        public override void Serialize(GenericWriter writer) 
-        { 
-            base.Serialize(writer); 
-            writer.Write((int)0);  
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
         }
 
-        public override void Deserialize(GenericReader reader) 
-        { 
-            base.Deserialize(reader); 
-            int version = reader.ReadInt(); 
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
         }
     }
 }

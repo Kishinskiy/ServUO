@@ -1,158 +1,154 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.IO;
 using System.Linq;
-using System.Text;
 using Server.Engines.Quests;
 using Server.Mobiles;
-using System.IO;
 
 namespace Server.Services.Community_Collections
 {
-	public class CollectionsSystem
-	{
-		private static Dictionary<Collection, CollectionData> m_Collections = new Dictionary<Collection, CollectionData>();
-		private static List<BaseCollectionMobile> m_Mobiles = new List<BaseCollectionMobile>();
-		private static string m_Path = Path.Combine("Saves", "CommunityCollections.bin");
+    public class CollectionsSystem
+    {
+        private static readonly Dictionary<Collection, CollectionData> m_Collections =
+            new Dictionary<Collection, CollectionData>();
 
-		public static void Configure()
-		{
-			EventSink.WorldSave += EventSink_WorldSave;
-			EventSink.WorldLoad += EventSink_WorldLoad;
-		}
+        private static List<BaseCollectionMobile> m_Mobiles = new List<BaseCollectionMobile>();
+        private static readonly string m_Path = Path.Combine("Saves", "CommunityCollections.bin");
 
-		public static void RegisterMobile(BaseCollectionMobile mob)
-		{
-			if (!m_Mobiles.Contains(mob))
-			{
-				m_Mobiles.Add(mob);
-				if (m_Collections.ContainsKey(mob.CollectionID))
-					mob.SetData(m_Collections[mob.CollectionID]);
-			}
-		}
+        public static void Configure()
+        {
+            EventSink.WorldSave += EventSink_WorldSave;
+            EventSink.WorldLoad += EventSink_WorldLoad;
+        }
 
-		public static void UnregisterMobile(BaseCollectionMobile mob)
-		{
-			m_Collections[mob.CollectionID] = mob.GetData();
-			m_Mobiles.Remove(mob);
-		}
+        public static void RegisterMobile(BaseCollectionMobile mob)
+        {
+            if (!m_Mobiles.Contains(mob))
+            {
+                m_Mobiles.Add(mob);
+                if (m_Collections.ContainsKey(mob.CollectionID))
+                    mob.SetData(m_Collections[mob.CollectionID]);
+            }
+        }
 
-		private static void EventSink_WorldSave(WorldSaveEventArgs e)
-		{
-			List<BaseCollectionMobile> newMobiles = new List<BaseCollectionMobile>();
-			foreach (BaseCollectionMobile mob in m_Mobiles)
-			{
-				if (!mob.Deleted)
-					newMobiles.Add(mob);
-			}
-			m_Mobiles = newMobiles;
+        public static void UnregisterMobile(BaseCollectionMobile mob)
+        {
+            m_Collections[mob.CollectionID] = mob.GetData();
+            m_Mobiles.Remove(mob);
+        }
 
-			Persistence.Serialize(
-				m_Path,
-				writer =>
-				{
-					writer.WriteMobileList(m_Mobiles);
-					writer.Write(m_Mobiles.Count);
-					foreach(BaseCollectionMobile mob in m_Mobiles)
-					{
-						writer.Write((int)mob.CollectionID);
-						CollectionData data = mob.GetData();
-						data.Write(writer);
-						m_Collections[mob.CollectionID] = data;
-					}
-				});
-		}
+        private static void EventSink_WorldSave(WorldSaveEventArgs e)
+        {
+            var newMobiles = new List<BaseCollectionMobile>();
+            foreach (var mob in m_Mobiles)
+                if (!mob.Deleted)
+                    newMobiles.Add(mob);
+            m_Mobiles = newMobiles;
 
-		private static void EventSink_WorldLoad()
-		{
-			Persistence.Deserialize(
-				m_Path,
-				reader =>
-				{
-					m_Mobiles.AddRange(reader.ReadMobileList().Cast<BaseCollectionMobile>());
-					List<BaseCollectionMobile> mobs = new List<BaseCollectionMobile>();
-					mobs.AddRange(m_Mobiles);
+            Persistence.Serialize(
+                m_Path,
+                writer =>
+                {
+                    writer.WriteMobileList(m_Mobiles);
+                    writer.Write(m_Mobiles.Count);
+                    foreach (var mob in m_Mobiles)
+                    {
+                        writer.Write((int)mob.CollectionID);
+                        var data = mob.GetData();
+                        data.Write(writer);
+                        m_Collections[mob.CollectionID] = data;
+                    }
+                });
+        }
 
-					int count = reader.ReadInt();
-					for(int i = 0; i < count; ++i)
-					{
-						int collection = reader.ReadInt();
-						CollectionData data = new CollectionData();
-						data.Read(reader);
-						int toRemove = -1;
-						foreach (BaseCollectionMobile mob in mobs)
-						{
-							if(mob.CollectionID == (Collection)collection)
-							{
-								mob.SetData(data);
-								toRemove = mobs.IndexOf(mob);
-								break;
-							}
-						}
-						if (toRemove >= 0)
-							mobs.RemoveAt(toRemove);
-					}
-				});
+        private static void EventSink_WorldLoad()
+        {
+            Persistence.Deserialize(
+                m_Path,
+                reader =>
+                {
+                    m_Mobiles.AddRange(reader.ReadMobileList().Cast<BaseCollectionMobile>());
+                    var mobs = new List<BaseCollectionMobile>();
+                    mobs.AddRange(m_Mobiles);
 
-		}
-	}
+                    var count = reader.ReadInt();
+                    for (var i = 0; i < count; ++i)
+                    {
+                        var collection = reader.ReadInt();
+                        var data = new CollectionData();
+                        data.Read(reader);
+                        var toRemove = -1;
+                        foreach (var mob in mobs)
+                            if (mob.CollectionID == (Collection)collection)
+                            {
+                                mob.SetData(data);
+                                toRemove = mobs.IndexOf(mob);
+                                break;
+                            }
 
-	public class CollectionData
-	{
-		public Collection Collection;
-		public long Points;
-		public long StartTier;
-		public long NextTier;
-		public long DailyDecay;
-		public int Tier;
-		public object DonationTitle;
-		public List<List<object>> Tiers = new List<List<object>>();
+                        if (toRemove >= 0)
+                            mobs.RemoveAt(toRemove);
+                    }
+                });
+        }
+    }
 
-		public void Write(GenericWriter writer)
-		{
-			writer.Write(0); // version
+    public class CollectionData
+    {
+        public Collection Collection;
+        public long DailyDecay;
+        public object DonationTitle;
+        public long NextTier;
+        public long Points;
+        public long StartTier;
+        public int Tier;
+        public List<List<object>> Tiers = new List<List<object>>();
 
-			writer.Write((int)Collection);
-			writer.Write((long)Points);
-			writer.Write((long)StartTier);
-			writer.Write((long)NextTier);
-			writer.Write((long)DailyDecay);
-			writer.Write((int)Tier);
+        public void Write(GenericWriter writer)
+        {
+            writer.Write(0); // version
 
-			QuestWriter.Object(writer, DonationTitle);
+            writer.Write((int)Collection);
+            writer.Write(Points);
+            writer.Write(StartTier);
+            writer.Write(NextTier);
+            writer.Write(DailyDecay);
+            writer.Write(Tier);
 
-			writer.Write((int)Tiers.Count);
+            QuestWriter.Object(writer, DonationTitle);
 
-			for (int i = 0; i < Tiers.Count; i++)
-			{
-				writer.Write((int)Tiers[i].Count);
+            writer.Write(Tiers.Count);
 
-				for (int j = 0; j < Tiers[i].Count; j++)
-					QuestWriter.Object(writer, Tiers[i][j]);
-			}
-		}
+            for (var i = 0; i < Tiers.Count; i++)
+            {
+                writer.Write(Tiers[i].Count);
 
-		public void Read(GenericReader reader)
-		{
-			int version = reader.ReadInt();
+                for (var j = 0; j < Tiers[i].Count; j++)
+                    QuestWriter.Object(writer, Tiers[i][j]);
+            }
+        }
 
-			Collection = (Collection)reader.ReadInt();
-			Points = reader.ReadLong();
-			StartTier = reader.ReadLong();
-			NextTier = reader.ReadLong();
-			DailyDecay = reader.ReadLong();
-			Tier = reader.ReadInt();
+        public void Read(GenericReader reader)
+        {
+            var version = reader.ReadInt();
 
-			DonationTitle = QuestReader.Object(reader);
+            Collection = (Collection)reader.ReadInt();
+            Points = reader.ReadLong();
+            StartTier = reader.ReadLong();
+            NextTier = reader.ReadLong();
+            DailyDecay = reader.ReadLong();
+            Tier = reader.ReadInt();
 
-			for (int i = reader.ReadInt(); i > 0; i--)
-			{
-				List<object> list = new List<object>();
+            DonationTitle = QuestReader.Object(reader);
 
-				for (int j = reader.ReadInt(); j > 0; j--)
-					list.Add(QuestReader.Object(reader));
+            for (var i = reader.ReadInt(); i > 0; i--)
+            {
+                var list = new List<object>();
 
-				Tiers.Add(list);
-			}
-		}
-	}
+                for (var j = reader.ReadInt(); j > 0; j--)
+                    list.Add(QuestReader.Object(reader));
+
+                Tiers.Add(list);
+            }
+        }
+    }
 }

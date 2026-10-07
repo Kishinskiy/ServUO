@@ -1,5 +1,3 @@
-using System;
-
 namespace Server.Items
 {
     public class FropozJournal : RedBook
@@ -114,6 +112,9 @@ namespace Server.Items
                 "care to log on earlier,",
                 "nor did I come straight",
                 "here. 2pm, Magus"));
+
+        public override BookContent DefaultContent => Content;
+
         [Constructable]
         public FropozJournal()
             : base(false)
@@ -125,13 +126,6 @@ namespace Server.Items
         {
         }
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
         public override void AddNameProperty(ObjectPropertyList list)
         {
             list.Add("Fropoz's Journal");
@@ -139,21 +133,21 @@ namespace Server.Items
 
         public override void OnSingleClick(Mobile from)
         {
-            this.LabelTo(from, "Fropoz's Journal");
+            LabelTo(from, "Fropoz's Journal");
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

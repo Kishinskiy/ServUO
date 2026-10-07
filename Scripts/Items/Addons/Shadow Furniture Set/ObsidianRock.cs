@@ -1,9 +1,9 @@
-using System;
-
 namespace Server.Items
 {
     public class ObsidianRockAddon : BaseAddon
     {
+        public override BaseAddonDeed Deed => new ObsidianRockDeed();
+
         [Constructable]
         public ObsidianRockAddon()
         {
@@ -15,26 +15,26 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonDeed Deed { get { return new ObsidianRockDeed(); } }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class ObsidianRockDeed : BaseAddonDeed
     {
-        public override int LabelNumber { get { return 1076677; } } // Obsidian Rock
+        public override int LabelNumber => 1076677; // Obsidian Rock
 
-        public override bool ExcludeDeedHue { get { return true; } }
+        public override bool ExcludeDeedHue => true;
+
+        public override BaseAddon Addon => new ObsidianRockAddon();
 
         [Constructable]
         public ObsidianRockDeed()
@@ -48,19 +48,17 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddon Addon { get { return new ObsidianRockAddon(); } }
 
-        
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

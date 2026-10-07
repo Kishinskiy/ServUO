@@ -18,9 +18,9 @@ namespace Server.Custom.SurvivalSystem
 
             AddLabel(20, 20, 0x0, "Survival Information");
 
-            int hunger = _pm.Hunger;
-            int thirst = _pm.Thirst;
-            int bac = _pm.BAC;
+            var hunger = _pm.Hunger;
+            var thirst = _pm.Thirst;
+            var bac = _pm.BAC;
 
             AddLabel(20, 50, 0x0, $"Hunger: {hunger}/20");
             AddLabel(20, 70, 0x0, $"Thirst: {thirst}/20");

@@ -17,8 +17,10 @@ namespace Server.Spells.Necromancy
             9031,
             Reagent.NoxCrystal,
             Reagent.GraveDust);
-        private static readonly int Range = (Core.ML ? 48 : 18);
-        private static readonly Point3D[] m_BritanniaLocs = new Point3D[]
+
+        private static readonly int Range = Core.ML ? 48 : 18;
+
+        private static readonly Point3D[] m_BritanniaLocs =
         {
             new Point3D(1470, 843, 0),
             new Point3D(1857, 865, -1),
@@ -30,7 +32,8 @@ namespace Server.Spells.Necromancy
             new Point3D(2500, 3931, 3),
             new Point3D(4264, 3707, 0)
         };
-        private static readonly Point3D[] m_IllshLocs = new Point3D[]
+
+        private static readonly Point3D[] m_IllshLocs =
         {
             new Point3D(1222, 474, -17),
             new Point3D(718, 1360, -60),
@@ -40,49 +43,32 @@ namespace Server.Spells.Necromancy
             new Point3D(1538, 1341, -3),
             new Point3D(528, 223, -38)
         };
-        private static readonly Point3D[] m_MalasLocs = new Point3D[]
+
+        private static readonly Point3D[] m_MalasLocs =
         {
             new Point3D(976, 517, -30)
         };
-        private static readonly Point3D[] m_TokunoLocs = new Point3D[]
+
+        private static readonly Point3D[] m_TokunoLocs =
         {
             new Point3D(710, 1162, 25),
             new Point3D(1034, 515, 18),
             new Point3D(295, 712, 55)
         };
+
+        public override TimeSpan CastDelayBase => TimeSpan.FromSeconds(2.0);
+
+        public override double RequiredSkill => 80.0;
+
+        public override int RequiredMana => 40;
+
+        public override bool DelayedDamage => false;
+
         public ExorcismSpell(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
         {
         }
 
-        public override TimeSpan CastDelayBase
-        {
-            get
-            {
-                return TimeSpan.FromSeconds(2.0);
-            }
-        }
-        public override double RequiredSkill
-        {
-            get
-            {
-                return 80.0;
-            }
-        }
-        public override int RequiredMana
-        {
-            get
-            {
-                return 40;
-            }
-        }
-        public override bool DelayedDamage
-        {
-            get
-            {
-                return false;
-            }
-        }
         public override bool CheckCast()
         {
             if (Caster.Skills.SpiritSpeak.Value < 100.0)
@@ -96,12 +82,12 @@ namespace Server.Spells.Necromancy
 
         public override int ComputeKarmaAward()
         {
-            return 0;	//no karma lost from this spell!
+            return 0; //no karma lost from this spell!
         }
 
         public override void OnCast()
         {
-            ChampionSpawnRegion r = Caster.Region.GetRegion(typeof(ChampionSpawnRegion)) as ChampionSpawnRegion;
+            var r = Caster.Region.GetRegion(typeof(ChampionSpawnRegion)) as ChampionSpawnRegion;
 
             if (r == null || !Caster.InRange(r.ChampionSpawn, Range))
             {
@@ -109,11 +95,11 @@ namespace Server.Spells.Necromancy
             }
             else if (CheckSequence())
             {
-                Map map = Caster.Map;
+                var map = Caster.Map;
 
                 if (map != null)
                 {
-                    List<Mobile> targets = new List<Mobile>();
+                    var targets = new List<Mobile>();
                     IPooledEnumerable eable = r.ChampionSpawn.GetMobilesInRange(Range);
 
                     foreach (Mobile m in eable)
@@ -122,12 +108,12 @@ namespace Server.Spells.Necromancy
 
                     eable.Free();
 
-                    for (int i = 0; i < targets.Count; ++i)
+                    for (var i = 0; i < targets.Count; ++i)
                     {
-                        Mobile m = targets[i];
+                        var m = targets[i];
 
                         //Suprisingly, no sparkle type effects
-                        Point3D p = GetNearestShrine(m, ref map);
+                        var p = GetNearestShrine(m, ref map);
 
                         m.MoveToWorld(p, map);
                     }
@@ -142,13 +128,21 @@ namespace Server.Spells.Necromancy
             Point3D[] locList;
 
             if (map == Map.Felucca || map == Map.Trammel)
+            {
                 locList = m_BritanniaLocs;
+            }
             else if (map == Map.Ilshenar)
+            {
                 locList = m_IllshLocs;
+            }
             else if (map == Map.Tokuno)
+            {
                 locList = m_TokunoLocs;
+            }
             else if (map == Map.Malas)
+            {
                 locList = m_MalasLocs;
+            }
             else
             {
                 // No map, lets use trammel
@@ -156,14 +150,14 @@ namespace Server.Spells.Necromancy
                 map = Map.Trammel;
             }
 
-            Point3D closest = Point3D.Zero;
-            double minDist = double.MaxValue;
+            var closest = Point3D.Zero;
+            var minDist = double.MaxValue;
 
-            for (int i = 0; i < locList.Length; i++)
+            for (var i = 0; i < locList.Length; i++)
             {
-                Point3D p = locList[i];
+                var p = locList[i];
 
-                double dist = m.GetDistanceToSqrt(p);
+                var dist = m.GetDistanceToSqrt(p);
                 if (minDist > dist)
                 {
                     closest = p;
@@ -179,28 +173,28 @@ namespace Server.Spells.Necromancy
             if (!m.Player || m.Alive)
                 return false;
 
-            Corpse c = m.Corpse as Corpse;
-            Map map = m.Map;
+            var c = m.Corpse as Corpse;
+            var map = m.Map;
 
             if (c != null && !c.Deleted && map != null && c.Map == map)
             {
                 if (SpellHelper.IsAnyT2A(map, c.Location) && SpellHelper.IsAnyT2A(map, m.Location))
-                    return false;	//Same Map, both in T2A, ie, same 'sub server'.
+                    return false; //Same Map, both in T2A, ie, same 'sub server'.
 
                 if (m.Region.IsPartOf<DungeonRegion>() == Region.Find(c.Location, map).IsPartOf<DungeonRegion>())
                     return false; //Same Map, both in Dungeon region OR They're both NOT in a dungeon region.
                 //Just an approximation cause RunUO doens't divide up the world the same way OSI does ;p
             }
 
-            Party p = Party.Get(m);
+            var p = Party.Get(m);
 
             if (p != null && p.Contains(Caster))
                 return false;
 
             if (m.Guild != null && Caster.Guild != null)
             {
-                Guild mGuild = m.Guild as Guild;
-                Guild cGuild = Caster.Guild as Guild;
+                var mGuild = m.Guild as Guild;
+                var cGuild = Caster.Guild as Guild;
 
                 if (mGuild.IsAlly(cGuild))
                     return false;
@@ -209,7 +203,7 @@ namespace Server.Spells.Necromancy
                     return false;
             }
 
-            Faction f = Faction.Find(m);
+            var f = Faction.Find(m);
 
             if (Faction.Facet == m.Map && f != null && f == Faction.Find(Caster))
                 return false;

@@ -1,22 +1,22 @@
-using Server;
-using System;
-using Server.Mobiles;
-
-namespace Server.Items 
+namespace Server.Items
 {
-	public class PuzzleRoomTeleporter : Teleporter
-	{
-		[Constructable]
-		public PuzzleRoomTeleporter()
-		{
-		}
+    public class PuzzleRoomTeleporter : Teleporter
+    {
+        [Constructable]
+        public PuzzleRoomTeleporter()
+        {
+        }
+
+        public PuzzleRoomTeleporter(Serial serial) : base(serial)
+        {
+        }
 
         public override bool CanTeleport(Mobile m)
         {
             if (m.Backpack == null)
                 return false;
 
-            Item item = m.Backpack.FindItemByType(typeof(MagicKey));
+            var item = m.Backpack.FindItemByType(typeof(MagicKey));
 
             if (item == null)
             {
@@ -27,20 +27,16 @@ namespace Server.Items
             return base.CanTeleport(m);
         }
 
-		public PuzzleRoomTeleporter( Serial serial ) : base(serial) 
-		{
-		}
-		
-		public override void Serialize(GenericWriter writer) 
-		{
-			base.Serialize(writer);
-			writer.Write((int)0); // ver
-		}
-		
-		public override void Deserialize(GenericReader reader) 
-		{
-			base.Deserialize(reader);
-			int version = reader.ReadInt();
-		}
-	}
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0); // ver
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
+        }
+    }
 }

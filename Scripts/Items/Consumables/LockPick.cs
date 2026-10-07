@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-
 using Server.Targeting;
 
 namespace Server.Items
@@ -18,8 +17,8 @@ namespace Server.Items
     [FlipableAttribute(0x14fc, 0x14fb)]
     public class Lockpick : Item
     {
-        public virtual bool IsSkeletonKey { get { return false; } }
-        public virtual int SkillBonus { get { return 0; } }
+        public virtual bool IsSkeletonKey => false;
+        public virtual int SkillBonus => 0;
 
         [Constructable]
         public Lockpick()
@@ -44,14 +43,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)1); // version
+            writer.Write(1); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (version == 0 && Weight == 0.1)
                 Weight = -1;
@@ -71,9 +70,11 @@ namespace Server.Items
         {
             if (item.Locked)
             {
-                if (item is TreasureMapChest && TreasureMapInfo.NewSystem && !((TreasureMapChest)item).Guardians.All(g => g.Deleted))
+                if (item is TreasureMapChest && TreasureMapInfo.NewSystem &&
+                    !((TreasureMapChest)item).Guardians.All(g => g.Deleted))
                 {
-                    from.SendLocalizedMessage(1115991); // You must destroy all the guardians before you can unlock the chest.
+                    from.SendLocalizedMessage(
+                        1115991); // You must destroy all the guardians before you can unlock the chest.
                 }
                 else
                 {
@@ -103,11 +104,11 @@ namespace Server.Items
 
         protected virtual void EndLockpick(object state)
         {
-            object[] objs = (object[])state;
-            ILockpickable lockpickable = objs[0] as ILockpickable;
-            Mobile from = objs[1] as Mobile;
+            var objs = (object[])state;
+            var lockpickable = objs[0] as ILockpickable;
+            var from = objs[1] as Mobile;
 
-            Item item = (Item)lockpickable;
+            var item = (Item)lockpickable;
 
             if (!from.InRange(item.GetWorldLocation(), 1))
                 return;
@@ -130,8 +131,8 @@ namespace Server.Items
                 return;
             }
 
-            int maxlevel = lockpickable.MaxLockLevel;
-            int minLevel = lockpickable.LockLevel;
+            var maxlevel = lockpickable.MaxLockLevel;
+            var minLevel = lockpickable.LockLevel;
 
             if (lockpickable is Skeletonkey)
             {
@@ -139,7 +140,8 @@ namespace Server.Items
                 maxlevel -= SkillBonus; //regulars subtract the bonus from the max level
             }
 
-            if (this is MasterSkeletonKey || from.CheckTargetSkill(SkillName.Lockpicking, lockpickable, minLevel, maxlevel))
+            if (this is MasterSkeletonKey ||
+                from.CheckTargetSkill(SkillName.Lockpicking, lockpickable, minLevel, maxlevel))
             {
                 // Success! Pick the lock!
                 OnUse();
@@ -160,14 +162,11 @@ namespace Server.Items
 
                     if (TreasureMapInfo.NewSystem)
                     {
-                        if (!chest.FailedLockpick)
-                        {
-                            chest.FailedLockpick = true;
-                        }
+                        if (!chest.FailedLockpick) chest.FailedLockpick = true;
                     }
                     else if (chest.Items.Count > 0 && 0.25 > Utility.RandomDouble())
                     {
-                        Item toBreak = chest.Items[Utility.Random(chest.Items.Count)];
+                        var toBreak = chest.Items[Utility.Random(chest.Items.Count)];
 
                         if (!(toBreak is Container))
                         {
@@ -182,7 +181,7 @@ namespace Server.Items
 
         private class InternalTarget : Target
         {
-            private Lockpick m_Item;
+            private readonly Lockpick m_Item;
 
             public InternalTarget(Lockpick item)
                 : base(1, false, TargetFlags.None)
@@ -196,13 +195,9 @@ namespace Server.Items
                     return;
 
                 if (targeted is ILockpickable)
-                {
                     m_Item.BeginLockpick(from, (ILockpickable)targeted);
-                }
                 else
-                {
                     from.SendLocalizedMessage(501666); // You can't unlock that!
-                }
             }
         }
     }

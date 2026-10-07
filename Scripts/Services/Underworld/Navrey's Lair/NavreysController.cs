@@ -2,52 +2,14 @@
 using Server.Commands;
 using Server.Mobiles;
 using Server.Network;
-using System.Linq;
 
 namespace Server.Items
 {
     public class NavreysController : Item
     {
-        #region Generation
-        public static void Initialize()
-        {
-            CommandSystem.Register("GenNavrey", AccessLevel.Developer, new CommandEventHandler(GenNavrey_Command));
-        }
-
-        [Usage("GenNavrey")]
-        private static void GenNavrey_Command(CommandEventArgs e)
-        {
-            GenNavery(e.Mobile);
-        }
-
-        public static void GenNavery(Mobile m)
-        {
-            if (Check())
-            {
-                m.SendMessage("Navrey spawner is already present.");
-            }
-            else
-            {
-                m.SendMessage("Creating Navrey Night-Eyes Lair...");
-
-                NavreysController controller = new NavreysController();
-
-                m.SendMessage("Generation completed!");
-            }
-        }
-
-        private static bool Check()
-        {
-            foreach (Item item in World.Items.Values)
-                if (item is NavreysController && !item.Deleted)
-                    return true;
-
-            return false;
-        }
-        #endregion
+        private Navrey m_Navrey;
 
         private NavreysPillar[] m_Pillars;
-        private Navrey m_Navrey;
 
         private DateTime m_TypeRestart;
 
@@ -56,15 +18,15 @@ namespace Server.Items
         {
             get
             {
-                TimeSpan ts = m_TypeRestart - DateTime.UtcNow;
+                var ts = m_TypeRestart - DateTime.UtcNow;
 
                 if (ts < TimeSpan.Zero)
                 {
                     ts = TimeSpan.Zero;
 
-                    for (int i = 0; i < m_Pillars.Length; i++)
+                    for (var i = 0; i < m_Pillars.Length; i++)
                     {
-                        NavreysPillar pillar = m_Pillars[i];
+                        var pillar = m_Pillars[i];
 
                         if (pillar.Type != PillarType.Nine)
                             pillar.m_Type++;
@@ -72,7 +34,8 @@ namespace Server.Items
                             pillar.Type = PillarType.Three;
                     }
 
-                    this.TypeRestart = TimeSpan.FromHours(24.0); // The timers rotate among the three stone ruins randomly once a day
+                    TypeRestart =
+                        TimeSpan.FromHours(24.0); // The timers rotate among the three stone ruins randomly once a day
                 }
 
                 return ts;
@@ -84,7 +47,8 @@ namespace Server.Items
                     m_TypeRestart = DateTime.UtcNow + value;
                 }
                 catch
-                { }
+                {
+                }
             }
         }
 
@@ -92,9 +56,9 @@ namespace Server.Items
         {
             get
             {
-                for (int i = 0; i < m_Pillars.Length; i++)
+                for (var i = 0; i < m_Pillars.Length; i++)
                 {
-                    NavreysPillar pillar = m_Pillars[i];
+                    var pillar = m_Pillars[i];
 
                     if (pillar == null || pillar.Deleted || pillar.State != NavreysPillarState.Hot)
                         return false;
@@ -125,16 +89,21 @@ namespace Server.Items
             Respawn();
         }
 
+        public NavreysController(Serial serial)
+            : base(serial)
+        {
+        }
+
         public void OnNavreyKilled()
         {
             SetAllPillars(NavreysPillarState.Off);
 
-            Timer.DelayCall(TimeSpan.FromMinutes(10.0), new TimerCallback(Respawn));
+            Timer.DelayCall(TimeSpan.FromMinutes(10.0), Respawn);
         }
 
         public void Respawn()
         {
-            Navrey navrey = new Navrey(this);
+            var navrey = new Navrey(this);
             navrey.RangeHome = 20;
 
             navrey.MoveToWorld(Map.GetSpawnPosition(Location, 10), Map);
@@ -154,9 +123,9 @@ namespace Server.Items
         {
             base.Delete();
 
-            for (int i = 0; i < m_Pillars.Length; i++)
+            for (var i = 0; i < m_Pillars.Length; i++)
             {
-                NavreysPillar pillar = m_Pillars[i];
+                var pillar = m_Pillars[i];
                 pillar.Delete();
             }
 
@@ -173,35 +142,30 @@ namespace Server.Items
                 t.Start();
 
                 SetAllPillars(NavreysPillarState.Off);
-                Timer.DelayCall(TimeSpan.FromMinutes(5.0), new TimerCallback(ResetPillars));
+                Timer.DelayCall(TimeSpan.FromMinutes(5.0), ResetPillars);
             }
         }
 
         private void SetAllPillars(NavreysPillarState state)
         {
-            for (int i = 0; i < m_Pillars.Length; i++)
+            for (var i = 0; i < m_Pillars.Length; i++)
             {
-                NavreysPillar pillar = m_Pillars[i];
+                var pillar = m_Pillars[i];
                 pillar.State = state;
             }
-        }
-
-        public NavreysController(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
-            writer.Write((Mobile)m_Navrey);
+            writer.Write(m_Navrey);
 
-            writer.Write((Item)m_Pillars[0]);
-            writer.Write((Item)m_Pillars[1]);
-            writer.Write((Item)m_Pillars[2]);
+            writer.Write(m_Pillars[0]);
+            writer.Write(m_Pillars[1]);
+            writer.Write(m_Pillars[2]);
 
             writer.Write(TypeRestart);
         }
@@ -210,7 +174,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             m_Navrey = (Navrey)reader.ReadMobile();
 
@@ -223,20 +187,19 @@ namespace Server.Items
             TypeRestart = reader.ReadTimeSpan();
 
             if (m_Navrey == null)
-                Timer.DelayCall(TimeSpan.Zero, new TimerCallback(Respawn));
+                Timer.DelayCall(TimeSpan.Zero, Respawn);
             else
                 SetAllPillars(NavreysPillarState.On);
         }
 
         private class RockRainTimer : Timer
         {
-            private Navrey m_Navrey;
+            private readonly Navrey m_Navrey;
             private int m_Ticks;
 
             public RockRainTimer(Navrey navrey)
                 : base(TimeSpan.Zero, TimeSpan.FromSeconds(0.25))
             {
-
                 m_Navrey = navrey;
                 m_Ticks = 120;
 
@@ -247,19 +210,24 @@ namespace Server.Items
             {
                 m_Ticks--;
 
-                Point3D dest = m_Navrey.Location;
-                Point3D orig = new Point3D(dest.X - Utility.RandomMinMax(3, 4), dest.Y - Utility.RandomMinMax(8, 9), dest.Z + Utility.RandomMinMax(41, 43));
-                int itemId = Utility.RandomMinMax(0x1362, 0x136D);
-                int speed = Utility.RandomMinMax(5, 10);
-                int hue = Utility.RandomBool() ? 0 : Utility.RandomMinMax(0x456, 0x45F);
+                var dest = m_Navrey.Location;
+                var orig = new Point3D(dest.X - Utility.RandomMinMax(3, 4), dest.Y - Utility.RandomMinMax(8, 9),
+                    dest.Z + Utility.RandomMinMax(41, 43));
+                var itemId = Utility.RandomMinMax(0x1362, 0x136D);
+                var speed = Utility.RandomMinMax(5, 10);
+                var hue = Utility.RandomBool() ? 0 : Utility.RandomMinMax(0x456, 0x45F);
 
-                Effects.SendPacket(orig, m_Navrey.Map, new HuedEffect(EffectType.Moving, Serial.Zero, Serial.Zero, itemId, orig, dest, speed, 0, false, false, hue, 4));
-                Effects.SendPacket(orig, m_Navrey.Map, new HuedEffect(EffectType.Moving, Serial.Zero, Serial.Zero, itemId, orig, dest, speed, 0, false, false, hue, 4));
+                Effects.SendPacket(orig, m_Navrey.Map,
+                    new HuedEffect(EffectType.Moving, Serial.Zero, Serial.Zero, itemId, orig, dest, speed, 0, false,
+                        false, hue, 4));
+                Effects.SendPacket(orig, m_Navrey.Map,
+                    new HuedEffect(EffectType.Moving, Serial.Zero, Serial.Zero, itemId, orig, dest, speed, 0, false,
+                        false, hue, 4));
 
                 Effects.PlaySound(m_Navrey.Location, m_Navrey.Map, 0x15E + Utility.Random(3));
                 Effects.PlaySound(m_Navrey.Location, m_Navrey.Map, Utility.RandomList(0x305, 0x306, 0x307, 0x309));
 
-                int amount = Utility.RandomMinMax(100, 150);
+                var amount = Utility.RandomMinMax(100, 150);
                 IPooledEnumerable eable = m_Navrey.GetMobilesInRange(1);
 
                 foreach (Mobile m in eable)
@@ -278,6 +246,7 @@ namespace Server.Items
                         AOS.Damage(m, amount, 100, 0, 0, 0, 0);
                     }
                 }
+
                 eable.Free();
 
                 if (m_Ticks == 0 || !m_Navrey.Alive)
@@ -287,5 +256,45 @@ namespace Server.Items
                 }
             }
         }
+
+        #region Generation
+
+        public static void Initialize()
+        {
+            CommandSystem.Register("GenNavrey", AccessLevel.Developer, GenNavrey_Command);
+        }
+
+        [Usage("GenNavrey")]
+        private static void GenNavrey_Command(CommandEventArgs e)
+        {
+            GenNavery(e.Mobile);
+        }
+
+        public static void GenNavery(Mobile m)
+        {
+            if (Check())
+            {
+                m.SendMessage("Navrey spawner is already present.");
+            }
+            else
+            {
+                m.SendMessage("Creating Navrey Night-Eyes Lair...");
+
+                var controller = new NavreysController();
+
+                m.SendMessage("Generation completed!");
+            }
+        }
+
+        private static bool Check()
+        {
+            foreach (var item in World.Items.Values)
+                if (item is NavreysController && !item.Deleted)
+                    return true;
+
+            return false;
+        }
+
+        #endregion
     }
 }

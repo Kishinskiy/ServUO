@@ -1,180 +1,162 @@
-using System;
-using Server;
-using Server.Items;
-using Server.Network;
 using Server.Mobiles;
-using System.Collections;
 
 namespace Server.Engines.XmlSpawner2
 {
-	public class XmlDeathAction : XmlAttachment
-	{
-		private string m_Action;    // action string
-		private string m_Condition;    // condition string
+    public class XmlDeathAction : XmlAttachment
+    {
+        [CommandProperty(AccessLevel.GameMaster)]
+        public string Action { get; set; }
 
-		[CommandProperty(AccessLevel.GameMaster)]
-		public string Action { get { return m_Action; } set { m_Action = value; } }
+        [CommandProperty(AccessLevel.GameMaster)]
+        public string Condition { get; set; }
 
-		[CommandProperty(AccessLevel.GameMaster)]
-		public string Condition { get { return m_Condition; } set { m_Condition = value; } }
+        public override bool HandlesOnKilled => true;
 
-		// These are the various ways in which the message attachment can be constructed.  
-		// These can be called via the [addatt interface, via scripts, via the spawner ATTACH keyword.
-		// Other overloads could be defined to handle other types of arguments
+        // These are the various ways in which the message attachment can be constructed.  
+        // These can be called via the [addatt interface, via scripts, via the spawner ATTACH keyword.
+        // Other overloads could be defined to handle other types of arguments
 
-		// a serial constructor is REQUIRED
-		public XmlDeathAction(ASerial serial)
-			: base(serial)
-		{
-		}
+        // a serial constructor is REQUIRED
+        public XmlDeathAction(ASerial serial)
+            : base(serial)
+        {
+        }
 
-		[Attachable]
-		public XmlDeathAction(string action)
-		{
-			Action = action;
-		}
+        [Attachable]
+        public XmlDeathAction(string action)
+        {
+            Action = action;
+        }
 
-		[Attachable]
-		public XmlDeathAction()
-		{
-		}
+        [Attachable]
+        public XmlDeathAction()
+        {
+        }
 
 
-		public override void Serialize(GenericWriter writer)
-		{
-			base.Serialize(writer);
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
 
-			writer.Write((int)1);
-			// version 1
-			writer.Write(m_Condition);
-			// version 0
-			writer.Write(m_Action);
+            writer.Write(1);
+            // version 1
+            writer.Write(Condition);
+            // version 0
+            writer.Write(Action);
+        }
 
-		}
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
 
-		public override void Deserialize(GenericReader reader)
-		{
-			base.Deserialize(reader);
+            var version = reader.ReadInt();
+            switch (version)
+            {
+                case 1:
+                    Condition = reader.ReadString();
+                    goto case 0;
+                case 0:
+                    Action = reader.ReadString();
+                    break;
+            }
+        }
 
-			int version = reader.ReadInt();
-			switch (version)
-			{
-				case 1:
-					m_Condition = reader.ReadString();
-					goto case 0;
-				case 0:
-					m_Action = reader.ReadString();
-					break;
-			}
+        public override void OnAttach()
+        {
+            base.OnAttach();
 
-		}
+            if (AttachedTo is Item)
+                // dont allow item attachments
+                Delete();
+        }
 
-		public override void OnAttach()
-		{
-			base.OnAttach();
+        public override void OnKilled(Mobile killed, Mobile killer)
+        {
+            base.OnKilled(killed, killer);
 
-			if (AttachedTo is Item)
-			{
-				// dont allow item attachments
-				Delete();
-			}
+            if (killed == null) return;
 
-		}
+            // now check for any conditions as well
+            // check for any condition that must be met for this entry to be processed
+            if (Condition != null)
+            {
+                string status_str;
 
-		public override bool HandlesOnKilled { get { return true; } }
+                if (!BaseXmlSpawner.CheckPropertyString(null, killed, Condition, killer, out status_str)) return;
+            }
 
-		public override void OnKilled(Mobile killed, Mobile killer)
-		{
-			base.OnKilled(killed, killer);
+            ExecuteDeathActions(killed.Corpse, killer, Action);
+        }
 
-			if (killed == null) return;
+        private void ExecuteDeathActions(Item corpse, Mobile killer, string actions)
+        {
+            if (actions == null || actions.Length <= 0) return;
+            // execute any action associated with it
+            // allow for multiple action strings on a single line separated by a semicolon
 
-			// now check for any conditions as well
-			// check for any condition that must be met for this entry to be processed
-			if (Condition != null)
-			{
-				string status_str;
+            var args = actions.Split(';');
 
-				if (!BaseXmlSpawner.CheckPropertyString(null, killed, Condition, killer, out status_str))
-				{
-					return;
-				}
-			}
+            for (var j = 0; j < args.Length; j++) ExecuteDeathAction(corpse, killer, args[j]);
+        }
 
-			ExecuteDeathActions(killed.Corpse, killer, Action);
-		}
+        private static void ExecuteDeathAction(Item corpse, Mobile killer, string action)
+        {
+            if (action == null || action.Length <= 0 || corpse == null) return;
 
-		private void ExecuteDeathActions(Item corpse, Mobile killer, string actions)
-		{
-			if (actions == null || actions.Length <= 0) return;
-			// execute any action associated with it
-			// allow for multiple action strings on a single line separated by a semicolon
+            string status_str = null;
+            var TheSpawn = new XmlSpawner.SpawnObject(null, 0);
 
-			string[] args = actions.Split(';');
+            TheSpawn.TypeName = action;
+            var substitutedtypeName = BaseXmlSpawner.ApplySubstitution(null, corpse, killer, action);
+            var typeName = BaseXmlSpawner.ParseObjectType(substitutedtypeName);
 
-			for (int j = 0; j < args.Length; j++)
-			{
-				ExecuteDeathAction(corpse, killer, args[j]);
-			}
+            var loc = corpse.Location;
+            var map = corpse.Map;
 
-		}
+            if (BaseXmlSpawner.IsTypeOrItemKeyword(typeName))
+            {
+                BaseXmlSpawner.SpawnTypeKeyword(corpse, TheSpawn, typeName, substitutedtypeName, true, killer, loc, map,
+                    out status_str);
+            }
+            else
+            {
+                // its a regular type descriptor so find out what it is
+                var type = SpawnerType.GetType(typeName);
+                try
+                {
+                    var arglist = BaseXmlSpawner.ParseString(substitutedtypeName, 3, "/");
+                    var o = XmlSpawner.CreateObject(type, arglist[0]);
 
-		private static void ExecuteDeathAction(Item corpse, Mobile killer, string action)
-		{
-			if (action == null || action.Length <= 0 || corpse == null) return;
+                    if (o == null)
+                    {
+                        status_str = "invalid type specification: " + arglist[0];
+                    }
+                    else if (o is Mobile)
+                    {
+                        var m = (Mobile)o;
+                        if (m is BaseCreature)
+                        {
+                            var c = (BaseCreature)m;
+                            c.Home = loc; // Spawners location is the home point
+                        }
 
-			string status_str = null;
-			Server.Mobiles.XmlSpawner.SpawnObject TheSpawn = new Server.Mobiles.XmlSpawner.SpawnObject(null, 0);
+                        m.Location = loc;
+                        m.Map = map;
 
-			TheSpawn.TypeName = action;
-			string substitutedtypeName = BaseXmlSpawner.ApplySubstitution(null, corpse, killer, action);
-			string typeName = BaseXmlSpawner.ParseObjectType(substitutedtypeName);
-
-			Point3D loc = corpse.Location;
-			Map map = corpse.Map;
-
-			if (BaseXmlSpawner.IsTypeOrItemKeyword(typeName))
-			{
-				BaseXmlSpawner.SpawnTypeKeyword(corpse, TheSpawn, typeName, substitutedtypeName, true, killer, loc, map, out status_str);
-			}
-			else
-			{
-				// its a regular type descriptor so find out what it is
-				Type type = SpawnerType.GetType(typeName);
-				try
-				{
-					string[] arglist = BaseXmlSpawner.ParseString(substitutedtypeName, 3, "/");
-					object o = Server.Mobiles.XmlSpawner.CreateObject(type, arglist[0]);
-
-					if (o == null)
-					{
-						status_str = "invalid type specification: " + arglist[0];
-					}
-					else
-						if (o is Mobile)
-						{
-							Mobile m = (Mobile)o;
-							if (m is BaseCreature)
-							{
-								BaseCreature c = (BaseCreature)m;
-								c.Home = loc; // Spawners location is the home point
-							}
-
-							m.Location = loc;
-							m.Map = map;
-
-							BaseXmlSpawner.ApplyObjectStringProperties(null, substitutedtypeName, m, killer, corpse, out status_str);
-						}
-						else
-							if (o is Item)
-							{
-								Item item = (Item)o;
-								BaseXmlSpawner.AddSpawnItem(null, corpse, TheSpawn, item, loc, map, killer, false, substitutedtypeName, out status_str);
-							}
-				}
-				catch { }
-			}
-		}
-
-	}
+                        BaseXmlSpawner.ApplyObjectStringProperties(null, substitutedtypeName, m, killer, corpse,
+                            out status_str);
+                    }
+                    else if (o is Item)
+                    {
+                        var item = (Item)o;
+                        BaseXmlSpawner.AddSpawnItem(null, corpse, TheSpawn, item, loc, map, killer, false,
+                            substitutedtypeName, out status_str);
+                    }
+                }
+                catch
+                {
+                }
+            }
+        }
+    }
 }

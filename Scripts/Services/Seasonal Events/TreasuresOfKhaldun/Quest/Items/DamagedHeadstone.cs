@@ -1,12 +1,8 @@
-using System;
-
-using Server;
-using Server.Mobiles;
-using Server.Items;
-using Server.Network;
-using Server.Gumps;
-using Server.SkillHandlers;
 using Server.Engines.Quests;
+using Server.Gumps;
+using Server.Mobiles;
+using Server.Network;
+using Server.SkillHandlers;
 
 // 1158607 => brit
 // 1158608 => vesper
@@ -17,7 +13,7 @@ namespace Server.Engines.Khaldun
 {
     public class DamagedHeadstone : Item, IForensicTarget
     {
-        public override int LabelNumber { get { return 1158561; } } // damaged headstone
+        public override int LabelNumber => 1158561; // damaged headstone
 
         [CommandProperty(AccessLevel.GameMaster)]
         public int GumpLocalization { get; private set; }
@@ -29,6 +25,11 @@ namespace Server.Engines.Khaldun
             Movable = false;
         }
 
+        public DamagedHeadstone(Serial serial)
+            : base(serial)
+        {
+        }
+
         public void OnForensicEval(Mobile m)
         {
             if (!m.Player)
@@ -38,8 +39,10 @@ namespace Server.Engines.Khaldun
 
             if (quest != null)
             {
-                m.PrivateOverheadMessage(MessageType.Regular, 0x47E, 1158571, m.NetState); // *You examine the headstone...*
-                m.SendLocalizedMessage(1158562, null, 0x23); // The damage to the epitaph seems deliberate.  Using your training from Inspector Jasper you have found a hidden message among the scratches. You recreate the original epitaph in your mind's eye...
+                m.PrivateOverheadMessage(MessageType.Regular, 0x47E, 1158571,
+                    m.NetState); // *You examine the headstone...*
+                m.SendLocalizedMessage(1158562, null,
+                    0x23); // The damage to the epitaph seems deliberate.  Using your training from Inspector Jasper you have found a hidden message among the scratches. You recreate the original epitaph in your mind's eye...
 
                 m.SendSound(quest.UpdateSound);
 
@@ -54,16 +57,16 @@ namespace Server.Engines.Khaldun
             }
             else
             {
-                m.PrivateOverheadMessage(MessageType.Regular, 0x47E, 1158563, m.NetState); // *It appears to be a normal, yet oddly damaged, headstone. The epitaph is illegible..*
+                m.PrivateOverheadMessage(MessageType.Regular, 0x47E, 1158563,
+                    m.NetState); // *It appears to be a normal, yet oddly damaged, headstone. The epitaph is illegible..*
             }
         }
 
         public override void OnDoubleClick(Mobile m)
         {
             if (m.InRange(GetWorldLocation(), 2))
-            {
-                m.PrivateOverheadMessage(MessageType.Regular, 0x47E, 1158563, m.NetState); // *It appears to be a normal, yet oddly damaged, headstone. The epitaph is illegible..*
-            }
+                m.PrivateOverheadMessage(MessageType.Regular, 0x47E, 1158563,
+                    m.NetState); // *It appears to be a normal, yet oddly damaged, headstone. The epitaph is illegible..*
             else
                 m.PrivateOverheadMessage(MessageType.Regular, 0x47E, 1019045, m.NetState); // I can't reach that.
         }
@@ -79,16 +82,11 @@ namespace Server.Engines.Khaldun
             }
         }
 
-        public DamagedHeadstone(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
             writer.Write(GumpLocalization);
         }
@@ -97,7 +95,7 @@ namespace Server.Engines.Khaldun
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             GumpLocalization = reader.ReadInt();
         }

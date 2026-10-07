@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using Server.ContextMenus;
 using Server.Gumps;
@@ -10,13 +9,14 @@ namespace Server.Items
     [FlipableAttribute(0x234E, 0x234F)]
     public class TapestryOfSosaria : Item, ISecurable
     {
-        private SecureLevel m_Level;
+        public override int LabelNumber => 1062917; // The Tapestry of Sosaria
+
         [Constructable]
         public TapestryOfSosaria()
             : base(0x234E)
         {
-            this.Weight = 1.0;
-            this.LootType = LootType.Blessed;
+            Weight = 1.0;
+            LootType = LootType.Blessed;
         }
 
         public TapestryOfSosaria(Serial serial)
@@ -24,25 +24,9 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1062917;
-            }
-        }// The Tapestry of Sosaria
         [CommandProperty(AccessLevel.GameMaster)]
-        public SecureLevel Level
-        {
-            get
-            {
-                return this.m_Level;
-            }
-            set
-            {
-                this.m_Level = value;
-            }
-        }
+        public SecureLevel Level { get; set; }
+
         public override void GetContextMenuEntries(Mobile from, List<ContextMenuEntry> list)
         {
             base.GetContextMenuEntries(from, list);
@@ -52,7 +36,7 @@ namespace Server.Items
 
         public override void OnDoubleClick(Mobile from)
         {
-            if (from.InRange(this.GetWorldLocation(), 2))
+            if (from.InRange(GetWorldLocation(), 2))
             {
                 from.CloseGump(typeof(InternalGump));
                 from.SendGump(new InternalGump());
@@ -67,18 +51,18 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
 
-            writer.WriteEncodedInt((int)this.m_Level);
+            writer.WriteEncodedInt((int)Level);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
 
-            this.m_Level = (SecureLevel)reader.ReadEncodedInt();
+            Level = (SecureLevel)reader.ReadEncodedInt();
         }
 
         private class InternalGump : Gump
@@ -86,7 +70,7 @@ namespace Server.Items
             public InternalGump()
                 : base(50, 50)
             {
-                this.AddImage(0, 0, 0x2C95);
+                AddImage(0, 0, 0x2C95);
             }
         }
     }

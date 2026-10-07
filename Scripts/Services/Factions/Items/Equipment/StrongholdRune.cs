@@ -1,32 +1,20 @@
 using System;
-using Server;
-using Server.Items;
-using Server.Mobiles;
 using System.Collections.Generic;
 
 namespace Server.Factions
 {
     public class StrongholdRune : Item, IFactionItem
     {
-        public override int LabelNumber { get { return 1094700; } } // Faction Stronghold Rune
-
-        #region Factions
-        private FactionItem m_FactionState;
-
-        public FactionItem FactionItemState
-        {
-            get { return m_FactionState; }
-            set
-            {
-                m_FactionState = value;
-
-                Hue = m_FactionState != null ? m_FactionState.Faction.Definition.HuePrimary : 0;
-            }
-        }
-        #endregion
+        public static List<Mobile> Cooldown = new List<Mobile>();
+        public override int LabelNumber => 1094700; // Faction Stronghold Rune
 
         public StrongholdRune()
             : base(0x1F14)
+        {
+        }
+
+        public StrongholdRune(Serial serial)
+            : base(serial)
         {
         }
 
@@ -37,13 +25,9 @@ namespace Server.Factions
                 if (FactionEquipment.CanUse(this, m))
                 {
                     if (!IsInCooldown(m))
-                    {
-                        Timer.DelayCall<Mobile>(TimeSpan.FromSeconds(1), Warp, m);
-                    }
+                        Timer.DelayCall(TimeSpan.FromSeconds(1), Warp, m);
                     else
-                    {
                         m.SendLocalizedMessage(501789); // You must wait before trying again.
-                    }
                 }
                 else
                 {
@@ -61,22 +45,22 @@ namespace Server.Factions
 
         private void Warp(Mobile m)
         {
-            Point3D p = GetStoneLocation();
-            Map map = Faction.Facet;
+            var p = GetStoneLocation();
+            var map = Faction.Facet;
 
-            int x = p.X;
-            int y = p.Y;
-            int z = p.Z;
+            var x = p.X;
+            var y = p.Y;
+            var z = p.Z;
 
             if (p != Point3D.Zero)
             {
-                for (int i = 0; i < 20; i++)
+                for (var i = 0; i < 20; i++)
                 {
                     x = p.X + Utility.RandomMinMax(-4, 4);
                     y = p.Y + Utility.RandomMinMax(-4, 4);
                     z = map.GetAverageZ(x, y);
 
-                    Point3D temp = new Point3D(x, y, z);
+                    var temp = new Point3D(x, y, z);
 
                     if (map.CanSpawnMobile(temp))
                     {
@@ -100,15 +84,10 @@ namespace Server.Factions
 
         private Point3D GetStoneLocation()
         {
-            if (FactionItemState == null)
-            {
-                return Point3D.Zero;
-            }
+            if (FactionItemState == null) return Point3D.Zero;
 
             return FactionItemState.Faction.Definition.Stronghold.FactionStone;
         }
-
-        public static List<Mobile> Cooldown = new List<Mobile>();
 
         public static bool IsInCooldown(Mobile m)
         {
@@ -119,36 +98,45 @@ namespace Server.Factions
         {
             Cooldown.Add(m);
 
-            int minutes = 30;
+            var minutes = 30;
 
-            PlayerState ps = PlayerState.Find(m);
+            var ps = PlayerState.Find(m);
 
-            if(ps != null)
-                minutes = 30 - (ps.Rank.Rank * 2);
+            if (ps != null)
+                minutes = 30 - ps.Rank.Rank * 2;
 
-            Timer.DelayCall<Mobile>(TimeSpan.FromMinutes(minutes), mob =>
-                {
-                    Cooldown.Remove(mob);
-                }, m);
-        }
-
-        public StrongholdRune(Serial serial)
-            : base(serial)
-        {
+            Timer.DelayCall(TimeSpan.FromMinutes(minutes), mob => { Cooldown.Remove(mob); }, m);
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
+
+        #region Factions
+
+        private FactionItem m_FactionState;
+
+        public FactionItem FactionItemState
+        {
+            get => m_FactionState;
+            set
+            {
+                m_FactionState = value;
+
+                Hue = m_FactionState != null ? m_FactionState.Faction.Definition.HuePrimary : 0;
+            }
+        }
+
+        #endregion
     }
 }

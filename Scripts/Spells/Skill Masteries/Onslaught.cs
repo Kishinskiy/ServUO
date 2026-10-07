@@ -1,30 +1,26 @@
 using System;
-using Server;
-using Server.Spells;
-using Server.Network;
-using Server.Mobiles;
-using Server.Items;
 using System.Collections.Generic;
+using Server.Items;
+using Server.Mobiles;
+using Server.Network;
 
 namespace Server.Spells.SkillMasteries
 {
     public class OnslaughtSpell : SkillMasteryMove
     {
-        public override int BaseMana { get { return 20; } }
-        public override double RequiredSkill { get { return 90.0; } }
+        private static Dictionary<Mobile, Mobile> _Table;
+        public override int BaseMana => 20;
+        public override double RequiredSkill => 90.0;
 
-        public override SkillName MoveSkill { get { return SkillName.Swords; } }
-        public override TextDefinition AbilityMessage { get { return new TextDefinition(1156007); } } // *You ready an onslaught!*
-
-        public OnslaughtSpell()
-        {
-        }
+        public override SkillName MoveSkill => SkillName.Swords;
+        public override TextDefinition AbilityMessage => new TextDefinition(1156007); // *You ready an onslaught!*
 
         public override bool Validate(Mobile from)
         {
             if (!CheckWeapon(from))
             {
-                from.SendLocalizedMessage(1156006); // You must have a swordsmanship weapon equipped to use this ability.
+                from.SendLocalizedMessage(
+                    1156006); // You must have a swordsmanship weapon equipped to use this ability.
                 return false;
             }
 
@@ -43,7 +39,7 @@ namespace Server.Spells.SkillMasteries
             if (!Validate(attacker) || !CheckMana(attacker, true))
                 return;
 
-            BaseWeapon weapon = attacker.Weapon as BaseWeapon;
+            var weapon = attacker.Weapon as BaseWeapon;
 
             if (weapon != null && !HasOnslaught(attacker, defender))
             {
@@ -52,8 +48,8 @@ namespace Server.Spells.SkillMasteries
                 int phys, fire, cold, pois, nrgy, chaos, direct;
                 weapon.GetDamageTypes(null, out phys, out fire, out cold, out pois, out nrgy, out chaos, out direct);
 
-                int highest = phys;
-                int type = 0;
+                var highest = phys;
+                var type = 0;
 
                 if (fire > phys)
                 {
@@ -79,19 +75,23 @@ namespace Server.Spells.SkillMasteries
                     highest = nrgy;
                 }
 
-                ResistanceType resistType = (ResistanceType)type;
+                var resistType = (ResistanceType)type;
 
-                int amount = (int)((attacker.Skills[MoveSkill].Value + attacker.Skills[SkillName.Tactics].Value) / 12);
-                int duration = (MasteryInfo.GetMasteryLevel(attacker, MoveSkill) * 2) + 1;
+                var amount = (int)((attacker.Skills[MoveSkill].Value + attacker.Skills[SkillName.Tactics].Value) / 12);
+                var duration = MasteryInfo.GetMasteryLevel(attacker, MoveSkill) * 2 + 1;
 
                 if (defender is PlayerMobile)
                     amount /= 2;
 
-                ResistanceMod mod = new ResistanceMod(resistType, -amount);
+                var mod = new ResistanceMod(resistType, -amount);
                 defender.AddResistanceMod(mod);
 
-                attacker.PrivateOverheadMessage(MessageType.Regular, 1150, 1156008, attacker.NetState);  // You deliver an onslaught of sword strikes!
-                BuffInfo.AddBuff(defender, new BuffInfo(BuffIcon.Onslaught, 1156009, 1156010, TimeSpan.FromSeconds(duration), defender, String.Format("{0}\t{1}", amount.ToString(), resistType.ToString()))); // -~2_VAL~% ~1_RESIST~ Debuff.
+                attacker.PrivateOverheadMessage(MessageType.Regular, 1150, 1156008,
+                    attacker.NetState); // You deliver an onslaught of sword strikes!
+                BuffInfo.AddBuff(defender,
+                    new BuffInfo(BuffIcon.Onslaught, 1156009, 1156010, TimeSpan.FromSeconds(duration), defender,
+                        string.Format("{0}\t{1}", amount.ToString(),
+                            resistType.ToString()))); // -~2_VAL~% ~1_RESIST~ Debuff.
 
                 defender.FixedEffect(0x37B9, 10, 5, 632, 0);
 
@@ -101,10 +101,10 @@ namespace Server.Spells.SkillMasteries
                 _Table[attacker] = defender;
 
                 Timer.DelayCall(TimeSpan.FromSeconds(duration), () =>
-                    {
-                        defender.RemoveResistanceMod(mod);
-                        _Table.Remove(attacker);
-                    });
+                {
+                    defender.RemoveResistanceMod(mod);
+                    _Table.Remove(attacker);
+                });
             }
         }
 
@@ -112,8 +112,6 @@ namespace Server.Spells.SkillMasteries
         {
             BuffInfo.RemoveBuff(from, BuffIcon.Onslaught);
         }
-
-        private static Dictionary<Mobile, Mobile> _Table;
 
         public static bool HasOnslaught(Mobile attacker, Mobile victim)
         {

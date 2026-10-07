@@ -1,14 +1,14 @@
-using System;
-
 namespace Server.Items
 {
     public class Web : Item
     {
-		public override bool IsArtifact { get { return true; } }
-        private static readonly int[] m_itemids = new int[]
+        private static readonly int[] m_itemids =
         {
             0x10d7, 0x10d8, 0x10dd
         };
+
+        public override bool IsArtifact => true;
+
         [Constructable]
         public Web()
             : base(m_itemids[Utility.Random(3)])
@@ -29,13 +29,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

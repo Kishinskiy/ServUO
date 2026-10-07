@@ -1,11 +1,18 @@
 using System;
 using Server.Items;
+using Server.Network;
 
 namespace Server.Mobiles
 {
     [CorpseName("an ore elemental corpse")]
     public class VeriteElemental : BaseCreature
     {
+        public override bool AutoDispel => true;
+
+        public override bool BleedImmune => true;
+
+        public override int TreasureMapLevel => 1;
+
         [Constructable]
         public VeriteElemental()
             : this(25)
@@ -56,36 +63,11 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool AutoDispel
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool BleedImmune
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override int TreasureMapLevel
-        {
-            get
-            {
-                return 1;
-            }
-        }
-
         public static void OnHit(Mobile defender, Item item, int damage)
         {
-            IWearableDurability dur = item as IWearableDurability;
+            var dur = item as IWearableDurability;
 
-            if (dur == null || dur.MaxHitPoints == 0 || item.LootType == LootType.Blessed || item.Insured)
-            {
-                return;
-            }
+            if (dur == null || dur.MaxHitPoints == 0 || item.LootType == LootType.Blessed || item.Insured) return;
 
             if (damage < 10)
                 damage = 10;
@@ -96,13 +78,11 @@ namespace Server.Mobiles
             }
             else
             {
-                defender.LocalOverheadMessage(Server.Network.MessageType.Regular, 0x3B2, 1061121); // Your equipment is severely damaged.
+                defender.LocalOverheadMessage(MessageType.Regular, 0x3B2,
+                    1061121); // Your equipment is severely damaged.
                 dur.MaxHitPoints = Math.Max(0, dur.MaxHitPoints - damage);
 
-                if (!item.Deleted && dur.MaxHitPoints == 0)
-                {
-                    item.Delete();
-                }
+                if (!item.Deleted && dur.MaxHitPoints == 0) item.Delete();
             }
         }
 
@@ -115,13 +95,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using Server.Items;
+using Server.Misc;
 using Server.Mobiles;
 using Server.Network;
 using Server.Services.Virtues;
@@ -14,18 +14,17 @@ namespace Server.Gumps
         Healer = 2,
         Generic = 3,
         SilverSapling = 102034,
-        GemOfSalvation = 84106,
+        GemOfSalvation = 84106
     }
 
     public class ResurrectGump : Gump
     {
-        private readonly Mobile m_Healer;
-        private readonly int m_Price;
+        private readonly Action<Mobile> m_Callback;
         private readonly bool m_FromSacrifice;
+        private readonly Mobile m_Healer;
         private readonly double m_HitsScalar;
         private readonly ResurrectMessage m_Msg;
-
-        private Action<Mobile> m_Callback;
+        private readonly int m_Price;
 
         public ResurrectGump(Mobile owner)
             : this(owner, owner, ResurrectMessage.Generic, false)
@@ -62,7 +61,8 @@ namespace Server.Gumps
         {
         }
 
-        public ResurrectGump(Mobile owner, Mobile healer, ResurrectMessage msg, bool fromSacrifice, double hitsScalar, Action<Mobile> callback)
+        public ResurrectGump(Mobile owner, Mobile healer, ResurrectMessage msg, bool fromSacrifice, double hitsScalar,
+            Action<Mobile> callback)
             : base(100, 0)
         {
             m_Healer = healer;
@@ -77,10 +77,11 @@ namespace Server.Gumps
 
             AddHtmlLocalized(0, 20, 400, 35, 1011022, false, false); // <center>Resurrection</center>
 
-            AddHtmlLocalized(50, 55, 300, 140, 1011023 + (int)msg, true, true); /* It is possible for you to be resurrected here by this healer. Do you wish to try?<br>
-            * CONTINUE - You chose to try to come back to life now.<br>
-            * CANCEL - You prefer to remain a ghost for now.
-            */
+            AddHtmlLocalized(50, 55, 300, 140, 1011023 + (int)msg, true,
+                    true); /* It is possible for you to be resurrected here by this healer. Do you wish to try?<br>
+                            * CONTINUE - You chose to try to come back to life now.<br>
+                            * CANCEL - You prefer to remain a ghost for now.
+                            */
 
             m_Callback = callback;
 
@@ -123,9 +124,11 @@ namespace Server.Gumps
             AddRadio(30, 175, 9727, 9730, false, 0);
             AddHtmlLocalized(65, 178, 300, 25, 1060016, 0x7FFF, false, false); // I'd rather stay dead, you scoundrel!!!
 
-            AddHtmlLocalized(30, 20, 360, 35, 1060017, 0x7FFF, false, false); // Wishing to rejoin the living, are you?  I can restore your body... for a price of course...
+            AddHtmlLocalized(30, 20, 360, 35, 1060017, 0x7FFF, false,
+                false); // Wishing to rejoin the living, are you?  I can restore your body... for a price of course...
 
-            AddHtmlLocalized(30, 105, 345, 40, 1060018, 0x5B2D, false, false); // Do you accept the fee, which will be withdrawn from your bank?
+            AddHtmlLocalized(30, 105, 345, 40, 1060018, 0x5B2D, false,
+                false); // Do you accept the fee, which will be withdrawn from your bank?
 
             AddImage(65, 72, 5605);
 
@@ -149,13 +152,13 @@ namespace Server.Gumps
 
         public override void OnResponse(NetState state, RelayInfo info)
         {
-            Mobile from = state.Mobile;
+            var from = state.Mobile;
 
             from.CloseGump(typeof(ResurrectGump));
 
             if (ResurrectMessage.SilverSapling == m_Msg && 1 == info.ButtonID)
             {
-                PlayerMobile pm = from as PlayerMobile;
+                var pm = from as PlayerMobile;
                 if (null != pm && pm.Region.IsPartOf("Abyss"))
                 {
                     pm.Location = pm.SSSeedLocation;
@@ -165,8 +168,10 @@ namespace Server.Gumps
                         pm.Corpse.Location = pm.Location;
                         pm.Corpse.Map = pm.Map;
                     }
+
                     pm.Resurrect();
                 }
+
                 return;
             }
 
@@ -184,18 +189,23 @@ namespace Server.Gumps
                     {
                         if (Banker.Withdraw(from, m_Price))
                         {
-                            from.SendLocalizedMessage(1060398, m_Price.ToString()); // ~1_AMOUNT~ gold has been withdrawn from your bank box.
-                            from.SendLocalizedMessage(1060022, Banker.GetBalance(from).ToString()); // You have ~1_AMOUNT~ gold in cash remaining in your bank box.
+                            from.SendLocalizedMessage(1060398,
+                                m_Price.ToString()); // ~1_AMOUNT~ gold has been withdrawn from your bank box.
+                            from.SendLocalizedMessage(1060022,
+                                Banker.GetBalance(from)
+                                    .ToString()); // You have ~1_AMOUNT~ gold in cash remaining in your bank box.
                         }
                         else
                         {
-                            from.SendLocalizedMessage(1060020); // Unfortunately, you do not have enough cash in your bank to cover the cost of the healing.
+                            from.SendLocalizedMessage(
+                                1060020); // Unfortunately, you do not have enough cash in your bank to cover the cost of the healing.
                             return;
                         }
                     }
                     else
                     {
-                        from.SendLocalizedMessage(1060019); // You decide against paying the healer, and thus remain dead.
+                        from.SendLocalizedMessage(
+                            1060019); // You decide against paying the healer, and thus remain dead.
                         return;
                     }
                 }
@@ -207,9 +217,9 @@ namespace Server.Gumps
 
                 if (m_Healer != null && from != m_Healer)
                 {
-                    VirtueLevel level = VirtueHelper.GetLevel(m_Healer, VirtueName.Compassion);
+                    var level = VirtueHelper.GetLevel(m_Healer, VirtueName.Compassion);
 
-                    switch( level )
+                    switch (level)
                     {
                         case VirtueLevel.Seeker:
                             from.Hits = AOS.Scale(from.HitsMax, 20);
@@ -227,16 +237,16 @@ namespace Server.Gumps
                 {
                     ((PlayerMobile)from).AvailableResurrects -= 1;
 
-                    Container pack = from.Backpack;
-                    Container corpse = from.Corpse;
+                    var pack = from.Backpack;
+                    var corpse = from.Corpse;
 
                     if (pack != null && corpse != null)
                     {
-                        List<Item> items = new List<Item>(corpse.Items);
+                        var items = new List<Item>(corpse.Items);
 
-                        for (int i = 0; i < items.Count; ++i)
+                        for (var i = 0; i < items.Count; ++i)
                         {
-                            Item item = items[i];
+                            var item = items[i];
 
                             if (item.Layer != Layer.Hair && item.Layer != Layer.FacialHair && item.Movable)
                                 pack.DropItem(item);
@@ -245,20 +255,18 @@ namespace Server.Gumps
                 }
 
                 if (m_Healer != from && m_Healer is PlayerMobile && from is PlayerMobile)
-                {
                     SpiritualityVirtue.OnHeal(m_Healer, 50);
-                }
 
                 if (from.Fame > 0)
                 {
-                    int amount = from.Fame / 10;
+                    var amount = from.Fame / 10;
 
-                    Misc.Titles.AwardFame(from, -amount, true);
+                    Titles.AwardFame(from, -amount, true);
                 }
 
                 if (!Core.AOS && from.ShortTermMurders >= 5)
                 {
-                    double loss = (100.0 - (4.0 + (from.ShortTermMurders / 5.0))) / 100.0; // 5 to 15% loss
+                    var loss = (100.0 - (4.0 + from.ShortTermMurders / 5.0)) / 100.0; // 5 to 15% loss
 
                     if (loss < 0.85)
                         loss = 0.85;
@@ -272,11 +280,9 @@ namespace Server.Gumps
                     if (from.RawDex * loss > 10)
                         from.RawDex = (int)(from.RawDex * loss);
 
-                    for (int s = 0; s < from.Skills.Length; s++)
-                    {
+                    for (var s = 0; s < from.Skills.Length; s++)
                         if (from.Skills[s].Base * loss > 35)
                             from.Skills[s].Base *= loss;
-                    }
                 }
 
                 if (from.Alive && m_HitsScalar > 0)

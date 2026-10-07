@@ -1,8 +1,3 @@
-using System;
-using Server;
-using Server.Items;
-using Server.Mobiles;
-
 namespace Server.Engines.XmlSpawner2
 {
     public class WeakParagon : XmlParagon
@@ -10,14 +5,14 @@ namespace Server.Engines.XmlSpawner2
         // string that is displayed on the xmlspawner when this is attached
         public override string OnIdentify(Mobile from)
         {
-            return String.Format("Weak {0}", base.OnIdentify(from));
+            return string.Format("Weak {0}", base.OnIdentify(from));
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
             // version 0
         }
 
@@ -25,11 +20,12 @@ namespace Server.Engines.XmlSpawner2
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
             // version 0
         }
 
         #region constructors
+
         public WeakParagon(ASerial serial)
             : base(serial)
         {
@@ -37,7 +33,6 @@ namespace Server.Engines.XmlSpawner2
 
         [Attachable]
         public WeakParagon()
-            : base()
         {
             // reduced buff modifiers
             HitsBuff = 4.0;
@@ -50,6 +45,7 @@ namespace Server.Engines.XmlSpawner2
             KarmaBuff = 1.40;
             DamageBuff = 4;
         }
+
         #endregion
     }
 }

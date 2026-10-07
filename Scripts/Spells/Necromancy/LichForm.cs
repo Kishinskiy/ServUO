@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 
 namespace Server.Spells.Necromancy
 {
@@ -12,67 +11,28 @@ namespace Server.Spells.Necromancy
             Reagent.GraveDust,
             Reagent.DaemonBlood,
             Reagent.NoxCrystal);
+
+        public override TimeSpan CastDelayBase => TimeSpan.FromSeconds(2.25);
+
+        public override double RequiredSkill => 70.0;
+
+        public override int RequiredMana => 23;
+
+        public override int Body => 749;
+
+        public override int FireResistOffset => -10;
+
+        public override int ColdResistOffset => +10;
+
+        public override int PoisResistOffset => +10;
+
+        public override double TickRate => 2;
+
         public LichFormSpell(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
         {
         }
 
-        public override TimeSpan CastDelayBase
-        {
-            get
-            {
-                return TimeSpan.FromSeconds(2.25);
-            }
-        }
-        public override double RequiredSkill
-        {
-            get
-            {
-                return 70.0;
-            }
-        }
-        public override int RequiredMana
-        {
-            get
-            {
-                return 23;
-            }
-        }
-        public override int Body
-        {
-            get
-            {
-                return 749;
-            }
-        }
-        public override int FireResistOffset
-        {
-            get
-            {
-                return -10;
-            }
-        }
-        public override int ColdResistOffset
-        {
-            get
-            {
-                return +10;
-            }
-        }
-        public override int PoisResistOffset
-        {
-            get
-            {
-                return +10;
-            }
-        }
-        public override double TickRate
-        {
-            get
-            {
-                return 2;
-            }
-        }
         public override void DoEffect(Mobile m)
         {
             m.PlaySound(0x19C);
@@ -81,6 +41,7 @@ namespace Server.Spells.Necromancy
 
             m.ResetStatTimers();
         }
+
         public override void OnTick(Mobile m)
         {
             --m.Hits;

@@ -11,13 +11,11 @@
  *   TownHouseBoundsTarget1/2                     (was TownHouseGMTools.cs)
  *   TownHouseController                          (was TownHouseController.cs)
  */
+
 using System;
 using System.Collections.Generic;
-using Server;
-using Server.Gumps;
 using Server.Items;
 using Server.Mobiles;
-using Server.Regions;
 using Server.Targeting;
 
 namespace Server.Custom.TownHouses
@@ -47,12 +45,12 @@ namespace Server.Custom.TownHouses
     {
         public static Rectangle2D MakeRect(Point3D a, Point3D b)
         {
-            int x1 = Math.Min(a.X, b.X);
-            int y1 = Math.Min(a.Y, b.Y);
-            int x2 = Math.Max(a.X, b.X);
-            int y2 = Math.Max(a.Y, b.Y);
+            var x1 = Math.Min(a.X, b.X);
+            var y1 = Math.Min(a.Y, b.Y);
+            var x2 = Math.Max(a.X, b.X);
+            var y2 = Math.Max(a.Y, b.Y);
 
-            return new Rectangle2D(x1, y1, (x2 - x1) + 1, (y2 - y1) + 1);
+            return new Rectangle2D(x1, y1, x2 - x1 + 1, y2 - y1 + 1);
         }
 
         public static bool HasBounds(Rectangle2D r)
@@ -95,13 +93,13 @@ namespace Server.Custom.TownHouses
     }
 
     /// <summary>
-    /// Temporary highlight tile used for GM visualization. Auto-deletes after Duration.
+    ///     Temporary highlight tile used for GM visualization. Auto-deletes after Duration.
     /// </summary>
     public class TownHouseHighlightTile : Item
     {
         private Timer m_Timer;
 
-        public override bool Decays { get { return false; } }
+        public override bool Decays => false;
 
         [Constructable]
         public TownHouseHighlightTile() : base(0x1766)
@@ -111,7 +109,9 @@ namespace Server.Custom.TownHouses
             Name = "boundary marker";
         }
 
-        public TownHouseHighlightTile(Serial serial) : base(serial) { }
+        public TownHouseHighlightTile(Serial serial) : base(serial)
+        {
+        }
 
         public void Start(TimeSpan duration)
         {
@@ -153,21 +153,21 @@ namespace Server.Custom.TownHouses
     // -------------------------------------------------------------------------
 
     /// <summary>
-    /// Region wrapper for inside checks, ban checks, and secured container access.
+    ///     Region wrapper for inside checks, ban checks, and secured container access.
     /// </summary>
     public class TownHouseRegion : Region
     {
-        public TownHouseController Controller { get; private set; }
+        public TownHouseController Controller { get; }
 
         public TownHouseRegion(TownHouseController controller)
             : base(controller.RegionName, controller.Map, controller.RegionPriority,
-                   new Rectangle3D(
-                       controller.Rect.X,
-                       controller.Rect.Y,
-                       controller.MinZ,
-                       controller.Rect.Width,
-                       controller.Rect.Height,
-                       controller.MaxZ - controller.MinZ + 1))
+                new Rectangle3D(
+                    controller.Rect.X,
+                    controller.Rect.Y,
+                    controller.MinZ,
+                    controller.Rect.Width,
+                    controller.Rect.Height,
+                    controller.MaxZ - controller.MinZ + 1))
         {
             Controller = controller;
         }
@@ -209,7 +209,7 @@ namespace Server.Custom.TownHouses
         }
 
         /// <summary>
-        /// Blocks non-friends from opening secured containers inside the town house.
+        ///     Blocks non-friends from opening secured containers inside the town house.
         /// </summary>
         public override bool OnDoubleClick(Mobile from, object o)
         {
@@ -219,15 +219,13 @@ namespace Server.Custom.TownHouses
             if (from.AccessLevel >= AccessLevel.GameMaster)
                 return base.OnDoubleClick(from, o);
 
-            Item secured = o as Item;
+            var secured = o as Item;
             if (secured != null && Controller.Secures.Contains(secured))
-            {
                 if (!Controller.IsFriend(from))
                 {
                     from.SendMessage("That is secured. You do not have access.");
                     return false;
                 }
-            }
 
             return base.OnDoubleClick(from, o);
         }
@@ -239,8 +237,8 @@ namespace Server.Custom.TownHouses
 
     public class TownHouseBoundsTarget1 : Target
     {
-        private readonly Mobile m_GM;
         private readonly TownHouseController m_Controller;
+        private readonly Mobile m_GM;
 
         public TownHouseBoundsTarget1(Mobile gm, TownHouseController c) : base(18, true, TargetFlags.None)
         {
@@ -253,12 +251,12 @@ namespace Server.Custom.TownHouses
             if (m_Controller == null || m_Controller.Deleted)
                 return;
 
-            IPoint3D p = targeted as IPoint3D;
+            var p = targeted as IPoint3D;
 
             if (p == null)
                 return;
 
-            Point3D p1 = new Point3D(p);
+            var p1 = new Point3D(p);
             from.SendMessage("Corner 1 set. Target corner 2.");
             from.Target = new TownHouseBoundsTarget2(m_GM, m_Controller, p1);
         }
@@ -266,8 +264,8 @@ namespace Server.Custom.TownHouses
 
     public class TownHouseBoundsTarget2 : Target
     {
-        private readonly Mobile m_GM;
         private readonly TownHouseController m_Controller;
+        private readonly Mobile m_GM;
         private readonly Point3D m_P1;
 
         public TownHouseBoundsTarget2(Mobile gm, TownHouseController c, Point3D p1) : base(18, true, TargetFlags.None)
@@ -282,16 +280,16 @@ namespace Server.Custom.TownHouses
             if (m_Controller == null || m_Controller.Deleted)
                 return;
 
-            IPoint3D p = targeted as IPoint3D;
+            var p = targeted as IPoint3D;
 
             if (p == null)
                 return;
 
-            Point3D p2 = new Point3D(p);
-            Rectangle2D rect = TownHouseUtil.MakeRect(m_P1, p2);
+            var p2 = new Point3D(p);
+            var rect = TownHouseUtil.MakeRect(m_P1, p2);
 
-            int minZ = m_Controller.MinZ;
-            int maxZ = m_Controller.MaxZ;
+            var minZ = m_Controller.MinZ;
+            var maxZ = m_Controller.MaxZ;
 
             if (!m_Controller.HasBounds)
             {
@@ -311,6 +309,9 @@ namespace Server.Custom.TownHouses
 
     public class TownHouseController : Item
     {
+        // Region instance
+        private TownHouseRegion m_Region;
+
         // Identity / region
         public string RegionName { get; private set; }
         public int RegionPriority { get; private set; }
@@ -320,7 +321,7 @@ namespace Server.Custom.TownHouses
         public int MinZ { get; private set; }
         public int MaxZ { get; private set; }
 
-        public bool HasBounds { get { return TownHouseUtil.HasBounds(Rect); } }
+        public bool HasBounds => TownHouseUtil.HasBounds(Rect);
 
         public Rectangle2D[] Bounds
         {
@@ -329,7 +330,7 @@ namespace Server.Custom.TownHouses
                 if (!HasBounds)
                     return new Rectangle2D[0];
 
-                return new Rectangle2D[] { Rect };
+                return new[] { Rect };
             }
         }
 
@@ -349,10 +350,7 @@ namespace Server.Custom.TownHouses
         public bool OwnerSaleActive { get; private set; }
         public int OwnerSalePrice { get; private set; }
 
-        public bool IsForSale
-        {
-            get { return Owner != null && !Owner.Deleted && OwnerSaleActive && OwnerSalePrice > 0; }
-        }
+        public bool IsForSale => Owner != null && !Owner.Deleted && OwnerSaleActive && OwnerSalePrice > 0;
 
         // Locks & secures
         public int LockdownLimit { get; private set; }
@@ -361,9 +359,6 @@ namespace Server.Custom.TownHouses
 
         // Public / Private access mode
         public bool IsPublic { get; private set; }
-
-        // Region instance
-        private TownHouseRegion m_Region;
 
         [Constructable]
         public TownHouseController() : base(0xBD2)
@@ -401,7 +396,9 @@ namespace Server.Custom.TownHouses
             TownHouseSystem.Register(this);
         }
 
-        public TownHouseController(Serial serial) : base(serial) { }
+        public TownHouseController(Serial serial) : base(serial)
+        {
+        }
 
         public override void OnAfterSpawn()
         {
@@ -465,14 +462,15 @@ namespace Server.Custom.TownHouses
                 }
                 else
                 {
-                    list.Add(1060659, string.Format("Status\t{0}", IsPublic ? "Public Residence" : "Private Residence"));
+                    list.Add(1060659,
+                        string.Format("Status\t{0}", IsPublic ? "Public Residence" : "Private Residence"));
                 }
             }
         }
 
         public override void OnDoubleClick(Mobile from)
         {
-            bool inRegion = (from.Region is TownHouseRegion && ((TownHouseRegion)from.Region).Controller == this);
+            var inRegion = from.Region is TownHouseRegion && ((TownHouseRegion)from.Region).Controller == this;
 
             if (inRegion || from.InRange(Location, 5) || from.AccessLevel >= AccessLevel.GameMaster)
             {
@@ -494,10 +492,13 @@ namespace Server.Custom.TownHouses
             if (!TownHouseConfig.UseAccountOwnership || a == null || b == null)
                 return false;
 
-            return (a.Account != null && b.Account != null && a.Account == b.Account);
+            return a.Account != null && b.Account != null && a.Account == b.Account;
         }
 
-        public bool IsOwner(Mobile m) => (m != null && (Owner == m || SameAccount(Owner, m)));
+        public bool IsOwner(Mobile m)
+        {
+            return m != null && (Owner == m || SameAccount(Owner, m));
+        }
 
         public bool IsCoOwner(Mobile m)
         {
@@ -572,17 +573,17 @@ namespace Server.Custom.TownHouses
 
         public void CycleState()
         {
-            if (this.State == TownHouseState.Purchasable)
-                this.State = TownHouseState.Transferable;
+            if (State == TownHouseState.Purchasable)
+                State = TownHouseState.Transferable;
             else
-                this.State = TownHouseState.Purchasable;
+                State = TownHouseState.Purchasable;
 
             InvalidateProperties();
         }
 
         public void ToggleWipePolicy()
         {
-            WipePolicy = (WipePolicy == TownHouseWipePolicy.LeaveAsIs)
+            WipePolicy = WipePolicy == TownHouseWipePolicy.LeaveAsIs
                 ? TownHouseWipePolicy.WipeItemsInBounds
                 : TownHouseWipePolicy.LeaveAsIs;
 
@@ -669,7 +670,7 @@ namespace Server.Custom.TownHouses
 
         public void EvictOwner()
         {
-            Mobile oldOwner = Owner;
+            var oldOwner = Owner;
 
             Owner = null;
             State = TownHouseState.Purchasable;
@@ -681,19 +682,15 @@ namespace Server.Custom.TownHouses
             OwnerSalePrice = 0;
 
             // Clear ownership flags but leave items immovable in place for the next owner
-            foreach (Item item in Lockdowns)
-            {
+            foreach (var item in Lockdowns)
                 if (item != null && !item.Deleted)
                     item.IsLockedDown = false;
-            }
 
             Lockdowns.Clear();
 
-            foreach (Item item in Secures)
-            {
+            foreach (var item in Secures)
                 if (item != null && !item.Deleted)
                     item.IsSecure = false;
-            }
 
             Secures.Clear();
 
@@ -733,17 +730,20 @@ namespace Server.Custom.TownHouses
         {
             if (m == null || item == null || item.Deleted) return false;
 
-            if (!IsInside(item.Location, item.Map)) {
+            if (!IsInside(item.Location, item.Map))
+            {
                 m.SendMessage("That is not inside this town house.");
                 return false;
             }
 
-            if (!CanLockdown(m)) {
+            if (!CanLockdown(m))
+            {
                 m.SendMessage("You cannot lock down more items here.");
                 return false;
             }
 
-            if (Lockdowns.Contains(item)) {
+            if (Lockdowns.Contains(item))
+            {
                 m.SendMessage("That is already locked down.");
                 return false;
             }
@@ -758,17 +758,20 @@ namespace Server.Custom.TownHouses
         {
             if (m == null || item == null || item.Deleted) return false;
 
-            if (!IsInside(item.Location, item.Map)) {
+            if (!IsInside(item.Location, item.Map))
+            {
                 m.SendMessage("That is not inside this town house.");
                 return false;
             }
 
-            if (!IsFriend(m)) {
+            if (!IsFriend(m))
+            {
                 m.SendMessage("You do not have access to do that.");
                 return false;
             }
 
-            if (Secures.Contains(item)) {
+            if (Secures.Contains(item))
+            {
                 m.SendMessage("That is already secured.");
                 return false;
             }
@@ -790,14 +793,16 @@ namespace Server.Custom.TownHouses
                 return false;
             }
 
-            if (Lockdowns.Remove(item)) {
+            if (Lockdowns.Remove(item))
+            {
                 item.Movable = true;
                 item.IsLockedDown = false;
                 m.SendMessage("Item released.");
                 return true;
             }
 
-            if (Secures.Remove(item)) {
+            if (Secures.Remove(item))
+            {
                 item.Movable = true;
                 item.IsSecure = false;
                 m.SendMessage("Secure released.");
@@ -828,6 +833,7 @@ namespace Server.Custom.TownHouses
                 from.SendMessage("Only the owner can add Co-Owners.");
                 return false;
             }
+
             if (target == null || target.Deleted || !target.Player) return false;
             if (CoOwners.Contains(target) || IsOwner(target)) return false;
             CoOwners.Add(target);
@@ -860,6 +866,7 @@ namespace Server.Custom.TownHouses
                 from.SendMessage("Only the owner can remove Co-Owners.");
                 return false;
             }
+
             return CoOwners.Remove(target);
         }
 
@@ -872,15 +879,20 @@ namespace Server.Custom.TownHouses
         public bool TryTransfer(Mobile from, Mobile to)
         {
             if (from == null || to == null) return false;
-            if (State != TownHouseState.Transferable) {
+            if (State != TownHouseState.Transferable)
+            {
                 from.SendMessage("This town house is not transferable.");
                 return false;
             }
-            if (!IsOwner(from)) {
+
+            if (!IsOwner(from))
+            {
                 from.SendMessage("You are not the owner.");
                 return false;
             }
-            if (to.Deleted || !to.Player) {
+
+            if (to.Deleted || !to.Player)
+            {
                 from.SendMessage("That is not a valid player.");
                 return false;
             }
@@ -911,11 +923,14 @@ namespace Server.Custom.TownHouses
         {
             if (from == null) return false;
             if (Owner == null || Owner.Deleted) return false;
-            if (!IsOwner(from)) {
+            if (!IsOwner(from))
+            {
                 from.SendMessage("You are not the owner.");
                 return false;
             }
-            if (price <= 0) {
+
+            if (price <= 0)
+            {
                 from.SendMessage("Sale price must be greater than zero.");
                 return false;
             }
@@ -955,17 +970,20 @@ namespace Server.Custom.TownHouses
         {
             if (buyer == null) return false;
 
-            if (!IsForSale) {
+            if (!IsForSale)
+            {
                 buyer.SendMessage("This town house is not for sale.");
                 return false;
             }
 
-            if (Owner == null || Owner.Deleted) {
+            if (Owner == null || Owner.Deleted)
+            {
                 buyer.SendMessage("This town house has no owner.");
                 return false;
             }
 
-            if (IsOwner(buyer)) {
+            if (IsOwner(buyer))
+            {
                 buyer.SendMessage("You already own this town house.");
                 return false;
             }
@@ -977,14 +995,15 @@ namespace Server.Custom.TownHouses
                 return false;
             }
 
-            int price = OwnerSalePrice;
+            var price = OwnerSalePrice;
 
-            if (!Banker.Withdraw(buyer, price)) {
+            if (!Banker.Withdraw(buyer, price))
+            {
                 buyer.SendMessage("You do not have enough gold in your bank.");
                 return false;
             }
 
-            Mobile oldOwner = Owner;
+            var oldOwner = Owner;
 
             if (!GiveSaleProceeds(oldOwner, price))
             {
@@ -1017,23 +1036,34 @@ namespace Server.Custom.TownHouses
                 if (Banker.Deposit(m, amount)) return true;
 
                 Item check = null;
-                try { check = new BankCheck(amount); } catch { check = null; }
+                try
+                {
+                    check = new BankCheck(amount);
+                }
+                catch
+                {
+                    check = null;
+                }
 
                 Container bank = m.BankBox;
                 if (bank != null && !bank.Deleted && check != null && bank.TryDropItem(m, check, false)) return true;
 
-                Container pack = m.Backpack;
+                var pack = m.Backpack;
                 if (pack != null && !pack.Deleted)
                 {
-                    if (check != null) {
+                    if (check != null)
+                    {
                         if (pack.TryDropItem(m, check, false)) return true;
-                    } else {
+                    }
+                    else
+                    {
                         Item gold = new Gold(amount);
                         if (pack.TryDropItem(m, gold, false)) return true;
                     }
                 }
 
-                if (check != null) {
+                if (check != null)
+                {
                     check.MoveToWorld(m.Location, m.Map);
                     return true;
                 }
@@ -1056,19 +1086,18 @@ namespace Server.Custom.TownHouses
         {
             if (gm == null || Map == null || Map == Map.Internal || !HasBounds) return;
 
-            int step = Math.Max(1, TownHouseConfig.HighlightStep);
-            for (int x = Rect.X; x < Rect.X + Rect.Width; x += step)
+            var step = Math.Max(1, TownHouseConfig.HighlightStep);
+            for (var x = Rect.X; x < Rect.X + Rect.Width; x += step)
+            for (var y = Rect.Y; y < Rect.Y + Rect.Height; y += step)
             {
-                for (int y = Rect.Y; y < Rect.Y + Rect.Height; y += step)
-                {
-                    int z = Map.GetAverageZ(x, y);
-                    Point3D p = new Point3D(x, y, z);
-                    if (z < MinZ || z > MaxZ) continue;
-                    TownHouseHighlightTile t = new TownHouseHighlightTile();
-                    t.MoveToWorld(p, Map);
-                    t.Start(duration);
-                }
+                var z = Map.GetAverageZ(x, y);
+                var p = new Point3D(x, y, z);
+                if (z < MinZ || z > MaxZ) continue;
+                var t = new TownHouseHighlightTile();
+                t.MoveToWorld(p, Map);
+                t.Start(duration);
             }
+
             gm.SendMessage("Highlight placed.");
         }
 
@@ -1096,13 +1125,13 @@ namespace Server.Custom.TownHouses
             writer.Write(Owner);
 
             writer.Write(CoOwners.Count);
-            for (int i = 0; i < CoOwners.Count; i++) writer.Write(CoOwners[i]);
+            for (var i = 0; i < CoOwners.Count; i++) writer.Write(CoOwners[i]);
 
             writer.Write(Friends.Count);
-            for (int i = 0; i < Friends.Count; i++) writer.Write(Friends[i]);
+            for (var i = 0; i < Friends.Count; i++) writer.Write(Friends[i]);
 
             writer.Write(Bans.Count);
-            for (int i = 0; i < Bans.Count; i++) writer.Write(Bans[i]);
+            for (var i = 0; i < Bans.Count; i++) writer.Write(Bans[i]);
 
             writer.Write(OwnerSaleActive);
             writer.Write(OwnerSalePrice);
@@ -1110,10 +1139,10 @@ namespace Server.Custom.TownHouses
             writer.Write(LockdownLimit);
 
             writer.Write(Lockdowns.Count);
-            for (int i = 0; i < Lockdowns.Count; i++) writer.Write(Lockdowns[i]);
+            for (var i = 0; i < Lockdowns.Count; i++) writer.Write(Lockdowns[i]);
 
             writer.Write(Secures.Count);
-            for (int i = 0; i < Secures.Count; i++) writer.Write(Secures[i]);
+            for (var i = 0; i < Secures.Count; i++) writer.Write(Secures[i]);
 
             writer.Write(IsPublic);
         }
@@ -1121,7 +1150,7 @@ namespace Server.Custom.TownHouses
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (version >= 1)
             {
@@ -1149,27 +1178,27 @@ namespace Server.Custom.TownHouses
 
                 Owner = reader.ReadMobile();
 
-                int co = reader.ReadInt();
+                var co = reader.ReadInt();
                 CoOwners = new List<Mobile>(co);
-                for (int i = 0; i < co; i++)
+                for (var i = 0; i < co; i++)
                 {
-                    Mobile m = reader.ReadMobile();
+                    var m = reader.ReadMobile();
                     if (m != null) CoOwners.Add(m);
                 }
 
-                int fr = reader.ReadInt();
+                var fr = reader.ReadInt();
                 Friends = new List<Mobile>(fr);
-                for (int i = 0; i < fr; i++)
+                for (var i = 0; i < fr; i++)
                 {
-                    Mobile m = reader.ReadMobile();
+                    var m = reader.ReadMobile();
                     if (m != null) Friends.Add(m);
                 }
 
-                int bn = reader.ReadInt();
+                var bn = reader.ReadInt();
                 Bans = new List<Mobile>(bn);
-                for (int i = 0; i < bn; i++)
+                for (var i = 0; i < bn; i++)
                 {
-                    Mobile m = reader.ReadMobile();
+                    var m = reader.ReadMobile();
                     if (m != null) Bans.Add(m);
                 }
 
@@ -1186,19 +1215,19 @@ namespace Server.Custom.TownHouses
 
                 LockdownLimit = reader.ReadInt();
 
-                int ld = reader.ReadInt();
+                var ld = reader.ReadInt();
                 Lockdowns = new List<Item>(ld);
-                for (int i = 0; i < ld; i++)
+                for (var i = 0; i < ld; i++)
                 {
-                    Item item = reader.ReadItem();
+                    var item = reader.ReadItem();
                     if (item != null) Lockdowns.Add(item);
                 }
 
-                int sc = reader.ReadInt();
+                var sc = reader.ReadInt();
                 Secures = new List<Item>(sc);
-                for (int i = 0; i < sc; i++)
+                for (var i = 0; i < sc; i++)
                 {
-                    Item si = reader.ReadItem();
+                    var si = reader.ReadItem();
                     if (si != null)
                     {
                         Secures.Add(si);
@@ -1210,7 +1239,7 @@ namespace Server.Custom.TownHouses
                 if (version < 3)
                     reader.ReadDateTime();
 
-                IsPublic = (version >= 4) ? reader.ReadBool() : false;
+                IsPublic = version >= 4 ? reader.ReadBool() : false;
             }
             else
             {

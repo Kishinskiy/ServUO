@@ -1,5 +1,3 @@
-using Server;
-using System;
 using Server.Gumps;
 using Server.Network;
 
@@ -9,12 +7,12 @@ namespace Server.Items
     {
         Small = 1,
         Medium,
-        Large,
+        Large
     }
-    
+
     public class KoiPondAddon : BaseAddon
     {
-        public override BaseAddonDeed Deed { get { return new KoiPondDeed(); } }
+        public override BaseAddonDeed Deed => new KoiPondDeed();
 
         [Constructable]
         public KoiPondAddon(KoiPondSize size)
@@ -22,68 +20,68 @@ namespace Server.Items
             switch (size)
             {
                 case KoiPondSize.Large:
-                    {
-                        AddComponent(new AddonComponent(41037), 3, 0, 1);
-                        AddComponent(new AddonComponent(41038), 3, 0, 1);
-                        AddComponent(new AddonComponent(41035), 3, -2, 1);
-                        AddComponent(new AddonComponent(41036), 3, -1, 1);
-                        AddComponent(new AddonComponent(41038), 3, 1, 1);
-                        AddComponent(new AddonComponent(41016), 3, 3, 1);
-                        AddComponent(new AddonComponent(41039), 3, 2, 1);
-                        AddComponent(new AddonComponent(41024), -3, 1, 0);
-                        AddComponent(new AddonComponent(41022), -3, 3, 1);
-                        AddComponent(new AddonComponent(41021), -2, 3, 1);
-                        AddComponent(new AddonComponent(41020), -1, 3, 1);
-                        AddComponent(new AddonComponent(41019), 0, 3, 1);
-                        AddComponent(new AddonComponent(41025), -3, 0, 1);
-                        AddComponent(new AddonComponent(41018), 1, 3, 1);
-                        AddComponent(new AddonComponent(41032), 1, -3, 1);
-                        AddComponent(new AddonComponent(41031), 0, -3, 1);
-                        AddComponent(new AddonComponent(41026), -3, -1, 1);
-                        AddComponent(new AddonComponent(41027), -3, -2, 1);
-                        AddComponent(new AddonComponent(41029), -2, -3, 1);
-                        AddComponent(new AddonComponent(41030), -1, -3, 1);
-                        AddComponent(new AddonComponent(41017), 2, 3, 1);
-                        AddComponent(new AddonComponent(41040), 2, 2, 1);
+                {
+                    AddComponent(new AddonComponent(41037), 3, 0, 1);
+                    AddComponent(new AddonComponent(41038), 3, 0, 1);
+                    AddComponent(new AddonComponent(41035), 3, -2, 1);
+                    AddComponent(new AddonComponent(41036), 3, -1, 1);
+                    AddComponent(new AddonComponent(41038), 3, 1, 1);
+                    AddComponent(new AddonComponent(41016), 3, 3, 1);
+                    AddComponent(new AddonComponent(41039), 3, 2, 1);
+                    AddComponent(new AddonComponent(41024), -3, 1, 0);
+                    AddComponent(new AddonComponent(41022), -3, 3, 1);
+                    AddComponent(new AddonComponent(41021), -2, 3, 1);
+                    AddComponent(new AddonComponent(41020), -1, 3, 1);
+                    AddComponent(new AddonComponent(41019), 0, 3, 1);
+                    AddComponent(new AddonComponent(41025), -3, 0, 1);
+                    AddComponent(new AddonComponent(41018), 1, 3, 1);
+                    AddComponent(new AddonComponent(41032), 1, -3, 1);
+                    AddComponent(new AddonComponent(41031), 0, -3, 1);
+                    AddComponent(new AddonComponent(41026), -3, -1, 1);
+                    AddComponent(new AddonComponent(41027), -3, -2, 1);
+                    AddComponent(new AddonComponent(41029), -2, -3, 1);
+                    AddComponent(new AddonComponent(41030), -1, -3, 1);
+                    AddComponent(new AddonComponent(41017), 2, 3, 1);
+                    AddComponent(new AddonComponent(41040), 2, 2, 1);
 
-                        break;
-                    }
+                    break;
+                }
                 case KoiPondSize.Medium:
-                    {
-                        AddComponent(new AddonComponent(41004), 2, -1, 0);
-                        AddComponent(new AddonComponent(40977), 2, 2, 0);
-                        AddComponent(new AddonComponent(41006), 2, 1, 0);
-                        AddComponent(new AddonComponent(41005), 2, 0, 0);
-                        AddComponent(new AddonComponent(41001), 1, -2, 0);
-                        AddComponent(new AddonComponent(41000), -1, -2, 0);
-                        AddComponent(new AddonComponent(40999), 0, -2, 0);
-                        AddComponent(new AddonComponent(40998), -2, -1, 0);
-                        AddComponent(new AddonComponent(40997), -2, 0, 0);
-                        AddComponent(new AddonComponent(40996), -2, 1, 0);
-                        AddComponent(new AddonComponent(40995), -2, 2, 0);
-                        AddComponent(new AddonComponent(40994), -1, 2, 0);
-                        AddComponent(new AddonComponent(40993), 0, 2, 0);
-                        AddComponent(new AddonComponent(40992), 1, 2, 0);
-                        AddComponent(new AddonComponent(41007), 2, 2, 1);
+                {
+                    AddComponent(new AddonComponent(41004), 2, -1, 0);
+                    AddComponent(new AddonComponent(40977), 2, 2, 0);
+                    AddComponent(new AddonComponent(41006), 2, 1, 0);
+                    AddComponent(new AddonComponent(41005), 2, 0, 0);
+                    AddComponent(new AddonComponent(41001), 1, -2, 0);
+                    AddComponent(new AddonComponent(41000), -1, -2, 0);
+                    AddComponent(new AddonComponent(40999), 0, -2, 0);
+                    AddComponent(new AddonComponent(40998), -2, -1, 0);
+                    AddComponent(new AddonComponent(40997), -2, 0, 0);
+                    AddComponent(new AddonComponent(40996), -2, 1, 0);
+                    AddComponent(new AddonComponent(40995), -2, 2, 0);
+                    AddComponent(new AddonComponent(40994), -1, 2, 0);
+                    AddComponent(new AddonComponent(40993), 0, 2, 0);
+                    AddComponent(new AddonComponent(40992), 1, 2, 0);
+                    AddComponent(new AddonComponent(41007), 2, 2, 1);
 
-                        break;
-                    }
+                    break;
+                }
                 case KoiPondSize.Small:
-                    {
-                        AddComponent(new AddonComponent(40980), -1, 0, 0);
-                        AddComponent(new AddonComponent(40978), 0, 1, 0);
-                        AddComponent(new AddonComponent(40984), 1, 0, 0);
-                        AddComponent(new AddonComponent(40983), 1, -1, 0);
-                        AddComponent(new AddonComponent(40982), 0, -1, 0);
-                        AddComponent(new AddonComponent(40981), -1, -1, 0);
-                        AddComponent(new AddonComponent(40980), 1, 0, 0);
-                        AddComponent(new AddonComponent(40979), -1, 1, 0);
-                        AddComponent(new AddonComponent(40978), 1, -1, 0);
-                        AddComponent(new AddonComponent(40977), 1, 1, 0);
-                        AddComponent(new AddonComponent(40985), 1, 1, 1);
+                {
+                    AddComponent(new AddonComponent(40980), -1, 0, 0);
+                    AddComponent(new AddonComponent(40978), 0, 1, 0);
+                    AddComponent(new AddonComponent(40984), 1, 0, 0);
+                    AddComponent(new AddonComponent(40983), 1, -1, 0);
+                    AddComponent(new AddonComponent(40982), 0, -1, 0);
+                    AddComponent(new AddonComponent(40981), -1, -1, 0);
+                    AddComponent(new AddonComponent(40980), 1, 0, 0);
+                    AddComponent(new AddonComponent(40979), -1, 1, 0);
+                    AddComponent(new AddonComponent(40978), 1, -1, 0);
+                    AddComponent(new AddonComponent(40977), 1, 1, 0);
+                    AddComponent(new AddonComponent(40985), 1, 1, 1);
 
-                        break;
-                    }
+                    break;
+                }
             }
         }
 
@@ -95,21 +93,21 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
-    
+
     public class KoiPondDeed : BaseAddonDeed
     {
-        public override int LabelNumber { get { return 1157996; } } // Koi Pond
-        public override BaseAddon Addon { get { return new KoiPondAddon(m_Size); } }
         public KoiPondSize m_Size;
+        public override int LabelNumber => 1157996; // Koi Pond
+        public override BaseAddon Addon => new KoiPondAddon(m_Size);
 
         [Constructable]
         public KoiPondDeed()
@@ -130,7 +128,9 @@ namespace Server.Items
                 from.SendGump(new InternalGump(this));
             }
             else
+            {
                 from.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.
+            }
         }
 
         private void SendTarget(Mobile m)
@@ -147,12 +147,12 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
 
         private class InternalGump : Gump
         {
-            private KoiPondDeed m_Deed;
+            private readonly KoiPondDeed m_Deed;
 
             public InternalGump(KoiPondDeed deed) : base(60, 36)
             {

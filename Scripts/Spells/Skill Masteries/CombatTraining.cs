@@ -1,12 +1,11 @@
 using System;
-using Server;
-using Server.Spells;
-using Server.Network;
-using Server.Mobiles;
-using Server.Gumps;
-using Server.Targeting;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
+using Server.Engines.Despise;
+using Server.Gumps;
+using Server.Mobiles;
+using Server.Network;
+using Server.Targeting;
 
 namespace Server.Spells.SkillMasteries
 {
@@ -20,44 +19,59 @@ namespace Server.Spells.SkillMasteries
 
     public class CombatTrainingSpell : SkillMasterySpell
     {
-        private static SpellInfo m_Info = new SpellInfo(
-                "Combat Training", "",
-                -1,
-                9002
-            );
+        private static readonly SpellInfo m_Info = new SpellInfo(
+            "Combat Training", "",
+            -1,
+            9002
+        );
+
+        public static Dictionary<Mobile, Timer> _RageCooldown;
+        private bool _Expired;
 
         public override double UpKeep
         {
             get
             {
-                double taming = Caster.Skills[CastSkill].Base;
-                double lore = Caster.Skills[SkillName.AnimalLore].Base;
-                bool asone = SpellType == TrainingType.AsOne;
+                var taming = Caster.Skills[CastSkill].Base;
+                var lore = Caster.Skills[SkillName.AnimalLore].Base;
+                var asone = SpellType == TrainingType.AsOne;
 
-                double skillvalue = (taming + (lore/2));
-                int mastery_base = 12;
+                var skillvalue = taming + lore / 2;
+                var mastery_base = 12;
                 if (skillvalue < 150) mastery_base = 12;
                 if (skillvalue < 165) mastery_base = 10;
                 if (skillvalue < 180) mastery_base = 8;
                 if (skillvalue >= 180) mastery_base = 6;
 
-                return asone ? mastery_base*2 : mastery_base;
+                return asone ? mastery_base * 2 : mastery_base;
             }
         }
 
-        public override double RequiredSkill { get { return 90; } }
-        public override int RequiredMana { get { return 40; } }
-        public override bool PartyEffects { get { return false; } }
-        public override SkillName CastSkill { get { return SkillName.AnimalTaming; } }
+        public override double RequiredSkill => 90;
+        public override int RequiredMana => 40;
+        public override bool PartyEffects => false;
+        public override SkillName CastSkill => SkillName.AnimalTaming;
 
         public TrainingType SpellType { get; set; }
 
-        private int _Phase;
-        private int _DamageTaken;
-        private bool _Expired;
+        public int Phase { get; set; }
 
-        public int Phase { get { return _Phase; } set { _Phase = value; } }
-        public int DamageTaken { get { return _DamageTaken; } set { _DamageTaken = value; } }
+        public int DamageTaken { get; set; }
+
+        public double DamageMod
+        {
+            get
+            {
+                if (Target == null || SpellType == TrainingType.AsOne)
+                    return 0.0;
+
+                var dam = DamageTaken / (Target.HitsMax * .66);
+
+                if (dam > 1.0) dam = 1.0;
+
+                return dam;
+            }
+        }
 
         public CombatTrainingSpell(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
@@ -66,7 +80,7 @@ namespace Server.Spells.SkillMasteries
 
         public override bool Cast()
         {
-            CombatTrainingSpell spell = GetSpell(Caster, typeof(CombatTrainingSpell)) as CombatTrainingSpell;
+            var spell = GetSpell(Caster, typeof(CombatTrainingSpell)) as CombatTrainingSpell;
 
             if (spell != null)
             {
@@ -79,7 +93,8 @@ namespace Server.Spells.SkillMasteries
 
         public override bool CheckCast()
         {
-            if (Caster is PlayerMobile && ((PlayerMobile)Caster).AllFollowers == null || ((PlayerMobile)Caster).AllFollowers.Count == 0)
+            if ((Caster is PlayerMobile && ((PlayerMobile)Caster).AllFollowers == null) ||
+                ((PlayerMobile)Caster).AllFollowers.Count == 0)
             {
                 Caster.SendLocalizedMessage(1156112); // This ability requires you to have pets.
                 return false;
@@ -92,7 +107,8 @@ namespace Server.Spells.SkillMasteries
         {
             base.SendCastEffect();
 
-            Caster.PrivateOverheadMessage(MessageType.Regular, 0x35, false, "You ready your pet for combat, increasing its battle effectiveness!", Caster.NetState);
+            Caster.PrivateOverheadMessage(MessageType.Regular, 0x35, false,
+                "You ready your pet for combat, increasing its battle effectiveness!", Caster.NetState);
         }
 
         public override void OnCast()
@@ -102,7 +118,8 @@ namespace Server.Spells.SkillMasteries
 
         public void OnSelected(TrainingType type, Mobile target)
         {
-            if (!CheckSequence() || (type == TrainingType.AsOne && Caster is PlayerMobile && ((PlayerMobile)Caster).AllFollowers.Where(mob => mob != target).Count() == 0))
+            if (!CheckSequence() || (type == TrainingType.AsOne && Caster is PlayerMobile &&
+                                     ((PlayerMobile)Caster).AllFollowers.Where(mob => mob != target).Count() == 0))
             {
                 FinishSequence();
                 return;
@@ -111,13 +128,15 @@ namespace Server.Spells.SkillMasteries
             SpellType = type;
             Target = target;
 
-            _Phase = 0;
+            Phase = 0;
 
             BeginTimer();
 
             Target.FixedParticles(0x373A, 10, 80, 5018, 0, 0, EffectLayer.Waist);
 
-            BuffInfo.AddBuff(Caster, new BuffInfo(BuffIcon.CombatTraining, 1155933, 1156107, String.Format("{0}\t{1}\t{2}", SpellType.ToString(), Target.Name, ((int)ScaleUpkeep()).ToString())));
+            BuffInfo.AddBuff(Caster,
+                new BuffInfo(BuffIcon.CombatTraining, 1155933, 1156107,
+                    string.Format("{0}\t{1}\t{2}", SpellType.ToString(), Target.Name, ScaleUpkeep().ToString())));
             //You train ~2_NAME~ to use ~1_SKILLNAME~.<br>Mana Upkeep: ~3_COST~
 
             FinishSequence();
@@ -148,27 +167,12 @@ namespace Server.Spells.SkillMasteries
             return base.OnTick();
         }
 
-        public double DamageMod
-        {
-            get
-            {
-                if (Target == null || SpellType == TrainingType.AsOne)
-                    return 0.0;
-
-                double dam = (double)_DamageTaken / ((double)Target.HitsMax * .66);
-
-                if (dam > 1.0) dam = 1.0;
-
-                return dam;
-            }
-        }
-
         private void EndPhase1()
         {
             if (_Expired)
                 return;
 
-            _Phase = 2;
+            Phase = 2;
 
             Server.Timer.DelayCall(TimeSpan.FromSeconds(SpellType == TrainingType.Berserk ? 8 : 10), EndPhase2);
         }
@@ -178,40 +182,35 @@ namespace Server.Spells.SkillMasteries
             if (_Expired)
                 return;
 
-            _DamageTaken = 0;
-            _Phase = 0;
+            DamageTaken = 0;
+            Phase = 0;
 
-            if (SpellType == TrainingType.Berserk)
-            {
-                AddRageCooldown(Target);
-            }
+            if (SpellType == TrainingType.Berserk) AddRageCooldown(Target);
         }
 
         public static void CheckDamage(Mobile attacker, Mobile defender, DamageType type, ref int damage)
         {
             if (defender is BaseCreature && (((BaseCreature)defender).Controlled || ((BaseCreature)defender).Summoned))
             {
-                CombatTrainingSpell spell = GetSpell<CombatTrainingSpell>(sp => sp.Target == defender);
+                var spell = GetSpell<CombatTrainingSpell>(sp => sp.Target == defender);
 
                 if (spell != null)
                 {
-                    int storedDamage = damage;
+                    var storedDamage = damage;
 
                     switch (spell.SpellType)
                     {
                         case TrainingType.Empowerment:
                             break;
                         case TrainingType.Berserk:
-                            if (InRageCooldown(defender))
-                            {
-                                return;
-                            }
+                            if (InRageCooldown(defender)) return;
 
                             if (spell.Phase > 1)
                             {
-                                damage = damage - (int)((double)damage * spell.DamageMod);
+                                damage = damage - (int)(damage * spell.DamageMod);
                                 defender.FixedParticles(0x376A, 10, 30, 5052, 1261, 7, EffectLayer.LeftFoot, 0);
                             }
+
                             break;
                         case TrainingType.ConsumeDamage:
                             if (spell.Phase < 2)
@@ -219,25 +218,27 @@ namespace Server.Spells.SkillMasteries
                                 defender.SendDamagePacket(attacker, damage);
                                 damage = 0;
                             }
+
                             break;
                         case TrainingType.AsOne:
                             if (((BaseCreature)defender).GetMaster() is PlayerMobile)
                             {
                                 var pm = ((BaseCreature)defender).GetMaster() as PlayerMobile;
-                                var list = pm.AllFollowers.Where(m => (m == defender || m.InRange(defender.Location, 3)) && m.CanBeHarmful(attacker)).ToList();
+                                var list = pm.AllFollowers.Where(m =>
+                                        (m == defender || m.InRange(defender.Location, 3)) && m.CanBeHarmful(attacker))
+                                    .ToList();
 
                                 if (list.Count > 0)
                                 {
                                     damage = damage / list.Count;
 
                                     foreach (var m in list.Where(mob => mob != defender))
-                                    {
                                         m.Damage(damage, attacker, true, false);
-                                    }
                                 }
 
                                 ColUtility.Free(list);
                             }
+
                             return;
                     }
 
@@ -248,10 +249,9 @@ namespace Server.Spells.SkillMasteries
                         {
                             spell.Phase = 1;
 
-                            if (spell.SpellType != TrainingType.AsOne && (spell.SpellType != TrainingType.Berserk || !InRageCooldown(defender)))
-                            {
+                            if (spell.SpellType != TrainingType.AsOne &&
+                                (spell.SpellType != TrainingType.Berserk || !InRageCooldown(defender)))
                                 Server.Timer.DelayCall(TimeSpan.FromSeconds(5), spell.EndPhase1);
-                            }
                         }
 
                         if (spell.DamageTaken == 0)
@@ -261,27 +261,27 @@ namespace Server.Spells.SkillMasteries
                     }
                 }
             }
-            else if (attacker is BaseCreature && (((BaseCreature)attacker).Controlled || ((BaseCreature)attacker).Summoned))
+            else if (attacker is BaseCreature &&
+                     (((BaseCreature)attacker).Controlled || ((BaseCreature)attacker).Summoned))
             {
-                CombatTrainingSpell spell = GetSpell<CombatTrainingSpell>(sp => sp.Target == attacker);
+                var spell = GetSpell<CombatTrainingSpell>(sp => sp.Target == attacker);
 
                 if (spell != null)
-                {
                     switch (spell.SpellType)
                     {
                         case TrainingType.Empowerment:
                             if (spell.Phase > 1)
                             {
-                                damage = damage + (int)((double)damage * spell.DamageMod);
+                                damage = damage + (int)(damage * spell.DamageMod);
                                 attacker.FixedParticles(0x376A, 10, 30, 5052, 1261, 7, EffectLayer.LeftFoot, 0);
                             }
+
                             break;
                         case TrainingType.Berserk:
                         case TrainingType.ConsumeDamage:
                         case TrainingType.AsOne:
                             break;
                     }
-                }
             }
         }
 
@@ -289,10 +289,9 @@ namespace Server.Spells.SkillMasteries
         {
             if (attacker is BaseCreature && (((BaseCreature)attacker).Controlled || ((BaseCreature)attacker).Summoned))
             {
-                CombatTrainingSpell spell = GetSpell<CombatTrainingSpell>(sp => sp.Target == attacker);
+                var spell = GetSpell<CombatTrainingSpell>(sp => sp.Target == attacker);
 
                 if (spell != null)
-                {
                     switch (spell.SpellType)
                     {
                         case TrainingType.Empowerment:
@@ -300,15 +299,15 @@ namespace Server.Spells.SkillMasteries
                         case TrainingType.Berserk:
                             if (spell.Phase > 1)
                             {
-                                damage = damage + (int)((double)damage * spell.DamageMod);
+                                damage = damage + (int)(damage * spell.DamageMod);
                                 attacker.FixedParticles(0x376A, 10, 30, 5052, 1261, 7, EffectLayer.LeftFoot, 0);
                             }
+
                             break;
                         case TrainingType.ConsumeDamage:
                         case TrainingType.AsOne:
                             break;
                     }
-                }
             }
         }
 
@@ -316,12 +315,10 @@ namespace Server.Spells.SkillMasteries
         {
             if (m is BaseCreature && (((BaseCreature)m).Controlled || ((BaseCreature)m).Summoned))
             {
-                CombatTrainingSpell spell = GetSpell<CombatTrainingSpell>(sp => sp.Target == m);
+                var spell = GetSpell<CombatTrainingSpell>(sp => sp.Target == m);
 
                 if (spell != null && spell.SpellType == TrainingType.ConsumeDamage && spell.Phase > 1)
-                {
                     return (int)(30.0 * spell.DamageMod);
-                }
             }
 
             return 0;
@@ -331,15 +328,31 @@ namespace Server.Spells.SkillMasteries
         {
             if (m is BaseCreature && (((BaseCreature)m).Controlled || ((BaseCreature)m).Summoned))
             {
-                CombatTrainingSpell spell = GetSpell<CombatTrainingSpell>(sp => sp.Target == m);
+                var spell = GetSpell<CombatTrainingSpell>(sp => sp.Target == m);
 
                 if (spell != null && spell.SpellType == TrainingType.ConsumeDamage && spell.Phase > 1)
-                {
                     return (int)(45 * spell.DamageMod);
-                }
             }
 
             return 0;
+        }
+
+        public static void AddRageCooldown(Mobile m)
+        {
+            if (_RageCooldown == null)
+                _RageCooldown = new Dictionary<Mobile, Timer>();
+
+            _RageCooldown[m] = Server.Timer.DelayCall(TimeSpan.FromSeconds(60), EndRageCooldown, m);
+        }
+
+        public static bool InRageCooldown(Mobile m)
+        {
+            return _RageCooldown != null && _RageCooldown.ContainsKey(m);
+        }
+
+        public static void EndRageCooldown(Mobile m)
+        {
+            if (_RageCooldown != null && _RageCooldown.ContainsKey(m)) _RageCooldown.Remove(m);
         }
 
         public class InternalTarget : Target
@@ -354,18 +367,15 @@ namespace Server.Spells.SkillMasteries
 
             protected override void OnTarget(Mobile from, object targeted)
             {
-                if (targeted is Server.Engines.Despise.DespiseCreature)
-                {
-                    return;
-                }
+                if (targeted is DespiseCreature) return;
 
                 if (targeted is BaseCreature && ((BaseCreature)targeted).GetMaster() == from && from.Spell == Spell)
                 {
                     Spell.Caster.FixedEffect(0x3779, 10, 20, 1270, 0);
                     Spell.Caster.SendSound(0x64E);
 
-                    int taming = (int)from.Skills[SkillName.AnimalTaming].Value;
-                    int lore = (int)from.Skills[SkillName.AnimalLore].Value;
+                    var taming = (int)from.Skills[SkillName.AnimalTaming].Value;
+                    var lore = (int)from.Skills[SkillName.AnimalLore].Value;
 
                     from.CheckTargetSkill(SkillName.AnimalTaming, (BaseCreature)targeted, taming - 25, taming + 25);
                     from.CheckTargetSkill(SkillName.AnimalLore, (BaseCreature)targeted, lore - 25, lore + 25);
@@ -381,38 +391,14 @@ namespace Server.Spells.SkillMasteries
                 Spell.FinishSequence();
             }
         }
-
-        public static void AddRageCooldown(Mobile m)
-        {
-            if (_RageCooldown == null)
-                _RageCooldown = new Dictionary<Mobile, Timer>();
-
-            _RageCooldown[m] = Server.Timer.DelayCall<Mobile>(TimeSpan.FromSeconds(60), EndRageCooldown, m);
-        }
-
-        public static bool InRageCooldown(Mobile m)
-        {
-            return _RageCooldown != null && _RageCooldown.ContainsKey(m);
-        }
-
-        public static void EndRageCooldown(Mobile m)
-        {
-            if (_RageCooldown != null && _RageCooldown.ContainsKey(m))
-            {
-                _RageCooldown.Remove(m);
-            }
-        }
-
-        public static Dictionary<Mobile, Timer> _RageCooldown;
     }
 
     public class ChooseTrainingGump : Gump
     {
-        public CombatTrainingSpell Spell { get; private set; }
-        public Mobile Caster { get; private set; }
-        public BaseCreature Target { get; private set; }
-
         public const int Hue = 0x07FF;
+        public CombatTrainingSpell Spell { get; }
+        public Mobile Caster { get; private set; }
+        public BaseCreature Target { get; }
 
         public ChooseTrainingGump(Mobile caster, BaseCreature target, CombatTrainingSpell spell) : base(100, 100)
         {
@@ -427,7 +413,7 @@ namespace Server.Spells.SkillMasteries
 
             AddHtmlLocalized(20, 20, 150, 16, 1156113, Hue, false, false); // Select Training
 
-            int y = 40;
+            var y = 40;
             if (MasteryInfo.HasLearned(caster, SkillName.AnimalTaming, 1))
             {
                 AddButton(20, y, 9762, 9763, 1, GumpButtonType.Reply, 0);

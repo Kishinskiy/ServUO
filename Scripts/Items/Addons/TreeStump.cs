@@ -8,17 +8,38 @@ namespace Server.Items
 {
     public class TreeStump : BaseAddon, IRewardItem
     {
-        public override bool ForceShowProperties { get { return true; } }
-
         private bool m_IsRewardItem;
         private int m_Logs;
+        public override bool ForceShowProperties => true;
 
         [CommandProperty(AccessLevel.GameMaster)]
         public DateTime NextResourceCount { get; set; }
 
+        public override BaseAddonDeed Deed
+        {
+            get
+            {
+                var deed = new TreeStumpDeed();
+                deed.IsRewardItem = m_IsRewardItem;
+                deed.Logs = m_Logs;
+
+                return deed;
+            }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int Logs
+        {
+            get => m_Logs;
+            set
+            {
+                m_Logs = value;
+                UpdateProperties();
+            }
+        }
+
         [Constructable]
         public TreeStump(int itemID)
-            : base()
         {
             AddComponent(new InternalAddonComponent(itemID), 0, 0, 0);
             NextResourceCount = DateTime.UtcNow + TimeSpan.FromDays(1);
@@ -29,69 +50,43 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonDeed Deed
-        {
-            get
-            {
-                TreeStumpDeed deed = new TreeStumpDeed();
-                deed.IsRewardItem = m_IsRewardItem;
-                deed.Logs = m_Logs;
-
-                return deed;
-            }
-        }
         [CommandProperty(AccessLevel.GameMaster)]
         public bool IsRewardItem
         {
-            get
-            {
-                return m_IsRewardItem;
-            }
+            get => m_IsRewardItem;
             set
             {
                 m_IsRewardItem = value;
                 UpdateProperties();
             }
         }
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int Logs
-        {
-            get
-            {
-                return m_Logs;
-            }
-            set
-            {
-                m_Logs = value;
-                UpdateProperties();
-            }
-        }
+
         public override void OnComponentUsed(AddonComponent c, Mobile from)
         {
-            BaseHouse house = BaseHouse.FindHouseAt(this);
+            var house = BaseHouse.FindHouseAt(this);
 
             /*
-            * Unique problems have unique solutions.  OSI does not have a problem with 1000s of mining carts
-            * due to the fact that they have only a miniscule fraction of the number of 10 year vets that a
-            * typical RunUO shard will have (RunUO's scaled down account aging system makes this a unique problem),
-            * and the "freeness" of free accounts. We also dont have mitigating factors like inactive (unpaid)
-            * accounts not gaining veteran time.
-            *
-            * The lack of high end vets and vet rewards on OSI has made testing the *exact* ranging/stacking
-            * behavior of these things all but impossible, so either way its just an estimation.
-            *
-            * If youd like your shard's carts/stumps to work the way they did before, simply replace the check
-            * below with this line of code:
-            *
-            * if (!from.InRange(GetWorldLocation(), 2)
-            *
-            * However, I am sure these checks are more accurate to OSI than the former version was.
-            *
-            */
+             * Unique problems have unique solutions.  OSI does not have a problem with 1000s of mining carts
+             * due to the fact that they have only a miniscule fraction of the number of 10 year vets that a
+             * typical RunUO shard will have (RunUO's scaled down account aging system makes this a unique problem),
+             * and the "freeness" of free accounts. We also dont have mitigating factors like inactive (unpaid)
+             * accounts not gaining veteran time.
+             *
+             * The lack of high end vets and vet rewards on OSI has made testing the *exact* ranging/stacking
+             * behavior of these things all but impossible, so either way its just an estimation.
+             *
+             * If youd like your shard's carts/stumps to work the way they did before, simply replace the check
+             * below with this line of code:
+             *
+             * if (!from.InRange(GetWorldLocation(), 2)
+             *
+             * However, I am sure these checks are more accurate to OSI than the former version was.
+             *
+             */
 
-            if (!from.InRange(GetWorldLocation(), 2) || !from.InLOS(this) || !((from.Z - Z) > -3 && (from.Z - Z) < 3))
+            if (!from.InRange(GetWorldLocation(), 2) || !from.InLOS(this) || !(from.Z - Z > -3 && from.Z - Z < 3))
             {
-                from.LocalOverheadMessage(Network.MessageType.Regular, 0x3B2, 1019045); // I can't reach that.
+                from.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1019045); // I can't reach that.
             }
             else if (house != null && house.HasSecureAccess(from, SecureLevel.Friends))
             {
@@ -99,7 +94,7 @@ namespace Server.Items
                 {
                     Item logs = null;
 
-                    switch ( Utility.Random(7) )
+                    switch (Utility.Random(7))
                     {
                         case 0:
                             logs = new Log();
@@ -124,7 +119,7 @@ namespace Server.Items
                             break;
                     }
 
-                    int amount = Math.Min(10, m_Logs);
+                    var amount = Math.Min(10, m_Logs);
                     logs.Amount = amount;
 
                     if (!from.PlaceInBackpack(logs))
@@ -139,46 +134,13 @@ namespace Server.Items
                     }
                 }
                 else
-                    from.SendLocalizedMessage(1094720); // There are no more logs available.
-            }
-            else
-                from.SendLocalizedMessage(1061637); // You are not allowed to access 
-        }
-
-        private class InternalAddonComponent : AddonComponent
-        {
-            public InternalAddonComponent(int id)
-                : base(id)
-            {
-            }
-
-            public override void GetProperties(ObjectPropertyList list)
-            {
-                base.GetProperties(list);
-
-                if (Addon is TreeStump)
                 {
-                    list.Add(1094719, ((TreeStump)Addon).Logs.ToString()); // Logs: ~1_COUNT~
+                    from.SendLocalizedMessage(1094720); // There are no more logs available.
                 }
             }
-
-            public InternalAddonComponent(Serial serial)
-                : base(serial)
+            else
             {
-            }
-
-            public override void Serialize(GenericWriter writer)
-            {
-                base.Serialize(writer);
-
-                writer.WriteEncodedInt(0); // version
-            }
-
-            public override void Deserialize(GenericReader reader)
-            {
-                base.Deserialize(reader);
-
-                int version = reader.ReadEncodedInt();
+                from.SendLocalizedMessage(1061637); // You are not allowed to access 
             }
         }
 
@@ -190,8 +152,8 @@ namespace Server.Items
 
             TryGiveResourceCount();
 
-            writer.Write((bool)m_IsRewardItem);
-            writer.Write((int)m_Logs);
+            writer.Write(m_IsRewardItem);
+            writer.Write(m_Logs);
             writer.Write(NextResourceCount);
         }
 
@@ -199,7 +161,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
 
             m_IsRewardItem = reader.ReadBool();
             m_Logs = reader.ReadInt();
@@ -214,17 +176,75 @@ namespace Server.Items
                 NextResourceCount = DateTime.UtcNow + TimeSpan.FromDays(1);
             }
         }
+
+        private class InternalAddonComponent : AddonComponent
+        {
+            public InternalAddonComponent(int id)
+                : base(id)
+            {
+            }
+
+            public InternalAddonComponent(Serial serial)
+                : base(serial)
+            {
+            }
+
+            public override void GetProperties(ObjectPropertyList list)
+            {
+                base.GetProperties(list);
+
+                if (Addon is TreeStump) list.Add(1094719, ((TreeStump)Addon).Logs.ToString()); // Logs: ~1_COUNT~
+            }
+
+            public override void Serialize(GenericWriter writer)
+            {
+                base.Serialize(writer);
+
+                writer.WriteEncodedInt(0); // version
+            }
+
+            public override void Deserialize(GenericReader reader)
+            {
+                base.Deserialize(reader);
+
+                var version = reader.ReadEncodedInt();
+            }
+        }
     }
 
     public class TreeStumpDeed : BaseAddonDeed, IRewardItem, IRewardOption
     {
-        private int m_ItemID;
         private bool m_IsRewardItem;
+        private int m_ItemID;
         private int m_Logs;
+
+        public override int LabelNumber => 1080406; // a deed for a tree stump decoration
+
+        public override BaseAddon Addon
+        {
+            get
+            {
+                var addon = new TreeStump(m_ItemID);
+                addon.IsRewardItem = m_IsRewardItem;
+                addon.Logs = m_Logs;
+
+                return addon;
+            }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int Logs
+        {
+            get => m_Logs;
+            set
+            {
+                m_Logs = value;
+                InvalidateProperties();
+            }
+        }
 
         [Constructable]
         public TreeStumpDeed()
-            : base()
         {
             LootType = LootType.Blessed;
         }
@@ -234,50 +254,47 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1080406;
-            }
-        }// a deed for a tree stump decoration
-        public override BaseAddon Addon
-        {
-            get
-            {
-                TreeStump addon = new TreeStump(m_ItemID);
-                addon.IsRewardItem = m_IsRewardItem;
-                addon.Logs = m_Logs;
-
-                return addon;
-            }
-        }
         [CommandProperty(AccessLevel.GameMaster)]
         public bool IsRewardItem
         {
-            get
-            {
-                return m_IsRewardItem;
-            }
+            get => m_IsRewardItem;
             set
             {
                 m_IsRewardItem = value;
                 InvalidateProperties();
             }
         }
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int Logs
+
+        public void GetOptions(RewardOptionList list)
         {
-            get
-            {
-                return m_Logs;
-            }
-            set
-            {
-                m_Logs = value;
-                InvalidateProperties();
-            }
+            list.Add(1, 1080403); // Tree Stump with Axe West
+            list.Add(2, 1080404); // Tree Stump with Axe North
+            list.Add(3, 1080401); // Tree Stump East
+            list.Add(4, 1080402); // Tree Stump South
         }
+
+        public void OnOptionSelected(Mobile from, int option)
+        {
+            switch (option)
+            {
+                case 1:
+                    m_ItemID = 0xE56;
+                    break;
+                case 2:
+                    m_ItemID = 0xE58;
+                    break;
+                case 3:
+                    m_ItemID = 0xE57;
+                    break;
+                case 4:
+                    m_ItemID = 0xE59;
+                    break;
+            }
+
+            if (!Deleted)
+                base.OnDoubleClick(from);
+        }
+
         public override void GetProperties(ObjectPropertyList list)
         {
             base.GetProperties(list);
@@ -297,7 +314,9 @@ namespace Server.Items
                 from.SendGump(new RewardOptionGump(this));
             }
             else
+            {
                 from.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.
+            }
         }
 
         public override void Serialize(GenericWriter writer)
@@ -306,48 +325,18 @@ namespace Server.Items
 
             writer.WriteEncodedInt(0); // version
 
-            writer.Write((bool)m_IsRewardItem);
-            writer.Write((int)m_Logs);
+            writer.Write(m_IsRewardItem);
+            writer.Write(m_Logs);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
 
             m_IsRewardItem = reader.ReadBool();
             m_Logs = reader.ReadInt();
-        }
-
-        public void GetOptions(RewardOptionList list)
-        {
-            list.Add(1, 1080403); // Tree Stump with Axe West
-            list.Add(2, 1080404); // Tree Stump with Axe North
-            list.Add(3, 1080401); // Tree Stump East
-            list.Add(4, 1080402); // Tree Stump South
-        }
-
-        public void OnOptionSelected(Mobile from, int option)
-        {
-            switch ( option )
-            {
-                case 1:
-                    m_ItemID = 0xE56;
-                    break;
-                case 2:
-                    m_ItemID = 0xE58;
-                    break;
-                case 3:
-                    m_ItemID = 0xE57;
-                    break;
-                case 4:
-                    m_ItemID = 0xE59;
-                    break;
-            }
-
-            if (!Deleted)
-                base.OnDoubleClick(from);
         }
     }
 }

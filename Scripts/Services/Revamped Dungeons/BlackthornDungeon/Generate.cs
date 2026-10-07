@@ -1,16 +1,30 @@
-using Server;
-using System;
-using System.Collections.Generic;
-using Server.Mobiles;
-using Server.Items;
-using Server.Gumps;
-using System.Linq;
 using Server.Commands;
+using Server.Items;
 
 namespace Server.Engines.Blackthorn
 {
     public static class GenerateBlackthornDungeon
     {
+        private static readonly Point3D[] _BlockerList =
+        {
+            new Point3D(6435, 2425, -5),
+            new Point3D(6435, 2424, -5),
+            new Point3D(6435, 2423, -5),
+            new Point3D(6435, 2422, -5),
+            new Point3D(6435, 2421, -5),
+            new Point3D(6434, 2421, -5),
+            new Point3D(6433, 2421, -5),
+            new Point3D(6432, 2421, -5),
+            new Point3D(6442, 2425, -5),
+            new Point3D(6442, 2424, -5),
+            new Point3D(6442, 2423, -5),
+            new Point3D(6442, 2422, -5),
+            new Point3D(6442, 2421, -5),
+            new Point3D(6443, 2421, -5),
+            new Point3D(6444, 2421, -5),
+            new Point3D(6445, 2421, -5)
+        };
+
         public static void Initialize()
         {
             CommandSystem.Register("GenBlackthorn", AccessLevel.Administrator, Generate);
@@ -18,7 +32,7 @@ namespace Server.Engines.Blackthorn
 
         public static void Generate(CommandEventArgs e)
         {
-            Mobile m = e.Mobile;
+            var m = e.Mobile;
 
             Generate(Map.Trammel);
             Generate(Map.Felucca);
@@ -29,10 +43,10 @@ namespace Server.Engines.Blackthorn
 
         public static void Generate(Map map)
         {
-            DungeonHitchingPost post = new DungeonHitchingPost();
+            var post = new DungeonHitchingPost();
             post.MoveToWorld(new Point3D(6428, 2677, 0), map);
 
-            MetalDoor door = new MetalDoor(DoorFacing.WestCCW);
+            var door = new MetalDoor(DoorFacing.WestCCW);
             door.MoveToWorld(new Point3D(6409, 2695, 0), map);
 
             door = new MetalDoor(DoorFacing.EastCW);
@@ -59,7 +73,7 @@ namespace Server.Engines.Blackthorn
             // Tram ones already exist on create world teleporter section
             if (map == Map.Felucca)
             {
-                Teleporter tele = new Teleporter(new Point3D(1517, 1417, 9), map);
+                var tele = new Teleporter(new Point3D(1517, 1417, 9), map);
                 tele.MoveToWorld(new Point3D(6440, 2677, 20), map);
 
                 tele = new Teleporter(new Point3D(1517, 1418, 9), map);
@@ -93,25 +107,5 @@ namespace Server.Engines.Blackthorn
                 blocker.MoveToWorld(p, map);
             }
         }
-
-        private static Point3D[] _BlockerList =
-        {
-            new Point3D(6435, 2425, -5),
-            new Point3D(6435, 2424, -5),
-            new Point3D(6435, 2423, -5),
-            new Point3D(6435, 2422, -5),
-            new Point3D(6435, 2421, -5),
-            new Point3D(6434, 2421, -5),
-            new Point3D(6433, 2421, -5),
-            new Point3D(6432, 2421, -5),
-            new Point3D(6442, 2425, -5),
-            new Point3D(6442, 2424, -5),
-            new Point3D(6442, 2423, -5),
-            new Point3D(6442, 2422, -5),
-            new Point3D(6442, 2421, -5),
-            new Point3D(6443, 2421, -5),
-            new Point3D(6444, 2421, -5),
-            new Point3D(6445, 2421, -5)
-        };
     }
 }

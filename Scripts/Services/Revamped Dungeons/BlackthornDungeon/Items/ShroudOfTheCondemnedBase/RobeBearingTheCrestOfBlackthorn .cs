@@ -1,15 +1,11 @@
-using Server;
-using System;
-
 namespace Server.Items
 {
     public class RobeBearingTheCrestOfBlackthorn1 : Robe
     {
-        public override bool IsArtifact { get { return true; } }
-        
+        public override bool IsArtifact => true;
+
         [Constructable]
         public RobeBearingTheCrestOfBlackthorn1()
-            : base()
         {
             ReforgedSuffix = ReforgedSuffix.Blackthorn;
             Attributes.BonusHits = 3;
@@ -31,9 +27,9 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
-			
-			if (version == 0)
+            var version = reader.ReadInt();
+
+            if (version == 0)
             {
                 MaxHitPoints = 0;
                 HitPoints = 0;

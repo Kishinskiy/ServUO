@@ -1,8 +1,7 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using Server.Gumps;
 using Server.Engines.BulkOrders;
+using Server.Targeting;
 
 namespace Server.Items
 {
@@ -27,7 +26,7 @@ namespace Server.Items
         Bloodwood,
         Frostwood,
         Alchemy,
-        Blacksmith, 
+        Blacksmith,
         Cooking,
         Fletching,
         Carpentry,
@@ -40,10 +39,23 @@ namespace Server.Items
     {
         public static List<CoverInfo> Infos { get; private set; }
 
+        public CoverType Type { get; }
+        public TextDefinition Label { get; }
+        public int Hue { get; }
+        public TextDefinition Args { get; }
+
+        public CoverInfo(CoverType type, TextDefinition label, int hue, TextDefinition args = null)
+        {
+            Type = type;
+            Label = label;
+            Hue = hue;
+            Args = args;
+        }
+
         public static void Initialize()
         {
             Infos = new List<CoverInfo>();
- 
+
             Infos.Add(new CoverInfo(CoverType.Normal, 1071097, 0));
             Infos.Add(new CoverInfo(CoverType.DullCopper, 1071101, CraftResources.GetHue(CraftResource.DullCopper)));
             Infos.Add(new CoverInfo(CoverType.ShadowIron, 1071107, CraftResources.GetHue(CraftResource.ShadowIron)));
@@ -71,19 +83,6 @@ namespace Server.Items
             Infos.Add(new CoverInfo(CoverType.Tailoring, 1157605, 0x483, 1002155));
             Infos.Add(new CoverInfo(CoverType.Tinkering, 1157605, 1109, 1002162));
         }
-
-        public CoverType Type { get; private set; }
-        public TextDefinition Label { get; private set; }
-        public int Hue { get; private set; }
-        public TextDefinition Args { get; private set; }
-
-        public CoverInfo(CoverType type, TextDefinition label, int hue, TextDefinition args = null)
-        {
-            Type = type;
-            Label = label;
-            Hue = hue;
-            Args = args;
-        }
     }
 
     public class BulkOrderBookCover : Item
@@ -94,7 +93,7 @@ namespace Server.Items
         [CommandProperty(AccessLevel.GameMaster)]
         public CoverType CoverType
         {
-            get { return _CoverType; }
+            get => _CoverType;
             set
             {
                 var current = _CoverType;
@@ -109,7 +108,15 @@ namespace Server.Items
         }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int UsesRemaining { get { return _UsesRemaining; } set { _UsesRemaining = value; InvalidateProperties(); } }
+        public int UsesRemaining
+        {
+            get => _UsesRemaining;
+            set
+            {
+                _UsesRemaining = value;
+                InvalidateProperties();
+            }
+        }
 
         [Constructable]
         public BulkOrderBookCover(CoverType type)
@@ -136,10 +143,7 @@ namespace Server.Items
         {
             var info = CoverInfo.Infos.FirstOrDefault(x => x.Type == _CoverType);
 
-            if (info != null)
-            {
-                Hue = info.Hue;
-            }
+            if (info != null) Hue = info.Hue;
         }
 
         public override void AddNameProperty(ObjectPropertyList list)
@@ -149,17 +153,11 @@ namespace Server.Items
             if (info != null)
             {
                 if (info.Args != null)
-                {
                     list.Add(1157605, info.Args.ToString()); // Bulk Order Cover (~1_HUE~)
-                }
                 else if (info.Label.Number > 0)
-                {
                     list.Add(info.Label.Number);
-                }
                 else
-                {
                     list.Add(1114057, info.Label.ToString()); // ~1_val~
-                }
             }
             else
             {
@@ -179,43 +177,44 @@ namespace Server.Items
             if (IsChildOf(from.Backpack))
             {
                 from.SendLocalizedMessage(1071121); // Select the bulk order book you want to replace a cover.
-                from.BeginTarget(-1, false, Server.Targeting.TargetFlags.None, (m, targeted) =>
+                from.BeginTarget(-1, false, TargetFlags.None, (m, targeted) =>
+                {
+                    if (targeted is BulkOrderBook)
                     {
-                        if (targeted is BulkOrderBook)
+                        var bob = (BulkOrderBook)targeted;
+
+                        if (bob.IsChildOf(m.Backpack))
                         {
-                            var bob = (BulkOrderBook)targeted;
-
-                            if (bob.IsChildOf(m.Backpack))
+                            if (bob.Hue != Hue)
                             {
-                                if (bob.Hue != Hue)
-                                {
-                                    bob.Hue = Hue;
-                                    UsesRemaining--;
+                                bob.Hue = Hue;
+                                UsesRemaining--;
 
-                                    m.SendLocalizedMessage(1071119); // You have successfully given the bulk order book a new cover.
-                                    m.PlaySound(0x048);
+                                m.SendLocalizedMessage(
+                                    1071119); // You have successfully given the bulk order book a new cover.
+                                m.PlaySound(0x048);
 
-                                    if (UsesRemaining <= 0)
-                                    {
-                                        m.SendLocalizedMessage(1071120); // You have used up all the bulk order book covers.
-                                        Delete();
-                                    }
-                                }
-                                else
+                                if (UsesRemaining <= 0)
                                 {
-                                    m.SendLocalizedMessage(1071122); // You cannot cover it with same color.
+                                    m.SendLocalizedMessage(1071120); // You have used up all the bulk order book covers.
+                                    Delete();
                                 }
                             }
                             else
                             {
-                                m.SendLocalizedMessage(1071117); // You cannot use this item for it.
+                                m.SendLocalizedMessage(1071122); // You cannot cover it with same color.
                             }
                         }
                         else
                         {
-                            m.SendLocalizedMessage(1071118); // You can only cover a bulk order book with this item.
+                            m.SendLocalizedMessage(1071117); // You cannot use this item for it.
                         }
-                    });
+                    }
+                    else
+                    {
+                        m.SendLocalizedMessage(1071118); // You can only cover a bulk order book with this item.
+                    }
+                });
             }
         }
 
@@ -223,7 +222,7 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)1);
+            writer.Write(1);
 
             writer.Write(_UsesRemaining);
             writer.Write((int)_CoverType);
@@ -233,7 +232,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             switch (version)
             {
@@ -250,17 +249,13 @@ namespace Server.Items
 
     public class BagOfBulkOrderCovers : Bag
     {
-        public override int LabelNumber { get { return 1071116; } } // Bag of bulk order covers
+        public override int LabelNumber => 1071116; // Bag of bulk order covers
 
         public BagOfBulkOrderCovers(int start, int end)
         {
-            for(int i = start; i <= end; i++)
-            {
+            for (var i = start; i <= end; i++)
                 if (i >= 0 && i < CoverInfo.Infos.Count)
-                {
                     DropItem(new BulkOrderBookCover(CoverInfo.Infos[i].Type));
-                }
-            }
         }
 
         public BagOfBulkOrderCovers(Serial serial)
@@ -272,14 +267,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

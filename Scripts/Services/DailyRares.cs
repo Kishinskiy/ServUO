@@ -1,7 +1,5 @@
 using System;
 
-using Server;
-
 namespace Server.Items
 {
     public class DailyRaresSpawner
@@ -10,100 +8,61 @@ namespace Server.Items
 
         public static void Initialize()
         {
-            if (!Enabled)
-            {
-                return;
-            }
+            if (!Enabled) return;
 
             // rocks
-            Map map = Map.Felucca;
+            var map = Map.Felucca;
             var p = new Point3D(new Point3D(2684, 2060, 28));
-            if (map.FindItem<DailyRocks>(p) == null)
-            {
-                SetItem(new DailyRocks(), p, map);
-            }
+            if (map.FindItem<DailyRocks>(p) == null) SetItem(new DailyRocks(), p, map);
 
             map = Map.Trammel;
             p = new Point3D(new Point3D(2684, 2060, 28));
-            if (map.FindItem<DailyRocks>(p) == null)
-            {
-                SetItem(new DailyRocks(), p, map);
-            }
+            if (map.FindItem<DailyRocks>(p) == null) SetItem(new DailyRocks(), p, map);
 
             // rock
             map = Map.Felucca;
             p = new Point3D(5511, 3116, -4);
-            if (map.FindItem<DailyRock>(p) == null)
-            {
-                SetItem(new DailyRock(), p, map);
-            }
+            if (map.FindItem<DailyRock>(p) == null) SetItem(new DailyRock(), p, map);
 
             map = Map.Trammel;
             p = new Point3D(5511, 3116, -4);
-            if (map.FindItem<DailyRock>(p) == null)
-            {
-                SetItem(new DailyRock(), p, map);
-            }
+            if (map.FindItem<DailyRock>(p) == null) SetItem(new DailyRock(), p, map);
 
             // fruit basket (eat)
             map = Map.Felucca;
             p = new Point3D(2636, 2081, 16);
-            if (map.FindItem<FruitBasket>(p) == null)
-            {
-                SetItem(new FruitBasket(true), p, map);
-            }
+            if (map.FindItem<FruitBasket>(p) == null) SetItem(new FruitBasket(true), p, map);
 
             map = Map.Trammel;
             p = new Point3D(2636, 2081, 16);
-            if (map.FindItem<FruitBasket>(p) == null)
-            {
-                SetItem(new FruitBasket(true), p, map);
-            }
+            if (map.FindItem<FruitBasket>(p) == null) SetItem(new FruitBasket(true), p, map);
 
             // fruit basket
             map = Map.Felucca;
             p = new Point3D(286, 986, 6);
-            if (map.FindItem<FruitBasket>(p) == null)
-            {
-                SetItem(new FruitBasket(), p, map);
-            }
+            if (map.FindItem<FruitBasket>(p) == null) SetItem(new FruitBasket(), p, map);
 
             map = Map.Trammel;
             p = new Point3D(286, 986, 6);
-            if (map.FindItem<FruitBasket>(p) == null)
-            {
-                SetItem(new FruitBasket(), p, map);
-            }
+            if (map.FindItem<FruitBasket>(p) == null) SetItem(new FruitBasket(), p, map);
 
             // closed barrel 1
             map = Map.Felucca;
             p = new Point3D(5191, 587, 0);
-            if (map.FindItem<ClosedBarrel>(p) == null)
-            {
-                SetItem(new ClosedBarrel(), p, map);
-            }
+            if (map.FindItem<ClosedBarrel>(p) == null) SetItem(new ClosedBarrel(), p, map);
 
             map = Map.Trammel;
             p = new Point3D(5191, 587, 0);
-            if (map.FindItem<ClosedBarrel>(p) == null)
-            {
-                SetItem(new ClosedBarrel(), p, map);
-            }
+            if (map.FindItem<ClosedBarrel>(p) == null) SetItem(new ClosedBarrel(), p, map);
 
             // closed barrel 2
             map = Map.Felucca;
             p = new Point3D(5301, 592, 0);
-            if (map.FindItem<ClosedBarrel>(p) == null)
-            {
-                SetItem(new ClosedBarrel(), p, map);
-            }
+            if (map.FindItem<ClosedBarrel>(p) == null) SetItem(new ClosedBarrel(), p, map);
 
             map = Map.Trammel;
             p = new Point3D(5301, 592, 0);
-            if (map.FindItem<ClosedBarrel>(p) == null)
-            {
-                SetItem(new ClosedBarrel(), p, map);
-            }
+            if (map.FindItem<ClosedBarrel>(p) == null) SetItem(new ClosedBarrel(), p, map);
 
             // Large Candle
             map = Map.Felucca;
@@ -127,48 +86,30 @@ namespace Server.Items
             // full jars
             map = Map.Felucca;
             p = new Point3D(3656, 2506, 0);
-            if (map.FindItem<DailyFullJars>(p) == null)
-            {
-                SetItem(new DailyFullJars(), p, map);
-            }
+            if (map.FindItem<DailyFullJars>(p) == null) SetItem(new DailyFullJars(), p, map);
 
             // Hay
             p = new Point3D(5998, 3774, 19);
-            if (map.FindItem<DecoHay2>(p) == null)
-            {
-                SetItem(new DecoHay2(), p, map);
-            }
+            if (map.FindItem<DecoHay2>(p) == null) SetItem(new DecoHay2(), p, map);
 
             // Broken Chair
             map = Map.Ilshenar;
             p = new Point3D(148, 946, -29);
-            if (map.FindItem<DailyBrokenChair>(p) == null)
-            {
-                SetItem(new DailyBrokenChair(), p, map);
-            }
+            if (map.FindItem<DailyBrokenChair>(p) == null) SetItem(new DailyBrokenChair(), p, map);
 
             // Meat Pie
             map = Map.Malas;
             p = new Point3D(2112, 1311, -44);
-            if (map.FindItem<DailyMeatPie>(p) == null)
-            {
-                SetItem(new DailyMeatPie(), p, map);
-            }
+            if (map.FindItem<DailyMeatPie>(p) == null) SetItem(new DailyMeatPie(), p, map);
 
             // Daily Seaweed
             map = Map.Felucca;
             p = new Point3D(4548, 2400, -5);
-            if (map.FindItem<DailySeaweed>(p) == null)
-            {
-                SetItem(new DailySeaweed(), p, map);
-            }
+            if (map.FindItem<DailySeaweed>(p) == null) SetItem(new DailySeaweed(), p, map);
 
             map = Map.Trammel;
             p = new Point3D(4548, 2400, -5);
-            if (map.FindItem<DailySeaweed>(p) == null)
-            {
-                SetItem(new DailySeaweed(), p, map);
-            }
+            if (map.FindItem<DailySeaweed>(p) == null) SetItem(new DailySeaweed(), p, map);
         }
 
         public static void SetItem(Item item, Point3D p, Map map)
@@ -247,14 +188,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -275,14 +216,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -303,20 +244,20 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class DailyMeatPie : Food
     {
-        public override int LabelNumber { get { return 1060141; } } // a tasty meat pie
+        public override int LabelNumber => 1060141; // a tasty meat pie
 
         [Constructable]
         public DailyMeatPie()
@@ -336,14 +277,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

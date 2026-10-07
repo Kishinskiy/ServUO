@@ -1,5 +1,4 @@
 using System;
-using Server;
 using Server.Gumps;
 using Server.Network;
 
@@ -26,13 +25,11 @@ namespace Server.Items
 
         public override void OnResponse(NetState sender, RelayInfo info)
         {
-            Mobile from = sender.Mobile;
+            var from = sender.Mobile;
 
             if (info.ButtonID != 0)
-            {
                 if (Callback != null)
                     Callback(info.ButtonID == 1);
-            }
         }
     }
 }

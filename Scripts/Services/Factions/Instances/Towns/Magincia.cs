@@ -1,12 +1,10 @@
-using System;
-
 namespace Server.Factions
 {
     public class Magincia : Town
     {
         public Magincia()
         {
-            this.Definition =
+            Definition =
                 new TownDefinition(
                     7,
                     0x1870,

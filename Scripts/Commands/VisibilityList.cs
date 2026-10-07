@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using Server.Mobiles;
 using Server.Network;
@@ -10,25 +9,26 @@ namespace Server.Commands
     {
         public static void Initialize()
         {
-            EventSink.Login += new LoginEventHandler(OnLogin);
+            EventSink.Login += OnLogin;
 
-            CommandSystem.Register("Vis", AccessLevel.Counselor, new CommandEventHandler(Vis_OnCommand));
-            CommandSystem.Register("VisList", AccessLevel.Counselor, new CommandEventHandler(VisList_OnCommand));
-            CommandSystem.Register("VisClear", AccessLevel.Counselor, new CommandEventHandler(VisClear_OnCommand));
+            CommandSystem.Register("Vis", AccessLevel.Counselor, Vis_OnCommand);
+            CommandSystem.Register("VisList", AccessLevel.Counselor, VisList_OnCommand);
+            CommandSystem.Register("VisClear", AccessLevel.Counselor, VisClear_OnCommand);
         }
 
         public static void OnLogin(LoginEventArgs e)
         {
             if (e.Mobile is PlayerMobile)
             {
-                PlayerMobile pm = (PlayerMobile)e.Mobile;
+                var pm = (PlayerMobile)e.Mobile;
 
                 pm.VisibilityList.Clear();
             }
         }
 
         [Usage("Vis")]
-        [Description("Adds or removes a targeted player from your visibility list.  Anyone on your visibility list will be able to see you at all times, even when you're hidden.")]
+        [Description(
+            "Adds or removes a targeted player from your visibility list.  Anyone on your visibility list will be able to see you at all times, even when you're hidden.")]
         public static void Vis_OnCommand(CommandEventArgs e)
         {
             if (e.Mobile is PlayerMobile)
@@ -44,14 +44,14 @@ namespace Server.Commands
         {
             if (e.Mobile is PlayerMobile)
             {
-                PlayerMobile pm = (PlayerMobile)e.Mobile;
-                List<Mobile> list = pm.VisibilityList;
+                var pm = (PlayerMobile)e.Mobile;
+                var list = pm.VisibilityList;
 
                 if (list.Count > 0)
                 {
                     pm.SendMessage("You are visible to {0} mobile{1}:", list.Count, list.Count == 1 ? "" : "s");
 
-                    for (int i = 0; i < list.Count; ++i)
+                    for (var i = 0; i < list.Count; ++i)
                         pm.SendMessage("#{0}: {1}", i + 1, list[i].Name);
                 }
                 else
@@ -67,15 +67,15 @@ namespace Server.Commands
         {
             if (e.Mobile is PlayerMobile)
             {
-                PlayerMobile pm = (PlayerMobile)e.Mobile;
-                List<Mobile> list = new List<Mobile>(pm.VisibilityList);
-				
+                var pm = (PlayerMobile)e.Mobile;
+                var list = new List<Mobile>(pm.VisibilityList);
+
                 pm.VisibilityList.Clear();
                 pm.SendMessage("Your visibility list has been cleared.");
 
-                for (int i = 0; i < list.Count; ++i)
+                for (var i = 0; i < list.Count; ++i)
                 {
-                    Mobile m = list[i];
+                    var m = list[i];
 
                     if (!m.CanSee(pm) && Utility.InUpdateRange(m, pm))
                         m.Send(pm.RemovePacket);
@@ -94,12 +94,12 @@ namespace Server.Commands
             {
                 if (from is PlayerMobile && targeted is Mobile)
                 {
-                    PlayerMobile pm = (PlayerMobile)from;
-                    Mobile targ = (Mobile)targeted;
+                    var pm = (PlayerMobile)from;
+                    var targ = (Mobile)targeted;
 
                     if (targ.AccessLevel <= from.AccessLevel)
                     {
-                        List<Mobile> list = pm.VisibilityList;
+                        var list = pm.VisibilityList;
 
                         if (list.Contains(targ))
                         {
@@ -114,7 +114,7 @@ namespace Server.Commands
 
                         if (Utility.InUpdateRange(targ, from))
                         {
-                            NetState ns = targ.NetState;
+                            var ns = targ.NetState;
 
                             if (ns != null)
                             {
@@ -129,7 +129,7 @@ namespace Server.Commands
                                     {
                                         ns.Send(from.OPLPacket);
 
-                                        foreach (Item item in from.Items)
+                                        foreach (var item in from.Items)
                                             ns.Send(item.OPLPacket);
                                     }
                                 }

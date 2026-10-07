@@ -1,4 +1,6 @@
 using System;
+using Server.Mobiles;
+using Server.Network;
 
 namespace Server.Ethics.Hero
 {
@@ -6,7 +8,7 @@ namespace Server.Ethics.Hero
     {
         public HolySteed()
         {
-            this.m_Definition = new PowerDefinition(
+            m_Definition = new PowerDefinition(
                 30,
                 "Holy Steed",
                 "Trubechs Yeliab",
@@ -20,23 +22,23 @@ namespace Server.Ethics.Hero
 
             if (from.Steed != null)
             {
-                from.Mobile.LocalOverheadMessage(Server.Network.MessageType.Regular, 0x3B2, false, "You already have a holy steed.");
+                from.Mobile.LocalOverheadMessage(MessageType.Regular, 0x3B2, false, "You already have a holy steed.");
                 return;
             }
 
-            if ((from.Mobile.Followers + 1) > from.Mobile.FollowersMax)
+            if (from.Mobile.Followers + 1 > from.Mobile.FollowersMax)
             {
                 from.Mobile.SendLocalizedMessage(1049645); // You have too many followers to summon that creature.
                 return;
             }
 
-            Mobiles.HolySteed steed = new Mobiles.HolySteed();
+            var steed = new Mobiles.HolySteed();
 
-            if (Mobiles.BaseCreature.Summon(steed, from.Mobile, from.Mobile.Location, 0x217, TimeSpan.FromHours(1.0)))
+            if (BaseCreature.Summon(steed, from.Mobile, from.Mobile.Location, 0x217, TimeSpan.FromHours(1.0)))
             {
                 from.Steed = steed;
 
-                this.FinishInvoke(from);
+                FinishInvoke(from);
             }
         }
     }

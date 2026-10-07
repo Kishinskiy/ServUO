@@ -1,7 +1,3 @@
-using System;
-
-using Server;
-using Server.Gumps;
 using Server.Mobiles;
 
 namespace Server.Gumps
@@ -51,21 +47,14 @@ namespace Server.Gumps
             AddImage(90, 33, 0x232D);
             AddImageTiled(130, 65, 175, 1, 0x238D);
 
-            AddButton(345, 440, 0xF7, 0xF8, 0, GumpButtonType.Reply, 0);//OK
+            AddButton(345, 440, 0xF7, 0xF8, 0, GumpButtonType.Reply, 0); //OK
 
             if (Title.Number > 0)
-            {
                 AddHtmlLocalized(140, 45, 250, 24, Title.Number, 0x7FFF, false, false);
-            }
             else
-            {
                 AddHtml(140, 45, 250, 24, Color("#FFFFFF", Title.String), false, false);
-            }
 
-            for (int i = 0; i < PageEntries.Length; i++)
-            {
-                RenderPage(PageEntries[i]);
-            }
+            for (var i = 0; i < PageEntries.Length; i++) RenderPage(PageEntries[i]);
         }
 
         public void RenderPage(PageData page)
@@ -74,33 +63,23 @@ namespace Server.Gumps
             var textDef = page.Text;
 
             if (textDef.Number > 0)
-            {
                 AddHtmlLocalized(107, 140, 300, 150, textDef.Number, 0x7FFF, false, true);
-            }
             else
-            {
                 AddHtml(107, 140, 300, 150, Color("#FFFFFF", textDef.String), false, true);
-            }
 
             if (page.Selections != null)
-            {
-                for (int i = 0; i < page.Selections.Length; i++)
+                for (var i = 0; i < page.Selections.Length; i++)
                 {
-                    int y = 300 + (i * 20);
+                    var y = 300 + i * 20;
                     var entry = page.Selections[i];
 
                     AddButton(115, y, 0x26B0, 0x26B1, 0, GumpButtonType.Page, entry.PageTo);
 
                     if (entry.Title.Number > 0)
-                    {
                         AddHtmlLocalized(145, y, 250, 24, entry.Title.Number, 0x7FFF, false, false);
-                    }
                     else
-                    {
                         AddHtml(145, y, 250, 24, Color("#FFFFFF", entry.Title.String), false, false);
-                    }
                 }
-            }
         }
     }
 

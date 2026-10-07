@@ -1,49 +1,44 @@
-using System;
-using Server.Items;
-
 namespace Server.Items
 {
-	public abstract class Artifact : Item, IArtifact
-	{
-		[Constructable]
-		public Artifact(int itemID) : base(itemID)
-		{
-		}
+    public abstract class Artifact : Item, IArtifact
+    {
+        public override bool ForceShowProperties => true;
 
-		public Artifact( Serial serial ) : base( serial )
-		{
-		}
+        [Constructable]
+        public Artifact(int itemID) : base(itemID)
+        {
+        }
 
-		[CommandProperty( AccessLevel.GameMaster )]
-		public virtual int ArtifactRarity
-		{ 
-			get{ return 0; }
-			set {}
-		}
+        public Artifact(Serial serial) : base(serial)
+        {
+        }
 
-		public override bool ForceShowProperties{ get{ return true; } }
-            
-		public override void GetProperties( ObjectPropertyList list )
-		{
-			base.GetProperties( list );
-			if(ArtifactRarity > 0)
-				list.Add( 1061078, ArtifactRarity.ToString() );
-		}
+        [CommandProperty(AccessLevel.GameMaster)]
+        public virtual int ArtifactRarity
+        {
+            get => 0;
+            set { }
+        }
 
-		public override void Serialize( GenericWriter writer )
-		{
-			base.Serialize( writer );
+        public override void GetProperties(ObjectPropertyList list)
+        {
+            base.GetProperties(list);
+            if (ArtifactRarity > 0)
+                list.Add(1061078, ArtifactRarity.ToString());
+        }
 
-			writer.Write( (int) 0 ); // version
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
 
-		}
+            writer.Write(0); // version
+        }
 
-		public override void Deserialize( GenericReader reader )
-		{
-			base.Deserialize( reader );
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
 
-			int version = reader.ReadInt();
-
-		}
-	}
+            var version = reader.ReadInt();
+        }
+    }
 }

@@ -1,5 +1,3 @@
-using System;
-
 namespace Server.Items
 {
     public class TavarasJournal1 : BaseBook
@@ -54,6 +52,9 @@ namespace Server.Items
             new BookPageInfo(
                 "last ten years of my",
                 "life."));
+
+        public override BookContent DefaultContent => Content;
+
         [Constructable]
         public TavarasJournal1()
             : base(Utility.Random(0xFF1, 2), false)
@@ -65,25 +66,18 @@ namespace Server.Items
         {
         }
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
@@ -169,6 +163,9 @@ namespace Server.Items
                 "once the workers have",
                 "set to excavating the",
                 "hall."));
+
+        public override BookContent DefaultContent => Content;
+
         [Constructable]
         public TavarasJournal2()
             : base(Utility.Random(0xFF1, 2), false)
@@ -180,25 +177,18 @@ namespace Server.Items
         {
         }
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
@@ -258,6 +248,9 @@ namespace Server.Items
                 "rest of our crew",
                 "continue excavating",
                 "the inner halls."));
+
+        public override BookContent DefaultContent => Content;
+
         [Constructable]
         public TavarasJournal3()
             : base(Utility.Random(0xFF1, 2), false)
@@ -269,25 +262,18 @@ namespace Server.Items
         {
         }
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
@@ -358,6 +344,9 @@ namespace Server.Items
                 "ever turned to run,",
                 "even in the face of",
                 "certain death."));
+
+        public override BookContent DefaultContent => Content;
+
         [Constructable]
         public TavarasJournal6()
             : base(Utility.Random(0xFF1, 2), false)
@@ -369,25 +358,18 @@ namespace Server.Items
         {
         }
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
@@ -448,6 +430,9 @@ namespace Server.Items
                 "issue, as I suddenly",
                 "felt foolish even at",
                 "my askance."));
+
+        public override BookContent DefaultContent => Content;
+
         [Constructable]
         public TavarasJournal7()
             : base(Utility.Random(0xFF1, 2), false)
@@ -459,25 +444,18 @@ namespace Server.Items
         {
         }
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
@@ -554,6 +532,9 @@ namespace Server.Items
                 "and am thankful for",
                 "his laughter as well",
                 "as his strength."));
+
+        public override BookContent DefaultContent => Content;
+
         [Constructable]
         public TavarasJournal8()
             : base(Utility.Random(0xFF1, 2), false)
@@ -565,25 +546,18 @@ namespace Server.Items
         {
         }
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
@@ -640,6 +614,9 @@ namespace Server.Items
                 "must have fled the",
                 "site altogether, as",
                 "Bergen said."));
+
+        public override BookContent DefaultContent => Content;
+
         [Constructable]
         public TavarasJournal9()
             : base(Utility.Random(0xFF1, 2), false)
@@ -651,25 +628,18 @@ namespace Server.Items
         {
         }
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
@@ -746,6 +716,9 @@ namespace Server.Items
                 "above us like some",
                 "horrible, eldritch",
                 "curse upon us all."));
+
+        public override BookContent DefaultContent => Content;
+
         [Constructable]
         public TavarasJournal11()
             : base(Utility.Random(0xFF1, 2), false)
@@ -757,25 +730,18 @@ namespace Server.Items
         {
         }
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
@@ -845,6 +811,9 @@ namespace Server.Items
                 "Do we dare approach?",
                 "We must make a",
                 "decision soon."));
+
+        public override BookContent DefaultContent => Content;
+
         [Constructable]
         public TavarasJournal14()
             : base(Utility.Random(0xFF1, 2), false)
@@ -856,25 +825,18 @@ namespace Server.Items
         {
         }
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
@@ -954,6 +916,9 @@ namespace Server.Items
                 "tore at Lysander,",
                 "coming towards us in",
                 "droves."));
+
+        public override BookContent DefaultContent => Content;
+
         [Constructable]
         public TavarasJournal16()
             : base(Utility.Random(0xFF1, 2), false)
@@ -965,25 +930,18 @@ namespace Server.Items
         {
         }
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
@@ -1054,6 +1012,9 @@ namespace Server.Items
                 "here soon, even at the",
                 "unhurried pace of the",
                 "shuffling dead."));
+
+        public override BookContent DefaultContent => Content;
+
         [Constructable]
         public TavarasJournal16b()
             : base(Utility.Random(0xFF1, 2), false)
@@ -1065,25 +1026,18 @@ namespace Server.Items
         {
         }
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
@@ -1121,6 +1075,9 @@ namespace Server.Items
             new BookPageInfo(
                 "away in this ocean of",
                 "blood."));
+
+        public override BookContent DefaultContent => Content;
+
         [Constructable]
         public TavarasJournal17()
             : base(Utility.Random(0xFF1, 2), false)
@@ -1132,25 +1089,18 @@ namespace Server.Items
         {
         }
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
@@ -1179,6 +1129,9 @@ namespace Server.Items
             new BookPageInfo(
                 "must be done. I must",
                 "end this."));
+
+        public override BookContent DefaultContent => Content;
+
         [Constructable]
         public TavarasJournal19()
             : base(Utility.Random(0xFF1, 2), false)
@@ -1190,25 +1143,18 @@ namespace Server.Items
         {
         }
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

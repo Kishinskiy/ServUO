@@ -1,6 +1,3 @@
-using System;
-using Server;
-using Server.Multis;
 using Server.Regions;
 
 namespace Server.Items
@@ -18,12 +15,32 @@ namespace Server.Items
             }
         }
 
+        public override bool DisplayWeight => Movable;
+
         [Constructable]
         public DecorativeCarpet(int itemId)
             : base(itemId)
         {
             Weight = 1.0;
         }
+
+        public DecorativeCarpet(Serial serial)
+            : base(serial)
+        {
+        }
+
+        #region IDyable Members
+
+        public virtual bool Dye(Mobile from, DyeTub sender)
+        {
+            if (Deleted) return false;
+
+            Hue = sender.DyedHue;
+
+            return true;
+        }
+
+        #endregion
 
         public override void GetProperties(ObjectPropertyList list)
         {
@@ -32,8 +49,6 @@ namespace Server.Items
             if (Movable && IsInsideHouse())
                 list.Add(1113267); // (Double Click to Lockdown)
         }
-
-        public override bool DisplayWeight { get { return Movable; } }
 
         public override bool OnDroppedToWorld(Mobile from, Point3D p)
         {
@@ -46,11 +61,11 @@ namespace Server.Items
 
         public override void OnDoubleClick(Mobile from)
         {
-            HouseRegion region = Region.Find(Location, Map) as HouseRegion;
+            var region = Region.Find(Location, Map) as HouseRegion;
 
             if (region != null)
             {
-                BaseHouse house = region.House;
+                var house = region.House;
 
                 if (house.IsOwner(from) || house.IsCoOwner(from))
                 {
@@ -76,16 +91,11 @@ namespace Server.Items
             return Region.Find(Location, Map).IsPartOf<HouseRegion>();
         }
 
-        public DecorativeCarpet(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
@@ -95,19 +105,5 @@ namespace Server.Items
             /*int version = */
             reader.ReadInt();
         }
-
-        #region IDyable Members
-        public virtual bool Dye(Mobile from, DyeTub sender)
-        {
-            if (Deleted)
-            {
-                return false;
-            }
-
-            Hue = sender.DyedHue;
-
-            return true;
-        }
-        #endregion
     }
 }

@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +5,16 @@ namespace Server.Mobiles
     [CorpseName("a poison elementals corpse")]
     public class GreaterPoisonElemental : BaseCreature
     {
+        public override bool BleedImmune => true;
+
+        public override Poison PoisonImmune => Poison.Lethal;
+
+        public override Poison HitPoison => Poison.Lethal;
+
+        public override double HitPoisonChance => 0.75;
+
+        public override int TreasureMapLevel => 5;
+
         [Constructable]
         public GreaterPoisonElemental()
             : base(AIType.AI_Mage, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -58,41 +67,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool BleedImmune
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override Poison PoisonImmune
-        {
-            get
-            {
-                return Poison.Lethal;
-            }
-        }
-        public override Poison HitPoison
-        {
-            get
-            {
-                return Poison.Lethal;
-            }
-        }
-        public override double HitPoisonChance
-        {
-            get
-            {
-                return 0.75;
-            }
-        }
-        public override int TreasureMapLevel
-        {
-            get
-            {
-                return 5;
-            }
-        }
         public override void GenerateLoot()
         {
             AddLoot(LootPack.FilthyRich);
@@ -104,20 +78,20 @@ namespace Server.Mobiles
         {
             base.OnDeath(c);
 
-            if (Utility.RandomDouble() < 0.03)            
-                c.DropItem(new LuckyCoin());           
+            if (Utility.RandomDouble() < 0.03)
+                c.DropItem(new LuckyCoin());
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

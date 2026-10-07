@@ -13,93 +13,27 @@ namespace Server.Items
     {
         public static readonly double MaxBardingDifficulty = 160.0;
 
-        private int m_WellSound, m_BadlySound;
-        private SlayerName m_Slayer, m_Slayer2;
-        private ItemQuality m_Quality;
+        private static readonly Hashtable m_Instruments = new Hashtable();
         private Mobile m_Crafter;
-        private int m_UsesRemaining;
+
+        private DateTime m_LastReplenished;
+        private ItemQuality m_Quality;
+
+        private bool m_ReplenishesCharges;
         private CraftResource m_Resource;
+        private SlayerName m_Slayer, m_Slayer2;
+        private int m_UsesRemaining;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int SuccessSound
-        {
-            get
-            {
-                return m_WellSound;
-            }
-            set
-            {
-                m_WellSound = value;
-            }
-        }
+        public int SuccessSound { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int FailureSound
-        {
-            get
-            {
-                return m_BadlySound;
-            }
-            set
-            {
-                m_BadlySound = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public SlayerName Slayer
-        {
-            get
-            {
-                return m_Slayer;
-            }
-            set
-            {
-                m_Slayer = value;
-                InvalidateProperties();
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public SlayerName Slayer2
-        {
-            get
-            {
-                return m_Slayer2;
-            }
-            set
-            {
-                m_Slayer2 = value;
-                InvalidateProperties();
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public ItemQuality Quality
-        {
-            get
-            {
-                return m_Quality;
-            }
-            set
-            {
-                UnscaleUses();
-                m_Quality = value;
-                InvalidateProperties();
-                ScaleUses();
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public bool PlayerConstructed { get { return m_Crafter != null; } }
+        public int FailureSound { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public Mobile Crafter
         {
-            get
-            {
-                return m_Crafter;
-            }
+            get => m_Crafter;
             set
             {
                 m_Crafter = value;
@@ -107,40 +41,11 @@ namespace Server.Items
             }
         }
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public CraftResource Resource
-        {
-            get { return m_Resource; }
-            set
-            {
-                m_Resource = value;
-                Hue = CraftResources.GetHue(m_Resource);
-                InvalidateProperties();
-            }
-        }
+        public virtual int InitMinUses => 350;
 
-        public virtual int InitMinUses
-        {
-            get
-            {
-                return 350;
-            }
-        }
-        public virtual int InitMaxUses
-        {
-            get
-            {
-                return 450;
-            }
-        }
+        public virtual int InitMaxUses => 450;
 
-        public virtual TimeSpan ChargeReplenishRate
-        {
-            get
-            {
-                return TimeSpan.FromMinutes(5.0);
-            }
-        }
+        public virtual TimeSpan ChargeReplenishRate => TimeSpan.FromMinutes(5.0);
 
         [CommandProperty(AccessLevel.GameMaster)]
         public int UsesRemaining
@@ -157,15 +62,10 @@ namespace Server.Items
             }
         }
 
-        private DateTime m_LastReplenished;
-
         [CommandProperty(AccessLevel.GameMaster)]
         public DateTime LastReplenished
         {
-            get
-            {
-                return m_LastReplenished;
-            }
+            get => m_LastReplenished;
             set
             {
                 m_LastReplenished = value;
@@ -173,20 +73,110 @@ namespace Server.Items
             }
         }
 
-        private bool m_ReplenishesCharges;
         [CommandProperty(AccessLevel.GameMaster)]
         public bool ReplenishesCharges
         {
-            get
-            {
-                return m_ReplenishesCharges;
-            }
-            set 
+            get => m_ReplenishesCharges;
+            set
             {
                 if (value != m_ReplenishesCharges && value)
                     m_LastReplenished = DateTime.UtcNow;
 
-                m_ReplenishesCharges = value; 
+                m_ReplenishesCharges = value;
+            }
+        }
+
+        public BaseInstrument()
+        {
+            RandomInstrument();
+
+            UsesRemaining = Utility.RandomMinMax(InitMinUses, InitMaxUses);
+        }
+
+        public BaseInstrument(int itemID, int wellSound, int badlySound)
+            : base(itemID)
+        {
+            SuccessSound = wellSound;
+            FailureSound = badlySound;
+
+            UsesRemaining = Utility.RandomMinMax(InitMinUses, InitMaxUses);
+        }
+
+        public BaseInstrument(Serial serial)
+            : base(serial)
+        {
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public ItemQuality Quality
+        {
+            get => m_Quality;
+            set
+            {
+                UnscaleUses();
+                m_Quality = value;
+                InvalidateProperties();
+                ScaleUses();
+            }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public bool PlayerConstructed => m_Crafter != null;
+
+        #region ICraftable Members
+
+        public virtual int OnCraft(int quality, bool makersMark, Mobile from, CraftSystem craftSystem, Type typeRes,
+            ITool tool, CraftItem craftItem, int resHue)
+        {
+            Quality = (ItemQuality)quality;
+
+            if (makersMark)
+                Crafter = from;
+
+            if (!craftItem.ForceNonExceptional)
+            {
+                if (typeRes == null)
+                    typeRes = craftItem.Resources.GetAt(0).ItemType;
+
+                Resource = CraftResources.GetFromType(typeRes);
+            }
+
+            return quality;
+        }
+
+        #endregion
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public CraftResource Resource
+        {
+            get => m_Resource;
+            set
+            {
+                m_Resource = value;
+                Hue = CraftResources.GetHue(m_Resource);
+                InvalidateProperties();
+            }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public SlayerName Slayer
+        {
+            get => m_Slayer;
+            set
+            {
+                m_Slayer = value;
+                InvalidateProperties();
+            }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public SlayerName Slayer2
+        {
+            get => m_Slayer2;
+            set
+            {
+                m_Slayer2 = value;
+                InvalidateProperties();
             }
         }
 
@@ -195,26 +185,26 @@ namespace Server.Items
             switch (Utility.Random(3))
             {
                 case 0:
-                    {
-                        ItemID = 0xEB2;
-                        SuccessSound = 0x45;
-                        FailureSound = 0x46;
-                        break;
-                    }
+                {
+                    ItemID = 0xEB2;
+                    SuccessSound = 0x45;
+                    FailureSound = 0x46;
+                    break;
+                }
                 case 1:
-                    {
-                        ItemID = 0xEB3;
-                        SuccessSound = 0x4C;
-                        FailureSound = 0x4D;
-                        break;
-                    }
+                {
+                    ItemID = 0xEB3;
+                    SuccessSound = 0x4C;
+                    FailureSound = 0x4D;
+                    break;
+                }
                 default:
-                    {
-                        ItemID = 0xE9C;
-                        SuccessSound = 0x38;
-                        FailureSound = 0x39;
-                        break;
-                    }
+                {
+                    ItemID = 0xE9C;
+                    SuccessSound = 0x38;
+                    FailureSound = 0x39;
+                    break;
+                }
             }
         }
 
@@ -230,9 +220,10 @@ namespace Server.Items
 
             if (m_LastReplenished + ChargeReplenishRate < DateTime.UtcNow)
             {
-                TimeSpan timeDifference = DateTime.UtcNow - m_LastReplenished;
+                var timeDifference = DateTime.UtcNow - m_LastReplenished;
 
-                m_UsesRemaining = Math.Min(m_UsesRemaining + (int)(timeDifference.Ticks / ChargeReplenishRate.Ticks), InitMaxUses);	//How rude of TimeSpan to not allow timespan division.
+                m_UsesRemaining = Math.Min(m_UsesRemaining + (int)(timeDifference.Ticks / ChargeReplenishRate.Ticks),
+                    InitMaxUses); //How rude of TimeSpan to not allow timespan division.
                 m_LastReplenished = DateTime.UtcNow;
 
                 if (invalidate)
@@ -242,13 +233,13 @@ namespace Server.Items
 
         public void ScaleUses()
         {
-            UsesRemaining = (UsesRemaining * GetUsesScalar()) / 100;
+            UsesRemaining = UsesRemaining * GetUsesScalar() / 100;
             //InvalidateProperties();
         }
 
         public void UnscaleUses()
         {
-            UsesRemaining = (UsesRemaining * 100) / GetUsesScalar();
+            UsesRemaining = UsesRemaining * 100 / GetUsesScalar();
         }
 
         public int GetUsesScalar()
@@ -275,11 +266,9 @@ namespace Server.Items
             }
         }
 
-        private static readonly Hashtable m_Instruments = new Hashtable();
-
         public static BaseInstrument GetInstrument(Mobile from)
         {
-            BaseInstrument item = m_Instruments[from] as BaseInstrument;
+            var item = m_Instruments[from] as BaseInstrument;
 
             if (item == null)
                 return null;
@@ -300,7 +289,7 @@ namespace Server.Items
 
         public static void PickInstrument(Mobile from, InstrumentPickedCallback callback)
         {
-            BaseInstrument instrument = GetInstrument(from);
+            var instrument = GetInstrument(from);
 
             if (instrument != null)
             {
@@ -316,7 +305,7 @@ namespace Server.Items
 
         public static void OnPickedInstrument(Mobile from, object targeted, object state)
         {
-            BaseInstrument instrument = targeted as BaseInstrument;
+            var instrument = targeted as BaseInstrument;
 
             if (instrument == null)
             {
@@ -326,7 +315,7 @@ namespace Server.Items
             {
                 SetInstrument(from, instrument);
 
-                InstrumentPickedCallback callback = state as InstrumentPickedCallback;
+                var callback = state as InstrumentPickedCallback;
 
                 if (callback != null)
                     callback(from, instrument);
@@ -335,7 +324,7 @@ namespace Server.Items
 
         public static bool IsMageryCreature(BaseCreature bc)
         {
-            return (bc != null && bc.AI == AIType.AI_Mage && bc.Skills[SkillName.Magery].Base > 5.0);
+            return bc != null && bc.AI == AIType.AI_Mage && bc.Skills[SkillName.Magery].Base > 5.0;
         }
 
         public static bool IsFireBreathingCreature(BaseCreature bc)
@@ -345,17 +334,14 @@ namespace Server.Items
 
             var profile = bc.AbilityProfile;
 
-            if (profile != null)
-            {
-                return profile.HasAbility(SpecialAbility.DragonBreath);
-            }
+            if (profile != null) return profile.HasAbility(SpecialAbility.DragonBreath);
 
             return false;
         }
 
         public static bool IsPoisonImmune(BaseCreature bc)
         {
-            return (bc != null && bc.PoisonImmune != null);
+            return bc != null && bc.PoisonImmune != null;
         }
 
         public static int GetPoisonLevel(BaseCreature bc)
@@ -363,7 +349,7 @@ namespace Server.Items
             if (bc == null)
                 return 0;
 
-            Poison p = bc.HitPoison;
+            var p = bc.HitPoison;
 
             if (p == null)
                 return 0;
@@ -377,11 +363,11 @@ namespace Server.Items
             - Radiation or Aura Damage (Heat, Cold etc.)
             - Summoning Undead
             */
-            double val = (targ.HitsMax * 1.6) + targ.StamMax + targ.ManaMax;
+            var val = targ.HitsMax * 1.6 + targ.StamMax + targ.ManaMax;
 
             val += targ.SkillsTotal / 10;
 
-            BaseCreature bc = targ as BaseCreature;
+            var bc = targ as BaseCreature;
 
             if (IsMageryCreature(bc))
                 val += 100;
@@ -413,14 +399,14 @@ namespace Server.Items
 
         public double GetDifficultyFor(Mobile targ)
         {
-            double val = GetBaseDifficulty(targ);
+            var val = GetBaseDifficulty(targ);
 
             if (m_Quality == ItemQuality.Exceptional)
                 val -= 5.0; // 10%
 
             if (m_Slayer != SlayerName.None)
             {
-                SlayerEntry entry = SlayerGroup.GetEntryByName(m_Slayer);
+                var entry = SlayerGroup.GetEntryByName(m_Slayer);
 
                 if (entry != null)
                 {
@@ -433,7 +419,7 @@ namespace Server.Items
 
             if (m_Slayer2 != SlayerName.None)
             {
-                SlayerEntry entry = SlayerGroup.GetEntryByName(m_Slayer2);
+                var entry = SlayerGroup.GetEntryByName(m_Slayer2);
 
                 if (entry != null)
                 {
@@ -446,7 +432,7 @@ namespace Server.Items
 
             if (m_Slayer == SlayerName.None && m_Slayer2 == SlayerName.None)
             {
-                SlayerEntry entry = SlayerGroup.GetEntryByName(SlayerSocket.GetSlayer(this));
+                var entry = SlayerGroup.GetEntryByName(SlayerSocket.GetSlayer(this));
 
                 if (entry != null)
                 {
@@ -465,22 +451,6 @@ namespace Server.Items
             m_Instruments[from] = item;
         }
 
-        public BaseInstrument()
-        {
-            RandomInstrument();
-
-            UsesRemaining = Utility.RandomMinMax(InitMinUses, InitMaxUses);
-        }
-
-        public BaseInstrument(int itemID, int wellSound, int badlySound)
-            : base(itemID)
-        {
-            m_WellSound = wellSound;
-            m_BadlySound = badlySound;
-
-            UsesRemaining = Utility.RandomMinMax(InitMinUses, InitMaxUses);
-        }
-
         public override void AddCraftedProperties(ObjectPropertyList list)
         {
             if (m_Crafter != null)
@@ -497,7 +467,7 @@ namespace Server.Items
 
         public override void GetProperties(ObjectPropertyList list)
         {
-            int oldUses = m_UsesRemaining;
+            var oldUses = m_UsesRemaining;
             CheckReplenishUses(false);
 
             base.GetProperties(list);
@@ -507,21 +477,21 @@ namespace Server.Items
 
             if (m_Slayer != SlayerName.None)
             {
-                SlayerEntry entry = SlayerGroup.GetEntryByName(m_Slayer);
+                var entry = SlayerGroup.GetEntryByName(m_Slayer);
                 if (entry != null)
                     list.Add(entry.Title);
             }
 
             if (m_Slayer2 != SlayerName.None)
             {
-                SlayerEntry entry = SlayerGroup.GetEntryByName(m_Slayer2);
+                var entry = SlayerGroup.GetEntryByName(m_Slayer2);
                 if (entry != null)
                     list.Add(entry.Title);
             }
 
             if (!CraftResources.IsStandard(m_Resource))
             {
-                int num = CraftResources.GetLocalizationNumber(m_Resource);
+                var num = CraftResources.GetLocalizationNumber(m_Resource);
 
                 if (num > 0)
                     list.Add(num);
@@ -530,12 +500,12 @@ namespace Server.Items
             }
 
             if (m_UsesRemaining != oldUses)
-                Timer.DelayCall(TimeSpan.Zero, new TimerCallback(InvalidateProperties));
+                Timer.DelayCall(TimeSpan.Zero, InvalidateProperties);
         }
 
         public override void OnSingleClick(Mobile from)
         {
-            ArrayList attrs = new ArrayList();
+            var attrs = new ArrayList();
 
             if (DisplayLootType)
             {
@@ -554,14 +524,14 @@ namespace Server.Items
             // TODO: Must this support item identification?
             if (m_Slayer != SlayerName.None)
             {
-                SlayerEntry entry = SlayerGroup.GetEntryByName(m_Slayer);
+                var entry = SlayerGroup.GetEntryByName(m_Slayer);
                 if (entry != null)
                     attrs.Add(new EquipInfoAttribute(entry.Title));
             }
 
             if (m_Slayer2 != SlayerName.None)
             {
-                SlayerEntry entry = SlayerGroup.GetEntryByName(m_Slayer2);
+                var entry = SlayerGroup.GetEntryByName(m_Slayer2);
                 if (entry != null)
                     attrs.Add(new EquipInfoAttribute(entry.Title));
             }
@@ -581,21 +551,17 @@ namespace Server.Items
             if (attrs.Count == 0 && Crafter == null && Name != null)
                 return;
 
-            EquipmentInfo eqInfo = new EquipmentInfo(number, m_Crafter, false, (EquipInfoAttribute[])attrs.ToArray(typeof(EquipInfoAttribute)));
+            var eqInfo = new EquipmentInfo(number, m_Crafter, false,
+                (EquipInfoAttribute[])attrs.ToArray(typeof(EquipInfoAttribute)));
 
             from.Send(new DisplayEquipmentInfo(this, eqInfo));
-        }
-
-        public BaseInstrument(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)4); // version
+            writer.Write(4); // version
 
             writer.Write((int)m_Resource);
 
@@ -609,71 +575,71 @@ namespace Server.Items
             writer.WriteEncodedInt((int)m_Slayer);
             writer.WriteEncodedInt((int)m_Slayer2);
 
-            writer.WriteEncodedInt((int)UsesRemaining);
+            writer.WriteEncodedInt(UsesRemaining);
 
-            writer.WriteEncodedInt((int)m_WellSound);
-            writer.WriteEncodedInt((int)m_BadlySound);
+            writer.WriteEncodedInt(SuccessSound);
+            writer.WriteEncodedInt(FailureSound);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            switch ( version )
+            switch (version)
             {
                 case 4:
-                    {
-                        m_Resource = (CraftResource)reader.ReadInt();
-                        goto case 3;
-                    }
+                {
+                    m_Resource = (CraftResource)reader.ReadInt();
+                    goto case 3;
+                }
                 case 3:
-                    {
-                        m_ReplenishesCharges = reader.ReadBool();
+                {
+                    m_ReplenishesCharges = reader.ReadBool();
 
-                        if (m_ReplenishesCharges)
-                            m_LastReplenished = reader.ReadDateTime();
+                    if (m_ReplenishesCharges)
+                        m_LastReplenished = reader.ReadDateTime();
 
-                        goto case 2;
-                    }
+                    goto case 2;
+                }
                 case 2:
-                    {
-                        m_Crafter = reader.ReadMobile();
+                {
+                    m_Crafter = reader.ReadMobile();
 
-                        m_Quality = (ItemQuality)reader.ReadEncodedInt();
-                        m_Slayer = (SlayerName)reader.ReadEncodedInt();
-                        m_Slayer2 = (SlayerName)reader.ReadEncodedInt();
+                    m_Quality = (ItemQuality)reader.ReadEncodedInt();
+                    m_Slayer = (SlayerName)reader.ReadEncodedInt();
+                    m_Slayer2 = (SlayerName)reader.ReadEncodedInt();
 
-                        UsesRemaining = reader.ReadEncodedInt();
+                    UsesRemaining = reader.ReadEncodedInt();
 
-                        m_WellSound = reader.ReadEncodedInt();
-                        m_BadlySound = reader.ReadEncodedInt();
-					
-                        break;
-                    }
+                    SuccessSound = reader.ReadEncodedInt();
+                    FailureSound = reader.ReadEncodedInt();
+
+                    break;
+                }
                 case 1:
-                    {
-                        m_Crafter = reader.ReadMobile();
+                {
+                    m_Crafter = reader.ReadMobile();
 
-                        m_Quality = (ItemQuality)reader.ReadEncodedInt();
-                        m_Slayer = (SlayerName)reader.ReadEncodedInt();
+                    m_Quality = (ItemQuality)reader.ReadEncodedInt();
+                    m_Slayer = (SlayerName)reader.ReadEncodedInt();
 
-                        UsesRemaining = reader.ReadEncodedInt();
+                    UsesRemaining = reader.ReadEncodedInt();
 
-                        m_WellSound = reader.ReadEncodedInt();
-                        m_BadlySound = reader.ReadEncodedInt();
+                    SuccessSound = reader.ReadEncodedInt();
+                    FailureSound = reader.ReadEncodedInt();
 
-                        break;
-                    }
+                    break;
+                }
                 case 0:
-                    {
-                        m_WellSound = reader.ReadInt();
-                        m_BadlySound = reader.ReadInt();
-                        UsesRemaining = Utility.RandomMinMax(InitMinUses, InitMaxUses);
+                {
+                    SuccessSound = reader.ReadInt();
+                    FailureSound = reader.ReadInt();
+                    UsesRemaining = Utility.RandomMinMax(InitMinUses, InitMaxUses);
 
-                        break;
-                    }
+                    break;
+                }
             }
 
             CheckReplenishUses();
@@ -689,10 +655,7 @@ namespace Server.Items
             {
                 SetInstrument(from, this);
 
-                Timer.DelayCall(TimeSpan.FromMilliseconds(1000), () =>
-                {
-                    from.EndAction(typeof(BaseInstrument));
-                });
+                Timer.DelayCall(TimeSpan.FromMilliseconds(1000), () => { from.EndAction(typeof(BaseInstrument)); });
 
                 if (CheckMusicianship(from))
                     PlayInstrumentWell(from);
@@ -709,38 +672,17 @@ namespace Server.Items
         {
             m.CheckSkill(SkillName.Musicianship, 0.0, 120.0);
 
-            return ((m.Skills[SkillName.Musicianship].Value / 100) > Utility.RandomDouble());
+            return m.Skills[SkillName.Musicianship].Value / 100 > Utility.RandomDouble();
         }
 
         public void PlayInstrumentWell(Mobile from)
         {
-            from.PlaySound(m_WellSound);
+            from.PlaySound(SuccessSound);
         }
 
         public void PlayInstrumentBadly(Mobile from)
         {
-            from.PlaySound(m_BadlySound);
+            from.PlaySound(FailureSound);
         }
-
-        #region ICraftable Members
-
-        public virtual int OnCraft(int quality, bool makersMark, Mobile from, CraftSystem craftSystem, Type typeRes, ITool tool, CraftItem craftItem, int resHue)
-        {
-            Quality = (ItemQuality)quality;
-
-            if (makersMark)
-                Crafter = from;
-
-            if (!craftItem.ForceNonExceptional)
-            {
-                if (typeRes == null)
-                    typeRes = craftItem.Resources.GetAt(0).ItemType;
-
-                Resource = CraftResources.GetFromType(typeRes);
-            }
-
-            return quality;
-        }
-        #endregion
     }
 }

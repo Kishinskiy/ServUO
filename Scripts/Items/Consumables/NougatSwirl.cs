@@ -1,9 +1,9 @@
-using System;
-
 namespace Server.Items
 {
     public class NougatSwirl : CandyCane
     {
+        public override int LabelNumber => 1096936; /* nougat swirl */
+
         [Constructable]
         public NougatSwirl()
             : this(1)
@@ -23,25 +23,18 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1096936;
-            }
-        }/* nougat swirl */
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -1,11 +1,8 @@
-using System;
-
 namespace Server.Items
 {
     public abstract class BaseArtifactLight : BaseLight, IArtifact
     {
-        public abstract int ArtifactRarity { get; }
-        public virtual bool ShowArtifactRarity { get { return true; } }
+        public virtual bool ShowArtifactRarity => true;
 
         public BaseArtifactLight(int itemID)
             : base(itemID)
@@ -17,24 +14,26 @@ namespace Server.Items
         {
         }
 
+        public abstract int ArtifactRarity { get; }
+
         public override void GetProperties(ObjectPropertyList list)
         {
             base.GetProperties(list);
 
             if (ShowArtifactRarity)
-                list.Add(1061078, this.ArtifactRarity.ToString()); // artifact rarity ~1_val~
+                list.Add(1061078, ArtifactRarity.ToString()); // artifact rarity ~1_val~
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
-        }        
+            writer.Write(0);
+        }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

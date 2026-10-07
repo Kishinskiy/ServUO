@@ -1,10 +1,19 @@
 using System;
 using Server.Engines.BulkOrders;
+using Server.Items;
 
 namespace Server.Mobiles
 {
     public class BlacksmithGuildmaster : BaseGuildmaster
     {
+        public override NpcGuild NpcGuild => NpcGuild.BlacksmithsGuild;
+
+        public override bool IsActiveVendor => true;
+
+        public override bool ClickTitle => true;
+
+        public override VendorShoeType ShoeType => VendorShoeType.ThighBoots;
+
         [Constructable]
         public BlacksmithGuildmaster()
             : base("blacksmith")
@@ -20,34 +29,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override NpcGuild NpcGuild
-        {
-            get
-            {
-                return NpcGuild.BlacksmithsGuild;
-            }
-        }
-        public override bool IsActiveVendor
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool ClickTitle
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override VendorShoeType ShoeType
-        {
-            get
-            {
-                return VendorShoeType.ThighBoots;
-            }
-        }
         public override void InitSBInfo()
         {
             SBInfos.Add(new SBBlacksmith());
@@ -55,7 +36,7 @@ namespace Server.Mobiles
 
         public override void InitOutfit()
         {
-            Item item = (Utility.RandomBool() ? null : new Server.Items.RingmailChest());
+            Item item = Utility.RandomBool() ? null : new RingmailChest();
 
             if (item != null && !EquipItem(item))
             {
@@ -64,22 +45,38 @@ namespace Server.Mobiles
             }
 
             if (item == null)
-                AddItem(new Server.Items.FullApron());
+                AddItem(new FullApron());
 
-            AddItem(new Server.Items.Bascinet());
-            AddItem(new Server.Items.SmithHammer());
+            AddItem(new Bascinet());
+            AddItem(new SmithHammer());
 
             base.InitOutfit();
         }
 
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+
+            writer.Write(0); // version
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+
+            var version = reader.ReadInt();
+        }
+
         #region Bulk Orders
+
         public override Item CreateBulkOrder(Mobile from, bool fromContextMenu)
         {
-            PlayerMobile pm = from as PlayerMobile;
+            var pm = from as PlayerMobile;
 
-            if (pm != null && pm.NextSmithBulkOrder == TimeSpan.Zero && (fromContextMenu || 0.2 > Utility.RandomDouble()))
+            if (pm != null && pm.NextSmithBulkOrder == TimeSpan.Zero &&
+                (fromContextMenu || 0.2 > Utility.RandomDouble()))
             {
-                double theirSkill = pm.Skills[SkillName.Blacksmith].Base;
+                var theirSkill = pm.Skills[SkillName.Blacksmith].Base;
 
                 if (theirSkill >= 70.1)
                     pm.NextSmithBulkOrder = TimeSpan.FromHours(6.0);
@@ -88,7 +85,7 @@ namespace Server.Mobiles
                 else
                     pm.NextSmithBulkOrder = TimeSpan.FromHours(1.0);
 
-                if (theirSkill >= 70.1 && ((theirSkill - 40.0) / 300.0) > Utility.RandomDouble())
+                if (theirSkill >= 70.1 && (theirSkill - 40.0) / 300.0 > Utility.RandomDouble())
                     return new LargeSmithBOD();
 
                 return SmallSmithBOD.CreateRandomFor(from);
@@ -99,12 +96,12 @@ namespace Server.Mobiles
 
         public override bool IsValidBulkOrder(Item item)
         {
-            return (item is SmallSmithBOD || item is LargeSmithBOD);
+            return item is SmallSmithBOD || item is LargeSmithBOD;
         }
 
         public override bool SupportsBulkOrders(Mobile from)
         {
-            return (from is PlayerMobile && from.Skills[SkillName.Blacksmith].Base > 0);
+            return from is PlayerMobile && from.Skills[SkillName.Blacksmith].Base > 0;
         }
 
         public override TimeSpan GetNextBulkOrder(Mobile from)
@@ -122,18 +119,5 @@ namespace Server.Mobiles
         }
 
         #endregion
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-
-            writer.Write((int)0); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
-        }
     }
 }

@@ -1,10 +1,20 @@
 using System;
-using Server.Items;
 
 namespace Server.Engines.Quests
 {
     public class Jaacar : MondainQuester
     {
+        public override Type[] Quests
+        {
+            get
+            {
+                return new[]
+                {
+                    typeof(BadCompany)
+                };
+            }
+        }
+
         [Constructable]
         public Jaacar()
             : base("Jaacar")
@@ -14,17 +24,6 @@ namespace Server.Engines.Quests
         public Jaacar(Serial serial)
             : base(serial)
         {
-        }
-
-        public override Type[] Quests
-        {
-            get
-            {
-                return new Type[] 
-                {
-                    typeof(BadCompany)
-                };
-            }
         }
 
         public override void InitBody()
@@ -41,19 +40,16 @@ namespace Server.Engines.Quests
         {
             base.Serialize(writer);
 
-            writer.Write((int)1); // version
+            writer.Write(1); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            if (version == 0)
-            {
-                Body = 723;
-            }
+            if (version == 0) Body = 723;
 
             Frozen = true;
             Direction = Direction.Down;

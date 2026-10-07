@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -7,6 +6,12 @@ namespace Server.Mobiles
     [CorpseName("a lady melisande corpse")]
     public class LadyMelisande : BasePeerless
     {
+        public override bool GivesMLMinorArtifact => true;
+
+        public override Poison PoisonImmune => Poison.Lethal;
+
+        public override int TreasureMapLevel => 5;
+
         [Constructable]
         public LadyMelisande()
             : base(AIType.AI_NecroMage, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -19,10 +24,10 @@ namespace Server.Mobiles
             SetDex(300, 400);
             SetInt(1500, 1700);
 
-            SetHits(100000);	
+            SetHits(100000);
 
             SetDamage(11, 18);
-			
+
             SetDamageType(ResistanceType.Physical, 50);
             SetDamageType(ResistanceType.Energy, 50);
 
@@ -31,7 +36,7 @@ namespace Server.Mobiles
             SetResistance(ResistanceType.Cold, 55, 65);
             SetResistance(ResistanceType.Poison, 70, 75);
             SetResistance(ResistanceType.Energy, 70, 80);
-			
+
             SetSkill(SkillName.Wrestling, 100, 105);
             SetSkill(SkillName.Tactics, 100, 105);
             SetSkill(SkillName.MagicResist, 120);
@@ -44,19 +49,22 @@ namespace Server.Mobiles
             PackResources(8);
             PackTalismans(5);
 
-            Timer.DelayCall(TimeSpan.FromSeconds(1), new TimerCallback(SpawnSatyrs));
+            Timer.DelayCall(TimeSpan.FromSeconds(1), SpawnSatyrs);
 
             Fame = 25000;
             Karma = -25000;
 
             VirtualArmor = 50;
 
-            for (int i = 0; i < Utility.RandomMinMax(0, 1); i++)
-            {
+            for (var i = 0; i < Utility.RandomMinMax(0, 1); i++)
                 PackItem(Loot.RandomScroll(0, Loot.ArcanistScrollTypes.Length, SpellbookType.Arcanist));
-            }
 
             SetAreaEffect(AreaEffect.AuraOfNausea);
+        }
+
+        public LadyMelisande(Serial serial)
+            : base(serial)
+        {
         }
 
         public override void GenerateLoot()
@@ -72,17 +80,16 @@ namespace Server.Mobiles
             c.DropItem(new DiseasedBark());
             c.DropItem(new EternallyCorruptTree());
 
-            int drop = Utility.Random(4, 8);
+            var drop = Utility.Random(4, 8);
 
-            for (int i = 0; i < drop; i++)
+            for (var i = 0; i < drop; i++)
                 c.DropItem(new MelisandesFermentedWine());
 
             if (Utility.RandomDouble() < 0.6)
                 c.DropItem(new ParrotItem());
 
             if (Utility.RandomDouble() < 0.2225)
-            {
-                switch ( Utility.Random(3) )
+                switch (Utility.Random(3))
                 {
                     case 0:
                         c.DropItem(new MelisandesHairDye());
@@ -94,14 +101,13 @@ namespace Server.Mobiles
                         c.DropItem(new AlbinoSquirrelImprisonedInCrystal());
                         break;
                 }
-            }
         }
-		
+
         public override void OnThink()
         {
             base.OnThink();
 
-            Mobile combatant = Combatant as Mobile;
+            var combatant = Combatant as Mobile;
 
             if (combatant != null)
             {
@@ -118,63 +124,37 @@ namespace Server.Mobiles
             if (newLocation.Z > -10)
                 base.SetLocation(newLocation, isTeleport);
         }
-		
+
         public override void OnDamage(int amount, Mobile from, bool willKill)
         {
             if (willKill)
             {
                 SpawnHelper(new Reaper(), 6490, 948, 19);
                 SpawnHelper(new InsaneDryad(), 6497, 946, 17);
-                SpawnHelper(new StoneHarpy(), 6511, 946, 28); 	
+                SpawnHelper(new StoneHarpy(), 6511, 946, 28);
 
                 Say(1075118); // Noooooo!  You shall never defeat me.  Even if I should fall, my tree will sustain me and I will rise again.
             }
-				
-            base.OnDamage(amount, from, willKill);				
-        }
-	
-        public override bool GivesMLMinorArtifact
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override Poison PoisonImmune
-        {
-            get
-            {
-                return Poison.Lethal;
-            }
-        }
-        public override int TreasureMapLevel
-        {
-            get
-            {
-                return 5;
-            }
-        }
 
-        public LadyMelisande(Serial serial)
-            : base(serial)
-        {
+            base.OnDamage(amount, from, willKill);
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-			
-            writer.Write((int)0); // version
+
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-			
-            int version = reader.ReadInt();
+
+            var version = reader.ReadInt();
         }
-		
+
         #region Smack Talk
+
         private DateTime m_NextSmackTalk;
 
         public bool CanSmackTalk()
@@ -192,12 +172,13 @@ namespace Server.Mobiles
         {
             Say(Utility.RandomMinMax(1075102, 1075115)); // Muahahahaha!  I'll feast on your flesh.
 
-            m_NextSmackTalk = DateTime.UtcNow + TimeSpan.FromSeconds(2 + Utility.RandomDouble() * 3);	
+            m_NextSmackTalk = DateTime.UtcNow + TimeSpan.FromSeconds(2 + Utility.RandomDouble() * 3);
         }
 
         #endregion
-		
+
         #region Take Life
+
         private DateTime m_NextTakeLife;
 
         public bool CanTakeLife(Mobile from)
@@ -213,15 +194,15 @@ namespace Server.Mobiles
 
             return true;
         }
-				
+
         public void TakeLife(Mobile from)
         {
             Hits += from.Hits / (from.Player ? 2 : 6);
-			
+
             FixedParticles(0x376A, 9, 32, 5005, EffectLayer.Waist);
             PlaySound(0x1F2);
-			
-            Say(1075117);  // Muahahaha!  Your life essence is MINE!
+
+            Say(1075117); // Muahahaha!  Your life essence is MINE!
             Say(1075120); // An unholy aura surrounds Lady Melisande as her wounds begin to close.
 
             m_NextTakeLife = DateTime.UtcNow + TimeSpan.FromSeconds(15 + Utility.RandomDouble() * 45);
@@ -230,48 +211,39 @@ namespace Server.Mobiles
         #endregion
 
         #region Helpers
-        public override bool CanSpawnHelpers
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override int MaxHelpersWaves
-        {
-            get
-            {
-                return 1;
-            }
-        }
+
+        public override bool CanSpawnHelpers => true;
+
+        public override int MaxHelpersWaves => 1;
 
         public override void SpawnHelpers()
         {
-            int count = 4;
+            var count = 4;
 
             if (Altar != null)
             {
                 count = Math.Min(Altar.Fighters.Count, 4);
 
-                for (int i = 0; i < count; i++)
+                for (var i = 0; i < count; i++)
                 {
-                    Mobile fighter = Altar.Fighters[i];
+                    var fighter = Altar.Fighters[i];
 
                     if (CanBeHarmful(fighter))
                     {
-                        EnslavedSatyr satyr = new EnslavedSatyr();
+                        var satyr = new EnslavedSatyr();
                         satyr.FightMode = FightMode.Closest;
                         SpawnHelper(satyr, GetSpawnPosition(fighter.Location, fighter.Map, 2));
 
                         satyr.Combatant = fighter;
 
-                        fighter.SendLocalizedMessage(1075116); // A twisted satyr scrambles onto the branch beside you and attacks!
+                        fighter.SendLocalizedMessage(
+                            1075116); // A twisted satyr scrambles onto the branch beside you and attacks!
                     }
                 }
             }
             else
             {
-                for (int i = 0; i < count; i++)
+                for (var i = 0; i < count; i++)
                     SpawnHelper(new EnslavedSatyr(), 4);
             }
         }
@@ -280,9 +252,10 @@ namespace Server.Mobiles
         {
             SpawnHelper(new EnslavedSatyr(), 6485, 945, 19);
             SpawnHelper(new EnslavedSatyr(), 6486, 948, 22);
-            SpawnHelper(new EnslavedSatyr(), 6487, 945, 17); 
-            SpawnHelper(new EnslavedSatyr(), 6488, 947, 23); 
+            SpawnHelper(new EnslavedSatyr(), 6487, 945, 17);
+            SpawnHelper(new EnslavedSatyr(), 6488, 947, 23);
         }
+
         #endregion
     }
 }

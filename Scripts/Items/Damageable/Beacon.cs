@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
-using Server;
+using Server.Misc;
 using Server.Mobiles;
+using Server.Network;
 
 namespace Server.Items
 {
@@ -15,10 +15,7 @@ namespace Server.Items
         [CommandProperty(AccessLevel.GameMaster)]
         public bool DoBlast
         {
-            get
-            {
-                return false;
-            }
+            get => false;
             set
             {
                 if (value)
@@ -29,10 +26,7 @@ namespace Server.Items
         [CommandProperty(AccessLevel.GameMaster)]
         public bool DoArea
         {
-            get
-            {
-                return false;
-            }
+            get => false;
             set
             {
                 if (value)
@@ -42,8 +36,8 @@ namespace Server.Items
 
         public List<Item> Rubble { get; set; }
 
-        public override bool DeleteOnDestroy { get { return false; } }
-        public override double IDChange { get { return 0.50; } }
+        public override bool DeleteOnDestroy => false;
+        public override double IDChange => 0.50;
 
         public Beacon()
             : base(18212, 39299, 1)
@@ -59,12 +53,17 @@ namespace Server.Items
             Level = ItemLevel.Easy; // Hard
         }
 
+        public Beacon(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void OnLocationChange(Point3D oldlocation)
         {
             base.OnLocationChange(oldlocation);
 
             if (Component != null)
-                Component.Location = new Point3D(this.X - 1, this.Y, this.Z);
+                Component.Location = new Point3D(X - 1, Y, Z);
         }
 
         public override void OnMapChange()
@@ -72,7 +71,7 @@ namespace Server.Items
             base.OnMapChange();
 
             if (Component != null)
-                Component.Map = this.Map;
+                Component.Map = Map;
         }
 
         public override void OnAfterDelete()
@@ -85,11 +84,11 @@ namespace Server.Items
 
         public override bool OnBeforeDestroyed()
         {
-            List<Item> delete = new List<Item>();
+            var delete = new List<Item>();
 
             if (Rubble != null)
             {
-                foreach (Item i in Rubble.Where(item => item.Z > this.Z))
+                foreach (var i in Rubble.Where(item => item.Z > Z))
                 {
                     i.Delete();
                     delete.Add(i);
@@ -111,58 +110,52 @@ namespace Server.Items
             delete.Clear();
             delete.TrimExcess();
 
-            AddRubble(new Static(634), new Point3D(this.X - 2, this.Y, this.Z));
-            AddRubble(new Static(633), new Point3D(this.X - 2, this.Y + 1, this.Z));
+            AddRubble(new Static(634), new Point3D(X - 2, Y, Z));
+            AddRubble(new Static(633), new Point3D(X - 2, Y + 1, Z));
 
-            AddRubble(new Static(635), new Point3D(this.X + 2, this.Y - 2, this.Z));
-            AddRubble(new Static(632), new Point3D(this.X + 3, this.Y - 2, this.Z));
+            AddRubble(new Static(635), new Point3D(X + 2, Y - 2, Z));
+            AddRubble(new Static(632), new Point3D(X + 3, Y - 2, Z));
 
-            AddRubble(new Static(634), new Point3D(this.X + 2, this.Y, this.X));
-            AddRubble(new Static(633), new Point3D(this.X + 2, this.Y + 1, this.Z));
+            AddRubble(new Static(634), new Point3D(X + 2, Y, X));
+            AddRubble(new Static(633), new Point3D(X + 2, Y + 1, Z));
             return true;
         }
 
         private void DoEffects()
         {
-            int range = 8;
+            var range = 8;
 
             //Flamestrikes
-            for (int i = 0; i < range; i++)
-            {
-                Timer.DelayCall(TimeSpan.FromMilliseconds(i * 50), o =>
+            for (var i = 0; i < range; i++)
+                Timer.DelayCall(TimeSpan.FromMilliseconds(i * 50),
+                    o =>
                     {
-                        Server.Misc.Geometry.Circle2D(this.Location, this.Map, (int)o, (pnt, map) =>
-                        {
-                            Effects.SendLocationEffect(pnt, map, 0x3709, 30, 20, 0, 2);
-                        });
+                        Geometry.Circle2D(Location, Map, o,
+                            (pnt, map) => { Effects.SendLocationEffect(pnt, map, 0x3709, 30, 20, 0, 2); });
                     }, i);
-            }
 
             //Explosions
             Timer.DelayCall(TimeSpan.FromMilliseconds(1000), () =>
             {
-                for (int i = 0; i < range + 3; i++)
-                {
-                    Server.Misc.Geometry.Circle2D(this.Location, this.Map, i, (pnt, map) =>
-                    {
-                        Effects.SendLocationEffect(pnt, map, 0x36CB, 14, 10, 2498, 2);
-                    });
-                }
+                for (var i = 0; i < range + 3; i++)
+                    Geometry.Circle2D(Location, Map, i,
+                        (pnt, map) => { Effects.SendLocationEffect(pnt, map, 0x36CB, 14, 10, 2498, 2); });
             });
 
             // Black explosions
             Timer.DelayCall(TimeSpan.FromMilliseconds(1400), () =>
             {
-                for (int i = 0; i < range - 3; i++)
-                {
-                    Timer.DelayCall(TimeSpan.FromMilliseconds(i * 50), o =>
-                    {
-                        Server.Misc.Geometry.Circle2D(this.Location, this.Map, (int)o, (pnt, map) =>
+                for (var i = 0; i < range - 3; i++)
+                    Timer.DelayCall(TimeSpan.FromMilliseconds(i * 50),
+                        o =>
                         {
-                            Effects.SendLocationEffect(pnt, map, Utility.RandomBool() ? 14000 : 14013, 14, 20, 2018, 0);
-                        });
-                    }, i);
-                }
+                            Geometry.Circle2D(Location, Map, o,
+                                (pnt, map) =>
+                                {
+                                    Effects.SendLocationEffect(pnt, map, Utility.RandomBool() ? 14000 : 14013, 14, 20,
+                                        2018, 0);
+                                });
+                        }, i);
             });
         }
 
@@ -170,9 +163,9 @@ namespace Server.Items
         {
             if (ItemID == IDHalfHits && oldID == IDStart)
             {
-                AddRubble(new Static(6571), new Point3D(this.X, this.Y + 1, this.Z + 42));
-                AddRubble(new Static(3118), new Point3D(this.X - 1, this.Y + 1, this.Z));
-                AddRubble(new Static(3118), new Point3D(this.X + 1, this.Y - 1, this.Z));
+                AddRubble(new Static(6571), new Point3D(X, Y + 1, Z + 42));
+                AddRubble(new Static(3118), new Point3D(X - 1, Y + 1, Z));
+                AddRubble(new Static(3118), new Point3D(X + 1, Y - 1, Z));
             }
         }
 
@@ -180,18 +173,18 @@ namespace Server.Items
         {
             base.OnDamage(amount, from, willkill);
 
-            if (this.ItemID == IDHalfHits && this.Hits <= (HitsMax * .25))
+            if (ItemID == IDHalfHits && Hits <= HitsMax * .25)
             {
-                AddRubble(new Static(14732), new Point3D(this.X - 1, this.Y + 1, this.Z));
-                AddRubble(new Static(14742), new Point3D(this.X + 1, this.Y - 1, this.Z));
-                AddRubble(new Static(14742), new Point3D(this.X, this.Y, this.Z + 63));
+                AddRubble(new Static(14732), new Point3D(X - 1, Y + 1, Z));
+                AddRubble(new Static(14742), new Point3D(X + 1, Y - 1, Z));
+                AddRubble(new Static(14742), new Point3D(X, Y, Z + 63));
 
-                AddRubble(new Static(6571), new Point3D(this.X + 1, this.Y + 1, this.Z + 42));
-                AddRubble(new Static(6571), new Point3D(this.X + 1, this.Y, this.Z + 59));
+                AddRubble(new Static(6571), new Point3D(X + 1, Y + 1, Z + 42));
+                AddRubble(new Static(6571), new Point3D(X + 1, Y, Z + 59));
 
                 OnHalfDamage();
 
-                this.ItemID = 39300;
+                ItemID = 39300;
             }
             else if (CheckAreaDamage(from, amount))
             {
@@ -210,7 +203,7 @@ namespace Server.Items
 
         private void AddRubble(Item i, Point3D p)
         {
-            i.MoveToWorld(p, this.Map);
+            i.MoveToWorld(p, Map);
 
             if (Rubble == null)
                 Rubble = new List<Item>();
@@ -224,7 +217,7 @@ namespace Server.Items
 
             if (Rubble != null)
             {
-                List<Item> rubble = new List<Item>(Rubble);
+                var rubble = new List<Item>(Rubble);
 
                 rubble.ForEach(i => i.Delete());
                 rubble.ForEach(i => Rubble.Remove(i));
@@ -236,8 +229,8 @@ namespace Server.Items
 
         public virtual void DoAreaAttack()
         {
-            List<Mobile> list = new List<Mobile>();
-            IPooledEnumerable eable = this.Map.GetMobilesInRange(this.Location, 8);
+            var list = new List<Mobile>();
+            IPooledEnumerable eable = Map.GetMobilesInRange(Location, 8);
 
             foreach (Mobile m in eable)
             {
@@ -255,22 +248,18 @@ namespace Server.Items
                 m.BoltEffect(0);
                 AOS.Damage(m, null, Utility.RandomMinMax(80, 90), 0, 0, 0, 0, 100);
 
-                if(m.NetState != null)
-                    m.PrivateOverheadMessage(Server.Network.MessageType.Regular, 1154, 1154552, m.NetState); // *The beacon blasts a surge of energy at you!"
+                if (m.NetState != null)
+                    m.PrivateOverheadMessage(MessageType.Regular, 1154, 1154552,
+                        m.NetState); // *The beacon blasts a surge of energy at you!"
             });
 
             ColUtility.Free(list);
         }
 
-        public Beacon(Serial serial)
-            : base(serial)
-		{
-		}
-		
-		public override void Serialize(GenericWriter writer)
-		{
-			base.Serialize(writer);
-			writer.Write(0);
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
 
             writer.Write(Component);
 
@@ -278,23 +267,23 @@ namespace Server.Items
 
             if (Rubble != null)
                 Rubble.ForEach(i => writer.Write(i));
-		}
-		
-		public override void Deserialize(GenericReader reader)
-		{
-			base.Deserialize(reader);
-			int version = reader.ReadInt();
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
 
             Component = reader.ReadItem() as BeaconItem;
 
             if (Component != null)
                 Component.Beacon = this;
 
-            int count = reader.ReadInt();
+            var count = reader.ReadInt();
 
-            for (int i = 0; i < count; i++)
+            for (var i = 0; i < count; i++)
             {
-                Item item = reader.ReadItem();
+                var item = reader.ReadItem();
                 if (item != null)
                 {
                     if (Rubble == null)
@@ -303,7 +292,7 @@ namespace Server.Items
                     Rubble.Add(item);
                 }
             }
-		}
+        }
     }
 
     public class BeaconItem : Item
@@ -311,7 +300,7 @@ namespace Server.Items
         [CommandProperty(AccessLevel.GameMaster)]
         public Beacon Beacon { get; set; }
 
-        public override bool ForceShowProperties { get { return true; } }
+        public override bool ForceShowProperties => true;
 
         public BeaconItem(Beacon beacon)
             : base(18223)
@@ -320,15 +309,15 @@ namespace Server.Items
             Beacon = beacon;
         }
 
+        public BeaconItem(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void OnDoubleClick(Mobile from)
         {
             if (Beacon != null)
                 Beacon.OnDoubleClick(from);
-        }
-
-        public BeaconItem(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -340,7 +329,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

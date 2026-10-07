@@ -1,10 +1,14 @@
-using System;
-
 namespace Server.Mobiles
 {
     [CorpseName("an ice fiend corpse")]
     public class IceFiend : BaseCreature, IAuraCreature
     {
+        public override int TreasureMapLevel => 4;
+
+        public override int Meat => 1;
+
+        public override bool CanFly => true;
+
         [Constructable]
         public IceFiend()
             : base(AIType.AI_Mage, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -46,28 +50,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override int TreasureMapLevel
-        {
-            get
-            {
-                return 4;
-            }
-        }
-        public override int Meat
-        {
-            get
-            {
-                return 1;
-            }
-        }
-        public override bool CanFly
-        {
-            get
-            {
-                return true;
-            }
-        }
-
         public void AuraEffect(Mobile m)
         {
             m.FixedParticles(0x374A, 10, 30, 5052, Hue, 0, EffectLayer.Waist);
@@ -86,13 +68,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

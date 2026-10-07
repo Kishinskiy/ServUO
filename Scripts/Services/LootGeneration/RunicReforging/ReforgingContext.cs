@@ -1,9 +1,6 @@
-using System;
-using Server;
 using System.Collections.Generic;
-using Server.Items;
-using Server.Gumps;
 using System.IO;
+using Server.Gumps;
 
 namespace Server.Items
 {
@@ -25,16 +22,16 @@ namespace Server.Items
         {
             Contexts = new Dictionary<BaseTool, ReforgingOption>();
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             Prefix = (ReforgedPrefix)reader.ReadInt();
             Suffix = (ReforgedSuffix)reader.ReadInt();
 
-            int count = reader.ReadInt();
-            for (int i = 0; i < count; i++)
+            var count = reader.ReadInt();
+            for (var i = 0; i < count; i++)
             {
-                BaseTool tool = reader.ReadItem() as BaseTool;
-                ReforgingOption option = (ReforgingOption)reader.ReadInt();
+                var tool = reader.ReadItem() as BaseTool;
+                var option = (ReforgingOption)reader.ReadInt();
 
                 if (tool != null)
                     Contexts[tool] = option;
@@ -57,16 +54,14 @@ namespace Server.Items
         }
 
         #region Serialize/Deserialize Persistence
-        private static string FilePath = Path.Combine("Saves", "CraftContext", "ReforgingContexts.bin");
+
+        private static readonly string FilePath = Path.Combine("Saves", "CraftContext", "ReforgingContexts.bin");
 
         public static Dictionary<Mobile, ReforgingContext> ReforgingContexts { get; set; }
 
         public static ReforgingContext GetContext(Mobile m)
         {
-            if (ReforgingContexts.ContainsKey(m))
-            {
-                return ReforgingContexts[m];
-            }
+            if (ReforgingContexts.ContainsKey(m)) return ReforgingContexts[m];
 
             return new ReforgingContext(m);
         }
@@ -103,12 +98,12 @@ namespace Server.Items
                 FilePath,
                 reader =>
                 {
-                    int version = reader.ReadInt();
+                    var version = reader.ReadInt();
 
-                    int count = reader.ReadInt();
-                    for (int i = 0; i < count; i++)
+                    var count = reader.ReadInt();
+                    for (var i = 0; i < count; i++)
                     {
-                        Mobile m = reader.ReadMobile();
+                        var m = reader.ReadMobile();
                         var context = new ReforgingContext(reader);
 
                         if (m != null)
@@ -116,6 +111,7 @@ namespace Server.Items
                     }
                 });
         }
+
         #endregion
     }
 }

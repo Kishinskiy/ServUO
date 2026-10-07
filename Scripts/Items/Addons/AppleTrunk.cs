@@ -1,14 +1,13 @@
-using System;
-
 namespace Server.Items
 {
     public class AppleTrunkAddon : BaseAddon
     {
+        public override BaseAddonDeed Deed => new AppleTrunkDeed();
+
         [Constructable]
         public AppleTrunkAddon()
-            : base()
         {
-            this.AddComponent(new LocalizedAddonComponent(0xD98, 1076785), 0, 0, 0);
+            AddComponent(new LocalizedAddonComponent(0xD98, 1076785), 0, 0, 0);
         }
 
         public AppleTrunkAddon(Serial serial)
@@ -16,13 +15,6 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonDeed Deed
-        {
-            get
-            {
-                return new AppleTrunkDeed();
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -34,17 +26,20 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class AppleTrunkDeed : BaseAddonDeed
     {
+        public override BaseAddon Addon => new AppleTrunkAddon();
+
+        public override int LabelNumber => 1076785; // Apple Trunk
+
         [Constructable]
         public AppleTrunkDeed()
-            : base()
         {
-            this.LootType = LootType.Blessed;
+            LootType = LootType.Blessed;
         }
 
         public AppleTrunkDeed(Serial serial)
@@ -52,20 +47,6 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddon Addon
-        {
-            get
-            {
-                return new AppleTrunkAddon();
-            }
-        }
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1076785;
-            }
-        }// Apple Trunk
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -77,7 +58,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

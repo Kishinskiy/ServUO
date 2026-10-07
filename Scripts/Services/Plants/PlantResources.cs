@@ -5,7 +5,7 @@ namespace Server.Engines.Plants
 {
     public class PlantResourceInfo
     {
-        private static readonly PlantResourceInfo[] m_ResourceList = new PlantResourceInfo[]
+        private static readonly PlantResourceInfo[] m_ResourceList =
         {
             new PlantResourceInfo(PlantType.ElephantEarPlant, PlantHue.BrightRed, typeof(RedLeaves)),
             new PlantResourceInfo(PlantType.PonytailPalm, PlantHue.BrightRed, typeof(RedLeaves)),
@@ -25,6 +25,10 @@ namespace Server.Engines.Plants
             new PlantResourceInfo(PlantType.Vanilla, PlantHue.Plain, typeof(Vanilla))
         };
 
+        public PlantType PlantType { get; set; }
+        public PlantHue PlantHue { get; set; }
+        public Type ResourceType { get; set; }
+
         private PlantResourceInfo(PlantType plantType, PlantHue plantHue, Type resourceType)
         {
             PlantType = plantType;
@@ -32,17 +36,11 @@ namespace Server.Engines.Plants
             ResourceType = resourceType;
         }
 
-        public PlantType PlantType { get; set; }
-        public PlantHue PlantHue { get; set; }
-        public Type ResourceType { get; set; }
-
         public static PlantResourceInfo GetInfo(PlantType plantType, PlantHue plantHue)
         {
-            foreach (PlantResourceInfo info in m_ResourceList)
-            {
+            foreach (var info in m_ResourceList)
                 if (info.PlantType == plantType && info.PlantHue == plantHue)
                     return info;
-            }
 
             return null;
         }

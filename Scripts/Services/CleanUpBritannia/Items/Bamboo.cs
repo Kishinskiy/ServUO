@@ -1,14 +1,14 @@
-﻿using System;
-
-namespace Server.Items
+﻿namespace Server.Items
 {
     public class Bamboo : Item
     {
+        public override int LabelNumber => 1029324; // bamboo
+
         [Constructable]
         public Bamboo()
             : base(0x246D)
         {
-            this.Weight = 10;
+            Weight = 10;
         }
 
         public Bamboo(Serial serial)
@@ -16,25 +16,18 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1029324;
-            }
-        }// bamboo
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

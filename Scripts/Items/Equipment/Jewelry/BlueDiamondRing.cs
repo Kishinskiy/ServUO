@@ -1,30 +1,29 @@
-using System;
-
 namespace Server.Items
 {
     public class BlueDiamondRing : GoldRing
     {
+        public override int LabelNumber => 1073458; // blue diamond ring
+
         [Constructable]
         public BlueDiamondRing()
-            : base()
         {
-            this.Weight = 1.0;
-			
+            Weight = 1.0;
+
             BaseRunicTool.ApplyAttributesTo(this, true, 0, Utility.RandomMinMax(2, 4), 0, 100);
-			
-            switch ( Utility.Random(4) )
+
+            switch (Utility.Random(4))
             {
                 case 0:
-                    this.Attributes.LowerManaCost += 10;
+                    Attributes.LowerManaCost += 10;
                     break;
                 case 1:
-                    this.Attributes.CastSpeed += 1;
+                    Attributes.CastSpeed += 1;
                     break;
                 case 2:
-                    this.Attributes.CastRecovery += 2;
+                    Attributes.CastRecovery += 2;
                     break;
                 case 3:
-                    this.Attributes.SpellDamage += 5;
+                    Attributes.SpellDamage += 5;
                     break;
             }
         }
@@ -34,25 +33,18 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1073458;
-            }
-        }// blue diamond ring
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -1,52 +1,52 @@
-using Server;
-using System;
-using Server.Mobiles;
-using Server.Engines.HuntsmasterChallenge;
 using System.Collections.Generic;
+using Server.Engines.HuntsmasterChallenge;
 using Server.Gumps;
+using Server.Network;
 
 namespace Server.Items
 {
-	public class BestKillBoard : Item
-	{
-        public override string DefaultName { get { return "Top 10 Kill Board"; } }
+    public class BestKillBoard : Item
+    {
+        public override string DefaultName => "Top 10 Kill Board";
 
         [Constructable]
-		public BestKillBoard() : base(7775)
-		{
+        public BestKillBoard() : base(7775)
+        {
             Movable = false;
-		}
+        }
+
+        public BestKillBoard(Serial serial) : base(serial)
+        {
+        }
 
         public override void OnDoubleClick(Mobile from)
         {
-            if (from.InRange(this.Location, 3) && HuntingSystem.Instance != null && HuntingSystem.Instance.Active)
+            if (from.InRange(Location, 3) && HuntingSystem.Instance != null && HuntingSystem.Instance.Active)
             {
                 from.CloseGump(typeof(BestKillGump));
                 from.SendGump(new BestKillGump());
             }
         }
 
-		public BestKillBoard(Serial serial) : base(serial) 
-		{
-		}
-
-		public override void Serialize(GenericWriter writer)
-		{
+        public override void Serialize(GenericWriter writer)
+        {
             base.Serialize(writer);
-			writer.Write((int)0);
-		}
+            writer.Write(0);
+        }
 
         public override void Deserialize(GenericReader reader)
-		{
+        {
             base.Deserialize(reader);
-			int v = reader.ReadInt();
-		}
+            var v = reader.ReadInt();
+        }
 
         private class BestKillGump : Gump
         {
             private int m_Filter;
 
-            public BestKillGump() : this(-1) { }
+            public BestKillGump() : this(-1)
+            {
+            }
 
             public BestKillGump(int filter) : base(20, 20)
             {
@@ -58,17 +58,15 @@ namespace Server.Items
                 if (m_Filter < -1) m_Filter = 23;
                 if (m_Filter > 23) m_Filter = -1;
 
-                List<HuntingKillEntry> useList = new List<HuntingKillEntry>();
+                var useList = new List<HuntingKillEntry>();
 
                 if (m_Filter == -1)
                 {
-                    foreach (KeyValuePair<HuntType, List<HuntingKillEntry>> kvp in HuntingSystem.Instance.Top10)
-                    {
-                        if(kvp.Value.Count > 0)
+                    foreach (var kvp in HuntingSystem.Instance.Top10)
+                        if (kvp.Value.Count > 0)
                             useList.AddRange(kvp.Value);
-                    }
                 }
-                else if(HuntingSystem.Instance.Top10.ContainsKey((HuntType)m_Filter))
+                else if (HuntingSystem.Instance.Top10.ContainsKey((HuntType)m_Filter))
                 {
                     useList = HuntingSystem.Instance.Top10[(HuntType)m_Filter];
                 }
@@ -82,22 +80,26 @@ namespace Server.Items
                 AddHtml(390, 40, 110, 16, "<Basefont Color=#A52A2A>Date Killed</Basefont>", false, false);
 
                 useList.Sort();
-                int y = 80;
+                var y = 80;
 
-                for (int i = 0; i < useList.Count && i < 10; i++)
+                for (var i = 0; i < useList.Count && i < 10; i++)
                 {
-                    HuntingKillEntry entry = useList[i];
-                    HuntingTrophyInfo info = HuntingTrophyInfo.Infos[entry.KillIndex];
+                    var entry = useList[i];
+                    var info = HuntingTrophyInfo.Infos[entry.KillIndex];
 
-                    AddHtml(20, y, 150, 16, entry.Owner != null ? FormatFont(entry.Owner.Name, i) : FormatFont("Unknown", i), false, false);
+                    AddHtml(20, y, 150, 16,
+                        entry.Owner != null ? FormatFont(entry.Owner.Name, i) : FormatFont("Unknown", i), false, false);
                     AddHtml(170, y, 120, 16, FormatFont(GetHuntTypeString(info.HuntType), i), false, false);
-                    AddHtml(290, y, 100, 16, info.MeasuredBy == MeasuredBy.Weight ? FormatFont(entry.Measurement.ToString() + " stones", i) : FormatFont(entry.Measurement.ToString() + " feet", i), false, false);
+                    AddHtml(290, y, 100, 16,
+                        info.MeasuredBy == MeasuredBy.Weight
+                            ? FormatFont(entry.Measurement + " stones", i)
+                            : FormatFont(entry.Measurement + " feet", i), false, false);
                     AddHtml(390, y, 150, 16, FormatFont(entry.DateKilled.ToShortDateString(), i), false, false);
 
                     y += 20;
                 }
 
-                AddHtml(0, 365, 500, 16, String.Format("<Center>{0}</Center>", GetHuntTypeString()), false, false);
+                AddHtml(0, 365, 500, 16, string.Format("<Center>{0}</Center>", GetHuntTypeString()), false, false);
 
                 AddButton(150, 365, 4014, 4016, 1, GumpButtonType.Reply, 0);
                 AddButton(328, 365, 4005, 4007, 2, GumpButtonType.Reply, 0);
@@ -105,14 +107,14 @@ namespace Server.Items
 
             private string FormatFont(string str, int index)
             {
-                int hue = 080000 + (100000 * index);
+                var hue = 080000 + 100000 * index;
 
-                return String.Format("<BaseFont Color=#{0}>{1}</basefont>", hue.ToString(), str);
+                return string.Format("<BaseFont Color=#{0}>{1}</basefont>", hue.ToString(), str);
             }
 
-            public override void OnResponse(Server.Network.NetState state, RelayInfo info)
+            public override void OnResponse(NetState state, RelayInfo info)
             {
-                Mobile from = state.Mobile;
+                var from = state.Mobile;
 
                 if (info.ButtonID == 1)
                 {
@@ -141,23 +143,23 @@ namespace Server.Items
                     case HuntType.Alligator: return "Alligator";
                     case HuntType.Eagle: return "Eagle";
                     //Publish 91 added:
-					case HuntType.MyrmidexLarvae: return "Myrmidex Larvae";
-					case HuntType.Najasaurus: return "Najasaurus";
-					case HuntType.Anchisaur: return "Anchisaur";
-					case HuntType.Allosaurus: return "Allosaurus";
-					case HuntType.Dimetrosaur: return "Dimetrosaur";
-					case HuntType.Saurosaurus: return "Saurosaurus";
-					//Publish 95 added:
-					case HuntType.Tiger: return "Tiger";
-					case HuntType.MyrmidexDrone: return "Myrmidex Drone";
+                    case HuntType.MyrmidexLarvae: return "Myrmidex Larvae";
+                    case HuntType.Najasaurus: return "Najasaurus";
+                    case HuntType.Anchisaur: return "Anchisaur";
+                    case HuntType.Allosaurus: return "Allosaurus";
+                    case HuntType.Dimetrosaur: return "Dimetrosaur";
+                    case HuntType.Saurosaurus: return "Saurosaurus";
+                    //Publish 95 added:
+                    case HuntType.Tiger: return "Tiger";
+                    case HuntType.MyrmidexDrone: return "Myrmidex Drone";
                     case HuntType.Triceratops: return "Triceratops";
-					case HuntType.Lion: return "Lion";
-					case HuntType.WhiteTiger: return "White Tiger";
-					case HuntType.BlackTiger: return "Black Tiger";
+                    case HuntType.Lion: return "Lion";
+                    case HuntType.WhiteTiger: return "White Tiger";
+                    case HuntType.BlackTiger: return "Black Tiger";
                     //Publish 102 added:
-					case HuntType.Raptor: return "Raptor";
-					case HuntType.SeaSerpent: return "Sea Serpent";
-					case HuntType.Scorpion: return "Scorpion";
+                    case HuntType.Raptor: return "Raptor";
+                    case HuntType.SeaSerpent: return "Sea Serpent";
+                    case HuntType.Scorpion: return "Scorpion";
                 }
             }
 
@@ -176,25 +178,25 @@ namespace Server.Items
                     case (int)HuntType.Alligator: return "Alligator";
                     case (int)HuntType.Eagle: return "Eagle";
                     //Publish 91 added:
-					case (int)HuntType.MyrmidexLarvae: return "Myrmidex Larvae";
-					case (int)HuntType.Najasaurus: return "Najasaurus";
-					case (int)HuntType.Anchisaur: return "Anchisaur";
-					case (int)HuntType.Allosaurus: return "Allosaurus";
-					case (int)HuntType.Dimetrosaur: return "Dimetrosaur";
-					case (int)HuntType.Saurosaurus: return "Saurosaurus";
-					//Publish 95 added:
-					case (int)HuntType.Tiger: return "Tiger";
-					case (int)HuntType.MyrmidexDrone: return "Myrmidex Drone";
+                    case (int)HuntType.MyrmidexLarvae: return "Myrmidex Larvae";
+                    case (int)HuntType.Najasaurus: return "Najasaurus";
+                    case (int)HuntType.Anchisaur: return "Anchisaur";
+                    case (int)HuntType.Allosaurus: return "Allosaurus";
+                    case (int)HuntType.Dimetrosaur: return "Dimetrosaur";
+                    case (int)HuntType.Saurosaurus: return "Saurosaurus";
+                    //Publish 95 added:
+                    case (int)HuntType.Tiger: return "Tiger";
+                    case (int)HuntType.MyrmidexDrone: return "Myrmidex Drone";
                     case (int)HuntType.Triceratops: return "Triceratops";
-					case (int)HuntType.Lion: return "Lion";
-					case (int)HuntType.WhiteTiger: return "White Tiger";
-					case (int)HuntType.BlackTiger: return "Black Tiger";
+                    case (int)HuntType.Lion: return "Lion";
+                    case (int)HuntType.WhiteTiger: return "White Tiger";
+                    case (int)HuntType.BlackTiger: return "Black Tiger";
                     //Publish 102 added:
-					case (int)HuntType.Raptor: return "Raptor";
-					case (int)HuntType.SeaSerpent: return "Sea Serpent";
-					case (int)HuntType.Scorpion: return "Scorpion";
+                    case (int)HuntType.Raptor: return "Raptor";
+                    case (int)HuntType.SeaSerpent: return "Sea Serpent";
+                    case (int)HuntType.Scorpion: return "Scorpion";
                 }
             }
         }
-	}
+    }
 }

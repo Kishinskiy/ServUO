@@ -5,11 +5,10 @@ namespace Server.Items
 {
     public class PsychicAttack : WeaponAbility
     {
-        public PsychicAttack()
-        {
-        }
+        public override int BaseMana => 30;
 
-        public override int BaseMana { get { return 30; } }
+        public static Dictionary<Mobile, PsychicAttackTimer> Registry { get; } =
+            new Dictionary<Mobile, PsychicAttackTimer>();
 
         public override void OnHit(Mobile attacker, Mobile defender, int damage)
         {
@@ -24,25 +23,24 @@ namespace Server.Items
             defender.FixedParticles(0x3789, 10, 25, 5032, EffectLayer.Head);
             defender.PlaySound(0x1F8);
 
-            if (m_Registry.ContainsKey(defender))
+            if (Registry.ContainsKey(defender))
             {
-                if (!m_Registry[defender].DoneIncrease)
+                if (!Registry[defender].DoneIncrease)
                 {
-                    m_Registry[defender].SpellDamageMalus *= 2;
-                    m_Registry[defender].ManaCostMalus *= 2;
+                    Registry[defender].SpellDamageMalus *= 2;
+                    Registry[defender].ManaCostMalus *= 2;
                 }
             }
             else
-                m_Registry[defender] = new PsychicAttackTimer(defender);
+            {
+                Registry[defender] = new PsychicAttackTimer(defender);
+            }
 
             BuffInfo.RemoveBuff(defender, BuffIcon.PsychicAttack);
 
-            string args = String.Format("{0}\t{1}", m_Registry[defender].SpellDamageMalus, m_Registry[defender].ManaCostMalus);
+            var args = string.Format("{0}\t{1}", Registry[defender].SpellDamageMalus, Registry[defender].ManaCostMalus);
             BuffInfo.AddBuff(defender, new BuffInfo(BuffIcon.PsychicAttack, 1151296, 1151297, args));
         }
-
-        private static Dictionary<Mobile, PsychicAttackTimer> m_Registry = new Dictionary<Mobile, PsychicAttackTimer>();
-        public static Dictionary<Mobile, PsychicAttackTimer> Registry { get { return m_Registry; } }
 
         public static void RemoveEffects(Mobile defender)
         {
@@ -51,22 +49,39 @@ namespace Server.Items
 
             BuffInfo.RemoveBuff(defender, BuffIcon.PsychicAttack);
 
-            if (m_Registry.ContainsKey(defender))
-                m_Registry.Remove(defender);
+            if (Registry.ContainsKey(defender))
+                Registry.Remove(defender);
 
             defender.SendLocalizedMessage(1150292); // You recover from the effects of the psychic attack.
         }
 
         public class PsychicAttackTimer : Timer
         {
-            private Mobile m_Defender;
-            private int m_SpellDamageMalus;
+            private readonly Mobile m_Defender;
             private int m_ManaCostMalus;
-            private bool m_DoneIncrease;
+            private int m_SpellDamageMalus;
 
-            public int SpellDamageMalus { get { return m_SpellDamageMalus; } set { m_SpellDamageMalus = value; m_DoneIncrease = true; } }
-            public int ManaCostMalus { get { return m_ManaCostMalus; } set { m_ManaCostMalus = value; m_DoneIncrease = true; } }
-            public bool DoneIncrease { get { return m_DoneIncrease; } }
+            public int SpellDamageMalus
+            {
+                get => m_SpellDamageMalus;
+                set
+                {
+                    m_SpellDamageMalus = value;
+                    DoneIncrease = true;
+                }
+            }
+
+            public int ManaCostMalus
+            {
+                get => m_ManaCostMalus;
+                set
+                {
+                    m_ManaCostMalus = value;
+                    DoneIncrease = true;
+                }
+            }
+
+            public bool DoneIncrease { get; private set; }
 
             public PsychicAttackTimer(Mobile defender)
                 : base(TimeSpan.FromSeconds(10))
@@ -74,7 +89,7 @@ namespace Server.Items
                 m_Defender = defender;
                 m_SpellDamageMalus = 15;
                 m_ManaCostMalus = 15;
-                m_DoneIncrease = false;
+                DoneIncrease = false;
                 Start();
             }
 

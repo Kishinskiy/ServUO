@@ -1,11 +1,9 @@
-using System;
-
 namespace Server.Items
 {
     [Flipable(0x4C5A, 0x4C5B)]
     public class CowBellComponent : InstrumentedAddonComponent
     {
-        public override int LabelNumber { get { return 1098418; } } // cowbell
+        public override int LabelNumber => 1098418; // cowbell
 
         public CowBellComponent()
             : base(0x4C5A, 0x66E)
@@ -26,13 +24,15 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class CowBellDeed : BaseAddonDeed
     {
-        public override int LabelNumber { get { return 1098418; } } // cowbell
+        public override int LabelNumber => 1098418; // cowbell
+
+        public override BaseAddon Addon => new CowBellAddon();
 
         [Constructable]
         public CowBellDeed()
@@ -44,8 +44,6 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddon Addon { get { return new CowBellAddon(); } }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -55,14 +53,14 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class CowBellAddon : BaseAddon
     {
-        public override BaseAddonDeed Deed { get { return new CowBellDeed(); } }
-        public override bool RetainDeedHue { get { return true; } }
+        public override BaseAddonDeed Deed => new CowBellDeed();
+        public override bool RetainDeedHue => true;
 
         [Constructable]
         public CowBellAddon()
@@ -84,7 +82,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

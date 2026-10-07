@@ -30,17 +30,6 @@ namespace Server.Commands.Generic
     public abstract class BaseCommandImplementor
     {
         private static List<BaseCommandImplementor> m_Implementors;
-        private readonly Dictionary<string, BaseCommand> m_Commands;
-        private string[] m_Accessors;
-        private AccessLevel m_AccessLevel;
-        private CommandSupport m_SupportRequirement;
-        private string m_Usage;
-        private string m_Description;
-        private bool m_SupportsConditionals;
-        public BaseCommandImplementor()
-        {
-            this.m_Commands = new Dictionary<string, BaseCommand>(StringComparer.OrdinalIgnoreCase);
-        }
 
         public static List<BaseCommandImplementor> Implementors
         {
@@ -55,79 +44,26 @@ namespace Server.Commands.Generic
                 return m_Implementors;
             }
         }
-        public bool SupportsConditionals
+
+        public bool SupportsConditionals { get; set; }
+
+        public string[] Accessors { get; set; }
+
+        public string Usage { get; set; }
+
+        public string Description { get; set; }
+
+        public AccessLevel AccessLevel { get; set; }
+
+        public CommandSupport SupportRequirement { get; set; }
+
+        public Dictionary<string, BaseCommand> Commands { get; }
+
+        public BaseCommandImplementor()
         {
-            get
-            {
-                return this.m_SupportsConditionals;
-            }
-            set
-            {
-                this.m_SupportsConditionals = value;
-            }
+            Commands = new Dictionary<string, BaseCommand>(StringComparer.OrdinalIgnoreCase);
         }
-        public string[] Accessors
-        {
-            get
-            {
-                return this.m_Accessors;
-            }
-            set
-            {
-                this.m_Accessors = value;
-            }
-        }
-        public string Usage
-        {
-            get
-            {
-                return this.m_Usage;
-            }
-            set
-            {
-                this.m_Usage = value;
-            }
-        }
-        public string Description
-        {
-            get
-            {
-                return this.m_Description;
-            }
-            set
-            {
-                this.m_Description = value;
-            }
-        }
-        public AccessLevel AccessLevel
-        {
-            get
-            {
-                return this.m_AccessLevel;
-            }
-            set
-            {
-                this.m_AccessLevel = value;
-            }
-        }
-        public CommandSupport SupportRequirement
-        {
-            get
-            {
-                return this.m_SupportRequirement;
-            }
-            set
-            {
-                this.m_SupportRequirement = value;
-            }
-        }
-        public Dictionary<string, BaseCommand> Commands
-        {
-            get
-            {
-                return this.m_Commands;
-            }
-        }
+
         public static void RegisterImplementors()
         {
             Register(new RegionCommandImplementor());
@@ -159,70 +95,68 @@ namespace Server.Commands.Generic
 
         public virtual void Register(BaseCommand command)
         {
-            for (int i = 0; i < command.Commands.Length; ++i)
-                this.m_Commands[command.Commands[i]] = command;
+            for (var i = 0; i < command.Commands.Length; ++i)
+                Commands[command.Commands[i]] = command;
         }
 
         public bool CheckObjectTypes(Mobile from, BaseCommand command, Extensions ext, out bool items, out bool mobiles)
         {
             items = mobiles = false;
 
-            ObjectConditional cond = ObjectConditional.Empty;
+            var cond = ObjectConditional.Empty;
 
-            foreach (BaseExtension check in ext)
-            {
+            foreach (var check in ext)
                 if (check is WhereExtension)
                 {
                     cond = (check as WhereExtension).Conditional;
 
                     break;
                 }
-            }
 
-            bool condIsItem = cond.IsItem;
-            bool condIsMobile = cond.IsMobile;
+            var condIsItem = cond.IsItem;
+            var condIsMobile = cond.IsMobile;
 
-            switch ( command.ObjectTypes )
+            switch (command.ObjectTypes)
             {
                 case ObjectTypes.All:
                 case ObjectTypes.Both:
-                    {
-                        if (condIsItem)
-                            items = true;
+                {
+                    if (condIsItem)
+                        items = true;
 
-                        if (condIsMobile)
-                            mobiles = true;
+                    if (condIsMobile)
+                        mobiles = true;
 
-                        break;
-                    }
+                    break;
+                }
                 case ObjectTypes.Items:
+                {
+                    if (condIsItem)
                     {
-                        if (condIsItem)
-                        {
-                            items = true;
-                        }
-                        else if (condIsMobile)
-                        {
-                            from.SendMessage("You may not use a mobile type condition for this command.");
-                            return false;
-                        }
-
-                        break;
+                        items = true;
                     }
+                    else if (condIsMobile)
+                    {
+                        from.SendMessage("You may not use a mobile type condition for this command.");
+                        return false;
+                    }
+
+                    break;
+                }
                 case ObjectTypes.Mobiles:
+                {
+                    if (condIsMobile)
                     {
-                        if (condIsMobile)
-                        {
-                            mobiles = true;
-                        }
-                        else if (condIsItem)
-                        {
-                            from.SendMessage("You may not use an item type condition for this command.");
-                            return false;
-                        }
-
-                        break;
+                        mobiles = true;
                     }
+                    else if (condIsItem)
+                    {
+                        from.SendMessage("You may not use an item type condition for this command.");
+                        return false;
+                    }
+
+                    break;
+                }
             }
 
             return true;
@@ -234,9 +168,9 @@ namespace Server.Commands.Generic
             {
                 object obj = null;
 
-                this.Compile(from, command, ref args, ref obj);
+                Compile(from, command, ref args, ref obj);
 
-                this.RunCommand(from, obj, command, args);
+                RunCommand(from, obj, command, args);
             }
             catch (Exception ex)
             {
@@ -251,9 +185,9 @@ namespace Server.Commands.Generic
 
             // NOTE: this does not preserve the case where quotation marks are used on a single word
 
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
 
-            for (int i = 0; i < args.Length; ++i)
+            for (var i = 0; i < args.Length; ++i)
             {
                 if (i > 0)
                     sb.Append(' ');
@@ -277,16 +211,16 @@ namespace Server.Commands.Generic
         {
             //	try
             //	{
-            CommandEventArgs e = new CommandEventArgs(from, command.Commands[0], this.GenerateArgString(args), args);
+            var e = new CommandEventArgs(from, command.Commands[0], GenerateArgString(args), args);
 
             if (!command.ValidateArgs(this, e))
                 return;
 
-            bool flushToLog = false;
+            var flushToLog = false;
 
             if (obj is ArrayList)
             {
-                ArrayList list = (ArrayList)obj;
+                var list = (ArrayList)obj;
 
                 if (list.Count > 20)
                     CommandLogging.Enabled = false;
@@ -305,7 +239,7 @@ namespace Server.Commands.Generic
             {
                 if (command.ListOptimized)
                 {
-                    ArrayList list = new ArrayList();
+                    var list = new ArrayList();
                     list.Add(obj);
                     command.ExecuteList(e, list);
                 }
@@ -325,7 +259,7 @@ namespace Server.Commands.Generic
 
         public virtual void Process(Mobile from, BaseCommand command, string[] args)
         {
-            this.RunCommand(from, command, args);
+            RunCommand(from, command, args);
         }
 
         public virtual void Execute(CommandEventArgs e)
@@ -333,11 +267,12 @@ namespace Server.Commands.Generic
             if (e.Length >= 1)
             {
                 BaseCommand command = null;
-                this.m_Commands.TryGetValue(e.GetString(0), out command);
+                Commands.TryGetValue(e.GetString(0), out command);
 
                 if (command == null)
                 {
-                    e.Mobile.SendMessage("That is either an invalid command name or one that does not support this modifier.");
+                    e.Mobile.SendMessage(
+                        "That is either an invalid command name or one that does not support this modifier.");
                 }
                 else if (e.Mobile.AccessLevel < command.AccessLevel)
                 {
@@ -345,13 +280,13 @@ namespace Server.Commands.Generic
                 }
                 else
                 {
-                    string[] oldArgs = e.Arguments;
-                    string[] args = new string[oldArgs.Length - 1];
+                    var oldArgs = e.Arguments;
+                    var args = new string[oldArgs.Length - 1];
 
-                    for (int i = 0; i < args.Length; ++i)
+                    for (var i = 0; i < args.Length; ++i)
                         args[i] = oldArgs[i + 1];
 
-                    this.Process(e.Mobile, command, args);
+                    Process(e.Mobile, command, args);
                 }
             }
             else
@@ -362,11 +297,11 @@ namespace Server.Commands.Generic
 
         public void Register()
         {
-            if (this.m_Accessors == null)
+            if (Accessors == null)
                 return;
 
-            for (int i = 0; i < this.m_Accessors.Length; ++i)
-                CommandSystem.Register(this.m_Accessors[i], this.m_AccessLevel, new CommandEventHandler(Execute));
+            for (var i = 0; i < Accessors.Length; ++i)
+                CommandSystem.Register(Accessors[i], AccessLevel, Execute);
         }
     }
 }

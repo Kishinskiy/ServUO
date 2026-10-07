@@ -1,24 +1,25 @@
 using System;
-using Server.Items;
-using System.Collections;
-using Server.Engines.Quests;
 using System.Collections.Generic;
 using System.Linq;
+using Server.Engines.Quests;
+using Server.Items;
 
 namespace Server.Mobiles
 {
     [CorpseName("a djinn corpse")]
     public class Djinn : BaseCreature
     {
-        public static List<Djinn> Instances { get; set; }
         private SummonEfreetTimer m_Timer;
+        public static List<Djinn> Instances { get; set; }
+
+        public override int TreasureMapLevel => 4;
 
         [Constructable]
         public Djinn()
             : base(AIType.AI_Mage, FightMode.Closest, 10, 1, 0.2, 0.4)
         {
             Body = 0x311;
-			Hue = 33072;
+            Hue = 33072;
             Name = "Djinn";
 
             SetStr(320, 500);
@@ -44,7 +45,7 @@ namespace Server.Mobiles
             SetSkill(SkillName.MagicResist, 60.0, 80.0);
             SetSkill(SkillName.Magery, 100.0, 120.0);
             SetSkill(SkillName.EvalInt, 60.0, 110.0);
-			SetSkill(SkillName.DetectHidden, 55.0);
+            SetSkill(SkillName.DetectHidden, 55.0);
 
             Fame = 15000;
             Karma = -15000;
@@ -60,37 +61,35 @@ namespace Server.Mobiles
             m_Timer = new SummonEfreetTimer(this);
             m_Timer.Start();
         }
-		
-		public override void GenerateLoot()
+
+        public Djinn(Serial serial)
+            : base(serial)
+        {
+        }
+
+        public override void GenerateLoot()
         {
             AddLoot(LootPack.FilthyRich);
         }
-		
-		public override int TreasureMapLevel { get { return 4; } }
 
         public override void OnDeath(Container c)
         {
-            List<DamageStore> rights = GetLootingRights();            
+            var rights = GetLootingRights();
 
-            foreach (Mobile m in rights.Select(x => x.m_Mobile).Distinct())
-            {
+            foreach (var m in rights.Select(x => x.m_Mobile).Distinct())
                 if (m is PlayerMobile)
                 {
-                    PlayerMobile pm = m as PlayerMobile;
+                    var pm = m as PlayerMobile;
 
                     if (pm.ExploringTheDeepQuest == ExploringTheDeepQuestChain.CollectTheComponent)
                     {
-						Item item = new AquaGem();
-						
-                        if (m.Backpack == null || !m.Backpack.TryDropItem(m, item, false))
-                        {
-                            m.BankBox.DropItem(item);
-                        }
+                        Item item = new AquaGem();
+
+                        if (m.Backpack == null || !m.Backpack.TryDropItem(m, item, false)) m.BankBox.DropItem(item);
 
                         m.SendLocalizedMessage(1154489); // You received a Quest Item!
                     }
                 }
-            }
 
             if (Instances != null && Instances.Contains(this))
                 Instances.Remove(this);
@@ -103,36 +102,12 @@ namespace Server.Mobiles
             if (Instances != null && Instances.Count > 0)
                 return null;
 
-            Djinn creature = new Djinn();
+            var creature = new Djinn();
             creature.Home = platLoc;
             creature.RangeHome = 4;
             creature.MoveToWorld(platLoc, platMap);
 
             return creature;
-        }
-
-        public class InternalSelfDeleteTimer : Timer
-        {
-            private Djinn Mare;
-
-            public InternalSelfDeleteTimer(Mobile p) : base(TimeSpan.FromMinutes(60))
-            {
-                Priority = TimerPriority.FiveSeconds;
-                Mare = ((Djinn)p);
-            }
-            protected override void OnTick()
-            {
-                if (Mare.Map != Map.Internal)
-                {
-                    Mare.Delete();
-                    Stop();
-                }
-            }
-        }
-
-        public Djinn(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void OnAfterDelete()
@@ -147,6 +122,44 @@ namespace Server.Mobiles
             base.OnAfterDelete();
         }
 
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
+
+            Instances = new List<Djinn>();
+            Instances.Add(this);
+
+            Timer SelfDeleteTimer = new InternalSelfDeleteTimer(this);
+            SelfDeleteTimer.Start();
+        }
+
+        public class InternalSelfDeleteTimer : Timer
+        {
+            private readonly Djinn Mare;
+
+            public InternalSelfDeleteTimer(Mobile p) : base(TimeSpan.FromMinutes(60))
+            {
+                Priority = TimerPriority.FiveSeconds;
+                Mare = (Djinn)p;
+            }
+
+            protected override void OnTick()
+            {
+                if (Mare.Map != Map.Internal)
+                {
+                    Mare.Delete();
+                    Stop();
+                }
+            }
+        }
+
         private class SummonEfreetTimer : Timer
         {
             //private static readonly ArrayList m_ToDrain = new ArrayList();
@@ -158,6 +171,7 @@ namespace Server.Mobiles
                 m_Owner = owner;
                 Priority = TimerPriority.TwoFiftyMS;
             }
+
             //Type type = m_Owner.GetType();
             protected override void OnTick()
             {
@@ -177,10 +191,10 @@ namespace Server.Mobiles
                     if (m_Owner.CanBeHarmful(m) && m_Owner.Mana >= 100)
                     {
                         m_Owner.Mana -= 50;
-                        int ownerlocX = m_Owner.Location.X + Utility.RandomMinMax(-5, 5);
-                        int ownerlocY = m_Owner.Location.Y + Utility.RandomMinMax(-5, 5);
-                        int ownerlocZ = m_Owner.Location.Z;
-                        Efreet NewMobile = new Efreet();
+                        var ownerlocX = m_Owner.Location.X + Utility.RandomMinMax(-5, 5);
+                        var ownerlocY = m_Owner.Location.Y + Utility.RandomMinMax(-5, 5);
+                        var ownerlocZ = m_Owner.Location.Z;
+                        var NewMobile = new Efreet();
                         NewMobile.MoveToWorld(new Point3D(ownerlocX, ownerlocY, ownerlocZ), m_Owner.Map);
                         NewMobile.Combatant = m;
                     }
@@ -188,24 +202,6 @@ namespace Server.Mobiles
 
                 eable.Free();
             }
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.Write((int)0);
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            int version = reader.ReadInt();
-
-            Instances = new List<Djinn>();
-            Instances.Add(this);
-
-            Timer SelfDeleteTimer = new InternalSelfDeleteTimer(this);
-            SelfDeleteTimer.Start();            
         }
     }
 }

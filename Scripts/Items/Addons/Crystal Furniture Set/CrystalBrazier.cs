@@ -1,10 +1,9 @@
-using System;
-using Server.Gumps;
-
 namespace Server.Items
 {
     public class CrystalBrazierAddon : BaseAddon
     {
+        public override BaseAddonDeed Deed => new CrystalBrazierDeed();
+
         [Constructable]
         public CrystalBrazierAddon()
         {
@@ -16,32 +15,29 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonDeed Deed { get { return new CrystalBrazierDeed(); } }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class CrystalBrazierDeed : BaseAddonDeed
     {
-        public override int LabelNumber { get { return 1076667; } } // Crystal Brazier
+        public override int LabelNumber => 1076667; // Crystal Brazier
 
-        public override bool ExcludeDeedHue { get { return true; } }
+        public override bool ExcludeDeedHue => true;
 
-        public override BaseAddon Addon { get { return new CrystalBrazierAddon(); } }
-        
+        public override BaseAddon Addon => new CrystalBrazierAddon();
+
         [Constructable]
         public CrystalBrazierDeed()
-            : base()
         {
             LootType = LootType.Blessed;
             Hue = 1173;
@@ -55,13 +51,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

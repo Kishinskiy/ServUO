@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 using Server.Mobiles;
 
@@ -19,26 +18,26 @@ namespace Server.Engines.Quests.Collector
 
         public override void InitBody()
         {
-            this.InitStats(100, 100, 25);
+            InitStats(100, 100, 25);
 
-            this.Hue = 0x83EF;
+            Hue = 0x83EF;
 
-            this.Female = false;
-            this.Body = 0x190;
-            this.Name = "Gabriel Piete";
+            Female = false;
+            Body = 0x190;
+            Name = "Gabriel Piete";
         }
 
         public override void InitOutfit()
         {
-            this.AddItem(new FancyShirt());
-            this.AddItem(new LongPants(0x5F7));
-            this.AddItem(new Shoes(0x5F7));
+            AddItem(new FancyShirt());
+            AddItem(new LongPants(0x5F7));
+            AddItem(new Shoes(0x5F7));
 
-            this.HairItemID = 0x2049; // Pig Tails
-            this.HairHue = 0x460;
+            HairItemID = 0x2049; // Pig Tails
+            HairHue = 0x460;
 
-            this.FacialHairItemID = 0x2041; // Mustache
-            this.FacialHairHue = 0x460;
+            FacialHairItemID = 0x2041; // Mustache
+            FacialHairHue = 0x460;
         }
 
         public override bool CanTalkTo(PlayerMobile to)
@@ -48,21 +47,21 @@ namespace Server.Engines.Quests.Collector
             if (qs == null)
                 return false;
 
-            return (qs.IsObjectiveInProgress(typeof(FindGabrielObjective)) ||
-                    qs.IsObjectiveInProgress(typeof(FindSheetMusicObjective)) ||
-                    qs.IsObjectiveInProgress(typeof(ReturnSheetMusicObjective)) ||
-                    qs.IsObjectiveInProgress(typeof(ReturnAutographObjective)));
+            return qs.IsObjectiveInProgress(typeof(FindGabrielObjective)) ||
+                   qs.IsObjectiveInProgress(typeof(FindSheetMusicObjective)) ||
+                   qs.IsObjectiveInProgress(typeof(ReturnSheetMusicObjective)) ||
+                   qs.IsObjectiveInProgress(typeof(ReturnAutographObjective));
         }
 
         public override void OnTalk(PlayerMobile player, bool contextMenu)
         {
-            QuestSystem qs = player.Quest;
+            var qs = player.Quest;
 
             if (qs is CollectorQuest)
             {
-                this.Direction = this.GetDirectionTo(player);
+                Direction = GetDirectionTo(player);
 
-                QuestObjective obj = qs.FindObjective(typeof(FindGabrielObjective));
+                var obj = qs.FindObjective(typeof(FindGabrielObjective));
 
                 if (obj != null && !obj.Completed)
                 {
@@ -77,13 +76,9 @@ namespace Server.Engines.Quests.Collector
                     obj = qs.FindObjective(typeof(ReturnSheetMusicObjective));
 
                     if (obj != null && !obj.Completed)
-                    {
                         obj.Complete();
-                    }
                     else if (qs.IsObjectiveInProgress(typeof(ReturnAutographObjective)))
-                    {
                         qs.AddConversation(new GabrielIgnoreConversation());
-                    }
                 }
             }
         }
@@ -92,14 +87,14 @@ namespace Server.Engines.Quests.Collector
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

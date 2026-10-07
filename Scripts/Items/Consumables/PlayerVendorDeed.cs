@@ -1,4 +1,3 @@
-using System;
 using Server.Mobiles;
 using Server.Multis;
 
@@ -6,11 +5,13 @@ namespace Server.Items
 {
     public class ContractOfEmployment : Item
     {
+        public override int LabelNumber => 1041243; // a contract of employment
+
         [Constructable]
         public ContractOfEmployment()
             : base(0x14F0)
         {
-            this.Weight = 1.0;
+            Weight = 1.0;
             //LootType = LootType.Blessed;
         }
 
@@ -19,36 +20,30 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1041243;
-            }
-        }// a contract of employment
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); //version
+            writer.Write(0); //version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         public override void OnDoubleClick(Mobile from)
         {
-            if (!this.IsChildOf(from.Backpack))
+            if (!IsChildOf(from.Backpack))
             {
                 from.SendLocalizedMessage(1042001); // That must be in your pack for you to use it.
             }
             else if (from.AccessLevel >= AccessLevel.GameMaster)
             {
-                from.SendLocalizedMessage(503248); // Your godly powers allow you to place this vendor whereever you wish.
+                from.SendLocalizedMessage(
+                    503248); // Your godly powers allow you to place this vendor whereever you wish.
 
                 Mobile v = new PlayerVendor(from, BaseHouse.FindHouseAt(from));
 
@@ -59,11 +54,11 @@ namespace Server.Items
 
                 EventSink.InvokePlacePlayerVendor(new PlacePlayerVendorEventArgs(from, v));
 
-                this.Delete();
+                Delete();
             }
             else
             {
-                BaseHouse house = BaseHouse.FindHouseAt(from);
+                var house = BaseHouse.FindHouseAt(from);
 
                 if (house == null)
                 {
@@ -71,15 +66,18 @@ namespace Server.Items
                 }
                 else if (!BaseHouse.NewVendorSystem && !house.IsFriend(from))
                 {
-                    from.SendLocalizedMessage(503242); // You must ask the owner of this building to name you a friend of the household in order to place a vendor here.
+                    from.SendLocalizedMessage(
+                        503242); // You must ask the owner of this building to name you a friend of the household in order to place a vendor here.
                 }
                 else if (BaseHouse.NewVendorSystem && !house.IsOwner(from))
                 {
-                    from.SendLocalizedMessage(1062423); // Only the house owner can directly place vendors.  Please ask the house owner to offer you a vendor contract so that you may place a vendor in this house.
+                    from.SendLocalizedMessage(
+                        1062423); // Only the house owner can directly place vendors.  Please ask the house owner to offer you a vendor contract so that you may place a vendor in this house.
                 }
-                else if (!house.Public || !house.CanPlaceNewVendor()) 
+                else if (!house.Public || !house.CanPlaceNewVendor())
                 {
-                    from.SendLocalizedMessage(503241); // You cannot place this vendor or barkeep.  Make sure the house is public and has sufficient storage available.
+                    from.SendLocalizedMessage(
+                        503241); // You cannot place this vendor or barkeep.  Make sure the house is public and has sufficient storage available.
                 }
                 else
                 {
@@ -92,7 +90,8 @@ namespace Server.Items
                     }
                     else if (contract)
                     {
-                        from.SendLocalizedMessage(1062678); // You cannot place a vendor or barkeep on top of a rental contract!
+                        from.SendLocalizedMessage(
+                            1062678); // You cannot place a vendor or barkeep on top of a rental contract!
                     }
                     else
                     {
@@ -105,7 +104,7 @@ namespace Server.Items
 
                         EventSink.InvokePlacePlayerVendor(new PlacePlayerVendorEventArgs(from, v));
 
-                        this.Delete();
+                        Delete();
                     }
                 }
             }

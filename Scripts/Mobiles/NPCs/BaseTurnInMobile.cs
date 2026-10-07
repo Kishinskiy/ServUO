@@ -1,33 +1,35 @@
-using System;
-using Server;
-using Server.Items;
-using Server.Gumps;
-using Server.ContextMenus;
-using Server.Network;
 using System.Collections.Generic;
 using System.Linq;
+using Server.ContextMenus;
+using Server.Gumps;
+using Server.Network;
 
 namespace Server.Mobiles
 {
     public abstract class BaseTurnInMobile : ShrineHealer
     {
-        public override bool IsInvulnerable { get { return true; } }
-        public override bool DisallowAllMoves { get { return true; } }
-        public override bool ClickTitle { get { return true; } }
-        public override bool CanTeach { get { return false; } }
+        public override bool IsInvulnerable => true;
+        public override bool DisallowAllMoves => true;
+        public override bool ClickTitle => true;
+        public override bool CanTeach => false;
 
-        public virtual int TitleLocalization { get { return 0; } }
-        public virtual int CancelLocalization { get { return 0; } }
-        public virtual int TurnInLocalization { get { return 0; } }
-        public virtual int ClaimLocalization { get { return 1155593; } } // Claim Rewards
+        public virtual int TitleLocalization => 0;
+        public virtual int CancelLocalization => 0;
+        public virtual int TurnInLocalization => 0;
+        public virtual int ClaimLocalization => 1155593; // Claim Rewards
 
-        public virtual bool IsShrineHealer { get { return true; } }
+        public virtual bool IsShrineHealer => true;
 
-        public virtual int TurnInPoints { get { return 1; } }
+        public virtual int TurnInPoints => 1;
 
         public BaseTurnInMobile(string title)
         {
             Title = title;
+        }
+
+        public BaseTurnInMobile(Serial serial)
+            : base(serial)
+        {
         }
 
         public virtual IEnumerable<ItemTileButtonInfo> FindRedeemableItems(Mobile m)
@@ -36,10 +38,8 @@ namespace Server.Mobiles
                 yield break;
 
             foreach (var item in m.Backpack.Items)
-            {
                 if (IsRedeemableItem(item))
                     yield return new ItemTileButtonInfo(item);
-            }
         }
 
         public abstract bool IsRedeemableItem(Item item);
@@ -52,30 +52,41 @@ namespace Server.Mobiles
         public override void GetContextMenuEntries(Mobile from, List<ContextMenuEntry> list)
         {
             if (IsShrineHealer)
-            {
                 base.GetContextMenuEntries(from, list);
-            }
             else
-            {
                 list.Add(new PaperdollEntry(this));
-            }
 
             if (from is PlayerMobile)
             {
-                if (TurnInLocalization > 0)
-                {
-                    list.Add(new TurnInEntry(from, this));
-                }
+                if (TurnInLocalization > 0) list.Add(new TurnInEntry(from, this));
 
                 list.Add(new ClaimEntry(from, this));
             }
         }
 
+        public override void OnDoubleClick(Mobile from)
+        {
+            if (from is PlayerMobile && from.InRange(Location, 5))
+                SendRewardGump(from);
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
+        }
+
         private class TurnInEntry : ContextMenuEntry
         {
-            private Mobile m_Mobile;
-            private BaseTurnInMobile m_Vendor;
-            private IEnumerable<ItemTileButtonInfo> m_Buttons;
+            private readonly IEnumerable<ItemTileButtonInfo> m_Buttons;
+            private readonly Mobile m_Mobile;
+            private readonly BaseTurnInMobile m_Vendor;
 
             public TurnInEntry(Mobile mobile, BaseTurnInMobile vendor)
                 : base(vendor.TurnInLocalization, 2)
@@ -99,16 +110,14 @@ namespace Server.Mobiles
             public override void OnClickDisabled()
             {
                 if (m_Vendor != null && m_Vendor.CancelLocalization > 0)
-                {
                     m_Vendor.LocalOverheadMessage(MessageType.Regular, 0x3B2, m_Vendor.CancelLocalization);
-                }
             }
         }
 
         private class ClaimEntry : ContextMenuEntry
         {
-            private Mobile m_Mobile;
-            private BaseTurnInMobile m_Vendor;
+            private readonly Mobile m_Mobile;
+            private readonly BaseTurnInMobile m_Vendor;
 
             public ClaimEntry(Mobile mobile, BaseTurnInMobile vendor)
                 : base(vendor.ClaimLocalization, 2)
@@ -123,64 +132,40 @@ namespace Server.Mobiles
                     m_Vendor.SendRewardGump(m_Mobile);
             }
         }
-
-        public override void OnDoubleClick(Mobile from)
-        {
-            if (from is PlayerMobile && from.InRange(Location, 5))
-                SendRewardGump(from);
-        }
-
-        public BaseTurnInMobile(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.Write(0);
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            int version = reader.ReadInt();
-        }
     }
 
     public class TurnInGump : BaseImageTileButtonsGump
     {
-        private BaseTurnInMobile m_Collector;
-        public BaseTurnInMobile Collector { get { return m_Collector; } }
+        public BaseTurnInMobile Collector { get; }
 
         public TurnInGump(BaseTurnInMobile collector, IEnumerable<ItemTileButtonInfo> buttons)
             : base(collector.TitleLocalization, buttons.ToArray())
         {
-            m_Collector = collector;
+            Collector = collector;
         }
 
         public override void HandleButtonResponse(NetState sender, int adjustedButton, ImageTileButtonInfo buttonInfo)
         {
-            PlayerMobile pm = sender.Mobile as PlayerMobile;
+            var pm = sender.Mobile as PlayerMobile;
 
-            Item item = ((ItemTileButtonInfo)buttonInfo).Item;
+            var item = ((ItemTileButtonInfo)buttonInfo).Item;
 
-            if (!(pm != null && item.IsChildOf(pm.Backpack) && pm.InRange(this.m_Collector.Location, 7)))
+            if (!(pm != null && item.IsChildOf(pm.Backpack) && pm.InRange(Collector.Location, 7)))
                 return;
 
-            m_Collector.AwardPoints(pm, item, m_Collector.TurnInPoints);
+            Collector.AwardPoints(pm, item, Collector.TurnInPoints);
 
             item.Delete();
 
-            IEnumerable<ItemTileButtonInfo> buttons = m_Collector.FindRedeemableItems(pm);
+            var buttons = Collector.FindRedeemableItems(pm);
 
             if (buttons != null && buttons.Count() > 0)
-                pm.SendGump(new TurnInGump(m_Collector, buttons));
+                pm.SendGump(new TurnInGump(Collector, buttons));
         }
 
         public override void HandleCancel(NetState sender)
         {
-            m_Collector.LocalOverheadMessage(MessageType.Regular, 0x3B2, m_Collector.CancelLocalization);
+            Collector.LocalOverheadMessage(MessageType.Regular, 0x3B2, Collector.CancelLocalization);
         }
     }
 }

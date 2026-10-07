@@ -1,5 +1,3 @@
-using System;
-using Server;
 using Server.Gumps;
 using Server.Mobiles;
 using Server.Network;
@@ -8,10 +6,10 @@ namespace Server.Items
 {
     public class RecipeScrollBuyGump : Gump
     {
-        private Mobile m_From;
-        private RecipeBook m_Book;
-        private RecipeScrollDefinition m_Recipe;
-        private int m_Price;
+        private readonly RecipeBook m_Book;
+        private readonly Mobile m_From;
+        private readonly int m_Price;
+        private readonly RecipeScrollDefinition m_Recipe;
 
         public RecipeScrollBuyGump(Mobile from, RecipeBook book, RecipeScrollDefinition recipe, int price)
             : base(100, 200)
@@ -42,22 +40,20 @@ namespace Server.Items
         {
             if (info.ButtonID == 2)
             {
-                PlayerVendor pv = m_Book.RootParent as PlayerVendor;
+                var pv = m_Book.RootParent as PlayerVendor;
 
                 if (pv != null)
                 {
-                    int price = 0;
+                    var price = 0;
 
-                    VendorItem vi = pv.GetVendorItem(m_Book);
+                    var vi = pv.GetVendorItem(m_Book);
 
-                    if (vi != null && !vi.IsForSale)
-                    {
-                        price = m_Recipe.Price;
-                    }
+                    if (vi != null && !vi.IsForSale) price = m_Recipe.Price;
 
                     if (price != m_Price)
                     {
-                        pv.SayTo(m_From, 1150158); // The price of the selected item has been changed from the value you confirmed. You must select and confirm the purchase again at the new price in order to buy it.
+                        pv.SayTo(m_From,
+                            1150158); // The price of the selected item has been changed from the value you confirmed. You must select and confirm the purchase again at the new price in order to buy it.
                         m_Book.Using = false;
                     }
                     else if (m_Recipe.Amount == 0 || price == 0)
@@ -71,7 +67,7 @@ namespace Server.Items
 
                         pv.Say(m_From.Name);
 
-                        Container pack = m_From.Backpack;
+                        var pack = m_From.Backpack;
 
                         if ((pack != null && pack.ConsumeTotal(typeof(Gold), price)) || Banker.Withdraw(m_From, price))
                         {

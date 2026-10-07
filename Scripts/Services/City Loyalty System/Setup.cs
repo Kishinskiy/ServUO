@@ -1,11 +1,7 @@
 using System;
-using Server;
-using Server.Mobiles;
-using Server.Items;
-using System.Collections.Generic;
 using System.Linq;
 using Server.Commands;
-using Server.Regions;
+using Server.Items;
 
 namespace Server.Engines.CityLoyalty
 {
@@ -22,37 +18,37 @@ namespace Server.Engines.CityLoyalty
 
         public static void Delete(CommandEventArgs e)
         {
-            Mobile m = e.Mobile;
+            var m = e.Mobile;
 
             CityLoyaltySystem.Cities.ForEach(city =>
+            {
+                if (city.Stone != null) city.Stone.Delete();
+                if (city.Herald != null) city.Herald.Delete();
+
+                if (city.Captain != null)
                 {
-                    if (city.Stone != null) city.Stone.Delete();
-                    if (city.Herald != null) city.Herald.Delete();
+                    if (city.Captain.Box != null)
+                        city.Captain.Box.Delete();
 
-                    if (city.Captain != null)
-                    {
-                        if (city.Captain.Box != null)
-                            city.Captain.Box.Delete();
+                    city.Captain.Delete();
+                }
 
-                        city.Captain.Delete();
-                    }
+                if (city.Minister != null)
+                {
+                    if (city.Minister.DonationCrate != null)
+                        city.Minister.DonationCrate.Delete();
 
-                    if (city.Minister != null)
-                    {
-                        if (city.Minister.DonationCrate != null)
-                            city.Minister.DonationCrate.Delete();
+                    if (city.Minister.DonationPost != null)
+                        city.Minister.DonationPost.Delete();
 
-                        if (city.Minister.DonationPost != null)
-                            city.Minister.DonationPost.Delete();
-
-                        city.Minister.Delete();
-                    }
-                });
+                    city.Minister.Delete();
+                }
+            });
         }
 
         public static void Setup(CommandEventArgs e)
         {
-            Mobile m = e.Mobile;
+            var m = e.Mobile;
 
             TradeMinister minister;
             CityHerald herald;
@@ -65,7 +61,7 @@ namespace Server.Engines.CityLoyalty
 
             foreach (int c in Enum.GetValues(typeof(City)))
             {
-                City city = (City)c;
+                var city = (City)c;
                 CityLoyaltySystem sys = null;
 
                 switch (city)
@@ -98,7 +94,9 @@ namespace Server.Engines.CityLoyalty
                         minister.MoveToWorld(sys.Definition.TradeMinisterLocation, CityLoyaltySystem.SystemMap);
                     }
                     else
+                    {
                         minister.Delete();
+                    }
 
                     if (!HasType(sys, herald.GetType()))
                     {
@@ -106,7 +104,9 @@ namespace Server.Engines.CityLoyalty
                         herald.MoveToWorld(sys.Definition.HeraldLocation, CityLoyaltySystem.SystemMap);
                     }
                     else
+                    {
                         herald.Delete();
+                    }
 
                     if (!HasType(sys, capt.GetType()))
                     {
@@ -114,7 +114,9 @@ namespace Server.Engines.CityLoyalty
                         capt.MoveToWorld(sys.Definition.GuardsmanLocation, CityLoyaltySystem.SystemMap);
                     }
                     else
+                    {
                         capt.Delete();
+                    }
 
                     if (!HasType(sys, stone.GetType()))
                     {
@@ -122,20 +124,30 @@ namespace Server.Engines.CityLoyalty
                         stone.MoveToWorld(sys.Definition.StoneLocation, CityLoyaltySystem.SystemMap);
                     }
                     else
+                    {
                         stone.Delete();
+                    }
 
                     if (!HasType(sys, itemdonation.GetType()))
-                        itemdonation.MoveToWorld(new Point3D(sys.Definition.TradeMinisterLocation.X, sys.Definition.TradeMinisterLocation.Y - 1, sys.Definition.TradeMinisterLocation.Z), CityLoyaltySystem.SystemMap);
+                        itemdonation.MoveToWorld(
+                            new Point3D(sys.Definition.TradeMinisterLocation.X,
+                                sys.Definition.TradeMinisterLocation.Y - 1, sys.Definition.TradeMinisterLocation.Z),
+                            CityLoyaltySystem.SystemMap);
                     else
                         itemdonation.Delete();
 
                     if (!HasType(sys, petdonation.GetType()))
-                        petdonation.MoveToWorld(new Point3D(sys.Definition.TradeMinisterLocation.X, sys.Definition.TradeMinisterLocation.Y - 2, sys.Definition.TradeMinisterLocation.Z), CityLoyaltySystem.SystemMap);
+                        petdonation.MoveToWorld(
+                            new Point3D(sys.Definition.TradeMinisterLocation.X,
+                                sys.Definition.TradeMinisterLocation.Y - 2, sys.Definition.TradeMinisterLocation.Z),
+                            CityLoyaltySystem.SystemMap);
                     else
                         petdonation.Delete();
 
                     if (!HasType(sys, box.GetType()))
-                        box.MoveToWorld(new Point3D(sys.Definition.GuardsmanLocation.X, sys.Definition.GuardsmanLocation.Y - 1, sys.Definition.GuardsmanLocation.Z), CityLoyaltySystem.SystemMap);
+                        box.MoveToWorld(
+                            new Point3D(sys.Definition.GuardsmanLocation.X, sys.Definition.GuardsmanLocation.Y - 1,
+                                sys.Definition.GuardsmanLocation.Z), CityLoyaltySystem.SystemMap);
                     else
                         box.Delete();
 
@@ -145,15 +157,17 @@ namespace Server.Engines.CityLoyalty
                         sys.Board = board;
                     }
                     else
+                    {
                         board.Delete();
-                    
+                    }
+
                     sys.CanUtilize = true;
 
                     m.SendMessage("{0} setup!", sys.Definition.Name);
                 }
             }
 
-            for (int i = 0; i < 3; i++)
+            for (var i = 0; i < 3; i++)
             {
                 string name;
                 Point3D p;
@@ -175,7 +189,7 @@ namespace Server.Engines.CityLoyalty
                         break;
                 }
 
-                Region r = Region.Regions.FirstOrDefault(reg => reg.Map == Map.Felucca && reg.Name == name);
+                var r = Region.Regions.FirstOrDefault(reg => reg.Map == Map.Felucca && reg.Name == name);
 
                 if (r != null)
                 {
@@ -187,9 +201,10 @@ namespace Server.Engines.CityLoyalty
                         slim.Delete();
                 }
                 else
+                {
                     Console.WriteLine("WARNING: {0} Region not found!", name);
+                }
             }
-            
         }
 
         public static bool HasType(CityLoyaltySystem system, Type t)
@@ -204,23 +219,18 @@ namespace Server.Engines.CityLoyalty
 
             if (t.IsSubclassOf(typeof(Mobile)))
             {
-                foreach (Mobile m in r.GetEnumeratedMobiles())
-                {
+                foreach (var m in r.GetEnumeratedMobiles())
                     if (m.GetType() == t)
                         return true;
-                }
             }
             else if (t.IsSubclassOf(typeof(Item)))
             {
-                foreach (Item i in r.GetEnumeratedItems())
-                {
+                foreach (var i in r.GetEnumeratedItems())
                     if (i.GetType() == t)
                         return true;
-                }
             }
 
             return false;
         }
-
     }
 }

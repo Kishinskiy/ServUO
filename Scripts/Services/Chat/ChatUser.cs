@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -6,23 +5,23 @@ namespace Server.Engines.Chat
 {
     public class ChatUser
     {
-        private Mobile m_Mobile;
-        private Channel m_Channel;
+        public const char NormalColorCharacter = '0';
+
+        private static readonly List<ChatUser> m_Users = new List<ChatUser>();
+        private static readonly Dictionary<Mobile, ChatUser> m_Table = new Dictionary<Mobile, ChatUser>();
+
+        public Mobile Mobile { get; }
+
+        public string Username => string.Format("<{0}>{1}", Mobile.Serial.Value, Mobile.Name);
+
+        public Channel CurrentChannel { get; set; }
+
+        public bool IsOnline => Mobile.NetState != null;
 
         public ChatUser(Mobile m)
         {
-            m_Mobile = m;
+            Mobile = m;
         }
-
-        public Mobile Mobile { get { return m_Mobile; } }
-
-        public string Username { get { return String.Format("<{0}>{1}", m_Mobile.Serial.Value, m_Mobile.Name); } }
-
-        public Channel CurrentChannel { get { return m_Channel; } set { m_Channel = value; } }
-
-        public bool IsOnline { get { return (m_Mobile.NetState != null); } }
-
-        public const char NormalColorCharacter = '0';
 
         public char GetColorCharacter()
         {
@@ -40,17 +39,14 @@ namespace Server.Engines.Chat
 
         public void SendMessage(int number, string param1 = null, string param2 = null)
         {
-            SendMessage(number, m_Mobile, param1, param2);
+            SendMessage(number, Mobile, param1, param2);
         }
 
         public void SendMessage(int number, Mobile from, string param1, string param2)
         {
-            if (m_Mobile.NetState != null)
-                m_Mobile.Send(new ChatMessagePacket(from, number, param1, param2));
+            if (Mobile.NetState != null)
+                Mobile.Send(new ChatMessagePacket(from, number, param1, param2));
         }
-
-        private static List<ChatUser> m_Users = new List<ChatUser>();
-        private static Dictionary<Mobile, ChatUser> m_Table = new Dictionary<Mobile, ChatUser>();
 
         public static ChatUser AddChatUser(Mobile from)
         {
@@ -78,11 +74,11 @@ namespace Server.Engines.Chat
             {
                 ChatSystem.SendCommandTo(user.Mobile, ChatCommand.CloseChatWindow);
 
-                if (user.m_Channel != null)
-                    user.m_Channel.RemoveUser(user);
+                if (user.CurrentChannel != null)
+                    user.CurrentChannel.RemoveUser(user);
 
                 m_Users.Remove(user);
-                m_Table.Remove(user.m_Mobile);
+                m_Table.Remove(user.Mobile);
             }
         }
 
@@ -110,7 +106,8 @@ namespace Server.Engines.Chat
             GlobalSendCommand(command, null, param1, param2);
         }
 
-        public static void GlobalSendCommand(ChatCommand command, ChatUser initiator, string param1 = null, string param2 = null)
+        public static void GlobalSendCommand(ChatCommand command, ChatUser initiator, string param1 = null,
+            string param2 = null)
         {
             foreach (var user in m_Users.ToArray())
             {
@@ -118,7 +115,7 @@ namespace Server.Engines.Chat
                     continue;
 
                 if (user.CheckOnline())
-                    ChatSystem.SendCommandTo(user.m_Mobile, command, param1, param2);
+                    ChatSystem.SendCommandTo(user.Mobile, command, param1, param2);
             }
         }
     }

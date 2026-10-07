@@ -1,24 +1,15 @@
-using System;
-using Server;
-
 namespace Server.Items
 {
     public class SabertoothedTigerCostume : BaseCostume
     {
-        public override string CreatureName { get { return "saber-toothed tiger"; } }
+        public override string CreatureName => "saber-toothed tiger";
+
+        public override string DefaultName => "a saber-toothed tiger costume";
 
         [Constructable]
-        public SabertoothedTigerCostume() : base()
+        public SabertoothedTigerCostume()
         {
             CostumeBody = 0x588;
-        }
-
-        public override string DefaultName
-        {
-            get
-            {
-                return "a saber-toothed tiger costume";
-            }
         }
 
         public SabertoothedTigerCostume(Serial serial) : base(serial)
@@ -29,14 +20,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

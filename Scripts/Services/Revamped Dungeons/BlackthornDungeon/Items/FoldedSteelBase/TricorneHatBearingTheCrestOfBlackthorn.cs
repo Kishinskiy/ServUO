@@ -1,15 +1,19 @@
-using Server;
-using System;
-
 namespace Server.Items
 {
     public class TricorneHatBearingTheCrestOfBlackthorn3 : TricorneHat
     {
-        public override bool IsArtifact { get { return true; } }
+        public override bool IsArtifact => true;
+
+        public override int BasePhysicalResistance => 20;
+        public override int BaseFireResistance => 10;
+        public override int BaseColdResistance => 10;
+        public override int BasePoisonResistance => 10;
+        public override int BaseEnergyResistance => 10;
+        public override int InitMinHits => 255;
+        public override int InitMaxHits => 255;
 
         [Constructable]
         public TricorneHatBearingTheCrestOfBlackthorn3()
-            : base()
         {
             ReforgedSuffix = ReforgedSuffix.Blackthorn;
             Attributes.NightSight = 1;
@@ -19,14 +23,6 @@ namespace Server.Items
             Hue = 1150;
         }
 
-        public override int BasePhysicalResistance { get { return 20; } }
-        public override int BaseFireResistance { get { return 10; } }
-        public override int BaseColdResistance { get { return 10; } }
-        public override int BasePoisonResistance { get { return 10; } }
-        public override int BaseEnergyResistance { get { return 10; } }
-        public override int InitMinHits { get { return 255; } }
-        public override int InitMaxHits { get { return 255; } }
-       
         public TricorneHatBearingTheCrestOfBlackthorn3(Serial serial)
             : base(serial)
         {
@@ -41,7 +37,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

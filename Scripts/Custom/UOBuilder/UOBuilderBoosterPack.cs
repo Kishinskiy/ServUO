@@ -5,7 +5,7 @@ namespace Server.Custom.UOBuilder
     public class UOBuilderBoosterPack : Item
     {
         [CommandProperty(AccessLevel.GameMaster)]
-        public int BoostAmount { get; private set; } = UOBuilderConfig.BoostAmount;
+        public int BoostAmount { get; } = UOBuilderConfig.BoostAmount;
 
         [Constructable]
         public UOBuilderBoosterPack() : base(0x14F0)
@@ -15,15 +15,16 @@ namespace Server.Custom.UOBuilder
             Weight = 1.0;
             LootType = LootType.Blessed;
         }
+
+        public UOBuilderBoosterPack(Serial serial) : base(serial)
+        {
+        }
+
         public override void GetProperties(ObjectPropertyList list)
         {
             base.GetProperties(list);
 
             list.Add($"ARaises building permit limits by {BoostAmount}.");
-        }
-
-        public UOBuilderBoosterPack(Serial serial) : base(serial)
-        {
         }
 
         public override void OnDoubleClick(Mobile from)

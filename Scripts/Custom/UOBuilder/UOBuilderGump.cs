@@ -7,17 +7,14 @@ namespace Server.Custom.UOBuilder
     {
         private readonly UOBuilderPermit Permit;
 
-        public UOBuilderGump(PlayerMobile user, UOBuilderPermit permit) : base(user, 50, 50, null)
+        public UOBuilderGump(PlayerMobile user, UOBuilderPermit permit) : base(user)
         {
             Permit = permit;
         }
 
         internal static void RefreshResources(PlayerMobile user)
         {
-            if (user.FindGump(typeof(UOBuilderGump)) is UOBuilderGump gump)
-            {
-                gump.Refresh(true, false);
-            }
+            if (user.FindGump(typeof(UOBuilderGump)) is UOBuilderGump gump) gump.Refresh(true, false);
         }
 
         internal void SetStatic(int id)
@@ -93,7 +90,7 @@ namespace Server.Custom.UOBuilder
                 }
                 else
                 {
-                    var mod = (125 - ArtMetrics.GetWidth(Permit.LastID) / 2);
+                    var mod = 125 - ArtMetrics.GetWidth(Permit.LastID) / 2;
 
                     AddItem(X + mod, mod + 75, Permit.LastID);
                 }
@@ -106,7 +103,7 @@ namespace Server.Custom.UOBuilder
 
         public override void OnResponse(RelayInfo info)
         {
-            if (info.ButtonID != 6 && int.TryParse(info.GetTextEntry(1).Text, out int idMod) && idMod != Permit.LastID)
+            if (info.ButtonID != 6 && int.TryParse(info.GetTextEntry(1).Text, out var idMod) && idMod != Permit.LastID)
             {
                 if (idMod > 0 && idMod < ArtMetrics.ArtMaxID)
                 {
@@ -122,144 +119,132 @@ namespace Server.Custom.UOBuilder
                 switch (info.ButtonID)
                 {
                     case 0:
-                        {
-                            Refresh(true, false);
+                    {
+                        Refresh(true, false);
 
-                            break;
-                        }
+                        break;
+                    }
 
                     case 1:
-                        {
-                            if (Permit.LastID > 0)
-                            {
-                                Permit.LastID--;
-                            }
-                            else
-                            {
-                                Permit.LastID = ArtMetrics.ArtMaxID;
-                            }
+                    {
+                        if (Permit.LastID > 0)
+                            Permit.LastID--;
+                        else
+                            Permit.LastID = ArtMetrics.ArtMaxID;
 
-                            UOBuilderCore.UpdatePermitState(Permit);
+                        UOBuilderCore.UpdatePermitState(Permit);
 
-                            Refresh(true, false);
+                        Refresh(true, false);
 
-                            break;
-                        }
+                        break;
+                    }
 
                     case 2:
-                        {
-                            if (Permit.LastID < ArtMetrics.ArtMaxID)
-                            {
-                                Permit.LastID++;
-                            }
-                            else
-                            {
-                                Permit.LastID = 0;
-                            }
+                    {
+                        if (Permit.LastID < ArtMetrics.ArtMaxID)
+                            Permit.LastID++;
+                        else
+                            Permit.LastID = 0;
 
-                            UOBuilderCore.UpdatePermitState(Permit);
+                        UOBuilderCore.UpdatePermitState(Permit);
 
-                            Refresh(true, false);
+                        Refresh(true, false);
 
-                            break;
-                        }
+                        break;
+                    }
 
                     case 3:
-                        {
-                            User.SendMessage("Add Static");
+                    {
+                        User.SendMessage("Add Static");
 
-                            User.Target = new UOBuilderTarget(Permit, true);
+                        User.Target = new UOBuilderTarget(Permit, true);
 
-                            Refresh(true, false);
+                        Refresh(true, false);
 
-                            break;
-                        }
+                        break;
+                    }
 
                     case 4:
-                        {
-                            User.SendMessage("Get Static");
+                    {
+                        User.SendMessage("Get Static");
 
-                            User.Target = new UOBuilderTarget(Permit, true, true);
+                        User.Target = new UOBuilderTarget(Permit, true, true);
 
-                            Close();
+                        Close();
 
-                            break;
-                        }
+                        break;
+                    }
 
                     case 5:
-                        {
-                            User.SendMessage("Remove Static");
+                    {
+                        User.SendMessage("Remove Static");
 
-                            User.Target = new UOBuilderTarget(Permit, false);
+                        User.Target = new UOBuilderTarget(Permit, false);
 
-                            Refresh(true, false);
+                        Refresh(true, false);
 
-                            break;
-                        }
+                        break;
+                    }
 
                     case 6:
-                        {
-                            User.SendMessage("Close");
+                    {
+                        User.SendMessage("Close");
 
-                            UOBuilderCore.CleanBuild(User);
+                        UOBuilderCore.CleanBuild(User);
 
-                            Permit.Center = Point3D.Zero;
+                        Permit.Center = Point3D.Zero;
 
-                            UOBuilderCore.UpdatePermitState(Permit);
+                        UOBuilderCore.UpdatePermitState(Permit);
 
-                            Close();
+                        Close();
 
-                            break;
-                        }
+                        break;
+                    }
 
                     case 7:
-                        {
-                            User.SendMessage(53, "Target one of your building statics to raise it.");
+                    {
+                        User.SendMessage(53, "Target one of your building statics to raise it.");
 
-                            User.Target = new UOBuilderHeightTarget(Permit, 1);
+                        User.Target = new UOBuilderHeightTarget(Permit, 1);
 
-                            Refresh(true, false);
+                        Refresh(true, false);
 
-                            break;
-                        }
+                        break;
+                    }
 
                     case 8:
-                        {
-                            User.SendMessage(53, "Target one of your building statics to lower it.");
+                    {
+                        User.SendMessage(53, "Target one of your building statics to lower it.");
 
-                            User.Target = new UOBuilderHeightTarget(Permit, -1);
+                        User.Target = new UOBuilderHeightTarget(Permit, -1);
 
-                            Refresh(true, false);
+                        Refresh(true, false);
 
-                            break;
-                        }
+                        break;
+                    }
 
                     case 9:
-                        {
-                            User.SendMessage(53, "Build Cleared");
+                    {
+                        User.SendMessage(53, "Build Cleared");
 
-                            UOBuilderCore.ResetUOBuild(User);
+                        UOBuilderCore.ResetUOBuild(User);
 
-                            Refresh(true, false);
+                        Refresh(true, false);
 
-                            break;
-                        }
+                        break;
+                    }
 
                     case 10:
-                        {
-                            if (UOBuilderCore.HasBuilds(User.Serial))
-                            {
-                                new UOBuilderResourceGump(User, 50, 50, this).SendGump();
-                            }
-                            else
-                            {
-                                User.SendMessage("Start building to start populating your resource list!");
-                            }
+                    {
+                        if (UOBuilderCore.HasBuilds(User.Serial))
+                            new UOBuilderResourceGump(User, 50, 50, this).SendGump();
+                        else
+                            User.SendMessage("Start building to start populating your resource list!");
 
-                            Refresh(true, false);
+                        Refresh(true, false);
 
-                            break;
-                        }
+                        break;
+                    }
                 }
             }
         }

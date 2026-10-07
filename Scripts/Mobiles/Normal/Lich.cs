@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +5,18 @@ namespace Server.Mobiles
     [CorpseName("a liche's corpse")]
     public class Lich : BaseCreature
     {
+        public override TribeType Tribe => TribeType.Undead;
+
+        public override OppositionGroup OppositionGroup => OppositionGroup.FeyAndUndead;
+
+        public override bool CanRummageCorpses => true;
+
+        public override bool BleedImmune => true;
+
+        public override Poison PoisonImmune => Poison.Lethal;
+
+        public override int TreasureMapLevel => 3;
+
         [Constructable]
         public Lich()
             : base(AIType.AI_NecroMage, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -46,14 +57,14 @@ namespace Server.Mobiles
 
             VirtualArmor = 50;
 
-			switch (Utility.Random(25))
+            switch (Utility.Random(25))
             {
                 case 0: PackItem(new LichFormScroll()); break;
                 case 1: PackItem(new PoisonStrikeScroll()); break;
                 case 2: PackItem(new StrangleScroll()); break;
                 case 3: PackItem(new VengefulSpiritScroll()); break;
-				case 4: PackItem(new WitherScroll()); break;
-			}
+                case 4: PackItem(new WitherScroll()); break;
+            }
 
 
             PackItem(new GnarledStaff());
@@ -65,43 +76,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override TribeType Tribe { get { return TribeType.Undead; } }
-
-        public override OppositionGroup OppositionGroup
-        {
-            get
-            {
-                return OppositionGroup.FeyAndUndead;
-            }
-        }
-        public override bool CanRummageCorpses
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool BleedImmune
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override Poison PoisonImmune
-        {
-            get
-            {
-                return Poison.Lethal;
-            }
-        }
-        public override int TreasureMapLevel
-        {
-            get
-            {
-                return 3;
-            }
-        }
         public override void GenerateLoot()
         {
             AddLoot(LootPack.Rich);
@@ -111,13 +85,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -1,17 +1,17 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
-using Server.Items;
 using System.IO;
+using Server.Items;
 
 namespace Server.Commands
 {
-    class Location : IComparable
+    internal class Location : IComparable
     {
+        public Map Map;
         public int X;
         public int Y;
         public int Z;
-        public Map Map;
+
         public Location(int x, int y, int z, Map m)
         {
             X = x;
@@ -25,7 +25,7 @@ namespace Server.Commands
             if (!(obj is Location))
                 return GetHashCode().CompareTo(obj.GetHashCode());
 
-            Location l = (Location)obj;
+            var l = (Location)obj;
             if (l.Map.MapID != Map.MapID)
                 return l.Map.MapID - Map.MapID;
             if (l.X != X)
@@ -37,16 +37,18 @@ namespace Server.Commands
 
         public override int GetHashCode()
         {
-            string hashString = String.Format("{0}-{1}-{2}-{3}",
+            var hashString = string.Format("{0}-{1}-{2}-{3}",
                 X, Y, Z, Map.MapID);
             return hashString.GetHashCode();
         }
     }
-    class TelDef
+
+    internal class TelDef
     {
-        public Location Source;
-        public Location Destination;
         public bool Back;
+        public Location Destination;
+        public Location Source;
+
         public TelDef(Location s, Location d, bool b)
         {
             Source = s;
@@ -54,19 +56,16 @@ namespace Server.Commands
             Back = b;
         }
     }
+
     public class GenTeleporter
     {
-        private static string m_Path = Path.Combine("Data", "teleporters.csv");
-        private static char[] m_Sep = { ',' };
-
-        public GenTeleporter()
-        {
-        }
+        private static readonly string m_Path = Path.Combine("Data", "teleporters.csv");
+        private static readonly char[] m_Sep = { ',' };
 
         public static void Initialize()
         {
-            CommandSystem.Register("TelGen", AccessLevel.Administrator, new CommandEventHandler(GenTeleporter_OnCommand));
-            CommandSystem.Register("TelGenDelete", AccessLevel.Administrator, new CommandEventHandler(TelGenDelete_OnCommand));
+            CommandSystem.Register("TelGen", AccessLevel.Administrator, GenTeleporter_OnCommand);
+            CommandSystem.Register("TelGenDelete", AccessLevel.Administrator, TelGenDelete_OnCommand);
         }
 
         private static void TelGenDelete_OnCommand(CommandEventArgs e)
@@ -80,24 +79,25 @@ namespace Server.Commands
         {
             e.Mobile.SendMessage("Generating teleporters, please wait.");
 
-            TeleportersCreator c = new TeleportersCreator();
+            var c = new TeleportersCreator();
 
-            StreamReader reader = new StreamReader(m_Path);
+            var reader = new StreamReader(m_Path);
 
             string line;
-            int lineNum = 0;
-            while((line = reader.ReadLine()) != null)
+            var lineNum = 0;
+            while ((line = reader.ReadLine()) != null)
             {
                 ++lineNum;
                 line = line.Trim();
                 if (line.StartsWith("#"))
                     continue;
-                string[] parts = line.Split(m_Sep);
-                if(parts.Length != 9)
+                var parts = line.Split(m_Sep);
+                if (parts.Length != 9)
                 {
-                    e.Mobile.SendMessage(33, String.Format("Bad teleporter definition on line {0}", lineNum));
+                    e.Mobile.SendMessage(33, string.Format("Bad teleporter definition on line {0}", lineNum));
                     continue;
                 }
+
                 try
                 {
                     c.CreateTeleporter(
@@ -114,13 +114,14 @@ namespace Server.Commands
                 }
                 catch (FormatException)
                 {
-                    e.Mobile.SendMessage(33, String.Format("Bad number format on line {0}", lineNum));
+                    e.Mobile.SendMessage(33, string.Format("Bad number format on line {0}", lineNum));
                 }
-                catch(ArgumentException ex)
+                catch (ArgumentException ex)
                 {
-                    e.Mobile.SendMessage(33, String.Format("Argument Execption {0} on line {1}", ex.Message, lineNum));
+                    e.Mobile.SendMessage(33, string.Format("Argument Execption {0} on line {1}", ex.Message, lineNum));
                 }
             }
+
             reader.Close();
 
             e.Mobile.SendMessage("Teleporter generating complete.");
@@ -130,24 +131,19 @@ namespace Server.Commands
         {
             private static readonly Queue m_Queue = new Queue();
             private int m_Count;
-            public TeleportersCreator()
-            {
-            }
 
             public static bool FindTeleporter(Map map, Point3D p)
             {
                 IPooledEnumerable eable = map.GetItemsInRange(p, 0);
 
                 foreach (Item item in eable)
-                {
                     if (item is Teleporter && !(item is KeywordTeleporter) && !(item is SkillTeleporter))
                     {
-                        int delta = item.Z - p.Z;
+                        var delta = item.Z - p.Z;
 
                         if (delta >= -12 && delta <= 12)
                             m_Queue.Enqueue(item);
                     }
-                }
 
                 eable.Free();
 
@@ -157,37 +153,41 @@ namespace Server.Commands
                 return false;
             }
 
-            public void CreateTeleporter(Point3D pointLocation, Point3D pointDestination, Map mapLocation, Map mapDestination, bool back)
+            public void CreateTeleporter(Point3D pointLocation, Point3D pointDestination, Map mapLocation,
+                Map mapDestination, bool back)
             {
                 if (!FindTeleporter(mapLocation, pointLocation))
                 {
-                    this.m_Count++;
-				
-                    Teleporter tel = new Teleporter(pointDestination, mapDestination);
-					WeakEntityCollection.Add("tel", tel);
+                    m_Count++;
+
+                    var tel = new Teleporter(pointDestination, mapDestination);
+                    WeakEntityCollection.Add("tel", tel);
 
                     tel.MoveToWorld(pointLocation, mapLocation);
                 }
 
                 if (back && !FindTeleporter(mapDestination, pointDestination))
                 {
-                    this.m_Count++;
+                    m_Count++;
 
-                    Teleporter telBack = new Teleporter(pointLocation, mapLocation);
-					WeakEntityCollection.Add("tel", telBack);
+                    var telBack = new Teleporter(pointLocation, mapLocation);
+                    WeakEntityCollection.Add("tel", telBack);
 
                     telBack.MoveToWorld(pointDestination, mapDestination);
                 }
             }
 
-            public void CreateTeleporter(int xLoc, int yLoc, int zLoc, int xDest, int yDest, int zDest, Map map, bool back)
+            public void CreateTeleporter(int xLoc, int yLoc, int zLoc, int xDest, int yDest, int zDest, Map map,
+                bool back)
             {
-                this.CreateTeleporter(new Point3D(xLoc, yLoc, zLoc), new Point3D(xDest, yDest, zDest), map, map, back);
+                CreateTeleporter(new Point3D(xLoc, yLoc, zLoc), new Point3D(xDest, yDest, zDest), map, map, back);
             }
 
-            public void CreateTeleporter(int xLoc, int yLoc, int zLoc, int xDest, int yDest, int zDest, Map mapLocation, Map mapDestination, bool back)
+            public void CreateTeleporter(int xLoc, int yLoc, int zLoc, int xDest, int yDest, int zDest, Map mapLocation,
+                Map mapDestination, bool back)
             {
-                this.CreateTeleporter(new Point3D(xLoc, yLoc, zLoc), new Point3D(xDest, yDest, zDest), mapLocation, mapDestination, back);
+                CreateTeleporter(new Point3D(xLoc, yLoc, zLoc), new Point3D(xDest, yDest, zDest), mapLocation,
+                    mapDestination, back);
             }
         }
     }

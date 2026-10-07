@@ -1,6 +1,5 @@
-using System;
-using Server.Items;
 using Server.Engines.Craft;
+using Server.Items;
 
 namespace Server.Custom.Farms
 {
@@ -10,27 +9,27 @@ namespace Server.Custom.Farms
         public static void Initialize()
         {
             // Получаем ссылку на глобальную систему кулинарного крафта
-            CraftSystem cooking = DefCooking.CraftSystem;
+            var cooking = DefCooking.CraftSystem;
 
             if (cooking == null)
                 return;
 
             // Находим или создаем категорию в меню плиты/сковороды.
             // Используем строку Cliloc "Ingredients" или пишем кастомный текст "Фермерские Блюда"
-            string categoryName = "Farmer's Dishes";
+            var categoryName = "Farmer's Dishes";
 
             // ----------------================-------------------------
             // РЕЦЕПТ 1: ЖАРЕНАЯ КАРТОШКА (Fried Potatoes)
             // ----------------================================---------
             // AddCraft(Type TypeResult, string Category, string Name, double MinSkill, double MaxSkill, Type TypeRes, string NameRes, int AmountRes)
-            int index1 = cooking.AddCraft(
-                typeof(FriedPotatoes),        // Что получится в итоге
-                categoryName,                 // Имя категории в меню крафта
-                "Fried Potatoes",             // Название рецепта
-                20.0, 50.0,                   // Минимальный и максимальный скилл Cooking для прокачки
-                typeof(FarmPotato),         // Ингредиент 1: Наша кастомная картошка
-                "Potato",                     // Название ингредиента на экране
-                2,                            // Сколько штук нужно потратить
+            var index1 = cooking.AddCraft(
+                typeof(FriedPotatoes), // Что получится в итоге
+                categoryName, // Имя категории в меню крафта
+                "Fried Potatoes", // Название рецепта
+                20.0, 50.0, // Минимальный и максимальный скилл Cooking для прокачки
+                typeof(FarmPotato), // Ингредиент 1: Наша кастомная картошка
+                "Potato", // Название ингредиента на экране
+                2, // Сколько штук нужно потратить
                 "Вы не смогли правильно пожарить картофель." // Сообщение при неудаче
             );
             // Добавим второй обязательный ингредиент: Лук!
@@ -39,11 +38,11 @@ namespace Server.Custom.Farms
             // ----------------================-------------------------
             // РЕЦЕПТ 2: КАРТОШКА С ОВОЩАМИ (Potatoes with Vegetables)
             // ----------------================================---------
-            int index2 = cooking.AddCraft(
+            var index2 = cooking.AddCraft(
                 typeof(PotatoesWithVegetables),
                 categoryName,
                 "Potatoes with Vegetables",
-                45.0, 75.0,                   // Требует больше навыка
+                45.0, 75.0, // Требует больше навыка
                 typeof(FarmPotato),
                 "Potato",
                 2,
@@ -56,14 +55,14 @@ namespace Server.Custom.Farms
             // ----------------================================---------
             // РЕЦЕПТ 3: КАРТОФЕЛЬНОЕ ПЮРЕ (Mashed Potatoes)
             // ----------------=========================================
-            int index3 = cooking.AddCraft(
+            var index3 = cooking.AddCraft(
                 typeof(MashedPotatoes),
                 categoryName,
                 "Mashed Potatoes",
                 30.0, 60.0,
                 typeof(FarmPotato),
                 "Potato",
-                3,                            // Требует много картофеля
+                3, // Требует много картофеля
                 "Пюре получилось с комками."
             );
             // Для пюре нужно молоко (стандартный предмет Pitcher of Milk)

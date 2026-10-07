@@ -12,80 +12,54 @@ namespace Server.Custom.UOBuilder
         [CommandProperty(AccessLevel.Player)]
         public int LOC_X
         {
-            get
-            {
-                return X;
-            }
+            get => X;
             set
             {
                 if (Permit != null && Permit.Center != Point3D.Zero)
-                {
                     if (value < Permit.Center.X + Permit.PermitArea && value > Permit.Center.X - Permit.PermitArea)
-                    {
                         if (value >= 0 && value < Map.Width)
                         {
-                            Point3D oldLocation = Location;
-                            int oldHue = Hue;
+                            var oldLocation = Location;
+                            var oldHue = Hue;
                             X = value;
 
-                            if (!UpdateTrackedEntity(oldLocation, oldHue))
-                            {
-                                X = oldLocation.X;
-                            }
+                            if (!UpdateTrackedEntity(oldLocation, oldHue)) X = oldLocation.X;
                         }
-                    }
-                }
             }
         }
 
         [CommandProperty(AccessLevel.Player)]
         public int LOC_Y
         {
-            get
-            {
-                return Y;
-            }
+            get => Y;
             set
             {
                 if (Permit != null && Permit.Center != Point3D.Zero)
-                {
                     if (value < Permit.Center.Y + Permit.PermitArea && value > Permit.Center.Y - Permit.PermitArea)
-                    {
                         if (value >= 0 && value < Map.Height)
                         {
-                            Point3D oldLocation = Location;
-                            int oldHue = Hue;
+                            var oldLocation = Location;
+                            var oldHue = Hue;
                             Y = value;
 
-                            if (!UpdateTrackedEntity(oldLocation, oldHue))
-                            {
-                                Y = oldLocation.Y;
-                            }
+                            if (!UpdateTrackedEntity(oldLocation, oldHue)) Y = oldLocation.Y;
                         }
-                    }
-                }
             }
         }
 
         [CommandProperty(AccessLevel.Player)]
         public int LOC_Z
         {
-            get
-            {
-                return Z;
-            }
+            get => Z;
             set
             {
                 if (value < 100 && value > Map.GetAverageZ(X, Y))
                 {
-                    Point3D oldLocation = Location;
-                    int oldHue = Hue;
+                    var oldLocation = Location;
+                    var oldHue = Hue;
                     Z = value;
 
-                    if (!UpdateTrackedEntity(oldLocation, oldHue))
-                    {
-                        Z = oldLocation.Z;
-                    }
+                    if (!UpdateTrackedEntity(oldLocation, oldHue)) Z = oldLocation.Z;
                 }
             }
         }
@@ -93,22 +67,16 @@ namespace Server.Custom.UOBuilder
         [CommandProperty(AccessLevel.Player)]
         public int HUE
         {
-            get
-            {
-                return Hue;
-            }
+            get => Hue;
             set
             {
                 if (value >= 0 && value < 0x4000)
                 {
-                    Point3D oldLocation = Location;
-                    int oldHue = Hue;
+                    var oldLocation = Location;
+                    var oldHue = Hue;
                     Hue = value;
 
-                    if (!UpdateTrackedEntity(oldLocation, oldHue))
-                    {
-                        Hue = oldHue;
-                    }
+                    if (!UpdateTrackedEntity(oldLocation, oldHue)) Hue = oldHue;
                 }
             }
         }
@@ -123,52 +91,41 @@ namespace Server.Custom.UOBuilder
             Name = "UOBuilder - Static";
         }
 
+        public UOBuilderStatic(Serial serial) : base(serial)
+        {
+        }
+
         public void AddPermit(UOBuilderPermit permit, bool storeStatic = true)
         {
             Permit = permit;
 
             BlessedFor = permit.BlessedFor;
 
-            if (storeStatic)
-            {
-                UOBuilderCore.AddStatic(permit, this);
-            }
+            if (storeStatic) UOBuilderCore.AddStatic(permit, this);
         }
 
         internal void RemovePermit(bool refundCharge = true)
         {
-            bool removed = UOBuilderCore.RemoveStatic(Permit, this);
+            var removed = UOBuilderCore.RemoveStatic(Permit, this);
 
-            if (refundCharge && removed)
-            {
-                Permit.RefundPlacementCharge();
-            }
+            if (refundCharge && removed) Permit.RefundPlacementCharge();
 
             Delete();
         }
 
         internal bool TryAdjustZ(int offset)
         {
-            if (Map == null || offset == 0)
-            {
-                return false;
-            }
+            if (Map == null || offset == 0) return false;
 
-            int targetZ = Z + offset;
+            var targetZ = Z + offset;
 
-            if (targetZ < Map.GetAverageZ(X, Y) || targetZ > 127)
-            {
-                return false;
-            }
+            if (targetZ < Map.GetAverageZ(X, Y) || targetZ > 127) return false;
 
-            Point3D oldLocation = Location;
-            int oldHue = Hue;
+            var oldLocation = Location;
+            var oldHue = Hue;
             Z = targetZ;
 
-            if (UpdateTrackedEntity(oldLocation, oldHue))
-            {
-                return true;
-            }
+            if (UpdateTrackedEntity(oldLocation, oldHue)) return true;
 
             Z = oldLocation.Z;
             return false;
@@ -181,18 +138,12 @@ namespace Server.Custom.UOBuilder
 
         internal void AddStaff(Mobile from)
         {
-            if (from.AccessLevel > AccessLevel.Player)
-            {
-                BlessedFor = from;
-            }
+            if (from.AccessLevel > AccessLevel.Player) BlessedFor = from;
         }
 
         public override void OnDoubleClick(Mobile from)
         {
-            if (Permit != null && from == Permit.BlessedFor)
-            {
-                from.SendGump(new PropertiesGump(from, this));
-            }
+            if (Permit != null && from == Permit.BlessedFor) from.SendGump(new PropertiesGump(from, this));
         }
 
         public override void OnMovement(Mobile m, Point3D oldLocation)
@@ -201,15 +152,11 @@ namespace Server.Custom.UOBuilder
 
             if (mobs != null)
             {
-                bool isPlayer = false;
+                var isPlayer = false;
 
                 foreach (var mob in mobs)
-                {
                     if (mob is PlayerMobile pm && pm.AccessLevel == AccessLevel.Player && pm != BlessedFor)
-                    {
                         isPlayer = true;
-                    }
-                }
 
                 Visible = isPlayer;
             }
@@ -233,16 +180,12 @@ namespace Server.Custom.UOBuilder
 
         internal void ConvertStatic()
         {
-            Static plainStatic = new Static(ItemID)
+            var plainStatic = new Static(ItemID)
             {
                 Hue = Hue
             };
 
             plainStatic.MoveToWorld(Location, Map);
-        }
-
-        public UOBuilderStatic(Serial serial) : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)

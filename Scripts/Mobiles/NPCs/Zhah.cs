@@ -1,16 +1,23 @@
-using Server;
 using System;
-using Server.Items;
 using Server.Engines.Quests;
+using Server.Items;
 
 namespace Server.Mobiles
 {
     public class QueenZhah : MondainQuester
     {
-        public override Type[] Quests { get { return new Type[] { typeof(JourneyToTheAthenaeumIsleQuest) }; } }
+        public override Type[] Quests
+        {
+            get { return new[] { typeof(JourneyToTheAthenaeumIsleQuest) }; }
+        }
 
         [Constructable]
         public QueenZhah() : base("Zhah", "the Gargoyle Queen")
+        {
+        }
+
+        public QueenZhah(Serial serial)
+            : base(serial)
         {
         }
 
@@ -51,21 +58,16 @@ namespace Server.Mobiles
             Say(1150932);
         }
 
-        public QueenZhah(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int v = reader.ReadInt();
+            var v = reader.ReadInt();
         }
     }
 }

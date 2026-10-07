@@ -1,10 +1,11 @@
 using Server.Network;
-using System;
 
 namespace Server.Items
 {
     public class ShadowFirePitAddon : BaseAddon
     {
+        public override BaseAddonDeed Deed => new ShadowFirePitDeed();
+
         [Constructable]
         public ShadowFirePitAddon()
         {
@@ -23,13 +24,9 @@ namespace Server.Items
             if (from.InRange(c.Location, 3))
             {
                 if (c.ItemID >= 0x3651 && c.ItemID <= 0x3653)
-                {
                     Components.ForEach(x => x.ItemID += 3);
-                }
                 else
-                {
                     Components.ForEach(x => x.ItemID -= 3);
-                }
             }
             else
             {
@@ -37,26 +34,26 @@ namespace Server.Items
             }
         }
 
-        public override BaseAddonDeed Deed { get { return new ShadowFirePitDeed(); } }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class ShadowFirePitDeed : BaseAddonDeed
     {
-        public override int LabelNumber { get { return 1076680; } } // Shadow Fire Pit
+        public override int LabelNumber => 1076680; // Shadow Fire Pit
 
-        public override bool ExcludeDeedHue { get { return true; } }
+        public override bool ExcludeDeedHue => true;
+
+        public override BaseAddon Addon => new ShadowFirePitAddon();
 
         [Constructable]
         public ShadowFirePitDeed()
@@ -70,19 +67,17 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddon Addon { get { return new ShadowFirePitAddon(); } }
 
-        
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

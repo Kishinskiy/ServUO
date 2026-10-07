@@ -1,10 +1,14 @@
-using System;
-
 namespace Server.Items
 {
     public class SoulSeeker : RadiantScimitar
-	{
-		public override bool IsArtifact { get { return true; } }
+    {
+        public override bool IsArtifact => true;
+
+        public override int LabelNumber => 1075046; // Soul Seeker
+        public override int InitMinHits => 255;
+
+        public override int InitMaxHits => 255;
+
         [Constructable]
         public SoulSeeker()
         {
@@ -21,28 +25,8 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1075046;
-            }
-        }// Soul Seeker
-        public override int InitMinHits
-        {
-            get
-            {
-                return 255;
-            }
-        }
-        public override int InitMaxHits
-        {
-            get
-            {
-                return 255;
-            }
-        }
-        public override void GetDamageTypes(Mobile wielder, out int phys, out int fire, out int cold, out int pois, out int nrgy, out int chaos, out int direct)
+        public override void GetDamageTypes(Mobile wielder, out int phys, out int fire, out int cold, out int pois,
+            out int nrgy, out int chaos, out int direct)
         {
             cold = 100;
 
@@ -60,7 +44,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

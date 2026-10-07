@@ -1,10 +1,12 @@
-using System;
-
 namespace Server.Items
 {
     public class ResilientBracer : GoldBracelet
-	{
-		public override bool IsArtifact { get { return true; } }
+    {
+        public override bool IsArtifact => true;
+
+        public override int LabelNumber => 1072933; // Resillient Bracer
+        public override int PhysicalResistance => 20;
+
         [Constructable]
         public ResilientBracer()
         {
@@ -20,20 +22,6 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1072933;
-            }
-        }// Resillient Bracer
-        public override int PhysicalResistance
-        {
-            get
-            {
-                return 20;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -45,7 +33,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

@@ -1,4 +1,3 @@
-using System;
 using Server.Gumps;
 using Server.Multis;
 using Server.Network;
@@ -7,6 +6,8 @@ namespace Server.Items
 {
     public class GreenMarbleFireplaceAddon : BaseAddon
     {
+        public override BaseAddonDeed Deed => new GreenMarbleFireplaceDeed();
+
         [Constructable]
         public GreenMarbleFireplaceAddon(DirectionType type)
         {
@@ -25,38 +26,44 @@ namespace Server.Items
             }
         }
 
+        public GreenMarbleFireplaceAddon(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void OnComponentUsed(AddonComponent c, Mobile from)
         {
-            if ((from.InRange(c.Location, 3)))
+            if (from.InRange(c.Location, 3))
             {
-                BaseHouse house = BaseHouse.FindHouseAt(from);
+                var house = BaseHouse.FindHouseAt(from);
 
-                if (house != null && (house.IsOwner(from) || (house.LockDowns.ContainsKey(this) && house.LockDowns[this] == from)))
+                if (house != null && (house.IsOwner(from) ||
+                                      (house.LockDowns.ContainsKey(this) && house.LockDowns[this] == from)))
                 {
                     Components.ForEach(x =>
                     {
-                        switch(x.ItemID)
+                        switch (x.ItemID)
                         {
                             case 0x9A5B:
-                                {
-                                    x.ItemID = 0x9A7B;
-                                    break;
-                                }
+                            {
+                                x.ItemID = 0x9A7B;
+                                break;
+                            }
                             case 0x9A7B:
-                                {
-                                    x.ItemID = 0x9A5B;
-                                    break;
-                                }
+                            {
+                                x.ItemID = 0x9A5B;
+                                break;
+                            }
                             case 0x9A58:
-                                {
-                                    x.ItemID = 0x9A75;
-                                    break;
-                                }
+                            {
+                                x.ItemID = 0x9A75;
+                                break;
+                            }
                             case 0x9A75:
-                                {
-                                    x.ItemID = 0x9A58;
-                                    break;
-                                }
+                            {
+                                x.ItemID = 0x9A58;
+                                break;
+                            }
                         }
                     });
 
@@ -73,37 +80,28 @@ namespace Server.Items
             }
         }
 
-        public GreenMarbleFireplaceAddon(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override BaseAddonDeed Deed { get { return new GreenMarbleFireplaceDeed(); } }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class GreenMarbleFireplaceDeed : BaseAddonDeed, IRewardOption
     {
-        public override int LabelNumber { get { return 1155698; } } // Green Marble Fireplace
-
-        public override BaseAddon Addon { get { return new GreenMarbleFireplaceAddon(_Direction); } }
-
         private DirectionType _Direction;
+        public override int LabelNumber => 1155698; // Green Marble Fireplace
+
+        public override BaseAddon Addon => new GreenMarbleFireplaceAddon(_Direction);
 
         [Constructable]
         public GreenMarbleFireplaceDeed()
-            : base()
         {
             LootType = LootType.Blessed;
         }
@@ -143,13 +141,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

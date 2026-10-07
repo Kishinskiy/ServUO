@@ -1,10 +1,12 @@
-using System;
 using Server.Gumps;
 
 namespace Server.Items
 {
     public class PeerlessTeleporter : Teleporter
     {
+        [CommandProperty(AccessLevel.GameMaster)]
+        public PeerlessAltar Altar { get; set; }
+
         [Constructable]
         public PeerlessTeleporter()
             : this(null)
@@ -12,7 +14,6 @@ namespace Server.Items
         }
 
         public PeerlessTeleporter(PeerlessAltar altar)
-            : base()
         {
             Altar = altar;
         }
@@ -21,9 +22,6 @@ namespace Server.Items
             : base(serial)
         {
         }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public PeerlessAltar Altar { get; set; }
 
         public override bool OnMoveOver(Mobile m)
         {
@@ -44,9 +42,9 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
-            writer.Write((Item)Altar);
+            writer.Write(Altar);
 
             if (Altar != null && Altar.Map != Map)
                 Map = Altar.Map;
@@ -55,7 +53,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             Altar = reader.ReadItem() as PeerlessAltar;
         }

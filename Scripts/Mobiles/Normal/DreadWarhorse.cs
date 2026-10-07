@@ -1,11 +1,18 @@
-using System;
-using Server.Items;
-
 namespace Server.Mobiles
 {
     [CorpseName("a dread warhorse corpse")]
     public class DreadWarhorse : BaseMount
     {
+        public override int Meat => 5;
+
+        public override int Hides => 10;
+
+        public override HideType HideType => HideType.Barbed;
+
+        public override FoodType FavoriteFood => FoodType.Meat;
+
+        public override bool CanAngerOnTame => true;
+
         [Constructable]
         public DreadWarhorse()
             : this("a dread warhorse")
@@ -59,41 +66,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override int Meat
-        {
-            get
-            {
-                return 5;
-            }
-        }
-        public override int Hides
-        {
-            get
-            {
-                return 10;
-            }
-        }
-        public override HideType HideType
-        {
-            get
-            {
-                return HideType.Barbed;
-            }
-        }
-        public override FoodType FavoriteFood
-        {
-            get
-            {
-                return FoodType.Meat;
-            }
-        }
-        public override bool CanAngerOnTame
-        {
-            get
-            {
-                return true;
-            }
-        }
         public override void GenerateLoot()
         {
             AddLoot(LootPack.Rich);
@@ -114,19 +86,16 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)1); // version
+            writer.Write(1); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            if (version == 0)
-            {
-                SetDamageType(ResistanceType.Physical, 40);
-            }
+            if (version == 0) SetDamageType(ResistanceType.Physical, 40);
         }
     }
 }

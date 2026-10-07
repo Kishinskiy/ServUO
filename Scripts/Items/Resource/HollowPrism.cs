@@ -1,14 +1,14 @@
-using System;
-
 namespace Server.Items
 {
     public class HollowPrism : Item
     {
+        public override int LabelNumber => 1072895; // hollow prism
+
         [Constructable]
         public HollowPrism()
             : base(0x2F5D)
         {
-            this.Weight = 1.0;
+            Weight = 1.0;
         }
 
         public HollowPrism(Serial serial)
@@ -16,25 +16,18 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1072895;
-            }
-        }// hollow prism
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

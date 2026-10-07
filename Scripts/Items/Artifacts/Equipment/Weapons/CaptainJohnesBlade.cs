@@ -1,11 +1,12 @@
-using System;
-
 namespace Server.Items
 {
     public class CaptainJohnesBlade : Scimitar
-	{
-		public override bool IsArtifact { get { return true; } }
-        public override int LabelNumber { get { return 1154475; } } // CaptainJohnesBlade
+    {
+        public override bool IsArtifact => true;
+        public override int LabelNumber => 1154475; // CaptainJohnesBlade
+
+        public override int InitMinHits => 255;
+        public override int InitMaxHits => 255;
 
         [Constructable]
         public CaptainJohnesBlade()
@@ -20,37 +21,39 @@ namespace Server.Items
             Hue = 2124;
         }
 
-        public override void GetDamageTypes(Mobile wielder, out int phys, out int fire, out int cold, out int pois, out int nrgy, out int chaos, out int direct)
-        {
-            pois = 75; cold = 25;
-            phys = nrgy = chaos = direct = fire = 0;
-        }
-
-        public override int InitMinHits { get { return 255; } }
-        public override int InitMaxHits { get { return 255; } }
-
         public CaptainJohnesBlade(Serial serial)
             : base(serial)
         {
         }
 
+        public override void GetDamageTypes(Mobile wielder, out int phys, out int fire, out int cold, out int pois,
+            out int nrgy, out int chaos, out int direct)
+        {
+            pois = 75;
+            cold = 25;
+            phys = nrgy = chaos = direct = fire = 0;
+        }
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class GargishCaptainJohnesBlade : GlassSword
     {
-        public override bool IsArtifact { get { return true; } }
-        public override int LabelNumber { get { return 1154475; } } // GargishCaptainJohnesBlade
+        public override bool IsArtifact => true;
+        public override int LabelNumber => 1154475; // GargishCaptainJohnesBlade
+
+        public override int InitMinHits => 255;
+        public override int InitMaxHits => 255;
 
         [Constructable]
         public GargishCaptainJohnesBlade()
@@ -65,30 +68,29 @@ namespace Server.Items
             Hue = 2124;
         }
 
-        public override void GetDamageTypes(Mobile wielder, out int phys, out int fire, out int cold, out int pois, out int nrgy, out int chaos, out int direct)
-        {
-            pois = 75; cold = 25;
-            phys = nrgy = chaos = direct = fire = 0;
-        }
-
-        public override int InitMinHits { get { return 255; } }
-        public override int InitMaxHits { get { return 255; } }
-
         public GargishCaptainJohnesBlade(Serial serial)
             : base(serial)
         {
         }
 
+        public override void GetDamageTypes(Mobile wielder, out int phys, out int fire, out int cold, out int pois,
+            out int nrgy, out int chaos, out int direct)
+        {
+            pois = 75;
+            cold = 25;
+            phys = nrgy = chaos = direct = fire = 0;
+        }
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

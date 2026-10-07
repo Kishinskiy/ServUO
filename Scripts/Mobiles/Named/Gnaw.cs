@@ -1,5 +1,3 @@
-
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -7,6 +5,12 @@ namespace Server.Mobiles
     [CorpseName("a Gnaw corpse")]
     public class Gnaw : DireWolf
     {
+        public override bool CanBeParagon => false;
+
+        public override int Hides => 28;
+
+        public override int Meat => 4;
+
         [Constructable]
         public Gnaw()
         {
@@ -40,14 +44,17 @@ namespace Server.Mobiles
 
             Tamable = false;
 
-            for (int i = 0; i < Utility.RandomMinMax(0, 1); i++)
-            {
+            for (var i = 0; i < Utility.RandomMinMax(0, 1); i++)
                 PackItem(Loot.RandomScroll(0, Loot.ArcanistScrollTypes.Length, SpellbookType.Arcanist));
-            }
 
             SetSpecialAbility(SpecialAbility.Rage);
         }
-        public override bool CanBeParagon { get { return false; } }
+
+        public Gnaw(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void OnDeath(Container c)
         {
             base.OnDeath(c);
@@ -56,25 +63,6 @@ namespace Server.Mobiles
                 c.DropItem(new GnawsFang());
         }
 
-        public Gnaw(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override int Hides
-        {
-            get
-            {
-                return 28;
-            }
-        }
-        public override int Meat
-        {
-            get
-            {
-                return 4;
-            }
-        }
         public override void GenerateLoot()
         {
             AddLoot(LootPack.FilthyRich, 2);
@@ -84,14 +72,14 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

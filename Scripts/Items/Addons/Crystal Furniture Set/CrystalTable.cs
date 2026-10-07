@@ -1,10 +1,11 @@
-using System;
 using Server.Gumps;
 
 namespace Server.Items
 {
     public class CrystalTableAddon : BaseAddon
     {
+        public override BaseAddonDeed Deed => new CrystalTableDeed();
+
         [Constructable]
         public CrystalTableAddon(DirectionType type)
         {
@@ -26,34 +27,30 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonDeed Deed { get { return new CrystalTableDeed(); } }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class CrystalTableDeed : BaseAddonDeed, IRewardOption
     {
-        public override int LabelNumber { get { return 1076673; } } // Crystal Table
-
-        public override bool ExcludeDeedHue { get { return true; } }
-
-        public override BaseAddon Addon { get { return new CrystalTableAddon(_Direction); } }
-
         private DirectionType _Direction;
+        public override int LabelNumber => 1076673; // Crystal Table
+
+        public override bool ExcludeDeedHue => true;
+
+        public override BaseAddon Addon => new CrystalTableAddon(_Direction);
 
         [Constructable]
         public CrystalTableDeed()
-            : base()
         {
             LootType = LootType.Blessed;
             Hue = 1173;
@@ -94,13 +91,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

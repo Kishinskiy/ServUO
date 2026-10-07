@@ -1,5 +1,3 @@
-using System;
-using Server;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -7,7 +5,16 @@ namespace Server.Mobiles
     [CorpseName("a dimetrosaur corpse")]
     public class Dimetrosaur : BaseCreature
     {
-        public override bool AttacksFocus { get { return !Controlled; } }
+        public override bool AttacksFocus => !Controlled;
+
+        public override int TreasureMapLevel => 6;
+
+        public override bool CanAngerOnTame => true;
+        public override bool StatLossAfterTame => true;
+        public override int Meat => 1;
+        public override int Hides => 11;
+        public override HideType HideType => HideType.Spined;
+        public override FoodType FavoriteFood => FoodType.FruitsAndVegies;
 
         [Constructable]
         public Dimetrosaur()
@@ -53,6 +60,11 @@ namespace Server.Mobiles
             SetWeaponAbility(WeaponAbility.Dismount);
         }
 
+        public Dimetrosaur(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override int GetIdleSound()
         {
             return 0x2C4;
@@ -78,8 +90,6 @@ namespace Server.Mobiles
             return 0x2C3;
         }
 
-        public override int TreasureMapLevel { get { return 6; } }
-
         public override void SetToChampionSpawn()
         {
             SetStr(271, 299);
@@ -90,7 +100,7 @@ namespace Server.Mobiles
         {
             if (Owners.Count == 0)
             {
-                int hits = HitsMax;
+                var hits = HitsMax;
 
                 base.OnAfterTame(tamer);
 
@@ -102,24 +112,12 @@ namespace Server.Mobiles
             }
         }
 
-        public override bool CanAngerOnTame { get { return true; } }
-        public override bool StatLossAfterTame { get { return true; } }
-        public override int Meat { get { return 1; } }
-        public override int Hides { get { return 11; } }
-        public override HideType HideType { get { return HideType.Spined; } }
-        public override FoodType FavoriteFood { get { return FoodType.FruitsAndVegies; } }
-
         public override void GenerateLoot()
         {
             if (IsChampionSpawn)
                 AddLoot(LootPack.FilthyRich, 2);
             else
                 AddLoot(LootPack.UltraRich, 2);
-        }
-
-        public Dimetrosaur(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -131,24 +129,18 @@ namespace Server.Mobiles
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (version == 0)
             {
-                if (Controlled)
-                {
-                    SetHits(HitsMax / 4);
-                }
+                if (Controlled) SetHits(HitsMax / 4);
 
                 SetAreaEffect(AreaEffect.PoisonBreath);
                 SetWeaponAbility(WeaponAbility.MortalStrike);
                 SetWeaponAbility(WeaponAbility.Dismount);
             }
 
-            if (version < 2)
-            {
-                SetMagicalAbility(MagicalAbility.Poisoning);
-            }
+            if (version < 2) SetMagicalAbility(MagicalAbility.Poisoning);
         }
     }
 }

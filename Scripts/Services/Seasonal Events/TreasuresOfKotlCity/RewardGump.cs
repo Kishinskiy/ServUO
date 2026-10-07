@@ -1,12 +1,8 @@
-using System;
-using Server;
+using Server.Engines.Craft;
+using Server.Engines.Points;
+using Server.Gumps;
 using Server.Items;
 using Server.Mobiles;
-using Server.Network;
-using Server.Engines.Points;
-using System.Collections.Generic;
-using Server.Gumps;
-using Server.Engines.Craft;
 
 namespace Server.Engines.TreasuresOfKotlCity
 {
@@ -32,7 +28,6 @@ namespace Server.Engines.TreasuresOfKotlCity
             Item item = null;
 
             if (citem.Type == typeof(RecipeScroll))
-            {
                 switch (index)
                 {
                     default:
@@ -40,13 +35,9 @@ namespace Server.Engines.TreasuresOfKotlCity
                     case 4: item = new RecipeScroll((int)TinkerRecipes.DrSpectorLenses); break;
                     case 5: item = new RecipeScroll((int)TinkerRecipes.KotlAutomatonHead); break;
                 }
-            }
             else if (citem.Type == typeof(TreasuresOfKotlRewardDeed))
-            {
                 item = new TreasuresOfKotlRewardDeed(citem.Tooltip);
-            }
             else if (citem.Type == typeof(TribalBanner))
-            {
                 switch (index)
                 {
                     case 10: item = new TribalBanner(EodonTribe.Urali); break;
@@ -56,13 +47,13 @@ namespace Server.Engines.TreasuresOfKotlCity
                     case 14: item = new TribalBanner(EodonTribe.Kurak); break;
                     case 15: item = new TribalBanner(EodonTribe.Jukari); break;
                 }
-            }
 
             if (item != null)
             {
                 if (User.Backpack == null || !User.Backpack.TryDropItem(User, item, false))
                 {
-                    User.SendLocalizedMessage(1074361); // The reward could not be given.  Make sure you have room in your pack.
+                    User.SendLocalizedMessage(
+                        1074361); // The reward could not be given.  Make sure you have room in your pack.
                     item.Delete();
                 }
                 else

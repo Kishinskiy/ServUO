@@ -1,6 +1,6 @@
 using System;
-using Server.Mobiles;
 using System.Linq;
+using Server.Mobiles;
 
 namespace Server.Items
 {
@@ -13,18 +13,25 @@ namespace Server.Items
             Movable = false;
         }
 
+        public AncientWall(Serial serial)
+            : base(serial)
+        {
+        }
+
         public bool IsInsidePyramid(Mobile from)
         {
-            return Map.Malas.GetMobilesInBounds(new Rectangle2D(1808, 1784, 31, 31)).OfType<PlayerMobile>().Any(x => x == from);
+            return Map.Malas.GetMobilesInBounds(new Rectangle2D(1808, 1784, 31, 31)).OfType<PlayerMobile>()
+                .Any(x => x == from);
         }
 
         public override void OnDoubleClick(Mobile from)
         {
             if (IsInsidePyramid(from))
             {
-                from.SendLocalizedMessage(1061603); // You hear a metallic click, and the ancient stone block rises up into the ceiling.
+                from.SendLocalizedMessage(
+                    1061603); // You hear a metallic click, and the ancient stone block rises up into the ceiling.
 
-                InternalTimer timer = new InternalTimer(this);
+                var timer = new InternalTimer(this);
 
                 timer.Start();
 
@@ -36,31 +43,23 @@ namespace Server.Items
             }
         }
 
-        public AncientWall(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            if (Z != -110)
-            {
-                Z = -110;
-            }
+            if (Z != -110) Z = -110;
         }
 
         private class InternalTimer : Timer
         {
-            private AncientWall wall;
+            private readonly AncientWall wall;
 
             public InternalTimer(AncientWall m_wall)
                 : base(TimeSpan.FromMinutes(1.0))

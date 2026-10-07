@@ -1,4 +1,4 @@
-using System;
+using Server.Engines.Craft;
 using Server.Network;
 using Server.Targeting;
 
@@ -9,6 +9,7 @@ namespace Server.Items
         public static bool CanPOFJewelry = Config.Get("Loot.CanPOFJewelry", false);
 
         private int m_UsesRemaining;
+        public override int LabelNumber => 1049082; // powder of fortifying
 
         [Constructable]
         public PowderOfTemperament()
@@ -33,54 +34,41 @@ namespace Server.Items
         [CommandProperty(AccessLevel.GameMaster)]
         public int UsesRemaining
         {
-            get
-            {
-                return m_UsesRemaining;
-            }
+            get => m_UsesRemaining;
             set
             {
                 m_UsesRemaining = value;
                 InvalidateProperties();
             }
         }
+
         public bool ShowUsesRemaining
         {
-            get
-            {
-                return true;
-            }
-            set
-            {
-            }
+            get => true;
+            set { }
         }
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1049082;
-            }
-        }// powder of fortifying
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
-            writer.Write((int)m_UsesRemaining);
+            writer.Write(0);
+            writer.Write(m_UsesRemaining);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            switch ( version )
+            switch (version)
             {
                 case 0:
-                    {
-                        m_UsesRemaining = reader.ReadInt();
-                        break;
-                    }
+                {
+                    m_UsesRemaining = reader.ReadInt();
+                    break;
+                }
             }
         }
 
@@ -91,7 +79,7 @@ namespace Server.Items
 
         public virtual void DisplayDurabilityTo(Mobile m)
         {
-            LabelToAffix(m, 1017323, AffixType.Append, ": " + m_UsesRemaining.ToString()); // Durability
+            LabelToAffix(m, 1017323, AffixType.Append, ": " + m_UsesRemaining); // Durability
         }
 
         public override void OnSingleClick(Mobile from)
@@ -112,6 +100,7 @@ namespace Server.Items
         private class InternalTarget : Target
         {
             private readonly PowderOfTemperament m_Powder;
+
             public InternalTarget(PowderOfTemperament powder)
                 : base(2, false, TargetFlags.None)
             {
@@ -128,38 +117,43 @@ namespace Server.Items
 
                 if (targeted is Item)
                 {
-                    Item item = (Item)targeted;
-                    bool noGo = false;
-                    int antique = 0;
+                    var item = (Item)targeted;
+                    var noGo = false;
+                    var antique = 0;
 
-                    if (!Server.Engines.Craft.Repair.AllowsRepair(item, null) || (item is BaseJewel && !CanPOFJewelry))
+                    if (!Repair.AllowsRepair(item, null) || (item is BaseJewel && !CanPOFJewelry))
                     {
                         from.SendLocalizedMessage(1049083); // You cannot use the powder on that item.
                         return;
                     }
 
                     #region SA
+
                     if (item is BaseWeapon)
                     {
-                        if (((BaseWeapon)item).Attributes.Brittle > 0 || ((BaseWeapon)item).NegativeAttributes.Brittle > 0)
+                        if (((BaseWeapon)item).Attributes.Brittle > 0 ||
+                            ((BaseWeapon)item).NegativeAttributes.Brittle > 0)
                             noGo = true;
                         antique = ((BaseWeapon)item).NegativeAttributes.Antique;
                     }
                     else if (item is BaseArmor)
                     {
-                        if (((BaseArmor)item).Attributes.Brittle > 0 || ((BaseArmor)item).NegativeAttributes.Brittle > 0)
+                        if (((BaseArmor)item).Attributes.Brittle > 0 ||
+                            ((BaseArmor)item).NegativeAttributes.Brittle > 0)
                             noGo = true;
                         antique = ((BaseArmor)item).NegativeAttributes.Antique;
                     }
                     else if (item is BaseClothing)
                     {
-                        if (((BaseClothing)item).Attributes.Brittle > 0 || ((BaseClothing)item).NegativeAttributes.Brittle > 0)
+                        if (((BaseClothing)item).Attributes.Brittle > 0 ||
+                            ((BaseClothing)item).NegativeAttributes.Brittle > 0)
                             noGo = true;
                         antique = ((BaseClothing)item).NegativeAttributes.Antique;
                     }
                     else if (item is BaseJewel)
                     {
-                        if (((BaseJewel)item).Attributes.Brittle > 0 || ((BaseJewel)item).NegativeAttributes.Brittle > 0)
+                        if (((BaseJewel)item).Attributes.Brittle > 0 ||
+                            ((BaseJewel)item).NegativeAttributes.Brittle > 0)
                             noGo = true;
                         antique = ((BaseJewel)item).NegativeAttributes.Antique;
                     }
@@ -167,16 +161,18 @@ namespace Server.Items
                     {
                         noGo = true;
                     }
+
                     if (noGo)
                     {
                         from.SendLocalizedMessage(1149799); //That cannot be used on brittle items.
                         return;
                     }
+
                     #endregion
 
                     if (targeted is IDurability)
                     {
-                        IDurability wearable = (IDurability)targeted;
+                        var wearable = (IDurability)targeted;
 
                         if (!wearable.CanFortify)
                         {
@@ -184,14 +180,15 @@ namespace Server.Items
                             return;
                         }
 
-                        if ((item.IsChildOf(from.Backpack) || (Core.ML && item.Parent == from)) && m_Powder.IsChildOf(from.Backpack))
+                        if ((item.IsChildOf(from.Backpack) || (Core.ML && item.Parent == from)) &&
+                            m_Powder.IsChildOf(from.Backpack))
                         {
-                            int origMaxHP = wearable.MaxHitPoints;
-                            int origCurHP = wearable.HitPoints;
+                            var origMaxHP = wearable.MaxHitPoints;
+                            var origCurHP = wearable.HitPoints;
 
                             if (origMaxHP > 0)
                             {
-                                int initMaxHP = antique <= 0 ? 255 : antique == 1 ? 250 : antique == 2 ? 200 : 150;
+                                var initMaxHP = antique <= 0 ? 255 : antique == 1 ? 250 : antique == 2 ? 200 : 150;
 
                                 wearable.UnscaleDurability();
 
@@ -204,7 +201,7 @@ namespace Server.Items
                                     }
                                     else
                                     {
-                                        int bonus = initMaxHP - wearable.MaxHitPoints;
+                                        var bonus = initMaxHP - wearable.MaxHitPoints;
 
                                         if (bonus > 10)
                                             bonus = 10;
@@ -222,14 +219,16 @@ namespace Server.Items
 
                                     if (wearable.MaxHitPoints > origMaxHP)
                                     {
-                                        from.SendLocalizedMessage(1049084); // You successfully use the powder on the item.
+                                        from.SendLocalizedMessage(
+                                            1049084); // You successfully use the powder on the item.
                                         from.PlaySound(0x247);
 
                                         --m_Powder.UsesRemaining;
 
                                         if (m_Powder.UsesRemaining <= 0)
                                         {
-                                            from.SendLocalizedMessage(1049086); // You have used up your powder of fortifying.
+                                            from.SendLocalizedMessage(
+                                                1049086); // You have used up your powder of fortifying.
                                             m_Powder.Delete();
                                         }
 

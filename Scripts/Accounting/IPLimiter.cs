@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Net;
-
 using Server.Network;
 
 namespace Server.Misc
@@ -9,22 +8,22 @@ namespace Server.Misc
     {
         public static bool Enabled { get; set; } = true;
 
-        public static bool SocketBlock { get; set; } = true; // true to block at connection, false to block at login request
+        public static bool SocketBlock { get; set; } =
+            true; // true to block at connection, false to block at login request
 
         public static int MaxAddresses { get; set; } = 10;
 
-        public static IPAddress[] Exemptions { get; set; } = // For hosting services where there are cases where IPs can be proxied
+        public static IPAddress[]
+            Exemptions { get; set; } = // For hosting services where there are cases where IPs can be proxied
         {
-            IPAddress.Loopback,
+            IPAddress.Loopback
         };
 
         public static bool IsExempt(IPAddress ip)
         {
-            for (int i = 0; i < Exemptions.Length; i++)
-            {
+            for (var i = 0; i < Exemptions.Length; i++)
                 if (ip.Equals(Exemptions[i]))
                     return true;
-            }
 
             return false;
         }
@@ -36,11 +35,11 @@ namespace Server.Misc
 
             IList<IPAddress> netStates = NetState.Addresses;
 
-            int count = 0;
+            var count = 0;
 
-            for (int i = 0; i < netStates.Count; ++i)
+            for (var i = 0; i < netStates.Count; ++i)
             {
-                IPAddress compState = netStates[i];
+                var compState = netStates[i];
 
                 if (ourAddress.Equals(compState))
                 {

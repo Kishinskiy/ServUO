@@ -1,9 +1,5 @@
-using Server;
-using System;
 using System.Collections.Generic;
-using Server.Items;
 using Server.Mobiles;
-using System.Linq;
 
 namespace Server.Engines.ArenaSystem
 {
@@ -13,10 +9,10 @@ namespace Server.Engines.ArenaSystem
         public Dictionary<PlayerMobile, PlayerStatsEntry> Players { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int Count { get { return Players == null ? 0 : Players.Count; } }
+        public int Count => Players == null ? 0 : Players.Count;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public bool Unoccupied { get { return Count == 0; } }
+        public bool Unoccupied => Count == 0;
 
         [CommandProperty(AccessLevel.GameMaster)]
         public PlayerMobile PlayerZero { get; set; }
@@ -30,6 +26,29 @@ namespace Server.Engines.ArenaSystem
         {
             Players = new Dictionary<PlayerMobile, PlayerStatsEntry>();
             AddParticipant(pm);
+        }
+
+        public ArenaTeam(GenericReader reader)
+        {
+            var version = reader.ReadInt();
+
+            Players = new Dictionary<PlayerMobile, PlayerStatsEntry>();
+            var list = new List<PlayerMobile>();
+
+            var count = reader.ReadInt();
+            for (var i = 0; i < count; i++)
+            {
+                var pm = reader.ReadMobile() as PlayerMobile;
+
+                if (pm != null)
+                    list.Add(pm);
+            }
+
+            // have to wait for everything else to deserialize :(
+            Timer.DelayCall(() =>
+            {
+                foreach (var pm in list) AddParticipant(pm);
+            });
         }
 
         public void AddParticipant(PlayerMobile pm)
@@ -59,41 +78,12 @@ namespace Server.Engines.ArenaSystem
             return Players.ContainsKey(pm);
         }
 
-        public ArenaTeam(GenericReader reader)
-        {
-            int version = reader.ReadInt();
-
-            Players = new Dictionary<PlayerMobile, PlayerStatsEntry>();
-            List<PlayerMobile> list = new List<PlayerMobile>();
-
-            int count = reader.ReadInt();
-            for (int i = 0; i < count; i++)
-            {
-                PlayerMobile pm = reader.ReadMobile() as PlayerMobile;
-
-                if (pm != null)
-                    list.Add(pm);
-            }
-
-            // have to wait for everything else to deserialize :(
-            Timer.DelayCall(() =>
-            {
-                foreach (var pm in list)
-                {
-                    AddParticipant(pm);
-                }
-            });
-        }
-
         public void Serialize(GenericWriter writer)
         {
             writer.Write(0);
 
             writer.Write(Players.Count);
-            foreach(var kvp in Players)
-            {
-                writer.Write(kvp.Key);
-            }
+            foreach (var kvp in Players) writer.Write(kvp.Key);
         }
     }
 }

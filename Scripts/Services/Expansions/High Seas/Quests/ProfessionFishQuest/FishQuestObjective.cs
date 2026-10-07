@@ -1,9 +1,5 @@
-﻿using Server;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using Server.Multis;
-using Server.Items;
-using Server.Mobiles;
 
 namespace Server.Engines.Quests
 {
@@ -15,11 +11,9 @@ namespace Server.Engines.Quests
         {
             get
             {
-                foreach (KeyValuePair<Type, int[]> kvp in Line)
-                {
+                foreach (var kvp in Line)
                     if (kvp.Value[0] < kvp.Value[1])
                         return false;
-                }
 
                 return true;
             }
@@ -34,20 +28,16 @@ namespace Server.Engines.Quests
         {
             Line = new Dictionary<Type, int[]>();
 
-            foreach (KeyValuePair<Type, int> kvp in line)
-            {
-                Line[kvp.Key] = new int[] { 0, kvp.Value };
-            }
+            foreach (var kvp in line) Line[kvp.Key] = new[] { 0, kvp.Value };
         }
 
         public override bool Update(object obj)
         {
             if (obj is Item)
             {
-                Item item = (Item)obj;
+                var item = (Item)obj;
 
-                foreach (KeyValuePair<Type, int[]> kvp in Line)
-                {
+                foreach (var kvp in Line)
                     if (item.GetType() == kvp.Key)
                     {
                         kvp.Value[0] += item.Amount;
@@ -55,16 +45,19 @@ namespace Server.Engines.Quests
                         if (IsCompleted && Quest.Owner != null)
                         {
                             CurProgress = 500;
-                            Quest.Owner.SendLocalizedMessage(1072273, null, 0x23); // You've completed a quest!  Don't forget to collect your reward.							
+                            Quest.Owner.SendLocalizedMessage(1072273, null,
+                                0x23); // You've completed a quest!  Don't forget to collect your reward.							
                             Quest.Owner.SendSound(Quest.CompleteSound);
                         }
                         else
+                        {
                             Quest.Owner.SendSound(Quest.UpdateSound);
+                        }
 
                         return true;
                     }
-                }
             }
+
             return false;
         }
 
@@ -76,10 +69,10 @@ namespace Server.Engines.Quests
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
 
             writer.Write(Line.Count);
-            foreach (KeyValuePair<Type, int[]> kvp in Line)
+            foreach (var kvp in Line)
             {
                 writer.Write(FishQuestHelper.GetIndexForType(kvp.Key));
                 writer.Write(kvp.Value[0]);
@@ -90,15 +83,15 @@ namespace Server.Engines.Quests
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            int count = reader.ReadInt();
+            var count = reader.ReadInt();
             Line = new Dictionary<Type, int[]>();
 
-            for (int i = 0; i < count; i++)
+            for (var i = 0; i < count; i++)
             {
-                Type type = FishQuestHelper.GetTypeFromIndex(reader.ReadInt());
-                int[] line = new int[] { reader.ReadInt(), reader.ReadInt() };
+                var type = FishQuestHelper.GetTypeFromIndex(reader.ReadInt());
+                var line = new[] { reader.ReadInt(), reader.ReadInt() };
 
                 if (type != null)
                     Line[type] = line;

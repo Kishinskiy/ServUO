@@ -1,88 +1,76 @@
 using System;
-using Server;
-using Server.Items;
-using Server.Network;
-using Server.Mobiles;
 
 namespace Server.Engines.XmlSpawner2
 {
-	public class XmlFreeze : XmlAttachment
-	{
+    public class XmlFreeze : XmlAttachment
+    {
+        // These are the various ways in which the message attachment can be constructed.  
+        // These can be called via the [addatt interface, via scripts, via the spawner ATTACH keyword.
+        // Other overloads could be defined to handle other types of arguments
 
-		// These are the various ways in which the message attachment can be constructed.  
-		// These can be called via the [addatt interface, via scripts, via the spawner ATTACH keyword.
-		// Other overloads could be defined to handle other types of arguments
-       
-		// a serial constructor is REQUIRED
-		public XmlFreeze(ASerial serial) : base(serial)
-		{
-		}
+        // a serial constructor is REQUIRED
+        public XmlFreeze(ASerial serial) : base(serial)
+        {
+        }
 
-		[Attachable]
-		public XmlFreeze()
-		{
-		}
-        
-		[Attachable]
-		public XmlFreeze(double seconds)
-		{
-			Expiration = TimeSpan.FromSeconds(seconds);
-		}
-        
-		public override void Serialize( GenericWriter writer )
-		{
-			base.Serialize(writer);
+        [Attachable]
+        public XmlFreeze()
+        {
+        }
 
-			writer.Write( (int) 0 );
-		}
+        [Attachable]
+        public XmlFreeze(double seconds)
+        {
+            Expiration = TimeSpan.FromSeconds(seconds);
+        }
 
-		public override void Deserialize(GenericReader reader)
-		{
-			base.Deserialize(reader);
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
 
-			int version = reader.ReadInt();
-		}
-		
-		public override string OnIdentify(Mobile from)
-		{
-			base.OnIdentify(from);
+            writer.Write(0);
+        }
 
-			if(from == null || from.AccessLevel == AccessLevel.Player) return null;
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
 
-			if(Expiration > TimeSpan.Zero)
-			{
-				return String.Format("Freeze expires in {1} secs",Expiration.TotalSeconds);
-			} 
-			else
-			{
-				return String.Format("Frozen");
-			}
-		}
+            var version = reader.ReadInt();
+        }
 
-		public override void OnDelete()
-		{
-			base.OnDelete();
+        public override string OnIdentify(Mobile from)
+        {
+            base.OnIdentify(from);
 
-			// remove the mod
-			if(AttachedTo is Mobile)
-			{
-				((Mobile)AttachedTo).Frozen = false;
-			} 
-		}
+            if (from == null || from.AccessLevel == AccessLevel.Player) return null;
 
-		public override void OnAttach()
-		{
-			base.OnAttach();
+            if (Expiration > TimeSpan.Zero) return string.Format("Freeze expires in {1} secs", Expiration.TotalSeconds);
 
-			// apply the mod
-			if(AttachedTo is Mobile)
-			{
-				((Mobile)AttachedTo).Frozen = true;
-				((Mobile)AttachedTo).ProcessDelta();
-			} 
-			else
-				Delete();
-		}
+            return "Frozen";
+        }
 
-	}
+        public override void OnDelete()
+        {
+            base.OnDelete();
+
+            // remove the mod
+            if (AttachedTo is Mobile) ((Mobile)AttachedTo).Frozen = false;
+        }
+
+        public override void OnAttach()
+        {
+            base.OnAttach();
+
+            // apply the mod
+            if (AttachedTo is Mobile)
+            {
+                ((Mobile)AttachedTo).Frozen = true;
+                ((Mobile)AttachedTo).ProcessDelta();
+            }
+            else
+            {
+                Delete();
+            }
+        }
+    }
 }

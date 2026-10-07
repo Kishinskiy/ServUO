@@ -4,29 +4,18 @@ namespace Server.Items
 {
     public class GargoyleCandelabra : BaseLight, IShipwreckedItem
     {
-        public override int LitItemID
-        {
-            get
-            {
-                return 0x40BE;
-            }
-        }
-        public override int UnlitItemID
-        {
-            get
-            {
-                return 0x4039;
-            }
-        }
+        public override int LitItemID => 0x40BE;
+
+        public override int UnlitItemID => 0x4039;
 
         [Constructable]
         public GargoyleCandelabra()
             : base(0x4039)
         {
-            this.Duration = TimeSpan.Zero; // Never burnt out
-            this.Burning = false;
-            this.Light = LightType.Circle225;
-            this.Weight = 3.0;
+            Duration = TimeSpan.Zero; // Never burnt out
+            Burning = false;
+            Light = LightType.Circle225;
+            Weight = 3.0;
         }
 
         public GargoyleCandelabra(Serial serial)
@@ -37,23 +26,23 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1);
+            writer.Write(1);
 
-            writer.Write(this.m_IsShipwreckedItem);
+            writer.Write(IsShipwreckedItem);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            switch ( version )
+            switch (version)
             {
                 case 1:
-                    {
-                        this.m_IsShipwreckedItem = reader.ReadBool();
-                        break;
-                    }
+                {
+                    IsShipwreckedItem = reader.ReadBool();
+                    break;
+                }
             }
         }
 
@@ -61,7 +50,7 @@ namespace Server.Items
         {
             base.AddNameProperties(list);
 
-            if (this.m_IsShipwreckedItem)
+            if (IsShipwreckedItem)
                 list.Add(1041645); // recovered from a shipwreck
         }
 
@@ -69,25 +58,14 @@ namespace Server.Items
         {
             base.OnSingleClick(from);
 
-            this.LabelTo(from, 1041645);	//recovered from a shipwreck
+            LabelTo(from, 1041645); //recovered from a shipwreck
         }
 
         #region IShipwreckedItem Members
 
-        private bool m_IsShipwreckedItem;
-
         [CommandProperty(AccessLevel.GameMaster)]
-        public bool IsShipwreckedItem
-        {
-            get
-            {
-                return this.m_IsShipwreckedItem;
-            }
-            set
-            {
-                this.m_IsShipwreckedItem = value;
-            }
-        }
+        public bool IsShipwreckedItem { get; set; }
+
         #endregion
     }
 }

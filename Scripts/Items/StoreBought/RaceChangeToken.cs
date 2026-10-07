@@ -1,25 +1,32 @@
 ﻿using System;
 using System.Collections.Generic;
-using Server;
-using Server.Mobiles;
-using Server.Gumps;
-using Server.Network;
 using Server.Engines.Quests;
+using Server.Gumps;
+using Server.Mobiles;
 
 namespace Server.Items
 {
     public class RaceChangeToken : Item, IPromotionalToken
     {
-        public override int LabelNumber { get { return 1070997; } } // a promotional token
-        public TextDefinition ItemName { get { return 1113656; } } // race change
+        public override int LabelNumber => 1070997; // a promotional token
 
-        public Type GumpType { get { return typeof(RaceChangeConfirmGump); } }
+        public static Dictionary<Mobile, Tuple<RaceChangeToken, Race>> Pending { get; private set; }
+
         [Constructable]
         public RaceChangeToken()
             : base(0x2AAA)
         {
             LootType = LootType.Blessed;
         }
+
+        public RaceChangeToken(Serial serial)
+            : base(serial)
+        {
+        }
+
+        public TextDefinition ItemName => 1113656; // race change
+
+        public Type GumpType => typeof(RaceChangeConfirmGump);
 
         public override void OnDoubleClick(Mobile from)
         {
@@ -41,11 +48,6 @@ namespace Server.Items
             list.Add(1070998, ItemName.ToString()); // Use this to redeem<br>Your ~1_PROMO~ : race change
         }
 
-        public RaceChangeToken(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -55,10 +57,8 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
-
-        public static Dictionary<Mobile, Tuple<RaceChangeToken, Race>> Pending { get; private set; }
 
         public static bool AddPending(Mobile m, Race race, RaceChangeToken token)
         {
@@ -71,10 +71,8 @@ namespace Server.Items
 
                 return true;
             }
-            else
-            {
-                m.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.
-            }
+
+            m.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.
 
             return false;
         }
@@ -102,13 +100,9 @@ namespace Server.Items
                 var tuple = Pending[m];
 
                 if (!tuple.Item1.IsChildOf(m.Backpack))
-                {
                     m.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.
-                }
                 else
-                {
                     return Pending[m].Item2;
-                }
             }
 
             return null;
@@ -120,10 +114,7 @@ namespace Server.Items
             {
                 var tuple = Pending[m];
 
-                if (tuple.Item1 != null && !tuple.Item1.Deleted)
-                {
-                    tuple.Item1.Delete();
-                }
+                if (tuple.Item1 != null && !tuple.Item1.Deleted) tuple.Item1.Delete();
             }
         }
     }
@@ -136,7 +127,7 @@ namespace Server.Items
             Select
         }
 
-        public RaceChangeToken Token { get; private set; }
+        public RaceChangeToken Token { get; }
         public GumpMode Mode { get; private set; }
 
         public RaceChangeConfirmGump(PlayerMobile pm, RaceChangeToken token, GumpMode mode = GumpMode.Confirm)
@@ -159,7 +150,8 @@ namespace Server.Items
 
             if (Mode == GumpMode.Confirm)
             {
-                AddHtmlLocalized(8, 30, 279, 124, 1113642, 0x7FFF, false, false); // Click OK to change your character's race. This change is permanent.<BR><BR>Are you sure you wish to change your character's race?
+                AddHtmlLocalized(8, 30, 279, 124, 1113642, 0x7FFF, false,
+                    false); // Click OK to change your character's race. This change is permanent.<BR><BR>Are you sure you wish to change your character's race?
 
                 AddButton(126, 132, 0xFB7, 0xFB9, 1, GumpButtonType.Reply, 0);
                 AddHtmlLocalized(160, 132, 120, 20, 1113643, 0x7FFF, false, false); // CHANGE RACE
@@ -168,7 +160,7 @@ namespace Server.Items
             {
                 AddHtmlLocalized(8, 30, 279, 40, 1113657, 0x7FFF, false, false);
 
-                int y = 80;
+                var y = 80;
 
                 if (User.Race != Race.Human)
                 {
@@ -194,21 +186,20 @@ namespace Server.Items
 
         public override void OnResponse(RelayInfo info)
         {
-            int id = info.ButtonID;
+            var id = info.ButtonID;
 
             switch (id)
             {
-                case 0: 
+                case 0:
                     break;
                 case 1:
                     Mode = GumpMode.Select;
                     Refresh();
                     break;
                 default:
-                    if (User.NetState != null && HeritageQuester.Check(User) && RaceChangeToken.AddPending(User, Race.Races[id - 2], Token))
-                    {
+                    if (User.NetState != null && HeritageQuester.Check(User) &&
+                        RaceChangeToken.AddPending(User, Race.Races[id - 2], Token))
                         User.NetState.Send(new HeritagePacket(User.Female, (short)(id - 1)));
-                    }
                     break;
             }
         }

@@ -6,20 +6,16 @@ namespace Server.Custom.UOBuilder
 {
     public class UOBuilderResourceGump : BaseGump
     {
+        private readonly UOBuilderGump _Gump;
         private readonly List<UOBuilderEntity> _Resources;
 
-        private readonly UOBuilderGump _Gump;
-
-        private int _Position = 0;
+        private int _Position;
 
         public UOBuilderResourceGump(PlayerMobile user, int x, int y, BaseGump parent) : base(user, x, y, parent)
         {
             _Resources = UOBuilderCore.GetUniqueBuildList(user.Serial) ?? new List<UOBuilderEntity>();
 
-            if (parent is UOBuilderGump uobg)
-            {
-                _Gump = uobg;
-            }
+            if (parent is UOBuilderGump uobg) _Gump = uobg;
         }
 
         public override void AddGumpLayout()
@@ -61,20 +57,14 @@ namespace Server.Custom.UOBuilder
                     {
                         _Position++;
 
-                        if (_Position >= _Resources.Count)
-                        {
-                            _Position = 0;
-                        }
+                        if (_Position >= _Resources.Count) _Position = 0;
                     }
 
                     if (info.ButtonID == 200002)
                     {
                         _Position--;
 
-                        if (_Position < 0)
-                        {
-                            _Position = _Resources.Count - 1;
-                        }
+                        if (_Position < 0) _Position = _Resources.Count - 1;
                     }
                 }
                 else

@@ -1,15 +1,37 @@
-using System;
-
 namespace Server.Items
 {
     [FlipableAttribute(0x2B73, 0x316A)]
     public class WingedHelm : BaseArmor
     {
+        public override Race RequiredRace => Race.Elf;
+
+        public override int BasePhysicalResistance => 5;
+
+        public override int BaseFireResistance => 1;
+
+        public override int BaseColdResistance => 2;
+
+        public override int BasePoisonResistance => 2;
+
+        public override int BaseEnergyResistance => 5;
+
+        public override int InitMinHits => 45;
+
+        public override int InitMaxHits => 55;
+
+        public override int AosStrReq => 25;
+
+        public override int OldStrReq => 25;
+
+        public override int ArmorBase => 40;
+
+        public override ArmorMaterialType MaterialType => ArmorMaterialType.Plate;
+
         [Constructable]
         public WingedHelm()
             : base(0x2B73)
         {
-            this.Weight = 5.0;
+            Weight = 5.0;
         }
 
         public WingedHelm(Serial serial)
@@ -17,90 +39,6 @@ namespace Server.Items
         {
         }
 
-        public override Race RequiredRace
-        {
-            get
-            {
-                return Race.Elf;
-            }
-        }
-        public override int BasePhysicalResistance
-        {
-            get
-            {
-                return 5;
-            }
-        }
-        public override int BaseFireResistance
-        {
-            get
-            {
-                return 1;
-            }
-        }
-        public override int BaseColdResistance
-        {
-            get
-            {
-                return 2;
-            }
-        }
-        public override int BasePoisonResistance
-        {
-            get
-            {
-                return 2;
-            }
-        }
-        public override int BaseEnergyResistance
-        {
-            get
-            {
-                return 5;
-            }
-        }
-        public override int InitMinHits
-        {
-            get
-            {
-                return 45;
-            }
-        }
-        public override int InitMaxHits
-        {
-            get
-            {
-                return 55;
-            }
-        }
-        public override int AosStrReq
-        {
-            get
-            {
-                return 25;
-            }
-        }
-        public override int OldStrReq
-        {
-            get
-            {
-                return 25;
-            }
-        }
-        public override int ArmorBase
-        {
-            get
-            {
-                return 40;
-            }
-        }
-        public override ArmorMaterialType MaterialType
-        {
-            get
-            {
-                return ArmorMaterialType.Plate;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -112,7 +50,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

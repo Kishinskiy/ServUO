@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +5,12 @@ namespace Server.Mobiles
     [CorpseName("an ore elemental corpse")]
     public class CopperElemental : BaseCreature
     {
+        public override bool BleedImmune => true;
+
+        public override bool AutoDispel => true;
+
+        public override int TreasureMapLevel => 1;
+
         [Constructable]
         public CopperElemental()
             : this(25)
@@ -55,27 +60,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool BleedImmune
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool AutoDispel
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override int TreasureMapLevel
-        {
-            get
-            {
-                return 1;
-            }
-        }
         public override void GenerateLoot()
         {
             AddLoot(LootPack.Average);
@@ -95,13 +79,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

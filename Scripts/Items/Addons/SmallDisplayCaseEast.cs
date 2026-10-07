@@ -1,11 +1,8 @@
-using System;
-using Server;
-
 namespace Server.Items
 {
     public class SmallDisplayCaseEastAddon : BaseAddon
     {
-        public override BaseAddonDeed Deed { get { return new SmallDisplayCaseEastDeed(); } }
+        public override BaseAddonDeed Deed => new SmallDisplayCaseEastDeed();
 
         [Constructable]
         public SmallDisplayCaseEastAddon()
@@ -22,20 +19,20 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class SmallDisplayCaseEastDeed : BaseAddonDeed
     {
-        public override BaseAddon Addon { get { return new SmallDisplayCaseEastAddon(); } }
-        public override int LabelNumber { get { return 1155843; } } // Small Display Case (East)
+        public override BaseAddon Addon => new SmallDisplayCaseEastAddon();
+        public override int LabelNumber => 1155843; // Small Display Case (East)
 
         [Constructable]
         public SmallDisplayCaseEastDeed()
@@ -50,13 +47,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

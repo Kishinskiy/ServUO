@@ -1,10 +1,14 @@
-using System;
-
 namespace Server.Mobiles
 {
     [CorpseName("a dog corpse")]
     public class Dog : BaseCreature
     {
+        public override int Meat => 1;
+
+        public override FoodType FavoriteFood => FoodType.Meat;
+
+        public override PackInstinct PackInstinct => PackInstinct.Canine;
+
         [Constructable]
         public Dog()
             : base(AIType.AI_Animal, FightMode.Aggressor, 10, 1, 0.2, 0.4)
@@ -46,37 +50,16 @@ namespace Server.Mobiles
         {
         }
 
-        public override int Meat
-        {
-            get
-            {
-                return 1;
-            }
-        }
-        public override FoodType FavoriteFood
-        {
-            get
-            {
-                return FoodType.Meat;
-            }
-        }
-        public override PackInstinct PackInstinct
-        {
-            get
-            {
-                return PackInstinct.Canine;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1);
+            writer.Write(1);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -1,4 +1,3 @@
-using System;
 using Server.Gumps;
 using Server.Network;
 
@@ -6,11 +5,10 @@ namespace Server.Items
 {
     public class HouseLadderAddon : BaseAddon
     {
-        public override BaseAddonDeed Deed { get { return new HouseLadderDeed(); } }
+        public override BaseAddonDeed Deed => new HouseLadderDeed();
 
         [Constructable]
         public HouseLadderAddon(int type)
-            : base()
         {
             switch (type)
             {
@@ -53,7 +51,7 @@ namespace Server.Items
             : base(serial)
         {
         }
-        
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -63,18 +61,19 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class HouseLadderDeed : BaseAddonDeed
     {
-        public override int LabelNumber { get { return 1076287; } } // Ladder
         private int m_Type;
+        public override int LabelNumber => 1076287; // Ladder
+
+        public override BaseAddon Addon => new HouseLadderAddon(m_Type);
 
         [Constructable]
         public HouseLadderDeed()
-            : base()
         {
             LootType = LootType.Blessed;
         }
@@ -84,8 +83,6 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddon Addon { get { return new HouseLadderAddon(m_Type); } }
-        
         public override void OnDoubleClick(Mobile from)
         {
             if (IsChildOf(from.Backpack))
@@ -94,7 +91,9 @@ namespace Server.Items
                 from.SendGump(new InternalGump(this));
             }
             else
+            {
                 from.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.
+            }
         }
 
         public override void Serialize(GenericWriter writer)
@@ -106,7 +105,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
 
         private void SendTarget(Mobile m)
@@ -117,6 +116,7 @@ namespace Server.Items
         private class InternalGump : Gump
         {
             private readonly HouseLadderDeed m_Deed;
+
             public InternalGump(HouseLadderDeed deed)
                 : base(60, 36)
             {
@@ -131,7 +131,8 @@ namespace Server.Items
                 AddAlphaRegion(10, 10, 253, 304);
                 AddButton(10, 294, 0xFB1, 0xFB2, 0, GumpButtonType.Reply, 0);
                 AddHtmlLocalized(45, 296, 450, 20, 1060051, 0x7FFF, false, false); // CANCEL
-                AddHtmlLocalized(14, 12, 273, 20, 1076780, 0x7FFF, false, false); // Please select your ladder position.  <br>Use the ladders marked (castle) <br> for accessing the tops of keeps <br> and castles.
+                AddHtmlLocalized(14, 12, 273, 20, 1076780, 0x7FFF, false,
+                    false); // Please select your ladder position.  <br>Use the ladders marked (castle) <br> for accessing the tops of keeps <br> and castles.
 
                 AddPage(1);
 

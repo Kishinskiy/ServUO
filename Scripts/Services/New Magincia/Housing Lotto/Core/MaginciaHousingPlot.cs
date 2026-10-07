@@ -1,4 +1,3 @@
-using Server;
 using System;
 using System.Collections.Generic;
 using Server.Accounting;
@@ -8,80 +7,84 @@ namespace Server.Engines.NewMagincia
     [PropertyObject]
     public class MaginciaHousingPlot
     {
-        private string m_Identifier;
-        private WritOfLease m_Writ;
         private Rectangle2D m_Bounds;
-        private MaginciaPlotStone m_Stone;
-        private bool m_IsPrimeSpot;
-        private bool m_Complete;
-        private Mobile m_Winner;
-        private Map m_Map;
-        private DateTime m_Expires;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public string Identifier { get { return m_Identifier; } }
+        public string Identifier { get; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public WritOfLease Writ { get { return m_Writ; } set { m_Writ = value; } }
+        public WritOfLease Writ { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public Rectangle2D Bounds { get { return m_Bounds; } }
+        public Rectangle2D Bounds => m_Bounds;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public MaginciaPlotStone Stone { get { return m_Stone; } set { m_Stone = value; } }
+        public MaginciaPlotStone Stone { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public bool IsPrimeSpot { get { return m_IsPrimeSpot; } }
+        public bool IsPrimeSpot { get; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public bool Complete { get { return m_Complete; } }
+        public bool Complete { get; private set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public Mobile Winner { get { return m_Winner; } set { m_Winner = value; } }
+        public Mobile Winner { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public Map Map { get { return m_Map; } }
+        public Map Map { get; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public DateTime Expires { get { return m_Expires; } set { m_Expires = value; } }
+        public DateTime Expires { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public Point3D RecallLoc 
-        { 
-            get
-            {
-                return new Point3D(m_Bounds.X, m_Bounds.Y, m_Map.GetAverageZ(m_Bounds.X, m_Bounds.Y));
-            } 
-        }
+        public Point3D RecallLoc => new Point3D(m_Bounds.X, m_Bounds.Y, Map.GetAverageZ(m_Bounds.X, m_Bounds.Y));
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public bool IsAvailable { get { return !m_Complete; } }
-
-        #region Lotto Info
-        private DateTime m_LottoEnds;
-        private Dictionary<Mobile, int> m_Participants = new Dictionary<Mobile, int>();
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public DateTime LottoEnds { get { return m_LottoEnds; } set { m_LottoEnds = value; } }
-
-        public Dictionary<Mobile, int> Participants { get { return m_Participants; } }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int LottoPrice { get { return m_IsPrimeSpot ? 10000 : 2000; } }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public bool LottoOngoing { get { return IsAvailable && m_LottoEnds > DateTime.UtcNow && m_LottoEnds != DateTime.MinValue; } }
-        #endregion
+        public bool IsAvailable => !Complete;
 
         public MaginciaHousingPlot(string identifier, Rectangle2D bounds, bool prime, Map map)
         {
-            m_Identifier = identifier;
+            Identifier = identifier;
             m_Bounds = bounds;
-            m_IsPrimeSpot = prime;
-            m_Map = map;
-            m_Writ = null;
-            m_Complete = false;
-            m_Expires = DateTime.MinValue;
+            IsPrimeSpot = prime;
+            Map = map;
+            Writ = null;
+            Complete = false;
+            Expires = DateTime.MinValue;
+        }
+
+        public MaginciaHousingPlot(GenericReader reader)
+        {
+            var version = reader.ReadInt();
+
+            Identifier = reader.ReadString();
+            Writ = reader.ReadItem() as WritOfLease;
+            Stone = reader.ReadItem() as MaginciaPlotStone;
+            LottoEnds = reader.ReadDateTime();
+            m_Bounds = reader.ReadRect2D();
+            Map = reader.ReadMap();
+            IsPrimeSpot = reader.ReadBool();
+            Complete = reader.ReadBool();
+            Winner = reader.ReadMobile();
+            Expires = reader.ReadDateTime();
+
+            var c = reader.ReadInt();
+            for (var i = 0; i < c; i++)
+            {
+                var m = reader.ReadMobile();
+                var amount = reader.ReadInt();
+
+                if (m != null)
+                    Participants[m] = amount;
+            }
+
+            if ((Stone == null || Stone.Deleted) && LottoOngoing && MaginciaLottoSystem.IsRegisteredPlot(this))
+                AddPlotStone();
+            else if (Stone != null)
+                Stone.Plot = this;
+
+            if (Writ != null)
+                Writ.Plot = this;
         }
 
         public void AddPlotStone()
@@ -91,9 +94,9 @@ namespace Server.Engines.NewMagincia
 
         public void AddPlotStone(Point3D p)
         {
-            m_Stone = new MaginciaPlotStone();
-            m_Stone.Plot = this;
-            m_Stone.MoveToWorld(p, m_Map);
+            Stone = new MaginciaPlotStone();
+            Stone.Plot = this;
+            Stone.MoveToWorld(p, Map);
         }
 
         public override string ToString()
@@ -103,9 +106,9 @@ namespace Server.Engines.NewMagincia
 
         public bool CanPurchaseLottoTicket(Mobile from)
         {
-            if (m_IsPrimeSpot)
+            if (IsPrimeSpot)
             {
-                Account acct = from.Account as Account;
+                var acct = from.Account as Account;
 
                 if (acct == null)
                     return false;
@@ -118,18 +121,16 @@ namespace Server.Engines.NewMagincia
 
         private bool CheckAccount(Account acct)
         {
-            for (int i = 0; i < acct.Length; i++)
+            for (var i = 0; i < acct.Length; i++)
             {
-                Mobile m = acct[i];
+                var m = acct[i];
 
                 if (m == null)
                     continue;
 
-                foreach (MaginciaHousingPlot plot in MaginciaLottoSystem.Plots)
-                {
+                foreach (var plot in MaginciaLottoSystem.Plots)
                     if (plot.IsPrimeSpot && plot.Participants.ContainsKey(m))
                         return false;
-                }
             }
 
             return true;
@@ -137,59 +138,59 @@ namespace Server.Engines.NewMagincia
 
         public void PurchaseLottoTicket(Mobile from, int toBuy)
         {
-            if (m_Participants.ContainsKey(from))
-                m_Participants[from] += toBuy;
+            if (Participants.ContainsKey(from))
+                Participants[from] += toBuy;
             else
-                m_Participants[from] = toBuy;
+                Participants[from] = toBuy;
         }
 
         public void EndLotto()
         {
-            if (m_Participants.Count == 0)
+            if (Participants.Count == 0)
             {
                 ResetLotto();
                 return;
             }
 
-            List<Mobile> raffle = new List<Mobile>();
+            var raffle = new List<Mobile>();
 
-            foreach (KeyValuePair<Mobile, int> kvp in m_Participants)
+            foreach (var kvp in Participants)
             {
                 if (kvp.Value == 0)
                     continue;
 
-                for (int i = 0; i < kvp.Value; i++)
+                for (var i = 0; i < kvp.Value; i++)
                     raffle.Add(kvp.Key);
             }
 
-            Mobile winner = raffle[Utility.Random(raffle.Count)];
+            var winner = raffle[Utility.Random(raffle.Count)];
 
-            if(winner != null)
+            if (winner != null)
                 OnLottoComplete(winner);
             else
                 ResetLotto();
 
-            m_Participants.Clear();
+            Participants.Clear();
         }
 
         public void OnLottoComplete(Mobile winner)
         {
-            m_Complete = true;
-            m_Winner = winner;
-            m_LottoEnds = DateTime.MinValue;
-            m_Expires = DateTime.UtcNow + TimeSpan.FromDays(MaginciaLottoSystem.WritExpirePeriod);
+            Complete = true;
+            Winner = winner;
+            LottoEnds = DateTime.MinValue;
+            Expires = DateTime.UtcNow + TimeSpan.FromDays(MaginciaLottoSystem.WritExpirePeriod);
 
             if (winner.HasGump(typeof(PlotWinnerGump)))
                 return;
 
-            Account acct = winner.Account as Account;
+            var acct = winner.Account as Account;
 
             if (acct == null)
                 return;
 
-            for (int i = 0; i < acct.Length; i++)
+            for (var i = 0; i < acct.Length; i++)
             {
-                Mobile m = acct[i];
+                var m = acct[i];
 
                 if (m == null)
                     continue;
@@ -204,12 +205,12 @@ namespace Server.Engines.NewMagincia
 
         public void SendMessage_Callback(object o)
         {
-            object[] obj = o as object[];
+            var obj = o as object[];
 
             if (obj != null)
             {
-                Mobile winner = obj[0] as Mobile;
-                NewMaginciaMessage message = obj[1] as NewMaginciaMessage;
+                var winner = obj[0] as Mobile;
+                var message = obj[1] as NewMaginciaMessage;
 
                 MaginciaLottoSystem.SendMessageTo(winner, message);
             }
@@ -218,67 +219,48 @@ namespace Server.Engines.NewMagincia
         public void ResetLotto()
         {
             if (MaginciaLottoSystem.AutoResetLotto && MaginciaLottoSystem.Instance != null)
-                m_LottoEnds = DateTime.UtcNow + MaginciaLottoSystem.Instance.LottoDuration;
+                LottoEnds = DateTime.UtcNow + MaginciaLottoSystem.Instance.LottoDuration;
             else
-                m_LottoEnds = DateTime.MinValue;
-        }
-
-        public MaginciaHousingPlot(GenericReader reader)
-        {
-            int version = reader.ReadInt();
-
-            m_Identifier = reader.ReadString();
-            m_Writ = reader.ReadItem() as WritOfLease;
-            m_Stone = reader.ReadItem() as MaginciaPlotStone;
-            m_LottoEnds = reader.ReadDateTime();
-            m_Bounds = reader.ReadRect2D();
-            m_Map = reader.ReadMap();
-            m_IsPrimeSpot = reader.ReadBool();
-            m_Complete = reader.ReadBool();
-            m_Winner = reader.ReadMobile();
-            m_Expires = reader.ReadDateTime();
-            
-            int c = reader.ReadInt();
-            for (int i = 0; i < c; i++)
-            {
-                Mobile m = reader.ReadMobile();
-                int amount = reader.ReadInt();
-
-                if (m != null)
-                    m_Participants[m] = amount;
-            }
-
-            if ((m_Stone == null || m_Stone.Deleted) && LottoOngoing && MaginciaLottoSystem.IsRegisteredPlot(this))
-                AddPlotStone();
-            else if (m_Stone != null)
-                m_Stone.Plot = this;
-
-            if (m_Writ != null)
-                m_Writ.Plot = this;
+                LottoEnds = DateTime.MinValue;
         }
 
         public void Serialize(GenericWriter writer)
         {
-            writer.Write((int)0);
+            writer.Write(0);
 
-            writer.Write(m_Identifier);
-            writer.Write(m_Writ);
-            writer.Write(m_Stone);
-            writer.Write(m_LottoEnds);
+            writer.Write(Identifier);
+            writer.Write(Writ);
+            writer.Write(Stone);
+            writer.Write(LottoEnds);
             writer.Write(m_Bounds);
-            writer.Write(m_Map);
-            writer.Write(m_IsPrimeSpot);
-            writer.Write(m_Complete);
-            writer.Write(m_Winner);
-            writer.Write(m_Expires);
+            writer.Write(Map);
+            writer.Write(IsPrimeSpot);
+            writer.Write(Complete);
+            writer.Write(Winner);
+            writer.Write(Expires);
 
-            writer.Write(m_Participants.Count);
+            writer.Write(Participants.Count);
 
-            foreach (KeyValuePair<Mobile, int> kvp in m_Participants)
+            foreach (var kvp in Participants)
             {
                 writer.Write(kvp.Key);
                 writer.Write(kvp.Value);
             }
         }
+
+        #region Lotto Info
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public DateTime LottoEnds { get; set; }
+
+        public Dictionary<Mobile, int> Participants { get; } = new Dictionary<Mobile, int>();
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int LottoPrice => IsPrimeSpot ? 10000 : 2000;
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public bool LottoOngoing => IsAvailable && LottoEnds > DateTime.UtcNow && LottoEnds != DateTime.MinValue;
+
+        #endregion
     }
 }

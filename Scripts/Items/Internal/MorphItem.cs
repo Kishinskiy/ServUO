@@ -4,10 +4,44 @@ namespace Server.Items
 {
     public class MorphItem : Item
     {
-        private int m_InactiveItemID;
-        private int m_ActiveItemID;
-        private int m_RangeCheck;
         private int m_OutRange;
+        private int m_RangeCheck;
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int InactiveItemID { get; set; }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int ActiveItemID { get; set; }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int RangeCheck
+        {
+            get => m_RangeCheck;
+            set
+            {
+                if (value > 18)
+                    value = 18;
+                m_RangeCheck = value;
+            }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int OutRange
+        {
+            get => m_OutRange;
+            set
+            {
+                if (value > 18)
+                    value = 18;
+                m_OutRange = value;
+            }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int CurrentRange => ItemID == InactiveItemID ? RangeCheck : OutRange;
+
+        public override bool HandlesOnMovement => true;
+
         [Constructable]
         public MorphItem(int inactiveItemID, int activeItemID, int range)
             : this(inactiveItemID, activeItemID, range, range)
@@ -31,76 +65,10 @@ namespace Server.Items
         {
         }
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int InactiveItemID
-        {
-            get
-            {
-                return m_InactiveItemID;
-            }
-            set
-            {
-                m_InactiveItemID = value;
-            }
-        }
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int ActiveItemID
-        {
-            get
-            {
-                return m_ActiveItemID;
-            }
-            set
-            {
-                m_ActiveItemID = value;
-            }
-        }
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int RangeCheck
-        {
-            get
-            {
-                return m_RangeCheck;
-            }
-            set
-            {
-                if (value > 18)
-                    value = 18;
-                m_RangeCheck = value;
-            }
-        }
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int OutRange
-        {
-            get
-            {
-                return m_OutRange;
-            }
-            set
-            {
-                if (value > 18)
-                    value = 18;
-                m_OutRange = value;
-            }
-        }
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int CurrentRange
-        {
-            get
-            {
-                return ItemID == InactiveItemID ? RangeCheck : OutRange;
-            }
-        }
-        public override bool HandlesOnMovement
-        {
-            get
-            {
-                return true;
-            }
-        }
         public override void OnMovement(Mobile m, Point3D oldLocation)
         {
-            if (Utility.InRange(m.Location, Location, CurrentRange) || Utility.InRange(oldLocation, Location, CurrentRange))
+            if (Utility.InRange(m.Location, Location, CurrentRange) ||
+                Utility.InRange(oldLocation, Location, CurrentRange))
                 Refresh();
         }
 
@@ -118,7 +86,7 @@ namespace Server.Items
 
         public void Refresh()
         {
-            bool found = false;
+            var found = false;
             IPooledEnumerable eable = GetMobilesInRange(CurrentRange);
 
             foreach (Mobile mob in eable)
@@ -129,6 +97,7 @@ namespace Server.Items
                 found = true;
                 break;
             }
+
             eable.Free();
 
             if (found)
@@ -136,49 +105,49 @@ namespace Server.Items
             else
                 ItemID = InactiveItemID;
 
-            Visible = (ItemID != 0x1);
+            Visible = ItemID != 0x1;
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)1); // version
+            writer.Write(1); // version
 
-            writer.Write((int)m_OutRange);
+            writer.Write(m_OutRange);
 
-            writer.Write((int)m_InactiveItemID);
-            writer.Write((int)m_ActiveItemID);
-            writer.Write((int)m_RangeCheck);
+            writer.Write(InactiveItemID);
+            writer.Write(ActiveItemID);
+            writer.Write(m_RangeCheck);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            switch ( version )
+            switch (version)
             {
                 case 1:
-                    {
-                        m_OutRange = reader.ReadInt();
-                        goto case 0;
-                    }
+                {
+                    m_OutRange = reader.ReadInt();
+                    goto case 0;
+                }
                 case 0:
-                    {
-                        m_InactiveItemID = reader.ReadInt();
-                        m_ActiveItemID = reader.ReadInt();
-                        m_RangeCheck = reader.ReadInt();
+                {
+                    InactiveItemID = reader.ReadInt();
+                    ActiveItemID = reader.ReadInt();
+                    m_RangeCheck = reader.ReadInt();
 
-                        if (version < 1)
-                            m_OutRange = m_RangeCheck;
+                    if (version < 1)
+                        m_OutRange = m_RangeCheck;
 
-                        break;
-                    }
+                    break;
+                }
             }
 
-            Timer.DelayCall(TimeSpan.Zero, new TimerCallback(Refresh));
+            Timer.DelayCall(TimeSpan.Zero, Refresh);
         }
     }
 }

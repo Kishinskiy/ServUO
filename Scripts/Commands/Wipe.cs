@@ -15,30 +15,32 @@ namespace Server.Commands
             Multis = 0x04,
             All = Items | Mobiles | Multis
         }
+
         public static void Initialize()
         {
-            CommandSystem.Register("Wipe", AccessLevel.GameMaster, new CommandEventHandler(WipeAll_OnCommand));
-            CommandSystem.Register("WipeItems", AccessLevel.GameMaster, new CommandEventHandler(WipeItems_OnCommand));
-            CommandSystem.Register("WipeNPCs", AccessLevel.GameMaster, new CommandEventHandler(WipeNPCs_OnCommand));
-            CommandSystem.Register("WipeMultis", AccessLevel.GameMaster, new CommandEventHandler(WipeMultis_OnCommand));
+            CommandSystem.Register("Wipe", AccessLevel.GameMaster, WipeAll_OnCommand);
+            CommandSystem.Register("WipeItems", AccessLevel.GameMaster, WipeItems_OnCommand);
+            CommandSystem.Register("WipeNPCs", AccessLevel.GameMaster, WipeNPCs_OnCommand);
+            CommandSystem.Register("WipeMultis", AccessLevel.GameMaster, WipeMultis_OnCommand);
         }
 
         public static void BeginWipe(Mobile from, WipeType type)
         {
-            BoundingBoxPicker.Begin(from, new BoundingBoxCallback(WipeBox_Callback), type);
+            BoundingBoxPicker.Begin(from, WipeBox_Callback, type);
         }
 
         public static void DoWipe(Mobile from, Map map, Point3D start, Point3D end, WipeType type)
         {
-            CommandLogging.WriteLine(from, "{0} {1} wiping from {2} to {3} in {5} ({4})", from.AccessLevel, CommandLogging.Format(from), start, end, type, map);
+            CommandLogging.WriteLine(from, "{0} {1} wiping from {2} to {3} in {5} ({4})", from.AccessLevel,
+                CommandLogging.Format(from), start, end, type, map);
 
-            bool mobiles = ((type & WipeType.Mobiles) != 0);
-            bool multis = ((type & WipeType.Multis) != 0);
-            bool items = ((type & WipeType.Items) != 0);
+            var mobiles = (type & WipeType.Mobiles) != 0;
+            var multis = (type & WipeType.Multis) != 0;
+            var items = (type & WipeType.Items) != 0;
 
-            List<IEntity> toDelete = new List<IEntity>();
+            var toDelete = new List<IEntity>();
 
-            Rectangle2D rect = new Rectangle2D(start.X, start.Y, end.X - start.X + 1, end.Y - start.Y + 1);
+            var rect = new Rectangle2D(start.X, start.Y, end.X - start.X + 1, end.Y - start.Y + 1);
 
             IPooledEnumerable eable;
 
@@ -52,18 +54,16 @@ namespace Server.Commands
                 return;
 
             foreach (IEntity obj in eable)
-            {
-                if (items && (obj is Item) && !((obj is BaseMulti) || (obj is HouseSign)))
+                if (items && obj is Item && !(obj is BaseMulti || obj is HouseSign))
                     toDelete.Add(obj);
-                else if (multis && (obj is BaseMulti))
+                else if (multis && obj is BaseMulti)
                     toDelete.Add(obj);
-                else if (mobiles && (obj is Mobile) && !((Mobile)obj).Player)
+                else if (mobiles && obj is Mobile && !((Mobile)obj).Player)
                     toDelete.Add(obj);
-            }
 
             eable.Free();
 
-            for (int i = 0; i < toDelete.Count; ++i)
+            for (var i = 0; i < toDelete.Count; ++i)
                 toDelete[i].Delete();
         }
 

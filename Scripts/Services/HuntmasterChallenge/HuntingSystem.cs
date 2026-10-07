@@ -1,72 +1,73 @@
 using System;
-using Server;
-using Server.Mobiles;
 using System.Collections.Generic;
-using Server.Items;
-using Server.Gumps;
 using Server.Engines.Quests;
+using Server.Gumps;
+using Server.Items;
+using Server.Mobiles;
 
 namespace Server.Engines.HuntsmasterChallenge
 {
-	public class HuntingSystem : Item
-	{
-		private static HuntingSystem m_Instance;
-		public static HuntingSystem Instance { get { return m_Instance; } }
-		
-		private DateTime m_SeasonBegins;
-		private DateTime m_SeasonEnds;
-        private DateTime m_NextHint;
-        private DateTime m_NextBonusIndex;
-        private int m_BonusIndex;
+    public class HuntingSystem : Item
+    {
         private bool m_Active;
 
+        private DateTime m_NextBonusIndex;
+        private DateTime m_NextHint;
+
         private Timer m_Timer;
-		
-		[CommandProperty(AccessLevel.GameMaster)]
-        public DateTime SeasonBegins { get { return m_SeasonBegins; } set { m_SeasonBegins = value; } }
-		
-		[CommandProperty(AccessLevel.GameMaster)]
-        public DateTime SeasonEnds { get { return m_SeasonEnds; } set { m_SeasonEnds = value; } }
+
+        public static HuntingSystem Instance { get; private set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int BonusIndex { get { return m_BonusIndex; } }
+        public DateTime SeasonBegins { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public bool Active { get { return m_Active; } set { m_Active = value; CheckTimer(); } }
+        public DateTime SeasonEnds { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public bool NewSeason 
-        { 
-            get { return false; } 
+        public int BonusIndex { get; private set; }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public bool Active
+        {
+            get => m_Active;
             set
             {
-                EndSeason();
-            } 
+                m_Active = value;
+                CheckTimer();
+            }
         }
 
-		public static void Initialize()
-		{
-			if(Core.SA && m_Instance == null)
-				m_Instance = new HuntingSystem();
-		}
-		
-		public HuntingSystem() : base(17603)
-		{
-			if(m_Instance != null)
-			{
-				this.Delete();
-				return;
-			}
-			
-			m_Instance = this;
+        [CommandProperty(AccessLevel.GameMaster)]
+        public bool NewSeason
+        {
+            get => false;
+            set => EndSeason();
+        }
+
+        public Dictionary<HuntType, List<HuntingKillEntry>> Leaders { get; private set; }
+
+        public Dictionary<Mobile, int> UnclaimedWinners { get; } = new Dictionary<Mobile, int>();
+
+        public Dictionary<HuntType, List<HuntingKillEntry>> Top10 { get; private set; }
+
+        public HuntingSystem() : base(17603)
+        {
+            if (Instance != null)
+            {
+                Delete();
+                return;
+            }
+
+            Instance = this;
             m_Active = true;
 
-			m_Top10 = new Dictionary<HuntType, List<HuntingKillEntry>>();
-			m_Leaders = new Dictionary<HuntType, List<HuntingKillEntry>>();
+            Top10 = new Dictionary<HuntType, List<HuntingKillEntry>>();
+            Leaders = new Dictionary<HuntType, List<HuntingKillEntry>>();
 
-            m_SeasonBegins = DateTime.Now;
-            DateTime ends = DateTime.Now + TimeSpan.FromDays(30);
-            m_SeasonEnds = new DateTime(ends.Year, ends.Month, 1, 0, 0, 0);
+            SeasonBegins = DateTime.Now;
+            var ends = DateTime.Now + TimeSpan.FromDays(30);
+            SeasonEnds = new DateTime(ends.Year, ends.Month, 1, 0, 0, 0);
             m_NextHint = DateTime.UtcNow;
             m_NextBonusIndex = DateTime.UtcNow;
 
@@ -79,7 +80,17 @@ namespace Server.Engines.HuntsmasterChallenge
             Name = "Huntsmaster Challenge System";
 
             MoveToWorld(new Point3D(744, 2136, 0), Map.Trammel);
-		}
+        }
+
+        public HuntingSystem(Serial serial) : base(serial)
+        {
+        }
+
+        public static void Initialize()
+        {
+            if (Core.SA && Instance == null)
+                Instance = new HuntingSystem();
+        }
 
         public override void OnDoubleClick(Mobile m)
         {
@@ -94,7 +105,7 @@ namespace Server.Engines.HuntsmasterChallenge
                 if (m_Timer != null)
                     m_Timer.Stop();
 
-                m_Timer = Timer.DelayCall(TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1), new TimerCallback(OnTick));
+                m_Timer = Timer.DelayCall(TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1), OnTick);
             }
             else
             {
@@ -106,16 +117,13 @@ namespace Server.Engines.HuntsmasterChallenge
             }
         }
 
-		public void OnTick()
-		{
-			if(DateTime.Now >= m_SeasonEnds)
-			{
-				EndSeason();
-			}
+        public void OnTick()
+        {
+            if (DateTime.Now >= SeasonEnds) EndSeason();
 
             if (m_NextBonusIndex < DateTime.UtcNow)
             {
-                m_BonusIndex = Utility.Random(WorldLocationInfo.Locations[0].Length);
+                BonusIndex = Utility.Random(WorldLocationInfo.Locations[0].Length);
                 m_NextBonusIndex = DateTime.UtcNow + TimeSpan.FromHours(6);
             }
 
@@ -124,307 +132,279 @@ namespace Server.Engines.HuntsmasterChallenge
                 CheckHint(Map.Trammel);
                 CheckHint(Map.Felucca);
             }
-		}
+        }
 
         private void CheckHint(Map map)
         {
             IPooledEnumerable eable = map.GetMobilesInBounds(new Rectangle2D(735, 2135, 24, 24));
 
             foreach (Mobile m in eable)
-            {
                 if (m is BaseVendor)
                 {
                     IPooledEnumerable players = map.GetMobilesInRange(m.Location, 3);
 
                     foreach (Mobile player in players)
-                    {
-                        if (player is PlayerMobile && ((PlayerMobile)player).NpcGuild == NpcGuild.RangersGuild && !player.Hidden)
+                        if (player is PlayerMobile && ((PlayerMobile)player).NpcGuild == NpcGuild.RangersGuild &&
+                            !player.Hidden)
                         {
                             GiveHint(player, m);
                             eable.Free();
                             players.Free();
                             return;
                         }
-                    }
 
                     players.Free();
                 }
-            }
 
             eable.Free();
         }
 
         private void GiveHint(Mobile player, Mobile vendor)
         {
-            vendor.SayTo(player, "A good place to hunt these days is {0}.", WorldLocationInfo.Locations[0][m_BonusIndex].RegionName);
+            vendor.SayTo(player, "A good place to hunt these days is {0}.",
+                WorldLocationInfo.Locations[0][BonusIndex].RegionName);
 
             m_NextHint = DateTime.UtcNow + TimeSpan.FromMinutes(Utility.RandomMinMax(30, 60));
         }
 
         public bool IsPrimeHunt(Mobile from, Point3D p)
         {
-            PlayerMobile pm = from as PlayerMobile;
+            var pm = from as PlayerMobile;
 
             if (pm == null || pm.NpcGuild != NpcGuild.RangersGuild)
                 return false;
 
-            WorldLocationInfo info = WorldLocationInfo.Locations[0][m_BonusIndex];
+            var info = WorldLocationInfo.Locations[0][BonusIndex];
 
             if (info != null)
-            {
-                foreach (Rectangle2D rec in info.Bounds)
-                {
+                foreach (var rec in info.Bounds)
                     if (rec.Contains(p))
                         return true;
-                }
-            }
 
             return false;
         }
 
-		public void TrySubmitKill(HuntMaster master, Mobile from, HuntingPermit permit)
-		{
-			if(permit.KillEntry == null || permit.KillEntry.KillIndex < 0 || permit.KillEntry.KillIndex > HuntingTrophyInfo.Infos.Count)
-				master.SayTo(from, 1155706); // That is not a valid kill.
-			else
-			{
-				HuntingTrophyInfo info = HuntingTrophyInfo.Infos[permit.KillEntry.KillIndex];
-				
-				if(info != null)
-				{
-                    if (!m_Leaders.ContainsKey(info.HuntType))
-                        m_Leaders[info.HuntType] = new List<HuntingKillEntry>();
+        public void TrySubmitKill(HuntMaster master, Mobile from, HuntingPermit permit)
+        {
+            if (permit.KillEntry == null || permit.KillEntry.KillIndex < 0 ||
+                permit.KillEntry.KillIndex > HuntingTrophyInfo.Infos.Count)
+            {
+                master.SayTo(from, 1155706); // That is not a valid kill.
+            }
+            else
+            {
+                var info = HuntingTrophyInfo.Infos[permit.KillEntry.KillIndex];
 
-					List<HuntingKillEntry> leaders = m_Leaders[info.HuntType];
-					
-					if(leaders.Count == 0 || permit.KillEntry.Measurement >= leaders[0].Measurement)
-					{
-						if (leaders.Count > 0 && permit.KillEntry.Measurement > leaders[0].Measurement)
-							leaders.Clear();
-						
-						leaders.Add(new HuntingKillEntry(permit.Owner, permit.KillEntry.Measurement, permit.KillEntry.DateKilled, permit.KillEntry.KillIndex, permit.KillEntry.Location));
-						
-						from.SendGump(new BasicInfoGump(1155722));
+                if (info != null)
+                {
+                    if (!Leaders.ContainsKey(info.HuntType))
+                        Leaders[info.HuntType] = new List<HuntingKillEntry>();
+
+                    var leaders = Leaders[info.HuntType];
+
+                    if (leaders.Count == 0 || permit.KillEntry.Measurement >= leaders[0].Measurement)
+                    {
+                        if (leaders.Count > 0 && permit.KillEntry.Measurement > leaders[0].Measurement)
+                            leaders.Clear();
+
+                        leaders.Add(new HuntingKillEntry(permit.Owner, permit.KillEntry.Measurement,
+                            permit.KillEntry.DateKilled, permit.KillEntry.KillIndex, permit.KillEntry.Location));
+
+                        from.SendGump(new BasicInfoGump(1155722));
 
                         HuntingDisplayTrophy.InvalidateDisplayTrophies();
                         master.PlaySound(0x3D);
-					}
-					else
-						master.SayTo(from, 1155721); // Begging thy pardon, but your permit has not broken the current record for this species!
-						
-					permit.HasSubmitted = true;
+                    }
+                    else
+                    {
+                        master.SayTo(from,
+                            1155721); // Begging thy pardon, but your permit has not broken the current record for this species!
+                    }
+
+                    permit.HasSubmitted = true;
 
                     CheckKill(info.HuntType, permit.KillEntry);
 
                     if (from is PlayerMobile)
                     {
-                        BaseQuest quest = QuestHelper.GetQuest((PlayerMobile)from, typeof(HuntmastersChallengeQuest));
+                        var quest = QuestHelper.GetQuest((PlayerMobile)from, typeof(HuntmastersChallengeQuest));
 
                         if (quest != null && quest is HuntmastersChallengeQuest)
-                        {
                             ((HuntmastersChallengeQuest)quest).CompleteChallenge();
-                        }
-                    }
-				}
-			}
-		}
-
-        private void CheckKill(HuntType type, HuntingKillEntry entry)
-        {
-            if (!m_Top10.ContainsKey(type))
-                m_Top10[type] = new List<HuntingKillEntry>();
-
-            if (m_Top10[type].Count < 10)
-                m_Top10[type].Add(entry);
-            else
-            {
-                List<HuntingKillEntry> copy = new List<HuntingKillEntry>(m_Top10[type]);
-                copy.Sort();
-
-                for(int i = 0; i < copy.Count; i++)
-                {
-                    if (entry.Measurement > copy[i].Measurement)
-                    {
-                        m_Top10[type].Remove(copy[i]);
-                        m_Top10[type].Add(entry);
-                        break;
                     }
                 }
             }
         }
-		
-		public void EndSeason()
-		{
-            foreach (KeyValuePair<HuntType, List<HuntingKillEntry>> kvp in m_Leaders)
-            {
-                foreach (HuntingKillEntry killEntry in kvp.Value)
-                {
-                    Mobile owner = killEntry.Owner;
 
-                    if (owner != null)
+        private void CheckKill(HuntType type, HuntingKillEntry entry)
+        {
+            if (!Top10.ContainsKey(type))
+                Top10[type] = new List<HuntingKillEntry>();
+
+            if (Top10[type].Count < 10)
+            {
+                Top10[type].Add(entry);
+            }
+            else
+            {
+                var copy = new List<HuntingKillEntry>(Top10[type]);
+                copy.Sort();
+
+                for (var i = 0; i < copy.Count; i++)
+                    if (entry.Measurement > copy[i].Measurement)
                     {
-                        if (!m_UnclaimedWinners.ContainsKey(owner))
-                            m_UnclaimedWinners[owner] = 1;
-                        else
-                            m_UnclaimedWinners[owner]++;
+                        Top10[type].Remove(copy[i]);
+                        Top10[type].Add(entry);
+                        break;
                     }
+            }
+        }
+
+        public void EndSeason()
+        {
+            foreach (var kvp in Leaders)
+            foreach (var killEntry in kvp.Value)
+            {
+                var owner = killEntry.Owner;
+
+                if (owner != null)
+                {
+                    if (!UnclaimedWinners.ContainsKey(owner))
+                        UnclaimedWinners[owner] = 1;
+                    else
+                        UnclaimedWinners[owner]++;
                 }
             }
-			
-			m_Leaders.Clear();
-			
-			var now = DateTime.Now;
+
+            Leaders.Clear();
+
+            var now = DateTime.Now;
             var ends = DateTime.Now + TimeSpan.FromDays(30);
 
-			m_SeasonEnds = new DateTime(ends.Year, ends.Month, 1, 0, 0, 0);
-            m_SeasonBegins = new DateTime(now.Year, now.Month, 1, 0, 0, 0);
+            SeasonEnds = new DateTime(ends.Year, ends.Month, 1, 0, 0, 0);
+            SeasonBegins = new DateTime(now.Year, now.Month, 1, 0, 0, 0);
 
             HuntingDisplayTrophy.InvalidateDisplayTrophies();
-		}
-		
-		public bool CheckUnclaimedEntry(Mobile from, Mobile vendor)
-		{
-            List<Mobile> copy = new List<Mobile>(m_UnclaimedWinners.Keys);
+        }
 
-			foreach(Mobile m in copy)
-			{
-				if(m == from && m is PlayerMobile)
-				{
+        public bool CheckUnclaimedEntry(Mobile from, Mobile vendor)
+        {
+            var copy = new List<Mobile>(UnclaimedWinners.Keys);
+
+            foreach (var m in copy)
+                if (m == from && m is PlayerMobile)
+                {
                     m.SendGump(new HuntmasterRewardGump(vendor, (PlayerMobile)m));
                     return true;
-				}
-			}
-			
-			return false;
-		}
-		
-		public HuntingSystem(Serial serial) : base(serial)
-		{
-		}
-		
-		private Dictionary<HuntType, List<HuntingKillEntry>> m_Leaders;
-		public Dictionary<HuntType, List<HuntingKillEntry>> Leaders { get { return m_Leaders; } }
+                }
 
-        private Dictionary<Mobile, int> m_UnclaimedWinners = new Dictionary<Mobile, int>();
-        public Dictionary<Mobile, int> UnclaimedWinners { get { return m_UnclaimedWinners; } }
-		
-		private Dictionary<HuntType, List<HuntingKillEntry>> m_Top10;
-		public Dictionary<HuntType, List<HuntingKillEntry>> Top10 { get { return m_Top10; } }
+            return false;
+        }
 
         public override void Delete()
         {
         }
 
-		public override void Serialize(GenericWriter writer)
-		{
-			base.Serialize(writer);
-			writer.Write((int)1);
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(1);
 
             writer.Write(m_Active);
-            writer.Write(m_SeasonBegins);
-            writer.Write(m_SeasonEnds);
+            writer.Write(SeasonBegins);
+            writer.Write(SeasonEnds);
 
-			writer.Write(m_UnclaimedWinners.Count);
-            foreach (KeyValuePair<Mobile, int> kvp in m_UnclaimedWinners)
+            writer.Write(UnclaimedWinners.Count);
+            foreach (var kvp in UnclaimedWinners)
             {
                 writer.Write(kvp.Key);
                 writer.Write(kvp.Value);
             }
-				
-			writer.Write(m_Top10.Count);
-            foreach (KeyValuePair<HuntType, List<HuntingKillEntry>> kvp in m_Top10)
+
+            writer.Write(Top10.Count);
+            foreach (var kvp in Top10)
             {
                 writer.Write((int)kvp.Key);
                 writer.Write(kvp.Value.Count);
 
-                foreach (HuntingKillEntry entry in kvp.Value)
+                foreach (var entry in kvp.Value)
                     entry.Serialize(writer);
             }
-			
-			writer.Write(m_Leaders.Count);
-			foreach(KeyValuePair<HuntType, List<HuntingKillEntry>> kvp in m_Leaders)
-			{
-				writer.Write((int)kvp.Key);
-				writer.Write(kvp.Value.Count);
-				
-				foreach(HuntingKillEntry entry in kvp.Value)
-					entry.Serialize(writer);
-			}
-		}
-		
-		public override void Deserialize(GenericReader reader)
-		{
-			base.Deserialize(reader);
-			int v = reader.ReadInt();
+
+            writer.Write(Leaders.Count);
+            foreach (var kvp in Leaders)
+            {
+                writer.Write((int)kvp.Key);
+                writer.Write(kvp.Value.Count);
+
+                foreach (var entry in kvp.Value)
+                    entry.Serialize(writer);
+            }
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var v = reader.ReadInt();
 
             m_Active = reader.ReadBool();
-            m_SeasonBegins = reader.ReadDateTime();
-            m_SeasonEnds = reader.ReadDateTime();
+            SeasonBegins = reader.ReadDateTime();
+            SeasonEnds = reader.ReadDateTime();
 
-			m_Top10 = new Dictionary<HuntType, List<HuntingKillEntry>>();
-			m_Leaders = new Dictionary<HuntType, List<HuntingKillEntry>>();
-			
-			int count = reader.ReadInt();
-			for(int i = 0; i < count; i++)
-			{
-                Mobile m = reader.ReadMobile();
-                int c = 1;
+            Top10 = new Dictionary<HuntType, List<HuntingKillEntry>>();
+            Leaders = new Dictionary<HuntType, List<HuntingKillEntry>>();
+
+            var count = reader.ReadInt();
+            for (var i = 0; i < count; i++)
+            {
+                var m = reader.ReadMobile();
+                var c = 1;
 
                 if (v == 0)
-                {
                     new HuntingKillEntry(reader);
-                }
                 else
-                {
                     c = reader.ReadInt();
-                }
 
-				if(m != null)
-					m_UnclaimedWinners[m] = c;
-			}
-			
-			count = reader.ReadInt();
-			for(int i = 0; i < count; i++)
-			{
-                HuntType type = (HuntType)reader.ReadInt();
-                int c = reader.ReadInt();
+                if (m != null)
+                    UnclaimedWinners[m] = c;
+            }
 
-                if (!m_Top10.ContainsKey(type))
-                    m_Top10[type] = new List<HuntingKillEntry>();
+            count = reader.ReadInt();
+            for (var i = 0; i < count; i++)
+            {
+                var type = (HuntType)reader.ReadInt();
+                var c = reader.ReadInt();
 
-                for (int j = 0; j < c; j++)
-                {
-                    m_Top10[type].Add(new HuntingKillEntry(reader));
-                }
-			}
-			
-			count = reader.ReadInt();
-			for(int i = 0; i < count; i++)
-			{
-				HuntType type = (HuntType)reader.ReadInt();
-				int c = reader.ReadInt();
+                if (!Top10.ContainsKey(type))
+                    Top10[type] = new List<HuntingKillEntry>();
 
-                if (!m_Leaders.ContainsKey(type))
-                    m_Leaders[type] = new List<HuntingKillEntry>();
-				
-				for(int j = 0; j < c; j++)
-				{
-					m_Leaders[type].Add(new HuntingKillEntry(reader));
-				}
-			}
-			
-			m_Instance = this;
+                for (var j = 0; j < c; j++) Top10[type].Add(new HuntingKillEntry(reader));
+            }
+
+            count = reader.ReadInt();
+            for (var i = 0; i < count; i++)
+            {
+                var type = (HuntType)reader.ReadInt();
+                var c = reader.ReadInt();
+
+                if (!Leaders.ContainsKey(type))
+                    Leaders[type] = new List<HuntingKillEntry>();
+
+                for (var j = 0; j < c; j++) Leaders[type].Add(new HuntingKillEntry(reader));
+            }
+
+            Instance = this;
             m_NextHint = DateTime.UtcNow;
             m_NextBonusIndex = DateTime.UtcNow;
 
             CheckTimer();
-		}
+        }
 
         private void Setup()
         {
             Static s;
 
-            for (int i = 0; i < 9; i++)
+            for (var i = 0; i < 9; i++)
             {
                 s = new Static(2931);
                 s.MoveToWorld(new Point3D(748 + i, 2136, 0), Map.Trammel);
@@ -475,7 +455,7 @@ namespace Server.Engines.HuntsmasterChallenge
             s = new Static(2924);
             s.MoveToWorld(new Point3D(736, 2144, 0), Map.Felucca);
 
-            HuntingDisplayTrophy trophy = new HuntingDisplayTrophy(HuntType.GrizzlyBear);
+            var trophy = new HuntingDisplayTrophy(HuntType.GrizzlyBear);
             trophy.MoveToWorld(new Point3D(748, 2137, 6), Map.Trammel);
 
             trophy = new HuntingDisplayTrophy(HuntType.GrizzlyBear);
@@ -613,7 +593,7 @@ namespace Server.Engines.HuntsmasterChallenge
             s = new Static(0x9C01);
             s.MoveToWorld(new Point3D(736, 2149, 6), Map.Felucca);
 
-            XmlSpawner spawner = new XmlSpawner("HuntMaster");
+            var spawner = new XmlSpawner("HuntMaster");
             spawner.MoveToWorld(new Point3D(747, 2148, 0), Map.Felucca);
             spawner.DoRespawn = true;
 
@@ -621,5 +601,5 @@ namespace Server.Engines.HuntsmasterChallenge
             spawner.MoveToWorld(new Point3D(747, 2148, 0), Map.Trammel);
             spawner.DoRespawn = true;
         }
-	}
+    }
 }

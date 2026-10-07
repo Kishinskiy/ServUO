@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +5,8 @@ namespace Server.Mobiles
     [CorpseName("a Szavetra corpse")]
     public class Szavetra : Succubus
     {
+        public override bool CanBeParagon => false;
+
         [Constructable]
         public Szavetra()
         {
@@ -38,10 +39,8 @@ namespace Server.Mobiles
             Fame = 24000;
             Karma = -24000;
 
-            for (int i = 0; i < Utility.RandomMinMax(0, 1); i++)
-            {
+            for (var i = 0; i < Utility.RandomMinMax(0, 1); i++)
                 PackItem(Loot.RandomScroll(0, Loot.ArcanistScrollTypes.Length, SpellbookType.Arcanist));
-            }
 
             SetSpecialAbility(SpecialAbility.LifeDrain);
         }
@@ -51,20 +50,18 @@ namespace Server.Mobiles
         {
         }
 
-		public override bool CanBeParagon { get { return false; } }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

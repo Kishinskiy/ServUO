@@ -1,13 +1,6 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-
-using Server;
-using Server.Items;
-using Server.Mobiles;
-using Server.Network;
 using Server.Engines.Points;
-using Server.Engines.TreasuresOfDoom;
+using Server.Items;
 
 namespace Server.Engines.TreasuresOfDoom
 {
@@ -17,31 +10,19 @@ namespace Server.Engines.TreasuresOfDoom
         {
             EventSink.WorldSave += OnWorldSave;
 
-            if (Carey.Instance != null)
-            {
-                Carey.Instance.MoveToWorld(Carey.SpawnLocation, Map.Malas);
-            }
+            if (Carey.Instance != null) Carey.Instance.MoveToWorld(Carey.SpawnLocation, Map.Malas);
 
-            if (Elizabeth.Instance != null)
-            {
-                Elizabeth.Instance.MoveToWorld(Elizabeth.SpawnLocation, Map.Malas);
-            }
+            if (Elizabeth.Instance != null) Elizabeth.Instance.MoveToWorld(Elizabeth.SpawnLocation, Map.Malas);
 
             if (PointsSystem.TreasuresOfDoom.Enabled)
             {
-                if (VaseSpawner.Instance == null)
-                {
-                    VaseSpawner.Instance = new VaseSpawner();
-                }
+                if (VaseSpawner.Instance == null) VaseSpawner.Instance = new VaseSpawner();
 
                 VaseSpawner.Instance.CheckVases();
             }
             else if (VaseSpawner.Instance != null)
             {
-                if (VaseSpawner.Instance.Vases != null)
-                {
-                    ColUtility.SafeDelete(VaseSpawner.Instance.Vases);
-                }
+                if (VaseSpawner.Instance.Vases != null) ColUtility.SafeDelete(VaseSpawner.Instance.Vases);
 
                 VaseSpawner.Instance = null;
             }
@@ -127,14 +108,11 @@ namespace Server.Engines.TreasuresOfDoom
                 Owain.Instance.RangeHome = 10;
             }
 
-            if (VaseSpawner.Instance == null)
-            {
-                VaseSpawner.Instance = new VaseSpawner();
-            }
+            if (VaseSpawner.Instance == null) VaseSpawner.Instance = new VaseSpawner();
 
             VaseSpawner.Instance.CheckVases();
 
-            Point3D p = new Point3D(395, 220, -18);
+            var p = new Point3D(395, 220, -18);
 
             if (Map.Malas.FindItem<DoomPlaque>(p) == null)
             {
@@ -167,17 +145,11 @@ namespace Server.Engines.TreasuresOfDoom
 
         public static void Remove()
         {
-            if (Carey.Instance != null)
-            {
-                Carey.Instance.Delete();
-            }
+            if (Carey.Instance != null) Carey.Instance.Delete();
 
             if (VaseSpawner.Instance != null)
             {
-                if (VaseSpawner.Instance.Vases != null)
-                {
-                    ColUtility.SafeDelete(VaseSpawner.Instance.Vases);
-                }
+                if (VaseSpawner.Instance.Vases != null) ColUtility.SafeDelete(VaseSpawner.Instance.Vases);
 
                 VaseSpawner.Instance = null;
             }

@@ -1,13 +1,18 @@
-using System;
-
 namespace Server.Items
 {
     public class KatrinasCrook : ShepherdsCrook
-	{
-		public override bool IsArtifact { get { return true; } }
+    {
+        public override bool IsArtifact => true;
+
+        public override int LabelNumber => 1079789; // Katrina's Crook
+        public override int ArtifactRarity => 11;
+
+        public override int InitMinHits => 255;
+
+        public override int InitMaxHits => 255;
+
         [Constructable]
         public KatrinasCrook()
-            : base()
         {
             WeaponAttributes.HitLeechStam = 40;
             WeaponAttributes.HitLeechMana = 55;
@@ -21,34 +26,6 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1079789;
-            }
-        }// Katrina's Crook
-        public override int ArtifactRarity
-        {
-            get
-            {
-                return 11;
-            }
-        }
-        public override int InitMinHits
-        {
-            get
-            {
-                return 255;
-            }
-        }
-        public override int InitMaxHits
-        {
-            get
-            {
-                return 255;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -60,12 +37,9 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
 
-            if (version == 0)
-            {
-                NegativeAttributes.NoRepair = 0;
-            }
+            if (version == 0) NegativeAttributes.NoRepair = 0;
         }
     }
 }

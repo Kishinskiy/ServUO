@@ -1,6 +1,3 @@
-using System;
-using Server;
-using System.Collections.Generic;
 using Server.Engines.Quests;
 using Server.Network;
 
@@ -46,13 +43,18 @@ namespace Server.Items
             }
         }
 
-        public override int DefaultMaxWeight { get { return 1200; } }
-        public override bool DisplaysContent { get { return false; } }
+        public override int DefaultMaxWeight => 1200;
+        public override bool DisplaysContent => false;
 
         public ShippingCrate(ProfessionalFisherQuest quest)
         {
             Weight = 1.0;
             Quest = quest;
+        }
+
+        public ShippingCrate(Serial serial)
+            : base(serial)
+        {
         }
 
         public override void GetProperties(ObjectPropertyList list)
@@ -62,20 +64,21 @@ namespace Server.Items
             if (Quest == null)
                 return;
 
-            int loc = 1116453; //~1_val~: ~2_val~/~3_val~
-            FishQuestObjective obj = Quest.GetObjective();
+            var loc = 1116453; //~1_val~: ~2_val~/~3_val~
+            var obj = Quest.GetObjective();
 
             if (obj == null)
                 Delete();
 
-            foreach (KeyValuePair<Type, int[]> kvp in obj.Line)
+            foreach (var kvp in obj.Line)
             {
-                int idx = FishQuestHelper.GetIndexForType(kvp.Key);
-                list.Add(loc, "#{0}\t{1}\t{2}", FishQuestHelper.Labels[idx], kvp.Value[0].ToString(), kvp.Value[1].ToString());
+                var idx = FishQuestHelper.GetIndexForType(kvp.Key);
+                list.Add(loc, "#{0}\t{1}\t{2}", FishQuestHelper.Labels[idx], kvp.Value[0].ToString(),
+                    kvp.Value[1].ToString());
                 loc++;
             }
 
-            object delivery = GetDeliveryInfo();
+            var delivery = GetDeliveryInfo();
 
             if (delivery is string)
                 list.Add((string)delivery);
@@ -92,10 +95,7 @@ namespace Server.Items
             if (Quest == null)
                 return base.OnDragLift(from);
 
-            if (Quest.Owner != from)
-            {
-                return false;
-            }
+            if (Quest.Owner != from) return false;
 
             return base.OnDragLift(from);
         }
@@ -130,17 +130,15 @@ namespace Server.Items
         {
             if (dropped is BaseHighseasFish && Quest != null)
             {
-                FishQuestObjective obj = Quest.GetObjective();
+                var obj = Quest.GetObjective();
 
                 if (obj != null)
-                {
                     if (obj.CheckLift(dropped) && base.OnStackAttempt(from, stack, dropped))
                     {
                         obj.Update(dropped);
                         InvalidateProperties();
                         return true;
                     }
-                }
             }
 
             from.SendLocalizedMessage(1116461); // This is not needed to fill the order.
@@ -151,7 +149,7 @@ namespace Server.Items
         {
             if (dropped is BaseHighseasFish && Quest != null)
             {
-                FishQuestObjective obj = Quest.GetObjective();
+                var obj = Quest.GetObjective();
 
                 if (obj != null && obj.CheckLift(dropped) && base.OnDragDrop(from, dropped))
                 {
@@ -169,7 +167,7 @@ namespace Server.Items
         {
             if (dropped is BaseHighseasFish && Quest != null)
             {
-                FishQuestObjective obj = Quest.GetObjective();
+                var obj = Quest.GetObjective();
 
                 if (obj != null && obj.CheckLift(dropped) && base.OnDragDropInto(from, dropped, p))
                 {
@@ -188,7 +186,7 @@ namespace Server.Items
             if (Quest == null)
                 return base.CheckLift(from, item, ref reject);
 
-            FishQuestObjective obj = Quest.GetObjective();
+            var obj = Quest.GetObjective();
 
             if (obj != null && obj.CheckLift(item))
             {
@@ -204,7 +202,7 @@ namespace Server.Items
             if (Quest == null)
                 return true;
 
-            FishQuestObjective obj = Quest.GetObjective();
+            var obj = Quest.GetObjective();
 
             if (obj.CheckLift(item))
                 return false;
@@ -216,7 +214,7 @@ namespace Server.Items
         {
             if (Quest != null && Quest is ProfessionalFisherQuest && Quest.TurnIn != null)
             {
-                Region reg = Quest.TurnIn.Region;
+                var reg = Quest.TurnIn.Region;
 
                 if (reg == null || reg.Name == null)
                     return "Unknown Delivery";
@@ -238,6 +236,7 @@ namespace Server.Items
                 if (reg.Name == "Papua")
                     return 1116503;
             }
+
             return "Unknown Delivery";
         }
 
@@ -254,21 +253,16 @@ namespace Server.Items
             base.Delete();
         }
 
-        public ShippingCrate(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

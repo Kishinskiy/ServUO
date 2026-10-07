@@ -1,9 +1,9 @@
-using System;
-
 namespace Server.Items
 {
     public class DragonFlameKey : PeerlessKey
     {
+        public override int LabelNumber => 1074343; // dragon flame key
+
         [Constructable]
         public DragonFlameKey()
             : base(0x2002)
@@ -18,25 +18,18 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1074343;
-            }
-        }// dragon flame key
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-			
-            writer.Write((int)0); // version
+
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-			
-            int version = reader.ReadInt();
+
+            var version = reader.ReadInt();
         }
     }
 }

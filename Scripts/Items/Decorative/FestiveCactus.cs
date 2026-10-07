@@ -1,5 +1,3 @@
-using System;
-
 namespace Server.Items
 {
     public class FestiveCactus : Item
@@ -8,8 +6,8 @@ namespace Server.Items
         public FestiveCactus()
             : base(0x2376)
         {
-            this.Weight = 1.0;
-            this.LootType = LootType.Blessed;
+            Weight = 1.0;
+            LootType = LootType.Blessed;
         }
 
         public FestiveCactus(Serial serial)
@@ -21,7 +19,7 @@ namespace Server.Items
         {
             base.OnSingleClick(from);
 
-            this.LabelTo(from, 1070880); // Winter 2004
+            LabelTo(from, 1070880); // Winter 2004
         }
 
         public override void GetProperties(ObjectPropertyList list)
@@ -35,14 +33,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

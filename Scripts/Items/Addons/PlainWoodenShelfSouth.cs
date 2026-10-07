@@ -1,12 +1,9 @@
-using System;
-using Server;
-
 namespace Server.Items
 {
     public class PlainWoodenShelfSouthAddon : BaseAddon
     {
-        public override BaseAddonDeed Deed { get { return new PlainWoodenShelfSouthDeed(); } }
-        public override bool RetainDeedHue { get { return true; } }
+        public override BaseAddonDeed Deed => new PlainWoodenShelfSouthDeed();
+        public override bool RetainDeedHue => true;
 
         [Constructable]
         public PlainWoodenShelfSouthAddon()
@@ -22,20 +19,20 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class PlainWoodenShelfSouthDeed : BaseAddonDeed
     {
-        public override BaseAddon Addon { get { return new PlainWoodenShelfSouthAddon(); } }
-        public override int LabelNumber { get { return 1154160; } } // Plain Wooden Shelf (South)
+        public override BaseAddon Addon => new PlainWoodenShelfSouthAddon();
+        public override int LabelNumber => 1154160; // Plain Wooden Shelf (South)
 
         [Constructable]
         public PlainWoodenShelfSouthDeed()
@@ -50,13 +47,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

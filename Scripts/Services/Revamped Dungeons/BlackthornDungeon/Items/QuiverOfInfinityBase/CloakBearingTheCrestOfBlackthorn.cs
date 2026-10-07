@@ -1,17 +1,14 @@
-using Server;
-using System;
-
 namespace Server.Items
 {
     public class CloakBearingTheCrestOfBlackthorn : Cloak
     {
-        public override bool IsArtifact { get { return true; } }
+        public override bool IsArtifact => true;
 
         [Constructable]
         public CloakBearingTheCrestOfBlackthorn()
         {
             ReforgedSuffix = ReforgedSuffix.Blackthorn;
-            this.Hue = 1766;
+            Hue = 1766;
             Attributes.DefendChance = 5;
         }
 
@@ -29,7 +26,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

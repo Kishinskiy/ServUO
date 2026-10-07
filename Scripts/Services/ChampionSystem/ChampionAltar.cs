@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Engines.CannedEvil
@@ -6,6 +5,7 @@ namespace Server.Engines.CannedEvil
     public class ChampionAltar : PentagramAddon
     {
         private ChampionSpawn m_Spawn;
+
         public ChampionAltar(ChampionSpawn spawn)
         {
             m_Spawn = spawn;
@@ -29,7 +29,7 @@ namespace Server.Engines.CannedEvil
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
             writer.Write(m_Spawn);
         }
@@ -38,23 +38,23 @@ namespace Server.Engines.CannedEvil
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            switch ( version )
+            switch (version)
             {
                 case 0:
-                    {
-                        m_Spawn = reader.ReadItem() as ChampionSpawn;
+                {
+                    m_Spawn = reader.ReadItem() as ChampionSpawn;
 
-                        if (m_Spawn == null)
-                            Delete();
-                        else if (!m_Spawn.Active)
-                            Hue = 0x455;
-                        else
-                            Hue = 0;
+                    if (m_Spawn == null)
+                        Delete();
+                    else if (!m_Spawn.Active)
+                        Hue = 0x455;
+                    else
+                        Hue = 0;
 
-                        break;
-                    }
+                    break;
+                }
             }
         }
     }

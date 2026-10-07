@@ -7,6 +7,11 @@ namespace Server.Mobiles
     [CorpseName("a killer pumpkin corpse")]
     public class PumpkinHead : BaseCreature
     {
+        public override bool AutoDispel => true;
+        public override bool BardImmune => true;
+        public override bool Unprovokable => true;
+        public override bool AreaPeaceImmune => true;
+
         [Constructable]
         public PumpkinHead()
             : base(Utility.RandomBool() ? AIType.AI_Melee : AIType.AI_Mage, FightMode.Closest, 10, 1, 0.05, 0.1)
@@ -54,17 +59,11 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool AutoDispel { get { return true; } }
-        public override bool BardImmune { get { return true; } }
-        public override bool Unprovokable { get { return true; } }
-        public override bool AreaPeaceImmune { get { return true; } }
-
         public override void GenerateLoot()
         {
             if (Utility.RandomDouble() < .05)
             {
                 if (Core.TOL)
-                {
                     switch (Utility.Random(5))
                     {
                         case 0:
@@ -82,12 +81,8 @@ namespace Server.Mobiles
                         case 4:
                             PackItem(new CarvableGordPumpkinTall());
                             break;
-                        default:
-                            break;
                     }
-                }
                 else
-                {
                     switch (Utility.Random(5))
                     {
                         case 0:
@@ -105,10 +100,7 @@ namespace Server.Mobiles
                         case 4:
                             PackItem(new PaintedPorcelainMask());
                             break;
-                        default:
-                            break;
                     }
-                }
             }
 
             PackItem(new WrappedCandy());
@@ -139,12 +131,9 @@ namespace Server.Mobiles
         public override void OnDamage(int amount, Mobile from, bool willKill)
         {
             if (Utility.RandomBool())
-            {
-                if (from != null && from.Map != null && Map != Map.Internal && Map == from.Map && from.InRange(this, 12))
-                {
-                    SpillAcid((willKill) ? this : from, (willKill) ? 3 : 1);
-                }
-            }
+                if (from != null && from.Map != null && Map != Map.Internal && Map == from.Map &&
+                    from.InRange(this, 12))
+                    SpillAcid(willKill ? this : from, willKill ? 3 : 1);
 
             base.OnDamage(amount, from, willKill);
         }
@@ -152,13 +141,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

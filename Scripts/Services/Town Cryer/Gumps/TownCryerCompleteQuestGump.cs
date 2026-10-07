@@ -1,9 +1,7 @@
-using Server;
-using System;
 using System.Linq;
-using Server.Mobiles;
-using Server.Gumps;
 using Server.Engines.Quests;
+using Server.Gumps;
+using Server.Mobiles;
 
 namespace Server.Services.TownCryer
 {
@@ -29,10 +27,7 @@ namespace Server.Services.TownCryer
 
             var entry = TownCryerSystem.NewsEntries.FirstOrDefault(e => e.QuestType == quest.GetType());
 
-            if (entry != null)
-            {
-                GumpID = entry.GumpImage;
-            }
+            if (entry != null) GumpID = entry.GumpImage;
         }
 
         public override void AddGumpLayout()
@@ -42,22 +37,12 @@ namespace Server.Services.TownCryer
             AddImage(62, 42, GumpID);
 
             if (Title is int)
-            {
-                AddHtmlLocalized(0, 392, 454, 20, CenterLoc, String.Format("#{0}", (int)Title), 0, false, false);
-            }
-            else if (Title is string)
-            {
-                AddHtml(0, 392, 454, 20, Center((string)Title), false, false);
-            }
+                AddHtmlLocalized(0, 392, 454, 20, CenterLoc, string.Format("#{0}", (int)Title), 0, false, false);
+            else if (Title is string) AddHtml(0, 392, 454, 20, Center((string)Title), false, false);
 
             if (Body is int)
-            {
                 AddHtmlLocalized(27, 417, 390, 73, (int)Body, C32216(0x080808), false, true);
-            }
-            else if (Body is string)
-            {
-                AddHtml(27, 417, 390, 73, (string)Body, false, true);
-            }
+            else if (Body is string) AddHtml(27, 417, 390, 73, (string)Body, false, true);
         }
     }
 }

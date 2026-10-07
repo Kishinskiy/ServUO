@@ -1,12 +1,9 @@
-using System;
-using Server;
-
 namespace Server.Items
 {
     public class LongWoodenTableSouthAddon : BaseAddon
     {
-        public override BaseAddonDeed Deed { get { return new LongWoodenTableSouthDeed(); } }
-        public override bool RetainDeedHue { get { return true; } }
+        public override BaseAddonDeed Deed => new LongWoodenTableSouthDeed();
+        public override bool RetainDeedHue => true;
 
         [Constructable]
         public LongWoodenTableSouthAddon()
@@ -27,20 +24,20 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class LongWoodenTableSouthDeed : BaseAddonDeed
     {
-        public override BaseAddon Addon { get { return new LongWoodenTableSouthAddon(); } }
-        public override int LabelNumber { get { return 1154166; } } // Long Wooden Table (South)
+        public override BaseAddon Addon => new LongWoodenTableSouthAddon();
+        public override int LabelNumber => 1154166; // Long Wooden Table (South)
 
         [Constructable]
         public LongWoodenTableSouthDeed()
@@ -55,13 +52,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

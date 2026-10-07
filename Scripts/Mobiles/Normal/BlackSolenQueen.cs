@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using Server.Items;
 using Server.Network;
 
@@ -8,50 +7,51 @@ namespace Server.Mobiles
     [CorpseName("a solen queen corpse")]
     public class BlackSolenQueen : BaseCreature, IBlackSolen
     {
-        private bool m_BurstSac;
         private static bool m_Laid;
+
+        public bool BurstSac { get; private set; }
 
         [Constructable]
         public BlackSolenQueen()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
         {
-            this.Name = "a black solen queen";
-            this.Body = 807;
-            this.BaseSoundID = 959;
-            this.Hue = 0x453;
+            Name = "a black solen queen";
+            Body = 807;
+            BaseSoundID = 959;
+            Hue = 0x453;
 
-            this.SetStr(296, 320);
-            this.SetDex(121, 145);
-            this.SetInt(76, 100);
+            SetStr(296, 320);
+            SetDex(121, 145);
+            SetInt(76, 100);
 
-            this.SetHits(151, 162);
+            SetHits(151, 162);
 
-            this.SetDamage(10, 15);
+            SetDamage(10, 15);
 
-            this.SetDamageType(ResistanceType.Physical, 70);
-            this.SetDamageType(ResistanceType.Poison, 30);
+            SetDamageType(ResistanceType.Physical, 70);
+            SetDamageType(ResistanceType.Poison, 30);
 
-            this.SetResistance(ResistanceType.Physical, 30, 40);
-            this.SetResistance(ResistanceType.Fire, 30, 35);
-            this.SetResistance(ResistanceType.Cold, 25, 35);
-            this.SetResistance(ResistanceType.Poison, 35, 40);
-            this.SetResistance(ResistanceType.Energy, 25, 30);
+            SetResistance(ResistanceType.Physical, 30, 40);
+            SetResistance(ResistanceType.Fire, 30, 35);
+            SetResistance(ResistanceType.Cold, 25, 35);
+            SetResistance(ResistanceType.Poison, 35, 40);
+            SetResistance(ResistanceType.Energy, 25, 30);
 
-            this.SetSkill(SkillName.MagicResist, 70.0);
-            this.SetSkill(SkillName.Tactics, 90.0);
-            this.SetSkill(SkillName.Wrestling, 90.0);
+            SetSkill(SkillName.MagicResist, 70.0);
+            SetSkill(SkillName.Tactics, 90.0);
+            SetSkill(SkillName.Wrestling, 90.0);
 
-            this.Fame = 4500;
-            this.Karma = -4500;
+            Fame = 4500;
+            Karma = -4500;
 
-            this.VirtualArmor = 45;
+            VirtualArmor = 45;
 
             SolenHelper.PackPicnicBasket(this);
 
-            this.PackItem(new ZoogiFungus((Utility.RandomDouble() > 0.05) ? 5 : 25));
+            PackItem(new ZoogiFungus(Utility.RandomDouble() > 0.05 ? 5 : 25));
 
             if (Utility.RandomDouble() < 0.05)
-                this.PackItem(new BallOfSummoning());
+                PackItem(new BallOfSummoning());
         }
 
         public BlackSolenQueen(Serial serial)
@@ -59,13 +59,6 @@ namespace Server.Mobiles
         {
         }
 
-        public bool BurstSac
-        {
-            get
-            {
-                return this.m_BurstSac;
-            }
-        }
         public override int GetAngerSound()
         {
             return 0x259;
@@ -93,23 +86,25 @@ namespace Server.Mobiles
 
         public override void GenerateLoot()
         {
-            this.AddLoot(LootPack.Rich);
+            AddLoot(LootPack.Rich);
         }
 
         public override void OnGotMeleeAttack(Mobile attacker)
         {
             if (attacker.Weapon is BaseRanged)
-                BeginAcidBreath();
-
-            else if (this.Map != null && attacker != this && m_Laid == false && 0.20 > Utility.RandomDouble())
             {
-                BSQEggSac sac = new BSQEggSac();
+                BeginAcidBreath();
+            }
 
-                sac.MoveToWorld(this.Location, this.Map);
+            else if (Map != null && attacker != this && !m_Laid && 0.20 > Utility.RandomDouble())
+            {
+                var sac = new BSQEggSac();
+
+                sac.MoveToWorld(Location, Map);
                 PlaySound(0x582);
                 Say(1114445); // * * The solen queen summons her workers to her aid! * *
                 m_Laid = true;
-                EggSacTimer e = new EggSacTimer();
+                var e = new EggSacTimer();
                 e.Start();
             }
 
@@ -124,12 +119,87 @@ namespace Server.Mobiles
                 BeginAcidBreath();
         }
 
+        public override bool IsEnemy(Mobile m)
+        {
+            if (SolenHelper.CheckBlackFriendship(m))
+                return false;
+            return base.IsEnemy(m);
+        }
+
+        public override void OnDamage(int amount, Mobile from, bool willKill)
+        {
+            SolenHelper.OnBlackDamage(from);
+
+            if (!willKill)
+            {
+                if (!BurstSac)
+                {
+                    if (Hits < 50)
+                    {
+                        PublicOverheadMessage(MessageType.Regular, 0x3B2, true,
+                            "* The solen's acid sac is burst open! *");
+                        BurstSac = true;
+                    }
+                }
+                else if (from != null && from != this && InRange(from, 1))
+                {
+                    SpillAcid(from, 1);
+                }
+            }
+
+            base.OnDamage(amount, from, willKill);
+        }
+
+        public override bool OnBeforeDeath()
+        {
+            SpillAcid(4);
+
+            return base.OnBeforeDeath();
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(1);
+            writer.Write(BurstSac);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
+
+            switch (version)
+            {
+                case 1:
+                {
+                    BurstSac = reader.ReadBool();
+                    break;
+                }
+            }
+        }
+
+        private class EggSacTimer : Timer
+        {
+            public EggSacTimer()
+                : base(TimeSpan.FromSeconds(10))
+            {
+                Priority = TimerPriority.OneSecond;
+            }
+
+            protected override void OnTick()
+            {
+                m_Laid = false;
+            }
+        }
+
         #region Acid Breath
+
         private DateTime m_NextAcidBreath;
 
         public void BeginAcidBreath()
         {
-            PlayerMobile m = Combatant as PlayerMobile;
+            var m = Combatant as PlayerMobile;
 
             if (m == null || m.Deleted || !m.Alive || !Alive || m_NextAcidBreath > DateTime.Now || !CanBeHarmful(m))
                 return;
@@ -137,8 +207,8 @@ namespace Server.Mobiles
             PlaySound(0x118);
             MovingEffect(m, 0x36D4, 1, 0, false, false, 0x3F, 0);
 
-            TimeSpan delay = TimeSpan.FromSeconds(GetDistanceToSqrt(m) / 5.0);
-            Timer.DelayCall<Mobile>(delay, new TimerStateCallback<Mobile>(EndAcidBreath), m);
+            var delay = TimeSpan.FromSeconds(GetDistanceToSqrt(m) / 5.0);
+            Timer.DelayCall(delay, new TimerStateCallback<Mobile>(EndAcidBreath), m);
 
             m_NextAcidBreath = DateTime.Now + TimeSpan.FromSeconds(5);
         }
@@ -153,92 +223,15 @@ namespace Server.Mobiles
 
             AOS.Damage(m, Utility.RandomMinMax(100, 120), 0, 0, 0, 100, 0);
         }
+
         #endregion
-
-        private class EggSacTimer : Timer
-        {
-            public EggSacTimer()
-                : base(TimeSpan.FromSeconds(10))
-            {
-                Priority = TimerPriority.OneSecond;
-            }
-
-            protected override void OnTick()
-            {
-                m_Laid = false;
-
-            }
-        }
-
-        public override bool IsEnemy(Mobile m)
-        {
-            if (SolenHelper.CheckBlackFriendship(m))
-                return false;
-            else
-                return base.IsEnemy(m);
-        }
-
-        public override void OnDamage(int amount, Mobile from, bool willKill)
-        {
-            SolenHelper.OnBlackDamage(from);
-
-            if (!willKill)
-            {
-                if (!this.BurstSac)
-                {
-                    if (this.Hits < 50)
-                    {
-                        this.PublicOverheadMessage(MessageType.Regular, 0x3B2, true, "* The solen's acid sac is burst open! *");
-                        this.m_BurstSac = true;
-                    }
-                }
-                else if (from != null && from != this && this.InRange(from, 1))
-                {
-                    this.SpillAcid(from, 1);
-                }
-            }
-
-            base.OnDamage(amount, from, willKill);
-        }
-
-        public override bool OnBeforeDeath()
-        {
-            this.SpillAcid(4);
-
-            return base.OnBeforeDeath();
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.Write((int)1);
-            writer.Write(this.m_BurstSac);
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            int version = reader.ReadInt();
-			
-            switch( version )
-            {
-                case 1:
-                    {
-                        this.m_BurstSac = reader.ReadBool();
-                        break;
-                    }
-            }
-        }
     }
 
     public class BSQEggSac : Item, ICarvable
     {
         private SpawnTimer m_Timer;
 
-        public override string DefaultName
-        {
-            get { return "egg sac"; }
-        }
+        public override string DefaultName => "egg sac";
 
         [Constructable]
         public BSQEggSac()
@@ -249,6 +242,11 @@ namespace Server.Mobiles
 
             m_Timer = new SpawnTimer(this);
             m_Timer.Start();
+        }
+
+        public BSQEggSac(Serial serial)
+            : base(serial)
+        {
         }
 
         public bool Carve(Mobile from, Item item)
@@ -263,23 +261,18 @@ namespace Server.Mobiles
             return true;
         }
 
-        public BSQEggSac(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             m_Timer = new SpawnTimer(this);
             m_Timer.Start();
@@ -287,7 +280,7 @@ namespace Server.Mobiles
 
         private class SpawnTimer : Timer
         {
-            private Item m_Item;
+            private readonly Item m_Item;
 
             public SpawnTimer(Item item)
                 : base(TimeSpan.FromSeconds(Utility.RandomMinMax(5, 10)))

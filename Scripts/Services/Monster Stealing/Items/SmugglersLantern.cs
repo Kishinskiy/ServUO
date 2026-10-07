@@ -1,16 +1,18 @@
-﻿using System;
-using Server;
-
-namespace Server.Items
+﻿namespace Server.Items
 {
     public class SmugglersLantern : Lantern
     {
-        public override int LabelNumber { get { return 1071521; } } // Smuggler's Lantern
+        public override int LabelNumber => 1071521; // Smuggler's Lantern
 
-        [Constructable] 
+        [Constructable]
         public SmugglersLantern()
         {
             Hue = Utility.RandomMinMax(192, 291);
+        }
+
+        public SmugglersLantern(Serial serial)
+            : base(serial)
+        {
         }
 
         public override bool AllowEquipedCast(Mobile from)
@@ -24,23 +26,18 @@ namespace Server.Items
             list.Add(1079766); // Spell Channeling
         }
 
-        public SmugglersLantern(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

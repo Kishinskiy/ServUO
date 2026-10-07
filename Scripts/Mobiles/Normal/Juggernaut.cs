@@ -1,12 +1,22 @@
-using System;
 using Server.Items;
-using Server.Network;
 
 namespace Server.Mobiles
 {
     [CorpseName("a juggernaut corpse")]
     public class Juggernaut : BaseCreature
     {
+        public override bool AlwaysMurderer => true;
+
+        public override bool BardImmune => !Core.AOS;
+
+        public override bool BleedImmune => true;
+
+        public override Poison PoisonImmune => Poison.Lethal;
+
+        public override int Meat => 1;
+
+        public override int TreasureMapLevel => 5;
+
         [Constructable]
         public Juggernaut()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.3, 0.6)
@@ -56,49 +66,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool AlwaysMurderer
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool BardImmune
-        {
-            get
-            {
-                return !Core.AOS;
-            }
-        }
-        public override bool BleedImmune
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override Poison PoisonImmune
-        {
-            get
-            {
-                return Poison.Lethal;
-            }
-        }
-        public override int Meat
-        {
-            get
-            {
-                return 1;
-            }
-        }
-        public override int TreasureMapLevel
-        {
-            get
-            {
-                return 5;
-            }
-        }
-
         public override void OnDeath(Container c)
         {
             base.OnDeath(c);
@@ -113,7 +80,9 @@ namespace Server.Mobiles
                         c.DropItem(DawnsMusicGear.RandomUncommon);
                 }
                 else
+                {
                     c.DropItem(DawnsMusicGear.RandomRare);
+                }
             }
         }
 
@@ -142,14 +111,14 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

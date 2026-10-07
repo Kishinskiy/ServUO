@@ -1,12 +1,9 @@
-using System;
-using Server;
-
 namespace Server.Items
 {
     public class WoodenTableEastAddon : BaseAddon
     {
-        public override BaseAddonDeed Deed { get { return new WoodenTableEastDeed(); } }
-        public override bool RetainDeedHue { get { return true; } }
+        public override BaseAddonDeed Deed => new WoodenTableEastDeed();
+        public override bool RetainDeedHue => true;
 
         [Constructable]
         public WoodenTableEastAddon()
@@ -23,20 +20,20 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class WoodenTableEastDeed : BaseAddonDeed
     {
-        public override BaseAddon Addon { get { return new WoodenTableEastAddon(); } }
-        public override int LabelNumber { get { return 1154157; } } // Wooden Table (East)
+        public override BaseAddon Addon => new WoodenTableEastAddon();
+        public override int LabelNumber => 1154157; // Wooden Table (East)
 
         [Constructable]
         public WoodenTableEastDeed()
@@ -51,13 +48,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

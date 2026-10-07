@@ -1,13 +1,13 @@
-using System;
 using Server.Gumps;
-using Server.Network;
 using Server.Items;
+using Server.Network;
 
 namespace Server.Engines.Plants
 {
     public class ReproductionGump : Gump
     {
         private readonly PlantItem m_Plant;
+
         public ReproductionGump(PlantItem plant)
             : base(20, 20)
         {
@@ -51,144 +51,145 @@ namespace Server.Engines.Plants
 
         public override void OnResponse(NetState sender, RelayInfo info)
         {
-            Mobile from = sender.Mobile;
+            var from = sender.Mobile;
 
-            if (info.ButtonID == 0 || m_Plant.Deleted || m_Plant.PlantStatus >= PlantStatus.DecorativePlant || m_Plant.PlantStatus == PlantStatus.BowlOfDirt)
+            if (info.ButtonID == 0 || m_Plant.Deleted || m_Plant.PlantStatus >= PlantStatus.DecorativePlant ||
+                m_Plant.PlantStatus == PlantStatus.BowlOfDirt)
                 return;
 
-            if ((info.ButtonID >= 6 && info.ButtonID <= 8) && !from.InRange(m_Plant.GetWorldLocation(), 3))
+            if (info.ButtonID >= 6 && info.ButtonID <= 8 && !from.InRange(m_Plant.GetWorldLocation(), 3))
             {
                 from.LocalOverheadMessage(MessageType.Regular, 0x3E9, 500446); // That is too far away.
                 return;
             }
-			
+
             if (!m_Plant.IsUsableBy(from))
             {
-                m_Plant.LabelTo(from, 1061856); // You must have the item in your backpack or locked down in order to use it.
+                m_Plant.LabelTo(from,
+                    1061856); // You must have the item in your backpack or locked down in order to use it.
                 return;
             }
 
-            switch ( info.ButtonID )
+            switch (info.ButtonID)
             {
                 case 1: // Main menu
-                    {
-                        from.SendGump(new MainPlantGump(m_Plant));
+                {
+                    from.SendGump(new MainPlantGump(m_Plant));
 
-                        break;
-                    }
+                    break;
+                }
                 case 2: // Set to decorative
-                    {
-                        if (m_Plant.PlantStatus == PlantStatus.Stage9)
-                        {
-                            from.SendGump(new SetToDecorativeGump(m_Plant));
-                        }
+                {
+                    if (m_Plant.PlantStatus == PlantStatus.Stage9) from.SendGump(new SetToDecorativeGump(m_Plant));
 
-                        break;
-                    }
+                    break;
+                }
                 case 3: // Pollination
-                    {
-                        from.Send(new DisplayHelpTopic(67, true)); // POLLINATION STATE
+                {
+                    from.Send(new DisplayHelpTopic(67, true)); // POLLINATION STATE
 
-                        from.SendGump(new ReproductionGump(m_Plant));
+                    from.SendGump(new ReproductionGump(m_Plant));
 
-                        break;
-                    }
+                    break;
+                }
                 case 4: // Resources
-                    {
-                        from.Send(new DisplayHelpTopic(69, true)); // RESOURCE PRODUCTION
+                {
+                    from.Send(new DisplayHelpTopic(69, true)); // RESOURCE PRODUCTION
 
-                        from.SendGump(new ReproductionGump(m_Plant));
+                    from.SendGump(new ReproductionGump(m_Plant));
 
-                        break;
-                    }
+                    break;
+                }
                 case 5: // Seeds
-                    {
-                        from.Send(new DisplayHelpTopic(68, true)); // SEED PRODUCTION
+                {
+                    from.Send(new DisplayHelpTopic(68, true)); // SEED PRODUCTION
 
-                        from.SendGump(new ReproductionGump(m_Plant));
+                    from.SendGump(new ReproductionGump(m_Plant));
 
-                        break;
-                    }
+                    break;
+                }
                 case 6: // Gather pollen
+                {
+                    if (!m_Plant.IsCrossable)
                     {
-                        if (!m_Plant.IsCrossable)
-                        {
-                            m_Plant.LabelTo(from, 1053050); // You cannot gather pollen from a mutated plant!
-                        }
-                        else if (!m_Plant.PlantSystem.PollenProducing)
-                        {
-                            m_Plant.LabelTo(from, 1053051); // You cannot gather pollen from a plant in this stage of development!
-                        }
-                        else if (m_Plant.PlantSystem.Health < PlantHealth.Healthy)
-                        {
-                            m_Plant.LabelTo(from, 1053052); // You cannot gather pollen from an unhealthy plant!
-                        }
-                        else
-                        {
-                            from.Target = new PollinateTarget(m_Plant);
-                            from.SendLocalizedMessage(1053054); // Target the plant you wish to cross-pollinate to.
-
-                            break;
-                        }
-
-                        from.SendGump(new ReproductionGump(m_Plant));
+                        m_Plant.LabelTo(from, 1053050); // You cannot gather pollen from a mutated plant!
+                    }
+                    else if (!m_Plant.PlantSystem.PollenProducing)
+                    {
+                        m_Plant.LabelTo(from,
+                            1053051); // You cannot gather pollen from a plant in this stage of development!
+                    }
+                    else if (m_Plant.PlantSystem.Health < PlantHealth.Healthy)
+                    {
+                        m_Plant.LabelTo(from, 1053052); // You cannot gather pollen from an unhealthy plant!
+                    }
+                    else
+                    {
+                        from.Target = new PollinateTarget(m_Plant);
+                        from.SendLocalizedMessage(1053054); // Target the plant you wish to cross-pollinate to.
 
                         break;
                     }
+
+                    from.SendGump(new ReproductionGump(m_Plant));
+
+                    break;
+                }
                 case 7: // Gather resources
-                    {
-                        PlantResourceInfo resInfo = PlantResourceInfo.GetInfo(m_Plant.PlantType, m_Plant.PlantHue);
-                        PlantSystem system = m_Plant.PlantSystem;
+                {
+                    var resInfo = PlantResourceInfo.GetInfo(m_Plant.PlantType, m_Plant.PlantHue);
+                    var system = m_Plant.PlantSystem;
 
-                        if (resInfo == null)
-                        {
-                            if (m_Plant.IsCrossable)
-                                m_Plant.LabelTo(from, 1053056); // This plant has no resources to gather!
-                            else
-                                m_Plant.LabelTo(from, 1053055); // Mutated plants do not produce resources!
-                        }
-                        else if (system.AvailableResources == 0)
-                        {
+                    if (resInfo == null)
+                    {
+                        if (m_Plant.IsCrossable)
                             m_Plant.LabelTo(from, 1053056); // This plant has no resources to gather!
+                        else
+                            m_Plant.LabelTo(from, 1053055); // Mutated plants do not produce resources!
+                    }
+                    else if (system.AvailableResources == 0)
+                    {
+                        m_Plant.LabelTo(from, 1053056); // This plant has no resources to gather!
+                    }
+                    else
+                    {
+                        var resource = resInfo.CreateResource();
+
+                        if (from.PlaceInBackpack(resource))
+                        {
+                            system.AvailableResources--;
+                            m_Plant.LabelTo(from, 1053059); // You gather resources from the plant.
                         }
                         else
                         {
-                            Item resource = resInfo.CreateResource();
-
-                            if (from.PlaceInBackpack(resource))
-                            {
-                                system.AvailableResources--;
-                                m_Plant.LabelTo(from, 1053059); // You gather resources from the plant.
-                            }
-                            else
-                            {
-                                resource.Delete();
-                                m_Plant.LabelTo(from, 1053058); // You attempt to gather as many resources as you can hold, but your backpack is full.
-                            }
+                            resource.Delete();
+                            m_Plant.LabelTo(from,
+                                1053058); // You attempt to gather as many resources as you can hold, but your backpack is full.
                         }
-
-                        from.SendGump(new ReproductionGump(m_Plant));
-
-                        break;
                     }
+
+                    from.SendGump(new ReproductionGump(m_Plant));
+
+                    break;
+                }
                 case 8: // Gather seeds
                 {
-                    PlantSystem system = m_Plant.PlantSystem;
- 
-                    if ( !m_Plant.IsCrossable )
+                    var system = m_Plant.PlantSystem;
+
+                    if (!m_Plant.IsCrossable)
                     {
-                        m_Plant.LabelTo( from, 1053060 ); // Mutated plants do not produce seeds!
+                        m_Plant.LabelTo(from, 1053060); // Mutated plants do not produce seeds!
                     }
-                    else if ( system.AvailableSeeds == 0 )
+                    else if (system.AvailableSeeds == 0)
                     {
-                        m_Plant.LabelTo( from, 1053061 ); // This plant has no seeds to gather!
-                    }                //Seed of Renewal Edit
+                        m_Plant.LabelTo(from, 1053061); // This plant has no seeds to gather!
+                    } //Seed of Renewal Edit
                     else
                     {
                         if (Utility.RandomDouble() < 0.05)
                         {
                             Item Rseed = new SeedOfRenewal();
- 
+
                             if (from.PlaceInBackpack(Rseed))
                             {
                                 system.AvailableSeeds--;
@@ -197,13 +198,14 @@ namespace Server.Engines.Plants
                             else
                             {
                                 Rseed.Delete();
-                                m_Plant.LabelTo(from, 1053062); // You attempt to gather as many seeds as you can hold, but your backpack is full.
+                                m_Plant.LabelTo(from,
+                                    1053062); // You attempt to gather as many seeds as you can hold, but your backpack is full.
                             }
                         }
                         else
                         {
-                            Seed seed = new Seed(system.SeedType, system.SeedHue, true);
- 
+                            var seed = new Seed(system.SeedType, system.SeedHue, true);
+
                             if (from.PlaceInBackpack(seed))
                             {
                                 system.AvailableSeeds--;
@@ -212,13 +214,14 @@ namespace Server.Engines.Plants
                             else
                             {
                                 seed.Delete();
-                                m_Plant.LabelTo(from, 1053062); // You attempt to gather as many seeds as you can hold, but your backpack is full.
+                                m_Plant.LabelTo(from,
+                                    1053062); // You attempt to gather as many seeds as you can hold, but your backpack is full.
                             }
                         }
                     }
- 
-                    from.SendGump( new ReproductionGump( m_Plant ) );
- 
+
+                    from.SendGump(new ReproductionGump(m_Plant));
+
                     break;
                 }
             }
@@ -243,7 +246,7 @@ namespace Server.Engines.Plants
 
         private void AddPollinationState(int x, int y)
         {
-            PlantSystem system = m_Plant.PlantSystem;
+            var system = m_Plant.PlantSystem;
 
             if (!system.PollenProducing)
                 AddLabel(x, y, 0x35, "-");
@@ -255,36 +258,28 @@ namespace Server.Engines.Plants
 
         private void AddResourcesState(int x, int y)
         {
-            PlantResourceInfo resInfo = PlantResourceInfo.GetInfo(m_Plant.PlantType, m_Plant.PlantHue);
+            var resInfo = PlantResourceInfo.GetInfo(m_Plant.PlantType, m_Plant.PlantHue);
 
-            PlantSystem system = m_Plant.PlantSystem;
-            int totalResources = system.AvailableResources + system.LeftResources;
+            var system = m_Plant.PlantSystem;
+            var totalResources = system.AvailableResources + system.LeftResources;
 
             if (resInfo == null || totalResources == 0)
-            {
                 AddLabel(x + 5, y, 0x21, "X");
-            }
             else
-            {
                 AddLabel(x, y, PlantHueInfo.GetInfo(m_Plant.PlantHue).GumpHue,
                     string.Format("{0}/{1}", system.AvailableResources, totalResources));
-            }
         }
 
         private void AddSeedsState(int x, int y)
         {
-            PlantSystem system = m_Plant.PlantSystem;
-            int totalSeeds = system.AvailableSeeds + system.LeftSeeds;
+            var system = m_Plant.PlantSystem;
+            var totalSeeds = system.AvailableSeeds + system.LeftSeeds;
 
             if (!m_Plant.IsCrossable || totalSeeds == 0)
-            {
                 AddLabel(x + 5, y, 0x21, "X");
-            }
             else
-            {
                 AddLabel(x, y, PlantHueInfo.GetInfo(system.SeedHue).GumpHue,
                     string.Format("{0}/{1}", system.AvailableSeeds, totalSeeds));
-            }
         }
     }
 }

@@ -6,6 +6,9 @@ namespace Server.Items
     public class UnholyBone : Item, ICarvable
     {
         private SpawnTimer m_Timer;
+
+        public override string DefaultName => "unholy bone";
+
         [Constructable]
         public UnholyBone()
             : base(0xF7E)
@@ -21,28 +24,21 @@ namespace Server.Items
         {
         }
 
-        public override string DefaultName
-        {
-            get
-            {
-                return "unholy bone";
-            }
-        }
         public bool Carve(Mobile from, Item item)
         {
-            Effects.PlaySound(this.GetWorldLocation(), this.Map, 0x48F);
-            Effects.SendLocationEffect(this.GetWorldLocation(), this.Map, 0x3728, 10, 10, 0, 0);
+            Effects.PlaySound(GetWorldLocation(), Map, 0x48F);
+            Effects.SendLocationEffect(GetWorldLocation(), Map, 0x3728, 10, 10, 0, 0);
 
             if (0.3 > Utility.RandomDouble())
-            {          
+            {
                 from.SendLocalizedMessage(1114322); // You destroy the bone pile.
 
-                Gold gold = new Gold(25, 100);
+                var gold = new Gold(25, 100);
 
-                gold.MoveToWorld(this.GetWorldLocation(), this.Map);
+                gold.MoveToWorld(GetWorldLocation(), Map);
 
-                this.Delete();
-                this.m_Timer.Stop();
+                Delete();
+                m_Timer.Stop();
             }
             else
             {
@@ -56,38 +52,39 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            this.m_Timer = new SpawnTimer(this);
-            this.m_Timer.Start();
+            m_Timer = new SpawnTimer(this);
+            m_Timer.Start();
         }
 
         private class SpawnTimer : Timer
         {
             private readonly Item m_Item;
+
             public SpawnTimer(Item item)
                 : base(TimeSpan.FromSeconds(Utility.RandomMinMax(5, 10)))
             {
-                this.Priority = TimerPriority.FiftyMS;
+                Priority = TimerPriority.FiftyMS;
 
-                this.m_Item = item;
+                m_Item = item;
             }
 
             protected override void OnTick()
             {
-                if (this.m_Item.Deleted)
+                if (m_Item.Deleted)
                     return;
 
                 Mobile spawn;
 
-                switch ( Utility.Random(12) )
+                switch (Utility.Random(12))
                 {
                     default:
                     case 0:
@@ -128,9 +125,9 @@ namespace Server.Items
                         break;
                 }
 
-                spawn.MoveToWorld(this.m_Item.Location, this.m_Item.Map);
+                spawn.MoveToWorld(m_Item.Location, m_Item.Map);
 
-                this.m_Item.Delete();
+                m_Item.Delete();
             }
         }
     }

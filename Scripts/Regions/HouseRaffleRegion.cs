@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using Server.Items;
 using Server.Spells.Sixth;
 using Server.Targeting;
@@ -8,15 +6,13 @@ namespace Server.Regions
 {
     public class HouseRaffleRegion : BaseRegion
     {
-        private readonly HouseRaffleStone m_Stone;
-
         [CommandProperty(AccessLevel.GameMaster)]
-        public HouseRaffleStone Stone { get { return m_Stone; } }
+        public HouseRaffleStone Stone { get; }
 
         public HouseRaffleRegion(HouseRaffleStone stone)
-            : base(null, stone.PlotFacet, Region.DefaultPriority, stone.PlotBounds)
+            : base(null, stone.PlotFacet, DefaultPriority, stone.PlotBounds)
         {
-            m_Stone = stone;
+            Stone = stone;
         }
 
         public override bool AllowHousing(Mobile from, Point3D p)
@@ -30,14 +26,14 @@ namespace Server.Regions
             if (Stone.Deed == null)
                 return false;
 
-            Container pack = from.Backpack;
+            var pack = from.Backpack;
 
-            if (pack != null && this.ContainsDeed(pack))
+            if (pack != null && ContainsDeed(pack))
                 return true;
 
-            BankBox bank = from.FindBankNoCreate();
+            var bank = from.FindBankNoCreate();
 
-            if (bank != null && this.ContainsDeed(bank))
+            if (bank != null && ContainsDeed(bank))
                 return true;
 
             return false;
@@ -56,13 +52,11 @@ namespace Server.Regions
 
         private bool ContainsDeed(Container cont)
         {
-            List<HouseRaffleDeed> deeds = cont.FindItemsByType<HouseRaffleDeed>();
+            var deeds = cont.FindItemsByType<HouseRaffleDeed>();
 
-            for (int i = 0; i < deeds.Count; ++i)
-            {
+            for (var i = 0; i < deeds.Count; ++i)
                 if (deeds[i] == Stone.Deed)
                     return true;
-            }
 
             return false;
         }

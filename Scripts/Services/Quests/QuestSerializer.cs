@@ -20,79 +20,77 @@ namespace Server.Engines.Quests
         {
             if (type == null)
             {
-                writer.WriteEncodedInt((int)0x00);
+                writer.WriteEncodedInt(0x00);
             }
             else
             {
-                for (int i = 0; i < referenceTable.Length; ++i)
-                {
+                for (var i = 0; i < referenceTable.Length; ++i)
                     if (referenceTable[i] == type)
                     {
-                        writer.WriteEncodedInt((int)0x01);
-                        writer.WriteEncodedInt((int)i);
+                        writer.WriteEncodedInt(0x01);
+                        writer.WriteEncodedInt(i);
                         return;
                     }
-                }
 
-                writer.WriteEncodedInt((int)0x02);
+                writer.WriteEncodedInt(0x02);
                 writer.Write(type.FullName);
             }
         }
 
         public static Type ReadType(Type[] referenceTable, GenericReader reader)
         {
-            int encoding = reader.ReadEncodedInt();
+            var encoding = reader.ReadEncodedInt();
 
-            switch ( encoding )
+            switch (encoding)
             {
                 default:
                 case 0x00: // null
-                    {
-                        return null;
-                    }
+                {
+                    return null;
+                }
                 case 0x01: // indexed
-                    {
-                        int index = reader.ReadEncodedInt();
+                {
+                    var index = reader.ReadEncodedInt();
 
-                        if (index >= 0 && index < referenceTable.Length)
-                            return referenceTable[index];
+                    if (index >= 0 && index < referenceTable.Length)
+                        return referenceTable[index];
 
-                        return null;
-                    }
+                    return null;
+                }
                 case 0x02: // by name
-                    {
-                        string fullName = reader.ReadString();
+                {
+                    var fullName = reader.ReadString();
 
-                        if (fullName == null)
-                            return null;
+                    if (fullName == null)
+                        return null;
 
-                        return ScriptCompiler.FindTypeByFullName(fullName, false);
-                    }
+                    return ScriptCompiler.FindTypeByFullName(fullName, false);
+                }
             }
         }
 
         public static QuestSystem DeserializeQuest(GenericReader reader)
         {
-            int encoding = reader.ReadEncodedInt();
+            var encoding = reader.ReadEncodedInt();
 
-            switch ( encoding )
+            switch (encoding)
             {
                 default:
                 case 0x00: // null
-                    {
-                        return null;
-                    }
+                {
+                    return null;
+                }
                 case 0x01:
-                    {
-                        Type type = ReadType(QuestSystem.QuestTypes, reader);
+                {
+                    var type = ReadType(QuestSystem.QuestTypes, reader);
 
-                        QuestSystem qs = Construct(type) as QuestSystem;
+                    var qs = Construct(type) as QuestSystem;
 
-                        if (qs != null)
-                            qs.BaseDeserialize(reader);
+                    if (qs != null)
+                        qs.BaseDeserialize(reader);
 
-                        return qs;
-                    }
+                    return qs;
+                }
             }
         }
 
@@ -114,26 +112,26 @@ namespace Server.Engines.Quests
 
         public static QuestObjective DeserializeObjective(Type[] referenceTable, GenericReader reader)
         {
-            int encoding = reader.ReadEncodedInt();
+            var encoding = reader.ReadEncodedInt();
 
-            switch ( encoding )
+            switch (encoding)
             {
                 default:
                 case 0x00: // null
-                    {
-                        return null;
-                    }
+                {
+                    return null;
+                }
                 case 0x01:
-                    {
-                        Type type = ReadType(referenceTable, reader);
+                {
+                    var type = ReadType(referenceTable, reader);
 
-                        QuestObjective obj = Construct(type) as QuestObjective;
+                    var obj = Construct(type) as QuestObjective;
 
-                        if (obj != null)
-                            obj.BaseDeserialize(reader);
+                    if (obj != null)
+                        obj.BaseDeserialize(reader);
 
-                        return obj;
-                    }
+                    return obj;
+                }
             }
         }
 
@@ -155,26 +153,26 @@ namespace Server.Engines.Quests
 
         public static QuestConversation DeserializeConversation(Type[] referenceTable, GenericReader reader)
         {
-            int encoding = reader.ReadEncodedInt();
+            var encoding = reader.ReadEncodedInt();
 
-            switch ( encoding )
+            switch (encoding)
             {
                 default:
                 case 0x00: // null
-                    {
-                        return null;
-                    }
+                {
+                    return null;
+                }
                 case 0x01:
-                    {
-                        Type type = ReadType(referenceTable, reader);
+                {
+                    var type = ReadType(referenceTable, reader);
 
-                        QuestConversation conv = Construct(type) as QuestConversation;
+                    var conv = Construct(type) as QuestConversation;
 
-                        if (conv != null)
-                            conv.BaseDeserialize(reader);
+                    if (conv != null)
+                        conv.BaseDeserialize(reader);
 
-                        return conv;
-                    }
+                    return conv;
+                }
             }
         }
 

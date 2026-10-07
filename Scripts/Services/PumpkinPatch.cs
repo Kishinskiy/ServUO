@@ -17,15 +17,15 @@ namespace Server.Engines.Events
             new Rectangle2D(835, 2344, 16, 16),
             new Rectangle2D(816, 2344, 16, 24)
         };
+
         private static Timer m_Timer;
+
         public static void Initialize()
         {
-            DateTime now = DateTime.UtcNow;
+            var now = DateTime.UtcNow;
 
             if (DateTime.UtcNow >= HolidaySettings.StartHalloween && DateTime.UtcNow <= HolidaySettings.FinishHalloween)
-            {
-                m_Timer = Timer.DelayCall(TimeSpan.Zero, TimeSpan.FromMinutes(.50), 0, new TimerCallback(PumpkinPatchSpawnerCallback));
-            }
+                m_Timer = Timer.DelayCall(TimeSpan.Zero, TimeSpan.FromMinutes(.50), 0, PumpkinPatchSpawnerCallback);
         }
 
         protected static void PumpkinPatchSpawnerCallback()
@@ -36,20 +36,16 @@ namespace Server.Engines.Events
 
         private static void AddPumpkin(Map map)
         {
-            for (int i = 0; i < m_PumpkinFields.Length; i++)
+            for (var i = 0; i < m_PumpkinFields.Length; i++)
             {
-                Rectangle2D rect = m_PumpkinFields[i];
+                var rect = m_PumpkinFields[i];
 
-                int spawncount = ((rect.Height * rect.Width) / 20);
-                int pumpkins = 0;
+                var spawncount = rect.Height * rect.Width / 20;
+                var pumpkins = 0;
 
-                foreach (Item item in map.GetItemsInBounds(rect))
-                {
+                foreach (var item in map.GetItemsInBounds(rect))
                     if (item is HalloweenPumpkin)
-                    {
                         pumpkins++;
-                    }
-                }
 
                 if (spawncount > pumpkins)
                 {
@@ -62,9 +58,9 @@ namespace Server.Engines.Events
 
         private static Point3D RandomPointIn(Rectangle2D rect, Map map)
         {
-            int x = Utility.Random(rect.X, rect.Width);
-            int y = Utility.Random(rect.Y, rect.Height);
-            int z = map.GetAverageZ(x, y);
+            var x = Utility.Random(rect.X, rect.Width);
+            var y = Utility.Random(rect.Y, rect.Height);
+            var z = map.GetAverageZ(x, y);
 
             return new Point3D(x, y, z);
         }

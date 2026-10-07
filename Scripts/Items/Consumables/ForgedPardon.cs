@@ -1,17 +1,14 @@
 ﻿using System;
-using Server;
-using Server.Gumps;
-using Server.Network;
 using System.Collections.Generic;
+using Server.Spells;
 
 namespace Server.Items
 {
     public class ForgedPardon : Item
     {
-        public static Dictionary<Mobile, DateTime> Table { get { return m_Table; } }
-        private static Dictionary<Mobile, DateTime> m_Table = new Dictionary<Mobile, DateTime>();
+        public static Dictionary<Mobile, DateTime> Table { get; } = new Dictionary<Mobile, DateTime>();
 
-        public override int LabelNumber { get { return 1116234; } }
+        public override int LabelNumber => 1116234;
 
         [Constructable]
         public ForgedPardon()
@@ -20,75 +17,79 @@ namespace Server.Items
             Hue = 1177;
         }
 
+        public ForgedPardon(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void OnDoubleClick(Mobile from)
         {
             if (!IsChildOf(from.Backpack))
+            {
                 from.SendLocalizedMessage(1042004); //That must be in your pack for you to use it.
+            }
             else if (from.Kills <= 0)
+            {
                 from.SendMessage("You have no use for this item.");
+            }
             else if (CanUsePardon(from))
             {
                 from.Kills--;
 
                 from.SendLocalizedMessage(1116208); // Your murder count has been successfully updated.
                 Delete();
-                m_Table[from] = DateTime.UtcNow + TimeSpan.FromHours(24);
+                Table[from] = DateTime.UtcNow + TimeSpan.FromHours(24);
             }
         }
 
         public static bool CanUsePardon(Mobile from)
         {
             Defrag();
-            if (m_Table.ContainsKey(from))
+            if (Table.ContainsKey(from))
             {
                 from.SendLocalizedMessage(1116587); //You must wait 24 hours before using another forged pardon.
                 return false;
             }
-            if (Server.Spells.SpellHelper.CheckCombat(from))
+
+            if (SpellHelper.CheckCombat(from))
             {
                 from.SendLocalizedMessage(1116588); //You cannot use a forged pardon while in combat.
                 return false;
             }
+
             return true;
         }
 
         public static void Defrag()
         {
-            List<Mobile> toRemove = new List<Mobile>();
-            foreach (KeyValuePair<Mobile, DateTime> kvp in m_Table)
-            {
+            var toRemove = new List<Mobile>();
+            foreach (var kvp in Table)
                 if (kvp.Value < DateTime.UtcNow)
                     toRemove.Add(kvp.Key);
-            }
 
-            foreach (Mobile mob in toRemove)
-                m_Table.Remove(mob);
-        }
-
-        public ForgedPardon(Serial serial)
-            : base(serial)
-        {
+            foreach (var mob in toRemove)
+                Table.Remove(mob);
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         public static void Save(GenericWriter writer)
         {
-            writer.Write((int)0);
+            writer.Write(0);
 
             Defrag();
-            writer.Write(m_Table.Count);
-            foreach (KeyValuePair<Mobile, DateTime> kvp in m_Table)
+            writer.Write(Table.Count);
+            foreach (var kvp in Table)
             {
                 writer.Write(kvp.Key);
                 writer.Write(kvp.Value);
@@ -97,16 +98,16 @@ namespace Server.Items
 
         public static void Load(GenericReader reader)
         {
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            int count = reader.ReadInt();
-            for (int i = 0; i < count; i++)
+            var count = reader.ReadInt();
+            for (var i = 0; i < count; i++)
             {
-                Mobile mob = reader.ReadMobile();
-                DateTime dt = reader.ReadDateTime();
+                var mob = reader.ReadMobile();
+                var dt = reader.ReadDateTime();
 
                 if (mob != null && dt > DateTime.UtcNow)
-                    m_Table.Add(mob, dt);
+                    Table.Add(mob, dt);
             }
         }
     }

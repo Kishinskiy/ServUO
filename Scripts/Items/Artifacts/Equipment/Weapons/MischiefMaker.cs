@@ -1,25 +1,17 @@
-using System;
-
 namespace Server.Items
 {
     public class MischiefMaker : MagicalShortbow
-	{
-		public override bool IsArtifact { get { return true; } }
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1072910;
-            }
-        }// Mischief Maker
+    {
+        public override bool IsArtifact => true;
+
+        public override int LabelNumber => 1072910; // Mischief Maker
 
         [Constructable]
         public MischiefMaker()
-            : base()
         {
             Hue = 0x8AB;
-            Balanced = true;			
-            Slayer = SlayerName.Silver;			
+            Balanced = true;
+            Slayer = SlayerName.Silver;
             Attributes.WeaponSpeed = 35;
             Attributes.WeaponDamage = 45;
         }
@@ -29,7 +21,8 @@ namespace Server.Items
         {
         }
 
-        public override void GetDamageTypes(Mobile wielder, out int phys, out int fire, out int cold, out int pois, out int nrgy, out int chaos, out int direct)
+        public override void GetDamageTypes(Mobile wielder, out int phys, out int fire, out int cold, out int pois,
+            out int nrgy, out int chaos, out int direct)
         {
             pois = fire = phys = nrgy = chaos = direct = 0;
             cold = 100;
@@ -46,7 +39,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

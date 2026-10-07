@@ -1,5 +1,4 @@
 using System;
-using Server;
 using System.Collections.Generic;
 using Server.Regions;
 
@@ -20,12 +19,24 @@ namespace Server.Items
 
     public class AnkhPendant : BaseNecklace
     {
-        public static void Initialize()
-        {
-            EventSink.Speech += new SpeechEventHandler(EventSink_Speech);
-        }
+        private static readonly Dictionary<Mobile, AnkhPendantBonusContext> m_Table =
+            new Dictionary<Mobile, AnkhPendantBonusContext>();
 
-        public override int LabelNumber { get { return 1079525; } } // Ankh Pendant
+        private static readonly Dictionary<Mobile, DateTime> m_Cooldown = new Dictionary<Mobile, DateTime>();
+
+        public override int LabelNumber => 1079525; // Ankh Pendant
+
+        public static Rectangle2D[] ShrineLocs { get; } =
+        {
+            new Rectangle2D(4208, 563, 2, 2), //Honesty
+            new Rectangle2D(1857, 874, 2, 2), //Compassion
+            new Rectangle2D(2491, 3930, 2, 2), //Valor
+            new Rectangle2D(1300, 633, 2, 2), //Justice
+            new Rectangle2D(3354, 289, 2, 2), //Sacrafice
+            new Rectangle2D(1726, 3527, 2, 2), //Honor
+            new Rectangle2D(1605, 2489, 2, 2), //Spirituality
+            new Rectangle2D(4273, 3696, 2, 2) //Humility
+        };
 
         [Constructable]
         public AnkhPendant()
@@ -34,16 +45,26 @@ namespace Server.Items
             Hue = Utility.RandomBool() ? 2213 : 0;
         }
 
+        public AnkhPendant(Serial serial)
+            : base(serial)
+        {
+        }
+
+        public static void Initialize()
+        {
+            EventSink.Speech += EventSink_Speech;
+        }
+
         public static void EventSink_Speech(SpeechEventArgs e)
         {
-            Mobile from = e.Mobile;
-            Item ankh = from.FindItemOnLayer(Layer.Neck);
+            var from = e.Mobile;
+            var ankh = from.FindItemOnLayer(Layer.Neck);
 
             if (!(ankh is AnkhPendant))
                 return;
 
-            string str = e.Speech.ToLower();
-            VirtueType t = VirtueType.None;
+            var str = e.Speech.ToLower();
+            var t = VirtueType.None;
 
             if (str == "ahm")
                 t = VirtueType.Honesty;
@@ -74,7 +95,7 @@ namespace Server.Items
             if (CheckExpired(from))
                 return 0;
 
-            AnkhPendantBonusContext context = m_Table[from];
+            var context = m_Table[from];
 
             if (context == null)
                 return 0;
@@ -97,6 +118,7 @@ namespace Server.Items
                         return 3;
                     break;
             }
+
             return 0;
         }
 
@@ -108,7 +130,7 @@ namespace Server.Items
             if (CheckExpired(from))
                 return 0;
 
-            AnkhPendantBonusContext context = m_Table[from];
+            var context = m_Table[from];
 
             if (context == null)
                 return 0;
@@ -132,6 +154,7 @@ namespace Server.Items
                         return 3;
                     break;
             }
+
             return 0;
         }
 
@@ -143,7 +166,7 @@ namespace Server.Items
             if (CheckExpired(from))
                 return 0;
 
-            AnkhPendantBonusContext context = m_Table[from];
+            var context = m_Table[from];
 
             if (context == null)
                 return 0;
@@ -168,6 +191,7 @@ namespace Server.Items
                         return 3;
                     break;
             }
+
             return 0;
         }
 
@@ -178,42 +202,43 @@ namespace Server.Items
                 AddToCooldown(from);
                 return true;
             }
+
             return false;
         }
 
         public static bool CheckShrine(VirtueType t, Mobile from)
         {
-            Region r = from.Region;
-            Map map = from.Map;
+            var r = from.Region;
+            var map = from.Map;
 
             if (r is DungeonRegion || r is TownRegion || (map != Map.Trammel && map != Map.Felucca))
                 return false;
 
-            bool atShrine = false;
+            var atShrine = false;
 
-            for (int i = 0; i < m_ShrineLocs.Length; i++)
-            {
-                if (m_ShrineLocs[i].Contains(new Point2D(from.X, from.Y)) && (int)t == i + 1)
+            for (var i = 0; i < ShrineLocs.Length; i++)
+                if (ShrineLocs[i].Contains(new Point2D(from.X, from.Y)) && (int)t == i + 1)
                 {
                     atShrine = true;
                     break;
                 }
-            }
 
             if (atShrine)
             {
                 if (IsUnderEffects(from))
                 {
-                    from.SendLocalizedMessage(1079544, String.Format("#{0}", GetCliloc(m_Table[from].VType)));
+                    from.SendLocalizedMessage(1079544, string.Format("#{0}", GetCliloc(m_Table[from].VType)));
                     return false;
                 }
 
                 if (IsWaitingCooldown(from))
                 {
-                    TimeSpan ts = DateTime.UtcNow - m_Cooldown[from];
+                    var ts = DateTime.UtcNow - m_Cooldown[from];
 
                     if (ts.TotalHours >= 1)
-                        from.SendLocalizedMessage(1079550, ((int)ts.TotalHours).ToString()); //You can improve your fortunes again in about ~1_TIME~ hours.
+                        from.SendLocalizedMessage(1079550,
+                            ((int)ts.TotalHours)
+                            .ToString()); //You can improve your fortunes again in about ~1_TIME~ hours.
                     else
                         from.SendLocalizedMessage(1079547); //Your fortunes are about to improve.
 
@@ -224,26 +249,13 @@ namespace Server.Items
             return atShrine;
         }
 
-        public static Rectangle2D[] ShrineLocs { get { return m_ShrineLocs; } }
-        private static Rectangle2D[] m_ShrineLocs = new Rectangle2D[]
-		{
-			new Rectangle2D(4208, 563, 2, 2), //Honesty
-			new Rectangle2D(1857, 874, 2, 2), //Compassion
-			new Rectangle2D(2491, 3930, 2, 2), //Valor
-			new Rectangle2D(1300, 633, 2, 2), //Justice
-			new Rectangle2D(3354, 289, 2, 2), //Sacrafice
-			new Rectangle2D(1726, 3527, 2, 2), //Honor
-			new Rectangle2D(1605, 2489, 2, 2), //Spirituality
-			new Rectangle2D(4273, 3696, 2, 2), //Humility
-		};
-
         private static void ApplyBonus(VirtueType t, Mobile from)
         {
             m_Table[from] = new AnkhPendantBonusContext(from, t);
 
             from.Delta(MobileDelta.WeaponDamage);
 
-            from.SendLocalizedMessage(1079546, String.Format("#{0}", GetCliloc(t)));
+            from.SendLocalizedMessage(1079546, string.Format("#{0}", GetCliloc(t)));
         }
 
         private static int GetCliloc(VirtueType t)
@@ -288,32 +300,45 @@ namespace Server.Items
             m_Cooldown[from] = DateTime.UtcNow + TimeSpan.FromHours(24);
         }
 
-        private static Dictionary<Mobile, AnkhPendantBonusContext> m_Table = new Dictionary<Mobile, AnkhPendantBonusContext>();
-        private static Dictionary<Mobile, DateTime> m_Cooldown = new Dictionary<Mobile, DateTime>();
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+
+            writer.Write(1);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+
+            var version = reader.ReadInt();
+
+            if (version == 0)
+                reader.ReadBool();
+        }
 
         private class AnkhPendantBonusContext
         {
+            private readonly DateTime m_Expires;
             private Mobile m_Mobile;
-            private VirtueType m_Type;
-            private int m_Random;
-            private bool m_DoBump;
-            private bool m_DoBump2;
-            private bool m_DoBump3;
-            private DateTime m_Expires;
 
-            public VirtueType VType { get { return m_Type; } }
-            public bool DoBump { get { return m_DoBump; } }
-            public bool DoBump2 { get { return m_DoBump2; } }
-            public bool DoBump3 { get { return m_DoBump3; } }
-            public int Random { get { return m_Random; } }
+            public VirtueType VType { get; }
 
-            public bool Expired { get { return DateTime.UtcNow > m_Expires; } }
+            public bool DoBump { get; }
+
+            public bool DoBump2 { get; }
+
+            public bool DoBump3 { get; }
+
+            public int Random { get; }
+
+            public bool Expired => DateTime.UtcNow > m_Expires;
 
             public AnkhPendantBonusContext(Mobile from, VirtueType type)
             {
                 m_Mobile = from;
-                m_Type = type;
-                m_Random = -1;
+                VType = type;
+                Random = -1;
                 m_Expires = DateTime.UtcNow + TimeSpan.FromMinutes(60);
 
                 switch (type)
@@ -322,43 +347,20 @@ namespace Server.Items
                     case VirtueType.Compassion:
                     case VirtueType.Valor: break;
                     case VirtueType.Humility:
-                        m_Random = Utility.Random(3);
+                        Random = Utility.Random(3);
                         break;
                     case VirtueType.Justice:
                     case VirtueType.Sacrafice:
                     case VirtueType.Honor:
-                        m_DoBump = Utility.RandomBool();
+                        DoBump = Utility.RandomBool();
                         break;
                     case VirtueType.Spirituality:
-                        m_DoBump = 0.25 > Utility.RandomDouble();
-                        m_DoBump2 = 0.25 > Utility.RandomDouble();
-                        m_DoBump3 = 0.25 > Utility.RandomDouble();
+                        DoBump = 0.25 > Utility.RandomDouble();
+                        DoBump2 = 0.25 > Utility.RandomDouble();
+                        DoBump3 = 0.25 > Utility.RandomDouble();
                         break;
-
                 }
             }
-        }
-
-        public AnkhPendant(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-
-            writer.Write((int)1);
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
-
-            if (version == 0)
-                reader.ReadBool();
         }
     }
 }

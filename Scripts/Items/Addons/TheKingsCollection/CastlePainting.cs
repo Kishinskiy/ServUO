@@ -1,10 +1,11 @@
-using System;
 using Server.Gumps;
 
 namespace Server.Items
 {
     public class CastlePaintingAddon : BaseAddon
     {
+        public override BaseAddonDeed Deed => new CastlePaintingDeed();
+
         [Constructable]
         public CastlePaintingAddon(DirectionType type)
         {
@@ -24,30 +25,28 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonDeed Deed { get { return new CastlePaintingDeed(); } }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class CastlePaintingDeed : BaseAddonDeed, IRewardOption
     {
-        public override int LabelNumber { get { return 1154184; } } // Castle Painting
-
         private DirectionType _Direction;
+        public override int LabelNumber => 1154184; // Castle Painting
+
+        public override BaseAddon Addon => new CastlePaintingAddon(_Direction);
 
         [Constructable]
         public CastlePaintingDeed()
-            : base()
         {
             LootType = LootType.Blessed;
         }
@@ -55,19 +54,6 @@ namespace Server.Items
         public CastlePaintingDeed(Serial serial)
             : base(serial)
         {
-        }
-
-        public override void OnDoubleClick(Mobile from)
-        {
-            if (IsChildOf(from.Backpack))
-            {
-                from.CloseGump(typeof(AddonOptionGump));
-                from.SendGump(new AddonOptionGump(this, 1154194)); // Choose a Facing:
-            }
-            else
-            {
-                from.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.
-            }
         }
 
         public void GetOptions(RewardOptionList list)
@@ -84,18 +70,29 @@ namespace Server.Items
                 base.OnDoubleClick(from);
         }
 
-        public override BaseAddon Addon { get { return new CastlePaintingAddon(_Direction); } }
-                
+        public override void OnDoubleClick(Mobile from)
+        {
+            if (IsChildOf(from.Backpack))
+            {
+                from.CloseGump(typeof(AddonOptionGump));
+                from.SendGump(new AddonOptionGump(this, 1154194)); // Choose a Facing:
+            }
+            else
+            {
+                from.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.
+            }
+        }
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

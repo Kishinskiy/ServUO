@@ -7,9 +7,7 @@ namespace Server.Engines.BulkOrders
     [TypeAlias("Scripts.Engines.BulkOrders.SmallSmithBOD")]
     public class SmallSmithBOD : SmallBOD
     {
-        public override BODType BODType { get { return BODType.Smith; } }
-
-        public static double[] m_BlacksmithMaterialChances = new double[]
+        public static double[] m_BlacksmithMaterialChances =
         {
             0.501953125, // None
             0.250000000, // Dull Copper
@@ -19,8 +17,11 @@ namespace Server.Engines.BulkOrders
             0.015625000, // Gold
             0.007812500, // Agapite
             0.003906250, // Verite
-            0.001953125  // Valorite
+            0.001953125 // Valorite
         };
+
+        public override BODType BODType => BODType.Smith;
+
         [Constructable]
         public SmallSmithBOD()
         {
@@ -34,8 +35,8 @@ namespace Server.Engines.BulkOrders
 
             if (entries.Length > 0)
             {
-                int hue = 0x44E;
-                int amountMax = Utility.RandomList(10, 15, 20);
+                var hue = 0x44E;
+                var amountMax = Utility.RandomList(10, 15, 20);
 
                 BulkMaterialType material;
 
@@ -44,9 +45,9 @@ namespace Server.Engines.BulkOrders
                 else
                     material = BulkMaterialType.None;
 
-                bool reqExceptional = Utility.RandomBool() || (material == BulkMaterialType.None);
+                var reqExceptional = Utility.RandomBool() || material == BulkMaterialType.None;
 
-                SmallBulkEntry entry = entries[Utility.Random(entries.Length)];
+                var entry = entries[Utility.Random(entries.Length)];
 
                 Hue = hue;
                 AmountMax = amountMax;
@@ -59,7 +60,8 @@ namespace Server.Engines.BulkOrders
             }
         }
 
-        public SmallSmithBOD(int amountCur, int amountMax, Type type, int number, int graphic, bool reqExceptional, BulkMaterialType mat, int hue)
+        public SmallSmithBOD(int amountCur, int amountMax, Type type, int number, int graphic, bool reqExceptional,
+            BulkMaterialType mat, int hue)
         {
             Hue = 0x44E;
             AmountMax = amountMax;
@@ -100,7 +102,7 @@ namespace Server.Engines.BulkOrders
 
             if (entries.Length > 0)
             {
-                double theirSkill = BulkOrderSystem.GetBODSkill(m, SkillName.Blacksmith);
+                var theirSkill = BulkOrderSystem.GetBODSkill(m, SkillName.Blacksmith);
                 int amountMax;
 
                 if (theirSkill >= 70.1)
@@ -110,14 +112,13 @@ namespace Server.Engines.BulkOrders
                 else
                     amountMax = Utility.RandomList(10, 10, 15, 20);
 
-                BulkMaterialType material = BulkMaterialType.None;
+                var material = BulkMaterialType.None;
 
                 if (useMaterials && theirSkill >= 70.1)
-                {
-                    for (int i = 0; i < 20; ++i)
+                    for (var i = 0; i < 20; ++i)
                     {
-                        BulkMaterialType check = GetRandomMaterial(BulkMaterialType.DullCopper, m_BlacksmithMaterialChances);
-                        double skillReq = GetRequiredSkill(check);
+                        var check = GetRandomMaterial(BulkMaterialType.DullCopper, m_BlacksmithMaterialChances);
+                        var skillReq = GetRequiredSkill(check);
 
                         if (theirSkill >= skillReq)
                         {
@@ -125,27 +126,26 @@ namespace Server.Engines.BulkOrders
                             break;
                         }
                     }
-                }
 
-                double excChance = 0.0;
+                var excChance = 0.0;
 
                 if (theirSkill >= 70.1)
                     excChance = (theirSkill + 80.0) / 200.0;
 
-                bool reqExceptional = (excChance > Utility.RandomDouble());
+                var reqExceptional = excChance > Utility.RandomDouble();
 
-                CraftSystem system = DefBlacksmithy.CraftSystem;
+                var system = DefBlacksmithy.CraftSystem;
 
-                List<SmallBulkEntry> validEntries = new List<SmallBulkEntry>();
+                var validEntries = new List<SmallBulkEntry>();
 
-                for (int i = 0; i < entries.Length; ++i)
+                for (var i = 0; i < entries.Length; ++i)
                 {
-                    CraftItem item = system.CraftItems.SearchFor(entries[i].Type);
+                    var item = system.CraftItems.SearchFor(entries[i].Type);
 
                     if (item != null)
                     {
-                        bool allRequiredSkills = true;
-                        double chance = item.GetSuccessChance(m, null, system, false, ref allRequiredSkills);
+                        var allRequiredSkills = true;
+                        var chance = item.GetSuccessChance(m, null, system, false, ref allRequiredSkills);
 
                         if (allRequiredSkills && chance >= 0.0)
                         {
@@ -160,7 +160,7 @@ namespace Server.Engines.BulkOrders
 
                 if (validEntries.Count > 0)
                 {
-                    SmallBulkEntry entry = validEntries[Utility.Random(validEntries.Count)];
+                    var entry = validEntries[Utility.Random(validEntries.Count)];
                     return new SmallSmithBOD(entry, material, amountMax, reqExceptional);
                 }
             }
@@ -180,17 +180,18 @@ namespace Server.Engines.BulkOrders
 
         public override List<Item> ComputeRewards(bool full)
         {
-            List<Item> list = new List<Item>();
+            var list = new List<Item>();
 
-            RewardGroup rewardGroup = SmithRewardCalculator.Instance.LookupRewards(SmithRewardCalculator.Instance.ComputePoints(this));
+            var rewardGroup =
+                SmithRewardCalculator.Instance.LookupRewards(SmithRewardCalculator.Instance.ComputePoints(this));
 
             if (rewardGroup != null)
             {
                 if (full)
                 {
-                    for (int i = 0; i < rewardGroup.Items.Length; ++i)
+                    for (var i = 0; i < rewardGroup.Items.Length; ++i)
                     {
-                        Item item = rewardGroup.Items[i].Construct();
+                        var item = rewardGroup.Items[i].Construct();
 
                         if (item != null)
                             list.Add(item);
@@ -198,11 +199,11 @@ namespace Server.Engines.BulkOrders
                 }
                 else
                 {
-                    RewardItem rewardItem = rewardGroup.AcquireItem();
+                    var rewardItem = rewardGroup.AcquireItem();
 
                     if (rewardItem != null)
                     {
-                        Item item = rewardItem.Construct();
+                        var item = rewardItem.Construct();
 
                         if (item != null)
                             list.Add(item);
@@ -217,14 +218,14 @@ namespace Server.Engines.BulkOrders
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -1,6 +1,6 @@
-using System;
-using Server.Targeting;
 using System.Collections.Generic;
+using Server.Spells.Mysticism;
+using Server.Targeting;
 
 namespace Server.Spells.First
 {
@@ -15,6 +15,13 @@ namespace Server.Spells.First
 
         public static Dictionary<Mobile, Timer> m_Table = new Dictionary<Mobile, Timer>();
 
+        public override SpellCircle Circle => SpellCircle.First;
+
+        public WeakenSpell(Mobile caster, Item scroll)
+            : base(caster, scroll, m_Info)
+        {
+        }
+
         public static bool IsUnderEffects(Mobile m)
         {
             return m_Table.ContainsKey(m);
@@ -24,34 +31,19 @@ namespace Server.Spells.First
         {
             if (m_Table.ContainsKey(m))
             {
-                Timer t = m_Table[m];
+                var t = m_Table[m];
 
-                if (t != null && t.Running)
-                {
-                    t.Stop();
-                }
+                if (t != null && t.Running) t.Stop();
 
                 BuffInfo.RemoveBuff(m, BuffIcon.Weaken);
 
-                if(removeMod)
+                if (removeMod)
                     m.RemoveStatMod("[Magic] Str Curse");
 
                 m_Table.Remove(m);
             }
         }
 
-        public WeakenSpell(Mobile caster, Item scroll)
-            : base(caster, scroll, m_Info)
-        {
-        }
-
-        public override SpellCircle Circle
-        {
-            get
-            {
-                return SpellCircle.First;
-            }
-        }
         public override void OnCast()
         {
             Caster.Target = new InternalTarget(this);
@@ -68,14 +60,14 @@ namespace Server.Spells.First
                 SpellHelper.Turn(Caster, m);
                 SpellHelper.CheckReflect((int)Circle, Caster, ref m);
 
-                if (Mysticism.StoneFormSpell.CheckImmunity(m))
+                if (StoneFormSpell.CheckImmunity(m))
                 {
                     Caster.SendLocalizedMessage(1080192); // Your target resists your ability reduction magic.
                     return;
                 }
 
-                int oldOffset = SpellHelper.GetCurseOffset(m, StatType.Str);
-                int newOffset = SpellHelper.GetOffset(Caster, m, StatType.Str, true, false);
+                var oldOffset = SpellHelper.GetCurseOffset(m, StatType.Str);
+                var newOffset = SpellHelper.GetOffset(Caster, m, StatType.Str, true, false);
 
                 if (-newOffset > oldOffset || newOffset == 0)
                 {
@@ -95,19 +87,16 @@ namespace Server.Spells.First
 
                     if (-newOffset < oldOffset)
                     {
-                        SpellHelper.AddStatCurse(this.Caster, m, StatType.Str, false, newOffset);
+                        SpellHelper.AddStatCurse(Caster, m, StatType.Str, false, newOffset);
 
-                        int percentage = (int)(SpellHelper.GetOffsetScalar(this.Caster, m, true) * 100);
-                        TimeSpan length = SpellHelper.GetDuration(this.Caster, m);
+                        var percentage = (int)(SpellHelper.GetOffsetScalar(Caster, m, true) * 100);
+                        var length = SpellHelper.GetDuration(Caster, m);
                         BuffInfo.AddBuff(m, new BuffInfo(BuffIcon.Weaken, 1075837, length, m, percentage.ToString()));
 
                         if (m_Table.ContainsKey(m))
                             m_Table[m].Stop();
 
-                        m_Table[m] = Timer.DelayCall(length, () =>
-                        {
-                            RemoveEffects(m);
-                        });
+                        m_Table[m] = Timer.DelayCall(length, () => { RemoveEffects(m); });
                     }
                 }
             }
@@ -118,6 +107,7 @@ namespace Server.Spells.First
         public class InternalTarget : Target
         {
             private readonly WeakenSpell m_Owner;
+
             public InternalTarget(WeakenSpell owner)
                 : base(Core.ML ? 10 : 12, false, TargetFlags.Harmful)
             {
@@ -126,10 +116,7 @@ namespace Server.Spells.First
 
             protected override void OnTarget(Mobile from, object o)
             {
-                if (o is Mobile)
-                {
-                    m_Owner.Target((Mobile)o);
-                }
+                if (o is Mobile) m_Owner.Target((Mobile)o);
             }
 
             protected override void OnTargetFinish(Mobile from)

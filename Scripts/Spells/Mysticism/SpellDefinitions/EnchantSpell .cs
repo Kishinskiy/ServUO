@@ -1,49 +1,48 @@
 using System;
+using System.Collections.Generic;
 using Server.Gumps;
 using Server.Items;
-using System.Collections.Generic;
-using Server;
-using Server.Mobiles;
-using Server.Spells;
-using Server.Network;
 using Server.Spells.Spellweaving;
 
 namespace Server.Spells.Mysticism
 {
-	public class EnchantSpell : MysticSpell
-	{
+    public class EnchantSpell : MysticSpell
+    {
         private static readonly string ModName = "EnchantAttribute";
 
-        public override SpellCircle Circle { get { return SpellCircle.Second; } }
-        public override bool ClearHandsOnCast { get { return false; } }
+        private static readonly SpellInfo m_Info = new SpellInfo(
+            "Enchant", "In Ort Ylem",
+            230,
+            9022,
+            Reagent.SpidersSilk,
+            Reagent.MandrakeRoot,
+            Reagent.SulfurousAsh
+        );
+
+        public override SpellCircle Circle => SpellCircle.Second;
+        public override bool ClearHandsOnCast => false;
 
         public BaseWeapon Weapon { get; set; }
         public AosWeaponAttribute Attribute { get; set; }
 
-		private static SpellInfo m_Info = new SpellInfo(
-                "Enchant", "In Ort Ylem",
-				230,
-				9022,
-				Reagent.SpidersSilk,
-				Reagent.MandrakeRoot,
-				Reagent.SulfurousAsh
-			);
+        public static Dictionary<Mobile, EnchantmentTimer> Table { get; set; }
 
-		public EnchantSpell( Mobile caster, Item scroll ) : base( caster, scroll, m_Info )
-		{
-		}
+        public EnchantSpell(Mobile caster, Item scroll) : base(caster, scroll, m_Info)
+        {
+        }
 
-        public EnchantSpell( Mobile caster, Item scroll, BaseWeapon weapon, AosWeaponAttribute attribute ) : base( caster, scroll, m_Info )
+        public EnchantSpell(Mobile caster, Item scroll, BaseWeapon weapon, AosWeaponAttribute attribute) : base(caster,
+            scroll, m_Info)
         {
             Weapon = weapon;
-            this.Attribute = attribute;
+            Attribute = attribute;
         }
 
         public override bool CheckCast()
         {
             if (Weapon == null)
             {
-                BaseWeapon wep = Caster.Weapon as BaseWeapon;
+                var wep = Caster.Weapon as BaseWeapon;
 
                 if (wep == null)
                 {
@@ -51,13 +50,10 @@ namespace Server.Spells.Mysticism
                 }
                 else
                 {
-                    if (Caster.HasGump(typeof(EnchantSpellGump)))
-                    {
-                        Caster.CloseGump(typeof(EnchantSpellGump));
-                    }
+                    if (Caster.HasGump(typeof(EnchantSpellGump))) Caster.CloseGump(typeof(EnchantSpellGump));
 
                     var gump = new EnchantSpellGump(Caster, Scroll, wep);
-                    int serial = gump.Serial;
+                    var serial = gump.Serial;
 
                     Caster.SendGump(gump);
 
@@ -75,24 +71,32 @@ namespace Server.Spells.Mysticism
 
                 return false;
             }
-            else if (IsUnderSpellEffects(Caster, Weapon))
+
+            if (IsUnderSpellEffects(Caster, Weapon))
             {
                 Caster.SendLocalizedMessage(501775); // This spell is already in effect.
                 return false;
             }
-            else if (ImmolatingWeaponSpell.IsImmolating(Caster, Weapon) || Weapon.ConsecratedContext != null)
+
+            if (ImmolatingWeaponSpell.IsImmolating(Caster, Weapon) || Weapon.ConsecratedContext != null)
             {
                 Caster.SendLocalizedMessage(1080128); //You cannot use this ability while your weapon is enchanted.
                 return false;
             }
-            else if (Weapon.FocusWeilder != null)
+
+            if (Weapon.FocusWeilder != null)
             {
-                Caster.SendLocalizedMessage(1080446); // You cannot enchant an item that is under the effects of the ninjitsu focus attack ability.
+                Caster.SendLocalizedMessage(
+                    1080446); // You cannot enchant an item that is under the effects of the ninjitsu focus attack ability.
                 return false;
             }
-            else if (Weapon.WeaponAttributes.HitLightning > 0 || Weapon.WeaponAttributes.HitFireball > 0 || Weapon.WeaponAttributes.HitHarm > 0 || Weapon.WeaponAttributes.HitMagicArrow > 0 || Weapon.WeaponAttributes.HitDispel > 0)
+
+            if (Weapon.WeaponAttributes.HitLightning > 0 || Weapon.WeaponAttributes.HitFireball > 0 ||
+                Weapon.WeaponAttributes.HitHarm > 0 || Weapon.WeaponAttributes.HitMagicArrow > 0 ||
+                Weapon.WeaponAttributes.HitDispel > 0)
             {
-                Caster.SendLocalizedMessage(1080127); // This weapon already has a hit spell effect and cannot be enchanted.
+                Caster.SendLocalizedMessage(
+                    1080127); // This weapon already has a hit spell effect and cannot be enchanted.
                 return false;
             }
 
@@ -101,7 +105,7 @@ namespace Server.Spells.Mysticism
 
         public override void OnCast()
         {
-            BaseWeapon wep = Caster.Weapon as BaseWeapon;
+            var wep = Caster.Weapon as BaseWeapon;
 
             if (wep == null || wep != Weapon)
             {
@@ -117,28 +121,32 @@ namespace Server.Spells.Mysticism
             }
             else if (Weapon.FocusWeilder != null)
             {
-                Caster.SendLocalizedMessage(1080446); // You cannot enchant an item that is under the effects of the ninjitsu focus attack ability.
+                Caster.SendLocalizedMessage(
+                    1080446); // You cannot enchant an item that is under the effects of the ninjitsu focus attack ability.
             }
-            else if (Weapon.WeaponAttributes.HitLightning > 0 || Weapon.WeaponAttributes.HitFireball > 0 || Weapon.WeaponAttributes.HitHarm > 0 || Weapon.WeaponAttributes.HitMagicArrow > 0 || Weapon.WeaponAttributes.HitDispel > 0)
+            else if (Weapon.WeaponAttributes.HitLightning > 0 || Weapon.WeaponAttributes.HitFireball > 0 ||
+                     Weapon.WeaponAttributes.HitHarm > 0 || Weapon.WeaponAttributes.HitMagicArrow > 0 ||
+                     Weapon.WeaponAttributes.HitDispel > 0)
             {
-                Caster.SendLocalizedMessage(1080127); // This weapon already has a hit spell effect and cannot be enchanted.
+                Caster.SendLocalizedMessage(
+                    1080127); // This weapon already has a hit spell effect and cannot be enchanted.
             }
             else if (CheckSequence() && Caster.Weapon == Weapon)
             {
                 Caster.PlaySound(0x64E);
                 Caster.FixedEffect(0x36CB, 1, 9, 1915, 0);
 
-                int prim = (int)Caster.Skills[CastSkill].Value;
-                int sec = (int)Caster.Skills[DamageSkill].Value;
+                var prim = (int)Caster.Skills[CastSkill].Value;
+                var sec = (int)Caster.Skills[DamageSkill].Value;
 
-                int value = (60 * (prim + sec)) / 240;
-                double duration = ((double)(prim + sec) / 2.0) + 30.0;
-                int malus = 0;
+                var value = 60 * (prim + sec) / 240;
+                var duration = (prim + sec) / 2.0 + 30.0;
+                var malus = 0;
 
                 if (Table == null)
                     Table = new Dictionary<Mobile, EnchantmentTimer>();
 
-                Enhancement.SetValue(Caster, this.Attribute, value, ModName);
+                Enhancement.SetValue(Caster, Attribute, value, ModName);
 
                 if (prim >= 80 && sec >= 80 && Weapon.Attributes.SpellChanneling == 0)
                 {
@@ -147,11 +155,11 @@ namespace Server.Spells.Mysticism
                     malus = 1;
                 }
 
-                Table[Caster] = new EnchantmentTimer(Caster, Weapon, this.Attribute, value, malus, duration);
+                Table[Caster] = new EnchantmentTimer(Caster, Weapon, Attribute, value, malus, duration);
 
                 int loc;
 
-                switch (this.Attribute)
+                switch (Attribute)
                 {
                     default:
                     case AosWeaponAttribute.HitLightning: loc = 1060423; break;
@@ -161,7 +169,9 @@ namespace Server.Spells.Mysticism
                     case AosWeaponAttribute.HitDispel: loc = 1060417; break;
                 }
 
-                BuffInfo.AddBuff(Caster, new BuffInfo(BuffIcon.Enchant, 1080126, loc, TimeSpan.FromSeconds(duration), Caster, value.ToString()));
+                BuffInfo.AddBuff(Caster,
+                    new BuffInfo(BuffIcon.Enchant, 1080126, loc, TimeSpan.FromSeconds(duration), Caster,
+                        value.ToString()));
 
                 Weapon.EnchantedWeilder = Caster;
                 Weapon.InvalidateProperties();
@@ -169,8 +179,6 @@ namespace Server.Spells.Mysticism
 
             FinishSequence();
         }
-
-        public static Dictionary<Mobile, EnchantmentTimer> Table { get; set; }
 
         public static bool IsUnderSpellEffects(Mobile Caster, BaseWeapon wep)
         {
@@ -206,7 +214,7 @@ namespace Server.Spells.Mysticism
 
         public static void RemoveEnchantment(Mobile caster)
         {
-            if(Table != null && Table.ContainsKey(caster))
+            if (Table != null && Table.ContainsKey(caster))
             {
                 Table[caster].Stop();
                 Table[caster] = null;
@@ -221,13 +229,13 @@ namespace Server.Spells.Mysticism
 
         public static void OnWeaponRemoved(BaseWeapon wep, Mobile from)
         {
-            if(IsUnderSpellEffects(from, wep))
+            if (IsUnderSpellEffects(from, wep))
                 RemoveEnchantment(from);
 
             if (wep.EnchantedWeilder != null)
                 wep.EnchantedWeilder = null;
         }
-	}
+    }
 
     public class EnchantmentTimer : Timer
     {
@@ -237,7 +245,8 @@ namespace Server.Spells.Mysticism
         public int AttributeValue { get; set; }
         public int CastingMalus { get; set; }
 
-        public EnchantmentTimer(Mobile owner, BaseWeapon wep, AosWeaponAttribute attribute, int value, int malus, double duration) : base(TimeSpan.FromSeconds(duration))
+        public EnchantmentTimer(Mobile owner, BaseWeapon wep, AosWeaponAttribute attribute, int value, int malus,
+            double duration) : base(TimeSpan.FromSeconds(duration))
         {
             Owner = owner;
             Weapon = wep;
@@ -245,12 +254,12 @@ namespace Server.Spells.Mysticism
             AttributeValue = value;
             CastingMalus = malus;
 
-            this.Start();
+            Start();
         }
 
         protected override void OnTick()
         {
-            if(Weapon != null)
+            if (Weapon != null)
                 Weapon.EnchantedWeilder = null;
 
             EnchantSpell.RemoveEnchantment(Owner);

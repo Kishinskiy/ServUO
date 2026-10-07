@@ -1,9 +1,9 @@
-﻿using System;
-
-namespace Server.Items.Holiday
+﻿namespace Server.Items.Holiday
 {
     public class PaintedPorcelainMask : BasePaintedMask
     {
+        public override string MaskName => "Porcelain Mask";
+
         [Constructable]
         public PaintedPorcelainMask()
             : base(0x4BA7)
@@ -15,25 +15,18 @@ namespace Server.Items.Holiday
         {
         }
 
-        public override string MaskName
-        {
-            get
-            {
-                return "Porcelain Mask";
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)1); // version
+            writer.Write(1); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

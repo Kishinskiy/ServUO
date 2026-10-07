@@ -1,59 +1,29 @@
-using System;
-using Server;
-using Server.Mobiles;
-using System.Collections.Generic;
 using Server.Engines.CityLoyalty;
-using System.Linq;
-using Server.Prompts;
-using Server.ContextMenus;
+using Server.Multis;
+using Server.Network;
 
 namespace Server.Items
 {
     public class CityMessageBoard : BasePlayerBB
-	{
+    {
         public City City { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public CityLoyaltySystem CitySystem { get { return CityLoyaltySystem.GetCityInstance(City); } set { } }
+        public CityLoyaltySystem CitySystem
+        {
+            get => CityLoyaltySystem.GetCityInstance(City);
+            set { }
+        }
 
-        public override int LabelNumber { get { return 1027774; } } // bulletin board
-        public override bool Public { get { return true; } }
-        public override bool ForceShowProperties { get { return true; } }
+        public override int LabelNumber => 1027774; // bulletin board
+        public override bool Public => true;
+        public override bool ForceShowProperties => true;
 
         [Constructable]
         public CityMessageBoard(City city, int id) : base(id)
         {
             Movable = false;
             City = city;
-        }
-
-        public override bool CanPostGreeting(Server.Multis.BaseHouse house, Mobile m)
-        {
-            var sys = CitySystem;
-
-            return sys != null && (m.AccessLevel >= AccessLevel.GameMaster || sys.Governor == m);
-        }
-
-        public override void OnDoubleClick(Mobile from)
-        {
-            if (!CityLoyaltySystem.Enabled || CitySystem == null)
-                return;
-
-            if (CitySystem.IsCitizen(from, true))
-            {
-                if (from.InRange(this.Location, 3))
-                {
-                    from.SendGump(new PlayerBBGump(from, null, this, 0));
-                }
-                else
-                {
-                    from.PrivateOverheadMessage(Server.Network.MessageType.Regular, 0x3B2, 1019045, from.NetState);
-                }
-            }
-            else
-            {
-                from.SendLocalizedMessage(1154275); // Only Citizens of this City may use this. 
-            }
         }
 
         /*public override void GetContextMenuEntries(Mobile from, List<ContextMenuEntry> list)
@@ -163,22 +133,47 @@ namespace Server.Items
             : base(serial)
         {
         }
-		
-		public override void Serialize(GenericWriter writer)
-		{
-			base.Serialize(writer);
-			writer.Write(0);
+
+        public override bool CanPostGreeting(BaseHouse house, Mobile m)
+        {
+            var sys = CitySystem;
+
+            return sys != null && (m.AccessLevel >= AccessLevel.GameMaster || sys.Governor == m);
+        }
+
+        public override void OnDoubleClick(Mobile from)
+        {
+            if (!CityLoyaltySystem.Enabled || CitySystem == null)
+                return;
+
+            if (CitySystem.IsCitizen(from))
+            {
+                if (from.InRange(Location, 3))
+                    from.SendGump(new PlayerBBGump(from, null, this, 0));
+                else
+                    from.PrivateOverheadMessage(MessageType.Regular, 0x3B2, 1019045, from.NetState);
+            }
+            else
+            {
+                from.SendLocalizedMessage(1154275); // Only Citizens of this City may use this. 
+            }
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
 
             writer.Write((int)City);
-		}
-		
-		public override void Deserialize(GenericReader reader)
-		{
-			base.Deserialize(reader);
-			int version = reader.ReadInt();
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
 
             City = (City)reader.ReadInt();
             CitySystem.Board = this;
-		}
-	}
+        }
+    }
 }

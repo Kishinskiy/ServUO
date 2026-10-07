@@ -1,8 +1,4 @@
 ﻿using Server.Items;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace Server.Commands
 {
@@ -10,7 +6,7 @@ namespace Server.Commands
     {
         public static void Initialize()
         {
-            CommandSystem.Register("Mark", AccessLevel.GameMaster, new CommandEventHandler(Mark_OnCommand));
+            CommandSystem.Register("Mark", AccessLevel.GameMaster, Mark_OnCommand);
         }
 
         [Usage("Mark [name]")]

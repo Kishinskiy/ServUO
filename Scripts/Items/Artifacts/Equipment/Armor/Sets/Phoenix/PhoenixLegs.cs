@@ -1,14 +1,14 @@
-using System;
-
 namespace Server.Items
 {
     public class PhoenixLegs : RingmailLegs
     {
+        public override int LabelNumber => 1041608; // ringmail leggings of the phoenix
+
         [Constructable]
         public PhoenixLegs()
         {
             Hue = 0x8E;
-			LootType = LootType.Blessed;     
+            LootType = LootType.Blessed;
         }
 
         public PhoenixLegs(Serial serial)
@@ -16,26 +16,18 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1041608;
-            }
-        }// ringmail leggings of the phoenix
-        
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

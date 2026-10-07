@@ -15,113 +15,31 @@ namespace Server.Factions
 
     public abstract class BaseFactionTrap : BaseTrap, IRevealableItem
     {
-        private Faction m_Faction;
-        private Mobile m_Placer;
-        private DateTime m_TimeOfPlacement;
         private Timer m_Concealing;
 
-        public bool CheckWhenHidden { get { return true; } }
-
-        public BaseFactionTrap(Faction f, Mobile m, int itemID)
-            : base(itemID)
-        {
-            Visible = false;
-
-            m_Faction = f;
-            m_TimeOfPlacement = DateTime.UtcNow;
-            m_Placer = m;
-        }
-
-        public BaseFactionTrap(Serial serial)
-            : base(serial)
-        {
-        }
+        [CommandProperty(AccessLevel.GameMaster)]
+        public Faction Faction { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public Faction Faction
-        {
-            get
-            {
-                return m_Faction;
-            }
-            set
-            {
-                m_Faction = value;
-            }
-        }
+        public Mobile Placer { get; set; }
+
         [CommandProperty(AccessLevel.GameMaster)]
-        public Mobile Placer
-        {
-            get
-            {
-                return m_Placer;
-            }
-            set
-            {
-                m_Placer = value;
-            }
-        }
-        [CommandProperty(AccessLevel.GameMaster)]
-        public DateTime TimeOfPlacement
-        {
-            get
-            {
-                return m_TimeOfPlacement;
-            }
-            set
-            {
-                m_TimeOfPlacement = value;
-            }
-        }
-        public virtual int EffectSound
-        {
-            get
-            {
-                return 0;
-            }
-        }
-        public virtual int SilverFromDisarm
-        {
-            get
-            {
-                return 100;
-            }
-        }
-        public virtual int MessageHue
-        {
-            get
-            {
-                return 0;
-            }
-        }
-        public virtual int AttackMessage
-        {
-            get
-            {
-                return 0;
-            }
-        }
-        public virtual int DisarmMessage
-        {
-            get
-            {
-                return 0;
-            }
-        }
-        public virtual AllowedPlacing AllowedPlacing
-        {
-            get
-            {
-                return AllowedPlacing.Everywhere;
-            }
-        }
-        public virtual TimeSpan ConcealPeriod
-        {
-            get
-            {
-                return TimeSpan.FromMinutes(1.0);
-            }
-        }
+        public DateTime TimeOfPlacement { get; set; }
+
+        public virtual int EffectSound => 0;
+
+        public virtual int SilverFromDisarm => 100;
+
+        public virtual int MessageHue => 0;
+
+        public virtual int AttackMessage => 0;
+
+        public virtual int DisarmMessage => 0;
+
+        public virtual AllowedPlacing AllowedPlacing => AllowedPlacing.Everywhere;
+
+        public virtual TimeSpan ConcealPeriod => TimeSpan.FromMinutes(1.0);
+
         public virtual TimeSpan DecayPeriod
         {
             get
@@ -132,6 +50,53 @@ namespace Server.Factions
                 return TimeSpan.MaxValue; // no decay
             }
         }
+
+        public BaseFactionTrap(Faction f, Mobile m, int itemID)
+            : base(itemID)
+        {
+            Visible = false;
+
+            Faction = f;
+            TimeOfPlacement = DateTime.UtcNow;
+            Placer = m;
+        }
+
+        public BaseFactionTrap(Serial serial)
+            : base(serial)
+        {
+        }
+
+        public bool CheckWhenHidden => true;
+
+        public virtual bool CheckReveal(Mobile m)
+        {
+            if (Faction.Find(m) == null)
+                return false;
+
+            return m.CheckTargetSkill(SkillName.DetectHidden, this, 80.0, 100.0);
+        }
+
+        public virtual void OnRevealed(Mobile m)
+        {
+            m.SendLocalizedMessage(1042712, true,
+                " " + (Faction == null
+                    ? ""
+                    : Faction.Definition.FriendlyName)); // You reveal a trap placed by a faction:
+
+            Visible = true;
+            BeginConceal();
+        }
+
+        public virtual bool CheckPassiveDetect(Mobile m)
+        {
+            if (!CheckDecay() && m.InRange(Location, 6))
+                if (Faction.Find(m) != null &&
+                    (m.Skills[SkillName.DetectHidden].Value - 80.0) / 20.0 > Utility.RandomDouble())
+                    PrivateOverheadLocalizedMessage(m, 1010154, MessageHue, "", ""); // [Faction Trap]
+
+            return false;
+        }
+
         public override void OnTrigger(Mobile from)
         {
             if (!IsEnemy(from))
@@ -143,26 +108,29 @@ namespace Server.Factions
             Effects.PlaySound(Location, Map, EffectSound);
             DoAttackEffect(from);
 
-            int silverToAward = (from.Alive ? 20 : 40);
+            var silverToAward = from.Alive ? 20 : 40;
 
-            if (silverToAward > 0 && m_Placer != null && m_Faction != null)
+            if (silverToAward > 0 && Placer != null && Faction != null)
             {
-                PlayerState victimState = PlayerState.Find(from);
+                var victimState = PlayerState.Find(from);
 
-                if (victimState != null && victimState.CanGiveSilverTo(m_Placer) && victimState.KillPoints > 0)
+                if (victimState != null && victimState.CanGiveSilverTo(Placer) && victimState.KillPoints > 0)
                 {
-                    int silverGiven = m_Faction.AwardSilver(m_Placer, silverToAward);
+                    var silverGiven = Faction.AwardSilver(Placer, silverToAward);
 
                     if (silverGiven > 0)
                     {
                         // TODO: Get real message
                         if (from.Alive)
-                            m_Placer.SendMessage("You have earned {0} silver pieces because {1} fell for your trap.", silverGiven, from.Name);
+                            Placer.SendMessage("You have earned {0} silver pieces because {1} fell for your trap.",
+                                silverGiven, from.Name);
                         else
-                            m_Placer.SendLocalizedMessage(1042736, String.Format("{0} silver\t{1}", silverGiven, from.Name)); // You have earned ~1_SILVER_AMOUNT~ pieces for vanquishing ~2_PLAYER_NAME~!
+                            Placer.SendLocalizedMessage(1042736,
+                                string.Format("{0} silver\t{1}", silverGiven,
+                                    from.Name)); // You have earned ~1_SILVER_AMOUNT~ pieces for vanquishing ~2_PLAYER_NAME~!
                     }
 
-                    victimState.OnGivenSilverTo(m_Placer);
+                    victimState.OnGivenSilverTo(Placer);
                 }
             }
 
@@ -184,43 +152,39 @@ namespace Server.Factions
                 return 502956; // You cannot place a trap on that.
 
             if (Core.ML)
-            {
-                foreach (Item item in m.GetItemsInRange(p, 0))
-                {
+                foreach (var item in m.GetItemsInRange(p, 0))
                     if (item is BaseFactionTrap && ((BaseFactionTrap)item).Faction == Faction)
                         return 1075263; // There is already a trap belonging to your faction at this location.;
-                }
-            }
 
-            switch( AllowedPlacing )
+            switch (AllowedPlacing)
             {
                 case AllowedPlacing.FactionStronghold:
-                    {
-                        StrongholdRegion region = (StrongholdRegion)Region.Find(p, m).GetRegion(typeof(StrongholdRegion));
+                {
+                    var region = (StrongholdRegion)Region.Find(p, m).GetRegion(typeof(StrongholdRegion));
 
-                        if (region != null && region.Faction == m_Faction)
-                            return 0;
+                    if (region != null && region.Faction == Faction)
+                        return 0;
 
-                        return 1010355; // This trap can only be placed in your stronghold
-                    }
+                    return 1010355; // This trap can only be placed in your stronghold
+                }
                 case AllowedPlacing.AnyFactionTown:
-                    {
-                        Town town = Town.FromRegion(Region.Find(p, m));
+                {
+                    var town = Town.FromRegion(Region.Find(p, m));
 
-                        if (town != null)
-                            return 0;
+                    if (town != null)
+                        return 0;
 
-                        return 1010356; // This trap can only be placed in a faction town
-                    }
+                    return 1010356; // This trap can only be placed in a faction town
+                }
                 case AllowedPlacing.ControlledFactionTown:
-                    {
-                        Town town = Town.FromRegion(Region.Find(p, m));
+                {
+                    var town = Town.FromRegion(Region.Find(p, m));
 
-                        if (town != null && town.Owner == m_Faction)
-                            return 0;
+                    if (town != null && town.Owner == Faction)
+                        return 0;
 
-                        return 1010357; // This trap can only be placed in a town your faction controls
-                    }
+                    return 1010357; // This trap can only be placed in a town your faction controls
+                }
             }
 
             return 0;
@@ -231,7 +195,7 @@ namespace Server.Factions
             if (to == null)
                 return;
 
-            NetState ns = to.NetState;
+            var ns = to.NetState;
 
             if (ns != null)
                 ns.Send(new MessageLocalized(Serial, ItemID, MessageType.Regular, hue, 3, number, name, args));
@@ -239,34 +203,18 @@ namespace Server.Factions
 
         public virtual bool CheckDecay()
         {
-            TimeSpan decayPeriod = DecayPeriod;
+            var decayPeriod = DecayPeriod;
 
             if (decayPeriod == TimeSpan.MaxValue)
                 return false;
 
-            if ((m_TimeOfPlacement + decayPeriod) < DateTime.UtcNow)
+            if (TimeOfPlacement + decayPeriod < DateTime.UtcNow)
             {
-                Timer.DelayCall(TimeSpan.Zero, new TimerCallback(Delete));
+                Timer.DelayCall(TimeSpan.Zero, Delete);
                 return true;
             }
 
             return false;
-        }
-
-        public virtual bool CheckReveal(Mobile m)
-        {
-            if (Faction.Find(m) == null)
-                return false;
-
-            return m.CheckTargetSkill(SkillName.DetectHidden, this, 80.0, 100.0);
-        }
-
-        public virtual void OnRevealed(Mobile m)
-        {
-            m.SendLocalizedMessage(1042712, true, " " + (Faction == null ? "" : Faction.Definition.FriendlyName)); // You reveal a trap placed by a faction:
-
-            Visible = true;
-            BeginConceal();
         }
 
         public virtual void BeginConceal()
@@ -274,7 +222,7 @@ namespace Server.Factions
             if (m_Concealing != null)
                 m_Concealing.Stop();
 
-            m_Concealing = Timer.DelayCall(ConcealPeriod, new TimerCallback(Conceal));
+            m_Concealing = Timer.DelayCall(ConcealPeriod, Conceal);
         }
 
         public virtual void Conceal()
@@ -288,26 +236,15 @@ namespace Server.Factions
                 Visible = false;
         }
 
-        public virtual bool CheckPassiveDetect(Mobile m)
-        {
-            if (!CheckDecay() && m.InRange(Location, 6))
-            {
-                if (Faction.Find(m) != null && ((m.Skills[SkillName.DetectHidden].Value - 80.0) / 20.0) > Utility.RandomDouble())
-                    PrivateOverheadLocalizedMessage(m, 1010154, MessageHue, "", ""); // [Faction Trap]
-            }
-
-            return false;
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
-            Faction.WriteReference(writer, m_Faction);
-            writer.Write((Mobile)m_Placer);
-            writer.Write((DateTime)m_TimeOfPlacement);
+            Faction.WriteReference(writer, Faction);
+            writer.Write(Placer);
+            writer.Write(TimeOfPlacement);
 
             if (Visible)
                 BeginConceal();
@@ -317,11 +254,11 @@ namespace Server.Factions
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            m_Faction = Faction.ReadReference(reader);
-            m_Placer = reader.ReadMobile();
-            m_TimeOfPlacement = reader.ReadDateTime();
+            Faction = Faction.ReadReference(reader);
+            Placer = reader.ReadMobile();
+            TimeOfPlacement = reader.ReadDateTime();
 
             if (Visible)
                 BeginConceal();
@@ -331,8 +268,8 @@ namespace Server.Factions
 
         public override void OnDelete()
         {
-            if (m_Faction != null && m_Faction.Traps.Contains(this))
-                m_Faction.Traps.Remove(this);
+            if (Faction != null && Faction.Traps.Contains(this))
+                Faction.Traps.Remove(this);
 
             base.OnDelete();
         }
@@ -345,7 +282,7 @@ namespace Server.Factions
             if (!mob.Alive || mob.IsDeadBondedPet)
                 return false;
 
-            Faction faction = Faction.Find(mob, true);
+            var faction = Faction.Find(mob, true);
 
             if (faction == null && mob is BaseFactionGuard)
                 faction = ((BaseFactionGuard)mob).Faction;
@@ -353,7 +290,7 @@ namespace Server.Factions
             if (faction == null)
                 return false;
 
-            return (faction != m_Faction);
+            return faction != Faction;
         }
     }
 }

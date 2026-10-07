@@ -1,10 +1,11 @@
-using System;
 using Server.Gumps;
 
 namespace Server.Items
 {
     public class CrystalSupplicantStatueAddon : BaseAddon
     {
+        public override BaseAddonDeed Deed => new CrystalSupplicantStatueDeed();
+
         [Constructable]
         public CrystalSupplicantStatueAddon(DirectionType type)
         {
@@ -24,34 +25,30 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonDeed Deed { get { return new CrystalSupplicantStatueDeed(); } }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class CrystalSupplicantStatueDeed : BaseAddonDeed, IRewardOption
     {
-        public override int LabelNumber { get { return 1076669; } } // Crystal Supplicant Statue
-
-        public override bool ExcludeDeedHue { get { return true; } }
-
-        public override BaseAddon Addon { get { return new CrystalSupplicantStatueAddon(_Direction); } }
-
         private DirectionType _Direction;
+        public override int LabelNumber => 1076669; // Crystal Supplicant Statue
+
+        public override bool ExcludeDeedHue => true;
+
+        public override BaseAddon Addon => new CrystalSupplicantStatueAddon(_Direction);
 
         [Constructable]
         public CrystalSupplicantStatueDeed()
-            : base()
         {
             LootType = LootType.Blessed;
             Hue = 1173;
@@ -81,7 +78,8 @@ namespace Server.Items
             if (IsChildOf(from.Backpack))
             {
                 from.CloseGump(typeof(RewardOptionGump));
-                from.SendGump(new RewardOptionGump(this, 1076724)); // Please select your crystal supplicant statue position
+                from.SendGump(new RewardOptionGump(this,
+                    1076724)); // Please select your crystal supplicant statue position
             }
             else
             {
@@ -92,13 +90,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

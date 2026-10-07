@@ -1,10 +1,17 @@
-using Server.Items;
-
 namespace Server.Mobiles
 {
     [CorpseName("a snake corpse")]
     public class CoralSnake : BaseCreature
     {
+        public override Poison PoisonImmune => Poison.Lesser;
+
+        public override Poison HitPoison => Poison.Deadly;
+
+        //public override bool DeathAdderCharmable{ get{ return true; } }
+        public override int Meat => 1;
+
+        public override FoodType FavoriteFood => FoodType.Eggs;
+
         [Constructable]
         public CoralSnake()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -52,42 +59,19 @@ namespace Server.Mobiles
         {
         }
 
-        public override Poison PoisonImmune
-        {
-            get { return Poison.Lesser; }
-        }
-
-        public override Poison HitPoison
-        {
-            get { return Poison.Deadly; }
-        }
-
-        //public override bool DeathAdderCharmable{ get{ return true; } }
-        public override int Meat
-        {
-            get { return 1; }
-        }
-
-        public override FoodType FavoriteFood
-        {
-            get { return FoodType.Eggs; }
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1);
+            writer.Write(1);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (version == 0 && (AbilityProfile == null || AbilityProfile.MagicalAbility == MagicalAbility.None))
-            {
                 SetMagicalAbility(MagicalAbility.Poisoning);
-            }
         }
     }
 }

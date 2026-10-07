@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using Server.ContextMenus;
 using Server.Items;
@@ -8,6 +7,12 @@ namespace Server.Mobiles
     [CorpseName("a llama corpse")]
     public class PackLlama : BaseCreature
     {
+        public override int Meat => 1;
+
+        public override FoodType FavoriteFood => FoodType.FruitsAndVegies | FoodType.GrainsAndHay;
+
+        public override bool CanAutoStable => (Backpack == null || Backpack.Items.Count == 0) && base.CanAutoStable;
+
         [Constructable]
         public PackLlama()
             : base(AIType.AI_Animal, FightMode.Aggressor, 10, 1, 0.2, 0.4)
@@ -47,7 +52,7 @@ namespace Server.Mobiles
             ControlSlots = 1;
             MinTameSkill = 29.1;
 
-            Container pack = Backpack;
+            var pack = Backpack;
 
             if (pack != null)
                 pack.Delete();
@@ -58,29 +63,27 @@ namespace Server.Mobiles
             AddItem(pack);
         }
 
-        public override int Meat
-        {
-            get
-            {
-                return 1;
-            }
-        }
-        public override FoodType FavoriteFood
-        {
-            get
-            {
-                return FoodType.FruitsAndVegies | FoodType.GrainsAndHay;
-            }
-        }
-
-        public override bool CanAutoStable { get { return (Backpack == null || Backpack.Items.Count == 0) && base.CanAutoStable; } }
-
         public PackLlama(Serial serial)
             : base(serial)
         {
         }
 
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+
+            writer.Write(0);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+
+            var version = reader.ReadInt();
+        }
+
         #region Pack Animal Methods
+
         public override bool OnBeforeDeath()
         {
             if (!base.OnBeforeDeath())
@@ -141,19 +144,5 @@ namespace Server.Mobiles
         }
 
         #endregion
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-
-            writer.Write((int)0);
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
-        }
     }
 }

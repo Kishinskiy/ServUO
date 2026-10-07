@@ -1,12 +1,13 @@
-﻿using System;
-using Server.Gumps;
+﻿using Server.Gumps;
 using Server.Mobiles;
 
 namespace Server.Items
 {
     public class VollemHeldInCrystal : BaseImprisonedMobile
     {
-        public override int LabelNumber { get { return 1113629; } } // A Vollem Held in Crystal
+        public override int LabelNumber => 1113629; // A Vollem Held in Crystal
+
+        public override BaseCreature Summon => new VollemHeld();
 
         [Constructable]
         public VollemHeldInCrystal()
@@ -17,7 +18,10 @@ namespace Server.Items
             Weight = 1;
         }
 
-        public override BaseCreature Summon { get { return new VollemHeld(); } }
+        public VollemHeldInCrystal(Serial serial)
+            : base(serial)
+        {
+        }
 
         public override void OnDoubleClick(Mobile from)
         {
@@ -27,21 +31,16 @@ namespace Server.Items
                 from.SendLocalizedMessage(1010095); // This must be on your person to use.
         }
 
-        public VollemHeldInCrystal(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -49,7 +48,6 @@ namespace Server.Items
     {
         [Constructable]
         public VollemHeld()
-            : base()
         {
         }
 
@@ -61,13 +59,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

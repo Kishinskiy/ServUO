@@ -1,20 +1,13 @@
 ﻿using System;
-using Server;
 
 namespace Server.Items
 {
     public class TombOfKingsSecretDoor : Item
     {
-        public override int LabelNumber { get { return 1020233; } } // secret door
-
-        private int m_ClosedId;
+        public override int LabelNumber => 1020233; // secret door
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int ClosedId
-        {
-            get { return m_ClosedId; }
-            set { m_ClosedId = value; }
-        }
+        public int ClosedId { get; set; }
 
         [Constructable]
         public TombOfKingsSecretDoor(int closedId)
@@ -22,7 +15,12 @@ namespace Server.Items
         {
             Movable = false;
 
-            m_ClosedId = closedId;
+            ClosedId = closedId;
+        }
+
+        public TombOfKingsSecretDoor(Serial serial)
+            : base(serial)
+        {
         }
 
         public override void OnDoubleClickDead(Mobile from)
@@ -44,36 +42,27 @@ namespace Server.Items
             {
                 ItemID = 1; // no draw
 
-                Timer.DelayCall(TimeSpan.FromSeconds(120.0), new TimerCallback(
-                    delegate
-                    {
-                        ItemID = m_ClosedId;
-                    }));
+                Timer.DelayCall(TimeSpan.FromSeconds(120.0), delegate { ItemID = ClosedId; });
             }
-        }
-
-        public TombOfKingsSecretDoor(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
-            writer.Write((int)m_ClosedId);
+            writer.Write(ClosedId);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            m_ClosedId = reader.ReadInt();
+            ClosedId = reader.ReadInt();
 
             // make sure we don't get stuck at opened state before deserialize
-            ItemID = m_ClosedId;
+            ItemID = ClosedId;
         }
     }
 }

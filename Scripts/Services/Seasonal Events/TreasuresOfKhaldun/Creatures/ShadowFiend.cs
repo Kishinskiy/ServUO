@@ -8,6 +8,10 @@ namespace Server.Mobiles
     {
         private UnhideTimer m_Timer;
 
+        public override bool DeleteCorpseOnDeath => true;
+
+        public override bool CanRummageCorpses => true;
+
         [Constructable]
         public ShadowFiend()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -17,7 +21,7 @@ namespace Server.Mobiles
             Hue = 2051;
 
             // this to allow shadow fiend to loot from corpses
-            Backpack backpack = new Backpack();
+            var backpack = new Backpack();
             backpack.Movable = false;
             AddItem(backpack);
 
@@ -53,35 +57,18 @@ namespace Server.Mobiles
             m_Timer.Start();
         }
 
-        public override void OnBeforeDamage(Mobile from, ref int totalDamage, Server.DamageType type)
-        {
-            if (Region.IsPartOf("Khaldun") && IsChampionSpawn && !Caddellite.CheckDamage(from, type))
-            {
-                totalDamage = 0;
-            }
-
-            base.OnBeforeDamage(from, ref totalDamage, type);
-        }
-
         public ShadowFiend(Serial serial)
             : base(serial)
         {
         }
 
-        public override bool DeleteCorpseOnDeath
+        public override void OnBeforeDamage(Mobile from, ref int totalDamage, DamageType type)
         {
-            get
-            {
-                return true;
-            }
+            if (Region.IsPartOf("Khaldun") && IsChampionSpawn && !Caddellite.CheckDamage(from, type)) totalDamage = 0;
+
+            base.OnBeforeDamage(from, ref totalDamage, type);
         }
-        public override bool CanRummageCorpses
-        {
-            get
-            {
-                return true;
-            }
-        }
+
         public override int GetIdleSound()
         {
             return 0x37A;
@@ -119,13 +106,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             m_Timer = new UnhideTimer(this);
             m_Timer.Start();
@@ -144,6 +131,7 @@ namespace Server.Mobiles
         private class UnhideTimer : Timer
         {
             private readonly ShadowFiend m_Owner;
+
             public UnhideTimer(ShadowFiend owner)
                 : base(TimeSpan.FromSeconds(30.0))
             {
@@ -162,10 +150,8 @@ namespace Server.Mobiles
                 IPooledEnumerable eable = m_Owner.GetMobilesInRange(3);
 
                 foreach (Mobile m in eable)
-                {
                     if (m != m_Owner && m.Player && m.Hidden && m_Owner.CanBeHarmful(m) && m.IsPlayer())
                         m.Hidden = false;
-                }
                 eable.Free();
             }
         }

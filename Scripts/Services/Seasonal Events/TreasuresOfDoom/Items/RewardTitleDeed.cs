@@ -1,12 +1,10 @@
-using Server;
-
 namespace Server.Items
 {
     public class TreasuresOfDoomRewardDeed : BaseRewardTitleDeed
     {
         private TextDefinition _Title;
 
-        public override TextDefinition Title { get { return _Title; } }
+        public override TextDefinition Title => _Title;
 
         public TreasuresOfDoomRewardDeed(int localization)
         {
@@ -29,7 +27,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             _Title = TextDefinition.Deserialize(reader);
         }

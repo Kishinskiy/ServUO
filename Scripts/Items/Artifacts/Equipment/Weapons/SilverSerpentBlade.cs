@@ -1,10 +1,11 @@
-using System;
-
 namespace Server.Items
 {
     public class SilverSerpentBlade : Kryss
-	{
-		public override bool IsArtifact { get { return true; } }
+    {
+        public override bool IsArtifact => true;
+
+        public override int LabelNumber => 1078163; // Silver Serpent Blade
+
         [Constructable]
         public SilverSerpentBlade()
         {
@@ -19,13 +20,6 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1078163;
-            }
-        }// Silver Serpent Blade
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -37,7 +31,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

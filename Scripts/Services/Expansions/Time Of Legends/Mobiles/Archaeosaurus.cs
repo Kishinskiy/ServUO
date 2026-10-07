@@ -1,5 +1,3 @@
-using System;
-using Server;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -7,7 +5,12 @@ namespace Server.Mobiles
     [CorpseName("an archaeosaurus corpse")]
     public class Archaeosaurus : BaseCreature
     {
-        public override bool AttacksFocus { get { return true; } }
+        public override bool AttacksFocus => true;
+
+        public override int Meat => 1;
+        public override int Hides => 7;
+        public override int DragonBlood => 6;
+        public override int TreasureMapLevel => 1;
 
         [Constructable]
         public Archaeosaurus()
@@ -48,19 +51,14 @@ namespace Server.Mobiles
             SetWeaponAbility(WeaponAbility.TalonStrike);
         }
 
-        public override void GenerateLoot()
-        {
-            AddLoot(LootPack.FilthyRich, 2);
-        }
-
-        public override int Meat { get { return 1; } }
-        public override int Hides { get { return 7; } }
-        public override int DragonBlood { get { return 6; } }
-        public override int TreasureMapLevel { get { return 1; } }
-
         public Archaeosaurus(Serial serial)
             : base(serial)
         {
+        }
+
+        public override void GenerateLoot()
+        {
+            AddLoot(LootPack.FilthyRich, 2);
         }
 
         public override void Serialize(GenericWriter writer)
@@ -72,7 +70,7 @@ namespace Server.Mobiles
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

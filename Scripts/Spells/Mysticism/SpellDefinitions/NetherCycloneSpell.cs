@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using Server.Items;
 using Server.Targeting;
 
@@ -7,18 +6,18 @@ namespace Server.Spells.Mysticism
 {
     public class NetherCycloneSpell : MysticSpell
     {
-        public override SpellCircle Circle { get { return SpellCircle.Eighth; } }
-        public override DamageType SpellDamageType { get { return DamageType.SpellAOE; } }
+        private static readonly SpellInfo m_Info = new SpellInfo(
+            "Nether Cyclone", "Grav Hur",
+            230,
+            9022,
+            Reagent.MandrakeRoot,
+            Reagent.Nightshade,
+            Reagent.SulfurousAsh,
+            Reagent.Bloodmoss
+        );
 
-        private static SpellInfo m_Info = new SpellInfo(
-                "Nether Cyclone", "Grav Hur",
-                230,
-                9022,
-                Reagent.MandrakeRoot,
-                Reagent.Nightshade,
-                Reagent.SulfurousAsh,
-                Reagent.Bloodmoss
-            );
+        public override SpellCircle Circle => SpellCircle.Eighth;
+        public override DamageType SpellDamageType => DamageType.SpellAOE;
 
         public NetherCycloneSpell(Mobile caster, Item scroll) : base(caster, scroll, m_Info)
         {
@@ -35,49 +34,47 @@ namespace Server.Spells.Mysticism
             {
                 SpellHelper.Turn(Caster, p);
                 SpellHelper.GetSurfaceTop(ref p);
-                Map map = Caster.Map;
+                var map = Caster.Map;
 
                 if (map != null)
                 {
-                    Rectangle2D effectArea = new Rectangle2D(p.X - 3, p.Y - 3, 6, 6);
+                    var effectArea = new Rectangle2D(p.X - 3, p.Y - 3, 6, 6);
                     Effects.PlaySound(p, map, 0x64F);
 
-                    for (int x = effectArea.X; x <= effectArea.X + effectArea.Width; x++)
+                    for (var x = effectArea.X; x <= effectArea.X + effectArea.Width; x++)
+                    for (var y = effectArea.Y; y <= effectArea.Y + effectArea.Height; y++)
                     {
-                        for (int y = effectArea.Y; y <= effectArea.Y + effectArea.Height; y++)
-                        {
-                            if (x == effectArea.X && y == effectArea.Y ||
-                                x >= effectArea.X + effectArea.Width - 1 && y >= effectArea.Y + effectArea.Height - 1 ||
-                                y >= effectArea.Y + effectArea.Height - 1 && x == effectArea.X ||
-                                y == effectArea.Y && x >= effectArea.X + effectArea.Width - 1)
-                                continue;
+                        if ((x == effectArea.X && y == effectArea.Y) ||
+                            (x >= effectArea.X + effectArea.Width - 1 && y >= effectArea.Y + effectArea.Height - 1) ||
+                            (y >= effectArea.Y + effectArea.Height - 1 && x == effectArea.X) ||
+                            (y == effectArea.Y && x >= effectArea.X + effectArea.Width - 1))
+                            continue;
 
-                            IPoint3D pnt = new Point3D(x, y, p.Z);
-                            SpellHelper.GetSurfaceTop(ref pnt);
+                        IPoint3D pnt = new Point3D(x, y, p.Z);
+                        SpellHelper.GetSurfaceTop(ref pnt);
 
-                            Timer.DelayCall<Point3D>(TimeSpan.FromMilliseconds(Utility.RandomMinMax(100, 300)), point =>
-                            {
-                                Effects.SendLocationEffect(point, map, 0x375A, 8, 11, 0x49A, 0);
-                            },
+                        Timer.DelayCall(TimeSpan.FromMilliseconds(Utility.RandomMinMax(100, 300)),
+                            point => { Effects.SendLocationEffect(point, map, 0x375A, 8, 11, 0x49A, 0); },
                             new Point3D(pnt));
-                        }
                     }
 
-                    foreach(var d in AcquireIndirectTargets(p, 3))
+                    foreach (var d in AcquireIndirectTargets(p, 3))
                     {
-                        Server.Effects.SendTargetParticles(d, 0x374A, 1, 15, 9502, 97, 3, (EffectLayer)255, 0);
+                        Effects.SendTargetParticles(d, 0x374A, 1, 15, 9502, 97, 3, (EffectLayer)255, 0);
 
-                        double damage = (((Caster.Skills[CastSkill].Value + (Caster.Skills[DamageSkill].Value / 2)) * .66) + Utility.RandomMinMax(1, 6));
+                        var damage = (Caster.Skills[CastSkill].Value + Caster.Skills[DamageSkill].Value / 2) * .66 +
+                                     Utility.RandomMinMax(1, 6);
 
                         SpellHelper.Damage(this, d, damage, 0, 0, 0, 0, 0, 100, 0);
 
                         if (d is Mobile)
                         {
-                            Mobile m = d as Mobile;
+                            var m = d as Mobile;
 
-                            double stamSap = (damage / 3);
-                            double manaSap = (damage / 3);
-                            double mod = m.Skills[SkillName.MagicResist].Value - ((Caster.Skills[CastSkill].Value + Caster.Skills[DamageSkill].Value) / 2);
+                            var stamSap = damage / 3;
+                            var manaSap = damage / 3;
+                            var mod = m.Skills[SkillName.MagicResist].Value -
+                                      (Caster.Skills[CastSkill].Value + Caster.Skills[DamageSkill].Value) / 2;
 
                             if (mod > 0)
                             {
@@ -100,7 +97,8 @@ namespace Server.Spells.Mysticism
                             });
                         }
 
-                        Effects.SendLocationParticles(EffectItem.Create(d.Location, map, EffectItem.DefaultDuration), 0x37CC, 1, 40, 97, 3, 9917, 0);
+                        Effects.SendLocationParticles(EffectItem.Create(d.Location, map, EffectItem.DefaultDuration),
+                            0x37CC, 1, 40, 97, 3, 9917, 0);
                     }
                 }
             }
@@ -129,8 +127,10 @@ namespace Server.Spells.Mysticism
                     return;
 
                 if (!from.CanSee(o))
+                {
                     from.SendLocalizedMessage(500237); // Target can not be seen.
-                else if(o is IPoint3D)
+                }
+                else if (o is IPoint3D)
                 {
                     SpellHelper.Turn(from, o);
                     Owner.OnTarget((IPoint3D)o);

@@ -1,4 +1,4 @@
-﻿using System;
+﻿
 
 //using System.Collections.Generic;
 namespace Server.Items.Holiday
@@ -16,7 +16,21 @@ namespace Server.Items.Holiday
             "Eos",
             "Xavier"
         };
+
         private string m_Staffer;
+
+        public override string DefaultName
+        {
+            get
+            {
+                if (m_Staffer != null) return string.Format("{0} hand painted by {1}", MaskName, m_Staffer);
+
+                return MaskName;
+            }
+        }
+
+        public virtual string MaskName => "A Mask";
+
         public BasePaintedMask(int itemid)
             : this(m_Staffers[Utility.Random(m_Staffers.Length)], itemid)
         {
@@ -25,9 +39,9 @@ namespace Server.Items.Holiday
         public BasePaintedMask(string staffer, int itemid)
             : base(itemid + Utility.Random(2))
         {
-            this.m_Staffer = staffer;
+            m_Staffer = staffer;
 
-            Utility.Intern(this.m_Staffer);
+            Utility.Intern(m_Staffer);
         }
 
         public BasePaintedMask(Serial serial)
@@ -35,43 +49,21 @@ namespace Server.Items.Holiday
         {
         }
 
-        public override string DefaultName
-        {
-            get
-            {
-                if (this.m_Staffer != null)
-                {
-                    return String.Format("{0} hand painted by {1}", this.MaskName, this.m_Staffer);
-                }
-
-                return this.MaskName;
-            }
-        }
-        public virtual string MaskName
-        {
-            get
-            {
-                return "A Mask";
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)1); // version
-            writer.Write((string)this.m_Staffer);
+            writer.Write(1); // version
+            writer.Write(m_Staffer);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            if (version == 1)
-            {
-                this.m_Staffer = Utility.Intern(reader.ReadString());
-            }
+            if (version == 1) m_Staffer = Utility.Intern(reader.ReadString());
         }
     }
 }

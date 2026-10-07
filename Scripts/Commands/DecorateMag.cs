@@ -1,10 +1,10 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.IO;
 using Server.Engines.Quests.Haven;
 using Server.Engines.Quests.Necro;
 using Server.Items;
+using Server.Mobiles;
 
 namespace Server.Commands
 {
@@ -12,9 +12,10 @@ namespace Server.Commands
     {
         private static Mobile m_Mobile;
         private static int m_Count;
+
         public static void Initialize()
         {
-            CommandSystem.Register("DecorateMag", AccessLevel.Administrator, new CommandEventHandler(DecorateMag_OnCommand));
+            CommandSystem.Register("DecorateMag", AccessLevel.Administrator, DecorateMag_OnCommand);
         }
 
         public static void Generate(string folder, params Map[] maps)
@@ -22,13 +23,13 @@ namespace Server.Commands
             if (!Directory.Exists(folder))
                 return;
 
-            string[] files = Directory.GetFiles(folder, "*.cfg");
+            var files = Directory.GetFiles(folder, "*.cfg");
 
-            for (int i = 0; i < files.Length; ++i)
+            for (var i = 0; i < files.Length; ++i)
             {
-                ArrayList list = DecorationListMag.ReadAll(files[i]);
+                var list = DecorationListMag.ReadAll(files[i]);
 
-                for (int j = 0; j < list.Count; ++j)
+                for (var j = 0; j < list.Count; ++j)
                     m_Count += ((DecorationListMag)list[j]).Generate(maps);
             }
         }
@@ -65,21 +66,18 @@ namespace Server.Commands
         private static readonly Type typeofSerpentPillar = typeof(SerpentPillar);
         private static readonly Queue m_DeleteQueue = new Queue();
         private static readonly string[] m_EmptyParams = new string[0];
-        private Type m_Type;
+        private ArrayList m_Entries;
         private int m_ItemID;
         private string[] m_Params;
-        private ArrayList m_Entries;
-        public DecorationListMag()
-        {
-        }
+        private Type m_Type;
 
         public static ArrayList ReadAll(string path)
         {
-            using (StreamReader ip = new StreamReader(path))
+            using (var ip = new StreamReader(path))
             {
-                ArrayList list = new ArrayList();
+                var list = new ArrayList();
 
-                for (DecorationListMag v = Read(ip); v != null; v = Read(ip))
+                for (var v = Read(ip); v != null; v = Read(ip))
                     list.Add(v);
 
                 return list;
@@ -101,14 +99,14 @@ namespace Server.Commands
             if (string.IsNullOrEmpty(line))
                 return null;
 
-            DecorationListMag list = new DecorationListMag();
+            var list = new DecorationListMag();
 
-            int indexOf = line.IndexOf(' ');
+            var indexOf = line.IndexOf(' ');
 
             list.m_Type = ScriptCompiler.FindTypeByName(line.Substring(0, indexOf++), true);
 
             if (list.m_Type == null)
-                throw new ArgumentException(String.Format("Type not found for header: '{0}'", line));
+                throw new ArgumentException(string.Format("Type not found for header: '{0}'", line));
 
             line = line.Substring(indexOf);
             indexOf = line.IndexOf('(');
@@ -116,14 +114,14 @@ namespace Server.Commands
             {
                 list.m_ItemID = Utility.ToInt32(line.Substring(0, indexOf - 1));
 
-                string parms = line.Substring(++indexOf);
+                var parms = line.Substring(++indexOf);
 
                 if (line.EndsWith(")"))
                     parms = parms.Substring(0, parms.Length - 1);
 
                 list.m_Params = parms.Split(';');
 
-                for (int i = 0; i < list.m_Params.Length; ++i)
+                for (var i = 0; i < list.m_Params.Length; ++i)
                     list.m_Params[i] = list.m_Params[i].Trim();
             }
             else
@@ -152,157 +150,149 @@ namespace Server.Commands
 
         public Item Construct()
         {
-            if (this.m_Type == null)
+            if (m_Type == null)
                 return null;
 
             Item item;
 
             try
             {
-                if (this.m_Type == typeofStatic)
+                if (m_Type == typeofStatic)
                 {
-                    item = new Static(this.m_ItemID);
+                    item = new Static(m_ItemID);
                 }
-                else if (this.m_Type == typeofLocalizedStatic)
+                else if (m_Type == typeofLocalizedStatic)
                 {
-                    int labelNumber = 0;
+                    var labelNumber = 0;
 
-                    for (int i = 0; i < this.m_Params.Length; ++i)
-                    {
-                        if (this.m_Params[i].StartsWith("LabelNumber"))
+                    for (var i = 0; i < m_Params.Length; ++i)
+                        if (m_Params[i].StartsWith("LabelNumber"))
                         {
-                            int indexOf = this.m_Params[i].IndexOf('=');
+                            var indexOf = m_Params[i].IndexOf('=');
 
                             if (indexOf >= 0)
                             {
-                                labelNumber = Utility.ToInt32(this.m_Params[i].Substring(++indexOf));
+                                labelNumber = Utility.ToInt32(m_Params[i].Substring(++indexOf));
                                 break;
                             }
                         }
-                    }
 
-                    item = new LocalizedStatic(this.m_ItemID, labelNumber);
+                    item = new LocalizedStatic(m_ItemID, labelNumber);
                 }
-                else if (this.m_Type == typeofLocalizedSign)
+                else if (m_Type == typeofLocalizedSign)
                 {
-                    int labelNumber = 0;
+                    var labelNumber = 0;
 
-                    for (int i = 0; i < this.m_Params.Length; ++i)
-                    {
-                        if (this.m_Params[i].StartsWith("LabelNumber"))
+                    for (var i = 0; i < m_Params.Length; ++i)
+                        if (m_Params[i].StartsWith("LabelNumber"))
                         {
-                            int indexOf = this.m_Params[i].IndexOf('=');
+                            var indexOf = m_Params[i].IndexOf('=');
 
                             if (indexOf >= 0)
                             {
-                                labelNumber = Utility.ToInt32(this.m_Params[i].Substring(++indexOf));
+                                labelNumber = Utility.ToInt32(m_Params[i].Substring(++indexOf));
                                 break;
                             }
                         }
-                    }
 
-                    item = new LocalizedSign(this.m_ItemID, labelNumber);
+                    item = new LocalizedSign(m_ItemID, labelNumber);
                 }
-                else if (this.m_Type == typeofAnkhWest || this.m_Type == typeofAnkhNorth)
+                else if (m_Type == typeofAnkhWest || m_Type == typeofAnkhNorth)
                 {
-                    bool bloodied = false;
+                    var bloodied = false;
 
-                    for (int i = 0; !bloodied && i < this.m_Params.Length; ++i)
-                        bloodied = (this.m_Params[i] == "Bloodied");
+                    for (var i = 0; !bloodied && i < m_Params.Length; ++i)
+                        bloodied = m_Params[i] == "Bloodied";
 
-                    if (this.m_Type == typeofAnkhWest)
+                    if (m_Type == typeofAnkhWest)
                         item = new AnkhWest(bloodied);
                     else
                         item = new AnkhNorth(bloodied);
                 }
-                else if (this.m_Type == typeofMarkContainer)
+                else if (m_Type == typeofMarkContainer)
                 {
-                    bool bone = false;
-                    bool locked = false;
-                    Map map = Map.Malas;
+                    var bone = false;
+                    var locked = false;
+                    var map = Map.Malas;
 
-                    for (int i = 0; i < this.m_Params.Length; ++i)
-                    {
-                        if (this.m_Params[i] == "Bone")
+                    for (var i = 0; i < m_Params.Length; ++i)
+                        if (m_Params[i] == "Bone")
                         {
                             bone = true;
                         }
-                        else if (this.m_Params[i] == "Locked")
+                        else if (m_Params[i] == "Locked")
                         {
                             locked = true;
                         }
-                        else if (this.m_Params[i].StartsWith("TargetMap"))
+                        else if (m_Params[i].StartsWith("TargetMap"))
                         {
-                            int indexOf = this.m_Params[i].IndexOf('=');
+                            var indexOf = m_Params[i].IndexOf('=');
 
                             if (indexOf >= 0)
-                                map = Map.Parse(this.m_Params[i].Substring(++indexOf));
+                                map = Map.Parse(m_Params[i].Substring(++indexOf));
                         }
-                    }
 
-                    MarkContainer mc = new MarkContainer(bone, locked);
+                    var mc = new MarkContainer(bone, locked);
 
                     mc.TargetMap = map;
                     mc.Description = "strange location";
 
                     item = mc;
                 }
-                else if (this.m_Type == typeofHintItem)
+                else if (m_Type == typeofHintItem)
                 {
-                    int range = 0;
-                    int messageNumber = 0;
+                    var range = 0;
+                    var messageNumber = 0;
                     string messageString = null;
-                    int hintNumber = 0;
+                    var hintNumber = 0;
                     string hintString = null;
-                    TimeSpan resetDelay = TimeSpan.Zero;
+                    var resetDelay = TimeSpan.Zero;
 
-                    for (int i = 0; i < this.m_Params.Length; ++i)
-                    {
-                        if (this.m_Params[i].StartsWith("Range"))
+                    for (var i = 0; i < m_Params.Length; ++i)
+                        if (m_Params[i].StartsWith("Range"))
                         {
-                            int indexOf = this.m_Params[i].IndexOf('=');
+                            var indexOf = m_Params[i].IndexOf('=');
 
                             if (indexOf >= 0)
-                                range = Utility.ToInt32(this.m_Params[i].Substring(++indexOf));
+                                range = Utility.ToInt32(m_Params[i].Substring(++indexOf));
                         }
-                        else if (this.m_Params[i].StartsWith("WarningString"))
+                        else if (m_Params[i].StartsWith("WarningString"))
                         {
-                            int indexOf = this.m_Params[i].IndexOf('=');
+                            var indexOf = m_Params[i].IndexOf('=');
 
                             if (indexOf >= 0)
-                                messageString = this.m_Params[i].Substring(++indexOf);
+                                messageString = m_Params[i].Substring(++indexOf);
                         }
-                        else if (this.m_Params[i].StartsWith("WarningNumber"))
+                        else if (m_Params[i].StartsWith("WarningNumber"))
                         {
-                            int indexOf = this.m_Params[i].IndexOf('=');
+                            var indexOf = m_Params[i].IndexOf('=');
 
                             if (indexOf >= 0)
-                                messageNumber = Utility.ToInt32(this.m_Params[i].Substring(++indexOf));
+                                messageNumber = Utility.ToInt32(m_Params[i].Substring(++indexOf));
                         }
-                        else if (this.m_Params[i].StartsWith("HintString"))
+                        else if (m_Params[i].StartsWith("HintString"))
                         {
-                            int indexOf = this.m_Params[i].IndexOf('=');
+                            var indexOf = m_Params[i].IndexOf('=');
 
                             if (indexOf >= 0)
-                                hintString = this.m_Params[i].Substring(++indexOf);
+                                hintString = m_Params[i].Substring(++indexOf);
                         }
-                        else if (this.m_Params[i].StartsWith("HintNumber"))
+                        else if (m_Params[i].StartsWith("HintNumber"))
                         {
-                            int indexOf = this.m_Params[i].IndexOf('=');
+                            var indexOf = m_Params[i].IndexOf('=');
 
                             if (indexOf >= 0)
-                                hintNumber = Utility.ToInt32(this.m_Params[i].Substring(++indexOf));
+                                hintNumber = Utility.ToInt32(m_Params[i].Substring(++indexOf));
                         }
-                        else if (this.m_Params[i].StartsWith("ResetDelay"))
+                        else if (m_Params[i].StartsWith("ResetDelay"))
                         {
-                            int indexOf = this.m_Params[i].IndexOf('=');
+                            var indexOf = m_Params[i].IndexOf('=');
 
                             if (indexOf >= 0)
-                                resetDelay = TimeSpan.Parse(this.m_Params[i].Substring(++indexOf));
+                                resetDelay = TimeSpan.Parse(m_Params[i].Substring(++indexOf));
                         }
-                    }
 
-                    HintItem hi = new HintItem(this.m_ItemID, range, messageNumber, hintNumber);
+                    var hi = new HintItem(m_ItemID, range, messageNumber, hintNumber);
 
                     hi.WarningString = messageString;
                     hi.HintString = hintString;
@@ -310,182 +300,173 @@ namespace Server.Commands
 
                     item = hi;
                 }
-                else if (this.m_Type == typeofWarningItem)
+                else if (m_Type == typeofWarningItem)
                 {
-                    int range = 0;
-                    int messageNumber = 0;
+                    var range = 0;
+                    var messageNumber = 0;
                     string messageString = null;
-                    TimeSpan resetDelay = TimeSpan.Zero;
+                    var resetDelay = TimeSpan.Zero;
 
-                    for (int i = 0; i < this.m_Params.Length; ++i)
-                    {
-                        if (this.m_Params[i].StartsWith("Range"))
+                    for (var i = 0; i < m_Params.Length; ++i)
+                        if (m_Params[i].StartsWith("Range"))
                         {
-                            int indexOf = this.m_Params[i].IndexOf('=');
+                            var indexOf = m_Params[i].IndexOf('=');
 
                             if (indexOf >= 0)
-                                range = Utility.ToInt32(this.m_Params[i].Substring(++indexOf));
+                                range = Utility.ToInt32(m_Params[i].Substring(++indexOf));
                         }
-                        else if (this.m_Params[i].StartsWith("WarningString"))
+                        else if (m_Params[i].StartsWith("WarningString"))
                         {
-                            int indexOf = this.m_Params[i].IndexOf('=');
+                            var indexOf = m_Params[i].IndexOf('=');
 
                             if (indexOf >= 0)
-                                messageString = this.m_Params[i].Substring(++indexOf);
+                                messageString = m_Params[i].Substring(++indexOf);
                         }
-                        else if (this.m_Params[i].StartsWith("WarningNumber"))
+                        else if (m_Params[i].StartsWith("WarningNumber"))
                         {
-                            int indexOf = this.m_Params[i].IndexOf('=');
+                            var indexOf = m_Params[i].IndexOf('=');
 
                             if (indexOf >= 0)
-                                messageNumber = Utility.ToInt32(this.m_Params[i].Substring(++indexOf));
+                                messageNumber = Utility.ToInt32(m_Params[i].Substring(++indexOf));
                         }
-                        else if (this.m_Params[i].StartsWith("ResetDelay"))
+                        else if (m_Params[i].StartsWith("ResetDelay"))
                         {
-                            int indexOf = this.m_Params[i].IndexOf('=');
+                            var indexOf = m_Params[i].IndexOf('=');
 
                             if (indexOf >= 0)
-                                resetDelay = TimeSpan.Parse(this.m_Params[i].Substring(++indexOf));
+                                resetDelay = TimeSpan.Parse(m_Params[i].Substring(++indexOf));
                         }
-                    }
 
-                    WarningItem wi = new WarningItem(this.m_ItemID, range, messageNumber);
+                    var wi = new WarningItem(m_ItemID, range, messageNumber);
 
                     wi.WarningString = messageString;
                     wi.ResetDelay = resetDelay;
 
                     item = wi;
                 }
-                else if (this.m_Type == typeofCannon)
+                else if (m_Type == typeofCannon)
                 {
-                    CannonDirection direction = CannonDirection.North;
+                    var direction = CannonDirection.North;
 
-                    for (int i = 0; i < this.m_Params.Length; ++i)
-                    {
-                        if (this.m_Params[i].StartsWith("CannonDirection"))
+                    for (var i = 0; i < m_Params.Length; ++i)
+                        if (m_Params[i].StartsWith("CannonDirection"))
                         {
-                            int indexOf = this.m_Params[i].IndexOf('=');
+                            var indexOf = m_Params[i].IndexOf('=');
 
                             if (indexOf >= 0)
-                                direction = (CannonDirection)Enum.Parse(typeof(CannonDirection), this.m_Params[i].Substring(++indexOf), true);
+                                direction = (CannonDirection)Enum.Parse(typeof(CannonDirection),
+                                    m_Params[i].Substring(++indexOf), true);
                         }
-                    }
 
                     item = new Cannon(direction);
                 }
-                else if (this.m_Type == typeofSerpentPillar)
+                else if (m_Type == typeofSerpentPillar)
                 {
                     string word = null;
-                    Rectangle2D destination = new Rectangle2D();
+                    var destination = new Rectangle2D();
 
-                    for (int i = 0; i < this.m_Params.Length; ++i)
-                    {
-                        if (this.m_Params[i].StartsWith("Word"))
+                    for (var i = 0; i < m_Params.Length; ++i)
+                        if (m_Params[i].StartsWith("Word"))
                         {
-                            int indexOf = this.m_Params[i].IndexOf('=');
+                            var indexOf = m_Params[i].IndexOf('=');
 
                             if (indexOf >= 0)
-                                word = this.m_Params[i].Substring(++indexOf);
+                                word = m_Params[i].Substring(++indexOf);
                         }
-                        else if (this.m_Params[i].StartsWith("DestStart"))
+                        else if (m_Params[i].StartsWith("DestStart"))
                         {
-                            int indexOf = this.m_Params[i].IndexOf('=');
+                            var indexOf = m_Params[i].IndexOf('=');
 
                             if (indexOf >= 0)
-                                destination.Start = Point2D.Parse(this.m_Params[i].Substring(++indexOf));
+                                destination.Start = Point2D.Parse(m_Params[i].Substring(++indexOf));
                         }
-                        else if (this.m_Params[i].StartsWith("DestEnd"))
+                        else if (m_Params[i].StartsWith("DestEnd"))
                         {
-                            int indexOf = this.m_Params[i].IndexOf('=');
+                            var indexOf = m_Params[i].IndexOf('=');
 
                             if (indexOf >= 0)
-                                destination.End = Point2D.Parse(this.m_Params[i].Substring(++indexOf));
+                                destination.End = Point2D.Parse(m_Params[i].Substring(++indexOf));
                         }
-                    }
 
                     item = new SerpentPillar(word, destination);
                 }
-                else if (this.m_Type.IsSubclassOf(typeofBeverage))
+                else if (m_Type.IsSubclassOf(typeofBeverage))
                 {
-                    BeverageType content = BeverageType.Liquor;
-                    bool fill = false;
+                    var content = BeverageType.Liquor;
+                    var fill = false;
 
-                    for (int i = 0; !fill && i < this.m_Params.Length; ++i)
-                    {
-                        if (this.m_Params[i].StartsWith("Content"))
+                    for (var i = 0; !fill && i < m_Params.Length; ++i)
+                        if (m_Params[i].StartsWith("Content"))
                         {
-                            int indexOf = this.m_Params[i].IndexOf('=');
+                            var indexOf = m_Params[i].IndexOf('=');
 
                             if (indexOf >= 0)
                             {
-                                content = (BeverageType)Enum.Parse(typeof(BeverageType), this.m_Params[i].Substring(++indexOf), true);
+                                content = (BeverageType)Enum.Parse(typeof(BeverageType),
+                                    m_Params[i].Substring(++indexOf), true);
                                 fill = true;
                             }
                         }
-                    }
 
                     if (fill)
-                        item = (Item)Activator.CreateInstance(this.m_Type, new object[] { content });
+                        item = (Item)Activator.CreateInstance(m_Type, content);
                     else
-                        item = (Item)Activator.CreateInstance(this.m_Type);
+                        item = (Item)Activator.CreateInstance(m_Type);
                 }
-                else if (this.m_Type.IsSubclassOf(typeofBaseDoor))
+                else if (m_Type.IsSubclassOf(typeofBaseDoor))
                 {
-                    DoorFacing facing = DoorFacing.WestCW;
+                    var facing = DoorFacing.WestCW;
 
-                    for (int i = 0; i < this.m_Params.Length; ++i)
-                    {
-                        if (this.m_Params[i].StartsWith("Facing"))
+                    for (var i = 0; i < m_Params.Length; ++i)
+                        if (m_Params[i].StartsWith("Facing"))
                         {
-                            int indexOf = this.m_Params[i].IndexOf('=');
+                            var indexOf = m_Params[i].IndexOf('=');
 
                             if (indexOf >= 0)
                             {
-                                facing = (DoorFacing)Enum.Parse(typeof(DoorFacing), this.m_Params[i].Substring(++indexOf), true);
+                                facing = (DoorFacing)Enum.Parse(typeof(DoorFacing), m_Params[i].Substring(++indexOf),
+                                    true);
                                 break;
                             }
                         }
-                    }
 
-                    item = (Item)Activator.CreateInstance(this.m_Type, new object[] { facing });
+                    item = (Item)Activator.CreateInstance(m_Type, facing);
                 }
                 else
                 {
-                    item = (Item)Activator.CreateInstance(this.m_Type);
+                    item = (Item)Activator.CreateInstance(m_Type);
                 }
             }
             catch (Exception e)
             {
-                throw new Exception(String.Format("Bad type: {0}", this.m_Type), e);
+                throw new Exception(string.Format("Bad type: {0}", m_Type), e);
             }
 
             if (item is BaseAddon)
             {
                 if (item is MaabusCoffin)
                 {
-                    MaabusCoffin coffin = (MaabusCoffin)item;
+                    var coffin = (MaabusCoffin)item;
 
-                    for (int i = 0; i < this.m_Params.Length; ++i)
-                    {
-                        if (this.m_Params[i].StartsWith("SpawnLocation"))
+                    for (var i = 0; i < m_Params.Length; ++i)
+                        if (m_Params[i].StartsWith("SpawnLocation"))
                         {
-                            int indexOf = this.m_Params[i].IndexOf('=');
+                            var indexOf = m_Params[i].IndexOf('=');
 
                             if (indexOf >= 0)
-                                coffin.SpawnLocation = Point3D.Parse(this.m_Params[i].Substring(++indexOf));
+                                coffin.SpawnLocation = Point3D.Parse(m_Params[i].Substring(++indexOf));
                         }
-                    }
                 }
-                else if (this.m_ItemID > 0)
+                else if (m_ItemID > 0)
                 {
-                    List<AddonComponent> comps = ((BaseAddon)item).Components;
+                    var comps = ((BaseAddon)item).Components;
 
-                    for (int i = 0; i < comps.Count; ++i)
+                    for (var i = 0; i < comps.Count; ++i)
                     {
-                        AddonComponent comp = (AddonComponent)comps[i];
+                        var comp = comps[i];
 
                         if (comp.Offset == Point3D.Zero)
-                            comp.ItemID = this.m_ItemID;
+                            comp.ItemID = m_ItemID;
                     }
                 }
             }
@@ -493,13 +474,13 @@ namespace Server.Commands
             {
                 bool unlit = false, unprotected = false;
 
-                for (int i = 0; i < this.m_Params.Length; ++i)
+                for (var i = 0; i < m_Params.Length; ++i)
                 {
-                    if (!unlit && this.m_Params[i] == "Unlit")
+                    if (!unlit && m_Params[i] == "Unlit")
                         unlit = true;
-                    else if (!unprotected && this.m_Params[i] == "Unprotected")
+                    else if (!unprotected && m_Params[i] == "Unprotected")
                         unprotected = true;
-					
+
                     if (unlit && unprotected)
                         break;
                 }
@@ -509,395 +490,383 @@ namespace Server.Commands
                 if (!unprotected)
                     ((BaseLight)item).Protected = true;
 
-                if (this.m_ItemID > 0)
-                    item.ItemID = this.m_ItemID;
+                if (m_ItemID > 0)
+                    item.ItemID = m_ItemID;
             }
-            else if (item is Server.Mobiles.Spawner)
+            else if (item is Spawner)
             {
-                Server.Mobiles.Spawner sp = (Server.Mobiles.Spawner)item;
+                var sp = (Spawner)item;
 
                 sp.NextSpawn = TimeSpan.Zero;
 
-                for (int i = 0; i < this.m_Params.Length; ++i)
-                {
-                    if (this.m_Params[i].StartsWith("Spawn"))
+                for (var i = 0; i < m_Params.Length; ++i)
+                    if (m_Params[i].StartsWith("Spawn"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            sp.SpawnObjects.Add(new Server.Mobiles.SpawnObject(this.m_Params[i].Substring(++indexOf)));
+                            sp.SpawnObjects.Add(new SpawnObject(m_Params[i].Substring(++indexOf)));
                     }
-                    else if (this.m_Params[i].StartsWith("MinDelay"))
+                    else if (m_Params[i].StartsWith("MinDelay"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            sp.MinDelay = TimeSpan.Parse(this.m_Params[i].Substring(++indexOf));
+                            sp.MinDelay = TimeSpan.Parse(m_Params[i].Substring(++indexOf));
                     }
-                    else if (this.m_Params[i].StartsWith("MaxDelay"))
+                    else if (m_Params[i].StartsWith("MaxDelay"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            sp.MaxDelay = TimeSpan.Parse(this.m_Params[i].Substring(++indexOf));
+                            sp.MaxDelay = TimeSpan.Parse(m_Params[i].Substring(++indexOf));
                     }
-                    else if (this.m_Params[i].StartsWith("NextSpawn"))
+                    else if (m_Params[i].StartsWith("NextSpawn"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            sp.NextSpawn = TimeSpan.Parse(this.m_Params[i].Substring(++indexOf));
+                            sp.NextSpawn = TimeSpan.Parse(m_Params[i].Substring(++indexOf));
                     }
-                    else if (this.m_Params[i].StartsWith("Count"))
+                    else if (m_Params[i].StartsWith("Count"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            sp.MaxCount = Utility.ToInt32(this.m_Params[i].Substring(++indexOf));
+                            sp.MaxCount = Utility.ToInt32(m_Params[i].Substring(++indexOf));
                     }
-                    else if (this.m_Params[i].StartsWith("Team"))
+                    else if (m_Params[i].StartsWith("Team"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            sp.Team = Utility.ToInt32(this.m_Params[i].Substring(++indexOf));
+                            sp.Team = Utility.ToInt32(m_Params[i].Substring(++indexOf));
                     }
-                    else if (this.m_Params[i].StartsWith("HomeRange"))
+                    else if (m_Params[i].StartsWith("HomeRange"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            sp.HomeRange = Utility.ToInt32(this.m_Params[i].Substring(++indexOf));
+                            sp.HomeRange = Utility.ToInt32(m_Params[i].Substring(++indexOf));
                     }
-                    else if (this.m_Params[i].StartsWith("Running"))
+                    else if (m_Params[i].StartsWith("Running"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            sp.Running = Utility.ToBoolean(this.m_Params[i].Substring(++indexOf));
+                            sp.Running = Utility.ToBoolean(m_Params[i].Substring(++indexOf));
                     }
-                    else if (this.m_Params[i].StartsWith("Group"))
+                    else if (m_Params[i].StartsWith("Group"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            sp.Group = Utility.ToBoolean(this.m_Params[i].Substring(++indexOf));
+                            sp.Group = Utility.ToBoolean(m_Params[i].Substring(++indexOf));
                     }
-                }
             }
             else if (item is RecallRune)
             {
-                RecallRune rune = (RecallRune)item;
+                var rune = (RecallRune)item;
 
-                for (int i = 0; i < this.m_Params.Length; ++i)
-                {
-                    if (this.m_Params[i].StartsWith("Description"))
+                for (var i = 0; i < m_Params.Length; ++i)
+                    if (m_Params[i].StartsWith("Description"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            rune.Description = this.m_Params[i].Substring(++indexOf);
+                            rune.Description = m_Params[i].Substring(++indexOf);
                     }
-                    else if (this.m_Params[i].StartsWith("Marked"))
+                    else if (m_Params[i].StartsWith("Marked"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            rune.Marked = Utility.ToBoolean(this.m_Params[i].Substring(++indexOf));
+                            rune.Marked = Utility.ToBoolean(m_Params[i].Substring(++indexOf));
                     }
-                    else if (this.m_Params[i].StartsWith("TargetMap"))
+                    else if (m_Params[i].StartsWith("TargetMap"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            rune.TargetMap = Map.Parse(this.m_Params[i].Substring(++indexOf));
+                            rune.TargetMap = Map.Parse(m_Params[i].Substring(++indexOf));
                     }
-                    else if (this.m_Params[i].StartsWith("Target"))
+                    else if (m_Params[i].StartsWith("Target"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            rune.Target = Point3D.Parse(this.m_Params[i].Substring(++indexOf));
+                            rune.Target = Point3D.Parse(m_Params[i].Substring(++indexOf));
                     }
-                }
             }
             else if (item is SkillTeleporter)
             {
-                SkillTeleporter tp = (SkillTeleporter)item;
+                var tp = (SkillTeleporter)item;
 
-                for (int i = 0; i < this.m_Params.Length; ++i)
-                {
-                    if (this.m_Params[i].StartsWith("Skill"))
+                for (var i = 0; i < m_Params.Length; ++i)
+                    if (m_Params[i].StartsWith("Skill"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            tp.Skill = (SkillName)Enum.Parse(typeof(SkillName), this.m_Params[i].Substring(++indexOf), true);
+                            tp.Skill = (SkillName)Enum.Parse(typeof(SkillName), m_Params[i].Substring(++indexOf), true);
                     }
-                    else if (this.m_Params[i].StartsWith("RequiredFixedPoint"))
+                    else if (m_Params[i].StartsWith("RequiredFixedPoint"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            tp.Required = Utility.ToInt32(this.m_Params[i].Substring(++indexOf)) * 0.1;
+                            tp.Required = Utility.ToInt32(m_Params[i].Substring(++indexOf)) * 0.1;
                     }
-                    else if (this.m_Params[i].StartsWith("Required"))
+                    else if (m_Params[i].StartsWith("Required"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            tp.Required = Utility.ToDouble(this.m_Params[i].Substring(++indexOf));
+                            tp.Required = Utility.ToDouble(m_Params[i].Substring(++indexOf));
                     }
-                    else if (this.m_Params[i].StartsWith("MessageString"))
+                    else if (m_Params[i].StartsWith("MessageString"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            tp.MessageString = this.m_Params[i].Substring(++indexOf);
+                            tp.MessageString = m_Params[i].Substring(++indexOf);
                     }
-                    else if (this.m_Params[i].StartsWith("MessageNumber"))
+                    else if (m_Params[i].StartsWith("MessageNumber"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            tp.MessageNumber = Utility.ToInt32(this.m_Params[i].Substring(++indexOf));
+                            tp.MessageNumber = Utility.ToInt32(m_Params[i].Substring(++indexOf));
                     }
-                    else if (this.m_Params[i].StartsWith("PointDest"))
+                    else if (m_Params[i].StartsWith("PointDest"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            tp.PointDest = Point3D.Parse(this.m_Params[i].Substring(++indexOf));
+                            tp.PointDest = Point3D.Parse(m_Params[i].Substring(++indexOf));
                     }
-                    else if (this.m_Params[i].StartsWith("MapDest"))
+                    else if (m_Params[i].StartsWith("MapDest"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            tp.MapDest = Map.Parse(this.m_Params[i].Substring(++indexOf));
+                            tp.MapDest = Map.Parse(m_Params[i].Substring(++indexOf));
                     }
-                    else if (this.m_Params[i].StartsWith("Creatures"))
+                    else if (m_Params[i].StartsWith("Creatures"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            tp.Creatures = Utility.ToBoolean(this.m_Params[i].Substring(++indexOf));
+                            tp.Creatures = Utility.ToBoolean(m_Params[i].Substring(++indexOf));
                     }
-                    else if (this.m_Params[i].StartsWith("SourceEffect"))
+                    else if (m_Params[i].StartsWith("SourceEffect"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            tp.SourceEffect = Utility.ToBoolean(this.m_Params[i].Substring(++indexOf));
+                            tp.SourceEffect = Utility.ToBoolean(m_Params[i].Substring(++indexOf));
                     }
-                    else if (this.m_Params[i].StartsWith("DestEffect"))
+                    else if (m_Params[i].StartsWith("DestEffect"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            tp.DestEffect = Utility.ToBoolean(this.m_Params[i].Substring(++indexOf));
+                            tp.DestEffect = Utility.ToBoolean(m_Params[i].Substring(++indexOf));
                     }
-                    else if (this.m_Params[i].StartsWith("SoundID"))
+                    else if (m_Params[i].StartsWith("SoundID"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            tp.SoundID = Utility.ToInt32(this.m_Params[i].Substring(++indexOf));
+                            tp.SoundID = Utility.ToInt32(m_Params[i].Substring(++indexOf));
                     }
-                    else if (this.m_Params[i].StartsWith("Delay"))
+                    else if (m_Params[i].StartsWith("Delay"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            tp.Delay = TimeSpan.Parse(this.m_Params[i].Substring(++indexOf));
+                            tp.Delay = TimeSpan.Parse(m_Params[i].Substring(++indexOf));
                     }
-                }
 
-                if (this.m_ItemID > 0)
-                    item.ItemID = this.m_ItemID;
+                if (m_ItemID > 0)
+                    item.ItemID = m_ItemID;
             }
             else if (item is KeywordTeleporter)
             {
-                KeywordTeleporter tp = (KeywordTeleporter)item;
+                var tp = (KeywordTeleporter)item;
 
-                for (int i = 0; i < this.m_Params.Length; ++i)
-                {
-                    if (this.m_Params[i].StartsWith("Substring"))
+                for (var i = 0; i < m_Params.Length; ++i)
+                    if (m_Params[i].StartsWith("Substring"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            tp.Substring = this.m_Params[i].Substring(++indexOf);
+                            tp.Substring = m_Params[i].Substring(++indexOf);
                     }
-                    else if (this.m_Params[i].StartsWith("Keyword"))
+                    else if (m_Params[i].StartsWith("Keyword"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            tp.Keyword = Utility.ToInt32(this.m_Params[i].Substring(++indexOf));
+                            tp.Keyword = Utility.ToInt32(m_Params[i].Substring(++indexOf));
                     }
-                    else if (this.m_Params[i].StartsWith("Range"))
+                    else if (m_Params[i].StartsWith("Range"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            tp.Range = Utility.ToInt32(this.m_Params[i].Substring(++indexOf));
+                            tp.Range = Utility.ToInt32(m_Params[i].Substring(++indexOf));
                     }
-                    else if (this.m_Params[i].StartsWith("PointDest"))
+                    else if (m_Params[i].StartsWith("PointDest"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            tp.PointDest = Point3D.Parse(this.m_Params[i].Substring(++indexOf));
+                            tp.PointDest = Point3D.Parse(m_Params[i].Substring(++indexOf));
                     }
-                    else if (this.m_Params[i].StartsWith("MapDest"))
+                    else if (m_Params[i].StartsWith("MapDest"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            tp.MapDest = Map.Parse(this.m_Params[i].Substring(++indexOf));
+                            tp.MapDest = Map.Parse(m_Params[i].Substring(++indexOf));
                     }
-                    else if (this.m_Params[i].StartsWith("Creatures"))
+                    else if (m_Params[i].StartsWith("Creatures"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            tp.Creatures = Utility.ToBoolean(this.m_Params[i].Substring(++indexOf));
+                            tp.Creatures = Utility.ToBoolean(m_Params[i].Substring(++indexOf));
                     }
-                    else if (this.m_Params[i].StartsWith("SourceEffect"))
+                    else if (m_Params[i].StartsWith("SourceEffect"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            tp.SourceEffect = Utility.ToBoolean(this.m_Params[i].Substring(++indexOf));
+                            tp.SourceEffect = Utility.ToBoolean(m_Params[i].Substring(++indexOf));
                     }
-                    else if (this.m_Params[i].StartsWith("DestEffect"))
+                    else if (m_Params[i].StartsWith("DestEffect"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            tp.DestEffect = Utility.ToBoolean(this.m_Params[i].Substring(++indexOf));
+                            tp.DestEffect = Utility.ToBoolean(m_Params[i].Substring(++indexOf));
                     }
-                    else if (this.m_Params[i].StartsWith("SoundID"))
+                    else if (m_Params[i].StartsWith("SoundID"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            tp.SoundID = Utility.ToInt32(this.m_Params[i].Substring(++indexOf));
+                            tp.SoundID = Utility.ToInt32(m_Params[i].Substring(++indexOf));
                     }
-                    else if (this.m_Params[i].StartsWith("Delay"))
+                    else if (m_Params[i].StartsWith("Delay"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            tp.Delay = TimeSpan.Parse(this.m_Params[i].Substring(++indexOf));
+                            tp.Delay = TimeSpan.Parse(m_Params[i].Substring(++indexOf));
                     }
-                }
 
-                if (this.m_ItemID > 0)
-                    item.ItemID = this.m_ItemID;
+                if (m_ItemID > 0)
+                    item.ItemID = m_ItemID;
             }
             else if (item is Teleporter)
             {
-                Teleporter tp = (Teleporter)item;
+                var tp = (Teleporter)item;
 
-                for (int i = 0; i < this.m_Params.Length; ++i)
-                {
-                    if (this.m_Params[i].StartsWith("PointDest"))
+                for (var i = 0; i < m_Params.Length; ++i)
+                    if (m_Params[i].StartsWith("PointDest"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            tp.PointDest = Point3D.Parse(this.m_Params[i].Substring(++indexOf));
+                            tp.PointDest = Point3D.Parse(m_Params[i].Substring(++indexOf));
                     }
-                    else if (this.m_Params[i].StartsWith("MapDest"))
+                    else if (m_Params[i].StartsWith("MapDest"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            tp.MapDest = Map.Parse(this.m_Params[i].Substring(++indexOf));
+                            tp.MapDest = Map.Parse(m_Params[i].Substring(++indexOf));
                     }
-                    else if (this.m_Params[i].StartsWith("Creatures"))
+                    else if (m_Params[i].StartsWith("Creatures"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            tp.Creatures = Utility.ToBoolean(this.m_Params[i].Substring(++indexOf));
+                            tp.Creatures = Utility.ToBoolean(m_Params[i].Substring(++indexOf));
                     }
-                    else if (this.m_Params[i].StartsWith("SourceEffect"))
+                    else if (m_Params[i].StartsWith("SourceEffect"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            tp.SourceEffect = Utility.ToBoolean(this.m_Params[i].Substring(++indexOf));
+                            tp.SourceEffect = Utility.ToBoolean(m_Params[i].Substring(++indexOf));
                     }
-                    else if (this.m_Params[i].StartsWith("DestEffect"))
+                    else if (m_Params[i].StartsWith("DestEffect"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            tp.DestEffect = Utility.ToBoolean(this.m_Params[i].Substring(++indexOf));
+                            tp.DestEffect = Utility.ToBoolean(m_Params[i].Substring(++indexOf));
                     }
-                    else if (this.m_Params[i].StartsWith("SoundID"))
+                    else if (m_Params[i].StartsWith("SoundID"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            tp.SoundID = Utility.ToInt32(this.m_Params[i].Substring(++indexOf));
+                            tp.SoundID = Utility.ToInt32(m_Params[i].Substring(++indexOf));
                     }
-                    else if (this.m_Params[i].StartsWith("Delay"))
+                    else if (m_Params[i].StartsWith("Delay"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            tp.Delay = TimeSpan.Parse(this.m_Params[i].Substring(++indexOf));
+                            tp.Delay = TimeSpan.Parse(m_Params[i].Substring(++indexOf));
                     }
-                }
 
-                if (this.m_ItemID > 0)
-                    item.ItemID = this.m_ItemID;
+                if (m_ItemID > 0)
+                    item.ItemID = m_ItemID;
             }
             else if (item is FillableContainer)
             {
-                FillableContainer cont = (FillableContainer)item;
+                var cont = (FillableContainer)item;
 
-                for (int i = 0; i < this.m_Params.Length; ++i)
-                {
-                    if (this.m_Params[i].StartsWith("ContentType"))
+                for (var i = 0; i < m_Params.Length; ++i)
+                    if (m_Params[i].StartsWith("ContentType"))
                     {
-                        int indexOf = this.m_Params[i].IndexOf('=');
+                        var indexOf = m_Params[i].IndexOf('=');
 
                         if (indexOf >= 0)
-                            cont.ContentType = (FillableContentType)Enum.Parse(typeof(FillableContentType), this.m_Params[i].Substring(++indexOf), true);
+                            cont.ContentType = (FillableContentType)Enum.Parse(typeof(FillableContentType),
+                                m_Params[i].Substring(++indexOf), true);
                     }
-                }
 
-                if (this.m_ItemID > 0)
-                    item.ItemID = this.m_ItemID;
+                if (m_ItemID > 0)
+                    item.ItemID = m_ItemID;
             }
-            else if (this.m_ItemID > 0)
+            else if (m_ItemID > 0)
             {
-                item.ItemID = this.m_ItemID;
+                item.ItemID = m_ItemID;
             }
 
             item.Movable = false;
 
-            for (int i = 0; i < this.m_Params.Length; ++i)
-            {
-                if (this.m_Params[i].StartsWith("Light"))
+            for (var i = 0; i < m_Params.Length; ++i)
+                if (m_Params[i].StartsWith("Light"))
                 {
-                    int indexOf = this.m_Params[i].IndexOf('=');
+                    var indexOf = m_Params[i].IndexOf('=');
 
                     if (indexOf >= 0)
-                        item.Light = (LightType)Enum.Parse(typeof(LightType), this.m_Params[i].Substring(++indexOf), true);
+                        item.Light = (LightType)Enum.Parse(typeof(LightType), m_Params[i].Substring(++indexOf), true);
                 }
-                else if (this.m_Params[i].StartsWith("Hue"))
+                else if (m_Params[i].StartsWith("Hue"))
                 {
-                    int indexOf = this.m_Params[i].IndexOf('=');
+                    var indexOf = m_Params[i].IndexOf('=');
 
                     if (indexOf >= 0)
                     {
-                        int hue = Utility.ToInt32(this.m_Params[i].Substring(++indexOf));
+                        var hue = Utility.ToInt32(m_Params[i].Substring(++indexOf));
 
                         if (item is DyeTub)
                             ((DyeTub)item).DyedHue = hue;
@@ -905,48 +874,47 @@ namespace Server.Commands
                             item.Hue = hue;
                     }
                 }
-                else if (this.m_Params[i].StartsWith("Name"))
+                else if (m_Params[i].StartsWith("Name"))
                 {
-                    int indexOf = this.m_Params[i].IndexOf('=');
+                    var indexOf = m_Params[i].IndexOf('=');
 
                     if (indexOf >= 0)
-                        item.Name = this.m_Params[i].Substring(++indexOf);
+                        item.Name = m_Params[i].Substring(++indexOf);
                 }
-                else if (this.m_Params[i].StartsWith("Amount"))
+                else if (m_Params[i].StartsWith("Amount"))
                 {
-                    int indexOf = this.m_Params[i].IndexOf('=');
+                    var indexOf = m_Params[i].IndexOf('=');
 
                     if (indexOf >= 0)
                     {
                         // Must supress stackable warnings
-                        bool wasStackable = item.Stackable;
+                        var wasStackable = item.Stackable;
 
                         item.Stackable = true;
-                        item.Amount = Utility.ToInt32(this.m_Params[i].Substring(++indexOf));
+                        item.Amount = Utility.ToInt32(m_Params[i].Substring(++indexOf));
                         item.Stackable = wasStackable;
                     }
                 }
-            }
 
             return item;
         }
 
         public int Generate(Map[] maps)
         {
-            int count = 0;
+            var count = 0;
 
             Item item = null;
 
-            for (int i = 0; i < this.m_Entries.Count; ++i)
+            for (var i = 0; i < m_Entries.Count; ++i)
             {
-                DecorationEntryMag entry = (DecorationEntryMag)this.m_Entries[i];
-                Point3D loc = entry.Location;
-                string extra = entry.Extra;
+                var entry = (DecorationEntryMag)m_Entries[i];
+                var loc = entry.Location;
+                var extra = entry.Extra;
 
-                for (int j = 0; j < maps.Length; ++j)
+                for (var j = 0; j < maps.Length; ++j)
                 {
                     if (item == null)
-                        item = this.Construct();
+                        item = Construct();
 
                     if (item == null)
                         continue;
@@ -963,17 +931,15 @@ namespace Server.Commands
                         {
                             IPooledEnumerable eable = maps[j].GetItemsInRange(loc, 1);
 
-                            Type itemType = item.GetType();
+                            var itemType = item.GetType();
 
                             foreach (Item link in eable)
-                            {
                                 if (link != item && link.Z == item.Z && link.GetType() == itemType)
                                 {
                                     ((BaseDoor)item).Link = (BaseDoor)link;
                                     ((BaseDoor)link).Link = (BaseDoor)item;
                                     break;
                                 }
-                            }
 
                             eable.Free();
                         }
@@ -1001,9 +967,9 @@ namespace Server.Commands
 
         private static bool FindItem(int x, int y, int z, Map map, Item srcItem)
         {
-            int itemID = srcItem.ItemID;
+            var itemID = srcItem.ItemID;
 
-            bool res = false;
+            var res = false;
 
             IPooledEnumerable eable;
 
@@ -1016,7 +982,7 @@ namespace Server.Commands
                     if (!(item is BaseDoor))
                         continue;
 
-                    BaseDoor bd = (BaseDoor)item;
+                    var bd = (BaseDoor)item;
                     Point3D p;
                     int bdItemID;
 
@@ -1044,11 +1010,10 @@ namespace Server.Commands
             {
                 eable = map.GetItemsInRange(new Point3D(x, y, z), 0);
 
-                LightType lt = srcItem.Light;
-                string srcName = srcItem.ItemData.Name;
+                var lt = srcItem.Light;
+                var srcName = srcItem.ItemData.Name;
 
                 foreach (Item item in eable)
-                {
                     if (item.Z == z)
                     {
                         if (item.ItemID == itemID)
@@ -1063,16 +1028,14 @@ namespace Server.Commands
                             m_DeleteQueue.Enqueue(item);
                         }
                     }
-                }
             }
             else if (srcItem is Teleporter || srcItem is FillableContainer || srcItem is BaseBook)
             {
                 eable = map.GetItemsInRange(new Point3D(x, y, z), 0);
 
-                Type type = srcItem.GetType();
+                var type = srcItem.GetType();
 
                 foreach (Item item in eable)
-                {
                     if (item.Z == z && item.ItemID == itemID)
                     {
                         if (item.GetType() != type)
@@ -1080,20 +1043,17 @@ namespace Server.Commands
                         else
                             res = true;
                     }
-                }
             }
             else
             {
                 eable = map.GetItemsInRange(new Point3D(x, y, z), 0);
 
                 foreach (Item item in eable)
-                {
                     if (item.Z == z && item.ItemID == itemID)
                     {
                         eable.Free();
                         return true;
                     }
-                }
             }
 
             eable.Free();
@@ -1107,37 +1067,25 @@ namespace Server.Commands
 
     public class DecorationEntryMag
     {
-        private readonly Point3D m_Location;
-        private readonly string m_Extra;
+        public Point3D Location { get; }
+
+        public string Extra { get; }
+
         public DecorationEntryMag(string line)
         {
             string x, y, z;
 
-            this.Pop(out x, ref line);
-            this.Pop(out y, ref line);
-            this.Pop(out z, ref line);
+            Pop(out x, ref line);
+            Pop(out y, ref line);
+            Pop(out z, ref line);
 
-            this.m_Location = new Point3D(Utility.ToInt32(x), Utility.ToInt32(y), Utility.ToInt32(z));
-            this.m_Extra = line;
+            Location = new Point3D(Utility.ToInt32(x), Utility.ToInt32(y), Utility.ToInt32(z));
+            Extra = line;
         }
 
-        public Point3D Location
-        {
-            get
-            {
-                return this.m_Location;
-            }
-        }
-        public string Extra
-        {
-            get
-            {
-                return this.m_Extra;
-            }
-        }
         public void Pop(out string v, ref string line)
         {
-            int space = line.IndexOf(' ');
+            var space = line.IndexOf(' ');
 
             if (space >= 0)
             {

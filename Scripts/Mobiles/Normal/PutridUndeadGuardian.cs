@@ -1,16 +1,16 @@
-using System;
-
 namespace Server.Mobiles
 {
     [CorpseName("an putrid undead guardian corpse")]
     public class PutridUndeadGuardian : BaseCreature
     {
+        public override int Meat => 1;
+
         [Constructable]
         public PutridUndeadGuardian()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
         {
             Name = "an putrid undead guardian";
-            Body = 722; 
+            Body = 722;
 
             SetStr(79);
             SetDex(63);
@@ -32,7 +32,7 @@ namespace Server.Mobiles
             SetSkill(SkillName.Tactics, 45.4);
             SetSkill(SkillName.Wrestling, 50.7);
 
-            Fame = 3000; 
+            Fame = 3000;
             Karma = -3000;
 
             PackNecroReg(10, 15); /// Stratics didn't specify
@@ -43,13 +43,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override int Meat
-        {
-            get
-            {
-                return 1;
-            }
-        }
         public override void GenerateLoot()
         {
             AddLoot(LootPack.FilthyRich, 3);
@@ -78,13 +71,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

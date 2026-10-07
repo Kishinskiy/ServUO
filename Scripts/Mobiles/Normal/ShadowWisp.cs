@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +5,8 @@ namespace Server.Mobiles
     [CorpseName("a wisp corpse")]
     public class ShadowWisp : BaseCreature
     {
+        public override OppositionGroup OppositionGroup => OppositionGroup.FeyAndUndead;
+
         [Constructable]
         public ShadowWisp()
             : base(AIType.AI_Mage, FightMode.Aggressor, 10, 1, 0.3, 0.6)
@@ -50,23 +51,16 @@ namespace Server.Mobiles
         {
         }
 
-        public override OppositionGroup OppositionGroup
-        {
-            get
-            {
-                return OppositionGroup.FeyAndUndead;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

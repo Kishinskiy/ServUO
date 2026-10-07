@@ -1,11 +1,10 @@
-using System;
 using System.Collections.Generic;
 
 namespace Server.Engines.BulkOrders
 {
     public class LargeInscriptionBOD : LargeBOD
     {
-        public override BODType BODType { get { return BODType.Inscription; } }
+        public override BODType BODType => BODType.Inscription;
 
         [Constructable]
         public LargeInscriptionBOD()
@@ -47,20 +46,20 @@ namespace Server.Engines.BulkOrders
                     break;
             }
 
-            int amountMax = Utility.RandomList(10, 15, 20, 20);
+            var amountMax = Utility.RandomList(10, 15, 20, 20);
 
-            this.Hue = 2598;
-            this.AmountMax = amountMax;
-            this.Entries = entries;
+            Hue = 2598;
+            AmountMax = amountMax;
+            Entries = entries;
         }
 
         public LargeInscriptionBOD(int amountMax, bool reqExceptional, BulkMaterialType mat, LargeBulkEntry[] entries)
         {
-            this.Hue = 2598;
-            this.AmountMax = amountMax;
-            this.Entries = entries;
-            this.RequireExceptional = reqExceptional;
-            this.Material = mat;
+            Hue = 2598;
+            AmountMax = amountMax;
+            Entries = entries;
+            RequireExceptional = reqExceptional;
+            Material = mat;
         }
 
         public LargeInscriptionBOD(Serial serial)
@@ -80,17 +79,19 @@ namespace Server.Engines.BulkOrders
 
         public override List<Item> ComputeRewards(bool full)
         {
-            List<Item> list = new List<Item>();
+            var list = new List<Item>();
 
-            RewardGroup rewardGroup = InscriptionRewardCalculator.Instance.LookupRewards(InscriptionRewardCalculator.Instance.ComputePoints(this));
+            var rewardGroup =
+                InscriptionRewardCalculator.Instance.LookupRewards(
+                    InscriptionRewardCalculator.Instance.ComputePoints(this));
 
             if (rewardGroup != null)
             {
                 if (full)
                 {
-                    for (int i = 0; i < rewardGroup.Items.Length; ++i)
+                    for (var i = 0; i < rewardGroup.Items.Length; ++i)
                     {
-                        Item item = rewardGroup.Items[i].Construct();
+                        var item = rewardGroup.Items[i].Construct();
 
                         if (item != null)
                             list.Add(item);
@@ -98,11 +99,11 @@ namespace Server.Engines.BulkOrders
                 }
                 else
                 {
-                    RewardItem rewardItem = rewardGroup.AcquireItem();
+                    var rewardItem = rewardGroup.AcquireItem();
 
                     if (rewardItem != null)
                     {
-                        Item item = rewardItem.Construct();
+                        var item = rewardItem.Construct();
 
                         if (item != null)
                             list.Add(item);
@@ -117,14 +118,14 @@ namespace Server.Engines.BulkOrders
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

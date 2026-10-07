@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
-
 using Server.Items;
 using Server.Network;
 using Server.Spells.Bushido;
+using Server.Spells.Mysticism;
+using Server.Spells.Necromancy;
 using Server.Spells.Ninjitsu;
 using Server.Spells.SkillMasteries;
 
@@ -11,51 +12,24 @@ namespace Server.Spells
 {
     public abstract class SpecialMove
     {
-        public virtual int BaseMana
-        {
-            get
-            {
-                return 0;
-            }
-        }
+        private static readonly Dictionary<Mobile, SpecialMoveContext> m_PlayersTable =
+            new Dictionary<Mobile, SpecialMoveContext>();
 
-        public virtual SkillName MoveSkill
-        {
-            get
-            {
-                return SkillName.Bushido;
-            }
-        }
-        public virtual double RequiredSkill
-        {
-            get
-            {
-                return 0.0;
-            }
-        }
+        public virtual int BaseMana => 0;
 
-        public virtual TextDefinition AbilityMessage
-        {
-            get
-            {
-                return 0;
-            }
-        }
+        public virtual SkillName MoveSkill => SkillName.Bushido;
 
-        public virtual bool BlockedByAnimalForm
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public virtual bool DelayedContext
-        {
-            get
-            {
-                return false;
-            }
-        }
+        public virtual double RequiredSkill => 0.0;
+
+        public virtual TextDefinition AbilityMessage => 0;
+
+        public virtual bool BlockedByAnimalForm => true;
+
+        public virtual bool DelayedContext => false;
+
+        public static Dictionary<Mobile, SpecialMove> Table { get; } = new Dictionary<Mobile, SpecialMove>();
+
+        public virtual bool ValidatesDuringHit => true;
 
         public virtual int GetAccuracyBonus(Mobile attacker)
         {
@@ -116,10 +90,11 @@ namespace Server.Spells
 
         public virtual bool CheckSkills(Mobile m)
         {
-            if (m.Skills[this.MoveSkill].Value < this.RequiredSkill)
+            if (m.Skills[MoveSkill].Value < RequiredSkill)
             {
-                string args = String.Format("{0}\t{1}\t ", this.RequiredSkill.ToString("F1"), this.MoveSkill.ToString());
-                m.SendLocalizedMessage(1063013, args); // You need at least ~1_SKILL_REQUIREMENT~ ~2_SKILL_NAME~ skill to use that ability.
+                var args = string.Format("{0}\t{1}\t ", RequiredSkill.ToString("F1"), MoveSkill.ToString());
+                m.SendLocalizedMessage(1063013,
+                    args); // You need at least ~1_SKILL_REQUIREMENT~ ~2_SKILL_NAME~ skill to use that ability.
                 return false;
             }
 
@@ -128,7 +103,7 @@ namespace Server.Spells
 
         public virtual int ScaleMana(Mobile m, int mana)
         {
-            double scalar = 1.0;
+            var scalar = 1.0;
 
             if (ManaPhasingOrb.IsInManaPhase(m))
             {
@@ -136,26 +111,20 @@ namespace Server.Spells
                 return 0;
             }
 
-            if (!Server.Spells.Necromancy.MindRotSpell.GetMindRotScalar(m, ref scalar))
-            {
-                scalar = 1.0;
-            }
+            if (!MindRotSpell.GetMindRotScalar(m, ref scalar)) scalar = 1.0;
 
-            if (Server.Spells.Mysticism.PurgeMagicSpell.IsUnderCurseEffects(m))
-            {
-                scalar += .5;
-            }
+            if (PurgeMagicSpell.IsUnderCurseEffects(m)) scalar += .5;
 
             // Lower Mana Cost = 40%
-            int lmc = Math.Min(AosAttributes.GetValue(m, AosAttribute.LowerManaCost), 40);
+            var lmc = Math.Min(AosAttributes.GetValue(m, AosAttribute.LowerManaCost), 40);
 
             lmc += BaseArmor.GetInherentLowerManaCost(m);
 
             scalar -= (double)lmc / 100;
 
-            int total = (int)(mana * scalar);
+            var total = (int)(mana * scalar);
 
-            if (m.Skills[this.MoveSkill].Value < 50.0 && GetContext(m) != null)
+            if (m.Skills[MoveSkill].Value < 50.0 && GetContext(m) != null)
                 total *= 2;
 
             return total;
@@ -163,18 +132,19 @@ namespace Server.Spells
 
         public virtual bool CheckMana(Mobile from, bool consume)
         {
-            int mana = this.ScaleMana(from, this.BaseMana);
+            var mana = ScaleMana(from, BaseMana);
 
             if (from.Mana < mana)
             {
-                from.SendLocalizedMessage(1060181, mana.ToString()); // You need ~1_MANA_REQUIREMENT~ mana to perform that attack
+                from.SendLocalizedMessage(1060181,
+                    mana.ToString()); // You need ~1_MANA_REQUIREMENT~ mana to perform that attack
                 return false;
             }
 
             if (consume)
             {
-                if (!this.DelayedContext)
-                    this.SetContext(from);
+                if (!DelayedContext)
+                    SetContext(from);
 
                 from.Mana -= mana;
             }
@@ -185,15 +155,13 @@ namespace Server.Spells
         public virtual void SetContext(Mobile from)
         {
             if (GetContext(from) == null)
-            {
-                if (this.DelayedContext || from.Skills[this.MoveSkill].Value < 50.0)
+                if (DelayedContext || from.Skills[MoveSkill].Value < 50.0)
                 {
                     Timer timer = new SpecialMoveTimer(from);
                     timer.Start();
 
-                    AddContext(from, new SpecialMoveContext(timer, this.GetType()));
+                    AddContext(from, new SpecialMoveContext(timer, GetType()));
                 }
-            }
         }
 
         public virtual bool Validate(Mobile from)
@@ -201,52 +169,34 @@ namespace Server.Spells
             if (!from.Player)
                 return true;
 
-            if (Bushido.HonorableExecution.IsUnderPenalty(from))
+            if (HonorableExecution.IsUnderPenalty(from))
             {
                 from.SendLocalizedMessage(1063024); // You cannot perform this special move right now.
                 return false;
             }
 
-            if (Ninjitsu.AnimalForm.UnderTransformation(from))
+            if (AnimalForm.UnderTransformation(from))
             {
                 from.SendLocalizedMessage(1063024); // You cannot perform this special move right now.
                 return false;
             }
 
-            return this.CheckSkills(from) && this.CheckMana(from, false);
+            return CheckSkills(from) && CheckMana(from, false);
         }
 
         public virtual void CheckGain(Mobile m)
         {
-            m.CheckSkill(this.MoveSkill, this.RequiredSkill, this.RequiredSkill + 37.5);
-        }
-
-        private static readonly Dictionary<Mobile, SpecialMove> m_Table = new Dictionary<Mobile, SpecialMove>();
-
-        public static Dictionary<Mobile, SpecialMove> Table
-        {
-            get
-            {
-                return m_Table;
-            }
+            m.CheckSkill(MoveSkill, RequiredSkill, RequiredSkill + 37.5);
         }
 
         public static void ClearAllMoves(Mobile m)
         {
-            foreach (KeyValuePair<Int32, SpecialMove> kvp in SpellRegistry.SpecialMoves)
+            foreach (var kvp in SpellRegistry.SpecialMoves)
             {
-                int moveID = kvp.Key;
+                var moveID = kvp.Key;
 
                 if (moveID != -1)
                     m.Send(new ToggleSpecialAbility(moveID + 1, false));
-            }
-        }
-
-        public virtual bool ValidatesDuringHit
-        {
-            get
-            {
-                return true;
             }
         }
 
@@ -262,7 +212,7 @@ namespace Server.Spells
             }
 
             SpecialMove move = null;
-            m_Table.TryGetValue(m, out move);
+            Table.TryGetValue(m, out move);
 
             if (move != null && move.ValidatesDuringHit && !move.Validate(m))
             {
@@ -287,7 +237,7 @@ namespace Server.Spells
                 return false;
             }
 
-            bool sameMove = (move == GetCurrentMove(m));
+            var sameMove = move == GetCurrentMove(m);
 
             ClearCurrentMove(m);
 
@@ -298,11 +248,11 @@ namespace Server.Spells
             {
                 WeaponAbility.ClearCurrentAbility(m);
 
-                m_Table[m] = move;
+                Table[m] = move;
 
                 move.OnUse(m);
 
-                int moveID = SpellRegistry.GetRegistryNumber(move);
+                var moveID = SpellRegistry.GetRegistryNumber(move);
 
                 if (moveID > 0)
                     m.Send(new ToggleSpecialAbility(moveID + 1, true));
@@ -318,26 +268,20 @@ namespace Server.Spells
         public static void ClearCurrentMove(Mobile m)
         {
             SpecialMove move = null;
-            m_Table.TryGetValue(m, out move);
+            Table.TryGetValue(m, out move);
 
             if (move != null)
             {
                 move.OnClearMove(m);
 
-                int moveID = SpellRegistry.GetRegistryNumber(move);
+                var moveID = SpellRegistry.GetRegistryNumber(move);
 
                 if (moveID > 0)
                     m.Send(new ToggleSpecialAbility(moveID + 1, false));
             }
 
-            m_Table.Remove(m);
+            Table.Remove(m);
         }
-
-        public SpecialMove()
-        {
-        }
-
-        private static readonly Dictionary<Mobile, SpecialMoveContext> m_PlayersTable = new Dictionary<Mobile, SpecialMoveContext>();
 
         private static void AddContext(Mobile m, SpecialMoveContext context)
         {
@@ -346,7 +290,7 @@ namespace Server.Spells
 
         private static void RemoveContext(Mobile m)
         {
-            SpecialMoveContext context = GetContext(m);
+            var context = GetContext(m);
 
             if (context != null)
             {
@@ -358,7 +302,7 @@ namespace Server.Spells
 
         private static SpecialMoveContext GetContext(Mobile m)
         {
-            return (m_PlayersTable.ContainsKey(m) ? m_PlayersTable[m] : null);
+            return m_PlayersTable.ContainsKey(m) ? m_PlayersTable[m] : null;
         }
 
         public static bool GetContext(Mobile m, Type type)
@@ -369,7 +313,7 @@ namespace Server.Spells
             if (context == null)
                 return false;
 
-            return (context.Type == type);
+            return context.Type == type;
         }
 
         private class SpecialMoveTimer : Timer
@@ -379,41 +323,27 @@ namespace Server.Spells
             public SpecialMoveTimer(Mobile from)
                 : base(TimeSpan.FromSeconds(3.0))
             {
-                this.m_Mobile = from;
+                m_Mobile = from;
 
-                this.Priority = TimerPriority.TwentyFiveMS;
+                Priority = TimerPriority.TwentyFiveMS;
             }
 
             protected override void OnTick()
             {
-                RemoveContext(this.m_Mobile);
+                RemoveContext(m_Mobile);
             }
         }
 
         public class SpecialMoveContext
         {
-            private readonly Timer m_Timer;
-            private readonly Type m_Type;
+            public Timer Timer { get; }
 
-            public Timer Timer
-            {
-                get
-                {
-                    return this.m_Timer;
-                }
-            }
-            public Type Type
-            {
-                get
-                {
-                    return this.m_Type;
-                }
-            }
+            public Type Type { get; }
 
             public SpecialMoveContext(Timer timer, Type type)
             {
-                this.m_Timer = timer;
-                this.m_Type = type;
+                Timer = timer;
+                Type = type;
             }
         }
     }

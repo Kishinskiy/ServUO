@@ -1,42 +1,33 @@
-using System;
-using Server;
-
 namespace Server.Items
 {
-	public class GiantToadCostume : BaseCostume
-	{
-        public override string CreatureName { get { return "giant toad"; } }
+    public class GiantToadCostume : BaseCostume
+    {
+        public override string CreatureName => "giant toad";
+
+        public override int LabelNumber => 1114226; // giant toad costume
 
         [Constructable]
-		public GiantToadCostume() : base( )
-		{
-            this.CostumeBody = 80;
-		}
-		
-		public override int LabelNumber
+        public GiantToadCostume()
         {
-            get
-            {
-                return 1114226;
-            }
-        }// giant toad costume
+            CostumeBody = 80;
+        }
 
-		public GiantToadCostume( Serial serial ) : base( serial )
-		{
-		}
+        public GiantToadCostume(Serial serial) : base(serial)
+        {
+        }
 
-		public override void Serialize( GenericWriter writer )
-		{
-			base.Serialize( writer );
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
 
-			writer.Write( (int) 0 );
-		}
-		
-		public override void Deserialize(GenericReader reader)
-		{
-			base.Deserialize( reader );
+            writer.Write(0);
+        }
 
-			int version = reader.ReadInt();
-		}
-	}
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+
+            var version = reader.ReadInt();
+        }
+    }
 }

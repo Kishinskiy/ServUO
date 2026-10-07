@@ -1,66 +1,40 @@
-﻿using System;
-using System.Collections.Generic;
-using Server;
+﻿using System.Collections.Generic;
 
 namespace Server.Engines.TombOfKings
 {
     public class ChamberLever : Item
     {
-        public static void Generate()
+        private static readonly Point3D[] m_LeverLocations =
         {
-            foreach (Point3D loc in m_LeverLocations)
-            {
-                var item = new ChamberLever(loc);
-                WeakEntityCollection.Add("sa", item);
+            new Point3D(25, 229, 2),
+            new Point3D(25, 227, 2),
+            new Point3D(25, 225, 2),
 
-                m_Levers.Add(item);
-            }
-        }
+            new Point3D(25, 221, 2),
+            new Point3D(25, 219, 2),
+            new Point3D(25, 217, 2),
 
-        private static Point3D[] m_LeverLocations = new Point3D[]
-        {
-            new Point3D( 25, 229, 2 ),
-            new Point3D( 25, 227, 2 ),
-            new Point3D( 25, 225, 2 ),
+            new Point3D(45, 229, 2),
+            new Point3D(45, 227, 2),
+            new Point3D(45, 225, 2),
 
-            new Point3D( 25, 221, 2 ),
-            new Point3D( 25, 219, 2 ),
-            new Point3D( 25, 217, 2 ),
-
-            new Point3D( 45, 229, 2 ),
-            new Point3D( 45, 227, 2 ),
-            new Point3D( 45, 225, 2 ),
-
-            new Point3D( 45, 221, 2 ),
-            new Point3D( 45, 219, 2 ),
-            new Point3D( 45, 217, 2 ),
+            new Point3D(45, 221, 2),
+            new Point3D(45, 219, 2),
+            new Point3D(45, 217, 2)
         };
-
-        private static List<ChamberLever> m_Levers = new List<ChamberLever>();
-
-        public static List<ChamberLever> Levers
-        {
-            get { return m_Levers; }
-        }
 
         private Chamber m_Chamber;
 
+        public static List<ChamberLever> Levers { get; } = new List<ChamberLever>();
+
         public Chamber Chamber
         {
-            get { return m_Chamber; }
+            get => m_Chamber;
             set
             {
                 m_Chamber = value;
                 InvalidateProperties();
             }
-        }
-
-        public bool IsUsable()
-        {
-            if (m_Chamber == null)
-                return false;
-
-            return !m_Chamber.IsOpened();
         }
 
         public ChamberLever(Point3D loc)
@@ -73,6 +47,25 @@ namespace Server.Engines.TombOfKings
         public ChamberLever(Serial serial)
             : base(serial)
         {
+        }
+
+        public static void Generate()
+        {
+            foreach (var loc in m_LeverLocations)
+            {
+                var item = new ChamberLever(loc);
+                WeakEntityCollection.Add("sa", item);
+
+                Levers.Add(item);
+            }
+        }
+
+        public bool IsUsable()
+        {
+            if (m_Chamber == null)
+                return false;
+
+            return !m_Chamber.IsOpened();
         }
 
         public override void AddNameProperties(ObjectPropertyList list)
@@ -104,15 +97,15 @@ namespace Server.Engines.TombOfKings
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            m_Levers.Add(this);
+            Levers.Add(this);
         }
     }
 }

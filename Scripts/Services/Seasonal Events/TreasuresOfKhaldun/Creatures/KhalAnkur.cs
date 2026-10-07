@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Server.Commands;
 using Server.Engines.CannedEvil;
 using Server.Items;
+using Server.Misc;
 using Server.Network;
 
 namespace Server.Mobiles
@@ -11,10 +11,41 @@ namespace Server.Mobiles
     [CorpseName("a Khal Ankur corpse")]
     public class KhalAnkur : BaseChampion
     {
-        public ChampionSpawn Spawn { get; set; }
-        private DateTime m_NextSpawn;
-        private DateTime m_NextSay;
         private DateTime m_NextAbilityTime;
+        private DateTime m_NextSay;
+        private DateTime m_NextSpawn;
+        public ChampionSpawn Spawn { get; set; }
+
+        public override bool Unprovokable => true;
+        public override bool BleedImmune => true;
+        public override Poison PoisonImmune => Poison.Lethal;
+        public override bool ShowFameTitle => false;
+        public override bool ClickTitle => false;
+        public override bool AlwaysMurderer => true;
+        public override bool AutoDispel => true;
+        public override double AutoDispelChance => 1.0;
+
+        public override ChampionSkullType SkullType => ChampionSkullType.None;
+
+        public override Type[] UniqueList
+        {
+            get { return new Type[] { }; }
+        }
+
+        public override Type[] SharedList
+        {
+            get { return new Type[] { }; }
+        }
+
+        public override Type[] DecorativeList
+        {
+            get { return new Type[] { }; }
+        }
+
+        public override MonsterStatuetteType[] StatueTypes
+        {
+            get { return new MonsterStatuetteType[] { }; }
+        }
 
         [Constructable]
         public KhalAnkur()
@@ -63,52 +94,9 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool Unprovokable { get { return true; } }
-        public override bool BleedImmune { get { return true; } }
-        public override Poison PoisonImmune { get { return Poison.Lethal; } }
-        public override bool ShowFameTitle { get { return false; } }
-        public override bool ClickTitle { get { return false; } }
-        public override bool AlwaysMurderer { get { return true; } }
-        public override bool AutoDispel { get { return true; } }
-        public override double AutoDispelChance { get { return 1.0; } }
-
-        public override ChampionSkullType SkullType { get { return ChampionSkullType.None; } }
-
-        public override Type[] UniqueList
+        public override void OnBeforeDamage(Mobile from, ref int totalDamage, DamageType type)
         {
-            get
-            {
-                return new Type[] { };
-            }
-        }
-        public override Type[] SharedList
-        {
-            get
-            {
-                return new Type[] { };
-            }
-        }
-        public override Type[] DecorativeList
-        {
-            get
-            {
-                return new Type[] { };
-            }
-        }
-        public override MonsterStatuetteType[] StatueTypes
-        {
-            get
-            {
-                return new MonsterStatuetteType[] { };
-            }
-        }
-
-        public override void OnBeforeDamage(Mobile from, ref int totalDamage, Server.DamageType type)
-        {
-            if (Region.IsPartOf("Khaldun") && IsChampionSpawn && !Caddellite.CheckDamage(from, type))
-            {
-                totalDamage = 0;
-            }
+            if (Region.IsPartOf("Khaldun") && IsChampionSpawn && !Caddellite.CheckDamage(from, type)) totalDamage = 0;
 
             base.OnBeforeDamage(from, ref totalDamage, type);
         }
@@ -117,7 +105,8 @@ namespace Server.Mobiles
         {
             base.OnGaveMeleeAttack(defender);
 
-            if (Hue == 0 && Hits < HitsMax * 0.60 && DateTime.UtcNow > m_NextAbilityTime && 0.2 > Utility.RandomDouble())
+            if (Hue == 0 && Hits < HitsMax * 0.60 && DateTime.UtcNow > m_NextAbilityTime &&
+                0.2 > Utility.RandomDouble())
             {
                 Hue = 2745;
                 new InternalTimer(this);
@@ -127,9 +116,8 @@ namespace Server.Mobiles
         public override void OnDoubleClick(Mobile from)
         {
             if (Blessed)
-            {
-                from.SendLocalizedMessage(1071372); // It's covered with treasure guardian's magical power. To touch it, you need to beat them!
-            }
+                from.SendLocalizedMessage(
+                    1071372); // It's covered with treasure guardian's magical power. To touch it, you need to beat them!
 
             base.OnDoubleClick(from);
         }
@@ -142,15 +130,13 @@ namespace Server.Mobiles
 
         public override void OnThink()
         {
-            base.OnThink();            
+            base.OnThink();
 
             if (Spawn == null || Map == null)
                 return;
 
             if (!Utility.InRange(Location, Home, 150))
-            {
                 Timer.DelayCall(TimeSpan.FromSeconds(5), () => { Location = Home; });
-            }
 
             if (Blessed)
             {
@@ -167,9 +153,9 @@ namespace Server.Mobiles
 
                     int x, y, z = 0;
 
-                    Point3D p = Location;
+                    var p = Location;
 
-                    for (int i = 0; i < 25; i++)
+                    for (var i = 0; i < 25; i++)
                     {
                         x = Utility.RandomMinMax(p.X - 4, p.X + 4);
                         y = Utility.RandomMinMax(p.Y - 4, p.Y + 4);
@@ -190,87 +176,22 @@ namespace Server.Mobiles
 
                     m_NextSpawn = DateTime.UtcNow + TimeSpan.FromSeconds(Utility.RandomMinMax(120, 180));
                 }
-                else if (Spawn.Creatures.OfType<KhalAnkurWarriors>().Where(x => x._Type == KhalAnkurWarriors.WarriorType.General && !x.Deleted).Count() <= 0)
+                else if (Spawn.Creatures.OfType<KhalAnkurWarriors>()
+                             .Where(x => x._Type == KhalAnkurWarriors.WarriorType.General && !x.Deleted).Count() <= 0)
                 {
                     Blessed = false;
-                    return;
                 }
-            }
-        }
-
-        private class InternalTimer : Timer
-        {
-            private KhalAnkur m_Mobile;
-            private int m_Tick;
-
-            public InternalTimer(KhalAnkur mob)
-                : base(TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(2))
-            {
-                m_Tick = 1;
-                m_Mobile = mob;
-                Start();
-            }
-
-            protected override void OnTick()
-            {
-                if (!m_Mobile.Alive || m_Mobile.Deleted || m_Mobile.Map == null)
-                {
-                    Stop();
-                }
-                else if (m_Tick < 15)
-                {
-                    Point3D p = FindLocation(m_Mobile.Map, m_Mobile.Location, 7);
-                    Effects.SendLocationEffect(p, m_Mobile.Map, 0x3789, 30, 1, 2062, 0x4);
-
-                    m_Tick++;
-                }
-                else
-                {
-                    m_Mobile.ClearAround();
-                    Stop();
-                }
-            }
-
-            private Point3D FindLocation(Map map, Point3D center, int range)
-            {
-                int cx = center.X;
-                int cy = center.Y;
-
-                for (int i = 0; i < 20; ++i)
-                {
-                    int x = cx + Utility.Random(range * 2) - range;
-                    int y = cy + Utility.Random(range * 2) - range;
-
-                    if ((cx - x) * (cx - x) + (cy - y) * (cy - y) > range * range)
-                        continue;
-
-                    int z = map.GetAverageZ(x, y);
-
-                    if (!map.CanFit(x, y, z, 6, false, false))
-                        continue;
-
-                    int topZ = z;
-
-                    foreach (Item item in map.GetItemsInRange(new Point3D(x, y, z), 0))
-                    {
-                        topZ = Math.Max(topZ, item.Z + item.ItemData.CalcHeight);
-                    }
-
-                    return new Point3D(x, y, topZ);
-                }
-
-                return center;
             }
         }
 
         private void ClearAround()
         {
-            Point3D loc = Location;
-            Map pmmap = Map;
+            var loc = Location;
+            var pmmap = Map;
 
-            List<Point3D> points = new List<Point3D>();
+            var points = new List<Point3D>();
 
-            Server.Misc.Geometry.Circle2D(loc, pmmap, 7, (pnt, map) =>
+            Geometry.Circle2D(loc, pmmap, 7, (pnt, map) =>
             {
                 if (map.CanFit(pnt, 0) && InLOS(pnt))
                     points.Add(pnt);
@@ -278,21 +199,29 @@ namespace Server.Mobiles
 
             if (pmmap != Map.Internal && pmmap != null)
             {
-                Server.Misc.Geometry.Circle2D(loc, pmmap, 6, (pnt, map) =>
+                Geometry.Circle2D(loc, pmmap, 6, (pnt, map) =>
                 {
                     if (map.CanFit(pnt, 0) && InLOS(pnt) && Utility.RandomBool())
                     {
-                        Effects.SendPacket(pnt, map, new ParticleEffect(EffectType.FixedXYZ, Serial, Serial.Zero, 0x3789, pnt, pnt, 1, 30, false, false, 0, 3, 0, 9502, 1, Serial, 153, 0));
-                        Effects.SendPacket(pnt, map, new ParticleEffect(EffectType.FixedXYZ, Serial, Serial.Zero, 0x9DAC, pnt, pnt, 1, 30, false, false, 0, 0, 0, 9502, 1, Serial, 153, 0));
+                        Effects.SendPacket(pnt, map,
+                            new ParticleEffect(EffectType.FixedXYZ, Serial, Serial.Zero, 0x3789, pnt, pnt, 1, 30, false,
+                                false, 0, 3, 0, 9502, 1, Serial, 153, 0));
+                        Effects.SendPacket(pnt, map,
+                            new ParticleEffect(EffectType.FixedXYZ, Serial, Serial.Zero, 0x9DAC, pnt, pnt, 1, 30, false,
+                                false, 0, 0, 0, 9502, 1, Serial, 153, 0));
                     }
                 });
 
-                Server.Misc.Geometry.Circle2D(loc, pmmap, 7, (pnt, map) =>
+                Geometry.Circle2D(loc, pmmap, 7, (pnt, map) =>
                 {
                     if (map.CanFit(pnt, 0) && InLOS(pnt) && Utility.RandomBool())
                     {
-                        Effects.SendPacket(pnt, map, new ParticleEffect(EffectType.FixedXYZ, Serial, Serial.Zero, 0x3789, pnt, pnt, 1, 30, false, false, 0, 3, 0, 9502, 1, Serial, 153, 0));
-                        Effects.SendPacket(pnt, map, new ParticleEffect(EffectType.FixedXYZ, Serial, Serial.Zero, 0x9DAC, pnt, pnt, 1, 30, false, false, 0, 0, 0, 9502, 1, Serial, 153, 0));
+                        Effects.SendPacket(pnt, map,
+                            new ParticleEffect(EffectType.FixedXYZ, Serial, Serial.Zero, 0x3789, pnt, pnt, 1, 30, false,
+                                false, 0, 3, 0, 9502, 1, Serial, 153, 0));
+                        Effects.SendPacket(pnt, map,
+                            new ParticleEffect(EffectType.FixedXYZ, Serial, Serial.Zero, 0x9DAC, pnt, pnt, 1, 30, false,
+                                false, 0, 0, 0, 9502, 1, Serial, 153, 0));
                     }
                 });
             }
@@ -306,9 +235,10 @@ namespace Server.Mobiles
                     if (!from.Alive || from == this || from.AccessLevel > AccessLevel.Player)
                         continue;
 
-                    if (from is PlayerMobile || (from is BaseCreature && (((BaseCreature)from).Controlled) || ((BaseCreature)from).Summoned))
+                    if (from is PlayerMobile || (from is BaseCreature && ((BaseCreature)from).Controlled) ||
+                        ((BaseCreature)from).Summoned)
                     {
-                        Point3D point = points[Utility.Random(points.Count)];
+                        var point = points[Utility.Random(points.Count)];
                         from.MoveToWorld(point, pmmap);
                         from.Frozen = true;
 
@@ -320,7 +250,7 @@ namespace Server.Mobiles
 
                         if (CanBeHarmful(from))
                         {
-                            double damage = from.Hits * 0.6;
+                            var damage = from.Hits * 0.6;
 
                             if (damage < 10.0)
                                 damage = 10.0;
@@ -351,19 +281,82 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
-            writer.WriteItem<ChampionSpawn>(Spawn);
+            writer.WriteItem(Spawn);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             Spawn = reader.ReadItem<ChampionSpawn>();
 
             Hue = 0;
+        }
+
+        private class InternalTimer : Timer
+        {
+            private readonly KhalAnkur m_Mobile;
+            private int m_Tick;
+
+            public InternalTimer(KhalAnkur mob)
+                : base(TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(2))
+            {
+                m_Tick = 1;
+                m_Mobile = mob;
+                Start();
+            }
+
+            protected override void OnTick()
+            {
+                if (!m_Mobile.Alive || m_Mobile.Deleted || m_Mobile.Map == null)
+                {
+                    Stop();
+                }
+                else if (m_Tick < 15)
+                {
+                    var p = FindLocation(m_Mobile.Map, m_Mobile.Location, 7);
+                    Effects.SendLocationEffect(p, m_Mobile.Map, 0x3789, 30, 1, 2062, 0x4);
+
+                    m_Tick++;
+                }
+                else
+                {
+                    m_Mobile.ClearAround();
+                    Stop();
+                }
+            }
+
+            private Point3D FindLocation(Map map, Point3D center, int range)
+            {
+                var cx = center.X;
+                var cy = center.Y;
+
+                for (var i = 0; i < 20; ++i)
+                {
+                    var x = cx + Utility.Random(range * 2) - range;
+                    var y = cy + Utility.Random(range * 2) - range;
+
+                    if ((cx - x) * (cx - x) + (cy - y) * (cy - y) > range * range)
+                        continue;
+
+                    var z = map.GetAverageZ(x, y);
+
+                    if (!map.CanFit(x, y, z, 6, false, false))
+                        continue;
+
+                    var topZ = z;
+
+                    foreach (var item in map.GetItemsInRange(new Point3D(x, y, z), 0))
+                        topZ = Math.Max(topZ, item.Z + item.ItemData.CalcHeight);
+
+                    return new Point3D(x, y, topZ);
+                }
+
+                return center;
+            }
         }
     }
 }

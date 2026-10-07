@@ -1,6 +1,4 @@
 using System;
-using Server;
-using System.Collections;
 using System.Collections.Generic;
 using Server.Spells;
 
@@ -8,11 +6,10 @@ namespace Server.Items
 {
     public class ForceArrow : WeaponAbility
     {
-        public ForceArrow()
-        {
-        }
+        private static readonly Dictionary<Mobile, List<ForceArrowInfo>> m_Table =
+            new Dictionary<Mobile, List<ForceArrowInfo>>();
 
-        public override int BaseMana { get { return 20; } }
+        public override int BaseMana => 20;
 
         public override void OnHit(Mobile attacker, Mobile defender, int damage)
         {
@@ -30,10 +27,12 @@ namespace Server.Items
                 defender.Warmode = false;
             }
 
-            ForceArrowInfo info = GetInfo(attacker, defender);
+            var info = GetInfo(attacker, defender);
 
             if (info == null)
+            {
                 BeginForceArrow(attacker, defender);
+            }
             else
             {
                 if (info.Timer != null && info.Timer.Running)
@@ -41,21 +40,20 @@ namespace Server.Items
                     info.Timer.IncreaseExpiration();
 
                     BuffInfo.RemoveBuff(defender, BuffIcon.ForceArrow);
-                    BuffInfo.AddBuff(defender, new BuffInfo(BuffIcon.ForceArrow, 1151285, 1151286, info.DefenseChanceMalus.ToString()));
+                    BuffInfo.AddBuff(defender,
+                        new BuffInfo(BuffIcon.ForceArrow, 1151285, 1151286, info.DefenseChanceMalus.ToString()));
                 }
             }
 
-            Spell spell = defender.Spell as Spell;
+            var spell = defender.Spell as Spell;
 
             if (spell != null && spell.IsCasting)
                 spell.Disturb(DisturbType.Hurt, false, true);
         }
 
-        private static Dictionary<Mobile, List<ForceArrowInfo>> m_Table = new Dictionary<Mobile, List<ForceArrowInfo>>();
-
         public static void BeginForceArrow(Mobile attacker, Mobile defender)
         {
-            ForceArrowInfo info = new ForceArrowInfo(attacker, defender);
+            var info = new ForceArrowInfo(attacker, defender);
             info.Timer = new ForceArrowTimer(info);
 
             if (!m_Table.ContainsKey(attacker))
@@ -63,7 +61,8 @@ namespace Server.Items
 
             m_Table[attacker].Add(info);
 
-            BuffInfo.AddBuff(defender, new BuffInfo(BuffIcon.ForceArrow, 1151285, 1151286, info.DefenseChanceMalus.ToString()));
+            BuffInfo.AddBuff(defender,
+                new BuffInfo(BuffIcon.ForceArrow, 1151285, 1151286, info.DefenseChanceMalus.ToString()));
         }
 
         public static void EndForceArrow(ForceArrowInfo info)
@@ -71,7 +70,7 @@ namespace Server.Items
             if (info == null)
                 return;
 
-            Mobile attacker = info.Attacker;
+            var attacker = info.Attacker;
 
             if (m_Table.ContainsKey(attacker) && m_Table[attacker].Contains(info))
             {
@@ -89,11 +88,9 @@ namespace Server.Items
             if (!m_Table.ContainsKey(attacker))
                 return false;
 
-            foreach (ForceArrowInfo info in m_Table[attacker])
-            {
+            foreach (var info in m_Table[attacker])
                 if (info.Defender == defender)
                     return true;
-            }
 
             return false;
         }
@@ -103,38 +100,34 @@ namespace Server.Items
             if (!m_Table.ContainsKey(attacker))
                 return null;
 
-            foreach (ForceArrowInfo info in m_Table[attacker])
-            {
+            foreach (var info in m_Table[attacker])
                 if (info.Defender == defender)
                     return info;
-            }
 
             return null;
         }
 
         public class ForceArrowInfo
         {
-            private Mobile m_Attacker;
-            private Mobile m_Defender;
-            private ForceArrowTimer m_Timer;
-            private int m_DefenseChanceMalus;
+            public Mobile Attacker { get; }
 
-            public Mobile Attacker { get { return m_Attacker; } }
-            public Mobile Defender { get { return m_Defender; } }
-            public ForceArrowTimer Timer { get { return m_Timer; } set { m_Timer = value; } }
-            public int DefenseChanceMalus { get { return m_DefenseChanceMalus; } set { m_DefenseChanceMalus = value; } }
+            public Mobile Defender { get; }
+
+            public ForceArrowTimer Timer { get; set; }
+
+            public int DefenseChanceMalus { get; set; }
 
             public ForceArrowInfo(Mobile attacker, Mobile defender)
             {
-                m_Attacker = attacker;
-                m_Defender = defender;
-                m_DefenseChanceMalus = 10;
+                Attacker = attacker;
+                Defender = defender;
+                DefenseChanceMalus = 10;
             }
         }
 
         public class ForceArrowTimer : Timer
         {
-            private ForceArrowInfo m_Info;
+            private readonly ForceArrowInfo m_Info;
             private DateTime m_Expires;
 
             public ForceArrowTimer(ForceArrowInfo info)

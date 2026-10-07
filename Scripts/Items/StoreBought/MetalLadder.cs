@@ -1,4 +1,3 @@
-using System;
 using Server.Gumps;
 
 namespace Server.Items
@@ -17,7 +16,7 @@ namespace Server.Items
 
     public class MetalLadderAddon : BaseAddon, IDyable
     {
-        public override BaseAddonDeed Deed { get { return new MetalLadderDeed(); } }
+        public override BaseAddonDeed Deed => new MetalLadderDeed();
 
         [Constructable]
         public MetalLadderAddon(MetalLadderType type)
@@ -53,6 +52,11 @@ namespace Server.Items
             }
         }
 
+        public MetalLadderAddon(Serial serial)
+            : base(serial)
+        {
+        }
+
         public virtual bool Dye(Mobile from, DyeTub sender)
         {
             if (Deleted)
@@ -62,47 +66,33 @@ namespace Server.Items
             return true;
         }
 
-        public MetalLadderAddon(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class MetalLadderDeed : BaseAddonDeed, IRewardOption
     {
-        public override BaseAddon Addon { get { return new MetalLadderAddon(_Direction); } }
-        public override int LabelNumber { get { return 1159445; } } // metal ladder
-
         private MetalLadderType _Direction;
+        public override BaseAddon Addon => new MetalLadderAddon(_Direction);
+        public override int LabelNumber => 1159445; // metal ladder
 
         [Constructable]
         public MetalLadderDeed()
         {
         }
 
-        public override void OnDoubleClick(Mobile from)
+        public MetalLadderDeed(Serial serial)
+            : base(serial)
         {
-            if (IsChildOf(from.Backpack))
-            {
-                from.CloseGump(typeof(AddonOptionGump));
-                from.SendGump(new AddonOptionGump(this, 1154194, 300, 260)); // Choose a Facing:
-            }
-            else
-            {
-                from.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.
-            }
         }
 
         public void GetOptions(RewardOptionList list)
@@ -125,21 +115,29 @@ namespace Server.Items
                 base.OnDoubleClick(from);
         }
 
-        public MetalLadderDeed(Serial serial)
-            : base(serial)
+        public override void OnDoubleClick(Mobile from)
         {
+            if (IsChildOf(from.Backpack))
+            {
+                from.CloseGump(typeof(AddonOptionGump));
+                from.SendGump(new AddonOptionGump(this, 1154194, 300, 260)); // Choose a Facing:
+            }
+            else
+            {
+                from.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.
+            }
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

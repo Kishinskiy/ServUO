@@ -181,7 +181,7 @@ namespace Server
 
                                 var nextg = next < DateTime.Now
                                     ? "now"
-                                    : "in " + ((int)(next - DateTime.Now).TotalMinutes) + " minutes";
+                                    : "in " + (int)(next - DateTime.Now).TotalMinutes + " minutes";
 
                                 Console.WriteLine(
                                     "   {0}: last gained {1}, can gain {2} (every {3} minutes)",

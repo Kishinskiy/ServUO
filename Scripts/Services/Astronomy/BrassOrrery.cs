@@ -1,10 +1,8 @@
-using Server;
-
 namespace Server.Items
 {
     public class BrassOrrery : Item
     {
-        public override int LabelNumber { get { return 1125363; } } // orrery
+        public override int LabelNumber => 1125363; // orrery
 
         [CommandProperty(AccessLevel.GameMaster)]
         public bool Active { get; set; }
@@ -15,12 +13,14 @@ namespace Server.Items
         {
         }
 
+        public BrassOrrery(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void OnDoubleClick(Mobile m)
         {
-            if (m.InRange(GetWorldLocation(), 2))
-            {
-                ToggleActivation(m);
-            }
+            if (m.InRange(GetWorldLocation(), 2)) ToggleActivation(m);
         }
 
         public void ToggleActivation(Mobile m)
@@ -41,11 +41,6 @@ namespace Server.Items
             }
         }
 
-        public BrassOrrery(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -56,7 +51,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
             Active = reader.ReadBool();
         }
     }

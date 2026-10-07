@@ -1,14 +1,40 @@
 using System;
-using Server.Items;
-using Server.Mobiles;
 using System.Collections.Generic;
 using Server.Engines.BulkOrders;
+using Server.Items;
+using Server.Mobiles;
 
 namespace Server.Engines.Quests
 {
     public class Zosilem : MondainQuester, ITierQuester
     {
-        public TierQuestInfo TierInfo { get { return TierQuestInfo.Zosilem; } }
+        private const int NeededIngots = 20;
+
+        private static readonly Type[][] m_PileTypes =
+        {
+            new[] { typeof(DullCopperIngot), typeof(PileofInspectedDullCopperIngots) },
+            new[] { typeof(ShadowIronIngot), typeof(PileofInspectedShadowIronIngots) },
+            new[] { typeof(BronzeIngot), typeof(PileofInspectedBronzeIngots) },
+            new[] { typeof(GoldIngot), typeof(PileofInspectedGoldIngots) },
+            new[] { typeof(AgapiteIngot), typeof(PileofInspectedAgapiteIngots) },
+            new[] { typeof(VeriteIngot), typeof(PileofInspectedVeriteIngots) },
+            new[] { typeof(ValoriteIngot), typeof(PileofInspectedValoriteIngots) }
+        };
+
+        private static readonly object[][] m_KegTypes =
+        {
+            new object[] { PotionEffect.RefreshTotal, typeof(InspectedKegofTotalRefreshment) },
+            new object[] { PotionEffect.PoisonGreater, typeof(InspectedKegofGreaterPoison) }
+        };
+
+        public override Type[] Quests
+        {
+            get { return new Type[] { }; }
+        }
+
+        public override bool IsActiveVendor => true;
+
+        protected override List<SBInfo> SBInfos => m_SBInfos;
 
         [Constructable]
         public Zosilem()
@@ -23,35 +49,7 @@ namespace Server.Engines.Quests
         {
         }
 
-        public override Type[] Quests
-        {
-            get { return new Type[] { }; }
-        }
-
-        #region Bulk Orders
-        public override BODType BODType { get { return BODType.Alchemy; } }
-
-        public override bool IsValidBulkOrder(Item item)
-        {
-            return (item is SmallAlchemyBOD || item is LargeAlchemyBOD);
-        }
-
-        public override bool SupportsBulkOrders(Mobile from)
-        {
-            return BulkOrderSystem.NewSystemEnabled && from is PlayerMobile && from.Skills[SkillName.Alchemy].Base > 0;
-        }
-
-        public override void OnSuccessfulBulkOrderReceive(Mobile from)
-        {
-            if (from is PlayerMobile)
-                ((PlayerMobile)from).NextAlchemyBulkOrder = TimeSpan.Zero;
-        }
-
-        #endregion
-
-        public override bool IsActiveVendor { get { return true; } }
-
-        protected override List<SBInfo> SBInfos { get { return m_SBInfos; } }
+        public TierQuestInfo TierInfo => TierQuestInfo.Zosilem;
 
         public override void InitSBInfo()
         {
@@ -78,32 +76,13 @@ namespace Server.Engines.Quests
             AddItem(new FemaleGargishClothArms(0x711));
         }
 
-        private static Type[][] m_PileTypes = new Type[][]
-            {
-                new Type[] {typeof(DullCopperIngot),  typeof(PileofInspectedDullCopperIngots) },
-                new Type[] {typeof(ShadowIronIngot),  typeof(PileofInspectedShadowIronIngots) },
-                new Type[] {typeof(BronzeIngot),      typeof(PileofInspectedBronzeIngots) },
-                new Type[] {typeof(GoldIngot),        typeof(PileofInspectedGoldIngots) },
-                new Type[] {typeof(AgapiteIngot),     typeof(PileofInspectedAgapiteIngots) },
-                new Type[] {typeof(VeriteIngot),      typeof(PileofInspectedVeriteIngots) },
-                new Type[] {typeof(ValoriteIngot),    typeof(PileofInspectedValoriteIngots) }
-            };
-
-        private static object[][] m_KegTypes = new object[][]
-            {
-                new object[] {PotionEffect.RefreshTotal,  typeof(InspectedKegofTotalRefreshment) },
-                new object[] {PotionEffect.PoisonGreater, typeof(InspectedKegofGreaterPoison) }
-            };
-
-        private const int NeededIngots = 20;
-
         private Type GetPileType(Item item)
         {
-            Type itemType = item.GetType();
+            var itemType = item.GetType();
 
-            for (int i = 0; i < m_PileTypes.Length; i++)
+            for (var i = 0; i < m_PileTypes.Length; i++)
             {
-                Type[] pair = m_PileTypes[i];
+                var pair = m_PileTypes[i];
 
                 if (itemType == pair[0])
                     return pair[1];
@@ -114,9 +93,9 @@ namespace Server.Engines.Quests
 
         private Type GetKegType(PotionEffect effect)
         {
-            for (int i = 0; i < m_KegTypes.Length; i++)
+            for (var i = 0; i < m_KegTypes.Length; i++)
             {
-                object[] pair = m_KegTypes[i];
+                var pair = m_KegTypes[i];
 
                 if (effect == (PotionEffect)pair[0])
                     return (Type)pair[1];
@@ -128,43 +107,31 @@ namespace Server.Engines.Quests
         public override bool OnDragDrop(Mobile from, Item item)
         {
             Type inspectedType = null;
-            bool success = false;
+            var success = false;
 
             inspectedType = GetPileType(item);
 
             if (inspectedType != null)
             {
                 if (item.Amount > NeededIngots)
-                {
                     SayTo(from, 1113037); // That's too many.
-                }
                 else if (item.Amount < NeededIngots)
-                {
                     SayTo(from, 1113036); // That's not enough.
-                }
                 else
-                {
                     success = true;
-                }
             }
             else if (item is PotionKeg)
             {
-                PotionKeg keg = (PotionKeg)item;
+                var keg = (PotionKeg)item;
 
                 inspectedType = GetKegType(keg.Type);
 
                 if (inspectedType == null)
-                {
                     SayTo(from, 1113039); // It is the wrong type.
-                }
                 else if (keg.Held < 100)
-                {
                     SayTo(from, 1113038); // It is not full.
-                }
                 else
-                {
                     success = true;
-                }
             }
             else
             {
@@ -185,13 +152,35 @@ namespace Server.Engines.Quests
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
+
+        #region Bulk Orders
+
+        public override BODType BODType => BODType.Alchemy;
+
+        public override bool IsValidBulkOrder(Item item)
+        {
+            return item is SmallAlchemyBOD || item is LargeAlchemyBOD;
+        }
+
+        public override bool SupportsBulkOrders(Mobile from)
+        {
+            return BulkOrderSystem.NewSystemEnabled && from is PlayerMobile && from.Skills[SkillName.Alchemy].Base > 0;
+        }
+
+        public override void OnSuccessfulBulkOrderReceive(Mobile from)
+        {
+            if (from is PlayerMobile)
+                ((PlayerMobile)from).NextAlchemyBulkOrder = TimeSpan.Zero;
+        }
+
+        #endregion
     }
 }

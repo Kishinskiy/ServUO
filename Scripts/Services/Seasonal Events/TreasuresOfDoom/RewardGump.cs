@@ -1,12 +1,7 @@
-using System;
-using Server;
+using Server.Engines.Points;
+using Server.Gumps;
 using Server.Items;
 using Server.Mobiles;
-using Server.Network;
-using Server.Engines.Points;
-using System.Collections.Generic;
-using Server.Gumps;
-using Server.Engines.Craft;
 
 namespace Server.Engines.TreasuresOfDoom
 {
@@ -32,24 +27,18 @@ namespace Server.Engines.TreasuresOfDoom
             Item item = null;
 
             if (citem.Type == typeof(TreasuresOfDoomRewardDeed))
-            {
                 item = new TreasuresOfKotlRewardDeed(citem.Tooltip);
-            }
             else
-            {
                 item = Loot.Construct(citem.Type);
-            }
 
             if (item != null)
             {
-                if (item is LanternOfLight)
-                {
-                    ((LanternOfLight)item).OwnerName = User.Name;
-                }
+                if (item is LanternOfLight) ((LanternOfLight)item).OwnerName = User.Name;
 
                 if (User.Backpack == null || !User.Backpack.TryDropItem(User, item, false))
                 {
-                    User.SendLocalizedMessage(1074361); // The reward could not be given.  Make sure you have room in your pack.
+                    User.SendLocalizedMessage(
+                        1074361); // The reward could not be given.  Make sure you have room in your pack.
                     item.Delete();
                 }
                 else

@@ -1,4 +1,3 @@
-using System;
 using Server.Engines.VeteranRewards;
 using Server.Gumps;
 
@@ -6,6 +5,20 @@ namespace Server.Items
 {
     public class WaterWheelAddon : BaseAddon, IWaterSource
     {
+        [CommandProperty(AccessLevel.GameMaster)]
+        public bool IsRewardItem { get; set; }
+
+        public override BaseAddonDeed Deed
+        {
+            get
+            {
+                var deed = new WaterWheelDeed();
+                deed.IsRewardItem = IsRewardItem;
+
+                return deed;
+            }
+        }
+
         [Constructable]
         public WaterWheelAddon(DirectionType type)
         {
@@ -20,43 +33,29 @@ namespace Server.Items
             }
         }
 
-        public int Quantity
-        {
-            get { return 500; }
-            set {}
-        }
-
         public WaterWheelAddon(Serial serial)
             : base(serial)
         {
         }
-        
-        [CommandProperty(AccessLevel.GameMaster)]
-        public bool IsRewardItem { get; set; }
 
-        public override BaseAddonDeed Deed
+        public int Quantity
         {
-            get
-            {
-                WaterWheelDeed deed = new WaterWheelDeed();
-                deed.IsRewardItem = IsRewardItem;
-
-                return deed;
-            }
+            get => 500;
+            set { }
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
 
-            writer.Write((bool)IsRewardItem);
+            writer.Write(IsRewardItem);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             IsRewardItem = reader.ReadBool();
         }
@@ -64,40 +63,24 @@ namespace Server.Items
 
     public class WaterWheelDeed : BaseAddonDeed, IRewardItem, IRewardOption
     {
-        public override int LabelNumber { get { return 1158881; } } // Water Wheel
-        
+        private DirectionType _Direction;
+
+        private bool m_IsRewardItem;
+        public override int LabelNumber => 1158881; // Water Wheel
+
         public override BaseAddon Addon
         {
             get
             {
-                WaterWheelAddon addon = new WaterWheelAddon(_Direction);
+                var addon = new WaterWheelAddon(_Direction);
                 addon.IsRewardItem = m_IsRewardItem;
 
                 return addon;
             }
         }
 
-        private DirectionType _Direction;
-
-        private bool m_IsRewardItem;
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public bool IsRewardItem
-        {
-            get
-            {
-                return m_IsRewardItem;
-            }
-            set
-            {
-                m_IsRewardItem = value;
-                InvalidateProperties();
-            }
-        }
-
         [Constructable]
         public WaterWheelDeed()
-            : base()
         {
             LootType = LootType.Blessed;
         }
@@ -107,12 +90,15 @@ namespace Server.Items
         {
         }
 
-        public override void GetProperties(ObjectPropertyList list)
+        [CommandProperty(AccessLevel.GameMaster)]
+        public bool IsRewardItem
         {
-            base.GetProperties(list);
-
-            if (m_IsRewardItem)
-                list.Add(1080457); // 10th Year Veteran Reward
+            get => m_IsRewardItem;
+            set
+            {
+                m_IsRewardItem = value;
+                InvalidateProperties();
+            }
         }
 
         public void GetOptions(RewardOptionList list)
@@ -127,6 +113,14 @@ namespace Server.Items
 
             if (!Deleted)
                 base.OnDoubleClick(from);
+        }
+
+        public override void GetProperties(ObjectPropertyList list)
+        {
+            base.GetProperties(list);
+
+            if (m_IsRewardItem)
+                list.Add(1080457); // 10th Year Veteran Reward
         }
 
         public override void OnDoubleClick(Mobile from)
@@ -145,15 +139,15 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
 
-            writer.Write((bool)m_IsRewardItem);
+            writer.Write(m_IsRewardItem);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             m_IsRewardItem = reader.ReadBool();
         }

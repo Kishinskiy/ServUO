@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using Server.Mobiles;
-using System.Text;
-using Server;
 
 namespace Server.Items
 {
@@ -14,7 +12,7 @@ namespace Server.Items
         BalmOfSwiftnessEffect,
         BalmOfProtectionEffect,
         StoneSkinLotionEffect,
-        LifeShieldLotionEffect,
+        LifeShieldLotionEffect
     }
 
     public class ThieveConsumableInfo
@@ -31,31 +29,21 @@ namespace Server.Items
 
     public abstract class BaseThieveConsumable : Item
     {
+        private static readonly Dictionary<PlayerMobile, ThieveConsumableInfo> EffectTable =
+            new Dictionary<PlayerMobile, ThieveConsumableInfo>();
+
+        public TimeSpan m_EffectDuration;
+        protected ThieveConsumableEffect m_EffectType;
+
         public BaseThieveConsumable(int itemId)
             : base(itemId)
         {
         }
 
-        public class InternalTimer : Timer
+        public BaseThieveConsumable(Serial serial)
+            : base(serial)
         {
-            public PlayerMobile pm;
-            public ThieveConsumableEffect effect;
-
-            protected override void OnTick()
-            {
-                BaseThieveConsumable.RemoveEffect(pm,effect);
-            }
-
-            public InternalTimer(PlayerMobile p, ThieveConsumableEffect e, TimeSpan delay)
-                : base(delay)
-            {
-                pm = p;
-                effect = e; 
-            }
         }
-
-        public   TimeSpan m_EffectDuration;
-        protected  ThieveConsumableEffect m_EffectType;
 
         protected virtual void OnUse(PlayerMobile by)
         {
@@ -63,49 +51,44 @@ namespace Server.Items
 
         protected virtual void ApplyEffect(PlayerMobile pm)
         {
+            if (m_EffectDuration == TimeSpan.Zero) m_EffectDuration = TimeSpan.FromMinutes(30);
 
-            if (m_EffectDuration == TimeSpan.Zero)
-            {
-                m_EffectDuration = TimeSpan.FromMinutes(30); 
-            }
+            var t = new InternalTimer(pm, m_EffectType, m_EffectDuration);
+            t.Start();
 
-            InternalTimer t = new InternalTimer(pm,m_EffectType,m_EffectDuration);
-            t.Start(); 
+            var info = new ThieveConsumableInfo(t, m_EffectType);
 
-            ThieveConsumableInfo info = new ThieveConsumableInfo(t, this.m_EffectType);
-            
-            if (EffectTable.ContainsKey(pm))
-            {
-                RemoveEffect(pm, EffectTable[pm].Effect); 
-            }
-                
+            if (EffectTable.ContainsKey(pm)) RemoveEffect(pm, EffectTable[pm].Effect);
+
             EffectTable.Add(pm, info);
-            this.Consume(); 
+            Consume();
         }
 
         protected static void RemoveEffect(PlayerMobile pm, ThieveConsumableEffect effectType)
         {
             if (EffectTable.ContainsKey(pm))
             {
-
                 EffectTable[pm].EffectTimer.Stop();
                 EffectTable.Remove(pm);
 
-                pm.SendLocalizedMessage(1095134);//The effects of the balm or lotion have worn off.
+                pm.SendLocalizedMessage(1095134); //The effects of the balm or lotion have worn off.
 
-                if (effectType == ThieveConsumableEffect.BalmOfStrengthEffect || effectType == ThieveConsumableEffect.BalmOfSwiftnessEffect || effectType == ThieveConsumableEffect.BalmOfWisdomEffect)
+                if (effectType == ThieveConsumableEffect.BalmOfStrengthEffect ||
+                    effectType == ThieveConsumableEffect.BalmOfSwiftnessEffect ||
+                    effectType == ThieveConsumableEffect.BalmOfWisdomEffect)
                 {
                     pm.RemoveStatMod("Balm");
                 }
                 else if (effectType == ThieveConsumableEffect.StoneSkinLotionEffect)
                 {
+                    var list = pm.ResistanceMods;
 
-                    List<ResistanceMod> list = pm.ResistanceMods;
-
-                    for (int i = 0; i < list.Count; i++)
+                    for (var i = 0; i < list.Count; i++)
                     {
-                        ResistanceMod curr = list[i];
-                        if ((curr.Type == ResistanceType.Cold && curr.Offset == -5) || (curr.Type == ResistanceType.Fire && curr.Offset == -5) || (curr.Type == ResistanceType.Physical && curr.Offset == 30))
+                        var curr = list[i];
+                        if ((curr.Type == ResistanceType.Cold && curr.Offset == -5) ||
+                            (curr.Type == ResistanceType.Fire && curr.Offset == -5) ||
+                            (curr.Type == ResistanceType.Physical && curr.Offset == 30))
                         {
                             list.RemoveAt(i);
                             i--;
@@ -115,54 +98,30 @@ namespace Server.Items
             }
         }
 
-        private static Dictionary<PlayerMobile, ThieveConsumableInfo> EffectTable = new Dictionary<PlayerMobile, ThieveConsumableInfo>();
-
         public static bool CanUse(PlayerMobile pm, BaseThieveConsumable consum)
         {
-            if (CheckThieveConsumable(pm) != ThieveConsumableEffect.None)
-            {
-                return false;
-            }
-            else
-            {
-                return true;
-            }
+            if (CheckThieveConsumable(pm) != ThieveConsumableEffect.None) return false;
+
+            return true;
         }
 
         public static bool IsUnderThieveConsumableEffect(PlayerMobile pm, ThieveConsumableEffect eff)
         {
             if (EffectTable.ContainsKey(pm))
             {
-                if (EffectTable[pm].Effect == eff)
-                {
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
-            }
-            else
-            {
+                if (EffectTable[pm].Effect == eff) return true;
+
                 return false;
             }
+
+            return false;
         }
 
         public static ThieveConsumableEffect CheckThieveConsumable(PlayerMobile pm)
         {
-            if (EffectTable.ContainsKey(pm))
-            {
-                return EffectTable[pm].Effect;
-            }
-            else
-            {
-                return ThieveConsumableEffect.None;
-            }
-        }
+            if (EffectTable.ContainsKey(pm)) return EffectTable[pm].Effect;
 
-        public BaseThieveConsumable(Serial serial)
-            : base(serial)
-        {
+            return ThieveConsumableEffect.None;
         }
 
 
@@ -170,20 +129,38 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
             writer.Write((int)m_EffectType);
-            writer.Write(m_EffectDuration); 
+            writer.Write(m_EffectDuration);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             m_EffectType = (ThieveConsumableEffect)reader.ReadInt();
-            m_EffectDuration = reader.ReadTimeSpan(); 
+            m_EffectDuration = reader.ReadTimeSpan();
+        }
+
+        public class InternalTimer : Timer
+        {
+            public ThieveConsumableEffect effect;
+            public PlayerMobile pm;
+
+            public InternalTimer(PlayerMobile p, ThieveConsumableEffect e, TimeSpan delay)
+                : base(delay)
+            {
+                pm = p;
+                effect = e;
+            }
+
+            protected override void OnTick()
+            {
+                RemoveEffect(pm, effect);
+            }
         }
     }
 }

@@ -1,13 +1,12 @@
 using System;
 using System.Collections.Generic;
 using Server.Engines.Craft;
-using Server.Items;
 
 namespace Server.Engines.BulkOrders
 {
     public class SmallFletchingBOD : SmallBOD
     {
-        public static double[] m_FletchingMaterialChances = new double[]
+        public static double[] m_FletchingMaterialChances =
         {
             0.513718750, // None
             0.292968750, // Oak
@@ -18,13 +17,13 @@ namespace Server.Engines.BulkOrders
             0.003000000 // Frostwood
         };
 
-        public override BODType BODType { get { return BODType.Fletching; } }
+        public override BODType BODType => BODType.Fletching;
 
         [Constructable]
         public SmallFletchingBOD()
         {
             SmallBulkEntry[] entries;
-            bool useMaterials = false;
+            var useMaterials = false;
 
             if (0.20 > Utility.RandomDouble())
             {
@@ -38,9 +37,9 @@ namespace Server.Engines.BulkOrders
 
             if (entries.Length > 0)
             {
-                 SmallBulkEntry entry = entries[Utility.Random(entries.Length)];
+                var entry = entries[Utility.Random(entries.Length)];
 
-                int amountMax = Utility.RandomList(10, 15, 20);
+                var amountMax = Utility.RandomList(10, 15, 20);
 
                 BulkMaterialType material;
 
@@ -49,33 +48,34 @@ namespace Server.Engines.BulkOrders
                 else
                     material = BulkMaterialType.None;
 
-                bool reqExceptional = false;
+                var reqExceptional = false;
 
-                if(useMaterials)
-                    reqExceptional = Utility.RandomBool() || (material == BulkMaterialType.None);
+                if (useMaterials)
+                    reqExceptional = Utility.RandomBool() || material == BulkMaterialType.None;
 
-                this.Hue = 1425;
-                this.AmountMax = amountMax;
-                this.Type = entry.Type;
-                this.Number = entry.Number;
-                this.Graphic = entry.Graphic;
-                this.RequireExceptional = reqExceptional;
-                this.Material = material;
-                this.GraphicHue = entry.Hue;
+                Hue = 1425;
+                AmountMax = amountMax;
+                Type = entry.Type;
+                Number = entry.Number;
+                Graphic = entry.Graphic;
+                RequireExceptional = reqExceptional;
+                Material = material;
+                GraphicHue = entry.Hue;
             }
         }
 
-        public SmallFletchingBOD(int amountCur, int amountMax, Type type, int number, int graphic, bool reqExceptional, BulkMaterialType mat, int hue)
+        public SmallFletchingBOD(int amountCur, int amountMax, Type type, int number, int graphic, bool reqExceptional,
+            BulkMaterialType mat, int hue)
         {
-            this.Hue = 1425;
-            this.AmountMax = amountMax;
-            this.AmountCur = amountCur;
-            this.Type = type;
-            this.Number = number;
-            this.Graphic = graphic;
-            this.RequireExceptional = reqExceptional;
-            this.Material = mat;
-            this.GraphicHue = hue;
+            Hue = 1425;
+            AmountMax = amountMax;
+            AmountCur = amountCur;
+            Type = type;
+            Number = number;
+            Graphic = graphic;
+            RequireExceptional = reqExceptional;
+            Material = mat;
+            GraphicHue = hue;
         }
 
         public SmallFletchingBOD(Serial serial)
@@ -85,21 +85,21 @@ namespace Server.Engines.BulkOrders
 
         private SmallFletchingBOD(SmallBulkEntry entry, BulkMaterialType material, int amountMax, bool reqExceptional)
         {
-            this.Hue = 1425;
-            this.AmountMax = amountMax;
-            this.Type = entry.Type;
-            this.Number = entry.Number;
-            this.Graphic = entry.Graphic;
-            this.RequireExceptional = reqExceptional;
-            this.Material = material;
+            Hue = 1425;
+            AmountMax = amountMax;
+            Type = entry.Type;
+            Number = entry.Number;
+            Graphic = entry.Graphic;
+            RequireExceptional = reqExceptional;
+            Material = material;
         }
 
         public static SmallFletchingBOD CreateRandomFor(Mobile m)
         {
             SmallBulkEntry[] entries;
 
-            double theirSkill = BulkOrderSystem.GetBODSkill(m, SkillName.Fletching);
-            bool useMaterials = false;
+            var theirSkill = BulkOrderSystem.GetBODSkill(m, SkillName.Fletching);
+            var useMaterials = false;
 
             if (theirSkill < 30.0 || .20 > Utility.RandomDouble())
             {
@@ -122,14 +122,13 @@ namespace Server.Engines.BulkOrders
                 else
                     amountMax = Utility.RandomList(10, 10, 15, 20);
 
-                BulkMaterialType material = BulkMaterialType.None;
+                var material = BulkMaterialType.None;
 
                 if (useMaterials && theirSkill >= 70.1)
-                {
-                    for (int i = 0; i < 20; ++i)
+                    for (var i = 0; i < 20; ++i)
                     {
-                        BulkMaterialType check = GetRandomMaterial(BulkMaterialType.OakWood, m_FletchingMaterialChances);
-                        double skillReq = GetRequiredSkill(check);
+                        var check = GetRandomMaterial(BulkMaterialType.OakWood, m_FletchingMaterialChances);
+                        var skillReq = GetRequiredSkill(check);
 
                         if (theirSkill >= skillReq)
                         {
@@ -137,27 +136,26 @@ namespace Server.Engines.BulkOrders
                             break;
                         }
                     }
-                }
 
-                double excChance = 0.0;
+                var excChance = 0.0;
 
                 if (theirSkill >= 70.1)
                     excChance = (theirSkill + 80.0) / 200.0;
 
-                bool reqExceptional = useMaterials && excChance > Utility.RandomDouble();
+                var reqExceptional = useMaterials && excChance > Utility.RandomDouble();
 
-                CraftSystem system = DefBowFletching.CraftSystem;
+                var system = DefBowFletching.CraftSystem;
 
-                List<SmallBulkEntry> validEntries = new List<SmallBulkEntry>();
+                var validEntries = new List<SmallBulkEntry>();
 
-                for (int i = 0; i < entries.Length; ++i)
+                for (var i = 0; i < entries.Length; ++i)
                 {
-                    CraftItem item = system.CraftItems.SearchFor(entries[i].Type);
+                    var item = system.CraftItems.SearchFor(entries[i].Type);
 
                     if (item != null)
                     {
-                        bool allRequiredSkills = true;
-                        double chance = item.GetSuccessChance(m, null, system, false, ref allRequiredSkills);
+                        var allRequiredSkills = true;
+                        var chance = item.GetSuccessChance(m, null, system, false, ref allRequiredSkills);
 
                         if (allRequiredSkills && chance >= 0.0)
                         {
@@ -172,7 +170,7 @@ namespace Server.Engines.BulkOrders
 
                 if (validEntries.Count > 0)
                 {
-                    SmallBulkEntry entry = validEntries[Utility.Random(validEntries.Count)];
+                    var entry = validEntries[Utility.Random(validEntries.Count)];
                     return new SmallFletchingBOD(entry, material, amountMax, reqExceptional);
                 }
             }
@@ -192,17 +190,19 @@ namespace Server.Engines.BulkOrders
 
         public override List<Item> ComputeRewards(bool full)
         {
-            List<Item> list = new List<Item>();
+            var list = new List<Item>();
 
-            RewardGroup rewardGroup = FletchingRewardCalculator.Instance.LookupRewards(FletchingRewardCalculator.Instance.ComputePoints(this));
+            var rewardGroup =
+                FletchingRewardCalculator.Instance.LookupRewards(FletchingRewardCalculator.Instance
+                    .ComputePoints(this));
 
             if (rewardGroup != null)
             {
                 if (full)
                 {
-                    for (int i = 0; i < rewardGroup.Items.Length; ++i)
+                    for (var i = 0; i < rewardGroup.Items.Length; ++i)
                     {
-                        Item item = rewardGroup.Items[i].Construct();
+                        var item = rewardGroup.Items[i].Construct();
 
                         if (item != null)
                             list.Add(item);
@@ -210,11 +210,11 @@ namespace Server.Engines.BulkOrders
                 }
                 else
                 {
-                    RewardItem rewardItem = rewardGroup.AcquireItem();
+                    var rewardItem = rewardGroup.AcquireItem();
 
                     if (rewardItem != null)
                     {
-                        Item item = rewardItem.Construct();
+                        var item = rewardItem.Construct();
 
                         if (item != null)
                             list.Add(item);
@@ -229,14 +229,14 @@ namespace Server.Engines.BulkOrders
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

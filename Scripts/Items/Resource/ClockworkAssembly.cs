@@ -1,11 +1,10 @@
-using System;
 using Server.Mobiles;
 
 namespace Server.Items
 {
     public class ClockworkAssembly : Item, ICommodity
     {
-        public override int LabelNumber { get { return 1073426; } } // Clockwork Assembly
+        public override int LabelNumber => 1073426; // Clockwork Assembly
 
         [Constructable]
         public ClockworkAssembly()
@@ -20,8 +19,8 @@ namespace Server.Items
         {
         }
 
-        TextDefinition ICommodity.Description { get { return LabelNumber; } }
-        bool ICommodity.IsDeedable { get { return true; } }
+        TextDefinition ICommodity.Description => LabelNumber;
+        bool ICommodity.IsDeedable => true;
 
         public override void OnDoubleClick(Mobile from)
         {
@@ -36,55 +35,58 @@ namespace Server.Items
                 from.SendLocalizedMessage(1071943); // You must be a Journeyman or higher Tinker to construct a golem.
                 return;
             }
-            else if ((from.Followers + 4) > from.FollowersMax)
+
+            if (from.Followers + 4 > from.FollowersMax)
             {
                 from.SendLocalizedMessage(1049607); // You have too many followers to control that creature.
                 return;
-            }            
+            }
 
-            Container pack = from.Backpack;
+            var pack = from.Backpack;
 
             if (pack == null)
                 return;
 
-            int res = pack.ConsumeTotal(new Type[] { typeof(PowerCrystal), typeof(IronIngot), typeof(BronzeIngot), typeof(Gears) }, new int[] { 1, 50, 50, 5 });
+            var res = pack.ConsumeTotal(
+                new[] { typeof(PowerCrystal), typeof(IronIngot), typeof(BronzeIngot), typeof(Gears) },
+                new[] { 1, 50, 50, 5 });
 
-            switch ( res )
+            switch (res)
             {
                 case 0:
-                    {
-                        from.SendLocalizedMessage(1071945); // You need a power crystal to construct a golem.
-                        break;
-                    }
+                {
+                    from.SendLocalizedMessage(1071945); // You need a power crystal to construct a golem.
+                    break;
+                }
                 case 1:
-                    {
-                        from.SendLocalizedMessage(1071948); // You need more iron ingots to construct a golem.
-                        break;
-                    }
+                {
+                    from.SendLocalizedMessage(1071948); // You need more iron ingots to construct a golem.
+                    break;
+                }
                 case 2:
-                    {
-                        from.SendLocalizedMessage(1071947); // You need more bronze ingots to construct a golem.
-                        break;
-                    }
+                {
+                    from.SendLocalizedMessage(1071947); // You need more bronze ingots to construct a golem.
+                    break;
+                }
                 case 3:
-                    {
-                        from.SendLocalizedMessage(1071946); // You need more gears to construct a golem.
-                        break;
-                    }
+                {
+                    from.SendLocalizedMessage(1071946); // You need more gears to construct a golem.
+                    break;
+                }
                 default:
+                {
+                    var g = new Golem(true, Scalar(from));
+
+                    if (g.SetControlMaster(from))
                     {
-                        Golem g = new Golem(true, Scalar(from));
+                        Delete();
 
-                        if (g.SetControlMaster(from))
-                        {
-                            this.Delete();
-
-                            g.MoveToWorld(from.Location, from.Map);
-                            from.PlaySound(0x241);
-                        }
-
-                        break;
+                        g.MoveToWorld(from.Location, from.Map);
+                        from.PlaySound(0x241);
                     }
+
+                    break;
+                }
             }
         }
 
@@ -92,7 +94,7 @@ namespace Server.Items
         {
             double scalar;
 
-            double skill = m.Skills[SkillName.Tinkering].Value;
+            var skill = m.Skills[SkillName.Tinkering].Value;
 
             if (skill >= 100.0)
                 scalar = 1.0;
@@ -111,13 +113,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

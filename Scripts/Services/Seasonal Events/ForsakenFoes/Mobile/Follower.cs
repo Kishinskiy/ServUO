@@ -1,8 +1,7 @@
-using System;
-using Server.Items;
-using Server.Gumps;
-using Server.Mobiles;
 using Server.Engines.Quests;
+using Server.Gumps;
+using Server.Items;
+using Server.Mobiles;
 
 namespace Server.Engines.Fellowship
 {
@@ -14,6 +13,11 @@ namespace Server.Engines.Fellowship
         [Constructable]
         public Follower()
             : base("the Follower")
+        {
+        }
+
+        public Follower(Serial serial)
+            : base(serial)
         {
         }
 
@@ -44,28 +48,7 @@ namespace Server.Engines.Fellowship
 
         public override void OnTalk(PlayerMobile player, bool contextMenu)
         {
-            if (!player.HasGump(typeof(FollowerGump)))
-            {
-                player.SendGump(new FollowerGump());
-            }
-        }
-
-        public class FollowerGump : Gump
-        {
-            public FollowerGump()
-                : base(100, 100)
-            {
-                AddPage(0);
-
-                AddBackground(0, 0, 720, 285, 0x2454);
-                AddImage(0, 0, 0x6CF);
-                AddHtmlLocalized(300, 24, 408, 251, 1159043, 0xC63, false, true); // Welcome to the Fellowship Hall.  It isn't much, but we've been able to help the many refugees from across Britannia that Hook and his vile minions have displaced with their plundering ways! If you'd like to make a donation, simply drop your trade cargo in the donation box. With enough donations you too can become a member of the Fellowship!<BR><BR><br>If you have taken up the charge of cleansing Britannia's souls of the vile evils that plague our society, you may deposit the soulbinders in the chest here for cleansing by our Adepts.
-            }
-        }
-
-        public Follower(Serial serial)
-            : base(serial)
-        {
+            if (!player.HasGump(typeof(FollowerGump))) player.SendGump(new FollowerGump());
         }
 
         public override void Serialize(GenericWriter writer)
@@ -77,16 +60,24 @@ namespace Server.Engines.Fellowship
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            if (Map == Map.Trammel)
-            {
-                InstanceTram = this;
-            }
+            if (Map == Map.Trammel) InstanceTram = this;
 
-            if (Map == Map.Felucca)
+            if (Map == Map.Felucca) InstanceFel = this;
+        }
+
+        public class FollowerGump : Gump
+        {
+            public FollowerGump()
+                : base(100, 100)
             {
-                InstanceFel = this;
+                AddPage(0);
+
+                AddBackground(0, 0, 720, 285, 0x2454);
+                AddImage(0, 0, 0x6CF);
+                AddHtmlLocalized(300, 24, 408, 251, 1159043, 0xC63, false,
+                    true); // Welcome to the Fellowship Hall.  It isn't much, but we've been able to help the many refugees from across Britannia that Hook and his vile minions have displaced with their plundering ways! If you'd like to make a donation, simply drop your trade cargo in the donation box. With enough donations you too can become a member of the Fellowship!<BR><BR><br>If you have taken up the charge of cleansing Britannia's souls of the vile evils that plague our society, you may deposit the soulbinders in the chest here for cleansing by our Adepts.
             }
         }
     }

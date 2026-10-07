@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using Server.Mobiles;
-using Server.Targeting;
 using Server.Spells.SkillMasteries;
+using Server.Targeting;
 
 namespace Server.Spells.Necromancy
 {
@@ -17,39 +17,24 @@ namespace Server.Spells.Necromancy
 
         private static readonly Dictionary<Mobile, double> m_Table = new Dictionary<Mobile, double>();
 
+        public override TimeSpan CastDelayBase => TimeSpan.FromSeconds(1.0);
+
+        public override double RequiredSkill => 20.0;
+
+        public override int RequiredMana => 11;
+
         public EvilOmenSpell(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
         {
         }
 
-        public override TimeSpan CastDelayBase
-        {
-            get
-            {
-                return TimeSpan.FromSeconds(1.0);
-            }
-        }
-        public override double RequiredSkill
-        {
-            get
-            {
-                return 20.0;
-            }
-        }
-        public override int RequiredMana
-        {
-            get
-            {
-                return 11;
-            }
-        }
         /*
-        * The naming here was confusing. Its a 1-off effect spell.
-        * So, we dont actually "checkeffect"; we endeffect with bool
-        * return to determine external behaviors.
-        *
-        * -refactored.
-        */
+         * The naming here was confusing. Its a 1-off effect spell.
+         * So, we dont actually "checkeffect"; we endeffect with bool
+         * return to determine external behaviors.
+         *
+         * -refactored.
+         */
         public static bool UnderEffects(Mobile m)
         {
             return m_Table.ContainsKey(m);
@@ -57,10 +42,7 @@ namespace Server.Spells.Necromancy
 
         public static double GetResistMalus(Mobile m)
         {
-            if (UnderEffects(m))
-            {
-                return m_Table[m];
-            }
+            if (UnderEffects(m)) return m_Table[m];
 
             return 0;
         }
@@ -107,12 +89,12 @@ namespace Server.Spells.Necromancy
         public void ApplyEffects(Mobile m, double strength = 1.0)
         {
             /* Curses the target so that the next harmful event that affects them is magnified.
-                * Damage to the target's hit points is increased 25%,
-                * the poison level of the attack will be 1 higher
-                * and the Resist Magic skill of the target will be fixed on 50.
-                *
-                * The effect lasts for one harmful event only.
-                */
+             * Damage to the target's hit points is increased 25%,
+             * the poison level of the attack will be 1 higher
+             * and the Resist Magic skill of the target will be fixed on 50.
+             *
+             * The effect lasts for one harmful event only.
+             */
 
             if (m.Spell != null)
                 m.Spell.OnCasterHurt();
@@ -123,13 +105,13 @@ namespace Server.Spells.Necromancy
 
             HarmfulSpell(m);
             double resistMalas = 0;
-            
-            if(m.Skills[SkillName.MagicResist].Base > 50.0)
+
+            if (m.Skills[SkillName.MagicResist].Base > 50.0)
                 resistMalas = m.Skills[SkillName.MagicResist].Base / 2.0;
-            
+
             m_Table[m] = resistMalas;
 
-            TimeSpan duration = TimeSpan.FromSeconds(((Caster.Skills[SkillName.SpiritSpeak].Value / 12) + 1.0) * strength);
+            var duration = TimeSpan.FromSeconds((Caster.Skills[SkillName.SpiritSpeak].Value / 12 + 1.0) * strength);
 
             Timer.DelayCall(duration, new TimerStateCallback(EffectExpire_Callback), m);
 

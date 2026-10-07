@@ -6,14 +6,14 @@ namespace Server.Items
 {
     public class ExplosiveGoo : Item
     {
-        public override int LabelNumber { get { return 1157463; } } // Explosive Goo
-
-        private bool m_Drying;
         private readonly DateTime m_Created;
         private readonly TimeSpan m_Duration;
         private readonly int m_MaxDamage;
         private readonly int m_MinDamage;
         private readonly Timer m_Timer;
+
+        private bool m_Drying;
+        public override int LabelNumber => 1157463; // Explosive Goo
 
         [Constructable]
         public ExplosiveGoo() : this(TimeSpan.FromSeconds(10.0), 5, 10)
@@ -55,7 +55,7 @@ namespace Server.Items
             }
             else
             {
-                if (!m_Drying && age > (m_Duration - age))
+                if (!m_Drying && age > m_Duration - age)
                 {
                     m_Drying = true;
                     ItemID = 0x122B;
@@ -67,11 +67,9 @@ namespace Server.Items
                 foreach (Mobile m in eable)
                 {
                     var bc = m as BaseCreature;
-                    if (m.Alive && !m.IsDeadBondedPet && (bc == null || bc.Controlled || bc.Summoned))
-                    {
-                        toDamage.Add(m);
-                    }
+                    if (m.Alive && !m.IsDeadBondedPet && (bc == null || bc.Controlled || bc.Summoned)) toDamage.Add(m);
                 }
+
                 eable.Free();
 
                 for (var i = 0; i < toDamage.Count; i++)

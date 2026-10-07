@@ -1,9 +1,7 @@
-using Server;
-using System;
-using Server.Mobiles;
+using Server.Engines.Points;
 using Server.Gumps;
 using Server.Items;
-using Server.Engines.Points;
+using Server.Mobiles;
 
 namespace Server.Engines.CleanUpBritannia
 {
@@ -35,9 +33,7 @@ namespace Server.Engines.CleanUpBritannia
         public override void OnItemCreated(Item item)
         {
             if (item is ScrollOfAlacrity)
-            {
                 ((ScrollOfAlacrity)item).Skill = (SkillName)Utility.Random(SkillInfo.Table.Length);
-            }
 
             item.InvalidateProperties();
         }

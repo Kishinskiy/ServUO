@@ -1,32 +1,24 @@
 ﻿using System;
-using Server;
 
 namespace Server.Items
 {
     public class RareFish : BaseHighseasFish
     {
-        private Mobile m_CaughtBy;
         private DateTime m_DateCaught;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public Mobile Fisher { get { return m_CaughtBy; } set { m_CaughtBy = value; } }
+        public Mobile Fisher { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public DateTime DateCaught { get { return m_DateCaught; } set { m_DateCaught = value; } }
+        public DateTime DateCaught
+        {
+            get => m_DateCaught;
+            set => m_DateCaught = value;
+        }
 
         public RareFish(int itemID)
             : base(itemID)
         {
-        }
-
-        public override void GetProperties(ObjectPropertyList list)
-        {
-            base.GetProperties(list);
-
-            list.Add(1070857, m_CaughtBy != null ? m_CaughtBy.Name : "An Unknown Fisher"); //Caught by ~1_fisherman~
-
-            if (m_DateCaught != DateTime.MinValue)
-                list.Add("[{0}]", m_DateCaught.ToShortDateString());
         }
 
         public RareFish(Serial serial)
@@ -34,377 +26,413 @@ namespace Server.Items
         {
         }
 
+        public override void GetProperties(ObjectPropertyList list)
+        {
+            base.GetProperties(list);
+
+            list.Add(1070857, Fisher != null ? Fisher.Name : "An Unknown Fisher"); //Caught by ~1_fisherman~
+
+            if (m_DateCaught != DateTime.MinValue)
+                list.Add("[{0}]", m_DateCaught.ToShortDateString());
+        }
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
-            writer.Write(m_CaughtBy);
+            writer.Write(0);
+            writer.Write(Fisher);
             writer.Write(m_DateCaught);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
-            m_CaughtBy = reader.ReadMobile();
+            var version = reader.ReadInt();
+            Fisher = reader.ReadMobile();
             m_DateCaught = reader.ReadDateTime();
         }
     }
 
     public class AutumnDragonfish : RareFish
     {
-        public override int LabelNumber { get { return 1116090; } }
-        public override Item GetCarved { get { return new AutumnDragonfishSteak(); } }
+        public override int LabelNumber => 1116090;
+        public override Item GetCarved => new AutumnDragonfishSteak();
 
         [Constructable]
         public AutumnDragonfish()
             : base(Utility.RandomMinMax(17637, 17638))
         {
-            Hue = FishInfo.GetFishHue(this.GetType());
+            Hue = FishInfo.GetFishHue(GetType());
         }
 
-        public AutumnDragonfish(Serial serial) : base(serial) { }
+        public AutumnDragonfish(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class BullFish : RareFish
     {
-        public override int LabelNumber { get { return 1116095; } }
-        public override Item GetCarved { get { return new BullFishSteak(); } }
+        public override int LabelNumber => 1116095;
+        public override Item GetCarved => new BullFishSteak();
 
         [Constructable]
         public BullFish()
             : base(Utility.RandomMinMax(17605, 17606))
         {
-            Hue = FishInfo.GetFishHue(this.GetType());
+            Hue = FishInfo.GetFishHue(GetType());
         }
 
-        public BullFish(Serial serial) : base(serial) { }
+        public BullFish(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class CrystalFish : RareFish
     {
-        public override int LabelNumber { get { return 1116092; } }
-        public override Item GetCarved { get { return new CrystalFishSteak(); } }
+        public override int LabelNumber => 1116092;
+        public override Item GetCarved => new CrystalFishSteak();
 
         [Constructable]
         public CrystalFish()
             : base(Utility.RandomMinMax(17154, 17155))
         {
-            Hue = FishInfo.GetFishHue(this.GetType());
+            Hue = FishInfo.GetFishHue(GetType());
         }
 
-        public CrystalFish(Serial serial) : base(serial) { }
+        public CrystalFish(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class FairySalmon : RareFish
     {
-        public override int LabelNumber { get { return 1116089; } }
-        public override Item GetCarved { get { return new FairySalmonSteak(); } }
+        public override int LabelNumber => 1116089;
+        public override Item GetCarved => new FairySalmonSteak();
 
         [Constructable]
         public FairySalmon()
             : base(Utility.RandomMinMax(17154, 17155))
         {
-            Hue = FishInfo.GetFishHue(this.GetType());
+            Hue = FishInfo.GetFishHue(GetType());
         }
 
-        public FairySalmon(Serial serial) : base(serial) { }
+        public FairySalmon(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class FireFish : RareFish
     {
-        public override int LabelNumber { get { return 1116093; } }
-        public override Item GetCarved { get { return new FireFishSteak(); } }
+        public override int LabelNumber => 1116093;
+        public override Item GetCarved => new FireFishSteak();
 
         [Constructable]
         public FireFish()
             : base(Utility.RandomMinMax(17158, 17159))
         {
-            Hue = FishInfo.GetFishHue(this.GetType());
+            Hue = FishInfo.GetFishHue(GetType());
         }
 
-        public FireFish(Serial serial) : base(serial) { }
+        public FireFish(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class GiantKoi : RareFish
     {
-        public override int LabelNumber { get { return 1116088; } }
-        public override Item GetCarved { get { return new GiantKoiSteak(); } }
+        public override int LabelNumber => 1116088;
+        public override Item GetCarved => new GiantKoiSteak();
 
         [Constructable]
         public GiantKoi()
             : base(Utility.RandomMinMax(17605, 17606))
         {
-            Hue = FishInfo.GetFishHue(this.GetType());
+            Hue = FishInfo.GetFishHue(GetType());
         }
 
-        public GiantKoi(Serial serial) : base(serial) { }
+        public GiantKoi(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class GreatBarracuda : RareFish
     {
-        public override int LabelNumber { get { return 1116100; } }
-        public override Item GetCarved { get { return new GreatBarracudaSteak(); } }
+        public override int LabelNumber => 1116100;
+        public override Item GetCarved => new GreatBarracudaSteak();
 
         [Constructable]
         public GreatBarracuda()
             : base(Utility.RandomMinMax(17603, 17604))
         {
-            Hue = FishInfo.GetFishHue(this.GetType());
+            Hue = FishInfo.GetFishHue(GetType());
         }
 
-        public GreatBarracuda(Serial serial) : base(serial) { }
+        public GreatBarracuda(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class HolyMackerel : RareFish
     {
-        public override int LabelNumber { get { return 1116087; } }
-        public override Item GetCarved { get { return new HolyMackerelSteak(); } }
+        public override int LabelNumber => 1116087;
+        public override Item GetCarved => new HolyMackerelSteak();
 
         [Constructable]
         public HolyMackerel()
             : base(Utility.RandomMinMax(17154, 17155))
         {
-            Hue = FishInfo.GetFishHue(this.GetType());
+            Hue = FishInfo.GetFishHue(GetType());
         }
 
-        public HolyMackerel(Serial serial) : base(serial) { }
+        public HolyMackerel(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class LavaFish : RareFish
     {
-        public override int LabelNumber { get { return 1116096; } }
-        public override Item GetCarved { get { return new LavaFishSteak(); } }
+        public override int LabelNumber => 1116096;
+        public override Item GetCarved => new LavaFishSteak();
 
         [Constructable]
         public LavaFish()
             : base(Utility.RandomMinMax(17156, 17157))
         {
-            Hue = FishInfo.GetFishHue(this.GetType());
+            Hue = FishInfo.GetFishHue(GetType());
         }
 
-        public LavaFish(Serial serial) : base(serial) { }
+        public LavaFish(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class ReaperFish : RareFish
     {
-        public override int LabelNumber { get { return 1116094; } }
-        public override Item GetCarved { get { return new ReaperFishSteak(); } }
+        public override int LabelNumber => 1116094;
+        public override Item GetCarved => new ReaperFishSteak();
 
         [Constructable]
         public ReaperFish()
             : base(Utility.RandomMinMax(17603, 17604))
         {
-            Hue = FishInfo.GetFishHue(this.GetType());
+            Hue = FishInfo.GetFishHue(GetType());
         }
 
-        public ReaperFish(Serial serial) : base(serial) { }
+        public ReaperFish(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class SummerDragonfish : RareFish
     {
-        public override int LabelNumber { get { return 1116091; } }
-        public override Item GetCarved { get { return new SummerDragonfishSteak(); } }
+        public override int LabelNumber => 1116091;
+        public override Item GetCarved => new SummerDragonfishSteak();
 
         [Constructable]
         public SummerDragonfish()
             : base(Utility.RandomMinMax(17637, 17638))
         {
-            Hue = FishInfo.GetFishHue(this.GetType());
+            Hue = FishInfo.GetFishHue(GetType());
         }
 
-        public SummerDragonfish(Serial serial) : base(serial) { }
+        public SummerDragonfish(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class UnicornFish : RareFish
     {
-        public override int LabelNumber { get { return 1116086; } }
-        public override Item GetCarved { get { return new UnicornFishSteak(); } }
+        public override int LabelNumber => 1116086;
+        public override Item GetCarved => new UnicornFishSteak();
 
         [Constructable]
         public UnicornFish()
             : base(Utility.RandomMinMax(17156, 17157))
         {
-            Hue = FishInfo.GetFishHue(this.GetType());
+            Hue = FishInfo.GetFishHue(GetType());
         }
 
-        public UnicornFish(Serial serial) : base(serial) { }
+        public UnicornFish(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class YellowtailBarracuda : RareFish
     {
-        public override int LabelNumber { get { return 1116098; } }
-        public override Item GetCarved { get { return new YellowtailBarracudaSteak(); } }
+        public override int LabelNumber => 1116098;
+        public override Item GetCarved => new YellowtailBarracudaSteak();
 
         [Constructable]
         public YellowtailBarracuda()
             : base(Utility.RandomMinMax(17603, 17604))
         {
-            Hue = FishInfo.GetFishHue(this.GetType());
+            Hue = FishInfo.GetFishHue(GetType());
         }
 
-        public YellowtailBarracuda(Serial serial) : base(serial) { }
+        public YellowtailBarracuda(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class AutumnDragonfishSteak : RawFishSteak
     {
-        public override int LabelNumber { get { return 1116314; } }
+        public override int LabelNumber => 1116314;
 
         [Constructable]
         public AutumnDragonfishSteak()
@@ -412,25 +440,27 @@ namespace Server.Items
             Hue = FishInfo.GetFishHue(typeof(AutumnDragonfish));
         }
 
-        public AutumnDragonfishSteak(Serial serial) : base(serial) { }
+        public AutumnDragonfishSteak(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
 
     public class BullFishSteak : RawFishSteak
     {
-        public override int LabelNumber { get { return 1116310; } }
+        public override int LabelNumber => 1116310;
 
         [Constructable]
         public BullFishSteak()
@@ -438,25 +468,27 @@ namespace Server.Items
             Hue = FishInfo.GetFishHue(typeof(BullFish));
         }
 
-        public BullFishSteak(Serial serial) : base(serial) { }
+        public BullFishSteak(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
 
     public class CrystalFishSteak : RawFishSteak
     {
-        public override int LabelNumber { get { return 1116309; } }
+        public override int LabelNumber => 1116309;
 
         [Constructable]
         public CrystalFishSteak()
@@ -464,24 +496,26 @@ namespace Server.Items
             Hue = FishInfo.GetFishHue(typeof(CrystalFish));
         }
 
-        public CrystalFishSteak(Serial serial) : base(serial) { }
+        public CrystalFishSteak(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class FairySalmonSteak : RawFishSteak
     {
-        public override int LabelNumber { get { return 1116312; } }
+        public override int LabelNumber => 1116312;
 
         [Constructable]
         public FairySalmonSteak()
@@ -489,25 +523,27 @@ namespace Server.Items
             Hue = FishInfo.GetFishHue(typeof(FairySalmon));
         }
 
-        public FairySalmonSteak(Serial serial) : base(serial) { }
+        public FairySalmonSteak(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
 
     public class FireFishSteak : RawFishSteak
     {
-        public override int LabelNumber { get { return 1116307; } }
+        public override int LabelNumber => 1116307;
 
         [Constructable]
         public FireFishSteak()
@@ -515,25 +551,27 @@ namespace Server.Items
             Hue = FishInfo.GetFishHue(typeof(FireFish));
         }
 
-        public FireFishSteak(Serial serial) : base(serial) { }
+        public FireFishSteak(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
 
     public class GiantKoiSteak : RawFishSteak
     {
-        public override int LabelNumber { get { return 1116306; } }
+        public override int LabelNumber => 1116306;
 
         [Constructable]
         public GiantKoiSteak()
@@ -541,24 +579,26 @@ namespace Server.Items
             Hue = FishInfo.GetFishHue(typeof(GiantKoi));
         }
 
-        public GiantKoiSteak(Serial serial) : base(serial) { }
+        public GiantKoiSteak(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class GreatBarracudaSteak : RawFishSteak
     {
-        public override int LabelNumber { get { return 1116298; } }
+        public override int LabelNumber => 1116298;
 
         [Constructable]
         public GreatBarracudaSteak()
@@ -566,25 +606,27 @@ namespace Server.Items
             Hue = 1287; // FishInfo.GetFishHue(typeof(GreatBarracuda));
         }
 
-        public GreatBarracudaSteak(Serial serial) : base(serial) { }
+        public GreatBarracudaSteak(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
 
     public class HolyMackerelSteak : RawFishSteak
     {
-        public override int LabelNumber { get { return 1116315; } }
+        public override int LabelNumber => 1116315;
 
         [Constructable]
         public HolyMackerelSteak()
@@ -592,25 +634,27 @@ namespace Server.Items
             Hue = FishInfo.GetFishHue(typeof(HolyMackerel));
         }
 
-        public HolyMackerelSteak(Serial serial) : base(serial) { }
+        public HolyMackerelSteak(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
 
     public class LavaFishSteak : RawFishSteak
     {
-        public override int LabelNumber { get { return 1116313; } }
+        public override int LabelNumber => 1116313;
 
         [Constructable]
         public LavaFishSteak()
@@ -618,25 +662,27 @@ namespace Server.Items
             Hue = FishInfo.GetFishHue(typeof(LavaFish));
         }
 
-        public LavaFishSteak(Serial serial) : base(serial) { }
+        public LavaFishSteak(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
 
     public class ReaperFishSteak : RawFishSteak
     {
-        public override int LabelNumber { get { return 1116308; } }
+        public override int LabelNumber => 1116308;
 
         [Constructable]
         public ReaperFishSteak()
@@ -644,25 +690,27 @@ namespace Server.Items
             Hue = 1152; // FishInfo.GetFishHue(typeof(ReaperFish));
         }
 
-        public ReaperFishSteak(Serial serial) : base(serial) { }
+        public ReaperFishSteak(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
 
     public class SummerDragonfishSteak : RawFishSteak
     {
-        public override int LabelNumber { get { return 1116311; } }
+        public override int LabelNumber => 1116311;
 
         [Constructable]
         public SummerDragonfishSteak()
@@ -670,25 +718,27 @@ namespace Server.Items
             Hue = FishInfo.GetFishHue(typeof(SummerDragonfish));
         }
 
-        public SummerDragonfishSteak(Serial serial) : base(serial) { }
+        public SummerDragonfishSteak(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
 
     public class UnicornFishSteak : RawFishSteak
     {
-        public override int LabelNumber { get { return 1116316; } }
+        public override int LabelNumber => 1116316;
 
         [Constructable]
         public UnicornFishSteak()
@@ -696,24 +746,26 @@ namespace Server.Items
             Hue = FishInfo.GetFishHue(typeof(UnicornFish));
         }
 
-        public UnicornFishSteak(Serial serial) : base(serial) { }
+        public UnicornFishSteak(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class YellowtailBarracudaSteak : RawFishSteak
     {
-        public override int LabelNumber { get { return 1116301; } }
+        public override int LabelNumber => 1116301;
 
         [Constructable]
         public YellowtailBarracudaSteak()
@@ -721,18 +773,20 @@ namespace Server.Items
             Hue = FishInfo.GetFishHue(typeof(YellowtailBarracuda));
         }
 
-        public YellowtailBarracudaSteak(Serial serial) : base(serial) { }
+        public YellowtailBarracudaSteak(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

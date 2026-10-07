@@ -1,16 +1,16 @@
-using System;
-
 namespace Server.Items
 {
     public class GingerBreadHouseAddon : BaseAddon
     {
+        public override BaseAddonDeed Deed => new GingerBreadHouseDeed();
+
         public GingerBreadHouseAddon()
         {
-            for (int i = 0x2be5; i < 0x2be8; i++)
+            for (var i = 0x2be5; i < 0x2be8; i++)
             {
-                LocalizedAddonComponent laoc = new LocalizedAddonComponent(i, 1077395); // Gingerbread House
+                var laoc = new LocalizedAddonComponent(i, 1077395); // Gingerbread House
                 laoc.Light = LightType.SouthSmall;
-                this.AddComponent(laoc, (i == 0x2be5) ? -1 : 0, (i == 0x2be7) ? -1 : 0, 0); 
+                AddComponent(laoc, i == 0x2be5 ? -1 : 0, i == 0x2be7 ? -1 : 0, 0);
             }
         }
 
@@ -19,33 +19,29 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonDeed Deed
-        {
-            get
-            {
-                return new GingerBreadHouseDeed();
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class GingerBreadHouseDeed : BaseAddonDeed
     {
+        public override int LabelNumber => 1077394; //a Gingerbread House Deed
+        public override BaseAddon Addon => new GingerBreadHouseAddon();
+
         [Constructable]
-        public GingerBreadHouseDeed() 
+        public GingerBreadHouseDeed()
         {
-            this.Weight = 1.0;
-            this.LootType = LootType.Blessed;
+            Weight = 1.0;
+            LootType = LootType.Blessed;
         }
 
         public GingerBreadHouseDeed(Serial serial)
@@ -53,30 +49,16 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1077394;
-            }
-        }//a Gingerbread House Deed
-        public override BaseAddon Addon
-        {
-            get
-            {
-                return new GingerBreadHouseAddon();
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

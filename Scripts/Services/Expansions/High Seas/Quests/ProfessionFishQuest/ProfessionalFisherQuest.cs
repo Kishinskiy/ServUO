@@ -1,10 +1,9 @@
-﻿using Server;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using Server.Multis;
+using Server.Gumps;
 using Server.Items;
 using Server.Mobiles;
-using Server.Gumps;
+using Server.Multis;
 
 namespace Server.Engines.Quests
 {
@@ -12,35 +11,36 @@ namespace Server.Engines.Quests
     {
         private object m_Title;
 
-        public override object Title { get { return m_Title; } }      //Professional Fisher Quest - Floating Emporium
+        public override object Title => m_Title; //Professional Fisher Quest - Floating Emporium
 
-        public override object Description { get { return 1116508; } } /*This quest is part of a category of quests where you catch uncommon fish and use your ship to deliver them to ports
-                                                                        * to gain rewards and better fishing orders.<br><br>Successful completion of this quest increases your standing with
-                                                                        * the fishmonger guild and unlocks bigger orders and greater rewards.  Destroying the crate will forfeit the order and
-                                                                        * hurt your standing with the fishmonger guild.<br><br>You must have the High Seas booster pack to do this quest.
-                                                                        * <br><br>***NOTICE: You will not be able to dry dock your ship while you are on this quest.  Destroying the crate in 
-                                                                        * your hull will cancel the quest and re-enable dry docking.*** <br><br><center>-----</center><br><br>Greetings sailor,
-                                                                        * I see ye have a fine ship, might ye be looking for work?<br><br>I have some orders for some particular fish that needs 
-                                                                        * catchin' an' deliverin' and I be lookin' for some business partners.  If ye will agree to fill this order an' deliver 
-                                                                        * it fer me, I will reward ye with a rare prize as payment.  What say ye?*/
+        public override object Description =>
+            1116508; /*This quest is part of a category of quests where you catch uncommon fish and use your ship to deliver them to ports
+                      * to gain rewards and better fishing orders.<br><br>Successful completion of this quest increases your standing with
+                      * the fishmonger guild and unlocks bigger orders and greater rewards.  Destroying the crate will forfeit the order and
+                      * hurt your standing with the fishmonger guild.<br><br>You must have the High Seas booster pack to do this quest.
+                      * <br><br>***NOTICE: You will not be able to dry dock your ship while you are on this quest.  Destroying the crate in
+                      * your hull will cancel the quest and re-enable dry docking.*** <br><br><center>-----</center><br><br>Greetings sailor,
+                      * I see ye have a fine ship, might ye be looking for work?<br><br>I have some orders for some particular fish that needs
+                      * catchin' an' deliverin' and I be lookin' for some business partners.  If ye will agree to fill this order an' deliver
+                      * it fer me, I will reward ye with a rare prize as payment.  What say ye?*/
 
-        public override object Refuse { get { return 1116511; } }     //As you wish.  If'n ye change yer mind you know where to find me.
+        public override object Refuse => 1116511; //As you wish.  If'n ye change yer mind you know where to find me.
 
-        public override object Uncomplete { get { return 1116512; } } //Aye, partner, how goes the fishin?  Me customer be waitin' fer ye and won't be payin' either of us till ye deliver.
+        public override object Uncomplete =>
+            1116512; //Aye, partner, how goes the fishin?  Me customer be waitin' fer ye and won't be payin' either of us till ye deliver.
 
-        public override object Complete { get { return 1116513; } }   /*Ahoy, sailor! These be a fine batch o' fish and I'll be glad to pay the price.  I will forwarded the money owed to 
-                                                                       * the fishmonger who brokered this business with me compliments.<br><br>Fer ye I have a rare gift from the Order of 
-                                                                       * the Dragonfish that ye can't buy with gold.  Let me jes' tuck it in yer backpack here...  There you go!  Use it 
-                                                                       * wisely and it can make ye wealthy!<br><br>If ye are interested in gettin more fishin' business from me, I have some 
-                                                                       * orders of me own to fill and ship.  Jes' let me know.*/
+        public override object Complete =>
+            1116513; /*Ahoy, sailor! These be a fine batch o' fish and I'll be glad to pay the price.  I will forwarded the money owed to
+                      * the fishmonger who brokered this business with me compliments.<br><br>Fer ye I have a rare gift from the Order of
+                      * the Dragonfish that ye can't buy with gold.  Let me jes' tuck it in yer backpack here...  There you go!  Use it
+                      * wisely and it can make ye wealthy!<br><br>If ye are interested in gettin more fishin' business from me, I have some
+                      * orders of me own to fill and ship.  Jes' let me know.*/
 
-        private FishMonger m_TurnIn;
-        private BaseBoat m_Boat;
-        private ShippingCrate m_Crate;
+        public FishMonger TurnIn { get; set; }
 
-        public FishMonger TurnIn { get { return m_TurnIn; } set { m_TurnIn = value; } }
-        public BaseBoat Boat { get { return m_Boat; } set { m_Boat = value; } }
-        public ShippingCrate Crate { get { return m_Crate; } set { m_Crate = value; } }
+        public BaseBoat Boat { get; set; }
+
+        public ShippingCrate Crate { get; set; }
 
         public ProfessionalFisherQuest()
         {
@@ -49,7 +49,7 @@ namespace Server.Engines.Quests
 
         public ProfessionalFisherQuest(Mobile from, FishMonger monger, FishMonger quester, BaseBoat boat)
         {
-            PlayerFishingEntry entry = PlayerFishingEntry.GetEntry(from, true);
+            var entry = PlayerFishingEntry.GetEntry(from, true);
 
             int lines;
 
@@ -58,17 +58,17 @@ namespace Server.Engines.Quests
             else
                 lines = entry.CalculateLines();
 
-            m_TurnIn = monger;
-            m_Boat = boat;
+            TurnIn = monger;
+            Boat = boat;
 
-            int index = 0;
-            int amount = 10;
+            var index = 0;
+            var amount = 10;
             Type type = null;
 
-            List<int> hasChosen = new List<int>();
-            Dictionary<Type, int> types = new Dictionary<Type, int>();
+            var hasChosen = new List<int>();
+            var types = new Dictionary<Type, int>();
 
-            for (int i = 0; i < lines; i++)
+            for (var i = 0; i < lines; i++)
             {
                 entry.GetRandomFish(ref index, ref amount, hasChosen);
                 hasChosen.Add(index);
@@ -89,25 +89,25 @@ namespace Server.Engines.Quests
 
         public override void OnAccept()
         {
-            if (m_Boat == null)
+            if (Boat == null)
             {
                 RemoveQuest(false);
                 return;
             }
 
-            m_Crate = new ShippingCrate(this);
+            Crate = new ShippingCrate(this);
 
-            if (m_Boat is BaseGalleon)
-                ((BaseGalleon)m_Boat).GalleonHold.DropItem(m_Crate);
+            if (Boat is BaseGalleon)
+                ((BaseGalleon)Boat).GalleonHold.DropItem(Crate);
             else
-                m_Boat.Hold.DropItem(m_Crate);
+                Boat.Hold.DropItem(Crate);
 
             base.OnAccept();
         }
 
         private int GetTitle(Mobile monger)
         {
-            Region reg = monger.Region;
+            var reg = monger.Region;
 
             if (reg == null || reg.Name == null)
                 return 1116507;
@@ -135,24 +135,22 @@ namespace Server.Engines.Quests
         {
             if (Owner != null)
             {
-                PlayerFishingEntry entry = PlayerFishingEntry.GetEntry(Owner);
+                var entry = PlayerFishingEntry.GetEntry(Owner);
 
                 if (entry != null)
                 {
-                    FishQuestObjective obj = GetObjective();
+                    var obj = GetObjective();
 
                     if (obj != null)
-                    {
-                        foreach(KeyValuePair<Type, int[]> kvp in obj.Line)
+                        foreach (var kvp in obj.Line)
                             entry.OnQuestResign(kvp.Key);
-                    }
                 }
             }
 
-            if (m_Crate != null)
+            if (Crate != null)
             {
-                m_Crate.Quest = null;
-                m_Crate.Delete();
+                Crate.Quest = null;
+                Crate.Delete();
             }
 
             base.OnResign(resignChain);
@@ -162,12 +160,12 @@ namespace Server.Engines.Quests
         {
             if (Owner != null)
             {
-                PlayerFishingEntry entry = PlayerFishingEntry.GetEntry(Owner);
+                var entry = PlayerFishingEntry.GetEntry(Owner);
 
                 if (entry != null)
                 {
                     double pointsAwarded = 0;
-                    FishQuestObjective obj = GetObjective();
+                    var obj = GetObjective();
 
                     if (obj != null)
                     {
@@ -185,30 +183,26 @@ namespace Server.Engines.Quests
 
         public void DeleteQuestItems()
         {
-            if (m_Crate == null)
+            if (Crate == null)
                 return;
 
             Container hold = null;
-            if (m_Crate.RootParent is Container)
-                hold = (Container)m_Crate.RootParent;
+            if (Crate.RootParent is Container)
+                hold = (Container)Crate.RootParent;
 
             //Deletes quest reqeust
-            FishQuestObjective obj = GetObjective();
+            var obj = GetObjective();
             if (obj != null)
-            {
-                foreach(KeyValuePair<Type, int[]> kvp in obj.Line)
-                    m_Crate.ConsumeTotal(kvp.Key, kvp.Value[1]);
-            }
+                foreach (var kvp in obj.Line)
+                    Crate.ConsumeTotal(kvp.Key, kvp.Value[1]);
 
             //then moves any extras to the hold
             if (hold != null)
-            {
-                foreach (Item item in new List<Item>(m_Crate.Items))
+                foreach (var item in new List<Item>(Crate.Items))
                     hold.DropItem(item);
-            }
 
-            if (m_Crate != null)
-                m_Crate.Delete();
+            if (Crate != null)
+                Crate.Delete();
         }
 
         public FishQuestObjective GetObjective()
@@ -232,8 +226,10 @@ namespace Server.Engines.Quests
             g.AddHtmlObject(160, 70, 200, 40, Title, BaseQuestGump.DarkGreen, false, false);
             g.AddHtmlLocalized(98, 140, 312, 16, 1049073, 0x2710, false, false); // Objective:
 
-            g.AddHtmlLocalized(98, 160, 312, 16, 1116509, 0x15F90, false, false); //Fill the crate on your ship with the correct fish.
-            g.AddHtmlLocalized(98, 176, 312, 16, 1116518, 0x15F90, false, false); //Speak with the fishmonger at the port of delivery.
+            g.AddHtmlLocalized(98, 160, 312, 16, 1116509, 0x15F90, false,
+                false); //Fill the crate on your ship with the correct fish.
+            g.AddHtmlLocalized(98, 176, 312, 16, 1116518, 0x15F90, false,
+                false); //Speak with the fishmonger at the port of delivery.
 
             return true;
         }
@@ -268,37 +264,35 @@ namespace Server.Engines.Quests
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
 
-            writer.Write(m_TurnIn);
-            writer.Write(m_Boat);
-            writer.Write(m_Crate);
+            writer.Write(TurnIn);
+            writer.Write(Boat);
+            writer.Write(Crate);
 
             if (m_Title is string)
             {
-                writer.Write((int)0);
+                writer.Write(0);
                 writer.Write((string)m_Title);
             }
             else
             {
-                writer.Write((int)1);
+                writer.Write(1);
                 writer.Write((int)m_Title);
             }
-
-
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            m_TurnIn = reader.ReadMobile() as FishMonger;
-            m_Boat = reader.ReadItem() as BaseBoat;
-            m_Crate = reader.ReadItem() as ShippingCrate;
+            TurnIn = reader.ReadMobile() as FishMonger;
+            Boat = reader.ReadItem() as BaseBoat;
+            Crate = reader.ReadItem() as ShippingCrate;
 
-            if (m_Crate != null)
-                m_Crate.AddQuest(this);
+            if (Crate != null)
+                Crate.AddQuest(this);
 
             switch (reader.ReadInt())
             {

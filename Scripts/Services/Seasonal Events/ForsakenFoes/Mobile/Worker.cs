@@ -1,10 +1,9 @@
-using System;
-using Server.Items;
-using Server.Gumps;
-using Server.Mobiles;
-using Server.Engines.Quests;
 using System.Collections.Generic;
 using System.IO;
+using Server.Engines.Quests;
+using Server.Gumps;
+using Server.Items;
+using Server.Mobiles;
 
 namespace Server.Engines.Fellowship
 {
@@ -24,8 +23,28 @@ namespace Server.Engines.Fellowship
     public class Worker : BaseQuester
     {
         public static string FilePath = Path.Combine("Saves/Misc", "FellowshipChain.bin");
-        public static Dictionary<Mobile, FellowshipChain> FellowshipChainList = new Dictionary<Mobile, FellowshipChain>();
-        
+
+        public static Dictionary<Mobile, FellowshipChain> FellowshipChainList =
+            new Dictionary<Mobile, FellowshipChain>();
+
+        public static Worker InstanceTram { get; set; }
+        public static Worker InstanceFel { get; set; }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public FellowshipChain Chain { get; set; }
+
+        [Constructable]
+        public Worker(FellowshipChain chain)
+            : base("the Worker")
+        {
+            Chain = chain;
+        }
+
+        public Worker(Serial serial)
+            : base(serial)
+        {
+        }
+
         public static void Configure()
         {
             EventSink.WorldSave += OnSave;
@@ -38,7 +57,7 @@ namespace Server.Engines.Fellowship
                 FilePath,
                 writer =>
                 {
-                    writer.Write((int)0);
+                    writer.Write(0);
 
                     writer.Write(FellowshipChainList.Count);
 
@@ -56,33 +75,17 @@ namespace Server.Engines.Fellowship
                 FilePath,
                 reader =>
                 {
-                    int version = reader.ReadInt();
-                    int count = reader.ReadInt();
+                    var version = reader.ReadInt();
+                    var count = reader.ReadInt();
 
-                    for (int i = count; i > 0; i--)
+                    for (var i = count; i > 0; i--)
                     {
-                        Mobile m = reader.ReadMobile();
-                        FellowshipChain chain = (FellowshipChain)reader.ReadInt();
+                        var m = reader.ReadMobile();
+                        var chain = (FellowshipChain)reader.ReadInt();
 
-                        if (m != null)
-                        {
-                            FellowshipChainList[m] = chain;
-                        }
+                        if (m != null) FellowshipChainList[m] = chain;
                     }
                 });
-        }
-
-        public static Worker InstanceTram { get; set; }
-        public static Worker InstanceFel { get; set; }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public FellowshipChain Chain { get; set; }
-
-        [Constructable]
-        public Worker(FellowshipChain chain)
-            : base("the Worker")
-        {
-            Chain = chain;
         }
 
         public override void InitBody()
@@ -124,9 +127,7 @@ namespace Server.Engines.Fellowship
                     }
 
                     if (FellowshipChainList[from] == FellowshipChain.Eight)
-                    {
                         from.AddToBackpack(new FellowshipMedallion());
-                    }
                 }
                 else
                 {
@@ -137,45 +138,56 @@ namespace Server.Engines.Fellowship
 
                 return true;
             }
-            else
-            {
-                SayTo(from, 500607, 0x3B2); // I'm not interested in that.
 
-                return false;
-            }
+            SayTo(from, 500607, 0x3B2); // I'm not interested in that.
+
+            return false;
         }
 
         public override void OnDoubleClick(Mobile m)
         {
             if (m != null && InRange(m.Location, 5))
-            {
                 if (!m.HasGump(typeof(WorkerGump)))
-                {
                     m.SendGump(new WorkerGump(m, Chain));
-                }
-            }
         }
 
         public override void OnTalk(PlayerMobile player, bool contextMenu)
         {
-            if (!player.HasGump(typeof(WorkerGump)))
-            {
-                player.SendGump(new WorkerGump(player, Chain));
-            }
+            if (!player.HasGump(typeof(WorkerGump))) player.SendGump(new WorkerGump(player, Chain));
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
+
+            writer.Write((int)Chain);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
+
+            Chain = (FellowshipChain)reader.ReadInt();
+
+            if (Map == Map.Trammel) InstanceTram = this;
+
+            if (Map == Map.Felucca) InstanceFel = this;
         }
 
         public class WorkerGump : Gump
         {
-            private static readonly int[,] clilocs = new int[,]
+            private static readonly int[,] clilocs =
             {
-                {1159238, 1159239},
-                {1159236, 1159240},
-                {1159236, 1159241},
-                {1159236, 1159242},
-                {1159236, 1159243},
-                {1159236, 1159244},
-                {1159236, 1159245},
-                {1159236, 1159246},
+                { 1159238, 1159239 },
+                { 1159236, 1159240 },
+                { 1159236, 1159241 },
+                { 1159236, 1159242 },
+                { 1159236, 1159243 },
+                { 1159236, 1159244 },
+                { 1159236, 1159245 },
+                { 1159236, 1159246 }
             };
 
             public WorkerGump(Mobile from, FellowshipChain chain)
@@ -199,39 +211,9 @@ namespace Server.Engines.Fellowship
 
                 AddBackground(0, 0, 620, 328, 0x2454);
                 AddImage(0, 0, 0x61A);
-                AddHtmlLocalized(335, 14, 273, 18, 1114513, "#1159237", 0xC63, false, false); // <DIV ALIGN=CENTER>~1_TOKEN~</DIV>
+                AddHtmlLocalized(335, 14, 273, 18, 1114513, "#1159237", 0xC63, false,
+                    false); // <DIV ALIGN=CENTER>~1_TOKEN~</DIV>
                 AddHtmlLocalized(335, 51, 273, 267, cliloc, 0xC63, false, true);
-            }
-        }
-
-        public Worker(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.Write(0);
-
-            writer.Write((int)Chain);
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            int version = reader.ReadInt();
-
-            Chain = (FellowshipChain)reader.ReadInt();
-
-            if (Map == Map.Trammel)
-            {
-                InstanceTram = this;
-            }
-
-            if (Map == Map.Felucca)
-            {
-                InstanceFel = this;
             }
         }
     }

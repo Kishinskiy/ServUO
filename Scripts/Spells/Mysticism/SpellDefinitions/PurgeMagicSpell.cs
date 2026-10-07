@@ -1,16 +1,12 @@
 using System;
-using Server;
-using Server.Items;
-using Server.Mobiles;
-using Server.Spells;
-using Server.Targeting;
 using System.Collections.Generic;
+using Server.Items;
+using Server.Spells.Fifth;
 using Server.Spells.First;
+using Server.Spells.Ninjitsu;
 using Server.Spells.Second;
 using Server.Spells.Third;
-using Server.Spells.Fourth;
-using Server.Spells.Fifth;
-using Server.Spells.Ninjitsu;
+using Server.Targeting;
 
 namespace Server.Spells.Mysticism
 {
@@ -31,17 +27,19 @@ namespace Server.Spells.Mysticism
 
     public class PurgeMagicSpell : MysticSpell
     {
-        public override SpellCircle Circle { get { return SpellCircle.Second; } }
+        private static readonly SpellInfo m_Info = new SpellInfo(
+            "Purge", "An Ort Sanct ",
+            230,
+            9022,
+            Reagent.Garlic,
+            Reagent.MandrakeRoot,
+            Reagent.SulfurousAsh,
+            Reagent.FertileDirt
+        );
 
-        private static SpellInfo m_Info = new SpellInfo(
-                "Purge", "An Ort Sanct ",
-                230,
-                9022,
-                Reagent.Garlic,
-                Reagent.MandrakeRoot,
-                Reagent.SulfurousAsh,
-                Reagent.FertileDirt
-            );
+        private static readonly Dictionary<Mobile, ImmuneTimer> m_ImmuneTable = new Dictionary<Mobile, ImmuneTimer>();
+        private static readonly Dictionary<Mobile, CurseTimer> m_CurseTable = new Dictionary<Mobile, CurseTimer>();
+        public override SpellCircle Circle => SpellCircle.Second;
 
         public PurgeMagicSpell(Mobile caster, Item scroll) : base(caster, scroll, m_Info)
         {
@@ -54,14 +52,15 @@ namespace Server.Spells.Mysticism
 
         public void OnTarget(object o)
         {
-            Mobile target = o as Mobile;
+            var target = o as Mobile;
 
             if (target == null)
                 return;
 
             if (m_CurseTable.ContainsKey(Caster))
             {
-                Caster.SendLocalizedMessage(1154212); //You may not use the Purge Magic spell while you are under its curse.
+                Caster.SendLocalizedMessage(
+                    1154212); //You may not use the Purge Magic spell while you are under its curse.
             }
             else if (m_ImmuneTable.ContainsKey(target) || m_CurseTable.ContainsKey(target))
             {
@@ -79,13 +78,15 @@ namespace Server.Spells.Mysticism
                     SpellHelper.CheckReflect((int)Circle, Caster, ref target);
 
                     Caster.PlaySound(0x655);
-                    Effects.SendLocationParticles(EffectItem.Create(target.Location, target.Map, EffectItem.DefaultDuration), 0x3728, 1, 13, 0x834, 0, 0x13B2, 0);
+                    Effects.SendLocationParticles(
+                        EffectItem.Create(target.Location, target.Map, EffectItem.DefaultDuration), 0x3728, 1, 13,
+                        0x834, 0, 0x13B2, 0);
 
-                    BuffType type = GetRandomBuff(target);
+                    var type = GetRandomBuff(target);
 
                     if (type != BuffType.None)
                     {
-                        string arg = "";
+                        var arg = "";
 
                         switch (type)
                         {
@@ -141,7 +142,7 @@ namespace Server.Spells.Mysticism
                         target.SendLocalizedMessage(1080117, arg); //Your ~1_ABILITY_NAME~ has been purged.
                         Caster.SendLocalizedMessage(1080118, arg); //Your target's ~1_ABILITY_NAME~ has been purged.
 
-                        int duration = (int)((Caster.Skills[CastSkill].Value + Caster.Skills[DamageSkill].Value) / 15);
+                        var duration = (int)((Caster.Skills[CastSkill].Value + Caster.Skills[DamageSkill].Value) / 15);
 
                         if (duration <= 0)
                             duration = 1;
@@ -152,7 +153,7 @@ namespace Server.Spells.Mysticism
                     {
                         Caster.SendLocalizedMessage(1080120); //Your target has no magic that can be purged.
 
-                        int duration = (int)((Caster.Skills[CastSkill].Value + Caster.Skills[DamageSkill].Value) / 28);
+                        var duration = (int)((Caster.Skills[CastSkill].Value + Caster.Skills[DamageSkill].Value) / 28);
 
                         if (duration <= 0)
                             duration = 1;
@@ -167,7 +168,7 @@ namespace Server.Spells.Mysticism
 
         public BuffType GetRandomBuff(Mobile target)
         {
-            List<BuffType> buffs = new List<BuffType>();
+            var buffs = new List<BuffType>();
 
             if (MagicReflectSpell.HasReflect(target))
                 buffs.Add(BuffType.MagicReflect);
@@ -178,7 +179,7 @@ namespace Server.Spells.Mysticism
             if (ProtectionSpell.HasProtection(target))
                 buffs.Add(BuffType.Protection);
 
-            TransformContext context = TransformationSpellHelper.GetContext(target);
+            var context = TransformationSpellHelper.GetContext(target);
 
             if (context != null && context.Type != typeof(AnimalForm))
                 buffs.Add(BuffType.Transformation);
@@ -189,7 +190,7 @@ namespace Server.Spells.Mysticism
             }
             else
             {
-                StatMod mod = target.GetStatMod("[Magic] Str Buff");
+                var mod = target.GetStatMod("[Magic] Str Buff");
                 if (mod != null)
                     buffs.Add(BuffType.StrBonus);
 
@@ -211,14 +212,11 @@ namespace Server.Spells.Mysticism
             if (buffs.Count == 0)
                 return BuffType.None;
 
-            BuffType type = buffs[Utility.Random(buffs.Count)];
+            var type = buffs[Utility.Random(buffs.Count)];
             buffs.Clear();
 
             return type;
         }
-
-        private static Dictionary<Mobile, ImmuneTimer> m_ImmuneTable = new Dictionary<Mobile, ImmuneTimer>();
-        private static Dictionary<Mobile, CurseTimer> m_CurseTable = new Dictionary<Mobile, CurseTimer>();
 
         public static void RemoveImmunity(Mobile from)
         {
@@ -237,9 +235,9 @@ namespace Server.Spells.Mysticism
 
                 if (DateTime.UtcNow > m_CurseTable[from].StartTime)
                 {
-                    TimeSpan inEffect = DateTime.UtcNow - m_CurseTable[from].StartTime;
+                    var inEffect = DateTime.UtcNow - m_CurseTable[from].StartTime;
 
-                    int damage = 5 * (int)inEffect.TotalSeconds;
+                    var damage = 5 * (int)inEffect.TotalSeconds;
 
                     from.FixedParticles(0x36BD, 20, 10, 5044, EffectLayer.Head);
                     from.PlaySound(0x307);
@@ -266,7 +264,7 @@ namespace Server.Spells.Mysticism
 
         private class ImmuneTimer : Timer
         {
-            private Mobile m_Mobile;
+            private readonly Mobile m_Mobile;
 
             public ImmuneTimer(Mobile mob, TimeSpan duration) : base(duration)
             {
@@ -276,31 +274,30 @@ namespace Server.Spells.Mysticism
 
             protected override void OnTick()
             {
-                PurgeMagicSpell.RemoveImmunity(m_Mobile);
+                RemoveImmunity(m_Mobile);
             }
         }
 
         private class CurseTimer : Timer
         {
-            private Mobile m_Mobile;
-            private Mobile m_Caster;
-            private DateTime m_StartTime;
+            private readonly Mobile m_Mobile;
 
-            public DateTime StartTime { get { return m_StartTime; } }
-            public Mobile Caster { get { return m_Caster; } }
+            public DateTime StartTime { get; }
+
+            public Mobile Caster { get; }
 
             public CurseTimer(Mobile mob, Mobile caster, TimeSpan duration)
                 : base(duration)
             {
                 m_Mobile = mob;
-                m_Caster = caster;
-                m_StartTime = DateTime.UtcNow;
+                Caster = caster;
+                StartTime = DateTime.UtcNow;
                 Start();
             }
 
             protected override void OnTick()
             {
-                PurgeMagicSpell.RemoveCurse(m_Mobile, m_Caster);
+                RemoveCurse(m_Mobile, Caster);
             }
         }
 
@@ -325,7 +322,9 @@ namespace Server.Spells.Mysticism
                     return;
 
                 if (!from.CanSee(o))
+                {
                     from.SendLocalizedMessage(500237); // Target can not be seen.
+                }
                 else
                 {
                     SpellHelper.Turn(from, o);

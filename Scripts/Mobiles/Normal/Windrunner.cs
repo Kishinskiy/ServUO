@@ -5,20 +5,21 @@ namespace Server.Mobiles
 {
     public class WindrunnerStatue : Item, ICreatureStatuette
     {
-        public override int LabelNumber { get { return 1124685; } } // Windrunner
-
-        public Type CreatureType { get { return typeof(Windrunner); } }
+        public override int LabelNumber => 1124685; // Windrunner
 
         [Constructable]
-        public WindrunnerStatue() 
+        public WindrunnerStatue()
             : base(0x9ED5)
         {
             LootType = LootType.Blessed;
         }
+
         public WindrunnerStatue(Serial serial)
             : base(serial)
         {
         }
+
+        public Type CreatureType => typeof(Windrunner);
 
         public override void OnDoubleClick(Mobile from)
         {
@@ -31,19 +32,23 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     [CorpseName("a Windrunner corpse")]
     public class Windrunner : BaseMount
     {
+        public override int Meat => 3;
+        public override int Hides => 10;
+        public override FoodType FavoriteFood => FoodType.Meat;
+
         [Constructable]
         public Windrunner()
             : this("Windrunner")
@@ -89,20 +94,16 @@ namespace Server.Mobiles
         {
         }
 
-        public override int Meat { get { return 3; } }
-        public override int Hides { get { return 10; } }
-        public override FoodType FavoriteFood { get { return FoodType.Meat; } }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

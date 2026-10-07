@@ -1,36 +1,33 @@
 using System;
-using Server.Targeting;
 using Server.Engines.Craft;
+using Server.Targeting;
 
 namespace Server.Items
 {
     public abstract class CookableFood : Item, IQuality, ICommodity
     {
         private ItemQuality _Quality;
-        private int m_CookingLevel;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int CookingLevel
+        public int CookingLevel { get; set; }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public ItemQuality Quality
         {
-            get
-            {
-                return m_CookingLevel;
-            }
+            get => _Quality;
             set
             {
-                m_CookingLevel = value;
+                _Quality = value;
+                InvalidateProperties();
             }
         }
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public ItemQuality Quality { get { return _Quality; } set { _Quality = value; InvalidateProperties(); } }
-
-        public bool PlayerConstructed { get { return true; } }
+        public bool PlayerConstructed => true;
 
         public CookableFood(int itemID, int cookingLevel)
             : base(itemID)
         {
-            m_CookingLevel = cookingLevel;
+            CookingLevel = cookingLevel;
         }
 
         public CookableFood(Serial serial)
@@ -38,18 +35,16 @@ namespace Server.Items
         {
         }
 
-        TextDefinition ICommodity.Description { get { return LabelNumber; } }
-        bool ICommodity.IsDeedable { get { return true; } }
+        TextDefinition ICommodity.Description => LabelNumber;
+        bool ICommodity.IsDeedable => true;
 
         public override void AddCraftedProperties(ObjectPropertyList list)
         {
-            if (_Quality == ItemQuality.Exceptional)
-            {
-                list.Add(1060636); // Exceptional
-            }
+            if (_Quality == ItemQuality.Exceptional) list.Add(1060636); // Exceptional
         }
 
-        public virtual int OnCraft(int quality, bool makersMark, Mobile from, CraftSystem craftSystem, Type typeRes, ITool tool, CraftItem craftItem, int resHue)
+        public virtual int OnCraft(int quality, bool makersMark, Mobile from, CraftSystem craftSystem, Type typeRes,
+            ITool tool, CraftItem craftItem, int resHue)
         {
             Quality = (ItemQuality)quality;
 
@@ -62,36 +57,36 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)2); // version
+            writer.Write(2); // version
 
             writer.Write((int)_Quality);
 
             // Version 1
-            writer.Write((int)m_CookingLevel);
+            writer.Write(CookingLevel);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            switch ( version )
+            switch (version)
             {
                 case 2:
-                    {
-                        _Quality = (ItemQuality)reader.ReadInt();
-                        goto case 1;
-                    }
+                {
+                    _Quality = (ItemQuality)reader.ReadInt();
+                    goto case 1;
+                }
                 case 1:
-                    {
-                        m_CookingLevel = reader.ReadInt();
-                        break;
-                    }
+                {
+                    CookingLevel = reader.ReadInt();
+                    break;
+                }
             }
         }
 
-        #if false
+#if false
 		public override void OnDoubleClick( Mobile from )
 		{
 			if ( !Movable )
@@ -99,7 +94,7 @@ namespace Server.Items
 
 			from.Target = new InternalTarget( this );
 		}
-        #endif
+#endif
 
         public static bool IsHeatSource(object targeted)
         {
@@ -114,17 +109,17 @@ namespace Server.Items
 
             if (itemID >= 0xDE3 && itemID <= 0xDE9)
                 return true; // Campfire
-            else if (itemID >= 0x461 && itemID <= 0x48E)
+            if (itemID >= 0x461 && itemID <= 0x48E)
                 return true; // Sandstone oven/fireplace
-            else if (itemID >= 0x92B && itemID <= 0x96C)
+            if (itemID >= 0x92B && itemID <= 0x96C)
                 return true; // Stone oven/fireplace
-            else if (itemID == 0xFAC)
+            if (itemID == 0xFAC)
                 return true; // Firepit
-            else if (itemID >= 0x184A && itemID <= 0x184C)
+            if (itemID >= 0x184A && itemID <= 0x184C)
                 return true; // Heating stand (left)
-            else if (itemID >= 0x184E && itemID <= 0x1850)
+            if (itemID >= 0x184E && itemID <= 0x1850)
                 return true; // Heating stand (right)
-            else if (itemID >= 0x398C && itemID <= 0x399F)
+            if (itemID >= 0x398C && itemID <= 0x399F)
                 return true; // Fire field
 
             return false;
@@ -145,7 +140,7 @@ namespace Server.Items
                 if (m_Item.Deleted)
                     return;
 
-                if (CookableFood.IsHeatSource(targeted))
+                if (IsHeatSource(targeted))
                 {
                     if (from.BeginAction(typeof(CookableFood)))
                     {
@@ -153,7 +148,7 @@ namespace Server.Items
 
                         m_Item.Consume();
 
-                        InternalTimer t = new InternalTimer(from, targeted as IPoint3D, from.Map, m_Item);
+                        var t = new InternalTimer(from, targeted as IPoint3D, from.Map, m_Item);
                         t.Start();
                     }
                     else
@@ -165,11 +160,11 @@ namespace Server.Items
 
             private class InternalTimer : Timer
             {
-                private readonly Mobile m_From;
-                private readonly IPoint3D m_Point;
-                private readonly Map m_Map;
                 private readonly CookableFood m_CookableFood;
-			
+                private readonly Mobile m_From;
+                private readonly Map m_Map;
+                private readonly IPoint3D m_Point;
+
                 public InternalTimer(Mobile from, IPoint3D p, Map map, CookableFood cookableFood)
                     : base(TimeSpan.FromSeconds(5.0))
                 {
@@ -191,7 +186,7 @@ namespace Server.Items
 
                     if (m_From.CheckSkill(SkillName.Cooking, m_CookableFood.CookingLevel, 100))
                     {
-                        Food cookedFood = m_CookableFood.Cook();
+                        var cookedFood = m_CookableFood.Cook();
 
                         if (m_From.AddToBackpack(cookedFood))
                             m_From.PlaySound(0x57);
@@ -232,14 +227,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         public override Food Cook()
@@ -274,14 +269,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)1); // version
+            writer.Write(1); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (version == 0 && Weight == 1)
                 Weight = -1;
@@ -313,14 +308,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         public override Food Cook()
@@ -356,14 +351,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         public override Food Cook()
@@ -375,13 +370,7 @@ namespace Server.Items
     // ********** UnbakedPeachCobbler **********
     public class UnbakedPeachCobbler : CookableFood
     {
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1041335;
-            }
-        }// unbaked peach cobbler
+        public override int LabelNumber => 1041335; // unbaked peach cobbler
 
         [Constructable]
         public UnbakedPeachCobbler()
@@ -399,14 +388,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         public override Food Cook()
@@ -418,13 +407,7 @@ namespace Server.Items
     // ********** UnbakedFruitPie **********
     public class UnbakedFruitPie : CookableFood
     {
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1041334;
-            }
-        }// unbaked fruit pie
+        public override int LabelNumber => 1041334; // unbaked fruit pie
 
         [Constructable]
         public UnbakedFruitPie()
@@ -442,14 +425,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         public override Food Cook()
@@ -461,13 +444,7 @@ namespace Server.Items
     // ********** UnbakedMeatPie **********
     public class UnbakedMeatPie : CookableFood
     {
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1041338;
-            }
-        }// unbaked meat pie
+        public override int LabelNumber => 1041338; // unbaked meat pie
 
         [Constructable]
         public UnbakedMeatPie()
@@ -485,14 +462,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         public override Food Cook()
@@ -504,13 +481,7 @@ namespace Server.Items
     // ********** UnbakedPumpkinPie **********
     public class UnbakedPumpkinPie : CookableFood
     {
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1041342;
-            }
-        }// unbaked pumpkin pie
+        public override int LabelNumber => 1041342; // unbaked pumpkin pie
 
         [Constructable]
         public UnbakedPumpkinPie()
@@ -528,14 +499,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         public override Food Cook()
@@ -547,13 +518,7 @@ namespace Server.Items
     // ********** UnbakedApplePie **********
     public class UnbakedApplePie : CookableFood
     {
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1041336;
-            }
-        }// unbaked apple pie
+        public override int LabelNumber => 1041336; // unbaked apple pie
 
         [Constructable]
         public UnbakedApplePie()
@@ -571,14 +536,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         public override Food Cook()
@@ -591,13 +556,7 @@ namespace Server.Items
     [TypeAlias("Server.Items.UncookedPizza")]
     public class UncookedCheesePizza : CookableFood
     {
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1041341;
-            }
-        }// uncooked cheese pizza
+        public override int LabelNumber => 1041341; // uncooked cheese pizza
 
         [Constructable]
         public UncookedCheesePizza()
@@ -615,14 +574,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (ItemID == 0x1040)
                 ItemID = 0x1083;
@@ -640,13 +599,7 @@ namespace Server.Items
     // ********** UncookedSausagePizza **********
     public class UncookedSausagePizza : CookableFood
     {
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1041337;
-            }
-        }// uncooked sausage pizza
+        public override int LabelNumber => 1041337; // uncooked sausage pizza
 
         [Constructable]
         public UncookedSausagePizza()
@@ -664,14 +617,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         public override Food Cook()
@@ -680,7 +633,7 @@ namespace Server.Items
         }
     }
 
-    #if false
+#if false
 	// ********** UncookedPizza **********
 	public class UncookedPizza : CookableFood
 	{
@@ -719,18 +672,12 @@ namespace Server.Items
 			return new Pizza();
 		}
 	}
-    #endif
+#endif
 
     // ********** UnbakedQuiche **********
     public class UnbakedQuiche : CookableFood
     {
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1041339;
-            }
-        }// unbaked quiche
+        public override int LabelNumber => 1041339; // unbaked quiche
 
         [Constructable]
         public UnbakedQuiche()
@@ -748,14 +695,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         public override Food Cook()
@@ -791,14 +738,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)1); // version
+            writer.Write(1); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (version < 1)
             {
@@ -818,20 +765,14 @@ namespace Server.Items
     // ********** BrightlyColoredEggs **********
     public class BrightlyColoredEggs : CookableFood
     {
-        public override string DefaultName
-        {
-            get
-            {
-                return "brightly colored eggs";
-            }
-        }
+        public override string DefaultName => "brightly colored eggs";
 
         [Constructable]
         public BrightlyColoredEggs()
             : base(0x9B5, 15)
         {
             Weight = 0.5;
-            Hue = 3 + (Utility.Random(20) * 5);
+            Hue = 3 + Utility.Random(20) * 5;
         }
 
         public BrightlyColoredEggs(Serial serial)
@@ -843,14 +784,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         public override Food Cook()
@@ -862,20 +803,14 @@ namespace Server.Items
     // ********** EasterEggs **********
     public class EasterEggs : CookableFood
     {
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1016105;
-            }
-        }// Easter Eggs
+        public override int LabelNumber => 1016105; // Easter Eggs
 
         [Constructable]
         public EasterEggs()
             : base(0x9B5, 15)
         {
             Weight = 0.5;
-            Hue = 3 + (Utility.Random(20) * 5);
+            Hue = 3 + Utility.Random(20) * 5;
         }
 
         public EasterEggs(Serial serial)
@@ -887,14 +822,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         public override Food Cook()
@@ -906,7 +841,6 @@ namespace Server.Items
     // ********** CookieMix **********
     public class CookieMix : CookableFood
     {
-
         [Constructable]
         public CookieMix()
             : base(0x103F, 20)
@@ -923,14 +857,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         public override Food Cook()
@@ -942,13 +876,7 @@ namespace Server.Items
     // ********** CakeMix **********
     public class CakeMix : CookableFood
     {
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1041002;
-            }
-        }// cake mix
+        public override int LabelNumber => 1041002; // cake mix
 
         [Constructable]
         public CakeMix()
@@ -966,14 +894,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)1); // version
+            writer.Write(1); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         public override Food Cook()
@@ -984,13 +912,7 @@ namespace Server.Items
 
     public class RawFishSteak : CookableFood, ICommodity
     {
-        public override double DefaultWeight
-        {
-            get
-            {
-                return 0.1;
-            }
-        }
+        public override double DefaultWeight => 0.1;
 
         [Constructable]
         public RawFishSteak()
@@ -1011,8 +933,8 @@ namespace Server.Items
         {
         }
 
-        TextDefinition ICommodity.Description { get { return LabelNumber; } }
-        bool ICommodity.IsDeedable { get { return true; } }
+        TextDefinition ICommodity.Description => LabelNumber;
+        bool ICommodity.IsDeedable => true;
 
         public override Food Cook()
         {
@@ -1023,14 +945,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -1065,14 +987,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

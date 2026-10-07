@@ -1,10 +1,5 @@
 using System;
-using System.Linq;
 using System.Collections.Generic;
-
-using Server;
-using Server.Items;
-using Server.Mobiles;
 using Server.Multis;
 
 namespace Server.Items
@@ -22,59 +17,12 @@ namespace Server.Items
             Tokuno4
         }
 
-        public static PlunderBeaconSpawner Spawner { get; set; }
-        public Dictionary<PlunderZone, List<PlunderBeaconAddon>> PlunderBeacons { get; set; }
-
-        public static void AddPlunderBeacon(PlunderZone zone, PlunderBeaconAddon beacon)
+        private readonly int[] _SpawnCount =
         {
-            if (Spawner == null)
-                return;
+            5, 5, 3, 3, 3, 3
+        };
 
-            if (!Spawner.PlunderBeacons[zone].Contains(beacon))
-            {
-                Spawner.PlunderBeacons[zone].Add(beacon);
-            }
-        }
-
-        public void RemovePlunderBeacon(PlunderBeaconAddon beacon)
-        {
-            if (Spawner == null || Spawner.PlunderBeacons == null)
-                return;
-
-            foreach (var kvp in Spawner.PlunderBeacons)
-            {
-                if (kvp.Value.Contains(beacon))
-                {
-                    kvp.Value.Remove(beacon);
-                }
-            }
-        }
-
-        public void SystemDeactivate()
-        {
-            if (Timer != null)
-            {
-                Timer.Stop();
-                Timer = null;
-            }
-
-            var list = new List<PlunderBeaconAddon>();
-
-            foreach (var kvp in PlunderBeacons)
-            {
-                list.AddRange(kvp.Value);
-            }
-
-            foreach (var beacon in list)
-            {
-                beacon.Delete();
-            }
-
-            PlunderBeacons.Clear();
-            Spawner = null;
-        }
-
-        private Rectangle2D[] _Zones =
+        private readonly Rectangle2D[] _Zones =
         {
             new Rectangle2D(1574, 3620, 766, 465),
             new Rectangle2D(1574, 3620, 766, 465),
@@ -84,10 +32,8 @@ namespace Server.Items
             new Rectangle2D(1274, 977, 141, 221)
         };
 
-        private int[] _SpawnCount =
-        {
-            5, 5, 3, 3, 3, 3
-        };
+        public static PlunderBeaconSpawner Spawner { get; set; }
+        public Dictionary<PlunderZone, List<PlunderBeaconAddon>> PlunderBeacons { get; set; }
 
         public Timer Timer { get; set; }
 
@@ -112,6 +58,42 @@ namespace Server.Items
             }
         }
 
+        public static void AddPlunderBeacon(PlunderZone zone, PlunderBeaconAddon beacon)
+        {
+            if (Spawner == null)
+                return;
+
+            if (!Spawner.PlunderBeacons[zone].Contains(beacon)) Spawner.PlunderBeacons[zone].Add(beacon);
+        }
+
+        public void RemovePlunderBeacon(PlunderBeaconAddon beacon)
+        {
+            if (Spawner == null || Spawner.PlunderBeacons == null)
+                return;
+
+            foreach (var kvp in Spawner.PlunderBeacons)
+                if (kvp.Value.Contains(beacon))
+                    kvp.Value.Remove(beacon);
+        }
+
+        public void SystemDeactivate()
+        {
+            if (Timer != null)
+            {
+                Timer.Stop();
+                Timer = null;
+            }
+
+            var list = new List<PlunderBeaconAddon>();
+
+            foreach (var kvp in PlunderBeacons) list.AddRange(kvp.Value);
+
+            foreach (var beacon in list) beacon.Delete();
+
+            PlunderBeacons.Clear();
+            Spawner = null;
+        }
+
         public void TickTock()
         {
             CheckSpawn();
@@ -125,50 +107,47 @@ namespace Server.Items
                     continue;
 
                 var zone = (PlunderZone)i;
-                int low = _SpawnCount[i] - PlunderBeacons[zone].Count;
+                var low = _SpawnCount[i] - PlunderBeacons[zone].Count;
 
-                if (low > 0)
-                {
-                    Spawn(zone, low);
-                }
+                if (low > 0) Spawn(zone, low);
             }
         }
 
         public void Spawn(PlunderZone zone, int amount)
         {
-            Map map = Map.Trammel;
+            var map = Map.Trammel;
 
             if (zone == PlunderZone.Fel)
                 map = Map.Felucca;
             else if (zone > PlunderZone.Fel)
                 map = Map.Tokuno;
 
-            for (int i = 0; i < amount; i++)
+            for (var i = 0; i < amount; i++)
             {
                 var rec = _Zones[(int)zone];
                 Point3D p;
 
-                while(true)
+                while (true)
                 {
-                    p = map.GetRandomSpawnPoint(rec); //new Point3D(rec.X + Utility.Random(rec.Width), rec.Y + Utility.RandomMinMax(rec.Start.X, rec.Height), -5);
+                    p = map.GetRandomSpawnPoint(
+                        rec); //new Point3D(rec.X + Utility.Random(rec.Width), rec.Y + Utility.RandomMinMax(rec.Start.X, rec.Height), -5);
 
                     if (p.Z != -5)
                         p.Z = -5;
 
                     var bounds = new Rectangle2D(p.X - 7, p.Y - 7, 15, 15);
 
-                    bool badSpot = false;
+                    var badSpot = false;
 
-                    for (int x = bounds.Start.X; x <= bounds.Start.X + bounds.Width; x++)
+                    for (var x = bounds.Start.X; x <= bounds.Start.X + bounds.Width; x++)
                     {
-                        for (int y = bounds.Start.Y; y <= bounds.Start.Y + bounds.Height; y++)
-                        {
-                            if (BaseBoat.FindBoatAt(new Point3D(x, y, -5), map) != null || !SpecialFishingNet.ValidateDeepWater(map, x, y))
+                        for (var y = bounds.Start.Y; y <= bounds.Start.Y + bounds.Height; y++)
+                            if (BaseBoat.FindBoatAt(new Point3D(x, y, -5), map) != null ||
+                                !SpecialFishingNet.ValidateDeepWater(map, x, y))
                             {
                                 badSpot = true;
                                 break;
                             }
-                        }
 
                         if (badSpot)
                             break;
@@ -179,13 +158,11 @@ namespace Server.Items
                         IPooledEnumerable eable = map.GetMobilesInBounds(bounds);
 
                         foreach (Mobile m in eable)
-                        {
                             if (m.AccessLevel == AccessLevel.Player)
                             {
                                 badSpot = true;
                                 break;
                             }
-                        }
 
                         eable.Free();
 
@@ -219,12 +196,10 @@ namespace Server.Items
         {
             reader.ReadInt();
 
-            int count = reader.ReadInt();
+            var count = reader.ReadInt();
 
-            for (int i = 0; i < count; i++)
-            {
+            for (var i = 0; i < count; i++)
                 PlunderBeacons[(PlunderZone)reader.ReadInt()] = reader.ReadStrongItemList<PlunderBeaconAddon>();
-            }
         }
     }
 }

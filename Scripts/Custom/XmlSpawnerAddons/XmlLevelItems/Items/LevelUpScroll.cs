@@ -1,25 +1,12 @@
-using System;
-using Server.Network;
-using Server.Prompts;
-using Server.Mobiles;
-using Server.Misc;
-using Server.Items;
-using Server.Gumps;
-using Server.Targeting;
-using Server.Targets;
 using Server.Engines.XmlSpawner2;
+using Server.Targeting;
 
 namespace Server.Items
 {
     public class LevelUpScroll : Item
     {
-        private int m_Value;
-
         [CommandProperty(AccessLevel.GameMaster)]
-        public int Value
-        {
-            get { return m_Value; }
-        }
+        public int Value { get; private set; }
 
         [Constructable]
         public LevelUpScroll(int value) : base(0x14F0)
@@ -29,35 +16,39 @@ namespace Server.Items
             Hue = 0x64;
             LootType = LootType.Cursed;
 
-            m_Value = value;
+            Value = value;
+        }
+
+        public LevelUpScroll(Serial serial) : base(serial)
+        {
         }
 
         public override void AddNameProperty(ObjectPropertyList list)
         {
-            if (m_Value == 5)
-                list.Add("a wonderous scroll of Leveling (+{0} max levels)", m_Value);
-            else if (m_Value == 10)
-                list.Add("an exalted scroll of Leveling (+{0} max levels)", m_Value);
-            else if (m_Value == 15)
-                list.Add("a mythical scroll of Leveling (+{0} max levels)", m_Value);
-            else if (m_Value == 20)
-                list.Add("a legendary scroll of Leveling (+{0} max levels)", m_Value);
+            if (Value == 5)
+                list.Add("a wonderous scroll of Leveling (+{0} max levels)", Value);
+            else if (Value == 10)
+                list.Add("an exalted scroll of Leveling (+{0} max levels)", Value);
+            else if (Value == 15)
+                list.Add("a mythical scroll of Leveling (+{0} max levels)", Value);
+            else if (Value == 20)
+                list.Add("a legendary scroll of Leveling (+{0} max levels)", Value);
             else
-                list.Add("a scroll of Leveling (+{0} max levels)", m_Value);
+                list.Add("a scroll of Leveling (+{0} max levels)", Value);
         }
 
         public override void OnSingleClick(Mobile from)
         {
-            if (m_Value == 5)
-                base.LabelTo(from, "a wonderous scroll of Leveling (+{0} max levels)", m_Value);
-            else if (m_Value == 10)
-                base.LabelTo(from, "an exalted scroll of Leveling (+{0} max levels)", m_Value);
-            else if (m_Value == 15)
-                base.LabelTo(from, "a mythical scroll of Leveling (+{0} max levels)", m_Value);
-            else if (m_Value == 20)
-                base.LabelTo(from, "a legendary scroll of Leveling (+{0} max levels)", m_Value);
+            if (Value == 5)
+                LabelTo(from, "a wonderous scroll of Leveling (+{0} max levels)", Value);
+            else if (Value == 10)
+                LabelTo(from, "an exalted scroll of Leveling (+{0} max levels)", Value);
+            else if (Value == 15)
+                LabelTo(from, "a mythical scroll of Leveling (+{0} max levels)", Value);
+            else if (Value == 20)
+                LabelTo(from, "a legendary scroll of Leveling (+{0} max levels)", Value);
             else
-                base.LabelTo(from, "a scroll of Leveling (+{0} max levels)", m_Value);
+                LabelTo(from, "a scroll of Leveling (+{0} max levels)", Value);
         }
 
         public override void AddNameProperties(ObjectPropertyList list)
@@ -66,36 +57,32 @@ namespace Server.Items
             list.Add(1060847, "Levelable Items Only");
         }
 
-        public LevelUpScroll(Serial serial) : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1); // Версия 1 (очищенная)
+            writer.Write(1); // Версия 1 (очищенная)
 
-            writer.Write((int)m_Value);
+            writer.Write(Value);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             switch (version)
             {
                 case 1:
-                    {
-                        m_Value = reader.ReadInt();
-                        break;
-                    }
+                {
+                    Value = reader.ReadInt();
+                    break;
+                }
                 case 0: // Обратная совместимость, если на сервере уже были старые свитки
-                    {
-                        bool oldValidated = reader.ReadBool(); // Читаем и отбрасываем старую переменную
-                        m_Value = reader.ReadInt();
-                        break;
-                    }
+                {
+                    var oldValidated = reader.ReadBool(); // Читаем и отбрасываем старую переменную
+                    Value = reader.ReadInt();
+                    break;
+                }
             }
         }
 
@@ -108,12 +95,12 @@ namespace Server.Items
             }
 
             from.SendMessage("Выберите оружие или броню для увеличения максимального уровня.");
-            from.Target = new LevelUpScroll.LevelItemTarget(this);
+            from.Target = new LevelItemTarget(this);
         }
 
         public class LevelItemTarget : Target
         {
-            private LevelUpScroll m_Scroll;
+            private readonly LevelUpScroll m_Scroll;
 
             public LevelItemTarget(LevelUpScroll scroll) : base(-1, false, TargetFlags.None)
             {
@@ -130,24 +117,26 @@ namespace Server.Items
                         return;
                     }
 
-                    XmlLevelItem levitem = XmlAttach.FindAttachment(item, typeof(XmlLevelItem)) as XmlLevelItem;
+                    var levitem = XmlAttach.FindAttachment(item, typeof(XmlLevelItem)) as XmlLevelItem;
 
                     if (levitem != null)
                     {
-                        if ((levitem.MaxLevel + m_Scroll.Value) > LevelItems.MaxLevelsCap)
+                        if (levitem.MaxLevel + m_Scroll.Value > LevelItems.MaxLevelsCap)
                         {
                             from.SendMessage("Максимальный уровень этого предмета уже слишком высок для этого свитка!");
                         }
                         else
                         {
                             levitem.MaxLevel += m_Scroll.Value;
-                            from.SendMessage("Максимальный уровень вашего предмета успешно увеличен на " + m_Scroll.Value + ".");
+                            from.SendMessage("Максимальный уровень вашего предмета успешно увеличен на " +
+                                             m_Scroll.Value + ".");
                             m_Scroll.Delete();
                         }
                     }
                     else
                     {
-                        from.SendMessage("Этот предмет не поддерживает прокачку. Используйте только на оружии, броне или бижутерии с аттачментом.");
+                        from.SendMessage(
+                            "Этот предмет не поддерживает прокачку. Используйте только на оружии, броне или бижутерии с аттачментом.");
                     }
                 }
                 else

@@ -1,4 +1,3 @@
-using System;
 using Server.Gumps;
 using Server.Network;
 
@@ -6,7 +5,7 @@ namespace Server.Items
 {
     public class HairDye : Item
     {
-        public override int LabelNumber { get { return 1041060; } } // Hair Dye
+        public override int LabelNumber => 1041060; // Hair Dye
 
         [Constructable]
         public HairDye()
@@ -23,13 +22,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         public override void OnDoubleClick(Mobile from)
@@ -48,7 +47,7 @@ namespace Server.Items
 
     public class HairDyeGump : Gump
     {
-        private static readonly HairDyeEntry[] m_Entries = new HairDyeEntry[]
+        private static readonly HairDyeEntry[] m_Entries =
         {
             new HairDyeEntry("*****", 1602, 26),
             new HairDyeEntry("*****", 1628, 27),
@@ -63,7 +62,9 @@ namespace Server.Items
             new HairDyeEntry("*****", 1118, 16),
             new HairDyeEntry("*****", 1134, 16)
         };
+
         private readonly HairDye m_HairDye;
+
         public HairDyeGump(HairDye dye)
             : base(50, 50)
         {
@@ -79,22 +80,22 @@ namespace Server.Items
             AddButton(149, 328, 4005, 4007, 1, GumpButtonType.Reply, 0);
             AddHtmlLocalized(185, 329, 250, 35, 1011014, false, false); // Dye my hair this color!
 
-            for (int i = 0; i < m_Entries.Length; ++i)
+            for (var i = 0; i < m_Entries.Length; ++i)
             {
-                AddLabel(130, 59 + (i * 22), m_Entries[i].HueStart - 1, m_Entries[i].Name);
-                AddButton(207, 60 + (i * 22), 5224, 5224, 0, GumpButtonType.Page, i + 1);
+                AddLabel(130, 59 + i * 22, m_Entries[i].HueStart - 1, m_Entries[i].Name);
+                AddButton(207, 60 + i * 22, 5224, 5224, 0, GumpButtonType.Page, i + 1);
             }
 
-            for (int i = 0; i < m_Entries.Length; ++i)
+            for (var i = 0; i < m_Entries.Length; ++i)
             {
-                HairDyeEntry e = m_Entries[i];
+                var e = m_Entries[i];
 
                 AddPage(i + 1);
 
-                for (int j = 0; j < e.HueCount; ++j)
+                for (var j = 0; j < e.HueCount; ++j)
                 {
-                    AddLabel(278 + ((j / 16) * 80), 52 + ((j % 16) * 17), e.HueStart + j - 1, "*****");
-                    AddRadio(260 + ((j / 16) * 80), 52 + ((j % 16) * 17), 210, 211, false, (i * 100) + j);
+                    AddLabel(278 + j / 16 * 80, 52 + j % 16 * 17, e.HueStart + j - 1, "*****");
+                    AddRadio(260 + j / 16 * 80, 52 + j % 16 * 17, 210, 211, false, i * 100 + j);
                 }
             }
         }
@@ -104,10 +105,10 @@ namespace Server.Items
             if (m_HairDye.Deleted)
                 return;
 
-            Mobile m = from.Mobile;
-            int[] switches = info.Switches;
+            var m = from.Mobile;
+            var switches = info.Switches;
 
-            if (!m_HairDye.IsChildOf(m.Backpack)) 
+            if (!m_HairDye.IsChildOf(m.Backpack))
             {
                 m.SendLocalizedMessage(1042010); //You must have the objectin your backpack to use it.
                 return;
@@ -117,26 +118,26 @@ namespace Server.Items
             {
                 if (m.HairItemID == 0 && m.FacialHairItemID == 0)
                 {
-                    m.SendLocalizedMessage(502623);	// You have no hair to dye and cannot use this
+                    m.SendLocalizedMessage(502623); // You have no hair to dye and cannot use this
                 }
                 else
                 {
                     // To prevent this from being exploited, the hue is abstracted into an internal list
-                    int entryIndex = switches[0] / 100;
-                    int hueOffset = switches[0] % 100;
+                    var entryIndex = switches[0] / 100;
+                    var hueOffset = switches[0] % 100;
 
                     if (entryIndex >= 0 && entryIndex < m_Entries.Length)
                     {
-                        HairDyeEntry e = m_Entries[entryIndex];
+                        var e = m_Entries[entryIndex];
 
                         if (hueOffset >= 0 && hueOffset < e.HueCount)
                         {
-                            int hue = e.HueStart + hueOffset;
+                            var hue = e.HueStart + hueOffset;
 
                             m.HairHue = hue;
                             m.FacialHairHue = hue;
 
-                            m.SendLocalizedMessage(501199);  // You dye your hair
+                            m.SendLocalizedMessage(501199); // You dye your hair
                             m_HairDye.Delete();
                             m.PlaySound(0x4E);
                         }
@@ -151,36 +152,17 @@ namespace Server.Items
 
         private class HairDyeEntry
         {
-            private readonly string m_Name;
-            private readonly int m_HueStart;
-            private readonly int m_HueCount;
+            public string Name { get; }
+
+            public int HueStart { get; }
+
+            public int HueCount { get; }
+
             public HairDyeEntry(string name, int hueStart, int hueCount)
             {
-                m_Name = name;
-                m_HueStart = hueStart;
-                m_HueCount = hueCount;
-            }
-
-            public string Name
-            {
-                get
-                {
-                    return m_Name;
-                }
-            }
-            public int HueStart
-            {
-                get
-                {
-                    return m_HueStart;
-                }
-            }
-            public int HueCount
-            {
-                get
-                {
-                    return m_HueCount;
-                }
+                Name = name;
+                HueStart = hueStart;
+                HueCount = hueCount;
             }
         }
     }

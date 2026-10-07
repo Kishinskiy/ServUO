@@ -1,6 +1,3 @@
-using System;
-using Server.Items;
-using Server.Mobiles;
 using Server.Gumps;
 
 namespace Server.Items
@@ -19,18 +16,20 @@ namespace Server.Items
             Krampus
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1156395;
-            }
-        }
-
         private CardType _Type;
 
+        public override int LabelNumber => 1156395;
+
         [CommandProperty(AccessLevel.GameMaster)]
-        public CardType Type { get { return _Type; } set { _Type = value; InvalidateProperties(); } }
+        public CardType Type
+        {
+            get => _Type;
+            set
+            {
+                _Type = value;
+                InvalidateProperties();
+            }
+        }
 
         [Constructable]
         public CardOfSemidar()
@@ -45,20 +44,21 @@ namespace Server.Items
             _Type = type;
         }
 
+        public CardOfSemidar(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void OnDoubleClick(Mobile from)
         {
-            if (from.InRange(this.GetWorldLocation(), 3))
+            if (from.InRange(GetWorldLocation(), 3))
             {
-                Gump g = new Gump(100, 100);
+                var g = new Gump(100, 100);
 
                 if (_Type == CardType.Krampus)
-                {
                     g.AddImage(0, 0, 39914);
-                }
                 else
-                {
                     g.AddImage(0, 0, 39904 + (int)_Type);
-                }
 
                 from.SendGump(g);
             }
@@ -77,16 +77,11 @@ namespace Server.Items
             }
         }
 
-        public CardOfSemidar(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
             writer.Write((int)_Type);
         }
 
@@ -94,7 +89,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
             _Type = (CardType)reader.ReadInt();
         }
     }

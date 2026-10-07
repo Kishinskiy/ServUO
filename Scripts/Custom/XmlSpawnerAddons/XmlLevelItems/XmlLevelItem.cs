@@ -1,32 +1,39 @@
-﻿using System;
-using System.Collections.Generic;
-using Server;
-using Server.Items;
-using Server.Network;
-using Server.Mobiles;
-using Server.Misc;
-using Server.ContextMenus;
+﻿using Server.Items;
 
 namespace Server.Engines.XmlSpawner2
 {
     public class XmlLevelItem : XmlAttachment
     {
-        private int m_Experience = 0;
-        private int m_Level = 0;
-        private int m_Points = 0;
-        private int m_MaxLevel = 0;
+        private int m_Level;
+        private int m_MaxLevel;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int Experience { get { return m_Experience; } set { m_Experience = value; } }
+        public int Experience { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int Level { get { return m_Level; } set { m_Level = value; /* ChangeName((Item)AttachedTo); */ InvalidateParentProperties(); } }
+        public int Level
+        {
+            get => m_Level;
+            set
+            {
+                m_Level = value; /* ChangeName((Item)AttachedTo); */
+                InvalidateParentProperties();
+            }
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int Points { get { return m_Points; } set { m_Points = value; } }
+        public int Points { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int MaxLevel { get { return m_MaxLevel; } set { m_MaxLevel = value; if (m_MaxLevel > LevelItems.MaxLevelsCap) m_MaxLevel = LevelItems.MaxLevelsCap; } }
+        public int MaxLevel
+        {
+            get => m_MaxLevel;
+            set
+            {
+                m_MaxLevel = value;
+                if (m_MaxLevel > LevelItems.MaxLevelsCap) m_MaxLevel = LevelItems.MaxLevelsCap;
+            }
+        }
 
         public XmlLevelItem(ASerial serial)
             : base(serial)
@@ -55,13 +62,9 @@ namespace Server.Engines.XmlSpawner2
             base.OnAttach();
 
             if (AttachedTo is BaseWeapon || AttachedTo is BaseArmor || AttachedTo is BaseJewel)
-            {
                 InvalidateParentProperties();
-            }
             else
-            {
                 Delete();
-            }
         }
 
         public override void OnDelete()
@@ -75,24 +78,24 @@ namespace Server.Engines.XmlSpawner2
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
 
-            writer.Write((int)m_Experience);
-            writer.Write((int)m_Level);
-            writer.Write((int)m_MaxLevel);
-            writer.Write((int)m_Points);
+            writer.Write(Experience);
+            writer.Write(m_Level);
+            writer.Write(m_MaxLevel);
+            writer.Write(Points);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            m_Experience = reader.ReadInt();
+            Experience = reader.ReadInt();
             m_Level = reader.ReadInt();
             m_MaxLevel = reader.ReadInt();
-            m_Points = reader.ReadInt();
+            Points = reader.ReadInt();
         }
     }
 }

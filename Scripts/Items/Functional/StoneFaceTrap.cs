@@ -1,4 +1,5 @@
 using System;
+using Server.Spells;
 
 namespace Server.Items
 {
@@ -11,24 +12,12 @@ namespace Server.Items
 
     public class StoneFaceTrap : BaseTrap
     {
-        [Constructable]
-        public StoneFaceTrap()
-            : base(0x10FC)
-        {
-            this.Light = LightType.Circle225;
-        }
-
-        public StoneFaceTrap(Serial serial)
-            : base(serial)
-        {
-        }
-
         [CommandProperty(AccessLevel.GameMaster)]
         public StoneFaceTrapType Type
         {
             get
             {
-                switch ( this.ItemID )
+                switch (ItemID)
                 {
                     case 0x10F5:
                     case 0x10F6:
@@ -48,56 +37,47 @@ namespace Server.Items
             }
             set
             {
-                bool breathing = this.Breathing;
+                var breathing = Breathing;
 
-                this.ItemID = (breathing ? GetFireID(value) : GetBaseID(value));
+                ItemID = breathing ? GetFireID(value) : GetBaseID(value);
             }
         }
+
         public bool Breathing
         {
-            get
-            {
-                return (this.ItemID == GetFireID(this.Type));
-            }
+            get => ItemID == GetFireID(Type);
             set
             {
                 if (value)
-                    this.ItemID = GetFireID(this.Type);
+                    ItemID = GetFireID(Type);
                 else
-                    this.ItemID = GetBaseID(this.Type);
+                    ItemID = GetBaseID(Type);
             }
         }
-        public override bool PassivelyTriggered
+
+        public override bool PassivelyTriggered => true;
+
+        public override TimeSpan PassiveTriggerDelay => TimeSpan.Zero;
+
+        public override int PassiveTriggerRange => 2;
+
+        public override TimeSpan ResetDelay => TimeSpan.Zero;
+
+        [Constructable]
+        public StoneFaceTrap()
+            : base(0x10FC)
         {
-            get
-            {
-                return true;
-            }
+            Light = LightType.Circle225;
         }
-        public override TimeSpan PassiveTriggerDelay
+
+        public StoneFaceTrap(Serial serial)
+            : base(serial)
         {
-            get
-            {
-                return TimeSpan.Zero;
-            }
         }
-        public override int PassiveTriggerRange
-        {
-            get
-            {
-                return 2;
-            }
-        }
-        public override TimeSpan ResetDelay
-        {
-            get
-            {
-                return TimeSpan.Zero;
-            }
-        }
+
         public static int GetBaseID(StoneFaceTrapType type)
         {
-            switch ( type )
+            switch (type)
             {
                 case StoneFaceTrapType.NorthWestWall:
                     return 0x10F5;
@@ -112,7 +92,7 @@ namespace Server.Items
 
         public static int GetFireID(StoneFaceTrapType type)
         {
-            switch ( type )
+            switch (type)
             {
                 case StoneFaceTrapType.NorthWestWall:
                     return 0x10F7;
@@ -130,27 +110,25 @@ namespace Server.Items
             if (!from.Alive || from.IsStaff())
                 return;
 
-            Effects.PlaySound(this.Location, this.Map, 0x359);
+            Effects.PlaySound(Location, Map, 0x359);
 
-            this.Breathing = true;
+            Breathing = true;
 
-            Timer.DelayCall(TimeSpan.FromSeconds(2.0), new TimerCallback(FinishBreath));
-            Timer.DelayCall(TimeSpan.FromSeconds(1.0), new TimerCallback(TriggerDamage));
+            Timer.DelayCall(TimeSpan.FromSeconds(2.0), FinishBreath);
+            Timer.DelayCall(TimeSpan.FromSeconds(1.0), TriggerDamage);
         }
 
         public virtual void FinishBreath()
         {
-            this.Breathing = false;
+            Breathing = false;
         }
 
         public virtual void TriggerDamage()
         {
             IPooledEnumerable eable = GetMobilesInRange(1);
             foreach (Mobile mob in eable)
-            {
                 if (mob.Alive && !mob.IsDeadBondedPet && mob.IsPlayer())
-                    Spells.SpellHelper.Damage(TimeSpan.FromTicks(1), mob, mob, Utility.Dice(3, 15, 0));
-            }
+                    SpellHelper.Damage(TimeSpan.FromTicks(1), mob, mob, Utility.Dice(3, 15, 0));
             eable.Free();
         }
 
@@ -158,16 +136,16 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            this.Breathing = false;
+            Breathing = false;
         }
     }
 
@@ -192,14 +170,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

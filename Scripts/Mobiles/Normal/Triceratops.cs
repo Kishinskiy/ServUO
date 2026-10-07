@@ -1,12 +1,20 @@
-using System;
-using Server.Items;
-
 namespace Server.Mobiles
 {
     [CorpseName("a triceratops corpse")]
     public class Triceratops : BaseCreature
     {
-        public override double HealChance { get { return .167; } }
+        public override double HealChance => .167;
+
+        public override double WeaponAbilityChance => 0.5;
+
+        public override int Hides => 11;
+        public override HideType HideType => HideType.Regular;
+        public override int Meat => 3;
+        public override FoodType FavoriteFood => FoodType.FruitsAndVegies;
+        public override int TreasureMapLevel => 2;
+
+        public override bool CanAngerOnTame => true;
+        public override bool StatLossAfterTame => true;
 
         [Constructable]
         public Triceratops()
@@ -20,7 +28,7 @@ namespace Server.Mobiles
             SetDex(150, 170);
             SetInt(280, 310);
 
-            SetHits(1100 , 1200);
+            SetHits(1100, 1200);
 
             SetDamage(21, 28);
 
@@ -46,42 +54,46 @@ namespace Server.Mobiles
             SetMagicalAbility(MagicalAbility.Piercing);
         }
 
-        public override int GetIdleSound() { return 0x673; }
-        public override int GetAngerSound() { return 0x670; }
-        public override int GetHurtSound() { return 0x672; }
-        public override int GetDeathSound() { return 0x671; }
+        public Triceratops(Serial serial)
+            : base(serial)
+        {
+        }
 
-        public override double WeaponAbilityChance { get { return 0.5; } }
-        
-        public override int Hides { get { return 11; } }
-        public override HideType HideType { get { return HideType.Regular; } }
-        public override int Meat { get { return 3; } }
-        public override FoodType FavoriteFood { get { return FoodType.FruitsAndVegies; } }
-        public override int TreasureMapLevel { get { return 2; } }
+        public override int GetIdleSound()
+        {
+            return 0x673;
+        }
 
-        public override bool CanAngerOnTame { get { return true; } }
-        public override bool StatLossAfterTame { get { return true; } }
+        public override int GetAngerSound()
+        {
+            return 0x670;
+        }
+
+        public override int GetHurtSound()
+        {
+            return 0x672;
+        }
+
+        public override int GetDeathSound()
+        {
+            return 0x671;
+        }
 
         public override void GenerateLoot()
         {
             AddLoot(LootPack.Rich, 1);
         }
 
-        public Triceratops(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -5,9 +5,24 @@ namespace Server.Engines.XmlSpawner2
 {
     public class XmlRestrictEquip : XmlAttachment
     {
-        private string m_TestValue = null;// default Test condition
-        private string m_FailMsg = null;// message given when equipping fails
-        private string m_PropertyListString = null;// string displayed in the properties list
+        private string m_PropertyListString; // string displayed in the properties list
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public string Test { get; set; }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public string FailMsg { get; set; }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public string PropertyListString
+        {
+            get => m_PropertyListString;
+            set
+            {
+                m_PropertyListString = value;
+                InvalidateParentProperties();
+            }
+        }
 
         // a serial constructor is REQUIRED
         public XmlRestrictEquip(ASerial serial)
@@ -18,68 +33,31 @@ namespace Server.Engines.XmlSpawner2
         [Attachable]
         public XmlRestrictEquip()
         {
-            this.Test = String.Empty;
+            Test = string.Empty;
         }
 
         [Attachable]
         public XmlRestrictEquip(string name)
         {
-            this.Name = name;
-            this.Test = String.Empty;
+            Name = name;
+            Test = string.Empty;
         }
 
         [Attachable]
         public XmlRestrictEquip(string name, string test)
         {
-            this.Name = name;
-            this.Test = test;
+            Name = name;
+            Test = test;
         }
 
         [Attachable]
         public XmlRestrictEquip(string name, string test, double expiresin)
         {
-            this.Name = name;
-            this.Test = test;
-            this.Expiration = TimeSpan.FromMinutes(expiresin);
+            Name = name;
+            Test = test;
+            Expiration = TimeSpan.FromMinutes(expiresin);
         }
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public string Test
-        {
-            get
-            {
-                return this.m_TestValue;
-            }
-            set
-            {
-                this.m_TestValue = value;
-            }
-        }
-        [CommandProperty(AccessLevel.GameMaster)]
-        public string FailMsg
-        {
-            get
-            {
-                return this.m_FailMsg;
-            }
-            set
-            {
-                this.m_FailMsg = value;
-            }
-        }
-        [CommandProperty(AccessLevel.GameMaster)]
-        public string PropertyListString
-        {
-            get
-            {
-                return this.m_PropertyListString;
-            }
-            set
-            {
-                this.m_PropertyListString = value;
-                this.InvalidateParentProperties();
-            }
-        }
         // These are the various ways in which the message attachment can be constructed.  
         // These can be called via the [addatt interface, via scripts, via the spawner ATTACH keyword.
         // Other overloads could be defined to handle other types of arguments
@@ -88,19 +66,16 @@ namespace Server.Engines.XmlSpawner2
             if (from == null)
                 return false;
 
-            bool allowequip = true;
+            var allowequip = true;
 
             // test the condition if there is one
-            if (this.Test != null && this.Test.Length > 0)
+            if (Test != null && Test.Length > 0)
             {
                 string status_str;
 
-                allowequip = BaseXmlSpawner.CheckPropertyString(null, this.AttachedTo, this.Test, from, out status_str);
+                allowequip = BaseXmlSpawner.CheckPropertyString(null, AttachedTo, Test, from, out status_str);
 
-                if (!allowequip && this.FailMsg != null)
-                {
-                    from.SendMessage(this.FailMsg);
-                }
+                if (!allowequip && FailMsg != null) from.SendMessage(FailMsg);
             }
 
             return allowequip;
@@ -110,34 +85,34 @@ namespace Server.Engines.XmlSpawner2
         {
             base.Serialize(writer);
 
-            writer.Write((int)1);
+            writer.Write(1);
             // version 1
-            writer.Write(this.m_PropertyListString);
-            writer.Write(this.m_FailMsg);
+            writer.Write(m_PropertyListString);
+            writer.Write(FailMsg);
             // version 0
-            writer.Write(this.m_TestValue);
+            writer.Write(Test);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
             switch (version)
             {
                 case 1:
-                    this.m_PropertyListString = reader.ReadString();
-                    this.m_FailMsg = reader.ReadString();
+                    m_PropertyListString = reader.ReadString();
+                    FailMsg = reader.ReadString();
                     goto case 0;
                 case 0:
-                    this.m_TestValue = reader.ReadString();
+                    Test = reader.ReadString();
                     break;
             }
         }
 
         public override string DisplayedProperties(Mobile from)
         {
-            return this.PropertyListString;
+            return PropertyListString;
         }
 
         public override string OnIdentify(Mobile from)
@@ -145,14 +120,11 @@ namespace Server.Engines.XmlSpawner2
             if (from == null || from.AccessLevel < AccessLevel.Counselor)
                 return null;
 
-            if (this.Expiration > TimeSpan.Zero)
-            {
-                return String.Format("{0}: RestrictEquip '{1}' expires in {2} mins", this.Name, this.Test, this.Expiration.TotalMinutes);
-            }
-            else
-            {
-                return String.Format("{0}: RestrictEquip '{1}'", this.Name, this.Test);
-            }
+            if (Expiration > TimeSpan.Zero)
+                return string.Format("{0}: RestrictEquip '{1}' expires in {2} mins", Name, Test,
+                    Expiration.TotalMinutes);
+
+            return string.Format("{0}: RestrictEquip '{1}'", Name, Test);
         }
     }
 }

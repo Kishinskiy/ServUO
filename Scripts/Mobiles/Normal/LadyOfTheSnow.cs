@@ -1,5 +1,4 @@
-using System;
-using System.Collections;
+using Server.Engines.Plants;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -7,6 +6,12 @@ namespace Server.Mobiles
     [CorpseName("a lady of the snow corpse")]
     public class LadyOfTheSnow : BaseCreature
     {
+        public override bool BleedImmune => true;
+
+        public override bool CanRummageCorpses => true;
+
+        public override int TreasureMapLevel => 4;
+
         [Constructable]
         public LadyOfTheSnow()
             : base(AIType.AI_NecroMage, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -46,7 +51,7 @@ namespace Server.Mobiles
             PackItem(new Necklace());
 
             if (0.25 > Utility.RandomDouble())
-                PackItem(Engines.Plants.Seed.RandomBonsaiSeed());
+                PackItem(Seed.RandomBonsaiSeed());
 
             SetWeaponAbility(WeaponAbility.ColdWind);
         }
@@ -56,27 +61,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool BleedImmune
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool CanRummageCorpses
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override int TreasureMapLevel
-        {
-            get
-            {
-                return 4;
-            }
-        }
         public override int GetDeathSound()
         {
             return 0x370;
@@ -92,14 +76,14 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

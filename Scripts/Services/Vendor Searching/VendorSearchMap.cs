@@ -1,18 +1,18 @@
 using System;
 using System.Collections.Generic;
-using Server.Engines.VendorSearching;
-using Server.Mobiles;
 using Server.ContextMenus;
-using Server.Multis;
-using Server.Gumps;
 using Server.Engines.Auction;
+using Server.Engines.VendorSearching;
+using Server.Gumps;
+using Server.Mobiles;
+using Server.Multis;
 
 namespace Server.Items
 {
     public class VendorSearchMap : MapItem
     {
-        public readonly int TeleportCost = 1000;
         public readonly int DeleteDelayMinutes = 30;
+        public readonly int TeleportCost = 1000;
 
         [CommandProperty(AccessLevel.GameMaster)]
         public PlayerVendor Vendor { get; set; }
@@ -35,7 +35,8 @@ namespace Server.Items
         [CommandProperty(AccessLevel.GameMaster)]
         public DateTime DeleteTime { get; set; }
 
-        public int TimeRemaining { get { return DeleteTime <= DateTime.UtcNow ? 0 : (int)(DeleteTime - DateTime.UtcNow).TotalMinutes; } }
+        public int TimeRemaining =>
+            DeleteTime <= DateTime.UtcNow ? 0 : (int)(DeleteTime - DateTime.UtcNow).TotalMinutes;
 
         public VendorSearchMap(Item item, bool auction)
             : base(item.Map)
@@ -57,17 +58,22 @@ namespace Server.Items
             {
                 Vendor = item.RootParentEntity as PlayerVendor;
                 p = Vendor.Location;
-            }            
+            }
 
             Width = 300;
             Height = 300;
             var size = item.Map == Map.Tokuno ? 300 : item.Map == Map.TerMur ? 200 : 600;
 
             Bounds = new Rectangle2D(p.X - size / 2, p.Y - size / 2, size, size);
-            AddWorldPin(p.X, p.Y);            
+            AddWorldPin(p.X, p.Y);
 
             DeleteTime = DateTime.UtcNow + TimeSpan.FromMinutes(DeleteDelayMinutes);
             Timer.DelayCall(TimeSpan.FromMinutes(DeleteDelayMinutes), Delete);
+        }
+
+        public VendorSearchMap(Serial serial)
+            : base(serial)
+        {
         }
 
         public override bool DropToWorld(Mobile from, Point3D p)
@@ -85,17 +91,17 @@ namespace Server.Items
 
         public override void AddNameProperty(ObjectPropertyList list)
         {
-            string[] name = Name();
+            var name = Name();
 
             list.Add(1154559, string.Format("{0}\t{1}", name[0], name[1])); // Map to Vendor ~1_Name~: ~2_Shop~
         }
 
         public new string[] Name()
         {
-            string[] array = new string[2];
+            var array = new string[2];
 
-            string Name = "Unknown";
-            string Shop = "Unknown";
+            var Name = "Unknown";
+            var Shop = "Unknown";
 
             if (IsAuction)
             {
@@ -103,14 +109,16 @@ namespace Server.Items
                 {
                     if (AuctionSafe != null)
                     {
-                        BaseHouse house = BaseHouse.FindHouseAt(AuctionSafe);
+                        var house = BaseHouse.FindHouseAt(AuctionSafe);
 
                         if (house != null)
                             Name = house.Sign.GetName();
                     }
 
-                    Shop = (SearchItem.LabelNumber != 0) ? string.Format("#{0}", SearchItem.LabelNumber) : SearchItem.Name;
-                }                
+                    Shop = SearchItem.LabelNumber != 0
+                        ? string.Format("#{0}", SearchItem.LabelNumber)
+                        : SearchItem.Name;
+                }
             }
             else
             {
@@ -121,39 +129,39 @@ namespace Server.Items
                 }
             }
 
-            return new string[] { Name, Shop };
+            return new[] { Name, Shop };
         }
 
         public override void GetProperties(ObjectPropertyList list)
         {
             base.GetProperties(list);
 
-            string[] coord = GetCoords();
+            var coord = GetCoords();
 
             if (SetLocation == Point3D.Zero)
-                list.Add(1154639, string.Format("{0}\t{1}", coord[0], coord[1])); //  Vendor Located at ~1_loc~ (~2_facet~)
+                list.Add(1154639,
+                    string.Format("{0}\t{1}", coord[0], coord[1])); //  Vendor Located at ~1_loc~ (~2_facet~)
             else
-                list.Add(1154638, string.Format("{0}\t{1}", coord[0], coord[1])); //  Return to ~1_loc~ (~2_facet~)                
+                list.Add(1154638,
+                    string.Format("{0}\t{1}", coord[0], coord[1])); //  Return to ~1_loc~ (~2_facet~)                
 
-            if (!IsSale())
-            {
-                list.Add(1154700); // Item no longer for sale.
-            }
+            if (!IsSale()) list.Add(1154700); // Item no longer for sale.
 
             list.Add(1075269); // Destroyed when dropped
         }
 
         public bool IsSale()
         {
-            return SearchItem != null && (AuctionSafe != null && AuctionSafe.CheckAuctionItem(SearchItem) || Vendor != null && Vendor.GetVendorItem(SearchItem) != null);
+            return SearchItem != null && ((AuctionSafe != null && AuctionSafe.CheckAuctionItem(SearchItem)) ||
+                                          (Vendor != null && Vendor.GetVendorItem(SearchItem) != null));
         }
 
         public string[] GetCoords()
         {
-            string[] array = new string[2];
+            var array = new string[2];
 
-            Point3D loc = Point3D.Zero;
-            Map locmap = Map.Internal;
+            var loc = Point3D.Zero;
+            var locmap = Map.Internal;
 
             if (SetLocation != Point3D.Zero)
             {
@@ -173,22 +181,26 @@ namespace Server.Items
 
             if (loc != Point3D.Zero && locmap != Map.Internal)
             {
-                int x = loc.X;
-                int y = loc.Y;
-                int z = loc.Z;
-                Map map = locmap;
+                var x = loc.X;
+                var y = loc.Y;
+                var z = loc.Z;
+                var map = locmap;
 
                 int xLong = 0, yLat = 0;
                 int xMins = 0, yMins = 0;
                 bool xEast = false, ySouth = false;
 
-                if (Sextant.Format(new Point3D(x, y, z), map, ref xLong, ref yLat, ref xMins, ref yMins, ref xEast, ref ySouth))
-                {
-                    return new string[] { string.Format("{0}o {1}'{2}, {3}o {4}'{5}", yLat, yMins, ySouth ? "S" : "N", xLong, xMins, xEast ? "E" : "W"), map.ToString() };
-                }
+                if (Sextant.Format(new Point3D(x, y, z), map, ref xLong, ref yLat, ref xMins, ref yMins, ref xEast,
+                        ref ySouth))
+                    return new[]
+                    {
+                        string.Format("{0}o {1}'{2}, {3}o {4}'{5}", yLat, yMins, ySouth ? "S" : "N", xLong, xMins,
+                            xEast ? "E" : "W"),
+                        map.ToString()
+                    };
             }
 
-            return new string[] { "an unknown location", "Unknown" };
+            return new[] { "an unknown location", "Unknown" };
         }
 
         public void OnBeforeTravel(Mobile from)
@@ -200,7 +212,8 @@ namespace Server.Items
             else
             {
                 Banker.Withdraw(from, TeleportCost);
-                from.SendLocalizedMessage(1060398, TeleportCost.ToString()); // ~1_AMOUNT~ gold has been withdrawn from your bank box.
+                from.SendLocalizedMessage(1060398,
+                    TeleportCost.ToString()); // ~1_AMOUNT~ gold has been withdrawn from your bank box.
 
                 SetLocation = from.Location;
                 SetMap = from.Map;
@@ -231,17 +244,11 @@ namespace Server.Items
             }
             else if (IsAuction)
             {
-                if (AuctionSafe != null)
-                {
-                    h = BaseHouse.FindHouseAt(AuctionSafe);                    
-                }
+                if (AuctionSafe != null) h = BaseHouse.FindHouseAt(AuctionSafe);
             }
             else
             {
-                if (Vendor != null)
-                {
-                    h = BaseHouse.FindHouseAt(Vendor);
-                }
+                if (Vendor != null) h = BaseHouse.FindHouseAt(Vendor);
             }
 
             if (h != null)
@@ -262,20 +269,28 @@ namespace Server.Items
 
             if (IsAuction)
             {
-                if (AuctionSafe != null)
-                {
-                    map = AuctionSafe.Map;
-                }
+                if (AuctionSafe != null) map = AuctionSafe.Map;
             }
             else
             {
-                if (Vendor != null)
-                {
-                    map = Vendor.Map;
-                }
+                if (Vendor != null) map = Vendor.Map;
             }
 
             return map;
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
+
+            Delete();
         }
 
         public class OpenMapEntry : ContextMenuEntry
@@ -298,8 +313,8 @@ namespace Server.Items
 
         public class TeleportEntry : ContextMenuEntry
         {
-            private VendorSearchMap VendorMap { get; set; }
-            private Mobile Clicker { get; set; }
+            private VendorSearchMap VendorMap { get; }
+            private Mobile Clicker { get; }
 
             public TeleportEntry(Mobile from, VendorSearchMap map)
                 : base(1154558, -1) // Teleport To Vendor
@@ -312,20 +327,16 @@ namespace Server.Items
             public override void OnClick()
             {
                 if (VendorMap.IsSale())
-                {
                     BaseGump.SendGump(new ConfirmTeleportGump(VendorMap, (PlayerMobile)Clicker));
-                }
                 else
-                {
                     Clicker.SendLocalizedMessage(1154700); // Item no longer for sale.
-                }
             }
         }
 
         public class ReturnTeleportEntry : ContextMenuEntry
         {
-            private VendorSearchMap VendorMap { get; set; }
-            private Mobile Clicker { get; set; }
+            private VendorSearchMap VendorMap { get; }
+            private Mobile Clicker { get; }
 
             public ReturnTeleportEntry(Mobile from, VendorSearchMap map)
                 : base(1154636, -1) // Return to Previous Location
@@ -337,17 +348,15 @@ namespace Server.Items
             public override void OnClick()
             {
                 if (Clicker is PlayerMobile)
-                {
                     BaseGump.SendGump(new ConfirmTeleportGump(VendorMap, (PlayerMobile)Clicker));
-                }
             }
         }
 
         public class OpenContainerEntry : ContextMenuEntry
         {
-            private VendorSearchMap VendorMap { get; set; }
-            private Mobile Clicker { get; set; }
-            private Container Container { get; set; }
+            private VendorSearchMap VendorMap { get; }
+            private Mobile Clicker { get; }
+            private Container Container { get; }
 
             public OpenContainerEntry(Mobile from, VendorSearchMap map)
                 : base(1154699, -1) // Open Container Containing Item
@@ -387,25 +396,6 @@ namespace Server.Items
 
                 c.DisplayTo(from);
             }
-        }
-
-        public VendorSearchMap(Serial serial)
-            : base(serial)
-		{
-		}
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.Write((int)0);
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            int version = reader.ReadInt();
-
-            Delete();
         }
     }
 }

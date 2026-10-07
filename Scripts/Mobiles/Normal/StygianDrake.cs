@@ -1,10 +1,22 @@
-using System;
-
 namespace Server.Mobiles
 {
     [CorpseName("a stygian drake corpse")]
     public class StygianDrake : BaseCreature
     {
+        public override bool AutoDispel => !Controlled;
+        public override bool ReacquireOnMovement => !Controlled;
+        public override int TreasureMapLevel => 2;
+        public override int Meat => 10;
+        public override int DragonBlood => 8;
+        public override int Hides => 22;
+        public override HideType HideType => HideType.Horned;
+        public override int Scales => 2;
+        public override ScaleType ScaleType => ScaleType.Yellow;
+        public override FoodType FavoriteFood => FoodType.Meat | FoodType.Fish;
+        public override bool CanFly => true;
+
+        public override bool CanAngerOnTame => true;
+
         [Constructable]
         public StygianDrake()
             : base(AIType.AI_Mage, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -56,19 +68,6 @@ namespace Server.Mobiles
             : base(serial)
         {
         }
-
-        public override bool AutoDispel { get { return !Controlled; } }
-        public override bool ReacquireOnMovement { get { return !Controlled; } }
-        public override int TreasureMapLevel { get { return 2; } }
-        public override int Meat { get { return 10; } }
-        public override int DragonBlood { get { return 8; } }
-        public override int Hides { get { return 22; } }
-        public override HideType HideType { get { return HideType.Horned; } }
-        public override int Scales { get { return 2; } }
-        public override ScaleType ScaleType { get { return ScaleType.Yellow; } }
-        public override FoodType FavoriteFood { get { return FoodType.Meat | FoodType.Fish; } }
-        public override bool CanFly { get { return true; } }
-        public override bool CanAngerOnTame { get { return true; } }
         //public override bool StatLossAfterTame { get { return true; } }
 
         public override void GenerateLoot()
@@ -80,13 +79,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

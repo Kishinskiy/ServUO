@@ -5,6 +5,17 @@ namespace Server.Engines.Quests
 {
     public class Sliem : MondainQuester
     {
+        public override Type[] Quests
+        {
+            get
+            {
+                return new[]
+                {
+                    typeof(UnusualGoods)
+                };
+            }
+        }
+
         [Constructable]
         public Sliem()
             : base("Sliem", "the Fence")
@@ -14,17 +25,6 @@ namespace Server.Engines.Quests
         public Sliem(Serial serial)
             : base(serial)
         {
-        }
-
-        public override Type[] Quests
-        {
-            get
-            {
-                return new[]
-                {
-                    typeof (UnusualGoods)
-                };
-            }
         }
 
         public override void InitBody()

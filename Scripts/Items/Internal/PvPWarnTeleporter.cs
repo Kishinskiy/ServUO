@@ -1,56 +1,54 @@
-using System;
-using Server;
-using Server.Mobiles;
 using Server.Gumps;
+using Server.Mobiles;
 using Server.Network;
 
 namespace Server.Items
 {
-	public class PvPWarnTeleporter : Teleporter
-	{
-		[Constructable]
-		public PvPWarnTeleporter()
-		{
-		}
+    public class PvPWarnTeleporter : Teleporter
+    {
+        [Constructable]
+        public PvPWarnTeleporter()
+        {
+        }
 
-		public PvPWarnTeleporter( Serial serial )
-			: base( serial )
-		{
-		}
+        public PvPWarnTeleporter(Serial serial)
+            : base(serial)
+        {
+        }
 
-		public override bool OnMoveOver( Mobile m )
-		{
-			PlayerMobile pm = m as PlayerMobile;
+        public override bool OnMoveOver(Mobile m)
+        {
+            var pm = m as PlayerMobile;
 
-			if ( pm != null )
-			{
-				if ( pm.DisabledPvpWarning )
-					return base.OnMoveOver( m );
-				else if ( !pm.HasGump( typeof( PvpWarningGump ) ) )
-					pm.SendGump( new PvpWarningGump( this ) );
-			}
+            if (pm != null)
+            {
+                if (pm.DisabledPvpWarning)
+                    return base.OnMoveOver(m);
+                if (!pm.HasGump(typeof(PvpWarningGump)))
+                    pm.SendGump(new PvpWarningGump(this));
+            }
 
-			return true;
-		}
+            return true;
+        }
 
-		public override void Serialize( GenericWriter writer )
-		{
-			base.Serialize( writer );
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
 
-			writer.Write( (int) 0 ); // version
-		}
+            writer.Write(0); // version
+        }
 
-		public override void Deserialize( GenericReader reader )
-		{
-			base.Deserialize( reader );
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
 
-			int version = reader.ReadInt();
-		}
-	}
+            var version = reader.ReadInt();
+        }
+    }
 
     public class PvpWarningGump : Gump
     {
-        private Teleporter m_Owner;
+        private readonly Teleporter m_Owner;
 
         public PvpWarningGump(Teleporter teleporter)
             : base(150, 50)
@@ -70,7 +68,8 @@ namespace Server.Items
             AddImageTiled(15, 15, 365, 190, 0xA40);
 
             AddHtmlLocalized(30, 20, 330, 20, 1060635, 0x4040FE, false, false); // <CENTER>WARNING</CENTER>
-            AddHtmlLocalized(30, 50, 330, 60, 1113792, 0xFFFFFF, false, false); // You are about to enter a PvP area, where you can be attacked and stolen from by other players. Do you wish to proceed?
+            AddHtmlLocalized(30, 50, 330, 60, 1113792, 0xFFFFFF, false,
+                false); // You are about to enter a PvP area, where you can be attacked and stolen from by other players. Do you wish to proceed?
 
             AddHtmlLocalized(65, 125, 300, 25, 1113794, 0xFFFFFF, false, false); // Yes, I wish to proceed
             AddButton(30, 125, 0xFA5, 0xFA7, 1, GumpButtonType.Reply, 0);
@@ -93,7 +92,7 @@ namespace Server.Items
 
         public override void OnResponse(NetState sender, RelayInfo info)
         {
-            PlayerMobile pm = sender.Mobile as PlayerMobile;
+            var pm = sender.Mobile as PlayerMobile;
 
             if (pm == null)
                 return;
@@ -104,23 +103,24 @@ namespace Server.Items
             switch (info.ButtonID)
             {
                 case 2: // Yes, and do not ask me again
-                    {
-                        pm.DisabledPvpWarning = true;
-                        pm.SendLocalizedMessage(1113796); // You may use your avatar's context menu to re-enable the warning later.
+                {
+                    pm.DisabledPvpWarning = true;
+                    pm.SendLocalizedMessage(
+                        1113796); // You may use your avatar's context menu to re-enable the warning later.
 
-                        goto case 1;
-                    }
+                    goto case 1;
+                }
                 case 1: // Yes, I wish to proceed
-                    {
-                        BaseCreature.TeleportPets(pm, m_Owner.PointDest, m_Owner.MapDest);
-                        pm.MoveToWorld(m_Owner.PointDest, m_Owner.MapDest);
+                {
+                    BaseCreature.TeleportPets(pm, m_Owner.PointDest, m_Owner.MapDest);
+                    pm.MoveToWorld(m_Owner.PointDest, m_Owner.MapDest);
 
-                        break;
-                    }
+                    break;
+                }
                 case 0: // No, I do not wish to proceed
-                    {
-                        break;
-                    }
+                {
+                    break;
+                }
             }
         }
     }

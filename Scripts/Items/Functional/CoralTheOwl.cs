@@ -1,18 +1,16 @@
 using System;
-using Server;
+using Server.Engines.VeteranRewards;
 using Server.Mobiles;
 using Server.Network;
 
 namespace Server.Items
 {
-    public class CoralTheOwl : Item, Server.Engines.VeteranRewards.IRewardItem
-	{
-        public override int LabelNumber { get { return 1123603; } } // Coral the Owl
-
+    public class CoralTheOwl : Item, IRewardItem
+    {
         private Timer m_NewsTimer;
+        public override int LabelNumber => 1123603; // Coral the Owl
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public bool IsRewardItem { get; set; }
+        public override bool HandlesOnSpeech => true;
 
         [Constructable]
         public CoralTheOwl() : base(0x9A9B)
@@ -20,21 +18,27 @@ namespace Server.Items
             LootType = LootType.Blessed;
         }
 
+        public CoralTheOwl(Serial serial) : base(serial)
+        {
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public bool IsRewardItem { get; set; }
+
         public override void GetProperties(ObjectPropertyList list)
         {
             base.GetProperties(list);
 
-            if(IsRewardItem)
+            if (IsRewardItem)
                 list.Add(1076217); // 1st Year Veteran Reward
         }
 
-        public override bool HandlesOnSpeech { get { return true; } }
-
         public override void OnSpeech(SpeechEventArgs e)
         {
-            if (IsLockedDown && e.HasKeyword(0x30) && e.Mobile.Alive && e.Mobile.InLOS(this.Location) && e.Mobile.InRange(this, 12)) // *news*
+            if (IsLockedDown && e.HasKeyword(0x30) && e.Mobile.Alive && e.Mobile.InLOS(Location) &&
+                e.Mobile.InRange(this, 12)) // *news*
             {
-                TownCrierEntry tce = GlobalTownCrierEntryList.Instance.GetRandomEntry();
+                var tce = GlobalTownCrierEntryList.Instance.GetRandomEntry();
 
                 if (tce == null)
                 {
@@ -42,7 +46,8 @@ namespace Server.Items
                 }
                 else
                 {
-                    m_NewsTimer = Timer.DelayCall(TimeSpan.FromSeconds(1.0), TimeSpan.FromSeconds(3.0), new TimerStateCallback(ShoutNews_Callback), new object[] { tce, 0 });
+                    m_NewsTimer = Timer.DelayCall(TimeSpan.FromSeconds(1.0), TimeSpan.FromSeconds(3.0),
+                        new TimerStateCallback(ShoutNews_Callback), new object[] { tce, 0 });
 
                     PublicOverheadMessage(MessageType.Regular, 0x3B2, 502978); // Some of the latest news!
                 }
@@ -51,9 +56,9 @@ namespace Server.Items
 
         private void ShoutNews_Callback(object state)
         {
-            object[] states = (object[])state;
-            TownCrierEntry tce = (TownCrierEntry)states[0];
-            int index = (int)states[1];
+            var states = (object[])state;
+            var tce = (TownCrierEntry)states[0];
+            var index = (int)states[1];
 
             if (index < 0 || index >= tce.Lines.Length)
             {
@@ -69,24 +74,20 @@ namespace Server.Items
             }
         }
 
-		public CoralTheOwl( Serial serial ) : base( serial )
-		{
-		}	
-		
-		public override void Serialize( GenericWriter writer )
-		{
-			base.Serialize( writer );
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
 
-			writer.Write( (int) 1 ); // version
+            writer.Write(1); // version
 
             writer.Write(IsRewardItem);
-		}
-		
-		public override void Deserialize( GenericReader reader )
-		{
-			base.Deserialize( reader );
+        }
 
-			int version = reader.ReadInt();
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+
+            var version = reader.ReadInt();
 
             switch (version)
             {
@@ -99,6 +100,6 @@ namespace Server.Items
 
             if (version == 0)
                 IsRewardItem = true;
-		}
-	}
+        }
+    }
 }

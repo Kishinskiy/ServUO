@@ -1,22 +1,27 @@
-using Server.Items;
 using System;
+using Server.Items;
 
 namespace Server.Mobiles
 {
     public class RisingColossus : BaseCreature
     {
         private int m_DispelDifficulty;
-        public override double DispelDifficulty { get { return m_DispelDifficulty; } }
-        public override double DispelFocus { get { return 45.0; } }
+        public override double DispelDifficulty => m_DispelDifficulty;
+        public override double DispelFocus => 45.0;
+
+        public override bool AlwaysMurderer => true;
+
+        public override bool BleedImmune => true;
+        public override Poison PoisonImmune => Poison.Lethal;
 
         [Constructable]
         public RisingColossus(Mobile m, double baseskill, double boostskill)
             : base(AIType.AI_Mystic, FightMode.Closest, 10, 1, 0.4, 0.5)
         {
-            int level = (int)(baseskill + boostskill);
-            int statbonus = (int)((baseskill - 83) / 1.3 + ((boostskill - 30) / 1.3) + 6);
-            int hitsbonus = (int)((baseskill - 83) * 1.14 + ((boostskill - 30) * 1.03) + 20);
-            double skillvalue = boostskill != 0 ? ((baseskill + boostskill) / 2) : ((baseskill + 20) / 2);
+            var level = (int)(baseskill + boostskill);
+            var statbonus = (int)((baseskill - 83) / 1.3 + (boostskill - 30) / 1.3 + 6);
+            var hitsbonus = (int)((baseskill - 83) * 1.14 + (boostskill - 30) * 1.03 + 20);
+            var skillvalue = boostskill != 0 ? (baseskill + boostskill) / 2 : (baseskill + 20) / 2;
 
             Name = "a rising colossus";
             Body = 829;
@@ -50,23 +55,19 @@ namespace Server.Mobiles
             VirtualArmor = 58;
             ControlSlots = 5;
 
-            m_DispelDifficulty = 91 + (int)((baseskill * 83) / 5.2);
+            m_DispelDifficulty = 91 + (int)(baseskill * 83 / 5.2);
 
             SetWeaponAbility(WeaponAbility.ArmorIgnore);
             SetWeaponAbility(WeaponAbility.CrushingBlow);
         }
 
+        public RisingColossus(Serial serial) : base(serial)
+        {
+        }
+
         public override double GetFightModeRanking(Mobile m, FightMode acqType, bool bPlayerOnly)
         {
             return (m.Int + m.Skills[SkillName.Magery].Value) / Math.Max(GetDistanceToSqrt(m), 1.0);
-        }
-
-        public override bool AlwaysMurderer
-        {
-            get
-            {
-                return true;
-            }
         }
 
         public override int GetAttackSound()
@@ -79,25 +80,18 @@ namespace Server.Mobiles
             return 0x629;
         }
 
-        public override bool BleedImmune { get { return true; } }
-        public override Poison PoisonImmune { get { return Poison.Lethal; } }
-
-        public RisingColossus(Serial serial) : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
 
-            writer.Write((int)m_DispelDifficulty);
+            writer.Write(m_DispelDifficulty);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             m_DispelDifficulty = reader.ReadInt();
         }

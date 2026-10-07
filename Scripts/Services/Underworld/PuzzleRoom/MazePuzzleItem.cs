@@ -1,66 +1,40 @@
-using Server;
 using System;
-using Server.Mobiles;
 using System.Collections.Generic;
 using Server.Gumps;
+using Server.Mobiles;
+using Server.Network;
 
-namespace Server.Items 
+namespace Server.Items
 {
-	public class MazePuzzleItem : BaseDecayingItem, ICircuitTrap
+    public class MazePuzzleItem : BaseDecayingItem, ICircuitTrap
     {
-		private MagicKey m_Key;
-		
-		public List<int> Path { get; set; }
-		public List<int> Progress { get; set; }
-        public CircuitCount Count { get { return CircuitCount.ThirtySix; } }
-        public int GumpTitle { get { return 1153747; } } // <center>GENERATOR CONTROL PANEL</center>
-        public int GumpDescription { get { return 1153749; } } // // <center>Close the Grid Circuit</center>
-        public bool CanDecipher { get { return true; } }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-		public MagicKey Key { get { return m_Key; } set { m_Key = value; } }
-
-        public override int LabelNumber { get { return 1113379; } } // Puzzle Board
-		public override int Lifespan { get { return 600; } }
-	
-		[Constructable]
-		public MazePuzzleItem(MagicKey key) : base(0x2AAA) 
-		{
-			Hue = 914;
-			m_Key = key;
-		}
-		
-		public override void OnDoubleClick(Mobile from)
-		{
-			if(!IsChildOf(from.Backpack))
-				from.SendLocalizedMessage(500325); // I am too far away to do that.
-			else if(from is PlayerMobile && IsInPuzzleRoom(from))
-			{
-                from.CloseGump(typeof(PuzzleChest.PuzzleGump));
-                from.CloseGump(typeof(PuzzleChest.StatusGump));
-				BaseGump.SendGump(new CircuitTrapGump((PlayerMobile)from, this));
-			}
-		}
-
         private static Rectangle2D m_Bounds = new Rectangle2D(1089, 1162, 16, 12);
 
-        public static bool IsInPuzzleRoom(Mobile from)
+        private Timer m_DamageTimer;
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public MagicKey Key { get; set; }
+
+        public override int LabelNumber => 1113379; // Puzzle Board
+        public override int Lifespan => 600;
+
+        [Constructable]
+        public MazePuzzleItem(MagicKey key) : base(0x2AAA)
         {
-            return from.Map == Map.TerMur && m_Bounds.Contains(new Point2D(from.X, from.Y));
+            Hue = 914;
+            Key = key;
         }
 
-        public override void OnDelete()
+        public MazePuzzleItem(Serial serial) : base(serial)
         {
-            Mobile m = RootParent as Mobile;
-
-            if (m != null)
-            {
-                if (m.HasGump(typeof(CircuitTrapGump)))
-                {
-                    m.CloseGump(typeof(CircuitTrapGump));
-                }
-            }
         }
+
+        public List<int> Path { get; set; }
+        public List<int> Progress { get; set; }
+        public CircuitCount Count => CircuitCount.ThirtySix;
+        public int GumpTitle => 1153747; // <center>GENERATOR CONTROL PANEL</center>
+        public int GumpDescription => 1153749; // // <center>Close the Grid Circuit</center>
+        public bool CanDecipher => true;
 
         public void OnSelfClose(Mobile m)
         {
@@ -82,27 +56,53 @@ namespace Server.Items
             OnPuzzleCompleted(m);
         }
 
-		private Timer m_DamageTimer;
-		
-		public void DoDamage(Mobile m)
-		{
-			if(m_DamageTimer != null && m_DamageTimer.Running)
-				m_DamageTimer.Stop();
-				
-			m_DamageTimer = new InternalTimer(this, m);
-			m_DamageTimer.Start();
-		}
-		
-		public void ApplyShock(Mobile m, int tick)
-		{
-            if (m == null || !m.Alive || this.Deleted)
+        public override void OnDoubleClick(Mobile from)
+        {
+            if (!IsChildOf(from.Backpack))
+            {
+                from.SendLocalizedMessage(500325); // I am too far away to do that.
+            }
+            else if (from is PlayerMobile && IsInPuzzleRoom(from))
+            {
+                from.CloseGump(typeof(PuzzleChest.PuzzleGump));
+                from.CloseGump(typeof(PuzzleChest.StatusGump));
+                BaseGump.SendGump(new CircuitTrapGump((PlayerMobile)from, this));
+            }
+        }
+
+        public static bool IsInPuzzleRoom(Mobile from)
+        {
+            return from.Map == Map.TerMur && m_Bounds.Contains(new Point2D(from.X, from.Y));
+        }
+
+        public override void OnDelete()
+        {
+            var m = RootParent as Mobile;
+
+            if (m != null)
+                if (m.HasGump(typeof(CircuitTrapGump)))
+                    m.CloseGump(typeof(CircuitTrapGump));
+        }
+
+        public void DoDamage(Mobile m)
+        {
+            if (m_DamageTimer != null && m_DamageTimer.Running)
+                m_DamageTimer.Stop();
+
+            m_DamageTimer = new InternalTimer(this, m);
+            m_DamageTimer.Start();
+        }
+
+        public void ApplyShock(Mobile m, int tick)
+        {
+            if (m == null || !m.Alive || Deleted)
             {
                 if (m_DamageTimer != null)
                     m_DamageTimer.Stop();
             }
             else
             {
-                int damage = (int)(75 / Math.Max(1, tick - 1)) + Utility.RandomMinMax(1, 9);
+                var damage = 75 / Math.Max(1, tick - 1) + Utility.RandomMinMax(1, 9);
 
                 AOS.Damage(m, damage, 0, 0, 0, 0, 100);
 
@@ -113,103 +113,102 @@ namespace Server.Items
                 m.FixedParticles(0x3818, 1, 11, 0x13A8, 0, 0, EffectLayer.Head);
                 m.PlaySound(0x1DC);
 
-                m.LocalOverheadMessage(Server.Network.MessageType.Regular, 0x21, 1114443); // * Your body convulses from electric shock *
-                m.NonlocalOverheadMessage(Server.Network.MessageType.Regular, 0x21, 1114443, m.Name); //  * ~1_NAME~ spasms from electric shock *
+                m.LocalOverheadMessage(MessageType.Regular, 0x21,
+                    1114443); // * Your body convulses from electric shock *
+                m.NonlocalOverheadMessage(MessageType.Regular, 0x21, 1114443,
+                    m.Name); //  * ~1_NAME~ spasms from electric shock *
             }
-		}
-		
-		private class InternalTimer : Timer
-		{
-			private MazePuzzleItem m_Item;
-			private Mobile m_From;
-			private DateTime m_NextDamage;
-			private int m_Tick;
-			
-			public InternalTimer(MazePuzzleItem item, Mobile from) : base(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1))
-			{
-				m_Item = item;
-				m_From = from;
-				m_NextDamage = DateTime.UtcNow;
-				m_Tick = 0;
-				
-				if(item != null)
-					item.ApplyShock(from, 0);
-			}
-			
-			protected override void OnTick()
-			{
-				m_Tick++;
-				
-				if(m_From == null || m_Item == null || !m_From.Alive || m_Item.Deleted)
-				{
-					this.Stop();
-					return;
-				}
-				
-				if(DateTime.UtcNow > m_NextDamage)
-				{
-					m_Item.ApplyShock(m_From, m_Tick);
-					
-					int delay;
-					
-					if(m_Tick < 3)
-						delay = 2;
-					else if (m_Tick < 5)
-						delay = 4;
-					else
-						delay = 6;
-					
-					if(m_Tick >= 10)
-						this.Stop();
-					else
-                        m_NextDamage = DateTime.UtcNow + TimeSpan.FromSeconds(delay);
-				}
-			}
-		}
-		
-		public void OnPuzzleCompleted(Mobile m)
-		{
-			if(m != null)
-			{
-				Container pack = m.Backpack;
-				
-				if(pack != null)
-				{
-					Item copperKey = pack.FindItemByType(typeof(CopperPuzzleKey));
-					Item goldKey = pack.FindItemByType(typeof(GoldPuzzleKey));
-					
-					if(copperKey == null)
-						pack.DropItem(new CopperPuzzleKey());
-					else if (goldKey == null)
-						pack.DropItem(new GoldPuzzleKey());
-					else
-						return;
-					
-					m.SendLocalizedMessage(1113382); // You've solved the puzzle!! An item has been placed in your bag.
-				}
-				
-				//TODO: Message/Effects?
-			}
+        }
 
-            Timer.DelayCall(TimeSpan.FromSeconds(3), new TimerCallback(Delete));
-		}
-		
-		public MazePuzzleItem( Serial serial ) : base(serial) 
-		{
-		}
-		
-		public override void Serialize(GenericWriter writer) 
-		{
-			base.Serialize(writer);
-			writer.Write((int)0); // ver
-			writer.Write(m_Key);
-		}
-		
-		public override void Deserialize(GenericReader reader) 
-		{
-			base.Deserialize(reader);
-			int version = reader.ReadInt();
-			m_Key = reader.ReadItem() as MagicKey;
-		}
-	}
+        public void OnPuzzleCompleted(Mobile m)
+        {
+            if (m != null)
+            {
+                var pack = m.Backpack;
+
+                if (pack != null)
+                {
+                    var copperKey = pack.FindItemByType(typeof(CopperPuzzleKey));
+                    var goldKey = pack.FindItemByType(typeof(GoldPuzzleKey));
+
+                    if (copperKey == null)
+                        pack.DropItem(new CopperPuzzleKey());
+                    else if (goldKey == null)
+                        pack.DropItem(new GoldPuzzleKey());
+                    else
+                        return;
+
+                    m.SendLocalizedMessage(1113382); // You've solved the puzzle!! An item has been placed in your bag.
+                }
+
+                //TODO: Message/Effects?
+            }
+
+            Timer.DelayCall(TimeSpan.FromSeconds(3), Delete);
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0); // ver
+            writer.Write(Key);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
+            Key = reader.ReadItem() as MagicKey;
+        }
+
+        private class InternalTimer : Timer
+        {
+            private readonly Mobile m_From;
+            private readonly MazePuzzleItem m_Item;
+            private DateTime m_NextDamage;
+            private int m_Tick;
+
+            public InternalTimer(MazePuzzleItem item, Mobile from) : base(TimeSpan.FromSeconds(1),
+                TimeSpan.FromSeconds(1))
+            {
+                m_Item = item;
+                m_From = from;
+                m_NextDamage = DateTime.UtcNow;
+                m_Tick = 0;
+
+                if (item != null)
+                    item.ApplyShock(from, 0);
+            }
+
+            protected override void OnTick()
+            {
+                m_Tick++;
+
+                if (m_From == null || m_Item == null || !m_From.Alive || m_Item.Deleted)
+                {
+                    Stop();
+                    return;
+                }
+
+                if (DateTime.UtcNow > m_NextDamage)
+                {
+                    m_Item.ApplyShock(m_From, m_Tick);
+
+                    int delay;
+
+                    if (m_Tick < 3)
+                        delay = 2;
+                    else if (m_Tick < 5)
+                        delay = 4;
+                    else
+                        delay = 6;
+
+                    if (m_Tick >= 10)
+                        Stop();
+                    else
+                        m_NextDamage = DateTime.UtcNow + TimeSpan.FromSeconds(delay);
+                }
+            }
+        }
+    }
 }

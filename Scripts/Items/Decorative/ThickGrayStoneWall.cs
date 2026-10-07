@@ -1,12 +1,10 @@
 /****************************************
-* NAME    : Thick Gray Stone Wall      *
-* SCRIPT  : ThickGrayStoneWall.cs      *
-* VERSION : v1.00                      *
-* CREATOR : Mans Sjoberg (Allmight)    *
-* CREATED : 10-07.2002                 *
-* **************************************/
-
-using System;
+ * NAME    : Thick Gray Stone Wall      *
+ * SCRIPT  : ThickGrayStoneWall.cs      *
+ * VERSION : v1.00                      *
+ * CREATOR : Mans Sjoberg (Allmight)    *
+ * CREATED : 10-07.2002                 *
+ * **************************************/
 
 namespace Server.Items
 {
@@ -53,14 +51,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

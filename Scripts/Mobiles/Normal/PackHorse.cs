@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using Server.ContextMenus;
 using Server.Items;
@@ -8,6 +7,14 @@ namespace Server.Mobiles
     [CorpseName("a horse corpse")]
     public class PackHorse : BaseCreature
     {
+        public override int Meat => 3;
+
+        public override int Hides => 10;
+
+        public override FoodType FavoriteFood => FoodType.FruitsAndVegies | FoodType.GrainsAndHay;
+
+        public override bool CanAutoStable => (Backpack == null || Backpack.Items.Count == 0) && base.CanAutoStable;
+
         [Constructable]
         public PackHorse()
             : base(AIType.AI_Animal, FightMode.Aggressor, 10, 1, 0.2, 0.4)
@@ -47,7 +54,7 @@ namespace Server.Mobiles
             ControlSlots = 1;
             MinTameSkill = 29.1;
 
-            Container pack = Backpack;
+            var pack = Backpack;
 
             if (pack != null)
                 pack.Delete();
@@ -58,36 +65,27 @@ namespace Server.Mobiles
             AddItem(pack);
         }
 
-        public override int Meat
-        {
-            get
-            {
-                return 3;
-            }
-        }
-        public override int Hides
-        {
-            get
-            {
-                return 10;
-            }
-        }
-        public override FoodType FavoriteFood
-        {
-            get
-            {
-                return FoodType.FruitsAndVegies | FoodType.GrainsAndHay;
-            }
-        }
-
-        public override bool CanAutoStable { get { return (Backpack == null || Backpack.Items.Count == 0) && base.CanAutoStable; } }
-
         public PackHorse(Serial serial)
             : base(serial)
         {
         }
 
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+
+            writer.Write(0);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+
+            var version = reader.ReadInt();
+        }
+
         #region Pack Animal Methods
+
         public override bool OnBeforeDeath()
         {
             if (!base.OnBeforeDeath())
@@ -148,20 +146,6 @@ namespace Server.Mobiles
         }
 
         #endregion
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-
-            writer.Write((int)0);
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
-        }
     }
 
     public class PackAnimalBackpackEntry : ContextMenuEntry
@@ -198,7 +182,9 @@ namespace Server.Mobiles
             if (from == animal || from.AccessLevel >= AccessLevel.GameMaster)
                 return true;
 
-            if (from.Alive && animal.Controlled && !animal.IsDeadPet && (from == animal.ControlMaster || from == animal.SummonMaster || animal.IsPetFriend(from)))
+            if (from.Alive && animal.Controlled && !animal.IsDeadPet && (from == animal.ControlMaster ||
+                                                                         from == animal.SummonMaster ||
+                                                                         animal.IsPetFriend(from)))
                 return true;
 
             return false;
@@ -212,13 +198,13 @@ namespace Server.Mobiles
             if (animal.IsBonded || animal.IsDeadPet)
                 return;
 
-            Container pack = animal.Backpack;
+            var pack = animal.Backpack;
 
             if (pack != null)
             {
                 Container newPack = new Backpack();
 
-                for (int i = pack.Items.Count - 1; i >= 0; --i)
+                for (var i = pack.Items.Count - 1; i >= 0; --i)
                 {
                     if (i >= pack.Items.Count)
                         continue;
@@ -235,7 +221,7 @@ namespace Server.Mobiles
             if (animal.IsDeadPet)
                 return;
 
-            Container item = animal.Backpack;
+            var item = animal.Backpack;
 
             if (item != null)
                 from.Use(item);

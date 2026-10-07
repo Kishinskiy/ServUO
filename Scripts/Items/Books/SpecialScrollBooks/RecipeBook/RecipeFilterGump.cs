@@ -1,5 +1,3 @@
-using System;
-using Server;
 using Server.Gumps;
 using Server.Mobiles;
 using Server.Network;
@@ -8,29 +6,10 @@ namespace Server.Items
 {
     public class RecipeScrollFilterGump : Gump
     {
-        private Mobile m_From;
-        private RecipeBook m_Book;
-
         private const int LabelColor = 0x7FFF;
         private const int TitleLabelColor = 0xFFFFFF;
 
-        private void AddFilterList(int x, int y, int[] xOffsets, int yOffset, int[,] filters, int xHeights, int filterValue, int filterIndex)
-        {
-            for (int i = 0; i < filters.GetLength(0); ++i)
-            {
-                int number = filters[i, 0];
-
-                if (number == 0)
-                    continue;
-
-                bool isSelected = (filters[i, 1] == filterValue);
-
-                AddHtmlLocalized(x + 35 + xOffsets[i % xOffsets.Length], y + ((i / xOffsets.Length) * yOffset), 80, xHeights, number, isSelected ? 16927 : LabelColor, false, false);
-                AddButton(x + xOffsets[i % xOffsets.Length], y + ((i / xOffsets.Length) * yOffset), 4005, 4007, 4 + filterIndex + (i * 4), GumpButtonType.Reply, 0);
-            }
-        }
-
-        private static readonly int[,] m_SkillFilters = new int[,]
+        private static readonly int[,] m_SkillFilters =
         {
             { 1062229, 0 }, // All
             { 1150187, 1 }, // Blacksmith
@@ -41,34 +20,36 @@ namespace Server.Items
             { 1002063, 6 }, // Cooking
             { 1002000, 7 }, // Alchemy
             { 1002162, 8 }, // Tinkering
-            { 1002057, 9 }, // Cartography
+            { 1002057, 9 } // Cartography
         };
 
-        private static readonly int[,] m_ExpansionFilters = new int[,]
+        private static readonly int[,] m_ExpansionFilters =
         {
             { 1062229, 0 }, // All
             { 1158817, 1 }, // Mondain's Legacy
             { 1095190, 2 }, // Stygian Abyss
-            { 1158818, 3 }, // Time of Legends
+            { 1158818, 3 } // Time of Legends
         };
 
-        private static readonly int[,] m_AmountFilters = new int[,]
+        private static readonly int[,] m_AmountFilters =
         {
             { 1062229, 0 }, // All
             { 1158815, 1 }, // Owned
-            { 1074235, 2 }, // Unknown
+            { 1074235, 2 } // Unknown
         };
 
-        private static readonly int[][,] m_Filters = new int[][,]
+        private static readonly int[][,] m_Filters =
         {
             m_SkillFilters,
             m_ExpansionFilters,
             m_AmountFilters
         };
 
-        private static readonly int[] m_XOffsets_Skill = new int[] { 0, 125, 250, 375 };
-        private static readonly int[] m_XOffsets_Expansion = new int[] { 0, 125, 250, 375 };
-        private static readonly int[] m_XOffsets_Amount = new int[] { 0, 125, 250 };
+        private static readonly int[] m_XOffsets_Skill = { 0, 125, 250, 375 };
+        private static readonly int[] m_XOffsets_Expansion = { 0, 125, 250, 375 };
+        private static readonly int[] m_XOffsets_Amount = { 0, 125, 250 };
+        private readonly RecipeBook m_Book;
+        private readonly Mobile m_From;
 
         public RecipeScrollFilterGump(Mobile from, RecipeBook book)
             : base(12, 24)
@@ -79,7 +60,7 @@ namespace Server.Items
             m_From = from;
             m_Book = book;
 
-            RecipeScrollFilter f = book.Filter;
+            var f = book.Filter;
 
             AddPage(0);
 
@@ -105,10 +86,12 @@ namespace Server.Items
             AddHtmlLocalized(26, 256, 120, 32, 1062217, TitleLabelColor, false, false); // Amount
             AddFilterList(25, 288, m_XOffsets_Amount, 32, m_AmountFilters, 32, f.Amount, 2);
 
-            AddHtmlLocalized(75, 352, 120, 32, 1062477, (((PlayerMobile)from).UseOwnFilter ? LabelColor : 16927), false, false); // Set Book Filter
+            AddHtmlLocalized(75, 352, 120, 32, 1062477, ((PlayerMobile)from).UseOwnFilter ? LabelColor : 16927, false,
+                false); // Set Book Filter
             AddButton(40, 352, 4005, 4007, 1, GumpButtonType.Reply, 0);
 
-            AddHtmlLocalized(235, 352, 120, 32, 1062478, (((PlayerMobile)from).UseOwnFilter ? 16927 : LabelColor), false, false); // Set Your Filter
+            AddHtmlLocalized(235, 352, 120, 32, 1062478, ((PlayerMobile)from).UseOwnFilter ? 16927 : LabelColor, false,
+                false); // Set Your Filter
             AddButton(200, 352, 4005, 4007, 2, GumpButtonType.Reply, 0);
 
             AddHtmlLocalized(405, 352, 120, 32, 1062231, TitleLabelColor, false, false); // Clear Filter
@@ -118,78 +101,97 @@ namespace Server.Items
             AddButton(505, 352, 4017, 4018, 0, GumpButtonType.Reply, 0);
         }
 
+        private void AddFilterList(int x, int y, int[] xOffsets, int yOffset, int[,] filters, int xHeights,
+            int filterValue, int filterIndex)
+        {
+            for (var i = 0; i < filters.GetLength(0); ++i)
+            {
+                var number = filters[i, 0];
+
+                if (number == 0)
+                    continue;
+
+                var isSelected = filters[i, 1] == filterValue;
+
+                AddHtmlLocalized(x + 35 + xOffsets[i % xOffsets.Length], y + i / xOffsets.Length * yOffset, 80,
+                    xHeights, number, isSelected ? 16927 : LabelColor, false, false);
+                AddButton(x + xOffsets[i % xOffsets.Length], y + i / xOffsets.Length * yOffset, 4005, 4007,
+                    4 + filterIndex + i * 4, GumpButtonType.Reply, 0);
+            }
+        }
+
         public override void OnResponse(NetState sender, RelayInfo info)
         {
-            RecipeScrollFilter f = m_Book.Filter;
+            var f = m_Book.Filter;
 
-            int index = info.ButtonID;
+            var index = info.ButtonID;
 
             switch (index)
             {
                 case 0: // APPLY
-                    {
-                        m_From.SendGump(new RecipeBookGump(m_From, m_Book));
+                {
+                    m_From.SendGump(new RecipeBookGump(m_From, m_Book));
 
-                        break;
-                    }
+                    break;
+                }
                 case 1: // Set Book Filter
-                    {
-                        ((PlayerMobile)m_From).UseOwnFilter = false;
-                        m_From.SendGump(new RecipeScrollFilterGump(m_From, m_Book));
+                {
+                    ((PlayerMobile)m_From).UseOwnFilter = false;
+                    m_From.SendGump(new RecipeScrollFilterGump(m_From, m_Book));
 
-                        break;
-                    }
+                    break;
+                }
                 case 2: // Set Your Filter
-                    {
-                        ((PlayerMobile)m_From).UseOwnFilter = true;
-                        m_From.SendGump(new RecipeScrollFilterGump(m_From, m_Book));
+                {
+                    ((PlayerMobile)m_From).UseOwnFilter = true;
+                    m_From.SendGump(new RecipeScrollFilterGump(m_From, m_Book));
 
-                        break;
-                    }
+                    break;
+                }
                 case 3: // Clear
-                    {
-                        f.Clear();
-                        m_From.SendGump(new RecipeScrollFilterGump(m_From, m_Book));
+                {
+                    f.Clear();
+                    m_From.SendGump(new RecipeScrollFilterGump(m_From, m_Book));
 
-                        break;
-                    }
+                    break;
+                }
                 default:
+                {
+                    index -= 4;
+
+                    var type = index % 4;
+                    index /= 4;
+
+                    var filter = m_Filters;
+
+                    if (type >= 0 && type < filter.Length)
                     {
-                        index -= 4;
+                        var filters = filter[type];
 
-                        int type = index % 4;
-                        index /= 4;
-
-                        int[][,] filter = m_Filters;
-
-                        if (type >= 0 && type < filter.Length)
+                        if (index >= 0 && index < filters.GetLength(0))
                         {
-                            int[,] filters = filter[type];
+                            if (filters[index, 0] == 0)
+                                break;
 
-                            if (index >= 0 && index < filters.GetLength(0))
+                            switch (type)
                             {
-                                if (filters[index, 0] == 0)
+                                case 0:
+                                    f.Skill = filters[index, 1];
                                     break;
-
-                                switch (type)
-                                {
-                                    case 0:
-                                        f.Skill = filters[index, 1];
-                                        break;
-                                    case 1:
-                                        f.Expansion = filters[index, 1];
-                                        break;
-                                    case 2:
-                                        f.Amount = filters[index, 1];
-                                        break;
-                                }
-
-                                m_From.SendGump(new RecipeScrollFilterGump(m_From, m_Book));
+                                case 1:
+                                    f.Expansion = filters[index, 1];
+                                    break;
+                                case 2:
+                                    f.Amount = filters[index, 1];
+                                    break;
                             }
-                        }
 
-                        break;
+                            m_From.SendGump(new RecipeScrollFilterGump(m_From, m_Book));
+                        }
                     }
+
+                    break;
+                }
             }
         }
     }

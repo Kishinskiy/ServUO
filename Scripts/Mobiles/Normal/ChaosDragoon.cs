@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +5,16 @@ namespace Server.Mobiles
     [CorpseName("a chaos dragoon corpse")]
     public class ChaosDragoon : BaseCreature
     {
+        public override bool AutoDispel => true;
+
+        public override bool BardImmune => !Core.AOS;
+
+        public override bool CanRummageCorpses => true;
+
+        public override bool AlwaysMurderer => true;
+
+        public override bool ShowFameTitle => false;
+
         [Constructable]
         public ChaosDragoon()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.15, 0.4)
@@ -38,7 +47,7 @@ namespace Server.Mobiles
             Fame = 5000;
             Karma = -5000;
 
-            CraftResource res = CraftResource.None;
+            var res = CraftResource.None;
 
             switch (Utility.Random(6))
             {
@@ -80,41 +89,41 @@ namespace Server.Mobiles
             melee.Movable = false;
             AddItem(melee);
 
-            DragonHelm helm = new DragonHelm();
+            var helm = new DragonHelm();
             helm.Resource = res;
             helm.Movable = false;
             AddItem(helm);
 
-            DragonChest chest = new DragonChest();
+            var chest = new DragonChest();
             chest.Resource = res;
             chest.Movable = false;
             AddItem(chest);
 
-            DragonArms arms = new DragonArms();
+            var arms = new DragonArms();
             arms.Resource = res;
             arms.Movable = false;
             AddItem(arms);
 
-            DragonGloves gloves = new DragonGloves();
+            var gloves = new DragonGloves();
             gloves.Resource = res;
             gloves.Movable = false;
             AddItem(gloves);
 
-            DragonLegs legs = new DragonLegs();
+            var legs = new DragonLegs();
             legs.Resource = res;
             legs.Movable = false;
             AddItem(legs);
 
-            ChaosShield shield = new ChaosShield();
+            var shield = new ChaosShield();
             shield.Movable = false;
             AddItem(shield);
 
             AddItem(new Shirt());
             AddItem(new Boots());
 
-            int amount = Utility.RandomMinMax(1, 3);
+            var amount = Utility.RandomMinMax(1, 3);
 
-            switch ( res )
+            switch (res)
             {
                 case CraftResource.BlackScales:
                     AddItem(new BlackScales(amount));
@@ -146,41 +155,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool AutoDispel
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool BardImmune
-        {
-            get
-            {
-                return !Core.AOS;
-            }
-        }
-        public override bool CanRummageCorpses
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool AlwaysMurderer
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool ShowFameTitle
-        {
-            get
-            {
-                return false;
-            }
-        }
         public override int GetIdleSound()
         {
             return 0x2CE;
@@ -208,7 +182,7 @@ namespace Server.Mobiles
 
         public override bool OnBeforeDeath()
         {
-            IMount mount = Mount;
+            var mount = Mount;
 
             if (mount != null)
                 mount.Rider = null;
@@ -218,20 +192,21 @@ namespace Server.Mobiles
 
         public override void AlterMeleeDamageTo(Mobile to, ref int damage)
         {
-            if (to is Dragon || to is WhiteWyrm || to is SwampDragon || to is Drake || to is Nightmare || to is Hiryu || to is LesserHiryu || to is Daemon)
+            if (to is Dragon || to is WhiteWyrm || to is SwampDragon || to is Drake || to is Nightmare || to is Hiryu ||
+                to is LesserHiryu || to is Daemon)
                 damage *= 3;
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

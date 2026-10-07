@@ -1,10 +1,11 @@
-using System;
-
 namespace Server.Items
 {
     public class TrueRadiantScimitar : RadiantScimitar
-	{
-		public override bool IsArtifact { get { return true; } }
+    {
+        public override bool IsArtifact => true;
+
+        public override int LabelNumber => 1073541; // true radiant scimitar
+
         [Constructable]
         public TrueRadiantScimitar()
         {
@@ -16,13 +17,6 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1073541;
-            }
-        }// true radiant scimitar
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -34,7 +28,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

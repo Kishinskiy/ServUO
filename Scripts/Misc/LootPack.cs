@@ -49,28 +49,6 @@ namespace Server
 
         #endregion
 
-        #region ML definitions
-
-        public static readonly LootPackItem[] AosMagicItemsRichType1 =
-        {
-            new LootPackItem(typeof(BaseWeapon), 211), new LootPackItem(typeof(BaseRanged), 53),
-            new LootPackItem(typeof(BaseArmor), 303), new LootPackItem(typeof(BaseShield), 39),
-            new LootPackItem(typeof(BaseJewel), 158)
-        };
-
-        public static readonly LootPack MlRich =
-            new LootPack(
-                new[]
-                {
-                    new LootPackEntry(true, Gold, 100.00, "4d50+450"),
-                    new LootPackEntry(false, AosMagicItemsRichType1, 100.00, 1, 3, 0, 75),
-                    new LootPackEntry(false, AosMagicItemsRichType1, 80.00, 1, 3, 0, 75),
-                    new LootPackEntry(false, AosMagicItemsRichType1, 60.00, 1, 5, 0, 100),
-                    new LootPackEntry(false, Instruments, 1.00, 1)
-                });
-
-        #endregion
-
         public static readonly LootPack LowScrolls =
             new LootPack(new[] { new LootPackEntry(false, LowScrollItems, 100.00, 1) });
 
@@ -170,6 +148,28 @@ namespace Server
                         cont.DropItem(item);
             }
         }
+
+        #region ML definitions
+
+        public static readonly LootPackItem[] AosMagicItemsRichType1 =
+        {
+            new LootPackItem(typeof(BaseWeapon), 211), new LootPackItem(typeof(BaseRanged), 53),
+            new LootPackItem(typeof(BaseArmor), 303), new LootPackItem(typeof(BaseShield), 39),
+            new LootPackItem(typeof(BaseJewel), 158)
+        };
+
+        public static readonly LootPack MlRich =
+            new LootPack(
+                new[]
+                {
+                    new LootPackEntry(true, Gold, 100.00, "4d50+450"),
+                    new LootPackEntry(false, AosMagicItemsRichType1, 100.00, 1, 3, 0, 75),
+                    new LootPackEntry(false, AosMagicItemsRichType1, 80.00, 1, 3, 0, 75),
+                    new LootPackEntry(false, AosMagicItemsRichType1, 60.00, 1, 5, 0, 100),
+                    new LootPackEntry(false, Instruments, 1.00, 1)
+                });
+
+        #endregion
 
         #region AOS Magic Items
 

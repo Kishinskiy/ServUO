@@ -1,22 +1,21 @@
-using System;
-
 namespace Server.Items
 {
     public class CinnamonFancyRugAddon : BaseAddon
     {
+        public override BaseAddonDeed Deed => new CinnamonFancyRugDeed();
+
         [Constructable]
         public CinnamonFancyRugAddon()
-            : base()
         {
-            this.AddComponent(new LocalizedAddonComponent(0xAE3, 1076587), 1, 1, 0);
-            this.AddComponent(new LocalizedAddonComponent(0xAE4, 1076587), -1, -1, 0);
-            this.AddComponent(new LocalizedAddonComponent(0xAE5, 1076587), -1, 1, 0);
-            this.AddComponent(new LocalizedAddonComponent(0xAE6, 1076587), 1, -1, 0);
-            this.AddComponent(new LocalizedAddonComponent(0xAE7, 1076587), -1, 0, 0);
-            this.AddComponent(new LocalizedAddonComponent(0xAE8, 1076587), 0, -1, 0);
-            this.AddComponent(new LocalizedAddonComponent(0xAE9, 1076587), 1, 0, 0);
-            this.AddComponent(new LocalizedAddonComponent(0xAEA, 1076587), 0, 1, 0);
-            this.AddComponent(new LocalizedAddonComponent(0xAEB, 1076587), 0, 0, 0);
+            AddComponent(new LocalizedAddonComponent(0xAE3, 1076587), 1, 1, 0);
+            AddComponent(new LocalizedAddonComponent(0xAE4, 1076587), -1, -1, 0);
+            AddComponent(new LocalizedAddonComponent(0xAE5, 1076587), -1, 1, 0);
+            AddComponent(new LocalizedAddonComponent(0xAE6, 1076587), 1, -1, 0);
+            AddComponent(new LocalizedAddonComponent(0xAE7, 1076587), -1, 0, 0);
+            AddComponent(new LocalizedAddonComponent(0xAE8, 1076587), 0, -1, 0);
+            AddComponent(new LocalizedAddonComponent(0xAE9, 1076587), 1, 0, 0);
+            AddComponent(new LocalizedAddonComponent(0xAEA, 1076587), 0, 1, 0);
+            AddComponent(new LocalizedAddonComponent(0xAEB, 1076587), 0, 0, 0);
         }
 
         public CinnamonFancyRugAddon(Serial serial)
@@ -24,13 +23,6 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonDeed Deed
-        {
-            get
-            {
-                return new CinnamonFancyRugDeed();
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -42,17 +34,20 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class CinnamonFancyRugDeed : BaseAddonDeed
     {
+        public override BaseAddon Addon => new CinnamonFancyRugAddon();
+
+        public override int LabelNumber => 1076587; // Cinnamon fancy rug
+
         [Constructable]
         public CinnamonFancyRugDeed()
-            : base()
         {
-            this.LootType = LootType.Blessed;
+            LootType = LootType.Blessed;
         }
 
         public CinnamonFancyRugDeed(Serial serial)
@@ -60,20 +55,6 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddon Addon
-        {
-            get
-            {
-                return new CinnamonFancyRugAddon();
-            }
-        }
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1076587;
-            }
-        }// Cinnamon fancy rug
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -85,7 +66,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

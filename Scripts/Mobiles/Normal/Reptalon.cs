@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +5,20 @@ namespace Server.Mobiles
     [CorpseName("a reptalon corpse")]
     public class Reptalon : BaseMount
     {
+        public override int TreasureMapLevel => 5;
+
+        public override int Meat => 5;
+
+        public override int Hides => 10;
+
+        public override bool CanAngerOnTame => true;
+
+        public override bool StatLossAfterTame => true;
+
+        public override FoodType FavoriteFood => FoodType.Meat;
+
+        public override bool CanFly => true;
+
         [Constructable]
         public Reptalon()
             : base("a reptalon", 0x114, 0x3E90, AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.35)
@@ -19,7 +32,7 @@ namespace Server.Mobiles
             SetHits(833, 931);
 
             SetDamage(21, 28);
-			
+
             SetDamageType(ResistanceType.Physical, 0);
             SetDamageType(ResistanceType.Poison, 25);
             SetDamageType(ResistanceType.Energy, 75);
@@ -34,7 +47,7 @@ namespace Server.Mobiles
             SetSkill(SkillName.Tactics, 101.7, 108.2);
             SetSkill(SkillName.MagicResist, 76.4, 89.9);
             SetSkill(SkillName.Anatomy, 56.4, 59.7);
-			
+
             Tamable = true;
             ControlSlots = 4;
             MinTameSkill = 101.1;
@@ -48,55 +61,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override int TreasureMapLevel
-        {
-            get
-            {
-                return 5;
-            }
-        }
-        public override int Meat
-        {
-            get
-            {
-                return 5;
-            }
-        }
-        public override int Hides
-        {
-            get
-            {
-                return 10;
-            }
-        }
-        public override bool CanAngerOnTame
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool StatLossAfterTame
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override FoodType FavoriteFood
-        {
-            get
-            {
-                return FoodType.Meat;
-            }
-        }
-        public override bool CanFly
-        {
-            get
-            {
-                return true;
-            }
-        }
         public override void GenerateLoot()
         {
             AddLoot(LootPack.AosUltraRich, 3);
@@ -106,19 +70,16 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)1); // version
+            writer.Write(1); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            if (version == 0)
-            {
-                SetWeaponAbility(WeaponAbility.ParalyzingBlow);
-            }
+            if (version == 0) SetWeaponAbility(WeaponAbility.ParalyzingBlow);
         }
     }
 }

@@ -16,23 +16,11 @@ namespace Server.Engines.Quests
 
     public class ExploringTheDeepBaseChain
     {
-        private Type m_CurrentQuest;
+        public Type CurrentQuest { get; set; }
 
         public ExploringTheDeepBaseChain(Type currentQuest, Type quester)
         {
-            this.m_CurrentQuest = currentQuest;
-        }
-
-        public Type CurrentQuest
-        {
-            get
-            {
-                return this.m_CurrentQuest;
-            }
-            set
-            {
-                this.m_CurrentQuest = value;
-            }
+            CurrentQuest = currentQuest;
         }
     }
 }

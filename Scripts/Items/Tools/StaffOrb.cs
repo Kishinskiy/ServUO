@@ -6,13 +6,13 @@ using Server.ContextMenus;
 namespace Server.Items
 {
     /// <summary>
-    /// David O'Hara
-    /// 08-13-2004
-    /// Version 3.0
-    /// This orb allows staff to switch between a Player access level and their current staff level. 
-    /// It also sets the mortality as appropriate for staff.
-    /// A home location can be set/used thru the context menu.
-    /// Will auto resurrect it's owner on death.
+    ///     David O'Hara
+    ///     08-13-2004
+    ///     Version 3.0
+    ///     This orb allows staff to switch between a Player access level and their current staff level.
+    ///     It also sets the mortality as appropriate for staff.
+    ///     A home location can be set/used thru the context menu.
+    ///     Will auto resurrect it's owner on death.
     /// </summary>
     public class StaffOrb : Item
     {
@@ -20,7 +20,24 @@ namespace Server.Items
         public Map m_HomeMap;
         private Mobile m_Owner;
         private AccessLevel m_StaffLevel;
-        private bool m_AutoRes = true;
+
+        [CommandProperty(AccessLevel.Counselor, AccessLevel.GameMaster)]
+        public Point3D HomeLocation
+        {
+            get => m_HomeLocation;
+            set => m_HomeLocation = value;
+        }
+
+        [CommandProperty(AccessLevel.Counselor, AccessLevel.GameMaster)]
+        public Map HomeMap
+        {
+            get => m_HomeMap;
+            set => m_HomeMap = value;
+        }
+
+        [CommandProperty(AccessLevel.Counselor)]
+        public bool AutoRes { get; set; } = true;
+
         [Constructable]
         public StaffOrb()
             : base(0x0E2F)
@@ -45,42 +62,6 @@ namespace Server.Items
         {
         }
 
-        [CommandProperty(AccessLevel.Counselor, AccessLevel.GameMaster)]
-        public Point3D HomeLocation
-        {
-            get
-            {
-                return m_HomeLocation;
-            }
-            set
-            {
-                m_HomeLocation = value;
-            }
-        }
-        [CommandProperty(AccessLevel.Counselor, AccessLevel.GameMaster)]
-        public Map HomeMap
-        {
-            get
-            {
-                return m_HomeMap;
-            }
-            set
-            {
-                m_HomeMap = value;
-            }
-        }
-        [CommandProperty(AccessLevel.Counselor)]
-        public bool AutoRes
-        {
-            get
-            {
-                return m_AutoRes;
-            }
-            set
-            {
-                m_AutoRes = value;
-            }
-        }
         public static void GetContextMenuEntries(Mobile from, Item item, List<ContextMenuEntry> list)
         {
             list.Add(new GoHomeEntry(from, item));
@@ -91,30 +72,29 @@ namespace Server.Items
         {
             if (m_Owner == null)
             {
-                return;
             }
             else
             {
                 if (m_Owner != from)
                 {
                     from.SendMessage("This is not yours to use.");
-                    return;
                 }
                 else
                 {
                     base.GetContextMenuEntries(from, list);
-                    StaffOrb.GetContextMenuEntries(from, this, list);
+                    GetContextMenuEntries(from, this, list);
                 }
             }
         }
 
         public override DeathMoveResult OnInventoryDeath(Mobile parent)
         {
-            if (m_AutoRes && parent == m_Owner)
+            if (AutoRes && parent == m_Owner)
             {
                 SwitchAccessLevels(parent);
                 new AutoResTimer(parent).Start();
             }
+
             return base.OnInventoryDeath(parent);
         }
 
@@ -122,13 +102,9 @@ namespace Server.Items
         public override void OnDoubleClickDead(Mobile from)
         {
             if (m_Owner == from)
-            {
                 OnDoubleClick(from);
-            }
             else
-            {
                 base.OnDoubleClickDead(from);
-            }
         }
 
         public override void OnDoubleClick(Mobile from)
@@ -137,7 +113,7 @@ namespace Server.Items
             if (m_Owner == null)
             {
                 m_Owner = from;
-                Name = m_Owner.Name.ToString() + "'s Staff Orb";
+                Name = m_Owner.Name + "'s Staff Orb";
                 HomeLocation = from.Location;
                 HomeMap = from.Map;
                 from.SendMessage("This orb has been assigned to you.");
@@ -145,14 +121,9 @@ namespace Server.Items
             else
             {
                 if (m_Owner != from)
-                {
                     from.SendMessage("This is not your's to use.");
-                    return;
-                }
                 else
-                {
                     SwitchAccessLevels(from);
-                }
             }
         }
 
@@ -160,10 +131,10 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)3); // version
+            writer.Write(3); // version
 
             // version 3
-            writer.Write(m_AutoRes);
+            writer.Write(AutoRes);
 
             // version 2
             writer.Write(m_HomeLocation);
@@ -177,26 +148,26 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
-            switch ( version )
+            var version = reader.ReadInt();
+            switch (version)
             {
                 case 3:
-                    {
-                        m_AutoRes = reader.ReadBool();
-                        goto case 2;
-                    }
+                {
+                    AutoRes = reader.ReadBool();
+                    goto case 2;
+                }
                 case 2:
-                    {
-                        m_HomeLocation = reader.ReadPoint3D();
-                        m_HomeMap = reader.ReadMap();
-                        goto case 1;
-                    }
+                {
+                    m_HomeLocation = reader.ReadPoint3D();
+                    m_HomeMap = reader.ReadMap();
+                    goto case 1;
+                }
                 case 1:
-                    {
-                        m_Owner = reader.ReadMobile();
-                        m_StaffLevel = (AccessLevel)reader.ReadEncodedInt();
-                        break;
-                    }
+                {
+                    m_Owner = reader.ReadMobile();
+                    m_StaffLevel = (AccessLevel)reader.ReadEncodedInt();
+                    break;
+                }
             }
         }
 
@@ -221,8 +192,9 @@ namespace Server.Items
         {
             private readonly StaffOrb m_Item;
             private readonly Mobile m_Mobile;
+
             public GoHomeEntry(Mobile from, Item item)
-                : base(5134)// uses "Goto Loc" entry
+                : base(5134) // uses "Goto Loc" entry
             {
                 m_Item = (StaffOrb)item;
                 m_Mobile = from;
@@ -241,8 +213,9 @@ namespace Server.Items
         {
             private readonly StaffOrb m_Item;
             private readonly Mobile m_Mobile;
+
             public SetHomeEntry(Mobile from, Item item)
-                : base(2055)// uses "Mark" entry
+                : base(2055) // uses "Mark" entry
             {
                 m_Item = (StaffOrb)item;
                 m_Mobile = from;
@@ -260,6 +233,7 @@ namespace Server.Items
         private class AutoResTimer : Timer
         {
             private readonly Mobile m_Mobile;
+
             public AutoResTimer(Mobile mob)
                 : base(TimeSpan.FromSeconds(5.0))
             {

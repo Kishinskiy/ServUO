@@ -1,15 +1,14 @@
-using System;
-using Server;
 using System.Collections.Generic;
-using Server.Items;
 using System.Linq;
+using Server.Items;
 using Server.Mobiles;
 
 namespace Server.Engines.TreasuresOfKotlCity
 {
     public class PowerCoreDockingStation : BaseAddon
     {
-        public override BaseAddonDeed Deed { get { return null; } }
+        private bool _Active;
+        public override BaseAddonDeed Deed => null;
 
         public static List<PowerCoreDockingStation> Stations { get; set; }
 
@@ -17,25 +16,18 @@ namespace Server.Engines.TreasuresOfKotlCity
         public InternalContainer Chest2 { get; set; }
         public bool Link { get; set; }
 
-        private bool _Active;
-
         [CommandProperty(AccessLevel.GameMaster)]
         public bool Active
         {
-            get { return _Active; }
+            get => _Active;
             set
             {
-                bool active = _Active;
+                var active = _Active;
                 _Active = value;
 
                 if (!active && _Active)
-                {
                     Activate();
-                }
-                else if (active && !_Active)
-                {
-                    Deactivate();
-                }
+                else if (active && !_Active) Deactivate();
             }
         }
 
@@ -52,28 +44,28 @@ namespace Server.Engines.TreasuresOfKotlCity
             if (link)
                 AddStation();
 
-            AddComplexComponent(40157, 0, 0, 36, 0, 1124171);// 19
-            AddComplexComponent(40157, 1, 0, 36, 0, 1124171);// 20
-            AddComplexComponent(40157, 0, 1, 36, 0, 1124171);// 21
-            AddComplexComponent(40157, 1, 1, 36, 0, 1124171);// 22
-            AddComplexComponent(40146, 0, 0, 11, 2591, 1157023);// 23
+            AddComplexComponent(40157, 0, 0, 36, 0, 1124171); // 19
+            AddComplexComponent(40157, 1, 0, 36, 0, 1124171); // 20
+            AddComplexComponent(40157, 0, 1, 36, 0, 1124171); // 21
+            AddComplexComponent(40157, 1, 1, 36, 0, 1124171); // 22
+            AddComplexComponent(40146, 0, 0, 11, 2591, 1157023); // 23
 
-            AddComplexComponent(40173, 1, -1, 0, 2591);// 24
-            AddComplexComponent(40173, 2, 0, 0, 2591);// 24
-            AddComplexComponent(40174, 0, 2, 0, 2591);// 24
+            AddComplexComponent(40173, 1, -1, 0, 2591); // 24
+            AddComplexComponent(40173, 2, 0, 0, 2591); // 24
+            AddComplexComponent(40174, 0, 2, 0, 2591); // 24
 
-            AddComplexComponent(39736, 1, 0, 11, 2591);// 25
-            AddComplexComponent(39728, 0, 1, 11, 2591);// 26
-            AddComplexComponent(39734, 1, 1, 11, 2591);// 27
-            AddComplexComponent(39730, 0, 0, 11, 2591);// 28
-            AddComplexComponent(39714, -1, -1, 0, 2591);// 29
-            AddComplexComponent(39713, -1, 1, 0, 2591);// 30
-            AddComplexComponent(39713, -1, 0, 0, 2591);// 31
-            AddComplexComponent(39712, 0, -1, 0, 2591);// 32
-            AddComplexComponent(39712, 1, -1, 0, 2591);// 33
-            AddComplexComponent(39713, 1, 0, 0, 2591);// 34
-            AddComplexComponent(39712, 0, 1, 0, 2591);// 35
-            AddComplexComponent(39711, 1, 1, 0, 2591);// 36
+            AddComplexComponent(39736, 1, 0, 11, 2591); // 25
+            AddComplexComponent(39728, 0, 1, 11, 2591); // 26
+            AddComplexComponent(39734, 1, 1, 11, 2591); // 27
+            AddComplexComponent(39730, 0, 0, 11, 2591); // 28
+            AddComplexComponent(39714, -1, -1, 0, 2591); // 29
+            AddComplexComponent(39713, -1, 1, 0, 2591); // 30
+            AddComplexComponent(39713, -1, 0, 0, 2591); // 31
+            AddComplexComponent(39712, 0, -1, 0, 2591); // 32
+            AddComplexComponent(39712, 1, -1, 0, 2591); // 33
+            AddComplexComponent(39713, 1, 0, 0, 2591); // 34
+            AddComplexComponent(39712, 0, 1, 0, 2591); // 35
+            AddComplexComponent(39711, 1, 1, 0, 2591); // 36
 
             AddComponent(new AddonComponent(0x9CE5), -1, 2, 0);
 
@@ -84,12 +76,17 @@ namespace Server.Engines.TreasuresOfKotlCity
             Chest2.Addon = this;
         }
 
+        public PowerCoreDockingStation(Serial serial)
+            : base(serial)
+        {
+        }
+
         public void AddStation()
         {
             if (Stations == null)
                 Stations = new List<PowerCoreDockingStation>();
 
-            if(!Stations.Contains(this))
+            if (!Stations.Contains(this))
                 Stations.Add(this);
         }
 
@@ -97,15 +94,9 @@ namespace Server.Engines.TreasuresOfKotlCity
         {
             base.OnLocationChange(oldlocation);
 
-            if (Chest1 != null && !Chest1.Deleted)
-            {
-                Chest1.MoveToWorld(new Point3D(this.X + 1, this.Y + 1, this.Z + 11), this.Map);
-            }
+            if (Chest1 != null && !Chest1.Deleted) Chest1.MoveToWorld(new Point3D(X + 1, Y + 1, Z + 11), Map);
 
-            if (Chest2 != null && !Chest2.Deleted)
-            {
-                Chest2.MoveToWorld(new Point3D(this.X, this.Y + 1, this.Z + 11), this.Map);
-            }
+            if (Chest2 != null && !Chest2.Deleted) Chest2.MoveToWorld(new Point3D(X, Y + 1, Z + 11), Map);
         }
 
         public override void OnMapChange()
@@ -113,29 +104,26 @@ namespace Server.Engines.TreasuresOfKotlCity
             base.OnMapChange();
 
             if (Chest1 != null)
-                Chest1.Map = this.Map;
+                Chest1.Map = Map;
 
             if (Chest2 != null)
-                Chest2.Map = this.Map;
+                Chest2.Map = Map;
         }
 
         public void Activate()
         {
             if (Link && Stations != null && Stations.Where(s => s.Active).Count() == Stations.Count)
-            {
                 if (!KotlBattleSimulator.Instance.Active)
                 {
                     KotlBattleSimulator.Instance.Active = true;
 
-                    Region r = Region.Find(KotlBattleSimulator.Instance.Location, Map.TerMur);
+                    var r = Region.Find(KotlBattleSimulator.Instance.Location, Map.TerMur);
 
                     if (r != null)
-                    {
-                        foreach (PlayerMobile pm in r.GetEnumeratedMobiles().OfType<PlayerMobile>())
-                            pm.SendLocalizedMessage(1157026); // [Kotl City Hologenerator]:  Great Battle simulation now active! Proceed to city center!
-                    }
+                        foreach (var pm in r.GetEnumeratedMobiles().OfType<PlayerMobile>())
+                            pm.SendLocalizedMessage(
+                                1157026); // [Kotl City Hologenerator]:  Great Battle simulation now active! Proceed to city center!
                 }
-            }
 
             foreach (var comp in Components)
             {
@@ -164,19 +152,13 @@ namespace Server.Engines.TreasuresOfKotlCity
                     comp.ItemID = 40174;
             }
 
-            List<Item> delete = new List<Item>();
+            var delete = new List<Item>();
 
-            if (Chest1 != null)
-            {
-                delete.AddRange(Chest1.Items);
-            }
+            if (Chest1 != null) delete.AddRange(Chest1.Items);
 
-            if (Chest2 != null)
-            {
-                delete.AddRange(Chest2.Items);
-            }
+            if (Chest2 != null) delete.AddRange(Chest2.Items);
 
-            foreach (Item item in delete)
+            foreach (var item in delete)
                 item.Delete();
 
             _Active = false;
@@ -187,13 +169,9 @@ namespace Server.Engines.TreasuresOfKotlCity
             AddonComponent ac;
 
             if (localization == 0)
-            {
                 ac = new AddonComponent(item);
-            }
             else
-            {
                 ac = new LocalizedAddonComponent(item, localization);
-            }
 
             if (hue != 0)
                 ac.Hue = hue;
@@ -205,25 +183,11 @@ namespace Server.Engines.TreasuresOfKotlCity
         {
             base.Delete();
 
-            if (Chest1 != null && !Chest1.Deleted)
-            {
-                Chest1.Delete();
-            }
+            if (Chest1 != null && !Chest1.Deleted) Chest1.Delete();
 
-            if (Chest2 != null && !Chest2.Deleted)
-            {
-                Chest2.Delete();
-            }
+            if (Chest2 != null && !Chest2.Deleted) Chest2.Delete();
 
-            if (Stations != null && Stations.Contains(this))
-            {
-                Stations.Remove(this);
-            }
-        }
-
-        public PowerCoreDockingStation(Serial serial)
-            : base(serial)
-        {
+            if (Stations != null && Stations.Contains(this)) Stations.Remove(this);
         }
 
         public override void Serialize(GenericWriter writer)
@@ -240,7 +204,7 @@ namespace Server.Engines.TreasuresOfKotlCity
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             _Active = reader.ReadBool();
             Chest1 = reader.ReadItem() as InternalContainer;
@@ -265,6 +229,11 @@ namespace Server.Engines.TreasuresOfKotlCity
             {
                 Movable = false;
                 Hue = 2591;
+            }
+
+            public InternalContainer(Serial serial)
+                : base(serial)
+            {
             }
 
             public override bool OnDragDrop(Mobile from, Item dropped)
@@ -306,15 +275,7 @@ namespace Server.Engines.TreasuresOfKotlCity
             {
                 base.Delete();
 
-                if (Addon != null && !Addon.Deleted)
-                {
-                    Addon.Delete();
-                }
-            }
-
-            public InternalContainer(Serial serial)
-                : base(serial)
-            {
+                if (Addon != null && !Addon.Deleted) Addon.Delete();
             }
 
             public override void Serialize(GenericWriter writer)
@@ -326,7 +287,7 @@ namespace Server.Engines.TreasuresOfKotlCity
             public override void Deserialize(GenericReader reader)
             {
                 base.Deserialize(reader);
-                int version = reader.ReadInt();
+                var version = reader.ReadInt();
             }
         }
     }

@@ -1,5 +1,3 @@
-using System;
-
 namespace Server.Items
 {
     public class FarmablePumpkin : FarmableCrop
@@ -22,7 +20,7 @@ namespace Server.Items
 
         public override Item GetCropObject()
         {
-            Pumpkin pumpkin = new Pumpkin();
+            var pumpkin = new Pumpkin();
 
             pumpkin.ItemID = Utility.Random(3178, 3);
 
@@ -38,14 +36,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

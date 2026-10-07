@@ -1,9 +1,8 @@
 using System;
-using Server;
 using System.Collections.Generic;
-using Server.Mobiles;
-using Server.Items;
 using System.Linq;
+using Server.Items;
+using Server.Mobiles;
 
 namespace Server.Engines.VvV
 {
@@ -11,6 +10,8 @@ namespace Server.Engines.VvV
     {
         public const int ScanRange = 8;
         public const int ReloadDelay = 10;
+
+        private DateTime _NextShot;
 
         private bool _NoShoot;
         private int _ShotsRemaining;
@@ -21,7 +22,7 @@ namespace Server.Engines.VvV
         [CommandProperty(AccessLevel.GameMaster)]
         public int ShotsRemaining
         {
-            get { return _ShotsRemaining; }
+            get => _ShotsRemaining;
             set
             {
                 _ShotsRemaining = value;
@@ -37,9 +38,7 @@ namespace Server.Engines.VvV
         [CommandProperty(AccessLevel.GameMaster)]
         public Item Turret { get; set; }
 
-        private DateTime _NextShot;
-
-        public override BaseAddonDeed Deed { get { return null; } }
+        public override BaseAddonDeed Deed => null;
 
         [Constructable]
         public CannonTurret()
@@ -54,7 +53,7 @@ namespace Server.Engines.VvV
             ShotsRemaining = 20;
 
             Base = new CannonBase(this);
-            Base.MoveToWorld(this.Location, this.Map);
+            Base.MoveToWorld(Location, Map);
 
             AddonComponent c = new LocalizedAddonComponent(16918, 1155505);
             AddComponent(c, 0, 0, 3);
@@ -63,12 +62,17 @@ namespace Server.Engines.VvV
             _NextShot = DateTime.UtcNow;
         }
 
+        public CannonTurret(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void OnLocationChange(Point3D oldLocation)
         {
             base.OnLocationChange(oldLocation);
 
             if (Base != null && !Base.Deleted)
-                Base.Location = this.Location;
+                Base.Location = Location;
         }
 
         public override void OnMapChange()
@@ -76,7 +80,7 @@ namespace Server.Engines.VvV
             base.OnMapChange();
 
             if (Base != null && !Base.Deleted)
-                Base.Map = this.Map;
+                Base.Map = Map;
         }
 
         public override void Delete()
@@ -89,39 +93,30 @@ namespace Server.Engines.VvV
 
         public void Scan()
         {
-            if (Deleted || this.Map == null || _ShotsRemaining <= 0 || _NoShoot)
+            if (Deleted || Map == null || _ShotsRemaining <= 0 || _NoShoot)
                 return;
 
-            IPooledEnumerable eable = this.Map.GetMobilesInRange(this.Location, ScanRange);
-            List<Mobile> list = new List<Mobile>();
+            IPooledEnumerable eable = Map.GetMobilesInRange(Location, ScanRange);
+            var list = new List<Mobile>();
 
             foreach (Mobile m in eable)
-            {
-                if (Owner == null || (ViceVsVirtueSystem.IsEnemy(Owner, m) && m.InLOS(this.Location)
-                                                                           && m is PlayerMobile 
+                if (Owner == null || (ViceVsVirtueSystem.IsEnemy(Owner, m) && m.InLOS(Location)
+                                                                           && m is PlayerMobile
                                                                            && m.AccessLevel == AccessLevel.Player))
-                {
                     list.Add(m);
-                }
-            }
 
             eable.Free();
             Mobile target = null;
             double closest = ScanRange;
 
             if (list.Count > 0)
-            {
-                foreach (Mobile m in list.Where(mob => target == null || mob.GetDistanceToSqrt(target) < closest))
+                foreach (var m in list.Where(mob => target == null || mob.GetDistanceToSqrt(target) < closest))
                 {
                     target = m;
                     closest = m.GetDistanceToSqrt(target);
                 }
-            }
 
-            if (target != null)
-            {
-                AimAndShoot(target, (int)Math.Ceiling(closest));
-            }
+            if (target != null) AimAndShoot(target, (int)Math.Ceiling(closest));
 
             list.Clear();
             list.TrimExcess();
@@ -129,7 +124,7 @@ namespace Server.Engines.VvV
 
         public void AimAndShoot(Mobile target, int range)
         {
-            Direction d = Utility.GetDirection(this, target);
+            var d = Utility.GetDirection(this, target);
 
             switch (d)
             {
@@ -149,8 +144,8 @@ namespace Server.Engines.VvV
 
             Timer.DelayCall(TimeSpan.FromMilliseconds(250), () =>
             {
-                Point3D p = new Point3D(this.X, this.Y, this.Z + 2);
-                Map map = this.Map;
+                var p = new Point3D(X, Y, Z + 2);
+                var map = Map;
 
                 switch (Turret.ItemID)
                 {
@@ -164,7 +159,7 @@ namespace Server.Engines.VvV
                 Effects.PlaySound(p, map, 0x664);
             });
 
-            Timer.DelayCall(TimeSpan.FromMilliseconds(250 + (150 * (range))), () =>
+            Timer.DelayCall(TimeSpan.FromMilliseconds(250 + 150 * range), () =>
             {
                 if (Owner != null)
                     Owner.DoHarmful(target);
@@ -178,52 +173,6 @@ namespace Server.Engines.VvV
             });
 
             _NextShot = DateTime.UtcNow + TimeSpan.FromSeconds(ReloadDelay);
-        }
-
-        public class CannonBase : DamageableItem
-        {
-            public override int LabelNumber { get { return 1155505; } }
-
-            public CannonTurret Turret { get; set; }
-
-            public CannonBase(CannonTurret turret)
-                : base(1822, 1822)
-            {
-                Level = ItemLevel.Hard;
-                Turret = turret;
-
-                Name = "a cannon turret";
-            }
-
-            public override void Delete()
-            {
-                base.Delete();
-
-                if (Turret != null)
-                    Turret.Delete();
-            }
-
-            public CannonBase(Serial serial)
-                : base(serial)
-            {
-            }
-
-            public override void Serialize(GenericWriter writer)
-            {
-                base.Serialize(writer);
-                writer.Write(0);
-            }
-
-            public override void Deserialize(GenericReader reader)
-            {
-                base.Deserialize(reader);
-                int version = reader.ReadInt();
-            }
-        }
-
-        public CannonTurret(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -240,7 +189,7 @@ namespace Server.Engines.VvV
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             Owner = reader.ReadMobile();
             Base = reader.ReadItem() as CannonBase;
@@ -251,7 +200,6 @@ namespace Server.Engines.VvV
             Timer.DelayCall(TimeSpan.FromSeconds(10), () =>
             {
                 if (Base != null)
-                {
                     if (ViceVsVirtueSystem.Instance.Battle.OnGoing)
                     {
                         Base.Turret = this;
@@ -259,19 +207,64 @@ namespace Server.Engines.VvV
                         _NoShoot = false;
                         return;
                     }
-                }
 
                 Delete();
             });
+        }
+
+        public class CannonBase : DamageableItem
+        {
+            public override int LabelNumber => 1155505;
+
+            public CannonTurret Turret { get; set; }
+
+            public CannonBase(CannonTurret turret)
+                : base(1822, 1822)
+            {
+                Level = ItemLevel.Hard;
+                Turret = turret;
+
+                Name = "a cannon turret";
+            }
+
+            public CannonBase(Serial serial)
+                : base(serial)
+            {
+            }
+
+            public override void Delete()
+            {
+                base.Delete();
+
+                if (Turret != null)
+                    Turret.Delete();
+            }
+
+            public override void Serialize(GenericWriter writer)
+            {
+                base.Serialize(writer);
+                writer.Write(0);
+            }
+
+            public override void Deserialize(GenericReader reader)
+            {
+                base.Deserialize(reader);
+                var version = reader.ReadInt();
+            }
         }
     }
 
     public class CannonTurretPlans : Item
     {
-        public override int LabelNumber { get { return 1155503; } } // Plans for a Cannon Turret
+        public override int LabelNumber => 1155503; // Plans for a Cannon Turret
 
         [Constructable]
         public CannonTurretPlans() : base(5630)
+        {
+        }
+
+        public CannonTurretPlans(Serial serial)
+            : base(serial)
         {
         }
 
@@ -279,7 +272,7 @@ namespace Server.Engines.VvV
         {
             if (IsChildOf(m.Backpack))
             {
-                VvVBattle battle = ViceVsVirtueSystem.Instance.Battle;
+                var battle = ViceVsVirtueSystem.Instance.Battle;
 
                 if (!ViceVsVirtueSystem.IsVvV(m))
                 {
@@ -295,7 +288,7 @@ namespace Server.Engines.VvV
                 }
                 else
                 {
-                    CannonTurret t = new CannonTurret(m);
+                    var t = new CannonTurret(m);
                     t.MoveToWorld(m.Location, m.Map);
 
                     battle.Turrets.Add(t);
@@ -311,11 +304,6 @@ namespace Server.Engines.VvV
             list.Add(1154937); // vvv item
         }
 
-        public CannonTurretPlans(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -325,7 +313,7 @@ namespace Server.Engines.VvV
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

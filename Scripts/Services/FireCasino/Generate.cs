@@ -1,14 +1,16 @@
-using System;
-using Server;
+using Server.Commands;
 using Server.Items;
 using Server.Mobiles;
-using Server.Commands;
 
 namespace Server.Engines.ResortAndCasino
 {
-	public static class FireCasinoGenerator
-	{
+    public static class FireCasinoGenerator
+    {
         public static readonly string EntityName = "casino";
+
+        private static readonly int _MalasXOffset = 3396;
+        private static readonly int _MalasYOffset = 2203;
+        private static readonly int _MalasZOffset = 90;
 
         public static void Initialize()
         {
@@ -20,8 +22,8 @@ namespace Server.Engines.ResortAndCasino
         {
             Delete(e);
 
-            Point3D[] list = Siege.SiegeShard ? GetMalasPoints() : GetTramPoints();
-            Map map = Siege.SiegeShard ? Map.Malas : Map.Trammel;
+            var list = Siege.SiegeShard ? GetMalasPoints() : GetTramPoints();
+            var map = Siege.SiegeShard ? Map.Malas : Map.Trammel;
 
             Item item = new tent_whiteAddon();
             WeakEntityCollection.Add(EntityName, item);
@@ -68,7 +70,7 @@ namespace Server.Engines.ResortAndCasino
 
         private static Point3D[] GetTramPoints()
         {
-            return new Point3D[] 
+            return new[]
             {
                 new Point3D(4062, 3313, 1),
                 new Point3D(4050, 3332, 0),
@@ -89,7 +91,7 @@ namespace Server.Engines.ResortAndCasino
         {
             var list = GetTramPoints();
 
-            return new Point3D[] 
+            return new[]
             {
                 new Point3D(list[0].X - _MalasXOffset, list[0].Y - _MalasYOffset, list[0].Z - _MalasZOffset),
                 new Point3D(list[1].X - _MalasXOffset, list[1].Y - _MalasYOffset, list[1].Z - _MalasZOffset),
@@ -102,17 +104,13 @@ namespace Server.Engines.ResortAndCasino
                 new Point3D(list[6].X - _MalasXOffset, list[6].Y - _MalasYOffset, list[6].Z - _MalasZOffset),
                 new Point3D(list[7].X - _MalasXOffset, list[7].Y - _MalasYOffset, list[7].Z - _MalasZOffset),
 
-                new Point3D(list[8].X - _MalasXOffset, list[8].Y - _MalasYOffset, list[8].Z - _MalasZOffset),
+                new Point3D(list[8].X - _MalasXOffset, list[8].Y - _MalasYOffset, list[8].Z - _MalasZOffset)
             };
         }
-
-        private static readonly int _MalasXOffset = 3396;
-        private static readonly int _MalasYOffset = 2203;
-        private static readonly int _MalasZOffset = 90;
 
         public static void Delete(CommandEventArgs e)
         {
             WeakEntityCollection.Delete(EntityName);
         }
-	}
+    }
 }

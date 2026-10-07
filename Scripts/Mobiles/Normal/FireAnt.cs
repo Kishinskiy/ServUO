@@ -1,12 +1,12 @@
-using System;
 using Server.Items;
-using Server.Services;
 
 namespace Server.Mobiles
 {
     [CorpseName("a fire ant corpse")]
     public class FireAnt : BaseCreature
     {
+        public override int TreasureMapLevel => 3;
+
         [Constructable]
         public FireAnt() : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
         {
@@ -46,8 +46,6 @@ namespace Server.Mobiles
         {
             AddLoot(LootPack.Average, 2);
         }
-		
-		public override int TreasureMapLevel { get { return 3; } }
 
         public override int GetIdleSound()
         {
@@ -73,10 +71,7 @@ namespace Server.Mobiles
         {
             base.OnDeath(c);
 
-            if (Utility.RandomDouble() < 0.25)
-            {
-                c.DropItem(new SearedFireAntGoo());
-            }
+            if (Utility.RandomDouble() < 0.25) c.DropItem(new SearedFireAntGoo());
         }
 
         public override void Serialize(GenericWriter writer)

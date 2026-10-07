@@ -1,12 +1,11 @@
-using Server;
-using System;
-
 namespace Server.Items
 {
     public class TortureRackComponent : AddonComponent, IArtifact
     {
-        public override int LabelNumber { get { return 1152307; } } // Torture Rack	
-        public virtual bool ShowArtifactRarity { get { return true; } }
+        public override int LabelNumber => 1152307; // Torture Rack	
+        public virtual bool ShowArtifactRarity => true;
+
+        public override bool ForceShowProperties => ObjectPropertyList.Enabled;
 
         public TortureRackComponent(int itemID)
             : base(itemID)
@@ -18,38 +17,39 @@ namespace Server.Items
         {
         }
 
-        public override bool ForceShowProperties { get { return ObjectPropertyList.Enabled; } }
-        public virtual int ArtifactRarity { get { return 10; } }
+        public virtual int ArtifactRarity => 10;
 
         public override void GetProperties(ObjectPropertyList list)
         {
             base.GetProperties(list);
 
             if (ShowArtifactRarity)
-                list.Add(1061078, this.ArtifactRarity.ToString()); // artifact rarity ~1_val~
+                list.Add(1061078, ArtifactRarity.ToString()); // artifact rarity ~1_val~
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class TortureRackEast : BaseAddon
     {
+        public override BaseAddonDeed Deed => new TortureRackEastDeed();
+
         [Constructable]
         public TortureRackEast()
         {
-            this.AddComponent(new TortureRackComponent(0x4AAB), 0, 0, 0);
-            this.AddComponent(new TortureRackComponent(0x4AA3), 0, 1, 0);
-            this.AddComponent(new TortureRackComponent(0x4AA2), 0, 2, 0);
+            AddComponent(new TortureRackComponent(0x4AAB), 0, 0, 0);
+            AddComponent(new TortureRackComponent(0x4AA3), 0, 1, 0);
+            AddComponent(new TortureRackComponent(0x4AA2), 0, 2, 0);
         }
 
         public TortureRackEast(Serial serial)
@@ -57,24 +57,24 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonDeed Deed { get { return new TortureRackEastDeed(); } }        
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class TortureRackEastDeed : BaseAddonDeed
     {
-        public override int LabelNumber { get { return 1152305; } }
+        public override int LabelNumber => 1152305;
+
+        public override BaseAddon Addon => new TortureRackEast();
 
         [Constructable]
         public TortureRackEastDeed()
@@ -86,31 +86,31 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddon Addon { get { return new TortureRackEast(); } }
-        
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class TortureRackSouth : BaseAddon
     {
+        public override BaseAddonDeed Deed => new TortureRackSouthDeed();
+
         [Constructable]
         public TortureRackSouth()
         {
-            this.AddComponent(new TortureRackComponent(0x4AA0), 0, 0, 0);
-            this.AddComponent(new TortureRackComponent(0x4AA1), 1, 0, 0);
-            this.AddComponent(new TortureRackComponent(0x4AAD), 2, 0, 0);
+            AddComponent(new TortureRackComponent(0x4AA0), 0, 0, 0);
+            AddComponent(new TortureRackComponent(0x4AA1), 1, 0, 0);
+            AddComponent(new TortureRackComponent(0x4AAD), 2, 0, 0);
         }
 
         public TortureRackSouth(Serial serial)
@@ -118,24 +118,24 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonDeed Deed { get { return new TortureRackSouthDeed(); } }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class TortureRackSouthDeed : BaseAddonDeed
     {
-        public override int LabelNumber { get { return 1152306; } }
+        public override int LabelNumber => 1152306;
+
+        public override BaseAddon Addon => new TortureRackSouth();
 
         [Constructable]
         public TortureRackSouthDeed()
@@ -147,18 +147,16 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddon Addon { get { return new TortureRackSouth(); } }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

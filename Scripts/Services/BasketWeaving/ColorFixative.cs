@@ -1,15 +1,15 @@
-using System;
-
 namespace Server.Items
 {
     public class ColorFixative : Item
     {
+        public override int LabelNumber => 1112135; // color fixative
+
         [Constructable]
         public ColorFixative()
             : base(0x182D)
         {
-            this.Weight = 1.0;
-            this.Hue = 473;  // ...make this the proper shade of green
+            Weight = 1.0;
+            Hue = 473; // ...make this the proper shade of green
         }
 
         public ColorFixative(Serial serial)
@@ -17,25 +17,18 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1112135;
-            }
-        }// color fixative
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

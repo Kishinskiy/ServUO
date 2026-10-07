@@ -1,7 +1,3 @@
-using System;
-using Server;
-using Server.Items;
-using Server.Regions;
 using Server.Targeting;
 
 namespace Server.Custom.Farms
@@ -13,8 +9,12 @@ namespace Server.Custom.Farms
         [CommandProperty(AccessLevel.GameMaster)]
         public int Uses
         {
-            get { return m_Uses; }
-            set { m_Uses = value; InvalidateProperties(); }
+            get => m_Uses;
+            set
+            {
+                m_Uses = value;
+                InvalidateProperties();
+            }
         }
 
         [Constructable]
@@ -23,7 +23,11 @@ namespace Server.Custom.Farms
             Name = "Watering Can";
             Weight = 2.0;
             Hue = 1271; // Цинковый цвет лейки
-            m_Uses = 0;  // Изначально пустая
+            m_Uses = 0; // Изначально пустая
+        }
+
+        public WateringCan(Serial serial) : base(serial)
+        {
         }
 
         public override void OnDoubleClick(Mobile from)
@@ -52,15 +56,25 @@ namespace Server.Custom.Farms
             list.Add($"Вода: {m_Uses} / 30 литров");
         }
 
-        public WateringCan(Serial serial) : base(serial) { }
-        public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write(0); writer.Write(m_Uses); }
-        public override void Deserialize(GenericReader reader) { base.Deserialize(reader); reader.ReadInt(); m_Uses = reader.ReadInt(); }
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
+            writer.Write(m_Uses);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            reader.ReadInt();
+            m_Uses = reader.ReadInt();
+        }
     }
 
     // --- ТАРГЕТ 1: НАПОЛНЕНИЕ ЛЕЙКИ ВОДОЙ ---
     public class WaterFillTarget : Target
     {
-        private WateringCan m_Can;
+        private readonly WateringCan m_Can;
 
         public WaterFillTarget(WateringCan can) : base(3, true, TargetFlags.None)
         {
@@ -71,30 +85,29 @@ namespace Server.Custom.Farms
         {
             if (m_Can == null || m_Can.Deleted || !m_Can.IsChildOf(from.Backpack)) return;
 
-            bool isWater = false;
+            var isWater = false;
 
             if (targeted is Item)
             {
-                Item item = (Item)targeted;
+                var item = (Item)targeted;
                 // ID водных бочек и корыт в UO: 0xB41, 0xB42, 0xB43, 0xE7B, 0x154D
-                if (item.ItemID == 0xB41 || item.ItemID == 0xB42 || item.ItemID == 0xB43 || item.ItemID == 0xE7B || item.ItemID == 0x154D)
+                if (item.ItemID == 0xB41 || item.ItemID == 0xB42 || item.ItemID == 0xB43 || item.ItemID == 0xE7B ||
+                    item.ItemID == 0x154D)
                     isWater = true;
             }
             else
             {
-                IPoint3D p = targeted as IPoint3D;
+                var p = targeted as IPoint3D;
                 if (p != null)
                 {
-                    TileMatrix matrix = from.Map.Tiles;
-                    StaticTile[] statics = matrix.GetStaticTiles(p.X, p.Y, true);
+                    var matrix = from.Map.Tiles;
+                    var statics = matrix.GetStaticTiles(p.X, p.Y, true);
 
-                    foreach (StaticTile tile in statics)
-                    {
+                    foreach (var tile in statics)
                         if ((tile.ID >= 0x1797 && tile.ID <= 0x179C) || tile.ID == 0xA14)
                             isWater = true;
-                    }
 
-                    LandTile land = from.Map.Tiles.GetLandTile(p.X, p.Y);
+                    var land = from.Map.Tiles.GetLandTile(p.X, p.Y);
                     if (land.ID >= 0xA8 && land.ID <= 0xAB)
                         isWater = true;
                 }
@@ -116,7 +129,7 @@ namespace Server.Custom.Farms
     // --- ТАРГЕТ 2: ПОЛИВ ГРЯДКИ ---
     public class FarmWateringTarget : Target
     {
-        private WateringCan m_Can;
+        private readonly WateringCan m_Can;
 
         public FarmWateringTarget(WateringCan can) : base(3, false, TargetFlags.None)
         {
@@ -127,7 +140,7 @@ namespace Server.Custom.Farms
         {
             if (m_Can == null || m_Can.Deleted || !m_Can.IsChildOf(from.Backpack) || m_Can.Uses <= 0) return;
 
-            FarmVegetablePlant plant = targeted as FarmVegetablePlant;
+            var plant = targeted as FarmVegetablePlant;
 
             if (plant == null)
             {
@@ -141,11 +154,12 @@ namespace Server.Custom.Farms
                 return;
             }
 
-            Region reg = Region.Find(plant.Location, plant.Map);
+            var reg = Region.Find(plant.Location, plant.Map);
             if (reg is FarmRegion)
             {
-                FarmRegion farmReg = (FarmRegion)reg;
-                if (farmReg.Controller != null && farmReg.Controller.Owner != from && from.AccessLevel == AccessLevel.Player)
+                var farmReg = (FarmRegion)reg;
+                if (farmReg.Controller != null && farmReg.Controller.Owner != from &&
+                    from.AccessLevel == AccessLevel.Player)
                 {
                     from.SendMessage("Вы не можете ухаживать за чужим урожаем!");
                     return;
@@ -160,13 +174,9 @@ namespace Server.Custom.Farms
             from.SendMessage("Вы тщательно полили грядку.");
 
             if (m_Can.Uses > 0)
-            {
                 from.Target = new FarmWateringTarget(m_Can);
-            }
             else
-            {
                 from.SendMessage("В лейке закончилась вода!");
-            }
         }
     }
 }

@@ -5,9 +5,11 @@ namespace Server.Items
 {
     public class MercutiosCutlass : Cutlass
     {
-        public override int LabelNumber { get { return 1154240; } } // Mercutio's Cutlass
         private int m_Lifespan;
         private Timer m_Timer;
+        public override int LabelNumber => 1154240; // Mercutio's Cutlass
+
+        public virtual int Lifespan => 18000;
 
         [Constructable]
         public MercutiosCutlass()
@@ -22,29 +24,32 @@ namespace Server.Items
             }
         }
 
-        public virtual int Lifespan { get { return 18000; } }
+        public MercutiosCutlass(Serial serial) : base(serial)
+        {
+        }
 
         public override void OnDoubleClick(Mobile from)
         {
-			base.OnDoubleClick(from);			
-			
-			from.PublicOverheadMessage(MessageType.Regular, 0x3B2, 1154241); // *It is a beautifully and masterfully crafted blade. The hilt bears the family crest of the former owner*
+            base.OnDoubleClick(from);
+
+            from.PublicOverheadMessage(MessageType.Regular, 0x3B2,
+                1154241); // *It is a beautifully and masterfully crafted blade. The hilt bears the family crest of the former owner*
         }
-		
-		public override void GetProperties(ObjectPropertyList list)
+
+        public override void GetProperties(ObjectPropertyList list)
         {
             base.GetProperties(list);
-            
+
             list.Add(1072351); // Quest Item
 
             if (Lifespan > 0)
             {
-                TimeSpan t = TimeSpan.FromSeconds(m_Lifespan);
+                var t = TimeSpan.FromSeconds(m_Lifespan);
 
-                int weeks = (int)t.Days / 7;
-                int days = t.Days;
-                int hours = t.Hours;
-                int minutes = t.Minutes;
+                var weeks = t.Days / 7;
+                var days = t.Days;
+                var hours = t.Hours;
+                var minutes = t.Minutes;
 
                 if (weeks > 0)
                     list.Add(string.Format("Lifespan: {0} {1}", weeks, weeks == 1 ? "week" : "weeks"));
@@ -64,7 +69,7 @@ namespace Server.Items
             if (m_Timer != null)
                 return;
 
-            m_Timer = Timer.DelayCall(TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10), new TimerCallback(Slice));
+            m_Timer = Timer.DelayCall(TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10), Slice);
             m_Timer.Priority = TimerPriority.OneSecond;
         }
 
@@ -90,19 +95,21 @@ namespace Server.Items
         {
             if (RootParent is Mobile)
             {
-                Mobile parent = (Mobile)RootParent;
+                var parent = (Mobile)RootParent;
 
                 if (Name == null)
                     parent.SendLocalizedMessage(1072515, "#" + LabelNumber); // The ~1_name~ expired...
                 else
                     parent.SendLocalizedMessage(1072515, Name); // The ~1_name~ expired...
 
-                Effects.SendLocationParticles(EffectItem.Create(parent.Location, parent.Map, EffectItem.DefaultDuration), 0x3728, 8, 20, 5042);
+                Effects.SendLocationParticles(
+                    EffectItem.Create(parent.Location, parent.Map, EffectItem.DefaultDuration), 0x3728, 8, 20, 5042);
                 Effects.PlaySound(parent.Location, parent.Map, 0x201);
             }
             else
             {
-                Effects.SendLocationParticles(EffectItem.Create(Location, Map, EffectItem.DefaultDuration), 0x3728, 8, 20, 5042);
+                Effects.SendLocationParticles(EffectItem.Create(Location, Map, EffectItem.DefaultDuration), 0x3728, 8,
+                    20, 5042);
                 Effects.PlaySound(Location, Map, 0x201);
             }
 
@@ -110,28 +117,25 @@ namespace Server.Items
             Delete();
         }
 
-        public override void GetDamageTypes(Mobile wielder, out int phys, out int fire, out int cold, out int pois, out int nrgy, out int chaos, out int direct)
+        public override void GetDamageTypes(Mobile wielder, out int phys, out int fire, out int cold, out int pois,
+            out int nrgy, out int chaos, out int direct)
         {
             cold = fire = chaos = pois = nrgy = direct = 0;
             phys = 100;
         }
 
-        public MercutiosCutlass(Serial serial) : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
-            writer.Write((int)m_Lifespan);
+            writer.Write(m_Lifespan);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             m_Lifespan = reader.ReadInt();
             StartTimer();

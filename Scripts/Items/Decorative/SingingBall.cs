@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using Server.ContextMenus;
 using Server.Gumps;
@@ -9,14 +8,13 @@ namespace Server.Items
 {
     public class SingingBall : Item, ISecurable
     {
-        public override int LabelNumber { get { return 1041245; } } // Singing Ball
-        
         private bool m_TurnedOn;
+        public override int LabelNumber => 1041245; // Singing Ball
 
         [CommandProperty(AccessLevel.GameMaster)]
         public bool TurnedOn
         {
-            get { return m_TurnedOn; }
+            get => m_TurnedOn;
             set
             {
                 m_TurnedOn = value;
@@ -24,8 +22,7 @@ namespace Server.Items
             }
         }
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public SecureLevel Level { get; set; }
+        public override bool HandlesOnMovement => m_TurnedOn && IsLockedDown;
 
         [Constructable]
         public SingingBall()
@@ -43,6 +40,14 @@ namespace Server.Items
             Light = LightType.Circle300;
         }
 
+        public SingingBall(Serial serial)
+            : base(serial)
+        {
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public SecureLevel Level { get; set; }
+
         public override void GetContextMenuEntries(Mobile from, List<ContextMenuEntry> list)
         {
             base.GetContextMenuEntries(from, list);
@@ -55,7 +60,7 @@ namespace Server.Items
             if (from.AccessLevel >= AccessLevel.GameMaster)
                 return true; // Staff can access anything
 
-            BaseHouse house = BaseHouse.FindHouseAt(item);
+            var house = BaseHouse.FindHouseAt(item);
 
             if (house == null)
                 return false;
@@ -72,19 +77,10 @@ namespace Server.Items
             return false;
         }
 
-        public SingingBall(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override bool HandlesOnMovement { get { return m_TurnedOn && IsLockedDown; } }
-
         public override void OnMovement(Mobile m, Point3D oldLocation)
         {
-            if (m_TurnedOn && IsLockedDown && (!m.Hidden || m.IsPlayer()) && Utility.InRange(m.Location, Location, 2) && !Utility.InRange(oldLocation, Location, 2))
-            {
-                Effects.PlaySound(Location, Map, SoundList());
-            }
+            if (m_TurnedOn && IsLockedDown && (!m.Hidden || m.IsPlayer()) && Utility.InRange(m.Location, Location, 2) &&
+                !Utility.InRange(oldLocation, Location, 2)) Effects.PlaySound(Location, Map, SoundList());
 
             base.OnMovement(m, oldLocation);
         }
@@ -108,7 +104,7 @@ namespace Server.Items
         {
             if (CheckAccessible(from, this))
             {
-                OnOffGump onOffGump = new OnOffGump(this);
+                var onOffGump = new OnOffGump(this);
                 from.SendGump(onOffGump);
             }
             else
@@ -120,16 +116,16 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1); // version
+            writer.Write(1); // version
 
             writer.Write((int)Level);
-            writer.Write((bool)m_TurnedOn);
+            writer.Write(m_TurnedOn);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (version > 0)
                 Level = (SecureLevel)reader.ReadInt();
@@ -148,7 +144,8 @@ namespace Server.Items
 
                 AddBackground(0, 0, 300, 150, 0xA28);
 
-                AddHtmlLocalized(45, 20, 300, 35, ball.TurnedOn ? 1011035 : 1011034, false, false); // [De]Activate this item
+                AddHtmlLocalized(45, 20, 300, 35, ball.TurnedOn ? 1011035 : 1011034, false,
+                    false); // [De]Activate this item
 
                 AddButton(40, 53, 0xFA5, 0xFA7, 1, GumpButtonType.Reply, 0);
                 AddHtmlLocalized(80, 55, 65, 35, 1011036, false, false); // OKAY
@@ -159,11 +156,11 @@ namespace Server.Items
 
             public override void OnResponse(NetState sender, RelayInfo info)
             {
-                Mobile from = sender.Mobile;
+                var from = sender.Mobile;
 
                 if (info.ButtonID == 1)
                 {
-                    bool newValue = !m_SingingBall.TurnedOn;
+                    var newValue = !m_SingingBall.TurnedOn;
 
                     m_SingingBall.TurnedOn = newValue;
 

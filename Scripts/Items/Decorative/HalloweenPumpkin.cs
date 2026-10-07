@@ -1,4 +1,3 @@
-using System;
 using Server.Mobiles;
 
 namespace Server.Items
@@ -9,12 +8,14 @@ namespace Server.Items
         {
             "Ryan", "Mark", "Eos", "Athena", "Xavier", "Krrios", "Zippy", "Dexter", "Argalep"
         };
+
         [Constructable]
         public HalloweenPumpkin()
-            : base()
         {
             Weight = Utility.RandomMinMax(3, 20);
-            ItemID = (Utility.RandomDouble() <= .02) ? Utility.RandomList(0x4694, 0x4698) : Utility.RandomList(0xc6a, 0xc6b, 0xc6c);
+            ItemID = Utility.RandomDouble() <= .02
+                ? Utility.RandomList(0x4694, 0x4698)
+                : Utility.RandomList(0xc6a, 0xc6b, 0xc6c);
         }
 
         public HalloweenPumpkin(Serial serial)
@@ -27,27 +28,28 @@ namespace Server.Items
             if (!from.InRange(GetWorldLocation(), 2))
                 return;
 
-            bool douse = false;
+            var douse = false;
 
             switch (ItemID)
             {
-                case 0x4694: 
-                    ItemID = 0x4691; 
+                case 0x4694:
+                    ItemID = 0x4691;
                     break;
-                case 0x4691: 
-                    ItemID = 0x4694; 
-                    douse = true; 
+                case 0x4691:
+                    ItemID = 0x4694;
+                    douse = true;
                     break;
-                case 0x4698: 
-                    ItemID = 0x4695; 
+                case 0x4698:
+                    ItemID = 0x4695;
                     break;
-                case 0x4695: 
-                    ItemID = 0x4698; 
-                    douse = true; 
+                case 0x4695:
+                    ItemID = 0x4698;
+                    douse = true;
                     break;
-                default: 
+                default:
                     return;
             }
+
             from.SendLocalizedMessage(douse ? 1113988 : 1113987); // You extinguish/light the Jack-O-Lantern
             Effects.PlaySound(GetWorldLocation(), Map, douse ? 0x3be : 0x47);
         }
@@ -68,21 +70,23 @@ namespace Server.Items
                     Delete();
                     return false;
                 }
+
                 AssignRandomName();
             }
+
             return true;
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1); // version
+            writer.Write(1); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (version == 0 && Name == null && ItemID == 0x4698)
                 AssignRandomName();

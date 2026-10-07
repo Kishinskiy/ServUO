@@ -1,10 +1,11 @@
-using System;
-
 namespace Server.Items
 {
     public class PhantomStaff : WildStaff
-	{
-		public override bool IsArtifact { get { return true; } }
+    {
+        public override bool IsArtifact => true;
+
+        public override int LabelNumber => 1072919; // Phantom Staff
+
         [Constructable]
         public PhantomStaff()
         {
@@ -20,14 +21,8 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1072919;
-            }
-        }// Phantom Staff
-        public override void GetDamageTypes(Mobile wielder, out int phys, out int fire, out int cold, out int pois, out int nrgy, out int chaos, out int direct)
+        public override void GetDamageTypes(Mobile wielder, out int phys, out int fire, out int cold, out int pois,
+            out int nrgy, out int chaos, out int direct)
         {
             phys = fire = nrgy = chaos = direct = 0;
             cold = pois = 50;
@@ -44,7 +39,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

@@ -22,7 +22,7 @@ namespace Server.Misc
         {
             // Register our speech handler
             if (Enabled)
-                EventSink.Speech += new SpeechEventHandler(EventSink_Speech);
+                EventSink.Speech += EventSink_Speech;
         }
 
         private static void EventSink_Speech(SpeechEventArgs args)
@@ -31,30 +31,28 @@ namespace Server.Misc
             {
                 if (Insensitive.StartsWith(args.Speech, "set"))
                 {
-                    Mobile from = args.Mobile;
+                    var from = args.Mobile;
 
-                    string[] split = args.Speech.Split(' ');
+                    var split = args.Speech.Split(' ');
 
                     if (split.Length == 3)
-                    {
                         try
                         {
-                            string name = split[1];
-                            double value = Convert.ToDouble(split[2]);
+                            var name = split[1];
+                            var value = Convert.ToDouble(split[2]);
 
                             if (Insensitive.Equals(name, "str"))
-                                ChangeStrength(@from, (int)value);
+                                ChangeStrength(from, (int)value);
                             else if (Insensitive.Equals(name, "dex"))
-                                ChangeDexterity(@from, (int)value);
+                                ChangeDexterity(from, (int)value);
                             else if (Insensitive.Equals(name, "int"))
-                                ChangeIntelligence(@from, (int)value);
+                                ChangeIntelligence(from, (int)value);
                             else
-                                ChangeSkill(@from, name, value);
+                                ChangeSkill(from, name, value);
                         }
                         catch
                         {
                         }
-                    }
                 }
                 else if (Insensitive.Equals(args.Speech, "help"))
                 {
@@ -69,18 +67,19 @@ namespace Server.Misc
         {
             if (value < 10 || value > 125)
             {
-                @from.SendLocalizedMessage(1005628); // Stats range between 10 and 125.
+                from.SendLocalizedMessage(1005628); // Stats range between 10 and 125.
             }
             else
             {
-                if ((value + @from.RawDex + @from.RawInt) > @from.StatCap)
+                if (value + from.RawDex + from.RawInt > from.StatCap)
                 {
-                    @from.SendLocalizedMessage(1005629); // You can not exceed the stat cap.  Try setting another stat lower first.
+                    from.SendLocalizedMessage(
+                        1005629); // You can not exceed the stat cap.  Try setting another stat lower first.
                 }
                 else
                 {
-                    @from.RawStr = value;
-                    @from.SendLocalizedMessage(1005630); // Your stats have been adjusted.
+                    from.RawStr = value;
+                    from.SendLocalizedMessage(1005630); // Your stats have been adjusted.
                 }
             }
         }
@@ -89,18 +88,19 @@ namespace Server.Misc
         {
             if (value < 10 || value > 125)
             {
-                @from.SendLocalizedMessage(1005628); // Stats range between 10 and 125.
+                from.SendLocalizedMessage(1005628); // Stats range between 10 and 125.
             }
             else
             {
-                if ((@from.RawStr + value + @from.RawInt) > @from.StatCap)
+                if (from.RawStr + value + from.RawInt > from.StatCap)
                 {
-                    @from.SendLocalizedMessage(1005629); // You can not exceed the stat cap.  Try setting another stat lower first.
+                    from.SendLocalizedMessage(
+                        1005629); // You can not exceed the stat cap.  Try setting another stat lower first.
                 }
                 else
                 {
-                    @from.RawDex = value;
-                    @from.SendLocalizedMessage(1005630); // Your stats have been adjusted.
+                    from.RawDex = value;
+                    from.SendLocalizedMessage(1005630); // Your stats have been adjusted.
                 }
             }
         }
@@ -109,18 +109,19 @@ namespace Server.Misc
         {
             if (value < 10 || value > 125)
             {
-                @from.SendLocalizedMessage(1005628); // Stats range between 10 and 125.
+                from.SendLocalizedMessage(1005628); // Stats range between 10 and 125.
             }
             else
             {
-                if ((@from.RawStr + @from.RawDex + value) > @from.StatCap)
+                if (from.RawStr + from.RawDex + value > from.StatCap)
                 {
-                    @from.SendLocalizedMessage(1005629); // You can not exceed the stat cap.  Try setting another stat lower first.
+                    from.SendLocalizedMessage(
+                        1005629); // You can not exceed the stat cap.  Try setting another stat lower first.
                 }
                 else
                 {
-                    @from.RawInt = value;
-                    @from.SendLocalizedMessage(1005630); // Your stats have been adjusted.
+                    from.RawInt = value;
+                    from.SendLocalizedMessage(1005630); // Your stats have been adjusted.
                 }
             }
         }
@@ -129,38 +130,36 @@ namespace Server.Misc
         {
             SkillName index;
 
-            if (!Enum.TryParse(name, true, out index) || (!Core.SE && (int)index > 51) || (!Core.AOS && (int)index > 48))
+            if (!Enum.TryParse(name, true, out index) || (!Core.SE && (int)index > 51) ||
+                (!Core.AOS && (int)index > 48))
             {
-                @from.SendLocalizedMessage(1005631); // You have specified an invalid skill to set.
+                from.SendLocalizedMessage(1005631); // You have specified an invalid skill to set.
                 return;
             }
 
-            Skill skill = @from.Skills[index];
+            var skill = from.Skills[index];
 
             if (skill != null)
             {
                 if (value < 0 || value > skill.Cap)
                 {
-                    @from.SendMessage(String.Format("Your skill in {0} is capped at {1:F1}.", skill.Info.Name, skill.Cap));
+                    from.SendMessage(
+                        string.Format("Your skill in {0} is capped at {1:F1}.", skill.Info.Name, skill.Cap));
                 }
                 else
                 {
-                    int newFixedPoint = (int)(value * 10.0);
-                    int oldFixedPoint = skill.BaseFixedPoint;
+                    var newFixedPoint = (int)(value * 10.0);
+                    var oldFixedPoint = skill.BaseFixedPoint;
 
-                    if (((skill.Owner.Total - oldFixedPoint) + newFixedPoint) > skill.Owner.Cap)
-                    {
-                        @from.SendMessage("You can not exceed the skill cap.  Try setting another skill lower first.");
-                    }
+                    if (skill.Owner.Total - oldFixedPoint + newFixedPoint > skill.Owner.Cap)
+                        from.SendMessage("You can not exceed the skill cap.  Try setting another skill lower first.");
                     else
-                    {
                         skill.BaseFixedPoint = newFixedPoint;
-                    }
                 }
             }
             else
             {
-                @from.SendLocalizedMessage(1005631); // You have specified an invalid skill to set.
+                from.SendLocalizedMessage(1005631); // You have specified an invalid skill to set.
             }
         }
 
@@ -172,7 +171,7 @@ namespace Server.Misc
 
         private static Item MakePotionKeg(PotionEffect type, int hue)
         {
-            PotionKeg keg = new PotionKeg();
+            var keg = new PotionKeg();
 
             keg.Held = 100;
             keg.Type = type;
@@ -191,11 +190,11 @@ namespace Server.Misc
 
         public static void FillBankAOS(Mobile m)
         {
-            BankBox bank = m.BankBox;
+            var bank = m.BankBox;
 
             // The new AOS bankboxes don't have powerscrolls, they are automatically 'applied':
 
-            for (int i = 0; i < PowerScroll.Skills.Count; ++i)
+            for (var i = 0; i < PowerScroll.Skills.Count; ++i)
                 m.Skills[PowerScroll.Skills[i]].Cap = 120.0;
 
             m.StatCap = 250;
@@ -338,13 +337,13 @@ namespace Server.Misc
             cont.Hue = 0x480;
             cont.Name = "Spell Casting Stuff";
 
-            PlaceItemIn(cont, 45, 105, new Spellbook(UInt64.MaxValue));
-            PlaceItemIn(cont, 65, 105, new NecromancerSpellbook((UInt64)0xFFFF));
-            PlaceItemIn(cont, 85, 105, new BookOfChivalry((UInt64)0x3FF));
-            PlaceItemIn(cont, 105, 105, new BookOfBushido());	//Default ctor = full
+            PlaceItemIn(cont, 45, 105, new Spellbook(ulong.MaxValue));
+            PlaceItemIn(cont, 65, 105, new NecromancerSpellbook((ulong)0xFFFF));
+            PlaceItemIn(cont, 85, 105, new BookOfChivalry((ulong)0x3FF));
+            PlaceItemIn(cont, 105, 105, new BookOfBushido()); //Default ctor = full
             PlaceItemIn(cont, 125, 105, new BookOfNinjitsu()); //Default ctor = full
 
-            Runebook runebook = new Runebook(10);
+            var runebook = new Runebook(10);
             runebook.CurCharges = runebook.MaxCharges;
             PlaceItemIn(cont, 145, 105, runebook);
 
@@ -358,8 +357,8 @@ namespace Server.Misc
 
             PlaceItemIn(cont, 140, 150, new BagOfAllReagents(500));
 
-            for (int i = 0; i < 9; ++i)
-                PlaceItemIn(cont, 45 + (i * 10), 75, new RecallRune());
+            for (var i = 0; i < 9; ++i)
+                PlaceItemIn(cont, 45 + i * 10, 75, new RecallRune());
 
             PlaceItemIn(cont, 141, 74, new FireHorn());
 
@@ -475,7 +474,7 @@ namespace Server.Misc
             PlaceItemIn(cont, 69, 132, new WrathOfTheDryad());
             PlaceItemIn(cont, 93, 66, new PixieSwatter());
 
-            for (int i = 0; i < 10; i++)
+            for (var i = 0; i < 10; i++)
                 PlaceItemIn(cont, 117, 128, new MessageInABottle(Utility.RandomBool() ? Map.Trammel : Map.Felucca, 4));
 
             PlaceItemIn(bank, 18, 124, cont);
@@ -510,7 +509,7 @@ namespace Server.Misc
                 PlaceItemIn(bank, 58, 124, cont);
             }
 
-            if (Core.SE)	//This bag came only after SE.
+            if (Core.SE) //This bag came only after SE.
             {
                 cont = new Bag();
                 cont.Name = "Bag of Bows";
@@ -522,9 +521,9 @@ namespace Server.Misc
                 PlaceItemIn(cont, 82, 72, new RepeatingCrossbow());
                 PlaceItemIn(cont, 49, 45, new Yumi());
 
-                for (int i = 0; i < cont.Items.Count; i++)
+                for (var i = 0; i < cont.Items.Count; i++)
                 {
-                    BaseRanged bow = cont.Items[i] as BaseRanged;
+                    var bow = cont.Items[i] as BaseRanged;
 
                     if (bow != null)
                     {
@@ -545,20 +544,20 @@ namespace Server.Misc
                 return;
             }
 
-            BankBox bank = m.BankBox;
+            var bank = m.BankBox;
 
             bank.DropItem(new BankCheck(1000000));
 
             // Full spellbook
-            Spellbook book = new Spellbook();
+            var book = new Spellbook();
 
-            book.Content = UInt64.MaxValue;
+            book.Content = ulong.MaxValue;
 
             bank.DropItem(book);
 
-            Bag bag = new Bag();
+            var bag = new Bag();
 
-            for (int i = 0; i < 5; ++i)
+            for (var i = 0; i < 5; ++i)
                 bag.DropItem(new Moonstone(MoonstoneType.Felucca));
 
             // Felucca moonstones
@@ -566,7 +565,7 @@ namespace Server.Misc
 
             bag = new Bag();
 
-            for (int i = 0; i < 5; ++i)
+            for (var i = 0; i < 5; ++i)
                 bag.DropItem(new Moonstone(MoonstoneType.Trammel));
 
             // Trammel moonstones
@@ -598,7 +597,7 @@ namespace Server.Misc
             bank.DropItem(new DyeTub());
             bank.DropItem(new BlackDyeTub());
 
-            DyeTub darkRedTub = new DyeTub();
+            var darkRedTub = new DyeTub();
 
             darkRedTub.DyedHue = 0x485;
             darkRedTub.Redyable = false;
@@ -641,7 +640,7 @@ namespace Server.Misc
             bank.DropItem(MakeNewbie(new Gold(9000)));
 
             // 5 blank recall runes
-            for (int i = 0; i < 5; ++i)
+            for (var i = 0; i < 5; ++i)
                 bank.DropItem(MakeNewbie(new RecallRune()));
 
             AddPowerScrolls(bank);
@@ -649,9 +648,9 @@ namespace Server.Misc
 
         public static void AddPowerScrolls(BankBox bank)
         {
-            Bag bag = new Bag();
+            var bag = new Bag();
 
-            for (int i = 0; i < PowerScroll.Skills.Count; ++i)
+            for (var i = 0; i < PowerScroll.Skills.Count; ++i)
                 bag.DropItem(new PowerScroll(PowerScroll.Skills[i], 120.0));
 
             bag.DropItem(new StatCapScroll(250));
@@ -664,73 +663,73 @@ namespace Server.Misc
             public TCHelpGump()
                 : base(40, 40)
             {
-                this.AddPage(0);
-                this.AddBackground(0, 0, 160, 120, 5054);
+                AddPage(0);
+                AddBackground(0, 0, 160, 120, 5054);
 
-                this.AddButton(10, 10, 0xFB7, 0xFB9, 1, GumpButtonType.Reply, 0);
-                this.AddLabel(45, 10, 0x34, "ServUO");
+                AddButton(10, 10, 0xFB7, 0xFB9, 1, GumpButtonType.Reply, 0);
+                AddLabel(45, 10, 0x34, "ServUO");
 
-                this.AddButton(10, 35, 0xFB7, 0xFB9, 2, GumpButtonType.Reply, 0);
-                this.AddLabel(45, 35, 0x34, "List of skills");
+                AddButton(10, 35, 0xFB7, 0xFB9, 2, GumpButtonType.Reply, 0);
+                AddLabel(45, 35, 0x34, "List of skills");
 
-                this.AddButton(10, 60, 0xFB7, 0xFB9, 3, GumpButtonType.Reply, 0);
-                this.AddLabel(45, 60, 0x34, "Command list");
+                AddButton(10, 60, 0xFB7, 0xFB9, 3, GumpButtonType.Reply, 0);
+                AddLabel(45, 60, 0x34, "Command list");
 
-                this.AddButton(10, 85, 0xFB1, 0xFB3, 0, GumpButtonType.Reply, 0);
-                this.AddLabel(45, 85, 0x34, "Close");
+                AddButton(10, 85, 0xFB1, 0xFB3, 0, GumpButtonType.Reply, 0);
+                AddLabel(45, 85, 0x34, "Close");
             }
 
             public override void OnResponse(NetState sender, RelayInfo info)
             {
-                switch ( info.ButtonID )
+                switch (info.ButtonID)
                 {
                     case 1:
-                        {
-                            sender.LaunchBrowser("http://ServUO.craftuo.com/");
-                            break;
-                        }
+                    {
+                        sender.LaunchBrowser("http://ServUO.craftuo.com/");
+                        break;
+                    }
                     case 2: // List of skills
+                    {
+                        var strings = Enum.GetNames(typeof(SkillName));
+
+                        Array.Sort(strings);
+
+                        var sb = new StringBuilder();
+
+                        if (strings.Length > 0)
+                            sb.Append(strings[0]);
+
+                        for (var i = 1; i < strings.Length; ++i)
                         {
-                            string[] strings = Enum.GetNames(typeof(SkillName));
+                            var v = strings[i];
 
-                            Array.Sort(strings);
-
-                            StringBuilder sb = new StringBuilder();
-
-                            if (strings.Length > 0)
-                                sb.Append(strings[0]);
-
-                            for (int i = 1; i < strings.Length; ++i)
+                            if (sb.Length + 1 + v.Length >= 256)
                             {
-                                string v = strings[i];
-
-                                if ((sb.Length + 1 + v.Length) >= 256)
-                                {
-                                    sender.Send(new AsciiMessage(Server.Serial.MinusOne, -1, MessageType.Label, 0x35, 3, "System", sb.ToString()));
-                                    sb = new StringBuilder();
-                                    sb.Append(v);
-                                }
-                                else
-                                {
-                                    sb.Append(' ');
-                                    sb.Append(v);
-                                }
+                                sender.Send(new AsciiMessage(Server.Serial.MinusOne, -1, MessageType.Label, 0x35, 3,
+                                    "System", sb.ToString()));
+                                sb = new StringBuilder();
+                                sb.Append(v);
                             }
-
-                            if (sb.Length > 0)
+                            else
                             {
-                                sender.Send(new AsciiMessage(Server.Serial.MinusOne, -1, MessageType.Label, 0x35, 3, "System", sb.ToString()));
+                                sb.Append(' ');
+                                sb.Append(v);
                             }
-
-                            break;
                         }
+
+                        if (sb.Length > 0)
+                            sender.Send(new AsciiMessage(Server.Serial.MinusOne, -1, MessageType.Label, 0x35, 3,
+                                "System", sb.ToString()));
+
+                        break;
+                    }
                     case 3: // Command list
-                        {
-                            sender.Mobile.SendAsciiMessage(0x482, "The command prefix is \"{0}\"", CommandSystem.Prefix);
-                            CommandHandlers.Help_OnCommand(new CommandEventArgs(sender.Mobile, "help", "", new string[0]));
+                    {
+                        sender.Mobile.SendAsciiMessage(0x482, "The command prefix is \"{0}\"", CommandSystem.Prefix);
+                        CommandHandlers.Help_OnCommand(new CommandEventArgs(sender.Mobile, "help", "", new string[0]));
 
-                            break;
-                        }
+                        break;
+                    }
                 }
             }
         }

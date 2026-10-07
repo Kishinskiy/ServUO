@@ -1,12 +1,10 @@
-using System;
-
 namespace Server.Factions
 {
     public class Trinsic : Town
     {
         public Trinsic()
         {
-            this.Definition =
+            Definition =
                 new TownDefinition(
                     1,
                     0x186A,

@@ -6,7 +6,7 @@ namespace Server.Gumps
 {
     public class ConfirmPartyGump : Gump
     {
-        private MasterKey _Key;
+        private readonly MasterKey _Key;
 
         public ConfirmPartyGump(MasterKey key)
             : base(50, 50)
@@ -19,39 +19,40 @@ namespace Server.Gumps
 
             AddPage(0);
             AddBackground(0, 0, 245, 145, 9250);
-            AddHtmlLocalized(21, 20, 203, 70, 1072525, false, false); // <CENTER>Are you sure you want to teleport <BR>your party to an unknown area?</CENTER>
+            AddHtmlLocalized(21, 20, 203, 70, 1072525, false,
+                false); // <CENTER>Are you sure you want to teleport <BR>your party to an unknown area?</CENTER>
             AddButton(157, 101, 247, 248, 1, GumpButtonType.Reply, 0);
             AddButton(81, 100, 241, 248, 0, GumpButtonType.Reply, 0);
         }
 
         public override void OnResponse(NetState sender, RelayInfo info)
         {
-            Mobile from = sender.Mobile as Mobile;
+            var from = sender.Mobile;
 
             switch (info.ButtonID)
             {
                 case 0:
-                    {
-                        break;
-                    }
+                {
+                    break;
+                }
                 case 1:
-                    {
-                        if (_Key == null || _Key.Altar == null)
-                            return;
+                {
+                    if (_Key == null || _Key.Altar == null)
+                        return;
 
-                        _Key.Altar.SendConfirmations(from);
-                        _Key.Delete();
+                    _Key.Altar.SendConfirmations(from);
+                    _Key.Delete();
 
-                        break;
-                    }
+                    break;
+                }
             }
         }
     }
 
     public class ConfirmEntranceGump : Gump
     {
-        private Timer _Accept;
-        private PeerlessAltar _Altar;
+        private readonly Timer _Accept;
+        private readonly PeerlessAltar _Altar;
 
         public ConfirmEntranceGump(PeerlessAltar altar, Mobile from)
             : base(50, 50)
@@ -67,7 +68,8 @@ namespace Server.Gumps
 
             AddPage(0);
             AddBackground(0, 0, 245, 145, 9250);
-            AddHtmlLocalized(21, 20, 203, 70, 1072526, false, false); // <CENTER>Your party is teleporting to an unknown area.<BR>Do you wish to go?</CENTER>
+            AddHtmlLocalized(21, 20, 203, 70, 1072526, false,
+                false); // <CENTER>Your party is teleporting to an unknown area.<BR>Do you wish to go?</CENTER>
             AddButton(157, 101, 247, 248, 1, GumpButtonType.Reply, 0);
             AddButton(81, 100, 241, 248, 0, GumpButtonType.Reply, 0);
 
@@ -77,32 +79,32 @@ namespace Server.Gumps
 
         public override void OnResponse(NetState sender, RelayInfo info)
         {
-            Mobile from = sender.Mobile;
+            var from = sender.Mobile;
 
             if (_Altar == null)
                 return;
 
-            int button = info.ButtonID;
+            var button = info.ButtonID;
 
             switch (button)
             {
                 case 0:
-                    {
-                        break;
-                    }
+                {
+                    break;
+                }
                 case 1:
-                    {
-                        _Altar.Enter(from);
+                {
+                    _Altar.Enter(from);
 
-                        break;
-                    }
+                    break;
+                }
             }
         }
     }
 
     public class AcceptConfirmPeerlessPartyTimer : Timer
     {
-        private Mobile _From;
+        private readonly Mobile _From;
 
         public AcceptConfirmPeerlessPartyTimer(Mobile from)
             : base(TimeSpan.FromSeconds(60.0), TimeSpan.FromSeconds(60.0), 1)
@@ -119,11 +121,10 @@ namespace Server.Gumps
 
     public class ConfirmExitGump : BaseConfirmGump
     {
-        public override int LabelNumber { get { return 1075026; } } // Are you sure you wish to teleport?
+        private readonly object _Altar;
+        public override int LabelNumber => 1075026; // Are you sure you wish to teleport?
 
-        private object _Altar;
-
-        public ConfirmExitGump(object altar) : base()
+        public ConfirmExitGump(object altar)
         {
             _Altar = altar;
         }

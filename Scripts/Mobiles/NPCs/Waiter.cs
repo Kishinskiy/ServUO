@@ -1,16 +1,19 @@
-using System;
 using System.Collections.Generic;
+using Server.Items;
 
 namespace Server.Mobiles
 {
     public class Waiter : BaseVendor
     {
         private readonly List<SBInfo> m_SBInfos = new List<SBInfo>();
+
+        protected override List<SBInfo> SBInfos => m_SBInfos;
+
         [Constructable]
         public Waiter()
             : base("the waiter")
         {
-            this.SetSkill(SkillName.Discordance, 36.0, 68.0);
+            SetSkill(SkillName.Discordance, 36.0, 68.0);
         }
 
         public Waiter(Serial serial)
@@ -18,37 +21,30 @@ namespace Server.Mobiles
         {
         }
 
-        protected override List<SBInfo> SBInfos
-        {
-            get
-            {
-                return this.m_SBInfos;
-            }
-        }
         public override void InitSBInfo()
         {
-            this.m_SBInfos.Add(new SBWaiter());
+            m_SBInfos.Add(new SBWaiter());
         }
 
         public override void InitOutfit()
         {
             base.InitOutfit();
 
-            this.AddItem(new Server.Items.HalfApron());
+            AddItem(new HalfApron());
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

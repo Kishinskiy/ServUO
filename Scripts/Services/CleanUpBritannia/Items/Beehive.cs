@@ -1,199 +1,192 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using Server;
 using Server.ContextMenus;
-using Server.Network;
 using Server.Gumps;
 using Server.Multis;
+using Server.Network;
 
 namespace Server.Items
 {
-	public class Beehive : Item, ISecurable
-	{
-		private static readonly TimeSpan m_SpawnTime = TimeSpan.FromHours( 4.0 );
+    public class Beehive : Item, ISecurable
+    {
+        private static readonly TimeSpan m_SpawnTime = TimeSpan.FromHours(4.0);
+        private Item m_Bees;
 
-		private int m_Honeypots;
-		private DateTime m_NextSpawnTime;
-		private SpawnTimer m_SpawnTimer;
-		private Item m_Bees;
+        private int m_Honeypots;
 
-		private SecureLevel m_Level;
+        private DateTime m_NextSpawnTime;
+        private SpawnTimer m_SpawnTimer;
 
-		public override bool ForceShowProperties { get { return true; } }
+        public override bool ForceShowProperties => true;
 
-		public override int LabelNumber { get { return 1080263; } } // Beehive
+        public override int LabelNumber => 1080263; // Beehive
 
-		[CommandProperty( AccessLevel.GameMaster )]
-		public SecureLevel Level { get { return m_Level; } set { m_Level = value; } }
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int Honeypots
+        {
+            get => m_Honeypots;
+            set
+            {
+                if (value >= 10)
+                {
+                    m_Honeypots = 10;
 
-		[CommandProperty( AccessLevel.GameMaster )]
-		public int Honeypots
-		{
-			get { return m_Honeypots; }
-			set
-			{
-				if ( value >= 10 )
-				{
-					m_Honeypots = 10;
+                    StopSpawnTimer();
+                }
+                else
+                {
+                    if (value <= 0)
+                        m_Honeypots = 0;
+                    else
+                        m_Honeypots = value;
 
-					StopSpawnTimer();
-				}
-				else
-				{
-					if ( value <= 0 )
-						m_Honeypots = 0;
-					else
-						m_Honeypots = value;
+                    StartSpawnTimer(m_SpawnTime);
+                }
 
-					StartSpawnTimer( m_SpawnTime );
-				}
+                InvalidateProperties();
+            }
+        }
 
-				InvalidateProperties();
-			}
-		}
+        [Constructable]
+        public Beehive()
+            : base(2330)
+        {
+            Weight = 10.0;
 
-		[Constructable]
-		public Beehive()
-			: base( 2330 )
-		{
-			Weight = 10.0;
+            m_Honeypots = 0;
+            StartSpawnTimer(TimeSpan.FromMinutes(1.0));
+        }
 
-			m_Honeypots = 0;
-			StartSpawnTimer( TimeSpan.FromMinutes( 1.0 ) );
-		}
+        public Beehive(Serial serial)
+            : base(serial)
+        {
+        }
 
-		public override void GetProperties( ObjectPropertyList list )
-		{
-			base.GetProperties( list );
+        [CommandProperty(AccessLevel.GameMaster)]
+        public SecureLevel Level { get; set; }
 
-			list.Add( 1080202, Honeypots.ToString() ); // Honeypots: ~1_COUNT~
-		}
+        public override void GetProperties(ObjectPropertyList list)
+        {
+            base.GetProperties(list);
 
-		public override void GetContextMenuEntries( Mobile from, List<ContextMenuEntry> list )
-		{
-			base.GetContextMenuEntries( from, list );
+            list.Add(1080202, Honeypots.ToString()); // Honeypots: ~1_COUNT~
+        }
 
-			SetSecureLevelEntry.AddTo( from, this, list );
-		}
+        public override void GetContextMenuEntries(Mobile from, List<ContextMenuEntry> list)
+        {
+            base.GetContextMenuEntries(from, list);
 
-		private void StartSpawnTimer( TimeSpan delay )
-		{
-			StopSpawnTimer();
+            SetSecureLevelEntry.AddTo(from, this, list);
+        }
 
-			m_SpawnTimer = new SpawnTimer( this, delay );
-			m_SpawnTimer.Start();
+        private void StartSpawnTimer(TimeSpan delay)
+        {
+            StopSpawnTimer();
 
-			m_NextSpawnTime = DateTime.UtcNow + delay;
-		}
+            m_SpawnTimer = new SpawnTimer(this, delay);
+            m_SpawnTimer.Start();
 
-		private void StopSpawnTimer()
-		{
-			if ( m_SpawnTimer != null )
-			{
-				m_SpawnTimer.Stop();
-				m_SpawnTimer = null;
-			}
-		}
+            m_NextSpawnTime = DateTime.UtcNow + delay;
+        }
 
-		private class SpawnTimer : Timer
-		{
-			private Beehive m_Beehive;
+        private void StopSpawnTimer()
+        {
+            if (m_SpawnTimer != null)
+            {
+                m_SpawnTimer.Stop();
+                m_SpawnTimer = null;
+            }
+        }
 
-			public SpawnTimer( Beehive beehive, TimeSpan delay )
-				: base( delay )
-			{
-				m_Beehive = beehive;
+        public override void OnDoubleClick(Mobile from)
+        {
+            if (!from.InRange(GetWorldLocation(), 2))
+            {
+                from.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1019045); // I can't reach that.
+            }
+            else if (Honeypots > 0)
+            {
+                from.AddToBackpack(new JarHoney());
+                Honeypots--;
+            }
+        }
 
-			}
+        public override void OnLockDownChange()
+        {
+            if (IsLockedDown)
+            {
+                if (m_Bees == null)
+                {
+                    m_Bees = new Item(2331);
+                    m_Bees.MoveToWorld(Location, Map);
+                    m_Bees.Movable = false;
+                }
+            }
+            else
+            {
+                if (m_Bees != null)
+                {
+                    m_Bees.Delete();
+                    m_Bees = null;
+                }
+            }
+        }
 
-			protected override void OnTick()
-			{
-				if ( m_Beehive.Deleted )
-				{
-					return;
-				}
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
 
-				m_Beehive.m_SpawnTimer = null;
-				m_Beehive.Honeypots++;
-			}
-		}
+            writer.WriteEncodedInt(1); // version
 
-		public override void OnDoubleClick( Mobile from )
-		{
-			if ( !from.InRange( GetWorldLocation(), 2 ) )
-			{
-				from.LocalOverheadMessage( MessageType.Regular, 0x3B2, 1019045 ); // I can't reach that.
-			}
-			else if ( Honeypots > 0 )
-			{
-				from.AddToBackpack( new JarHoney() );
-				Honeypots--;
-			}
-		}
+            writer.Write(m_Bees);
+            writer.WriteEncodedInt(m_Honeypots);
+            writer.WriteDeltaTime(m_NextSpawnTime);
+            writer.WriteEncodedInt((int)Level);
+        }
 
-		public override void OnLockDownChange()
-		{
-			if ( IsLockedDown )
-			{
-				if ( m_Bees == null )
-				{
-					m_Bees = new Item( 2331 );
-					m_Bees.MoveToWorld( Location, Map );
-					m_Bees.Movable = false;
-				}
-			}
-			else
-			{
-				if ( m_Bees != null )
-				{
-					m_Bees.Delete();
-					m_Bees = null;
-				}
-			}
-		}
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
 
-		public Beehive( Serial serial )
-			: base( serial )
-		{
-		}
+            var version = reader.ReadEncodedInt();
 
-		public override void Serialize( GenericWriter writer )
-		{
-			base.Serialize( writer );
+            switch (version)
+            {
+                case 1:
+                {
+                    m_Bees = reader.ReadItem();
+                    goto case 0;
+                }
+                case 0:
+                {
+                    m_Honeypots = reader.ReadEncodedInt();
+                    m_NextSpawnTime = reader.ReadDeltaTime();
+                    Level = (SecureLevel)reader.ReadEncodedInt();
+                    break;
+                }
+            }
 
-			writer.WriteEncodedInt( (int) 1 ); // version
+            if (m_Honeypots < 10)
+                StartSpawnTimer(m_NextSpawnTime - DateTime.UtcNow);
+        }
 
-			writer.Write( (Item) m_Bees );
-			writer.WriteEncodedInt( (int) m_Honeypots );
-			writer.WriteDeltaTime( (DateTime) m_NextSpawnTime );
-			writer.WriteEncodedInt( (int) m_Level );
-		}
+        private class SpawnTimer : Timer
+        {
+            private readonly Beehive m_Beehive;
 
-		public override void Deserialize( GenericReader reader )
-		{
-			base.Deserialize( reader );
+            public SpawnTimer(Beehive beehive, TimeSpan delay)
+                : base(delay)
+            {
+                m_Beehive = beehive;
+            }
 
-			int version = reader.ReadEncodedInt();
+            protected override void OnTick()
+            {
+                if (m_Beehive.Deleted) return;
 
-			switch ( version )
-			{
-				case 1:
-					{
-						m_Bees = reader.ReadItem();
-						goto case 0;
-					}
-				case 0:
-					{
-						m_Honeypots = reader.ReadEncodedInt();
-						m_NextSpawnTime = reader.ReadDeltaTime();
-						m_Level = (SecureLevel) reader.ReadEncodedInt();
-						break;
-					}
-			}
-
-			if ( m_Honeypots < 10 )
-				StartSpawnTimer( m_NextSpawnTime - DateTime.UtcNow );
-		}
-	}
+                m_Beehive.m_SpawnTimer = null;
+                m_Beehive.Honeypots++;
+            }
+        }
+    }
 }

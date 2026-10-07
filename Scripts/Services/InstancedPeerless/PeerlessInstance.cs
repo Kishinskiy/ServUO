@@ -18,146 +18,140 @@
 
 using System;
 using System.Collections.Generic;
-using Server;
-using Server.Network;
-using Server.Items;
-using Server.Targeting;
 using Server.Mobiles;
 
 namespace Server.Engines.InstancedPeerless
 {
-	public enum InstanceState
-	{
-		Available,
-		Reserved,
-		Fighting,
-		Looting
-	}
+    public enum InstanceState
+    {
+        Available,
+        Reserved,
+        Fighting,
+        Looting
+    }
 
-	public class PeerlessInstance
-	{
-		private const int BusyHue = 1;
-		private const int EmptyHue = 60;
+    public class PeerlessInstance
+    {
+        private const int BusyHue = 1;
+        private const int EmptyHue = 60;
+        private readonly Point3D m_BossSpawnLocation;
+        private readonly Item m_Light;
 
-		private PeerlessPlatform m_Owner;
-		private InstanceRegion m_Region;
-		private List<Mobile> m_Fighters;
-		private Mobile m_Boss;
-		private Item m_Light;
-		private InstanceState m_State;
+        private readonly PeerlessPlatform m_Owner;
+        private List<Mobile> m_Fighters;
+        private Timer m_KickTimer;
+        private InstanceRegion m_Region;
 
-		private Map m_Map;
-		private Point3D m_EntranceLocation;
-		private Point3D m_BossSpawnLocation;
-		private Rectangle2D m_RegionBounds;
+        private Timer m_SliceTimer;
+        private InstanceState m_State;
 
-		private Timer m_SliceTimer;
-		private Timer m_KickTimer;
+        public Mobile Boss { get; private set; }
 
-		public Mobile Boss { get { return m_Boss; } }
+        public InstanceState State
+        {
+            get => m_State;
+            set
+            {
+                m_State = value;
 
-		public InstanceState State
-		{
-			get { return m_State; }
-			set
-			{
-				m_State = value;
+                if (m_State == InstanceState.Available)
+                    m_Light.Hue = 0;
+                else
+                    m_Light.Hue = 0x21;
+            }
+        }
 
-				if ( m_State == InstanceState.Available )
-					m_Light.Hue = 0;
-				else
-					m_Light.Hue = 0x21;
-			}
-		}
+        public Map Map { get; }
 
-		public Map Map { get { return m_Map; } }
-		public Point3D EntranceLocation { get { return m_EntranceLocation; } }
-		public Rectangle2D RegionBounds { get { return m_RegionBounds; } }
+        public Point3D EntranceLocation { get; }
 
-		public PeerlessInstance( PeerlessPlatform platform, Map map, Item light, Point3D entranceLoc, Point3D bossSpawnLoc, Rectangle2D regionBounds )
-		{
-			m_Owner = platform;
-			m_Map = map;
-			m_Light = light;
+        public Rectangle2D RegionBounds { get; }
 
-			m_EntranceLocation = entranceLoc;
-			m_BossSpawnLocation = bossSpawnLoc;
-			m_RegionBounds = regionBounds;
+        public PeerlessInstance(PeerlessPlatform platform, Map map, Item light, Point3D entranceLoc,
+            Point3D bossSpawnLoc, Rectangle2D regionBounds)
+        {
+            m_Owner = platform;
+            Map = map;
+            m_Light = light;
 
-			Initialize();
-		}
+            EntranceLocation = entranceLoc;
+            m_BossSpawnLocation = bossSpawnLoc;
+            RegionBounds = regionBounds;
 
-		protected virtual void Initialize()
-		{
-			State = InstanceState.Available;
+            Initialize();
+        }
 
-			m_Fighters = new List<Mobile>();
-			m_Region = new InstanceRegion( this );
-		}
+        protected virtual void Initialize()
+        {
+            State = InstanceState.Available;
 
-		public void AddFighter( Mobile m )
-		{
-			m_Fighters.Add( m );
-		}
+            m_Fighters = new List<Mobile>();
+            m_Region = new InstanceRegion(this);
+        }
 
-		public void RemoveFighter( Mobile m )
-		{
-			m_Fighters.Remove( m );
-		}
+        public void AddFighter(Mobile m)
+        {
+            m_Fighters.Add(m);
+        }
 
-		public void Activate()
-		{
-			State = InstanceState.Reserved;
+        public void RemoveFighter(Mobile m)
+        {
+            m_Fighters.Remove(m);
+        }
 
-			Timer.DelayCall( TimeSpan.FromMinutes( 1.0 ), new TimerCallback( StartFight ) );
-		}
+        public void Activate()
+        {
+            State = InstanceState.Reserved;
 
-		private void StartFight()
-		{
-			State = InstanceState.Fighting;
+            Timer.DelayCall(TimeSpan.FromMinutes(1.0), StartFight);
+        }
 
-			m_Boss = Activator.CreateInstance( m_Owner.BossType ) as Mobile;
-			m_Boss.OnBeforeSpawn( m_BossSpawnLocation, m_Owner.Map );
-			m_Boss.MoveToWorld( m_BossSpawnLocation, m_Owner.Map );
+        private void StartFight()
+        {
+            State = InstanceState.Fighting;
 
-			m_SliceTimer = new SliceTimer( this );
-			m_SliceTimer.Start();
+            Boss = Activator.CreateInstance(m_Owner.BossType) as Mobile;
+            Boss.OnBeforeSpawn(m_BossSpawnLocation, m_Owner.Map);
+            Boss.MoveToWorld(m_BossSpawnLocation, m_Owner.Map);
 
-			m_KickTimer = Timer.DelayCall( TimeSpan.FromHours( 2.0 ), new TimerCallback( Kick ) );
-		}
+            m_SliceTimer = new SliceTimer(this);
+            m_SliceTimer.Start();
 
-		public void OnSlice()
-		{
-			if ( m_Fighters.Count == 0 )
-			{
-				FreeInstance();
-				return;
-			}
+            m_KickTimer = Timer.DelayCall(TimeSpan.FromHours(2.0), Kick);
+        }
 
-			if ( m_State == InstanceState.Fighting && m_Boss.Deleted )
-			{
-				if ( m_KickTimer != null )
-					m_KickTimer.Stop();
+        public void OnSlice()
+        {
+            if (m_Fighters.Count == 0)
+            {
+                FreeInstance();
+                return;
+            }
 
-				m_KickTimer = Timer.DelayCall( TimeSpan.FromMinutes( 15.0 ), new TimerCallback( Kick ) );
+            if (m_State == InstanceState.Fighting && Boss.Deleted)
+            {
+                if (m_KickTimer != null)
+                    m_KickTimer.Stop();
 
-				State = InstanceState.Looting;
-			}
-		}
+                m_KickTimer = Timer.DelayCall(TimeSpan.FromMinutes(15.0), Kick);
 
-		private void Kick()
-		{
-			List<Mobile> fighters = new List<Mobile>( m_Fighters );
+                State = InstanceState.Looting;
+            }
+        }
 
-			foreach ( Mobile m in fighters )
-				Kick( m );
+        private void Kick()
+        {
+            var fighters = new List<Mobile>(m_Fighters);
 
-			FreeInstance();
-		}
+            foreach (var m in fighters)
+                Kick(m);
 
-		public void Kick( Mobile m )
-		{
-            Map map = m_Owner.Map;
+            FreeInstance();
+        }
+
+        public void Kick(Mobile m)
+        {
+            var map = m_Owner.Map;
 
             if (map == null || map == Map.Internal)
             {
@@ -179,89 +173,91 @@ namespace Server.Engines.InstancedPeerless
                 m.MoveToWorld(m_Owner.ExitLocation, map);
             }
 
-			RemoveFighter( m );
-		}
+            RemoveFighter(m);
+        }
 
-		private void FreeInstance()
-		{
-			if ( m_Boss != null )
-			{
-				m_Boss.Delete();
-				m_Boss = null;
-			}
+        private void FreeInstance()
+        {
+            if (Boss != null)
+            {
+                Boss.Delete();
+                Boss = null;
+            }
 
-			if ( m_SliceTimer != null )
-				m_SliceTimer.Stop();
+            if (m_SliceTimer != null)
+                m_SliceTimer.Stop();
 
-			if ( m_KickTimer != null )
-				m_KickTimer.Stop();
+            if (m_KickTimer != null)
+                m_KickTimer.Stop();
 
-			State = InstanceState.Available;
+            State = InstanceState.Available;
 
-			m_Owner.OnFreeInstance( this );
-		}
+            m_Owner.OnFreeInstance(this);
+        }
 
-		public void OnDelete()
-		{
-			if ( m_SliceTimer != null )
-				m_SliceTimer.Stop();
+        public void OnDelete()
+        {
+            if (m_SliceTimer != null)
+                m_SliceTimer.Stop();
 
-			if ( m_KickTimer != null )
-				m_KickTimer.Stop();
+            if (m_KickTimer != null)
+                m_KickTimer.Stop();
 
-			if ( m_Boss != null )
-				m_Boss.Delete();
+            if (Boss != null)
+                Boss.Delete();
 
-			foreach ( Mobile m in m_Fighters )
-				Kick( m );
+            foreach (var m in m_Fighters)
+                Kick(m);
 
-			m_Region.Unregister();
-		}
+            m_Region.Unregister();
+        }
 
-		#region Serialization
-		public PeerlessInstance( GenericReader reader )
-		{
-			m_Owner = reader.ReadItem<PeerlessPlatform>();
-			m_Light = reader.ReadItem();
-			m_Map = reader.ReadMap();
-			m_EntranceLocation = reader.ReadPoint3D();
-			m_BossSpawnLocation = reader.ReadPoint3D();
-			m_RegionBounds = reader.ReadRect2D();
+        #region Serialization
 
-			Mobile boss = reader.ReadMobile();
+        public PeerlessInstance(GenericReader reader)
+        {
+            m_Owner = reader.ReadItem<PeerlessPlatform>();
+            m_Light = reader.ReadItem();
+            Map = reader.ReadMap();
+            EntranceLocation = reader.ReadPoint3D();
+            m_BossSpawnLocation = reader.ReadPoint3D();
+            RegionBounds = reader.ReadRect2D();
 
-			if ( boss != null )
-				boss.Delete();
+            var boss = reader.ReadMobile();
 
-			Initialize();
-		}
+            if (boss != null)
+                boss.Delete();
 
-		public void Serialize( GenericWriter writer )
-		{
-			writer.Write( m_Owner );
-			writer.Write( m_Light );
-			writer.Write( m_Map );
-			writer.Write( m_EntranceLocation );
-			writer.Write( m_BossSpawnLocation );
-			writer.Write( m_RegionBounds );
-			writer.Write( m_Boss );
-		}
-		#endregion
-	}
+            Initialize();
+        }
 
-	public class SliceTimer : Timer
-	{
-		private PeerlessInstance m_Instance;
+        public void Serialize(GenericWriter writer)
+        {
+            writer.Write(m_Owner);
+            writer.Write(m_Light);
+            writer.Write(Map);
+            writer.Write(EntranceLocation);
+            writer.Write(m_BossSpawnLocation);
+            writer.Write(RegionBounds);
+            writer.Write(Boss);
+        }
 
-		public SliceTimer( PeerlessInstance instance )
-			: base( TimeSpan.FromSeconds( 1.0 ), TimeSpan.FromSeconds( 1.0 ) )
-		{
-			m_Instance = instance;
-		}
+        #endregion
+    }
 
-		protected override void OnTick()
-		{
-			m_Instance.OnSlice();
-		}
-	}
+    public class SliceTimer : Timer
+    {
+        private readonly PeerlessInstance m_Instance;
+
+        public SliceTimer(PeerlessInstance instance)
+            : base(TimeSpan.FromSeconds(1.0), TimeSpan.FromSeconds(1.0))
+        {
+            m_Instance = instance;
+        }
+
+        protected override void OnTick()
+        {
+            m_Instance.OnSlice();
+        }
+    }
 }

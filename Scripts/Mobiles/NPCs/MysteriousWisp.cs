@@ -1,49 +1,88 @@
 using System;
-using Server;
 using System.Collections.Generic;
 using Server.ContextMenus;
-using Server.Engines.Despise;
-using Server.Items;
-using Server.Gumps;
-using Server.Network;
+using Server.Engines.Points;
 using Server.Engines.Quests;
+using Server.Gumps;
+using Server.Items;
+using Server.Network;
+using Server.SkillHandlers;
 
 namespace Server.Mobiles
 {
     [CorpseName("a wisp corpse")]
     public class MysteriousWisp : BaseCreature
     {
-        private int m_ItemCountMin;
-        private int m_ItemCountMax;
-        private int m_IntensityMin;
-        private int m_IntensityMax;
-        private int m_RestockMin;
-        private int m_RestockMax;
-        private double m_MutateChance;
+        private readonly Dictionary<Mobile, int> m_Conversation = new Dictionary<Mobile, int>();
+
+        private readonly Dictionary<Item, int> m_ItemTable = new Dictionary<Item, int>();
+
+        private readonly string[][] m_Keywords =
+        {
+            new string[] { },
+            new[] { "corporeal" },
+            new[] { "sentient" },
+            new[] { "deal" },
+            new[] { "learn", "teach" },
+            new[] { "good and evil", "good", "evil" },
+            new[] { "guide" },
+            new[] { "follow" },
+            new[] { "fight" },
+            new[] { "resonate" },
+            new[] { "join" },
+            new[] { "command" },
+            new[] { "trade" }
+        };
+
+        private readonly int[] m_Responses =
+        {
+            1153441,
+            1153443,
+            1153445,
+            1153447,
+            1153449,
+            1153451,
+            1153453,
+            1153455,
+            1153457,
+            1153459,
+            1153461,
+            1153463,
+            1153467
+        };
+
+        private DateTime m_NextRestock;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int ItemCountMin { get { return m_ItemCountMin; } set { m_ItemCountMin = value; } }
+        public int ItemCountMin { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int ItemCountMax { get { return m_ItemCountMax; } set { m_ItemCountMax = value; } }
+        public int ItemCountMax { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int IntensityMin { get { return m_IntensityMin; } set { m_IntensityMin = value; } }
+        public int IntensityMin { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int IntensityMax { get { return m_IntensityMax; } set { m_IntensityMax = value; } }
+        public int IntensityMax { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int RestockMin { get { return m_RestockMin; } set { m_RestockMin = value; } }
+        public int RestockMin { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int RestockMax { get { return m_RestockMax; } set { m_RestockMax = value; } }
+        public int RestockMax { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public double MutateChance { get { return m_MutateChance; } set { m_MutateChance = value; } }
+        public double MutateChance { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public bool ForceRestock { get { return false; } set { if (value) DoRestock(); } }
+        public bool ForceRestock
+        {
+            get => false;
+            set
+            {
+                if (value) DoRestock();
+            }
+        }
 
         [Constructable]
         public MysteriousWisp()
@@ -83,16 +122,21 @@ namespace Server.Mobiles
             if (Backpack != null)
                 Backpack.Delete();
 
-            m_ItemCountMin = 14;
-            m_ItemCountMax = 20;
-            m_IntensityMin = 40;
-            m_IntensityMax = 100;
-            m_RestockMin = 45;
-            m_RestockMax = 65;
-            m_MutateChance = 0.10;
+            ItemCountMin = 14;
+            ItemCountMax = 20;
+            IntensityMin = 40;
+            IntensityMax = 100;
+            RestockMin = 45;
+            RestockMax = 65;
+            MutateChance = 0.10;
 
             AddItem(new BuyBackpack());
             DoRestock();
+        }
+
+        public MysteriousWisp(Serial serial)
+            : base(serial)
+        {
         }
 
         public override bool HandlesOnSpeech(Mobile from)
@@ -100,18 +144,14 @@ namespace Server.Mobiles
             return m_Conversation.ContainsKey(from);
         }
 
-        private Dictionary<Mobile, int> m_Conversation = new Dictionary<Mobile, int>();
-
         public override void OnDoubleClick(Mobile from)
         {
-            if (from.InRange(this.Location, 5))
-            {
+            if (from.InRange(Location, 5))
                 if (!m_Conversation.ContainsKey(from))
                 {
                     SayTo(from, m_Responses[0]);
                     m_Conversation[from] = 1;
                 }
-            }
 
             if (from is PlayerMobile)
             {
@@ -123,7 +163,7 @@ namespace Server.Mobiles
 
                     if (q == null)
                     {
-                        BaseQuest quest = QuestHelper.RandomQuest(pm, new Type[] { typeof(WhisperingWithWispsQuest) }, this);
+                        var quest = QuestHelper.RandomQuest(pm, new[] { typeof(WhisperingWithWispsQuest) }, this);
 
                         if (quest != null)
                         {
@@ -143,12 +183,9 @@ namespace Server.Mobiles
         {
             if (m is PlayerMobile && InRange(m.Location, 5) && !InRange(oldLocation, 5))
             {
-                WishesOfTheWispQuest quest = QuestHelper.GetQuest<WishesOfTheWispQuest>((PlayerMobile)m);
+                var quest = QuestHelper.GetQuest<WishesOfTheWispQuest>((PlayerMobile)m);
 
-                if (quest != null)
-                {
-                    quest.CompleteQuest();
-                }
+                if (quest != null) quest.CompleteQuest();
             }
         }
 
@@ -157,8 +194,8 @@ namespace Server.Mobiles
             if (!m_Conversation.ContainsKey(e.Mobile))
                 return;
 
-            string speech = e.Speech.ToLower();
-            int idx = m_Conversation[e.Mobile];
+            var speech = e.Speech.ToLower();
+            var idx = m_Conversation[e.Mobile];
 
             if (idx < 0 || idx >= m_Keywords.Length)
             {
@@ -166,8 +203,7 @@ namespace Server.Mobiles
                 return;
             }
 
-            foreach (string str in m_Keywords[idx])
-            {
+            foreach (var str in m_Keywords[idx])
                 if (speech.Contains(str))
                 {
                     SayTo(e.Mobile, m_Responses[idx]);
@@ -179,42 +215,7 @@ namespace Server.Mobiles
 
                     break;
                 }
-            }
         }
-
-        private string[][] m_Keywords = new string[][]
-        {
-            new string[] { },
-            new string[] { "corporeal" },
-            new string[] { "sentient" },
-            new string[] { "deal" },
-            new string[] { "learn", "teach" },
-            new string[] { "good and evil", "good", "evil" },
-            new string[] { "guide" },
-            new string[] { "follow" },
-            new string[] { "fight" },
-            new string[] { "resonate" },
-            new string[] { "join" },
-            new string[] { "command" },
-            new string[] { "trade" },
-        };
-
-        private int[] m_Responses = new int[]
-        {
-            1153441,
-            1153443,
-            1153445,
-            1153447,
-            1153449,
-            1153451,
-            1153453,
-            1153455,
-            1153457,
-            1153459,
-            1153461,
-            1153463,
-            1153467
-        };
 
         public override void GetContextMenuEntries(Mobile from, List<ContextMenuEntry> list)
         {
@@ -222,8 +223,6 @@ namespace Server.Mobiles
 
             list.Add(new InternalEntry(this, from));
         }
-
-        private Dictionary<Item, int> m_ItemTable = new Dictionary<Item, int>();
 
         public void CheckRestock()
         {
@@ -233,17 +232,17 @@ namespace Server.Mobiles
 
         private void DoRestock()
         {
-            List<Item> list = new List<Item>(this.Backpack.Items);
+            var list = new List<Item>(Backpack.Items);
             m_ItemTable.Clear();
 
             InternalGump.Clear();
 
-            foreach (Item item in list)
+            foreach (var item in list)
                 item.Delete();
 
-            int count = Utility.RandomMinMax(m_ItemCountMin, m_ItemCountMax);
+            var count = Utility.RandomMinMax(ItemCountMin, ItemCountMax);
 
-            for (int i = 0; i < count; i++)
+            for (var i = 0; i < count; i++)
             {
                 Item item;
 
@@ -251,21 +250,22 @@ namespace Server.Mobiles
                 {
                     default:
                     case 0: item = Loot.RandomArmorOrShieldOrWeaponOrJewelry(false, false, true); break;
-                    case 1: item = Loot.RandomArmorOrShieldOrWeaponOrJewelry(false, true, false); break;
-                    case 2: item = Loot.RandomArmorOrShieldOrWeaponOrJewelry(true, false, false); break;
+                    case 1: item = Loot.RandomArmorOrShieldOrWeaponOrJewelry(false, true); break;
+                    case 2: item = Loot.RandomArmorOrShieldOrWeaponOrJewelry(true); break;
                 }
 
-                int weight = 0;
+                var weight = 0;
 
                 if (0.10 > Utility.RandomDouble())
                 {
-                    int budget = Utility.RandomMinMax(500, 860);
-                    RunicReforging.GenerateRandomItem(item, null, Utility.RandomMinMax(500, 860), 0, ReforgedPrefix.None, ReforgedSuffix.None);
+                    var budget = Utility.RandomMinMax(500, 860);
+                    RunicReforging.GenerateRandomItem(item, null, Utility.RandomMinMax(500, 860), 0,
+                        ReforgedPrefix.None, ReforgedSuffix.None);
                     weight += budget / 3;
                 }
                 else
                 {
-                    int props = Utility.RandomMinMax(3, 5);
+                    var props = Utility.RandomMinMax(3, 5);
 
                     if (props == 5 && 0.05 > Utility.RandomDouble())
                     {
@@ -274,29 +274,21 @@ namespace Server.Mobiles
                     }
 
                     if (item is BaseWeapon)
-                    {
-                        BaseRunicTool.ApplyAttributesTo((BaseWeapon)item, false, 0, props, m_IntensityMin, m_IntensityMax);
-                    }
+                        BaseRunicTool.ApplyAttributesTo((BaseWeapon)item, false, 0, props, IntensityMin, IntensityMax);
                     else if (item is BaseArmor)
-                    {
-                        BaseRunicTool.ApplyAttributesTo((BaseArmor)item, false, 0, props, m_IntensityMin, m_IntensityMax);
-                    }
+                        BaseRunicTool.ApplyAttributesTo((BaseArmor)item, false, 0, props, IntensityMin, IntensityMax);
                     else if (item is BaseJewel)
-                    {
-                        BaseRunicTool.ApplyAttributesTo((BaseJewel)item, false, 0, props, m_IntensityMin, m_IntensityMax);
-                    }
+                        BaseRunicTool.ApplyAttributesTo((BaseJewel)item, false, 0, props, IntensityMin, IntensityMax);
                     else if (item is BaseHat)
-                    {
-                        BaseRunicTool.ApplyAttributesTo((BaseHat)item, false, 0, props, m_IntensityMin, m_IntensityMax);
-                    }
+                        BaseRunicTool.ApplyAttributesTo((BaseHat)item, false, 0, props, IntensityMin, IntensityMax);
                 }
 
-                m_ItemTable[item] = (int)((weight + Server.SkillHandlers.Imbuing.GetTotalWeight(item, -1, false, true)) * 31.5);
+                m_ItemTable[item] = (int)((weight + Imbuing.GetTotalWeight(item, -1, false, true)) * 31.5);
                 item.Movable = false;
-                this.Backpack.DropItem(item);
+                Backpack.DropItem(item);
             }
 
-            m_NextRestock = DateTime.UtcNow + TimeSpan.FromMinutes(Utility.RandomMinMax(m_RestockMin, m_RestockMax));
+            m_NextRestock = DateTime.UtcNow + TimeSpan.FromMinutes(Utility.RandomMinMax(RestockMin, RestockMax));
         }
 
         public int GetCostFor(Item item)
@@ -309,36 +301,65 @@ namespace Server.Mobiles
 
         public void TryBuyItem(Mobile from, Item item)
         {
-            if (item.Deleted || !this.Backpack.Items.Contains(item) || !m_ItemTable.ContainsKey(item))
+            if (item.Deleted || !Backpack.Items.Contains(item) || !m_ItemTable.ContainsKey(item))
             {
                 from.SendMessage("This item is no longer available.");
                 return;
             }
 
-            int points = (int)Server.Engines.Points.PointsSystem.DespiseCrystals.GetPoints(from);
-            int cost = m_ItemTable[item];
+            var points = (int)PointsSystem.DespiseCrystals.GetPoints(from);
+            var cost = m_ItemTable[item];
 
             if (points >= cost)
             {
                 //DespiseController.Instance.DeductDespisePoints(from, cost);
-                Server.Engines.Points.PointsSystem.DespiseCrystals.DeductPoints(from, cost);
+                PointsSystem.DespiseCrystals.DeductPoints(from, cost);
                 item.Movable = true;
 
                 if (from.Backpack == null || !from.Backpack.TryDropItem(from, item, false))
                     item.MoveToWorld(from.Location, from.Map);
 
-                from.SendLocalizedMessage(1153427, cost.ToString()); // You have spent ~1_AMT~ Dungeon Crystal Points of Despise.
+                from.SendLocalizedMessage(1153427,
+                    cost.ToString()); // You have spent ~1_AMT~ Dungeon Crystal Points of Despise.
 
                 InternalGump.Resend(this);
             }
             else
+            {
                 from.SendMessage("You need {0} more Despise dungeon crystal points for this.", cost - points);
+            }
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
+
+            writer.Write(ItemCountMin);
+            writer.Write(ItemCountMax);
+            writer.Write(IntensityMin);
+            writer.Write(IntensityMax);
+            writer.Write(MutateChance);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
+
+            ItemCountMin = reader.ReadInt();
+            ItemCountMax = reader.ReadInt();
+            IntensityMin = reader.ReadInt();
+            IntensityMax = reader.ReadInt();
+            MutateChance = reader.ReadDouble();
+
+            m_NextRestock = DateTime.UtcNow;
         }
 
         private class InternalEntry : ContextMenuEntry
         {
-            private Mobile m_Clicker;
-            private MysteriousWisp m_Wisp;
+            private readonly Mobile m_Clicker;
+            private readonly MysteriousWisp m_Wisp;
 
             public InternalEntry(MysteriousWisp wisp, Mobile clicker)
                 : base(1150143, 3)
@@ -363,41 +384,10 @@ namespace Server.Mobiles
             }
         }
 
-        private DateTime m_NextRestock;
-
-        public MysteriousWisp(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.Write((int)0);
-
-            writer.Write(m_ItemCountMin);
-            writer.Write(m_ItemCountMax);
-            writer.Write(m_IntensityMin);
-            writer.Write(m_IntensityMax);
-            writer.Write(m_MutateChance);
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            int version = reader.ReadInt();
-
-            m_ItemCountMin = reader.ReadInt();
-            m_ItemCountMax = reader.ReadInt();
-            m_IntensityMin = reader.ReadInt();
-            m_IntensityMax = reader.ReadInt();
-            m_MutateChance = reader.ReadDouble();
-
-            m_NextRestock = DateTime.UtcNow;
-        }
-
         public class BuyBackpack : Backpack
         {
+            public override int DefaultMaxWeight => 0;
+
             public BuyBackpack()
             {
                 Movable = false;
@@ -405,7 +395,10 @@ namespace Server.Mobiles
                 Weight = 1.0;
             }
 
-            public override int DefaultMaxWeight { get { return 0; } }
+            public BuyBackpack(Serial serial)
+                : base(serial)
+            {
+            }
 
             public override bool IsAccessibleTo(Mobile m)
             {
@@ -422,42 +415,37 @@ namespace Server.Mobiles
             {
                 base.GetChildProperties(list, item);
 
-                MysteriousWisp wisp = RootParent as MysteriousWisp;
+                var wisp = RootParent as MysteriousWisp;
 
                 if (wisp == null)
                     return;
 
-                int cost = wisp.GetCostFor(item);
+                var cost = wisp.GetCostFor(item);
 
                 list.Add(1153425, cost.ToString()); // Price: ~1_AMT~ Despise Crystals
-            }
-
-            public BuyBackpack(Serial serial)
-                : base(serial)
-            {
             }
 
             public override void Serialize(GenericWriter writer)
             {
                 base.Serialize(writer);
 
-                writer.Write((int)0); // version
+                writer.Write(0); // version
             }
 
             public override void Deserialize(GenericReader reader)
             {
                 base.Deserialize(reader);
 
-                int version = reader.ReadInt();
+                var version = reader.ReadInt();
             }
         }
 
         private class InternalGump : Gump
         {
-            private static List<Mobile> m_Viewers = new List<Mobile>();
+            private static readonly List<Mobile> m_Viewers = new List<Mobile>();
+            private readonly List<Item> m_Items;
 
-            private MysteriousWisp m_Wisp;
-            private List<Item> m_Items;
+            private readonly MysteriousWisp m_Wisp;
 
             public InternalGump(MysteriousWisp wisp, Mobile viewer) : base(40, 40)
             {
@@ -477,14 +465,14 @@ namespace Server.Mobiles
                 AddHtmlLocalized(45, 376, 450, 20, 1011012, 0x7FFF, false, false); // CANCEL
 
                 m_Items = new List<Item>(m_Wisp.Backpack.Items);
-                int current = 0;
+                var current = 0;
 
-                for (int i = 0; i < m_Items.Count; i++)
+                for (var i = 0; i < m_Items.Count; i++)
                 {
-                    Item item = m_Items[i];
+                    var item = m_Items[i];
 
-                    int page = current / 5 + 1;
-                    int pos = current % 5;
+                    var page = current / 5 + 1;
+                    var pos = current % 5;
 
                     if (pos == 0)
                     {
@@ -505,18 +493,22 @@ namespace Server.Mobiles
 
                     if (item != null && !item.Deleted)
                     {
-                        int x = 14;
-                        int y = (pos * 64) + 44;
+                        var x = 14;
+                        var y = pos * 64 + 44;
 
-                        Rectangle2D b = ItemBounds.Table[item.ItemID];
+                        var b = ItemBounds.Table[item.ItemID];
 
-                        AddImageTiledButton(x, y, 0x918, 0x919, i + 1, GumpButtonType.Reply, 0, item.ItemID, item.Hue, 40 - b.Width / 2 - b.X, 30 - b.Height / 2 - b.Y);
+                        AddImageTiledButton(x, y, 0x918, 0x919, i + 1, GumpButtonType.Reply, 0, item.ItemID, item.Hue,
+                            40 - b.Width / 2 - b.X, 30 - b.Height / 2 - b.Y);
                         AddItemProperty(item.Serial);
 
-                        string cost = m_Wisp.GetCostFor(item) > -1 ? m_Wisp.GetCostFor(item).ToString("###,###,###") : "No Longer Available";
+                        var cost = m_Wisp.GetCostFor(item) > -1
+                            ? m_Wisp.GetCostFor(item).ToString("###,###,###")
+                            : "No Longer Available";
 
                         AddHtmlLocalized(x + 84, y, 250, 60, item.LabelNumber, 0x7FFF, false, false);
-                        AddHtml(x + 84, y + 20, 250, 60, "<BASEFONT COLOR=#FFFFFF>" + cost + "</BASEFONT>", false, false);
+                        AddHtml(x + 84, y + 20, 250, 60, "<BASEFONT COLOR=#FFFFFF>" + cost + "</BASEFONT>", false,
+                            false);
 
                         current++;
                     }
@@ -525,21 +517,19 @@ namespace Server.Mobiles
 
             public override void OnResponse(NetState state, RelayInfo info)
             {
-                Mobile from = state.Mobile;
+                var from = state.Mobile;
 
                 if (m_Viewers.Contains(from))
                     m_Viewers.Remove(from);
 
-                int idx = info.ButtonID - 1;
+                var idx = info.ButtonID - 1;
 
                 if (idx >= 0 && idx < m_Items.Count)
                 {
-                    Item item = m_Items[idx];
+                    var item = m_Items[idx];
 
-                    if (item != null && !item.Deleted && m_Wisp.Backpack != null && m_Wisp.Backpack.Items.Contains(item))
-                    {
-                        from.SendGump(new InternalGump2(m_Wisp, item));
-                    }
+                    if (item != null && !item.Deleted && m_Wisp.Backpack != null &&
+                        m_Wisp.Backpack.Items.Contains(item)) from.SendGump(new InternalGump2(m_Wisp, item));
                 }
             }
 
@@ -548,11 +538,10 @@ namespace Server.Mobiles
                 if (m_Viewers == null || m_Viewers.Count == 0)
                     return;
 
-                List<Mobile> viewers = new List<Mobile>(m_Viewers);
-                Type t = typeof(Server.Mobiles.MysteriousWisp.InternalGump);
+                var viewers = new List<Mobile>(m_Viewers);
+                var t = typeof(InternalGump);
 
-                foreach (Mobile m in viewers)
-                {
+                foreach (var m in viewers)
                     if (m.HasGump(t))
                     {
                         m.CloseGump(t);
@@ -560,10 +549,9 @@ namespace Server.Mobiles
                         if (m_Viewers.Contains(m))
                             m_Viewers.Remove(m);
 
-                        if(wisp.InRange(m.Location, 5) && wisp.Backpack != null)
+                        if (wisp.InRange(m.Location, 5) && wisp.Backpack != null)
                             m.SendGump(new InternalGump(wisp, m));
                     }
-                }
             }
 
             public static void Clear()
@@ -571,14 +559,12 @@ namespace Server.Mobiles
                 if (m_Viewers == null || m_Viewers.Count == 0)
                     return;
 
-                List<Mobile> viewers = new List<Mobile>(m_Viewers);
-                Type t = typeof(Server.Mobiles.MysteriousWisp.InternalGump);
+                var viewers = new List<Mobile>(m_Viewers);
+                var t = typeof(InternalGump);
 
-                foreach (Mobile m in viewers)
-                {
+                foreach (var m in viewers)
                     if (m.HasGump(t))
                         m.CloseGump(t);
-                }
 
                 m_Viewers.Clear();
             }
@@ -586,9 +572,9 @@ namespace Server.Mobiles
 
         private class InternalGump2 : Gump
         {
-            private MysteriousWisp m_Wisp;
-            private Item m_Item;
-            private bool m_Available;
+            private readonly bool m_Available;
+            private readonly Item m_Item;
+            private readonly MysteriousWisp m_Wisp;
 
             public InternalGump2(MysteriousWisp wisp, Item item) : base(40, 40)
             {
@@ -603,12 +589,12 @@ namespace Server.Mobiles
                 AddHtmlLocalized(10, 30, 140, 20, item.LabelNumber, 0x7FFF, false, false);
 
                 m_Available = m_Wisp.GetCostFor(item) > -1;
-                string cost = m_Available ? m_Wisp.GetCostFor(item).ToString() : "No Longer Available";
+                var cost = m_Available ? m_Wisp.GetCostFor(item).ToString() : "No Longer Available";
 
                 AddHtml(10, 100, 140, 20, "<BASEFONT COLOR=#FFFFFF>Despise Crystals:</BASEFONT>", false, false);
-                AddHtml(10, 120, 140, 20, "<BASEFONT COLOR=#FFFFFF>"+cost+"</BASEFONT>", false, false);
+                AddHtml(10, 120, 140, 20, "<BASEFONT COLOR=#FFFFFF>" + cost + "</BASEFONT>", false, false);
 
-                Rectangle2D b = ItemBounds.Table[item.ItemID];
+                var b = ItemBounds.Table[item.ItemID];
                 AddItem(210 - b.Width / 2 - b.X, 70 - b.Height / 2 - b.Y, item.ItemID, item.Hue);
                 AddItemProperty(item.Serial);
 
@@ -620,7 +606,7 @@ namespace Server.Mobiles
 
             public override void OnResponse(NetState state, RelayInfo info)
             {
-                Mobile from = state.Mobile;
+                var from = state.Mobile;
 
                 if (info.ButtonID == 1)
                 {

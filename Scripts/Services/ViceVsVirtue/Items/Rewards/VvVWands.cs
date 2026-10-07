@@ -1,72 +1,13 @@
-using System;
-using Server;
 using Server.Items;
 
 namespace Server.Engines.VvV
 {
     public class VvVWand1 : BaseWand, IArcaneEquip
-	{
-        public override int InitMinHits { get { return 255; } }
-        public override int InitMaxHits { get { return 255; } }
+    {
+        public override int InitMinHits => 255;
+        public override int InitMaxHits => 255;
 
-        #region Arcane Impl
-        private int m_MaxArcaneCharges, m_CurArcaneCharges;
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int MaxArcaneCharges
-        {
-            get
-            {
-                return m_MaxArcaneCharges;
-            }
-            set
-            {
-                m_MaxArcaneCharges = value;
-                InvalidateProperties();
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int CurArcaneCharges
-        {
-            get
-            {
-                return m_CurArcaneCharges;
-            }
-            set
-            {
-                m_CurArcaneCharges = value;
-                InvalidateProperties();
-            }
-        }
-
-        public int TempHue { get; set; }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public bool IsArcane
-        {
-            get
-            {
-                return m_MaxArcaneCharges > 0 && m_CurArcaneCharges >= 0;
-            }
-        }
-
-        public override void AddCraftedProperties(ObjectPropertyList list)
-        {
-            base.AddCraftedProperties(list);
-
-            if (IsArcane)
-                list.Add(1061837, "{0}\t{1}", m_CurArcaneCharges, m_MaxArcaneCharges); // arcane charges: ~1_val~ / ~2_val~
-        }
-        #endregion
-
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1023570; // Wand
-            }
-        }
+        public override int LabelNumber => 1023570; // Wand
 
         public VvVWand1()
             : base(WandEffect.None, 0, 0)
@@ -82,20 +23,20 @@ namespace Server.Engines.VvV
 
         public VvVWand1(Serial serial)
             : base(serial)
-		{
-		}
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)2); // version
+            writer.Write(2); // version
 
             if (IsArcane)
             {
                 writer.Write(true);
                 writer.Write(TempHue);
-                writer.Write((int)m_CurArcaneCharges);
-                writer.Write((int)m_MaxArcaneCharges);
+                writer.Write(m_CurArcaneCharges);
+                writer.Write(m_MaxArcaneCharges);
             }
             else
             {
@@ -104,52 +45,47 @@ namespace Server.Engines.VvV
         }
 
         public override void Deserialize(GenericReader reader)
-		{
-			base.Deserialize(reader);
-			int version = reader.ReadInt();
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
 
             switch (version)
             {
                 case 2:
+                {
+                    if (reader.ReadBool())
                     {
-                        if (reader.ReadBool())
-                        {
-                            TempHue = reader.ReadInt();
-                            m_CurArcaneCharges = reader.ReadInt();
-                            m_MaxArcaneCharges = reader.ReadInt();
-                        }
-
-                        break;
+                        TempHue = reader.ReadInt();
+                        m_CurArcaneCharges = reader.ReadInt();
+                        m_MaxArcaneCharges = reader.ReadInt();
                     }
+
+                    break;
+                }
                 case 1:
+                {
+                    if (reader.ReadBool())
                     {
-                        if (reader.ReadBool())
-                        {
-                            m_CurArcaneCharges = reader.ReadInt();
-                            m_MaxArcaneCharges = reader.ReadInt();
-                        }
-
-                        break;
+                        m_CurArcaneCharges = reader.ReadInt();
+                        m_MaxArcaneCharges = reader.ReadInt();
                     }
+
+                    break;
+                }
             }
 
             if (version == 0)
                 Timer.DelayCall(() => ViceVsVirtueSystem.Instance.AddVvVItem(this));
-		}
-	}
-
-    public class VvVWand2 : BaseWand, IArcaneEquip
-    {
-        public override int InitMinHits { get { return 255; } }
-        public override int InitMaxHits { get { return 255; } }
+        }
 
         #region Arcane Impl
+
         private int m_MaxArcaneCharges, m_CurArcaneCharges;
 
         [CommandProperty(AccessLevel.GameMaster)]
         public int MaxArcaneCharges
         {
-            get { return m_MaxArcaneCharges; }
+            get => m_MaxArcaneCharges;
             set
             {
                 m_MaxArcaneCharges = value;
@@ -160,7 +96,7 @@ namespace Server.Engines.VvV
         [CommandProperty(AccessLevel.GameMaster)]
         public int CurArcaneCharges
         {
-            get { return m_CurArcaneCharges; }
+            get => m_CurArcaneCharges;
             set
             {
                 m_CurArcaneCharges = value;
@@ -171,30 +107,26 @@ namespace Server.Engines.VvV
         public int TempHue { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public bool IsArcane
-        {
-            get
-            {
-                return m_MaxArcaneCharges > 0 && m_CurArcaneCharges >= 0;
-            }
-        }
+        public bool IsArcane => m_MaxArcaneCharges > 0 && m_CurArcaneCharges >= 0;
 
         public override void AddCraftedProperties(ObjectPropertyList list)
         {
             base.AddCraftedProperties(list);
 
             if (IsArcane)
-                list.Add(1061837, "{0}\t{1}", m_CurArcaneCharges, m_MaxArcaneCharges); // arcane charges: ~1_val~ / ~2_val~
+                list.Add(1061837, "{0}\t{1}", m_CurArcaneCharges,
+                    m_MaxArcaneCharges); // arcane charges: ~1_val~ / ~2_val~
         }
-        #endregion
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1023570; // Wand
-            }
-        }
+        #endregion
+    }
+
+    public class VvVWand2 : BaseWand, IArcaneEquip
+    {
+        public override int InitMinHits => 255;
+        public override int InitMaxHits => 255;
+
+        public override int LabelNumber => 1023570; // Wand
 
         public VvVWand2()
             : base(WandEffect.None, 0, 0)
@@ -216,14 +148,14 @@ namespace Server.Engines.VvV
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)2); // version
+            writer.Write(2); // version
 
             if (IsArcane)
             {
                 writer.Write(true);
                 writer.Write(TempHue);
-                writer.Write((int)m_CurArcaneCharges);
-                writer.Write((int)m_MaxArcaneCharges);
+                writer.Write(m_CurArcaneCharges);
+                writer.Write(m_MaxArcaneCharges);
             }
             else
             {
@@ -234,35 +166,77 @@ namespace Server.Engines.VvV
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             switch (version)
             {
                 case 2:
+                {
+                    if (reader.ReadBool())
                     {
-                        if (reader.ReadBool())
-                        {
-                            TempHue = reader.ReadInt();
-                            m_CurArcaneCharges = reader.ReadInt();
-                            m_MaxArcaneCharges = reader.ReadInt();
-                        }
-
-                        break;
+                        TempHue = reader.ReadInt();
+                        m_CurArcaneCharges = reader.ReadInt();
+                        m_MaxArcaneCharges = reader.ReadInt();
                     }
+
+                    break;
+                }
                 case 1:
+                {
+                    if (reader.ReadBool())
                     {
-                        if (reader.ReadBool())
-                        {
-                            m_CurArcaneCharges = reader.ReadInt();
-                            m_MaxArcaneCharges = reader.ReadInt();
-                        }
-
-                        break;
+                        m_CurArcaneCharges = reader.ReadInt();
+                        m_MaxArcaneCharges = reader.ReadInt();
                     }
+
+                    break;
+                }
             }
 
             if (version == 0)
                 Timer.DelayCall(() => ViceVsVirtueSystem.Instance.AddVvVItem(this));
         }
+
+        #region Arcane Impl
+
+        private int m_MaxArcaneCharges, m_CurArcaneCharges;
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int MaxArcaneCharges
+        {
+            get => m_MaxArcaneCharges;
+            set
+            {
+                m_MaxArcaneCharges = value;
+                InvalidateProperties();
+            }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int CurArcaneCharges
+        {
+            get => m_CurArcaneCharges;
+            set
+            {
+                m_CurArcaneCharges = value;
+                InvalidateProperties();
+            }
+        }
+
+        public int TempHue { get; set; }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public bool IsArcane => m_MaxArcaneCharges > 0 && m_CurArcaneCharges >= 0;
+
+        public override void AddCraftedProperties(ObjectPropertyList list)
+        {
+            base.AddCraftedProperties(list);
+
+            if (IsArcane)
+                list.Add(1061837, "{0}\t{1}", m_CurArcaneCharges,
+                    m_MaxArcaneCharges); // arcane charges: ~1_val~ / ~2_val~
+        }
+
+        #endregion
     }
 }

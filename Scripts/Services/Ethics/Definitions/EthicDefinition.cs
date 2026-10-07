@@ -1,60 +1,28 @@
-using System;
-
 namespace Server.Ethics
 {
     public class EthicDefinition
     {
-        private readonly int m_PrimaryHue;
-        private readonly TextDefinition m_Title;
-        private readonly TextDefinition m_Adjunct;
-        private readonly TextDefinition m_JoinPhrase;
-        private readonly Power[] m_Powers;
-        public EthicDefinition(int primaryHue, TextDefinition title, TextDefinition adjunct, TextDefinition joinPhrase, Power[] powers)
-        {
-            this.m_PrimaryHue = primaryHue;
+        public int PrimaryHue { get; }
 
-            this.m_Title = title;
-            this.m_Adjunct = adjunct;
+        public TextDefinition Title { get; }
 
-            this.m_JoinPhrase = joinPhrase;
+        public TextDefinition Adjunct { get; }
 
-            this.m_Powers = powers;
-        }
+        public TextDefinition JoinPhrase { get; }
 
-        public int PrimaryHue
+        public Power[] Powers { get; }
+
+        public EthicDefinition(int primaryHue, TextDefinition title, TextDefinition adjunct, TextDefinition joinPhrase,
+            Power[] powers)
         {
-            get
-            {
-                return this.m_PrimaryHue;
-            }
-        }
-        public TextDefinition Title
-        {
-            get
-            {
-                return this.m_Title;
-            }
-        }
-        public TextDefinition Adjunct
-        {
-            get
-            {
-                return this.m_Adjunct;
-            }
-        }
-        public TextDefinition JoinPhrase
-        {
-            get
-            {
-                return this.m_JoinPhrase;
-            }
-        }
-        public Power[] Powers
-        {
-            get
-            {
-                return this.m_Powers;
-            }
+            PrimaryHue = primaryHue;
+
+            Title = title;
+            Adjunct = adjunct;
+
+            JoinPhrase = joinPhrase;
+
+            Powers = powers;
         }
     }
 }

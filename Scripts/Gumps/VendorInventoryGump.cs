@@ -25,19 +25,19 @@ namespace Server.Gumps
 
             AddImageTiled(10, 40, 400, 20 * m_Inventories.Count, 0xA40);
 
-            for (int i = 0; i < m_Inventories.Count; i++)
+            for (var i = 0; i < m_Inventories.Count; i++)
             {
-                VendorInventory inventory = (VendorInventory)m_Inventories[i];
+                var inventory = (VendorInventory)m_Inventories[i];
 
-                int y = 40 + 20 * i;
+                var y = 40 + 20 * i;
 
                 if (inventory.Owner == from)
                     AddButton(10, y, 0xFA5, 0xFA7, i + 1, GumpButtonType.Reply, 0);
 
-                AddLabel(45, y, 0x481, String.Format("{0} ({1})", inventory.ShopName, inventory.VendorName));
+                AddLabel(45, y, 0x481, string.Format("{0} ({1})", inventory.ShopName, inventory.VendorName));
 
-                TimeSpan expire = inventory.ExpireTime - DateTime.UtcNow;
-                int hours = (int)expire.TotalHours;
+                var expire = inventory.ExpireTime - DateTime.UtcNow;
+                var hours = (int)expire.TotalHours;
 
                 AddLabel(320, y, 0x481, hours.ToString());
                 AddHtmlLocalized(350, y, 50, 20, 1062466, 0x7FFF, false, false); // hour(s)
@@ -49,34 +49,35 @@ namespace Server.Gumps
             if (info.ButtonID == 0)
                 return;
 
-            Mobile from = sender.Mobile;
-            HouseSign sign = m_House.Sign;
+            var from = sender.Mobile;
+            var sign = m_House.Sign;
 
             if (m_House.Deleted || sign == null || sign.Deleted || !from.CheckAlive())
                 return;
 
             if (from.Map != sign.Map || !from.InRange(sign, 5))
             {
-                from.SendLocalizedMessage(1062429); // You must be within five paces of the house sign to use this option.
+                from.SendLocalizedMessage(
+                    1062429); // You must be within five paces of the house sign to use this option.
                 return;
             }
 
-            int index = info.ButtonID - 1;
+            var index = info.ButtonID - 1;
             if (index < 0 || index >= m_Inventories.Count)
                 return;
 
-            VendorInventory inventory = (VendorInventory)m_Inventories[index];
+            var inventory = (VendorInventory)m_Inventories[index];
 
             if (inventory.Owner != from || !m_House.VendorInventories.Contains(inventory))
                 return;
 
-            int totalItems = 0;
-            int givenToBackpack = 0;
-            int givenToBankBox = 0;
+            var totalItems = 0;
+            var givenToBackpack = 0;
+            var givenToBankBox = 0;
 
-            for (int i = inventory.Items.Count - 1; i >= 0; i--)
+            for (var i = inventory.Items.Count - 1; i >= 0; i--)
             {
-                Item item = inventory.Items[i];
+                var item = inventory.Items[i];
 
                 if (item.Deleted)
                 {
@@ -98,22 +99,29 @@ namespace Server.Gumps
                 }
             }
 
-            from.SendLocalizedMessage(1062436, totalItems.ToString() + "\t" + inventory.Gold.ToString()); // The vendor you selected had ~1_COUNT~ items in its inventory, and ~2_AMOUNT~ gold in its account.
+            from.SendLocalizedMessage(1062436,
+                totalItems + "\t" +
+                inventory.Gold); // The vendor you selected had ~1_COUNT~ items in its inventory, and ~2_AMOUNT~ gold in its account.
 
-            int givenGold = Banker.DepositUpTo(from, inventory.Gold);
+            var givenGold = Banker.DepositUpTo(from, inventory.Gold);
             inventory.Gold -= givenGold;
 
-            from.SendLocalizedMessage(1060397, givenGold.ToString()); // ~1_AMOUNT~ gold has been deposited into your bank box.
-            from.SendLocalizedMessage(1062437, givenToBackpack.ToString() + "\t" + givenToBankBox.ToString()); // ~1_COUNT~ items have been removed from the shop inventory and placed in your backpack.  ~2_BANKCOUNT~ items were removed from the shop inventory and placed in your bank box.
+            from.SendLocalizedMessage(1060397,
+                givenGold.ToString()); // ~1_AMOUNT~ gold has been deposited into your bank box.
+            from.SendLocalizedMessage(1062437,
+                givenToBackpack + "\t" +
+                givenToBankBox); // ~1_COUNT~ items have been removed from the shop inventory and placed in your backpack.  ~2_BANKCOUNT~ items were removed from the shop inventory and placed in your bank box.
 
             if (inventory.Gold > 0 || inventory.Items.Count > 0)
             {
-                from.SendLocalizedMessage(1062440); // Some of the shop inventory would not fit in your backpack or bank box.  Please free up some room and try again.
+                from.SendLocalizedMessage(
+                    1062440); // Some of the shop inventory would not fit in your backpack or bank box.  Please free up some room and try again.
             }
             else
             {
                 inventory.Delete();
-                from.SendLocalizedMessage(1062438); // The shop is now empty of inventory and funds, so it has been deleted.
+                from.SendLocalizedMessage(
+                    1062438); // The shop is now empty of inventory and funds, so it has been deleted.
             }
         }
     }

@@ -1,8 +1,4 @@
-using System;
-using Server;
 using Server.Mobiles;
-using Server.Regions;
-using Server.Network;
 
 namespace Server.Custom.Mechanics
 {
@@ -11,35 +7,33 @@ namespace Server.Custom.Mechanics
         public static void Initialize()
         {
             // Подписываемся на стандартный ивент движения (срабатывает при каждом шаге)
-            EventSink.Movement += new MovementEventHandler(OnPlayerMovement);
+            EventSink.Movement += OnPlayerMovement;
         }
 
         private static void OnPlayerMovement(MovementEventArgs e)
         {
-            PlayerMobile pm = e.Mobile as PlayerMobile;
+            var pm = e.Mobile as PlayerMobile;
 
             // Базовые проверки безопасности: только живые игроки со статусом Young
             if (pm == null || !pm.Alive || !pm.Young || pm.AccessLevel > AccessLevel.Player)
                 return;
 
-            Region currentRegion = pm.Region;
+            var currentRegion = pm.Region;
             if (currentRegion == null)
                 return;
 
-            bool isInsideHaven = false;
-            string regionName = currentRegion.Name != null ? currentRegion.Name.ToLower() : "";
+            var isInsideHaven = false;
+            var regionName = currentRegion.Name != null ? currentRegion.Name.ToLower() : "";
 
             // Проверяем, находится ли игрок сейчас в Haven
-            if (regionName.Contains("haven") || regionName.Contains("newhaven") || regionName.Contains("new haven") || currentRegion.IsPartOf("NewHaven") || currentRegion.IsPartOf("Haven"))
-            {
-                isInsideHaven = true;
-            }
+            if (regionName.Contains("haven") || regionName.Contains("newhaven") || regionName.Contains("new haven") ||
+                currentRegion.IsPartOf("NewHaven") || currentRegion.IsPartOf("Haven")) isInsideHaven = true;
 
             // Условие 1: Игрок вышел за пределы Нью-Хейвена в мир Trammel пешком/на корабле
-            bool walkedOut = (!isInsideHaven && pm.Map == Map.Trammel);
+            var walkedOut = !isInsideHaven && pm.Map == Map.Trammel;
 
             // Условие 2: Игрок улетел через Moongate/Recall на другой материк (Felucca, Malas, Ilshenar и т.д.)
-            bool teleportedOut = (pm.Map != Map.Trammel && pm.Map != Map.Internal);
+            var teleportedOut = pm.Map != Map.Trammel && pm.Map != Map.Internal;
 
             if (walkedOut || teleportedOut)
             {
@@ -51,7 +45,8 @@ namespace Server.Custom.Mechanics
 
                 // Оповещения выводятся на русском языке благодаря нашему исправлению в World.cs!
                 pm.SendMessage(0x22, "Вы покинули стартовый остров Нью-Хейвен и вступили во взрослый мир Сосарии.");
-                pm.SendMessage(0x5D, "Статус 'Young' автоматически снят. Будьте осторожны — теперь вы уязвимы для всех опасностей мира!");
+                pm.SendMessage(0x5D,
+                    "Статус 'Young' автоматически снят. Будьте осторожны — теперь вы уязвимы для всех опасностей мира!");
             }
         }
     }

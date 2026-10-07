@@ -1,6 +1,6 @@
-using System;
-using Server.Targeting;
 using System.Collections.Generic;
+using Server.Spells.Mysticism;
+using Server.Targeting;
 
 namespace Server.Spells.First
 {
@@ -12,12 +12,15 @@ namespace Server.Spells.First
             9031,
             Reagent.Ginseng,
             Reagent.Nightshade);
+
+        public static Dictionary<Mobile, Timer> m_Table = new Dictionary<Mobile, Timer>();
+
+        public override SpellCircle Circle => SpellCircle.First;
+
         public FeeblemindSpell(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
         {
         }
-
-        public static Dictionary<Mobile, Timer> m_Table = new Dictionary<Mobile, Timer>();
 
         public static bool IsUnderEffects(Mobile m)
         {
@@ -28,12 +31,9 @@ namespace Server.Spells.First
         {
             if (m_Table.ContainsKey(m))
             {
-                Timer t = m_Table[m];
+                var t = m_Table[m];
 
-                if (t != null && t.Running)
-                {
-                    t.Stop();
-                }
+                if (t != null && t.Running) t.Stop();
 
                 BuffInfo.RemoveBuff(m, BuffIcon.FeebleMind);
 
@@ -44,13 +44,6 @@ namespace Server.Spells.First
             }
         }
 
-        public override SpellCircle Circle
-        {
-            get
-            {
-                return SpellCircle.First;
-            }
-        }
         public override void OnCast()
         {
             Caster.Target = new InternalTarget(this);
@@ -67,14 +60,14 @@ namespace Server.Spells.First
                 SpellHelper.Turn(Caster, m);
                 SpellHelper.CheckReflect((int)Circle, Caster, ref m);
 
-                if (Mysticism.StoneFormSpell.CheckImmunity(m))
+                if (StoneFormSpell.CheckImmunity(m))
                 {
                     Caster.SendLocalizedMessage(1080192); // Your target resists your ability reduction magic.
                     return;
                 }
 
-                int oldOffset = SpellHelper.GetCurseOffset(m, StatType.Int);
-                int newOffset = SpellHelper.GetOffset(Caster, m, StatType.Int, true, false);
+                var oldOffset = SpellHelper.GetCurseOffset(m, StatType.Int);
+                var newOffset = SpellHelper.GetOffset(Caster, m, StatType.Int, true, false);
 
                 if (-newOffset > oldOffset || newOffset == 0)
                 {
@@ -94,19 +87,17 @@ namespace Server.Spells.First
 
                     if (-newOffset < oldOffset)
                     {
-                        SpellHelper.AddStatCurse(this.Caster, m, StatType.Int, false, newOffset);
+                        SpellHelper.AddStatCurse(Caster, m, StatType.Int, false, newOffset);
 
-                        int percentage = (int)(SpellHelper.GetOffsetScalar(this.Caster, m, true) * 100);
-                        TimeSpan length = SpellHelper.GetDuration(this.Caster, m);
-                        BuffInfo.AddBuff(m, new BuffInfo(BuffIcon.FeebleMind, 1075833, length, m, percentage.ToString()));
+                        var percentage = (int)(SpellHelper.GetOffsetScalar(Caster, m, true) * 100);
+                        var length = SpellHelper.GetDuration(Caster, m);
+                        BuffInfo.AddBuff(m,
+                            new BuffInfo(BuffIcon.FeebleMind, 1075833, length, m, percentage.ToString()));
 
                         if (m_Table.ContainsKey(m))
                             m_Table[m].Stop();
 
-                        m_Table[m] = Timer.DelayCall(length, () =>
-                        {
-                            RemoveEffects(m);
-                        });
+                        m_Table[m] = Timer.DelayCall(length, () => { RemoveEffects(m); });
                     }
                 }
             }
@@ -117,6 +108,7 @@ namespace Server.Spells.First
         private class InternalTarget : Target
         {
             private readonly FeeblemindSpell m_Owner;
+
             public InternalTarget(FeeblemindSpell owner)
                 : base(Core.ML ? 10 : 12, false, TargetFlags.Harmful)
             {
@@ -125,10 +117,7 @@ namespace Server.Spells.First
 
             protected override void OnTarget(Mobile from, object o)
             {
-                if (o is Mobile)
-                {
-                    m_Owner.Target((Mobile)o);
-                }
+                if (o is Mobile) m_Owner.Target((Mobile)o);
             }
 
             protected override void OnTargetFinish(Mobile from)

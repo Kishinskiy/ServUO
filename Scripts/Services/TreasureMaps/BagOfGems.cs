@@ -1,11 +1,9 @@
-using System;
-
 namespace Server.Items
 {
     [FlipableAttribute(0xA333, 0xA334)]
     public class BagOfGems : Bag
     {
-        public override int LabelNumber { get { return 1048032; } } // a bag
+        public override int LabelNumber => 1048032; // a bag
 
         public BagOfGems()
         {

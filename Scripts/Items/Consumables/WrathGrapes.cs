@@ -5,8 +5,14 @@ namespace Server.Items
     [TypeAlias("Server.Items.WrathGrapes")]
     public class GrapesOfWrath : BaseMagicalFood, ICommodity
     {
-        TextDefinition ICommodity.Description { get { return LabelNumber; } }
-        bool ICommodity.IsDeedable { get { return true; } }
+        public override MagicalFood FoodID => MagicalFood.GrapesOfWrath;
+
+        public override TimeSpan Cooldown => TimeSpan.FromMinutes(2);
+
+        public override TimeSpan Duration => TimeSpan.FromSeconds(20);
+
+        public override int EatMessage =>
+            1074847; // The grapes of wrath invigorate you for a short time, allowing you to deal extra damage.
 
         [Constructable]
         public GrapesOfWrath()
@@ -22,40 +28,15 @@ namespace Server.Items
         {
         }
 
-        public override MagicalFood FoodID
-        {
-            get
-            {
-                return MagicalFood.GrapesOfWrath;
-            }
-        }
-        public override TimeSpan Cooldown
-        {
-            get
-            {
-                return TimeSpan.FromMinutes(2);
-            }
-        }
-        public override TimeSpan Duration
-        {
-            get
-            {
-                return TimeSpan.FromSeconds(20);
-            }
-        }
-        public override int EatMessage
-        {
-            get
-            {
-                return 1074847;
-            }
-        }// The grapes of wrath invigorate you for a short time, allowing you to deal extra damage.
+        TextDefinition ICommodity.Description => LabelNumber;
+        bool ICommodity.IsDeedable => true;
 
         public override bool Eat(Mobile from)
         {
             if (base.Eat(from))
             {
-                BuffInfo.AddBuff(from, new BuffInfo(BuffIcon.GrapesOfWrath, 1032247, 1153762, Duration, from, "15\t35"));
+                BuffInfo.AddBuff(from,
+                    new BuffInfo(BuffIcon.GrapesOfWrath, 1032247, 1153762, Duration, from, "15\t35"));
                 return true;
             }
 
@@ -66,14 +47,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

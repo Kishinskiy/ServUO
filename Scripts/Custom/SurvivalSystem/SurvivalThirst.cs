@@ -11,33 +11,33 @@ namespace Server.Custom.SurvivalSystem
         public static void Initialize()
         {
             // Start a timer that fires every minute
-            _thirst_check = Timer.DelayCall(TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1), new TimerCallback(CheckThirst));
+            _thirst_check = Timer.DelayCall(TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1), CheckThirst);
         }
 
         private static void CheckThirst()
         {
-            foreach (NetState state in NetState.Instances)
+            foreach (var state in NetState.Instances)
             {
                 if (state == null)
                     continue;
 
-                PlayerMobile pm = state.Mobile as PlayerMobile;
+                var pm = state.Mobile as PlayerMobile;
                 if (pm == null || !pm.Alive || pm.Deleted || pm.AccessLevel > AccessLevel.Player)
                     continue;
 
-                int thirst = pm.Thirst;
+                var thirst = pm.Thirst;
 
                 if (thirst == 0) // ПОЛНОЕ ОБЕЗВОЖИВАНИЕ (Критическая точка)
                 {
                     // Регистрируем маркер дебаффа жажды на 15 секунд
                     pm.AddStatMod(new StatMod(StatType.Int, "ThirstManaDebuff", -15, TimeSpan.FromSeconds(120.0)));
                     // Зажигаем оригинальную круглую иконку MindRot (Иссушение/Гниение разума) на экране
-                    BuffInfo.AddBuff(pm, new BuffInfo(BuffIcon.Mindrot, 1075661, 1075662, TimeSpan.FromSeconds(120.0), pm, "Смертельное обезвоживание\nВаше горло пересохло! Регенерация маны заблокирована, организм увядает."));
+                    BuffInfo.AddBuff(pm,
+                        new BuffInfo(BuffIcon.Mindrot, 1075661, 1075662, TimeSpan.FromSeconds(120.0), pm,
+                            "Смертельное обезвоживание\nВаше горло пересохло! Регенерация маны заблокирована, организм увядает."));
 
                     if (Utility.RandomDouble() < 0.15)
-                    {
                         pm.SendMessage(0x26, "Ваше горло полностью пересохло! Вы умираете от жажды.");
-                    }
                 }
                 else
                 {
@@ -52,16 +52,12 @@ namespace Server.Custom.SurvivalSystem
                 if (thirst < 3) // Сильная жажда
                 {
                     if (Utility.RandomDouble() < 0.15)
-                    {
-                        pm.SendMessage(0x22, $"Внимание: Вы испытываете сильную жажду! Найдите воду.");
-                    }
+                        pm.SendMessage(0x22, "Внимание: Вы испытываете сильную жажду! Найдите воду.");
                 }
                 else if (thirst < 10) // Средняя жажда
                 {
                     if (Utility.RandomDouble() < 0.05)
-                    {
                         pm.SendMessage(0x35, "Вы чувствуете сухость во рту. Пора бы сделать глоток воды.");
-                    }
                 }
             }
         }

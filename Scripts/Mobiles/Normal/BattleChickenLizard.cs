@@ -5,6 +5,26 @@ namespace Server.Mobiles
     [CorpseName("a chicken lizard corpse")]
     public class BattleChickenLizard : BaseCreature
     {
+        public override int Meat => 3;
+        public override MeatType MeatType => MeatType.Bird;
+        public override FoodType FavoriteFood => FoodType.GrainsAndHay;
+
+        public override IDamageable Combatant
+        {
+            get => base.Combatant;
+            set
+            {
+                base.Combatant = value;
+
+                if (!Controlled)
+                {
+                    if (0.05 > Utility.RandomDouble())
+                        StopFlee();
+                    else if (!CheckFlee()) BeginFlee(TimeSpan.FromSeconds(30));
+                }
+            }
+        }
+
         [Constructable]
         public BattleChickenLizard()
             : base(AIType.AI_Animal, FightMode.Aggressor, 10, 1, 0.05, 0.1)
@@ -34,43 +54,35 @@ namespace Server.Mobiles
             MinTameSkill = 0.0;
         }
 
-        public override int Meat { get { return 3; } }
-        public override MeatType MeatType { get { return MeatType.Bird; } }
-        public override FoodType FavoriteFood { get { return FoodType.GrainsAndHay; } }
-
-        public override int GetIdleSound() { return 1511; }
-        public override int GetAngerSound() { return 1508; }
-        public override int GetHurtSound() { return 1510; }
-        public override int GetDeathSound() { return 1509; }
-
-        public override IDamageable Combatant
+        public BattleChickenLizard(Serial serial)
+            : base(serial)
         {
-            get { return base.Combatant; }
-            set
-            {
-                base.Combatant = value;
+        }
 
-                if (!Controlled)
-                {
-                    if (0.05 > Utility.RandomDouble())
-                    {
-                        StopFlee();
-                    }
-                    else if (!CheckFlee())
-                    {
-                        BeginFlee(TimeSpan.FromSeconds(30));
-                    }
-                }
-            }
+        public override int GetIdleSound()
+        {
+            return 1511;
+        }
+
+        public override int GetAngerSound()
+        {
+            return 1508;
+        }
+
+        public override int GetHurtSound()
+        {
+            return 1510;
+        }
+
+        public override int GetDeathSound()
+        {
+            return 1509;
         }
 
 
         public override bool CheckFlee()
         {
-            if (Controlled)
-            {
-                return base.CheckFlee();
-            }
+            if (Controlled) return base.CheckFlee();
 
             return DateTime.UtcNow < EndFleeTime;
         }
@@ -86,21 +98,16 @@ namespace Server.Mobiles
             StopFlee();
         }
 
-        public BattleChickenLizard(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

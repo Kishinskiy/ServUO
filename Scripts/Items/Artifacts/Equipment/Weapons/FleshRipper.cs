@@ -1,10 +1,14 @@
-using System;
-
 namespace Server.Items
 {
     public class FleshRipper : AssassinSpike
-	{
-		public override bool IsArtifact { get { return true; } }
+    {
+        public override bool IsArtifact => true;
+
+        public override int LabelNumber => 1075045; // Flesh Ripper
+        public override int InitMinHits => 255;
+
+        public override int InitMaxHits => 255;
+
         [Constructable]
         public FleshRipper()
         {
@@ -22,27 +26,6 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1075045;
-            }
-        }// Flesh Ripper
-        public override int InitMinHits
-        {
-            get
-            {
-                return 255;
-            }
-        }
-        public override int InitMaxHits
-        {
-            get
-            {
-                return 255;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -54,7 +37,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

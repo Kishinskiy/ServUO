@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +5,9 @@ namespace Server.Mobiles
     [CorpseName("a Pyre corpse")]
     public class Pyre : Phoenix
     {
+        public override bool GivesMLMinorArtifact => true;
+        public override bool CanBeParagon => false;
+
         [Constructable]
         public Pyre()
         {
@@ -41,32 +43,24 @@ namespace Server.Mobiles
             Fame = 21000;
             Karma = -21000;
 
-            for (int i = 0; i < Utility.RandomMinMax(0, 1); i++)
-            {
+            for (var i = 0; i < Utility.RandomMinMax(0, 1); i++)
                 PackItem(Loot.RandomScroll(0, Loot.ArcanistScrollTypes.Length, SpellbookType.Arcanist));
-            }
 
             SetWeaponAbility(WeaponAbility.BleedAttack);
             SetWeaponAbility(WeaponAbility.ParalyzingBlow);
-        }
-
-        public override bool GivesMLMinorArtifact
-        {
-            get { return true; }
         }
 
         public Pyre(Serial serial)
             : base(serial)
         {
         }
-		public override bool CanBeParagon { get { return false; } }
-        public override void OnDeath( Container c )
+
+        public override void OnDeath(Container c)
         {
-            base.OnDeath( c );
+            base.OnDeath(c);
 
-            if ( Paragon.ChestChance > Utility.RandomDouble() )
-            c.DropItem( new ParagonChest( Name, 5 ) );
-
+            if (Paragon.ChestChance > Utility.RandomDouble())
+                c.DropItem(new ParagonChest(Name, 5));
         }
 
         public override void GenerateLoot()
@@ -78,14 +72,14 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

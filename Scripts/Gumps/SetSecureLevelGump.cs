@@ -1,7 +1,5 @@
-using System;
-
-using Server.Mobiles;
 using Server.Guilds;
+using Server.Mobiles;
 using Server.Multis;
 using Server.Network;
 
@@ -14,17 +12,17 @@ namespace Server.Gumps
 
     public class SetSecureLevelGump : Gump
     {
-        private ISecurable m_Info;
+        private readonly ISecurable m_Info;
 
         public SetSecureLevelGump(Mobile from, ISecurable info, BaseHouse house)
             : base(50, 50)
         {
             m_Info = info;
-            Mobile owner = house.Owner;
+            var owner = house.Owner;
 
             AddPage(0);
 
-            int offset = (Guild.NewGuildSystem) ? 20 : 0;
+            var offset = Guild.NewGuildSystem ? 20 : 0;
 
             AddBackground(0, 0, 220, 160 + offset, 5054);
 
@@ -60,19 +58,19 @@ namespace Server.Gumps
 
         public int GetColor(SecureLevel level)
         {
-            return (m_Info.Level == level) ? 0x7F18 : 0x7FFF;
+            return m_Info.Level == level ? 0x7F18 : 0x7FFF;
         }
 
         public int GetFirstID(SecureLevel level)
         {
-            return (m_Info.Level == level) ? 4006 : 4005;
+            return m_Info.Level == level ? 4006 : 4005;
         }
 
         public override void OnResponse(NetState state, RelayInfo info)
         {
-            SecureLevel level = m_Info.Level;
+            var level = m_Info.Level;
 
-            switch ( info.ButtonID )
+            switch (info.ButtonID)
             {
                 case 1:
                     level = SecureLevel.Owner;

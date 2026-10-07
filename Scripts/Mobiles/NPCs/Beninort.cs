@@ -2,9 +2,20 @@ using System;
 using Server.Items;
 
 namespace Server.Engines.Quests
-{ 
+{
     public class Beninort : MondainQuester
     {
+        public override Type[] Quests
+        {
+            get
+            {
+                return new[]
+                {
+                    typeof(SecretsoftheSoulforge)
+                };
+            }
+        }
+
         [Constructable]
         public Beninort()
             : base("Beninort", "the Artificer")
@@ -18,16 +29,6 @@ namespace Server.Engines.Quests
         {
         }
 
-        public override Type[] Quests
-        {
-            get
-            {
-                return new Type[] 
-                {
-                    typeof(SecretsoftheSoulforge)
-                };
-            }
-        }
         public override void InitBody()
         {
             InitStats(100, 100, 25);
@@ -50,19 +51,19 @@ namespace Server.Engines.Quests
 
         public override void Advertise()
         {
-            Say(1112521);  // Know the secrets. Learn of the soulforge.
+            Say(1112521); // Know the secrets. Learn of the soulforge.
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
+using Server.Spells.SkillMasteries;
 
 namespace Server.Items
 {
     /// <summary>
-    /// The assassin's friend.
-    /// A successful Mortal Strike will render its victim unable to heal any damage for several seconds. 
-    /// Use a gruesome follow-up to finish off your foe.
+    ///     The assassin's friend.
+    ///     A successful Mortal Strike will render its victim unable to heal any damage for several seconds.
+    ///     Use a gruesome follow-up to finish off your foe.
     /// </summary>
     public class MortalStrike : WeaponAbility
     {
@@ -16,17 +17,8 @@ namespace Server.Items
         private static readonly Dictionary<Mobile, Timer> m_Table = new Dictionary<Mobile, Timer>();
         private static readonly List<Mobile> m_EffectReduction = new List<Mobile>();
 
-        public MortalStrike()
-        {
-        }
+        public override int BaseMana => 30;
 
-        public override int BaseMana
-        {
-            get
-            {
-                return 30;
-            }
-        }
         public static bool IsWounded(Mobile m)
         {
             return m_Table.ContainsKey(m);
@@ -36,14 +28,11 @@ namespace Server.Items
         {
             Timer t;
 
-            if (m_Table.ContainsKey(m))
-            {
-                EndWound(m, true);
-            }
+            if (m_Table.ContainsKey(m)) EndWound(m, true);
 
             if (Core.HS && m_EffectReduction.Contains(m))
             {
-                double d = duration.TotalSeconds;
+                var d = duration.TotalSeconds;
                 duration = TimeSpan.FromSeconds(d / 2);
             }
 
@@ -61,7 +50,7 @@ namespace Server.Items
             if (!IsWounded(m))
                 return;
 
-            Timer t = m_Table[m];
+            var t = m_Table[m];
 
             if (t != null)
                 t.Stop();
@@ -78,10 +67,10 @@ namespace Server.Items
                 m_EffectReduction.Add(m);
 
                 Timer.DelayCall(TimeSpan.FromSeconds(8), () =>
-                    {
-                        if (m_EffectReduction.Contains(m))
-                            m_EffectReduction.Remove(m);
-                    });
+                {
+                    if (m_EffectReduction.Contains(m))
+                        m_EffectReduction.Remove(m);
+                });
             }
         }
 
@@ -101,7 +90,7 @@ namespace Server.Items
             // Do not reset timer if one is already in place.
             if (Core.HS || !IsWounded(defender))
             {
-                if (Spells.SkillMasteries.ResilienceSpell.UnderEffects(defender)) //Halves time
+                if (ResilienceSpell.UnderEffects(defender)) //Halves time
                     BeginWound(defender, defender.Player ? TimeSpan.FromSeconds(3.0) : TimeSpan.FromSeconds(6));
                 else
                     BeginWound(defender, defender.Player ? PlayerDuration : NPCDuration);
@@ -111,6 +100,7 @@ namespace Server.Items
         private class InternalTimer : Timer
         {
             private readonly Mobile m_Mobile;
+
             public InternalTimer(Mobile m, TimeSpan duration)
                 : base(duration)
             {

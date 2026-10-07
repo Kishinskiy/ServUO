@@ -1,14 +1,13 @@
-using System;
-using Server.Mobiles;
-
 namespace Server.Items
-{ 
-	public class MasterCraftsmanTalisman : BaseTalisman
+{
+    public class MasterCraftsmanTalisman : BaseTalisman
     {
-        public override bool IsArtifact { get { return true; } }
-    
         private int _Type;
-        public virtual int Type { get { return _Type; } }
+        public override bool IsArtifact => true;
+        public virtual int Type => _Type;
+
+        public override int LabelNumber => 1157217; // MasterCraftsmanTalisman
+        public override bool ForceShowName => true;
 
         [Constructable]
         public MasterCraftsmanTalisman(int charges, int itemID, TalismanSkill skill)
@@ -17,12 +16,17 @@ namespace Server.Items
             Skill = skill;
 
             SuccessBonus = GetRandomSuccessful();
-            ExceptionalBonus = BaseTalisman.GetRandomExceptional();
+            ExceptionalBonus = GetRandomExceptional();
             Blessed = GetRandomBlessed();
 
             _Type = charges;
-			Charges = charges;
-		}
+            Charges = charges;
+        }
+
+        public MasterCraftsmanTalisman(Serial serial)
+            : base(serial)
+        {
+        }
 
         public override void GetProperties(ObjectPropertyList list)
         {
@@ -34,30 +38,11 @@ namespace Server.Items
                 list.Add(1049116, Charges.ToString()); // [ Charges: ~1_CHARGES~ ]
         }
 
-        public MasterCraftsmanTalisman(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1157217;
-            }
-        }// MasterCraftsmanTalisman
-        public override bool ForceShowName
-        {
-            get
-            {
-                return true;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)1); // version
+            writer.Write(1); // version
 
             writer.Write(_Type);
         }
@@ -66,7 +51,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             switch (version)
             {

@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +5,14 @@ namespace Server.Mobiles
     [CorpseName("a revenant lion corpse")]
     public class RevenantLion : BaseCreature
     {
+        public override bool BleedImmune => true;
+
+        public override Poison PoisonImmune => Poison.Greater;
+
+        public override Poison HitPoison => Poison.Greater;
+
+        public override int TreasureMapLevel => 3;
+
         [Constructable]
         public RevenantLion()
             : base(AIType.AI_Mage, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -53,28 +60,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool BleedImmune
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override Poison PoisonImmune
-        {
-            get
-            {
-                return Poison.Greater;
-            }
-        }
-        public override Poison HitPoison
-        {
-            get
-            {
-                return Poison.Greater;
-            }
-        }
-
         public override int GetAngerSound()
         {
             return 0x518;
@@ -99,8 +84,6 @@ namespace Server.Mobiles
         {
             return 0x515;
         }
-		
-		public override int TreasureMapLevel { get { return 3; } }
 
         public override void GenerateLoot()
         {
@@ -112,13 +95,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

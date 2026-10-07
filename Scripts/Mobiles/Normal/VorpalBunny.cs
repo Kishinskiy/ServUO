@@ -6,6 +6,23 @@ namespace Server.Mobiles
     [CorpseName("a vorpal bunny corpse")]
     public class VorpalBunny : BaseCreature
     {
+        public override int Meat => 1;
+        public override int Hides => 1;
+        public override bool BardImmune => !Core.AOS;
+
+        public override IDamageable Combatant
+        {
+            get => base.Combatant;
+            set
+            {
+                base.Combatant = value;
+
+                if (0.05 > Utility.RandomDouble())
+                    StopFlee();
+                else if (!CheckFlee()) BeginFlee(TimeSpan.FromSeconds(30));
+            }
+        }
+
         [Constructable]
         public VorpalBunny()
             : base(AIType.AI_Melee, FightMode.Aggressor, 10, 1, 0.1, 0.2)
@@ -40,10 +57,15 @@ namespace Server.Mobiles
             ForceActiveSpeed = 0.2;
             ForcePassiveSpeed = 0.4;
         }
-		
-		public virtual void SpawnPackItems()
+
+        public VorpalBunny(Serial serial)
+            : base(serial)
         {
-            int carrots = Utility.RandomMinMax(5, 10);
+        }
+
+        public virtual void SpawnPackItems()
+        {
+            var carrots = Utility.RandomMinMax(5, 10);
             PackItem(new Carrot(carrots));
 
             if (Utility.Random(5) == 0)
@@ -52,37 +74,10 @@ namespace Server.Mobiles
             PackStatue();
         }
 
-        public VorpalBunny(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override int Meat { get { return 1; } }
-        public override int Hides { get { return 1; } }
-        public override bool BardImmune { get { return !Core.AOS; } }
-		
         public override void GenerateLoot()
         {
             AddLoot(LootPack.FilthyRich);
             AddLoot(LootPack.Rich, 2);
-        }
-
-        public override IDamageable Combatant
-        {
-            get { return base.Combatant; }
-            set
-            {
-                base.Combatant = value;
-
-                if (0.05 > Utility.RandomDouble())
-                {
-                    StopFlee();
-                }
-                else if (!CheckFlee())
-                {
-                    BeginFlee(TimeSpan.FromSeconds(30));
-                }
-            }
         }
 
 
@@ -93,7 +88,7 @@ namespace Server.Mobiles
 
         public virtual void DelayBeginTunnel()
         {
-            Timer.DelayCall(TimeSpan.FromMinutes(3.0), new TimerCallback(BeginTunnel));
+            Timer.DelayCall(TimeSpan.FromMinutes(3.0), BeginTunnel);
         }
 
         public virtual void BeginTunnel()
@@ -107,25 +102,36 @@ namespace Server.Mobiles
             Say("* The bunny begins to dig a tunnel back to its underground lair *");
             PlaySound(0x247);
 
-            Timer.DelayCall(TimeSpan.FromSeconds(5.0), new TimerCallback(Delete));
+            Timer.DelayCall(TimeSpan.FromSeconds(5.0), Delete);
         }
 
-        public override int GetAttackSound() { return 0xC9; }
-        public override int GetHurtSound() { return 0xCA; }
-        public override int GetDeathSound() { return 0xCB; }
+        public override int GetAttackSound()
+        {
+            return 0xC9;
+        }
+
+        public override int GetHurtSound()
+        {
+            return 0xCA;
+        }
+
+        public override int GetDeathSound()
+        {
+            return 0xCB;
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             DelayBeginTunnel();
         }
@@ -139,7 +145,7 @@ namespace Server.Mobiles
                 Hue = 1;
                 Name = "a mysterious rabbit hole";
 
-                Timer.DelayCall(TimeSpan.FromSeconds(40.0), new TimerCallback(Delete));
+                Timer.DelayCall(TimeSpan.FromSeconds(40.0), Delete);
             }
 
             public BunnyHole(Serial serial)
@@ -151,14 +157,14 @@ namespace Server.Mobiles
             {
                 base.Serialize(writer);
 
-                writer.Write((int)0);
+                writer.Write(0);
             }
 
             public override void Deserialize(GenericReader reader)
             {
                 base.Deserialize(reader);
 
-                int version = reader.ReadInt();
+                var version = reader.ReadInt();
 
                 Delete();
             }

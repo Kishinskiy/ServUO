@@ -1,4 +1,3 @@
-using System;
 using Server.Engines.Craft;
 
 namespace Server.Items
@@ -7,11 +6,41 @@ namespace Server.Items
     [FlipableAttribute(0x26C1, 0x26CB)]
     public class CrescentBlade : BaseSword
     {
+        public override WeaponAbility PrimaryAbility => WeaponAbility.DoubleStrike;
+
+        public override WeaponAbility SecondaryAbility => WeaponAbility.MortalStrike;
+
+        public override int AosStrengthReq => 55;
+
+        public override int AosMinDamage => 12;
+
+        public override int AosMaxDamage => 15;
+
+        public override int AosSpeed => 47;
+
+        public override float MlSpeed => 2.50f;
+
+        public override int OldStrengthReq => 55;
+
+        public override int OldMinDamage => 11;
+
+        public override int OldMaxDamage => 14;
+
+        public override int OldSpeed => 47;
+
+        public override int DefHitSound => 0x23B;
+
+        public override int DefMissSound => 0x23A;
+
+        public override int InitMinHits => 51;
+
+        public override int InitMaxHits => 80;
+
         [Constructable]
         public CrescentBlade()
             : base(0x26C1)
         {
-            this.Weight = 1.0;
+            Weight = 1.0;
         }
 
         public CrescentBlade(Serial serial)
@@ -19,123 +48,18 @@ namespace Server.Items
         {
         }
 
-        public override WeaponAbility PrimaryAbility
-        {
-            get
-            {
-                return WeaponAbility.DoubleStrike;
-            }
-        }
-        public override WeaponAbility SecondaryAbility
-        {
-            get
-            {
-                return WeaponAbility.MortalStrike;
-            }
-        }
-        public override int AosStrengthReq
-        {
-            get
-            {
-                return 55;
-            }
-        }
-        public override int AosMinDamage
-        {
-            get
-            {
-                return 12;
-            }
-        }
-        public override int AosMaxDamage
-        {
-            get
-            {
-                return 15;
-            }
-        }
-        public override int AosSpeed
-        {
-            get
-            {
-                return 47;
-            }
-        }
-        public override float MlSpeed
-        {
-            get
-            {
-                return 2.50f;
-            }
-        }
-        public override int OldStrengthReq
-        {
-            get
-            {
-                return 55;
-            }
-        }
-        public override int OldMinDamage
-        {
-            get
-            {
-                return 11;
-            }
-        }
-        public override int OldMaxDamage
-        {
-            get
-            {
-                return 14;
-            }
-        }
-        public override int OldSpeed
-        {
-            get
-            {
-                return 47;
-            }
-        }
-        public override int DefHitSound
-        {
-            get
-            {
-                return 0x23B;
-            }
-        }
-        public override int DefMissSound
-        {
-            get
-            {
-                return 0x23A;
-            }
-        }
-        public override int InitMinHits
-        {
-            get
-            {
-                return 51;
-            }
-        }
-        public override int InitMaxHits
-        {
-            get
-            {
-                return 80;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

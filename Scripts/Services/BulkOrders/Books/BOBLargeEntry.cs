@@ -1,144 +1,97 @@
-using System;
 using Server.Items;
 
 namespace Server.Engines.BulkOrders
 {
     public class BOBLargeEntry
     {
-        private readonly bool m_RequireExceptional;
-        private readonly BODType m_DeedType;
-        private readonly BulkMaterialType m_Material;
-        private readonly int m_AmountMax;
-        private readonly BOBLargeSubEntry[] m_Entries;
-        private int m_Price;
+        public bool RequireExceptional { get; }
 
-        private GemType m_GemType;
+        public BODType DeedType { get; }
+
+        public BulkMaterialType Material { get; }
+
+        public int AmountMax { get; }
+
+        public int Price { get; set; }
+
+        public GemType GemType { get; set; }
+
+        public BOBLargeSubEntry[] Entries { get; }
 
         public BOBLargeEntry(LargeBOD bod)
         {
-            m_RequireExceptional = bod.RequireExceptional;
+            RequireExceptional = bod.RequireExceptional;
 
-            m_DeedType = bod.BODType;
+            DeedType = bod.BODType;
 
-            m_Material = bod.Material;
-            m_AmountMax = bod.AmountMax;
+            Material = bod.Material;
+            AmountMax = bod.AmountMax;
 
-            m_Entries = new BOBLargeSubEntry[bod.Entries.Length];
+            Entries = new BOBLargeSubEntry[bod.Entries.Length];
 
-            for (int i = 0; i < m_Entries.Length; ++i)
-                m_Entries[i] = new BOBLargeSubEntry(bod.Entries[i]);
+            for (var i = 0; i < Entries.Length; ++i)
+                Entries[i] = new BOBLargeSubEntry(bod.Entries[i]);
 
-            if (bod is LargeTinkerBOD)
-            {
-                m_GemType = ((LargeTinkerBOD)bod).GemType;
-            }
+            if (bod is LargeTinkerBOD) GemType = ((LargeTinkerBOD)bod).GemType;
         }
 
         public BOBLargeEntry(GenericReader reader)
         {
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
 
-            switch ( version )
+            switch (version)
             {
                 case 1:
-                    {
-                        m_GemType = (GemType)reader.ReadInt();
-                        goto case 0;
-                    }
+                {
+                    GemType = (GemType)reader.ReadInt();
+                    goto case 0;
+                }
                 case 0:
-                    {
-                        m_RequireExceptional = reader.ReadBool();
+                {
+                    RequireExceptional = reader.ReadBool();
 
-                        m_DeedType = (BODType)reader.ReadEncodedInt();
+                    DeedType = (BODType)reader.ReadEncodedInt();
 
-                        m_Material = (BulkMaterialType)reader.ReadEncodedInt();
-                        m_AmountMax = reader.ReadEncodedInt();
-                        m_Price = reader.ReadEncodedInt();
+                    Material = (BulkMaterialType)reader.ReadEncodedInt();
+                    AmountMax = reader.ReadEncodedInt();
+                    Price = reader.ReadEncodedInt();
 
-                        m_Entries = new BOBLargeSubEntry[reader.ReadEncodedInt()];
+                    Entries = new BOBLargeSubEntry[reader.ReadEncodedInt()];
 
-                        for (int i = 0; i < m_Entries.Length; ++i)
-                            m_Entries[i] = new BOBLargeSubEntry(reader);
+                    for (var i = 0; i < Entries.Length; ++i)
+                        Entries[i] = new BOBLargeSubEntry(reader);
 
-                        break;
-                    }
+                    break;
+                }
             }
         }
 
-        public bool RequireExceptional
-        {
-            get
-            {
-                return m_RequireExceptional;
-            }
-        }
-        public BODType DeedType
-        {
-            get
-            {
-                return m_DeedType;
-            }
-        }
-        public BulkMaterialType Material
-        {
-            get
-            {
-                return m_Material;
-            }
-        }
-        public int AmountMax
-        {
-            get
-            {
-                return m_AmountMax;
-            }
-        }
-        public int Price
-        {
-            get
-            {
-                return m_Price;
-            }
-            set
-            {
-                m_Price = value;
-            }
-        }
-        public GemType GemType
-        {
-            get
-            {
-                return m_GemType;
-            }
-            set
-            {
-                m_GemType = value;
-            }
-        }
-        public BOBLargeSubEntry[] Entries
-        {
-            get
-            {
-                return m_Entries;
-            }
-        }
         public Item Reconstruct()
         {
             LargeBOD bod = null;
 
-            switch (m_DeedType)
+            switch (DeedType)
             {
-                case BODType.Smith: bod = new LargeSmithBOD(m_AmountMax, m_RequireExceptional, m_Material, ReconstructEntries()); break;
-                case BODType.Tailor: bod = new LargeTailorBOD(m_AmountMax, m_RequireExceptional, m_Material, ReconstructEntries()); break;
-                case BODType.Inscription: bod = new LargeInscriptionBOD(m_AmountMax, m_RequireExceptional, m_Material, ReconstructEntries()); break;
-                case BODType.Alchemy: bod = new LargeAlchemyBOD(m_AmountMax, m_RequireExceptional, m_Material, ReconstructEntries()); break;
-                case BODType.Carpentry: bod = new LargeCarpentryBOD(m_AmountMax, m_RequireExceptional, m_Material, ReconstructEntries()); break;
-                case BODType.Fletching: bod = new LargeFletchingBOD(m_AmountMax, m_RequireExceptional, m_Material, ReconstructEntries()); break;
-                case BODType.Tinkering: bod = new LargeTinkerBOD(m_AmountMax, m_RequireExceptional, m_Material, ReconstructEntries(), m_GemType); break;
-                case BODType.Cooking: bod = new LargeCookingBOD(m_AmountMax, m_RequireExceptional, m_Material, ReconstructEntries()); break;
+                case BODType.Smith:
+                    bod = new LargeSmithBOD(AmountMax, RequireExceptional, Material, ReconstructEntries()); break;
+                case BODType.Tailor:
+                    bod = new LargeTailorBOD(AmountMax, RequireExceptional, Material, ReconstructEntries()); break;
+                case BODType.Inscription:
+                    bod = new LargeInscriptionBOD(AmountMax, RequireExceptional, Material, ReconstructEntries()); break;
+                case BODType.Alchemy:
+                    bod = new LargeAlchemyBOD(AmountMax, RequireExceptional, Material, ReconstructEntries()); break;
+                case BODType.Carpentry:
+                    bod = new LargeCarpentryBOD(AmountMax, RequireExceptional, Material, ReconstructEntries()); break;
+                case BODType.Fletching:
+                    bod = new LargeFletchingBOD(AmountMax, RequireExceptional, Material, ReconstructEntries()); break;
+                case BODType.Tinkering:
+                    bod = new LargeTinkerBOD(AmountMax, RequireExceptional, Material, ReconstructEntries(),
+                        GemType); break;
+                case BODType.Cooking:
+                    bod = new LargeCookingBOD(AmountMax, RequireExceptional, Material, ReconstructEntries()); break;
             }
 
-            for (int i = 0; bod != null && i < bod.Entries.Length; ++i)
+            for (var i = 0; bod != null && i < bod.Entries.Length; ++i)
                 bod.Entries[i].Owner = bod;
 
             return bod;
@@ -148,29 +101,30 @@ namespace Server.Engines.BulkOrders
         {
             writer.WriteEncodedInt(1); // version
 
-            writer.Write((int)m_GemType);
+            writer.Write((int)GemType);
 
-            writer.Write((bool)m_RequireExceptional);
+            writer.Write(RequireExceptional);
 
-            writer.WriteEncodedInt((int)m_DeedType);
-            writer.WriteEncodedInt((int)m_Material);
-            writer.WriteEncodedInt((int)m_AmountMax);
-            writer.WriteEncodedInt((int)m_Price);
+            writer.WriteEncodedInt((int)DeedType);
+            writer.WriteEncodedInt((int)Material);
+            writer.WriteEncodedInt(AmountMax);
+            writer.WriteEncodedInt(Price);
 
-            writer.WriteEncodedInt((int)m_Entries.Length);
+            writer.WriteEncodedInt(Entries.Length);
 
-            for (int i = 0; i < m_Entries.Length; ++i)
-                m_Entries[i].Serialize(writer);
+            for (var i = 0; i < Entries.Length; ++i)
+                Entries[i].Serialize(writer);
         }
 
         private LargeBulkEntry[] ReconstructEntries()
         {
-            LargeBulkEntry[] entries = new LargeBulkEntry[m_Entries.Length];
+            var entries = new LargeBulkEntry[Entries.Length];
 
-            for (int i = 0; i < m_Entries.Length; ++i)
+            for (var i = 0; i < Entries.Length; ++i)
             {
-                entries[i] = new LargeBulkEntry(null, new SmallBulkEntry(m_Entries[i].ItemType, m_Entries[i].Number, m_Entries[i].Graphic, m_Entries[i].Hue));
-                entries[i].Amount = m_Entries[i].AmountCur;
+                entries[i] = new LargeBulkEntry(null,
+                    new SmallBulkEntry(Entries[i].ItemType, Entries[i].Number, Entries[i].Graphic, Entries[i].Hue));
+                entries[i].Amount = Entries[i].AmountCur;
             }
 
             return entries;

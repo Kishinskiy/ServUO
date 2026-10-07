@@ -1,19 +1,24 @@
-﻿using Server;
-using System;
+﻿using System;
 using Server.Engines.Quests;
-using Server.Multis;
 using Server.Items;
 
 namespace Server.Mobiles
 {
     public class FishMonger : MondainQuester
     {
-        public override Type[] Quests { get { return new Type[] { typeof(ProfessionalFisherQuest) }; } }
+        public override Type[] Quests
+        {
+            get { return new[] { typeof(ProfessionalFisherQuest) }; }
+        }
 
         [Constructable]
         public FishMonger()
         {
             FishQuestHelper.AddMonger(this);
+        }
+
+        public FishMonger(Serial serial) : base(serial)
+        {
         }
 
         public override void InitBody()
@@ -26,7 +31,7 @@ namespace Server.Mobiles
             Name = NameList.RandomName("male");
             Title = "the fish monger";
 
-            Hue = Race.RandomSkinHue();      
+            Hue = Race.RandomSkinHue();
             Race.RandomHair(this);
             HairHue = Race.RandomHairHue();
         }
@@ -40,25 +45,29 @@ namespace Server.Mobiles
 
         public override void OnTalk(PlayerMobile player)
         {
-            int distance = 100;
-            BaseBoat boat = FishQuestHelper.GetBoat(player);
+            var distance = 100;
+            var boat = FishQuestHelper.GetBoat(player);
 
             if (boat == null)
+            {
                 SayTo(player, 1116514); //Bring yer ship around, I might have some work for ye!);
+            }
             else
             {
-                bool inRange = InRange(boat.Location, distance) && boat.Map == this.Map;
+                var inRange = InRange(boat.Location, distance) && boat.Map == Map;
 
                 if (!FishQuestHelper.HasFishQuest(player, this, inRange))
                 {
-                    FishMonger monger = FishQuestHelper.GetRandomMonger(player, this);
+                    var monger = FishQuestHelper.GetRandomMonger(player, this);
 
                     if (monger == null)
-                        SayTo(player, "It seems my fellow fish mongers are on vacation.  Try again later, or perhaps another Facet.");
+                    {
+                        SayTo(player,
+                            "It seems my fellow fish mongers are on vacation.  Try again later, or perhaps another Facet.");
+                    }
                     else
                     {
-
-                        ProfessionalFisherQuest quest = new ProfessionalFisherQuest(player, monger, this, boat);
+                        var quest = new ProfessionalFisherQuest(player, monger, this, boat);
 
                         if (quest != null)
                         {
@@ -68,25 +77,23 @@ namespace Server.Mobiles
                             player.SendGump(new MondainQuestGump(quest));
 
                             if (boat.IsClassicBoat)
-                                this.SayTo(player, "Such a weak vessle can only catch a weak line.");
+                                SayTo(player, "Such a weak vessle can only catch a weak line.");
                         }
                     }
                 }
             }
         }
 
-        public FishMonger(Serial serial) : base(serial) { }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
             FishQuestHelper.AddMonger(this);
         }
     }

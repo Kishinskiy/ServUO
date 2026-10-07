@@ -1,4 +1,3 @@
-using System;
 using Server.Targeting;
 
 namespace Server.Items.MusicBox
@@ -6,7 +5,9 @@ namespace Server.Items.MusicBox
     [Flipable(0x1053, 0x1054)]
     public class MusicBoxGears : Item
     {
-        private readonly MusicName m_Music;
+        [CommandProperty(AccessLevel.GameMaster)]
+        public MusicName Music { get; }
+
         [Constructable]
         public MusicBoxGears()
             : this(TrackInfo.RandomSong())
@@ -17,8 +18,8 @@ namespace Server.Items.MusicBox
         public MusicBoxGears(MusicName music)
             : base(0x1053)
         {
-            this.m_Music = music;
-            this.Weight = 1.0;
+            Music = music;
+            Weight = 1.0;
         }
 
         public MusicBoxGears(Serial serial)
@@ -26,14 +27,6 @@ namespace Server.Items.MusicBox
         {
         }
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public MusicName Music
-        {
-            get
-            {
-                return this.m_Music;
-            }
-        }
         public static MusicBoxGears RandomMusixBoxGears(TrackRarity rarity)
         {
             return new MusicBoxGears(TrackInfo.RandomSong(rarity));
@@ -46,8 +39,8 @@ namespace Server.Items.MusicBox
 
         public override void AddNameProperty(ObjectPropertyList list)
         {
-            TrackInfo ti = TrackInfo.GetInfo(this.m_Music);
-            switch( ti.Rarity )
+            var ti = TrackInfo.GetInfo(Music);
+            switch (ti.Rarity)
             {
                 case TrackRarity.Common:
                     list.Add(1075204);
@@ -64,16 +57,16 @@ namespace Server.Items.MusicBox
         public override void GetProperties(ObjectPropertyList list)
         {
             base.GetProperties(list);
-			
-            TrackInfo ti = TrackInfo.GetInfo(this.m_Music);
+
+            var ti = TrackInfo.GetInfo(Music);
             list.Add(ti.Label);
         }
 
         public override void OnDoubleClick(Mobile from)
         {
-            if (this.IsChildOf(from.Backpack))
+            if (IsChildOf(from.Backpack))
             {
-                from.BeginTarget(3, false, TargetFlags.None, new TargetCallback(OnTarget));
+                from.BeginTarget(3, false, TargetFlags.None, OnTarget);
                 from.SendMessage("Select a Dawn's music box to add this gears to.");
             }
             else
@@ -84,10 +77,10 @@ namespace Server.Items.MusicBox
 
         public virtual void OnTarget(Mobile from, object obj)
         {
-            if (this.Deleted)
+            if (Deleted)
                 return;
 
-            DawnsMusicBox mb = obj as DawnsMusicBox;
+            var mb = obj as DawnsMusicBox;
 
             if (mb == null)
             {
@@ -95,32 +88,34 @@ namespace Server.Items.MusicBox
             }
             else
             {
-                if (mb.AddSong(this.m_Music))
+                if (mb.AddSong(Music))
                 {
                     from.SendMessage("You have added this gear to the music box.");
-                    this.Delete();
+                    Delete();
                 }
                 else
+                {
                     from.SendMessage("This gear is already present in this box.");
+                }
             }
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            
-            writer.Write((int)0); // version
-            
-            writer.Write((int)this.m_Music);
+
+            writer.Write(0); // version
+
+            writer.Write((int)Music);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            
-            int version = reader.ReadInt();
-            
-            MusicName m_Music = (MusicName)reader.ReadInt();
+
+            var version = reader.ReadInt();
+
+            var m_Music = (MusicName)reader.ReadInt();
         }
     }
 }

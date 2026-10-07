@@ -1,16 +1,16 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using Server.ContextMenus;
 using Server.Gumps;
 using Server.Mobiles;
 using Server.Multis;
-using Server.ContextMenus;
-using System.Collections.Generic;
 
 namespace Server.Items
 {
     public class TeleporterComponent : AddonComponent
     {
-        public override bool ForceShowProperties { get { return true; } }
+        public override bool ForceShowProperties => true;
 
         public Direction _Direction { get; set; }
 
@@ -35,25 +35,21 @@ namespace Server.Items
         public override bool OnMoveOver(Mobile m)
         {
             if (m is PlayerMobile && ((SpiralStaircaseAddon)Addon).CheckAccessible(m, this))
-            {
                 Timer.DelayCall(TimeSpan.FromSeconds(0.5), () => DoTeleport(m));
-            }
 
             return base.OnMoveOver(m);
         }
 
         public virtual void DoTeleport(Mobile m)
         {
-            Map map = Map;
+            var map = Map;
 
-            if (map == null || map == Map.Internal)
-            {
-                map = m.Map;
-            }
+            if (map == null || map == Map.Internal) map = m.Map;
 
-            TeleporterComponent c = Addon.Components.FirstOrDefault(x => x is TeleporterComponent && x != this) as TeleporterComponent;
+            var c = Addon.Components.FirstOrDefault(x => x is TeleporterComponent && x != this) as TeleporterComponent;
 
-            Point3D p = new Point3D(c.Location.X, c.Location.Y, c._Direction == Direction.Up ? Location.Z + 20 : c.Location.Z);
+            var p = new Point3D(c.Location.X, c.Location.Y,
+                c._Direction == Direction.Up ? Location.Z + 20 : c.Location.Z);
 
             BaseCreature.TeleportPets(m, p, map);
 
@@ -63,7 +59,7 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
 
             writer.Write((int)_Direction);
         }
@@ -71,7 +67,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             _Direction = (Direction)reader.ReadInt();
         }
@@ -79,10 +75,7 @@ namespace Server.Items
 
     public class SpiralStaircaseAddon : BaseAddon, ISecurable, IDyable
     {
-        public override BaseAddonDeed Deed { get { return new SpiralStaircaseDeed(); } }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public SecureLevel Level { get; set; }
+        public override BaseAddonDeed Deed => new SpiralStaircaseDeed();
 
         [Constructable]
         public SpiralStaircaseAddon(bool topper)
@@ -106,6 +99,11 @@ namespace Server.Items
             }
         }
 
+        public SpiralStaircaseAddon(Serial serial)
+            : base(serial)
+        {
+        }
+
         public virtual bool Dye(Mobile from, DyeTub sender)
         {
             if (Deleted)
@@ -115,12 +113,15 @@ namespace Server.Items
             return true;
         }
 
+        [CommandProperty(AccessLevel.GameMaster)]
+        public SecureLevel Level { get; set; }
+
         public bool CheckAccessible(Mobile from, Item item)
         {
             if (from.AccessLevel >= AccessLevel.GameMaster)
                 return true; // Staff can access anything
 
-            BaseHouse house = BaseHouse.FindHouseAt(item);
+            var house = BaseHouse.FindHouseAt(item);
 
             if (house == null)
                 return false;
@@ -137,11 +138,6 @@ namespace Server.Items
             return false;
         }
 
-        public SpiralStaircaseAddon(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -153,7 +149,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             Level = (SecureLevel)reader.ReadInt();
         }
@@ -161,15 +157,19 @@ namespace Server.Items
 
     public class SpiralStaircaseDeed : BaseAddonDeed, IRewardOption
     {
-        public override BaseAddon Addon { get { return new SpiralStaircaseAddon(m_Topper); } }
-        public override int LabelNumber { get { return 1159429; } } // spiral staircase
-
         private bool m_Topper;
+        public override BaseAddon Addon => new SpiralStaircaseAddon(m_Topper);
+        public override int LabelNumber => 1159429; // spiral staircase
 
         [Constructable]
         public SpiralStaircaseDeed()
         {
             LootType = LootType.Blessed;
+        }
+
+        public SpiralStaircaseDeed(Serial serial)
+            : base(serial)
+        {
         }
 
         public void GetOptions(RewardOptionList list)
@@ -194,12 +194,9 @@ namespace Server.Items
                 from.SendGump(new AddonOptionGump(this, 1159430, 300, 180)); // Choose an option:
             }
             else
+            {
                 from.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.       	
-        }
-
-        public SpiralStaircaseDeed(Serial serial)
-            : base(serial)
-        {
+            }
         }
 
         private void SendTarget(Mobile m)
@@ -216,7 +213,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -1,13 +1,17 @@
 using System;
-
-using Server.Mobiles;
 using Server.Items;
+using Server.Mobiles;
 
 namespace Server.Engines.SorcerersDungeon
 {
     [CorpseName("the corpse of jack the pumpkin king")]
     public class JackThePumpkinKing : BaseCreature
     {
+        private bool m_InHere;
+
+        public override bool AlwaysMurderer => true;
+        public override Poison PoisonImmune => Poison.Deadly;
+
         [Constructable]
         public JackThePumpkinKing()
             : base(AIType.AI_NecroMage, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -57,7 +61,10 @@ namespace Server.Engines.SorcerersDungeon
             SetWearable(new Scepter());
         }
 
-        private bool m_InHere;
+        public JackThePumpkinKing(Serial serial)
+            : base(serial)
+        {
+        }
 
         // gleefully stolen from DemonKnight
         public override void OnDamage(int amount, Mobile from, bool willKill)
@@ -79,19 +86,19 @@ namespace Server.Engines.SorcerersDungeon
 
         public virtual void CreatePumpkin_Callback(object state)
         {
-            Mobile from = (Mobile)state;
-            Map map = from.Map;
+            var from = (Mobile)state;
+            var map = from.Map;
 
             if (map == null)
                 return;
 
-            int count = Utility.RandomMinMax(1, 3);
+            var count = Utility.RandomMinMax(1, 3);
 
-            for (int i = 0; i < count; ++i)
+            for (var i = 0; i < count; ++i)
             {
-                int x = from.X + Utility.RandomMinMax(-1, 1);
-                int y = from.Y + Utility.RandomMinMax(-1, 1);
-                int z = from.Z;
+                var x = from.X + Utility.RandomMinMax(-1, 1);
+                var y = from.Y + Utility.RandomMinMax(-1, 1);
+                var z = from.Z;
 
                 if (!map.CanFit(x, y, z, 16, false, true))
                 {
@@ -101,7 +108,7 @@ namespace Server.Engines.SorcerersDungeon
                         continue;
                 }
 
-                UnholyPumpkin bone = new UnholyPumpkin();
+                var bone = new UnholyPumpkin();
 
                 bone.Hue = 0;
                 bone.Name = "unholy pumpkin";
@@ -111,14 +118,6 @@ namespace Server.Engines.SorcerersDungeon
             }
         }
 
-        public JackThePumpkinKing(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override bool AlwaysMurderer { get { return true; } }
-        public override Poison PoisonImmune { get { return Poison.Deadly; } }
-
         public override void GenerateLoot()
         {
             AddLoot(LootPack.UltraRich, 2);
@@ -127,19 +126,21 @@ namespace Server.Engines.SorcerersDungeon
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class UnholyPumpkin : Item, ICarvable
     {
         private SpawnTimer m_Timer;
+
+        public override string DefaultName => "unholy pumpkin";
 
         [Constructable]
         public UnholyPumpkin()
@@ -156,13 +157,6 @@ namespace Server.Engines.SorcerersDungeon
         {
         }
 
-        public override string DefaultName
-        {
-            get
-            {
-                return "unholy pumpkin";
-            }
-        }
         public bool Carve(Mobile from, Item item)
         {
             Effects.PlaySound(GetWorldLocation(), Map, 0x48F);
@@ -171,7 +165,7 @@ namespace Server.Engines.SorcerersDungeon
             if (0.3 > Utility.RandomDouble())
             {
                 from.SendMessage("You destroy the pumpkin.");
-                Gold gold = new Gold(25, 100);
+                var gold = new Gold(25, 100);
 
                 gold.MoveToWorld(GetWorldLocation(), Map);
 
@@ -190,14 +184,14 @@ namespace Server.Engines.SorcerersDungeon
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             m_Timer = new SpawnTimer(this);
             m_Timer.Start();
@@ -206,6 +200,7 @@ namespace Server.Engines.SorcerersDungeon
         private class SpawnTimer : Timer
         {
             private readonly Item m_Item;
+
             public SpawnTimer(Item item)
                 : base(TimeSpan.FromSeconds(Utility.RandomMinMax(5, 10)))
             {

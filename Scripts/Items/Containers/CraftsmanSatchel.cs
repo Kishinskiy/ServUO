@@ -1,4 +1,3 @@
-using System;
 using Reward = Server.Engines.Quests.BaseReward;
 
 namespace Server.Items
@@ -6,37 +5,34 @@ namespace Server.Items
     public class BaseCraftsmanSatchel : Backpack
     {
         public BaseCraftsmanSatchel()
-            : base()
         {
             Hue = Reward.SatchelHue();
-			
-            int count = 1;
-			
+
+            var count = 1;
+
             if (0.015 > Utility.RandomDouble())
                 count = 2;
-			
-            bool equipment = false;
-            bool jewlery = false;
-            bool talisman = false;
-			
+
+            var equipment = false;
+            var jewlery = false;
+            var talisman = false;
+
             while (Items.Count < count)
-            { 
                 if (0.33 > Utility.RandomDouble() && !talisman)
                 {
                     DropItem(Loot.RandomTalisman());
-                    talisman = true;					
+                    talisman = true;
                 }
                 else if (0.4 > Utility.RandomDouble() && !equipment)
                 {
-                    DropItem(RandomItem());		
-                    equipment = true;		
+                    DropItem(RandomItem());
+                    equipment = true;
                 }
                 else if (0.88 > Utility.RandomDouble() && !jewlery)
                 {
                     DropItem(Reward.Jewlery());
                     jewlery = true;
                 }
-            }
         }
 
         public BaseCraftsmanSatchel(Serial serial)
@@ -53,14 +49,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -68,16 +64,12 @@ namespace Server.Items
     {
         [Constructable]
         public AlchemistCraftsmanSatchel()
-            : base()
         {
             if (Items.Count < 2)
             {
                 var recipe = Reward.AlchemyRecipe();
 
-                if (recipe != null)
-                {
-                    DropItem(recipe);
-                }
+                if (recipe != null) DropItem(recipe);
             }
         }
 
@@ -95,14 +87,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -110,24 +102,17 @@ namespace Server.Items
     {
         [Constructable]
         public FletcherCraftsmanSatchel()
-            : base()
         {
             if (Items.Count < 2)
             {
                 var recipe = Reward.FletcherRecipe();
 
-                if (recipe != null)
-                {
-                    DropItem(recipe);
-                }
+                if (recipe != null) DropItem(recipe);
             }
 
             var runic = Reward.FletcherRunic();
 
-            if (runic != null)
-            {
-                DropItem(runic);
-            }
+            if (runic != null) DropItem(runic);
         }
 
         public FletcherCraftsmanSatchel(Serial serial)
@@ -144,14 +129,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -159,16 +144,12 @@ namespace Server.Items
     {
         [Constructable]
         public TailorsCraftsmanSatchel()
-            : base()
         {
             if (Items.Count < 2)
             {
                 var recipe = Reward.TailorRecipe();
 
-                if (recipe != null)
-                {
-                    DropItem(recipe);
-                }
+                if (recipe != null) DropItem(recipe);
             }
         }
 
@@ -186,14 +167,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -201,16 +182,12 @@ namespace Server.Items
     {
         [Constructable]
         public SmithsCraftsmanSatchel()
-            : base()
         {
             if (Items.Count < 2)
             {
                 var recipe = Reward.SmithRecipe();
 
-                if (recipe != null)
-                {
-                    DropItem(recipe);
-                }
+                if (recipe != null) DropItem(recipe);
             }
         }
 
@@ -228,14 +205,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -243,16 +220,12 @@ namespace Server.Items
     {
         [Constructable]
         public TinkersCraftsmanSatchel()
-            : base()
         {
             if (Items.Count < 2)
             {
                 var recipe = Reward.TinkerRecipe();
 
-                if (recipe != null)
-                {
-                    DropItem(recipe);
-                }
+                if (recipe != null) DropItem(recipe);
             }
         }
 
@@ -270,14 +243,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -285,31 +258,21 @@ namespace Server.Items
     {
         [Constructable]
         public CarpentersCraftsmanSatchel()
-            : base()
         {
             if (Items.Count < 2)
             {
                 var recipe = Reward.CarpentryRecipe();
 
-                if (recipe != null)
-                {
-                    DropItem(recipe);
-                }
+                if (recipe != null) DropItem(recipe);
             }
 
             var runic = Reward.CarpenterRunic();
 
-            if (runic != null)
-            {
-                DropItem(runic);
-            }
+            if (runic != null) DropItem(runic);
 
             var furniture = Reward.RandomFurniture();
 
-            if (furniture != null)
-            {
-                DropItem(furniture);
-            }
+            if (furniture != null) DropItem(furniture);
         }
 
         public CarpentersCraftsmanSatchel(Serial serial)
@@ -326,14 +289,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

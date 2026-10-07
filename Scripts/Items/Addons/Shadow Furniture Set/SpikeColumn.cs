@@ -1,9 +1,9 @@
-using System;
-
 namespace Server.Items
 {
     public class SpikeColumnAddon : BaseAddon
     {
+        public override BaseAddonDeed Deed => new SpikeColumnDeed();
+
         [Constructable]
         public SpikeColumnAddon()
         {
@@ -15,26 +15,26 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonDeed Deed { get { return new SpikeColumnDeed(); } }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class SpikeColumnDeed : BaseAddonDeed
     {
-        public override int LabelNumber { get { return 1076675; } } // Spike Column
+        public override int LabelNumber => 1076675; // Spike Column
 
-        public override bool ExcludeDeedHue { get { return true; } }
+        public override bool ExcludeDeedHue => true;
+
+        public override BaseAddon Addon => new SpikeColumnAddon();
 
         [Constructable]
         public SpikeColumnDeed()
@@ -48,19 +48,17 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddon Addon { get { return new SpikeColumnAddon(); } }
 
-        
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

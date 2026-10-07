@@ -1,19 +1,20 @@
-using System;
-
 namespace Server.Ethics
 {
     [TypeAlias("Server.Factions.EthicsPersistance")]
     public class EthicsPersistence : Item
     {
-        private static EthicsPersistence m_Instance;
+        public static EthicsPersistence Instance { get; private set; }
+
+        public override string DefaultName => "Ethics Persistence - Internal";
+
         [Constructable]
         public EthicsPersistence()
             : base(1)
         {
-            this.Movable = false;
+            Movable = false;
 
-            if (m_Instance == null || m_Instance.Deleted)
-                m_Instance = this;
+            if (Instance == null || Instance.Deleted)
+                Instance = this;
             else
                 base.Delete();
         }
@@ -21,48 +22,34 @@ namespace Server.Ethics
         public EthicsPersistence(Serial serial)
             : base(serial)
         {
-            m_Instance = this;
+            Instance = this;
         }
 
-        public static EthicsPersistence Instance
-        {
-            get
-            {
-                return m_Instance;
-            }
-        }
-        public override string DefaultName
-        {
-            get
-            {
-                return "Ethics Persistence - Internal";
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
-            for (int i = 0; i < Ethics.Ethic.Ethics.Length; ++i)
-                Ethics.Ethic.Ethics[i].Serialize(writer);
+            for (var i = 0; i < Ethic.Ethics.Length; ++i)
+                Ethic.Ethics[i].Serialize(writer);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            switch ( version )
+            switch (version)
             {
                 case 0:
-                    {
-                        for (int i = 0; i < Ethics.Ethic.Ethics.Length; ++i)
-                            Ethics.Ethic.Ethics[i].Deserialize(reader);
+                {
+                    for (var i = 0; i < Ethic.Ethics.Length; ++i)
+                        Ethic.Ethics[i].Deserialize(reader);
 
-                        break;
-                    }
+                    break;
+                }
             }
         }
 

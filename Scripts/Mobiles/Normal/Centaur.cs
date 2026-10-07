@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +5,16 @@ namespace Server.Mobiles
     [CorpseName("a centaur corpse")]
     public class Centaur : BaseCreature
     {
+        public override TribeType Tribe => TribeType.Fey;
+
+        public override OppositionGroup OppositionGroup => OppositionGroup.FeyAndUndead;
+
+        public override int Meat => 1;
+
+        public override int Hides => 8;
+
+        public override HideType HideType => HideType.Spined;
+
         [Constructable]
         public Centaur()
             : base(AIType.AI_Melee, FightMode.Aggressor, 10, 1, 0.2, 0.4)
@@ -41,7 +50,8 @@ namespace Server.Mobiles
 
             VirtualArmor = 50;
             AddItem(new Bow());
-            PackItem(new Arrow(Utility.RandomMinMax(80, 90))); // OSI it is different: in a sub backpack, this is probably just a limitation of their engine
+            PackItem(new Arrow(Utility.RandomMinMax(80,
+                90))); // OSI it is different: in a sub backpack, this is probably just a limitation of their engine
         }
 
         public Centaur(Serial serial)
@@ -49,36 +59,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override TribeType Tribe { get { return TribeType.Fey; } }
-
-        public override OppositionGroup OppositionGroup
-        {
-            get
-            {
-                return OppositionGroup.FeyAndUndead;
-            }
-        }
-        public override int Meat
-        {
-            get
-            {
-                return 1;
-            }
-        }
-        public override int Hides
-        {
-            get
-            {
-                return 8;
-            }
-        }
-        public override HideType HideType
-        {
-            get
-            {
-                return HideType.Spined;
-            }
-        }
         public override void GenerateLoot()
         {
             AddLoot(LootPack.Rich);
@@ -89,13 +69,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

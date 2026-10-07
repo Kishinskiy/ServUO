@@ -1,10 +1,11 @@
-using System;
-
 namespace Server.Items
 {
     public class CorruptedRuneBlade : RuneBlade
-	{
-		public override bool IsArtifact { get { return true; } }
+    {
+        public override bool IsArtifact => true;
+
+        public override int LabelNumber => 1073540; // Corrupted Rune Blade
+
         [Constructable]
         public CorruptedRuneBlade()
         {
@@ -17,13 +18,6 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1073540;
-            }
-        }// Corrupted Rune Blade
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -35,7 +29,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

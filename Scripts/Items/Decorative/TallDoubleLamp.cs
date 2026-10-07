@@ -4,11 +4,11 @@ namespace Server.Items
 {
     public class TallDoubleLamp : BaseLight, IFlipable
     {
-        public override int LitItemID { get { return ItemID == 0x4C56 ? 0x4C57 : 0x4C59; } }
-        public override int UnlitItemID { get { return ItemID == 0x4C57 ? 0x4C56 : 0x4C58; } }
+        public override int LitItemID => ItemID == 0x4C56 ? 0x4C57 : 0x4C59;
+        public override int UnlitItemID => ItemID == 0x4C57 ? 0x4C56 : 0x4C58;
 
-        public int NorthID { get { return Burning ? 0x4C57 : 0x4C56; } }
-        public int WestID { get { return Burning ? 0x4C59 : 0x4C58; } }
+        public int NorthID => Burning ? 0x4C57 : 0x4C56;
+        public int WestID => Burning ? 0x4C59 : 0x4C58;
 
         [Constructable]
         public TallDoubleLamp()
@@ -20,6 +20,11 @@ namespace Server.Items
             Weight = 1.0;
         }
 
+        public TallDoubleLamp(Serial serial)
+            : base(serial)
+        {
+        }
+
         public void OnFlip(Mobile from)
         {
             if (ItemID == NorthID)
@@ -28,21 +33,16 @@ namespace Server.Items
                 ItemID = NorthID;
         }
 
-        public TallDoubleLamp(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

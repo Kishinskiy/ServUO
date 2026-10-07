@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +5,10 @@ namespace Server.Mobiles
     [CorpseName("a Malefic corpse")]
     public class Malefic : DreadSpider
     {
+        public override bool CanBeParagon => false;
+
+        public override bool GivesMLMinorArtifact => true;
+
         [Constructable]
         public Malefic()
         {
@@ -40,13 +43,11 @@ namespace Server.Mobiles
 
             Fame = 21000;
             Karma = -21000;
-            
+
             Tamable = false;
 
-            for (int i = 0; i < Utility.RandomMinMax(0, 1); i++)
-            {
+            for (var i = 0; i < Utility.RandomMinMax(0, 1); i++)
                 PackItem(Loot.RandomScroll(0, Loot.ArcanistScrollTypes.Length, SpellbookType.Arcanist));
-            }
 
             SetWeaponAbility(WeaponAbility.Dismount);
             /*
@@ -60,14 +61,7 @@ namespace Server.Mobiles
             : base(serial)
         {
         }
-		public override bool CanBeParagon { get { return false; } }
-        public override bool GivesMLMinorArtifact
-        {
-            get
-            {
-                return true;
-            }
-        }
+
         public override void GenerateLoot()
         {
             AddLoot(LootPack.UltraRich, 3);
@@ -77,14 +71,14 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

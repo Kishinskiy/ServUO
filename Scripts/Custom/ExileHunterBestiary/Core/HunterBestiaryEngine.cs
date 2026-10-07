@@ -12,13 +12,13 @@ namespace Server.Custom.ExileHunterBestiary
     public static class HunterBestiaryEngine
     {
         public const double DefaultDropChance = 0.02; // 2%
-        public const double BossDropChance = 0.05;    // 5%
+        public const double BossDropChance = 0.05; // 5%
+
+        private static readonly Dictionary<Serial, HunterProfile> m_Profiles = new Dictionary<Serial, HunterProfile>();
 
         public static Dictionary<string, HunterCreatureEntry> RegistryById { get; private set; }
         public static Dictionary<Type, HunterCreatureEntry> RegistryByType { get; private set; }
         public static Dictionary<BestiaryCategory, List<HunterCreatureEntry>> EntriesByCategory { get; private set; }
-
-        private static Dictionary<Serial, HunterProfile> m_Profiles = new Dictionary<Serial, HunterProfile>();
         private static string SavePath => Path.Combine(Core.BaseDirectory, "Data", "ExileHunterProfiles.xml");
 
         public static void Initialize()
@@ -28,9 +28,7 @@ namespace Server.Custom.ExileHunterBestiary
             EntriesByCategory = new Dictionary<BestiaryCategory, List<HunterCreatureEntry>>();
 
             foreach (BestiaryCategory cat in Enum.GetValues(typeof(BestiaryCategory)))
-            {
                 EntriesByCategory[cat] = new List<HunterCreatureEntry>();
-            }
 
             RegisterCreatures();
 
@@ -42,10 +40,12 @@ namespace Server.Custom.ExileHunterBestiary
             CommandSystem.Register("Bestiario", AccessLevel.Player, OnCommandBestiary);
 
             LoadProfiles();
-            Console.WriteLine($"[ExileHunterBestiary] Initialized with {RegistryById.Count} creatures across {EntriesByCategory.Count} categories.");
+            Console.WriteLine(
+                $"[ExileHunterBestiary] Initialized with {RegistryById.Count} creatures across {EntriesByCategory.Count} categories.");
         }
 
-        private static void Register(string id, string displayName, Type type, BestiaryCategory category, int bookHue = 0, double dropChance = DefaultDropChance, int iconId = 0x1F14)
+        private static void Register(string id, string displayName, Type type, BestiaryCategory category,
+            int bookHue = 0, double dropChance = DefaultDropChance, int iconId = 0x1F14)
         {
             if (type == null)
                 return;
@@ -62,7 +62,8 @@ namespace Server.Custom.ExileHunterBestiary
             Register("Skeleton", "Skeleton", typeof(Skeleton), BestiaryCategory.Undead, 2101);
             Register("SkeletalMage", "Skeletal Mage", typeof(SkeletalMage), BestiaryCategory.Undead, 2101);
             Register("SkeletalKnight", "Skeletal Knight", typeof(SkeletalKnight), BestiaryCategory.Undead, 2101);
-            Register("PatchworkSkeleton", "Patchwork Skeleton", typeof(PatchworkSkeleton), BestiaryCategory.Undead, 2101);
+            Register("PatchworkSkeleton", "Patchwork Skeleton", typeof(PatchworkSkeleton), BestiaryCategory.Undead,
+                2101);
             Register("Zombie", "Zombie", typeof(Zombie), BestiaryCategory.Undead, 1175);
             Register("Ghoul", "Ghoul", typeof(Ghoul), BestiaryCategory.Undead, 1175);
             Register("Shade", "Shade", typeof(Shade), BestiaryCategory.Undead, 1150);
@@ -79,7 +80,8 @@ namespace Server.Custom.ExileHunterBestiary
             Register("SkeletalDragon", "Skeletal Dragon", typeof(SkeletalDragon), BestiaryCategory.Undead, 1175, 0.03);
             Register("BoneDemon", "Bone Demon", typeof(BoneDemon), BestiaryCategory.Undead, 2101, 0.04);
             Register("UndeadGargoyle", "Undead Gargoyle", typeof(UndeadGargoyle), BestiaryCategory.Undead, 1175);
-            Register("PutridUndeadGargoyle", "Putrid Undead Gargoyle", typeof(PutridUndeadGargoyle), BestiaryCategory.Undead, 1175);
+            Register("PutridUndeadGargoyle", "Putrid Undead Gargoyle", typeof(PutridUndeadGargoyle),
+                BestiaryCategory.Undead, 1175);
             Register("WailingBanshee", "Wailing Banshee", typeof(WailingBanshee), BestiaryCategory.Undead, 1153);
             Register("GoreFiend", "Gore Fiend", typeof(GoreFiend), BestiaryCategory.Undead, 1175);
             Register("FleshGolem", "Flesh Golem", typeof(FleshGolem), BestiaryCategory.Undead, 1175);
@@ -102,7 +104,8 @@ namespace Server.Custom.ExileHunterBestiary
             Register("StoneGargoyle", "Stone Gargoyle", typeof(StoneGargoyle), BestiaryCategory.Daemons, 2413);
             Register("FireGargoyle", "Fire Gargoyle", typeof(FireGargoyle), BestiaryCategory.Daemons, 1260);
             Register("GargoyleEnforcer", "Gargoyle Enforcer", typeof(GargoyleEnforcer), BestiaryCategory.Daemons, 2419);
-            Register("GargoyleDestroyer", "Gargoyle Destroyer", typeof(GargoyleDestroyer), BestiaryCategory.Daemons, 2419);
+            Register("GargoyleDestroyer", "Gargoyle Destroyer", typeof(GargoyleDestroyer), BestiaryCategory.Daemons,
+                2419);
 
             // --- 3. REPTILES & DRAGONS (Hue 1360-1420 scales/dragon) ---
             Register("Dragon", "Dragon", typeof(Dragon), BestiaryCategory.Reptiles, 1365, 0.03);
@@ -113,12 +116,14 @@ namespace Server.Custom.ExileHunterBestiary
             Register("GreaterDragon", "Greater Dragon", typeof(GreaterDragon), BestiaryCategory.Reptiles, 1360, 0.04);
             Register("SwampDragon", "Swamp Dragon", typeof(SwampDragon), BestiaryCategory.Reptiles, 2212);
             Register("Hydra", "Hydra", typeof(Hydra), BestiaryCategory.Reptiles, 1368);
-            Register("SerpentineDragon", "Serpentine Dragon", typeof(SerpentineDragon), BestiaryCategory.Reptiles, 1160);
+            Register("SerpentineDragon", "Serpentine Dragon", typeof(SerpentineDragon), BestiaryCategory.Reptiles,
+                1160);
             Register("Reptalon", "Reptalon", typeof(Reptalon), BestiaryCategory.Reptiles, 1372);
             Register("Lizardman", "Lizardman", typeof(Lizardman), BestiaryCategory.Reptiles, 2210);
             Register("OphidianWarrior", "Ophidian Warrior", typeof(OphidianWarrior), BestiaryCategory.Reptiles, 2001);
             Register("OphidianMage", "Ophidian Mage", typeof(OphidianMage), BestiaryCategory.Reptiles, 2002);
-            Register("OphidianMatriarch", "Ophidian Matriarch", typeof(OphidianMatriarch), BestiaryCategory.Reptiles, 2003);
+            Register("OphidianMatriarch", "Ophidian Matriarch", typeof(OphidianMatriarch), BestiaryCategory.Reptiles,
+                2003);
             Register("Slith", "Slith", typeof(Slith), BestiaryCategory.Reptiles, 2212);
             Register("ToxicSlith", "Toxic Slith", typeof(ToxicSlith), BestiaryCategory.Reptiles, 1267);
             Register("StoneSlith", "Stone Slith", typeof(StoneSlith), BestiaryCategory.Reptiles, 2413);
@@ -173,16 +178,19 @@ namespace Server.Custom.ExileHunterBestiary
             Register("GiantBlackWidow", "Giant Black Widow", typeof(GiantBlackWidow), BestiaryCategory.Arachnids, 1109);
             Register("TerathanDrone", "Terathan Drone", typeof(TerathanDrone), BestiaryCategory.Arachnids, 2115);
             Register("TerathanWarrior", "Terathan Warrior", typeof(TerathanWarrior), BestiaryCategory.Arachnids, 2116);
-            Register("TerathanMatriarch", "Terathan Matriarch", typeof(TerathanMatriarch), BestiaryCategory.Arachnids, 2117);
+            Register("TerathanMatriarch", "Terathan Matriarch", typeof(TerathanMatriarch), BestiaryCategory.Arachnids,
+                2117);
             Register("Scorpion", "Scorpion", typeof(Scorpion), BestiaryCategory.Arachnids, 2206);
             Register("RuneBeetle", "Rune Beetle", typeof(RuneBeetle), BestiaryCategory.Arachnids, 1165, 0.03);
             Register("FireBeetle", "Fire Beetle", typeof(FireBeetle), BestiaryCategory.Arachnids, 1260);
             Register("Beetle", "Giant Beetle", typeof(Beetle), BestiaryCategory.Arachnids, 2210);
             Register("IronBeetle", "Iron Beetle", typeof(IronBeetle), BestiaryCategory.Arachnids, 2413);
-            Register("DeathwatchBeetle", "Deathwatch Beetle", typeof(DeathwatchBeetle), BestiaryCategory.Arachnids, 2215);
+            Register("DeathwatchBeetle", "Deathwatch Beetle", typeof(DeathwatchBeetle), BestiaryCategory.Arachnids,
+                2215);
             Register("AntLion", "Ant Lion", typeof(AntLion), BestiaryCategory.Arachnids, 2419);
             Register("FireAnt", "Fire Ant", typeof(FireAnt), BestiaryCategory.Arachnids, 1260);
-            Register("SkitteringHopper", "Skittering Hopper", typeof(SkitteringHopper), BestiaryCategory.Arachnids, 2210);
+            Register("SkitteringHopper", "Skittering Hopper", typeof(SkitteringHopper), BestiaryCategory.Arachnids,
+                2210);
 
             // --- 7. BEASTS & MAGICAL CREATURES ---
             Register("Gazer", "Gazer", typeof(Gazer), BestiaryCategory.Beasts, 1166);
@@ -228,7 +236,8 @@ namespace Server.Custom.ExileHunterBestiary
             Register("BogThing", "Bog Thing", typeof(BogThing), BestiaryCategory.Beasts, 2212);
             Register("Bogling", "Bogling", typeof(Bogling), BestiaryCategory.Beasts, 2212);
             Register("PlagueBeast", "Plague Beast", typeof(PlagueBeast), BestiaryCategory.Beasts, 1267);
-            Register("PlagueBeastLord", "Plague Beast Lord", typeof(PlagueBeastLord), BestiaryCategory.Beasts, 1267, 0.03);
+            Register("PlagueBeastLord", "Plague Beast Lord", typeof(PlagueBeastLord), BestiaryCategory.Beasts, 1267,
+                0.03);
             Register("Quagmire", "Quagmire", typeof(Quagmire), BestiaryCategory.Beasts, 2212);
             Register("Slime", "Slime", typeof(Slime), BestiaryCategory.Beasts, 2210);
             Register("FrostOoze", "Frost Ooze", typeof(FrostOoze), BestiaryCategory.Beasts, 1152);
@@ -238,32 +247,45 @@ namespace Server.Custom.ExileHunterBestiary
             Register("Leviathan", "Leviathan", typeof(Leviathan), BestiaryCategory.Beasts, 1165, 0.05);
 
             // --- 8. BOSSES, CHAMPIONS & PEERLESS (Hue mythic gold/purple) ---
-            Register("DemonKnight", "Demon Knight (Dark Father)", typeof(DemonKnight), BestiaryCategory.Bosses, 1161, BossDropChance);
-            Register("DarknightCreeper", "Darknight Creeper", typeof(DarknightCreeper), BestiaryCategory.Bosses, 1161, BossDropChance);
-            Register("FleshRenderer", "Flesh Renderer", typeof(FleshRenderer), BestiaryCategory.Bosses, 1161, BossDropChance);
+            Register("DemonKnight", "Demon Knight (Dark Father)", typeof(DemonKnight), BestiaryCategory.Bosses, 1161,
+                BossDropChance);
+            Register("DarknightCreeper", "Darknight Creeper", typeof(DarknightCreeper), BestiaryCategory.Bosses, 1161,
+                BossDropChance);
+            Register("FleshRenderer", "Flesh Renderer", typeof(FleshRenderer), BestiaryCategory.Bosses, 1161,
+                BossDropChance);
             Register("Impaler", "Impaler", typeof(Impaler), BestiaryCategory.Bosses, 1161, BossDropChance);
-            Register("ShadowKnight", "Shadow Knight", typeof(ShadowKnight), BestiaryCategory.Bosses, 1161, BossDropChance);
-            Register("AbysmalHorror", "Abysmal Horror", typeof(AbysmalHorror), BestiaryCategory.Bosses, 1161, BossDropChance);
+            Register("ShadowKnight", "Shadow Knight", typeof(ShadowKnight), BestiaryCategory.Bosses, 1161,
+                BossDropChance);
+            Register("AbysmalHorror", "Abysmal Horror", typeof(AbysmalHorror), BestiaryCategory.Bosses, 1161,
+                BossDropChance);
             Register("Harrower", "The Harrower", typeof(Harrower), BestiaryCategory.Bosses, 1175, 0.10);
-            Register("SlasherOfVeils", "Slasher of Veils", typeof(SlasherOfVeils), BestiaryCategory.Bosses, 1170, BossDropChance);
-            Register("StygianDragon", "Stygian Dragon", typeof(StygianDragon), BestiaryCategory.Bosses, 1172, BossDropChance);
+            Register("SlasherOfVeils", "Slasher of Veils", typeof(SlasherOfVeils), BestiaryCategory.Bosses, 1170,
+                BossDropChance);
+            Register("StygianDragon", "Stygian Dragon", typeof(StygianDragon), BestiaryCategory.Bosses, 1172,
+                BossDropChance);
             Register("Medusa", "Medusa", typeof(Medusa), BestiaryCategory.Bosses, 1168, BossDropChance);
-            Register("PrimevalLich", "Primeval Lich", typeof(PrimevalLich), BestiaryCategory.Bosses, 1153, BossDropChance);
-            Register("AbyssalInfernal", "Abyssal Infernal", typeof(AbyssalInfernal), BestiaryCategory.Bosses, 1255, BossDropChance);
+            Register("PrimevalLich", "Primeval Lich", typeof(PrimevalLich), BestiaryCategory.Bosses, 1153,
+                BossDropChance);
+            Register("AbyssalInfernal", "Abyssal Infernal", typeof(AbyssalInfernal), BestiaryCategory.Bosses, 1255,
+                BossDropChance);
             Register("Rikktor", "Rikktor", typeof(Rikktor), BestiaryCategory.Bosses, 1365, BossDropChance);
             Register("Mephitis", "Mephitis", typeof(Mephitis), BestiaryCategory.Bosses, 1175, BossDropChance);
             Register("Semidar", "Semidar", typeof(Semidar), BestiaryCategory.Bosses, 1258, BossDropChance);
-            Register("Barracoon", "Barracoon the Piper", typeof(Barracoon), BestiaryCategory.Bosses, 2307, BossDropChance);
+            Register("Barracoon", "Barracoon the Piper", typeof(Barracoon), BestiaryCategory.Bosses, 2307,
+                BossDropChance);
             Register("Neira", "Neira the Necromancer", typeof(Neira), BestiaryCategory.Bosses, 1175, BossDropChance);
             Register("LordOaks", "Lord Oaks", typeof(LordOaks), BestiaryCategory.Bosses, 2215, BossDropChance);
             Register("Silvani", "Silvani", typeof(Silvani), BestiaryCategory.Bosses, 1160, BossDropChance);
             Register("Ilhenir", "Ilhenir the Stained", typeof(Ilhenir), BestiaryCategory.Bosses, 1267, BossDropChance);
             Register("Serado", "Serado the Scourge", typeof(Serado), BestiaryCategory.Bosses, 1267, BossDropChance);
-            Register("ChiefParoxysmus", "Chief Paroxysmus", typeof(ChiefParoxysmus), BestiaryCategory.Bosses, 1267, BossDropChance);
+            Register("ChiefParoxysmus", "Chief Paroxysmus", typeof(ChiefParoxysmus), BestiaryCategory.Bosses, 1267,
+                BossDropChance);
             Register("DreadHorn", "Dread Horn", typeof(DreadHorn), BestiaryCategory.Bosses, 1160, BossDropChance);
             Register("Travesty", "Travesty", typeof(Travesty), BestiaryCategory.Bosses, 1153, BossDropChance);
-            Register("ShimmeringEffusion", "Shimmering Effusion", typeof(ShimmeringEffusion), BestiaryCategory.Bosses, 1152, BossDropChance);
-            Register("MonstrousInterredGrizzle", "Monstrous Interred Grizzle", typeof(MonstrousInterredGrizzle), BestiaryCategory.Bosses, 1175, BossDropChance);
+            Register("ShimmeringEffusion", "Shimmering Effusion", typeof(ShimmeringEffusion), BestiaryCategory.Bosses,
+                1152, BossDropChance);
+            Register("MonstrousInterredGrizzle", "Monstrous Interred Grizzle", typeof(MonstrousInterredGrizzle),
+                BestiaryCategory.Bosses, 1175, BossDropChance);
         }
 
         public static HunterProfile GetProfile(Mobile m)
@@ -297,15 +319,13 @@ namespace Server.Custom.ExileHunterBestiary
             if (victim == null || attacker == null || totalDamage <= 0)
                 return;
 
-            Mobile master = attacker is BaseCreature pet && pet.Controlled ? pet.ControlMaster : attacker;
+            var master = attacker is BaseCreature pet && pet.Controlled ? pet.ControlMaster : attacker;
             if (master == null)
                 return;
 
             var profile = GetProfile(master);
             if (profile != null && profile.HasLearned(victim.GetType()))
-            {
                 totalDamage = (int)(totalDamage * 1.20); // +20% damage
-            }
         }
 
         private static void OnCreatureDeath(CreatureDeathEventArgs e)
@@ -314,17 +334,13 @@ namespace Server.Custom.ExileHunterBestiary
                 return;
 
             if (e.Creature is BaseCreature bc && RegistryByType.TryGetValue(bc.GetType(), out var entry))
-            {
                 if (Utility.RandomDouble() < entry.DropChance)
-                {
                     e.Corpse.DropItem(new HunterTreatise(entry.Id));
-                }
-            }
         }
 
         private static void OnCommandBestiary(CommandEventArgs e)
         {
-            Mobile from = e.Mobile;
+            var from = e.Mobile;
             if (from != null && !from.Deleted)
             {
                 from.CloseGump(typeof(HunterBestiaryGump));
@@ -350,12 +366,12 @@ namespace Server.Custom.ExileHunterBestiary
         {
             try
             {
-                string dir = Path.GetDirectoryName(SavePath);
+                var dir = Path.GetDirectoryName(SavePath);
                 if (!Directory.Exists(dir))
                     Directory.CreateDirectory(dir);
 
-                XmlDocument doc = new XmlDocument();
-                XmlElement root = doc.CreateElement("HunterProfiles");
+                var doc = new XmlDocument();
+                var root = doc.CreateElement("HunterProfiles");
                 doc.AppendChild(root);
 
                 foreach (var kvp in m_Profiles)
@@ -364,12 +380,12 @@ namespace Server.Custom.ExileHunterBestiary
                     if (profile.TotalMastered == 0)
                         continue;
 
-                    XmlElement pElem = doc.CreateElement("Profile");
+                    var pElem = doc.CreateElement("Profile");
                     pElem.SetAttribute("serial", kvp.Key.Value.ToString());
 
-                    foreach (string id in profile.LearnedCreatures)
+                    foreach (var id in profile.LearnedCreatures)
                     {
-                        XmlElement cElem = doc.CreateElement("Creature");
+                        var cElem = doc.CreateElement("Creature");
                         cElem.SetAttribute("id", id);
                         pElem.AppendChild(cElem);
                     }
@@ -392,38 +408,31 @@ namespace Server.Custom.ExileHunterBestiary
                 if (!File.Exists(SavePath))
                     return;
 
-                XmlDocument doc = new XmlDocument();
+                var doc = new XmlDocument();
                 doc.Load(SavePath);
 
-                XmlNodeList list = doc.SelectNodes("//HunterProfiles/Profile");
+                var list = doc.SelectNodes("//HunterProfiles/Profile");
                 if (list == null)
                     return;
 
                 m_Profiles.Clear();
 
                 foreach (XmlElement pElem in list)
-                {
-                    if (int.TryParse(pElem.GetAttribute("serial"), out int sVal))
+                    if (int.TryParse(pElem.GetAttribute("serial"), out var sVal))
                     {
-                        Serial serial = (Serial)sVal;
+                        var serial = (Serial)sVal;
                         var profile = new HunterProfile(serial);
 
-                        XmlNodeList cList = pElem.SelectNodes("Creature");
+                        var cList = pElem.SelectNodes("Creature");
                         if (cList != null)
-                        {
                             foreach (XmlElement cElem in cList)
                             {
-                                string id = cElem.GetAttribute("id");
-                                if (!string.IsNullOrEmpty(id))
-                                {
-                                    profile.LearnedCreatures.Add(id);
-                                }
+                                var id = cElem.GetAttribute("id");
+                                if (!string.IsNullOrEmpty(id)) profile.LearnedCreatures.Add(id);
                             }
-                        }
 
                         m_Profiles[serial] = profile;
                     }
-                }
 
                 Console.WriteLine($"[ExileHunterBestiary] Loaded {m_Profiles.Count} player bestiary profiles.");
             }

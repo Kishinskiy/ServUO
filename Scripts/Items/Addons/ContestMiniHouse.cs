@@ -1,4 +1,3 @@
-using System;
 using Server.Engines.VeteranRewards;
 
 namespace Server.Items
@@ -6,6 +5,28 @@ namespace Server.Items
     public class ContestMiniHouse : MiniHouseAddon
     {
         private bool m_IsRewardItem;
+
+        public override BaseAddonDeed Deed
+        {
+            get
+            {
+                var deed = new ContestMiniHouseDeed(Type);
+                deed.IsRewardItem = m_IsRewardItem;
+
+                return deed;
+            }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public bool IsRewardItem
+        {
+            get => m_IsRewardItem;
+            set
+            {
+                m_IsRewardItem = value;
+                InvalidateProperties();
+            }
+        }
 
         [Constructable]
         public ContestMiniHouse()
@@ -24,39 +45,18 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonDeed Deed
-        {
-            get
-            {
-                ContestMiniHouseDeed deed = new ContestMiniHouseDeed(Type);
-                deed.IsRewardItem = m_IsRewardItem;
-
-                return deed;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public bool IsRewardItem
-        {
-            get { return m_IsRewardItem; }
-            set
-            {
-                m_IsRewardItem = value;
-                InvalidateProperties();
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
             writer.WriteEncodedInt(0); // version
 
-            writer.Write((bool)m_IsRewardItem);
+            writer.Write(m_IsRewardItem);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
 
             m_IsRewardItem = reader.ReadBool();
         }
@@ -65,6 +65,17 @@ namespace Server.Items
     public class ContestMiniHouseDeed : MiniHouseDeed, IRewardItem
     {
         private bool m_IsRewardItem;
+
+        public override BaseAddon Addon
+        {
+            get
+            {
+                var addon = new ContestMiniHouse(Type);
+                addon.IsRewardItem = m_IsRewardItem;
+
+                return addon;
+            }
+        }
 
         [Constructable]
         public ContestMiniHouseDeed()
@@ -83,27 +94,17 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddon Addon
-        {
-            get
-            {
-                ContestMiniHouse addon = new ContestMiniHouse(Type);
-                addon.IsRewardItem = m_IsRewardItem;
-
-                return addon;
-            }
-        }
-
         [CommandProperty(AccessLevel.GameMaster)]
         public bool IsRewardItem
         {
-            get { return m_IsRewardItem; }
+            get => m_IsRewardItem;
             set
             {
                 m_IsRewardItem = value;
                 InvalidateProperties();
             }
         }
+
         public override void OnDoubleClick(Mobile from)
         {
             if (m_IsRewardItem && !RewardSystem.CheckIsUsableBy(from, this, new object[] { Type }))
@@ -125,13 +126,13 @@ namespace Server.Items
             base.Serialize(writer);
             writer.WriteEncodedInt(0); // version
 
-            writer.Write((bool)m_IsRewardItem);
+            writer.Write(m_IsRewardItem);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
 
             m_IsRewardItem = reader.ReadBool();
         }

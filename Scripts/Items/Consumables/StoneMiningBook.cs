@@ -1,11 +1,10 @@
-using System;
 using Server.Mobiles;
 
 namespace Server.Items
 {
     public class StoneMiningBook : Item
     {
-        public override int LabelNumber { get { return 1153530; } } // Mining For Quality Stone
+        public override int LabelNumber => 1153530; // Mining For Quality Stone
 
         [Constructable]
         public StoneMiningBook()
@@ -18,15 +17,12 @@ namespace Server.Items
             : base(serial)
         {
         }
-        
+
         public override void OnDoubleClick(Mobile from)
         {
-            PlayerMobile pm = from as PlayerMobile;
+            var pm = from as PlayerMobile;
 
-            if (pm == null)
-            {
-                return;
-            }
+            if (pm == null) return;
 
             if (!IsChildOf(pm.Backpack))
             {
@@ -43,7 +39,8 @@ namespace Server.Items
             else
             {
                 pm.StoneMining = true;
-                pm.SendLocalizedMessage(1080045); // You have learned to mine for stones.  Target mountains when mining to find stones.
+                pm.SendLocalizedMessage(
+                    1080045); // You have learned to mine for stones.  Target mountains when mining to find stones.
 
                 Delete();
             }
@@ -53,14 +50,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

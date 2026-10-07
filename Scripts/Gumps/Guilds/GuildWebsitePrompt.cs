@@ -1,4 +1,3 @@
-using System;
 using Server.Guilds;
 using Server.Prompts;
 
@@ -6,27 +5,28 @@ namespace Server.Gumps
 {
     public class GuildWebsitePrompt : Prompt
     {
-        public override int MessageCliloc { get { return 1013072; } }
-        private readonly Mobile m_Mobile;
         private readonly Guild m_Guild;
+        private readonly Mobile m_Mobile;
+        public override int MessageCliloc => 1013072;
+
         public GuildWebsitePrompt(Mobile m, Guild g)
         {
-            this.m_Mobile = m;
-            this.m_Guild = g;
+            m_Mobile = m;
+            m_Guild = g;
         }
 
         public override void OnCancel(Mobile from)
         {
-            if (GuildGump.BadLeader(this.m_Mobile, this.m_Guild))
+            if (GuildGump.BadLeader(m_Mobile, m_Guild))
                 return;
 
-            GuildGump.EnsureClosed(this.m_Mobile);
-            this.m_Mobile.SendGump(new GuildmasterGump(this.m_Mobile, this.m_Guild));
+            GuildGump.EnsureClosed(m_Mobile);
+            m_Mobile.SendGump(new GuildmasterGump(m_Mobile, m_Guild));
         }
 
         public override void OnResponse(Mobile from, string text)
         {
-            if (GuildGump.BadLeader(this.m_Mobile, this.m_Guild))
+            if (GuildGump.BadLeader(m_Mobile, m_Guild))
                 return;
 
             text = text.Trim();
@@ -35,10 +35,10 @@ namespace Server.Gumps
                 text = text.Substring(0, 50);
 
             if (text.Length > 0)
-                this.m_Guild.Website = text;
+                m_Guild.Website = text;
 
-            GuildGump.EnsureClosed(this.m_Mobile);
-            this.m_Mobile.SendGump(new GuildmasterGump(this.m_Mobile, this.m_Guild));
+            GuildGump.EnsureClosed(m_Mobile);
+            m_Mobile.SendGump(new GuildmasterGump(m_Mobile, m_Guild));
         }
     }
 }

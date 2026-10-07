@@ -1,34 +1,27 @@
-using Server;
-using System;
-using Server.Items;
 using System.Collections.Generic;
 using Server.Gumps;
+using Server.Items;
 
 namespace Server.Mobiles
 {
     public class ArmorRefiner : BaseVendor
     {
-        private RefinementCraftType m_RefineType;
+        private readonly List<SBInfo> m_SBInfos = new List<SBInfo>();
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public RefinementCraftType RefineType { get { return m_RefineType; } set { m_RefineType = value; } }
+        public RefinementCraftType RefineType { get; set; }
 
-        private List<SBInfo> m_SBInfos = new List<SBInfo>();
-        protected override List<SBInfo> SBInfos { get { return m_SBInfos; } }
-
-        public override void InitSBInfo()
-        {
-        }
+        protected override List<SBInfo> SBInfos => m_SBInfos;
 
         [Constructable]
         public ArmorRefiner(RefinementCraftType type) : base("the armor refiner")
         {
-            m_RefineType = type;
+            RefineType = type;
 
             SetSkill(SkillName.ArmsLore, 36.0, 68.0);
             AddItem(new HalfApron());
 
-            switch (m_RefineType)
+            switch (RefineType)
             {
                 case RefinementCraftType.Blacksmith:
                     AddItem(new SmithHammer());
@@ -43,28 +36,32 @@ namespace Server.Mobiles
             }
         }
 
-        public override void OnDoubleClick(Mobile from)
-        {
-            if(from.InRange(this.Location, 10))
-                from.SendGump(new RefinementHelpGump(m_RefineType));
-        }
-
         public ArmorRefiner(Serial serial) : base(serial)
         {
+        }
+
+        public override void InitSBInfo()
+        {
+        }
+
+        public override void OnDoubleClick(Mobile from)
+        {
+            if (from.InRange(Location, 10))
+                from.SendGump(new RefinementHelpGump(RefineType));
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
-            writer.Write((int)m_RefineType);
+            writer.Write(0);
+            writer.Write((int)RefineType);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int v = reader.ReadInt();
-            m_RefineType = (RefinementCraftType)reader.ReadInt();
+            var v = reader.ReadInt();
+            RefineType = (RefinementCraftType)reader.ReadInt();
         }
     }
 }

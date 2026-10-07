@@ -1,12 +1,11 @@
-using System;
-
 namespace Server.Items
 {
     public class AquariumMessage : MessageInABottle
     {
+        public override int LabelNumber => 1073894; // Message in a Bottle
+
         [Constructable]
         public AquariumMessage()
-            : base()
         {
         }
 
@@ -15,13 +14,6 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1073894;
-            }
-        }// Message in a Bottle
         public override void AddNameProperties(ObjectPropertyList list)
         {
             base.AddNameProperties(list);
@@ -33,14 +25,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

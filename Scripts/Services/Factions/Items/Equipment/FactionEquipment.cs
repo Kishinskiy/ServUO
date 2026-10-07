@@ -1,6 +1,6 @@
 using System;
-using Server.Mobiles;
 using Server.Items;
+using Server.Mobiles;
 
 namespace Server.Factions
 {
@@ -13,15 +13,9 @@ namespace Server.Factions
 
             var state = PlayerState.Find(m);
 
-            if (state != null && state.Faction == item.FactionItemState.Faction)
-            {
-                return true;
-            }
+            if (state != null && state.Faction == item.FactionItemState.Faction) return true;
 
-            if (failmessage > 0)
-            {
-                m.SendLocalizedMessage(failmessage); // You cannot use that.
-            }
+            if (failmessage > 0) m.SendLocalizedMessage(failmessage); // You cannot use that.
 
             return false;
         }
@@ -44,24 +38,16 @@ namespace Server.Factions
         public static void CheckProperties(Item item)
         {
             if (item is PrimerOnArmsTalisman && ((PrimerOnArmsTalisman)item).Attributes.AttackChance != 10)
-            {
                 ((PrimerOnArmsTalisman)item).Attributes.AttackChance = 10;
-            }
 
             if (item is ClaininsSpellbook && ((ClaininsSpellbook)item).Attributes.LowerManaCost != 10)
-            {
                 ((ClaininsSpellbook)item).Attributes.LowerManaCost = 10;
-            }
 
             if (item is CrimsonCincture && ((CrimsonCincture)item).Attributes.BonusDex != 10)
-            {
                 ((CrimsonCincture)item).Attributes.BonusDex = 10;
-            }
 
             if (item is CrystallineRing && ((CrystallineRing)item).Attributes.CastRecovery != 3)
-            {
                 ((CrystallineRing)item).Attributes.CastRecovery = 3;
-            }
 
             if (item is FeyLeggings)
             {
@@ -79,9 +65,7 @@ namespace Server.Factions
             }
 
             if (item is FoldedSteelGlasses && ((FoldedSteelGlasses)item).Attributes.DefendChance != 25)
-            {
                 ((FoldedSteelGlasses)item).Attributes.DefendChance = 25;
-            }
 
             if (item is HeartOfTheLion)
             {
@@ -120,14 +104,10 @@ namespace Server.Factions
             }
 
             if (item is KasaOfTheRajin && ((KasaOfTheRajin)item).Attributes.DefendChance != 10)
-            {
                 ((KasaOfTheRajin)item).Attributes.DefendChance = 10;
-            }
 
             if (item is MaceAndShieldGlasses && ((MaceAndShieldGlasses)item).Attributes.WeaponDamage != 10)
-            {
                 ((MaceAndShieldGlasses)item).Attributes.WeaponDamage = 10;
-            }
 
             if (item is VesperOrderShield && ((VesperOrderShield)item).Attributes.CastSpeed != 0)
             {
@@ -138,14 +118,10 @@ namespace Server.Factions
             }
 
             if (item is OrnamentOfTheMagician && ((OrnamentOfTheMagician)item).Attributes.RegenMana != 3)
-            {
                 ((OrnamentOfTheMagician)item).Attributes.RegenMana = 3;
-            }
 
             if (item is RingOfTheVile && ((RingOfTheVile)item).Attributes.AttackChance != 25)
-            {
                 ((RingOfTheVile)item).Attributes.AttackChance = 25;
-            }
 
             if (item is RuneBeetleCarapace)
             {
@@ -181,9 +157,7 @@ namespace Server.Factions
             }
 
             if (item is Stormgrip && ((Stormgrip)item).Attributes.AttackChance != 10)
-            {
                 ((Stormgrip)item).Attributes.AttackChance = 10;
-            }
 
             if (item is InquisitorsResolution)
             {
@@ -204,9 +178,7 @@ namespace Server.Factions
             }
 
             if (item is TomeOfLostKnowledge && ((TomeOfLostKnowledge)item).Attributes.RegenMana != 3)
-            {
                 ((TomeOfLostKnowledge)item).Attributes.RegenMana = 3;
-            }
 
             if (item is WizardsCrystalGlasses)
             {
@@ -230,10 +202,11 @@ namespace Server.Factions
 
     public class FactionCollectionItem : CollectionItem
     {
-        public int MinRank { get; private set; }
-        public Faction Faction { get; private set; }
+        public int MinRank { get; }
+        public Faction Faction { get; }
 
-        public FactionCollectionItem(Type type, int id, int tooltip, int hue, Faction faction, double points, int minRank)
+        public FactionCollectionItem(Type type, int id, int tooltip, int hue, Faction faction, double points,
+            int minRank)
             : base(type, id, tooltip, hue, points)
         {
             Faction = faction;
@@ -242,7 +215,7 @@ namespace Server.Factions
 
         public override void OnGiveReward(PlayerMobile to, Item item, IComunityCollection collection, int hue)
         {
-            if(this.Faction != null)
+            if (Faction != null)
             {
                 FactionEquipment.CheckProperties(item);
                 FactionItem.Imbue(item, Faction, false, -1, MinRank);
@@ -270,7 +243,7 @@ namespace Server.Factions
 
         public override bool CanSelect(PlayerMobile from)
         {
-            PlayerState state = PlayerState.Find(from);
+            var state = PlayerState.Find(from);
 
 
             return from.AccessLevel > AccessLevel.Player || (state != null && state.Rank.Rank >= MinRank);

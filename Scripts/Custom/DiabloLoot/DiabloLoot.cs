@@ -1,5 +1,3 @@
-using System;
-using Server;
 using Server.Items;
 
 namespace Server.Custom.DiabloLoot
@@ -7,9 +5,9 @@ namespace Server.Custom.DiabloLoot
     public static class DiabloLootColors
     {
         // Палитра цветов в стиле Diablo 2 / Diablo 3
-        public const string NormalColor    = "#FFFFFF"; // Белый (Обычный)
-        public const string MagicColor     = "#4169E1"; // Синий (Магический)
-        public const string RareColor      = "#FFFF00"; // Желтый (Редкий)
+        public const string NormalColor = "#FFFFFF"; // Белый (Обычный)
+        public const string MagicColor = "#4169E1"; // Синий (Магический)
+        public const string RareColor = "#FFFF00"; // Желтый (Редкий)
         public const string LegendaryColor = "#FF8C00"; // Оранжевый (Легендарный)
 
         public static string GetRarityColor(Item item)
@@ -21,12 +19,12 @@ namespace Server.Custom.DiabloLoot
             // Используем динамическое приведение, чтобы скрипт подходил и под BaseWeapon, и под BaseArmor
             if (item is BaseWeapon weapon)
             {
-                int power = (int)weapon.ItemPower;
+                var power = (int)weapon.ItemPower;
                 if (power > 0)
                 {
                     if (power >= 5) return LegendaryColor; // Высокие артефакты (Legendary, Mythical)
-                    if (power >= 3) return RareColor;      // Средние артефакты (Greater, Major)
-                    return MagicColor;                     // Низкие артефакты (Minor)
+                    if (power >= 3) return RareColor; // Средние артефакты (Greater, Major)
+                    return MagicColor; // Низкие артефакты (Minor)
                 }
             }
 
@@ -35,7 +33,7 @@ namespace Server.Custom.DiabloLoot
                 return LegendaryColor;
 
             // Резервный подсчет для вещей, у которых ItemPower равен None (старый крафт или обычный дроп)
-            int propsCount = 0;
+            var propsCount = 0;
 
             if (item is BaseWeapon w)
             {
@@ -64,9 +62,9 @@ namespace Server.Custom.DiabloLoot
         // Метод для оборачивания имени в HTML теги
         public static string FormatName(Item item, string originalName)
         {
-            string color = GetRarityColor(item);
+            var color = GetRarityColor(item);
             // Use matching BASEFONT tags for proper HTML rendering in client
-            return String.Format("<BASEFONT COLOR={0}>{1}</BASEFONT>", color, originalName);
+            return string.Format("<BASEFONT COLOR={0}>{1}</BASEFONT>", color, originalName);
         }
     }
 }

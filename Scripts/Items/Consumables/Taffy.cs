@@ -1,9 +1,9 @@
-using System;
-
 namespace Server.Items
 {
     public class Taffy : CandyCane
     {
+        public override int LabelNumber => 1096949; /* taffy */
+
         [Constructable]
         public Taffy()
             : this(1)
@@ -22,25 +22,18 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1096949;
-            }
-        }/* taffy */
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

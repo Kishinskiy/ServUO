@@ -1,4 +1,5 @@
 using System;
+using Server.Engines.Plants;
 using Server.Items;
 using Server.Network;
 
@@ -7,44 +8,24 @@ namespace Server.Mobiles
     [CorpseName("a plague beast corpse")]
     public class PlagueBeast : BaseCreature, IDevourer
     {
-        private int m_DevourTotal;
         private int m_DevourGoal;
-        private bool m_HasMetalChest = false;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int TotalDevoured
-        {
-            get
-            {
-                return m_DevourTotal;
-            }
-            set
-            {
-                m_DevourTotal = value;
-            }
-        }
+        public int TotalDevoured { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public int DevourGoal
         {
-            get
-            {
-                return (IsParagon ? m_DevourGoal + 25 : m_DevourGoal);
-            }
-            set
-            {
-                m_DevourGoal = value;
-            }
+            get => IsParagon ? m_DevourGoal + 25 : m_DevourGoal;
+            set => m_DevourGoal = value;
         }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public bool HasMetalChest
-        {
-            get
-            {
-                return m_HasMetalChest;
-            }
-        }
+        public bool HasMetalChest { get; private set; }
+
+        public override bool AutoDispel => true;
+
+        public override Poison PoisonImmune => Poison.Lethal;
 
         [Constructable]
         public PlagueBeast()
@@ -82,13 +63,46 @@ namespace Server.Mobiles
                 PackItem(new PlagueBeastGland());
 
             if (Core.ML && Utility.RandomDouble() < 0.33)
-                PackItem(Engines.Plants.Seed.RandomPeculiarSeed(2));
+                PackItem(Seed.RandomPeculiarSeed(2));
 
-            m_DevourTotal = 0;
-            m_DevourGoal = Utility.RandomMinMax(15, 25); // How many corpses must be devoured before a metal chest is awarded
+            TotalDevoured = 0;
+            m_DevourGoal =
+                Utility.RandomMinMax(15, 25); // How many corpses must be devoured before a metal chest is awarded
 
             SetSpecialAbility(SpecialAbility.PoisonSpit);
         }
+
+        public PlagueBeast(Serial serial)
+            : base(serial)
+        {
+        }
+
+        #region IDevourer Members
+
+        public bool Devour(Corpse corpse)
+        {
+            if (corpse == null || corpse.Owner == null) // sorry we can't devour because the corpse's owner is null
+                return false;
+
+            if (corpse.Owner.Body.IsHuman)
+                corpse.TurnToBones(); // Not bones yet, and we are a human body therefore we turn to bones.
+
+            IncreaseHits((int)Math.Ceiling(corpse.Owner.HitsMax * 0.75));
+            TotalDevoured++;
+
+            PublicOverheadMessage(MessageType.Emote, 0x3B2,
+                1053033); // * The plague beast absorbs the fleshy remains of the corpse *
+
+            if (!HasMetalChest && TotalDevoured >= DevourGoal)
+            {
+                PackItem(new MetalChest());
+                HasMetalChest = true;
+            }
+
+            return true;
+        }
+
+        #endregion
 
         public override void GenerateLoot()
         {
@@ -112,21 +126,6 @@ namespace Server.Mobiles
             base.OnDamagedBySpell(caster);
         }
 
-        public override bool AutoDispel
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override Poison PoisonImmune
-        {
-            get
-            {
-                return Poison.Lethal;
-            }
-        }
-
         public override void OnGotMeleeAttack(Mobile attacker)
         {
             if (Map != null && attacker != this && 0.25 > Utility.RandomDouble())
@@ -141,11 +140,6 @@ namespace Server.Mobiles
             }
 
             base.OnGotMeleeAttack(attacker);
-        }
-
-        public PlagueBeast(Serial serial)
-            : base(serial)
-        {
         }
 
         public override int GetIdleSound()
@@ -171,27 +165,27 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1);
+            writer.Write(1);
 
-            writer.Write(m_HasMetalChest);
-            writer.Write(m_DevourTotal);
+            writer.Write(HasMetalChest);
+            writer.Write(TotalDevoured);
             writer.Write(m_DevourGoal);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            switch( version )
+            switch (version)
             {
                 case 1:
-                    {
-                        m_HasMetalChest = reader.ReadBool();
-                        m_DevourTotal = reader.ReadInt();
-                        m_DevourGoal = reader.ReadInt();
-                        break;
-                    }
+                {
+                    HasMetalChest = reader.ReadBool();
+                    TotalDevoured = reader.ReadInt();
+                    m_DevourGoal = reader.ReadInt();
+                    break;
+                }
             }
         }
 
@@ -203,72 +197,46 @@ namespace Server.Mobiles
             IPooledEnumerable eable = GetItemsInRange(3); // Get all corpses in range
 
             foreach (Item item in eable)
-            {
                 if (item is Corpse) // For each Corpse
                 {
-                    Corpse corpse = item as Corpse;
+                    var corpse = item as Corpse;
 
                     // Ensure that the corpse was killed by us
                     if (corpse != null && corpse.Killer == this && corpse.Owner != null)
-                    {
                         if (!corpse.DevourCorpse() && !corpse.Devoured)
-                            PublicOverheadMessage(MessageType.Emote, 0x3B2, 1053032); // * The plague beast attempts to absorb the remains, but cannot! *
-                    }
+                            PublicOverheadMessage(MessageType.Emote, 0x3B2,
+                                1053032); // * The plague beast attempts to absorb the remains, but cannot! *
                 }
-            }
+
             eable.Free();
         }
 
-        #region IDevourer Members
-
-        public bool Devour(Corpse corpse)
-        {
-            if (corpse == null || corpse.Owner == null) // sorry we can't devour because the corpse's owner is null
-                return false;
-
-            if (corpse.Owner.Body.IsHuman)
-                corpse.TurnToBones(); // Not bones yet, and we are a human body therefore we turn to bones.
-
-            IncreaseHits((int)Math.Ceiling((double)corpse.Owner.HitsMax * 0.75));
-            m_DevourTotal++;
-
-            PublicOverheadMessage(MessageType.Emote, 0x3B2, 1053033); // * The plague beast absorbs the fleshy remains of the corpse *
-
-            if (!m_HasMetalChest && m_DevourTotal >= DevourGoal)
-            {
-                PackItem(new MetalChest());
-                m_HasMetalChest = true;
-            }
-
-            return true;
-        }
-
-        #endregion
-
         private void IncreaseHits(int hp)
         {
-            int maxhits = 2000;
+            var maxhits = 2000;
 
             if (IsParagon)
                 maxhits = (int)(maxhits * Paragon.HitsBuff);
 
             if (hp < 1000 && !Core.AOS)
-                hp = (hp * 100) / 60;
+                hp = hp * 100 / 60;
 
             if (HitsMaxSeed >= maxhits)
             {
                 HitsMaxSeed = maxhits;
 
-                int newHits = Hits + hp + Utility.RandomMinMax(10, 20); // increase the hp until it hits if it goes over it'll max at 2000
+                var newHits =
+                    Hits + hp + Utility.RandomMinMax(10,
+                        20); // increase the hp until it hits if it goes over it'll max at 2000
 
                 Hits = Math.Min(maxhits, newHits);
                 // Also provide heal for each devour on top of the hp increase
             }
             else
             {
-                int min = (hp / 2) + 10;
-                int max = hp + 20;
-                int hpToIncrease = Utility.RandomMinMax(min, max);
+                var min = hp / 2 + 10;
+                var max = hp + 20;
+                var hpToIncrease = Utility.RandomMinMax(min, max);
 
                 HitsMaxSeed += hpToIncrease;
                 Hits += hpToIncrease;

@@ -1,16 +1,12 @@
-using System;
-using Server;
 using Server.Multis;
 
 namespace Server.Items
 {
     public class ShipWheel : Item, IGalleonFixture
     {
-        public override int LabelNumber { get { return 1149698; } } // wheel
+        public override int LabelNumber => 1149698; // wheel
 
-        public BaseGalleon Galleon { get; set; }
-
-        public Mobile Pilot { get { return Galleon != null ? Galleon.Pilot : null; } }
+        public Mobile Pilot => Galleon != null ? Galleon.Pilot : null;
 
         public ShipWheel(BaseGalleon galleon, int id)
             : base(id)
@@ -18,6 +14,13 @@ namespace Server.Items
             Galleon = galleon;
             Movable = false;
         }
+
+        public ShipWheel(Serial serial)
+            : base(serial)
+        {
+        }
+
+        public BaseGalleon Galleon { get; set; }
 
         public override void OnDoubleClickDead(Mobile m)
         {
@@ -28,8 +31,8 @@ namespace Server.Items
         {
             from.RevealingAction();
 
-            BaseBoat boat = BaseBoat.FindBoatAt(from, from.Map);
-            Item mount = from.FindItemOnLayer(Layer.Mount);
+            var boat = BaseBoat.FindBoatAt(from, from.Map);
+            var mount = from.FindItemOnLayer(Layer.Mount);
 
             if (boat == null || Galleon == null || boat != Galleon)
             {
@@ -39,7 +42,8 @@ namespace Server.Items
             {
                 from.SendLocalizedMessage(1116726); // This is not your ship!
             }
-            else if (Pilot != null && Pilot != from && (Galleon.GetSecurityLevel(from) < Galleon.GetSecurityLevel(Pilot) || Pilot == Galleon.Owner))
+            else if (Pilot != null && Pilot != from &&
+                     (Galleon.GetSecurityLevel(from) < Galleon.GetSecurityLevel(Pilot) || Pilot == Galleon.Owner))
             {
                 from.SendLocalizedMessage(502221); // Someone else is already using this item.
             }
@@ -73,26 +77,18 @@ namespace Server.Items
             }
         }
 
-        public ShipWheel(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1); // version
+            writer.Write(1); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            if (version == 0)
-            {
-                reader.ReadItem();
-            }
+            if (version == 0) reader.ReadItem();
         }
     }
 }

@@ -1,26 +1,26 @@
-using System;
-
-using Server;
-using Server.Mobiles;
-using Server.Items;
-using Server.SkillHandlers;
-using Server.Network;
-using Server.Gumps;
 using Server.Engines.Quests;
+using Server.Mobiles;
+using Server.Network;
+using Server.SkillHandlers;
 
 namespace Server.Engines.Khaldun
 {
     public class BaseGumshoeForensicItem : Item, IForensicTarget
     {
-        public virtual string ItemName { get { return null; } }
-        public virtual int Cliloc { get { return 0; } }
+        public virtual string ItemName => null;
+        public virtual int Cliloc => 0;
 
-        public override bool DisplayWeight { get { return false; } }
+        public override bool DisplayWeight => false;
 
         public BaseGumshoeForensicItem(int itemID)
             : base(itemID)
         {
             Movable = false;
+        }
+
+        public BaseGumshoeForensicItem(Serial serial)
+            : base(serial)
+        {
         }
 
         public void OnForensicEval(Mobile m)
@@ -32,8 +32,10 @@ namespace Server.Engines.Khaldun
 
             if (quest != null)
             {
-                m.PrivateOverheadMessage(MessageType.Regular, 0x47E, 1157722, "Forensics", m.NetState); // *Your proficiency in ~1_SKILL~ reveals more about the item*
-                m.SendLocalizedMessage(1158612, null, 0x23); // You have identified a clue! This item seems pertinent to the investigation!
+                m.PrivateOverheadMessage(MessageType.Regular, 0x47E, 1157722, "Forensics",
+                    m.NetState); // *Your proficiency in ~1_SKILL~ reveals more about the item*
+                m.SendLocalizedMessage(1158612, null,
+                    0x23); // You have identified a clue! This item seems pertinent to the investigation!
 
                 m.SendSound(quest.UpdateSound);
                 m.SendSound(m.Female ? 0x30B : 0x41A);
@@ -43,30 +45,25 @@ namespace Server.Engines.Khaldun
             }
         }
 
-        public BaseGumshoeForensicItem(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class GumshoeBottles : BaseGumshoeForensicItem
     {
-        public override string ItemName { get { return "bottles of wine"; } }
-        public override int Cliloc { get { return 1158572; } }
+        public override string ItemName => "bottles of wine";
+        public override int Cliloc => 1158572;
 
         [Constructable]
         public GumshoeBottles()
@@ -83,21 +80,21 @@ namespace Server.Engines.Khaldun
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class GumshoeDeed : BaseGumshoeForensicItem
     {
-        public override string ItemName { get { return "deed"; } }
-        public override int Cliloc { get { return 1158575; } }
+        public override string ItemName => "deed";
+        public override int Cliloc => 1158575;
 
         [Constructable]
         public GumshoeDeed()
@@ -114,21 +111,21 @@ namespace Server.Engines.Khaldun
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class GumshoeRope : BaseGumshoeForensicItem
     {
-        public override string ItemName { get { return "rope"; } }
-        public override int Cliloc { get { return 1158573; } }
+        public override string ItemName => "rope";
+        public override int Cliloc => 1158573;
 
         [Constructable]
         public GumshoeRope()
@@ -145,21 +142,21 @@ namespace Server.Engines.Khaldun
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class GumshoeMap : BaseGumshoeForensicItem
     {
-        public override string ItemName { get { return "map"; } }
-        public override int Cliloc { get { return 1158574; } }
+        public override string ItemName => "map";
+        public override int Cliloc => 1158574;
 
         [Constructable]
         public GumshoeMap()
@@ -176,21 +173,21 @@ namespace Server.Engines.Khaldun
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class GumshoeTools : BaseGumshoeForensicItem
     {
-        public override string ItemName { get { return "tools"; } }
-        public override int Cliloc { get { return 1158576; } }
+        public override string ItemName => "tools";
+        public override int Cliloc => 1158576;
 
         [Constructable]
         public GumshoeTools()
@@ -207,14 +204,14 @@ namespace Server.Engines.Khaldun
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -21,16 +21,46 @@ namespace Server.Items
     public class PuzzleChestSolution
     {
         public const int Length = 5;
-        private readonly PuzzleChestCylinder[] m_Cylinders = new PuzzleChestCylinder[Length];
-        public PuzzleChestSolution()
+
+        public PuzzleChestCylinder[] Cylinders { get; } = new PuzzleChestCylinder[Length];
+
+        public PuzzleChestCylinder First
         {
-            for (int i = 0; i < m_Cylinders.Length; i++)
-            {
-                m_Cylinders[i] = RandomCylinder();
-            }
+            get => Cylinders[0];
+            set => Cylinders[0] = value;
         }
 
-        public PuzzleChestSolution(PuzzleChestCylinder first, PuzzleChestCylinder second, PuzzleChestCylinder third, PuzzleChestCylinder fourth, PuzzleChestCylinder fifth)
+        public PuzzleChestCylinder Second
+        {
+            get => Cylinders[1];
+            set => Cylinders[1] = value;
+        }
+
+        public PuzzleChestCylinder Third
+        {
+            get => Cylinders[2];
+            set => Cylinders[2] = value;
+        }
+
+        public PuzzleChestCylinder Fourth
+        {
+            get => Cylinders[3];
+            set => Cylinders[3] = value;
+        }
+
+        public PuzzleChestCylinder Fifth
+        {
+            get => Cylinders[4];
+            set => Cylinders[4] = value;
+        }
+
+        public PuzzleChestSolution()
+        {
+            for (var i = 0; i < Cylinders.Length; i++) Cylinders[i] = RandomCylinder();
+        }
+
+        public PuzzleChestSolution(PuzzleChestCylinder first, PuzzleChestCylinder second, PuzzleChestCylinder third,
+            PuzzleChestCylinder fourth, PuzzleChestCylinder fifth)
         {
             First = first;
             Second = second;
@@ -41,102 +71,35 @@ namespace Server.Items
 
         public PuzzleChestSolution(PuzzleChestSolution solution)
         {
-            for (int i = 0; i < m_Cylinders.Length; i++)
-            {
-                m_Cylinders[i] = solution.m_Cylinders[i];
-            }
+            for (var i = 0; i < Cylinders.Length; i++) Cylinders[i] = solution.Cylinders[i];
         }
 
         public PuzzleChestSolution(GenericReader reader)
         {
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
 
-            int length = reader.ReadEncodedInt();
-            for (int i = 0;; i++)
-            {
+            var length = reader.ReadEncodedInt();
+            for (var i = 0;; i++)
                 if (i < length)
                 {
-                    PuzzleChestCylinder cylinder = (PuzzleChestCylinder)reader.ReadInt();
+                    var cylinder = (PuzzleChestCylinder)reader.ReadInt();
 
-                    if (i < m_Cylinders.Length)
-                        m_Cylinders[i] = cylinder;
+                    if (i < Cylinders.Length)
+                        Cylinders[i] = cylinder;
                 }
-                else if (i < m_Cylinders.Length)
+                else if (i < Cylinders.Length)
                 {
-                    m_Cylinders[i] = RandomCylinder();
+                    Cylinders[i] = RandomCylinder();
                 }
                 else
                 {
                     break;
                 }
-            }
         }
 
-        public PuzzleChestCylinder[] Cylinders
-        {
-            get
-            {
-                return m_Cylinders;
-            }
-        }
-        public PuzzleChestCylinder First
-        {
-            get
-            {
-                return m_Cylinders[0];
-            }
-            set
-            {
-                m_Cylinders[0] = value;
-            }
-        }
-        public PuzzleChestCylinder Second
-        {
-            get
-            {
-                return m_Cylinders[1];
-            }
-            set
-            {
-                m_Cylinders[1] = value;
-            }
-        }
-        public PuzzleChestCylinder Third
-        {
-            get
-            {
-                return m_Cylinders[2];
-            }
-            set
-            {
-                m_Cylinders[2] = value;
-            }
-        }
-        public PuzzleChestCylinder Fourth
-        {
-            get
-            {
-                return m_Cylinders[3];
-            }
-            set
-            {
-                m_Cylinders[3] = value;
-            }
-        }
-        public PuzzleChestCylinder Fifth
-        {
-            get
-            {
-                return m_Cylinders[4];
-            }
-            set
-            {
-                m_Cylinders[4] = value;
-            }
-        }
         public static PuzzleChestCylinder RandomCylinder()
         {
-            switch ( Utility.Random(8) )
+            switch (Utility.Random(8))
             {
                 case 0:
                     return PuzzleChestCylinder.LightBlue;
@@ -162,82 +125,65 @@ namespace Server.Items
             cylinders = 0;
             colors = 0;
 
-            bool[] matchesSrc = new bool[solution.m_Cylinders.Length];
-            bool[] matchesDst = new bool[solution.m_Cylinders.Length];
+            var matchesSrc = new bool[solution.Cylinders.Length];
+            var matchesDst = new bool[solution.Cylinders.Length];
 
-            for (int i = 0; i < m_Cylinders.Length; i++)
-            {
-                if (m_Cylinders[i] == solution.m_Cylinders[i])
+            for (var i = 0; i < Cylinders.Length; i++)
+                if (Cylinders[i] == solution.Cylinders[i])
                 {
                     cylinders++;
 
                     matchesSrc[i] = true;
                     matchesDst[i] = true;
                 }
-            }
 
-            for (int i = 0; i < m_Cylinders.Length; i++)
-            {
+            for (var i = 0; i < Cylinders.Length; i++)
                 if (!matchesSrc[i])
-                {
-                    for (int j = 0; j < solution.m_Cylinders.Length; j++)
-                    {
-                        if (m_Cylinders[i] == solution.m_Cylinders[j] && !matchesDst[j])
+                    for (var j = 0; j < solution.Cylinders.Length; j++)
+                        if (Cylinders[i] == solution.Cylinders[j] && !matchesDst[j])
                         {
                             colors++;
 
                             matchesDst[j] = true;
                         }
-                    }
-                }
-            }
 
-            return cylinders == m_Cylinders.Length;
+            return cylinders == Cylinders.Length;
         }
 
         public virtual void Serialize(GenericWriter writer)
         {
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
 
-            writer.WriteEncodedInt((int)m_Cylinders.Length);
-            for (int i = 0; i < m_Cylinders.Length; i++)
-            {
-                writer.Write((int)m_Cylinders[i]);
-            }
+            writer.WriteEncodedInt(Cylinders.Length);
+            for (var i = 0; i < Cylinders.Length; i++) writer.Write((int)Cylinders[i]);
         }
     }
 
     public class PuzzleChestSolutionAndTime : PuzzleChestSolution
     {
-        private readonly DateTime m_When;
+        public DateTime When { get; }
+
         public PuzzleChestSolutionAndTime(DateTime when, PuzzleChestSolution solution)
             : base(solution)
         {
-            m_When = when;
+            When = when;
         }
 
         public PuzzleChestSolutionAndTime(GenericReader reader)
             : base(reader)
         {
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
 
-            m_When = reader.ReadDeltaTime();
+            When = reader.ReadDeltaTime();
         }
 
-        public DateTime When
-        {
-            get
-            {
-                return m_When;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
 
-            writer.WriteDeltaTime(m_When);
+            writer.WriteDeltaTime(When);
         }
     }
 
@@ -245,11 +191,45 @@ namespace Server.Items
     {
         public const int HintsCount = 3;
         public readonly TimeSpan CleanupTime = TimeSpan.FromHours(1.0);
-        private readonly Dictionary<Mobile, PuzzleChestSolutionAndTime> m_Guesses = new Dictionary<Mobile, PuzzleChestSolutionAndTime>();
-        private PuzzleChestSolution m_Solution;
-        private PuzzleChestCylinder[] m_Hints = new PuzzleChestCylinder[HintsCount];
 
-        public virtual int Label { get { return 1018309; } } // A Puzzle Lock
+        private readonly Dictionary<Mobile, PuzzleChestSolutionAndTime> m_Guesses =
+            new Dictionary<Mobile, PuzzleChestSolutionAndTime>();
+
+        private PuzzleChestSolution m_Solution;
+
+        public virtual int Label => 1018309; // A Puzzle Lock
+
+        public PuzzleChestSolution Solution
+        {
+            get => m_Solution;
+            set
+            {
+                m_Solution = value;
+                InitHints();
+            }
+        }
+
+        public PuzzleChestCylinder[] Hints { get; private set; } = new PuzzleChestCylinder[HintsCount];
+
+        public PuzzleChestCylinder FirstHint
+        {
+            get => Hints[0];
+            set => Hints[0] = value;
+        }
+
+        public PuzzleChestCylinder SecondHint
+        {
+            get => Hints[1];
+            set => Hints[1] = value;
+        }
+
+        public PuzzleChestCylinder ThirdHint
+        {
+            get => Hints[2];
+            set => Hints[2] = value;
+        }
+
+        public override string DefaultName => null;
 
         public PuzzleChest(int itemID)
             : base(itemID)
@@ -261,65 +241,6 @@ namespace Server.Items
         {
         }
 
-        public PuzzleChestSolution Solution
-        {
-            get
-            {
-                return m_Solution;
-            }
-            set
-            {
-                m_Solution = value;
-                InitHints();
-            }
-        }
-        public PuzzleChestCylinder[] Hints
-        {
-            get
-            {
-                return m_Hints;
-            }
-        }
-        public PuzzleChestCylinder FirstHint
-        {
-            get
-            {
-                return m_Hints[0];
-            }
-            set
-            {
-                m_Hints[0] = value;
-            }
-        }
-        public PuzzleChestCylinder SecondHint
-        {
-            get
-            {
-                return m_Hints[1];
-            }
-            set
-            {
-                m_Hints[1] = value;
-            }
-        }
-        public PuzzleChestCylinder ThirdHint
-        {
-            get
-            {
-                return m_Hints[2];
-            }
-            set
-            {
-                m_Hints[2] = value;
-            }
-        }
-        public override string DefaultName
-        {
-            get
-            {
-                return null;
-            }
-        }
         public override bool CheckLocked(Mobile from)
         {
             if (Locked)
@@ -328,7 +249,8 @@ namespace Server.Items
                 if (solution != null)
                     solution = new PuzzleChestSolution(solution);
                 else
-                    solution = new PuzzleChestSolution(PuzzleChestCylinder.None, PuzzleChestCylinder.None, PuzzleChestCylinder.None, PuzzleChestCylinder.None, PuzzleChestCylinder.None);
+                    solution = new PuzzleChestSolution(PuzzleChestCylinder.None, PuzzleChestCylinder.None,
+                        PuzzleChestCylinder.None, PuzzleChestCylinder.None, PuzzleChestCylinder.None);
 
                 from.CloseGump(typeof(PuzzleGump));
                 from.CloseGump(typeof(StatusGump));
@@ -336,10 +258,8 @@ namespace Server.Items
 
                 return true;
             }
-            else
-            {
-                return false;
-            }
+
+            return false;
         }
 
         public PuzzleChestSolutionAndTime GetLastGuess(Mobile m)
@@ -371,46 +291,47 @@ namespace Server.Items
 
         public virtual void DoDamage(Mobile to)
         {
-            switch ( Utility.Random(4) )
+            switch (Utility.Random(4))
             {
                 case 0:
-                    {
-                        Effects.SendLocationEffect(to, to.Map, 0x113A, 20, 10);
-                        to.PlaySound(0x231);
-                        to.LocalOverheadMessage(MessageType.Regular, 0x44, 1010523); // A toxic vapor envelops thee.
+                {
+                    Effects.SendLocationEffect(to, to.Map, 0x113A, 20, 10);
+                    to.PlaySound(0x231);
+                    to.LocalOverheadMessage(MessageType.Regular, 0x44, 1010523); // A toxic vapor envelops thee.
 
-                        to.ApplyPoison(to, Poison.Regular);
+                    to.ApplyPoison(to, Poison.Regular);
 
-                        break;
-                    }
+                    break;
+                }
                 case 1:
-                    {
-                        Effects.SendLocationEffect(to, to.Map, 0x3709, 30);
-                        to.PlaySound(0x54);
-                        to.LocalOverheadMessage(MessageType.Regular, 0xEE, 1010524); // Searing heat scorches thy skin.
+                {
+                    Effects.SendLocationEffect(to, to.Map, 0x3709, 30);
+                    to.PlaySound(0x54);
+                    to.LocalOverheadMessage(MessageType.Regular, 0xEE, 1010524); // Searing heat scorches thy skin.
 
-                        AOS.Damage(to, to, Utility.RandomMinMax(10, 40), 0, 100, 0, 0, 0);
+                    AOS.Damage(to, to, Utility.RandomMinMax(10, 40), 0, 100, 0, 0, 0);
 
-                        break;
-                    }
+                    break;
+                }
                 case 2:
-                    {
-                        to.PlaySound(0x223);
-                        to.LocalOverheadMessage(MessageType.Regular, 0x62, 1010525); // Pain lances through thee from a sharp metal blade.
+                {
+                    to.PlaySound(0x223);
+                    to.LocalOverheadMessage(MessageType.Regular, 0x62,
+                        1010525); // Pain lances through thee from a sharp metal blade.
 
-                        AOS.Damage(to, to, Utility.RandomMinMax(10, 40), 100, 0, 0, 0, 0);
+                    AOS.Damage(to, to, Utility.RandomMinMax(10, 40), 100, 0, 0, 0, 0);
 
-                        break;
-                    }
+                    break;
+                }
                 default:
-                    {
-                        to.BoltEffect(0);
-                        to.LocalOverheadMessage(MessageType.Regular, 0xDA, 1010526); // Lightning arcs through thy body.
+                {
+                    to.BoltEffect(0);
+                    to.LocalOverheadMessage(MessageType.Regular, 0xDA, 1010526); // Lightning arcs through thy body.
 
-                        AOS.Damage(to, to, Utility.RandomMinMax(10, 40), 0, 0, 0, 0, 100);
+                    AOS.Damage(to, to, Utility.RandomMinMax(10, 40), 0, 0, 0, 0, 100);
 
-                        break;
-                    }
+                    break;
+                }
             }
         }
 
@@ -423,15 +344,13 @@ namespace Server.Items
 
         public void CleanupGuesses()
         {
-            List<Mobile> toDelete = new List<Mobile>();
+            var toDelete = new List<Mobile>();
 
-            foreach (KeyValuePair<Mobile, PuzzleChestSolutionAndTime> kvp in m_Guesses)
-            {
+            foreach (var kvp in m_Guesses)
                 if (DateTime.UtcNow - kvp.Value.When > CleanupTime)
                     toDelete.Add(kvp.Key);
-            }
 
-            foreach (Mobile m in toDelete)
+            foreach (var m in toDelete)
                 m_Guesses.Remove(m);
         }
 
@@ -441,18 +360,15 @@ namespace Server.Items
 
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
 
             m_Solution.Serialize(writer);
 
-            writer.WriteEncodedInt((int)m_Hints.Length);
-            for (int i = 0; i < m_Hints.Length; i++)
-            {
-                writer.Write((int)m_Hints[i]);
-            }
+            writer.WriteEncodedInt(Hints.Length);
+            for (var i = 0; i < Hints.Length; i++) writer.Write((int)Hints[i]);
 
-            writer.WriteEncodedInt((int)m_Guesses.Count);
-            foreach (KeyValuePair<Mobile, PuzzleChestSolutionAndTime> kvp in m_Guesses)
+            writer.WriteEncodedInt(m_Guesses.Count);
+            foreach (var kvp in m_Guesses)
             {
                 writer.Write(kvp.Key);
                 kvp.Value.Serialize(writer);
@@ -463,26 +379,27 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
 
             m_Solution = new PuzzleChestSolution(reader);
 
-            int length = reader.ReadEncodedInt();
-            for (int i = 0; i < length; i++)
+            var length = reader.ReadEncodedInt();
+            for (var i = 0; i < length; i++)
             {
-                PuzzleChestCylinder cylinder = (PuzzleChestCylinder)reader.ReadInt();
+                var cylinder = (PuzzleChestCylinder)reader.ReadInt();
 
-                if (length == m_Hints.Length)
-                    m_Hints[i] = cylinder;
+                if (length == Hints.Length)
+                    Hints[i] = cylinder;
             }
-            if (length != m_Hints.Length)
+
+            if (length != Hints.Length)
                 InitHints();
 
-            int guesses = reader.ReadEncodedInt();
-            for (int i = 0; i < guesses; i++)
+            var guesses = reader.ReadEncodedInt();
+            for (var i = 0; i < guesses; i++)
             {
-                Mobile m = reader.ReadMobile();
-                PuzzleChestSolutionAndTime sol = new PuzzleChestSolutionAndTime(reader);
+                var m = reader.ReadMobile();
+                var sol = new PuzzleChestSolutionAndTime(reader);
 
                 m_Guesses[m] = sol;
             }
@@ -497,33 +414,31 @@ namespace Server.Items
         {
             DropItem(new Gold(600, 900));
 
-            List<Item> gems = new List<Item>();
-            for (int i = 0; i < 9; i++)
+            var gems = new List<Item>();
+            for (var i = 0; i < 9; i++)
             {
-                Item gem = Loot.RandomGem();
-                Type gemType = gem.GetType();
+                var gem = Loot.RandomGem();
+                var gemType = gem.GetType();
 
-                foreach (Item listGem in gems)
-                {
+                foreach (var listGem in gems)
                     if (listGem.GetType() == gemType)
                     {
                         listGem.Amount++;
                         gem.Delete();
                         break;
                     }
-                }
 
                 if (!gem.Deleted)
                     gems.Add(gem);
             }
 
-            foreach (Item gem in gems)
+            foreach (var gem in gems)
                 DropItem(gem);
 
             if (0.2 > Utility.RandomDouble())
                 DropItem(new BagOfReagents(50));
 
-            for (int i = 0; i < 2; i++)
+            for (var i = 0; i < 2; i++)
             {
                 Item item;
 
@@ -534,7 +449,7 @@ namespace Server.Items
 
                 if (item is BaseWeapon)
                 {
-                    BaseWeapon weapon = (BaseWeapon)item;
+                    var weapon = (BaseWeapon)item;
 
                     if (Core.AOS)
                     {
@@ -556,7 +471,7 @@ namespace Server.Items
                 }
                 else if (item is BaseArmor)
                 {
-                    BaseArmor armor = (BaseArmor)item;
+                    var armor = (BaseArmor)item;
 
                     if (Core.AOS)
                     {
@@ -577,7 +492,7 @@ namespace Server.Items
                 }
                 else if (item is BaseHat)
                 {
-                    BaseHat hat = (BaseHat)item;
+                    var hat = (BaseHat)item;
 
                     if (Core.AOS)
                     {
@@ -609,7 +524,7 @@ namespace Server.Items
 
         private static void GetRandomAOSStats(out int attributeCount, out int min, out int max)
         {
-            int rnd = Utility.Random(15);
+            var rnd = Utility.Random(15);
 
             if (rnd < 1)
             {
@@ -645,25 +560,26 @@ namespace Server.Items
 
         private void InitHints()
         {
-            List<PuzzleChestCylinder> list = new List<PuzzleChestCylinder>(Solution.Cylinders.Length - 1);
-            for (int i = 1; i < Solution.Cylinders.Length; i++)
+            var list = new List<PuzzleChestCylinder>(Solution.Cylinders.Length - 1);
+            for (var i = 1; i < Solution.Cylinders.Length; i++)
                 list.Add(Solution.Cylinders[i]);
 
-            m_Hints = new PuzzleChestCylinder[HintsCount];
-			
-            for (int i = 0; i < m_Hints.Length; i++)
+            Hints = new PuzzleChestCylinder[HintsCount];
+
+            for (var i = 0; i < Hints.Length; i++)
             {
-                int pos = Utility.Random(list.Count);
-                m_Hints[i] = list[pos];
+                var pos = Utility.Random(list.Count);
+                Hints[i] = list[pos];
                 list.RemoveAt(pos);
             }
         }
 
         public class PuzzleGump : Gump
         {
-            private readonly Mobile m_From;
             private readonly PuzzleChest m_Chest;
+            private readonly Mobile m_From;
             private readonly PuzzleChestSolution m_Solution;
+
             public PuzzleGump(Mobile from, PuzzleChest chest, PuzzleChestSolution solution, int check)
                 : base(50, 50)
             {
@@ -680,8 +596,8 @@ namespace Server.Items
                 AddHtmlLocalized(80, 36, 110, 70, 1018309, true, false); // A Puzzle Lock
 
                 /* Correctly choose the sequence of cylinders needed to open the latch.  Each cylinder
-                * may potentially be used more than once.  Beware!  A false attempt could be deadly!
-                */
+                 * may potentially be used more than once.  Beware!  A false attempt could be deadly!
+                 */
                 AddHtmlLocalized(214, 26, 270, 90, 1018310, true, true);
 
                 AddLeftCylinderButton(62, 130, PuzzleChestCylinder.LightBlue, 10);
@@ -694,7 +610,7 @@ namespace Server.Items
                 AddRightCylinderButton(451, 230, PuzzleChestCylinder.DarkBlue, 16);
                 AddRightCylinderButton(451, 280, PuzzleChestCylinder.Yellow, 17);
 
-                double lockpicking = from.Skills.Lockpicking.Base;
+                var lockpicking = from.Skills.Lockpicking.Base;
                 if (lockpicking >= 60.0)
                 {
                     AddHtmlLocalized(160, 125, 230, 24, 1018308, false, false); // Lockpicking hint:
@@ -768,12 +684,12 @@ namespace Server.Items
                     if (info.Switches.Length == 0)
                         return;
 
-                    int pedestal = info.Switches[0];
+                    var pedestal = info.Switches[0];
                     if (pedestal < 0 || pedestal >= m_Solution.Cylinders.Length)
                         return;
 
                     PuzzleChestCylinder cylinder;
-                    switch ( info.ButtonID )
+                    switch (info.ButtonID)
                     {
                         case 10:
                             cylinder = PuzzleChestCylinder.LightBlue;
@@ -891,14 +807,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
@@ -920,14 +836,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

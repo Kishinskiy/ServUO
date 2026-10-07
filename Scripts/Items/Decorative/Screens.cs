@@ -1,5 +1,3 @@
-using System;
-
 namespace Server.Items
 {
     [Furniture]
@@ -10,7 +8,7 @@ namespace Server.Items
         public BambooScreen()
             : base(0x24D0)
         {
-            this.Weight = 20.0;
+            Weight = 20.0;
         }
 
         public BambooScreen(Serial serial)
@@ -22,14 +20,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -41,7 +39,7 @@ namespace Server.Items
         public ShojiScreen()
             : base(0x24CB)
         {
-            this.Weight = 20.0;
+            Weight = 20.0;
         }
 
         public ShojiScreen(Serial serial)
@@ -53,14 +51,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -1,6 +1,4 @@
-using System;
 using System.Linq;
-using Server;
 using Server.Network;
 using Server.Targeting;
 
@@ -21,7 +19,7 @@ namespace Server.Items
     [Flipable(0x992D, 0x992E)]
     public class PumpkinCarvingKit : Item
     {
-        public override int LabelNumber { get { return 1154271; } } // Jack O' Lantern Carving Kit
+        public override int LabelNumber => 1154271; // Jack O' Lantern Carving Kit
 
         [Constructable]
         public PumpkinCarvingKit()
@@ -49,6 +47,18 @@ namespace Server.Items
             }
         }
 
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0); // version
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
+        }
+
         private class InternalTarget : Target
         {
             private readonly Item m_Item;
@@ -63,17 +73,17 @@ namespace Server.Items
             {
                 if (targeted is BaseCarvablePumpkin)
                 {
-                    BaseCarvablePumpkin pumpkin = (BaseCarvablePumpkin)targeted;
+                    var pumpkin = (BaseCarvablePumpkin)targeted;
 
                     from.PlaySound(0x249);
 
-                    pumpkin.ItemID = pumpkin.PumpkinDefinition[Utility.Random(pumpkin.PumpkinDefinition.Length)].UnlitItemID;
+                    pumpkin.ItemID = pumpkin.PumpkinDefinition[Utility.Random(pumpkin.PumpkinDefinition.Length)]
+                        .UnlitItemID;
                     pumpkin.CarvedBy = from.Name;
 
                     from.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1154339); // *You carefully carve the pumpkin*
 
                     m_Item.Delete();
-                    
                 }
                 else
                 {
@@ -81,28 +91,30 @@ namespace Server.Items
                 }
             }
         }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.Write((int)0); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            int version = reader.ReadInt();
-        }
     }
 
     public class BaseCarvablePumpkin : BaseLight
     {
-        public override int LabelNumber { get { return CarvedBy == null ? 1123239 : 1096937; } } // Carvable Pumpkin | carved pumpkin
+        public override int LabelNumber => CarvedBy == null ? 1123239 : 1096937; // Carvable Pumpkin | carved pumpkin
 
         [CommandProperty(AccessLevel.GameMaster)]
         public string CarvedBy { get; set; }
 
         public virtual PumpkinDefinition[] PumpkinDefinition { get; }
+
+        public override int LitItemID
+        {
+            get { return PumpkinDefinition.FirstOrDefault(x => x.UnlitItemID == ItemID).LitItemID; }
+        }
+
+        public override int UnlitItemID
+        {
+            get
+            {
+                return PumpkinDefinition.FirstOrDefault(x => x.LitItemID == ItemID).UnlitItemID;
+                ;
+            }
+        }
 
         [Constructable]
         public BaseCarvablePumpkin(int id)
@@ -123,9 +135,6 @@ namespace Server.Items
             base.OnDoubleClick(from);
         }
 
-        public override int LitItemID { get { return PumpkinDefinition.FirstOrDefault(x => x.UnlitItemID == ItemID).LitItemID; } }
-        public override int UnlitItemID { get { return PumpkinDefinition.FirstOrDefault(x => x.LitItemID == ItemID).UnlitItemID; ; } }
-
         public override void GetProperties(ObjectPropertyList list)
         {
             base.GetProperties(list);
@@ -137,7 +146,7 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
             writer.Write(CarvedBy);
         }
@@ -145,7 +154,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             CarvedBy = reader.ReadString();
         }
@@ -157,16 +166,16 @@ namespace Server.Items
         {
             get
             {
-                return new PumpkinDefinition[]
+                return new[]
                 {
-                     new PumpkinDefinition(0x9934, 0x9931),
-                     new PumpkinDefinition(0x9935, 0x9936),
-                     new PumpkinDefinition(0x9939, 0x993A),
-                     new PumpkinDefinition(0x993D, 0x993E),
-                     new PumpkinDefinition(0x9941, 0x9942),
-                     new PumpkinDefinition(0x9945, 0x9946),
-                     new PumpkinDefinition(0x9949, 0x994A),
-                     new PumpkinDefinition(0x9951, 0x9952),
+                    new PumpkinDefinition(0x9934, 0x9931),
+                    new PumpkinDefinition(0x9935, 0x9936),
+                    new PumpkinDefinition(0x9939, 0x993A),
+                    new PumpkinDefinition(0x993D, 0x993E),
+                    new PumpkinDefinition(0x9941, 0x9942),
+                    new PumpkinDefinition(0x9945, 0x9946),
+                    new PumpkinDefinition(0x9949, 0x994A),
+                    new PumpkinDefinition(0x9951, 0x9952)
                 };
             }
         }
@@ -186,13 +195,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -202,10 +211,10 @@ namespace Server.Items
         {
             get
             {
-                return new PumpkinDefinition[]
+                return new[]
                 {
-                     new PumpkinDefinition(0x9D23, 0x9D24),
-                     new PumpkinDefinition(0x9D27, 0x9D28),
+                    new PumpkinDefinition(0x9D23, 0x9D24),
+                    new PumpkinDefinition(0x9D27, 0x9D28)
                 };
             }
         }
@@ -225,13 +234,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -241,10 +250,10 @@ namespace Server.Items
         {
             get
             {
-                return new PumpkinDefinition[]
+                return new[]
                 {
-                     new PumpkinDefinition(0x9F23, 0x9F24),
-                     new PumpkinDefinition(0x9F27, 0x9F28),
+                    new PumpkinDefinition(0x9F23, 0x9F24),
+                    new PumpkinDefinition(0x9F27, 0x9F28)
                 };
             }
         }
@@ -264,13 +273,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

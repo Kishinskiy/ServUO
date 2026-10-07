@@ -1,15 +1,11 @@
-using System;
-using System.Collections.Generic;
-
-using Server;
 using Server.SkillHandlers;
 
 namespace Server.Items
 {
     public class CylinderTrapTrainingKit : PuzzleChest, IRemoveTrapTrainingKit
     {
-        public override int LabelNumber { get { return 1159015; } } // Cylinder Trap Training Kit
-        public int Title { get { return 1159017; } } // A Cylinder Trap
+        public override int LabelNumber => 1159015; // Cylinder Trap Training Kit
+        public int Title => 1159017; // A Cylinder Trap
 
         [Constructable]
         public CylinderTrapTrainingKit()
@@ -17,6 +13,26 @@ namespace Server.Items
         {
             Solution = new PuzzleChestSolution();
             Movable = true;
+        }
+
+        public CylinderTrapTrainingKit(Serial serial)
+            : base(serial)
+        {
+        }
+
+        public void OnRemoveTrap(Mobile from)
+        {
+            PuzzleChestSolution solution = GetLastGuess(from);
+
+            if (solution != null)
+                solution = new PuzzleChestSolution(solution);
+            else
+                solution = new PuzzleChestSolution(PuzzleChestCylinder.None, PuzzleChestCylinder.None,
+                    PuzzleChestCylinder.None, PuzzleChestCylinder.None, PuzzleChestCylinder.None);
+
+            from.CloseGump(typeof(PuzzleGump));
+            from.CloseGump(typeof(StatusGump));
+            from.SendGump(new PuzzleGump(from, this, solution, 0));
         }
 
         public override void DisplayTo(Mobile to)
@@ -28,20 +44,6 @@ namespace Server.Items
             return false;
         }
 
-        public void OnRemoveTrap(Mobile from)
-        {
-            PuzzleChestSolution solution = GetLastGuess(from);
-
-            if (solution != null)
-                solution = new PuzzleChestSolution(solution);
-            else
-                solution = new PuzzleChestSolution(PuzzleChestCylinder.None, PuzzleChestCylinder.None, PuzzleChestCylinder.None, PuzzleChestCylinder.None, PuzzleChestCylinder.None);
-
-            from.CloseGump(typeof(PuzzleChest.PuzzleGump));
-            from.CloseGump(typeof(PuzzleChest.StatusGump));
-            from.SendGump(new PuzzleChest.PuzzleGump(from, this, solution, 0));
-        }
-
         public override void DoDamage(Mobile to)
         {
         }
@@ -49,9 +51,8 @@ namespace Server.Items
         public override void OnDoubleClick(Mobile m)
         {
             if (m.InRange(GetWorldLocation(), 1))
-            {
-                m.SendLocalizedMessage(1159008); // That appears to be trapped, using the remove trap skill would yield better results...
-            }
+                m.SendLocalizedMessage(
+                    1159008); // That appears to be trapped, using the remove trap skill would yield better results...
         }
 
         public override void LockPick(Mobile from)
@@ -61,11 +62,6 @@ namespace Server.Items
             from.CheckTargetSkill(SkillName.RemoveTrap, this, 0, 100);
 
             Solution = new PuzzleChestSolution();
-        }
-
-        public CylinderTrapTrainingKit(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -79,7 +75,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

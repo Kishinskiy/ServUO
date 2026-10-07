@@ -1,22 +1,19 @@
-﻿using System;
-using Server;
-using Server.Gumps;
+﻿using Server.Gumps;
 
 namespace Server.Items
 {
     public enum SacrificeTileType
     {
         North = 0,
-        West = 1,
+        West = 1
     }
 
     public class SacrificeVirtueTileAddon : BaseAddon
     {
-        public override BaseAddonDeed Deed { get { return new SacrificeVirtueTileDeed(); } }
+        private readonly int offset;
 
         private SacrificeTileType m_SacrificeTileType;
-
-        private int offset;
+        public override BaseAddonDeed Deed => new SacrificeVirtueTileDeed();
 
         [Constructable]
         public SacrificeVirtueTileAddon(SacrificeTileType type)
@@ -25,10 +22,7 @@ namespace Server.Items
 
             offset = 0;
 
-            if (type == SacrificeTileType.North)
-            {
-                offset = 4;
-            }
+            if (type == SacrificeTileType.North) offset = 4;
 
             AddComponent(new AddonComponent(5386 + offset), 0, 0, 0);
             AddComponent(new AddonComponent(5387 + offset), 0, 1, 0);
@@ -45,23 +39,22 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class SacrificeVirtueTileDeed : BaseAddonDeed, IRewardOption
     {
-        public override BaseAddon Addon { get { return new SacrificeVirtueTileAddon(m_SacrificeTileType); } }
-        public override int LabelNumber { get { return 1080482; } } // Sacrifice Virtue Tile Deed
-
         private SacrificeTileType m_SacrificeTileType;
+        public override BaseAddon Addon => new SacrificeVirtueTileAddon(m_SacrificeTileType);
+        public override int LabelNumber => 1080482; // Sacrifice Virtue Tile Deed
 
         [Constructable]
         public SacrificeVirtueTileDeed()
@@ -69,34 +62,9 @@ namespace Server.Items
             LootType = LootType.Blessed;
         }
 
-        public override void OnDoubleClick(Mobile from)
-        {
-            if (IsChildOf(from.Backpack))
-            {
-                from.CloseGump(typeof(RewardOptionGump));
-                from.SendGump(new RewardOptionGump(this));
-            }
-            else
-                from.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.       	
-        }
-
         public SacrificeVirtueTileDeed(Serial serial)
             : base(serial)
         {
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-
-            writer.Write((int)0); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
         }
 
         public void GetOptions(RewardOptionList list)
@@ -112,6 +80,33 @@ namespace Server.Items
 
             if (!Deleted)
                 base.OnDoubleClick(from);
+        }
+
+        public override void OnDoubleClick(Mobile from)
+        {
+            if (IsChildOf(from.Backpack))
+            {
+                from.CloseGump(typeof(RewardOptionGump));
+                from.SendGump(new RewardOptionGump(this));
+            }
+            else
+            {
+                from.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.       	
+            }
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+
+            writer.Write(0); // version
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+
+            var version = reader.ReadInt();
         }
     }
 }

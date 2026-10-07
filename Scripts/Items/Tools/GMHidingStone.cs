@@ -5,7 +5,8 @@ Version: 1.0
 Public Release: 01/01/09
 Updated Release: 01/01/09
 Purpose: A stone that allows for multiple hide/appear effects for GM and above.
-*/                                                            
+*/
+
 using System;
 using CustomsFramework;
 
@@ -18,14 +19,14 @@ namespace Server.Items
         FlameStrike3,
         FlameStrikeLightningBolt,
         Sparkle1,
-        Sparkle3, 
+        Sparkle3,
         Explosion,
         ExplosionLightningBolt,
         DefaultRunUO,
         Snow,
         Glow,
         PoisonField,
-        Fireball, 
+        Fireball,
         FireStorm1,
         FireStorm2,
         RedSparkle,
@@ -36,10 +37,19 @@ namespace Server.Items
 
     public class GMHidingStone : Item
     {
-        private StoneEffect mAppearEffect;
-        private StoneEffect mHideEffect;
-        private int mAppearEffectHue;
-        private int mHideEffectHue;
+        [CommandProperty(AccessLevel.Counselor)]
+        public StoneEffect AppearEffect { get; set; }
+
+        [Hue]
+        [CommandProperty(AccessLevel.Counselor)]
+        public int AppearEffectHue { get; set; }
+
+        [CommandProperty(AccessLevel.Counselor)]
+        public StoneEffect HideEffect { get; set; }
+
+        [Hue]
+        [CommandProperty(AccessLevel.Counselor)]
+        public int HideEffectHue { get; set; }
 
         [Constructable]
         public GMHidingStone()
@@ -49,10 +59,10 @@ namespace Server.Items
             Hue = 0x0;
             Name = "GM hiding stone";
             LootType = LootType.Blessed;
-            mAppearEffect = StoneEffect.DefaultRunUO;
-            mAppearEffectHue = 0;
-            mHideEffect = StoneEffect.DefaultRunUO;
-            mHideEffectHue = 0;
+            AppearEffect = StoneEffect.DefaultRunUO;
+            AppearEffectHue = 0;
+            HideEffect = StoneEffect.DefaultRunUO;
+            HideEffectHue = 0;
         }
 
         public GMHidingStone(Serial serial)
@@ -60,67 +70,19 @@ namespace Server.Items
         {
         }
 
-        [CommandProperty(AccessLevel.Counselor)]
-        public StoneEffect AppearEffect
-        {
-            get
-            {
-                return mAppearEffect;
-            }
-            set
-            {
-                mAppearEffect = value;
-            }
-        }
-        [Hue, CommandProperty(AccessLevel.Counselor)]
-        public int AppearEffectHue
-        {
-            get
-            {
-                return mAppearEffectHue;
-            }
-            set
-            {
-                mAppearEffectHue = value;
-            }
-        }
-        [CommandProperty(AccessLevel.Counselor)]
-        public StoneEffect HideEffect
-        {
-            get
-            {
-                return mHideEffect;
-            }
-            set
-            {
-                mHideEffect = value;
-            }
-        }
-        [Hue, CommandProperty(AccessLevel.Counselor)]
-        public int HideEffectHue
-        {
-            get
-            {
-                return mHideEffectHue;
-            }
-            set
-            {
-                mHideEffectHue = value;
-            }
-        }
         public override void OnDoubleClick(Mobile m)
         {
             if (Utilities.IsStaff(m))
             {
                 if (m.Hidden)
                 {
-                    ToggleHidden(m, mAppearEffect);
-                    SendStoneEffects(mAppearEffect, mAppearEffectHue, m);
+                    ToggleHidden(m, AppearEffect);
+                    SendStoneEffects(AppearEffect, AppearEffectHue, m);
                 }
                 else
                 {
-                    SendStoneEffects(mHideEffect, mHideEffectHue, m);
-                    ToggleHidden(m, mHideEffect);
+                    SendStoneEffects(HideEffect, HideEffectHue, m);
+                    ToggleHidden(m, HideEffect);
                 }
             }
             else
@@ -137,13 +99,16 @@ namespace Server.Items
             {
                 //[s7]
                 case StoneEffect.Gate:
-                    Effects.SendLocationParticles(EffectItem.Create(m.Location, m.Map, EffectItem.DefaultDuration), 0x1FCB, 10, 14, effHue, 0, 0x1FCB, 0);
+                    Effects.SendLocationParticles(EffectItem.Create(m.Location, m.Map, EffectItem.DefaultDuration),
+                        0x1FCB, 10, 14, effHue, 0, 0x1FCB, 0);
                     Effects.PlaySound(new Point3D(m.X, m.Y, m.Z), m.Map, 0x20E);
                     m.Frozen = true;
-                    Timer.DelayCall(TimeSpan.FromSeconds(0.65), new TimerStateCallback(InternalShowGate), new object[] { m, effHue });
-                    Timer.DelayCall(TimeSpan.FromSeconds(1.5), new TimerStateCallback(InternalHideGate), new object[] { m, effHue });
+                    Timer.DelayCall(TimeSpan.FromSeconds(0.65), new TimerStateCallback(InternalShowGate),
+                        new object[] { m, effHue });
+                    Timer.DelayCall(TimeSpan.FromSeconds(1.5), new TimerStateCallback(InternalHideGate),
+                        new object[] { m, effHue });
                     break;
-                    //[/s7]
+                //[/s7]
                 case StoneEffect.FlameStrike1:
                     Effects.SendLocationEffect(new Point3D(m.X, m.Y, m.Z + 1), m.Map, 0x3709, 15, effHue, 0);
                     Effects.PlaySound(new Point3D(m.X, m.Y, m.Z), m.Map, 0x208);
@@ -247,7 +212,7 @@ namespace Server.Items
                     t1.Start();
                     break;
                 case StoneEffect.RedSparkle:
-                    Effects.SendLocationEffect(new Point3D(m.X , m.Y + 1, m.Z), m.Map, 0x374A, 15);
+                    Effects.SendLocationEffect(new Point3D(m.X, m.Y + 1, m.Z), m.Map, 0x374A, 15);
                     Effects.PlaySound(new Point3D(m.X, m.Y, m.Z), m.Map, 0x1f7);
                     break;
                 case StoneEffect.RedSparkle2:
@@ -315,7 +280,7 @@ namespace Server.Items
                     Effects.SendLocationEffect(new Point3D(m.X - 5, m.Y + 5, m.Z), m.Map, 0x3709, 17, effHue, 0);
                     Timer t2 = new FireStormTimer(DateTime.UtcNow, m, effHue, 5, -1);
                     t2.Start();
-                    Effects.SendLocationEffect(new Point3D(m.X , m.Y + 1, m.Z), m.Map, 0x374A, 15);
+                    Effects.SendLocationEffect(new Point3D(m.X, m.Y + 1, m.Z), m.Map, 0x374A, 15);
                     Effects.PlaySound(new Point3D(m.X, m.Y, m.Z), m.Map, 0x1f7);
                     Effects.SendLocationEffect(new Point3D(m.X, m.Y, m.Z + 1), m.Map, 0x374A, 15);
                     Effects.SendLocationEffect(new Point3D(m.X + 1, m.Y, m.Z), m.Map, 0x374A, 15);
@@ -361,35 +326,35 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)2); // version 
-            writer.Write((int)mAppearEffect);
-            writer.Write((int)mHideEffect);
-            writer.Write(mAppearEffectHue);
-            writer.Write(mHideEffectHue);
+            writer.Write(2); // version 
+            writer.Write((int)AppearEffect);
+            writer.Write((int)HideEffect);
+            writer.Write(AppearEffectHue);
+            writer.Write(HideEffectHue);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             switch (version)
             {
                 case 1:
-                    {
-                        mAppearEffect = (StoneEffect)reader.ReadInt();
-                        mHideEffect = (StoneEffect)reader.ReadInt();
-                        break;
-                    }
+                {
+                    AppearEffect = (StoneEffect)reader.ReadInt();
+                    HideEffect = (StoneEffect)reader.ReadInt();
+                    break;
+                }
                 case 2:
-                    {
-                        mAppearEffect = (StoneEffect)reader.ReadInt();
-                        mHideEffect = (StoneEffect)reader.ReadInt();
-                        mAppearEffectHue = reader.ReadInt();
-                        mHideEffectHue = reader.ReadInt();
-                        break;
-                    }
+                {
+                    AppearEffect = (StoneEffect)reader.ReadInt();
+                    HideEffect = (StoneEffect)reader.ReadInt();
+                    AppearEffectHue = reader.ReadInt();
+                    HideEffectHue = reader.ReadInt();
+                    break;
+                }
             }
         }
 
@@ -412,13 +377,14 @@ namespace Server.Items
         //[s7] gate!
         private static void InternalHideGate(object arg)
         {
-            object[] args = arg as object[];
-            Mobile m = args[0] as Mobile;
-            int hue = (int)args[1];
+            var args = arg as object[];
+            var m = args[0] as Mobile;
+            var hue = (int)args[1];
             if (m != null)
             {
                 m.Hidden = !m.Hidden;
-                Effects.SendLocationParticles(EffectItem.Create(m.Location, m.Map, EffectItem.DefaultDuration), 0x376A, 9, 20, hue, 0, 5042, 0);
+                Effects.SendLocationParticles(EffectItem.Create(m.Location, m.Map, EffectItem.DefaultDuration), 0x376A,
+                    9, 20, hue, 0, 5042, 0);
                 Effects.PlaySound(m.Location, m.Map, 0x201);
                 m.Frozen = false;
             }
@@ -426,21 +392,23 @@ namespace Server.Items
 
         private static void InternalShowGate(object arg)
         {
-            object[] args = arg as object[];
-            Mobile m = args[0] as Mobile;
-            int hue = (int)args[1];
+            var args = arg as object[];
+            var m = args[0] as Mobile;
+            var hue = (int)args[1];
             if (m is Mobile)
-                Effects.SendLocationParticles(EffectItem.Create(m.Location, m.Map, EffectItem.DefaultDuration), 8148, 9, 20, hue, 0, 8149, 0);
+                Effects.SendLocationParticles(EffectItem.Create(m.Location, m.Map, EffectItem.DefaultDuration), 8148, 9,
+                    20, hue, 0, 8149, 0);
         }
 
         //[/s7]
         public class FireStormTimer : Timer
         {
-            public Mobile m;
-            public int inc;
             public int ehue;
-            public int fstart;
             public int fdir;
+            public int fstart;
+            public int inc;
+            public Mobile m;
+
             public FireStormTimer(DateTime time, Mobile from, int hue, int start, int dir)
                 : base(TimeSpan.FromSeconds(0.1), TimeSpan.FromSeconds(0.1))
             {
@@ -463,12 +431,9 @@ namespace Server.Items
                 Effects.SendLocationEffect(new Point3D(m.X + inc, m.Y - inc, m.Z), m.Map, 0x3709, 17, ehue, 0);
                 Effects.SendLocationEffect(new Point3D(m.X - inc, m.Y + inc, m.Z), m.Map, 0x3709, 17, ehue, 0);
 
-                if ((fdir == 1 && inc >= (fstart + 5)) || (fdir == -1 && inc < 0))
+                if ((fdir == 1 && inc >= fstart + 5) || (fdir == -1 && inc < 0))
                 {
-                    if (fdir == -1)
-                    {
-                        m.Hidden = !m.Hidden;
-                    }
+                    if (fdir == -1) m.Hidden = !m.Hidden;
                     Stop();
                 }
             }

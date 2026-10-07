@@ -1,10 +1,11 @@
-using System;
 using Server.Gumps;
 
 namespace Server.Items
 {
     public class FifteenthAnniversaryLithographAddon : BaseAddon
     {
+        public override BaseAddonDeed Deed => new FifteenthAnniversaryLithographDeed();
+
         [Constructable]
         public FifteenthAnniversaryLithographAddon(DirectionType type)
         {
@@ -28,30 +29,28 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonDeed Deed { get { return new FifteenthAnniversaryLithographDeed(); } }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class FifteenthAnniversaryLithographDeed : BaseAddonDeed, IRewardOption
     {
-        public override int LabelNumber { get { return 1154129; } } // 15th Anniversary Lithograph
-
         private DirectionType _Direction;
+        public override int LabelNumber => 1154129; // 15th Anniversary Lithograph
+
+        public override BaseAddon Addon => new FifteenthAnniversaryLithographAddon(_Direction);
 
         [Constructable]
         public FifteenthAnniversaryLithographDeed()
-            : base()
         {
             LootType = LootType.Blessed;
         }
@@ -59,19 +58,6 @@ namespace Server.Items
         public FifteenthAnniversaryLithographDeed(Serial serial)
             : base(serial)
         {
-        }
-
-        public override void OnDoubleClick(Mobile from)
-        {
-            if (IsChildOf(from.Backpack))
-            {
-                from.CloseGump(typeof(AddonOptionGump));
-                from.SendGump(new AddonOptionGump(this, 1154194)); // Choose a Facing:
-            }
-            else
-            {
-                from.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.
-            }
         }
 
         public void GetOptions(RewardOptionList list)
@@ -88,18 +74,29 @@ namespace Server.Items
                 base.OnDoubleClick(from);
         }
 
-        public override BaseAddon Addon { get { return new FifteenthAnniversaryLithographAddon(_Direction); } }
+        public override void OnDoubleClick(Mobile from)
+        {
+            if (IsChildOf(from.Backpack))
+            {
+                from.CloseGump(typeof(AddonOptionGump));
+                from.SendGump(new AddonOptionGump(this, 1154194)); // Choose a Facing:
+            }
+            else
+            {
+                from.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.
+            }
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -1,9 +1,9 @@
-using System;
-
 namespace Server.Items
 {
     public class AquariumFood : Item
-    { 
+    {
+        public override int LabelNumber => 1074819; // Aquarium food
+
         [Constructable]
         public AquariumFood()
             : base(0xEFC)
@@ -15,25 +15,18 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1074819;
-            }
-        }// Aquarium food
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

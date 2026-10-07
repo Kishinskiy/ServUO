@@ -1,9 +1,9 @@
-using System;
-
 namespace Server.Items
 {
     public class LissithsSilk : PeerlessKey
-    { 
+    {
+        public override int LabelNumber => 1074333; // lissith's silk
+
         [Constructable]
         public LissithsSilk()
             : base(0x2001)
@@ -18,25 +18,18 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1074333;
-            }
-        }// lissith's silk
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-			
-            writer.Write((int)0); // version
+
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-			
-            int version = reader.ReadInt();
+
+            var version = reader.ReadInt();
         }
     }
 }

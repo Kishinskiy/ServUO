@@ -1,12 +1,10 @@
-using System;
-
 namespace Server.Factions
 {
     public class Moonglow : Town
     {
         public Moonglow()
         {
-            this.Definition =
+            Definition =
                 new TownDefinition(
                     3,
                     0x186C,

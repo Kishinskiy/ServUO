@@ -1,15 +1,16 @@
 using System;
+using Server.Multis;
 
 namespace Server.Items
 {
     public class ArcaneBookShelfAddonEast : BaseAddonContainer
     {
-        public override BaseAddonContainerDeed Deed { get { return new ArcaneBookShelfDeedEast(); } }
-        public override bool RetainDeedHue { get { return true; } }
-        public override int DefaultGumpID { get { return 0x107; } }
-        public override int DefaultDropSound { get { return 0x42; } }
+        public override BaseAddonContainerDeed Deed => new ArcaneBookShelfDeedEast();
+        public override bool RetainDeedHue => true;
+        public override int DefaultGumpID => 0x107;
+        public override int DefaultDropSound => 0x42;
 
-        public override bool ForceShowProperties { get { return true; } }
+        public override bool ForceShowProperties => true;
 
         [Constructable]
         public ArcaneBookShelfAddonEast()
@@ -34,18 +35,17 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class ArcaneBookShelfDeedEast : BaseAddonContainerDeed
     {
-        public override BaseAddonContainer Addon { get { return new ArcaneBookShelfAddonEast(); } }
-        public override int LabelNumber { get { return 1073371; } } // arcane bookshelf (east)
+        public override BaseAddonContainer Addon => new ArcaneBookShelfAddonEast();
+        public override int LabelNumber => 1073371; // arcane bookshelf (east)
 
         [Constructable]
         public ArcaneBookShelfDeedEast()
-            : base()
         {
         }
 
@@ -65,17 +65,19 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class ArcaneBookshelfEastAddon : BaseAddon
     {
+        public override BaseAddonDeed Deed => new ArcaneBookshelfEastDeed();
+
         [Constructable]
         public ArcaneBookshelfEastAddon()
         {
-            this.AddComponent(new AddonComponent(0x3084), 0, 0, 0);
-            this.AddComponent(new AddonComponent(0x3085), -1, 0, 0);
+            AddComponent(new AddonComponent(0x3084), 0, 0, 0);
+            AddComponent(new AddonComponent(0x3085), -1, 0, 0);
         }
 
         public ArcaneBookshelfEastAddon(Serial serial)
@@ -83,13 +85,6 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonDeed Deed
-        {
-            get
-            {
-                return new ArcaneBookshelfEastDeed();
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -101,19 +96,19 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
 
             Timer.DelayCall(TimeSpan.FromSeconds(10), Replace);
         }
 
         private void Replace()
         {
-            Server.Multis.BaseHouse house = Server.Multis.BaseHouse.FindHouseAt(this);
+            var house = BaseHouse.FindHouseAt(this);
 
             if (house != null)
             {
-                Point3D p = this.Location;
-                Map map = this.Map;
+                var p = Location;
+                var map = Map;
 
                 house.Addons.Remove(this);
                 Delete();
@@ -127,6 +122,10 @@ namespace Server.Items
 
     public class ArcaneBookshelfEastDeed : BaseAddonDeed
     {
+        public override BaseAddon Addon => new ArcaneBookshelfEastAddon();
+
+        public override int LabelNumber => 1073371; // arcane bookshelf (east)
+
         [Constructable]
         public ArcaneBookshelfEastDeed()
         {
@@ -137,20 +136,6 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddon Addon
-        {
-            get
-            {
-                return new ArcaneBookshelfEastAddon();
-            }
-        }
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1073371;
-            }
-        }// arcane bookshelf (east)
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -162,26 +147,26 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
 
             Timer.DelayCall(TimeSpan.FromSeconds(10), Replace);
         }
 
         private void Replace()
         {
-            Container c = this.Parent as Container;
+            var c = Parent as Container;
 
             if (c != null)
             {
                 var deed = new ArcaneBookShelfDeedEast();
                 c.DropItem(deed);
             }
-            else if (this.Parent == null)
+            else if (Parent == null)
             {
-                Server.Multis.BaseHouse house = Server.Multis.BaseHouse.FindHouseAt(this);
+                var house = BaseHouse.FindHouseAt(this);
 
                 var deed = new ArcaneBookShelfDeedEast();
-                deed.MoveToWorld(this.Location, this.Map);
+                deed.MoveToWorld(Location, Map);
 
                 deed.IsLockedDown = IsLockedDown;
                 deed.IsSecure = IsSecure;

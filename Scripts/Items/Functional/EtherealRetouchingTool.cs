@@ -1,16 +1,12 @@
-using System;
-using Server;
-using Server.Targeting;
 using Server.Engines.VeteranRewards;
 using Server.Mobiles;
+using Server.Targeting;
 
 namespace Server.Items
 {
     public class EtherealRetouchingTool : Item, IRewardItem
     {
-        public override int LabelNumber { get { return 1113814; } } // Retouching Tool
-
-        public bool IsRewardItem { get; set; }
+        public override int LabelNumber => 1113814; // Retouching Tool
 
         [Constructable]
         public EtherealRetouchingTool()
@@ -23,6 +19,8 @@ namespace Server.Items
             : base(serial)
         {
         }
+
+        public bool IsRewardItem { get; set; }
 
         public override void GetProperties(ObjectPropertyList list)
         {
@@ -45,9 +43,36 @@ namespace Server.Items
             }
         }
 
+        public static void AddProperty(EtherealMount mount, ObjectPropertyList list)
+        {
+            list.Add(1113818, mount.Transparent ? "#1078520" : "#1153298");
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.WriteEncodedInt(1); // version
+
+            writer.Write(IsRewardItem);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadEncodedInt();
+
+            if (version == 0)
+                IsRewardItem = true;
+            else
+                IsRewardItem = reader.ReadBool();
+
+            if (LootType != LootType.Blessed)
+                LootType = LootType.Blessed;
+        }
+
         private class InternalTarget : Target
         {
-            private EtherealRetouchingTool m_Tool;
+            private readonly EtherealRetouchingTool m_Tool;
 
             public InternalTarget(EtherealRetouchingTool tool)
                 : base(-1, false, TargetFlags.None)
@@ -63,7 +88,7 @@ namespace Server.Items
                 }
                 else if (targeted is EtherealMount)
                 {
-                    EtherealMount mount = targeted as EtherealMount;
+                    var mount = targeted as EtherealMount;
 
                     if (!mount.IsChildOf(from.Backpack))
                     {
@@ -82,40 +107,13 @@ namespace Server.Items
 
                         mount.Transparent = mount.Transparent ? false : true;
                         mount.InvalidateProperties();
-                    }                    
+                    }
                 }
                 else
                 {
                     from.SendLocalizedMessage(1046439); // That is not a valid target.
                 }
             }
-        }
-
-        public static void AddProperty(EtherealMount mount, ObjectPropertyList list)
-        {
-            list.Add(1113818, mount.Transparent ? "#1078520" : "#1153298");
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.WriteEncodedInt(1); // version
-
-            writer.Write(IsRewardItem);
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            int version = reader.ReadEncodedInt();
-
-            if (version == 0)
-                IsRewardItem = true;
-            else
-                IsRewardItem = reader.ReadBool();
-
-            if (LootType != LootType.Blessed)
-                LootType = LootType.Blessed;
         }
     }
 }

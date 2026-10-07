@@ -1,11 +1,31 @@
-using System;
-
 namespace Server.Mobiles
 {
     [CorpseName("a white wyrm corpse")]
     public class WhiteWyrm : BaseCreature
     {
-        public override double AverageThreshold { get { return 0.25; } }
+        public override double AverageThreshold => 0.25;
+
+        public override bool ReacquireOnMovement => true;
+
+        public override int TreasureMapLevel => 4;
+
+        public override int Meat => 19;
+
+        public override int DragonBlood => 8;
+
+        public override int Hides => 20;
+
+        public override HideType HideType => HideType.Barbed;
+
+        public override int Scales => 9;
+
+        public override ScaleType ScaleType => ScaleType.White;
+
+        public override FoodType FavoriteFood => FoodType.Meat | FoodType.Gold;
+
+        public override bool CanAngerOnTame => true;
+
+        public override bool CanFly => true;
 
         [Constructable]
         public WhiteWyrm()
@@ -53,83 +73,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool ReacquireOnMovement
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override int TreasureMapLevel
-        {
-            get
-            {
-                return 4;
-            }
-        }
-        public override int Meat
-        {
-            get
-            {
-                return 19;
-            }
-        }
-        public override int DragonBlood
-        {
-            get
-            {
-                return 8;
-            }
-        }
-        public override int Hides
-        {
-            get
-            {
-                return 20;
-            }
-        }
-        public override HideType HideType
-        {
-            get
-            {
-                return HideType.Barbed;
-            }
-        }
-        public override int Scales
-        {
-            get
-            {
-                return 9;
-            }
-        }
-        public override ScaleType ScaleType
-        {
-            get
-            {
-                return ScaleType.White;
-            }
-        }
-        public override FoodType FavoriteFood
-        {
-            get
-            {
-                return FoodType.Meat | FoodType.Gold;
-            }
-        }
-        public override bool CanAngerOnTame
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool CanFly
-        {
-            get
-            {
-                return true;
-            }
-        }
         public override void GenerateLoot()
         {
             AddLoot(LootPack.FilthyRich, 2);
@@ -140,13 +83,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -1,4 +1,3 @@
-using System;
 using Server;
 using Server.Items;
 
@@ -8,7 +7,7 @@ public class PicnicBasket2 : BaseContainer
     public PicnicBasket2()
         : base(0xE7A)
     {
-        this.Weight = 1.0; 
+        Weight = 1.0;
     }
 
     public PicnicBasket2(Serial serial)
@@ -20,13 +19,13 @@ public class PicnicBasket2 : BaseContainer
     {
         base.Serialize(writer);
 
-        writer.Write((int)0); // version
+        writer.Write(0); // version
     }
 
     public override void Deserialize(GenericReader reader)
     {
         base.Deserialize(reader);
 
-        int version = reader.ReadInt();
+        var version = reader.ReadInt();
     }
 }

@@ -1,37 +1,35 @@
 using System;
-using Server;
 using System.Collections.Generic;
 using System.Linq;
 using Server.Items;
+using Server.Network;
 
 namespace Server.Engines.TreasuresOfKotlCity
 {
     public class KotlCityPuzzle : BaseAddon
     {
-        public static KotlCityPuzzle Puzzle { get; set; }
-        public override BaseAddonDeed Deed { get { return null; } }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int Next { get { return _Order == null || _Order.Count == 0 ? -1 : _Order[0]; } }
-
-        private List<int> _Order;
-        private int _Index;
         private bool _Complete;
         private int _Fails;
+        private int _Index;
+
+        private List<int> _Order;
+        public static KotlCityPuzzle Puzzle { get; set; }
+        public override BaseAddonDeed Deed => null;
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int Next => _Order == null || _Order.Count == 0 ? -1 : _Order[0];
 
         [CommandProperty(AccessLevel.GameMaster)]
         public bool Complete
-        { 
-            get { return _Complete; } 
+        {
+            get => _Complete;
             set
             {
-                foreach (var comp in Components.OfType<KotlCityPuzzleComponent>().Where(c => (value && c.Active) || (!value && !c.Active)))
+                foreach (var comp in Components.OfType<KotlCityPuzzleComponent>()
+                             .Where(c => (value && c.Active) || (!value && !c.Active)))
                     comp.Active = !value;
 
-                if (_Complete && !value)
-                {
-                    RandomizeOrder();
-                }
+                if (_Complete && !value) RandomizeOrder();
 
                 _Complete = value;
             }
@@ -55,13 +53,18 @@ namespace Server.Engines.TreasuresOfKotlCity
             Reset();
         }
 
+        public KotlCityPuzzle(Serial serial)
+            : base(serial)
+        {
+        }
+
         private void RandomizeOrder()
         {
             _Order = new List<int>();
             var list = new List<int> { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-            int count = Utility.RandomMinMax(5, 10);
+            var count = Utility.RandomMinMax(5, 10);
 
-            int ran = 0;
+            var ran = 0;
 
             do
             {
@@ -69,8 +72,7 @@ namespace Server.Engines.TreasuresOfKotlCity
 
                 _Order.Add(ran);
                 list.Remove(ran);
-            }
-            while (_Order.Count < count);
+            } while (_Order.Count < count);
 
             ColUtility.Free(list);
         }
@@ -88,21 +90,19 @@ namespace Server.Engines.TreasuresOfKotlCity
             if (_Complete || !from.InRange(component, 2))
                 return;
 
-            if (_Order == null)
-            {
-                RandomizeOrder();
-            }
+            if (_Order == null) RandomizeOrder();
 
-            KotlCityPuzzleComponent comp = component as KotlCityPuzzleComponent;
+            var comp = component as KotlCityPuzzleComponent;
 
             if (comp != null && comp.Active)
             {
                 if (comp.Offset.X == _Order[_Index])
                 {
                     comp.Active = false;
-                   
+
                     _Fails = 0;
-                    from.PrivateOverheadMessage(Server.Network.MessageType.Regular, 1154, 1157028, from.NetState); // *You activate the switch!*
+                    from.PrivateOverheadMessage(MessageType.Regular, 1154, 1157028,
+                        from.NetState); // *You activate the switch!*
 
                     if (_Order.Count - 1 == _Index)
                     {
@@ -111,16 +111,17 @@ namespace Server.Engines.TreasuresOfKotlCity
                         if (KotlDoor.Instance != null)
                         {
                             KotlDoor.Instance.Locked = false;
-                            from.PrivateOverheadMessage(Server.Network.MessageType.Regular, 1154, 1157019, from.NetState); // *You hear a low hum as the door to the Time Room unseals...*
+                            from.PrivateOverheadMessage(MessageType.Regular, 1154, 1157019,
+                                from.NetState); // *You hear a low hum as the door to the Time Room unseals...*
                             from.PlaySound(0x667);
 
                             Timer.DelayCall(TimeSpan.FromMinutes(5), () =>
-                                {
-                                    KotlDoor.Instance.Locked = true;
-                                    KotlDoor.Instance.KeyValue = Key.RandomValue();
+                            {
+                                KotlDoor.Instance.Locked = true;
+                                KotlDoor.Instance.KeyValue = Key.RandomValue();
 
-                                    Reset();
-                                });
+                                Reset();
+                            });
                         }
                     }
                     else
@@ -135,20 +136,17 @@ namespace Server.Engines.TreasuresOfKotlCity
 
                     from.FixedParticles(0x3818, 1, 11, 0x13A8, 0, 0, EffectLayer.Waist);
                     from.PlaySound(0x665);
-                    from.PrivateOverheadMessage(Server.Network.MessageType.Regular, 1154, 1157029, from.NetState); // *The switch shorts out and electrocutes you! You are vulnerable to more energy damage in your shocked state!*
+                    from.PrivateOverheadMessage(MessageType.Regular, 1154, 1157029,
+                        from.NetState); // *The switch shorts out and electrocutes you! You are vulnerable to more energy damage in your shocked state!*
 
                     if (_Fails > 5 && _Fails > Utility.Random(15))
                     {
-                        component.PrivateOverheadMessage(Server.Network.MessageType.Regular, 1154, 1157031, from.NetState); // *Circuit Fault! Generating new circuit sequence!*
+                        component.PrivateOverheadMessage(MessageType.Regular, 1154, 1157031,
+                            from.NetState); // *Circuit Fault! Generating new circuit sequence!*
                         Reset();
                     }
                 }
             }
-        }
-
-        public KotlCityPuzzle(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -162,7 +160,7 @@ namespace Server.Engines.TreasuresOfKotlCity
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             Puzzle = this;
 
@@ -171,43 +169,40 @@ namespace Server.Engines.TreasuresOfKotlCity
             if (!_Complete)
                 Reset();
             else
-            {
                 Timer.DelayCall(TimeSpan.FromMinutes(5), () =>
+                {
+                    if (KotlDoor.Instance != null)
                     {
-                        if (KotlDoor.Instance != null)
-                        {
-                            KotlDoor.Instance.Locked = true;
-                            KotlDoor.Instance.KeyValue = Key.RandomValue();
-                        }
+                        KotlDoor.Instance.Locked = true;
+                        KotlDoor.Instance.KeyValue = Key.RandomValue();
+                    }
 
-                        Reset();
-                    });
-            }
+                    Reset();
+                });
         }
     }
 
     public class KotlCityPuzzleComponent : AddonComponent
     {
-        public override int LabelNumber { get { return 1124182; } }
-
         public bool _Active;
+        public override int LabelNumber => 1124182;
 
         [CommandProperty(AccessLevel.GameMaster)]
         public bool Active
-        { 
-            get { return _Active; } 
-            set 
-            { 
+        {
+            get => _Active;
+            set
+            {
                 _Active = value;
 
                 if (_Active && ItemID != 0x9CDE)
                 {
-                    Effects.PlaySound(this.Location, this.Map, 0x051);
+                    Effects.PlaySound(Location, Map, 0x051);
                     ItemID = 0x9CDE;
                 }
                 else if (!_Active && ItemID != 0x9D0B)
                 {
-                    Effects.PlaySound(this.Location, this.Map, 0x051);
+                    Effects.PlaySound(Location, Map, 0x051);
                     ItemID = 0x9D0B;
                 }
             }
@@ -235,7 +230,7 @@ namespace Server.Engines.TreasuresOfKotlCity
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             _Active = reader.ReadBool();
         }

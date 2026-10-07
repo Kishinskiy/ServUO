@@ -1,13 +1,13 @@
 using System;
-using Server.Targeting;
 using Server.Engines.Plants;
+using Server.Targeting;
 
 namespace Server.Items
 {
     public class GardeningContract : Item
     {
-        public override int LabelNumber { get { return 1155764; } } // Gardening Contract
-        
+        public override int LabelNumber => 1155764; // Gardening Contract
+
         [Constructable]
         public GardeningContract()
             : base(0x14F0)
@@ -28,9 +28,22 @@ namespace Server.Items
             }
             else
             {
-                from.SendLocalizedMessage(1155765); // Target the New Magincia plant you wish to have a gardener tend to...
+                from.SendLocalizedMessage(
+                    1155765); // Target the New Magincia plant you wish to have a gardener tend to...
                 from.Target = new InternalTarget(this);
             }
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0); // version 
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
         }
 
         private class InternalTarget : Target
@@ -47,7 +60,7 @@ namespace Server.Items
             {
                 if (targeted is MaginciaPlantItem)
                 {
-                    MaginciaPlantItem plant = (MaginciaPlantItem)targeted;
+                    var plant = (MaginciaPlantItem)targeted;
 
                     if (!plant.IsContract)
                     {
@@ -58,7 +71,8 @@ namespace Server.Items
                         }
 
                         plant.ContractTime = DateTime.UtcNow;
-                        from.SendLocalizedMessage(1155762); // You have hired a gardener to tend to your plant.  The gardener will no longer tend to your plant when server maintenance occurs after the expiration date of your gardening contract.  While a gardener is tending to your plant you will not have to care for it.
+                        from.SendLocalizedMessage(
+                            1155762); // You have hired a gardener to tend to your plant.  The gardener will no longer tend to your plant when server maintenance occurs after the expiration date of your gardening contract.  While a gardener is tending to your plant you will not have to care for it.
                         m_Item.Delete();
                     }
                     else
@@ -71,18 +85,6 @@ namespace Server.Items
                     from.SendLocalizedMessage(1155759); // This item can only be used on New Magincia Gardening Plants.
                 }
             }
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.Write((int)0); // version 
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            int version = reader.ReadInt();
         }
     }
 }

@@ -1,10 +1,25 @@
-using System;
 using Server.Gumps;
+using Server.Network;
 
 namespace Server.Items
 {
     public class SpikeHead : Item
     {
+        private static readonly string[] SpikeHeadType =
+        {
+            "MrsTroubleMaker’s Head On A Spike",
+            "Brutrin’s Head On A Spike",
+            "Stethun’s Head On A Spike",
+            "Rakban’s Head On A Spike",
+            "Thatblok’s Head On A Spike",
+            "Gryphon’s Head On A Spike",
+            "Kyronix’s Head On A Spike",
+            "Misk’s Head On A Spike",
+            "Bleak’s Head On A Spike",
+            "Onifrk’s Head On A Spike",
+            "Mesanna’s Head On A Spike"
+        };
+
         public int GumpID { get; set; }
 
         [Constructable]
@@ -22,21 +37,6 @@ namespace Server.Items
             Name = SpikeHeadType[type];
         }
 
-        private static readonly string[] SpikeHeadType = new string[]
-        {
-            "MrsTroubleMaker’s Head On A Spike",
-            "Brutrin’s Head On A Spike",
-            "Stethun’s Head On A Spike",
-            "Rakban’s Head On A Spike",
-            "Thatblok’s Head On A Spike",
-            "Gryphon’s Head On A Spike",
-            "Kyronix’s Head On A Spike",
-            "Misk’s Head On A Spike",
-            "Bleak’s Head On A Spike",
-            "Onifrk’s Head On A Spike",
-            "Mesanna’s Head On A Spike"
-        };
-
         public SpikeHead(Serial serial)
             : base(serial)
         {
@@ -46,11 +46,11 @@ namespace Server.Items
         {
             if (!m.InRange(GetWorldLocation(), 3))
             {
-                m.LocalOverheadMessage(Network.MessageType.Regular, 0x3B2, 1019045); // I can't reach that.
+                m.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1019045); // I can't reach that.
             }
             else
             {
-                Gump g = new Gump(100, 100);
+                var g = new Gump(100, 100);
                 g.AddImage(0, 0, GumpID);
 
                 m.SendGump(g);
@@ -60,15 +60,15 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
-            writer.Write((int)GumpID);
+            writer.Write(GumpID);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             GumpID = reader.ReadInt();
         }

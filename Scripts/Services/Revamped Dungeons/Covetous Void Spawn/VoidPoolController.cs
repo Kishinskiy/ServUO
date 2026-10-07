@@ -1,53 +1,81 @@
-using Server;
 using System;
 using System.Collections.Generic;
-using Server.Mobiles;
-using Server.Items;
 using System.Linq;
 using Server.Engines.Points;
 using Server.Engines.Quests;
+using Server.Gumps;
+using Server.Items;
+using Server.Mobiles;
 
 namespace Server.Engines.VoidPool
 {
-	public enum VoidType
-	{
-		Abyss,
-		Repond, 
-		Undead,
-		Reptile,
-		Elemental
-	}
+    public enum VoidType
+    {
+        Abyss,
+        Repond,
+        Undead,
+        Reptile,
+        Elemental
+    }
 
-	public class VoidPoolController : Item
-	{
-		public static VoidPoolController InstanceTram { get; set; }
-		public static VoidPoolController InstanceFel { get; set; }
+    public class VoidPoolController : Item
+    {
+        public static Type[][] SpawnTable =
+        {
+            new[]
+            {
+                typeof(DaemonMongbat), typeof(GargoyleAssassin), typeof(CovetousDoppleganger), typeof(LesserOni),
+                typeof(CovetousFireDaemon)
+            },
+            new[]
+            {
+                typeof(LizardmanWitchdoctor), typeof(OrcFootSoldier), typeof(RatmanAssassin), typeof(OgreBoneCrusher),
+                typeof(TitanRockHunter)
+            },
+            new[]
+            {
+                typeof(AngeredSpirit), typeof(BoneSwordSlinger), typeof(VileCadaver), typeof(DiseasedLich),
+                typeof(CovetousRevenant)
+            },
+            new[]
+            {
+                typeof(WarAlligator), typeof(MagmaLizard), typeof(ViciousDrake), typeof(CorruptedWyvern),
+                typeof(CovetousWyrm)
+            },
+            new[]
+            {
+                typeof(CovetousEarthElemental), typeof(CovetousWaterElemental), typeof(VortexElemental),
+                typeof(SearingElemental), typeof(VenomElemental)
+            }
+        };
+
+        private readonly Point3D EndPoint = new Point3D(5500, 1998, 5);
+        private readonly int PoolStartHits = 15;
+        private readonly Rectangle2D PoolWalls = new Rectangle2D(5495, 1993, 10, 10);
 
         private readonly int RestartSpan = 15;
-		private readonly int PoolStartHits = 15;
-		private readonly int StartPointVariance = 8;
-		
-		private readonly Point3D StartPoint1 = new Point3D(5592, 2012, 0);
-		private readonly Point3D StartPoint2 = new Point3D(5466, 2007, 0);
-		
-		private readonly Point3D EndPoint = new Point3D(5500, 1998, 5);
-		private readonly Rectangle2D PoolWalls = new Rectangle2D(5495, 1993, 10, 10);
-		
-		private bool _Active;
+
+        private readonly Point3D StartPoint1 = new Point3D(5592, 2012, 0);
+        private readonly Point3D StartPoint2 = new Point3D(5466, 2007, 0);
+        private readonly int StartPointVariance = 8;
+
+        private bool _Active;
+        public static VoidPoolController InstanceTram { get; set; }
+        public static VoidPoolController InstanceFel { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-		public bool Active 
-		{ 
-			get { return _Active; } 
-			set 
-			{
-				if(!value)
-				{
-					if(Timer != null)
-					{
-						Timer.Stop();
-						Timer = null;
-					}
+        public bool Active
+        {
+            get => _Active;
+            set
+            {
+                if (!value)
+                {
+                    if (Timer != null)
+                    {
+                        Timer.Stop();
+                        Timer = null;
+                    }
 
                     if (Region != null)
                     {
@@ -60,75 +88,74 @@ namespace Server.Engines.VoidPool
                         Level3Spawner.Deactivate();
                         Level3Spawner = null;
                     }
-				}
-				else
-				{
+                }
+                else
+                {
                     if (Region == null)
                     {
-                        Region = new VoidPoolRegion(this, this.Map);
+                        Region = new VoidPoolRegion(this, Map);
                         Region.Register();
                     }
 
-					if(Timer == null)
-					{
-						Timer = Timer.DelayCall(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1), OnTick);
-						Timer.Start();
-						
-						NextStart = DateTime.UtcNow + TimeSpan.FromMinutes(RestartSpan);
-
-                        if(Region != null)
-						    Region.SendRegionMessage(1152526, RestartSpan.ToString()); // The battle for the Void Pool will begin in ~1_VALUE~ minutes.
-					}
-
-                    if (Level3Spawner == null)
+                    if (Timer == null)
                     {
-                        Level3Spawner = new Level3Spawner(this);
+                        Timer = Timer.DelayCall(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1), OnTick);
+                        Timer.Start();
+
+                        NextStart = DateTime.UtcNow + TimeSpan.FromMinutes(RestartSpan);
+
+                        if (Region != null)
+                            Region.SendRegionMessage(1152526,
+                                RestartSpan
+                                    .ToString()); // The battle for the Void Pool will begin in ~1_VALUE~ minutes.
                     }
-				}
-				
-				_Active = value; 
-			} 
-		}
-		
-        [CommandProperty(AccessLevel.GameMaster)]
-		public int Wave { get; set; }
+
+                    if (Level3Spawner == null) Level3Spawner = new Level3Spawner(this);
+                }
+
+                _Active = value;
+            }
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
-		public int Stage 
-        { 
-            get 
+        public int Wave { get; set; }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int Stage
+        {
+            get
             {
                 if (Wave < 2)
                     return 0;
 
-                return Math.Max(1, Wave / 5); 
-            } 
+                return Math.Max(1, Wave / 5);
+            }
         }
-		
-		public List<WaveInfo> Waves { get; set; }
+
+        public List<WaveInfo> Waves { get; set; }
         public List<WayPoint> WaypointsA { get; set; }
         public List<WayPoint> WaypointsB { get; set; }
         public int WaypointACount { get; set; }
         public int WaypointBCount { get; set; }
 
-		public VoidPoolRegion Region { get; set; }
-		public Timer Timer { get; set; }
-		public Dictionary<Mobile, long> CurrentScore { get; set; }
+        public VoidPoolRegion Region { get; set; }
+        public Timer Timer { get; set; }
+        public Dictionary<Mobile, long> CurrentScore { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-		public bool OnGoing { get; private set; }
+        public bool OnGoing { get; private set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-		public VoidType VoidType { get; set; }
+        public VoidType VoidType { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-		public DateTime NextStart { get; private set; }
+        public DateTime NextStart { get; private set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-		public DateTime NextWave { get; private set; }
+        public DateTime NextWave { get; private set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-		public int PoolHits { get; set; }
+        public int PoolHits { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public int RespawnMin { get; set; }
@@ -141,29 +168,31 @@ namespace Server.Engines.VoidPool
 
         public VoidPoolController(Map map)
             : base(3803)
-		{
+        {
             Name = "Void Pool Controller";
-			Visible = false;
-			Movable = false;
+            Visible = false;
+            Movable = false;
 
             PoolHits = PoolStartHits;
-			
-			if(map == Map.Trammel)
-			{
-				if(InstanceTram != null)
-					Delete();
-				else
-					InstanceTram = this;
-			}
-			else if(map == Map.Felucca)
-			{
-				if(InstanceFel != null)
-					Delete();
-				else
-					InstanceFel = this;
-			}
-			else
-				Delete();
+
+            if (map == Map.Trammel)
+            {
+                if (InstanceTram != null)
+                    Delete();
+                else
+                    InstanceTram = this;
+            }
+            else if (map == Map.Felucca)
+            {
+                if (InstanceFel != null)
+                    Delete();
+                else
+                    InstanceFel = this;
+            }
+            else
+            {
+                Delete();
+            }
 
             WaypointsA = new List<WayPoint>();
             WaypointsB = new List<WayPoint>();
@@ -175,26 +204,30 @@ namespace Server.Engines.VoidPool
             RespawnMax = 90;
 
             ClearSpawners();
-			Active = true;
+            Active = true;
 
             ResetLevel3Spawners();
-		}
+        }
+
+        public VoidPoolController(Serial serial) : base(serial)
+        {
+        }
 
         public override void OnDoubleClick(Mobile from)
         {
             if (from.AccessLevel >= AccessLevel.GameMaster)
-                from.SendGump(new Server.Gumps.PropertiesGump(from, this));
+                from.SendGump(new PropertiesGump(from, this));
         }
-		
-		private void OnTick()
-		{
-			if(!OnGoing && DateTime.UtcNow > NextStart && Region != null && Region.GetPlayerCount() > 0)
-			{
-				NextStart = DateTime.MaxValue;
-				OnGoing = true;
-				VoidType = (VoidType)Utility.Random(5);
+
+        private void OnTick()
+        {
+            if (!OnGoing && DateTime.UtcNow > NextStart && Region != null && Region.GetPlayerCount() > 0)
+            {
+                NextStart = DateTime.MaxValue;
+                OnGoing = true;
+                VoidType = (VoidType)Utility.Random(5);
                 PoolHits = PoolStartHits;
-				Wave = 0;
+                Wave = 0;
 
                 if (CurrentScore != null)
                     CurrentScore.Clear();
@@ -205,85 +238,96 @@ namespace Server.Engines.VoidPool
                     Waves.TrimExcess();
                 }
 
-				CurrentScore = new Dictionary<Mobile, long>();
-				Waves = new List<WaveInfo>();
-				
-				Region.SendRegionMessage(1152527, 0x2B); // The battle for the Void Pool is beginning now!
+                CurrentScore = new Dictionary<Mobile, long>();
+                Waves = new List<WaveInfo>();
+
+                Region.SendRegionMessage(1152527, 0x2B); // The battle for the Void Pool is beginning now!
 
                 if (WaypointACount != WaypointsA.Count || WaypointBCount != WaypointsB.Count)
                     Generate.AddWaypoints();
 
-				SpawnWave();
-			}
-			else if(OnGoing)
-			{
-				if(DateTime.UtcNow > NextWave)
-				{
-					SpawnWave();
-				}
-				
-				IPooledEnumerable eable = this.Map.GetMobilesInBounds(PoolWalls);
-				foreach(Mobile m in eable)
-				{
+                SpawnWave();
+            }
+            else if (OnGoing)
+            {
+                if (DateTime.UtcNow > NextWave) SpawnWave();
+
+                IPooledEnumerable eable = Map.GetMobilesInBounds(PoolWalls);
+                foreach (Mobile m in eable)
+                {
                     if (!OnGoing)
                         break;
 
-					if(m is BaseCreature && !((BaseCreature)m).Controlled && !((BaseCreature)m).Summoned && Utility.RandomDouble() > 0.25)
-						OnVoidWallDamaged(m);
-				}
-				eable.Free();
-			}
-		}
-		
-		public void SpawnWave()
-		{
-			Wave++;
-			
-			Region.SendRegionMessage(1152528, Wave.ToString());
+                    if (m is BaseCreature && !((BaseCreature)m).Controlled && !((BaseCreature)m).Summoned &&
+                        Utility.RandomDouble() > 0.25)
+                        OnVoidWallDamaged(m);
+                }
 
-            int toSpawn = (int)Math.Ceiling(Math.Max(5, Math.Sqrt(Wave) * 2) * 1.5);
-			List<BaseCreature> creatures = new List<BaseCreature>();
+                eable.Free();
+            }
+        }
 
-            for (int i = 0; i < toSpawn; i++)
-			{
-				Point3D start = i % 2 == 0 ? StartPoint1 : StartPoint2;
-				
-				for(int j = 0; j < 25; j++)
-				{
-					int x = start.X + Utility.RandomMinMax(start.X - (StartPointVariance / 2), start.X + (StartPointVariance / 2));
-					int y = start.Y + Utility.RandomMinMax(start.Y - (StartPointVariance / 2), start.Y + (StartPointVariance / 2));
-					int z = this.Map.GetAverageZ(x, y);
-					
-					if(this.Map.CanSpawnMobile(x, y, z))
-					{
-						start = new Point3D(x, y, z);
-						break;
-					}
-				}
-			
-				int ran = Utility.RandomMinMax(0, Stage < 10 ? 12 : Stage < 15 ? 14 : 15);
-				Type t;
-				
-				switch(ran)
-				{
-					default:
-					case 0: case 1: case 3: case 4: t = SpawnTable[(int)VoidType][0]; break;
-					case 5: case 6: case 7: case 8: t = SpawnTable[(int)VoidType][1]; break;
-					case 9: case 10: case 11: t = SpawnTable[(int)VoidType][2]; break;
-					case 12: case 13: t = SpawnTable[(int)VoidType][3]; break;
-					case 14: case 15: t = SpawnTable[(int)VoidType][4]; break;
-				}
-				
-				BaseCreature bc = Activator.CreateInstance(t,  Wave, true) as BaseCreature;
-				
-				if(bc != null)
-				{
+        public void SpawnWave()
+        {
+            Wave++;
+
+            Region.SendRegionMessage(1152528, Wave.ToString());
+
+            var toSpawn = (int)Math.Ceiling(Math.Max(5, Math.Sqrt(Wave) * 2) * 1.5);
+            var creatures = new List<BaseCreature>();
+
+            for (var i = 0; i < toSpawn; i++)
+            {
+                var start = i % 2 == 0 ? StartPoint1 : StartPoint2;
+
+                for (var j = 0; j < 25; j++)
+                {
+                    var x = start.X + Utility.RandomMinMax(start.X - StartPointVariance / 2,
+                        start.X + StartPointVariance / 2);
+                    var y = start.Y + Utility.RandomMinMax(start.Y - StartPointVariance / 2,
+                        start.Y + StartPointVariance / 2);
+                    var z = Map.GetAverageZ(x, y);
+
+                    if (Map.CanSpawnMobile(x, y, z))
+                    {
+                        start = new Point3D(x, y, z);
+                        break;
+                    }
+                }
+
+                var ran = Utility.RandomMinMax(0, Stage < 10 ? 12 : Stage < 15 ? 14 : 15);
+                Type t;
+
+                switch (ran)
+                {
+                    default:
+                    case 0:
+                    case 1:
+                    case 3:
+                    case 4: t = SpawnTable[(int)VoidType][0]; break;
+                    case 5:
+                    case 6:
+                    case 7:
+                    case 8: t = SpawnTable[(int)VoidType][1]; break;
+                    case 9:
+                    case 10:
+                    case 11: t = SpawnTable[(int)VoidType][2]; break;
+                    case 12:
+                    case 13: t = SpawnTable[(int)VoidType][3]; break;
+                    case 14:
+                    case 15: t = SpawnTable[(int)VoidType][4]; break;
+                }
+
+                var bc = Activator.CreateInstance(t, Wave, true) as BaseCreature;
+
+                if (bc != null)
+                {
                     bc.NoLootOnDeath = true;
-					Timer.DelayCall(TimeSpan.FromSeconds((double)i * .75), () =>
-					{
+                    Timer.DelayCall(TimeSpan.FromSeconds(i * .75), () =>
+                    {
                         if (OnGoing)
                         {
-                            bc.MoveToWorld(start, this.Map);
+                            bc.MoveToWorld(start, Map);
                             bc.Home = EndPoint;
                             bc.RangeHome = 1;
 
@@ -292,10 +336,12 @@ namespace Server.Engines.VoidPool
                             bc.CurrentWayPoint = GetNearestWaypoint(bc);
                         }
                         else
+                        {
                             bc.Delete();
-					});
-				}
-			}
+                        }
+                    });
+                }
+            }
 
             var gate1 = new VoidPoolGate();
             gate1.MoveToWorld(StartPoint1, Map);
@@ -307,10 +353,12 @@ namespace Server.Engines.VoidPool
 
             Timer.DelayCall(TimeSpan.FromSeconds(toSpawn * .80), () =>
             {
-                Effects.SendLocationParticles(EffectItem.Create(gate1.Location, gate1.Map, EffectItem.DefaultDuration), 0x376A, 9, 20, 5042);
+                Effects.SendLocationParticles(EffectItem.Create(gate1.Location, gate1.Map, EffectItem.DefaultDuration),
+                    0x376A, 9, 20, 5042);
                 Effects.PlaySound(gate1.GetWorldLocation(), gate1.Map, 0x201);
 
-                Effects.SendLocationParticles(EffectItem.Create(gate2.Location, gate2.Map, EffectItem.DefaultDuration), 0x376A, 9, 20, 5042);
+                Effects.SendLocationParticles(EffectItem.Create(gate2.Location, gate2.Map, EffectItem.DefaultDuration),
+                    0x376A, 9, 20, 5042);
                 Effects.PlaySound(gate2.GetWorldLocation(), gate2.Map, 0x201);
 
                 gate1.Delete();
@@ -318,19 +366,19 @@ namespace Server.Engines.VoidPool
             });
 
             Waves.Add(new WaveInfo(Wave, creatures));
-			NextWave = GetNextWaveTime();
-		}
+            NextWave = GetNextWaveTime();
+        }
 
         public WayPoint GetNearestWaypoint(Mobile m, int range = 15)
         {
-            IPooledEnumerable eable = this.Map.GetItemsInRange(m.Location, range);
+            IPooledEnumerable eable = Map.GetItemsInRange(m.Location, range);
 
-            int closestRange = 15;
+            var closestRange = 15;
             WayPoint closest = null;
 
             foreach (Item item in eable)
             {
-                int dist = 0;
+                var dist = 0;
                 if (item is WayPoint)
                 {
                     dist = (int)m.GetDistanceToSqrt(item);
@@ -348,14 +396,14 @@ namespace Server.Engines.VoidPool
 
         public Item GetNearestVoidPoolWall(Mobile m)
         {
-            IPooledEnumerable eable = this.Map.GetItemsInRange(m.Location, 5);
+            IPooledEnumerable eable = Map.GetItemsInRange(m.Location, 5);
 
-            int closestRange = 5;
+            var closestRange = 5;
             Item closest = null;
 
             foreach (Item item in eable)
             {
-                int dist = 0;
+                var dist = 0;
                 if (item.Name == "Void Pool")
                 {
                     dist = (int)m.GetDistanceToSqrt(item);
@@ -370,31 +418,32 @@ namespace Server.Engines.VoidPool
 
             return closest;
         }
-		
-		public DateTime GetNextWaveTime()
-		{
-			if(Wave == 1)
-				return DateTime.UtcNow + TimeSpan.FromSeconds(10);
-				
-			int min = Math.Max(30, RespawnMin - Wave) + Utility.RandomMinMax(0, 10);
-			int max = Math.Max(45, RespawnMax - Wave) - Utility.RandomMinMax(0, 5);
-			
-			return DateTime.UtcNow + TimeSpan.FromSeconds(Utility.RandomMinMax(min, max));
-		}
-		
-		public void OnVoidWallDamaged(Mobile damager)
-		{
-            if(0.5 > Utility.RandomDouble())
-			    PoolHits--;
 
-			Region.SendRegionMessage(1152529); // The Void Pool walls have been damaged! Defend the Void Pool!
+        public DateTime GetNextWaveTime()
+        {
+            if (Wave == 1)
+                return DateTime.UtcNow + TimeSpan.FromSeconds(10);
 
-            Item item = GetNearestVoidPoolWall(damager);
+            var min = Math.Max(30, RespawnMin - Wave) + Utility.RandomMinMax(0, 10);
+            var max = Math.Max(45, RespawnMax - Wave) - Utility.RandomMinMax(0, 5);
+
+            return DateTime.UtcNow + TimeSpan.FromSeconds(Utility.RandomMinMax(min, max));
+        }
+
+        public void OnVoidWallDamaged(Mobile damager)
+        {
+            if (0.5 > Utility.RandomDouble())
+                PoolHits--;
+
+            Region.SendRegionMessage(1152529); // The Void Pool walls have been damaged! Defend the Void Pool!
+
+            var item = GetNearestVoidPoolWall(damager);
 
             if (item != null)
             {
-                Point3D p = new Point3D(item.X, item.Y, item.Z + 5);
-                Effects.SendLocationParticles(EffectItem.Create(p, item.Map, EffectItem.DefaultDuration), Utility.RandomList(0x36BD, 0x36B0, 0x3728), 20, 10, 5044);
+                var p = new Point3D(item.X, item.Y, item.Z + 5);
+                Effects.SendLocationParticles(EffectItem.Create(p, item.Map, EffectItem.DefaultDuration),
+                    Utility.RandomList(0x36BD, 0x36B0, 0x3728), 20, 10, 5044);
                 Effects.PlaySound(p, item.Map, 0x307);
             }
 
@@ -403,45 +452,45 @@ namespace Server.Engines.VoidPool
                 OnGoing = false;
                 EndInvasion();
             }
-		}
-		
-		public void EndInvasion()
-		{
-			Region.SendRegionMessage(1152530); // Cora's forces have destroyed the Void Pool walls. The battle is lost!
-	
-            VoidPoolStats.OnInvasionEnd(this /*CurrentScore, Wave*/);
-			
-			NextStart = DateTime.UtcNow + TimeSpan.FromMinutes(RestartSpan);
-			
-			Region.SendRegionMessage(1152526, RestartSpan.ToString()); // The battle for the Void Pool will begin in ~1_VALUE~ minutes.
-			
-			List<Mobile> list = Region.GetPlayers();
+        }
 
-            foreach (Mobile m in list.Where(m => GetCurrentPoints(m) > 0))
+        public void EndInvasion()
+        {
+            Region.SendRegionMessage(1152530); // Cora's forces have destroyed the Void Pool walls. The battle is lost!
+
+            VoidPoolStats.OnInvasionEnd(this /*CurrentScore, Wave*/);
+
+            NextStart = DateTime.UtcNow + TimeSpan.FromMinutes(RestartSpan);
+
+            Region.SendRegionMessage(1152526,
+                RestartSpan.ToString()); // The battle for the Void Pool will begin in ~1_VALUE~ minutes.
+
+            var list = Region.GetPlayers();
+
+            foreach (var m in list.Where(m => GetCurrentPoints(m) > 0))
                 PointsSystem.VoidPool.AwardPoints(m, GetCurrentPoints(m));
-				
-			foreach(Mobile m in list.Where(m => CurrentScore.ContainsKey(m)))
+
+            foreach (var m in list.Where(m => CurrentScore.ContainsKey(m)))
             {
-                m.SendLocalizedMessage(1152650, String.Format("{0}\t{1}\t{2}\t{3}", GetTotalWaves(m), Wave.ToString(), Wave.ToString(), CurrentScore[m])); 
-				// During the battle, you helped fight back ~1_COUNT~ out of ~2_TOTAL~ waves of enemy forces. Your final wave was ~3_MAX~. Your total score for the battle was ~4_SCORE~ points.
+                m.SendLocalizedMessage(1152650,
+                    string.Format("{0}\t{1}\t{2}\t{3}", GetTotalWaves(m), Wave.ToString(), Wave.ToString(),
+                        CurrentScore[m]));
+                // During the battle, you helped fight back ~1_COUNT~ out of ~2_TOTAL~ waves of enemy forces. Your final wave was ~3_MAX~. Your total score for the battle was ~4_SCORE~ points.
 
                 if (m is PlayerMobile)
                 {
                     var quest = QuestHelper.GetQuest<AForcedSacraficeQuest>((PlayerMobile)m);
 
-                    if (quest != null)
-                    {
-                        quest.CompleteQuest();
-                    }
+                    if (quest != null) quest.CompleteQuest();
                 }
             }
 
             ColUtility.Free(list);
             ClearSpawn(true);
-		}
-		
-		public void OnCreatureKilled(BaseCreature killed)
-		{
+        }
+
+        public void OnCreatureKilled(BaseCreature killed)
+        {
             if (Waves == null)
                 return;
 
@@ -449,13 +498,13 @@ namespace Server.Engines.VoidPool
             {
                 if (info.Creatures.Contains(killed))
                 {
-                    List<DamageStore> list = killed.GetLootingRights();
+                    var list = killed.GetLootingRights();
                     list.Sort();
 
-                    for (int i = 0; i < list.Count; i++)
+                    for (var i = 0; i < list.Count; i++)
                     {
-                        DamageStore ds = list[i];
-                        Mobile m = ds.m_Mobile;
+                        var ds = list[i];
+                        var m = ds.m_Mobile;
 
                         if (ds.m_Mobile is BaseCreature && ((BaseCreature)ds.m_Mobile).GetMaster() is PlayerMobile)
                             m = ((BaseCreature)ds.m_Mobile).GetMaster();
@@ -475,10 +524,9 @@ namespace Server.Engines.VoidPool
                     info.Creatures.Remove(killed);
 
                     if (info.Creatures.Count == 0)
-                    {
-                        foreach (Mobile m in info.Credit.Where(m => m.Region == this.Region && m is PlayerMobile))
+                        foreach (var m in info.Credit.Where(m => m.Region == Region && m is PlayerMobile))
                         {
-                            double award = Math.Max(0, this.Map == Map.Felucca ? Stage * 2 : Stage);
+                            double award = Math.Max(0, Map == Map.Felucca ? Stage * 2 : Stage);
 
                             if (award > 0)
                             {
@@ -489,21 +537,19 @@ namespace Server.Engines.VoidPool
                                     CurrentScore[m] += Stage * 125;
                             }
                         }
-                    }
 
                     if (killed.Corpse != null && !killed.Corpse.Deleted)
                         ((Corpse)killed.Corpse).BeginDecay(TimeSpan.FromMinutes(1));
                 }
             });
-		}
+        }
 
         public void ClearSpawners()
         {
             if (Region == null)
                 return;
 
-            foreach (Item item in Region.GetEnumeratedItems().Where(i => i is ISpawner))
-            {
+            foreach (var item in Region.GetEnumeratedItems().Where(i => i is ISpawner))
                 if (item is XmlSpawner)
                 {
                     ((XmlSpawner)item).DoReset = true;
@@ -513,7 +559,6 @@ namespace Server.Engines.VoidPool
                     ((Spawner)item).RemoveSpawned();
                     ((Spawner)item).Running = false;
                 }
-            }
         }
 
         public void ResetLevel3Spawners()
@@ -524,11 +569,11 @@ namespace Server.Engines.VoidPool
 
         public void ResetLevel3Spawners(Map map)
         {
-            Server.Region r = Server.Region.Find(new Point3D(5574, 1859, 0), map);
+            var r = Server.Region.Find(new Point3D(5574, 1859, 0), map);
 
-            foreach (Item item in r.GetEnumeratedItems().Where(i => i is ISpawner 
-                && i.X >= 5501 && i.X <= 5627 && i.Y >= 1799 && i.Y <= 1927))
-            {
+            foreach (var item in r.GetEnumeratedItems().Where(i => i is ISpawner
+                                                                   && i.X >= 5501 && i.X <= 5627 && i.Y >= 1799 &&
+                                                                   i.Y <= 1927))
                 if (item is XmlSpawner)
                 {
                     ((XmlSpawner)item).DoReset = true;
@@ -538,7 +583,6 @@ namespace Server.Engines.VoidPool
                     ((Spawner)item).RemoveSpawned();
                     ((Spawner)item).Running = false;
                 }
-            }
         }
 
         public void ClearSpawn()
@@ -551,7 +595,7 @@ namespace Server.Engines.VoidPool
             if (Region == null)
                 return;
 
-            foreach (Mobile m in Region.GetEnumeratedMobiles().Where(m => m is CovetousCreature))
+            foreach (var m in Region.GetEnumeratedMobiles().Where(m => m is CovetousCreature))
             {
                 if (effects)
                     Effects.SendLocationEffect(m.Location, m.Map, 0xDDA, 30, 10, 0, 0);
@@ -560,59 +604,48 @@ namespace Server.Engines.VoidPool
             }
         }
 
-		public int GetCurrentPoints(Mobile from)
-		{
+        public int GetCurrentPoints(Mobile from)
+        {
             if (Waves == null)
                 return 0;
 
-			int points = 0;
+            var points = 0;
 
             foreach (var info in Waves.Where(i => i.Credit.Contains(from)))
-            {
-                points += this.Map == Map.Felucca ? Stage * 2 : Stage;
-            }
-		
-			return points;
-		}
-		
-		public int GetTotalWaves(Mobile from)
-		{
-            return Waves.Where(i => i.Wave > 2 && i.Credit.Contains(from)).Count();
-		}
-		
-		public static int GetPlayerScore(Dictionary<Mobile, long> score, Mobile m)
-		{
-			if(score == null || m == null || !score.ContainsKey(m))
-				return 0;
-				
-			return (int)score[m];
-		}
-		
-		public static Type[][] SpawnTable = new Type[][]
-		{
-			new Type[] { typeof(DaemonMongbat), 		typeof(GargoyleAssassin), 	typeof(CovetousDoppleganger), 	typeof(LesserOni),       typeof(CovetousFireDaemon) },
-			new Type[] { typeof(LizardmanWitchdoctor), 	typeof(OrcFootSoldier), 	typeof(RatmanAssassin),         typeof(OgreBoneCrusher), typeof(TitanRockHunter) },
-			new Type[] { typeof(AngeredSpirit), 		typeof(BoneSwordSlinger), 	typeof(VileCadaver), 	        typeof(DiseasedLich), 	 typeof(CovetousRevenant) },
-			new Type[] { typeof(WarAlligator), 			typeof(MagmaLizard), 		typeof(ViciousDrake), 	        typeof(CorruptedWyvern), typeof(CovetousWyrm) },
-			new Type[] { typeof(CovetousEarthElemental),typeof(CovetousWaterElemental), typeof(VortexElemental),    typeof(SearingElemental),typeof(VenomElemental) },
-		};
-		
-		public override void Delete()
-		{
-			if(OnGoing)
-				EndInvasion();
+                points += Map == Map.Felucca ? Stage * 2 : Stage;
 
-			if(Region != null)
-			{
-				Region.Unregister();
-				Region = null;
-			}
-			
-			if(Timer != null)
-			{
-				Timer.Stop();
-				Timer = null;
-			}
+            return points;
+        }
+
+        public int GetTotalWaves(Mobile from)
+        {
+            return Waves.Where(i => i.Wave > 2 && i.Credit.Contains(from)).Count();
+        }
+
+        public static int GetPlayerScore(Dictionary<Mobile, long> score, Mobile m)
+        {
+            if (score == null || m == null || !score.ContainsKey(m))
+                return 0;
+
+            return (int)score[m];
+        }
+
+        public override void Delete()
+        {
+            if (OnGoing)
+                EndInvasion();
+
+            if (Region != null)
+            {
+                Region.Unregister();
+                Region = null;
+            }
+
+            if (Timer != null)
+            {
+                Timer.Stop();
+                Timer = null;
+            }
 
             foreach (var wp in WaypointsA.Where(w => w != null && !w.Deleted))
                 wp.Delete();
@@ -627,16 +660,12 @@ namespace Server.Engines.VoidPool
             }
 
             base.Delete();
-		}
+        }
 
-		public VoidPoolController(Serial serial) : base(serial)
-		{
-		}
-		
-		public override void Serialize(GenericWriter writer)
-		{
-			base.Serialize(writer);
-			writer.Write((int)2);
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(2);
 
             if (Level3Spawner != null)
             {
@@ -657,31 +686,25 @@ namespace Server.Engines.VoidPool
 
             WaypointsA.ForEach(w => writer.Write(w));
             WaypointsB.ForEach(w => writer.Write(w));
-		}
+        }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             switch (version)
             {
                 case 2:
                 case 1:
-                    if (version == 1 || reader.ReadInt() == 0)
-                    {
-                        Level3Spawner = new Level3Spawner(reader, this);
-                    }
+                    if (version == 1 || reader.ReadInt() == 0) Level3Spawner = new Level3Spawner(reader, this);
                     goto case 0;
                 case 0:
                     if (version == 0)
                     {
                         Level3Spawner = new Level3Spawner(this);
 
-                        Timer.DelayCall(() =>
-                            {
-                                ResetLevel3Spawners();
-                            });
+                        Timer.DelayCall(() => { ResetLevel3Spawners(); });
                     }
 
                     RespawnMin = reader.ReadInt();
@@ -693,20 +716,20 @@ namespace Server.Engines.VoidPool
                     Active = reader.ReadBool();
                     NextStart = DateTime.UtcNow;
 
-                    int counta = reader.ReadInt();
-                    int countb = reader.ReadInt();
+                    var counta = reader.ReadInt();
+                    var countb = reader.ReadInt();
 
-                    for (int i = 0; i < counta; i++)
+                    for (var i = 0; i < counta; i++)
                     {
-                        WayPoint wp = reader.ReadItem() as WayPoint;
+                        var wp = reader.ReadItem() as WayPoint;
 
                         if (wp != null)
                             WaypointsA.Add(wp);
                     }
 
-                    for (int i = 0; i < countb; i++)
+                    for (var i = 0; i < countb; i++)
                     {
-                        WayPoint wp = reader.ReadItem() as WayPoint;
+                        var wp = reader.ReadItem() as WayPoint;
 
                         if (wp != null)
                             WaypointsB.Add(wp);
@@ -720,9 +743,13 @@ namespace Server.Engines.VoidPool
             else
                 InstanceTram = this;
 
-            Timer.DelayCall(TimeSpan.FromSeconds(10), () => { ClearSpawn(); ClearSpawners(); } );
+            Timer.DelayCall(TimeSpan.FromSeconds(10), () =>
+            {
+                ClearSpawn();
+                ClearSpawners();
+            });
         }
-	}
+    }
 
     public class VoidPoolGate : Static
     {

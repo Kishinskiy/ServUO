@@ -1,36 +1,35 @@
 using System;
-using Server;
-using Server.Spells;
-using Server.Network;
-using Server.Mobiles;
 using Server.Items;
+using Server.Mobiles;
+using Server.Network;
 using Server.Spells.Ninjitsu;
+using Server.Spells.Spellweaving;
 
-/*The paladin unleashes a flying fist against a target that does energy damage based on the paladin's chivalry 
- * skill, best weapon skill, and mastery level.  A bonus to damage is provided by high karma as well against undead 
+/*The paladin unleashes a flying fist against a target that does energy damage based on the paladin's chivalry
+ * skill, best weapon skill, and mastery level.  A bonus to damage is provided by high karma as well against undead
  * targets.*/
 
 namespace Server.Spells.SkillMasteries
 {
     public class HolyFistSpell : SkillMasterySpell
     {
-        private static SpellInfo m_Info = new SpellInfo(
-                "Holy Fist", "Kal Vas Grav",
-                -1,
-                9002
-            );
+        private static readonly SpellInfo m_Info = new SpellInfo(
+            "Holy Fist", "Kal Vas Grav",
+            -1,
+            9002
+        );
 
-        public override double RequiredSkill { get { return 90; } }
-        public override int RequiredMana { get { return 50; } }
+        public override double RequiredSkill => 90;
+        public override int RequiredMana => 50;
 
-        public override SkillName CastSkill { get { return SkillName.Chivalry; } }
-        public override SkillName DamageSkill { get { return SkillName.Chivalry; } }
+        public override SkillName CastSkill => SkillName.Chivalry;
+        public override SkillName DamageSkill => SkillName.Chivalry;
 
-        public int RequiredTithing { get { return 100; } }
+        public int RequiredTithing => 100;
 
-        public override bool DelayedDamage { get { return true; } }
+        public override bool DelayedDamage => true;
 
-        public override TimeSpan CastDelayBase { get { return TimeSpan.FromSeconds(2.5); } }
+        public override TimeSpan CastDelayBase => TimeSpan.FromSeconds(2.5);
 
         public HolyFistSpell(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
@@ -46,7 +45,9 @@ namespace Server.Spells.SkillMasteries
         {
             if (Caster is PlayerMobile && Caster.TithingPoints < RequiredTithing)
             {
-                Caster.SendLocalizedMessage(1060173, RequiredTithing.ToString()); // You must have at least ~1_TITHE_REQUIREMENT~ Tithing Points to use this ability,
+                Caster.SendLocalizedMessage(1060173,
+                    RequiredTithing
+                        .ToString()); // You must have at least ~1_TITHE_REQUIREMENT~ Tithing Points to use this ability,
                 return false;
             }
 
@@ -60,28 +61,25 @@ namespace Server.Spells.SkillMasteries
 
         protected override void OnTarget(object o)
         {
-            IDamageable m = o as IDamageable;
+            var m = o as IDamageable;
 
             if (m != null)
-            {
                 if (CheckHSequence(m))
                 {
-                    IDamageable target = m;
+                    var target = m;
                     IDamageable source = Caster;
 
                     SpellHelper.Turn(Caster, target);
 
                     if (SpellHelper.CheckReflect(0, ref source, ref target))
-                    {
                         Server.Timer.DelayCall(TimeSpan.FromSeconds(.5), () =>
                         {
                             source.MovingParticles(target, 0x9BB5, 7, 0, false, true, 9502, 4019, 0x160);
                             source.PlaySound(0x5CE);
                         });
-                    }
 
-                    double skill = (Caster.Skills[CastSkill].Value + GetWeaponSkill() + (GetMasteryLevel() * 40)) / 3;
-                    double damage = skill + (double)Caster.Karma / 1000;
+                    var skill = (Caster.Skills[CastSkill].Value + GetWeaponSkill() + GetMasteryLevel() * 40) / 3;
+                    var damage = skill + (double)Caster.Karma / 1000;
 
                     damage += Utility.RandomMinMax(0, 5);
 
@@ -93,50 +91,50 @@ namespace Server.Spells.SkillMasteries
                     Caster.MovingParticles(m, 0x9BB5, 7, 0, false, true, 9502, 4019, 0x160);
                     Caster.PlaySound(0x5CE);
 
-                    if (m is Mobile)
-                    {
-                        damage *= GetDamageScalar((Mobile)m);
-                    }
+                    if (m is Mobile) damage *= GetDamageScalar((Mobile)m);
 
-                    int sdiBonus = SpellHelper.GetSpellDamageBonus(Caster, m, CastSkill, m is Mobile ? Caster.Player && ((Mobile)m).Player : false);
+                    var sdiBonus = SpellHelper.GetSpellDamageBonus(Caster, m, CastSkill,
+                        m is Mobile ? Caster.Player && ((Mobile)m).Player : false);
 
-                    damage *= (100 + sdiBonus);
+                    damage *= 100 + sdiBonus;
                     damage /= 100;
 
                     SpellHelper.Damage(this, target, damage, 0, 0, 0, 0, 100);
 
                     if (target is Mobile && !CheckResisted((Mobile)target) && ((Mobile)target).NetState != null)
                     {
-                        Mobile mob = target as Mobile;
+                        var mob = target as Mobile;
 
                         if (!TransformationSpellHelper.UnderTransformation(mob, typeof(AnimalForm)))
                             mob.SendSpeedControl(SpeedControlType.WalkSpeed);
 
                         Server.Timer.DelayCall(TimeSpan.FromSeconds(skill / 60), () =>
-                            {
-                                if (!TransformationSpellHelper.UnderTransformation(mob, typeof(AnimalForm)) &&
-                                    (Core.SA || !TransformationSpellHelper.UnderTransformation(mob, typeof(Server.Spells.Spellweaving.ReaperFormSpell))))
-                                    mob.SendSpeedControl(SpeedControlType.Disable);
-                            });
+                        {
+                            if (!TransformationSpellHelper.UnderTransformation(mob, typeof(AnimalForm)) &&
+                                (Core.SA || !TransformationSpellHelper.UnderTransformation(mob,
+                                    typeof(ReaperFormSpell))))
+                                mob.SendSpeedControl(SpeedControlType.Disable);
+                        });
                     }
                 }
-            }
         }
 
         public override bool CheckSequence()
         {
-            int requiredTithing = this.RequiredTithing;
+            var requiredTithing = RequiredTithing;
 
             if (Caster is PlayerMobile && Caster.TithingPoints < requiredTithing)
             {
-                Caster.SendLocalizedMessage(1060173, RequiredTithing.ToString()); // You must have at least ~1_TITHE_REQUIREMENT~ Tithing Points to use this ability,
+                Caster.SendLocalizedMessage(1060173,
+                    RequiredTithing
+                        .ToString()); // You must have at least ~1_TITHE_REQUIREMENT~ Tithing Points to use this ability,
                 return false;
             }
 
             if (AosAttributes.GetValue(Caster, AosAttribute.LowerRegCost) > Utility.Random(100))
                 requiredTithing = 0;
 
-            if(requiredTithing > 0 && Caster is PlayerMobile)
+            if (requiredTithing > 0 && Caster is PlayerMobile)
                 Caster.TithingPoints -= requiredTithing;
 
             return base.CheckSequence();
@@ -144,7 +142,7 @@ namespace Server.Spells.SkillMasteries
 
         private bool IsUndead(BaseCreature bc)
         {
-            SlayerEntry entry = SlayerGroup.GetEntryByName(SlayerName.Silver);
+            var entry = SlayerGroup.GetEntryByName(SlayerName.Silver);
 
             return entry != null && entry.Slays(bc);
         }

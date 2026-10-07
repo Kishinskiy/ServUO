@@ -6,7 +6,21 @@ namespace Server.Items
 {
     public class ProspectorsTool : BaseBashing
     {
-        public override int LabelNumber { get { return 1049065; } } // prospector's tool
+        public override int LabelNumber => 1049065; // prospector's tool
+
+        public override WeaponAbility PrimaryAbility => WeaponAbility.CrushingBlow;
+        public override WeaponAbility SecondaryAbility => WeaponAbility.ShadowStrike;
+        public override int AosStrengthReq => 40;
+        public override int AosMinDamage => 13;
+        public override int AosMaxDamage => 15;
+        public override int AosSpeed => 33;
+        public override float MlSpeed => 3.25f;
+        public override int OldStrengthReq => 10;
+        public override int OldMinDamage => 6;
+        public override int OldMaxDamage => 8;
+        public override int OldSpeed => 33;
+        public override int InitMinHits => 31;
+        public override int InitMaxHits => 60;
 
         [Constructable]
         public ProspectorsTool()
@@ -20,21 +34,7 @@ namespace Server.Items
         public ProspectorsTool(Serial serial)
             : base(serial)
         {
-        }        
-
-        public override WeaponAbility PrimaryAbility { get { return WeaponAbility.CrushingBlow; } }
-        public override WeaponAbility SecondaryAbility { get { return WeaponAbility.ShadowStrike; } }
-        public override int AosStrengthReq { get { return 40; } }
-        public override int AosMinDamage { get { return 13; } }
-        public override int AosMaxDamage { get { return 15; } }
-        public override int AosSpeed { get { return 33; } }
-        public override float MlSpeed { get { return 3.25f; } }
-        public override int OldStrengthReq { get { return 10; } }
-        public override int OldMinDamage { get { return 6; } }
-        public override int OldMaxDamage { get { return 8; } }
-        public override int OldSpeed { get { return 33; } }
-        public override int InitMinHits { get { return 31; } }
-        public override int InitMaxHits { get { return 60; } }
+        }
 
         public override void OnDoubleClick(Mobile from)
         {
@@ -64,7 +64,7 @@ namespace Server.Items
                 return;
             }
 
-            HarvestDefinition def = system.GetDefinition(tileID);
+            var def = system.GetDefinition(tileID);
 
             if (def == null || def.Veins.Length <= 1)
             {
@@ -72,7 +72,7 @@ namespace Server.Items
                 return;
             }
 
-            HarvestBank bank = def.GetBank(map, loc.X, loc.Y);
+            var bank = def.GetBank(map, loc.X, loc.Y);
 
             if (bank == null)
             {
@@ -87,19 +87,20 @@ namespace Server.Items
                 from.SendLocalizedMessage(1049048); // You cannot use your prospector tool on that.
                 return;
             }
-            else if (vein != defaultVein)
+
+            if (vein != defaultVein)
             {
                 from.SendLocalizedMessage(1049049); // That ore looks to be prospected already.
                 return;
             }
 
-            int veinIndex = Array.IndexOf(def.Veins, vein);
+            var veinIndex = Array.IndexOf(def.Veins, vein);
 
             if (veinIndex < 0)
             {
                 from.SendLocalizedMessage(1049048); // You cannot use your prospector tool on that.
             }
-            else if (veinIndex >= (def.Veins.Length - 1))
+            else if (veinIndex >= def.Veins.Length - 1)
             {
                 from.SendLocalizedMessage(1049061); // You cannot improve valorite ore through prospecting.
             }
@@ -121,29 +122,30 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)2); // version
+            writer.Write(2); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            switch ( version )
+            switch (version)
             {
                 case 2:
                     break;
                 case 1:
-                    {
-                        UsesRemaining = reader.ReadInt();
-                        break;
-                    }
+                {
+                    UsesRemaining = reader.ReadInt();
+                    break;
+                }
             }
         }
 
         private class InternalTarget : Target
         {
             private readonly ProspectorsTool m_Tool;
+
             public InternalTarget(ProspectorsTool tool)
                 : base(2, true, TargetFlags.None)
             {

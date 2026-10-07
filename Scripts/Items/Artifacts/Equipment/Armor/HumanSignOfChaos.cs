@@ -1,13 +1,27 @@
-﻿using System;
-
-namespace Server.Items
+﻿namespace Server.Items
 {
     public class HumanSignOfChaos : ChaosShield
-	{
-		public override bool IsArtifact { get { return true; } }
+    {
+        public override bool IsArtifact => true;
+
+        public override int LabelNumber => 1113535; // Sign of Chaos
+
+        public override int BasePhysicalResistance => 3;
+
+        public override int BaseFireResistance => 2;
+
+        public override int BaseColdResistance => 2;
+
+        public override int BasePoisonResistance => 2;
+
+        public override int BaseEnergyResistance => 2;
+
+        public override int InitMinHits => 255;
+
+        public override int InitMaxHits => 255;
+
         [Constructable]
         public HumanSignOfChaos()
-            : base()
         {
             Hue = 2075;
             ArmorAttributes.SoulCharge = 20;
@@ -20,69 +34,17 @@ namespace Server.Items
             : base(serial)
         {
         }
-        
-        public override int LabelNumber { get{return 1113535;} }// Sign of Chaos
-        
-        public override int BasePhysicalResistance
-        {
-            get
-            {
-                return 3;
-            }
-        }
-        public override int BaseFireResistance
-        {
-            get
-            {
-                return 2;
-            }
-        }
-        public override int BaseColdResistance
-        {
-            get
-            {
-                return 2;
-            }
-        }
-        public override int BasePoisonResistance
-        {
-            get
-            {
-                return 2;
-            }
-        }
-        public override int BaseEnergyResistance
-        {
-            get
-            {
-                return 2;
-            }
-        }
-        public override int InitMinHits
-        {
-            get
-            {
-                return 255;
-            }
-        }
-        public override int InitMaxHits
-        {
-            get
-            {
-                return 255;
-            }
-        }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);//version
+            writer.Write(0); //version
         }
     }
 }

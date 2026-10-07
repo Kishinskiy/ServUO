@@ -1,10 +1,8 @@
-﻿using Server;
-
-namespace Server.Items
+﻿namespace Server.Items
 {
     public class AstronomerTitleDeed : BaseRewardTitleDeed
     {
-        public override TextDefinition Title { get { return 1158523; } } // Astronomer
+        public override TextDefinition Title => 1158523; // Astronomer
 
         public AstronomerTitleDeed()
         {
@@ -24,7 +22,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

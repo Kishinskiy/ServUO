@@ -1,18 +1,17 @@
-using System;
 using System.Collections.Generic;
-
-using Server;
-using Server.Items;
-using Server.Gumps;
-using Server.Mobiles;
 using Server.Engines.Points;
+using Server.Gumps;
+using Server.Items;
+using Server.Mobiles;
 
 namespace Server.Engines.RisingTide
 {
     public class RisingTideRewardGump : BaseRewardGump
     {
-        public override int PointsName { get { return 1158916; } } // Your Doubloons
-        public override int RewardLabel { get { return 1158917; } } // What ye buyin' Matey?
+        public override int PointsName => 1158916; // Your Doubloons
+        public override int RewardLabel => 1158917; // What ye buyin' Matey?
+
+        public static List<CollectionItem> Rewards { get; set; }
 
         public RisingTideRewardGump(Mobile owner, PlayerMobile user)
             : base(owner, user, Rewards, 1158918)
@@ -21,20 +20,11 @@ namespace Server.Engines.RisingTide
 
         public override int GetYOffset(int id)
         {
-            if (id == 0xA2C6)
-            {
-                return 70;
-            }
+            if (id == 0xA2C6) return 70;
 
-            if (id == 0xA2C8)
-            {
-                return 50;
-            }
+            if (id == 0xA2C8) return 50;
 
-            if (id == 0xA28B)
-            {
-                return 15;
-            }
+            if (id == 0xA28B) return 15;
 
             return 20;
         }
@@ -52,16 +42,9 @@ namespace Server.Engines.RisingTide
         public override void OnItemCreated(Item item)
         {
             if (item is DecorativeWoodCarving)
-            {
                 ((DecorativeWoodCarving)item).AssignRandomName();
-            }
-            else if (item is ShoulderParrot)
-            {
-                ((ShoulderParrot)item).MasterName = User.Name;
-            }
+            else if (item is ShoulderParrot) ((ShoulderParrot)item).MasterName = User.Name;
         }
-
-        public static List<CollectionItem> Rewards { get; set; }
 
         public static void Initialize()
         {

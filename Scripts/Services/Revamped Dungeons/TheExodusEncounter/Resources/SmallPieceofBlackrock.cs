@@ -1,44 +1,42 @@
-using System;
-
 namespace Server.Items
 {
     public class SmallPieceofBlackrock : Item, ICommodity
     {
+        public override int LabelNumber => 1150016;
+
         [Constructable]
-        public SmallPieceofBlackrock(): this(1)
+        public SmallPieceofBlackrock() : this(1)
         {
         }
 
         [Constructable]
         public SmallPieceofBlackrock(int amount) : base(0x0F28)
         {
-            this.Hue = 1175;
-            this.Stackable = true;
-            this.Amount = amount;
-            this.Weight = 1.0;
+            Hue = 1175;
+            Stackable = true;
+            Amount = amount;
+            Weight = 1.0;
         }
 
         public SmallPieceofBlackrock(Serial serial) : base(serial)
         {
         }
 
-        TextDefinition ICommodity.Description { get { return LabelNumber; } }
-        bool ICommodity.IsDeedable { get { return true; } }
-
-        public override int LabelNumber { get { return 1150016; } }
+        TextDefinition ICommodity.Description => LabelNumber;
+        bool ICommodity.IsDeedable => true;
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

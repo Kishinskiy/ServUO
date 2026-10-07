@@ -4,6 +4,8 @@ namespace Server.Items
 {
     public class IDWand : BaseWand
     {
+        public override TimeSpan GetUseDelay => TimeSpan.Zero;
+
         [Constructable]
         public IDWand()
             : base(WandEffect.Identification, 25, 175)
@@ -15,25 +17,18 @@ namespace Server.Items
         {
         }
 
-        public override TimeSpan GetUseDelay
-        {
-            get
-            {
-                return TimeSpan.Zero;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         public override bool OnWandTarget(Mobile from, object o)
@@ -46,7 +41,7 @@ namespace Server.Items
             if (!Core.AOS && o is Item)
                 ((Item)o).OnSingleClick(from);
 
-            return (o is Item);
+            return o is Item;
         }
     }
 }

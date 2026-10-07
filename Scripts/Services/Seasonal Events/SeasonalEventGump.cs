@@ -1,16 +1,11 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-
-using Server;
-using Server.Mobiles;
 using Server.Gumps;
-using Server.Misc;
+using Server.Mobiles;
 
 namespace Server.Engines.SeasonalEvents
 {
-	public class SeasonalEventGump : BaseGump
-	{
+    public class SeasonalEventGump : BaseGump
+    {
         public SeasonalEventGump(PlayerMobile pm)
             : base(pm, 100, 100)
         {
@@ -23,18 +18,18 @@ namespace Server.Engines.SeasonalEvents
 
             AddHtml(0, 10, 500, 20, Center("Season Event Configuration"), false, false);
 
-            int y = 60;
+            var y = 60;
 
             AddHtml(10, 40, 190, 20, "System Name", false, false);
             AddHtml(200, 40, 75, 20, "Status", false, false);
             AddHtml(275, 40, 150, 20, "Season", false, false);
             AddHtml(450, 40, 50, 20, "Edit", false, false);
 
-            for(int i = 0; i < SeasonalEventSystem.Entries.Count; i++)
+            for (var i = 0; i < SeasonalEventSystem.Entries.Count; i++)
             {
                 var entry = SeasonalEventSystem.Entries[i];
 
-                int hue = entry.IsActive() ? 167 : 137;
+                var hue = entry.IsActive() ? 167 : 137;
 
                 AddLabel(10, y, hue, entry.Name);
                 AddLabel(200, y, hue, entry.Status.ToString());
@@ -45,9 +40,12 @@ namespace Server.Engines.SeasonalEvents
                 }
                 else
                 {
-                    DateTime end = new DateTime(DateTime.Now.Year, entry.MonthStart, entry.DayStart, 0, 0, 0) + TimeSpan.FromDays(entry.Duration);
+                    var end = new DateTime(DateTime.Now.Year, entry.MonthStart, entry.DayStart, 0, 0, 0) +
+                              TimeSpan.FromDays(entry.Duration);
 
-                    AddLabel(275, y, hue, String.Format("{0}/{1} - {2}/{3}", entry.MonthStart.ToString(), entry.DayStart.ToString(), end.Month.ToString(), end.Day.ToString()));
+                    AddLabel(275, y, hue,
+                        string.Format("{0}/{1} - {2}/{3}", entry.MonthStart.ToString(), entry.DayStart.ToString(),
+                            end.Month.ToString(), end.Day.ToString()));
                 }
 
                 AddButton(450, y, 4029, 4030, i + 10, GumpButtonType.Reply, 0);
@@ -65,7 +63,7 @@ namespace Server.Engines.SeasonalEvents
 
             if (info.ButtonID >= 10)
             {
-                int id = info.ButtonID - 10;
+                var id = info.ButtonID - 10;
 
                 if (id >= 0 && id < SeasonalEventSystem.Entries.Count)
                 {
@@ -78,7 +76,7 @@ namespace Server.Engines.SeasonalEvents
                     }
                     else
                     {
-                        BaseGump.SendGump(new EditEventGump(User, entry));
+                        SendGump(new EditEventGump(User, entry));
                     }
                 }
             }
@@ -90,16 +88,16 @@ namespace Server.Engines.SeasonalEvents
                 Refresh();
             }
         }
-	}
+    }
 
     public class EditEventGump : BaseGump
     {
-        public SeasonalEventEntry Entry { get; set; }
-
-        private int _Month;
         private int _Day;
         private int _Duration;
+
+        private int _Month;
         private EventStatus _Status;
+        public SeasonalEventEntry Entry { get; set; }
 
         public EditEventGump(PlayerMobile pm, SeasonalEventEntry entry)
             : base(pm, 100, 100)
@@ -206,25 +204,22 @@ namespace Server.Engines.SeasonalEvents
                     Entry.DayStart = _Day;
                     Entry.Status = _Status;
 
-                    TextRelay relay = info.GetTextEntry(0);
+                    var relay = info.GetTextEntry(0);
 
                     if (relay != null && !string.IsNullOrEmpty(relay.Text))
                     {
                         var duration = Utility.ToInt32(relay.Text);
 
-                        if (duration > 0)
-                        {
-                            _Duration = Math.Min(365, duration);
-                        }
+                        if (duration > 0) _Duration = Math.Min(365, duration);
                     }
 
                     Entry.Duration = _Duration;
 
-                    BaseGump.SendGump(new SeasonalEventGump(User));
+                    SendGump(new SeasonalEventGump(User));
 
                     return;
                 case 10:
-                    BaseGump.SendGump(new SeasonalEventGump(User));
+                    SendGump(new SeasonalEventGump(User));
                     return;
             }
 

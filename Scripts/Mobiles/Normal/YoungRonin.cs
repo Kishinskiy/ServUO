@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 using Server.Mobiles;
 
@@ -7,54 +6,56 @@ namespace Server.Engines.Quests.Samurai
     [CorpseName("a young ronin's corpse")]
     public class YoungRonin : BaseCreature
     {
+        public override bool AlwaysMurderer => true;
+
         [Constructable]
         public YoungRonin()
             : base(AIType.AI_Melee, FightMode.Aggressor, 10, 1, 0.2, 0.4)
         {
-            this.InitStats(45, 30, 5);
-            this.SetHits(10, 20);
+            InitStats(45, 30, 5);
+            SetHits(10, 20);
 
-            this.Hue = Utility.RandomSkinHue();
-            this.Body = 0x190;
-            this.Name = "a young ronin";
+            Hue = Utility.RandomSkinHue();
+            Body = 0x190;
+            Name = "a young ronin";
 
             Utility.AssignRandomHair(this);
             Utility.AssignRandomFacialHair(this);
 
-            this.AddItem(new LeatherDo());
-            this.AddItem(new LeatherHiroSode());
-            this.AddItem(new SamuraiTabi());
+            AddItem(new LeatherDo());
+            AddItem(new LeatherHiroSode());
+            AddItem(new SamuraiTabi());
 
-            switch ( Utility.Random(3) )
+            switch (Utility.Random(3))
             {
                 case 0:
-                    this.AddItem(new StuddedHaidate());
+                    AddItem(new StuddedHaidate());
                     break;
                 case 1:
-                    this.AddItem(new PlateSuneate());
+                    AddItem(new PlateSuneate());
                     break;
                 default:
-                    this.AddItem(new LeatherSuneate());
+                    AddItem(new LeatherSuneate());
                     break;
             }
 
-            this.AddItem(new Bandana(Utility.RandomNondyedHue()));
+            AddItem(new Bandana(Utility.RandomNondyedHue()));
 
-            switch ( Utility.Random(3) )
+            switch (Utility.Random(3))
             {
                 case 0:
-                    this.AddItem(new NoDachi());
+                    AddItem(new NoDachi());
                     break;
                 case 1:
-                    this.AddItem(new Lajatang());
+                    AddItem(new Lajatang());
                     break;
                 default:
-                    this.AddItem(new Wakizashi());
+                    AddItem(new Wakizashi());
                     break;
             }
 
-            this.SetSkill(SkillName.Swords, 50.0);
-            this.SetSkill(SkillName.Tactics, 50.0);
+            SetSkill(SkillName.Swords, 50.0);
+            SetSkill(SkillName.Tactics, 50.0);
         }
 
         public YoungRonin(Serial serial)
@@ -62,13 +63,6 @@ namespace Server.Engines.Quests.Samurai
         {
         }
 
-        public override bool AlwaysMurderer
-        {
-            get
-            {
-                return true;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -80,7 +74,7 @@ namespace Server.Engines.Quests.Samurai
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

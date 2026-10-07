@@ -1,6 +1,6 @@
 using System;
-using Server.Mobiles;
 using Server.Items;
+using Server.Mobiles;
 
 namespace Server.Engines.MiniChamps
 {
@@ -49,27 +49,9 @@ namespace Server.Engines.MiniChamps
         public MiniChampLevelInfo[] Levels { get; set; }
         public Type EssenceType { get; set; }
 
-        public int MaxLevel { get { return Levels == null ? 0 : Levels.Length; } }
+        public int MaxLevel => Levels == null ? 0 : Levels.Length;
 
-        public MiniChampInfo(Type essenceType, params MiniChampLevelInfo[] levels)
-        {
-            Levels = levels;
-            EssenceType = essenceType;
-        }
-
-        public MiniChampLevelInfo GetLevelInfo(int level)
-        {
-            level--;
-
-            if (level >= 0 && level < Levels.Length)
-                return Levels[level];
-
-            return null;
-        }
-
-        public static MiniChampInfo[] Table { get { return m_Table; } }
-
-        private static readonly MiniChampInfo[] m_Table = new MiniChampInfo[]
+        public static MiniChampInfo[] Table { get; } =
         {
             new MiniChampInfo // Crimson Veins
             (
@@ -384,17 +366,33 @@ namespace Server.Engines.MiniChamps
                 (
                     new MiniChampTypeInfo(1, typeof(Meraktus))
                 )
-            ),
+            )
         };
+
+        public MiniChampInfo(Type essenceType, params MiniChampLevelInfo[] levels)
+        {
+            Levels = levels;
+            EssenceType = essenceType;
+        }
+
+        public MiniChampLevelInfo GetLevelInfo(int level)
+        {
+            level--;
+
+            if (level >= 0 && level < Levels.Length)
+                return Levels[level];
+
+            return null;
+        }
 
         public static MiniChampInfo GetInfo(MiniChampType type)
         {
-            int v = (int)type;
+            var v = (int)type;
 
-            if (v < 0 || v >= m_Table.Length)
+            if (v < 0 || v >= Table.Length)
                 v = 0;
 
-            return m_Table[v];
+            return Table[v];
         }
     }
 }

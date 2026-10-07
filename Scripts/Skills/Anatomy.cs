@@ -9,12 +9,12 @@ namespace Server.SkillHandlers
     {
         public static void Initialize()
         {
-            SkillInfo.Table[(int)SkillName.Anatomy].Callback = new SkillUseCallback(OnUse);
+            SkillInfo.Table[(int)SkillName.Anatomy].Callback = OnUse;
         }
 
         public static TimeSpan OnUse(Mobile m)
         {
-            m.Target = new Anatomy.InternalTarget();
+            m.Target = new InternalTarget();
 
             m.SendLocalizedMessage(500321); // Whom shall I examine?
 
@@ -32,29 +32,33 @@ namespace Server.SkillHandlers
             {
                 if (from == targeted)
                 {
-                    from.LocalOverheadMessage(MessageType.Regular, 0x3B2, 500324); // You know yourself quite well enough already.
+                    from.LocalOverheadMessage(MessageType.Regular, 0x3B2,
+                        500324); // You know yourself quite well enough already.
                 }
                 else if (targeted is TownCrier)
                 {
-                    ((TownCrier)targeted).PrivateOverheadMessage(MessageType.Regular, 0x3B2, 500322, from.NetState); // This person looks fine to me, though he may have some news...
+                    ((TownCrier)targeted).PrivateOverheadMessage(MessageType.Regular, 0x3B2, 500322,
+                        from.NetState); // This person looks fine to me, though he may have some news...
                 }
                 else if (targeted is BaseVendor && ((BaseVendor)targeted).IsInvulnerable)
                 {
-                    ((BaseVendor)targeted).PrivateOverheadMessage(MessageType.Regular, 0x3B2, 500326, from.NetState); // That can not be inspected.
+                    ((BaseVendor)targeted).PrivateOverheadMessage(MessageType.Regular, 0x3B2, 500326,
+                        from.NetState); // That can not be inspected.
                 }
                 else if (targeted is Mobile)
                 {
-                    Mobile targ = (Mobile)targeted;
+                    var targ = (Mobile)targeted;
 
-                    int marginOfError = Math.Max(0, 25 - (int)(from.Skills[SkillName.Anatomy].Value / 4));
+                    var marginOfError = Math.Max(0, 25 - (int)(from.Skills[SkillName.Anatomy].Value / 4));
 
-                    int str = targ.Str + Utility.RandomMinMax(-marginOfError, +marginOfError);
-                    int dex = targ.Dex + Utility.RandomMinMax(-marginOfError, +marginOfError);
-                    int stm = ((targ.Stam * 100) / Math.Max(targ.StamMax, 1)) + Utility.RandomMinMax(-marginOfError, +marginOfError);
+                    var str = targ.Str + Utility.RandomMinMax(-marginOfError, +marginOfError);
+                    var dex = targ.Dex + Utility.RandomMinMax(-marginOfError, +marginOfError);
+                    var stm = targ.Stam * 100 / Math.Max(targ.StamMax, 1) +
+                              Utility.RandomMinMax(-marginOfError, +marginOfError);
 
-                    int strMod = str / 10;
-                    int dexMod = dex / 10;
-                    int stmMod = stm / 10;
+                    var strMod = str / 10;
+                    var dexMod = dex / 10;
+                    var stmMod = stm / 10;
 
                     if (strMod < 0)
                         strMod = 0;
@@ -73,14 +77,17 @@ namespace Server.SkillHandlers
 
                     if (from.CheckTargetSkill(SkillName.Anatomy, targ, 0, 100))
                     {
-                        targ.PrivateOverheadMessage(MessageType.Regular, 0x3B2, 1038045 + (strMod * 11) + dexMod, from.NetState); // That looks [strong] and [dexterous].
+                        targ.PrivateOverheadMessage(MessageType.Regular, 0x3B2, 1038045 + strMod * 11 + dexMod,
+                            from.NetState); // That looks [strong] and [dexterous].
 
                         if (from.Skills[SkillName.Anatomy].Base >= 65.0)
-                            targ.PrivateOverheadMessage(MessageType.Regular, 0x3B2, 1038303 + stmMod, from.NetState); // That being is at [10,20,...] percent endurance.
+                            targ.PrivateOverheadMessage(MessageType.Regular, 0x3B2, 1038303 + stmMod,
+                                from.NetState); // That being is at [10,20,...] percent endurance.
                     }
                     else
                     {
-                        targ.PrivateOverheadMessage(MessageType.Regular, 0x3B2, 1042666, from.NetState); // You can not quite get a sense of their physical characteristics.
+                        targ.PrivateOverheadMessage(MessageType.Regular, 0x3B2, 1042666,
+                            from.NetState); // You can not quite get a sense of their physical characteristics.
                     }
                 }
                 else if (targeted is Item)

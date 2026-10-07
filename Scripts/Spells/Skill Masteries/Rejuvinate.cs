@@ -1,33 +1,27 @@
 using System;
-using System.Globalization;
-using Server;
-using Server.Spells;
-using Server.Network;
-using Server.Mobiles;
-using Server.Spells.Necromancy;
-using Server.Spells.First;
-using Server.Spells.Fourth;
 using Server.Items;
-using System.Collections.Generic;
+using Server.Mobiles;
+using Server.Spells.Fourth;
+using Server.Spells.Necromancy;
 
 namespace Server.Spells.SkillMasteries
 {
     public class RejuvinateSpell : SkillMasterySpell
     {
-        private static SpellInfo m_Info = new SpellInfo(
-                "Rejuvinate", "In Vas Ort Grav Mani",
-                204,
-				9061
-            );
+        private static readonly SpellInfo m_Info = new SpellInfo(
+            "Rejuvinate", "In Vas Ort Grav Mani",
+            204,
+            9061
+        );
 
-        public override double RequiredSkill { get { return 90; } }
-        public override double UpKeep { get { return 0; } }
-        public override int RequiredMana { get { return 10; } }
+        public override double RequiredSkill => 90;
+        public override double UpKeep => 0;
+        public override int RequiredMana => 10;
 
-        public int RequiredTithing { get { return 100; } }
+        public int RequiredTithing => 100;
 
-        public override SkillName CastSkill { get { return SkillName.Chivalry; } }
-        public override SkillName DamageSkill { get { return SkillName.Chivalry; } }
+        public override SkillName CastSkill => SkillName.Chivalry;
+        public override SkillName DamageSkill => SkillName.Chivalry;
 
         public RejuvinateSpell(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
@@ -41,17 +35,20 @@ namespace Server.Spells.SkillMasteries
 
         public override bool CheckCast()
         {
-            if (Caster is PlayerMobile && (Caster.Player && Caster.TithingPoints < RequiredTithing))
+            if (Caster is PlayerMobile && Caster.Player && Caster.TithingPoints < RequiredTithing)
             {
-                Caster.SendLocalizedMessage(1060173, RequiredTithing.ToString()); // You must have at least ~1_TITHE_REQUIREMENT~ Tithing Points to use this ability,
+                Caster.SendLocalizedMessage(1060173,
+                    RequiredTithing
+                        .ToString()); // You must have at least ~1_TITHE_REQUIREMENT~ Tithing Points to use this ability,
                 return false;
             }
 
-            BaseWeapon weapon = GetWeapon();
+            var weapon = GetWeapon();
 
             if (weapon == null)
             {
-                Caster.SendLocalizedMessage(1156006); // You must have a swordsmanship weapon equipped to use this ability.
+                Caster.SendLocalizedMessage(
+                    1156006); // You must have a swordsmanship weapon equipped to use this ability.
                 return false;
             }
 
@@ -65,7 +62,7 @@ namespace Server.Spells.SkillMasteries
 
         protected override void OnTarget(object o)
         {
-            Mobile m = o as Mobile;
+            var m = o as Mobile;
 
             if (m != null)
             {
@@ -87,22 +84,22 @@ namespace Server.Spells.SkillMasteries
                 }
                 else if (CheckBSequence(m))
                 {
-                    double rejuv = ((double)GetMasteryLevel() * 33.3) / 100;
+                    var rejuv = GetMasteryLevel() * 33.3 / 100;
 
                     if (rejuv > 1.0) rejuv = 1.0;
 
-                    int hitsNeeds = m.HitsMax - m.Hits;
-                    int stamNeeds = m.StamMax - m.Stam;
-                    int manaNeeds = m.ManaMax - m.Mana;
+                    var hitsNeeds = m.HitsMax - m.Hits;
+                    var stamNeeds = m.StamMax - m.Stam;
+                    var manaNeeds = m.ManaMax - m.Mana;
 
-                    int toRejuv = 0;
+                    var toRejuv = 0;
 
                     if (hitsNeeds > 0)
                     {
                         toRejuv = (int)Math.Ceiling(hitsNeeds * rejuv);
 
                         if (toRejuv > 0)
-                            SpellHelper.Heal(toRejuv, m, Caster, false); 
+                            SpellHelper.Heal(toRejuv, m, Caster, false);
                     }
 
                     if (stamNeeds > 0)
@@ -169,7 +166,7 @@ namespace Server.Spells.SkillMasteries
                         Caster.SendLocalizedMessage(1155790); // Your target has been rejuvenated!
                     }
 
-                    int skill = ((int)Caster.Skills[CastSkill].Value + GetWeaponSkill() + GetMasteryLevel() * 40) / 3;
+                    var skill = ((int)Caster.Skills[CastSkill].Value + GetWeaponSkill() + GetMasteryLevel() * 40) / 3;
                     int duration;
 
                     if (skill >= 120)
@@ -181,25 +178,29 @@ namespace Server.Spells.SkillMasteries
 
                     TimeSpan d;
 
-                    if(Caster.AccessLevel == AccessLevel.Player)
+                    if (Caster.AccessLevel == AccessLevel.Player)
                         d = TimeSpan.FromMinutes(duration);
                     else
-                        d =  TimeSpan.FromSeconds(10);
+                        d = TimeSpan.FromSeconds(10);
 
                     AddToCooldown(d);
                 }
             }
             else
+            {
                 Caster.SendLocalizedMessage(1046439); // That is not a valid target.
+            }
         }
 
         public override bool CheckSequence()
         {
-            int requiredTithing = this.RequiredTithing;
+            var requiredTithing = RequiredTithing;
 
-            if (Caster is PlayerMobile && (Caster.Player && Caster.TithingPoints < requiredTithing))
+            if (Caster is PlayerMobile && Caster.Player && Caster.TithingPoints < requiredTithing)
             {
-                Caster.SendLocalizedMessage(1060173, RequiredTithing.ToString()); // You must have at least ~1_TITHE_REQUIREMENT~ Tithing Points to use this ability,
+                Caster.SendLocalizedMessage(1060173,
+                    RequiredTithing
+                        .ToString()); // You must have at least ~1_TITHE_REQUIREMENT~ Tithing Points to use this ability,
                 return false;
             }
 

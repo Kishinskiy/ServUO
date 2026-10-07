@@ -1,12 +1,16 @@
 using System;
 using System.Collections.Generic;
-using Server.Items;
 
 namespace Server.Mobiles
 {
     public abstract class BaseRenowned : BaseCreature
     {
-        Dictionary<Mobile, int> m_DamageEntries;
+        private Dictionary<Mobile, int> m_DamageEntries;
+
+        public abstract Type[] UniqueSAList { get; }
+        public abstract Type[] SharedSAList { get; }
+
+        public virtual bool NoGoodies => false;
 
         public BaseRenowned(AIType aiType)
             : this(aiType, FightMode.Closest)
@@ -23,29 +27,18 @@ namespace Server.Mobiles
         {
         }
 
-        public abstract Type[] UniqueSAList { get; }
-        public abstract Type[] SharedSAList { get; }
-
-        public virtual bool NoGoodies
-        {
-            get
-            {
-                return false;
-            }
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         public virtual void RegisterDamageTo(Mobile m)
@@ -53,11 +46,11 @@ namespace Server.Mobiles
             if (m == null)
                 return;
 
-            foreach (DamageEntry de in m.DamageEntries)
+            foreach (var de in m.DamageEntries)
             {
-                Mobile damager = de.Damager;
+                var damager = de.Damager;
 
-                Mobile master = damager.GetDamageMaster(m);
+                var master = damager.GetDamageMaster(m);
 
                 if (master != null)
                     damager = master;
@@ -82,24 +75,22 @@ namespace Server.Mobiles
             if (artifact == null)
                 return;
 
-            int totalDamage = 0;
+            var totalDamage = 0;
 
-            Dictionary<Mobile, int> validEntries = new Dictionary<Mobile, int>();
+            var validEntries = new Dictionary<Mobile, int>();
 
-            foreach (KeyValuePair<Mobile, int> kvp in m_DamageEntries)
-            {
+            foreach (var kvp in m_DamageEntries)
                 if (IsEligible(kvp.Key, artifact))
                 {
                     validEntries.Add(kvp.Key, kvp.Value);
                     totalDamage += kvp.Value;
                 }
-            }
 
-            int randomDamage = Utility.RandomMinMax(1, totalDamage);
+            var randomDamage = Utility.RandomMinMax(1, totalDamage);
 
             totalDamage = 0;
 
-            foreach (KeyValuePair<Mobile, int> kvp in m_DamageEntries)
+            foreach (var kvp in m_DamageEntries)
             {
                 totalDamage += kvp.Value;
 
@@ -116,28 +107,30 @@ namespace Server.Mobiles
             if (to == null || artifact == null)
                 return;
 
-			to.PlaySound(0x5B4);
+            to.PlaySound(0x5B4);
 
-            Container pack = to.Backpack;
+            var pack = to.Backpack;
 
             if (pack == null || !pack.TryDropItem(to, artifact, false))
                 artifact.Delete();
             else
-                to.SendLocalizedMessage(1062317); // For your valor in combating the fallen beast, a special artifact has been bestowed on you.
+                to.SendLocalizedMessage(
+                    1062317); // For your valor in combating the fallen beast, a special artifact has been bestowed on you.
         }
 
         public bool IsEligible(Mobile m, Item Artifact)
         {
-            return m.Player && m.Alive && m.InRange(Location, 32) && m.Backpack != null && m.Backpack.CheckHold(m, Artifact, false);
+            return m.Player && m.Alive && m.InRange(Location, 32) && m.Backpack != null &&
+                   m.Backpack.CheckHold(m, Artifact, false);
         }
 
         public Item GetArtifact()
         {
-            double random = Utility.RandomDouble();
+            var random = Utility.RandomDouble();
 
             if (0.05 >= random)
                 return CreateArtifact(UniqueSAList);
-            else if (0.15 >= random)
+            if (0.15 >= random)
                 return CreateArtifact(SharedSAList);
 
             return null;
@@ -148,15 +141,15 @@ namespace Server.Mobiles
             if (list.Length == 0)
                 return null;
 
-            int random = Utility.Random(list.Length);
+            var random = Utility.Random(list.Length);
 
-            Type type = list[random];
+            var type = list[random];
 
-            Item artifact = Loot.Construct(type);
+            var artifact = Loot.Construct(type);
 
             return artifact;
         }
-        
+
         public override bool OnBeforeDeath()
         {
             if (!NoKillAwards)

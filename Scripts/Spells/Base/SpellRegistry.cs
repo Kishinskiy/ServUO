@@ -8,6 +8,39 @@ namespace Server.Spells
         private static readonly Type[] m_Types = new Type[745];
         private static int m_Count;
 
+        private static readonly Dictionary<Type, int> m_IDsFromTypes = new Dictionary<Type, int>(m_Types.Length);
+
+        private static readonly object[] m_Params = new object[2];
+
+        private static readonly string[] m_CircleNames =
+        {
+            "First",
+            "Second",
+            "Third",
+            "Fourth",
+            "Fifth",
+            "Sixth",
+            "Seventh",
+            "Eighth",
+            "Necromancy",
+            "Chivalry",
+            "Bushido",
+            "Ninjitsu",
+            "Spellweaving",
+
+            #region Stygian Abyss
+
+            "Mystic",
+
+            #endregion
+
+            #region TOL
+
+            "SkillMasteries"
+
+            #endregion
+        };
+
         public static Type[] Types
         {
             get
@@ -16,7 +49,7 @@ namespace Server.Spells
                 return m_Types;
             }
         }
-		
+
         //What IS this used for anyways.
         public static int Count
         {
@@ -26,7 +59,7 @@ namespace Server.Spells
                 {
                     m_Count = 0;
 
-                    for (int i = 0; i < m_Types.Length; ++i)
+                    for (var i = 0; i < m_Types.Length; ++i)
                         if (m_Types[i] != null)
                             ++m_Count;
                 }
@@ -35,16 +68,7 @@ namespace Server.Spells
             }
         }
 
-        private static readonly Dictionary<Type, Int32> m_IDsFromTypes = new Dictionary<Type, Int32>(m_Types.Length);
-		
-        private static readonly Dictionary<Int32, SpecialMove> m_SpecialMoves = new Dictionary<Int32, SpecialMove>();
-        public static Dictionary<Int32, SpecialMove> SpecialMoves
-        {
-            get
-            {
-                return m_SpecialMoves;
-            }
-        }
+        public static Dictionary<int, SpecialMove> SpecialMoves { get; } = new Dictionary<int, SpecialMove>();
 
         public static int GetRegistryNumber(ISpell s)
         {
@@ -90,7 +114,7 @@ namespace Server.Spells
                 }
 
                 if (spm != null)
-                    m_SpecialMoves.Add(spellID, spm);
+                    SpecialMoves.Add(spellID, spm);
             }
         }
 
@@ -99,22 +123,20 @@ namespace Server.Spells
             if (spellID < 0 || spellID >= m_Types.Length)
                 return null;
 
-            Type t = m_Types[spellID];
+            var t = m_Types[spellID];
 
-            if (t == null || !t.IsSubclassOf(typeof(SpecialMove)) || !m_SpecialMoves.ContainsKey(spellID))
+            if (t == null || !t.IsSubclassOf(typeof(SpecialMove)) || !SpecialMoves.ContainsKey(spellID))
                 return null;
 
-            return m_SpecialMoves[spellID];
+            return SpecialMoves[spellID];
         }
-
-        private static readonly object[] m_Params = new object[2];
 
         public static Spell NewSpell(int spellID, Mobile caster, Item scroll)
         {
             if (spellID < 0 || spellID >= m_Types.Length)
                 return null;
 
-            Type t = m_Types[spellID];
+            var t = m_Types[spellID];
 
             if (t != null && !t.IsSubclassOf(typeof(SpecialMove)))
             {
@@ -133,34 +155,12 @@ namespace Server.Spells
             return null;
         }
 
-        private static readonly string[] m_CircleNames = new string[]
-        {
-            "First",
-            "Second",
-            "Third",
-            "Fourth",
-            "Fifth",
-            "Sixth",
-            "Seventh",
-            "Eighth",
-            "Necromancy",
-            "Chivalry",
-            "Bushido",
-            "Ninjitsu",
-            "Spellweaving",
-            #region Stygian Abyss
-            "Mystic",
-            #endregion
-            #region TOL
-            "SkillMasteries"
-            #endregion
-        };
-
         public static Spell NewSpell(string name, Mobile caster, Item scroll)
         {
-            for (int i = 0; i < m_CircleNames.Length; ++i)
+            for (var i = 0; i < m_CircleNames.Length; ++i)
             {
-                Type t = ScriptCompiler.FindTypeByFullName(String.Format("Server.Spells.{0}.{1}", m_CircleNames[i], name));
+                var t = ScriptCompiler.FindTypeByFullName(
+                    string.Format("Server.Spells.{0}.{1}", m_CircleNames[i], name));
 
                 if (t != null && !t.IsSubclassOf(typeof(SpecialMove)))
                 {

@@ -1,29 +1,26 @@
 using System;
-using Server;
-using Server.Items;
 using Server.Mobiles;
-using Server.Spells;
 using Server.Targeting;
 
 namespace Server.Spells.Mysticism
 {
-	public class RisingColossusSpell : MysticSpell
-	{
-        public override SpellCircle Circle { get { return SpellCircle.Eighth; } }
+    public class RisingColossusSpell : MysticSpell
+    {
+        private static readonly SpellInfo m_Info = new SpellInfo(
+            "Rising Colossus", "Kal Vas Xen Corp Ylem",
+            230,
+            9022,
+            Reagent.DaemonBone,
+            Reagent.DragonBlood,
+            Reagent.FertileDirt,
+            Reagent.Nightshade
+        );
 
-		private static SpellInfo m_Info = new SpellInfo(
-				"Rising Colossus", "Kal Vas Xen Corp Ylem",
-				230,
-				9022,
-				Reagent.DaemonBone,
-				Reagent.DragonBlood,
-				Reagent.FertileDirt,
-				Reagent.Nightshade
-			);
+        public override SpellCircle Circle => SpellCircle.Eighth;
 
-		public RisingColossusSpell( Mobile caster, Item scroll ) : base( caster, scroll, m_Info )
-		{
-		}
+        public RisingColossusSpell(Mobile caster, Item scroll) : base(caster, scroll, m_Info)
+        {
+        }
 
         public override void OnCast()
         {
@@ -32,13 +29,13 @@ namespace Server.Spells.Mysticism
 
         public void Target(IPoint3D p)
         {
-            if ((Caster.Followers + 5) > Caster.FollowersMax)
+            if (Caster.Followers + 5 > Caster.FollowersMax)
             {
                 Caster.SendLocalizedMessage(1049645); // You have too many followers to summon that creature.
                 return;
             }
 
-            Map map = Caster.Map;
+            var map = Caster.Map;
 
             SpellHelper.GetSurfaceTop(ref p);
 
@@ -48,12 +45,12 @@ namespace Server.Spells.Mysticism
             }
             else if (SpellHelper.CheckTown(p, Caster) && CheckSequence())
             {
-                double baseskill = Caster.Skills[SkillName.Mysticism].Value;
-                double boostskill = GetBoostSkill(Caster);
+                var baseskill = Caster.Skills[SkillName.Mysticism].Value;
+                var boostskill = GetBoostSkill(Caster);
 
-                int level = (int)(baseskill + boostskill);
+                var level = (int)(baseskill + boostskill);
 
-                TimeSpan duration = TimeSpan.FromSeconds(level / 3);
+                var duration = TimeSpan.FromSeconds(level / 3);
 
                 BaseCreature summon = new RisingColossus(Caster, baseskill, boostskill);
                 BaseCreature.Summon(summon, false, Caster, new Point3D(p), 0x656, duration);
@@ -66,7 +63,7 @@ namespace Server.Spells.Mysticism
 
         public class InternalTarget : Target
         {
-            private RisingColossusSpell m_Owner;
+            private readonly RisingColossusSpell m_Owner;
 
             public InternalTarget(RisingColossusSpell owner)
                 : base(12, true, TargetFlags.None)

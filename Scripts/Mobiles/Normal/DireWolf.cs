@@ -1,14 +1,22 @@
-using System;
-
 namespace Server.Mobiles
 {
     [CorpseName("a dire wolf corpse")]
     [TypeAlias("Server.Mobiles.Direwolf")]
     public class DireWolf : BaseCreature
     {
+        public override int Meat => 1;
+
+        public override int Hides => 7;
+
+        public override HideType HideType => HideType.Spined;
+
+        public override FoodType FavoriteFood => FoodType.Meat;
+
+        public override PackInstinct PackInstinct => PackInstinct.Canine;
+
         [Constructable]
         public DireWolf()
-            : base(AIType.AI_Melee,FightMode.Closest, 10, 1, 0.2, 0.4)
+            : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
         {
             Name = "a dire wolf";
             Body = 23;
@@ -54,61 +62,23 @@ namespace Server.Mobiles
 
         public override bool IsEnemy(Mobile m)
         {
-            if (m is BaseCreature && ((BaseCreature)m).IsMonster && m.Karma > 0)
-            {
-                return true;
-            }
+            if (m is BaseCreature && ((BaseCreature)m).IsMonster && m.Karma > 0) return true;
 
             return base.IsEnemy(m);
         }
 
-        public override int Meat
-        {
-            get
-            {
-                return 1;
-            }
-        }
-        public override int Hides
-        {
-            get
-            {
-                return 7;
-            }
-        }
-        public override HideType HideType
-        {
-            get
-            {
-                return HideType.Spined;
-            }
-        }
-        public override FoodType FavoriteFood
-        {
-            get
-            {
-                return FoodType.Meat;
-            }
-        }
-        public override PackInstinct PackInstinct
-        {
-            get
-            {
-                return PackInstinct.Canine;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -1,16 +1,15 @@
-using System;
-
 namespace Server.Items
 {
     public abstract class BaseDecorationArtifact : Item, IArtifact
     {
-		public override bool IsArtifact { get { return true; } }
-        public virtual bool ShowArtifactRarity { get { return true; } }
+        public override bool IsArtifact => true;
+        public virtual bool ShowArtifactRarity => true;
+        public override bool ForceShowProperties => true;
 
         public BaseDecorationArtifact(int itemID)
             : base(itemID)
         {
-            this.Weight = 10.0;
+            Weight = 10.0;
         }
 
         public BaseDecorationArtifact(Serial serial)
@@ -19,19 +18,13 @@ namespace Server.Items
         }
 
         public abstract int ArtifactRarity { get; }
-        public override bool ForceShowProperties
-        {
-            get
-            {
-                return true;
-            }
-        }
+
         public override void GetProperties(ObjectPropertyList list)
         {
             base.GetProperties(list);
 
-            if(ShowArtifactRarity)
-                list.Add(1061078, this.ArtifactRarity.ToString()); // artifact rarity ~1_val~
+            if (ShowArtifactRarity)
+                list.Add(1061078, ArtifactRarity.ToString()); // artifact rarity ~1_val~
         }
 
         public override void Serialize(GenericWriter writer)
@@ -45,16 +38,19 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public abstract class BaseDecorationContainerArtifact : BaseContainer
     {
+        public abstract int ArtifactRarity { get; }
+        public override bool ForceShowProperties => true;
+
         public BaseDecorationContainerArtifact(int itemID)
             : base(itemID)
         {
-            this.Weight = 10.0;
+            Weight = 10.0;
         }
 
         public BaseDecorationContainerArtifact(Serial serial)
@@ -62,19 +58,11 @@ namespace Server.Items
         {
         }
 
-        public abstract int ArtifactRarity { get; }
-        public override bool ForceShowProperties
-        {
-            get
-            {
-                return true;
-            }
-        }
         public override void AddNameProperties(ObjectPropertyList list)
         {
             base.AddNameProperties(list);
 
-            list.Add(1061078, this.ArtifactRarity.ToString()); // artifact rarity ~1_val~
+            list.Add(1061078, ArtifactRarity.ToString()); // artifact rarity ~1_val~
         }
 
         public override void Serialize(GenericWriter writer)
@@ -88,7 +76,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

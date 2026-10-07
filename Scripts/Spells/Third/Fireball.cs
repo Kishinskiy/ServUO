@@ -10,25 +10,16 @@ namespace Server.Spells.Third
             203,
             9041,
             Reagent.BlackPearl);
+
+        public override SpellCircle Circle => SpellCircle.Third;
+
+        public override bool DelayedDamage => true;
+
         public FireballSpell(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
         {
         }
 
-        public override SpellCircle Circle
-        {
-            get
-            {
-                return SpellCircle.Third;
-            }
-        }
-        public override bool DelayedDamage
-        {
-            get
-            {
-                return true;
-            }
-        }
         public override void OnCast()
         {
             Caster.Target = new InternalTarget(this);
@@ -43,18 +34,16 @@ namespace Server.Spells.Third
             else if (CheckHSequence(m))
             {
                 IDamageable source = Caster;
-                IDamageable target = m;
+                var target = m;
 
                 SpellHelper.Turn(Caster, m);
 
                 if (SpellHelper.CheckReflect((int)Circle, ref source, ref target))
-                {
                     Timer.DelayCall(TimeSpan.FromSeconds(.5), () =>
-                        {
-                            source.MovingParticles(target, 0x36D4, 7, 0, false, true, 9502, 4019, 0x160);
-                            source.PlaySound(Core.AOS ? 0x15E : 0x44B);
-                        });
-                }
+                    {
+                        source.MovingParticles(target, 0x36D4, 7, 0, false, true, 9502, 4019, 0x160);
+                        source.PlaySound(Core.AOS ? 0x15E : 0x44B);
+                    });
 
                 double damage = 0;
 
@@ -91,6 +80,7 @@ namespace Server.Spells.Third
         private class InternalTarget : Target
         {
             private readonly FireballSpell m_Owner;
+
             public InternalTarget(FireballSpell owner)
                 : base(Core.ML ? 10 : 12, false, TargetFlags.Harmful)
             {

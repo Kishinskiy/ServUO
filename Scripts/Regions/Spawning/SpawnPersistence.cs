@@ -1,10 +1,13 @@
-using System;
-
 namespace Server.Regions
 {
     public class SpawnPersistence : Item
     {
         private static SpawnPersistence m_Instance;
+
+        public SpawnPersistence Instance => m_Instance;
+
+        public override string DefaultName => "Region spawn persistence - Internal";
+
         public SpawnPersistence(Serial serial)
             : base(serial)
         {
@@ -14,23 +17,9 @@ namespace Server.Regions
         private SpawnPersistence()
             : base(1)
         {
-            this.Movable = false;
+            Movable = false;
         }
 
-        public SpawnPersistence Instance
-        {
-            get
-            {
-                return m_Instance;
-            }
-        }
-        public override string DefaultName
-        {
-            get
-            {
-                return "Region spawn persistence - Internal";
-            }
-        }
         public static void EnsureExistence()
         {
             if (m_Instance == null)
@@ -43,10 +32,10 @@ namespace Server.Regions
 
             writer.WriteEncodedInt(0); // version
 
-            writer.Write((int)SpawnEntry.Table.Values.Count);
+            writer.Write(SpawnEntry.Table.Values.Count);
             foreach (SpawnEntry entry in SpawnEntry.Table.Values)
             {
-                writer.Write((int)entry.ID);
+                writer.Write(entry.ID);
 
                 entry.Serialize(writer);
             }
@@ -56,14 +45,14 @@ namespace Server.Regions
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
 
-            int count = reader.ReadInt();
-            for (int i = 0; i < count; i++)
+            var count = reader.ReadInt();
+            for (var i = 0; i < count; i++)
             {
-                int id = reader.ReadInt();
+                var id = reader.ReadInt();
 
-                SpawnEntry entry = (SpawnEntry)SpawnEntry.Table[id];
+                var entry = (SpawnEntry)SpawnEntry.Table[id];
 
                 if (entry != null)
                     entry.Deserialize(reader, version);

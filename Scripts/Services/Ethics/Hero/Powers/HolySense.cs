@@ -1,5 +1,6 @@
 using System;
 using System.Text;
+using Server.Network;
 
 namespace Server.Ethics.Hero
 {
@@ -7,7 +8,7 @@ namespace Server.Ethics.Hero
     {
         public HolySense()
         {
-            this.m_Definition = new PowerDefinition(
+            m_Definition = new PowerDefinition(
                 0,
                 "Holy Sense",
                 "Drewrok Erstok",
@@ -16,17 +17,17 @@ namespace Server.Ethics.Hero
 
         public override void BeginInvoke(Player from)
         {
-            Ethic opposition = Ethic.Evil;
+            var opposition = Ethic.Evil;
 
-            int enemyCount = 0;
+            var enemyCount = 0;
 
-            int maxRange = 18 + from.Power;
+            var maxRange = 18 + from.Power;
 
             Player primary = null;
 
-            foreach (Player pl in opposition.Players)
+            foreach (var pl in opposition.Players)
             {
-                Mobile mob = pl.Mobile;
+                var mob = pl.Mobile;
 
                 if (mob == null || mob.Map != from.Mobile.Map || !mob.Alive)
                     continue;
@@ -40,7 +41,7 @@ namespace Server.Ethics.Hero
                 ++enemyCount;
             }
 
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
 
             sb.Append("You sense ");
             sb.Append(enemyCount == 0 ? "no" : enemyCount.ToString());
@@ -50,7 +51,7 @@ namespace Server.Ethics.Hero
             {
                 sb.Append(", and a strong presense");
 
-                switch ( from.Mobile.GetDirectionTo(primary.Mobile) )
+                switch (from.Mobile.GetDirectionTo(primary.Mobile))
                 {
                     case Direction.West:
                         sb.Append(" to the west.");
@@ -83,9 +84,9 @@ namespace Server.Ethics.Hero
                 sb.Append('.');
             }
 
-            from.Mobile.LocalOverheadMessage(Server.Network.MessageType.Regular, 0x59, false, sb.ToString());
+            from.Mobile.LocalOverheadMessage(MessageType.Regular, 0x59, false, sb.ToString());
 
-            this.FinishInvoke(from);
+            FinishInvoke(from);
         }
     }
 }

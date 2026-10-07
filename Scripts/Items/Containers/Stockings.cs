@@ -1,11 +1,13 @@
-using System;
-
 namespace Server.Items
 {
     [Furniture]
     [FlipableAttribute(0x2bd9, 0x2bda)]
     public class GreenStocking : BaseContainer
     {
+        public override int DefaultGumpID => 0x103;
+
+        public override int DefaultDropSound => 0x42;
+
         [Constructable]
         public GreenStocking()
             : base(Utility.Random(0x2BD9, 2))
@@ -17,32 +19,16 @@ namespace Server.Items
         {
         }
 
-        public override int DefaultGumpID
-        {
-            get
-            {
-                return 0x103;
-            }
-        }
-
-        public override int DefaultDropSound
-        {
-            get
-            {
-                return 0x42;
-            }
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -50,6 +36,10 @@ namespace Server.Items
     [FlipableAttribute(0x2bdb, 0x2bdc)]
     public class RedStocking : BaseContainer
     {
+        public override int DefaultGumpID => 0x103;
+
+        public override int DefaultDropSound => 0x42;
+
         [Constructable]
         public RedStocking()
             : base(Utility.Random(0x2BDB, 2))
@@ -61,32 +51,16 @@ namespace Server.Items
         {
         }
 
-        public override int DefaultGumpID 
-        { 
-            get 
-            { 
-                return 0x103; 
-            } 
-        }
-
-        public override int DefaultDropSound 
-        {
-            get
-            { 
-                return 0x42; 
-            } 
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

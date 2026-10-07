@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,7 +5,16 @@ namespace Server.Mobiles
     [CorpseName("a saurosaurus corpse")]
     public class Saurosaurus : BaseCreature
     {
-        public override bool AttacksFocus { get { return !Controlled; } }
+        public override bool AttacksFocus => !Controlled;
+
+        // Missing: Life Leech, Tail Swipe ability
+
+        public override bool CanAngerOnTame => true;
+        public override bool StatLossAfterTame => true;
+        public override int DragonBlood => 8;
+        public override int Meat => 5;
+        public override int Hides => 11;
+        public override int TreasureMapLevel => 2;
 
         [Constructable]
         public Saurosaurus() : base(AIType.AI_Mage, FightMode.Closest, 10, 1, .2, .4)
@@ -51,22 +59,13 @@ namespace Server.Mobiles
             SetSpecialAbility(SpecialAbility.LifeLeech);
         }
 
+        public Saurosaurus(Serial serial) : base(serial)
+        {
+        }
+
         public override void GenerateLoot()
         {
             AddLoot(LootPack.FilthyRich, 3);
-        }
-
-        // Missing: Life Leech, Tail Swipe ability
-
-        public override bool CanAngerOnTame { get { return true; } }
-        public override bool StatLossAfterTame { get { return true; } }
-        public override int DragonBlood { get { return 8; } }
-        public override int Meat { get { return 5; } }
-        public override int Hides { get { return 11; } }
-        public override int TreasureMapLevel { get { return 2; } }
-
-        public Saurosaurus(Serial serial) : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -78,7 +77,7 @@ namespace Server.Mobiles
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -1,28 +1,29 @@
-using System;
-using Server.Items;
-using Server.Network;
-using Server.Mobiles;
 using System.Globalization;
+using Server.Mobiles;
+using Server.Network;
 
 namespace Server.Gumps
 {
     public class TithingGump : Gump
     {
-        private int MaxTithing = 100000;
+        private readonly int MaxTithing = 100000;
 
         public TithingGump(Mobile from, int offer)
             : base(100, 100)
         {
-            int totalGold = Banker.GetBalance(from);
+            var totalGold = Banker.GetBalance(from);
 
-            string gold = totalGold >= MaxTithing ? "100,000+" : totalGold.ToString("N0", CultureInfo.GetCultureInfo("en-US"));
+            var gold = totalGold >= MaxTithing
+                ? "100,000+"
+                : totalGold.ToString("N0", CultureInfo.GetCultureInfo("en-US"));
 
             AddPage(0);
 
             AddBackground(0, 0, 250, 355, 0x6DB);
             AddImage(8, 0, 0x66);
 
-            AddHtmlLocalized(73, 65, 100, 150, 1114513, "#1060198", 0xC63, false, false); // <DIV ALIGN=CENTER>~1_TOKEN~</DIV>
+            AddHtmlLocalized(73, 65, 100, 150, 1114513, "#1060198", 0xC63, false,
+                false); // <DIV ALIGN=CENTER>~1_TOKEN~</DIV>
 
             AddHtmlLocalized(85, 245, 50, 18, 3000311, 0xC63, false, false); // Gold:
             AddLabel(117, 245, 0x35, gold);
@@ -39,103 +40,106 @@ namespace Server.Gumps
 
         public override void OnResponse(NetState sender, RelayInfo info)
         {
-            Mobile from = sender.Mobile;
+            var from = sender.Mobile;
 
             int m_Offer;
 
             switch (info.ButtonID)
             {
                 case 0:
+                {
+                    // You have decided to tithe no gold to the shrine.
+                    from.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1060193);
+                    break;
+                }
+                case 1:
+                {
+                    if (from.TithingPoints >= MaxTithing)
+                    {
+                        from.SendLocalizedMessage(
+                            1060840); // You have reached the maximum amount of Tithing Points available.
+                        break;
+                    }
+
+                    var totalGold = Banker.GetBalance(from);
+
+                    if (totalGold <= 0)
                     {
                         // You have decided to tithe no gold to the shrine.
                         from.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1060193);
                         break;
                     }
-                case 1:
+
+                    m_Offer = MaxTithing - from.TithingPoints;
+
+                    if (m_Offer > totalGold)
+                        m_Offer = totalGold;
+
+                    from.SendGump(new TithingGump(from, m_Offer));
+
+                    break;
+                }
+                case 2:
+                {
+                    if (from.TithingPoints >= MaxTithing)
                     {
-                        if (from.TithingPoints >= MaxTithing)
-                        {
-                            from.SendLocalizedMessage(1060840); // You have reached the maximum amount of Tithing Points available.
-                            break;
-                        }
-
-                        int totalGold = Banker.GetBalance(from);
-
-                        if (totalGold <= 0)
-                        {
-                            // You have decided to tithe no gold to the shrine.
-                            from.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1060193);
-                            break;
-                        }
-
-                        m_Offer = MaxTithing - from.TithingPoints;
-
-                        if (m_Offer > totalGold)
-                            m_Offer = totalGold;
-
-                        from.SendGump(new TithingGump(from, m_Offer));
-
+                        from.SendLocalizedMessage(
+                            1060840); // You have reached the maximum amount of Tithing Points available.
                         break;
                     }
-                case 2:
+
+                    var totalGold = Banker.GetBalance(from);
+
+                    if (totalGold <= 0)
                     {
-                        if (from.TithingPoints >= MaxTithing)
+                        // You have decided to tithe no gold to the shrine.
+                        from.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1060193);
+                        break;
+                    }
+
+                    var tr = info.GetTextEntry(1);
+
+                    if (tr != null)
+                    {
+                        var text = tr.Text;
+                        var num = Utility.ToInt32(text);
+
+                        if (num > 0)
                         {
-                            from.SendLocalizedMessage(1060840); // You have reached the maximum amount of Tithing Points available.
-                            break;
-                        }
+                            if (num > totalGold)
+                                m_Offer = totalGold;
+                            else
+                                m_Offer = num;
 
-                        int totalGold = Banker.GetBalance(from);
+                            if (from.TithingPoints + m_Offer > MaxTithing)
+                                m_Offer = MaxTithing - from.TithingPoints;
 
-                        if (totalGold <= 0)
-                        {
-                            // You have decided to tithe no gold to the shrine.
-                            from.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1060193);
-                            break;
-                        }
+                            var pack = from.Backpack;
 
-                        TextRelay tr = info.GetTextEntry(1);
-
-                        if (tr != null)
-                        {
-                            string text = tr.Text;
-                            int num = Utility.ToInt32(text);
-
-                            if (num > 0)
+                            if (Banker.Withdraw(from, m_Offer, true))
                             {
-                                if (num > totalGold)
-                                    m_Offer = totalGold;
-                                else
-                                    m_Offer = num;
+                                // You tithe gold to the shrine as a sign of devotion.
+                                from.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1060195);
+                                from.TithingPoints += m_Offer;
 
-                                if ((from.TithingPoints + m_Offer) > MaxTithing)
-                                    m_Offer = MaxTithing - from.TithingPoints;
-
-                                Container pack = from.Backpack;
-
-                                if (Banker.Withdraw(from, m_Offer, true))
-                                {
-                                    // You tithe gold to the shrine as a sign of devotion.
-                                    from.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1060195);
-                                    from.TithingPoints += m_Offer;
-
-                                    from.PlaySound(0x243);
-                                    from.PlaySound(0x2E6);
-                                }
-                                else
-                                {
-                                    // You do not have enough gold to tithe that amount!
-                                    from.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1060194);
-                                }
+                                from.PlaySound(0x243);
+                                from.PlaySound(0x2E6);
                             }
                             else
                             {
-                                from.SendLocalizedMessage(1159140); // You have entered an invalid entry. You must enter a number between 1 and 100,000.
+                                // You do not have enough gold to tithe that amount!
+                                from.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1060194);
                             }
                         }
-
-                        break;
+                        else
+                        {
+                            from.SendLocalizedMessage(
+                                1159140); // You have entered an invalid entry. You must enter a number between 1 and 100,000.
+                        }
                     }
+
+                    break;
+                }
             }
         }
     }

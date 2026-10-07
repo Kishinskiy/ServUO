@@ -1,4 +1,3 @@
-using System;
 using Server.Gumps;
 
 namespace Server.Items
@@ -11,40 +10,10 @@ namespace Server.Items
         public int MaxQuantity { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public virtual bool IsEmpty
-        {
-            get
-            {
-                return (m_Quantity <= 0);
-            }
-        }
+        public virtual bool IsEmpty => m_Quantity <= 0;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public virtual bool IsFull
-        {
-            get
-            {
-                return (m_Quantity >= MaxQuantity);
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public virtual int Quantity
-        {
-            get
-            {
-                return m_Quantity;
-            }
-            set
-            {
-                if (value != m_Quantity)
-                {
-                    m_Quantity = (value < 1) ? 0 : (value > MaxQuantity) ? MaxQuantity : value;
-                    
-                    ItemID = (IsEmpty) ? Item_ID : FullItem_ID;
-                }
-            }
-        }
+        public virtual bool IsFull => m_Quantity >= MaxQuantity;
 
         [Constructable]
         public WaterContainerComponent(int itemID, int fullitemid, int maxquantity)
@@ -60,6 +29,21 @@ namespace Server.Items
         {
         }
 
+        [CommandProperty(AccessLevel.GameMaster)]
+        public virtual int Quantity
+        {
+            get => m_Quantity;
+            set
+            {
+                if (value != m_Quantity)
+                {
+                    m_Quantity = value < 1 ? 0 : value > MaxQuantity ? MaxQuantity : value;
+
+                    ItemID = IsEmpty ? Item_ID : FullItem_ID;
+                }
+            }
+        }
+
         public override void AddNameProperties(ObjectPropertyList list)
         {
             list.Add(1049522, "#1115912"); // a container with ~1_DRINK_NAME~
@@ -70,16 +54,16 @@ namespace Server.Items
             base.Serialize(writer);
             writer.Write(0);
 
-            writer.Write((int)m_Quantity);
-            writer.Write((int)Item_ID);
-            writer.Write((int)FullItem_ID);
-            writer.Write((int)MaxQuantity);
+            writer.Write(m_Quantity);
+            writer.Write(Item_ID);
+            writer.Write(FullItem_ID);
+            writer.Write(MaxQuantity);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             m_Quantity = reader.ReadInt();
             Item_ID = reader.ReadInt();
@@ -90,6 +74,8 @@ namespace Server.Items
 
     public class WashBasinAddon : BaseAddon
     {
+        public override BaseAddonDeed Deed => new WashBasinDeed();
+
         [Constructable]
         public WashBasinAddon(DirectionType type)
         {
@@ -113,40 +99,36 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonDeed Deed { get { return new WashBasinDeed(); } }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class WashBasinDeed : BaseAddonDeed, IRewardOption
     {
-        public override int LabelNumber { get { return 1158966; } } // Wash Basin
-        
+        private DirectionType _Direction;
+        public override int LabelNumber => 1158966; // Wash Basin
+
         public override BaseAddon Addon
         {
             get
             {
-                WashBasinAddon addon = new WashBasinAddon(_Direction);
+                var addon = new WashBasinAddon(_Direction);
 
                 return addon;
             }
         }
 
-        private DirectionType _Direction;
-
         [Constructable]
         public WashBasinDeed()
-            : base()
         {
             LootType = LootType.Blessed;
         }
@@ -186,13 +168,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

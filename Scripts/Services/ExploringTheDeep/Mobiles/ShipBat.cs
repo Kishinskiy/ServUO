@@ -1,13 +1,10 @@
-﻿using System;
-
-namespace Server.Mobiles
+﻿namespace Server.Mobiles
 {
     [CorpseName("a ship bat corpse")]
     public class ShipBat : VampireBat
     {
         [Constructable]
         public ShipBat()
-            : base()
         {
             Name = "a ship bat";
             Body = 317;
@@ -39,6 +36,10 @@ namespace Server.Mobiles
             VirtualArmor = 14;
         }
 
+        public ShipBat(Serial serial) : base(serial)
+        {
+        }
+
         public override void GenerateLoot()
         {
             AddLoot(LootPack.Poor);
@@ -49,20 +50,16 @@ namespace Server.Mobiles
             return 0x29B;
         }
 
-        public ShipBat(Serial serial) : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

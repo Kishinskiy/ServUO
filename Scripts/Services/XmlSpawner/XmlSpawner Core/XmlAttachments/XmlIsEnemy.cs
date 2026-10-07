@@ -5,7 +5,9 @@ namespace Server.Engines.XmlSpawner2
 {
     public class XmlIsEnemy : XmlAttachment
     {
-        private string m_TestString = null;// Test condition to see if mobile is an enemy of the object this is attached to
+        [CommandProperty(AccessLevel.GameMaster)]
+        public string Test { get; set; }
+
         public XmlIsEnemy(ASerial serial)
             : base(serial)
         {
@@ -14,56 +16,44 @@ namespace Server.Engines.XmlSpawner2
         [Attachable]
         public XmlIsEnemy()
         {
-            this.Test = String.Empty;
+            Test = string.Empty;
         }
 
         [Attachable]
         public XmlIsEnemy(string name)
         {
-            this.Name = name;
-            this.Test = String.Empty;
+            Name = name;
+            Test = string.Empty;
         }
 
         [Attachable]
         public XmlIsEnemy(string name, string test)
         {
-            this.Name = name;
-            this.Test = test;
+            Name = name;
+            Test = test;
         }
 
         [Attachable]
         public XmlIsEnemy(string name, string test, double expiresin)
         {
-            this.Name = name;
-            this.Test = test;
-            this.Expiration = TimeSpan.FromMinutes(expiresin);
+            Name = name;
+            Test = test;
+            Expiration = TimeSpan.FromMinutes(expiresin);
         }
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public string Test
-        {
-            get
-            {
-                return this.m_TestString;
-            }
-            set
-            {
-                this.m_TestString = value;
-            }
-        }
         public bool IsEnemy(Mobile from)
         {
             if (from == null)
                 return false;
 
-            bool isenemy = false;
+            var isenemy = false;
 
             // test the condition if there is one
-            if (this.Test != null && this.Test.Length > 0)
+            if (Test != null && Test.Length > 0)
             {
                 string status_str;
 
-                isenemy = BaseXmlSpawner.CheckPropertyString(null, this.AttachedTo, this.Test, from, out status_str);
+                isenemy = BaseXmlSpawner.CheckPropertyString(null, AttachedTo, Test, from, out status_str);
             }
 
             return isenemy;
@@ -73,20 +63,20 @@ namespace Server.Engines.XmlSpawner2
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
             // version 0
-            writer.Write(this.m_TestString);
+            writer.Write(Test);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
             switch (version)
             {
                 case 0:
-                    this.m_TestString = reader.ReadString();
+                    Test = reader.ReadString();
                     break;
             }
         }
@@ -96,14 +86,10 @@ namespace Server.Engines.XmlSpawner2
             if (from == null || from.AccessLevel < AccessLevel.Counselor)
                 return null;
 
-            if (this.Expiration > TimeSpan.Zero)
-            {
-                return String.Format("{0}: IsEnemy '{1}' expires in {2} mins", this.Name, this.Test, this.Expiration.TotalMinutes);
-            }
-            else
-            {
-                return String.Format("{0}: IsEnemy '{1}'", this.Name, this.Test);
-            }
+            if (Expiration > TimeSpan.Zero)
+                return string.Format("{0}: IsEnemy '{1}' expires in {2} mins", Name, Test, Expiration.TotalMinutes);
+
+            return string.Format("{0}: IsEnemy '{1}'", Name, Test);
         }
     }
 }

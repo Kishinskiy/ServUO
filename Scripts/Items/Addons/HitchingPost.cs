@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using Server.ContextMenus;
 using Server.Gumps;
@@ -12,39 +11,16 @@ namespace Server.Items
     [FlipableAttribute(0x14E7, 0x14E8)]
     public class HitchingPost : Item, ISecurable
     {
-        public override int LabelNumber
-        {
-            get
-            {
-                return m_Replica ? 1071127 : 1025351;
-            }
-        }// hitching post (replica)
-
-        private int m_UsesRemaining;
         private int m_Charges;
-        private SecureLevel m_Level;
         private bool m_Replica;
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public SecureLevel Level
-        {
-            get
-            {
-                return m_Level;
-            }
-            set
-            {
-                m_Level = value;
-            }
-        }
+        private int m_UsesRemaining;
+        public override int LabelNumber => m_Replica ? 1071127 : 1025351; // hitching post (replica)
 
         [CommandProperty(AccessLevel.GameMaster)]
         public int Charges
         {
-            get
-            {
-                return m_Charges;
-            }
+            get => m_Charges;
             set
             {
                 m_Charges = value;
@@ -59,10 +35,7 @@ namespace Server.Items
         [CommandProperty(AccessLevel.GameMaster)]
         public int UsesRemaining
         {
-            get
-            {
-                return m_UsesRemaining;
-            }
+            get => m_UsesRemaining;
             set
             {
                 m_UsesRemaining = value;
@@ -73,13 +46,17 @@ namespace Server.Items
         [CommandProperty(AccessLevel.GameMaster)]
         public bool Replica
         {
-            get { return m_Replica; }
+            get => m_Replica;
             set
             {
                 m_Replica = value;
                 InvalidateProperties();
             }
         }
+
+        public override bool ForceShowProperties => ObjectPropertyList.Enabled;
+
+        public override bool HandlesOnSpeech => true;
 
         [Constructable]
         public HitchingPost()
@@ -97,13 +74,7 @@ namespace Server.Items
             Charges = replica ? 2 : -1;
             UsesRemaining = replica ? 15 : 30;
 
-            m_Level = SecureLevel.CoOwners;
-        }
-
-        public override void GetContextMenuEntries(Mobile from, List<ContextMenuEntry> list)
-        {
-            base.GetContextMenuEntries(from, list);
-            SetSecureLevelEntry.AddTo(from, this, list);
+            Level = SecureLevel.CoOwners;
         }
 
         public HitchingPost(Serial serial)
@@ -111,12 +82,13 @@ namespace Server.Items
         {
         }
 
-        public override bool ForceShowProperties
+        [CommandProperty(AccessLevel.GameMaster)]
+        public SecureLevel Level { get; set; }
+
+        public override void GetContextMenuEntries(Mobile from, List<ContextMenuEntry> list)
         {
-            get
-            {
-                return ObjectPropertyList.Enabled;
-            }
+            base.GetContextMenuEntries(from, list);
+            SetSecureLevelEntry.AddTo(from, this, list);
         }
 
         public override void GetProperties(ObjectPropertyList list)
@@ -125,90 +97,7 @@ namespace Server.Items
 
             list.Add(1060584, m_UsesRemaining.ToString());
 
-            if (m_Replica)
-            {
-                list.Add(1071215, m_Charges.ToString());
-            }
-        }
-
-        private class StableEntry : ContextMenuEntry
-        {
-            private readonly HitchingPost m_Post;
-            private readonly Mobile m_From;
-
-            public StableEntry(HitchingPost post, Mobile from)
-                : base(6126, 12)
-            {
-                m_Post = post;
-                m_From = from;
-            }
-        }
-
-        private class ClaimListGump : Gump
-        {
-            private readonly HitchingPost m_Post;
-            private readonly Mobile m_From;
-            private readonly List<BaseCreature> m_List;
-
-            public ClaimListGump(HitchingPost post, Mobile from, List<BaseCreature> list)
-                : base(50, 50)
-            {
-                m_Post = post;
-                m_From = from;
-                m_List = list;
-
-                from.CloseGump(typeof(ClaimListGump));
-
-                AddPage(0);
-
-                AddBackground(0, 0, 325, 50 + (list.Count * 20), 9250);
-                AddAlphaRegion(5, 5, 315, 40 + (list.Count * 20));
-
-                AddHtml(15, 15, 275, 20, "<BASEFONT COLOR=#FFFFFF>Select a pet to retrieve from the stables:</BASEFONT>", false, false);
-
-                for (int i = 0; i < list.Count; ++i)
-                {
-                    BaseCreature pet = list[i];
-
-                    if (pet == null || pet.Deleted)
-                        continue;
-
-                    AddButton(15, 39 + (i * 20), 10006, 10006, i + 1, GumpButtonType.Reply, 0);
-                    AddHtml(32, 35 + (i * 20), 275, 18, String.Format("<BASEFONT COLOR=#C0C0EE>{0}</BASEFONT>", pet.Name), false, false);
-                }
-            }
-
-            public override void OnResponse(NetState sender, RelayInfo info)
-            {
-                int index = info.ButtonID - 1;
-
-                if (index >= 0 && index < m_List.Count)
-                {
-                    m_Post.UsesRemaining -= 1;
-                    m_Post.EndClaimList(m_From, m_List[index]);
-                }
-            }
-        }
-
-        private class StableTarget : Target
-        {
-            private readonly HitchingPost m_Post;
-
-            public StableTarget(HitchingPost post)
-                : base(12, false, TargetFlags.None)
-            {
-                m_Post = post;
-            }
-
-            protected override void OnTarget(Mobile from, object targeted)
-            {
-                if (targeted is BaseCreature)
-                    m_Post.EndStable(from, (BaseCreature)targeted);
-                else if (targeted == from)
-                    from.SendLocalizedMessage(502672); // HA HA HA! Sorry, I am not an inn.
-                else
-                    from.SendLocalizedMessage(1048053); // You can't stable that!
-            }
+            if (m_Replica) list.Add(1071215, m_Charges.ToString());
         }
 
         public void BeginClaimList(Mobile from)
@@ -219,22 +108,17 @@ namespace Server.Items
             if (UsesRemaining <= 0)
             {
                 if (!m_Replica || Charges > 0)
-                {
                     from.SendLocalizedMessage(1071151); //Hitching rope is insufficient. You have to supply it.
-
-                }
                 else
-                {
                     from.SendLocalizedMessage(1071157); //This hitching post is damaged. You can't use it any longer.
-                }
             }
             else
             {
-                List<BaseCreature> list = new List<BaseCreature>();
+                var list = new List<BaseCreature>();
 
-                for (int i = 0; i < from.Stabled.Count; ++i)
+                for (var i = 0; i < from.Stabled.Count; ++i)
                 {
-                    BaseCreature pet = from.Stabled[i] as BaseCreature;
+                    var pet = from.Stabled[i] as BaseCreature;
 
                     if (pet == null || pet.Deleted)
                     {
@@ -256,10 +140,11 @@ namespace Server.Items
 
         public void EndClaimList(Mobile from, BaseCreature pet)
         {
-            if (pet == null || pet.Deleted || from.Map != Map || !from.InRange(this, 14) || !from.Stabled.Contains(pet) || !from.CheckAlive())
+            if (pet == null || pet.Deleted || from.Map != Map || !from.InRange(this, 14) ||
+                !from.Stabled.Contains(pet) || !from.CheckAlive())
                 return;
 
-            if ((from.Followers + pet.ControlSlots) <= from.FollowersMax)
+            if (from.Followers + pet.ControlSlots <= from.FollowersMax)
             {
                 pet.SetControlMaster(from);
 
@@ -278,7 +163,8 @@ namespace Server.Items
             }
             else
             {
-                from.SendLocalizedMessage(1049612, pet.Name); // ~1_NAME~ remained in the stables because you have too many followers.
+                from.SendLocalizedMessage(1049612,
+                    pet.Name); // ~1_NAME~ remained in the stables because you have too many followers.
             }
         }
 
@@ -290,14 +176,9 @@ namespace Server.Items
             if (UsesRemaining <= 0)
             {
                 if (!m_Replica || Charges > 0)
-                {
                     from.SendLocalizedMessage(1071151); //Hitching rope is insufficient. You have to supply it.
-
-                }
                 else
-                {
                     from.SendLocalizedMessage(1071157); //This hitching post is damaged. You can't use it any longer.
-                }
             }
             else if (from.Stabled.Count >= AnimalTrainer.GetMaxStabled(from))
             {
@@ -306,9 +187,9 @@ namespace Server.Items
             else
             {
                 from.SendLocalizedMessage(1042558); /* I charge 30 gold per pet for a real week's stable time.
-                * I will withdraw it from thy bank account.
-                * Which animal wouldst thou like to stable here?
-                */
+                                                     * I will withdraw it from thy bank account.
+                                                     * Which animal wouldst thou like to stable here?
+                                                     */
 
                 from.Target = new StableTarget(this);
             }
@@ -331,17 +212,22 @@ namespace Server.Items
             {
                 from.SendLocalizedMessage(502673); // I can not stable summoned creatures.
             }
+
             #region Mondain's Legacy
+
             else if (pet.Allured)
             {
                 from.SendLocalizedMessage(1048053); // You can't stable that!
             }
+
             #endregion
+
             else if (pet.Body.IsHuman)
             {
                 from.SendLocalizedMessage(502672); // HA HA HA! Sorry, I am not an inn.
             }
-            else if ((pet is PackLlama || pet is PackHorse || pet is Beetle) && (pet.Backpack != null && pet.Backpack.Items.Count > 0))
+            else if ((pet is PackLlama || pet is PackHorse || pet is Beetle) && pet.Backpack != null &&
+                     pet.Backpack.Items.Count > 0)
             {
                 from.SendLocalizedMessage(1042563); // You need to unload your pet.
             }
@@ -373,12 +259,10 @@ namespace Server.Items
 
                     from.Stabled.Add(pet);
 
-                    if (m_Replica)
-                    {
-                        UsesRemaining -= 1;
-                    }
+                    if (m_Replica) UsesRemaining -= 1;
 
-                    from.SendLocalizedMessage(502679); // Very well, thy pet is stabled. Thou mayst recover it by saying 'claim' to me. In one real world week, I shall sell it off if it is not claimed!
+                    from.SendLocalizedMessage(
+                        502679); // Very well, thy pet is stabled. Thou mayst recover it by saying 'claim' to me. In one real world week, I shall sell it off if it is not claimed!
                 }
                 else
                 {
@@ -392,26 +276,21 @@ namespace Server.Items
             if (UsesRemaining <= 0)
             {
                 if (!Replica || Charges > 0)
-                {
                     from.SendLocalizedMessage(1071151); //Hitching rope is insufficient. You have to supply it.
-
-                }
                 else
-                {
                     from.SendLocalizedMessage(1071157); //This hitching post is damaged. You can't use it any longer.
-                }
             }
             else
             {
                 if (Deleted || !from.CheckAlive())
                     return;
 
-                bool claimed = false;
-                int stabled = 0;
+                var claimed = false;
+                var stabled = 0;
 
-                for (int i = 0; i < from.Stabled.Count; ++i)
+                for (var i = 0; i < from.Stabled.Count; ++i)
                 {
-                    BaseCreature pet = from.Stabled[i] as BaseCreature;
+                    var pet = from.Stabled[i] as BaseCreature;
 
                     if (pet == null || pet.Deleted)
                     {
@@ -423,7 +302,7 @@ namespace Server.Items
 
                     ++stabled;
 
-                    if ((from.Followers + pet.ControlSlots) <= from.FollowersMax)
+                    if (from.Followers + pet.ControlSlots <= from.FollowersMax)
                     {
                         pet.SetControlMaster(from);
 
@@ -447,7 +326,8 @@ namespace Server.Items
                     }
                     else
                     {
-                        from.SendLocalizedMessage(1049612, pet.Name); // ~1_NAME~ remained in the stables because you have too many followers.
+                        from.SendLocalizedMessage(1049612,
+                            pet.Name); // ~1_NAME~ remained in the stables because you have too many followers.
                     }
                 }
 
@@ -457,15 +337,17 @@ namespace Server.Items
                     UsesRemaining -= 1;
                 }
                 else if (stabled == 0)
+                {
                     from.SendLocalizedMessage(502671); // But I have no animals stabled with me at the moment!
+                }
             }
         }
 
         public bool IsOwner(Mobile mob)
         {
-            BaseHouse house = BaseHouse.FindHouseAt(this);
+            var house = BaseHouse.FindHouseAt(this);
 
-            return (house != null && house.IsOwner(mob));
+            return house != null && house.IsOwner(mob);
         }
 
         public bool CheckAccess(Mobile m)
@@ -473,20 +355,12 @@ namespace Server.Items
             if (!IsLockedDown || m.AccessLevel >= AccessLevel.GameMaster)
                 return true;
 
-            BaseHouse house = BaseHouse.FindHouseAt(this);
+            var house = BaseHouse.FindHouseAt(this);
 
             if (house != null && house.IsAosRules && (house.Public ? house.IsBanned(m) : !house.HasAccess(m)))
                 return false;
 
-            return (house != null && house.HasSecureAccess(m, m_Level));
-        }
-
-        public override bool HandlesOnSpeech
-        {
-            get
-            {
-                return true;
-            }
+            return house != null && house.HasSecureAccess(m, Level);
         }
 
         public override void OnSpeech(SpeechEventArgs e)
@@ -518,20 +392,20 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)4); // version
+            writer.Write(4); // version
 
             writer.Write(m_Replica);
 
-            writer.Write((int)m_Level);
-            writer.Write((int)m_UsesRemaining);
-            writer.Write((int)m_Charges);
+            writer.Write((int)Level);
+            writer.Write(m_UsesRemaining);
+            writer.Write(m_Charges);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (Weight == 1)
                 Weight = 10;
@@ -539,33 +413,115 @@ namespace Server.Items
             switch (version)
             {
                 case 4:
-                    {
-                        m_Replica = reader.ReadBool();
-                        goto case 3;
-                    }
+                {
+                    m_Replica = reader.ReadBool();
+                    goto case 3;
+                }
                 case 3:
-                    {
-                        m_Level = (SecureLevel)reader.ReadInt();
-                        goto case 2;
-                    }
+                {
+                    Level = (SecureLevel)reader.ReadInt();
+                    goto case 2;
+                }
                 case 2:
-                    {
-                        m_UsesRemaining = reader.ReadInt();
-                        goto case 1;
-                    }
+                {
+                    m_UsesRemaining = reader.ReadInt();
+                    goto case 1;
+                }
                 case 1:
-                    {
-                        m_Charges = reader.ReadInt();
-                        goto case 0;
-                    }
+                {
+                    m_Charges = reader.ReadInt();
+                    goto case 0;
+                }
                 case 0:
-                    {
-                        break;
-                    }
+                {
+                    break;
+                }
             }
 
             if (version < 4)
                 m_Replica = true;
+        }
+
+        private class StableEntry : ContextMenuEntry
+        {
+            private readonly Mobile m_From;
+            private readonly HitchingPost m_Post;
+
+            public StableEntry(HitchingPost post, Mobile from)
+                : base(6126, 12)
+            {
+                m_Post = post;
+                m_From = from;
+            }
+        }
+
+        private class ClaimListGump : Gump
+        {
+            private readonly Mobile m_From;
+            private readonly List<BaseCreature> m_List;
+            private readonly HitchingPost m_Post;
+
+            public ClaimListGump(HitchingPost post, Mobile from, List<BaseCreature> list)
+                : base(50, 50)
+            {
+                m_Post = post;
+                m_From = from;
+                m_List = list;
+
+                from.CloseGump(typeof(ClaimListGump));
+
+                AddPage(0);
+
+                AddBackground(0, 0, 325, 50 + list.Count * 20, 9250);
+                AddAlphaRegion(5, 5, 315, 40 + list.Count * 20);
+
+                AddHtml(15, 15, 275, 20,
+                    "<BASEFONT COLOR=#FFFFFF>Select a pet to retrieve from the stables:</BASEFONT>", false, false);
+
+                for (var i = 0; i < list.Count; ++i)
+                {
+                    var pet = list[i];
+
+                    if (pet == null || pet.Deleted)
+                        continue;
+
+                    AddButton(15, 39 + i * 20, 10006, 10006, i + 1, GumpButtonType.Reply, 0);
+                    AddHtml(32, 35 + i * 20, 275, 18, string.Format("<BASEFONT COLOR=#C0C0EE>{0}</BASEFONT>", pet.Name),
+                        false, false);
+                }
+            }
+
+            public override void OnResponse(NetState sender, RelayInfo info)
+            {
+                var index = info.ButtonID - 1;
+
+                if (index >= 0 && index < m_List.Count)
+                {
+                    m_Post.UsesRemaining -= 1;
+                    m_Post.EndClaimList(m_From, m_List[index]);
+                }
+            }
+        }
+
+        private class StableTarget : Target
+        {
+            private readonly HitchingPost m_Post;
+
+            public StableTarget(HitchingPost post)
+                : base(12, false, TargetFlags.None)
+            {
+                m_Post = post;
+            }
+
+            protected override void OnTarget(Mobile from, object targeted)
+            {
+                if (targeted is BaseCreature)
+                    m_Post.EndStable(from, (BaseCreature)targeted);
+                else if (targeted == from)
+                    from.SendLocalizedMessage(502672); // HA HA HA! Sorry, I am not an inn.
+                else
+                    from.SendLocalizedMessage(1048053); // You can't stable that!
+            }
         }
     }
 }

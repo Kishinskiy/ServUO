@@ -1,26 +1,24 @@
-using System;
-using Server.Targeting;
-using Server.Multis;
-using Server.Mobiles;
-using Server.Engines.PartySystem;
 using System.Linq;
 using Server.Engines.Exodus;
+using Server.Engines.PartySystem;
+using Server.Mobiles;
+using Server.Targeting;
 
 namespace Server.Items
 {
     public class ExodusSummoningAlter : BaseDecayingItem
     {
-        public override int LabelNumber { get { return 1153502; } } // exodus summoning altar
+        public override int LabelNumber => 1153502; // exodus summoning altar
+
+        public override int Lifespan => 604800;
+        public override bool UseSeconds => false;
 
         [Constructable]
         public ExodusSummoningAlter() : base(0x14F0)
         {
-            this.LootType = LootType.Regular;
-            this.Weight = 1;
+            LootType = LootType.Regular;
+            Weight = 1;
         }
-
-        public override int Lifespan { get { return 604800; } }
-        public override bool UseSeconds { get { return false; } }        
 
         public ExodusSummoningAlter(Serial serial)
             : base(serial)
@@ -30,15 +28,15 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
-        
+
         public override void OnDoubleClick(Mobile from)
         {
             if (!IsChildOf(from.Backpack))
@@ -47,19 +45,28 @@ namespace Server.Items
             }
             else if (Party.Get(from) == null)
             {
-                from.SendLocalizedMessage(1153596); // You must join a party with the players you wish to perform the ritual with. 
+                from.SendLocalizedMessage(
+                    1153596); // You must join a party with the players you wish to perform the ritual with. 
             }
             else
             {
-                from.SendLocalizedMessage(1153675); // The Summoning Altar must be built upon a shrine, within Trammel or Felucca it matters not...                
+                from.SendLocalizedMessage(
+                    1153675); // The Summoning Altar must be built upon a shrine, within Trammel or Felucca it matters not...                
                 from.Target = new SummoningTarget(from, this);
-            }                
+            }
+        }
+
+        public static bool CheckExodus() // Before ritual check
+        {
+            return ClockworkExodus.Instances.FirstOrDefault(m =>
+                m.Region.IsPartOf("Ver Lor Reg") && ((m.Hits >= m.HitsMax * 0.60 && m.MinHits >= m.HitsMax * 0.60) ||
+                                                     m.Hits >= m.HitsMax * 0.75)) != null;
         }
 
         public class SummoningTarget : Target
-        {            
+        {
+            private readonly Item m_Deed;
             private Mobile m_Mobile;
-            private Item m_Deed;
 
             public SummoningTarget(Mobile from, Item deed) : base(2, true, TargetFlags.None)
             {
@@ -69,26 +76,27 @@ namespace Server.Items
 
             public static bool IsValidTile(int itemID)
             {
-                return (itemID >= 0x149F && itemID <= 0x14D6); 
+                return itemID >= 0x149F && itemID <= 0x14D6;
             }
 
             protected override void OnTarget(Mobile from, object targeted)
             {
                 if (targeted is StaticTarget)
                 {
-                    StaticTarget targ = (StaticTarget)targeted;
+                    var targ = (StaticTarget)targeted;
 
                     if (IsValidTile(targ.ItemID) && (from.Map == Map.Felucca || from.Map == Map.Trammel))
                     {
-                        bool alter = from.Map.GetItemsInRange(targ.Location, 5).Where(x => x is ExodusTomeAltar).Any();
+                        var alter = from.Map.GetItemsInRange(targ.Location, 5).Where(x => x is ExodusTomeAltar).Any();
 
                         if (alter)
                         {
                             from.SendLocalizedMessage(1153590); // An altar has already been built here. 
                         }
-                        else if (ExodusTomeAltar.Altar == null && VerLorRegController.Active && VerLorRegController.Mobile != null && CheckExodus())
+                        else if (ExodusTomeAltar.Altar == null && VerLorRegController.Active &&
+                                 VerLorRegController.Mobile != null && CheckExodus())
                         {
-                            Point3D p = Point3D.Zero;
+                            var p = Point3D.Zero;
 
                             if (from.Region.IsPartOf("Shrine of Compassion"))
                             {
@@ -130,7 +138,7 @@ namespace Server.Items
 
                             if (p != Point3D.Zero)
                             {
-                                ExodusTomeAltar altar = new ExodusTomeAltar(from);
+                                var altar = new ExodusTomeAltar(from);
                                 altar.MoveToWorld(p, from.Map);
                                 altar.Owner = from;
                                 m_Deed.Delete();
@@ -138,7 +146,8 @@ namespace Server.Items
                         }
                         else
                         {
-                            from.SendLocalizedMessage(1075213); // The master of this realm has already been summoned and is engaged in combat.  Your opportunity will come after he has squashed the current batch of intruders!
+                            from.SendLocalizedMessage(
+                                1075213); // The master of this realm has already been summoned and is engaged in combat.  Your opportunity will come after he has squashed the current batch of intruders!
                         }
                     }
                     else
@@ -151,11 +160,6 @@ namespace Server.Items
                     from.SendLocalizedMessage(500269); // You cannot build that there.
                 }
             }
-        }
-
-        public static bool CheckExodus() // Before ritual check
-        {
-            return ClockworkExodus.Instances.FirstOrDefault(m => m.Region.IsPartOf("Ver Lor Reg") && ((m.Hits >= m.HitsMax * 0.60 && m.MinHits >= m.HitsMax * 0.60) || (m.Hits >= m.HitsMax * 0.75))) != null;
         }
     }
 }

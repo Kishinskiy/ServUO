@@ -1,9 +1,6 @@
-using System;
-
-using Server;
+using Server.Engines.Points;
 using Server.Items;
 using Server.Mobiles;
-using Server.Engines.Points;
 
 namespace Server.Engines.RisingTide
 {
@@ -11,17 +8,24 @@ namespace Server.Engines.RisingTide
     {
         public static BlackMarketMerchant InstanceTram { get; set; }
         public static BlackMarketMerchant InstanceFel { get; set; }
-        public static Point3D SpawnLocation { get { return new Point3D(2719, 2187, 0); } }
+        public static Point3D SpawnLocation => new Point3D(2719, 2187, 0);
 
-        public override int TitleLocalization { get { return 1158918; } } // Maritime Black Market
-        public override int CancelLocalization { get { return 1158911; } }	// Bring me maritime trade cargo and I will pay you in doubloons!
-        public override int TurnInLocalization { get { return 1158912; } } // Sell Maritime Trade Cargo
-        public override int ClaimLocalization { get { return 1158913; } } // Buy Pirate Loot
+        public override int TitleLocalization => 1158918; // Maritime Black Market
 
-        public override bool IsShrineHealer { get { return false; } }
+        public override int CancelLocalization =>
+            1158911; // Bring me maritime trade cargo and I will pay you in doubloons!
+
+        public override int TurnInLocalization => 1158912; // Sell Maritime Trade Cargo
+        public override int ClaimLocalization => 1158913; // Buy Pirate Loot
+
+        public override bool IsShrineHealer => false;
 
         [Constructable]
         public BlackMarketMerchant() : base("the Pirate")
+        {
+        }
+
+        public BlackMarketMerchant(Serial serial) : base(serial)
         {
         }
 
@@ -64,10 +68,7 @@ namespace Server.Engines.RisingTide
 
         public override void AwardPoints(PlayerMobile pm, Item item, int amount)
         {
-            if (item is MaritimeCargo)
-            {
-                PointsSystem.RisingTide.AwardPoints(pm, ((MaritimeCargo)item).GetAwardAmount());
-            }
+            if (item is MaritimeCargo) PointsSystem.RisingTide.AwardPoints(pm, ((MaritimeCargo)item).GetAwardAmount());
         }
 
         public override bool IsRedeemableItem(Item item)
@@ -86,17 +87,8 @@ namespace Server.Engines.RisingTide
             base.Delete();
 
             if (InstanceTram == this)
-            {
                 InstanceTram = null;
-            }
-            else if (InstanceFel == this)
-            {
-                InstanceFel = null;
-            }
-        }
-
-        public BlackMarketMerchant(Serial serial) : base(serial)
-        {
+            else if (InstanceFel == this) InstanceFel = null;
         }
 
         public override void Serialize(GenericWriter writer)
@@ -108,16 +100,11 @@ namespace Server.Engines.RisingTide
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (Map == Map.Trammel)
-            {
                 InstanceTram = this;
-            }
-            else if (Map == Map.Felucca)
-            {
-                InstanceFel = this;
-            }
+            else if (Map == Map.Felucca) InstanceFel = this;
         }
     }
 }

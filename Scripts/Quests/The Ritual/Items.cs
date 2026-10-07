@@ -1,23 +1,25 @@
 using System;
-
-using Server.Mobiles;
-using Server.Engines.Quests;
-using Server.Spells;
 using Server.Items;
+using Server.Mobiles;
+using Server.Spells;
 
 namespace Server.Engines.Quests.RitualQuest
 {
     public class DreamSerpentScale : BaseDecayingItem
     {
-        public override int LabelNumber { get { return 1151167; } } // Dream Serpent Scales
-        public override int Lifespan { get { return 86400; } }
-        public override bool HiddenQuestItemHue { get { return true; } }
+        public override int LabelNumber => 1151167; // Dream Serpent Scales
+        public override int Lifespan => 86400;
+        public override bool HiddenQuestItemHue => true;
 
         public DreamSerpentScale()
             : base(0x1F13)
         {
             Hue = 2069;
             QuestItem = true;
+        }
+
+        public DreamSerpentScale(Serial serial) : base(serial)
+        {
         }
 
         public override bool DropToWorld(Mobile from, Point3D p)
@@ -36,10 +38,6 @@ namespace Server.Engines.Quests.RitualQuest
             list.Add(1075269); // Destroyed when dropped
         }
 
-        public DreamSerpentScale(Serial serial) : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -55,8 +53,14 @@ namespace Server.Engines.Quests.RitualQuest
 
     public class DreamSerpentCharm : BaseDecayingItem
     {
-        public override int LabelNumber { get { return 1151187; } } // Dream Serpent Charm
-        public override int Lifespan { get { return 86400; } }
+        private static Rectangle2D WarpBounds = new Rectangle2D(659, 3815, 6, 8);
+        private static readonly TimeSpan WarpTime = TimeSpan.FromSeconds(30);
+        private static readonly TimeSpan Cooldown = TimeSpan.FromMinutes(1);
+
+        private DateTime _NextUse;
+        private Timer _Timer;
+        public override int LabelNumber => 1151187; // Dream Serpent Charm
+        public override int Lifespan => 86400;
 
         public DreamSerpentCharm()
             : base(6463)
@@ -64,27 +68,23 @@ namespace Server.Engines.Quests.RitualQuest
             Hue = 91;
         }
 
-        private static Rectangle2D WarpBounds = new Rectangle2D(659, 3815, 6, 8);
-        private static TimeSpan WarpTime = TimeSpan.FromSeconds(30);
-        private static TimeSpan Cooldown = TimeSpan.FromMinutes(1);
-
-        private DateTime _NextUse;
-        private Timer _Timer;
+        public DreamSerpentCharm(Serial serial) : base(serial)
+        {
+        }
 
         public override void OnDoubleClick(Mobile m)
         {
             if (_NextUse > DateTime.UtcNow)
             {
-                m.SendLocalizedMessage(1072529, String.Format("{0}\t{1}", ((int)(_NextUse - DateTime.UtcNow).TotalSeconds).ToString(), "seconds"));
+                m.SendLocalizedMessage(1072529,
+                    string.Format("{0}\t{1}", ((int)(_NextUse - DateTime.UtcNow).TotalSeconds).ToString(), "seconds"));
             }
             else if (m is PlayerMobile)
             {
                 var quest = QuestHelper.GetQuest<CatchMeIfYouCanQuest>((PlayerMobile)m);
 
                 if (quest != null && SpellHelper.CheckCanTravel(m) && _Timer == null && WarpBounds.Contains(m.Location))
-                {
                     TeleportTo(m);
-                }
             }
         }
 
@@ -94,15 +94,12 @@ namespace Server.Engines.Quests.RitualQuest
             m.MoveToWorld(new Point3D(403, 3391, 38), Map.TerMur);
             m.FixedParticles(0x373A, 10, 15, 5018, EffectLayer.Waist);
 
-            _Timer = Timer.DelayCall(WarpTime, () =>
-            {
-                TeleportFrom(m, this, false);
-            });
+            _Timer = Timer.DelayCall(WarpTime, () => { TeleportFrom(m, this, false); });
         }
 
         public static void CompleteQuest(Mobile m)
         {
-            DreamSerpentCharm charm = m.Backpack.FindItemByType<DreamSerpentCharm>();
+            var charm = m.Backpack.FindItemByType<DreamSerpentCharm>();
 
             TeleportFrom(m, charm, true);
         }
@@ -129,10 +126,6 @@ namespace Server.Engines.Quests.RitualQuest
             }
         }
 
-        public DreamSerpentCharm(Serial serial) : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -148,15 +141,19 @@ namespace Server.Engines.Quests.RitualQuest
 
     public class SoulbinderTear : BaseDecayingItem
     {
-        public override int LabelNumber { get { return 1151170; } } // Soulbinder's Tears
-        public override int Lifespan { get { return 86400; } }
-        public override bool HiddenQuestItemHue { get { return true; } }
+        public override int LabelNumber => 1151170; // Soulbinder's Tears
+        public override int Lifespan => 86400;
+        public override bool HiddenQuestItemHue => true;
 
         public SoulbinderTear()
             : base(0xE2A)
         {
             Hue = 2076;
             QuestItem = true;
+        }
+
+        public SoulbinderTear(Serial serial) : base(serial)
+        {
         }
 
         public override bool DropToWorld(Mobile from, Point3D p)
@@ -173,10 +170,6 @@ namespace Server.Engines.Quests.RitualQuest
             base.GetProperties(list);
 
             list.Add(1075269); // Destroyed when dropped
-        }
-
-        public SoulbinderTear(Serial serial) : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -194,15 +187,19 @@ namespace Server.Engines.Quests.RitualQuest
 
     public class PristineCrystalLotus : BaseDecayingItem
     {
-        public override int LabelNumber { get { return 1151169; } } // Pristine Crystal Lotus
-        public override int Lifespan { get { return 86400; } }
-        public override bool HiddenQuestItemHue { get { return true; } }
+        public override int LabelNumber => 1151169; // Pristine Crystal Lotus
+        public override int Lifespan => 86400;
+        public override bool HiddenQuestItemHue => true;
 
         public PristineCrystalLotus()
             : base(0x283B)
         {
             Hue = 1152;
             QuestItem = true;
+        }
+
+        public PristineCrystalLotus(Serial serial) : base(serial)
+        {
         }
 
         public override bool DropToWorld(Mobile from, Point3D p)
@@ -221,10 +218,6 @@ namespace Server.Engines.Quests.RitualQuest
             list.Add(1075269); // Destroyed when dropped
         }
 
-        public PristineCrystalLotus(Serial serial) : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -240,19 +233,11 @@ namespace Server.Engines.Quests.RitualQuest
 
     public class ChronicleOfTheGargoyleQueen2 : GargishDocumentBook
     {
-        public static void Initialize()
-        {
-            for (int i = 0; i < 42; i++)
-            {
-                m_Contents[i] = 1150976 + i;
-            }
-        }
+        private static readonly int[] m_Contents = new int[42];
 
-        private static int[] m_Contents = new int[42];
-
-        public override object Title { get { return 1151164; } } // Chronicle of the Gargoyle Queen Vol. II
-        public override object Author { get { return "Queen Zhah"; } }
-        public override int[] Contents { get { return m_Contents; } }
+        public override object Title => 1151164; // Chronicle of the Gargoyle Queen Vol. II
+        public override object Author => "Queen Zhah";
+        public override int[] Contents => m_Contents;
 
         [Constructable]
         public ChronicleOfTheGargoyleQueen2()
@@ -265,22 +250,27 @@ namespace Server.Engines.Quests.RitualQuest
         {
         }
 
+        public static void Initialize()
+        {
+            for (var i = 0; i < 42; i++) m_Contents[i] = 1150976 + i;
+        }
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int v = reader.ReadInt();
+            var v = reader.ReadInt();
         }
     }
 
     public class TerMurSnowglobe : Item
     {
-        public override int LabelNumber { get { return 1151172; } } // Ter Mur Snowglobe
+        public override int LabelNumber => 1151172; // Ter Mur Snowglobe
 
         public TerMurSnowglobe()
             : base(0xE2F)

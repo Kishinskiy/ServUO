@@ -1,4 +1,3 @@
-using System;
 using Server.Gumps;
 using Server.Network;
 
@@ -6,7 +5,8 @@ namespace Server.Items
 {
     public class SilverSaplingReplica : Item
     {
-        public override int LabelNumber { get { return ItemID == 17095 ? 1095967 : 1095968; } } // silver sapling replica - potted silver sapling replica
+        public override int LabelNumber =>
+            ItemID == 17095 ? 1095967 : 1095968; // silver sapling replica - potted silver sapling replica
 
         [Constructable]
         public SilverSaplingReplica(int id)
@@ -29,18 +29,18 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class SilverSaplingReplicaDeed : Item
     {
-        public override int LabelNumber { get { return 1113934; } } // Silver Sapling Deed
+        public override int LabelNumber => 1113934; // Silver Sapling Deed
 
         [Constructable]
         public SilverSaplingReplicaDeed()
             : base(0x14F0)
-        { 
+        {
             LootType = LootType.Blessed;
         }
 
@@ -48,7 +48,7 @@ namespace Server.Items
             : base(serial)
         {
         }
-        
+
         public override void OnDoubleClick(Mobile from)
         {
             if (IsChildOf(from.Backpack))
@@ -71,7 +71,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         private class InternalGump : Gump
@@ -101,18 +101,18 @@ namespace Server.Items
                 if (Deed == null || Deed.Deleted)
                     return;
 
-                Mobile m = sender.Mobile;
+                var m = sender.Mobile;
 
                 switch (info.ButtonID)
                 {
                     case 0: break;
                     default:
-                        {
-                            m.AddToBackpack(new SilverSaplingReplica(info.ButtonID));
-                            Deed.Delete();
+                    {
+                        m.AddToBackpack(new SilverSaplingReplica(info.ButtonID));
+                        Deed.Delete();
 
-                            break;
-                        }
+                        break;
+                    }
                 }
             }
         }

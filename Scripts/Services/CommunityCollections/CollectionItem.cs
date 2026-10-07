@@ -4,33 +4,43 @@ using Server.Mobiles;
 
 namespace Server
 {
-    public class CollectionItem 
+    public class CollectionItem
     {
-        private readonly Type m_Type;
-        private readonly int m_ItemID;
         private readonly int m_X;
         private readonly int m_Y;
-        private readonly int m_Width;
-        private readonly int m_Height;
-        private readonly int m_Tooltip;
-        private readonly int m_Hue;
-        private readonly double m_Points;
-        private readonly bool m_QuestItem;
+
+        public Type Type { get; }
+
+        public int ItemID { get; }
+
+        public int X => m_X;
+        public int Y => m_Y;
+        public int Width { get; }
+
+        public int Height { get; }
+
+        public int Tooltip { get; }
+
+        public int Hue { get; }
+
+        public double Points { get; }
+
+        public bool QuestItem { get; }
 
         public CollectionItem(Type type, int itemID, int tooltip, int hue, double points, bool questitem = false)
         {
-            m_Type = type;
-            m_ItemID = itemID;
-            m_Tooltip = tooltip;
-            m_Hue = hue;
-            m_Points = points;
-            m_QuestItem = questitem;
+            Type = type;
+            ItemID = itemID;
+            Tooltip = tooltip;
+            Hue = hue;
+            Points = points;
+            QuestItem = questitem;
 
             Rectangle2D rec;
 
             try
             {
-                rec = ItemBounds.Table[m_ItemID];
+                rec = ItemBounds.Table[ItemID];
             }
             catch
             {
@@ -42,30 +52,19 @@ namespace Server
                 int mx, my;
                 mx = my = 0;
 
-                Item.Measure(Item.GetBitmap(m_ItemID), out m_X, out m_Y, out mx, out my);
+                Item.Measure(Item.GetBitmap(ItemID), out m_X, out m_Y, out mx, out my);
 
-                m_Width = mx - m_X;
-                m_Height = my - m_Y;
+                Width = mx - m_X;
+                Height = my - m_Y;
             }
             else
             {
                 m_X = rec.X;
                 m_Y = rec.Y;
-                m_Width = rec.Width;
-                m_Height = rec.Height;
+                Width = rec.Width;
+                Height = rec.Height;
             }
         }
-
-        public Type Type { get { return m_Type; } } // image info
-        public int ItemID { get { return m_ItemID; } }
-        public int X { get { return m_X; } }
-        public int Y { get { return m_Y; } }
-        public int Width { get { return m_Width; } }
-        public int Height { get { return m_Height; } }
-        public int Tooltip { get { return m_Tooltip; } }
-        public int Hue { get { return m_Hue; } }
-        public double Points { get { return m_Points; } }
-        public bool QuestItem { get { return m_QuestItem; } }
 
         public virtual bool Validate(PlayerMobile from, Item item)
         {
@@ -84,87 +83,83 @@ namespace Server
 
     public class CollectionHuedItem : CollectionItem
     {
-        private readonly int[] m_Hues;
+        public int[] Hues { get; }
 
         public CollectionHuedItem(Type type, int itemID, int tooltip, int hue, double points, int[] hues)
             : base(type, itemID, tooltip, hue, points)
         {
-            m_Hues = hues;
+            Hues = hues;
         }
-
-        public int[] Hues { get { return m_Hues; } }
     }
 
     public class CollectionTitle : CollectionItem
-    { 
-        private readonly object m_Title;
+    {
+        public object Title { get; }
 
         public CollectionTitle(object title, int tooltip, double points)
             : base(null, 0xFF1, tooltip, 0x0, points)
         {
-            m_Title = title;
+            Title = title;
         }
-
-        public object Title { get { return m_Title; } }
 
         public override void OnGiveReward(PlayerMobile to, Item item, IComunityCollection collection, int hue)
         {
-            if (to.AddRewardTitle(m_Title))
+            if (to.AddRewardTitle(Title))
             {
-                if (m_Title is int)
-                    to.SendLocalizedMessage(1073625, "#" + (int)m_Title); // The title "~1_TITLE~" has been bestowed upon you. 
-                else if (m_Title is string)
-                    to.SendLocalizedMessage(1073625, (string)m_Title); // The title "~1_TITLE~" has been bestowed upon you. 
-					
-                to.AddCollectionPoints(collection.CollectionID, (int)Points * -1);				
+                if (Title is int)
+                    to.SendLocalizedMessage(1073625,
+                        "#" + (int)Title); // The title "~1_TITLE~" has been bestowed upon you. 
+                else if (Title is string)
+                    to.SendLocalizedMessage(1073625,
+                        (string)Title); // The title "~1_TITLE~" has been bestowed upon you. 
+
+                to.AddCollectionPoints(collection.CollectionID, (int)Points * -1);
             }
             else
+            {
                 to.SendLocalizedMessage(1073626); // You already have that title!
+            }
         }
     }
 
     public class CollectionTreasureMap : CollectionItem
     {
-        private readonly int m_Level;
+        public int Level { get; }
 
         public CollectionTreasureMap(int level, int tooltip, double points)
             : base(typeof(TreasureMap), 0x14EB, tooltip, 0x0, points)
         {
-            m_Level = level;
+            Level = level;
         }
-
-        public int Level { get { return m_Level; } }
 
         public override bool Validate(PlayerMobile from, Item item)
         {
-            TreasureMap map = item as TreasureMap;
-			
-            if (map != null && map.Level == m_Level)
+            var map = item as TreasureMap;
+
+            if (map != null && map.Level == Level)
                 return true;
-			
+
             return false;
         }
     }
 
     public class CollectionSpellbook : CollectionItem
     {
-        private readonly SpellbookType m_Type;
+        public SpellbookType SpellbookType { get; }
 
         public CollectionSpellbook(SpellbookType type, int itemID, int tooltip, double points)
             : base(typeof(Spellbook), itemID, tooltip, 0x0, points)
         {
-            m_Type = type;
+            SpellbookType = type;
         }
-
-        public SpellbookType SpellbookType { get { return m_Type; } }
 
         public override bool Validate(PlayerMobile from, Item item)
         {
-            Spellbook spellbook = item as Spellbook;
-			
-            if (spellbook != null && spellbook.SpellbookType == m_Type && spellbook.Content == 0)
+            var spellbook = item as Spellbook;
+
+            if (spellbook != null && spellbook.SpellbookType == SpellbookType && spellbook.Content == 0)
                 return true;
-			
+
             return false;
         }
     }

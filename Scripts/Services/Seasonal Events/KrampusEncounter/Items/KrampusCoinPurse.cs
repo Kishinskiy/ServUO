@@ -1,5 +1,3 @@
-using System;
-
 namespace Server.Items
 {
     public class KrampusCoinPurse : Bag
@@ -14,10 +12,7 @@ namespace Server.Items
         {
             Name = "Krampus' Coin Purse"; // No Cliloc!
 
-            for (int i = 0; i < 25; i++)
-            {
-                DropItemStacked(Loot.RandomGem());
-            }
+            for (var i = 0; i < 25; i++) DropItemStacked(Loot.RandomGem());
 
             DropItem(new Gold(Utility.RandomMinMax(2000, 5000)));
 
@@ -30,13 +25,9 @@ namespace Server.Items
                 else
                 {
                     if (karma > 0)
-                    {
                         DropItem(new GoldBranch());
-                    }
                     else
-                    {
                         DropItem(new SilverBranch());
-                    }
                 }
             }
         }
@@ -49,13 +40,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

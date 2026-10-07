@@ -1,11 +1,17 @@
-using System;
-
 namespace Server.Items
 {
     public class BritchesOfWarding : ChainLegs
-	{
-        public override int LabelNumber { get { return 1157345; } }// britches of warding
-        public override bool IsArtifact { get { return true; } }
+    {
+        public override int LabelNumber => 1157345; // britches of warding
+        public override bool IsArtifact => true;
+
+        public override int BasePhysicalResistance => 20;
+        public override int BaseFireResistance => 20;
+        public override int BaseColdResistance => 20;
+        public override int BasePoisonResistance => 20;
+        public override int BaseEnergyResistance => 20;
+        public override int InitMinHits => 255;
+        public override int InitMaxHits => 255;
 
         [Constructable]
         public BritchesOfWarding()
@@ -29,14 +35,6 @@ namespace Server.Items
             : base(serial)
         {
         }
-        
-        public override int BasePhysicalResistance { get { return 20; } }
-        public override int BaseFireResistance { get { return 20; } }
-        public override int BaseColdResistance { get { return 20; } }
-        public override int BasePoisonResistance { get { return 20; } }
-        public override int BaseEnergyResistance { get { return 20; } }
-        public override int InitMinHits { get { return 255; } }
-        public override int InitMaxHits { get { return 255; } }
 
         public override void Serialize(GenericWriter writer)
         {
@@ -49,14 +47,22 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class GargishBritchesOfWarding : GargishPlateLegs
     {
-        public override int LabelNumber { get { return 1157345; } }// britches of warding
-        public override bool IsArtifact { get { return true; } }
+        public override int LabelNumber => 1157345; // britches of warding
+        public override bool IsArtifact => true;
+
+        public override int BasePhysicalResistance => 20;
+        public override int BaseFireResistance => 20;
+        public override int BaseColdResistance => 20;
+        public override int BasePoisonResistance => 20;
+        public override int BaseEnergyResistance => 20;
+        public override int InitMinHits => 255;
+        public override int InitMaxHits => 255;
 
         [Constructable]
         public GargishBritchesOfWarding()
@@ -81,14 +87,6 @@ namespace Server.Items
         {
         }
 
-        public override int BasePhysicalResistance { get { return 20; } }
-        public override int BaseFireResistance { get { return 20; } }
-        public override int BaseColdResistance { get { return 20; } }
-        public override int BasePoisonResistance { get { return 20; } }
-        public override int BaseEnergyResistance { get { return 20; } }
-        public override int InitMinHits { get { return 255; } }
-        public override int InitMaxHits { get { return 255; } }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -100,7 +98,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

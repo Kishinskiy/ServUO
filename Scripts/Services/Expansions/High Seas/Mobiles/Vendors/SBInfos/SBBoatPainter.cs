@@ -1,21 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Server.Items;
-using Server.Targeting;
 
 namespace Server.Mobiles
 {
     public class SBBoatPainter : SBInfo
     {
-        private List<GenericBuyInfo> m_BuyInfo = new InternalBuyInfo();
-        private IShopSellInfo m_SellInfo = new InternalSellInfo();
+        private readonly List<GenericBuyInfo> m_BuyInfo = new InternalBuyInfo();
+        private readonly IShopSellInfo m_SellInfo = new InternalSellInfo();
 
-        public SBBoatPainter()
-        {
-        }
-
-        public override IShopSellInfo SellInfo { get { return m_SellInfo; } }
-        public override List<GenericBuyInfo> BuyInfo { get { return m_BuyInfo; } }
+        public override IShopSellInfo SellInfo => m_SellInfo;
+        public override List<GenericBuyInfo> BuyInfo => m_BuyInfo;
 
         public class InternalBuyInfo : List<GenericBuyInfo>
         {

@@ -1,28 +1,25 @@
 using System;
-using Server;
 using System.Collections.Generic;
-using Server.Mobiles;
-using System.Linq;
-using Server.Gumps;
 using Server.Engines.Quests;
+using Server.Gumps;
+using Server.Mobiles;
 using Server.Network;
 
 namespace Server.Items
 {
-	public class CubEnclosure : BaseAddon
-	{
-		public EnclosureDoor Door { get; set; }
-		public TigerCub Cub { get; set; }
-		
-		public static readonly Point3D DoorOffset = new Point3D(2, 2, 0);
+    public class CubEnclosure : BaseAddon
+    {
+        public static readonly Point3D DoorOffset = new Point3D(2, 2, 0);
         public static readonly Point3D HomeLocation = new Point3D(354, 1894, 2);
-		
-		[Constructable]
-		public CubEnclosure()
-		{
-			AddComponent(new AddonComponent(2103), 0, 0, 0);
-			AddComponent(new AddonComponent(2103), 0, 1, 0);
-			AddComponent(new AddonComponent(2103), 0, 2, 0);
+        public EnclosureDoor Door { get; set; }
+        public TigerCub Cub { get; set; }
+
+        [Constructable]
+        public CubEnclosure()
+        {
+            AddComponent(new AddonComponent(2103), 0, 0, 0);
+            AddComponent(new AddonComponent(2103), 0, 1, 0);
+            AddComponent(new AddonComponent(2103), 0, 2, 0);
             AddComponent(new AddonComponent(2102), 1, 2, 0);
             AddComponent(new AddonComponent(2101), 3, 2, 0);
             AddComponent(new AddonComponent(2103), 3, 1, 0);
@@ -30,119 +27,124 @@ namespace Server.Items
             AddComponent(new AddonComponent(2102), 2, -1, 0);
             AddComponent(new AddonComponent(2102), 1, -1, 0);
             AddComponent(new AddonComponent(2102), 3, -1, 0);
-			
-			Door = new EnclosureDoor(this);
-			Cub = new TigerCub();
-			Cub.Blessed = true;
-			Cub.RangeHome = 5;
-			
-			Cub.Location = new Point3D(this.Location.X + 1, this.Location.Y + 1, this.Location.Z);
-		}
-		
-		public override void OnLocationChange(Point3D oldLocation)
-		{
-			base.OnLocationChange(oldLocation);
-			
-			if(Door != null)
-				Door.MoveToWorld(new Point3D(X + DoorOffset.X, Y + DoorOffset.Y, Z + DoorOffset.Z), this.Map);
-			
-			if(Cub != null)
-			{
-				Cub.MoveToWorld(new Point3D(X + 1, Y + 1, Z), this.Map);
-				Cub.Home = Cub.Location;
-			}
-		}
-		
-		public override void OnMapChange()
-		{
-			base.OnMapChange();
-			
-			if(Door != null)
-				Door.Map = this.Map;
-			
-			if(Cub != null)
-				Cub.Map = this.Map;
-		}
+
+            Door = new EnclosureDoor(this);
+            Cub = new TigerCub();
+            Cub.Blessed = true;
+            Cub.RangeHome = 5;
+
+            Cub.Location = new Point3D(Location.X + 1, Location.Y + 1, Location.Z);
+        }
+
+        public CubEnclosure(Serial serial) : base(serial)
+        {
+        }
+
+        public override void OnLocationChange(Point3D oldLocation)
+        {
+            base.OnLocationChange(oldLocation);
+
+            if (Door != null)
+                Door.MoveToWorld(new Point3D(X + DoorOffset.X, Y + DoorOffset.Y, Z + DoorOffset.Z), Map);
+
+            if (Cub != null)
+            {
+                Cub.MoveToWorld(new Point3D(X + 1, Y + 1, Z), Map);
+                Cub.Home = Cub.Location;
+            }
+        }
+
+        public override void OnMapChange()
+        {
+            base.OnMapChange();
+
+            if (Door != null)
+                Door.Map = Map;
+
+            if (Cub != null)
+                Cub.Map = Map;
+        }
 
         public bool Contains(Point3D p)
         {
-            foreach (AddonComponent c in Components)
-            {
+            foreach (var c in Components)
                 if (c.Location == p)
                     return true;
-            }
 
             return Door != null && Door.Location == p;
         }
 
-		public void OnPuzzleCompleted(PlayerMobile pm)
-		{
-			if(Door != null)
-			{
-				pm.PrivateOverheadMessage(Server.Network.MessageType.Regular, 0x35, 1156501, pm.NetState); // *You watch as the Tiger Cub safely returns to the Kurak Tribe*
-				
-				Timer.DelayCall(TimeSpan.FromSeconds(.25), Delete);
-				//1156499;*The enclosure unlocks!*  Is this used?
-				
-				if(Cub != null)
-				{
+        public void OnPuzzleCompleted(PlayerMobile pm)
+        {
+            if (Door != null)
+            {
+                pm.PrivateOverheadMessage(MessageType.Regular, 0x35, 1156501,
+                    pm.NetState); // *You watch as the Tiger Cub safely returns to the Kurak Tribe*
+
+                Timer.DelayCall(TimeSpan.FromSeconds(.25), Delete);
+                //1156499;*The enclosure unlocks!*  Is this used?
+
+                if (Cub != null)
+                {
                     Cub.Blessed = false;
-					Cub.Protector = pm;
-					Cub.Home = HomeLocation;
-					Cub.RangeHome = 1;
-				}
-			}
-		}
-		
-		public void OnBadDirection(PlayerMobile pm)
-		{
-			if(Utility.RandomBool())
-			{
-				if(Door != null)
-					pm.PrivateOverheadMessage(Server.Network.MessageType.Regular, 0x35, 1156493, pm.NetState); //*A poisonous dart embeds itself into your neck!*
-				
-				Effects.PlaySound(pm.Location, pm.Map, 0x22E);
-				
-				pm.Damage(Utility.RandomMinMax(20, 40));
-				pm.ApplyPoison(pm, Poison.Deadly);
-			}
-			else
-			{
-				if(Door != null)
-					pm.PrivateOverheadMessage(Server.Network.MessageType.Regular, 0x35, 1156494, pm.NetState); //*You are ambushed by attacking trappers!*
-				
-				SpawnTrappers(pm);
-			}
-		}
-		
-		public void SpawnTrappers(Mobile m)
-		{
-			if(m == null || !m.Alive)
-				return;
-			
-			for(int i = 0; i < 3; i++)
-			{
-				Point3D p = m.Location;
-				
-				for(int j = 0; j < 25; j++)
-				{
-					int x = p.X + Utility.RandomMinMax(p.X - 2, p.X + 2);
-					int y = p.Y + Utility.RandomMinMax(p.Y - 2, p.Y + 2);
-					int z = m.Map.GetAverageZ(x, y);
-					
-					if(m.Map.CanSpawnMobile(x, y, z) && !this.Contains(new Point3D(x, y, z)))
-					{
-						p = new Point3D(x, y, z);
-						break;
-					}
-				}
-				
-				BaseCreature bc = new Trapper();
-				bc.MoveToWorld(p, m.Map);
-				
-				Timer.DelayCall(TimeSpan.FromSeconds(.25), (mob) => ((Mobile)mob).Combatant = m, bc);
-			}
-		}
+                    Cub.Protector = pm;
+                    Cub.Home = HomeLocation;
+                    Cub.RangeHome = 1;
+                }
+            }
+        }
+
+        public void OnBadDirection(PlayerMobile pm)
+        {
+            if (Utility.RandomBool())
+            {
+                if (Door != null)
+                    pm.PrivateOverheadMessage(MessageType.Regular, 0x35, 1156493,
+                        pm.NetState); //*A poisonous dart embeds itself into your neck!*
+
+                Effects.PlaySound(pm.Location, pm.Map, 0x22E);
+
+                pm.Damage(Utility.RandomMinMax(20, 40));
+                pm.ApplyPoison(pm, Poison.Deadly);
+            }
+            else
+            {
+                if (Door != null)
+                    pm.PrivateOverheadMessage(MessageType.Regular, 0x35, 1156494,
+                        pm.NetState); //*You are ambushed by attacking trappers!*
+
+                SpawnTrappers(pm);
+            }
+        }
+
+        public void SpawnTrappers(Mobile m)
+        {
+            if (m == null || !m.Alive)
+                return;
+
+            for (var i = 0; i < 3; i++)
+            {
+                var p = m.Location;
+
+                for (var j = 0; j < 25; j++)
+                {
+                    var x = p.X + Utility.RandomMinMax(p.X - 2, p.X + 2);
+                    var y = p.Y + Utility.RandomMinMax(p.Y - 2, p.Y + 2);
+                    var z = m.Map.GetAverageZ(x, y);
+
+                    if (m.Map.CanSpawnMobile(x, y, z) && !Contains(new Point3D(x, y, z)))
+                    {
+                        p = new Point3D(x, y, z);
+                        break;
+                    }
+                }
+
+                BaseCreature bc = new Trapper();
+                bc.MoveToWorld(p, m.Map);
+
+                Timer.DelayCall(TimeSpan.FromSeconds(.25), mob => mob.Combatant = m, bc);
+            }
+        }
 
         public override void Delete()
         {
@@ -155,90 +157,102 @@ namespace Server.Items
                 Cub.Delete();
         }
 
-		public CubEnclosure(Serial serial) : base(serial)
-		{
-		}
-		
-		public override void Serialize(GenericWriter writer)
-		{
-			base.Serialize(writer);
-			writer.Write(0);
-			
-			writer.Write(Door);
-			writer.Write(Cub);
-		}
-		
-		public override void Deserialize(GenericReader reader)
-		{
-			base.Deserialize(reader);
-			int v = reader.ReadInt();
-			
-			Door = reader.ReadItem() as EnclosureDoor;
-			Cub = reader.ReadMobile() as TigerCub;
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
+
+            writer.Write(Door);
+            writer.Write(Cub);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var v = reader.ReadInt();
+
+            Door = reader.ReadItem() as EnclosureDoor;
+            Cub = reader.ReadMobile() as TigerCub;
 
             if (Door != null)
                 Door.Enclosure = this;
-		}
-	}
-	
-	public class EnclosureDoor : Item
-	{
-        [CommandProperty(AccessLevel.GameMaster)]
-		public CubEnclosure Enclosure { get; set; }
+        }
+    }
 
-		public List<int> Path { get; set; }
-		
-		public EnclosureDoor(CubEnclosure enclosure) : base(2086)
-		{
-			Enclosure = enclosure;
-			Path = GetRandomPath();
+    public class EnclosureDoor : Item
+    {
+        private readonly int[][] _Paths =
+        {
+            new[] { 0, 1, 2, 3, 7, 11, 15 },
+            new[] { 0, 4, 8, 12, 13, 9, 5, 1, 2, 6, 10, 14, 15 },
+            new[] { 0, 4, 5, 1, 2, 3, 7, 6, 10, 14, 15 },
+            new[] { 0, 4, 8, 12, 13, 14, 10, 6, 2, 3, 7, 11, 15 }, // 
+            new[] { 0, 4, 5, 9, 13, 14, 10, 11, 15 },
+            new[] { 0, 4, 5, 1, 2, 6, 10, 9, 13, 14, 15 },
+            new[] { 0, 1, 5, 4, 8, 12, 13, 14, 10, 11, 15 },
+            new[] { 0, 1, 2, 6, 5, 4, 8, 12, 13, 9, 10, 11, 15 },
+            new[] { 0, 1, 5, 6, 7, 11, 10, 9, 13, 14, 15 },
+            new[] { 0, 1, 5, 6, 7, 11, 15 },
+            new[] { 0, 1, 5, 6, 10, 9, 13, 14, 15 },
+            new[] { 0, 1, 2, 3, 7, 6, 5, 4, 8, 9, 1, 11, 12, 13, 14, 15 },
+            new[] { 0, 4, 8, 12, 13, 14, 15 },
+            new[] { 0, 4, 5, 9, 8, 12, 13, 14, 10, 6, 2, 3, 7, 11, 15 }
+        };
+
+        private int[] m_Possibles =
+        {
+            0, 1, 2, 3,
+            4, 5, 6, 7,
+            8, 9, 10, 11,
+            12, 13, 14, 15
+        };
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public CubEnclosure Enclosure { get; set; }
+
+        public List<int> Path { get; set; }
+
+        public EnclosureDoor(CubEnclosure enclosure) : base(2086)
+        {
+            Enclosure = enclosure;
+            Path = GetRandomPath();
 
             Movable = false;
-		}
-		
-		public override void OnDoubleClick(Mobile from)
-		{
-			if(from is PlayerMobile && from.InRange(GetWorldLocation(), 2) && from.InLOS(this))
-			{
-				PrideOfTheAmbushQuest quest = QuestHelper.GetQuest((PlayerMobile)from, typeof(PrideOfTheAmbushQuest)) as PrideOfTheAmbushQuest;
-				
-				if(quest != null)
-				{
-					from.SendGump(new LockingMechanismGump((PlayerMobile)from, this));
-				}
-			}
-		}
+        }
 
-        private int[] m_Possibles = new int[]
-		    {
-			    0,   1,   2,   3,
-			    4,   5,   6,   7,
-			    8,   9,  10,  11, 
-			    12, 13,  14,  15
-		    };
-		
-		private int[][] _Paths = new int[][]
+        public EnclosureDoor(Serial serial) : base(serial)
         {
-			new int[] { 0, 1, 2, 3, 7, 11, 15 },
-            new int[] { 0, 4, 8, 12, 13, 9, 5, 1, 2, 6, 10, 14, 15 },
-            new int[] { 0, 4, 5, 1, 2, 3, 7, 6, 10, 14, 15 },
-            new int[] { 0, 4, 8, 12, 13, 14, 10, 6, 2, 3, 7, 11, 15 }, // 
-            new int[] { 0, 4, 5, 9, 13, 14, 10, 11, 15 },
-            new int[] { 0, 4, 5, 1, 2, 6, 10, 9, 13, 14, 15 },
-            new int[] { 0, 1, 5, 4, 8, 12, 13, 14, 10, 11, 15 },
-            new int[] { 0, 1, 2, 6, 5, 4, 8, 12, 13, 9, 10, 11, 15 },
-            new int[] { 0, 1, 5, 6, 7, 11, 10, 9, 13, 14, 15 },
-            new int[] { 0, 1, 5, 6, 7, 11, 15 },
-            new int[] { 0, 1, 5, 6, 10, 9, 13, 14, 15 },
-            new int[] { 0, 1, 2, 3, 7, 6, 5, 4, 8, 9, 1, 11, 12, 13, 14, 15 },
-            new int[] { 0, 4, 8, 12, 13, 14, 15 },
-            new int[] { 0, 4, 5, 9, 8, 12, 13, 14, 10, 6, 2, 3, 7, 11, 15 }
-        };
-       
-		public List<int> GetRandomPath()
-		{
-			return new List<int>(_Paths[Utility.Random(_Paths.Length)]);
-		}
+        }
+
+        public override void OnDoubleClick(Mobile from)
+        {
+            if (from is PlayerMobile && from.InRange(GetWorldLocation(), 2) && from.InLOS(this))
+            {
+                var quest =
+                    QuestHelper.GetQuest((PlayerMobile)from, typeof(PrideOfTheAmbushQuest)) as PrideOfTheAmbushQuest;
+
+                if (quest != null) from.SendGump(new LockingMechanismGump((PlayerMobile)from, this));
+            }
+        }
+
+        public List<int> GetRandomPath()
+        {
+            return new List<int>(_Paths[Utility.Random(_Paths.Length)]);
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var v = reader.ReadInt();
+
+            Path = GetRandomPath();
+        }
 
         public class LockingMechanismGump : Gump
         {
@@ -246,7 +260,7 @@ namespace Server.Items
             public bool ShowNext { get; set; }
             public PlayerMobile User { get; set; }
 
-            public List<int> Path { get { return Door != null && !Door.Deleted ? Door.Path : null; } }
+            public List<int> Path => Door != null && !Door.Deleted ? Door.Path : null;
             public List<int> Progress { get; set; }
 
             public LockingMechanismGump(PlayerMobile pm, EnclosureDoor door)
@@ -267,7 +281,7 @@ namespace Server.Items
                 Entries.TrimExcess();
                 AddGumpLayout();
 
-                User.CloseGump(this.GetType());
+                User.CloseGump(GetType());
                 User.SendGump(this, false);
             }
 
@@ -305,38 +319,40 @@ namespace Server.Items
                 AddImage(420, 250, 1417);
                 AddImage(440, 270, 2642);
 
-                AddHtmlLocalized(220, 90, 210, 16, 1156490, false, false); // <center>Enclosure Locking Mechanism</center>
-                AddHtmlLocalized(220, 112, 210, 16, 1153748, false, false); // <center>Use the Directional Controls to</center>
+                AddHtmlLocalized(220, 90, 210, 16, 1156490, false,
+                    false); // <center>Enclosure Locking Mechanism</center>
+                AddHtmlLocalized(220, 112, 210, 16, 1153748, false,
+                    false); // <center>Use the Directional Controls to</center>
                 AddHtmlLocalized(220, 131, 210, 16, 1156491, false, false); // <center>Unlock the Enclosure</center>
 
-                int x = 110;
-                int y = 195;
-                int xOffset = 0;
-                int yOffset = 0;
+                var x = 110;
+                var y = 195;
+                var xOffset = 0;
+                var yOffset = 0;
 
-                for (int i = 0; i < 16; i++)
+                for (var i = 0; i < 16; i++)
                 {
-                    int itemID = Progress.Contains(i) ? 2152 : 9720;
+                    var itemID = Progress.Contains(i) ? 2152 : 9720;
 
                     if (i < 4)
                     {
-                        xOffset = x + (40 * i);
+                        xOffset = x + 40 * i;
                         yOffset = y;
                     }
 
                     else if (i < 8)
                     {
-                        xOffset = x + (40 * (i - 4));
+                        xOffset = x + 40 * (i - 4);
                         yOffset = y + 40;
                     }
                     else if (i < 12)
                     {
-                        xOffset = x + (40 * (i - 8));
+                        xOffset = x + 40 * (i - 8);
                         yOffset = y + 80;
                     }
                     else if (i < 16)
                     {
-                        xOffset = x + (40 * (i - 12));
+                        xOffset = x + 40 * (i - 12);
                         yOffset = y + 120;
                     }
 
@@ -379,8 +395,8 @@ namespace Server.Items
 
                 if (id > 0 && id < 5)
                 {
-                    int current = Progress[Progress.Count - 1];
-                    int next = 15;
+                    var current = Progress[Progress.Count - 1];
+                    var next = 15;
                     int pick;
 
                     if (Progress.Count >= 0 && Progress.Count < Path.Count)
@@ -395,7 +411,7 @@ namespace Server.Items
                         case 4: pick = current - 1; break;
                     }
 
-                    if (Progress.Contains(pick) || pick < 0 || pick > 15)      //Off board or already chosen spot
+                    if (Progress.Contains(pick) || pick < 0 || pick > 15) //Off board or already chosen spot
                     {
                         User.PlaySound(0x5B6);
                         Refresh();
@@ -407,7 +423,7 @@ namespace Server.Items
                         if (Door.Enclosure != null)
                             Door.Enclosure.OnPuzzleCompleted(User);
                     }
-                    else if (pick == next)                                          //Found next 
+                    else if (pick == next) //Found next 
                     {
                         Progress.Add(pick);
 
@@ -435,23 +451,5 @@ namespace Server.Items
                 Progress.Add(0);
             }
         }
-
-		public EnclosureDoor(Serial serial) : base(serial)
-		{
-		}
-		
-		public override void Serialize(GenericWriter writer)
-		{
-			base.Serialize(writer);
-			writer.Write(0);
-		}
-		
-		public override void Deserialize(GenericReader reader)
-		{
-			base.Deserialize(reader);
-			int v = reader.ReadInt();
-
-            Path = GetRandomPath();
-		}
-	}
+    }
 }

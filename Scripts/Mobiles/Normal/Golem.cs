@@ -1,40 +1,21 @@
 using System;
 using Server.Items;
-using Server.Network;
 
 namespace Server.Mobiles
 {
     [CorpseName("a golem corpse")]
     public class Golem : BaseCreature, IRepairableMobile
     {
-        [CommandProperty(AccessLevel.GameMaster)]
-        public virtual Type RepairResource
-        {
-            get
-            {
-                return typeof(IronIngot);
-            }
-        }
-
-        public double Scalar(Mobile m)
-        {
-            double scalar;
-
-            double skill = m.Skills[SkillName.Tinkering].Value;
-
-            if (skill >= 100.0)
-                scalar = 1.0;
-            else if (skill >= 90.0)
-                scalar = 0.9;
-            else if (skill >= 80.0)
-                scalar = 0.8;
-            else if (skill >= 70.0)
-                scalar = 0.7;
-            else
-                scalar = 0.6;
-
-            return scalar;
-        }
+        public override bool IsScaredOfScaryThings => false;
+        public override bool IsScaryToPets => !Controlled;
+        public override bool IsBondable => false;
+        public override FoodType FavoriteFood => FoodType.None;
+        public override bool CanBeDistracted => false;
+        public override bool DeleteOnRelease => true;
+        public override bool AutoDispel => !Controlled;
+        public override bool BleedImmune => true;
+        public override bool BardImmune => !Core.AOS || !Controlled;
+        public override Poison PoisonImmune => Poison.Lethal;
 
         [Constructable]
         public Golem()
@@ -45,7 +26,7 @@ namespace Server.Mobiles
         [Constructable]
         public Golem(bool summoned, double scalar)
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.4, 0.8)
-        {               
+        {
             Name = "a golem";
             Body = 752;
 
@@ -55,14 +36,14 @@ namespace Server.Mobiles
 
             if (summoned)
             {
-                Hue = 2101;               
+                Hue = 2101;
 
                 SetResistance(ResistanceType.Fire, 50, 65);
                 SetResistance(ResistanceType.Poison, 75, 85);
 
-                SetSkill(SkillName.MagicResist, (150.1 * scalar), (190.0 * scalar));
-                SetSkill(SkillName.Tactics, (60.1 * scalar), (100.0 * scalar));
-                SetSkill(SkillName.Wrestling, (60.1 * scalar), (100.0 * scalar));
+                SetSkill(SkillName.MagicResist, 150.1 * scalar, 190.0 * scalar);
+                SetSkill(SkillName.Tactics, 60.1 * scalar, 100.0 * scalar);
+                SetSkill(SkillName.Wrestling, 60.1 * scalar, 100.0 * scalar);
 
                 Fame = 10;
                 Karma = 10;
@@ -98,6 +79,34 @@ namespace Server.Mobiles
             SetSpecialAbility(SpecialAbility.ColossalBlow);
         }
 
+        public Golem(Serial serial)
+            : base(serial)
+        {
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public virtual Type RepairResource => typeof(IronIngot);
+
+        public double Scalar(Mobile m)
+        {
+            double scalar;
+
+            var skill = m.Skills[SkillName.Tinkering].Value;
+
+            if (skill >= 100.0)
+                scalar = 1.0;
+            else if (skill >= 90.0)
+                scalar = 0.9;
+            else if (skill >= 80.0)
+                scalar = 0.8;
+            else if (skill >= 70.0)
+                scalar = 0.7;
+            else
+                scalar = 0.6;
+
+            return scalar;
+        }
+
         public virtual void SpawnPackItems()
         {
             PackItem(new IronIngot(Utility.RandomMinMax(13, 21)));
@@ -115,22 +124,6 @@ namespace Server.Mobiles
                 PackItem(new Gears());
         }
 
-        public Golem(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override bool IsScaredOfScaryThings { get { return false; } }
-        public override bool IsScaryToPets { get { return !Controlled; } }
-        public override bool IsBondable { get { return false; } }
-        public override FoodType FavoriteFood { get { return FoodType.None; } }
-        public override bool CanBeDistracted { get { return false; } }
-        public override bool DeleteOnRelease { get { return true; } }
-        public override bool AutoDispel { get { return !Controlled; } }
-        public override bool BleedImmune { get { return true; } }
-        public override bool BardImmune { get { return !Core.AOS || !Controlled; } }
-        public override Poison PoisonImmune { get { return Poison.Lethal; } }
-
         public override void OnDeath(Container c)
         {
             base.OnDeath(c);
@@ -145,7 +138,9 @@ namespace Server.Mobiles
                         c.DropItem(DawnsMusicGear.RandomUncommon);
                 }
                 else
+                {
                     c.DropItem(DawnsMusicGear.RandomRare);
+                }
             }
         }
 
@@ -187,7 +182,7 @@ namespace Server.Mobiles
         {
             if (Controlled || Summoned)
             {
-                Mobile master = (ControlMaster);
+                var master = ControlMaster;
 
                 if (master == null)
                     master = SummonMaster;
@@ -213,13 +208,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

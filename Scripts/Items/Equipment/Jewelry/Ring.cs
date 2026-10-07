@@ -1,10 +1,11 @@
-using System;
 using Server.Engines.Craft;
 
 namespace Server.Items
 {
     public abstract class BaseRing : BaseJewel
     {
+        public override int BaseGemTypeNumber => 1044176; // star sapphire ring
+
         public BaseRing(int itemID)
             : base(itemID, Layer.Ring)
         {
@@ -15,33 +16,22 @@ namespace Server.Items
         {
         }
 
-        public override int BaseGemTypeNumber
-        {
-            get
-            {
-                return 1044176;
-            }
-        }// star sapphire ring
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)2); // version
+            writer.Write(2); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (version == 1)
-            {
                 if (Weight == .1)
-                {
                     Weight = -1;
-                }
-            }
         }
     }
 
@@ -63,21 +53,19 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class SilverRing : BaseRing, IRepairable
     {
-        public CraftSystem RepairSystem { get { return DefTinkering.CraftSystem; } }
-
         [Constructable]
         public SilverRing()
             : base(0x1F09)
@@ -90,18 +78,20 @@ namespace Server.Items
         {
         }
 
+        public CraftSystem RepairSystem => DefTinkering.CraftSystem;
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

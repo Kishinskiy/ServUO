@@ -12,7 +12,8 @@ namespace Server.Spells.First
             Reagent.Garlic,
             Reagent.Ginseng,
             Reagent.MandrakeRoot);
-        private static readonly FoodInfo[] m_Food = new FoodInfo[]
+
+        private static readonly FoodInfo[] m_Food =
         {
             new FoodInfo(typeof(Grapes), "a grape bunch"),
             new FoodInfo(typeof(Ham), "a ham"),
@@ -25,80 +26,56 @@ namespace Server.Spells.First
             new FoodInfo(typeof(Apple), "an apple"),
             new FoodInfo(typeof(Peach), "a peach")
         };
+
+        public override SpellCircle Circle => SpellCircle.First;
+
         public CreateFoodSpell(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
         {
         }
 
-        public override SpellCircle Circle
-        {
-            get
-            {
-                return SpellCircle.First;
-            }
-        }
         public override void OnCast()
         {
-            if (this.CheckSequence())
+            if (CheckSequence())
             {
-                FoodInfo foodInfo = m_Food[Utility.Random(m_Food.Length)];
-                Item food = foodInfo.Create();
+                var foodInfo = m_Food[Utility.Random(m_Food.Length)];
+                var food = foodInfo.Create();
 
                 if (food != null)
                 {
-                    this.Caster.AddToBackpack(food);
+                    Caster.AddToBackpack(food);
 
                     // You magically create food in your backpack:
-                    this.Caster.SendLocalizedMessage(1042695, true, " " + foodInfo.Name);
+                    Caster.SendLocalizedMessage(1042695, true, " " + foodInfo.Name);
 
-                    this.Caster.FixedParticles(0, 10, 5, 2003, EffectLayer.RightHand);
-                    this.Caster.PlaySound(0x1E2);
+                    Caster.FixedParticles(0, 10, 5, 2003, EffectLayer.RightHand);
+                    Caster.PlaySound(0x1E2);
                 }
             }
 
-            this.FinishSequence();
+            FinishSequence();
         }
     }
 
     public class FoodInfo
     {
-        private Type m_Type;
-        private string m_Name;
+        public Type Type { get; set; }
+
+        public string Name { get; set; }
+
         public FoodInfo(Type type, string name)
         {
-            this.m_Type = type;
-            this.m_Name = name;
+            Type = type;
+            Name = name;
         }
 
-        public Type Type
-        {
-            get
-            {
-                return this.m_Type;
-            }
-            set
-            {
-                this.m_Type = value;
-            }
-        }
-        public string Name
-        {
-            get
-            {
-                return this.m_Name;
-            }
-            set
-            {
-                this.m_Name = value;
-            }
-        }
         public Item Create()
         {
             Item item;
 
             try
             {
-                item = (Item)Activator.CreateInstance(this.m_Type);
+                item = (Item)Activator.CreateInstance(Type);
             }
             catch
             {

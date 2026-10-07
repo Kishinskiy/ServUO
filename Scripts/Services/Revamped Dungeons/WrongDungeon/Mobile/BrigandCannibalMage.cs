@@ -1,14 +1,12 @@
-using System;
 using Server.Items;
 
-namespace Server.Mobiles 
-{ 
-    [CorpseName("an archmage corpse")] 
+namespace Server.Mobiles
+{
+    [CorpseName("an archmage corpse")]
     public class BrigandCannibalMage : EvilMage
-    { 
-        [Constructable] 
+    {
+        [Constructable]
         public BrigandCannibalMage()
-            : base()
         {
             Title = "the brigand cannibal mage";
 
@@ -37,11 +35,8 @@ namespace Server.Mobiles
 
             Fame = 14500;
             Karma = -14500;
-            
-            if (Utility.RandomDouble() < 0.75)
-            {
-                PackItem(new SeveredHumanEars());
-            }
+
+            if (Utility.RandomDouble() < 0.75) PackItem(new SeveredHumanEars());
 
             AI = AIType.AI_NecroMage;
             SetSpecialAbility(SpecialAbility.LifeLeech);
@@ -49,19 +44,19 @@ namespace Server.Mobiles
 
         public BrigandCannibalMage(Serial serial)
             : base(serial)
-        { 
+        {
         }
 
-        public override void Serialize(GenericWriter writer) 
-        { 
-            base.Serialize(writer); 
-            writer.Write((int)0); 
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
         }
 
-        public override void Deserialize(GenericReader reader) 
-        { 
-            base.Deserialize(reader); 
-            int version = reader.ReadInt(); 
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
         }
     }
 }

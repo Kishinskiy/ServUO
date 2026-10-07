@@ -13,6 +13,11 @@ namespace Server.Spells.Fifth
             Reagent.MandrakeRoot,
             Reagent.Nightshade,
             Reagent.SulfurousAsh);
+
+        public override SpellCircle Circle => SpellCircle.Fifth;
+
+        public override bool DelayedDamage => !Core.AOS;
+
         public MindBlastSpell(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
         {
@@ -20,20 +25,6 @@ namespace Server.Spells.Fifth
                 m_Info.LeftHandEffect = m_Info.RightHandEffect = 9002;
         }
 
-        public override SpellCircle Circle
-        {
-            get
-            {
-                return SpellCircle.Fifth;
-            }
-        }
-        public override bool DelayedDamage
-        {
-            get
-            {
-                return !Core.AOS;
-            }
-        }
         public override void OnCast()
         {
             Caster.Target = new InternalTarget(this);
@@ -54,10 +45,11 @@ namespace Server.Spells.Fifth
                     SpellHelper.Turn(from, target);
                     SpellHelper.CheckReflect((int)Circle, ref from, ref target);
 
-                    int intel = Math.Min(200, Caster.Int);
+                    var intel = Math.Min(200, Caster.Int);
 
-                    int damage = (int)((Caster.Skills[SkillName.Magery].Value + intel) / 5) + Utility.RandomMinMax(2, 6);
-					
+                    var damage = (int)((Caster.Skills[SkillName.Magery].Value + intel) / 5) +
+                                 Utility.RandomMinMax(2, 6);
+
                     if (damage > 60)
                         damage = 60;
 
@@ -72,7 +64,7 @@ namespace Server.Spells.Fifth
 
                 SpellHelper.Turn(from, target);
 
-                if(target != null)
+                if (target != null)
                     SpellHelper.CheckReflect((int)Circle, ref from, ref target);
 
                 // Algorithm: (highestStat - lowestStat) / 2 [- 50% if resisted]
@@ -94,17 +86,13 @@ namespace Server.Spells.Fifth
                 if (highestStat > 150)
                     highestStat = 150;
 
-                if (lowestStat > 150) 
+                if (lowestStat > 150)
                     lowestStat = 150;
                 double damage;
                 if (Core.AOS)
-                {
-                    damage = GetDamageScalar(m)*(highestStat - lowestStat)/4; //less damage
-                }
+                    damage = GetDamageScalar(m) * (highestStat - lowestStat) / 4; //less damage
                 else
-                {
                     damage = GetDamageScalar(m) * (highestStat - lowestStat) / 2; //less damage
-                }
                 if (damage > 45)
                     damage = 45;
 
@@ -132,11 +120,11 @@ namespace Server.Spells.Fifth
 
         private void AosDelay_Callback(object state)
         {
-            object[] states = (object[])state;
-            Mobile caster = (Mobile)states[0];
-            Mobile target = (Mobile)states[1];
-            Mobile defender = (Mobile)states[2];
-            int damage = (int)states[3];
+            var states = (object[])state;
+            var caster = (Mobile)states[0];
+            var target = (Mobile)states[1];
+            var defender = (Mobile)states[2];
+            var damage = (int)states[3];
 
             if (caster.HarmfulCheck(defender))
             {
@@ -150,6 +138,7 @@ namespace Server.Spells.Fifth
         private class InternalTarget : Target
         {
             private readonly MindBlastSpell m_Owner;
+
             public InternalTarget(MindBlastSpell owner)
                 : base(Core.ML ? 10 : 12, false, TargetFlags.Harmful)
             {

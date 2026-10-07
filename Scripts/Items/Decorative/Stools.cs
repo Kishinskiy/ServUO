@@ -1,5 +1,3 @@
-using System;
-
 namespace Server.Items
 {
     [Furniture]
@@ -9,7 +7,7 @@ namespace Server.Items
         public Stool()
             : base(0xA2A)
         {
-            this.Weight = 10.0;
+            Weight = 10.0;
         }
 
         public Stool(Serial serial)
@@ -21,17 +19,17 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            if (this.Weight == 6.0)
-                this.Weight = 10.0;
+            if (Weight == 6.0)
+                Weight = 10.0;
         }
     }
 
@@ -42,7 +40,7 @@ namespace Server.Items
         public FootStool()
             : base(0xB5E)
         {
-            this.Weight = 6.0;
+            Weight = 6.0;
         }
 
         public FootStool(Serial serial)
@@ -54,17 +52,17 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            if (this.Weight == 6.0)
-                this.Weight = 10.0;
+            if (Weight == 6.0)
+                Weight = 10.0;
         }
     }
 }

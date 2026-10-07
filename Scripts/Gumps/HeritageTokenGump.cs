@@ -8,13 +8,13 @@ namespace Server.Gumps
     public class HeritageTokenGump : Gump
     {
         private readonly HeritageToken m_Token;
-		private readonly Mobile m_User;
+        private readonly Mobile m_User;
 
         public HeritageTokenGump(HeritageToken token, Mobile from)
             : base(60, 36)
         {
             m_Token = token;
-			m_User = from;
+            m_User = from;
 
             AddPage(0);
 
@@ -25,7 +25,8 @@ namespace Server.Gumps
             AddAlphaRegion(10, 10, 500, 384);
             AddButton(10, 374, 0xFB1, 0xFB2, 0, GumpButtonType.Reply, 0);
             AddHtmlLocalized(45, 376, 450, 20, 1060051, 0x7FFF, false, false); // CANCEL
-            AddHtmlLocalized(14, 12, 500, 20, 1075576, 0x7FFF, false, false); // Choose your item from the following pages
+            AddHtmlLocalized(14, 12, 500, 20, 1075576, 0x7FFF, false,
+                false); // Choose your item from the following pages
 
             AddPage(1);
 
@@ -92,7 +93,8 @@ namespace Server.Gumps
             AddHtmlLocalized(348, 236, 250, 60, 1075201, 0x7FFF, false, false); // Quiver of Infinity
             AddImageTiledButton(14, 300, 0x918, 0x919, 0x76, GumpButtonType.Reply, 0, 0x2A91, 0x0, 25, 5);
             AddTooltip(1075986);
-            AddHtmlLocalized(98, 300, 250, 60, 1074797, 0x7FFF, false, false); // Bone Throne, Bone Couch<br>and Bone Table
+            AddHtmlLocalized(98, 300, 250, 60, 1074797, 0x7FFF, false,
+                false); // Bone Throne, Bone Couch<br>and Bone Table
             AddImageTiledButton(264, 300, 0x918, 0x919, 0x77, GumpButtonType.Reply, 0, 0x2A99, 0x0, 18, 1);
             AddTooltip(1075987);
             AddHtmlLocalized(348, 300, 250, 60, 1078146, 0x7FFF, false, false); // Creepy Portraits
@@ -277,19 +279,19 @@ namespace Server.Gumps
         public override void OnResponse(NetState sender, RelayInfo info)
         {
             if (m_Token == null || m_Token.Deleted || info.ButtonID == 0 ||
-				m_User == null || m_User.Deleted)
+                m_User == null || m_User.Deleted)
                 return;
 
-			if (!m_Token.IsChildOf(m_User.Backpack))
-			{
-				sender.Mobile.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.
-				return;
-			}
+            if (!m_Token.IsChildOf(m_User.Backpack))
+            {
+                sender.Mobile.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.
+                return;
+            }
 
-            List<Type> types = new List<Type>();
-            int cliloc = 0;
+            var types = new List<Type>();
+            var cliloc = 0;
 
-            switch ( info.ButtonID )
+            switch (info.ButtonID)
             {
                 // 7th anniversary
                 case 0x64:
@@ -320,13 +322,14 @@ namespace Server.Gumps
                     types.Add(typeof(SamuraiHelm));
                     cliloc = 1062923;
                     break;
-                case 0x6B: 
-					types.Add( typeof( SpiritualityHelm ) ); 
-					cliloc = 1075188; 
-					break;
-                case 0x6C: types.Add( typeof( ValorGauntlets ) );
-					cliloc = 1075192;
-					break;
+                case 0x6B:
+                    types.Add(typeof(SpiritualityHelm));
+                    cliloc = 1075188;
+                    break;
+                case 0x6C:
+                    types.Add(typeof(ValorGauntlets));
+                    cliloc = 1075192;
+                    break;
                 case 0x6D:
                     types.Add(typeof(DupresShield));
                     cliloc = 1075196;
@@ -363,7 +366,7 @@ namespace Server.Gumps
                     types.Add(typeof(QuiverOfInfinity));
                     cliloc = 1075201;
                     break;
-                    // evil home decor
+                // evil home decor
                 case 0x76:
                     types.Add(typeof(BoneThroneDeed));
                     types.Add(typeof(BoneCouchDeed));
@@ -396,7 +399,7 @@ namespace Server.Gumps
                     types.Add(typeof(SacrificialAltarDeed));
                     cliloc = 1074818;
                     break;
-                    // broken furniture
+                // broken furniture
                 case 0x7C:
                     types.Add(typeof(BrokenCoveredChairDeed));
                     cliloc = 1076257;
@@ -429,7 +432,7 @@ namespace Server.Gumps
                     types.Add(typeof(BrokenFallenChairDeed));
                     cliloc = 1076264;
                     break;
-                    // other
+                // other
                 case 0x84:
                     types.Add(typeof(SuitOfGoldArmorDeed));
                     cliloc = 1076265;
@@ -578,7 +581,11 @@ namespace Server.Gumps
                 sender.Mobile.SendGump(new ConfirmHeritageGump(m_Token, types.ToArray(), cliloc, m_User));
             }
             else
-                sender.Mobile.SendLocalizedMessage(501311); // This option is currently disabled, while we evaluate it for game balance.
+            {
+                sender.Mobile
+                    .SendLocalizedMessage(
+                        501311); // This option is currently disabled, while we evaluate it for game balance.
+            }
         }
     }
 }

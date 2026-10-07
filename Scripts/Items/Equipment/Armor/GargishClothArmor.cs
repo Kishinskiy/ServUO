@@ -1,10 +1,31 @@
 using System;
 using Server.Engines.Craft;
+using Server.Ethics;
 
 namespace Server.Items
 {
     public class GargishClothArmsArmor : BaseArmor
     {
+        public override Race RequiredRace => Race.Gargoyle;
+        public override bool CanBeWornByGargoyles => true;
+
+        public override int BasePhysicalResistance => 5;
+        public override int BaseFireResistance => 7;
+        public override int BaseColdResistance => 6;
+        public override int BasePoisonResistance => 6;
+        public override int BaseEnergyResistance => 6;
+        public override int InitMinHits => 40;
+        public override int InitMaxHits => 50;
+        public override int AosStrReq => 20;
+        public override int OldStrReq => 20;
+        public override int ArmorBase => 18;
+
+        public override ArmorMaterialType MaterialType => ArmorMaterialType.Leather;
+
+        public override CraftResource DefaultResource => CraftResource.None;
+
+        public override ArmorMeditationAllowance DefMedAllowance => ArmorMeditationAllowance.All;
+
         [Constructable]
         public GargishClothArmsArmor() : this(0)
         {
@@ -18,6 +39,11 @@ namespace Server.Items
             Weight = 2.0;
         }
 
+        public GargishClothArmsArmor(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override bool Scissor(Mobile from, Scissors scissors)
         {
             if (!IsChildOf(from.Backpack))
@@ -26,23 +52,22 @@ namespace Server.Items
                 return false;
             }
 
-            if (Ethics.Ethic.IsImbued(this))
+            if (Ethic.IsImbued(this))
             {
                 from.SendLocalizedMessage(502440); // Scissors can not be used on that to produce anything.
                 return false;
             }
 
-            CraftSystem system = DefTailoring.CraftSystem;
+            var system = DefTailoring.CraftSystem;
 
-            CraftItem item = system.CraftItems.SearchFor(GetType());
+            var item = system.CraftItems.SearchFor(GetType());
 
             if (item != null && item.Resources.Count == 1 && item.Resources.GetAt(0).Amount >= 2)
-            {
                 try
                 {
                     Type resourceType = null;
 
-                    CraftResourceInfo info = CraftResources.GetInfo(Resource);
+                    var info = CraftResources.GetInfo(Resource);
 
                     if (info != null && info.ResourceTypes.Length > 0)
                         resourceType = info.ResourceTypes[0];
@@ -50,9 +75,9 @@ namespace Server.Items
                     if (resourceType == null)
                         resourceType = item.Resources.GetAt(0).ItemType;
 
-                    Item res = (Item)Activator.CreateInstance(resourceType);
+                    var res = (Item)Activator.CreateInstance(resourceType);
 
-                    ScissorHelper(from, res, PlayerConstructed ? (item.Resources.GetAt(0).Amount / 2) : 1);
+                    ScissorHelper(from, res, PlayerConstructed ? item.Resources.GetAt(0).Amount / 2 : 1);
 
                     res.LootType = LootType.Regular;
 
@@ -61,45 +86,13 @@ namespace Server.Items
                 catch
                 {
                 }
-            }
 
             from.SendLocalizedMessage(502440); // Scissors can not be used on that to produce anything.
             return false;
         }
 
-        public override Race RequiredRace { get { return Race.Gargoyle; } }
-        public override bool CanBeWornByGargoyles { get { return true; } }
-
-        public GargishClothArmsArmor(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override int BasePhysicalResistance { get { return 5; } }
-        public override int BaseFireResistance { get { return 7; } }
-        public override int BaseColdResistance { get { return 6; } }
-        public override int BasePoisonResistance { get { return 6; } }
-        public override int BaseEnergyResistance { get { return 6; } }
-        public override int InitMinHits { get { return 40; } }
-        public override int InitMaxHits { get { return 50; } }
-        public override int AosStrReq { get { return 20; } }
-        public override int OldStrReq { get { return 20; } }
-        public override int ArmorBase { get { return 18; } }
-
-        public override ArmorMaterialType MaterialType
-        {
-            get { return ArmorMaterialType.Leather; }
-        }
-        public override CraftResource DefaultResource
-        {
-            get { return CraftResource.None; }
-        }
-        public override ArmorMeditationAllowance DefMedAllowance
-        {
-            get { return ArmorMeditationAllowance.All; }
-        }
-
-        public override int OnCraft(int quality, bool makersMark, Mobile from, CraftSystem craftSystem, Type typeRes, ITool tool, CraftItem craftItem, int resHue)
+        public override int OnCraft(int quality, bool makersMark, Mobile from, CraftSystem craftSystem, Type typeRes,
+            ITool tool, CraftItem craftItem, int resHue)
         {
             return base.OnCraft(quality, makersMark, from, craftSystem, null, tool, craftItem, resHue);
         }
@@ -107,13 +100,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -140,18 +133,36 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class GargishClothChestArmor : BaseArmor
     {
+        public override Race RequiredRace => Race.Gargoyle;
+        public override bool CanBeWornByGargoyles => true;
+
+        public override int BasePhysicalResistance => 5;
+        public override int BaseFireResistance => 7;
+        public override int BaseColdResistance => 6;
+        public override int BasePoisonResistance => 6;
+        public override int BaseEnergyResistance => 6;
+        public override int InitMinHits => 40;
+        public override int InitMaxHits => 50;
+        public override int AosStrReq => 25;
+        public override int OldStrReq => 25;
+        public override int ArmorBase => 18;
+
+        public override ArmorMaterialType MaterialType => ArmorMaterialType.Leather;
+        public override CraftResource DefaultResource => CraftResource.None;
+        public override ArmorMeditationAllowance DefMedAllowance => ArmorMeditationAllowance.All;
+
         [Constructable]
         public GargishClothChestArmor()
             : this(0)
@@ -166,6 +177,11 @@ namespace Server.Items
             Weight = 2.0;
         }
 
+        public GargishClothChestArmor(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override bool Scissor(Mobile from, Scissors scissors)
         {
             if (!IsChildOf(from.Backpack))
@@ -174,23 +190,22 @@ namespace Server.Items
                 return false;
             }
 
-            if (Ethics.Ethic.IsImbued(this))
+            if (Ethic.IsImbued(this))
             {
                 from.SendLocalizedMessage(502440); // Scissors can not be used on that to produce anything.
                 return false;
             }
 
-            CraftSystem system = DefTailoring.CraftSystem;
+            var system = DefTailoring.CraftSystem;
 
-            CraftItem item = system.CraftItems.SearchFor(GetType());
+            var item = system.CraftItems.SearchFor(GetType());
 
             if (item != null && item.Resources.Count == 1 && item.Resources.GetAt(0).Amount >= 2)
-            {
                 try
                 {
                     Type resourceType = null;
 
-                    CraftResourceInfo info = CraftResources.GetInfo(Resource);
+                    var info = CraftResources.GetInfo(Resource);
 
                     if (info != null && info.ResourceTypes.Length > 0)
                         resourceType = info.ResourceTypes[0];
@@ -198,9 +213,9 @@ namespace Server.Items
                     if (resourceType == null)
                         resourceType = item.Resources.GetAt(0).ItemType;
 
-                    Item res = (Item)Activator.CreateInstance(resourceType);
+                    var res = (Item)Activator.CreateInstance(resourceType);
 
-                    ScissorHelper(from, res, PlayerConstructed ? (item.Resources.GetAt(0).Amount / 2) : 1);
+                    ScissorHelper(from, res, PlayerConstructed ? item.Resources.GetAt(0).Amount / 2 : 1);
 
                     res.LootType = LootType.Regular;
 
@@ -209,36 +224,13 @@ namespace Server.Items
                 catch
                 {
                 }
-            }
 
             from.SendLocalizedMessage(502440); // Scissors can not be used on that to produce anything.
             return false;
         }
 
-        public override Race RequiredRace { get { return Race.Gargoyle; } }
-        public override bool CanBeWornByGargoyles { get { return true; } }
-
-        public GargishClothChestArmor(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override int BasePhysicalResistance { get { return 5; } }
-        public override int BaseFireResistance { get { return 7; } }
-        public override int BaseColdResistance { get { return 6; } }
-        public override int BasePoisonResistance { get { return 6; } }
-        public override int BaseEnergyResistance { get { return 6; } }
-        public override int InitMinHits { get { return 40; } }
-        public override int InitMaxHits { get { return 50; } }
-        public override int AosStrReq { get { return 25; } }
-        public override int OldStrReq { get { return 25; } }
-        public override int ArmorBase { get { return 18; } }
-
-        public override ArmorMaterialType MaterialType { get { return ArmorMaterialType.Leather; } }
-        public override CraftResource DefaultResource { get { return CraftResource.None; } }
-        public override ArmorMeditationAllowance DefMedAllowance { get { return ArmorMeditationAllowance.All; } }
-
-        public override int OnCraft(int quality, bool makersMark, Mobile from, CraftSystem craftSystem, Type typeRes, ITool tool, CraftItem craftItem, int resHue)
+        public override int OnCraft(int quality, bool makersMark, Mobile from, CraftSystem craftSystem, Type typeRes,
+            ITool tool, CraftItem craftItem, int resHue)
         {
             return base.OnCraft(quality, makersMark, from, craftSystem, null, tool, craftItem, resHue);
         }
@@ -246,13 +238,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -280,18 +272,36 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class GargishClothLegsArmor : BaseArmor
     {
+        public override Race RequiredRace => Race.Gargoyle;
+        public override bool CanBeWornByGargoyles => true;
+
+        public override int BasePhysicalResistance => 5;
+        public override int BaseFireResistance => 7;
+        public override int BaseColdResistance => 6;
+        public override int BasePoisonResistance => 6;
+        public override int BaseEnergyResistance => 6;
+        public override int InitMinHits => 40;
+        public override int InitMaxHits => 50;
+        public override int AosStrReq => 20;
+        public override int OldStrReq => 20;
+        public override int ArmorBase => 18;
+
+        public override ArmorMaterialType MaterialType => ArmorMaterialType.Leather;
+        public override CraftResource DefaultResource => CraftResource.None;
+        public override ArmorMeditationAllowance DefMedAllowance => ArmorMeditationAllowance.All;
+
         [Constructable]
         public GargishClothLegsArmor()
             : this(0)
@@ -306,6 +316,11 @@ namespace Server.Items
             Weight = 2.0;
         }
 
+        public GargishClothLegsArmor(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override bool Scissor(Mobile from, Scissors scissors)
         {
             if (!IsChildOf(from.Backpack))
@@ -314,23 +329,22 @@ namespace Server.Items
                 return false;
             }
 
-            if (Ethics.Ethic.IsImbued(this))
+            if (Ethic.IsImbued(this))
             {
                 from.SendLocalizedMessage(502440); // Scissors can not be used on that to produce anything.
                 return false;
             }
 
-            CraftSystem system = DefTailoring.CraftSystem;
+            var system = DefTailoring.CraftSystem;
 
-            CraftItem item = system.CraftItems.SearchFor(GetType());
+            var item = system.CraftItems.SearchFor(GetType());
 
             if (item != null && item.Resources.Count == 1 && item.Resources.GetAt(0).Amount >= 2)
-            {
                 try
                 {
                     Type resourceType = null;
 
-                    CraftResourceInfo info = CraftResources.GetInfo(Resource);
+                    var info = CraftResources.GetInfo(Resource);
 
                     if (info != null && info.ResourceTypes.Length > 0)
                         resourceType = info.ResourceTypes[0];
@@ -338,9 +352,9 @@ namespace Server.Items
                     if (resourceType == null)
                         resourceType = item.Resources.GetAt(0).ItemType;
 
-                    Item res = (Item)Activator.CreateInstance(resourceType);
+                    var res = (Item)Activator.CreateInstance(resourceType);
 
-                    ScissorHelper(from, res, PlayerConstructed ? (item.Resources.GetAt(0).Amount / 2) : 1);
+                    ScissorHelper(from, res, PlayerConstructed ? item.Resources.GetAt(0).Amount / 2 : 1);
 
                     res.LootType = LootType.Regular;
 
@@ -349,36 +363,13 @@ namespace Server.Items
                 catch
                 {
                 }
-            }
 
             from.SendLocalizedMessage(502440); // Scissors can not be used on that to produce anything.
             return false;
         }
 
-        public override Race RequiredRace { get { return Race.Gargoyle; } }
-        public override bool CanBeWornByGargoyles { get { return true; } }
-
-        public GargishClothLegsArmor(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override int BasePhysicalResistance { get { return 5; } }
-        public override int BaseFireResistance { get { return 7; } }
-        public override int BaseColdResistance { get { return 6; } }
-        public override int BasePoisonResistance { get { return 6; } }
-        public override int BaseEnergyResistance { get { return 6; } }
-        public override int InitMinHits { get { return 40; } }
-        public override int InitMaxHits { get { return 50; } }
-        public override int AosStrReq { get { return 20; } }
-        public override int OldStrReq { get { return 20; } }
-        public override int ArmorBase { get { return 18; } }
-
-        public override ArmorMaterialType MaterialType { get { return ArmorMaterialType.Leather; } }
-        public override CraftResource DefaultResource { get { return CraftResource.None; } }        
-        public override ArmorMeditationAllowance DefMedAllowance { get { return ArmorMeditationAllowance.All; } }
-
-        public override int OnCraft(int quality, bool makersMark, Mobile from, CraftSystem craftSystem, Type typeRes, ITool tool, CraftItem craftItem, int resHue)
+        public override int OnCraft(int quality, bool makersMark, Mobile from, CraftSystem craftSystem, Type typeRes,
+            ITool tool, CraftItem craftItem, int resHue)
         {
             return base.OnCraft(quality, makersMark, from, craftSystem, null, tool, craftItem, resHue);
         }
@@ -386,13 +377,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -420,18 +411,36 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class GargishClothKiltArmor : BaseArmor
     {
+        public override Race RequiredRace => Race.Gargoyle;
+        public override bool CanBeWornByGargoyles => true;
+
+        public override int BasePhysicalResistance => 5;
+        public override int BaseFireResistance => 7;
+        public override int BaseColdResistance => 6;
+        public override int BasePoisonResistance => 6;
+        public override int BaseEnergyResistance => 6;
+        public override int InitMinHits => 40;
+        public override int InitMaxHits => 50;
+        public override int AosStrReq => 20;
+        public override int OldStrReq => 20;
+        public override int ArmorBase => 18;
+
+        public override ArmorMaterialType MaterialType => ArmorMaterialType.Leather;
+        public override CraftResource DefaultResource => CraftResource.None;
+        public override ArmorMeditationAllowance DefMedAllowance => ArmorMeditationAllowance.All;
+
         [Constructable]
         public GargishClothKiltArmor()
             : this(0)
@@ -446,6 +455,11 @@ namespace Server.Items
             Weight = 2.0;
         }
 
+        public GargishClothKiltArmor(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override bool Scissor(Mobile from, Scissors scissors)
         {
             if (!IsChildOf(from.Backpack))
@@ -454,23 +468,22 @@ namespace Server.Items
                 return false;
             }
 
-            if (Ethics.Ethic.IsImbued(this))
+            if (Ethic.IsImbued(this))
             {
                 from.SendLocalizedMessage(502440); // Scissors can not be used on that to produce anything.
                 return false;
             }
 
-            CraftSystem system = DefTailoring.CraftSystem;
+            var system = DefTailoring.CraftSystem;
 
-            CraftItem item = system.CraftItems.SearchFor(GetType());
+            var item = system.CraftItems.SearchFor(GetType());
 
             if (item != null && item.Resources.Count == 1 && item.Resources.GetAt(0).Amount >= 2)
-            {
                 try
                 {
                     Type resourceType = null;
 
-                    CraftResourceInfo info = CraftResources.GetInfo(Resource);
+                    var info = CraftResources.GetInfo(Resource);
 
                     if (info != null && info.ResourceTypes.Length > 0)
                         resourceType = info.ResourceTypes[0];
@@ -478,9 +491,9 @@ namespace Server.Items
                     if (resourceType == null)
                         resourceType = item.Resources.GetAt(0).ItemType;
 
-                    Item res = (Item)Activator.CreateInstance(resourceType);
+                    var res = (Item)Activator.CreateInstance(resourceType);
 
-                    ScissorHelper(from, res, PlayerConstructed ? (item.Resources.GetAt(0).Amount / 2) : 1);
+                    ScissorHelper(from, res, PlayerConstructed ? item.Resources.GetAt(0).Amount / 2 : 1);
 
                     res.LootType = LootType.Regular;
 
@@ -489,50 +502,27 @@ namespace Server.Items
                 catch
                 {
                 }
-            }
 
             from.SendLocalizedMessage(502440); // Scissors can not be used on that to produce anything.
             return false;
         }
 
-        public override Race RequiredRace { get { return Race.Gargoyle; } }
-        public override bool CanBeWornByGargoyles { get { return true; } }
-
-        public override int OnCraft(int quality, bool makersMark, Mobile from, CraftSystem craftSystem, Type typeRes, ITool tool, CraftItem craftItem, int resHue)
+        public override int OnCraft(int quality, bool makersMark, Mobile from, CraftSystem craftSystem, Type typeRes,
+            ITool tool, CraftItem craftItem, int resHue)
         {
             return base.OnCraft(quality, makersMark, from, craftSystem, null, tool, craftItem, resHue);
         }
 
-        public GargishClothKiltArmor(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override int BasePhysicalResistance { get { return 5; } }
-        public override int BaseFireResistance { get { return 7; } }
-        public override int BaseColdResistance { get { return 6; } }
-        public override int BasePoisonResistance { get { return 6; } }
-        public override int BaseEnergyResistance { get { return 6; } }
-        public override int InitMinHits { get { return 40; } }
-        public override int InitMaxHits { get { return 50; } }
-        public override int AosStrReq { get { return 20; } }
-        public override int OldStrReq { get { return 20; } }
-        public override int ArmorBase { get { return 18; } }
-
-        public override ArmorMaterialType MaterialType { get { return ArmorMaterialType.Leather; } }
-        public override CraftResource DefaultResource { get { return CraftResource.None; } }
-        public override ArmorMeditationAllowance DefMedAllowance { get { return ArmorMeditationAllowance.All; } }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -550,7 +540,7 @@ namespace Server.Items
         {
             Hue = hue;
             Weight = 2.0;
-        }        
+        }
 
         public FemaleGargishClothKiltArmor(Serial serial)
             : base(serial)
@@ -560,13 +550,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

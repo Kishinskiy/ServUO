@@ -11,42 +11,23 @@ namespace Server.Spells.Ninjitsu
     public class MirrorImage : NinjaSpell
     {
         private static readonly Dictionary<Mobile, int> m_CloneCount = new Dictionary<Mobile, int>();
+
         private static readonly SpellInfo m_Info = new SpellInfo(
             "Mirror Image", null,
             -1,
             9002);
+
+        public override TimeSpan CastDelayBase => TimeSpan.FromSeconds(1.5);
+
+        public override double RequiredSkill => Core.ML ? 20.0 : 40.0;
+
+        public override int RequiredMana => 10;
+
+        public override bool BlockedByAnimalForm => false;
+
         public MirrorImage(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
         {
-        }
-
-        public override TimeSpan CastDelayBase
-        {
-            get
-            {
-                return TimeSpan.FromSeconds(1.5);
-            }
-        }
-        public override double RequiredSkill
-        {
-            get
-            {
-                return Core.ML ? 20.0 : 40.0;
-            }
-        }
-        public override int RequiredMana
-        {
-            get
-            {
-                return 10;
-            }
-        }
-        public override bool BlockedByAnimalForm
-        {
-            get
-            {
-                return false;
-            }
         }
 
         public static bool HasClone(Mobile m)
@@ -86,17 +67,21 @@ namespace Server.Spells.Ninjitsu
                 Caster.SendLocalizedMessage(1063132); // You cannot use this ability while mounted.
                 return false;
             }
-            else if ((Caster.Followers + 1) > Caster.FollowersMax)
+
+            if (Caster.Followers + 1 > Caster.FollowersMax)
             {
-                Caster.SendLocalizedMessage(1063133); // You cannot summon a mirror image because you have too many followers.
+                Caster.SendLocalizedMessage(
+                    1063133); // You cannot summon a mirror image because you have too many followers.
                 return false;
             }
-            else if (TransformationSpellHelper.UnderTransformation(Caster, typeof(HorrificBeastSpell)))
+
+            if (TransformationSpellHelper.UnderTransformation(Caster, typeof(HorrificBeastSpell)))
             {
                 Caster.SendLocalizedMessage(1061091); // You cannot cast that spell in this form.
                 return false;
             }
-            else if (Caster.Flying)
+
+            if (Caster.Flying)
             {
                 Caster.SendLocalizedMessage(1113415); // You cannot use this ability while flying.
                 return false;
@@ -123,9 +108,10 @@ namespace Server.Spells.Ninjitsu
             {
                 Caster.SendLocalizedMessage(1063132); // You cannot use this ability while mounted.
             }
-            else if ((Caster.Followers + 1) > Caster.FollowersMax)
+            else if (Caster.Followers + 1 > Caster.FollowersMax)
             {
-                Caster.SendLocalizedMessage(1063133); // You cannot summon a mirror image because you have too many followers.
+                Caster.SendLocalizedMessage(
+                    1063133); // You cannot summon a mirror image because you have too many followers.
             }
             else if (TransformationSpellHelper.UnderTransformation(Caster, typeof(HorrificBeastSpell)))
             {
@@ -146,7 +132,7 @@ namespace Server.Spells.Ninjitsu
         {
             Clone clone = null;
 
-            if (HasClone(defender) && (defender.Skills.Ninjitsu.Value / 150.0) > Utility.RandomDouble())
+            if (HasClone(defender) && defender.Skills.Ninjitsu.Value / 150.0 > Utility.RandomDouble())
             {
                 IPooledEnumerable eable = defender.GetMobilesInRange(4);
 
@@ -156,8 +142,10 @@ namespace Server.Spells.Ninjitsu
 
                     if (clone != null && clone.Summoned && clone.SummonMaster == defender)
                     {
-                        attacker.SendLocalizedMessage(1063141); // Your attack has been diverted to a nearby mirror image of your target!
-                        defender.SendLocalizedMessage(1063140); // You manage to divert the attack onto one of your nearby mirror images.
+                        attacker.SendLocalizedMessage(
+                            1063141); // Your attack has been diverted to a nearby mirror image of your target!
+                        defender.SendLocalizedMessage(
+                            1063140); // You manage to divert the attack onto one of your nearby mirror images.
                         break;
                     }
                 }
@@ -174,7 +162,18 @@ namespace Server.Mobiles
 {
     public class Clone : BaseCreature
     {
-        private Mobile m_Caster;  
+        private Mobile m_Caster;
+
+        public override bool DeleteCorpseOnDeath => true;
+
+        public override bool IsDispellable => false;
+
+        public override bool Commandable => false;
+
+        protected override BaseAI ForcedAI => new CloneAI(this);
+
+        public override bool CanDetectHidden => false;
+
         public Clone(Mobile caster)
             : base(AIType.AI_Melee, FightMode.None, 10, 1, 0.2, 0.4)
         {
@@ -197,16 +196,13 @@ namespace Server.Mobiles
             FacialHairItemID = caster.FacialHairItemID;
             FacialHairHue = caster.FacialHairHue;
 
-            for (int i = 0; i < caster.Skills.Length; ++i)
+            for (var i = 0; i < caster.Skills.Length; ++i)
             {
                 Skills[i].Base = caster.Skills[i].Base;
                 Skills[i].Cap = caster.Skills[i].Cap;
             }
 
-            for (int i = 0; i < caster.Items.Count; i++)
-            {
-                AddItem(CloneItem(caster.Items[i]));
-            }
+            for (var i = 0; i < caster.Items.Count; i++) AddItem(CloneItem(caster.Items[i]));
 
             Warmode = true;
 
@@ -216,7 +212,7 @@ namespace Server.Mobiles
             ControlOrder = OrderType.Follow;
             ControlTarget = caster;
 
-            TimeSpan duration = TimeSpan.FromSeconds(30 + caster.Skills.Ninjitsu.Fixed / 40);
+            var duration = TimeSpan.FromSeconds(30 + caster.Skills.Ninjitsu.Fixed / 40);
 
             new UnsummonTimer(caster, this, duration).Start();
             SummonEnd = DateTime.UtcNow + duration;
@@ -230,37 +226,6 @@ namespace Server.Mobiles
             : base(serial)
         {
         }
-
-        public override bool DeleteCorpseOnDeath
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool IsDispellable
-        {
-            get
-            {
-                return false;
-            }
-        }
-        public override bool Commandable
-        {
-            get
-            {
-                return false;
-            }
-        }
-        protected override BaseAI ForcedAI
-        {
-            get
-            {
-                return new CloneAI(this);
-            }
-        }
-
-        public override bool CanDetectHidden { get { return false; } }
 
         public override bool IsHumanInTown()
         {
@@ -279,7 +244,8 @@ namespace Server.Mobiles
 
         public override void OnDelete()
         {
-            Effects.SendLocationParticles(EffectItem.Create(Location, Map, EffectItem.DefaultDuration), 0x3728, 10, 15, 5042);
+            Effects.SendLocationParticles(EffectItem.Create(Location, Map, EffectItem.DefaultDuration), 0x3728, 10, 15,
+                5042);
 
             base.OnDelete();
         }
@@ -303,7 +269,7 @@ namespace Server.Mobiles
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
 
             m_Caster = reader.ReadMobile();
 
@@ -312,7 +278,7 @@ namespace Server.Mobiles
 
         private Item CloneItem(Item item)
         {
-            Item newItem = new Item(item.ItemID);
+            var newItem = new Item(item.ItemID);
             newItem.Hue = item.Hue;
             newItem.Layer = item.Layer;
 
@@ -334,17 +300,19 @@ namespace Server.Mobiles
         public override bool Think()
         {
             // Clones only follow their owners
-            Mobile master = m_Mobile.SummonMaster;
+            var master = m_Mobile.SummonMaster;
 
             if (master != null && master.Map == m_Mobile.Map && master.InRange(m_Mobile, m_Mobile.RangePerception))
             {
-                int iCurrDist = (int)m_Mobile.GetDistanceToSqrt(master);
-                bool bRun = (iCurrDist > 5);
+                var iCurrDist = (int)m_Mobile.GetDistanceToSqrt(master);
+                var bRun = iCurrDist > 5;
 
                 WalkMobileRange(master, 2, bRun, 0, 1);
             }
             else
+            {
                 WalkRandom(2, 2, 1);
+            }
 
             return true;
         }

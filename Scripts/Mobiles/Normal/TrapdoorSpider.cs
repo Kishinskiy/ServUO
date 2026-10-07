@@ -5,7 +5,9 @@ namespace Server.Mobiles
     [CorpseName("a trapdoor spider corpse")]
     public class TrapdoorSpider : BaseCreature
     {
-        public override bool CanStealth { get { return true; } } 
+        public override bool CanStealth => true;
+
+        public override int TreasureMapLevel => 2;
 
         [Constructable]
         public TrapdoorSpider()
@@ -13,7 +15,7 @@ namespace Server.Mobiles
         {
             Name = "a trapdoor spider";
             Body = 737;
-            Hidden = true; 
+            Hidden = true;
 
             SetStr(100, 104);
             SetDex(162, 165);
@@ -58,14 +60,6 @@ namespace Server.Mobiles
             base.OnDamagedBySpell(from);
         }
 
-        public override int TreasureMapLevel
-        {
-            get
-            {
-                return 2;
-            }
-        }
-
         public override void GenerateLoot()
         {
             AddLoot(LootPack.Rich);
@@ -93,45 +87,32 @@ namespace Server.Mobiles
 
         public override void OnThink()
         {
+            if (!Alive || Deleted) return;
 
-            if (!this.Alive || this.Deleted)
+            if (!Hidden)
             {
-                return;
-            }
+                var chance = 0.05;
 
-            if (!this.Hidden)
-            {
-                double chance = 0.05;
+                if (Hits < 20) chance = 0.1;
 
-                if (this.Hits < 20)
-                {
-                    chance = 0.1;
-                }
+                if (Poisoned) chance = 0.01;
 
-                if (this.Poisoned)
-                {
-                    chance = 0.01;
-                }
-
-                if (Utility.RandomDouble() < chance)
-                {
-                    HideSelf();
-                }
+                if (Utility.RandomDouble() < chance) HideSelf();
                 base.OnThink();
             }
         }
 
         private void HideSelf()
         {
-            if (Core.TickCount >= this.NextSkillTime)
+            if (Core.TickCount >= NextSkillTime)
             {
                 Effects.SendLocationParticles(
-                    EffectItem.Create(this.Location, this.Map, EffectItem.DefaultDuration), 0x3728, 10, 10, 2023);
+                    EffectItem.Create(Location, Map, EffectItem.DefaultDuration), 0x3728, 10, 10, 2023);
 
-                this.PlaySound(0x22F);
-                this.Hidden = true;
+                PlaySound(0x22F);
+                Hidden = true;
 
-                this.UseSkill(SkillName.Stealth);
+                UseSkill(SkillName.Stealth);
             }
         }
 

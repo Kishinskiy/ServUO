@@ -1,16 +1,17 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using Server;
 using Server.Gumps;
-using Server.Multis;
-using Server.Network;
 
 namespace Server.Items
 {
     public class WoodworkersBench : BaseAddon
     {
-        public override BaseAddonDeed Deed { get { return new WoodworkersBenchDeed(); } }
+        public const int Cooldown = 45;
+        public const int BonusDuration = 30;
+
+        private static Dictionary<Mobile, Tuple<bool, DateTime, SkillMod>> _Table;
+        private static Timer _Timer;
+        public override BaseAddonDeed Deed => new WoodworkersBenchDeed();
 
         [Constructable]
         public WoodworkersBench()
@@ -20,7 +21,6 @@ namespace Server.Items
 
         [Constructable]
         public WoodworkersBench(bool east)
-            : base()
         {
             if (east)
             {
@@ -36,19 +36,29 @@ namespace Server.Items
             }
         }
 
+        public WoodworkersBench(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void OnComponentUsed(AddonComponent c, Mobile m)
         {
             if (IsInCooldown(m))
             {
-                TimeSpan tsRem = (_Table[m].Item2 + TimeSpan.FromMinutes(BonusDuration + Cooldown)) - DateTime.UtcNow;
+                var tsRem = _Table[m].Item2 + TimeSpan.FromMinutes(BonusDuration + Cooldown) - DateTime.UtcNow;
 
-                m.SendLocalizedMessage(1071505, tsRem.Minutes.ToString()); // In order to get a buff again, you have to wait for at least ~1_VAL~ minutes.
+                m.SendLocalizedMessage(1071505,
+                    tsRem.Minutes
+                        .ToString()); // In order to get a buff again, you have to wait for at least ~1_VAL~ minutes.
             }
             else if (HasBonus(m))
             {
-                TimeSpan tsRem = (_Table[m].Item2 + TimeSpan.FromMinutes(BonusDuration) - DateTime.UtcNow);
+                var tsRem = _Table[m].Item2 + TimeSpan.FromMinutes(BonusDuration) - DateTime.UtcNow;
 
-                m.SendLocalizedMessage(1071522, String.Format("{0}\t{1}", tsRem.Minutes.ToString(), tsRem.Seconds.ToString())); // You already have the bench's buff. Time remaining of the buff: ~1_VAL~ min ~2_VAL~ sec
+                m.SendLocalizedMessage(1071522,
+                    string.Format("{0}\t{1}", tsRem.Minutes.ToString(),
+                        tsRem.Seconds
+                            .ToString())); // You already have the bench's buff. Time remaining of the buff: ~1_VAL~ min ~2_VAL~ sec
             }
             else
             {
@@ -59,18 +69,9 @@ namespace Server.Items
             }
         }
 
-        private static Dictionary<Mobile, Tuple<bool, DateTime, SkillMod>> _Table;
-        private static Timer _Timer;
-
-        public const int Cooldown = 45;
-        public const int BonusDuration = 30;
-
         public static void AddBonus(Mobile m)
         {
-            if (_Table == null)
-            {
-                _Table = new Dictionary<Mobile, Tuple<bool, DateTime, SkillMod>>();
-            }
+            if (_Table == null) _Table = new Dictionary<Mobile, Tuple<bool, DateTime, SkillMod>>();
 
             var mod = new DefaultSkillMod(SkillName.Carpentry, true, 5.0);
             mod.ObeyCap = false;
@@ -118,10 +119,9 @@ namespace Server.Items
             if (_Table == null)
                 return;
 
-            List<Mobile> list = new List<Mobile>(_Table.Keys);
+            var list = new List<Mobile>(_Table.Keys);
 
             foreach (var m in list)
-            {
                 if (_Table[m].Item2 + TimeSpan.FromMinutes(BonusDuration + Cooldown) < DateTime.UtcNow)
                 {
                     _Table.Remove(m);
@@ -131,14 +131,10 @@ namespace Server.Items
                     m.RemoveSkillMod(_Table[m].Item3);
                     var dt = _Table[m].Item2;
 
-                    if (m.NetState != null)
-                    {
-                        m.SendLocalizedMessage(1071506); // Your carpentry bonus was removed...
-                    }
+                    if (m.NetState != null) m.SendLocalizedMessage(1071506); // Your carpentry bonus was removed...
 
                     _Table[m] = new Tuple<bool, DateTime, SkillMod>(false, dt, null);
                 }
-            }
 
             if (_Table.Count == 0)
             {
@@ -154,11 +150,6 @@ namespace Server.Items
             ColUtility.Free(list);
         }
 
-        public WoodworkersBench(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -170,20 +161,18 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class WoodworkersBenchDeed : BaseAddonDeed, IRewardOption
     {
-        public override int LabelNumber { get { return 1026641; } } // Woodworker's Bench
-        public override BaseAddon Addon { get { return new WoodworkersBench(m_East); } }
-
         private bool m_East;
+        public override int LabelNumber => 1026641; // Woodworker's Bench
+        public override BaseAddon Addon => new WoodworkersBench(m_East);
 
         [Constructable]
         public WoodworkersBenchDeed()
-            : base()
         {
             LootType = LootType.Blessed;
         }
@@ -215,7 +204,9 @@ namespace Server.Items
                 from.SendGump(new RewardOptionGump(this));
             }
             else
+            {
                 from.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.       	
+            }
         }
 
         public override void Serialize(GenericWriter writer)
@@ -229,7 +220,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

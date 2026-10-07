@@ -237,14 +237,6 @@ namespace Server
             typeof(RisingColossusScroll)
         };
 
-        #region Mondain's Legacy
-
-        #endregion
-
-        #region SA
-
-        #endregion
-
         public static Type[] RegularScrollTypes { get; } =
         {
             typeof(ReactiveArmorScroll), typeof(ClumsyScroll), typeof(CreateFoodScroll), typeof(FeeblemindScroll),

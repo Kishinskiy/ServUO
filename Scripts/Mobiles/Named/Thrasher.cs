@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +5,12 @@ namespace Server.Mobiles
     [CorpseName("a thrasher corpse")]
     public class Thrasher : BaseCreature
     {
+        public override bool GivesMLMinorArtifact => true;
+
+        public override int Hides => 48;
+
+        public override int Meat => 1;
+
         [Constructable]
         public Thrasher()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.1, 0.2)
@@ -36,10 +41,8 @@ namespace Server.Mobiles
             Fame = 22400;
             Karma = -22400;
 
-            for (int i = 0; i < Utility.RandomMinMax(0, 1); i++)
-            {
+            for (var i = 0; i < Utility.RandomMinMax(0, 1); i++)
                 PackItem(Loot.RandomScroll(0, Loot.ArcanistScrollTypes.Length, SpellbookType.Arcanist));
-            }
 
             SetWeaponAbility(WeaponAbility.ArmorIgnore);
         }
@@ -49,27 +52,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool GivesMLMinorArtifact
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override int Hides
-        {
-            get
-            {
-                return 48;
-            }
-        }
-        public override int Meat
-        {
-            get
-            {
-                return 1;
-            }
-        }
         public override void GenerateLoot()
         {
             AddLoot(LootPack.AosFilthyRich, 4);
@@ -77,23 +59,23 @@ namespace Server.Mobiles
 
         public override void OnDeath(Container c)
         {
-            base.OnDeath(c);		
-							
+            base.OnDeath(c);
+
             c.DropItem(new ThrashersTail());
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-			
-            writer.Write((int)0); // version
+
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-			
-            int version = reader.ReadInt();
+
+            var version = reader.ReadInt();
         }
     }
 }

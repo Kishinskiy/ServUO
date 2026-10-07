@@ -1,12 +1,16 @@
 using System;
-using Server;
-using Server.Items;
+using Server.Network;
+using Server.Spells;
 
 namespace Server.Mobiles
 {
     [CorpseName("an infernus corpse")]
     public class Infernus : BaseCreature
     {
+        private DateTime _NextDrop;
+
+        public override int TreasureMapLevel => 5;
+
         [Constructable]
         public Infernus()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, .2, .4)
@@ -41,16 +45,18 @@ namespace Server.Mobiles
             Fame = 10000;
             Karma = -10000;
         }
-		
-		public override int TreasureMapLevel { get { return 5; } }
 
-        private DateTime _NextDrop;
+        public Infernus(Serial serial)
+            : base(serial)
+        {
+        }
 
         public override void OnActionCombat()
         {
-            Mobile combatant = Combatant as Mobile;
+            var combatant = Combatant as Mobile;
 
-            if (DateTime.UtcNow < _NextDrop || combatant == null || combatant.Deleted || combatant.Map != Map || !InRange(combatant, 12))
+            if (DateTime.UtcNow < _NextDrop || combatant == null || combatant.Deleted || combatant.Map != Map ||
+                !InRange(combatant, 12))
                 return;
 
             DropFire(combatant);
@@ -60,28 +66,37 @@ namespace Server.Mobiles
 
         public void DropFire(Mobile m)
         {
-            for (int x = m.X - 1; x <= m.X + 1; x++)
+            for (var x = m.X - 1; x <= m.X + 1; x++)
+            for (var y = m.Y - 1; y <= m.Y + 1; y++)
             {
-                for (int y = m.Y - 1; y <= m.Y + 1; y++)
-                {
-                    IPoint3D p = new Point3D(x, y, Map.GetAverageZ(x, y)) as IPoint3D;
-                    Server.Spells.SpellHelper.GetSurfaceTop(ref p);
+                var p = new Point3D(x, y, Map.GetAverageZ(x, y)) as IPoint3D;
+                SpellHelper.GetSurfaceTop(ref p);
 
-                    if (((x == 0 && y == 0) || .5 > Utility.RandomDouble()) && Map.CanSpawnMobile(p.X, p.Y, p.Z))
-                    {
-                        var item = new FireItem(this);
-                        item.MoveToWorld(new Point3D(p), this.Map);
-                    }
+                if (((x == 0 && y == 0) || .5 > Utility.RandomDouble()) && Map.CanSpawnMobile(p.X, p.Y, p.Z))
+                {
+                    var item = new FireItem(this);
+                    item.MoveToWorld(new Point3D(p), Map);
                 }
             }
         }
 
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
+        }
+
         public class FireItem : Item
         {
-            public Infernus Mobile { get; private set; }
+            private readonly DateTime _EndTime;
+            public Infernus Mobile { get; }
             public Timer Timer { get; private set; }
-
-            private DateTime _EndTime;
 
             public FireItem(Infernus mobile)
                 : base(0x19AB)
@@ -93,15 +108,22 @@ namespace Server.Mobiles
                 Timer = Timer.DelayCall(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1), OnTick);
             }
 
+            public FireItem(Serial serial)
+                : base(serial)
+            {
+            }
+
             public override bool OnMoveOver(Mobile from)
             {
-                if (Mobile != null && Mobile != from && Server.Spells.SpellHelper.ValidIndirectTarget(Mobile, from) && Mobile.CanBeHarmful(from, false))
+                if (Mobile != null && Mobile != from && SpellHelper.ValidIndirectTarget(Mobile, from) &&
+                    Mobile.CanBeHarmful(from, false))
                 {
                     Mobile.DoHarmful(from);
 
                     AOS.Damage(from, Mobile, Utility.RandomMinMax(50, 85), 0, 100, 0, 0, 0);
-                    Effects.PlaySound(this.Location, this.Map, 0x1DD);
-                    from.PrivateOverheadMessage(Server.Network.MessageType.Regular, 0x20, 1156084, from.NetState); // *The trail of fire scorches you, setting you ablaze!*
+                    Effects.PlaySound(Location, Map, 0x1DD);
+                    from.PrivateOverheadMessage(MessageType.Regular, 0x20, 1156084,
+                        from.NetState); // *The trail of fire scorches you, setting you ablaze!*
                 }
 
                 return true;
@@ -115,7 +137,7 @@ namespace Server.Mobiles
                 }
                 else
                 {
-                    IPooledEnumerable eable = this.Map.GetMobilesInRange(this.Location, 0);
+                    IPooledEnumerable eable = Map.GetMobilesInRange(Location, 0);
 
                     foreach (Mobile m in eable)
                         OnMoveOver(m);
@@ -135,11 +157,6 @@ namespace Server.Mobiles
                 }
             }
 
-            public FireItem(Serial serial)
-                : base(serial)
-            {
-            }
-
             public override void Serialize(GenericWriter writer)
             {
             }
@@ -147,23 +164,6 @@ namespace Server.Mobiles
             public override void Deserialize(GenericReader reader)
             {
             }
-        }
-
-        public Infernus(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.Write(0);
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            int version = reader.ReadInt();
         }
     }
 }

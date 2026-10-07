@@ -13,6 +13,9 @@ namespace Server.Items
     public class SpinningwheelEastAddon : BaseAddon, ISpinningWheel
     {
         private Timer m_Timer;
+
+        public override BaseAddonDeed Deed => new SpinningwheelEastDeed();
+
         [Constructable]
         public SpinningwheelEastAddon()
         {
@@ -24,37 +27,42 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonDeed Deed
+        public bool Spinning => m_Timer != null;
+
+        public void BeginSpin(SpinCallback callback, Mobile from, int hue)
         {
-            get
-            {
-                return new SpinningwheelEastDeed();
-            }
+            m_Timer = new SpinTimer(this, callback, from, hue);
+            m_Timer.Start();
+
+            foreach (var c in Components)
+                switch (c.ItemID)
+                {
+                    case 0x1015:
+                    case 0x1019:
+                    case 0x101C:
+                    case 0x10A4:
+                        ++c.ItemID;
+                        break;
+                }
         }
-        public bool Spinning
-        {
-            get
-            {
-                return m_Timer != null;
-            }
-        }
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         public override void OnComponentLoaded(AddonComponent c)
         {
-            switch ( c.ItemID )
+            switch (c.ItemID)
             {
                 case 0x1016:
                 case 0x101A:
@@ -65,25 +73,6 @@ namespace Server.Items
             }
         }
 
-        public void BeginSpin(SpinCallback callback, Mobile from, int hue)
-        {
-            m_Timer = new SpinTimer(this, callback, from, hue);
-            m_Timer.Start();
-
-            foreach (AddonComponent c in Components)
-            {
-                switch ( c.ItemID )
-                {
-                    case 0x1015:
-                    case 0x1019:
-                    case 0x101C:
-                    case 0x10A4:
-                        ++c.ItemID;
-                        break;
-                }
-            }
-        }
-
         public void EndSpin(SpinCallback callback, Mobile from, int hue)
         {
             if (m_Timer != null)
@@ -91,9 +80,8 @@ namespace Server.Items
 
             m_Timer = null;
 
-            foreach (AddonComponent c in Components)
-            {
-                switch ( c.ItemID )
+            foreach (var c in Components)
+                switch (c.ItemID)
                 {
                     case 0x1016:
                     case 0x101A:
@@ -102,7 +90,6 @@ namespace Server.Items
                         --c.ItemID;
                         break;
                 }
-            }
 
             if (callback != null)
                 callback(this, from, hue);
@@ -110,10 +97,11 @@ namespace Server.Items
 
         private class SpinTimer : Timer
         {
-            private readonly SpinningwheelEastAddon m_Wheel;
             private readonly SpinCallback m_Callback;
             private readonly Mobile m_From;
             private readonly int m_Hue;
+            private readonly SpinningwheelEastAddon m_Wheel;
+
             public SpinTimer(SpinningwheelEastAddon wheel, SpinCallback callback, Mobile from, int hue)
                 : base(TimeSpan.FromSeconds(6.0))
             {
@@ -133,6 +121,10 @@ namespace Server.Items
 
     public class SpinningwheelEastDeed : BaseAddonDeed
     {
+        public override BaseAddon Addon => new SpinningwheelEastAddon();
+
+        public override int LabelNumber => 1044341; // spining wheel (east)
+
         [Constructable]
         public SpinningwheelEastDeed()
         {
@@ -143,32 +135,18 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddon Addon
-        {
-            get
-            {
-                return new SpinningwheelEastAddon();
-            }
-        }
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1044341;
-            }
-        }// spining wheel (east)
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

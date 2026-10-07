@@ -1,9 +1,9 @@
-using System;
-
 namespace Server.Items
 {
     public class ArielHavenWritofMembership : Item
     {
+        public override int LabelNumber => 1094998; //Ariel Haven Writ of Membership
+
         [Constructable]
         public ArielHavenWritofMembership()
             : base(0x2831)
@@ -15,13 +15,6 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1094998;
-            }
-        }//Ariel Haven Writ of Membership
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -33,7 +26,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

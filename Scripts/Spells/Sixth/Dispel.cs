@@ -1,6 +1,6 @@
-using System;
 using Server.Items;
 using Server.Mobiles;
+using Server.Spells.SkillMasteries;
 using Server.Targeting;
 
 namespace Server.Spells.Sixth
@@ -14,38 +14,35 @@ namespace Server.Spells.Sixth
             Reagent.Garlic,
             Reagent.MandrakeRoot,
             Reagent.SulfurousAsh);
+
+        public override SpellCircle Circle => SpellCircle.Sixth;
+
         public DispelSpell(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
         {
         }
 
-        public override SpellCircle Circle
-        {
-            get
-            {
-                return SpellCircle.Sixth;
-            }
-        }
         public override void OnCast()
         {
-            this.Caster.Target = new InternalTarget(this);
+            Caster.Target = new InternalTarget(this);
         }
 
         public class InternalTarget : Target
         {
             private readonly DispelSpell m_Owner;
+
             public InternalTarget(DispelSpell owner)
                 : base(Core.ML ? 10 : 12, false, TargetFlags.Harmful)
             {
-                this.m_Owner = owner;
+                m_Owner = owner;
             }
 
             protected override void OnTarget(Mobile from, object o)
             {
                 if (o is Mobile)
                 {
-                    Mobile m = (Mobile)o;
-                    BaseCreature bc = m as BaseCreature;
+                    var m = (Mobile)o;
+                    var bc = m as BaseCreature;
 
                     if (!from.CanSee(m))
                     {
@@ -59,14 +56,16 @@ namespace Server.Spells.Sixth
                     {
                         SpellHelper.Turn(from, m);
 
-                        double dispelChance = (50.0 + ((100 * (from.Skills.Magery.Value - bc.GetDispelDifficulty())) / (bc.DispelFocus * 2))) / 100;
-                        
+                        var dispelChance = (50.0 + 100 * (from.Skills.Magery.Value - bc.GetDispelDifficulty()) /
+                            (bc.DispelFocus * 2)) / 100;
+
                         //Skill Masteries
-                        dispelChance -= ((double)SkillMasteries.MasteryInfo.EnchantedSummoningBonus(bc) / 100);
+                        dispelChance -= (double)MasteryInfo.EnchantedSummoningBonus(bc) / 100;
 
                         if (dispelChance > Utility.RandomDouble())
                         {
-                            Effects.SendLocationParticles(EffectItem.Create(m.Location, m.Map, EffectItem.DefaultDuration), 0x3728, 8, 20, 5042);
+                            Effects.SendLocationParticles(
+                                EffectItem.Create(m.Location, m.Map, EffectItem.DefaultDuration), 0x3728, 8, 20, 5042);
                             Effects.PlaySound(m, m.Map, 0x201);
 
                             m.Delete();
@@ -82,7 +81,7 @@ namespace Server.Spells.Sixth
 
             protected override void OnTargetFinish(Mobile from)
             {
-                this.m_Owner.FinishSequence();
+                m_Owner.FinishSequence();
             }
         }
     }

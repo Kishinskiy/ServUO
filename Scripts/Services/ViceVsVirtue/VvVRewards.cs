@@ -1,20 +1,12 @@
-using System;
-using Server;
-using Server.Items;
-using Server.Mobiles;
-using Server.Gumps;
 using System.Collections.Generic;
-using Server.Network;
-using Server.Guilds;
-using System.Linq;
-using Server.Engines.Points;
+using Server.Items;
 
 namespace Server.Engines.VvV
 {
     public enum TileType
     {
         North = 0,
-        West = 1,
+        West = 1
     }
 
     public static class VvVRewards
@@ -25,35 +17,44 @@ namespace Server.Engines.VvV
         {
             Rewards = new List<CollectionItem>();
 
-            Rewards.Add(new CollectionItem(typeof(VvVPotionKeg), 6870, 1094764, 437, 500));  // Greater Stam
-            Rewards.Add(new CollectionItem(typeof(VvVPotionKeg), 6870, 1094718, 13, 500));   // Supernova
+            Rewards.Add(new CollectionItem(typeof(VvVPotionKeg), 6870, 1094764, 437, 500)); // Greater Stam
+            Rewards.Add(new CollectionItem(typeof(VvVPotionKeg), 6870, 1094718, 13, 500)); // Supernova
             Rewards.Add(new CollectionItem(typeof(VvVPotionKeg), 6870, 1155541, 2500, 500)); // Stat Loss Removal
             Rewards.Add(new CollectionItem(typeof(VvVPotionKeg), 6870, 1155543, 2543, 500)); // ANti Paralysis
 
             Rewards.Add(new CollectionItem(typeof(EssenceOfCourage), 3838, 1155554, 2718, 250)); // Essence of Courage
 
-            Rewards.Add(new CollectionItem(typeof(VvVSteedStatuette), 8484, 1155545, ViceVsVirtueSystem.VirtueHue, 500)); // Virtue War Horse
-            Rewards.Add(new CollectionItem(typeof(VvVSteedStatuette), 8484, 1155545, ViceVsVirtueSystem.ViceHue, 500));   // Vice War Horse
-            Rewards.Add(new CollectionItem(typeof(VvVSteedStatuette), 8501, 1155546, ViceVsVirtueSystem.VirtueHue, 500)); // Virtue War Ostard
-            Rewards.Add(new CollectionItem(typeof(VvVSteedStatuette), 8501, 1155546, ViceVsVirtueSystem.ViceHue, 500));   // Vice War Ostard
+            Rewards.Add(new CollectionItem(typeof(VvVSteedStatuette), 8484, 1155545, ViceVsVirtueSystem.VirtueHue,
+                500)); // Virtue War Horse
+            Rewards.Add(new CollectionItem(typeof(VvVSteedStatuette), 8484, 1155545, ViceVsVirtueSystem.ViceHue,
+                500)); // Vice War Horse
+            Rewards.Add(new CollectionItem(typeof(VvVSteedStatuette), 8501, 1155546, ViceVsVirtueSystem.VirtueHue,
+                500)); // Virtue War Ostard
+            Rewards.Add(new CollectionItem(typeof(VvVSteedStatuette), 8501, 1155546, ViceVsVirtueSystem.ViceHue,
+                500)); // Vice War Ostard
 
-            Rewards.Add(new CollectionItem(typeof(VvVHairDye), 3838, 1155538, ViceVsVirtueSystem.VirtueHue, 2500)); // Virtue Hair Dye
-            Rewards.Add(new CollectionItem(typeof(VvVHairDye), 3838, 1155539, ViceVsVirtueSystem.ViceHue, 2500));   // Vice Hair DYe
+            Rewards.Add(new CollectionItem(typeof(VvVHairDye), 3838, 1155538, ViceVsVirtueSystem.VirtueHue,
+                2500)); // Virtue Hair Dye
+            Rewards.Add(new CollectionItem(typeof(VvVHairDye), 3838, 1155539, ViceVsVirtueSystem.ViceHue,
+                2500)); // Vice Hair DYe
 
-            Rewards.Add(new CollectionItem(typeof(VvVTrapKit), 7866, 1155527, 0, 250));    // Poison Trap Kit
-            Rewards.Add(new CollectionItem(typeof(VvVTrapKit), 7866, 1155528, 0, 250));    // Freezing Trap Kit
-            Rewards.Add(new CollectionItem(typeof(VvVTrapKit), 7866, 1155529, 0, 250));    // Shocking Trap Kit
-            Rewards.Add(new CollectionItem(typeof(VvVTrapKit), 7866, 1155530, 0, 250));    // Blades Trap Kit
-            Rewards.Add(new CollectionItem(typeof(VvVTrapKit), 7866, 1155531, 0, 250));    // Explosion Trap Kit
+            Rewards.Add(new CollectionItem(typeof(VvVTrapKit), 7866, 1155527, 0, 250)); // Poison Trap Kit
+            Rewards.Add(new CollectionItem(typeof(VvVTrapKit), 7866, 1155528, 0, 250)); // Freezing Trap Kit
+            Rewards.Add(new CollectionItem(typeof(VvVTrapKit), 7866, 1155529, 0, 250)); // Shocking Trap Kit
+            Rewards.Add(new CollectionItem(typeof(VvVTrapKit), 7866, 1155530, 0, 250)); // Blades Trap Kit
+            Rewards.Add(new CollectionItem(typeof(VvVTrapKit), 7866, 1155531, 0, 250)); // Explosion Trap Kit
 
-            Rewards.Add(new CollectionItem(typeof(CannonTurretPlans), 5360, 1155503, 0, 3000));    // Cannon Turret
-            Rewards.Add(new CollectionItem(typeof(ManaSpike), 2308, 1155508, 0, 1000));            // Mana Spike
+            Rewards.Add(new CollectionItem(typeof(CannonTurretPlans), 5360, 1155503, 0, 3000)); // Cannon Turret
+            Rewards.Add(new CollectionItem(typeof(ManaSpike), 2308, 1155508, 0, 1000)); // Mana Spike
 
-            Rewards.Add(new CollectionItem(typeof(ForgedRoyalPardon), 18098, 1155524, 0, 10000));        // Royal Forged Pardon
-            Rewards.Add(new CollectionItem(typeof(ScrollOfTranscendence), 5360, 1094934, 0x490, 10000));   // Scroll of Transcendence
+            Rewards.Add(new CollectionItem(typeof(ForgedRoyalPardon), 18098, 1155524, 0, 10000)); // Royal Forged Pardon
+            Rewards.Add(new CollectionItem(typeof(ScrollOfTranscendence), 5360, 1094934, 0x490,
+                10000)); // Scroll of Transcendence
 
-            Rewards.Add(new CollectionItem(typeof(VvVRobe), 9859, 1155532, ViceVsVirtueSystem.VirtueHue, 5000)); // virtue robe
-            Rewards.Add(new CollectionItem(typeof(VvVRobe), 9859, 1155533, ViceVsVirtueSystem.ViceHue, 5000)); // virtue robe
+            Rewards.Add(new CollectionItem(typeof(VvVRobe), 9859, 1155532, ViceVsVirtueSystem.VirtueHue,
+                5000)); // virtue robe
+            Rewards.Add(new CollectionItem(typeof(VvVRobe), 9859, 1155533, ViceVsVirtueSystem.ViceHue,
+                5000)); // virtue robe
 
             Rewards.Add(new CollectionItem(typeof(CovetousTileDeed), 5360, 1155516, 0, 10000)); // Covetous Tile
             Rewards.Add(new CollectionItem(typeof(DeceitTileDeed), 5360, 1155517, 0, 10000)); // Deceit Tile
@@ -105,7 +106,8 @@ namespace Server.Engines.VvV
             Rewards.Add(new CollectionItem(typeof(HumilityBanner), 39357, 1123381, 0, 10000)); // Humility Banner
             Rewards.Add(new CollectionItem(typeof(JusticeBanner), 39359, 1123383, 0, 10000)); // Justice Banner
             Rewards.Add(new CollectionItem(typeof(SacraficeBanner), 39361, 1123385, 0, 10000)); // Sacrafice Banner
-            Rewards.Add(new CollectionItem(typeof(SpiritualityBanner), 39363, 1123387, 0, 10000)); // Spirituality Banner
+            Rewards.Add(new CollectionItem(typeof(SpiritualityBanner), 39363, 1123387, 0,
+                10000)); // Spirituality Banner
             Rewards.Add(new CollectionItem(typeof(ValorBanner), 39365, 1123389, 0, 10000)); // Valor Banner
 
             Rewards.Add(new CollectionItem(typeof(CovetousBanner), 39335, 1123359, 0, 10000)); // Covetous Banner
@@ -126,7 +128,7 @@ namespace Server.Engines.VvV
             if (item is IAccountRestricted && from.Account != null)
                 ((IAccountRestricted)item).Account = from.Account.Username;
 
-            NegativeAttributes neg = RunicReforging.GetNegativeAttributes(item);
+            var neg = RunicReforging.GetNegativeAttributes(item);
 
             if (neg != null && !(item is Spellbook))
             {

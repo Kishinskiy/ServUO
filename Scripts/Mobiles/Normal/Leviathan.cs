@@ -6,7 +6,9 @@ namespace Server.Mobiles
     [CorpseName("a leviathan corpse")]
     public class Leviathan : BaseCreature
     {
-        private static readonly Type[] m_Artifacts = new Type[]
+        private DateTime m_NextWaterBall;
+
+        public static Type[] Artifacts { get; } =
         {
             // Decorations
             typeof(CandelabraOfSouls),
@@ -35,8 +37,40 @@ namespace Server.Mobiles
             typeof(VioletCourage)
         };
 
-        private Mobile m_Fisher;
-        private DateTime m_NextWaterBall;
+        public Mobile Fisher { get; set; }
+
+        public override int DefaultHitsRegen
+        {
+            get
+            {
+                var regen = base.DefaultHitsRegen;
+
+                return IsParagon ? regen : regen += 40;
+            }
+        }
+
+        public override int DefaultStamRegen
+        {
+            get
+            {
+                var regen = base.DefaultStamRegen;
+
+                return IsParagon ? regen : regen += 40;
+            }
+        }
+
+        public override int DefaultManaRegen
+        {
+            get
+            {
+                var regen = base.DefaultManaRegen;
+
+                return IsParagon ? regen : regen += 40;
+            }
+        }
+
+        public override double TreasureMapChance => 0.25;
+        public override int TreasureMapLevel => 5;
 
         [Constructable]
         public Leviathan()
@@ -48,7 +82,7 @@ namespace Server.Mobiles
         public Leviathan(Mobile fisher)
             : base(AIType.AI_Mage, FightMode.Closest, 10, 1, 0.2, 0.4)
         {
-            m_Fisher = fisher;
+            Fisher = fisher;
             m_NextWaterBall = DateTime.UtcNow;
 
             // May not be OSI accurate; mostly copied from krakens
@@ -92,7 +126,7 @@ namespace Server.Mobiles
 
             PackItem(new MessageInABottle());
 
-            Rope rope = new Rope();
+            var rope = new Rope();
             rope.ItemID = 0x14F8;
             PackItem(rope);
 
@@ -108,57 +142,17 @@ namespace Server.Mobiles
         {
         }
 
-        public static Type[] Artifacts { get { return m_Artifacts; } }
-
-        public Mobile Fisher
-        {
-            get { return m_Fisher; }
-            set { m_Fisher = value; }
-        }
-
-        public override int DefaultHitsRegen
-        {
-            get
-            {
-                int regen = base.DefaultHitsRegen;
-
-                return IsParagon ? regen : regen += 40;
-            }
-        }
-
-        public override int DefaultStamRegen
-        {
-            get
-            {
-                int regen = base.DefaultStamRegen;
-
-                return IsParagon ? regen : regen += 40;
-            }
-        }
-
-        public override int DefaultManaRegen
-        {
-            get
-            {
-                int regen = base.DefaultManaRegen;
-
-                return IsParagon ? regen : regen += 40;
-            }
-        }
-
-        public override double TreasureMapChance { get { return 0.25; } }
-        public override int TreasureMapLevel { get { return 5; } }
-
         public override void OnActionCombat()
         {
-            Mobile combatant = Combatant as Mobile;
+            var combatant = Combatant as Mobile;
 
-            if (combatant == null || combatant.Deleted || combatant.Map != Map || !InRange(combatant, 12) || !CanBeHarmful(combatant) || !InLOS(combatant))
+            if (combatant == null || combatant.Deleted || combatant.Map != Map || !InRange(combatant, 12) ||
+                !CanBeHarmful(combatant) || !InLOS(combatant))
                 return;
 
             if (DateTime.UtcNow >= m_NextWaterBall)
             {
-                double damage = combatant.Hits * 0.3;
+                var damage = combatant.Hits * 0.3;
 
                 if (damage < 10.0)
                     damage = 10.0;
@@ -170,9 +164,8 @@ namespace Server.Mobiles
                 AOS.Damage(combatant, this, (int)damage, 100, 0, 0, 0, 0);
 
                 if (combatant is PlayerMobile && combatant.Mount != null)
-                {
-                    (combatant as PlayerMobile).SetMountBlock(BlockMountType.DismountRecovery, TimeSpan.FromSeconds(10), true);
-                }
+                    (combatant as PlayerMobile).SetMountBlock(BlockMountType.DismountRecovery, TimeSpan.FromSeconds(10),
+                        true);
 
                 m_NextWaterBall = DateTime.UtcNow + TimeSpan.FromMinutes(1);
             }
@@ -180,16 +173,18 @@ namespace Server.Mobiles
 
         public static void GiveArtifactTo(Mobile m)
         {
-            Item item = Loot.Construct(m_Artifacts);
+            var item = Loot.Construct(Artifacts);
 
             if (item == null)
                 return;
 
             // TODO: Confirm messages
             if (m.AddToBackpack(item))
-                m.SendMessage("As a reward for slaying the mighty leviathan, an artifact has been placed in your backpack.");
+                m.SendMessage(
+                    "As a reward for slaying the mighty leviathan, an artifact has been placed in your backpack.");
             else
-                m.SendMessage("As your backpack is full, your reward for destroying the legendary leviathan has been placed at your feet.");
+                m.SendMessage(
+                    "As your backpack is full, your reward for destroying the legendary leviathan has been placed at your feet.");
         }
 
         public override void GenerateLoot()
@@ -200,13 +195,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             m_NextWaterBall = DateTime.UtcNow;
         }
@@ -219,8 +214,8 @@ namespace Server.Mobiles
             {
                 GiveArtifactTo(mob);
 
-                if (mob == m_Fisher)
-                    m_Fisher = null;
+                if (mob == Fisher)
+                    Fisher = null;
             }
         }
 
@@ -228,10 +223,10 @@ namespace Server.Mobiles
         {
             base.OnDeath(c);
 
-            if (m_Fisher != null && 25 > Utility.Random(100))
-                GiveArtifactTo(m_Fisher);
+            if (Fisher != null && 25 > Utility.Random(100))
+                GiveArtifactTo(Fisher);
 
-            m_Fisher = null;
+            Fisher = null;
         }
     }
 }

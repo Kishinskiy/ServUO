@@ -1,17 +1,12 @@
-using Server;
 using System;
-using Server.Mobiles;
 using System.Collections.Generic;
-using Server.Commands;
 
 namespace Server.Items
 {
     public class ExperimentalRoomController : Item
     {
-        private static ExperimentalRoomController m_Instance;
-        public static ExperimentalRoomController Instance { get { return m_Instance; } }
-
         private static Dictionary<Mobile, DateTime> m_Table;
+        public static ExperimentalRoomController Instance { get; private set; }
 
         public ExperimentalRoomController() : base(7107)
         {
@@ -19,7 +14,12 @@ namespace Server.Items
             Visible = false;
             Movable = false;
 
-            m_Instance = this;
+            Instance = this;
+        }
+
+        public ExperimentalRoomController(Serial serial)
+            : base(serial)
+        {
         }
 
         public static void AddToTable(Mobile from)
@@ -39,15 +39,13 @@ namespace Server.Items
 
         public static void Defrag()
         {
-            List<Mobile> list = new List<Mobile>();
+            var list = new List<Mobile>();
 
-            foreach (KeyValuePair<Mobile, DateTime> kvp in m_Table)
-            {
+            foreach (var kvp in m_Table)
                 if (kvp.Value <= DateTime.UtcNow)
                     list.Add(kvp.Key);
-            }
 
-            foreach (Mobile m in list)
+            foreach (var m in list)
                 m_Table.Remove(m);
         }
 
@@ -56,20 +54,15 @@ namespace Server.Items
             if (from == null || from.Backpack == null)
                 return false;
 
-            Item item = from.Backpack.FindItemByType(type);
+            var item = from.Backpack.FindItemByType(type);
 
             return item != null;
-        }
-
-        public ExperimentalRoomController(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
 
             Defrag();
         }
@@ -77,11 +70,11 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             m_Table = new Dictionary<Mobile, DateTime>();
 
-            m_Instance = this;
+            Instance = this;
         }
     }
 }

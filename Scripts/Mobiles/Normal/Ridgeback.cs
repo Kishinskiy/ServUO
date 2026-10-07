@@ -1,10 +1,16 @@
-using System;
-
 namespace Server.Mobiles
 {
     [CorpseName("a ridgeback corpse")]
     public class Ridgeback : BaseMount
     {
+        public override int Meat => 1;
+
+        public override int Hides => 12;
+
+        public override HideType HideType => HideType.Spined;
+
+        public override FoodType FavoriteFood => FoodType.FruitsAndVegies | FoodType.GrainsAndHay;
+
         [Constructable]
         public Ridgeback()
             : this("a ridgeback")
@@ -51,34 +57,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override int Meat
-        {
-            get
-            {
-                return 1;
-            }
-        }
-        public override int Hides
-        {
-            get
-            {
-                return 12;
-            }
-        }
-        public override HideType HideType
-        {
-            get
-            {
-                return HideType.Spined;
-            }
-        }
-        public override FoodType FavoriteFood
-        {
-            get
-            {
-                return FoodType.FruitsAndVegies | FoodType.GrainsAndHay;
-            }
-        }
         public override bool OverrideBondingReqs()
         {
             return true;
@@ -90,10 +68,7 @@ namespace Server.Mobiles
             {
                 var profile = PetTrainingHelper.GetAbilityProfile(this);
 
-                if (profile != null && profile.HasCustomized())
-                {
-                    return base.GetControlChance(m, useBaseSkill);
-                }
+                if (profile != null && profile.HasCustomized()) return base.GetControlChance(m, useBaseSkill);
             }
 
             return 1.0;
@@ -103,14 +78,14 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

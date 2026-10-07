@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +5,16 @@ namespace Server.Mobiles
     [CorpseName("a chaos dragoon elite corpse")]
     public class ChaosDragoonElite : BaseCreature
     {
+        public override bool AutoDispel => true;
+
+        public override bool BardImmune => !Core.AOS;
+
+        public override bool CanRummageCorpses => true;
+
+        public override bool AlwaysMurderer => true;
+
+        public override bool ShowFameTitle => false;
+
         [Constructable]
         public ChaosDragoonElite()
             : base(AIType.AI_Mage, FightMode.Closest, 10, 1, 0.15, 0.4)
@@ -42,7 +51,7 @@ namespace Server.Mobiles
             Fame = 8000;
             Karma = -8000;
 
-            CraftResource res = CraftResource.None;
+            var res = CraftResource.None;
 
             switch (Utility.Random(6))
             {
@@ -84,39 +93,39 @@ namespace Server.Mobiles
             melee.Movable = false;
             AddItem(melee);
 
-            DragonChest Tunic = new DragonChest();
+            var Tunic = new DragonChest();
             Tunic.Resource = res;
             Tunic.Movable = false;
             AddItem(Tunic);
 
-            DragonLegs Legs = new DragonLegs();
+            var Legs = new DragonLegs();
             Legs.Resource = res;
             Legs.Movable = false;
             AddItem(Legs);
 
-            DragonArms Arms = new DragonArms();
+            var Arms = new DragonArms();
             Arms.Resource = res;
             Arms.Movable = false;
             AddItem(Arms);
 
-            DragonGloves Gloves = new DragonGloves();
+            var Gloves = new DragonGloves();
             Gloves.Resource = res;
             Gloves.Movable = false;
             AddItem(Gloves);
 
-            DragonHelm Helm = new DragonHelm();
+            var Helm = new DragonHelm();
             Helm.Resource = res;
             Helm.Movable = false;
             AddItem(Helm);
 
-            ChaosShield shield = new ChaosShield();
+            var shield = new ChaosShield();
             shield.Movable = false;
             AddItem(shield);
 
             AddItem(new Boots(0x455));
             AddItem(new Shirt(Utility.RandomMetalHue()));
 
-            int amount = Utility.RandomMinMax(1, 3);
+            var amount = Utility.RandomMinMax(1, 3);
 
             switch (res)
             {
@@ -139,6 +148,7 @@ namespace Server.Mobiles
                     AddItem(new WhiteScales(amount));
                     break;
             }
+
             switch (Utility.Random(9))
             {
                 case 0:
@@ -170,7 +180,7 @@ namespace Server.Mobiles
                     break;
             }
 
-            SwampDragon mt = new SwampDragon();
+            var mt = new SwampDragon();
             mt.HasBarding = true;
             mt.BardingResource = res;
             mt.BardingHP = mt.BardingMaxHP;
@@ -184,41 +194,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool AutoDispel
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool BardImmune
-        {
-            get
-            {
-                return !Core.AOS;
-            }
-        }
-        public override bool CanRummageCorpses
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool AlwaysMurderer
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool ShowFameTitle
-        {
-            get
-            {
-                return false;
-            }
-        }
         public override int GetIdleSound()
         {
             return 0x2CE;
@@ -247,7 +222,7 @@ namespace Server.Mobiles
 
         public override bool OnBeforeDeath()
         {
-            IMount mount = Mount;
+            var mount = Mount;
 
             if (mount != null)
             {
@@ -262,20 +237,21 @@ namespace Server.Mobiles
 
         public override void AlterMeleeDamageTo(Mobile to, ref int damage)
         {
-            if (to is Dragon || to is WhiteWyrm || to is SwampDragon || to is Drake || to is Nightmare || to is Hiryu || to is LesserHiryu || to is Daemon)
+            if (to is Dragon || to is WhiteWyrm || to is SwampDragon || to is Drake || to is Nightmare || to is Hiryu ||
+                to is LesserHiryu || to is Daemon)
                 damage *= 3;
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

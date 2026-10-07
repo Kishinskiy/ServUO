@@ -1,21 +1,14 @@
-using Server;
-using System;
-using Server.Mobiles;
 using Server.Gumps;
+using Server.Mobiles;
 
 namespace Server.Items
 {
     public class PetTrainingGate : Item
     {
-        public override bool ForceShowProperties { get { return true; } }
+        public override bool ForceShowProperties => true;
 
-        public override string DefaultName
-        {
-            get
-            {
-                return "Pet Training Gate - You Must Start Pet Training Before Bringing Your Pet Through The Gate!";
-            }
-        }
+        public override string DefaultName =>
+            "Pet Training Gate - You Must Start Pet Training Before Bringing Your Pet Through The Gate!";
 
         [Constructable]
         public PetTrainingGate()
@@ -23,6 +16,11 @@ namespace Server.Items
         {
             Hue = 1918;
             Movable = false;
+        }
+
+        public PetTrainingGate(Serial serial)
+            : base(serial)
+        {
         }
 
         public override bool OnMoveOver(Mobile m)
@@ -33,7 +31,8 @@ namespace Server.Items
                 var profile = PetTrainingHelper.GetTrainingProfile(bc);
 
                 if (bc.Controlled && bc.ControlMaster != null && bc.ControlMaster.InRange(bc.Location, 25)
-                    && profile != null && profile.HasBegunTraining && profile.TrainingProgress < profile.TrainingProgressMax)
+                    && profile != null && profile.HasBegunTraining &&
+                    profile.TrainingProgress < profile.TrainingProgressMax)
                 {
                     profile.TrainingProgress = profile.TrainingProgressMax;
                     bc.FixedEffect(0x375A, 10, 30);
@@ -53,11 +52,6 @@ namespace Server.Items
             return true;
         }
 
-        public PetTrainingGate(Serial serial) 
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -67,21 +61,15 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class PetBondRemoveGate : Item
     {
-        public override bool ForceShowProperties { get { return true; } }
+        public override bool ForceShowProperties => true;
 
-        public override string DefaultName
-        {
-            get
-            {
-                return "Pet Bond Timer Remover";
-            }
-        }
+        public override string DefaultName => "Pet Bond Timer Remover";
 
         [Constructable]
         public PetBondRemoveGate()
@@ -89,6 +77,11 @@ namespace Server.Items
         {
             Hue = 1911;
             Movable = false;
+        }
+
+        public PetBondRemoveGate(Serial serial)
+            : base(serial)
+        {
         }
 
         public override bool OnMoveOver(Mobile m)
@@ -109,11 +102,6 @@ namespace Server.Items
             return true;
         }
 
-        public PetBondRemoveGate(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -123,21 +111,15 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class PowerScrollGiver : Item
     {
-        public override bool ForceShowProperties { get { return true; } }
+        public override bool ForceShowProperties => true;
 
-        public override string DefaultName
-        {
-            get
-            {
-                return "+20 Power Scrolls";
-            }
-        }
+        public override string DefaultName => "+20 Power Scrolls";
 
         [Constructable]
         public PowerScrollGiver()
@@ -147,28 +129,22 @@ namespace Server.Items
             Movable = false;
         }
 
+        public PowerScrollGiver(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void OnDoubleClick(Mobile m)
         {
             if (m.InRange(Location, 3))
             {
                 var bag = new Bag();
-                foreach (var sk in PetTrainingHelper.MagicSkills)
-                {
-                    bag.DropItem(new PowerScroll(sk, 120));
-                }
+                foreach (var sk in PetTrainingHelper.MagicSkills) bag.DropItem(new PowerScroll(sk, 120));
 
-                foreach (var sk in PetTrainingHelper.CombatSkills)
-                {
-                    bag.DropItem(new PowerScroll(sk, 120));
-                }
+                foreach (var sk in PetTrainingHelper.CombatSkills) bag.DropItem(new PowerScroll(sk, 120));
 
                 m.AddToBackpack(bag);
             }
-        }
-
-        public PowerScrollGiver(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -180,7 +156,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

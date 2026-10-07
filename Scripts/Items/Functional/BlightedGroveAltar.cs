@@ -1,55 +1,57 @@
 using System;
-using Server;
 using Server.Mobiles;
 
 namespace Server.Items
 {
-	public class BlightedGroveAltar : PeerlessAltar
-	{		
-		public override int KeyCount{ get{ return 3; } }
-		public override MasterKey MasterKey{ get{ return new BlightedGroveKey(); } }
-		
-		public override Type[] Keys{ get{ return new Type[]
-		{
-			typeof( DryadsBlessing )
-		}; }}
-		
-		public override BasePeerless Boss{ get{ return new LadyMelisande(); } }		
-	
-		[Constructable]
-		public BlightedGroveAltar() : base( 0x207B )
-		{			
-			BossLocation = new Point3D( 6483, 947, 23 );
-			TeleportDest = new Point3D( 6518, 946, 36 );
-			ExitDest = new Point3D( 587, 1641, -1 );
-		}
-
-        public override Rectangle2D[] BossBounds
+    public class BlightedGroveAltar : PeerlessAltar
+    {
+        private readonly Rectangle2D[] m_Bounds =
         {
-            get { return m_Bounds; }
+            new Rectangle2D(6456, 922, 84, 47)
+        };
+
+        public override int KeyCount => 3;
+        public override MasterKey MasterKey => new BlightedGroveKey();
+
+        public override Type[] Keys
+        {
+            get
+            {
+                return new[]
+                {
+                    typeof(DryadsBlessing)
+                };
+            }
         }
 
-        private Rectangle2D[] m_Bounds = new Rectangle2D[]
+        public override BasePeerless Boss => new LadyMelisande();
+
+        public override Rectangle2D[] BossBounds => m_Bounds;
+
+        [Constructable]
+        public BlightedGroveAltar() : base(0x207B)
         {
-            new Rectangle2D(6456, 922, 84, 47),
-        };
-	
-		public BlightedGroveAltar( Serial serial ) : base( serial )
-		{
-		}
-		
-		public override void Serialize( GenericWriter writer )
-		{
-			base.Serialize( writer );
+            BossLocation = new Point3D(6483, 947, 23);
+            TeleportDest = new Point3D(6518, 946, 36);
+            ExitDest = new Point3D(587, 1641, -1);
+        }
 
-			writer.Write( (int) 0 ); // version
-		}
-		
-		public override void Deserialize( GenericReader reader )
-		{
-			base.Deserialize( reader );
+        public BlightedGroveAltar(Serial serial) : base(serial)
+        {
+        }
 
-			int version = reader.ReadInt();
-		}
-	}
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+
+            writer.Write(0); // version
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+
+            var version = reader.ReadInt();
+        }
+    }
 }

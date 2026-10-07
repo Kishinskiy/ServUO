@@ -1,16 +1,16 @@
-using System;
+using Server.Engines.Craft;
 
 namespace Server.Items
 {
     [FlipableAttribute(0xFAF, 0xFB0)]
-    [Server.Engines.Craft.Anvil]
+    [Anvil]
     public class Anvil : Item
     {
         [Constructable]
         public Anvil()
             : base(0xFAF)
         {
-            this.Movable = false;
+            Movable = false;
         }
 
         public Anvil(Serial serial)
@@ -22,25 +22,25 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
-    [Server.Engines.Craft.Forge]
+    [Forge]
     public class Forge : Item
     {
         [Constructable]
         public Forge()
             : base(0xFB1)
         {
-            this.Movable = false;
+            Movable = false;
         }
 
         public Forge(Serial serial)
@@ -52,14 +52,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

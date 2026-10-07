@@ -1,4 +1,3 @@
-using System;
 using Server.Gumps;
 
 namespace Server.Items
@@ -13,14 +12,15 @@ namespace Server.Items
 
     public class HolidayGiftToken2018 : Item, IRewardOption
     {
-        public override int LabelNumber { get { return 1158831; } } // 2018 Holiday Gift Token
+        public override int LabelNumber => 1158831; // 2018 Holiday Gift Token
 
         public HolidayGift2018 Gift { get; set; }
 
         [Constructable]
         public HolidayGiftToken2018()
-           : this(HolidayGift2018.None)
-        { }
+            : this(HolidayGift2018.None)
+        {
+        }
 
         [Constructable]
         public HolidayGiftToken2018(HolidayGift2018 gift)
@@ -31,6 +31,11 @@ namespace Server.Items
             Weight = 1.0;
             Gift = gift;
             Hue = 1371;
+        }
+
+        public HolidayGiftToken2018(Serial serial)
+            : base(serial)
+        {
         }
 
         public void GetOptions(RewardOptionList list)
@@ -63,7 +68,7 @@ namespace Server.Items
 
         public void GiveGift(Mobile from)
         {
-            GiftBox box = new GiftBox();
+            var box = new GiftBox();
 
             Item gift = new GingerBreadCookie();
             gift.LootType = LootType.Regular;
@@ -74,33 +79,28 @@ namespace Server.Items
             else
                 box.DropItem(new Poinsettia(1154));
 
-            switch(Gift)
+            switch (Gift)
             {
                 case HolidayGift2018.RecipeBook:
-                    {
-                        box.DropItem(new RecipeBook());
-                        break;
-                    }
+                {
+                    box.DropItem(new RecipeBook());
+                    break;
+                }
                 case HolidayGift2018.Sign:
-                    {
-                        box.DropItem(new HolidaysSign());
-                        break;
-                    }
+                {
+                    box.DropItem(new HolidaysSign());
+                    break;
+                }
                 case HolidayGift2018.Wreath:
-                    {
-                        box.DropItem(new HolidayWreath());
-                        break;
-                    }
+                {
+                    box.DropItem(new HolidayWreath());
+                    break;
+                }
             }
 
             from.AddToBackpack(box);
 
             Delete();
-        }
-
-        public HolidayGiftToken2018(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -112,7 +112,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

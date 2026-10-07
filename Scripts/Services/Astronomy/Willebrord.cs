@@ -1,21 +1,26 @@
-using System;
 using System.Collections.Generic;
-using System.Linq;
-
-using Server;
-using Server.Mobiles;
-using Server.Items;
 using Server.Gumps;
+using Server.Items;
+using Server.Mobiles;
 
 namespace Server.Engines.Astronomy
 {
     public class Willebrord : BaseVendor
     {
-        public static Willebrord TramInstance { get; set; }
-
         protected readonly List<SBInfo> m_SBInfos = new List<SBInfo>();
-        protected override List<SBInfo> SBInfos { get { return m_SBInfos; } }
-        public override bool IsActiveVendor { get { return false; } }
+        public static Willebrord TramInstance { get; set; }
+        protected override List<SBInfo> SBInfos => m_SBInfos;
+        public override bool IsActiveVendor => false;
+
+        public Willebrord()
+            : base("the Astronomer")
+        {
+        }
+
+        public Willebrord(Serial serial)
+            : base(serial)
+        {
+        }
 
         public override void InitSBInfo()
         {
@@ -67,11 +72,6 @@ namespace Server.Engines.Astronomy
             }
         }
 
-        public Willebrord()
-            : base("the Astronomer")
-        {
-        }
-
         public override void InitBody()
         {
             InitStats(100, 100, 25);
@@ -115,7 +115,7 @@ namespace Server.Engines.Astronomy
 
                 if (chart.Constellation >= 0 && chart.Constellation < AstronomySystem.MaxConstellations)
                 {
-                    if (String.IsNullOrEmpty(chart.ConstellationName))
+                    if (string.IsNullOrEmpty(chart.ConstellationName))
                     {
                         m.SendLocalizedMessage(1158751); // You must name your constellation before submitting it.
                     }
@@ -128,11 +128,13 @@ namespace Server.Engines.Astronomy
                             var gump = new Gump(100, 100);
                             gump.AddBackground(0, 0, 720, 270, 0x2454);
                             gump.AddImage(0, 0, 0x69D);
-                            gump.AddHtmlLocalized(290, 14, 418, 18, 1114513, "#1158517", 0xC63, false, false); // Willebrord the Astronomer
+                            gump.AddHtmlLocalized(290, 14, 418, 18, 1114513, "#1158517", 0xC63, false,
+                                false); // Willebrord the Astronomer
 
                             if (info.HasBeenDiscovered)
                             {
-                                m.SendLocalizedMessage(1158764); // That constellation name has already been chosen, please choose another and resubmit your star chart.
+                                m.SendLocalizedMessage(
+                                    1158764); // That constellation name has already been chosen, please choose another and resubmit your star chart.
                                 gump.AddHtmlLocalized(290, 51, 418, 209, 1158530, 0xC63, false, true);
                                 // Sorry to say that constellation has already been discovered! Fix your eyes to the heavens and keep up the searc
                             }
@@ -164,11 +166,6 @@ namespace Server.Engines.Astronomy
             return false;
         }
 
-        public Willebrord(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -180,10 +177,7 @@ namespace Server.Engines.Astronomy
             base.Deserialize(reader);
             reader.ReadInt();
 
-            if (Map == Map.Trammel)
-            {
-                TramInstance = this;
-            }
+            if (Map == Map.Trammel) TramInstance = this;
         }
     }
 }

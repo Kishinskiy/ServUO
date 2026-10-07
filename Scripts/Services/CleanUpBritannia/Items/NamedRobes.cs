@@ -1,12 +1,8 @@
-﻿using System;
-using Server;
-using Server.Gumps;
-
-namespace Server.Items
+﻿namespace Server.Items
 {
     public class HumansAndElvesRobe : Robe
     {
-        public override int LabelNumber { get { return 1151202; } } // Humans & Elves are our friends!
+        public override int LabelNumber => 1151202; // Humans & Elves are our friends!
 
         [Constructable]
         public HumansAndElvesRobe()
@@ -24,20 +20,20 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)1);
+            writer.Write(1);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class GargoylesAreOurFriendsRobe : Robe
     {
-        public override int LabelNumber { get { return 1151203; } } // Gargoyles are our friends!
+        public override int LabelNumber => 1151203; // Gargoyles are our friends!
 
         [Constructable]
         public GargoylesAreOurFriendsRobe()
@@ -55,20 +51,20 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)1);
+            writer.Write(1);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class WeArePiratesRobe : Robe
     {
-        public override int LabelNumber { get { return 1151204; } } // We are pirates!
+        public override int LabelNumber => 1151204; // We are pirates!
 
         [Constructable]
         public WeArePiratesRobe()
@@ -86,20 +82,20 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)1);
+            writer.Write(1);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class FollowerOfBaneRobe : Robe
     {
-        public override int LabelNumber { get { return 1151205; } } // Follower of Bane
+        public override int LabelNumber => 1151205; // Follower of Bane
 
         [Constructable]
         public FollowerOfBaneRobe()
@@ -117,20 +113,20 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)1);
+            writer.Write(1);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class QueenDawnForeverRobe : Robe
     {
-        public override int LabelNumber { get { return 1151206; } } // Queen Dawn Forever
+        public override int LabelNumber => 1151206; // Queen Dawn Forever
 
         [Constructable]
         public QueenDawnForeverRobe()
@@ -148,14 +144,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)1);
+            writer.Write(1);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

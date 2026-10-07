@@ -1,15 +1,12 @@
-using System;
-using System.Linq;
-using System.Collections;
-
-using Server.Items;
-using Server.Spells;
-
 namespace Server.Mobiles
 {
     [CorpseName("a succubus corpse")]
     public class Succubus : BaseCreature
     {
+        public override int Meat => 1;
+
+        public override int TreasureMapLevel => 5;
+
         [Constructable]
         public Succubus()
             : base(AIType.AI_Mage, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -55,20 +52,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override int Meat
-        {
-            get
-            {
-                return 1;
-            }
-        }
-        public override int TreasureMapLevel
-        {
-            get
-            {
-                return 5;
-            }
-        }
         public override void GenerateLoot()
         {
             AddLoot(LootPack.FilthyRich, 2);
@@ -78,13 +61,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

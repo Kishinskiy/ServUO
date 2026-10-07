@@ -1,7 +1,4 @@
-using System;
-using Server;
 using Server.Items;
-using Server.Targeting;
 using Server.Network;
 
 namespace Server.Gumps
@@ -12,46 +9,45 @@ namespace Server.Gumps
         public static readonly int GreenHue = 5057;
         public static readonly int RedHue = 28776;
 
-        private BaseCannon m_Cannon;
-        private Mobile m_From;
+        private readonly Mobile m_From;
 
-        public BaseCannon Cannon { get { return m_Cannon; } }
+        public BaseCannon Cannon { get; }
 
         public CannonGump(BaseCannon cannon, Mobile from)
             : base(50, 50)
         {
-            m_Cannon = cannon;
+            Cannon = cannon;
             m_From = from;
 
             AddBackground(0, 0, 300, 200, 2620);
 
-            Type charge = cannon is LightShipCannon ? typeof(LightPowderCharge) : typeof(HeavyPowderCharge);
+            var charge = cannon is LightShipCannon ? typeof(LightPowderCharge) : typeof(HeavyPowderCharge);
 
-            bool cleaned = cannon.Cleaned;
-            bool charged = cannon.Charged;
-            bool primed = cannon.Primed;
-            bool loaded = cannon.AmmoType != AmmunitionType.Empty;
+            var cleaned = cannon.Cleaned;
+            var charged = cannon.Charged;
+            var primed = cannon.Primed;
+            var loaded = cannon.AmmoType != AmmunitionType.Empty;
 
-            AddHtmlLocalized(0, 10, 300, 16, 1149614 + (int)m_Cannon.Position, 21758, false, false);
+            AddHtmlLocalized(0, 10, 300, 16, 1149614 + (int)Cannon.Position, 21758, false, false);
 
-            AddHtmlLocalized(45, 40, 100, 16, 1149626, LabelColor, false, false);  //CLEAN
+            AddHtmlLocalized(45, 40, 100, 16, 1149626, LabelColor, false, false); //CLEAN
 
-            if(!charged)
-                AddHtmlLocalized(45, 60, 100, 16, 1149630, LabelColor, false, false);  //CHARGE
+            if (!charged)
+                AddHtmlLocalized(45, 60, 100, 16, 1149630, LabelColor, false, false); //CHARGE
             else
-                AddHtmlLocalized(45, 60, 100, 16, 1149629, LabelColor, false, false);  //REMOVE
+                AddHtmlLocalized(45, 60, 100, 16, 1149629, LabelColor, false, false); //REMOVE
 
-            if(!loaded)
-                AddHtmlLocalized(45, 80, 100, 16, 1149635, LabelColor, false, false);  //LOAD
+            if (!loaded)
+                AddHtmlLocalized(45, 80, 100, 16, 1149635, LabelColor, false, false); //LOAD
             else
-                AddHtmlLocalized(45, 80, 100, 16, 1149629, LabelColor, false, false);  //REMOVE
+                AddHtmlLocalized(45, 80, 100, 16, 1149629, LabelColor, false, false); //REMOVE
 
-            if(!primed)
+            if (!primed)
                 AddHtmlLocalized(45, 100, 100, 16, 1149637, LabelColor, false, false); //PRIME
             else if (cannon.CanLight)
                 AddHtmlLocalized(45, 100, 100, 16, 1149638, LabelColor, false, false); //FIRE
             else
-                AddHtmlLocalized(45, 100, 100, 16, 1149629, LabelColor, false, false);  //REMOVE
+                AddHtmlLocalized(45, 100, 100, 16, 1149629, LabelColor, false, false); //REMOVE
 
             if (!cleaned)
                 AddHtmlLocalized(150, 40, 100, 16, 1149628, RedHue, false, false); //Dirty
@@ -66,15 +62,16 @@ namespace Server.Gumps
             if (!loaded)
                 AddHtmlLocalized(150, 80, 100, 16, 1149636, RedHue, false, false); //Not Loaded
             else
-                AddHtmlLocalized(150, 80, 100, 16, 1114057, AmmoInfo.GetAmmoName(cannon).ToString(), GreenHue, false, false);
-                //AddHtmlLocalized(150, 80, 100, 16, cannon.AmmoType == AmmoType.Grapeshot ? 1095741 : 1116029, GreenHue, false, false);
+                AddHtmlLocalized(150, 80, 100, 16, 1114057, AmmoInfo.GetAmmoName(cannon).ToString(), GreenHue, false,
+                    false);
+            //AddHtmlLocalized(150, 80, 100, 16, cannon.AmmoType == AmmoType.Grapeshot ? 1095741 : 1116029, GreenHue, false, false);
 
             if (!primed)
                 AddHtmlLocalized(150, 100, 100, 16, 1149639, RedHue, false, false); //No Fuse
             else
                 AddHtmlLocalized(150, 100, 100, 16, 1149640, GreenHue, false, false); //Primed
 
-            AddButton(10, 40, 0xFA5, 0xFA7,  1, GumpButtonType.Reply, 0);
+            AddButton(10, 40, 0xFA5, 0xFA7, 1, GumpButtonType.Reply, 0);
             AddButton(10, 60, 0xFA5, 0xFA7, 2, GumpButtonType.Reply, 0);
             AddButton(10, 80, 0xFA5, 0xFA7, 3, GumpButtonType.Reply, 0);
             AddButton(10, 100, 0xFA5, 0xFA7, 4, GumpButtonType.Reply, 0);
@@ -82,11 +79,11 @@ namespace Server.Gumps
             if (!cannon.Actions.ContainsKey(from) || cannon.Actions[from].Count == 0)
                 cannon.AddAction(from, 1149653); //You are now operating the cannon.
 
-            int y = 170;
-            int count = cannon.Actions[from].Count - 1;
-            int hue = 0;
+            var y = 170;
+            var count = cannon.Actions[from].Count - 1;
+            var hue = 0;
 
-            for (int i = count; i >= 0; i--)
+            for (var i = count; i >= 0; i--)
             {
                 if (i < count - 3)
                     break;
@@ -102,9 +99,9 @@ namespace Server.Gumps
 
         public override void OnResponse(NetState sender, RelayInfo info)
         {
-            Mobile from = sender.Mobile;
+            var from = sender.Mobile;
 
-            if (m_Cannon == null || m_Cannon.Deleted || !from.InRange(m_Cannon.Location, 3))
+            if (Cannon == null || Cannon.Deleted || !from.InRange(Cannon.Location, 3))
                 return;
 
             switch (info.ButtonID)
@@ -112,31 +109,31 @@ namespace Server.Gumps
                 default:
                 case 0: return;
                 case 1: //clean
-                    m_Cannon.TryClean(from);
+                    Cannon.TryClean(from);
                     break;
                 case 2: //Charge
-                    if (!m_Cannon.Charged)
-                        m_Cannon.TryCharge(from);
+                    if (!Cannon.Charged)
+                        Cannon.TryCharge(from);
                     else
-                        m_Cannon.RemoveCharge(from);
+                        Cannon.RemoveCharge(from);
                     break;
                 case 3: //load
-                    if (m_Cannon.AmmoType == AmmunitionType.Empty)
-                        m_Cannon.TryLoad(from);
+                    if (Cannon.AmmoType == AmmunitionType.Empty)
+                        Cannon.TryLoad(from);
                     else
-                        m_Cannon.RemoveLoad(from);
+                        Cannon.RemoveLoad(from);
                     break;
                 case 4: //prime
-                    if (!m_Cannon.Primed)
-                        m_Cannon.TryPrime(from);
-                    else if (m_Cannon.CanLight)
-                        m_Cannon.TryLightFuse(from);
+                    if (!Cannon.Primed)
+                        Cannon.TryPrime(from);
+                    else if (Cannon.CanLight)
+                        Cannon.TryLightFuse(from);
                     else
-                        m_Cannon.RemovePrime(from);
+                        Cannon.RemovePrime(from);
                     break;
             }
 
-            from.SendGump(new CannonGump(m_Cannon, m_From));
+            from.SendGump(new CannonGump(Cannon, m_From));
         }
     }
 }

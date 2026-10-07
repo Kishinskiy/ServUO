@@ -1,8 +1,4 @@
-using Server;
 using System;
-using System.Collections.Generic;
-using Server.Mobiles;
-using Server.Gumps;
 using Server.Engines.Quests.Haven;
 
 namespace Server.Items
@@ -11,12 +7,12 @@ namespace Server.Items
     {
         public static void Generate()
         {
-            ExperimentalRoomController controller = new ExperimentalRoomController();
+            var controller = new ExperimentalRoomController();
             controller.MoveToWorld(new Point3D(980, 1117, -42), Map.TerMur);
 
             //Room 0 to 1
-            ExperimentalRoomDoor door = new ExperimentalRoomDoor(Room.RoomZero, DoorFacing.WestCCW);
-            ExperimentalRoomBlocker blocker = new ExperimentalRoomBlocker(Room.RoomZero);
+            var door = new ExperimentalRoomDoor(Room.RoomZero, DoorFacing.WestCCW);
+            var blocker = new ExperimentalRoomBlocker(Room.RoomZero);
             door.Hue = 1109;
             door.MoveToWorld(new Point3D(984, 1116, -42), Map.TerMur);
             blocker.MoveToWorld(new Point3D(984, 1116, -42), Map.TerMur);
@@ -82,28 +78,28 @@ namespace Server.Items
             WeakEntityCollection.Add("sa", door);
             WeakEntityCollection.Add("sa", blocker);
 
-            ExperimentalRoomChest chest = new ExperimentalRoomChest();
+            var chest = new ExperimentalRoomChest();
             chest.MoveToWorld(new Point3D(984, 1064, -37), Map.TerMur);
             WeakEntityCollection.Add("sa", chest);
 
-            ExperimentalBook instr = new ExperimentalBook();
+            var instr = new ExperimentalBook();
             instr.Movable = false;
             instr.MoveToWorld(new Point3D(995, 1114, -36), Map.TerMur);
             WeakEntityCollection.Add("sa", instr);
 
-            SecretDungeonDoor dd = new SecretDungeonDoor(DoorFacing.NorthCCW);
+            var dd = new SecretDungeonDoor(DoorFacing.NorthCCW);
             dd.ClosedID = 87;
             dd.OpenedID = 88;
             dd.MoveToWorld(new Point3D(1007, 1119, -42), Map.TerMur);
             WeakEntityCollection.Add("sa", dd);
 
-            LocalizedSign sign = new LocalizedSign(3026, 1113407);  // Experimental Room Access
+            var sign = new LocalizedSign(3026, 1113407); // Experimental Room Access
             sign.Movable = false;
             sign.MoveToWorld(new Point3D(980, 1119, -37), Map.TerMur);
             WeakEntityCollection.Add("sa", sign);
 
             //Puzze Room
-            PuzzleBox box = new PuzzleBox(PuzzleType.WestBox);
+            var box = new PuzzleBox(PuzzleType.WestBox);
             box.MoveToWorld(new Point3D(1090, 1171, 11), Map.TerMur);
             WeakEntityCollection.Add("sa", box);
 
@@ -115,12 +111,12 @@ namespace Server.Items
             box.MoveToWorld(new Point3D(1097, 1163, 11), Map.TerMur);
             WeakEntityCollection.Add("sa", box);
 
-            PuzzleBook book = new PuzzleBook();
+            var book = new PuzzleBook();
             book.Movable = false;
             book.MoveToWorld(new Point3D(1109, 1153, -17), Map.TerMur);
             WeakEntityCollection.Add("sa", book);
 
-            PuzzleRoomTeleporter tele = new PuzzleRoomTeleporter();
+            var tele = new PuzzleRoomTeleporter();
             tele.PointDest = new Point3D(1097, 1173, 1);
             tele.MapDest = Map.TerMur;
             tele.MoveToWorld(new Point3D(1097, 1175, 0), Map.TerMur);
@@ -132,7 +128,7 @@ namespace Server.Items
             tele.MoveToWorld(new Point3D(1098, 1175, 0), Map.TerMur);
             WeakEntityCollection.Add("sa", tele);
 
-            MetalDoor2 door2 = new MetalDoor2(DoorFacing.WestCCW);
+            var door2 = new MetalDoor2(DoorFacing.WestCCW);
             door2.Locked = true;
             door2.KeyValue = 50000;
             door2.MoveToWorld(new Point3D(1097, 1174, 1), Map.TerMur);
@@ -144,7 +140,7 @@ namespace Server.Items
             door2.MoveToWorld(new Point3D(1098, 1174, 1), Map.TerMur);
             WeakEntityCollection.Add("sa", door);
 
-            Teleporter telep = new Teleporter();
+            var telep = new Teleporter();
             telep.PointDest = new Point3D(1097, 1175, 0);
             telep.MapDest = Map.TerMur;
             telep.MoveToWorld(new Point3D(1097, 1173, 1), Map.TerMur);
@@ -162,16 +158,16 @@ namespace Server.Items
             telep.MoveToWorld(new Point3D(980, 1064, -42), Map.TerMur);
             WeakEntityCollection.Add("sa", telep);
 
-            Static sparkle = new Static(14138);
+            var sparkle = new Static(14138);
             sparkle.MoveToWorld(new Point3D(980, 1064, -42), Map.TerMur);
             WeakEntityCollection.Add("sa", sparkle);
 
             //Maze of Death
-            UnderworldPuzzleBox pBox = new UnderworldPuzzleBox();
+            var pBox = new UnderworldPuzzleBox();
             pBox.MoveToWorld(new Point3D(1068, 1026, -37), Map.TerMur);
             WeakEntityCollection.Add("sa", pBox);
 
-            GoldenCompass compass = new GoldenCompass();
+            var compass = new GoldenCompass();
             compass.MoveToWorld(new Point3D(1070, 1055, -34), Map.TerMur);
             WeakEntityCollection.Add("sa", compass);
 
@@ -180,7 +176,7 @@ namespace Server.Items
             map.Movable = false;
             WeakEntityCollection.Add("sa", map);
 
-            FountainOfFortune f = new FountainOfFortune();
+            var f = new FountainOfFortune();
             f.MoveToWorld(new Point3D(1121, 957, -42), Map.TerMur);
             WeakEntityCollection.Add("sa", f);
 
@@ -244,20 +240,16 @@ namespace Server.Items
 
         public static void GenerateRevealTiles()
         {
-            Map map = Map.TerMur;
+            var map = Map.TerMur;
 
-            for (int x = 1182; x <= 1192; x++)
-            {
-                for (int y = 1120; y <= 1134; y++)
+            for (var x = 1182; x <= 1192; x++)
+            for (var y = 1120; y <= 1134; y++)
+                if (map != null && map.CanSpawnMobile(x, y, -42))
                 {
-                    if (map != null && map.CanSpawnMobile(x, y, -42))
-                    {
-                        var t = new RevealTile();
-                        t.MoveToWorld(new Point3D(x, y, -42), map);
-                        WeakEntityCollection.Add("sa", t);
-                    }
+                    var t = new RevealTile();
+                    t.MoveToWorld(new Point3D(x, y, -42), map);
+                    WeakEntityCollection.Add("sa", t);
                 }
-            }
 
             var tile = new RevealTile();
             tile.MoveToWorld(new Point3D(1180, 883, 0), map);
@@ -282,7 +274,7 @@ namespace Server.Items
 
         public static void CheckCannoneers()
         {
-            Cannon cannon = Map.TerMur.FindItem<Cannon>(new Point3D(1126, 1200, -2));
+            var cannon = Map.TerMur.FindItem<Cannon>(new Point3D(1126, 1200, -2));
             MilitiaCanoneer cannoneer = null;
 
             if (cannon == null)
@@ -299,7 +291,6 @@ namespace Server.Items
                 cannoneer = new MilitiaCanoneer();
                 cannoneer.MoveToWorld(new Point3D(1126, 1203, -2), Map.TerMur);
                 WeakEntityCollection.Add("sa", cannoneer);
-
             }
 
             cannon.Canoneer = cannoneer;

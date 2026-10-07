@@ -4,13 +4,12 @@
  * Compiled & Modified by: [Feng / UO Wildlands Team]
  * * Licensed under the GNU General Public License v3.0 (GPL-3.0)
  */
+
 using System;
 using System.Collections.Generic;
-using Server;
 using Server.Commands;
 using Server.Gumps;
-using Server.Items;
-using Server.Mobiles;
+using Server.Network;
 
 namespace Server.Custom.TownHouses
 {
@@ -19,27 +18,27 @@ namespace Server.Custom.TownHouses
         public static bool UseAccountOwnership = false;
         public static int HighlightStep = 2;
         public static TimeSpan HighlightDuration = TimeSpan.FromSeconds(30);
-        public static int MaxOwnedHouses = 3;   // new
+        public static int MaxOwnedHouses = 3; // new
     }
 
     /// <summary>
-    /// Registry + GM tools + events. 
+    ///     Registry + GM tools + events.
     /// </summary>
     public static class TownHouseSystem
     {
         private static readonly List<TownHouseController> _houses = new List<TownHouseController>();
 
-        public static IReadOnlyList<TownHouseController> Houses { get { return _houses; } }
-
         public static Action<TownHouseController, Mobile> OnPurchased;
         public static Action<TownHouseController> OnEvicted;
+
+        public static IReadOnlyList<TownHouseController> Houses => _houses;
 
         public static int GetOwnedCount(Mobile m)
         {
             if (m == null) return 0;
-            int count = 0;
-            bool useAccount = TownHouseConfig.UseAccountOwnership;
-            foreach (TownHouseController c in _houses)
+            var count = 0;
+            var useAccount = TownHouseConfig.UseAccountOwnership;
+            foreach (var c in _houses)
             {
                 if (c == null || c.Deleted) continue;
                 if (c.Owner == null) continue;
@@ -54,25 +53,26 @@ namespace Server.Custom.TownHouses
                         count++;
                 }
             }
+
             return count;
         }
 
         public static void Initialize()
-{
-    EventSink.WorldLoad += new WorldLoadEventHandler(OnWorldLoad);
-    CommandSystem.Register("TownHouses", AccessLevel.GameMaster, new CommandEventHandler(TownHouses_OnCommand));
-
-    // This tells the system: "Whenever a house is purchased, do this:"
-    OnPurchased += (house, player) =>
-    {
-        if (player != null)
         {
-            
-            player.PlaySound(0x5A7); 
-            player.SendMessage("The property deed has been registered in your name.");
+            EventSink.WorldLoad += OnWorldLoad;
+            CommandSystem.Register("TownHouses", AccessLevel.GameMaster, TownHouses_OnCommand);
+
+            // This tells the system: "Whenever a house is purchased, do this:"
+            OnPurchased += (house, player) =>
+            {
+                if (player != null)
+                {
+                    player.PlaySound(0x5A7);
+                    player.SendMessage("The property deed has been registered in your name.");
+                }
+            };
         }
-    };
-}
+
         private static void OnWorldLoad()
         {
             Rebuild();
@@ -99,9 +99,9 @@ namespace Server.Custom.TownHouses
         {
             _houses.Clear();
 
-            foreach (Item item in World.Items.Values)
+            foreach (var item in World.Items.Values)
             {
-                TownHouseController c = item as TownHouseController;
+                var c = item as TownHouseController;
                 if (c != null && !c.Deleted)
                     _houses.Add(c);
             }
@@ -109,24 +109,23 @@ namespace Server.Custom.TownHouses
 
         private static void TownHouses_OnCommand(CommandEventArgs e)
         {
-            Mobile from = e.Mobile;
+            var from = e.Mobile;
 
             from.CloseGump(typeof(TownHouseIndexGump));
             from.SendGump(new TownHouseIndexGump(from, 0));
         }
     }
 
-public class TownHouseIndexGump : Gump
+    public class TownHouseIndexGump : Gump
     {
-        private readonly Mobile m_From;
-        private readonly int m_Page;
-
         private const int PerPage = 14;
 
         // Colors from Sign Gump
         private const int LabelHue = 0x481;
         private const int HeaderHue = 0x35;
         private const int TitleColor = 0xFFD700;
+        private readonly Mobile m_From;
+        private readonly int m_Page;
 
         public TownHouseIndexGump(Mobile from, int page) : base(70, 50)
         {
@@ -143,31 +142,33 @@ public class TownHouseIndexGump : Gump
             AddBackground(0, 0, 720, 500, 9270);
             AddAlphaRegion(10, 10, 700, 480);
 
-            AddHtml(10, 20, 700, 25, string.Format("<CENTER><BASEFONT COLOR=#{0:X6}>TOWN HOUSE GLOBAL INDEX</BASEFONT></CENTER>", TitleColor), false, false);
+            AddHtml(10, 20, 700, 25,
+                string.Format("<CENTER><BASEFONT COLOR=#{0:X6}>TOWN HOUSE GLOBAL INDEX</BASEFONT></CENTER>",
+                    TitleColor), false, false);
             AddImageTiled(20, 45, 680, 2, 96);
 
             // Shifted Refresh Section to the left for better spacing
             AddButton(580, 55, 4017, 4019, 900, GumpButtonType.Reply, 0);
             AddLabel(615, 55, LabelHue, "Refresh");
 
-            List<TownHouseController> list = new List<TownHouseController>();
-            foreach (TownHouseController c in TownHouseSystem.Houses)
+            var list = new List<TownHouseController>();
+            foreach (var c in TownHouseSystem.Houses)
                 if (c != null && !c.Deleted)
                     list.Add(c);
 
-            int total = list.Count;
-            int maxPage = (total == 0) ? 0 : (total - 1) / PerPage;
+            var total = list.Count;
+            var maxPage = total == 0 ? 0 : (total - 1) / PerPage;
 
             if (page < 0) page = 0;
             if (page > maxPage) page = maxPage;
 
-            int start = page * PerPage;
-            int end = Math.Min(start + PerPage, total);
+            var start = page * PerPage;
+            var end = Math.Min(start + PerPage, total);
 
             AddLabel(22, 55, LabelHue, string.Format("Total: {0}    Page: {1}/{2}", total, page + 1, maxPage + 1));
 
             // Headers - Shifted for clarity
-            int y = 85;
+            var y = 85;
             AddLabel(25, y, HeaderHue, "MAP");
             AddLabel(100, y, HeaderHue, "LOCATION");
             AddLabel(215, y, HeaderHue, "STATE");
@@ -175,13 +176,13 @@ public class TownHouseIndexGump : Gump
             AddLabel(500, y, HeaderHue, "ACTIONS");
             y += 22;
 
-            int buttonId = 1000;
-            for (int i = start; i < end; i++)
+            var buttonId = 1000;
+            for (var i = start; i < end; i++)
             {
-                TownHouseController c = list[i];
-                string map = (c.Map != null ? c.Map.Name : "Internal");
-                string loc = string.Format("{0}, {1}, {2}", c.X, c.Y, c.Z);
-                string owner = (c.Owner != null ? c.Owner.Name : "- Unowned -");
+                var c = list[i];
+                var map = c.Map != null ? c.Map.Name : "Internal";
+                var loc = string.Format("{0}, {1}, {2}", c.X, c.Y, c.Z);
+                var owner = c.Owner != null ? c.Owner.Name : "- Unowned -";
 
                 AddLabel(25, y, LabelHue, map);
                 AddLabel(100, y, LabelHue, loc);
@@ -189,8 +190,8 @@ public class TownHouseIndexGump : Gump
                 AddLabel(325, y, LabelHue, owner);
 
                 // Actions Section - Shifted Left with better spacing
-                int btnX = 480;
-                
+                var btnX = 480;
+
                 // Go Button
                 AddButton(btnX, y + 3, 2117, 2118, buttonId + 0, GumpButtonType.Reply, 0);
                 AddLabel(btnX + 20, y, LabelHue, "Go");
@@ -215,25 +216,39 @@ public class TownHouseIndexGump : Gump
                 AddButton(670, 460, 4005, 4007, 902, GumpButtonType.Reply, 0); // Next
         }
 
-        public override void OnResponse(Server.Network.NetState sender, RelayInfo info)
+        public override void OnResponse(NetState sender, RelayInfo info)
         {
-            int id = info.ButtonID;
+            var id = info.ButtonID;
 
             if (id == 0) return;
-            if (id == 900) { m_From.SendGump(new TownHouseIndexGump(m_From, m_Page)); return; }
-            if (id == 901) { m_From.SendGump(new TownHouseIndexGump(m_From, m_Page - 1)); return; }
-            if (id == 902) { m_From.SendGump(new TownHouseIndexGump(m_From, m_Page + 1)); return; }
+            if (id == 900)
+            {
+                m_From.SendGump(new TownHouseIndexGump(m_From, m_Page));
+                return;
+            }
 
-            List<TownHouseController> list = new List<TownHouseController>();
-            foreach (TownHouseController c in TownHouseSystem.Houses)
+            if (id == 901)
+            {
+                m_From.SendGump(new TownHouseIndexGump(m_From, m_Page - 1));
+                return;
+            }
+
+            if (id == 902)
+            {
+                m_From.SendGump(new TownHouseIndexGump(m_From, m_Page + 1));
+                return;
+            }
+
+            var list = new List<TownHouseController>();
+            foreach (var c in TownHouseSystem.Houses)
                 if (c != null && !c.Deleted)
                     list.Add(c);
 
-            int start = m_Page * PerPage;
-            int offset = id - 1000;
-            int row = offset / 3;
-            int action = offset % 3;
-            int index = start + row;
+            var start = m_Page * PerPage;
+            var offset = id - 1000;
+            var row = offset / 3;
+            var action = offset % 3;
+            var index = start + row;
 
             if (index < 0 || index >= list.Count)
             {
@@ -241,7 +256,7 @@ public class TownHouseIndexGump : Gump
                 return;
             }
 
-            TownHouseController house = list[index];
+            var house = list[index];
             if (house == null || house.Deleted)
             {
                 m_From.SendGump(new TownHouseIndexGump(m_From, m_Page));

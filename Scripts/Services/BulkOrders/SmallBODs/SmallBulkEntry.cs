@@ -8,155 +8,41 @@ namespace Server.Engines.BulkOrders
     public class SmallBulkEntry
     {
         private static Hashtable m_Cache;
-        private Type m_Type;
-        private int m_Number;
-        private int m_Graphic;
-        private int m_Hue;
+
+        public static SmallBulkEntry[] BlacksmithWeapons => GetEntries("Blacksmith", "weapons");
+
+        public static SmallBulkEntry[] BlacksmithArmor => GetEntries("Blacksmith", "armor");
+
+        public static SmallBulkEntry[] TailorCloth => GetEntries("Tailoring", "cloth");
+
+        public static SmallBulkEntry[] TailorLeather => GetEntries("Tailoring", "leather");
+        public Type Type { get; }
+
+        public int Number { get; set; }
+
+        public int Graphic { get; }
+
+        public int Hue { get; }
 
         public SmallBulkEntry(Type type, int number, int graphic, int hue)
         {
-            m_Type = type;
-            m_Number = number;
-            m_Graphic = graphic;
-            m_Hue = hue;
+            Type = type;
+            Number = number;
+            Graphic = graphic;
+            Hue = hue;
         }
 
-        public static SmallBulkEntry[] BlacksmithWeapons
-        {
-            get
-            {
-                return GetEntries("Blacksmith", "weapons");
-            }
-        }
-        public static SmallBulkEntry[] BlacksmithArmor
-        {
-            get
-            {
-                return GetEntries("Blacksmith", "armor");
-            }
-        }
-        public static SmallBulkEntry[] TailorCloth
-        {
-            get
-            {
-                return GetEntries("Tailoring", "cloth");
-            }
-        }
-        public static SmallBulkEntry[] TailorLeather
-        {
-            get
-            {
-                return GetEntries("Tailoring", "leather");
-            }
-        }
-        #region Publish 95 BODs
-        public static SmallBulkEntry[] TinkeringSmalls
-        {
-            get
-            {
-                return GetEntries("Tinkering", "smalls");
-            }
-        }
-        public static SmallBulkEntry[] TinkeringSmallsRegular
-        {
-            get
-            {
-                return GetEntries("Tinkering", "smallsregular");
-            }
-        }
-        public static SmallBulkEntry[] CarpentrySmalls
-        {
-            get
-            {
-                return GetEntries("Carpentry", "smalls");
-            }
-        }
-        public static SmallBulkEntry[] InscriptionSmalls
-        {
-            get
-            {
-                return GetEntries("Inscription", "smalls");
-            }
-        }
-        public static SmallBulkEntry[] CookingSmalls
-        {
-            get
-            {
-                return GetEntries("Cooking", "smalls");
-            }
-        }
-        public static SmallBulkEntry[] CookingSmallsRegular
-        {
-            get
-            {
-                return GetEntries("Cooking", "smallsregular");
-            }
-        }
-        public static SmallBulkEntry[] FletchingSmalls
-        {
-            get
-            {
-                return GetEntries("Fletching", "smalls");
-            }
-        }
-        public static SmallBulkEntry[] FletchingSmallsRegular
-        {
-            get
-            {
-                return GetEntries("Fletching", "smallsregular");
-            }
-        }
-        public static SmallBulkEntry[] AlchemySmalls
-        {
-            get
-            {
-                return GetEntries("Alchemy", "smalls");
-            }
-        }
-        #endregion
-        public Type Type
-        {
-            get
-            {
-                return m_Type;
-            }
-        }
-        public int Number
-        {
-            get
-            {
-                return m_Number;
-            }
-            set
-            {
-                m_Number = value;
-            }
-        }
-        public int Graphic
-        {
-            get
-            {
-                return m_Graphic;
-            }
-        }
-        public int Hue
-        {
-            get
-            {
-                return m_Hue;
-            }
-        }
         public static SmallBulkEntry[] GetEntries(string type, string name)
         {
             if (m_Cache == null)
                 m_Cache = new Hashtable();
 
-            Hashtable table = (Hashtable)m_Cache[type];
+            var table = (Hashtable)m_Cache[type];
 
             if (table == null)
                 m_Cache[type] = table = new Hashtable();
 
-            SmallBulkEntry[] entries = (SmallBulkEntry[])table[name];
+            var entries = (SmallBulkEntry[])table[name];
 
             if (entries == null)
                 table[name] = entries = LoadEntries(type, name);
@@ -166,18 +52,17 @@ namespace Server.Engines.BulkOrders
 
         public static SmallBulkEntry[] LoadEntries(string type, string name)
         {
-            return LoadEntries(String.Format("Data/Bulk Orders/{0}/{1}.cfg", type, name));
+            return LoadEntries(string.Format("Data/Bulk Orders/{0}/{1}.cfg", type, name));
         }
 
         public static SmallBulkEntry[] LoadEntries(string path)
         {
             path = Path.Combine(Core.BaseDirectory, path);
 
-            List<SmallBulkEntry> list = new List<SmallBulkEntry>();
+            var list = new List<SmallBulkEntry>();
 
             if (File.Exists(path))
-            {
-                using (StreamReader ip = new StreamReader(path))
+                using (var ip = new StreamReader(path))
                 {
                     string line;
 
@@ -188,65 +73,76 @@ namespace Server.Engines.BulkOrders
                          * arg 3 - Cliloc
                          * arg 4 - hue
                          */
-
                         if (line.Length == 0 || line.StartsWith("#"))
                             continue;
 
                         try
                         {
-                            string[] split = line.Split(',');
+                            var split = line.Split(',');
 
                             if (split.Length <= 2)
                             {
-                                Type type = ScriptCompiler.FindTypeByName(split[0]);
-                                int graphic = Utility.ToInt32(split[1]);
+                                var type = ScriptCompiler.FindTypeByName(split[0]);
+                                var graphic = Utility.ToInt32(split[1]);
 
                                 if (type != null && graphic > 0)
-                                {
-                                    list.Add(new SmallBulkEntry(type, graphic < 0x4000 ? 1020000 + graphic : 1078872 + graphic, graphic, 0));
-                                }
+                                    list.Add(new SmallBulkEntry(type,
+                                        graphic < 0x4000 ? 1020000 + graphic : 1078872 + graphic, graphic, 0));
                                 else
-                                {
-                                    Console.WriteLine("Error Loading BOD Entry at {2}, [Type: {0}], [graphic: {1}]", split[0], graphic.ToString(), path);
-                                }
+                                    Console.WriteLine("Error Loading BOD Entry at {2}, [Type: {0}], [graphic: {1}]",
+                                        split[0], graphic.ToString(), path);
                             }
                             else if (split.Length >= 3)
                             {
                                 int name, hue;
 
-                                Type type = ScriptCompiler.FindTypeByName(split[0]);
-                                int graphic = Utility.ToInt32(split[1]);
+                                var type = ScriptCompiler.FindTypeByName(split[0]);
+                                var graphic = Utility.ToInt32(split[1]);
 
                                 name = Utility.ToInt32(split[2]);
 
                                 if (split.Length >= 4)
-                                {
                                     hue = Utility.ToInt32(split[3]);
-                                }
                                 else
-                                {
                                     hue = 0;
-                                }
 
                                 if (type != null && graphic > 0)
-                                {
                                     list.Add(new SmallBulkEntry(type, name, graphic, hue));
-                                }
                                 else
-                                {
-                                    Console.WriteLine("Error Loading BOD Entry at {2}, [Type: {0}], [graphic: {1}]", split[0], graphic.ToString(), path);
-                                }
+                                    Console.WriteLine("Error Loading BOD Entry at {2}, [Type: {0}], [graphic: {1}]",
+                                        split[0], graphic.ToString(), path);
                             }
                         }
-                        catch(Exception e)
+                        catch (Exception e)
                         {
                             Console.WriteLine(e);
                         }
                     }
                 }
-            }
 
             return list.ToArray();
         }
+
+        #region Publish 95 BODs
+
+        public static SmallBulkEntry[] TinkeringSmalls => GetEntries("Tinkering", "smalls");
+
+        public static SmallBulkEntry[] TinkeringSmallsRegular => GetEntries("Tinkering", "smallsregular");
+
+        public static SmallBulkEntry[] CarpentrySmalls => GetEntries("Carpentry", "smalls");
+
+        public static SmallBulkEntry[] InscriptionSmalls => GetEntries("Inscription", "smalls");
+
+        public static SmallBulkEntry[] CookingSmalls => GetEntries("Cooking", "smalls");
+
+        public static SmallBulkEntry[] CookingSmallsRegular => GetEntries("Cooking", "smallsregular");
+
+        public static SmallBulkEntry[] FletchingSmalls => GetEntries("Fletching", "smalls");
+
+        public static SmallBulkEntry[] FletchingSmallsRegular => GetEntries("Fletching", "smallsregular");
+
+        public static SmallBulkEntry[] AlchemySmalls => GetEntries("Alchemy", "smalls");
+
+        #endregion
     }
 }

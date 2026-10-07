@@ -1,16 +1,32 @@
-using System;
+using Server.Network;
 
 namespace Server.Items
 {
     [FlipableAttribute(0xA4B2, 0xA4B1)]
     public class DoveCage : Item, IDyable
     {
-        public override int LabelNumber { get { return 1126185; } } // cage
+        private static readonly string[] _Names =
+        {
+            "White-Winged", "Jobi", "Golden Heart", "White-Tipped", "Collared", "Common Ground", "Ruddy Quail",
+            "Thick-Billed Ground", "Celebes Quail", "Dragon Turtle",
+            "Crested Quail", "HeartWood", "Grey-Fronted", "Bronzewing", "Grey-Headed", "Brown Cuckoo",
+            "Red Dragon Turtle", "Rock", "Namaqua", "Laughing", "Bar Shoulder",
+            "Whistling", "Zenaida", "Red-Eyed", "Inca", "Eared", "Wood"
+        };
 
         private string _DisplayName;
+        public override int LabelNumber => 1126185; // cage
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public string DisplayName { get { return _DisplayName; } set { _DisplayName = value; InvalidateProperties(); } }
+        public string DisplayName
+        {
+            get => _DisplayName;
+            set
+            {
+                _DisplayName = value;
+                InvalidateProperties();
+            }
+        }
 
         [Constructable]
         public DoveCage()
@@ -19,12 +35,10 @@ namespace Server.Items
             _DisplayName = _Names[Utility.Random(_Names.Length)];
         }
 
-        private static string[] _Names =
+        public DoveCage(Serial serial)
+            : base(serial)
         {
-            "White-Winged", "Jobi", "Golden Heart", "White-Tipped", "Collared", "Common Ground", "Ruddy Quail", "Thick-Billed Ground", "Celebes Quail", "Dragon Turtle",
-            "Crested Quail", "HeartWood", "Grey-Fronted", "Bronzewing", "Grey-Headed", "Brown Cuckoo", "Red Dragon Turtle", "Rock", "Namaqua", "Laughing", "Bar Shoulder",
-            "Whistling", "Zenaida", "Red-Eyed", "Inca", "Eared", "Wood"
-        };
+        }
 
         public bool Dye(Mobile from, DyeTub sender)
         {
@@ -41,32 +55,21 @@ namespace Server.Items
             base.GetProperties(list);
 
             if (!string.IsNullOrEmpty(_DisplayName))
-            {
                 list.Add(1159261, _DisplayName); // A Cage With A Single ~1_WHERE~ Dove
-            }
-        }
-
-        public DoveCage(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void OnDoubleClick(Mobile m)
         {
             if (!m.InRange(GetWorldLocation(), 3))
-            {
-                m.LocalOverheadMessage(Network.MessageType.Regular, 0x3B2, 1019045); // I can't reach that.
-            }
+                m.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1019045); // I can't reach that.
             else
-            {
                 Effects.PlaySound(m.Location, m.Map, 1663);
-            }
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
 
             writer.Write(_DisplayName);
         }
@@ -74,7 +77,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             _DisplayName = reader.ReadString();
         }

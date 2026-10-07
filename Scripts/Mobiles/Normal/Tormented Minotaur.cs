@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +5,10 @@ namespace Server.Mobiles
     [CorpseName("a tormented minotaur corpse")]
     public class TormentedMinotaur : BaseCreature
     {
+        public override Poison PoisonImmune => Poison.Deadly;
+
+        public override int TreasureMapLevel => 3;
+
         [Constructable]
         public TormentedMinotaur()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -44,21 +47,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override Poison PoisonImmune
-        {
-            get
-            {
-                return Poison.Deadly;
-            }
-        }
-        public override int TreasureMapLevel
-        {
-            get
-            {
-                return 3;
-            }
-        }
-
         public override void GenerateLoot()
         {
             AddLoot(LootPack.FilthyRich, 10);
@@ -93,14 +81,14 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

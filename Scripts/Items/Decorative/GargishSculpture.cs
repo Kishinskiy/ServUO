@@ -1,15 +1,15 @@
-using System;
-
 namespace Server.Items
 {
     [FlipableAttribute(0x403F, 0x4040)]
     public class GargishSculpture : Item
     {
+        public override bool ForceShowProperties => ObjectPropertyList.Enabled;
+
         [Constructable]
         public GargishSculpture()
             : base(0x403F)
         {
-            this.Weight = 1.0;
+            Weight = 1.0;
         }
 
         public GargishSculpture(Serial serial)
@@ -17,25 +17,18 @@ namespace Server.Items
         {
         }
 
-        public override bool ForceShowProperties
-        {
-            get
-            {
-                return ObjectPropertyList.Enabled;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

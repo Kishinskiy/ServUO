@@ -1,8 +1,9 @@
-﻿using Server;
-using System;
+﻿using System;
 using Server.Commands;
-using Server.Mobiles;
 using Server.Engines.Quests;
+using Server.Gumps;
+using Server.Mobiles;
+using Server.Regions;
 
 namespace Server.Items
 {
@@ -24,7 +25,7 @@ namespace Server.Items
             if (CharydbisSpawner.SpawnInstance == null)
                 e.Mobile.SendMessage("Charydbis spawner does not exist.");
             else
-                e.Mobile.SendGump(new Server.Gumps.PropertiesGump(e.Mobile, CharydbisSpawner.SpawnInstance));
+                e.Mobile.SendGump(new PropertiesGump(e.Mobile, CharydbisSpawner.SpawnInstance));
         }
 
         public static void DeleteHS(CommandEventArgs e)
@@ -40,7 +41,7 @@ namespace Server.Items
 
         public static void GenerateDeco(CommandEventArgs e)
         {
-            string name = "highseas";
+            var name = "highseas";
 
             CharydbisSpawner.GenerateCharydbisSpawner();
             BountyQuestSpawner.GenerateShipSpawner();
@@ -56,7 +57,7 @@ namespace Server.Items
             WeakEntityCollection.Add(name, altar);
 
             ProfessionalBountyBoard board;
-            
+
             board = new ProfessionalBountyBoard();
             board.MoveToWorld(new Point3D(4544, 2298, -1), Map.Trammel);
             WeakEntityCollection.Add(name, board);
@@ -88,7 +89,7 @@ namespace Server.Items
             WeakEntityCollection.Add(name, sign);
 
             XmlSpawner sp;
-            string toSpawn = "FishMonger";
+            var toSpawn = "FishMonger";
 
             //Britain
             sp = new XmlSpawner(toSpawn);
@@ -447,16 +448,16 @@ namespace Server.Items
             sp.Respawn();
             WeakEntityCollection.Add(name, sp);
 
-            SeaMarketBuoy bouy1 = new SeaMarketBuoy();
-            SeaMarketBuoy bouy2 = new SeaMarketBuoy();
-            SeaMarketBuoy bouy3 = new SeaMarketBuoy();
-            SeaMarketBuoy bouy4 = new SeaMarketBuoy();
-            SeaMarketBuoy bouy5 = new SeaMarketBuoy();
-            SeaMarketBuoy bouy6 = new SeaMarketBuoy();
-            SeaMarketBuoy bouy7 = new SeaMarketBuoy();
-            SeaMarketBuoy bouy8 = new SeaMarketBuoy();
+            var bouy1 = new SeaMarketBuoy();
+            var bouy2 = new SeaMarketBuoy();
+            var bouy3 = new SeaMarketBuoy();
+            var bouy4 = new SeaMarketBuoy();
+            var bouy5 = new SeaMarketBuoy();
+            var bouy6 = new SeaMarketBuoy();
+            var bouy7 = new SeaMarketBuoy();
+            var bouy8 = new SeaMarketBuoy();
 
-            Rectangle2D bound = Server.Regions.SeaMarketRegion.Bounds[0];
+            var bound = SeaMarketRegion.Bounds[0];
 
             bouy1.MoveToWorld(new Point3D(bound.X, bound.Y, -5), Map.Felucca);
             bouy2.MoveToWorld(new Point3D(bound.X, bound.Y, -5), Map.Trammel);

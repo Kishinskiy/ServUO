@@ -1,7 +1,5 @@
-using System;
-using Server;
-using Server.Network;
 using Server.Items;
+using Server.Network;
 
 namespace Server.Engines.TreasuresOfKotlCity
 {
@@ -17,29 +15,24 @@ namespace Server.Engines.TreasuresOfKotlCity
 
             KeyValue = Key.RandomValue();
 
-            if(Instance == null)
+            if (Instance == null)
                 Instance = this;
-        }
-
-        public override void OnDoubleClick(Mobile from)
-        {
-            if (!from.InRange(this.GetWorldLocation(), 2))
-            {
-                from.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1019045); // I can't reach that.
-            }
-            else if (Locked)
-            {
-                from.PrivateOverheadMessage(MessageType.Regular, 0x3B2, 1157017, from.NetState); // *The door is sealed shut. There is likely a switch that controls it nearby.*
-            }
-            else
-            {
-                Use(from);
-            }
         }
 
         public KotlDoor(Serial serial)
             : base(serial)
         {
+        }
+
+        public override void OnDoubleClick(Mobile from)
+        {
+            if (!from.InRange(GetWorldLocation(), 2))
+                from.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1019045); // I can't reach that.
+            else if (Locked)
+                from.PrivateOverheadMessage(MessageType.Regular, 0x3B2, 1157017,
+                    from.NetState); // *The door is sealed shut. There is likely a switch that controls it nearby.*
+            else
+                Use(from);
         }
 
         public override void Serialize(GenericWriter writer)
@@ -51,9 +44,9 @@ namespace Server.Engines.TreasuresOfKotlCity
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            if(Instance == null)
+            if (Instance == null)
                 Instance = this;
         }
     }

@@ -1,9 +1,9 @@
-using System;
-
 namespace Server.Items
 {
     public class CodexOfVirtueAddon : BaseAddon
     {
+        public override BaseAddonDeed Deed => new CodexOfVirtueDeed();
+
         [Constructable]
         public CodexOfVirtueAddon()
         {
@@ -50,24 +50,24 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonDeed Deed { get { return new CodexOfVirtueDeed(); } }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class CodexOfVirtueDeed : BaseAddonDeed
     {
-        public override int LabelNumber { get { return 1113919; } }// a Codex of Virtue deed
+        public override int LabelNumber => 1113919; // a Codex of Virtue deed
+
+        public override BaseAddon Addon => new CodexOfVirtueAddon();
 
         [Constructable]
         public CodexOfVirtueDeed()
@@ -79,18 +79,16 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddon Addon { get { return new CodexOfVirtueAddon(); } }
-        
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

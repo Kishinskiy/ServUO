@@ -1,6 +1,4 @@
-using System;
 using System.Linq;
-using Server;
 using Server.Engines.PartySystem;
 using Server.Gumps;
 
@@ -8,7 +6,7 @@ namespace Server.Items
 {
     public class MasterKey : PeerlessKey
     {
-        public override int LabelNumber { get { return 1074348; } } // master key
+        public override int LabelNumber => 1074348; // master key
 
         [CommandProperty(AccessLevel.GameMaster)]
         public PeerlessAltar Altar { get; set; }
@@ -76,15 +74,15 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
-            writer.Write((Item)Altar);
+            writer.Write(Altar);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             Altar = reader.ReadItem() as PeerlessAltar;
         }

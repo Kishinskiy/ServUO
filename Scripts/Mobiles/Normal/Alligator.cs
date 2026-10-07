@@ -1,10 +1,16 @@
-using System;
-
 namespace Server.Mobiles
 {
     [CorpseName("an alligator corpse")]
     public class Alligator : BaseCreature
     {
+        public override int Meat => 1;
+
+        public override int Hides => 12;
+
+        public override HideType HideType => HideType.Spined;
+
+        public override FoodType FavoriteFood => FoodType.Meat | FoodType.Fish;
+
         [Constructable]
         public Alligator()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -48,46 +54,18 @@ namespace Server.Mobiles
         {
         }
 
-        public override int Meat
-        {
-            get
-            {
-                return 1;
-            }
-        }
-        public override int Hides
-        {
-            get
-            {
-                return 12;
-            }
-        }
-        public override HideType HideType
-        {
-            get
-            {
-                return HideType.Spined;
-            }
-        }
-        public override FoodType FavoriteFood
-        {
-            get
-            {
-                return FoodType.Meat | FoodType.Fish;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

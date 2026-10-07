@@ -6,10 +6,28 @@ namespace Server.Mobiles
     [CorpseName("a shadow knight corpse")]
     public class ShadowKnight : BaseCreature
     {
-        public override bool CanStealth { get { return true; } }
+        private bool m_HasTeleportedAway;
 
         private Timer m_SoundTimer;
-        private bool m_HasTeleportedAway;
+        public override bool CanStealth => true;
+
+        public override bool IgnoreYoungProtection => Core.ML;
+
+        public override bool CanFlee => false;
+        public override TribeType Tribe => TribeType.Undead;
+
+        public override OppositionGroup OppositionGroup => OppositionGroup.FeyAndUndead;
+
+        public override bool BardImmune => !Core.SE;
+
+        public override bool Unprovokable => Core.SE;
+
+        public override bool AreaPeaceImmune => Core.SE;
+
+        public override Poison PoisonImmune => Poison.Lethal;
+
+        public override int TreasureMapLevel => 1;
+
         [Constructable]
         public ShadowKnight()
             : base(AIType.AI_NecroMage, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -62,70 +80,16 @@ namespace Server.Mobiles
         {
         }
 
-		public override void OnDamage(int amount, Mobile from, bool willKill)
-		{
-			RevealingAction();
-			base.OnDamage(amount, from, willKill);
-		}
-
-		public override void OnDamagedBySpell(Mobile from)
-		{
-			RevealingAction();
-			base.OnDamagedBySpell(from);
-		}
-
-        public override bool IgnoreYoungProtection
+        public override void OnDamage(int amount, Mobile from, bool willKill)
         {
-            get
-            {
-                return Core.ML;
-            }
+            RevealingAction();
+            base.OnDamage(amount, from, willKill);
         }
 
-        public override bool CanFlee { get { return false; } }
-        public override TribeType Tribe { get { return TribeType.Undead; } }
-
-        public override OppositionGroup OppositionGroup
+        public override void OnDamagedBySpell(Mobile from)
         {
-            get
-            {
-                return OppositionGroup.FeyAndUndead;
-            }
-        }
-        public override bool BardImmune
-        {
-            get
-            {
-                return !Core.SE;
-            }
-        }
-        public override bool Unprovokable
-        {
-            get
-            {
-                return Core.SE;
-            }
-        }
-        public override bool AreaPeaceImmune
-        {
-            get
-            {
-                return Core.SE;
-            }
-        }
-        public override Poison PoisonImmune
-        {
-            get
-            {
-                return Poison.Lethal;
-            }
-        }
-        public override int TreasureMapLevel
-        {
-            get
-            {
-                return 1;
-            }
+            RevealingAction();
+            base.OnDamagedBySpell(from);
         }
 
         public override void GenerateLoot()
@@ -181,24 +145,23 @@ namespace Server.Mobiles
 
         public override void OnThink()
         {
-            if (!m_HasTeleportedAway && Hits < (HitsMax / 2))
+            if (!m_HasTeleportedAway && Hits < HitsMax / 2)
             {
-                Map map = Map;
+                var map = Map;
 
                 if (map != null)
-                {
                     // try 10 times to find a teleport spot
-                    for (int i = 0; i < 10; ++i)
+                    for (var i = 0; i < 10; ++i)
                     {
-                        int x = X + (Utility.RandomMinMax(5, 10) * (Utility.RandomBool() ? 1 : -1));
-                        int y = Y + (Utility.RandomMinMax(5, 10) * (Utility.RandomBool() ? 1 : -1));
-                        int z = Z;
+                        var x = X + Utility.RandomMinMax(5, 10) * (Utility.RandomBool() ? 1 : -1);
+                        var y = Y + Utility.RandomMinMax(5, 10) * (Utility.RandomBool() ? 1 : -1);
+                        var z = Z;
 
                         if (!map.CanFit(x, y, z, 16, false, false))
                             continue;
 
-                        Point3D from = Location;
-                        Point3D to = new Point3D(x, y, z);
+                        var from = Location;
+                        var to = new Point3D(x, y, z);
 
                         if (!InLOS(to))
                             continue;
@@ -208,19 +171,21 @@ namespace Server.Mobiles
                         Hidden = true;
                         Combatant = null;
 
-                        Effects.SendLocationParticles(EffectItem.Create(from, map, EffectItem.DefaultDuration), 0x3728, 10, 10, 2023);
-                        Effects.SendLocationParticles(EffectItem.Create(to, map, EffectItem.DefaultDuration), 0x3728, 10, 10, 5023);
+                        Effects.SendLocationParticles(EffectItem.Create(from, map, EffectItem.DefaultDuration), 0x3728,
+                            10, 10, 2023);
+                        Effects.SendLocationParticles(EffectItem.Create(to, map, EffectItem.DefaultDuration), 0x3728,
+                            10, 10, 5023);
 
                         Effects.PlaySound(to, map, 0x1FE);
 
                         m_HasTeleportedAway = true;
-                        m_SoundTimer = Timer.DelayCall(TimeSpan.FromSeconds(5.0), TimeSpan.FromSeconds(2.5), new TimerCallback(SendTrackingSound));
+                        m_SoundTimer = Timer.DelayCall(TimeSpan.FromSeconds(5.0), TimeSpan.FromSeconds(2.5),
+                            SendTrackingSound);
 
                         Frozen = true;
 
                         break;
                     }
-                }
             }
 
             base.OnThink();
@@ -229,13 +194,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

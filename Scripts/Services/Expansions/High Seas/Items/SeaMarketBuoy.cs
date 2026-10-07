@@ -1,23 +1,20 @@
-﻿using Server;
-using System;
-
-namespace Server.Items
+﻿namespace Server.Items
 {
     public class SeaMarketBuoy : BaseAddon
     {
         [Constructable]
         public SeaMarketBuoy()
         {
-            AddonComponent comp1 = new AddonComponent(18102);
+            var comp1 = new AddonComponent(18102);
             comp1.Name = "buoy";
 
-            AddonComponent comp2 = new AddonComponent(18103);
+            var comp2 = new AddonComponent(18103);
             comp1.Name = "buoy";
 
-            AddonComponent comp3 = new AddonComponent(18104);
+            var comp3 = new AddonComponent(18104);
             comp1.Name = "buoy";
 
-            AddonComponent comp4 = new AddonComponent(18105);
+            var comp4 = new AddonComponent(18105);
             comp1.Name = "buoy";
 
             AddComponent(comp1, 0, 0, 0);
@@ -26,18 +23,20 @@ namespace Server.Items
             AddComponent(comp4, -1, 0, 0);
         }
 
-        public SeaMarketBuoy(Serial serial) : base(serial) { }
+        public SeaMarketBuoy(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

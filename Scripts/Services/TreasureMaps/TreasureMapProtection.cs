@@ -6,23 +6,23 @@ namespace Server
 {
     public class TreasureRegion : BaseRegion
     {
-        private const int Range = 5;// No house may be placed within 5 tiles of the treasure
-        public TreasureRegion(int x, int y, Map map)
-            : base(null, map, Region.DefaultPriority, new Rectangle2D(x - Range, y - Range, 1 + (Range * 2), 1 + (Range * 2)))
-        {
-            this.GoLocation = new Point3D(x, y, map.GetAverageZ(x, y));
+        private const int Range = 5; // No house may be placed within 5 tiles of the treasure
 
-            this.Register();
+        public TreasureRegion(int x, int y, Map map)
+            : base(null, map, DefaultPriority, new Rectangle2D(x - Range, y - Range, 1 + Range * 2, 1 + Range * 2))
+        {
+            GoLocation = new Point3D(x, y, map.GetAverageZ(x, y));
+
+            Register();
         }
 
         public static void Initialize()
         {
-            string filePath = Path.Combine(Core.BaseDirectory, "Data/treasure.cfg");
+            var filePath = Path.Combine(Core.BaseDirectory, "Data/treasure.cfg");
             int i = 0, x = 0, y = 0;
 
             if (File.Exists(filePath))
-            {
-                using (StreamReader ip = new StreamReader(filePath))
+                using (var ip = new StreamReader(filePath))
                 {
                     string line;
 
@@ -32,7 +32,7 @@ namespace Server
 
                         try
                         {
-                            string[] split = line.Split(' ');
+                            var split = line.Split(' ');
 
                             x = Convert.ToInt32(split[0]);
                             y = Convert.ToInt32(split[1]);
@@ -53,7 +53,6 @@ namespace Server
                         }
                     }
                 }
-            }
         }
 
         public override bool AllowHousing(Mobile from, Point3D p)

@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
-using Server;
 using Server.Mobiles;
 using Server.Multis;
 using Server.Spells;
@@ -11,13 +9,13 @@ namespace Server.Items
 {
     public abstract class MannedCannon : Item
     {
-        public virtual TimeSpan ScanDelay { get { return TimeSpan.FromSeconds(Utility.RandomMinMax(5, 10)); } }
+        public virtual TimeSpan ScanDelay => TimeSpan.FromSeconds(Utility.RandomMinMax(5, 10));
 
         [CommandProperty(AccessLevel.GameMaster)]
         public Mobile Operator { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public Direction Facing { get { return GetFacing(); } }
+        public Direction Facing => GetFacing();
 
         public DateTime NextScan { get; set; }
         public bool CanFireUnmanned { get; set; }
@@ -25,8 +23,8 @@ namespace Server.Items
         public abstract CannonPower Power { get; }
         public abstract int Range { get; }
 
-        public virtual AmmunitionType AmmoType { get { return AmmunitionType.Cannonball; } }
-        public virtual int LateralOffset { get { return 1; } }
+        public virtual AmmunitionType AmmoType => AmmunitionType.Cannonball;
+        public virtual int LateralOffset => 1;
 
         public MannedCannon(Mobile opera, Direction facing)
             : base(0)
@@ -35,6 +33,10 @@ namespace Server.Items
             Operator = opera;
 
             Movable = false;
+        }
+
+        public MannedCannon(Serial serial) : base(serial)
+        {
         }
 
         private static int GetID(Direction facing, CannonPower power)
@@ -55,18 +57,9 @@ namespace Server.Items
 
         public Direction GetFacing()
         {
-            if (BaseGalleon.CannonIDs[0].Any(id => id == ItemID))
-            {
-                return Direction.South;
-            }
-            if (BaseGalleon.CannonIDs[1].Any(id => id == ItemID))
-            {
-                return Direction.West;
-            }
-            if (BaseGalleon.CannonIDs[2].Any(id => id == ItemID))
-            {
-                return Direction.North;
-            }
+            if (BaseGalleon.CannonIDs[0].Any(id => id == ItemID)) return Direction.South;
+            if (BaseGalleon.CannonIDs[1].Any(id => id == ItemID)) return Direction.West;
+            if (BaseGalleon.CannonIDs[2].Any(id => id == ItemID)) return Direction.North;
 
             return Direction.East;
         }
@@ -74,20 +67,19 @@ namespace Server.Items
         public bool Scan(bool shoot)
         {
             var targets = AcquireTarget();
-            bool acquiredTarget = false;
+            var acquiredTarget = false;
 
             if (targets != null && targets.Length > 0)
-            {
                 foreach (var t in targets)
-                {
                     if (t.Entity is BaseGalleon && AmmoType != AmmunitionType.Grapeshot)
                     {
                         if (shoot)
                         {
                             DoShootEffects();
-                            TimeSpan delay = TimeSpan.FromSeconds((double)t.Range / 10.0);
+                            var delay = TimeSpan.FromSeconds(t.Range / 10.0);
 
-                            Timer.DelayCall(delay, new TimerStateCallback(OnShipHit), new object[] { (BaseGalleon)t.Entity, t.Location, AmmoType });
+                            Timer.DelayCall(delay, new TimerStateCallback(OnShipHit),
+                                new object[] { (BaseGalleon)t.Entity, t.Location, AmmoType });
                         }
 
                         acquiredTarget = true;
@@ -99,43 +91,51 @@ namespace Server.Items
                         if (shoot)
                         {
                             DoShootEffects();
-                            TimeSpan delay = TimeSpan.FromSeconds((double)t.Range / 10.0);
+                            var delay = TimeSpan.FromSeconds(t.Range / 10.0);
 
-                            Timer.DelayCall(delay, new TimerStateCallback(OnMobileHit), new object[] { m, t.Location, AmmoType });
+                            Timer.DelayCall(delay, new TimerStateCallback(OnMobileHit),
+                                new object[] { m, t.Location, AmmoType });
                         }
 
                         acquiredTarget = true;
                     }
-                }
-            }
 
             return acquiredTarget;
         }
 
         public Target[] AcquireTarget()
         {
-            AmmoInfo ammo = AmmoInfo.GetAmmoInfo(AmmoType);
+            var ammo = AmmoInfo.GetAmmoInfo(AmmoType);
 
-            int xOffset = 0; int yOffset = 0;
-            int currentRange = 0;
-            Point3D pnt = Location;
-            Map map = Map;
+            var xOffset = 0;
+            var yOffset = 0;
+            var currentRange = 0;
+            var pnt = Location;
+            var map = Map;
 
             switch (GetFacing())
             {
                 case Direction.North:
-                    xOffset = 0; yOffset = -1; break;
+                    xOffset = 0;
+                    yOffset = -1;
+                    break;
                 case Direction.South:
-                    xOffset = 0; yOffset = 1; break;
+                    xOffset = 0;
+                    yOffset = 1;
+                    break;
                 case Direction.West:
-                    xOffset = -1; yOffset = 0; break;
+                    xOffset = -1;
+                    yOffset = 0;
+                    break;
                 case Direction.East:
-                    xOffset = 1; yOffset = 0; break;
+                    xOffset = 1;
+                    yOffset = 0;
+                    break;
             }
 
-            int xo = xOffset;
-            int yo = yOffset;
-            int lateralOffset = 1;
+            var xo = xOffset;
+            var yo = yOffset;
+            var lateralOffset = 1;
 
             while (currentRange++ <= Range)
             {
@@ -145,7 +145,7 @@ namespace Server.Items
                 if (LateralOffset > 1 && currentRange % LateralOffset == 0)
                     lateralOffset++;
 
-                TimeSpan delay = TimeSpan.FromSeconds((double)currentRange / 10.0);
+                var delay = TimeSpan.FromSeconds(currentRange / 10.0);
 
                 switch (AmmoType)
                 {
@@ -153,66 +153,63 @@ namespace Server.Items
                     case AmmunitionType.Cannonball:
                     case AmmunitionType.FrostCannonball:
                     case AmmunitionType.FlameCannonball:
+                    {
+                        var newPoint = pnt;
+                        //List<IEntity> list = new List<IEntity>();
+
+                        for (var i = -lateralOffset; i <= lateralOffset; i++)
                         {
-                            Point3D newPoint = pnt;
-                            //List<IEntity> list = new List<IEntity>();
+                            if (xOffset == 0)
+                                newPoint = new Point3D(pnt.X + xOffset + i, pnt.Y + yOffset * currentRange, pnt.Z);
+                            else
+                                newPoint = new Point3D(pnt.X + xOffset * currentRange, pnt.Y + yOffset + i, pnt.Z);
 
-                            for (int i = -lateralOffset; i <= lateralOffset; i++)
+                            var g = FindValidBoatTarget(newPoint, map, ammo);
+
+                            if (g != null && g.DamageTaken < DamageLevel.Severely && g.Owner is PlayerMobile)
                             {
-                                if (xOffset == 0)
-                                    newPoint = new Point3D(pnt.X + (xOffset + i), pnt.Y + (yOffset * currentRange), pnt.Z);
-                                else
-                                    newPoint = new Point3D(pnt.X + (xOffset * currentRange), pnt.Y + (yOffset + i), pnt.Z);
+                                var target = new Target();
+                                target.Entity = g;
+                                target.Location = newPoint;
+                                target.Range = currentRange;
 
-                                BaseGalleon g = FindValidBoatTarget(newPoint, map, ammo);
-
-                                if (g != null && g.DamageTaken < DamageLevel.Severely && g.Owner is PlayerMobile)
-                                {
-                                    var target = new Target();
-                                    target.Entity = g;
-                                    target.Location = newPoint;
-                                    target.Range = currentRange;
-
-                                    return new Target[] { target };
-                                }
+                                return new[] { target };
                             }
                         }
+                    }
                         break;
                     case AmmunitionType.Grapeshot:
+                    {
+                        var newPoint = pnt;
+                        var mobiles = new List<Target>();
+
+                        for (var i = -lateralOffset; i <= lateralOffset; i++)
                         {
-                            Point3D newPoint = pnt;
-                            List<Target> mobiles = new List<Target>();
+                            if (xOffset == 0)
+                                newPoint = new Point3D(pnt.X + xOffset + i, pnt.Y + yOffset * currentRange, pnt.Z);
+                            else
+                                newPoint = new Point3D(pnt.X + xOffset * currentRange, pnt.Y + yOffset + i, pnt.Z);
 
-                            for (int i = -lateralOffset; i <= lateralOffset; i++)
+                            foreach (var m in GetTargets(newPoint, map))
                             {
-                                if (xOffset == 0)
-                                    newPoint = new Point3D(pnt.X + (xOffset + i), pnt.Y + (yOffset * currentRange), pnt.Z);
-                                else
-                                    newPoint = new Point3D(pnt.X + (xOffset * currentRange), pnt.Y + (yOffset + i), pnt.Z);
+                                var target = new Target();
+                                target.Entity = m;
+                                target.Location = newPoint;
+                                target.Range = currentRange;
 
-                                foreach (Mobile m in GetTargets(newPoint, map))
-                                {
-                                    var target = new Target();
-                                    target.Entity = m;
-                                    target.Location = newPoint;
-                                    target.Range = currentRange;
-
-                                    mobiles.Add(target);
-                                }
-
-                                if (mobiles.Count > 0 && ammo.SingleTarget)
-                                {
-                                    var toHit = mobiles[Utility.Random(mobiles.Count)];
-                                    ColUtility.Free(mobiles);
-                                    return new Target[] { toHit };
-                                }
+                                mobiles.Add(target);
                             }
 
-                            if (mobiles.Count > 0)
+                            if (mobiles.Count > 0 && ammo.SingleTarget)
                             {
-                                return mobiles.ToArray();
+                                var toHit = mobiles[Utility.Random(mobiles.Count)];
+                                ColUtility.Free(mobiles);
+                                return new[] { toHit };
                             }
                         }
+
+                        if (mobiles.Count > 0) return mobiles.ToArray();
+                    }
                         break;
                 }
             }
@@ -224,10 +221,8 @@ namespace Server.Items
         {
             if (Operator != null)
             {
-                foreach (Mobile m in SpellHelper.AcquireIndirectTargets(Operator, newPoint, map, 0).OfType<Mobile>())
-                {
+                foreach (var m in SpellHelper.AcquireIndirectTargets(Operator, newPoint, map, 0).OfType<Mobile>())
                     yield return m;
-                }
 
                 yield break;
             }
@@ -235,28 +230,17 @@ namespace Server.Items
             IPooledEnumerable eable = map.GetMobilesInRange(newPoint, 0);
 
             foreach (Mobile m in eable)
-            {
                 if (m is PlayerMobile || (m is BaseCreature && ((BaseCreature)m).GetMaster() is PlayerMobile))
-                {
                     yield return m;
-                }
-            }
-        }
-
-        public struct Target
-        {
-            public IEntity Entity { get; set; }
-            public Point3D Location { get; set; }
-            public int Range { get; set; }
         }
 
         private BaseGalleon FindValidBoatTarget(Point3D newPoint, Map map, AmmoInfo info)
         {
-            BaseGalleon galleon = BaseGalleon.FindGalleonAt(newPoint, map);
+            var galleon = BaseGalleon.FindGalleonAt(newPoint, map);
 
             if (galleon != null && info.RequiresSurface)
             {
-                int d = galleon is BritannianShip ? 3 : 2;
+                var d = galleon is BritannianShip ? 3 : 2;
                 switch (galleon.Facing)
                 {
                     case Direction.North:
@@ -271,17 +255,14 @@ namespace Server.Items
                         break;
                 }
 
-                StaticTile[] tiles = map.Tiles.GetStaticTiles(newPoint.X, newPoint.Y, true);
+                var tiles = map.Tiles.GetStaticTiles(newPoint.X, newPoint.Y, true);
 
-                foreach (StaticTile tile in tiles)
+                foreach (var tile in tiles)
                 {
-                    ItemData id = TileData.ItemTable[tile.ID & TileData.MaxItemValue];
-                    bool isWater = (tile.ID >= 0x1796 && tile.ID <= 0x17B2);
+                    var id = TileData.ItemTable[tile.ID & TileData.MaxItemValue];
+                    var isWater = tile.ID >= 0x1796 && tile.ID <= 0x17B2;
 
-                    if (!isWater && id.Surface && !id.Impassable)
-                    {
-                        return galleon;
-                    }
+                    if (!isWater && id.Surface && !id.Impassable) return galleon;
                 }
 
                 return null;
@@ -292,32 +273,28 @@ namespace Server.Items
 
         public virtual void OnShipHit(object obj)
         {
-            object[] list = (object[])obj;
-            BaseBoat target = list[0] as BaseBoat;
-            Point3D pnt = (Point3D)list[1];
+            var list = (object[])obj;
+            var target = list[0] as BaseBoat;
+            var pnt = (Point3D)list[1];
 
             var ammoInfo = AmmoInfo.GetAmmoInfo((AmmunitionType)list[2]);
 
             if (ammoInfo != null && target != null)
             {
-                int damage = (Utility.RandomMinMax(ammoInfo.MinDamage, ammoInfo.MaxDamage));
+                var damage = Utility.RandomMinMax(ammoInfo.MinDamage, ammoInfo.MaxDamage);
                 damage /= 7;
                 target.OnTakenDamage(Operator, damage);
 
-                int z = target.ZSurface;
+                var z = target.ZSurface;
 
-                if (target.TillerMan != null && target.TillerMan is IEntity)
-                {
-                    z = ((IEntity)target.TillerMan).Z;
-                }
+                if (target.TillerMan != null && target.TillerMan is IEntity) z = ((IEntity)target.TillerMan).Z;
 
-                Direction d = Utility.GetDirection(this, pnt);
-                int xOffset = 0;
-                int yOffset = 0;
-                Point3D hit = pnt;
+                var d = Utility.GetDirection(this, pnt);
+                var xOffset = 0;
+                var yOffset = 0;
+                var hit = pnt;
 
                 if (!ammoInfo.RequiresSurface)
-                {
                     switch (d)
                     {
                         default:
@@ -342,14 +319,13 @@ namespace Server.Items
                             hit = new Point3D(pnt.X + xOffset, pnt.Y + yOffset, z);
                             break;
                     }
-                }
 
                 Effects.SendLocationEffect(hit, target.Map, Utility.RandomBool() ? 14000 : 14013, 15, 10);
                 Effects.PlaySound(hit, target.Map, 0x207);
 
                 if (Operator != null && (!Operator.Deleted || CanFireUnmanned))
                 {
-                    Mobile victim = target.Owner;
+                    var victim = target.Owner;
 
                     if (victim != null && target.Contains(victim) && Operator.CanBeHarmful(victim, false))
                     {
@@ -357,29 +333,19 @@ namespace Server.Items
                     }
                     else
                     {
-                        List<Mobile> candidates = new List<Mobile>();
-                        SecurityLevel highest = SecurityLevel.Passenger;
+                        var candidates = new List<Mobile>();
+                        var highest = SecurityLevel.Passenger;
 
-                        foreach (var mob in target.GetMobilesOnBoard().OfType<PlayerMobile>().Where(pm => Operator.CanBeHarmful(pm, false)))
-                        {
+                        foreach (var mob in target.GetMobilesOnBoard().OfType<PlayerMobile>()
+                                     .Where(pm => Operator.CanBeHarmful(pm, false)))
                             if (target is BaseGalleon && ((BaseGalleon)target).GetSecurityLevel(mob) > highest)
-                            {
                                 candidates.Insert(0, mob);
-                            }
                             else
-                            {
                                 candidates.Add(mob);
-                            }
-                        }
 
                         if (candidates.Count > 0)
-                        {
                             Operator.DoHarmful(candidates[0]);
-                        }
-                        else if (victim != null && Operator.IsHarmfulCriminal(victim))
-                        {
-                            Operator.CriminalAction(false);
-                        }
+                        else if (victim != null && Operator.IsHarmfulCriminal(victim)) Operator.CriminalAction(false);
 
                         ColUtility.Free(candidates);
                     }
@@ -389,22 +355,20 @@ namespace Server.Items
 
         public virtual void OnMobileHit(object obj)
         {
-            object[] objects = (object[])obj;
-            Mobile toHit = objects[0] as Mobile;
-            Point3D pnt = (Point3D)objects[1];
+            var objects = (object[])obj;
+            var toHit = objects[0] as Mobile;
+            var pnt = (Point3D)objects[1];
 
-            AmmoInfo ammoInfo = AmmoInfo.GetAmmoInfo((AmmunitionType)objects[2]);
+            var ammoInfo = AmmoInfo.GetAmmoInfo((AmmunitionType)objects[2]);
 
             if (ammoInfo != null)
             {
-                int damage = (int)(Utility.RandomMinMax(ammoInfo.MinDamage, ammoInfo.MaxDamage));
+                var damage = Utility.RandomMinMax(ammoInfo.MinDamage, ammoInfo.MaxDamage);
 
-                if (Operator != null)
-                {
-                    Operator.DoHarmful(toHit);
-                }
+                if (Operator != null) Operator.DoHarmful(toHit);
 
-                AOS.Damage(toHit, Operator, damage, ammoInfo.PhysicalDamage, ammoInfo.FireDamage, ammoInfo.ColdDamage, ammoInfo.PoisonDamage, ammoInfo.EnergyDamage);
+                AOS.Damage(toHit, Operator, damage, ammoInfo.PhysicalDamage, ammoInfo.FireDamage, ammoInfo.ColdDamage,
+                    ammoInfo.PoisonDamage, ammoInfo.EnergyDamage);
                 Effects.SendLocationEffect(toHit.Location, toHit.Map, Utility.RandomBool() ? 14000 : 14013, 15, 10);
                 Effects.PlaySound(toHit.Location, toHit.Map, 0x207);
             }
@@ -412,8 +376,8 @@ namespace Server.Items
 
         public void DoShootEffects()
         {
-            Point3D p = Location;
-            Map map = Map;
+            var p = Location;
+            var map = Map;
 
             p.Z -= 3;
 
@@ -429,12 +393,10 @@ namespace Server.Items
             Effects.PlaySound(p, map, 0x664);
         }
 
-        public MannedCannon(Serial serial) : base(serial) { }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1);
+            writer.Write(1);
 
             writer.Write(Operator);
             writer.Write(CanFireUnmanned);
@@ -443,7 +405,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             switch (version)
             {
@@ -453,82 +415,95 @@ namespace Server.Items
                     break;
             }
         }
+
+        public struct Target
+        {
+            public IEntity Entity { get; set; }
+            public Point3D Location { get; set; }
+            public int Range { get; set; }
+        }
     }
 
     public class MannedCulverin : MannedCannon
     {
-        public override int Range { get { return 10; } }
-        public override CannonPower Power { get { return CannonPower.Light; } }
+        public override int Range => 10;
+        public override CannonPower Power => CannonPower.Light;
 
         public MannedCulverin(Mobile oper, Direction facing)
             : base(oper, facing)
         {
         }
 
-        public MannedCulverin(Serial serial) : base(serial) { }
+        public MannedCulverin(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class MannedCarronade : MannedCannon
     {
-        public override int Range { get { return 10; } }
-        public override CannonPower Power { get { return CannonPower.Heavy; } }
+        public override int Range => 10;
+        public override CannonPower Power => CannonPower.Heavy;
 
         public MannedCarronade(Mobile oper, Direction facing)
             : base(oper, facing)
         {
         }
 
-        public MannedCarronade(Serial serial) : base(serial) { }
+        public MannedCarronade(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class MannedBlundercannon : MannedCannon
     {
-        public override int LabelNumber { get { return 1158942; } } // Blundercannon
+        public override int LabelNumber => 1158942; // Blundercannon
 
-        public override int Range { get { return 12; } }
-        public override CannonPower Power { get { return CannonPower.Massive; } }
+        public override int Range => 12;
+        public override CannonPower Power => CannonPower.Massive;
 
         public MannedBlundercannon(Mobile oper, Direction facing)
             : base(oper, facing)
         {
         }
 
-        public MannedBlundercannon(Serial serial) : base(serial) { }
+        public MannedBlundercannon(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -15,22 +15,16 @@ namespace Server.Custom.UOBuilder
 
         public bool IsPlaced()
         {
-            Map map = Map.Parse(E_Map);
+            var map = Map.Parse(E_Map);
 
             if (map != null)
             {
                 var items = map.GetItemsInRange(new Point3D(E_X, E_Y, E_Z), 1).ToList();
 
                 if (items.Count > 0)
-                {
                     foreach (var item in items)
-                    {
                         if (item is UOBuilderStatic)
-                        {
                             return true;
-                        }
-                    }
-                }
             }
 
             return false;
@@ -50,7 +44,7 @@ namespace Server.Custom.UOBuilder
 
         public void LoadEntity(StreamReader reader)
         {
-            string val = reader.ReadLine();
+            var val = reader.ReadLine();
 
             if (!string.IsNullOrEmpty(val))
             {

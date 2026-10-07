@@ -1,9 +1,9 @@
-using System;
-
 namespace Server.Items
 {
     public class NexusCore : Item
     {
+        public override int LabelNumber => 1153501; // nexus core 
+
         [Constructable]
         public NexusCore() : base(0x4B82)
         {
@@ -14,20 +14,18 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber { get { return 1153501; } } // nexus core 
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)1); // version
+            writer.Write(1); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (version == 0)
                 Stackable = false;

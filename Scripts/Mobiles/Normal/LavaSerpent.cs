@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -7,6 +6,14 @@ namespace Server.Mobiles
     [TypeAlias("Server.Mobiles.Lavaserpant")]
     public class LavaSerpent : BaseCreature
     {
+        public override bool DeathAdderCharmable => true;
+
+        public override int Meat => 4;
+
+        public override int Hides => 15;
+
+        public override HideType HideType => HideType.Spined;
+
         [Constructable]
         public LavaSerpent()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -53,35 +60,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool DeathAdderCharmable
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override int Meat
-        {
-            get
-            {
-                return 4;
-            }
-        }
-        public override int Hides
-        {
-            get
-            {
-                return 15;
-            }
-        }
-        public override HideType HideType
-        {
-            get
-            {
-                return HideType.Spined;
-            }
-        }
-
         public void AuraEffect(Mobile m)
         {
             m.SendMessage("The radiating heat scorches your skin!");
@@ -96,14 +74,14 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

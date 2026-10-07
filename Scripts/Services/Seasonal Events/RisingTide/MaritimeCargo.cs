@@ -1,10 +1,4 @@
-using System;
-
-using Server;
-using Server.Items;
-using Server.Mobiles;
 using Server.Engines.CityLoyalty;
-using Server.Engines.RisingTide;
 
 namespace Server.Items
 {
@@ -25,7 +19,7 @@ namespace Server.Items
         Munitions = 1157,
         Granite = 2498,
         Reagents = 1156,
-        Glassware = 1158,
+        Glassware = 1158
     }
 
     // 1158907 You recover maritime trade cargo!
@@ -40,15 +34,12 @@ namespace Server.Items
         [CommandProperty(AccessLevel.GameMaster)]
         public CargoQuality CargoQuality
         {
-            get { return _CargoQuality; }
+            get => _CargoQuality;
             set
             {
                 _CargoQuality = value;
 
-                if (_CargoQuality == CargoQuality.Mythical)
-                {
-                    Hue = 1177;
-                }
+                if (_CargoQuality == CargoQuality.Mythical) Hue = 1177;
 
                 InvalidateProperties();
             }
@@ -57,22 +48,27 @@ namespace Server.Items
         [CommandProperty(AccessLevel.GameMaster)]
         public CargoType CargoType
         {
-            get { return _CargoType; }
+            get => _CargoType;
             set
             {
                 _CargoType = value;
 
-                if (_CargoQuality != CargoQuality.Mythical && Hue != (int)_CargoType)
-                {
-                    Hue = (int)_CargoType;
-                }
+                if (_CargoQuality != CargoQuality.Mythical && Hue != (int)_CargoType) Hue = (int)_CargoType;
 
                 InvalidateProperties();
             }
         }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public City City { get { return _City; } set { _City = value; InvalidateProperties(); } }
+        public City City
+        {
+            get => _City;
+            set
+            {
+                _City = value;
+                InvalidateProperties();
+            }
+        }
 
         [Constructable]
         public MaritimeCargo()
@@ -95,19 +91,17 @@ namespace Server.Items
             CargoType = type;
         }
 
+        public MaritimeCargo(Serial serial) : base(serial)
+        {
+        }
+
         private static CargoQuality RandomQuality()
         {
             var random = Utility.RandomDouble();
 
-            if (random < 0.05)
-            {
-                return CargoQuality.Legendary;
-            }
+            if (random < 0.05) return CargoQuality.Legendary;
 
-            if (random < 0.33)
-            {
-                return CargoQuality.Exalted;
-            }
+            if (random < 0.33) return CargoQuality.Exalted;
 
             return CargoQuality.Grandmaster;
         }
@@ -151,14 +145,18 @@ namespace Server.Items
 
         public override void AddNameProperty(ObjectPropertyList list)
         {
-            list.Add(1158906, String.Format("#{0}", CityLoyaltySystem.GetCityLocalization(_City).ToString())); // Maritime Trade Cargo Destined for ~1_CITY~
+            list.Add(1158906,
+                string.Format("#{0}",
+                    CityLoyaltySystem.GetCityLocalization(_City)
+                        .ToString())); // Maritime Trade Cargo Destined for ~1_CITY~
         }
 
         public override void AddWeightProperty(ObjectPropertyList list)
         {
             base.AddWeightProperty(list);
 
-            list.Add(_CargoQuality < CargoQuality.Mythical ? 1158903 + (int)_CargoQuality : 1158969, String.Format("#{0}", TypeLabel(_CargoType)));
+            list.Add(_CargoQuality < CargoQuality.Mythical ? 1158903 + (int)_CargoQuality : 1158969,
+                string.Format("#{0}", TypeLabel(_CargoType)));
         }
 
         public static int TypeLabel(CargoType type)
@@ -177,10 +175,6 @@ namespace Server.Items
             }
         }
 
-        public MaritimeCargo(Serial serial) : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -194,7 +188,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             _CargoQuality = (CargoQuality)reader.ReadInt();
             _CargoType = (CargoType)reader.ReadInt();

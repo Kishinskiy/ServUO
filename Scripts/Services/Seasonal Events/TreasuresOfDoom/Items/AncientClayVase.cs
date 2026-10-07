@@ -1,18 +1,12 @@
-using System;
-using System.Collections.Generic;
-
-using Server;
-using Server.Network;
-using Server.Mobiles;
-using Server.Engines.Points;
 using Server.Engines.TreasuresOfDoom;
+using Server.Network;
 using Server.SkillHandlers;
 
 namespace Server.Items
 {
     public class AncientClayVase : Item, ICarvable
     {
-        public override int LabelNumber { get { return 1155625; } } // Ancient Clay Vase
+        public override int LabelNumber => 1155625; // Ancient Clay Vase
         public bool DoomEvent { get; set; }
 
         [Constructable]
@@ -29,19 +23,22 @@ namespace Server.Items
             LootType = LootType.Blessed;
         }
 
+        public AncientClayVase(Serial serial)
+            : base(serial)
+        {
+        }
+
         public bool Carve(Mobile from, Item item)
         {
             if (IsChildOf(from.Backpack))
             {
                 from.PlaySound(Utility.Random(0x3E, 4));
-                from.PrivateOverheadMessage(MessageType.Regular, 0x3B2, 1155629, from.NetState); // *The vase shatters as you cut away the sealing wax!"
+                from.PrivateOverheadMessage(MessageType.Regular, 0x3B2, 1155629,
+                    from.NetState); // *The vase shatters as you cut away the sealing wax!"
 
                 Delete();
 
-                if (0.5 > Utility.RandomDouble())
-                {
-                    from.AddToBackpack(new AncientParchment());
-                }
+                if (0.5 > Utility.RandomDouble()) from.AddToBackpack(new AncientParchment());
 
                 return true;
             }
@@ -57,14 +54,8 @@ namespace Server.Items
         public static void OnStolen(ItemStolenEventArgs e)
         {
             if (e.Item is AncientClayVase)
-            {
-                e.Mobile.PrivateOverheadMessage(MessageType.Regular, 0x3B2, 1155626, e.Mobile.NetState); // *It appears to be an ancient vase. The top is sealed with some kind of wax. A bladed item would perhaps be useful...*
-            }
-        }
-
-        public AncientClayVase(Serial serial)
-            : base(serial)
-        {
+                e.Mobile.PrivateOverheadMessage(MessageType.Regular, 0x3B2, 1155626,
+                    e.Mobile.NetState); // *It appears to be an ancient vase. The top is sealed with some kind of wax. A bladed item would perhaps be useful...*
         }
 
         public override void Serialize(GenericWriter writer)
@@ -82,10 +73,7 @@ namespace Server.Items
 
             DoomEvent = reader.ReadBool();
 
-            if (DoomEvent)
-            {
-                VaseSpawner.AddToSpawner(this);
-            }
+            if (DoomEvent) VaseSpawner.AddToSpawner(this);
         }
     }
 }

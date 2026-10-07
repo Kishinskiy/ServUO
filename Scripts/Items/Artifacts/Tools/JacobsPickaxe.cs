@@ -1,5 +1,4 @@
 using System;
-using Server.Mobiles;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -7,37 +6,41 @@ namespace Server.Items
 {
     public class JacobsPickaxe : Pickaxe
     {
-        private static List<JacobsPickaxe> _Instances = new List<JacobsPickaxe>();
+        private static readonly List<JacobsPickaxe> _Instances = new List<JacobsPickaxe>();
 
-        public static void Initialize()
-        {
-            Timer.DelayCall(TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5), new TimerCallback(Tick_Callback));
-        }
-
-        private static void Tick_Callback()
-        {
-            foreach (var pickaxe in _Instances.Where(p => p != null && !p.Deleted))
-            {
-                int charge = pickaxe.UsesRemaining + 10 > 20 ? 20 - pickaxe.UsesRemaining : 10;
-
-                if (charge > 0)
-                    pickaxe.UsesRemaining += charge;
-
-                pickaxe.InvalidateProperties();
-            }
-        }
-
-        public override int LabelNumber { get { return 1077758; } } // Jacob's Pickaxe
+        public override int LabelNumber => 1077758; // Jacob's Pickaxe
 
         [Constructable]
         public JacobsPickaxe()
-            : base()
         {
             LootType = LootType.Blessed;
             SkillBonuses.SetValues(0, SkillName.Mining, 10.0);
             UsesRemaining = 20;
 
             _Instances.Add(this);
+        }
+
+        public JacobsPickaxe(Serial serial)
+            : base(serial)
+        {
+        }
+
+        public static void Initialize()
+        {
+            Timer.DelayCall(TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5), Tick_Callback);
+        }
+
+        private static void Tick_Callback()
+        {
+            foreach (var pickaxe in _Instances.Where(p => p != null && !p.Deleted))
+            {
+                var charge = pickaxe.UsesRemaining + 10 > 20 ? 20 - pickaxe.UsesRemaining : 10;
+
+                if (charge > 0)
+                    pickaxe.UsesRemaining += charge;
+
+                pickaxe.InvalidateProperties();
+            }
         }
 
         public override void OnDoubleClick(Mobile from)
@@ -53,7 +56,9 @@ namespace Server.Items
                     from.SendLocalizedMessage(1072306); // You must wait a moment for it to recharge.
             }
             else
+            {
                 from.SendLocalizedMessage(1042001); // That must be in your pack for you to use it.
+            }
         }
 
         public override void Delete()
@@ -63,22 +68,17 @@ namespace Server.Items
             _Instances.Remove(this);
         }
 
-        public JacobsPickaxe(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
-			base.Serialize(writer);
+            base.Serialize(writer);
             writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadEncodedInt();
-			_Instances.Add(this);
+            var version = reader.ReadEncodedInt();
+            _Instances.Add(this);
         }
     }
 }

@@ -1,4 +1,4 @@
-using System;
+using Server.Spells.Mysticism;
 using Server.Targeting;
 
 namespace Server.Spells.Third
@@ -11,13 +11,7 @@ namespace Server.Spells.Third
             9051,
             Reagent.Nightshade);
 
-        public override SpellCircle Circle
-        {
-            get
-            {
-                return SpellCircle.Third;
-            }
-        }
+        public override SpellCircle Circle => SpellCircle.Third;
 
         public PoisonSpell(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
@@ -46,7 +40,7 @@ namespace Server.Spells.Third
 
                 m.Paralyzed = false;
 
-                if (CheckResisted(m) || Server.Spells.Mysticism.StoneFormSpell.CheckImmunity(m))
+                if (CheckResisted(m) || StoneFormSpell.CheckImmunity(m))
                 {
                     m.SendLocalizedMessage(501783); // You feel yourself resisting magical energy.
                 }
@@ -56,11 +50,11 @@ namespace Server.Spells.Third
 
                     if (Core.AOS)
                     {
-                        int total = (Caster.Skills.Magery.Fixed + Caster.Skills.Poisoning.Fixed) / 2;
+                        var total = (Caster.Skills.Magery.Fixed + Caster.Skills.Poisoning.Fixed) / 2;
 
                         if (Core.SA && Caster.InRange(m, 8))
                         {
-                            int range = (int)Caster.GetDistanceToSqrt(m.Location);
+                            var range = (int)Caster.GetDistanceToSqrt(m.Location);
 
                             if (total >= 1000)
                                 level = Utility.RandomDouble() <= .1 ? 4 : 3;
@@ -95,8 +89,8 @@ namespace Server.Spells.Third
                     }
                     else
                     {
-                        double total = Caster.Skills[SkillName.Magery].Value + Caster.Skills[SkillName.Poisoning].Value;                        
-                        double dist = Caster.GetDistanceToSqrt(m);
+                        var total = Caster.Skills[SkillName.Magery].Value + Caster.Skills[SkillName.Poisoning].Value;
+                        var dist = Caster.GetDistanceToSqrt(m);
 
                         if (dist >= 3.0)
                             total -= (dist - 3.0) * 10.0;
@@ -135,10 +129,7 @@ namespace Server.Spells.Third
 
             protected override void OnTarget(Mobile from, object o)
             {
-                if (o is Mobile)
-                {
-                    m_Owner.Target((Mobile)o);
-                }
+                if (o is Mobile) m_Owner.Target((Mobile)o);
             }
 
             protected override void OnTargetFinish(Mobile from)

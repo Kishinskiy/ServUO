@@ -1,23 +1,29 @@
-using Server;
-using System;
-using Server.Mobiles;
-using Server.Items;
 using Server.Engines.Points;
+using Server.Items;
+using Server.Mobiles;
 
 namespace Server.Engines.Khaldun
 {
     public class KhaldunResearcher : BaseTurnInMobile
     {
-        public override int TitleLocalization { get { return 1158744; } } // Artifacts of the Cult
-        public override int CancelLocalization { get { return 1158675; } }	// Bring me items of the Cult and I will reward you with valuable items.   
-        public override int TurnInLocalization { get { return 1157652; } } // Turn In Artifacts of The Cult	
-        public override int ClaimLocalization { get { return 1155593; } } // Claim Rewards
+        public override int TitleLocalization => 1158744; // Artifacts of the Cult
+
+        public override int CancelLocalization =>
+            1158675; // Bring me items of the Cult and I will reward you with valuable items.   
+
+        public override int TurnInLocalization => 1157652; // Turn In Artifacts of The Cult	
+        public override int ClaimLocalization => 1155593; // Claim Rewards
 
         public static KhaldunResearcher InstanceTram { get; set; }
         public static KhaldunResearcher InstanceFel { get; set; }
 
         [Constructable]
         public KhaldunResearcher() : base("the Researcher")
+        {
+        }
+
+        public KhaldunResearcher(Serial serial)
+            : base(serial)
         {
         }
 
@@ -98,11 +104,6 @@ namespace Server.Engines.Khaldun
                 m.SendGump(new KhaldunRewardGump(this, m as PlayerMobile));
         }
 
-        public KhaldunResearcher(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -112,17 +113,11 @@ namespace Server.Engines.Khaldun
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            if (Map == Map.Trammel)
-            {
-                InstanceTram = this;
-            }
+            if (Map == Map.Trammel) InstanceTram = this;
 
-            if (Map == Map.Felucca)
-            {
-                InstanceFel = this;
-            }
+            if (Map == Map.Felucca) InstanceFel = this;
         }
     }
 }

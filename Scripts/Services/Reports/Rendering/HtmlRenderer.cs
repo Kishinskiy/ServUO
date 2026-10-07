@@ -4,9 +4,9 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Web.UI;
+using Server.Misc;
 using HtmlAttr = System.Web.UI.HtmlTextWriterAttribute;
 using HtmlTag = System.Web.UI.HtmlTextWriterTag;
-using Server.Misc;
 
 namespace Server.Engines.Reports
 {
@@ -17,52 +17,53 @@ namespace Server.Engines.Reports
         private static readonly string FtpPassword = null;
         private static readonly string FtpStatsDirectory = null;
         private static readonly string FtpStaffDirectory = null;
-        private readonly string m_Type;
-        private readonly string m_Title;
+        private readonly ObjectCollection m_Objects;
         private readonly string m_OutputDirectory;
         private readonly DateTime m_TimeStamp;
-        private readonly ObjectCollection m_Objects;
+        private readonly string m_Title;
+        private readonly string m_Type;
+
         public HtmlRenderer(string outputDirectory, Snapshot ss, SnapshotHistory history)
             : this(outputDirectory)
         {
-            this.m_TimeStamp = ss.TimeStamp;
+            m_TimeStamp = ss.TimeStamp;
 
-            this.m_Objects = new ObjectCollection();
+            m_Objects = new ObjectCollection();
 
-            for (int i = 0; i < ss.Children.Count; ++i)
-                this.m_Objects.Add(ss.Children[i]);
+            for (var i = 0; i < ss.Children.Count; ++i)
+                m_Objects.Add(ss.Children[i]);
 
-            this.m_Objects.Add(BarGraph.OverTime(history, "General Stats", "Clients", 1, 100, 6));
-            this.m_Objects.Add(BarGraph.OverTime(history, "General Stats", "Items", 24, 9, 1));
-            this.m_Objects.Add(BarGraph.OverTime(history, "General Stats", "Players", 24, 9, 1));
-            this.m_Objects.Add(BarGraph.OverTime(history, "General Stats", "NPCs", 24, 9, 1));
-            this.m_Objects.Add(BarGraph.DailyAverage(history, "General Stats", "Clients"));
-            this.m_Objects.Add(BarGraph.Growth(history, "General Stats", "Clients"));
+            m_Objects.Add(BarGraph.OverTime(history, "General Stats", "Clients", 1, 100, 6));
+            m_Objects.Add(BarGraph.OverTime(history, "General Stats", "Items", 24, 9, 1));
+            m_Objects.Add(BarGraph.OverTime(history, "General Stats", "Players", 24, 9, 1));
+            m_Objects.Add(BarGraph.OverTime(history, "General Stats", "NPCs", 24, 9, 1));
+            m_Objects.Add(BarGraph.DailyAverage(history, "General Stats", "Clients"));
+            m_Objects.Add(BarGraph.Growth(history, "General Stats", "Clients"));
         }
 
         public HtmlRenderer(string outputDirectory, StaffHistory history)
             : this(outputDirectory)
         {
-            this.m_TimeStamp = DateTime.UtcNow;
+            m_TimeStamp = DateTime.UtcNow;
 
-            this.m_Objects = new ObjectCollection();
+            m_Objects = new ObjectCollection();
 
-            history.Render(this.m_Objects);
+            history.Render(m_Objects);
         }
 
         private HtmlRenderer(string outputDirectory)
         {
-            this.m_Type = outputDirectory;
-            this.m_Title = (this.m_Type == "staff" ? "Staff" : "Stats");
-            this.m_OutputDirectory = Path.Combine(Core.BaseDirectory, Config.Get("Reports.Path", "reports"));
+            m_Type = outputDirectory;
+            m_Title = m_Type == "staff" ? "Staff" : "Stats";
+            m_OutputDirectory = Path.Combine(Core.BaseDirectory, Config.Get("Reports.Path", "reports"));
 
-            if (!Directory.Exists(this.m_OutputDirectory))
-                Directory.CreateDirectory(this.m_OutputDirectory);
+            if (!Directory.Exists(m_OutputDirectory))
+                Directory.CreateDirectory(m_OutputDirectory);
 
-            this.m_OutputDirectory = Path.Combine(this.m_OutputDirectory, outputDirectory);
+            m_OutputDirectory = Path.Combine(m_OutputDirectory, outputDirectory);
 
-            if (!Directory.Exists(this.m_OutputDirectory))
-                Directory.CreateDirectory(this.m_OutputDirectory);
+            if (!Directory.Exists(m_OutputDirectory))
+                Directory.CreateDirectory(m_OutputDirectory);
         }
 
         public static string SafeFileName(string name)
@@ -72,14 +73,14 @@ namespace Server.Engines.Reports
 
         public void Render()
         {
-            Console.WriteLine("Reports: {0}: Render started", this.m_Title);
+            Console.WriteLine("Reports: {0}: Render started", m_Title);
 
-            this.RenderFull();
+            RenderFull();
 
-            for (int i = 0; i < this.m_Objects.Count; ++i)
-                this.RenderSingle(this.m_Objects[i]);
+            for (var i = 0; i < m_Objects.Count; ++i)
+                RenderSingle(m_Objects[i]);
 
-            Console.WriteLine("Reports: {0}: Render complete", this.m_Title);
+            Console.WriteLine("Reports: {0}: Render complete", m_Title);
         }
 
         public void Upload()
@@ -87,28 +88,28 @@ namespace Server.Engines.Reports
             if (FtpHost == null)
                 return;
 
-            Console.WriteLine("Reports: {0}: Upload started", this.m_Title);
+            Console.WriteLine("Reports: {0}: Upload started", m_Title);
 
-            string filePath = Path.Combine(this.m_OutputDirectory, "upload.ftp");
+            var filePath = Path.Combine(m_OutputDirectory, "upload.ftp");
 
-            using (StreamWriter op = new StreamWriter(filePath))
+            using (var op = new StreamWriter(filePath))
             {
                 op.WriteLine("open \"{0}\"", FtpHost);
                 op.WriteLine(FtpUsername);
                 op.WriteLine(FtpPassword);
-                op.WriteLine("cd \"{0}\"", (this.m_Type == "staff" ? FtpStaffDirectory : FtpStatsDirectory));
-                op.WriteLine("mput \"{0}\"", Path.Combine(this.m_OutputDirectory, "*.html"));
-                op.WriteLine("mput \"{0}\"", Path.Combine(this.m_OutputDirectory, "*.css"));
+                op.WriteLine("cd \"{0}\"", m_Type == "staff" ? FtpStaffDirectory : FtpStatsDirectory);
+                op.WriteLine("mput \"{0}\"", Path.Combine(m_OutputDirectory, "*.html"));
+                op.WriteLine("mput \"{0}\"", Path.Combine(m_OutputDirectory, "*.css"));
                 op.WriteLine("binary");
-                op.WriteLine("mput \"{0}\"", Path.Combine(this.m_OutputDirectory, "*.png"));
+                op.WriteLine("mput \"{0}\"", Path.Combine(m_OutputDirectory, "*.png"));
                 op.WriteLine("disconnect");
                 op.Write("quit");
             }
 
-            ProcessStartInfo psi = new ProcessStartInfo();
+            var psi = new ProcessStartInfo();
 
             psi.FileName = "ftp";
-            psi.Arguments = String.Format("-i -s:\"{0}\"", filePath);
+            psi.Arguments = string.Format("-i -s:\"{0}\"", filePath);
 
             psi.CreateNoWindow = true;
             psi.WindowStyle = ProcessWindowStyle.Hidden;
@@ -116,7 +117,7 @@ namespace Server.Engines.Reports
 
             try
             {
-                Process p = Process.Start(psi);
+                var p = Process.Start(psi);
 
                 p.WaitForExit();
             }
@@ -124,7 +125,7 @@ namespace Server.Engines.Reports
             {
             }
 
-            Console.WriteLine("Reports: {0}: Upload complete", this.m_Title);
+            Console.WriteLine("Reports: {0}: Upload complete", m_Title);
 
             try
             {
@@ -137,20 +138,22 @@ namespace Server.Engines.Reports
 
         public void RenderFull()
         {
-            string filePath = Path.Combine(this.m_OutputDirectory, "reports.html");
+            var filePath = Path.Combine(m_OutputDirectory, "reports.html");
 
-            using (StreamWriter op = new StreamWriter(filePath))
+            using (var op = new StreamWriter(filePath))
             {
-                using (HtmlTextWriter html = new HtmlTextWriter(op, "\t"))
-                    this.RenderFull(html);
+                using (var html = new HtmlTextWriter(op, "\t"))
+                {
+                    RenderFull(html);
+                }
             }
 
-            string cssPath = Path.Combine(this.m_OutputDirectory, "styles.css");
+            var cssPath = Path.Combine(m_OutputDirectory, "styles.css");
 
             if (File.Exists(cssPath))
                 return;
 
-            using (StreamWriter css = new StreamWriter(cssPath))
+            using (var css = new StreamWriter(cssPath))
             {
                 css.WriteLine("body { background-color: #FFFFFF; font-family: verdana, arial; font-size: 11px; }");
                 css.WriteLine("a { color: #28435E; }");
@@ -184,18 +187,18 @@ namespace Server.Engines.Reports
 
             html.RenderBeginTag(HtmlTag.Body);
 
-            for (int i = 0; i < this.m_Objects.Count; ++i)
+            for (var i = 0; i < m_Objects.Count; ++i)
             {
-                this.RenderDirect(this.m_Objects[i], html);
+                RenderDirect(m_Objects[i], html);
                 html.Write("<br><br>");
             }
 
             html.RenderBeginTag(HtmlTag.Center);
-            TimeZoneInfo tz = TimeZoneInfo.Local;
-            bool isDaylight = tz.IsDaylightSavingTime(this.m_TimeStamp);
-            TimeSpan utcOffset = tz.GetUtcOffset(this.m_TimeStamp);
+            var tz = TimeZoneInfo.Local;
+            var isDaylight = tz.IsDaylightSavingTime(m_TimeStamp);
+            var utcOffset = tz.GetUtcOffset(m_TimeStamp);
 
-            html.Write("Snapshot taken at {0:d} {0:t}. All times are {1}.", this.m_TimeStamp, tz.StandardName);
+            html.Write("Snapshot taken at {0:d} {0:t}. All times are {1}.", m_TimeStamp, tz.StandardName);
             html.RenderEndTag();
 
             html.RenderEndTag();
@@ -205,12 +208,14 @@ namespace Server.Engines.Reports
 
         public void RenderSingle(PersistableObject obj)
         {
-            string filePath = Path.Combine(this.m_OutputDirectory, SafeFileName(this.FindNameFrom(obj)) + ".html");
+            var filePath = Path.Combine(m_OutputDirectory, SafeFileName(FindNameFrom(obj)) + ".html");
 
-            using (StreamWriter op = new StreamWriter(filePath))
+            using (var op = new StreamWriter(filePath))
             {
-                using (HtmlTextWriter html = new HtmlTextWriter(op, "\t"))
-                    this.RenderSingle(obj, html);
+                using (var html = new HtmlTextWriter(op, "\t"))
+                {
+                    RenderSingle(obj, html);
+                }
             }
         }
 
@@ -221,7 +226,7 @@ namespace Server.Engines.Reports
             html.RenderBeginTag(HtmlTag.Head);
 
             html.RenderBeginTag(HtmlTag.Title);
-            html.Write("{0} Statistics - {1}", ServerList.ServerName, this.FindNameFrom(obj));
+            html.Write("{0} Statistics - {1}", ServerList.ServerName, FindNameFrom(obj));
             html.RenderEndTag();
 
             html.AddAttribute("rel", "stylesheet");
@@ -236,15 +241,15 @@ namespace Server.Engines.Reports
 
             html.RenderBeginTag(HtmlTag.Center);
 
-            this.RenderDirect(obj, html);
+            RenderDirect(obj, html);
 
             html.Write("<br>");
 
-            TimeZoneInfo tz = TimeZoneInfo.Local;
-            bool isDaylight = tz.IsDaylightSavingTime(this.m_TimeStamp);
-            TimeSpan utcOffset = tz.GetUtcOffset(this.m_TimeStamp);
+            var tz = TimeZoneInfo.Local;
+            var isDaylight = tz.IsDaylightSavingTime(m_TimeStamp);
+            var utcOffset = tz.GetUtcOffset(m_TimeStamp);
 
-            html.Write("Snapshot taken at {0:d} {0:t}. All times are {1}.", this.m_TimeStamp, tz.StandardName);
+            html.Write("Snapshot taken at {0:d} {0:t}. All times are {1}.", m_TimeStamp, tz.StandardName);
             html.RenderEndTag();
 
             html.RenderEndTag();
@@ -255,18 +260,18 @@ namespace Server.Engines.Reports
         public void RenderDirect(PersistableObject obj, HtmlTextWriter html)
         {
             if (obj is Report)
-                this.RenderReport(obj as Report, html);
+                RenderReport(obj as Report, html);
             else if (obj is BarGraph)
-                this.RenderBarGraph(obj as BarGraph, html);
+                RenderBarGraph(obj as BarGraph, html);
             else if (obj is PieChart)
-                this.RenderPieChart(obj as PieChart, html);
+                RenderPieChart(obj as PieChart, html);
         }
 
         private string FindNameFrom(PersistableObject obj)
         {
             if (obj is Report)
                 return (obj as Report).Name;
-            else if (obj is Chart)
+            if (obj is Chart)
                 return (obj as Chart).Name;
 
             return "Invalid";
@@ -274,16 +279,16 @@ namespace Server.Engines.Reports
 
         private void RenderPieChart(PieChart chart, HtmlTextWriter html)
         {
-            PieChartRenderer pieChart = new PieChartRenderer(Color.White);
+            var pieChart = new PieChartRenderer(Color.White);
 
             pieChart.ShowPercents = chart.ShowPercents;
 
-            string[] labels = new string[chart.Items.Count];
-            string[] values = new string[chart.Items.Count];
+            var labels = new string[chart.Items.Count];
+            var values = new string[chart.Items.Count];
 
-            for (int i = 0; i < chart.Items.Count; ++i)
+            for (var i = 0; i < chart.Items.Count; ++i)
             {
-                ChartItem item = chart.Items[i];
+                var item = chart.Items[i];
 
                 labels[i] = item.Name;
                 values[i] = item.Value.ToString();
@@ -291,15 +296,18 @@ namespace Server.Engines.Reports
 
             pieChart.CollectDataPoints(labels, values);
 
-            Bitmap bmp = pieChart.Draw();
+            var bmp = pieChart.Draw();
 
-            string fileName = chart.FileName + ".png";
-            bmp.Save(Path.Combine(this.m_OutputDirectory, fileName), ImageFormat.Png);
+            var fileName = chart.FileName + ".png";
+            bmp.Save(Path.Combine(m_OutputDirectory, fileName), ImageFormat.Png);
 
             html.Write("<!-- ");
 
             html.AddAttribute(HtmlAttr.Href, "#");
-            html.AddAttribute(HtmlAttr.Onclick, String.Format("javascript:window.open('{0}.html','ChildWindow','width={1},height={2},resizable=no,status=no,toolbar=no')", SafeFileName(this.FindNameFrom(chart)), bmp.Width + 30, bmp.Height + 80));
+            html.AddAttribute(HtmlAttr.Onclick,
+                string.Format(
+                    "javascript:window.open('{0}.html','ChildWindow','width={1},height={2},resizable=no,status=no,toolbar=no')",
+                    SafeFileName(FindNameFrom(chart)), bmp.Width + 30, bmp.Height + 80));
             html.RenderBeginTag(HtmlTag.A);
             html.Write(chart.Name);
             html.RenderEndTag();
@@ -358,7 +366,7 @@ namespace Server.Engines.Reports
 
         private void RenderBarGraph(BarGraph graph, HtmlTextWriter html)
         {
-            BarGraphRenderer barGraph = new BarGraphRenderer(Color.White);
+            var barGraph = new BarGraphRenderer(Color.White);
 
             barGraph.RenderMode = graph.RenderMode;
 
@@ -369,15 +377,15 @@ namespace Server.Engines.Reports
                 barGraph.VerticalLabel = graph.yTitle;
 
             barGraph.FontColor = Color.Black;
-            barGraph.ShowData = (graph.Interval == 1);
+            barGraph.ShowData = graph.Interval == 1;
             barGraph.VerticalTickCount = graph.Ticks;
 
-            string[] labels = new string[graph.Items.Count];
-            string[] values = new string[graph.Items.Count];
+            var labels = new string[graph.Items.Count];
+            var values = new string[graph.Items.Count];
 
-            for (int i = 0; i < graph.Items.Count; ++i)
+            for (var i = 0; i < graph.Items.Count; ++i)
             {
-                ChartItem item = graph.Items[i];
+                var item = graph.Items[i];
 
                 labels[i] = item.Name;
                 values[i] = item.Value.ToString();
@@ -386,15 +394,18 @@ namespace Server.Engines.Reports
             barGraph._interval = graph.Interval;
             barGraph.CollectDataPoints(labels, values);
 
-            Bitmap bmp = barGraph.Draw();
+            var bmp = barGraph.Draw();
 
-            string fileName = graph.FileName + ".png";
-            bmp.Save(Path.Combine(this.m_OutputDirectory, fileName), ImageFormat.Png);
+            var fileName = graph.FileName + ".png";
+            bmp.Save(Path.Combine(m_OutputDirectory, fileName), ImageFormat.Png);
 
             html.Write("<!-- ");
 
             html.AddAttribute(HtmlAttr.Href, "#");
-            html.AddAttribute(HtmlAttr.Onclick, String.Format("javascript:window.open('{0}.html','ChildWindow','width={1},height={2},resizable=no,status=no,toolbar=no')", SafeFileName(this.FindNameFrom(graph)), bmp.Width + 30, bmp.Height + 80));
+            html.AddAttribute(HtmlAttr.Onclick,
+                string.Format(
+                    "javascript:window.open('{0}.html','ChildWindow','width={1},height={2},resizable=no,status=no,toolbar=no')",
+                    SafeFileName(FindNameFrom(graph)), bmp.Width + 30, bmp.Height + 80));
             html.RenderBeginTag(HtmlTag.A);
             html.Write(graph.Name);
             html.RenderEndTag();
@@ -478,18 +489,18 @@ namespace Server.Engines.Reports
             html.RenderEndTag();
             html.RenderEndTag();
 
-            bool isNamed = false;
+            var isNamed = false;
 
-            for (int i = 0; i < report.Columns.Count && !isNamed; ++i)
-                isNamed = (report.Columns[i].Name != null);
+            for (var i = 0; i < report.Columns.Count && !isNamed; ++i)
+                isNamed = report.Columns[i].Name != null;
 
             if (isNamed)
             {
                 html.RenderBeginTag(HtmlTag.Tr);
 
-                for (int i = 0; i < report.Columns.Count; ++i)
+                for (var i = 0; i < report.Columns.Count; ++i)
                 {
-                    ReportColumn column = report.Columns[i];
+                    var column = report.Columns[i];
 
                     html.AddAttribute(HtmlAttr.Class, "header");
                     html.AddAttribute(HtmlAttr.Width, column.Width);
@@ -504,13 +515,13 @@ namespace Server.Engines.Reports
                 html.RenderEndTag();
             }
 
-            for (int i = 0; i < report.Items.Count; ++i)
+            for (var i = 0; i < report.Items.Count; ++i)
             {
-                ReportItem item = report.Items[i];
+                var item = report.Items[i];
 
                 html.RenderBeginTag(HtmlTag.Tr);
 
-                for (int j = 0; j < item.Values.Count; ++j)
+                for (var j = 0; j < item.Values.Count; ++j)
                 {
                     if (!isNamed && j == 0)
                         html.AddAttribute(HtmlAttr.Width, report.Columns[j].Width);

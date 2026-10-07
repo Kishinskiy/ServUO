@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +5,14 @@ namespace Server.Mobiles
     [CorpseName("a clan scratch scrounger corpse")]
     public class ClanSS : BaseCreature
     {
+        public override bool CanRummageCorpses => true;
+
+        public override int Hides => 8;
+
+        public override HideType HideType => HideType.Spined;
+
+        public override int TreasureMapLevel => 2;
+
         [Constructable]
         public ClanSS()
             : base(AIType.AI_Archer, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -49,49 +56,21 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool CanRummageCorpses
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override int Hides
-        {
-            get
-            {
-                return 8;
-            }
-        }
-        public override HideType HideType
-        {
-            get
-            {
-                return HideType.Spined;
-            }
-        }
-		public override int TreasureMapLevel
-        {
-            get
-            {
-                return 2;
-            }
-        }
         public override void GenerateLoot()
         {
             AddLoot(LootPack.Rich, 2);
         }
-      
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

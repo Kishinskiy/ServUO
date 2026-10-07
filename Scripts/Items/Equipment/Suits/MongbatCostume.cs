@@ -1,42 +1,33 @@
-using System;
-using Server;
-
 namespace Server.Items
 {
-	public class MongbatCostume : BaseCostume
-	{
-        public override string CreatureName { get { return "mongbat"; } }
+    public class MongbatCostume : BaseCostume
+    {
+        public override string CreatureName => "mongbat";
+
+        public override int LabelNumber => 1114223; // mongbat costume
 
         [Constructable]
-		public MongbatCostume() : base( )
-		{
-            this.CostumeBody = 39;
-		}
-		
-		public override int LabelNumber
+        public MongbatCostume()
         {
-            get
-            {
-                return 1114223;
-            }
-        }// mongbat costume
+            CostumeBody = 39;
+        }
 
-		public MongbatCostume( Serial serial ) : base( serial )
-		{
-		}
+        public MongbatCostume(Serial serial) : base(serial)
+        {
+        }
 
-		public override void Serialize( GenericWriter writer )
-		{
-			base.Serialize( writer );
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
 
-			writer.Write( (int) 0 );
-		}
-		
-		public override void Deserialize(GenericReader reader)
-		{
-			base.Deserialize( reader );
+            writer.Write(0);
+        }
 
-			int version = reader.ReadInt();
-		}
-	}
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+
+            var version = reader.ReadInt();
+        }
+    }
 }

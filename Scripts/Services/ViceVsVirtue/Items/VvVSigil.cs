@@ -1,13 +1,7 @@
 using System;
-using Server;
 using Server.Items;
 using Server.Mobiles;
-using Server.Gumps;
-using System.Collections.Generic;
 using Server.Network;
-using Server.Guilds;
-using System.Linq;
-using Server.Engines.Points;
 
 namespace Server.Engines.VvV
 {
@@ -24,9 +18,8 @@ namespace Server.Engines.VvV
         [CommandProperty(AccessLevel.GameMaster)]
         public DateTime LastStolen { get; set; }
 
-        public override int LabelNumber { get { return 1123391; } } // Sigil
-        public override bool HandlesOnMovement { get { return !Visible; } }
-        public bool CheckWhenHidden { get { return true; } }
+        public override int LabelNumber => 1123391; // Sigil
+        public override bool HandlesOnMovement => !Visible;
 
         public VvVSigil(VvVBattle battle, Point3D home)
             : base(0x99C7)
@@ -37,6 +30,39 @@ namespace Server.Engines.VvV
             Hue = 2721;
 
             LootType = LootType.Cursed;
+        }
+
+        public VvVSigil(Serial serial)
+            : base(serial)
+        {
+        }
+
+        public bool CheckWhenHidden => true;
+
+        public bool CheckReveal(Mobile m)
+        {
+            if (!ViceVsVirtueSystem.IsVvV(m))
+                return false;
+
+            return Utility.Random(100) <= m.Skills[SkillName.DetectHidden].Value;
+        }
+
+        public virtual void OnRevealed(Mobile m)
+        {
+            Visible = true;
+        }
+
+        public virtual bool CheckPassiveDetect(Mobile m)
+        {
+            if (m.InRange(Location, 4))
+            {
+                var skill = (int)m.Skills[SkillName.DetectHidden].Value;
+
+                if (skill >= 80 && Utility.Random(300) < skill)
+                    return true;
+            }
+
+            return false;
         }
 
         public void OnStolen(VvVPlayerEntry entry)
@@ -84,50 +110,16 @@ namespace Server.Engines.VvV
 
         public static bool CheckMovement(PlayerMobile pm, Direction d)
         {
-            if (!ViceVsVirtueSystem.Enabled)
-            {
-                return true;
-            }
+            if (!ViceVsVirtueSystem.Enabled) return true;
 
-            int x = pm.X;
-            int y = pm.Y;
+            var x = pm.X;
+            var y = pm.Y;
 
             Movement.Movement.Offset(d, ref x, ref y);
 
-            Region r = Region.Find(new Point3D(x, y, pm.Map.GetAverageZ(x, y)), pm.Map);
+            var r = Region.Find(new Point3D(x, y, pm.Map.GetAverageZ(x, y)), pm.Map);
 
             return ViceVsVirtueSystem.IsBattleRegion(r);
-        }
-
-        public bool CheckReveal(Mobile m)
-        {
-            if (!ViceVsVirtueSystem.IsVvV(m))
-                return false;
-
-            return Utility.Random(100) <= m.Skills[SkillName.DetectHidden].Value;
-        }
-
-        public virtual void OnRevealed(Mobile m)
-        {
-            Visible = true;
-        }
-
-        public virtual bool CheckPassiveDetect(Mobile m)
-        {
-            if (m.InRange(this.Location, 4))
-            {
-                int skill = (int)m.Skills[SkillName.DetectHidden].Value;
-
-                if (skill >= 80 && Utility.Random(300) < skill)
-                    return true;
-            }
-
-            return false;
-        }
-
-        public VvVSigil(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -142,7 +134,7 @@ namespace Server.Engines.VvV
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             LastStolen = reader.ReadDateTime();
             HomeLocation = reader.ReadPoint3D();

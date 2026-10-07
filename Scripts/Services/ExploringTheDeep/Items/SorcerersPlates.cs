@@ -1,9 +1,8 @@
-﻿using System;
-using Server.Commands;
-using Server.Mobiles;
-using Server.Targeting;
-using Server.Network;
+﻿using Server.Commands;
 using Server.Engines.Quests;
+using Server.Mobiles;
+using Server.Network;
+using Server.Targeting;
 
 namespace Server.Items
 {
@@ -11,36 +10,11 @@ namespace Server.Items
     {
         public static readonly string EntityName = "sorcerersplate";
 
-        public static void Initialize()
-        {
-            CommandSystem.Register("GenSorcerersPlate", AccessLevel.Developer, new CommandEventHandler(GenSorcerersPlate_Command));
-            CommandSystem.Register("DelSorcerersPlate", AccessLevel.Developer, new CommandEventHandler(DelSorcerersPlate_Command));
-        }
-
-        [Usage("GenSorcerersPlate")]
-        private static void GenSorcerersPlate_Command(CommandEventArgs e)
-        {
-            DeletePlates();
-            e.Mobile.SendMessage("Creating Sorcerers Plate...");
-
-            SorcerersPlateController controller = new SorcerersPlateController();
-            WeakEntityCollection.Add(EntityName, controller);
-
-            e.Mobile.SendMessage("Sorcerers Plate Generation Completed!");
-        }
-
-        [Usage("DelSorcerersPlate")]
-        private static void DelSorcerersPlate_Command(CommandEventArgs e)
-        {
-            DeletePlates();
-        }
-
-        private static void DeletePlates()
-        {
-            WeakEntityCollection.Delete(EntityName);
-        }
-
-        private SorcerersPlate m_PerfectBlackPearl, m_BurstingBrimstone, m_BrightDaemonBlood, m_MightyMandrake, m_BurlyBone;
+        private SorcerersPlate m_PerfectBlackPearl,
+            m_BurstingBrimstone,
+            m_BrightDaemonBlood,
+            m_MightyMandrake,
+            m_BurlyBone;
 
         public SorcerersPlateController()
             : base(0x1F13)
@@ -79,6 +53,35 @@ namespace Server.Items
         {
         }
 
+        public static void Initialize()
+        {
+            CommandSystem.Register("GenSorcerersPlate", AccessLevel.Developer, GenSorcerersPlate_Command);
+            CommandSystem.Register("DelSorcerersPlate", AccessLevel.Developer, DelSorcerersPlate_Command);
+        }
+
+        [Usage("GenSorcerersPlate")]
+        private static void GenSorcerersPlate_Command(CommandEventArgs e)
+        {
+            DeletePlates();
+            e.Mobile.SendMessage("Creating Sorcerers Plate...");
+
+            var controller = new SorcerersPlateController();
+            WeakEntityCollection.Add(EntityName, controller);
+
+            e.Mobile.SendMessage("Sorcerers Plate Generation Completed!");
+        }
+
+        [Usage("DelSorcerersPlate")]
+        private static void DelSorcerersPlate_Command(CommandEventArgs e)
+        {
+            DeletePlates();
+        }
+
+        private static void DeletePlates()
+        {
+            WeakEntityCollection.Delete(EntityName);
+        }
+
         public void CreateSorcerersPlates()
         {
             m_BrightDaemonBlood = new SorcerersPlate(this, SorcerersPlate.RegsType.BrightDaemonBlood);
@@ -99,18 +102,19 @@ namespace Server.Items
 
         public void Validate()
         {
-            if (this.Validate(this.m_PerfectBlackPearl) && this.Validate(this.m_BurstingBrimstone) && this.Validate(this.m_BrightDaemonBlood) && this.Validate(this.m_MightyMandrake) && this.Validate(this.m_BurlyBone))
+            if (Validate(m_PerfectBlackPearl) && Validate(m_BurstingBrimstone) && Validate(m_BrightDaemonBlood) &&
+                Validate(m_MightyMandrake) && Validate(m_BurlyBone))
             {
                 Mobile creature = TheMasterInstructor.Spawn(new Point3D(105, 38, -28), Map.Ilshenar, this);
 
                 if (creature == null)
                     return;
 
-                this.Clear(this.m_PerfectBlackPearl);
-                this.Clear(this.m_BurstingBrimstone);
-                this.Clear(this.m_BrightDaemonBlood);
-                this.Clear(this.m_MightyMandrake);
-                this.Clear(this.m_BurlyBone);
+                Clear(m_PerfectBlackPearl);
+                Clear(m_BurstingBrimstone);
+                Clear(m_BrightDaemonBlood);
+                Clear(m_MightyMandrake);
+                Clear(m_BurlyBone);
             }
         }
 
@@ -129,48 +133,44 @@ namespace Server.Items
 
         public bool Validate(SorcerersPlate plate)
         {
-            return (plate != null && plate.Reg != null && !plate.Reg.Deleted);
+            return plate != null && plate.Reg != null && !plate.Reg.Deleted;
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
-            writer.Write(this.m_PerfectBlackPearl);
-            writer.Write(this.m_BurstingBrimstone);
-            writer.Write(this.m_BrightDaemonBlood);
-            writer.Write(this.m_MightyMandrake);
-            writer.Write(this.m_BurlyBone);
+            writer.Write(m_PerfectBlackPearl);
+            writer.Write(m_BurstingBrimstone);
+            writer.Write(m_BrightDaemonBlood);
+            writer.Write(m_MightyMandrake);
+            writer.Write(m_BurlyBone);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             switch (version)
             {
                 case 0:
-                    {
-                        this.m_PerfectBlackPearl = reader.ReadItem() as SorcerersPlate;
-                        this.m_BurstingBrimstone = reader.ReadItem() as SorcerersPlate;
-                        this.m_BrightDaemonBlood = reader.ReadItem() as SorcerersPlate;
-                        this.m_MightyMandrake = reader.ReadItem() as SorcerersPlate;
-                        this.m_BurlyBone = reader.ReadItem() as SorcerersPlate;
+                {
+                    m_PerfectBlackPearl = reader.ReadItem() as SorcerersPlate;
+                    m_BurstingBrimstone = reader.ReadItem() as SorcerersPlate;
+                    m_BrightDaemonBlood = reader.ReadItem() as SorcerersPlate;
+                    m_MightyMandrake = reader.ReadItem() as SorcerersPlate;
+                    m_BurlyBone = reader.ReadItem() as SorcerersPlate;
 
-                        break;
-                    }
+                    break;
+                }
             }
         }
     }
 
     public class SorcerersPlate : Item
     {
-        private SorcerersPlateController m_Controller;
-        private RegsType m_Type;
-        private Item m_Reg;
-
         public enum RegsType
         {
             PerfectBlackPearl,
@@ -178,56 +178,47 @@ namespace Server.Items
             BrightDaemonBlood,
             MightyMandrake,
             BurlyBone
-        };
+        }
+
+        private Item m_Reg;
+        private RegsType m_Type;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public SorcerersPlateController Controller
-        {
-            get
-            {
-                return this.m_Controller;
-            }
-        }
+        public SorcerersPlateController Controller { get; private set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public RegsType Type
         {
-            get
-            {
-                return this.m_Type;
-            }
+            get => m_Type;
             set
             {
-                this.m_Type = value;
-                this.InvalidateProperties();
+                m_Type = value;
+                InvalidateProperties();
             }
         }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public Item Reg
         {
-            get
-            {
-                return this.m_Reg;
-            }
+            get => m_Reg;
             set
             {
-                this.m_Reg = value;
-                if (this.m_Controller != null)
-                    this.m_Controller.Validate();
+                m_Reg = value;
+                if (Controller != null)
+                    Controller.Validate();
             }
         }
 
-        public override int LabelNumber { get { return 1011199; } } // Plate
+        public override int LabelNumber => 1011199; // Plate
 
         [Constructable]
         public SorcerersPlate(SorcerersPlateController controller, RegsType type)
             : base(0x9D7)
         {
-            this.m_Type = type;
-            this.Movable = false;
-            this.Hue = 2406;
-            this.m_Controller = controller;
+            m_Type = type;
+            Movable = false;
+            Hue = 2406;
+            Controller = controller;
         }
 
         public SorcerersPlate(Serial serial)
@@ -254,32 +245,32 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
-            writer.Write((int)this.m_Type);
-            writer.Write(this.m_Controller);
-            writer.Write(this.m_Reg);
+            writer.Write((int)m_Type);
+            writer.Write(Controller);
+            writer.Write(m_Reg);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             switch (version)
             {
                 case 0:
-                    {
-                        this.m_Type = (RegsType)reader.ReadInt();
-                        this.m_Controller = reader.ReadItem() as SorcerersPlateController;
-                        this.m_Reg = reader.ReadItem();
+                {
+                    m_Type = (RegsType)reader.ReadInt();
+                    Controller = reader.ReadItem() as SorcerersPlateController;
+                    m_Reg = reader.ReadItem();
 
-                        if (this.m_Controller == null)
-                            this.Delete();
+                    if (Controller == null)
+                        Delete();
 
-                        break;
-                    }
+                    break;
+                }
             }
         }
 
@@ -297,14 +288,15 @@ namespace Server.Items
 
             private bool CheckRegs(Item item)
             {
-                return item is PerfectBlackPearl || item is BurstingBrimstone || item is BrightDaemonBlood || item is MightyMandrake || item is BurlyBone;
+                return item is PerfectBlackPearl || item is BurstingBrimstone || item is BrightDaemonBlood ||
+                       item is MightyMandrake || item is BurlyBone;
             }
 
             protected override void OnTarget(Mobile from, object o)
             {
                 if (o is Item)
                 {
-                    Item item = (Item)o;
+                    var item = (Item)o;
 
                     if (!item.IsChildOf(from.Backpack))
                     {
@@ -314,28 +306,31 @@ namespace Server.Items
 
                     if (!CheckRegs(item))
                     {
-                        from.PublicOverheadMessage(MessageType.Regular, 0x3B2, 1154255); // *You place the item on the plate but it simply melts away. You had better search for a more pure reagent*
+                        from.PublicOverheadMessage(MessageType.Regular, 0x3B2,
+                            1154255); // *You place the item on the plate but it simply melts away. You had better search for a more pure reagent*
                         return;
                     }
 
-                    PlayerMobile pm = (PlayerMobile)from;
+                    var pm = (PlayerMobile)from;
 
                     if (pm.ExploringTheDeepQuest != ExploringTheDeepQuestChain.Sorcerers)
                     {
-                        from.SendLocalizedMessage(1154325); // You feel as though by doing this you are missing out on an important part of your journey...
+                        from.SendLocalizedMessage(
+                            1154325); // You feel as though by doing this you are missing out on an important part of your journey...
                         return;
                     }
 
                     if (item.GetType().Name == m_Plate.Type.ToString())
                     {
-                        from.PublicOverheadMessage(MessageType.Regular, 0x3B2, 1154256); // *You place the reagent on the plate and hear an ominous click in the background...*
+                        from.PublicOverheadMessage(MessageType.Regular, 0x3B2,
+                            1154256); // *You place the reagent on the plate and hear an ominous click in the background...*
                         item.MoveToWorld(m_Plate.GetWorldTop(), m_Plate.Map);
                         item.Movable = false;
                         m_Plate.Reg = item;
                     }
                     else
                     {
-						from.SendLocalizedMessage(500309); // Nothing Happens.                        
+                        from.SendLocalizedMessage(500309); // Nothing Happens.                        
                     }
                 }
             }

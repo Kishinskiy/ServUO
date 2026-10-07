@@ -1,6 +1,5 @@
-using System;
-using Server.Targeting;
 using Server.Mobiles;
+using Server.Targeting;
 
 namespace Server.Spells.Fourth
 {
@@ -12,25 +11,16 @@ namespace Server.Spells.Fourth
             9021,
             Reagent.MandrakeRoot,
             Reagent.SulfurousAsh);
+
+        public override SpellCircle Circle => SpellCircle.Fourth;
+
+        public override bool DelayedDamage => false;
+
         public LightningSpell(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
         {
         }
 
-        public override SpellCircle Circle
-        {
-            get
-            {
-                return SpellCircle.Fourth;
-            }
-        }
-        public override bool DelayedDamage
-        {
-            get
-            {
-                return false;
-            }
-        }
         public override void OnCast()
         {
             Caster.Target = new InternalTarget(this);
@@ -38,7 +28,7 @@ namespace Server.Spells.Fourth
 
         public void Target(IDamageable m)
         {
-            Mobile mob = m as Mobile;
+            var mob = m as Mobile;
 
             if (!Caster.CanSee(m))
             {
@@ -46,7 +36,7 @@ namespace Server.Spells.Fourth
             }
             else if (CheckHSequence(m))
             {
-                Mobile source = Caster;
+                var source = Caster;
                 SpellHelper.Turn(Caster, m.Location);
 
                 SpellHelper.CheckReflect((int)Circle, ref source, ref m);
@@ -72,18 +62,12 @@ namespace Server.Spells.Fourth
                 }
 
                 if (m is Mobile)
-                {
                     Effects.SendBoltEffect(m, true, 0, false);
-                }
                 else
-                {
-                    Effects.SendBoltEffect(EffectMobile.Create(m.Location, m.Map, EffectMobile.DefaultDuration), true, 0, false);
-                }
+                    Effects.SendBoltEffect(EffectMobile.Create(m.Location, m.Map, EffectMobile.DefaultDuration), true,
+                        0, false);
 
-                if (damage > 0)
-                {
-                    SpellHelper.Damage(this, m, damage, 0, 0, 0, 0, 100);
-                }
+                if (damage > 0) SpellHelper.Damage(this, m, damage, 0, 0, 0, 0, 100);
             }
 
             FinishSequence();
@@ -92,6 +76,7 @@ namespace Server.Spells.Fourth
         private class InternalTarget : Target
         {
             private readonly LightningSpell m_Owner;
+
             public InternalTarget(LightningSpell owner)
                 : base(Core.ML ? 10 : 12, false, TargetFlags.Harmful)
             {

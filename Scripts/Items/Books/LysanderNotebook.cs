@@ -1,5 +1,3 @@
-using System;
-
 namespace Server.Items
 {
     public class LysanderNotebook1 : BaseBook
@@ -26,6 +24,9 @@ namespace Server.Items
                 "Thee, a thousand"),
             new BookPageInfo(
                 "fortunes in the night."));
+
+        public override BookContent DefaultContent => Content;
+
         [Constructable]
         public LysanderNotebook1()
             : base(Utility.Random(0xFF1, 2), false)
@@ -37,25 +38,18 @@ namespace Server.Items
         {
         }
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
@@ -113,6 +107,9 @@ namespace Server.Items
                 "my lessons well.  I",
                 "have learned from",
                 "Thee, Master, I have."));
+
+        public override BookContent DefaultContent => Content;
+
         [Constructable]
         public LysanderNotebook2()
             : base(Utility.Random(0xFF1, 2), false)
@@ -124,25 +121,18 @@ namespace Server.Items
         {
         }
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
@@ -195,6 +185,9 @@ namespace Server.Items
                 "feel Thine presence",
                 "even now.  Soon,",
                 "Master.  Soon."));
+
+        public override BookContent DefaultContent => Content;
+
         [Constructable]
         public LysanderNotebook3()
             : base(Utility.Random(0xFF1, 2), false)
@@ -206,25 +199,18 @@ namespace Server.Items
         {
         }
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
@@ -290,6 +276,9 @@ namespace Server.Items
                 "Thee with many",
                 "sacrifices, soon",
                 "enough."));
+
+        public override BookContent DefaultContent => Content;
+
         [Constructable]
         public LysanderNotebook7()
             : base(Utility.Random(0xFF1, 2), false)
@@ -301,25 +290,18 @@ namespace Server.Items
         {
         }
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
@@ -377,6 +359,9 @@ namespace Server.Items
                 "purpose and I kneel",
                 "before Thee, covered",
                 "in their blood."));
+
+        public override BookContent DefaultContent => Content;
+
         [Constructable]
         public LysanderNotebook8()
             : base(Utility.Random(0xFF1, 2), false)
@@ -388,25 +373,18 @@ namespace Server.Items
         {
         }
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
@@ -461,6 +439,9 @@ namespace Server.Items
                 "member of the"),
             new BookPageInfo(
                 "Khaldun at last!"));
+
+        public override BookContent DefaultContent => Content;
+
         [Constructable]
         public LysanderNotebook11()
             : base(Utility.Random(0xFF1, 2), false)
@@ -472,25 +453,18 @@ namespace Server.Items
         {
         }
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

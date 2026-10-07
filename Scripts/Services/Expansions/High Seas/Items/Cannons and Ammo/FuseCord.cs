@@ -1,15 +1,9 @@
-using System;
-using Server;
-
 namespace Server.Items
 {
     [TypeAlias("Server.Items.Fusecord")]
     public class FuseCord : Item, ICommodity
     {
-        public override int LabelNumber { get { return 1116305; } } // fuse cord
-
-        TextDefinition ICommodity.Description { get { return LabelNumber; } }
-        bool ICommodity.IsDeedable { get { return true; } }
+        public override int LabelNumber => 1116305; // fuse cord
 
         [Constructable]
         public FuseCord()
@@ -31,16 +25,19 @@ namespace Server.Items
         {
         }
 
+        TextDefinition ICommodity.Description => LabelNumber;
+        bool ICommodity.IsDeedable => true;
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -1,11 +1,21 @@
-using System;
-
 namespace Server.Items
 {
     [Flipable(0x2328, 0x2329)]
     public class Snowman : Item, IDyable
     {
         private string m_Title;
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public string Title
+        {
+            get => m_Title;
+            set
+            {
+                m_Title = value;
+                InvalidateProperties();
+            }
+        }
+
         [Constructable]
         public Snowman()
             : this(Utility.RandomDyedHue(), GetRandomTitle())
@@ -28,11 +38,11 @@ namespace Server.Items
         public Snowman(int hue, string title)
             : base(Utility.Random(0x2328, 2))
         {
-            this.Weight = 10.0;
-            this.Hue = hue;
-            this.LootType = LootType.Blessed;
+            Weight = 10.0;
+            Hue = hue;
+            LootType = LootType.Blessed;
 
-            this.m_Title = title;
+            m_Title = title;
         }
 
         public Snowman(Serial serial)
@@ -40,23 +50,20 @@ namespace Server.Items
         {
         }
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public string Title
+        public bool Dye(Mobile from, DyeTub sender)
         {
-            get
-            {
-                return this.m_Title;
-            }
-            set
-            {
-                this.m_Title = value;
-                this.InvalidateProperties();
-            }
+            if (Deleted)
+                return false;
+
+            Hue = sender.DyedHue;
+
+            return true;
         }
+
         public static string GetRandomTitle()
         {
             // All hail OSI staff
-            string[] titles = new string[]
+            var titles = new[]
             {
                 /*  1 */ "Backflash",
                 /*  2 */ "Carbon",
@@ -123,45 +130,35 @@ namespace Server.Items
         {
             base.GetProperties(list);
 
-            if (this.m_Title != null)
-                list.Add(1062841, this.m_Title); // ~1_NAME~ the Snowman
-        }
-
-        public bool Dye(Mobile from, DyeTub sender)
-        {
-            if (this.Deleted)
-                return false;
-
-            this.Hue = sender.DyedHue;
-
-            return true;
+            if (m_Title != null)
+                list.Add(1062841, m_Title); // ~1_NAME~ the Snowman
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)1); // version
+            writer.Write(1); // version
 
-            writer.Write((string)this.m_Title);
+            writer.Write(m_Title);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            switch ( version )
+            switch (version)
             {
                 case 1:
-                    {
-                        this.m_Title = reader.ReadString();
-                        break;
-                    }
+                {
+                    m_Title = reader.ReadString();
+                    break;
+                }
             }
 
-            Utility.Intern(ref this.m_Title);
+            Utility.Intern(ref m_Title);
         }
     }
 }

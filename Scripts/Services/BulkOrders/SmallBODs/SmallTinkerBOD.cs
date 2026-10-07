@@ -1,34 +1,14 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Server.Engines.Craft;
 using Server.Items;
-using System.Linq;
 
 namespace Server.Engines.BulkOrders
 {
     public class SmallTinkerBOD : SmallBOD
     {
-        public override BODType BODType { get { return BODType.Tinkering; } }
-
-        private GemType _GemType;
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public GemType GemType
-        {
-            get { return _GemType; }
-            set
-            {
-                if (this.Type != null && this.Type.IsSubclassOf(typeof(BaseJewel)))
-                {
-                    _GemType = value;
-                    AssignGemNumber(this.Type);
-
-                    InvalidateProperties();
-                }
-            }
-        }
-
-        public static double[] m_TinkerMaterialChances = new double[]
+        public static double[] m_TinkerMaterialChances =
         {
             0.501953125, // None
             0.250000000, // Dull Copper
@@ -38,8 +18,47 @@ namespace Server.Engines.BulkOrders
             0.015625000, // Gold
             0.007812500, // Agapite
             0.003906250, // Verite
-            0.001953125  // Valorite
+            0.001953125 // Valorite
         };
+
+        private static readonly Type[] _NonMaterials =
+        {
+            typeof(BaseTool), typeof(SmithyHammer), typeof(BaseJewel)
+        };
+
+        /* Tinkering needs conditional check for combining:
+         * SpoonLeft/SpoonRight, ForkLeft/ForkRight, KnifeLeft/KnifeRight, ClockRight/ClockLeft
+         */
+        private static readonly Type[][] _TinkerTypeTable =
+        {
+            new[] { typeof(Spoon), typeof(SpoonRight), typeof(SpoonLeft) },
+            new[] { typeof(Fork), typeof(ForkRight), typeof(ForkLeft) },
+            new[] { typeof(Knife), typeof(KnifeRight), typeof(KnifeLeft) },
+            new[] { typeof(Clock), typeof(ClockRight), typeof(ClockLeft) },
+            new[] { typeof(GoldRing), typeof(SilverRing) },
+            new[] { typeof(GoldBracelet), typeof(SilverBracelet) },
+            new[] { typeof(GoldEarrings), typeof(SilverEarrings) },
+            new[] { typeof(SmithHammer), typeof(SmithyHammer) }
+        };
+
+        private GemType _GemType;
+        public override BODType BODType => BODType.Tinkering;
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public GemType GemType
+        {
+            get => _GemType;
+            set
+            {
+                if (Type != null && Type.IsSubclassOf(typeof(BaseJewel)))
+                {
+                    _GemType = value;
+                    AssignGemNumber(Type);
+
+                    InvalidateProperties();
+                }
+            }
+        }
 
         [Constructable]
         public SmallTinkerBOD()
@@ -54,7 +73,7 @@ namespace Server.Engines.BulkOrders
 
             if (entries.Length > 0)
             {
-                int amountMax = Utility.RandomList(10, 15, 20);
+                var amountMax = Utility.RandomList(10, 15, 20);
 
                 BulkMaterialType material;
 
@@ -63,14 +82,12 @@ namespace Server.Engines.BulkOrders
                 else
                     material = BulkMaterialType.None;
 
-                bool reqExceptional = useMaterials ? Utility.RandomBool() : false;
+                var reqExceptional = useMaterials ? Utility.RandomBool() : false;
 
-                SmallBulkEntry entry = entries[Utility.Random(entries.Length)];
+                var entry = entries[Utility.Random(entries.Length)];
 
                 if (material != BulkMaterialType.None && CannotAssignMaterial(entry.Type))
-                {
                     material = BulkMaterialType.None;
-                }
 
                 Hue = 1109;
                 AmountMax = amountMax;
@@ -81,14 +98,12 @@ namespace Server.Engines.BulkOrders
                 Material = material;
                 GraphicHue = entry.Hue;
 
-                if (entry.Type.IsSubclassOf(typeof(BaseJewel)))
-                {
-                    AssignGemType(entry.Type);
-                }
+                if (entry.Type.IsSubclassOf(typeof(BaseJewel))) AssignGemType(entry.Type);
             }
         }
 
-        public SmallTinkerBOD(int amountCur, int amountMax, Type type, int number, int graphic, bool reqExceptional, BulkMaterialType mat, int hue, GemType gemType)
+        public SmallTinkerBOD(int amountCur, int amountMax, Type type, int number, int graphic, bool reqExceptional,
+            BulkMaterialType mat, int hue, GemType gemType)
         {
             Hue = 1109;
             AmountMax = amountMax;
@@ -130,7 +145,7 @@ namespace Server.Engines.BulkOrders
 
             if (entries.Length > 0)
             {
-                double theirSkill = BulkOrderSystem.GetBODSkill(m, SkillName.Tinkering);
+                var theirSkill = BulkOrderSystem.GetBODSkill(m, SkillName.Tinkering);
                 int amountMax;
 
                 if (theirSkill >= 70.1)
@@ -140,14 +155,13 @@ namespace Server.Engines.BulkOrders
                 else
                     amountMax = Utility.RandomList(10, 10, 15, 20);
 
-                BulkMaterialType material = BulkMaterialType.None;
+                var material = BulkMaterialType.None;
 
                 if (useMaterials && theirSkill >= 70.1)
-                {
-                    for (int i = 0; i < 20; ++i)
+                    for (var i = 0; i < 20; ++i)
                     {
-                        BulkMaterialType check = GetRandomMaterial(BulkMaterialType.DullCopper, m_TinkerMaterialChances);
-                        double skillReq = GetRequiredSkill(check);
+                        var check = GetRandomMaterial(BulkMaterialType.DullCopper, m_TinkerMaterialChances);
+                        var skillReq = GetRequiredSkill(check);
 
                         if (theirSkill >= skillReq)
                         {
@@ -155,27 +169,26 @@ namespace Server.Engines.BulkOrders
                             break;
                         }
                     }
-                }
 
-                double excChance = 0.0;
+                var excChance = 0.0;
 
                 if (useMaterials && theirSkill >= 70.1)
                     excChance = (theirSkill + 80.0) / 200.0;
 
-                bool reqExceptional = (excChance > Utility.RandomDouble());
+                var reqExceptional = excChance > Utility.RandomDouble();
 
-                CraftSystem system = DefTinkering.CraftSystem;
+                var system = DefTinkering.CraftSystem;
 
-                List<SmallBulkEntry> validEntries = new List<SmallBulkEntry>();
+                var validEntries = new List<SmallBulkEntry>();
 
-                for (int i = 0; i < entries.Length; ++i)
+                for (var i = 0; i < entries.Length; ++i)
                 {
-                    CraftItem item = system.CraftItems.SearchFor(entries[i].Type);
+                    var item = system.CraftItems.SearchFor(entries[i].Type);
 
                     if (item != null)
                     {
-                        bool allRequiredSkills = true;
-                        double chance = item.GetSuccessChance(m, null, system, false, ref allRequiredSkills);
+                        var allRequiredSkills = true;
+                        var chance = item.GetSuccessChance(m, null, system, false, ref allRequiredSkills);
 
                         if (allRequiredSkills && chance >= 0.0)
                         {
@@ -190,19 +203,14 @@ namespace Server.Engines.BulkOrders
 
                 if (validEntries.Count > 0)
                 {
-                    SmallBulkEntry entry = validEntries[Utility.Random(validEntries.Count)];
+                    var entry = validEntries[Utility.Random(validEntries.Count)];
 
                     if (material != BulkMaterialType.None && CannotAssignMaterial(entry.Type))
-                    {
                         material = BulkMaterialType.None;
-                    }
 
                     var bod = new SmallTinkerBOD(entry, material, amountMax, reqExceptional);
 
-                    if (entry.Type.IsSubclassOf(typeof(BaseJewel)))
-                    {
-                        bod.AssignGemType(entry.Type);
-                    }
+                    if (entry.Type.IsSubclassOf(typeof(BaseJewel))) bod.AssignGemType(entry.Type);
 
                     return bod;
                 }
@@ -216,19 +224,11 @@ namespace Server.Engines.BulkOrders
             return _NonMaterials.Any(x => x == t || t.IsSubclassOf(x));
         }
 
-        private static Type[] _NonMaterials =
-        {
-            typeof(BaseTool), typeof(SmithyHammer), typeof(BaseJewel)
-        };
-
         public override bool CheckType(Type type)
         {
-            bool check = base.CheckType(type);
+            var check = base.CheckType(type);
 
-            if (!check)
-            {
-                check = CheckTinkerType(type, Type);
-            }
+            if (!check) check = CheckTinkerType(type, Type);
 
             return check;
         }
@@ -236,54 +236,25 @@ namespace Server.Engines.BulkOrders
         public override bool CheckType(Item item)
         {
             if (_GemType != GemType.None && (!(item is BaseJewel) || ((BaseJewel)item).GemType != _GemType))
-            {
                 return false;
-            }
 
-            bool check = base.CheckType(item);
+            var check = base.CheckType(item);
 
-            if (!check)
-            {
-                check = CheckTinkerType(item.GetType(), Type);
-            }
+            if (!check) check = CheckTinkerType(item.GetType(), Type);
 
             return check;
         }
 
-        /* Tinkering needs conditional check for combining:
-        * SpoonLeft/SpoonRight, ForkLeft/ForkRight, KnifeLeft/KnifeRight, ClockRight/ClockLeft
-        */
-        private static Type[][] _TinkerTypeTable =
-        {
-            new Type[] { typeof(Spoon), typeof(SpoonRight), typeof(SpoonLeft) },
-            new Type[] { typeof(Fork), typeof(ForkRight), typeof(ForkLeft) },
-            new Type[] { typeof(Knife), typeof(KnifeRight), typeof(KnifeLeft) },
-            new Type[] { typeof(Clock), typeof(ClockRight), typeof(ClockLeft) },
-            new Type[] { typeof(GoldRing), typeof(SilverRing) },
-            new Type[] { typeof(GoldBracelet), typeof(SilverBracelet) },
-            new Type[] { typeof(GoldEarrings), typeof(SilverEarrings) },
-            new Type[] { typeof(SmithHammer), typeof(SmithyHammer) }
-        };
-
         public static bool CheckTinkerType(Type actual, Type lookingfor)
         {
-            foreach (Type[] types in _TinkerTypeTable)
-            {
-                foreach (Type t in types)
-                {
-                    if (t == lookingfor) // found the list, lets see if the actual is here
-                    {
-                        foreach (Type t2 in types)
-                        {
-                            if (t2 == actual)
-                            {
-                                return true;
-                            }
-                        }
-                    }
-                }
+            foreach (var types in _TinkerTypeTable)
+            foreach (var t in types)
+                if (t == lookingfor) // found the list, lets see if the actual is here
+                    foreach (var t2 in types)
+                        if (t2 == actual)
+                            return true;
 
-                /*if (types[0] == lookingfor)
+            /*if (types[0] == lookingfor)
                 {
                     foreach (Type t in types)
                     {
@@ -291,8 +262,6 @@ namespace Server.Engines.BulkOrders
                             return true;
                     }
                 }*/
-            }
-
             return false;
         }
 
@@ -308,17 +277,19 @@ namespace Server.Engines.BulkOrders
 
         public override List<Item> ComputeRewards(bool full)
         {
-            List<Item> list = new List<Item>();
+            var list = new List<Item>();
 
-            RewardGroup rewardGroup = TinkeringRewardCalculator.Instance.LookupRewards(TinkeringRewardCalculator.Instance.ComputePoints(this));
+            var rewardGroup =
+                TinkeringRewardCalculator.Instance.LookupRewards(TinkeringRewardCalculator.Instance
+                    .ComputePoints(this));
 
             if (rewardGroup != null)
             {
                 if (full)
                 {
-                    for (int i = 0; i < rewardGroup.Items.Length; ++i)
+                    for (var i = 0; i < rewardGroup.Items.Length; ++i)
                     {
-                        Item item = rewardGroup.Items[i].Construct();
+                        var item = rewardGroup.Items[i].Construct();
 
                         if (item != null)
                             list.Add(item);
@@ -326,11 +297,11 @@ namespace Server.Engines.BulkOrders
                 }
                 else
                 {
-                    RewardItem rewardItem = rewardGroup.AcquireItem();
+                    var rewardItem = rewardGroup.AcquireItem();
 
                     if (rewardItem != null)
                     {
-                        Item item = rewardItem.Construct();
+                        var item = rewardItem.Construct();
 
                         if (item != null)
                             list.Add(item);
@@ -350,30 +321,24 @@ namespace Server.Engines.BulkOrders
 
         public void AssignGemNumber(Type jewelType)
         {
-            int offset = (int)GemType - 1;
-            int loc = 0;
+            var offset = (int)GemType - 1;
+            var loc = 0;
 
             if (jewelType == typeof(GoldRing) || jewelType == typeof(SilverRing))
-            {
                 loc = 1044176;
-            }
             else if (jewelType == typeof(GoldBracelet) || jewelType == typeof(SilverBracelet))
-            {
                 loc = 1044221;
-            }
             else
-            {
                 loc = 1044203;
-            }
 
-            this.Number = loc + offset;
+            Number = loc + offset;
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)2); // version
+            writer.Write(2); // version
 
             writer.Write((int)GemType);
         }
@@ -382,28 +347,22 @@ namespace Server.Engines.BulkOrders
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             switch (version)
             {
                 case 2:
                     GemType = (GemType)reader.ReadInt();
                     break;
-                case 1: 
+                case 1:
                     break;
             }
 
             if (version < 2)
             {
-                if (CannotAssignMaterial(Type) && Material != BulkMaterialType.None)
-                {
-                    Material = BulkMaterialType.None;
-                }
+                if (CannotAssignMaterial(Type) && Material != BulkMaterialType.None) Material = BulkMaterialType.None;
 
-                if (this.Type.IsSubclassOf(typeof(BaseJewel)))
-                {
-                    AssignGemType(this.Type);
-                }
+                if (Type.IsSubclassOf(typeof(BaseJewel))) AssignGemType(Type);
             }
         }
     }

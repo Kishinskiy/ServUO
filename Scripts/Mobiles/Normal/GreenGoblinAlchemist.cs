@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +5,11 @@ namespace Server.Mobiles
     [CorpseName("a goblin corpse")]
     public class GreenGoblinAlchemist : BaseCreature
     {
+        public override bool CanRummageCorpses => true;
+        public override int TreasureMapLevel => 1;
+        public override int Meat => 1;
+        public override TribeType Tribe => TribeType.GreenGoblin;
+
         [Constructable]
         public GreenGoblinAlchemist()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -43,7 +47,7 @@ namespace Server.Mobiles
             VirtualArmor = 28;
 
             // loot 60 gold, magic item, gem, bola ball, liquar,gob blood
-            switch ( Utility.Random(20) )
+            switch (Utility.Random(20))
             {
                 case 0:
                     PackItem(new Scimitar());
@@ -67,7 +71,7 @@ namespace Server.Mobiles
 
             PackItem(new ThighBoots());
 
-            switch ( Utility.Random(3) )
+            switch (Utility.Random(3))
             {
                 case 0:
                     PackItem(new Ribs());
@@ -89,16 +93,30 @@ namespace Server.Mobiles
         {
         }
 
-        public override int GetAngerSound() { return 0x600; }
-        public override int GetIdleSound() { return 0x600; }
-        public override int GetAttackSound() { return 0x5FD; }
-        public override int GetHurtSound() { return 0x5FF; }
-        public override int GetDeathSound() { return 0x5FE; }
+        public override int GetAngerSound()
+        {
+            return 0x600;
+        }
 
-        public override bool CanRummageCorpses { get { return true; } }
-        public override int TreasureMapLevel { get { return 1; } }
-        public override int Meat { get { return 1; } }
-        public override TribeType Tribe { get { return TribeType.GreenGoblin; } }
+        public override int GetIdleSound()
+        {
+            return 0x600;
+        }
+
+        public override int GetAttackSound()
+        {
+            return 0x5FD;
+        }
+
+        public override int GetHurtSound()
+        {
+            return 0x5FF;
+        }
+
+        public override int GetDeathSound()
+        {
+            return 0x5FE;
+        }
 
         public override void GenerateLoot()
         {
@@ -116,13 +134,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

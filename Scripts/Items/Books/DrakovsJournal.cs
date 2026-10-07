@@ -1,5 +1,3 @@
-using System;
-
 namespace Server.Items
 {
     public class DrakovsJournal : BlueBook
@@ -79,6 +77,9 @@ namespace Server.Items
                 "mercy and forsight",
                 "we would not be",
                 "in such dire peril."));
+
+        public override BookContent DefaultContent => Content;
+
         [Constructable]
         public DrakovsJournal()
             : base(false)
@@ -90,25 +91,18 @@ namespace Server.Items
         {
         }
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

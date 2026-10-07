@@ -1,5 +1,4 @@
 using System;
-using Server;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -7,6 +6,13 @@ namespace Server.Mobiles
     [CorpseName("a silverback gorilla corpse")]
     public class SilverbackGorilla : BaseCreature
     {
+        private DateTime _NextBanana;
+        private int _Thrown;
+
+        public override int Meat => 1;
+        public override int Hides => 7;
+        public override FoodType FavoriteFood => FoodType.FruitsAndVegies;
+
         [Constructable]
         public SilverbackGorilla()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, .2, .4)
@@ -43,35 +49,36 @@ namespace Server.Mobiles
             Karma = -5000;
         }
 
-        public override int Meat { get { return 1; } }
-        public override int Hides { get { return 7; } }
-        public override FoodType FavoriteFood { get { return FoodType.FruitsAndVegies; } }
-
-        private DateTime _NextBanana;
-        private int _Thrown;
+        public SilverbackGorilla(Serial serial)
+            : base(serial)
+        {
+        }
 
         public override void OnActionCombat()
         {
-            Mobile combatant = Combatant as Mobile;
+            var combatant = Combatant as Mobile;
 
-            if (DateTime.UtcNow < _NextBanana || combatant == null || combatant.Deleted || combatant.Map != Map || !InRange(combatant, 12) || !CanBeHarmful(combatant) || !InLOS(combatant))
+            if (DateTime.UtcNow < _NextBanana || combatant == null || combatant.Deleted || combatant.Map != Map ||
+                !InRange(combatant, 12) || !CanBeHarmful(combatant) || !InLOS(combatant))
                 return;
 
             ThrowBanana(combatant);
 
             _Thrown++;
 
-            if (0.75 >= Utility.RandomDouble() && (_Thrown % 2) == 1) // 75% chance to quickly throw another bomb
+            if (0.75 >= Utility.RandomDouble() && _Thrown % 2 == 1) // 75% chance to quickly throw another bomb
                 _NextBanana = DateTime.UtcNow + TimeSpan.FromSeconds(3.0);
             else
-                _NextBanana = DateTime.UtcNow + TimeSpan.FromSeconds(5.0 + (10.0 * Utility.RandomDouble())); // 5-15 seconds
+                _NextBanana =
+                    DateTime.UtcNow + TimeSpan.FromSeconds(5.0 + 10.0 * Utility.RandomDouble()); // 5-15 seconds
         }
 
         public void ThrowBanana(Mobile m)
         {
             DoHarmful(m);
 
-            this.MovingParticles(m, Utility.RandomList(0x171f, 0x1720, 0x1721, 0x1722), 10, 0, false, true, 0, 0, 9502, 6014, 0x11D, EffectLayer.Waist, 0);
+            MovingParticles(m, Utility.RandomList(0x171f, 0x1720, 0x1721, 0x1722), 10, 0, false, true, 0, 0, 9502, 6014,
+                0x11D, EffectLayer.Waist, 0);
 
             Timer.DelayCall(TimeSpan.FromSeconds(1), () =>
             {
@@ -88,11 +95,6 @@ namespace Server.Mobiles
             return base.OnBeforeDeath();
         }
 
-        public SilverbackGorilla(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -102,7 +104,7 @@ namespace Server.Mobiles
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

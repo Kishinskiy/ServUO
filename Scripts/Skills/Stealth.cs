@@ -1,12 +1,13 @@
 using System;
 using Server.Items;
-using Server.Mobiles;
 
 namespace Server.SkillHandlers
 {
     public class Stealth
     {
-        private static readonly int[,] m_ArmorTable = new int[,]
+        public static double HidingRequirement => Core.ML ? 30.0 : Core.SE ? 50.0 : 80.0;
+
+        public static int[,] ArmorTable { get; } =
         {
             //	Gorget	Gloves	Helmet	Arms	Legs	Chest	Shield
             /* Cloth	*/ { 0, 0, 0, 0, 0, 0, 0 },
@@ -21,23 +22,10 @@ namespace Server.SkillHandlers
             /* Plate	*/ { 5, 5, 10, 10, 15, 25, 0 },
             /* Dragon	*/ { 0, 5, 10, 10, 15, 25, 0 }
         };
-        public static double HidingRequirement
-        {
-            get
-            {
-                return (Core.ML ? 30.0 : (Core.SE ? 50.0 : 80.0));
-            }
-        }
-        public static int[,] ArmorTable
-        {
-            get
-            {
-                return m_ArmorTable;
-            }
-        }
+
         public static void Initialize()
         {
-            SkillInfo.Table[(int)SkillName.Stealth].Callback = new SkillUseCallback(OnUse);
+            SkillInfo.Table[(int)SkillName.Stealth].Callback = OnUse;
         }
 
         public static int GetArmorRating(Mobile m)
@@ -45,23 +33,23 @@ namespace Server.SkillHandlers
             if (!Core.AOS)
                 return (int)m.ArmorRating;
 
-            int ar = 0;
+            var ar = 0;
 
-            for (int i = 0; i < m.Items.Count; i++)
+            for (var i = 0; i < m.Items.Count; i++)
             {
-                BaseArmor armor = m.Items[i] as BaseArmor;
+                var armor = m.Items[i] as BaseArmor;
 
                 if (armor == null)
                     continue;
 
-                int materialType = (int)armor.MaterialType;
-                int bodyPosition = (int)armor.BodyPosition;
+                var materialType = (int)armor.MaterialType;
+                var bodyPosition = (int)armor.BodyPosition;
 
-                if (materialType >= m_ArmorTable.GetLength(0) || bodyPosition >= m_ArmorTable.GetLength(1))
+                if (materialType >= ArmorTable.GetLength(0) || bodyPosition >= ArmorTable.GetLength(1))
                     continue;
 
                 if (armor.ArmorAttributes.MageArmor == 0)
-                    ar += m_ArmorTable[materialType, bodyPosition];
+                    ar += ArmorTable[materialType, bodyPosition];
             }
 
             return ar;
@@ -93,7 +81,7 @@ namespace Server.SkillHandlers
             }
             else
             {
-                int armorRating = GetArmorRating(m);
+                var armorRating = GetArmorRating(m);
 
                 if (armorRating >= (Core.AOS ? 42 : 26)) //I have a hunch '42' was chosen cause someone's a fan of DNA
                 {
@@ -101,9 +89,10 @@ namespace Server.SkillHandlers
                     m.RevealingAction();
                     BuffInfo.RemoveBuff(m, BuffIcon.HidingAndOrStealth);
                 }
-                else if (m.CheckSkill(SkillName.Stealth, -20.0 + (armorRating * 2), (Core.AOS ? 60.0 : 80.0) + (armorRating * 2)))
+                else if (m.CheckSkill(SkillName.Stealth, -20.0 + armorRating * 2,
+                             (Core.AOS ? 60.0 : 80.0) + armorRating * 2))
                 {
-                    int steps = (int)(m.Skills[SkillName.Stealth].Value / (Core.AOS ? 5.0 : 10.0));
+                    var steps = (int)(m.Skills[SkillName.Stealth].Value / (Core.AOS ? 5.0 : 10.0));
 
                     if (steps < 1)
                         steps = 1;

@@ -1,14 +1,14 @@
-using System;
-
 namespace Server.Items
 {
     public class Obelisk : Item
     {
+        public override int LabelNumber => 1016474; // an obelisk
+
         [Constructable]
         public Obelisk()
             : base(0x1184)
         {
-            this.Movable = false;
+            Movable = false;
         }
 
         public Obelisk(Serial serial)
@@ -16,25 +16,18 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1016474;
-            }
-        }// an obelisk
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

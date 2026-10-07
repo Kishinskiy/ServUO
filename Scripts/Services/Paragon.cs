@@ -5,13 +5,17 @@ namespace Server.Mobiles
 {
     public class Paragon
     {
-        public static double ChestChance = .10;// Chance that a paragon will carry a paragon chest
-        public static double ChocolateIngredientChance = .20;// Chance that a paragon will drop a chocolatiering ingredient
-        public static Map[] Maps = new Map[]                   // Maps that paragons will spawn on
+        public static double ChestChance = .10; // Chance that a paragon will carry a paragon chest
+
+        public static double
+            ChocolateIngredientChance = .20; // Chance that a paragon will drop a chocolatiering ingredient
+
+        public static Map[] Maps =
         {
             Map.Ilshenar
         };
-        public static Type[] Artifacts = new Type[]
+
+        public static Type[] Artifacts =
         {
             typeof(GoldBricks), typeof(PhillipsWoodenSteed),
             typeof(AlchemistsBauble), typeof(ArcticDeathDealer),
@@ -26,7 +30,8 @@ namespace Server.Mobiles
             typeof(WrathOfTheDryad), typeof(PixieSwatter),
             typeof(GlovesOfThePugilist)
         };
-        public static int Hue = 0x501;// Paragon hue
+
+        public static int Hue = 0x501; // Paragon hue
 
         // Buffs
         public static double HitsBuff = 5.0;
@@ -38,10 +43,11 @@ namespace Server.Mobiles
         public static double FameBuff = 1.40;
         public static double KarmaBuff = 1.40;
         public static int DamageBuff = 5;
+
         public static void Convert(BaseCreature bc)
         {
             if (bc.IsParagon ||
-				!bc.CanBeParagon)
+                !bc.CanBeParagon)
                 return;
 
             bc.Hue = Hue;
@@ -57,9 +63,9 @@ namespace Server.Mobiles
             bc.Mana = bc.ManaMax;
             bc.Stam = bc.StamMax;
 
-            for (int i = 0; i < bc.Skills.Length; i++)
+            for (var i = 0; i < bc.Skills.Length; i++)
             {
-                Skill skill = (Skill)bc.Skills[i];
+                var skill = bc.Skills[i];
 
                 if (skill.Base > 0.0)
                     skill.Base *= SkillsBuff;
@@ -107,9 +113,9 @@ namespace Server.Mobiles
             bc.Mana = bc.ManaMax;
             bc.Stam = bc.StamMax;
 
-            for (int i = 0; i < bc.Skills.Length; i++)
+            for (var i = 0; i < bc.Skills.Length; i++)
             {
-                Skill skill = (Skill)bc.Skills[i];
+                var skill = bc.Skills[i];
 
                 if (skill.Base > 0.0)
                     skill.Base /= SkillsBuff;
@@ -141,17 +147,18 @@ namespace Server.Mobiles
             if (Array.IndexOf(Maps, m) == -1)
                 return false;
 
-            if (bc is BaseChampion || bc is Harrower || bc is BaseVendor || bc is BaseEscortable || bc is Clone || bc.IsParagon)
+            if (bc is BaseChampion || bc is Harrower || bc is BaseVendor || bc is BaseEscortable || bc is Clone ||
+                bc.IsParagon)
                 return false;
 
-            int fame = bc.Fame;
+            var fame = bc.Fame;
 
             if (fame > 32000)
                 fame = 32000;
 
-            double chance = 1 / Math.Round(20.0 - (fame / 3200));
+            var chance = 1 / Math.Round(20.0 - fame / 3200);
 
-            return (chance > Utility.RandomDouble());
+            return chance > Utility.RandomDouble();
         }
 
         public static bool CheckArtifactChance(Mobile m, BaseCreature bc)
@@ -159,26 +166,30 @@ namespace Server.Mobiles
             if (!Core.AOS)
                 return false;
 
-            double fame = (double)bc.Fame;
+            var fame = (double)bc.Fame;
 
             if (fame > 32000)
                 fame = 32000;
 
-            int luck = m is PlayerMobile ? ((PlayerMobile)m).RealLuck : m.Luck;
+            var luck = m is PlayerMobile ? ((PlayerMobile)m).RealLuck : m.Luck;
 
-            double chance = 1 / (Math.Max(10, 100 * (0.83 - Math.Round(Math.Log(Math.Round(fame / 6000, 3) + 0.001, 10), 3))) * (100 - Math.Sqrt(luck)) / 100.0);
+            var chance = 1 /
+                         (Math.Max(10, 100 * (0.83 - Math.Round(Math.Log(Math.Round(fame / 6000, 3) + 0.001, 10), 3))) *
+                             (100 - Math.Sqrt(luck)) / 100.0);
 
             return chance > Utility.RandomDouble();
         }
 
         public static void GiveArtifactTo(Mobile m)
         {
-            Item item = (Item)Activator.CreateInstance(Artifacts[Utility.Random(Artifacts.Length)]);
+            var item = (Item)Activator.CreateInstance(Artifacts[Utility.Random(Artifacts.Length)]);
 
             if (m.AddToBackpack(item))
-                m.SendMessage("As a reward for slaying the mighty paragon, an artifact has been placed in your backpack.");
+                m.SendMessage(
+                    "As a reward for slaying the mighty paragon, an artifact has been placed in your backpack.");
             else
-                m.SendMessage("As your backpack is full, your reward for destroying the legendary paragon has been placed at your feet.");
+                m.SendMessage(
+                    "As your backpack is full, your reward for destroying the legendary paragon has been placed at your feet.");
         }
     }
 }

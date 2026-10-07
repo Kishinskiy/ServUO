@@ -1,11 +1,10 @@
-using System;
 using Server.Gumps;
 using Server.Network;
 
 namespace Server.Items
 {
     public enum AnniversaryType
-    {        
+    {
         ShadowItems,
         CrystalItems
     }
@@ -16,7 +15,7 @@ namespace Server.Items
         {
             get
             {
-                int cliloc = 0;
+                var cliloc = 0;
 
                 switch (Type)
                 {
@@ -31,7 +30,7 @@ namespace Server.Items
                 return cliloc;
             }
         }
-        
+
         [CommandProperty(AccessLevel.GameMaster)]
         public AnniversaryType Type { get; set; }
 
@@ -51,11 +50,16 @@ namespace Server.Items
             Weight = 5.0;
         }
 
+        public AnniversaryPromotionalToken(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void GetProperties(ObjectPropertyList list)
         {
             base.GetProperties(list);
 
-            int cliloc = 0;
+            var cliloc = 0;
 
             switch (Type)
             {
@@ -67,7 +71,7 @@ namespace Server.Items
                     break;
             }
 
-            list.Add(1070998, String.Format("#{0}", cliloc)); // Use this to redeem<br>your ~1_PROMO~
+            list.Add(1070998, string.Format("#{0}", cliloc)); // Use this to redeem<br>your ~1_PROMO~
         }
 
         public override void OnDoubleClick(Mobile from)
@@ -83,11 +87,6 @@ namespace Server.Items
             }
         }
 
-        public AnniversaryPromotionalToken(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -99,7 +98,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             Type = (AnniversaryType)reader.ReadInt();
         }
@@ -115,7 +114,8 @@ namespace Server.Items
 
                 AddHtmlLocalized(0, 0, 0, 0, 1015313, false, false); // <center></center>
                 AddHtmlLocalized(0, 0, 0, 0, 1049004, false, false); // Confirm
-                AddHtmlLocalized(0, 0, 0, 0, 1076597, false, false); // Clicking "OK" will create the items in your backpack if there is room.  Otherwise it will be created in your bankbox.
+                AddHtmlLocalized(0, 0, 0, 0, 1076597, false,
+                    false); // Clicking "OK" will create the items in your backpack if there is room.  Otherwise it will be created in your bankbox.
                 AddHtmlLocalized(0, 0, 0, 0, 1011036, false, false); // OKAY
                 AddHtmlLocalized(0, 0, 0, 0, 1011012, false, false); // CANCEL
 
@@ -127,7 +127,8 @@ namespace Server.Items
                 AddHtmlLocalized(9, 8, 280, 20, 1049004, 0x7FFF, false, false); // Confirm
 
                 AddImageTiled(5, 31, 280, 100, 0xA40);
-                AddHtmlLocalized(9, 35, 272, 100, 1076597, 0x7FFF, false, false); // Clicking "OK" will create the items in your backpack if there is room.  Otherwise it will be created in your bankbox.
+                AddHtmlLocalized(9, 35, 272, 100, 1076597, 0x7FFF, false,
+                    false); // Clicking "OK" will create the items in your backpack if there is room.  Otherwise it will be created in your bankbox.
 
                 AddButton(190, 133, 0xFB7, 0xFB8, 1, GumpButtonType.Reply, 0);
                 AddHtmlLocalized(225, 135, 90, 20, 1006044, 0x7FFF, false, false); // OK
@@ -140,30 +141,28 @@ namespace Server.Items
             {
                 if (info.ButtonID == 1)
                 {
-                    Mobile m = sender.Mobile;
+                    var m = sender.Mobile;
                     Item item = null;
 
                     switch (Token.Type)
                     {
                         case AnniversaryType.CrystalItems:
-                            {
-                                item = new BoxOfCrystalItems();
-                                break;
-                            }
+                        {
+                            item = new BoxOfCrystalItems();
+                            break;
+                        }
                         case AnniversaryType.ShadowItems:
-                            {
-                                item = new BoxOfShadowItems();
-                                break;
-                            }
+                        {
+                            item = new BoxOfShadowItems();
+                            break;
+                        }
                     }
 
                     if (item != null && Token != null)
                     {
                         if (!m.AddToBackpack(item))
-                        {
                             if (m.BankBox.TryDropItem(m, item, false))
                                 item.MoveToWorld(m.Location, m.Map);
-                        }
 
                         Token.Delete();
                     }

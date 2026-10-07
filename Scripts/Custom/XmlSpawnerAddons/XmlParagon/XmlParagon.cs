@@ -1,5 +1,4 @@
 using System;
-using Server;
 using Server.Items;
 using Server.Mobiles;
 
@@ -8,24 +7,25 @@ namespace Server.Engines.XmlSpawner2
     public class XmlParagon : XmlAttachment
     {
         #region private properties
-        private double m_ChestChance;         // Chance that a paragon will carry a paragon chest
+
+        private double m_ChestChance; // Chance that a paragon will carry a paragon chest
 
         // default artifact types
-        private static Type[] m_Artifacts = new Type[]
-		{
-			typeof( GoldBricks ), typeof( PhillipsWoodenSteed ),
-			typeof( AlchemistsBauble ), typeof( ArcticDeathDealer ),
-			typeof( BlazeOfDeath ), typeof( BowOfTheJukaKing ),
-			typeof( BurglarsBandana ), typeof( CavortingClub ),
-			typeof( EnchantedTitanLegBone ), typeof( GwennosHarp ),
-			typeof( IolosLute ), typeof( LunaLance ),
-			typeof( NightsKiss ), typeof( NoxRangersHeavyCrossbow ),
-			typeof( OrcishVisage ), typeof( PolarBearMask ),
-			typeof( ShieldOfInvulnerability ), typeof( StaffOfPower ),
-			typeof( VioletCourage ), typeof( HeartOfTheLion ),
-			typeof( WrathOfTheDryad ), typeof( PixieSwatter ),
-			typeof( GlovesOfThePugilist )
-		};
+        private static Type[] m_Artifacts =
+        {
+            typeof(GoldBricks), typeof(PhillipsWoodenSteed),
+            typeof(AlchemistsBauble), typeof(ArcticDeathDealer),
+            typeof(BlazeOfDeath), typeof(BowOfTheJukaKing),
+            typeof(BurglarsBandana), typeof(CavortingClub),
+            typeof(EnchantedTitanLegBone), typeof(GwennosHarp),
+            typeof(IolosLute), typeof(LunaLance),
+            typeof(NightsKiss), typeof(NoxRangersHeavyCrossbow),
+            typeof(OrcishVisage), typeof(PolarBearMask),
+            typeof(ShieldOfInvulnerability), typeof(StaffOfPower),
+            typeof(VioletCourage), typeof(HeartOfTheLion),
+            typeof(WrathOfTheDryad), typeof(PixieSwatter),
+            typeof(GlovesOfThePugilist)
+        };
 
         private int m_Hue;
 
@@ -43,56 +43,126 @@ namespace Server.Engines.XmlSpawner2
         private string m_ParagonLabel;
         private double m_ConvertFactor = 1;
         private double m_ArtifactFactor = 1;
+
         #endregion
 
         #region public properties
 
-        public virtual Type[] Artifacts { get { return m_Artifacts; } set { m_Artifacts = value; } }
+        public virtual Type[] Artifacts
+        {
+            get => m_Artifacts;
+            set => m_Artifacts = value;
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public virtual double ConvertFactor { get { return m_ConvertFactor; } set { m_ConvertFactor = value; } }
+        public virtual double ConvertFactor
+        {
+            get => m_ConvertFactor;
+            set => m_ConvertFactor = value;
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public virtual double ArtifactFactor { get { return m_ArtifactFactor; } set { m_ArtifactFactor = value; } }
+        public virtual double ArtifactFactor
+        {
+            get => m_ArtifactFactor;
+            set => m_ArtifactFactor = value;
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public virtual int Hue { get { return m_Hue; } set { m_Hue = value; } }
+        public virtual int Hue
+        {
+            get => m_Hue;
+            set => m_Hue = value;
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public virtual double HitsBuff { get { return m_HitsBuff; } set { m_HitsBuff = value; } }
+        public virtual double HitsBuff
+        {
+            get => m_HitsBuff;
+            set => m_HitsBuff = value;
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public virtual double StrBuff { get { return m_StrBuff; } set { m_StrBuff = value; } }
+        public virtual double StrBuff
+        {
+            get => m_StrBuff;
+            set => m_StrBuff = value;
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public virtual double IntBuff { get { return m_IntBuff; } set { m_IntBuff = value; } }
+        public virtual double IntBuff
+        {
+            get => m_IntBuff;
+            set => m_IntBuff = value;
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public virtual double DexBuff { get { return m_DexBuff; } set { m_DexBuff = value; } }
+        public virtual double DexBuff
+        {
+            get => m_DexBuff;
+            set => m_DexBuff = value;
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public virtual double SkillsBuff { get { return m_SkillsBuff; } set { m_SkillsBuff = value; } }
+        public virtual double SkillsBuff
+        {
+            get => m_SkillsBuff;
+            set => m_SkillsBuff = value;
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public virtual double SpeedBuff { get { return m_SpeedBuff; } set { m_SpeedBuff = value; } }
+        public virtual double SpeedBuff
+        {
+            get => m_SpeedBuff;
+            set => m_SpeedBuff = value;
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public virtual double FameBuff { get { return m_FameBuff; } set { m_FameBuff = value; } }
+        public virtual double FameBuff
+        {
+            get => m_FameBuff;
+            set => m_FameBuff = value;
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public virtual double KarmaBuff { get { return m_KarmaBuff; } set { m_KarmaBuff = value; } }
+        public virtual double KarmaBuff
+        {
+            get => m_KarmaBuff;
+            set => m_KarmaBuff = value;
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public virtual int DamageBuff { get { return m_DamageBuff; } set { m_DamageBuff = value; } }
+        public virtual int DamageBuff
+        {
+            get => m_DamageBuff;
+            set => m_DamageBuff = value;
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public virtual double ChestChance { get { return m_ChestChance; } set { m_ChestChance = value; } }
+        public virtual double ChestChance
+        {
+            get => m_ChestChance;
+            set => m_ChestChance = value;
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public virtual bool EnableParagon { get { return m_EnableParagon; } set { m_EnableParagon = value; InvalidateParentProperties();  } }
+        public virtual bool EnableParagon
+        {
+            get => m_EnableParagon;
+            set
+            {
+                m_EnableParagon = value;
+                InvalidateParentProperties();
+            }
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public virtual string ParagonLabel { get { return m_ParagonLabel; } set { m_ParagonLabel = value; } }
+        public virtual string ParagonLabel
+        {
+            get => m_ParagonLabel;
+            set => m_ParagonLabel = value;
+        }
+
         #endregion
 
         #region static interface methods
@@ -101,74 +171,58 @@ namespace Server.Engines.XmlSpawner2
         {
             // check for an XmlParagon attachment on the spawner of the creature
             if (bc != null && bc.Spawner != null)
-            {
                 return (XmlParagon)XmlAttach.FindAttachment(bc.Spawner, typeof(XmlParagon));
-            }
 
             return null;
         }
 
         public static bool IsCustomParagon(BaseCreature bc)
         {
-            return (GetXmlParagon(bc) != null);
+            return GetXmlParagon(bc) != null;
         }
 
         public static string GetParagonLabel(BaseCreature bc)
         {
-            XmlParagon xa = GetXmlParagon(bc);
+            var xa = GetXmlParagon(bc);
 
-            if (xa != null)
-            {
-                return xa.XmlGetParagonLabel(bc);
-            }
-            else
-            {
-                return "(Paragon)";
-            }
+            if (xa != null) return xa.XmlGetParagonLabel(bc);
+
+            return "(Paragon)";
         }
 
         // static method hooks that interface with the distro Paragon system
 
         public static bool CheckConvert(BaseCreature bc, Point3D location, Map m)
         {
-            XmlParagon xa = GetXmlParagon(bc);
+            var xa = GetXmlParagon(bc);
 
-            if (xa != null)
-            {
-                return xa.XmlCheckConvert(bc, location, m);
-            }
-            else
-            {
-                return Paragon.CheckConvert(bc, location, m);
-            }
+            if (xa != null) return xa.XmlCheckConvert(bc, location, m);
+
+            return Paragon.CheckConvert(bc, location, m);
         }
 
 
         public static void AddChest(BaseCreature bc, int treasureLevel)
         {
-            XmlParagon xa = GetXmlParagon(bc);
+            var xa = GetXmlParagon(bc);
 
             if (xa != null)
-            {
                 xa.XmlAddChest(bc, treasureLevel);
-            }
             else
-            {
                 bc.PackItem(new ParagonChest(bc.Name, treasureLevel));
-            }
 
             // --- НАЧАЛО БЛОКА: ДРОП СВИТКОВ ПРОКАЧКИ ---
             // Задаем шанс выпадения свитка (0.05 = 5%, 0.10 = 10%, 0.02 = 2%)
-            double scrollChance = 0.10;
+            var scrollChance = 0.10;
 
             if (Utility.RandomDouble() < scrollChance)
             {
                 // Генерируем случайную ценность свитка (+5, +10, +15 или +20 к макс. уровню)
-                int[] scrollValues = new int[] { 5, 10, 15, 20 };
-                int randomValue = scrollValues[Utility.Random(scrollValues.Length)];
+                var scrollValues = new[] { 5, 10, 15, 20 };
+                var randomValue = scrollValues[Utility.Random(scrollValues.Length)];
 
                 // Создаем свиток
-                Item scroll = new Server.Items.LevelUpScroll(randomValue);
+                Item scroll = new LevelUpScroll(randomValue);
 
                 if (scroll != null)
                 {
@@ -185,91 +239,65 @@ namespace Server.Engines.XmlSpawner2
 
         public static double GetChestChance(BaseCreature bc)
         {
-            XmlParagon xa = GetXmlParagon(bc);
+            var xa = GetXmlParagon(bc);
 
-            if (xa != null)
-            {
-                return xa.XmlChestChance(bc);
-            }
-            else
-            {
-                return Paragon.ChestChance;
-            }
+            if (xa != null) return xa.XmlChestChance(bc);
+
+            return Paragon.ChestChance;
         }
 
         public static double GetHitsBuff(BaseCreature bc)
         {
-            XmlParagon xa = GetXmlParagon(bc);
+            var xa = GetXmlParagon(bc);
 
-            if (xa != null)
-            {
-                return xa.HitsBuff;
-            }
-            else
-            {
-                return Paragon.HitsBuff;
-            }
+            if (xa != null) return xa.HitsBuff;
+
+            return Paragon.HitsBuff;
         }
 
         public static void Convert(BaseCreature bc)
         {
-            XmlParagon xa = GetXmlParagon(bc);
+            var xa = GetXmlParagon(bc);
 
             if (xa != null)
-            {
                 xa.XmlConvert(bc);
-            }
             else
-            {
                 Paragon.Convert(bc);
-            }
         }
 
         public static void UnConvert(BaseCreature bc)
         {
-            XmlParagon xa = GetXmlParagon(bc);
+            var xa = GetXmlParagon(bc);
 
             if (xa != null)
-            {
                 xa.XmlUnConvert(bc);
-            }
             else
-            {
                 Paragon.UnConvert(bc);
-            }
         }
 
         public static bool CheckArtifactChance(Mobile m, BaseCreature bc)
         {
-            XmlParagon xa = GetXmlParagon(bc);
+            var xa = GetXmlParagon(bc);
 
-            if (xa != null)
-            {
-                return xa.XmlCheckArtifactChance(m, bc);
-            }
-            else
-            {
-                return Paragon.CheckArtifactChance(m, bc);
-            }
+            if (xa != null) return xa.XmlCheckArtifactChance(m, bc);
+
+            return Paragon.CheckArtifactChance(m, bc);
         }
 
         public static void GiveArtifactTo(Mobile m, BaseCreature bc)
         {
-            XmlParagon xa = GetXmlParagon(bc);
+            var xa = GetXmlParagon(bc);
 
             if (xa != null)
-            {
                 xa.XmlGiveArtifactTo(m, bc);
-            }
             else
-            {
                 Paragon.GiveArtifactTo(m);
-            }
         }
 
         #endregion
 
         // modify these custom conversion methods to create unique paragons for spawners with this attachment
+
         #region custom conversion methods
 
         public virtual void XmlAddChest(BaseCreature bc, int treasureLevel)
@@ -308,9 +336,9 @@ namespace Server.Engines.XmlSpawner2
             bc.Mana = bc.ManaMax;
             bc.Stam = bc.StamMax;
 
-            for (int i = 0; i < bc.Skills.Length; i++)
+            for (var i = 0; i < bc.Skills.Length; i++)
             {
-                Skill skill = (Skill)bc.Skills[i];
+                var skill = bc.Skills[i];
 
                 if (skill.Base > 0.0)
                     skill.Base *= SkillsBuff;
@@ -357,9 +385,9 @@ namespace Server.Engines.XmlSpawner2
             bc.Mana = bc.ManaMax;
             bc.Stam = bc.StamMax;
 
-            for (int i = 0; i < bc.Skills.Length; i++)
+            for (var i = 0; i < bc.Skills.Length; i++)
             {
-                Skill skill = (Skill)bc.Skills[i];
+                var skill = bc.Skills[i];
 
                 if (skill.Base > 0.0)
                     skill.Base /= SkillsBuff;
@@ -385,26 +413,28 @@ namespace Server.Engines.XmlSpawner2
             if (bc is BaseChampion || bc is Harrower || bc is BaseVendor || bc is BaseEscortable || bc is Clone)
                 return false;
 
-            int fame = bc.Fame;
+            var fame = bc.Fame;
 
             if (fame > 32000)
                 fame = 32000;
 
-            double chance = ConvertFactor / Math.Round(20.0 - (fame / 3200));
+            var chance = ConvertFactor / Math.Round(20.0 - fame / 3200);
 
-            return (chance > Utility.RandomDouble());
+            return chance > Utility.RandomDouble();
         }
 
         public virtual bool XmlCheckArtifactChance(Mobile m, BaseCreature bc)
         {
             if (m == null || bc == null) return false;
 
-            double fame = (double)bc.Fame;
+            var fame = (double)bc.Fame;
 
             if (fame > 32000)
                 fame = 32000;
 
-            double chance = ArtifactFactor / (Math.Max(10, 100 * (0.83 - Math.Round(Math.Log(Math.Round(fame / 6000, 3) + 0.001, 10), 3))) * (100 - Math.Sqrt(m.Luck)) / 100.0);
+            var chance = ArtifactFactor /
+                         (Math.Max(10, 100 * (0.83 - Math.Round(Math.Log(Math.Round(fame / 6000, 3) + 0.001, 10), 3))) *
+                             (100 - Math.Sqrt(m.Luck)) / 100.0);
 
             return chance > Utility.RandomDouble();
         }
@@ -413,20 +443,23 @@ namespace Server.Engines.XmlSpawner2
         {
             if (m == null) return;
 
-            Item item = (Item)Activator.CreateInstance(Artifacts[Utility.Random(Artifacts.Length)]);
+            var item = (Item)Activator.CreateInstance(Artifacts[Utility.Random(Artifacts.Length)]);
 
             if (m.AddToBackpack(item))
-                m.SendMessage("As a reward for slaying the mighty paragon, an artifact has been placed in your backpack.");
+                m.SendMessage(
+                    "As a reward for slaying the mighty paragon, an artifact has been placed in your backpack.");
             else
-                m.SendMessage("As your backpack is full, your reward for destroying the legendary paragon has been placed at your feet.");
+                m.SendMessage(
+                    "As your backpack is full, your reward for destroying the legendary paragon has been placed at your feet.");
         }
 
         #endregion
 
         #region attachment method overrides
+
         public override string OnIdentify(Mobile from)
         {
-            return String.Format("Paragon: {0}", EnableParagon ? "Enabled" : "Disabled");
+            return string.Format("Paragon: {0}", EnableParagon ? "Enabled" : "Disabled");
         }
 
         public override void OnAttach()
@@ -447,7 +480,7 @@ namespace Server.Engines.XmlSpawner2
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
             // version 0
             writer.Write(m_Hue);
             writer.Write(m_HitsBuff);
@@ -470,7 +503,7 @@ namespace Server.Engines.XmlSpawner2
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
             // version 0
             m_Hue = reader.ReadInt();
             m_HitsBuff = reader.ReadDouble();
@@ -488,9 +521,11 @@ namespace Server.Engines.XmlSpawner2
             m_ConvertFactor = reader.ReadDouble();
             m_ArtifactFactor = reader.ReadDouble();
         }
+
         #endregion
 
         #region constructors
+
         public XmlParagon(ASerial serial)
             : base(serial)
         {
@@ -517,6 +552,7 @@ namespace Server.Engines.XmlSpawner2
             ChestChance = .10;
             ParagonLabel = "(Paragon)";
         }
+
         #endregion
     }
 }

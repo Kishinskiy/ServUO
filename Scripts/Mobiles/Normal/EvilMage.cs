@@ -1,15 +1,22 @@
-using System;
 using Server.Items;
 
-namespace Server.Mobiles 
-{ 
-    [CorpseName("an evil mage corpse")] 
-    public class EvilMage : BaseCreature 
-    { 
-        [Constructable] 
+namespace Server.Mobiles
+{
+    [CorpseName("an evil mage corpse")]
+    public class EvilMage : BaseCreature
+    {
+        public override bool CanRummageCorpses => true;
+
+        public override bool AlwaysMurderer => true;
+
+        public override int Meat => 1;
+
+        public override int TreasureMapLevel => Core.AOS ? 1 : 0;
+
+        [Constructable]
         public EvilMage()
             : base(AIType.AI_Mage, FightMode.Closest, 10, 1, 0.2, 0.4)
-        { 
+        {
             Name = NameList.RandomName("evil mage");
             Title = "the evil mage";
 
@@ -59,14 +66,17 @@ namespace Server.Mobiles
             PackReg(6);
 
             if (Core.AOS)
-            {
                 switch (Utility.Random(18))
                 {
                     case 0: PackItem(new BloodOathScroll()); break;
                     case 1: PackItem(new CurseWeaponScroll()); break;
                     case 2: PackItem(new StrangleScroll()); break;
                 }
-            }
+        }
+
+        public EvilMage(Serial serial)
+            : base(serial)
+        {
         }
 
         public override int GetDeathSound()
@@ -79,39 +89,6 @@ namespace Server.Mobiles
             return 0x436;
         }
 
-        public EvilMage(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override bool CanRummageCorpses
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool AlwaysMurderer
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override int Meat
-        {
-            get
-            {
-                return 1;
-            }
-        }
-        public override int TreasureMapLevel
-        {
-            get
-            {
-                return Core.AOS ? 1 : 0;
-            }
-        }
         public override void GenerateLoot()
         {
             AddLoot(LootPack.Average);
@@ -121,13 +98,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

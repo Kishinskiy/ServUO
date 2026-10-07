@@ -9,34 +9,21 @@ namespace Server.Spells.Spellweaving
         private static readonly SpellInfo m_Info = new SpellInfo(
             "Immolating Weapon", "Thalshara",
             -1);
-        private static readonly Dictionary<Mobile, ImmolatingWeaponEntry> m_WeaponDamageTable = new Dictionary<Mobile, ImmolatingWeaponEntry>();
-        
+
+        private static readonly Dictionary<Mobile, ImmolatingWeaponEntry> m_WeaponDamageTable =
+            new Dictionary<Mobile, ImmolatingWeaponEntry>();
+
+        public override TimeSpan CastDelayBase => TimeSpan.FromSeconds(1.0);
+
+        public override double RequiredSkill => 10.0;
+
+        public override int RequiredMana => 32;
+
         public ImmolatingWeaponSpell(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
         {
         }
 
-        public override TimeSpan CastDelayBase
-        {
-            get
-            {
-                return TimeSpan.FromSeconds(1.0);
-            }
-        }
-        public override double RequiredSkill
-        {
-            get
-            {
-                return 10.0;
-            }
-        }
-        public override int RequiredMana
-        {
-            get
-            {
-                return 32;
-            }
-        }
         public static bool IsImmolating(Mobile m, BaseWeapon weapon)
         {
             if (m == null)
@@ -58,18 +45,15 @@ namespace Server.Spells.Spellweaving
         public static void DoDelayEffect(Mobile attacker, Mobile target)
         {
             Timer.DelayCall(TimeSpan.FromSeconds(.25), () =>
-                {
-                    if (m_WeaponDamageTable.ContainsKey(attacker))
-                        AOS.Damage(target, attacker, m_WeaponDamageTable[attacker].m_Damage, 0, 100, 0, 0, 0);
-                });
+            {
+                if (m_WeaponDamageTable.ContainsKey(attacker))
+                    AOS.Damage(target, attacker, m_WeaponDamageTable[attacker].m_Damage, 0, 100, 0, 0, 0);
+            });
         }
 
         public static void StopImmolating(Mobile mob)
         {
-            if (m_WeaponDamageTable.ContainsKey(mob))
-            {
-                StopImmolating(m_WeaponDamageTable[mob].m_Weapon, mob);
-            }
+            if (m_WeaponDamageTable.ContainsKey(mob)) StopImmolating(m_WeaponDamageTable[mob].m_Weapon, mob);
         }
 
         public static void StopImmolating(BaseWeapon weapon, Mobile mob)
@@ -92,7 +76,7 @@ namespace Server.Spells.Spellweaving
 
         public override bool CheckCast()
         {
-            BaseWeapon weapon = Caster.Weapon as BaseWeapon;
+            var weapon = Caster.Weapon as BaseWeapon;
 
             if (Caster.Player && (weapon == null || weapon is Fists || weapon is BaseRanged))
             {
@@ -105,7 +89,7 @@ namespace Server.Spells.Spellweaving
 
         public override void OnCast()
         {
-            BaseWeapon weapon = Caster.Weapon as BaseWeapon;
+            var weapon = Caster.Weapon as BaseWeapon;
 
             if (Caster.Player && (weapon == null || weapon is Fists || weapon is BaseRanged))
             {
@@ -118,16 +102,17 @@ namespace Server.Spells.Spellweaving
 
                 if (!IsImmolating(Caster, weapon)) // On OSI, the effect is not re-applied
                 {
-                    double skill = Caster.Skills.Spellweaving.Value;
+                    var skill = Caster.Skills.Spellweaving.Value;
 
-                    int duration = 10 + (int)(skill / 24) + FocusLevel;
-                    int damage = 5 + (int)(skill / 24) + FocusLevel;
+                    var duration = 10 + (int)(skill / 24) + FocusLevel;
+                    var damage = 5 + (int)(skill / 24) + FocusLevel;
 
-                    Timer stopTimer = Timer.DelayCall<Mobile>(TimeSpan.FromSeconds(duration), StopImmolating, Caster);
+                    var stopTimer = Timer.DelayCall(TimeSpan.FromSeconds(duration), StopImmolating, Caster);
 
                     m_WeaponDamageTable[Caster] = new ImmolatingWeaponEntry(damage, stopTimer, weapon);
 
-                    BuffInfo.AddBuff(Caster, new BuffInfo(BuffIcon.ImmolatingWeapon, 1071028, 1153782, damage.ToString()));
+                    BuffInfo.AddBuff(Caster,
+                        new BuffInfo(BuffIcon.ImmolatingWeapon, 1071028, 1153782, damage.ToString()));
 
                     weapon.InvalidateProperties();
                 }

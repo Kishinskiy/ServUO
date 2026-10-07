@@ -1,22 +1,19 @@
-
 using System;
-using Server;
-using System.Collections;
-using System.Collections.Generic;
 using Server.Items;
-using Server.Misc;
-using Server.Regions;
 using Server.Network;
-using Server.Targeting;
 
 namespace Server.Mobiles
 {
     [CorpseName("A Drelgor The Impaler Corpse")]
     public class Drelgor : BaseCreature
     {
-        private bool init = false; //Don't change this.
-        private double msgevery = 1.0; //Recurring message. Change to 0 to disable.
+        private readonly double msgevery = 1.0; //Recurring message. Change to 0 to disable.
+        private bool init; //Don't change this.
         private DateTime m_NextMsgTime;
+
+        public override bool BleedImmune => true;
+
+        public override OppositionGroup OppositionGroup => OppositionGroup.FeyAndUndead;
 
         [Constructable]
         public Drelgor()
@@ -58,21 +55,26 @@ namespace Server.Mobiles
             switch (Utility.Random(5))
             {
                 case 0:
-                    this.PackItem(new BoneArms());
+                    PackItem(new BoneArms());
                     break;
                 case 1:
-                    this.PackItem(new BoneChest());
+                    PackItem(new BoneChest());
                     break;
                 case 2:
-                    this.PackItem(new BoneGloves());
+                    PackItem(new BoneGloves());
                     break;
                 case 3:
-                    this.PackItem(new BoneLegs());
+                    PackItem(new BoneLegs());
                     break;
                 case 4:
-                    this.PackItem(new BoneHelm());
+                    PackItem(new BoneHelm());
                     break;
             }
+        }
+
+        public Drelgor(Serial serial)
+            : base(serial)
+        {
         }
 
         public override void GenerateLoot()
@@ -81,9 +83,8 @@ namespace Server.Mobiles
             AddLoot(LootPack.Meager);
         }
 
-        public override bool BleedImmune { get { return true; } }
-
         #region Start/Stop
+
         private void Start()
         {
             m_NextMsgTime = DateTime.UtcNow + TimeSpan.FromMinutes(msgevery);
@@ -91,25 +92,30 @@ namespace Server.Mobiles
             BroadcastMessage();
             init = true;
         }
+
         #endregion
-        
+
         #region Broadcast Message
+
         public void BroadcastMessage()
         {
-            foreach (NetState state in NetState.Instances)
+            foreach (var state in NetState.Instances)
             {
-                Mobile m = state.Mobile;
+                var m = state.Mobile;
 
-                if (m != null && this.Region.Name == "Old Haven Training" && m.Region.Name == "Old Haven Training")
+                if (m != null && Region.Name == "Old Haven Training" && m.Region.Name == "Old Haven Training")
                 {
-                    m.SendLocalizedMessage(1077840, "", 34); // // Who dares to defile Haven? I am Drelgor the Impaler! I shall claim your souls as payment for this intrusion!
+                    m.SendLocalizedMessage(1077840, "",
+                        34); // // Who dares to defile Haven? I am Drelgor the Impaler! I shall claim your souls as payment for this intrusion!
                     m.PlaySound(0x14);
                 }
             }
         }
+
         #endregion
 
         #region OnThink
+
         public override void OnThink()
         {
             if (!init)
@@ -123,22 +129,13 @@ namespace Server.Mobiles
 
             base.OnThink();
         }
+
         #endregion
-
-        public Drelgor(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override OppositionGroup OppositionGroup
-        {
-            get { return OppositionGroup.FeyAndUndead; }
-        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
             writer.Write(init);
             writer.Write(m_NextMsgTime);
         }
@@ -146,10 +143,9 @@ namespace Server.Mobiles
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
             init = reader.ReadBool();
             m_NextMsgTime = reader.ReadDateTime();
         }
     }
 }
-

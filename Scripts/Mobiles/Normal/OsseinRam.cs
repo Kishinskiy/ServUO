@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +5,11 @@ namespace Server.Mobiles
     [CorpseName("an ossein ram corpse")]
     public class OsseinRam : BaseCreature
     {
+        public override int Meat => 3;
+        public override FoodType FavoriteFood => FoodType.Meat;
+        public override bool CanAngerOnTame => true;
+        public override bool StatLossAfterTame => true;
+
         [Constructable]
         public OsseinRam() : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
         {
@@ -48,11 +52,6 @@ namespace Server.Mobiles
             SetSpecialAbility(SpecialAbility.LifeLeech);
         }
 
-        public override int Meat { get { return 3; } }
-        public override FoodType FavoriteFood { get { return FoodType.Meat; } }
-        public override bool CanAngerOnTame { get { return true; } }
-        public override bool StatLossAfterTame { get { return true; } }
-
         public OsseinRam(Serial serial) : base(serial)
         {
         }
@@ -60,13 +59,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

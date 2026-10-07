@@ -1,6 +1,5 @@
 using System;
 using Server.Items;
-using Server.Network;
 
 namespace Server.Mobiles
 {
@@ -8,6 +7,17 @@ namespace Server.Mobiles
     public class Betrayer : BaseCreature
     {
         private DateTime m_NextAbilityTime;
+
+        public override bool AlwaysMurderer => true;
+
+        public override bool BardImmune => !Core.AOS;
+
+        public override Poison PoisonImmune => Poison.Lethal;
+
+        public override int Meat => 1;
+
+        public override int TreasureMapLevel => 5;
+
         [Constructable]
         public Betrayer()
             : base(AIType.AI_Mage, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -60,42 +70,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool AlwaysMurderer
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool BardImmune
-        {
-            get
-            {
-                return !Core.AOS;
-            }
-        }
-        public override Poison PoisonImmune
-        {
-            get
-            {
-                return Poison.Lethal;
-            }
-        }
-        public override int Meat
-        {
-            get
-            {
-                return 1;
-            }
-        }
-        public override int TreasureMapLevel
-        {
-            get
-            {
-                return 5;
-            }
-        }
-
         public override void OnDeath(Container c)
         {
             base.OnDeath(c);
@@ -110,7 +84,9 @@ namespace Server.Mobiles
                         c.DropItem(DawnsMusicGear.RandomUncommon);
                 }
                 else
+                {
                     c.DropItem(DawnsMusicGear.RandomRare);
+                }
             }
         }
 
@@ -138,9 +114,10 @@ namespace Server.Mobiles
 
         public override void OnActionCombat()
         {
-            Mobile combatant = Combatant as Mobile;
+            var combatant = Combatant as Mobile;
 
-            if (DateTime.UtcNow < m_NextAbilityTime || combatant == null || combatant.Deleted || combatant.Map != Map || !InRange(combatant, 3) || !CanBeHarmful(combatant) || !InLOS(combatant))
+            if (DateTime.UtcNow < m_NextAbilityTime || combatant == null || combatant.Deleted || combatant.Map != Map ||
+                !InRange(combatant, 3) || !CanBeHarmful(combatant) || !InLOS(combatant))
                 return;
 
             m_NextAbilityTime = DateTime.UtcNow + TimeSpan.FromSeconds(Utility.RandomMinMax(5, 30));
@@ -153,12 +130,8 @@ namespace Server.Mobiles
                 IPooledEnumerable eable = GetMobilesInRange(2);
 
                 foreach (Mobile m in eable)
-                {
                     if (m != this && IsEnemy(m))
-                    {
                         m.ApplyPoison(this, Poison.Deadly);
-                    }
-                }
 
                 eable.Free();
             }
@@ -168,14 +141,14 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

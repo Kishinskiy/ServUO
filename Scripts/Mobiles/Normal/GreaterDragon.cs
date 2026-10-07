@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +5,30 @@ namespace Server.Mobiles
     [CorpseName("a dragon corpse")]
     public class GreaterDragon : BaseCreature
     {
+        public override bool StatLossAfterTame => true;
+
+        public override bool ReacquireOnMovement => !Controlled;
+
+        public override bool AutoDispel => !Controlled;
+
+        public override int TreasureMapLevel => 5;
+
+        public override int Meat => 19;
+
+        public override int Hides => 30;
+
+        public override HideType HideType => HideType.Barbed;
+
+        public override int Scales => 7;
+
+        public override ScaleType ScaleType => Body == 12 ? ScaleType.Yellow : ScaleType.Red;
+
+        public override FoodType FavoriteFood => FoodType.Meat;
+
+        public override bool CanAngerOnTame => true;
+
+        public override bool CanFly => true;
+
         [Constructable]
         public GreaterDragon()
             : base(AIType.AI_Mage, FightMode.Closest, 10, 1, 0.3, 0.5)
@@ -19,7 +42,7 @@ namespace Server.Mobiles
             SetInt(475, 675);
 
             SetHits(1000, 2000);
-            
+
             SetDamage(24, 33);
 
             SetDamageType(ResistanceType.Physical, 100);
@@ -57,90 +80,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool StatLossAfterTame
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool ReacquireOnMovement
-        {
-            get
-            {
-                return !Controlled;
-            }
-        }
-        public override bool AutoDispel
-        {
-            get
-            {
-                return !Controlled;
-            }
-        }
-        public override int TreasureMapLevel
-        {
-            get
-            {
-                return 5;
-            }
-        }
-        public override int Meat
-        {
-            get
-            {
-                return 19;
-            }
-        }
-        public override int Hides
-        {
-            get
-            {
-                return 30;
-            }
-        }
-        public override HideType HideType
-        {
-            get
-            {
-                return HideType.Barbed;
-            }
-        }
-        public override int Scales
-        {
-            get
-            {
-                return 7;
-            }
-        }
-        public override ScaleType ScaleType
-        {
-            get
-            {
-                return (Body == 12 ? ScaleType.Yellow : ScaleType.Red);
-            }
-        }
-        public override FoodType FavoriteFood
-        {
-            get
-            {
-                return FoodType.Meat;
-            }
-        }
-        public override bool CanAngerOnTame
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool CanFly
-        {
-            get
-            {
-                return true;
-            }
-        }
         public override void GenerateLoot()
         {
             AddLoot(LootPack.FilthyRich, 4);
@@ -150,13 +89,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

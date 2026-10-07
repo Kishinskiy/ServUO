@@ -1,6 +1,6 @@
-﻿using System;
-
-namespace Server
+﻿namespace Server
 {
-    public interface IGem { }
+    public interface IGem
+    {
+    }
 }

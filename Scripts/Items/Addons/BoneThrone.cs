@@ -1,10 +1,10 @@
-using System;
-
 namespace Server.Items
 {
     [Flipable(0x2A58, 0x2A59)]
     public class BoneThroneComponent : AddonComponent
     {
+        public override int LabelNumber => 1074476; // Bone throne
+
         public BoneThroneComponent()
             : base(0x2A58)
         {
@@ -15,19 +15,12 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1074476;
-            }
-        }// Bone throne
         public override bool OnMoveOver(Mobile m)
         {
-            bool allow = base.OnMoveOver(m);
+            var allow = base.OnMoveOver(m);
 
             if (allow && m.Alive && m.Player && (m.IsPlayer() || !m.Hidden))
-                Effects.PlaySound(this.Location, this.Map, Utility.RandomMinMax(0x54B, 0x54D));
+                Effects.PlaySound(Location, Map, Utility.RandomMinMax(0x54B, 0x54D));
 
             return allow;
         }
@@ -43,17 +36,18 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class BoneThroneAddon : BaseAddon
     {
+        public override BaseAddonDeed Deed => new BoneThroneDeed();
+
         [Constructable]
         public BoneThroneAddon()
-            : base()
         {
-            this.AddComponent(new BoneThroneComponent(), 0, 0, 0);
+            AddComponent(new BoneThroneComponent(), 0, 0, 0);
         }
 
         public BoneThroneAddon(Serial serial)
@@ -61,13 +55,6 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonDeed Deed
-        {
-            get
-            {
-                return new BoneThroneDeed();
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -79,17 +66,20 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class BoneThroneDeed : BaseAddonDeed
     {
+        public override BaseAddon Addon => new BoneThroneAddon();
+
+        public override int LabelNumber => 1074476; // Bone throne
+
         [Constructable]
         public BoneThroneDeed()
-            : base()
         {
-            this.LootType = LootType.Blessed;
+            LootType = LootType.Blessed;
         }
 
         public BoneThroneDeed(Serial serial)
@@ -97,20 +87,6 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddon Addon
-        {
-            get
-            {
-                return new BoneThroneAddon();
-            }
-        }
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1074476;
-            }
-        }// Bone throne
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -122,7 +98,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using Server.Mobiles;
 using Server.Network;
 using Server.Regions;
-using Server.Spells.Ninjitsu;
 
 namespace Server.Customs.Invasion_System
 {
@@ -13,97 +13,14 @@ namespace Server.Customs.Invasion_System
 
         public static void Initialize()
         {
-           // Timer.DelayCall(TimeSpan.FromSeconds(10.0), TimeSpan.FromSeconds(60.0), GlobalSync);
+            // Timer.DelayCall(TimeSpan.FromSeconds(10.0), TimeSpan.FromSeconds(60.0), GlobalSync);
         }
-
-
-
-        #region Private Variables
-
-        private int _MinSpawnZ;
-        private int _MaxSpawnZ;
-
-        private bool _FinalStage;
-
-        private Point3D _Top = new Point3D(4394, 1058, 30);
-        private Point3D _Bottom = new Point3D(4481, 1173, 0);
-        private Map _SpawnMap = Map.Felucca;
-
-        private List<Mobile> _Spawned;
-
-        private TownMonsterType _TownMonsterType = TownMonsterType.OrcsandRatmen;
-        private TownChampionType _TownChampionType = TownChampionType.Barracoon;
-        private InvasionTowns _InvasionTown = InvasionTowns.BuccaneersDen;
-        private DateTime _StartTime;
-        // private bool _AlwaysMurderer = false;
-
-        private string _TownInvaded = "Moonglow";
-
-        private Timer _SpawnTimer;
-        private Timer _ReinforcementTimer;
-
-        private DateTime _lastAnnounce = DateTime.UtcNow;
-
-        private bool WasDisabledRegion;
-        private bool Active;
-        #endregion
-
-        #region Public Variables
-
-        public int MinSpawnZ { get { return _MinSpawnZ; } set { _MinSpawnZ = value; } }
-        public int MaxSpawnZ { get { return _MaxSpawnZ; } set { _MaxSpawnZ = value; } }
-        public Point3D Top { get { return _Top; } set { _Top = value; } }
-        public Point3D Bottom { get { return _Bottom; } set { _Bottom = value; } }
-        public Map SpawnMap { get { return _SpawnMap; } set { _SpawnMap = value; } }
-        public List<Mobile> Spawned { get { return _Spawned; } set { _Spawned = value; } }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public TownMonsterType TownMonsterType { get { return _TownMonsterType; } set { _TownMonsterType = value; } }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public TownChampionType TownChampionType { get { return _TownChampionType; } set { _TownChampionType = value; } }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public InvasionTowns InvasionTown { get { return _InvasionTown; } set { _InvasionTown = value; } }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public DateTime StartTime { get { return _StartTime; } set { _StartTime = value; } }
-
-        public bool IsRunning { get { return _SpawnTimer != null && _SpawnTimer.Running; }}
-        public string TownInvaded { get { return _TownInvaded; } set { _TownInvaded = value; } }
-
-        public Timer SpawnTimer { get { return _SpawnTimer; } set { _SpawnTimer = value; } }
-
-        #endregion
-
-        #region Constructor
-
-
-
-        public TownInvasion(InvasionTowns town, TownMonsterType monster, TownChampionType champion, DateTime time)
-        {
-            _Spawned = new List<Mobile>();
-
-            _InvasionTown = town;
-            _TownMonsterType = monster;
-            _TownChampionType = champion;
-            _StartTime = time;
-
-            InvasionControl.Invasions.Add(this);
-        }
-
-        public TownInvasion(GenericReader reader)
-        {
-            Deserialize(reader);
-        }
-
-        #endregion
 
         public void OnStart()
         {
             if (!IsRunning)
             {
-                InvasionTowns invading = InvasionTown;
+                var invading = InvasionTown;
 
                 switch (invading)
                 {
@@ -240,28 +157,28 @@ namespace Server.Customs.Invasion_System
                     }
                 }
 
-                foreach (Region r in Region.Regions)
-                {
+                foreach (var r in Region.Regions)
                     if (r is GuardedRegion && r.Name == TownInvaded)
                     {
-                        WasDisabledRegion = ((GuardedRegion) r).Disabled;
+                        WasDisabledRegion = ((GuardedRegion)r).Disabled;
 
                         ((GuardedRegion)r).Disabled = true;
                     }
-                }
 
                 Spawn();
 
-                string mapName = SpawnMap == Map.Trammel ? "Trammel" : "Felucca";
-                string globalAlert = string.Format("[Вторжение]: Город {0} ({1}) атакован силами {2}! Стражники покинули пост!", TownInvaded, mapName, TownMonsterType);
-                int alertSound = 0x21F;
-                foreach (Server.Network.NetState state in Server.Network.NetState.Instances)
+                var mapName = SpawnMap == Map.Trammel ? "Trammel" : "Felucca";
+                var globalAlert =
+                    string.Format("[Вторжение]: Город {0} ({1}) атакован силами {2}! Стражники покинули пост!",
+                        TownInvaded, mapName, TownMonsterType);
+                var alertSound = 0x21F;
+                foreach (var state in NetState.Instances)
                 {
-                    Mobile m = state.Mobile;
+                    var m = state.Mobile;
                     if (m != null)
                     {
                         m.SendMessage(0x22, globalAlert); // Яркий красный цвет в чат
-                        m.PlaySound(alertSound);          // Звук рога прямо игроку
+                        m.PlaySound(alertSound); // Звук рога прямо игроку
                     }
                 }
             }
@@ -272,18 +189,12 @@ namespace Server.Customs.Invasion_System
             Despawn();
 
             if (!WasDisabledRegion)
-            {
-                foreach (Region r in Region.Regions)
-                {
+                foreach (var r in Region.Regions)
                     if (r is GuardedRegion && r.Name == TownInvaded && r.Map == SpawnMap)
-                    {
                         ((GuardedRegion)r).Disabled = false;
-                    }
-                }
-            }
 
             if (SpawnTimer != null)
-                _SpawnTimer.Stop();
+                SpawnTimer.Stop();
 
             if (_ReinforcementTimer != null)
                 _ReinforcementTimer.Stop();
@@ -325,19 +236,102 @@ namespace Server.Customs.Invasion_System
                 InitTimer();
         }
 
+
+        #region Private Variables
+
+        private bool _FinalStage;
+
+        private Point3D _Top = new Point3D(4394, 1058, 30);
+        private Point3D _Bottom = new Point3D(4481, 1173, 0);
+
+        // private bool _AlwaysMurderer = false;
+
+        private Timer _ReinforcementTimer;
+
+        private DateTime _lastAnnounce = DateTime.UtcNow;
+
+        private bool WasDisabledRegion;
+        private bool Active;
+
+        #endregion
+
+        #region Public Variables
+
+        public int MinSpawnZ { get; set; }
+
+        public int MaxSpawnZ { get; set; }
+
+        public Point3D Top
+        {
+            get => _Top;
+            set => _Top = value;
+        }
+
+        public Point3D Bottom
+        {
+            get => _Bottom;
+            set => _Bottom = value;
+        }
+
+        public Map SpawnMap { get; set; } = Map.Felucca;
+
+        public List<Mobile> Spawned { get; set; }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public TownMonsterType TownMonsterType { get; set; } = TownMonsterType.OrcsandRatmen;
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public TownChampionType TownChampionType { get; set; } = TownChampionType.Barracoon;
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public InvasionTowns InvasionTown { get; set; } = InvasionTowns.BuccaneersDen;
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public DateTime StartTime { get; set; }
+
+        public bool IsRunning => SpawnTimer != null && SpawnTimer.Running;
+
+        public string TownInvaded { get; set; } = "Moonglow";
+
+        public Timer SpawnTimer { get; set; }
+
+        #endregion
+
+        #region Constructor
+
+        public TownInvasion(InvasionTowns town, TownMonsterType monster, TownChampionType champion, DateTime time)
+        {
+            Spawned = new List<Mobile>();
+
+            InvasionTown = town;
+            TownMonsterType = monster;
+            TownChampionType = champion;
+            StartTime = time;
+
+            InvasionControl.Invasions.Add(this);
+        }
+
+        public TownInvasion(GenericReader reader)
+        {
+            Deserialize(reader);
+        }
+
+        #endregion
+
         #region Private Methods
 
         private static void GlobalSync()
         {
-            DateTime now = DateTime.Now; // Используем локальное время сервера (или DateTime.UtcNow для Гринвича)
+            var now = DateTime.Now; // Используем локальное время сервера (или DateTime.UtcNow для Гринвича)
 
             // НАСТРОЙКА ВРЕМЕНИ: Выберите нужный день и час
             // DayOfWeek.Saturday = Суббота, Hour == 18 (6 часов вечера), Minute == 00
             if (now.DayOfWeek == DayOfWeek.Saturday && now.Hour == 18 && now.Minute == 0)
             {
                 // Получаем номер текущей недели в году
-                int currentWeek = System.Globalization.CultureInfo.CurrentCulture.Calendar.GetWeekOfYear(
-                    now, System.Globalization.DateTimeFormatInfo.CurrentInfo.CalendarWeekRule, System.Globalization.DateTimeFormatInfo.CurrentInfo.FirstDayOfWeek);
+                var currentWeek = CultureInfo.CurrentCulture.Calendar.GetWeekOfYear(
+                    now, DateTimeFormatInfo.CurrentInfo.CalendarWeekRule,
+                    DateTimeFormatInfo.CurrentInfo.FirstDayOfWeek);
 
                 // Если на этой неделе ивент еще НЕ запускался
                 if (_LastInvadedWeekOfYear != currentWeek)
@@ -367,38 +361,39 @@ namespace Server.Customs.Invasion_System
         private void InitTimer()
         {
             if (!IsRunning)
-                _SpawnTimer = Timer.DelayCall(TimeSpan.Zero, TimeSpan.FromSeconds(15.0), CheckSpawn);
+                SpawnTimer = Timer.DelayCall(TimeSpan.Zero, TimeSpan.FromSeconds(15.0), CheckSpawn);
 
             if (_ReinforcementTimer == null || !_ReinforcementTimer.Running)
-                _ReinforcementTimer = Timer.DelayCall(TimeSpan.FromMinutes(30.0), TimeSpan.FromMinutes(30.0), SpawnReinforcements);
+                _ReinforcementTimer = Timer.DelayCall(TimeSpan.FromMinutes(30.0), TimeSpan.FromMinutes(30.0),
+                    SpawnReinforcements);
         }
 
         private void Spawn()
         {
             Despawn();
 
-            int defendersAmount = 50;
+            var defendersAmount = 50;
 
-            Type[] defenderTypes = new Type[]
+            var defenderTypes = new[]
             {
-                typeof(Server.Mobiles.Archmage),     // Священный маг (хилит и бьет магией)
-                typeof(Server.Mobiles.Paladin),      // Паладин (классический воин ближнего боя)
-                typeof(Server.Mobiles.OrderGuard),   // Рыцарь Ордена Порядка
-                typeof(Server.Mobiles.ChaosGuard),    // Рыцарь Хаоса
-                typeof(Server.Mobiles.ArcherGuard)
+                typeof(Archmage), // Священный маг (хилит и бьет магией)
+                typeof(Paladin), // Паладин (классический воин ближнего боя)
+                typeof(OrderGuard), // Рыцарь Ордена Порядка
+                typeof(ChaosGuard), // Рыцарь Хаоса
+                typeof(ArcherGuard)
             };
 
-            for (int i = 0; i < defendersAmount; ++i)
+            for (var i = 0; i < defendersAmount; ++i)
             {
-                Type randomDefType = defenderTypes[Utility.Random(defenderTypes.Length)];
-                object defender = Activator.CreateInstance(randomDefType);
+                var randomDefType = defenderTypes[Utility.Random(defenderTypes.Length)];
+                var defender = Activator.CreateInstance(randomDefType);
 
                 if (defender != null && defender is Mobile)
                 {
-                    Point3D location = FindSpawnLocation();
+                    var location = FindSpawnLocation();
                     if (location != Point3D.Zero)
                     {
-                        Mobile npc = (Mobile)defender;
+                        var npc = (Mobile)defender;
 
                         npc.OnBeforeSpawn(location, SpawnMap);
                         npc.MoveToWorld(location, SpawnMap);
@@ -407,7 +402,7 @@ namespace Server.Customs.Invasion_System
                         // Настраиваем NPC, чтобы они были агрессивны к монстрам
                         if (npc is BaseCreature)
                         {
-                            BaseCreature bc = (BaseCreature)npc;
+                            var bc = (BaseCreature)npc;
                             bc.Tamable = false;
 
                             // Выставляем им команду "Ополчение" (Team 1),
@@ -419,7 +414,7 @@ namespace Server.Customs.Invasion_System
                             bc.Karma = 5000;
 
                             // Переименовываем их, чтобы было понятно, кто это
-                            string oldName = bc.Name;
+                            var oldName = bc.Name;
                             bc.Name = $"{oldName} [Town Defender]";
 
                             // Немного баффаем им жизни, чтобы их не убили в первую секунду
@@ -429,7 +424,7 @@ namespace Server.Customs.Invasion_System
 
                         // Добавляем защитников в общий список контроля _Spawned,
                         // чтобы они автоматически исчезли (Despawn), когда ивент закончится!
-                        _Spawned.Add(npc);
+                        Spawned.Add(npc);
                     }
                 }
             }
@@ -437,7 +432,7 @@ namespace Server.Customs.Invasion_System
 
             MonsterTownSpawnEntry[] entries = null;
 
-            switch (_TownMonsterType)
+            switch (TownMonsterType)
             {
                 default:
                 case TownMonsterType.Abyss: entries = MonsterTownSpawnEntry.Abyss; break;
@@ -452,11 +447,11 @@ namespace Server.Customs.Invasion_System
                 case TownMonsterType.Undead: entries = MonsterTownSpawnEntry.Undead; break;
             }
 
-            for (int i = 0; i < entries.Length; ++i)
-                for (int count = 0; count < entries[i].Amount; ++count)
-                    AddMonster(entries[i].Monster);
+            for (var i = 0; i < entries.Length; ++i)
+            for (var count = 0; count < entries[i].Amount; ++count)
+                AddMonster(entries[i].Monster);
 
-            if (_Spawned.Count == 0)
+            if (Spawned.Count == 0)
             {
                 OnStop();
                 return;
@@ -467,19 +462,13 @@ namespace Server.Customs.Invasion_System
 
         public void CheckSpawn()
         {
-            int count = 0;
+            var count = 0;
 
-            for (int i = 0; i < _Spawned.Count; ++i)
-            {
-                if (_Spawned[i] != null && !_Spawned[i].Deleted && _Spawned[i].Alive)
-                {
+            for (var i = 0; i < Spawned.Count; ++i)
+                if (Spawned[i] != null && !Spawned[i].Deleted && Spawned[i].Alive)
                     // Исправление: считаем только мобов с отрицательной кармой (монстров вторжения)
-                    if (_Spawned[i].Karma < 0)
-                    {
+                    if (Spawned[i].Karma < 0)
                         ++count;
-                    }
-                }
-            }
 
             if (!_FinalStage) //Monsters
             {
@@ -489,19 +478,15 @@ namespace Server.Customs.Invasion_System
             else //Champion
             {
                 if (count == 0) //Champion is dead
-                {
                     Timer.DelayCall(TimeSpan.FromMinutes(5), OnStop);
-                }
             }
 
             if (DateTime.UtcNow >= _lastAnnounce + TimeSpan.FromMinutes(1))
             {
-                string message = String.Format("{0} is being invaded by {1}. Please come help!", TownInvaded, TownMonsterType);
+                var message = string.Format("{0} is being invaded by {1}. Please come help!", TownInvaded,
+                    TownMonsterType);
 
-                foreach (TownCrier tc in TownCrier.Instances)
-                {
-                    tc.PublicOverheadMessage(MessageType.Yell, 0, false, message);
-                }
+                foreach (var tc in TownCrier.Instances) tc.PublicOverheadMessage(MessageType.Yell, 0, false, message);
 
                 _lastAnnounce = DateTime.UtcNow;
             }
@@ -509,11 +494,11 @@ namespace Server.Customs.Invasion_System
 
         private void Despawn()
         {
-            foreach (Mobile m in _Spawned)
+            foreach (var m in Spawned)
                 if (m != null && !m.Deleted)
                     m.Delete();
 
-            _Spawned.Clear();
+            Spawned.Clear();
 
             _FinalStage = false;
         }
@@ -524,23 +509,22 @@ namespace Server.Customs.Invasion_System
             var count = 100;
 
             // Исправление: четко вычисляем мин/макс координаты, даже если Top и Bottom записаны задом наперед
-            int minX = Math.Min(_Top.X, _Bottom.X);
-            int maxX = Math.Max(_Top.X, _Bottom.X);
-            int minY = Math.Min(_Top.Y, _Bottom.Y);
-            int maxY = Math.Max(_Top.Y, _Bottom.Y);
+            var minX = Math.Min(_Top.X, _Bottom.X);
+            var maxX = Math.Max(_Top.X, _Bottom.X);
+            var minY = Math.Min(_Top.Y, _Bottom.Y);
+            var maxY = Math.Max(_Top.Y, _Bottom.Y);
 
             do
             {
                 x = Utility.RandomMinMax(minX, maxX);
                 y = Utility.RandomMinMax(minY, maxY);
                 z = SpawnMap.GetAverageZ(x, y);
-            }
-            while (!SpawnMap.CanSpawnMobile(x, y, z) && --count >= 0);
+            } while (!SpawnMap.CanSpawnMobile(x, y, z) && --count >= 0);
 
             if (count < 0)
             {
-                x = minX + ((maxX - minX) / 2);
-                y = minY + ((maxY - minY) / 2);
+                x = minX + (maxX - minX) / 2;
+                y = minY + (maxY - minY) / 2;
                 z = SpawnMap.GetAverageZ(x, y);
             }
 
@@ -549,29 +533,23 @@ namespace Server.Customs.Invasion_System
 
         private void AddMonster(Type type)
         {
-            object monster = Activator.CreateInstance(type);
+            var monster = Activator.CreateInstance(type);
 
             if (monster != null && monster is Mobile)
             {
-                Point3D location = FindSpawnLocation();
+                var location = FindSpawnLocation();
 
-                if (location == Point3D.Zero)
-                {
-                    return;
-                }
+                if (location == Point3D.Zero) return;
 
-                Mobile from = (Mobile)monster;
+                var from = (Mobile)monster;
 
                 from.OnBeforeSpawn(location, SpawnMap);
                 from.MoveToWorld(location, SpawnMap);
                 from.OnAfterSpawn();
 
-                if (from is BaseCreature)
-                {
-                    ((BaseCreature)from).Tamable = false;
-                }
+                if (from is BaseCreature) ((BaseCreature)from).Tamable = false;
 
-                _Spawned.Add(from);
+                Spawned.Add(from);
             }
         }
 
@@ -581,7 +559,7 @@ namespace Server.Customs.Invasion_System
 
             _FinalStage = true;
 
-            switch (_TownChampionType)
+            switch (TownChampionType)
             {
                 default:
                 case TownChampionType.Barracoon: AddMonster(typeof(Barracoon)); break;
@@ -595,56 +573,59 @@ namespace Server.Customs.Invasion_System
             }
         }
 
-                private void SpawnReinforcements()
+        private void SpawnReinforcements()
         {
             // Если наступила финальная стадия (битва с Боссом), подкрепления больше не идут
             if (_FinalStage || !IsRunning)
                 return;
 
-            int amount = Utility.RandomMinMax(15, 50); // Прибывает небольшой отряд из 15-50 рыцарей
+            var amount = Utility.RandomMinMax(15, 50); // Прибывает небольшой отряд из 15-50 рыцарей
 
-            Type[] defenderTypes = new Type[]
+            var defenderTypes = new[]
             {
-                typeof(Server.Mobiles.Archmage),     // Священный маг (хилит и бьет магией)
-                typeof(Server.Mobiles.Paladin),      // Паладин (классический воин ближнего боя)
-                typeof(Server.Mobiles.OrderGuard),   // Рыцарь Ордена Порядка
-                typeof(Server.Mobiles.ChaosGuard),    // Рыцарь Хаоса
-                typeof(Server.Mobiles.ArcherGuard)
+                typeof(Archmage), // Священный маг (хилит и бьет магией)
+                typeof(Paladin), // Паладин (классический воин ближнего боя)
+                typeof(OrderGuard), // Рыцарь Ордена Порядка
+                typeof(ChaosGuard), // Рыцарь Хаоса
+                typeof(ArcherGuard)
             };
 
             // Глобальный анонс в чат о прибытии помощи
-            foreach (Server.Network.NetState state in Server.Network.NetState.Instances)
+            foreach (var state in NetState.Instances)
             {
-                Mobile m = state.Mobile;
+                var m = state.Mobile;
                 if (m != null && m.Map == SpawnMap && m.InRange(_Top, 150))
-                {
-                    m.SendMessage(0x5A, "[Вторжение]: К городским воротам пробился отряд ополчения для поддержки защитников!");
-                }
+                    m.SendMessage(0x5A,
+                        "[Вторжение]: К городским воротам пробился отряд ополчения для поддержки защитников!");
             }
 
-            for (int i = 0; i < amount; ++i)
+            for (var i = 0; i < amount; ++i)
             {
-                Type randomDefType = defenderTypes[Utility.Random(defenderTypes.Length)];
-                object defender = Activator.CreateInstance(randomDefType);
+                var randomDefType = defenderTypes[Utility.Random(defenderTypes.Length)];
+                var defender = Activator.CreateInstance(randomDefType);
 
                 if (defender != null && defender is Mobile npc)
                 {
                     int x = 0, y = 0, z = 0;
-                    bool safePointFound = false;
+                    var safePointFound = false;
 
                     // Пытаемся найти сушу недалеко от краев города за 20 попыток
-                    for (int attempt = 0; attempt < 20; attempt++)
+                    for (var attempt = 0; attempt < 20; attempt++)
                     {
-                        x = Utility.RandomBool() ? _Top.X + Utility.RandomMinMax(-12, 12) : _Bottom.X + Utility.RandomMinMax(-12, 12);
-                        y = Utility.RandomBool() ? _Top.Y + Utility.RandomMinMax(-12, 12) : _Bottom.Y + Utility.RandomMinMax(-12, 12);
+                        x = Utility.RandomBool()
+                            ? _Top.X + Utility.RandomMinMax(-12, 12)
+                            : _Bottom.X + Utility.RandomMinMax(-12, 12);
+                        y = Utility.RandomBool()
+                            ? _Top.Y + Utility.RandomMinMax(-12, 12)
+                            : _Bottom.Y + Utility.RandomMinMax(-12, 12);
                         z = SpawnMap.GetAverageZ(x, y);
 
                         // Проверка 1: Может ли мобильный объект физически стоять в этой точке
                         if (SpawnMap.CanSpawnMobile(x, y, z))
                         {
                             // Проверка 2: Защита от моря. Проверяем, что под ногами не вода (тайлы с флагом Wet/Water)
-                            LandTile landTile = SpawnMap.Tiles.GetLandTile(x, y);
-                            if ((Server.TileData.LandTable[landTile.ID].Flags & TileFlag.Wet) == 0)
+                            var landTile = SpawnMap.Tiles.GetLandTile(x, y);
+                            if ((TileData.LandTable[landTile.ID].Flags & TileFlag.Wet) == 0)
                             {
                                 safePointFound = true;
                                 break; // Точка идеальна, выходим из цикла поиска
@@ -656,13 +637,13 @@ namespace Server.Customs.Invasion_System
                     if (!safePointFound)
                     {
                         // Берем случайную точку прямо из проверенного метода FindSpawnLocation()
-                        Point3D townPoint = FindSpawnLocation();
+                        var townPoint = FindSpawnLocation();
                         x = townPoint.X;
                         y = townPoint.Y;
                         z = townPoint.Z;
                     }
 
-                    Point3D spawnPoint = new Point3D(x, y, z);
+                    var spawnPoint = new Point3D(x, y, z);
                     npc.OnBeforeSpawn(spawnPoint, SpawnMap);
                     npc.MoveToWorld(spawnPoint, SpawnMap);
                     npc.OnAfterSpawn();
@@ -681,12 +662,11 @@ namespace Server.Customs.Invasion_System
                         bc.Hits = 300;
                     }
 
-                    _Spawned.Add(npc);
+                    Spawned.Add(npc);
                 }
             }
         }
 
         #endregion
-     }
+    }
 }
-

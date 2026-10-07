@@ -1,10 +1,10 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using Server.ContextMenus;
+using Server.Engines.Quests;
+using Server.Gumps;
 using Server.Mobiles;
 using Server.Targeting;
-using Server.Gumps;
 
 namespace Server.Items
 {
@@ -13,10 +13,16 @@ namespace Server.Items
         public BindEntry[] Friends = new BindEntry[10];
         public BindEntry Pending { get; set; }
 
-        public bool IsFull { get { return Friends.FirstOrDefault(entry => entry == null) != null; } }
+        public bool IsFull
+        {
+            get { return Friends.FirstOrDefault(entry => entry == null) != null; }
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public override int MaxRecharges { get { return -1; } }
+        public override int MaxRecharges => -1;
+
+
+        public override string TranslocationItemName => "greater bracelet of binding";
 
         [Constructable]
         public GreaterBraceletOfBinding()
@@ -30,15 +36,6 @@ namespace Server.Items
         public GreaterBraceletOfBinding(Serial serial)
             : base(serial)
         {
-        }
-
-    
-        public override string TranslocationItemName
-        {
-            get
-            {
-                return "greater bracelet of binding";
-            }
         }
 
         public override void AddNameProperty(ObjectPropertyList list)
@@ -57,21 +54,14 @@ namespace Server.Items
 
         public override void OnDoubleClick(Mobile from)
         {
-            if (Siege.SiegeShard)
-            {
-                return;
-            }
+            if (Siege.SiegeShard) return;
 
             if (from is PlayerMobile && from.Items.Contains(this))
             {
                 if (Pending != null)
-                {
                     BaseGump.SendGump(new GreaterBraceletOfBindingGump((PlayerMobile)from, this, Pending));
-                }
                 else
-                {
                     BaseGump.SendGump(new GreaterBraceletOfBindingGump((PlayerMobile)from, this));
-                }
             }
             else
             {
@@ -82,26 +72,20 @@ namespace Server.Items
         public bool IsBound(Mobile m)
         {
             foreach (var e in Friends)
-            {
                 if (e != null && m == e.Mobile)
-                {
                     return true;
-                }
-            }
 
             return false;
         }
 
         public void Remove(PlayerMobile pm)
         {
-            for (int i = 0; i < Friends.Length; i++)
-            {
+            for (var i = 0; i < Friends.Length; i++)
                 if (Friends[i] != null && Friends[i].Mobile == pm)
                 {
                     Friends[i] = null;
                     break;
                 }
-            }
         }
 
         public void Add(BindEntry entry, int index)
@@ -110,10 +94,7 @@ namespace Server.Items
             {
                 Friends[index] = entry;
 
-                if (Pending == entry)
-                {
-                    Pending = null;
-                }
+                if (Pending == entry) Pending = null;
             }
         }
 
@@ -121,10 +102,67 @@ namespace Server.Items
         {
             if (RootParent is Mobile)
             {
-                Mobile m = (Mobile)RootParent;
+                var m = (Mobile)RootParent;
 
                 m.CloseGump(typeof(GreaterBraceletOfBindingGump));
                 m.CloseGump(typeof(ConfirmBindGump));
+            }
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+
+            writer.WriteEncodedInt(0); // version
+
+            if (Pending != null)
+            {
+                writer.Write(1);
+                writer.WriteMobile(Pending.Mobile);
+                writer.WriteItem(Pending.Bracelet);
+            }
+            else
+            {
+                writer.Write(0);
+            }
+
+            foreach (var entry in Friends)
+                if (entry == null)
+                {
+                    writer.Write(0);
+                }
+                else
+                {
+                    writer.Write(1);
+
+                    writer.WriteMobile(entry.Mobile);
+                    writer.WriteItem(entry.Bracelet);
+                }
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+
+            var version = reader.ReadEncodedInt();
+
+            if (reader.ReadInt() == 1)
+            {
+                var pm = reader.ReadMobile<PlayerMobile>();
+                var brac = reader.ReadItem<GreaterBraceletOfBinding>();
+
+                if (pm != null && brac != null) Pending = new BindEntry(pm, brac);
+            }
+
+            for (var i = 0; i < Friends.Length; i++)
+            {
+                if (reader.ReadInt() == 0)
+                    continue;
+
+                var pm = reader.ReadMobile<PlayerMobile>();
+                var brac = reader.ReadItem<GreaterBraceletOfBinding>();
+
+                if (pm != null && brac != null) Friends[i] = new BindEntry(pm, brac);
             }
         }
 
@@ -158,36 +196,35 @@ namespace Server.Items
 
                 if (Choose)
                 {
-                    AddHtmlLocalized(0, 3, 220, 20, CenterLoc, "#1151796", Server.Engines.Quests.BaseQuestGump.C32216(0x0000CD), false, false); // **Choose slot to bind**
+                    AddHtmlLocalized(0, 3, 220, 20, CenterLoc, "#1151796", BaseQuestGump.C32216(0x0000CD), false,
+                        false); // **Choose slot to bind**
                 }
                 else
                 {
-                    AddHtmlLocalized(0, 3, 220, 20, CenterLoc, "#1151769", Server.Engines.Quests.BaseQuestGump.C32216(0x0000CD), false, false); // Greater Bracelet of Binding
-                    AddHtmlLocalized(40, 275, 220, 20, 1017337, Bracelet.Charges.ToString(), Server.Engines.Quests.BaseQuestGump.C32216(0x0000CD), false, false); // Teleport Charges: ~1_val~
+                    AddHtmlLocalized(0, 3, 220, 20, CenterLoc, "#1151769", BaseQuestGump.C32216(0x0000CD), false,
+                        false); // Greater Bracelet of Binding
+                    AddHtmlLocalized(40, 275, 220, 20, 1017337, Bracelet.Charges.ToString(),
+                        BaseQuestGump.C32216(0x0000CD), false, false); // Teleport Charges: ~1_val~
                 }
 
-                for (int i = 0; i < 10; i++)
-                {
+                for (var i = 0; i < 10; i++)
                     if (Bracelet.Friends[i] != null)
                     {
-                        AddLabel(60, 25 + (i * 25), 0x21, Bracelet.Friends[i].Mobile.Name);
+                        AddLabel(60, 25 + i * 25, 0x21, Bracelet.Friends[i].Mobile.Name);
 
                         if (!Choose)
                         {
                             if (Bracelet.Friends[i].Mobile.NetState != null)
-                            {
-                                AddButton(32, 28 + (i * 25), 0x2C89, 0x2C8A, i + 10, GumpButtonType.Reply, 0);
-                            }
+                                AddButton(32, 28 + i * 25, 0x2C89, 0x2C8A, i + 10, GumpButtonType.Reply, 0);
 
-                            AddButton(165, 25 + (i * 25), 4017, 4019, i + 100, GumpButtonType.Reply, 0);
+                            AddButton(165, 25 + i * 25, 4017, 4019, i + 100, GumpButtonType.Reply, 0);
                         }
                     }
                     else
                     {
-                        AddButton(25, 25 + (i * 25), 4006, 4005, i + 10, GumpButtonType.Reply, 0);
-                        AddHtmlLocalized(60, 25 + (i * 25), 150, 20, 3006110, false, false);
+                        AddButton(25, 25 + i * 25, 4006, 4005, i + 10, GumpButtonType.Reply, 0);
+                        AddHtmlLocalized(60, 25 + i * 25, 150, 20, 3006110, false, false);
                     }
-                }
             }
 
             public override void OnResponse(RelayInfo info)
@@ -195,7 +232,7 @@ namespace Server.Items
                 if (info.ButtonID == 0)
                     return;
 
-                int id = info.ButtonID - 10;
+                var id = info.ButtonID - 10;
 
                 if (id >= 0 && id < Bracelet.Friends.Length)
                 {
@@ -211,49 +248,58 @@ namespace Server.Items
                         else if (!Bracelet.IsFull)
                         {
                             User.BeginTarget(10, false, TargetFlags.None, (from, targeted) =>
+                            {
+                                if (targeted is PlayerMobile)
                                 {
-                                    if (targeted is PlayerMobile)
+                                    var pm = targeted as PlayerMobile;
+                                    var pmBrac = pm.FindItemOnLayer(Layer.Bracelet) as BraceletOfBinding;
+
+                                    if (pm == User)
                                     {
-                                        PlayerMobile pm = targeted as PlayerMobile;
-                                        BraceletOfBinding pmBrac = pm.FindItemOnLayer(Layer.Bracelet) as BraceletOfBinding;
-
-                                        if (pm == User)
-                                        {
-                                            User.SendLocalizedMessage(1151779); // The bracelet cannot bind with itself.
-                                        }
-                                        else if (Bracelet.IsBound(pm))
-                                        {
-                                            User.SendLocalizedMessage(1151770); // This bracelet is already bound to this character.
-                                        }
-                                        else if (!User.Items.Contains(Bracelet))
-                                        {
-                                            User.SendLocalizedMessage(1151772); // You must be wearing this item to bind to another character.
-                                        }
-                                        else if (pmBrac == null)
-                                        {
-                                            User.SendLocalizedMessage(1151771); // The target player must be wearing a Bracelet of Binding or Greater Bracelet of Binding for the device to work.
-                                        }
-                                        else if (pm.HasGump(typeof(ConfirmBindGump)) || (pmBrac is GreaterBraceletOfBinding && ((GreaterBraceletOfBinding)pmBrac).Pending != null))
-                                        {
-                                            User.SendLocalizedMessage(1151833); // You may not get confirmation from this player at this time.
-                                        }
-                                        else if ((pmBrac is GreaterBraceletOfBinding && ((GreaterBraceletOfBinding)pmBrac).IsFull) || (!(pmBrac is GreaterBraceletOfBinding) && pmBrac.Bound != null))
-                                        {
-                                            User.SendLocalizedMessage(1151781); // The target player's greater bracelet of binding is full.
-                                        }
-                                        else
-                                        {
-                                            User.SendLocalizedMessage(1151777, pm.Name); // Waiting for ~1_val~ to respond.
-                                            Refresh();
-
-                                            BaseGump.SendGump(new ConfirmBindGump(pm, User, id, Bracelet, false));
-                                        }
+                                        User.SendLocalizedMessage(1151779); // The bracelet cannot bind with itself.
+                                    }
+                                    else if (Bracelet.IsBound(pm))
+                                    {
+                                        User.SendLocalizedMessage(
+                                            1151770); // This bracelet is already bound to this character.
+                                    }
+                                    else if (!User.Items.Contains(Bracelet))
+                                    {
+                                        User.SendLocalizedMessage(
+                                            1151772); // You must be wearing this item to bind to another character.
+                                    }
+                                    else if (pmBrac == null)
+                                    {
+                                        User.SendLocalizedMessage(
+                                            1151771); // The target player must be wearing a Bracelet of Binding or Greater Bracelet of Binding for the device to work.
+                                    }
+                                    else if (pm.HasGump(typeof(ConfirmBindGump)) ||
+                                             (pmBrac is GreaterBraceletOfBinding &&
+                                              ((GreaterBraceletOfBinding)pmBrac).Pending != null))
+                                    {
+                                        User.SendLocalizedMessage(
+                                            1151833); // You may not get confirmation from this player at this time.
+                                    }
+                                    else if ((pmBrac is GreaterBraceletOfBinding &&
+                                              ((GreaterBraceletOfBinding)pmBrac).IsFull) ||
+                                             (!(pmBrac is GreaterBraceletOfBinding) && pmBrac.Bound != null))
+                                    {
+                                        User.SendLocalizedMessage(
+                                            1151781); // The target player's greater bracelet of binding is full.
                                     }
                                     else
                                     {
-                                        User.SendLocalizedMessage(1151775); // You may not bind your bracelet to that.
+                                        User.SendLocalizedMessage(1151777, pm.Name); // Waiting for ~1_val~ to respond.
+                                        Refresh();
+
+                                        SendGump(new ConfirmBindGump(pm, User, id, Bracelet, false));
                                     }
-                                });
+                                }
+                                else
+                                {
+                                    User.SendLocalizedMessage(1151775); // You may not bind your bracelet to that.
+                                }
+                            });
                         }
                     }
                     else
@@ -267,9 +313,8 @@ namespace Server.Items
                     id = info.ButtonID - 100;
 
                     if (id >= 0 && id < Bracelet.Friends.Length && Bracelet.Friends[id] != null)
-                    {
-                        BaseGump.SendGump(new ConfirmBindGump(User, Bracelet.Friends[id].Mobile, id, Bracelet.Friends[id].Bracelet as GreaterBraceletOfBinding, true));
-                    }
+                        SendGump(new ConfirmBindGump(User, Bracelet.Friends[id].Mobile, id,
+                            Bracelet.Friends[id].Bracelet as GreaterBraceletOfBinding, true));
                 }
             }
         }
@@ -282,7 +327,8 @@ namespace Server.Items
 
             public bool RemoveFromBracelet { get; set; }
 
-            public ConfirmBindGump(PlayerMobile user, PlayerMobile from, int index, GreaterBraceletOfBinding bracelet, bool remove)
+            public ConfirmBindGump(PlayerMobile user, PlayerMobile from, int index, GreaterBraceletOfBinding bracelet,
+                bool remove)
                 : base(user, 200, 200)
             {
                 Bracelet = bracelet;
@@ -299,13 +345,11 @@ namespace Server.Items
                 AddAlphaRegion(10, 10, 385, 90);
 
                 if (RemoveFromBracelet)
-                {
-                    AddHtmlLocalized(55, 20, 285, 60, 1151774, From.Name, 0xFFFF, false, false); // Releasing ~1_val~'s bracelet from yours.  Are you sure you want to do this?
-                }
+                    AddHtmlLocalized(55, 20, 285, 60, 1151774, From.Name, 0xFFFF, false,
+                        false); // Releasing ~1_val~'s bracelet from yours.  Are you sure you want to do this?
                 else
-                {
-                    AddHtmlLocalized(55, 20, 285, 60, 1151773, From.Name, 0xFFFF, false, false); // ~1_val~ is attempting to bind bracelets with you.  Do you accept?
-                }
+                    AddHtmlLocalized(55, 20, 285, 60, 1151773, From.Name, 0xFFFF, false,
+                        false); // ~1_val~ is attempting to bind bracelets with you.  Do you accept?
 
                 AddHtml(110, 60, 100, 20, "<BASEFONT COLOR=#FFFFFF>Yes", false, false);
                 AddButton(75, 60, 4005, 4007, 1, GumpButtonType.Reply, 0);
@@ -321,7 +365,7 @@ namespace Server.Items
                     case 1:
                         if (RemoveFromBracelet)
                         {
-                            GreaterBraceletOfBinding bracelet = User.FindItemOnLayer(Layer.Bracelet) as GreaterBraceletOfBinding;
+                            var bracelet = User.FindItemOnLayer(Layer.Bracelet) as GreaterBraceletOfBinding;
 
                             if (bracelet != null && bracelet.Friends[Index] != null)
                             {
@@ -329,8 +373,8 @@ namespace Server.Items
 
                                 if (entry.Bracelet is GreaterBraceletOfBinding)
                                 {
-                                    PlayerMobile pm = entry.Mobile;
-                                    GreaterBraceletOfBinding gbr = entry.Bracelet as GreaterBraceletOfBinding;
+                                    var pm = entry.Mobile;
+                                    var gbr = entry.Bracelet as GreaterBraceletOfBinding;
 
                                     gbr.Remove(User);
 
@@ -338,20 +382,17 @@ namespace Server.Items
                                     {
                                         var gump = pm.FindGump<GreaterBraceletOfBindingGump>();
 
-                                        if (gump != null)
-                                        {
-                                            gump.Refresh();
-                                        }
+                                        if (gump != null) gump.Refresh();
                                     }
                                 }
 
                                 bracelet.Remove(entry.Mobile);
-                                BaseGump.SendGump(new GreaterBraceletOfBindingGump(User, bracelet));
+                                SendGump(new GreaterBraceletOfBindingGump(User, bracelet));
                             }
                         }
                         else
                         {
-                            BraceletOfBinding brac = User.FindItemOnLayer(Layer.Bracelet) as BraceletOfBinding;
+                            var brac = User.FindItemOnLayer(Layer.Bracelet) as BraceletOfBinding;
 
                             if (brac != null)
                             {
@@ -360,17 +401,15 @@ namespace Server.Items
 
                                 var g = From.FindGump<GreaterBraceletOfBindingGump>();
 
-                                if (g != null)
-                                {
-                                    g.Refresh();
-                                }
+                                if (g != null) g.Refresh();
 
                                 if (brac is GreaterBraceletOfBinding && !((GreaterBraceletOfBinding)brac).IsBound(From))
                                 {
                                     entry = new BindEntry(From, Bracelet);
                                     ((GreaterBraceletOfBinding)brac).Pending = entry;
 
-                                    BaseGump.SendGump(new GreaterBraceletOfBindingGump(User, (GreaterBraceletOfBinding)brac, entry));
+                                    SendGump(new GreaterBraceletOfBindingGump(User, (GreaterBraceletOfBinding)brac,
+                                        entry));
                                 }
                                 else
                                 {
@@ -379,80 +418,19 @@ namespace Server.Items
                             }
                             else
                             {
-                                User.SendLocalizedMessage(1151772); // You must be wearing this item to bind to another character.
-                                From.SendLocalizedMessage(1151771); // The target player must be wearing a Bracelet of Binding or Greater Bracelet of Binding for the device to work.
+                                User.SendLocalizedMessage(
+                                    1151772); // You must be wearing this item to bind to another character.
+                                From.SendLocalizedMessage(
+                                    1151771); // The target player must be wearing a Bracelet of Binding or Greater Bracelet of Binding for the device to work.
                             }
                         }
+
                         break;
                     case 2:
                         if (!RemoveFromBracelet)
-                            From.SendLocalizedMessage(1151778, User.Name); // ~1_val~ has declined your request to bind bracelets.
+                            From.SendLocalizedMessage(1151778,
+                                User.Name); // ~1_val~ has declined your request to bind bracelets.
                         break;
-                }
-            }
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-
-            writer.WriteEncodedInt(0); // version
-
-            if (Pending != null)
-            {
-                writer.Write(1);
-                writer.WriteMobile<PlayerMobile>(Pending.Mobile);
-                writer.WriteItem<BraceletOfBinding>(Pending.Bracelet);
-            }
-            else
-            {
-                writer.Write(0);
-            }
-
-            foreach (var entry in Friends)
-            {
-                if (entry == null)
-                {
-                    writer.Write(0);
-                }
-                else
-                {
-                    writer.Write(1);
-
-                    writer.WriteMobile<PlayerMobile>(entry.Mobile);
-                    writer.WriteItem<BraceletOfBinding>(entry.Bracelet);
-                }
-            }
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadEncodedInt();
-
-            if (reader.ReadInt() == 1)
-            {
-                PlayerMobile pm = reader.ReadMobile<PlayerMobile>();
-                GreaterBraceletOfBinding brac = reader.ReadItem<GreaterBraceletOfBinding>();
-
-                if (pm != null && brac != null)
-                {
-                    Pending = new BindEntry(pm, brac);
-                }
-            }
-
-            for (int i = 0; i < Friends.Length; i++)
-            {
-                if (reader.ReadInt() == 0)
-                    continue;
-
-                PlayerMobile pm = reader.ReadMobile<PlayerMobile>();
-                GreaterBraceletOfBinding brac = reader.ReadItem<GreaterBraceletOfBinding>();
-
-                if (pm != null && brac != null)
-                {
-                    Friends[i] = new BindEntry(pm, brac);
                 }
             }
         }

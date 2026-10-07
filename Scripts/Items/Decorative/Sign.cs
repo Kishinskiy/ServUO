@@ -1,5 +1,3 @@
-using System;
-
 namespace Server.Items
 {
     public enum SignFacing
@@ -83,7 +81,7 @@ namespace Server.Items
 
         [Constructable]
         public Sign(SignType type, SignFacing facing)
-            : base((0xB95 + (2 * (int)type)) + (int)facing)
+            : base(0xB95 + 2 * (int)type + (int)facing)
         {
         }
 
@@ -102,14 +100,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

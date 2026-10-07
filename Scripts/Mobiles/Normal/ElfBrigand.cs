@@ -1,11 +1,14 @@
-using System;
 using Server.Items;
 
-namespace Server.Mobiles 
-{ 
+namespace Server.Mobiles
+{
     [CorpseName("an elf corpse")]
     public class ElfBrigand : BaseCreature
     {
+        public override bool AlwaysMurderer => true;
+
+        public override bool ShowFameTitle => false;
+
         [Constructable]
         public ElfBrigand()
             : base(AIType.AI_Spellweaving, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -75,7 +78,9 @@ namespace Server.Mobiles
                     AddItem(new Kilt(Utility.RandomNeutralHue()));
             }
             else
+            {
                 AddItem(new ShortPants(Utility.RandomNeutralHue()));
+            }
 
             // hair, facial hair			
             HairItemID = Race.RandomHair(Female);
@@ -97,20 +102,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool AlwaysMurderer
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool ShowFameTitle
-        {
-            get
-            {
-                return false;
-            }
-        }
         public override void OnDeath(Container c)
         {
             base.OnDeath(c);
@@ -123,14 +114,14 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

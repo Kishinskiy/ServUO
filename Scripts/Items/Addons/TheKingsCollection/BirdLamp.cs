@@ -1,18 +1,18 @@
+using System;
 using Server.Multis;
 using Server.Targeting;
-using System;
 
 namespace Server.Items
 {
     public class BirdLamp : BaseLight, IFlipable, IAddon
     {
-        public override int LabelNumber { get { return 1154188; } } // Bird Lamp
+        public override int LabelNumber => 1154188; // Bird Lamp
 
-        public override int LitItemID { get { return ItemID == 0x4C44 ? 0x4C45 : 0x4C47; } }
-        public override int UnlitItemID { get { return ItemID == 0x4C45 ? 0x4C44 : 0x4C46; } }
+        public override int LitItemID => ItemID == 0x4C44 ? 0x4C45 : 0x4C47;
+        public override int UnlitItemID => ItemID == 0x4C45 ? 0x4C44 : 0x4C46;
 
-        public int NorthID { get { return Burning ? 0x4C45 : 0x4C44; } }
-        public int WestID { get { return Burning ? 0x4C47 : 0x4C46; } }
+        public int NorthID => Burning ? 0x4C45 : 0x4C44;
+        public int WestID => Burning ? 0x4C47 : 0x4C46;
 
         [Constructable]
         public BirdLamp()
@@ -25,7 +25,12 @@ namespace Server.Items
             Weight = 0.0;
         }
 
-        public Item Deed { get { return new BirdLampDeed(); } }
+        public BirdLamp(Serial serial)
+            : base(serial)
+        {
+        }
+
+        public Item Deed => new BirdLampDeed();
 
         public bool CouldFit(IPoint3D p, Map map)
         {
@@ -36,7 +41,8 @@ namespace Server.Items
         {
             var house = BaseHouse.FindHouseAt(this);
 
-            if (house != null && (house.IsOwner(from) || (house.Addons.ContainsKey(this) && house.Addons[this] == from)))
+            if (house != null &&
+                (house.IsOwner(from) || (house.Addons.ContainsKey(this) && house.Addons[this] == from)))
             {
                 Effects.PlaySound(GetWorldLocation(), Map, 0x3B3);
                 from.SendLocalizedMessage(500461); // You destroy the item.
@@ -61,27 +67,22 @@ namespace Server.Items
                 ItemID = NorthID;
         }
 
-        public BirdLamp(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class BirdLampDeed : Item
     {
-        public override int LabelNumber { get { return 1154188; } } // Bird Lamp
+        public override int LabelNumber => 1154188; // Bird Lamp
 
         [Constructable]
         public BirdLampDeed()
@@ -98,41 +99,37 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         public override void OnDoubleClick(Mobile from)
         {
-            BaseHouse house = BaseHouse.FindHouseAt(from);
+            var house = BaseHouse.FindHouseAt(from);
 
             if (house != null && house.IsCoOwner(from))
-            {
-                from.BeginTarget(-1, true, TargetFlags.None, new TargetStateCallback(Placement_OnTarget), null);
-            }
+                from.BeginTarget(-1, true, TargetFlags.None, Placement_OnTarget, null);
             else
-            {
                 from.SendLocalizedMessage(502092); // You must be in your house to do this.
-            }
         }
 
         public void Placement_OnTarget(Mobile from, object targeted, object state)
         {
-            IPoint3D p = targeted as IPoint3D;
-            Map map = from.Map;
+            var p = targeted as IPoint3D;
+            var map = from.Map;
 
             if (p == null || map == null || Deleted)
                 return;
 
             if (IsChildOf(from.Backpack))
             {
-                Point3D loc = new Point3D(p);
-                BaseHouse house = BaseHouse.FindHouseAt(loc, from.Map, 16);
+                var loc = new Point3D(p);
+                var house = BaseHouse.FindHouseAt(loc, from.Map, 16);
 
                 if (house != null && house.IsCoOwner(from))
                 {

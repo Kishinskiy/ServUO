@@ -1,15 +1,15 @@
-using Server;
-using System;
-
 namespace Server.Items
 {
     public class GargishSashBearingTheCrestOfBlackthorn : GargishSash
     {
-        public override bool IsArtifact { get { return true; } }
-        
+        public override bool IsArtifact => true;
+
+        public override int InitMinHits => 150;
+
+        public override int InitMaxHits => 150;
+
         [Constructable]
         public GargishSashBearingTheCrestOfBlackthorn()
-            : base()
         {
             ReforgedSuffix = ReforgedSuffix.Blackthorn;
             Attributes.BonusInt = 5;
@@ -17,21 +17,6 @@ namespace Server.Items
             Attributes.LowerRegCost = 10;
             StrRequirement = 10;
             Hue = 0xe8;
-        }
-
-        public override int InitMinHits
-        {
-            get
-            {
-                return 150;
-            }
-        }
-        public override int InitMaxHits
-        {
-            get
-            {
-                return 150;
-            }
         }
 
         public GargishSashBearingTheCrestOfBlackthorn(Serial serial)
@@ -48,7 +33,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -1,4 +1,3 @@
-using System;
 using Server.Engines.Craft;
 
 namespace Server.Items
@@ -8,34 +7,11 @@ namespace Server.Items
     {
         private int m_Bonus;
         private SkillMod m_SkillMod;
-        [Constructable]
-        public AncientSmithyHammer(int bonus)
-            : this(bonus, 600)
-        {
-        }
-
-        [Constructable]
-        public AncientSmithyHammer(int bonus, int uses)
-            : base(uses, 0x13E4)
-        {
-            m_Bonus = bonus;
-            Weight = 8.0;
-            Layer = Layer.OneHanded;
-            Hue = 0x482;
-        }
-
-        public AncientSmithyHammer(Serial serial)
-            : base(serial)
-        {
-        }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public int Bonus
         {
-            get
-            {
-                return m_Bonus;
-            }
+            get => m_Bonus;
             set
             {
                 m_Bonus = value;
@@ -59,20 +35,32 @@ namespace Server.Items
                 }
             }
         }
-        public override CraftSystem CraftSystem
+
+        public override CraftSystem CraftSystem => DefBlacksmithy.CraftSystem;
+
+        public override int LabelNumber => 1045127; // ancient smithy hammer
+
+        [Constructable]
+        public AncientSmithyHammer(int bonus)
+            : this(bonus, 600)
         {
-            get
-            {
-                return DefBlacksmithy.CraftSystem;
-            }
         }
-        public override int LabelNumber
+
+        [Constructable]
+        public AncientSmithyHammer(int bonus, int uses)
+            : base(uses, 0x13E4)
         {
-            get
-            {
-                return 1045127;
-            }
-        }// ancient smithy hammer
+            m_Bonus = bonus;
+            Weight = 8.0;
+            Layer = Layer.OneHanded;
+            Hue = 0x482;
+        }
+
+        public AncientSmithyHammer(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void OnAdded(object parent)
         {
             base.OnAdded(parent);
@@ -109,25 +97,25 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)1); // version
+            writer.Write(1); // version
 
-            writer.Write((int)m_Bonus);
+            writer.Write(m_Bonus);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            switch ( version )
+            switch (version)
             {
                 case 1:
                 case 0:
-                    {
-                        m_Bonus = reader.ReadInt();
-                        break;
-                    }
+                {
+                    m_Bonus = reader.ReadInt();
+                    break;
+                }
             }
 
             if (m_Bonus != 0 && Parent is Mobile)

@@ -7,59 +7,58 @@ namespace Server.Mobiles
     public class Tailor : BaseVendor
     {
         private readonly List<SBInfo> m_SBInfos = new List<SBInfo>();
-        protected override List<SBInfo> SBInfos
-        {
-            get
-            {
-                return this.m_SBInfos;
-            }
-        }
+        protected override List<SBInfo> SBInfos => m_SBInfos;
 
-        public override NpcGuild NpcGuild
-        {
-            get
-            {
-                return NpcGuild.TailorsGuild;
-            }
-        }
+        public override NpcGuild NpcGuild => NpcGuild.TailorsGuild;
+
+        public override VendorShoeType ShoeType => Utility.RandomBool() ? VendorShoeType.Sandals : VendorShoeType.Shoes;
 
         [Constructable]
         public Tailor()
             : base("the tailor")
         {
-            this.SetSkill(SkillName.Tailoring, 64.0, 100.0);
+            SetSkill(SkillName.Tailoring, 64.0, 100.0);
+        }
+
+        public Tailor(Serial serial)
+            : base(serial)
+        {
         }
 
         public override void InitSBInfo()
         {
-            if(!IsStygianVendor)
-            { 
-                this.m_SBInfos.Add(new SBTailor());
-            }
+            if (!IsStygianVendor)
+                m_SBInfos.Add(new SBTailor());
             else
-            {
-                this.m_SBInfos.Add(new SBSATailor());
-            }
+                m_SBInfos.Add(new SBSATailor());
         }
 
-        public override VendorShoeType ShoeType
+        public override void Serialize(GenericWriter writer)
         {
-            get
-            {
-                return Utility.RandomBool() ? VendorShoeType.Sandals : VendorShoeType.Shoes;
-            }
+            base.Serialize(writer);
+
+            writer.Write(0); // version
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+
+            var version = reader.ReadInt();
         }
 
         #region Bulk Orders
-        public override BODType BODType { get { return BODType.Tailor; } }
+
+        public override BODType BODType => BODType.Tailor;
 
         public override Item CreateBulkOrder(Mobile from, bool fromContextMenu)
         {
-            PlayerMobile pm = from as PlayerMobile;
+            var pm = from as PlayerMobile;
 
-            if (pm != null && pm.NextTailorBulkOrder == TimeSpan.Zero && (fromContextMenu || 0.2 > Utility.RandomDouble()))
+            if (pm != null && pm.NextTailorBulkOrder == TimeSpan.Zero &&
+                (fromContextMenu || 0.2 > Utility.RandomDouble()))
             {
-                double theirSkill = pm.Skills[SkillName.Tailoring].Base;
+                var theirSkill = pm.Skills[SkillName.Tailoring].Base;
 
                 if (theirSkill >= 70.1)
                     pm.NextTailorBulkOrder = TimeSpan.FromHours(6.0);
@@ -68,7 +67,7 @@ namespace Server.Mobiles
                 else
                     pm.NextTailorBulkOrder = TimeSpan.FromHours(1.0);
 
-                if (theirSkill >= 70.1 && ((theirSkill - 40.0) / 300.0) > Utility.RandomDouble())
+                if (theirSkill >= 70.1 && (theirSkill - 40.0) / 300.0 > Utility.RandomDouble())
                     return new LargeTailorBOD();
 
                 return SmallTailorBOD.CreateRandomFor(from);
@@ -79,12 +78,12 @@ namespace Server.Mobiles
 
         public override bool IsValidBulkOrder(Item item)
         {
-            return (item is SmallTailorBOD || item is LargeTailorBOD);
+            return item is SmallTailorBOD || item is LargeTailorBOD;
         }
 
         public override bool SupportsBulkOrders(Mobile from)
         {
-            return (from is PlayerMobile && from.Skills[SkillName.Tailoring].Base > 0);
+            return from is PlayerMobile && from.Skills[SkillName.Tailoring].Base > 0;
         }
 
         public override TimeSpan GetNextBulkOrder(Mobile from)
@@ -102,24 +101,5 @@ namespace Server.Mobiles
         }
 
         #endregion
-
-        public Tailor(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-
-            writer.Write((int)0); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
-        }
     }
 }

@@ -4,6 +4,10 @@ namespace Server.Items
 {
     public class LampPost2 : BaseLight
     {
+        public override int LitItemID => 0xB22;
+
+        public override int UnlitItemID => 0xB23;
+
         [Constructable]
         public LampPost2()
             : base(0xB23)
@@ -20,30 +24,16 @@ namespace Server.Items
         {
         }
 
-        public override int LitItemID
-        {
-            get
-            {
-                return 0xB22;
-            }
-        }
-        public override int UnlitItemID
-        {
-            get
-            {
-                return 0xB23;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

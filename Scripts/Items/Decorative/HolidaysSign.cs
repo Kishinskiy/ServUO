@@ -1,15 +1,23 @@
+using System.Collections.Generic;
+using System.Linq;
 using Server.ContextMenus;
 using Server.Gumps;
 using Server.Multis;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using Server.Network;
 
 namespace Server.Items
 {
     public class HolidaysSign : Item, IFlipable
     {
-        public override int LabelNumber { get { return 1024759; } } // sign
+        private static readonly Dictionary<int, string> SingType = new Dictionary<int, string>
+        {
+            { 1673, "Happy Holidays" },
+            { 1674, "Merry Christmas" },
+            { 1675, "Seasons Greetings" },
+            { 1676, "Happy Hanukkah" }
+        };
+
+        public override int LabelNumber => 1024759; // sign
 
         public int GumpID { get; set; }
 
@@ -18,6 +26,11 @@ namespace Server.Items
             : base(0xA130)
         {
             GumpID = 1673;
+        }
+
+        public HolidaysSign(Serial serial)
+            : base(serial)
+        {
         }
 
         public void OnFlip(Mobile from)
@@ -32,22 +45,22 @@ namespace Server.Items
         {
             if (!m.InRange(GetWorldLocation(), 3))
             {
-                m.LocalOverheadMessage(Network.MessageType.Regular, 0x3B2, 1019045); // I can't reach that.
+                m.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1019045); // I can't reach that.
             }
             else
             {
-                Gump g = new Gump(100, 100);
+                var g = new Gump(100, 100);
                 g.AddImage(0, 0, GumpID);
 
                 m.SendGump(g);
-            }            
+            }
         }
 
         public override void GetContextMenuEntries(Mobile from, List<ContextMenuEntry> list)
         {
             base.GetContextMenuEntries(from, list);
 
-            BaseHouse house = BaseHouse.FindHouseAt(from);
+            var house = BaseHouse.FindHouseAt(from);
 
             if (house != null && house.IsCoOwner(from))
             {
@@ -60,13 +73,21 @@ namespace Server.Items
             }
         }
 
-        private static readonly Dictionary<int, string> SingType = new Dictionary<int, string>()
+        public override void Serialize(GenericWriter writer)
         {
-            {1673,"Happy Holidays"},
-            {1674,"Merry Christmas"},
-            {1675,"Seasons Greetings"},
-            {1676,"Happy Hanukkah"},            
-        };
+            base.Serialize(writer);
+            writer.Write(0);
+
+            writer.Write(GumpID);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
+
+            GumpID = reader.ReadInt();
+        }
 
         private class ChangeSignText : ContextMenuEntry
         {
@@ -87,7 +108,10 @@ namespace Server.Items
                 else
                     Sign.GumpID++;
 
-                _From.SendLocalizedMessage(1158830, String.Format("{0}", SingType.ToList().Find(x => x.Key == Sign.GumpID).Value)); // The sign text has been set to: ~1_TEXT~
+                _From.SendLocalizedMessage(1158830,
+                    string.Format("{0}",
+                        SingType.ToList().Find(x => x.Key == Sign.GumpID)
+                            .Value)); // The sign text has been set to: ~1_TEXT~
             }
         }
 
@@ -103,34 +127,13 @@ namespace Server.Items
 
             public override void OnClick()
             {
-                int ItemID = Sign.ItemID;
+                var ItemID = Sign.ItemID;
 
                 if (ItemID == 0xA130 || ItemID == 0xA134)
                     Sign.ItemID = ItemID + 1;
                 else
                     Sign.ItemID = ItemID - 1;
             }
-        }
-
-        public HolidaysSign(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.Write((int)0);
-
-            writer.Write((int)GumpID);
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            int version = reader.ReadInt();
-
-            GumpID = reader.ReadInt();
         }
     }
 }

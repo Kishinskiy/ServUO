@@ -1,38 +1,25 @@
-using System;
-using Server;
-
 namespace Server.Items
 {
     [FlipableAttribute(0x19BC, 0x19BD)]
-    public partial class BaseCostume : BaseShield
+    public class BaseCostume : BaseShield
     {
-        public bool m_Transformed;
-        private int m_Body = 0;
-        private int m_Hue = -1;
         private int m_SaveHueMod = -1;
+        public bool m_Transformed;
 
         public virtual string CreatureName { get; private set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public bool Transformed
         {
-            get { return m_Transformed; }
-            set { m_Transformed = value; }
+            get => m_Transformed;
+            set => m_Transformed = value;
         }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int CostumeBody
-        {
-            get { return m_Body; }
-            set { m_Body = value; }
-        }
+        public int CostumeBody { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int CostumeHue
-        {
-            get { return m_Hue; }
-            set { m_Hue = value; }
-        }
+        public int CostumeHue { get; set; } = -1;
 
         public BaseCostume()
             : base(0x19BC)
@@ -47,7 +34,6 @@ namespace Server.Items
         public BaseCostume(Serial serial)
             : base(serial)
         {
-
         }
 
         private bool EnMask(Mobile from)
@@ -62,8 +48,8 @@ namespace Server.Items
             }
             else
             {
-                from.BodyMod = m_Body;
-                from.HueMod = m_Hue;
+                from.BodyMod = CostumeBody;
+                from.HueMod = CostumeHue;
                 Transformed = true;
 
                 return true;
@@ -84,7 +70,7 @@ namespace Server.Items
             if (Deleted)
                 return false;
 
-            else if (RootParent is Mobile && from != RootParent)
+            if (RootParent is Mobile && from != RootParent)
                 return false;
 
             Hue = sender.DyedHue;
@@ -108,53 +94,47 @@ namespace Server.Items
         {
             base.OnRemoved(parent);
 
-            if (parent is Mobile && Transformed)
-            {
-                DeMask((Mobile)parent);
-            }
+            if (parent is Mobile && Transformed) DeMask((Mobile)parent);
 
             base.OnRemoved(parent);
         }
 
         public static void OnDamaged(Mobile m)
         {
-            BaseCostume costume = m.FindItemOnLayer(Layer.FirstValid) as BaseCostume;
+            var costume = m.FindItemOnLayer(Layer.FirstValid) as BaseCostume;
 
-            if (costume != null)
-            {
-                m.AddToBackpack(costume);
-            }
+            if (costume != null) m.AddToBackpack(costume);
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)3);
-            writer.Write((int)m_Body);
-            writer.Write((int)m_Hue);
+            writer.Write(3);
+            writer.Write(CostumeBody);
+            writer.Write(CostumeHue);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             switch (version)
             {
                 case 3:
-                    m_Body = reader.ReadInt();
-                    m_Hue = reader.ReadInt();
+                    CostumeBody = reader.ReadInt();
+                    CostumeHue = reader.ReadInt();
                     break;
                 case 2:
-                    m_Body = reader.ReadInt();
-                    m_Hue = reader.ReadInt();
+                    CostumeBody = reader.ReadInt();
+                    CostumeHue = reader.ReadInt();
                     reader.ReadInt();
                     break;
                 case 1:
-                    m_Body = reader.ReadInt();
-                    m_Hue = reader.ReadInt();
+                    CostumeBody = reader.ReadInt();
+                    CostumeHue = reader.ReadInt();
                     reader.ReadInt();
                     reader.ReadBool();
 
@@ -163,10 +143,7 @@ namespace Server.Items
                     break;
             }
 
-            if (RootParent is Mobile && ((Mobile)RootParent).Items.Contains(this))
-            {
-                EnMask((Mobile)RootParent);
-            }
+            if (RootParent is Mobile && ((Mobile)RootParent).Items.Contains(this)) EnMask((Mobile)RootParent);
         }
     }
 }

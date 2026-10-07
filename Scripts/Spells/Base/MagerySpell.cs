@@ -5,27 +5,25 @@ namespace Server.Spells
 {
     public abstract class MagerySpell : Spell
     {
-        private static readonly int[] m_ManaTable = new int[] { 4, 6, 9, 11, 14, 20, 40, 50 };
         private const double ChanceOffset = 20.0, ChanceLength = 100.0 / 7.0;
+        private static readonly int[] m_ManaTable = { 4, 6, 9, 11, 14, 20, 40, 50 };
+
+        public abstract SpellCircle Circle { get; }
+
+        public override TimeSpan CastDelayBase =>
+            TimeSpan.FromMilliseconds((4 + (int)Circle) * CastDelaySecondsPerTick * 1000);
+
         public MagerySpell(Mobile caster, Item scroll, SpellInfo info)
             : base(caster, scroll, info)
         {
         }
 
-        public abstract SpellCircle Circle { get; }
-        public override TimeSpan CastDelayBase
-        {
-            get
-            {
-                return TimeSpan.FromMilliseconds(((4 + (int)Circle) * CastDelaySecondsPerTick)  * 1000);
-            }
-        }
         public override bool ConsumeReagents()
         {
             if (base.ConsumeReagents())
                 return true;
 
-            if (ArcaneGem.ConsumeCharges(Caster, (Core.SE ? 1 : 1 + (int)Circle)))
+            if (ArcaneGem.ConsumeCharges(Caster, Core.SE ? 1 : 1 + (int)Circle))
                 return true;
 
             return false;
@@ -33,12 +31,12 @@ namespace Server.Spells
 
         public override void GetCastSkills(out double min, out double max)
         {
-            int circle = (int)Circle;
+            var circle = (int)Circle;
 
             if (Scroll != null)
                 circle -= 2;
 
-            double avg = ChanceLength * circle;
+            var avg = ChanceLength * circle;
 
             min = avg - ChanceOffset;
             max = avg + ChanceOffset;
@@ -54,7 +52,7 @@ namespace Server.Spells
 
         public virtual bool CheckResisted(Mobile target)
         {
-            double n = GetResistPercent(target);
+            var n = GetResistPercent(target);
 
             n /= 100.0;
 
@@ -64,22 +62,23 @@ namespace Server.Spells
             if (n >= 1.0)
                 return true;
 
-            int maxSkill = (1 + (int)Circle) * 10;
-            maxSkill += (1 + ((int)Circle / 6)) * 25;
+            var maxSkill = (1 + (int)Circle) * 10;
+            maxSkill += (1 + (int)Circle / 6) * 25;
 
             if (target.Skills[SkillName.MagicResist].Value < maxSkill)
                 target.CheckSkill(SkillName.MagicResist, 0.0, target.Skills[SkillName.MagicResist].Cap);
 
-            return (n >= Utility.RandomDouble());
+            return n >= Utility.RandomDouble();
         }
 
         public virtual double GetResistPercentForCircle(Mobile target, SpellCircle circle)
         {
-            double value = GetResistSkill(target);
-            double firstPercent = value / 5.0;
-            double secondPercent = value - (((Caster.Skills[CastSkill].Value - 20.0) / 5.0) + (1 + (int)circle) * 5.0);
+            var value = GetResistSkill(target);
+            var firstPercent = value / 5.0;
+            var secondPercent = value - ((Caster.Skills[CastSkill].Value - 20.0) / 5.0 + (1 + (int)circle) * 5.0);
 
-            return (firstPercent > secondPercent ? firstPercent : secondPercent) / 2.0; // Seems should be about half of what stratics says.
+            return (firstPercent > secondPercent ? firstPercent : secondPercent) /
+                   2.0; // Seems should be about half of what stratics says.
         }
 
         public virtual double GetResistPercent(Mobile target)
@@ -93,7 +92,7 @@ namespace Server.Spells
                 return TimeSpan.Zero;
 
             if (!Core.AOS)
-                return TimeSpan.FromSeconds(0.5 + (0.25 * (int)Circle));
+                return TimeSpan.FromSeconds(0.5 + 0.25 * (int)Circle);
 
             return base.GetCastDelay();
         }

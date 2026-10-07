@@ -1,18 +1,19 @@
 using System;
-using Server;
-using Server.Mobiles;
 using System.Collections.Generic;
+using Server.Mobiles;
 
 namespace Server.Items
 {
     public class SpiderWebbing : Item
     {
+        private static readonly List<Mobile> m_WebVictims = new List<Mobile>();
         private Timer m_Timer;
-        private static List<Mobile> m_WebVictims = new List<Mobile>();
+
+        public override bool BlocksFit => true;
 
         public SpiderWebbing(Mobile m)
             : base(0xEE3 + Utility.Random(4))
-        {            
+        {
             Movable = false;
 
             BeginWebbing(m);
@@ -27,9 +28,9 @@ namespace Server.Items
         }
 
         public void BeginWebbing(Mobile m)
-        {            
+        {
             m.RevealingAction();
-            m.Frozen = true;            
+            m.Frozen = true;
             m.SendLocalizedMessage(1113247); // You are wrapped in spider webbing and cannot move!
             m_WebVictims.Add(m);
             BuffInfo.AddBuff(m, new BuffInfo(BuffIcon.Webbing, 1153789, 1153825));
@@ -48,8 +49,6 @@ namespace Server.Items
             m_WebVictims.Remove(m);
         }
 
-        public override bool BlocksFit { get { return true; } }
-
         public override void OnDelete()
         {
             if (m_Timer != null)
@@ -60,10 +59,7 @@ namespace Server.Items
 
             var list = new List<Mobile>(m_WebVictims);
 
-            foreach (var m in list)
-            {
-                RemoveEffects(m);
-            }
+            foreach (var m in list) RemoveEffects(m);
 
             ColUtility.Free(list);
             ColUtility.Free(m_WebVictims);
@@ -74,13 +70,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             Delete();
         }
@@ -102,8 +98,8 @@ namespace Server.Items
 
         private class InternalTimer : Timer
         {
-            private Mobile m_Target;
-            private Item m_Item;
+            private readonly Item m_Item;
+            private readonly Mobile m_Target;
             private int m_Ticks;
 
             public InternalTimer(Item item, Mobile target)
@@ -118,10 +114,7 @@ namespace Server.Items
             {
                 m_Ticks--;
 
-                if (!m_Target.Alive || m_Ticks == 0)
-                {
-                    m_Item.Delete();
-                }
+                if (!m_Target.Alive || m_Ticks == 0) m_Item.Delete();
             }
         }
     }

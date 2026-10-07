@@ -1,11 +1,16 @@
-using System;
 using System.Collections.Generic;
+using Server.Items;
 
 namespace Server.Mobiles
 {
     public class Gardener : BaseVendor
     {
         private readonly List<SBInfo> m_SBInfos = new List<SBInfo>();
+
+        public override VendorShoeType ShoeType => VendorShoeType.ThighBoots;
+
+        protected override List<SBInfo> SBInfos => m_SBInfos;
+
         [Constructable]
         public Gardener()
             : base("the gardener")
@@ -17,20 +22,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override VendorShoeType ShoeType
-        {
-            get
-            {
-                return VendorShoeType.ThighBoots;
-            }
-        }
-        protected override List<SBInfo> SBInfos
-        {
-            get
-            {
-                return m_SBInfos;
-            }
-        }
         public override void InitSBInfo()
         {
             m_SBInfos.Add(new SBGardener());
@@ -45,19 +36,19 @@ namespace Server.Mobiles
         {
             base.InitOutfit();
 
-            AddItem(new Items.WideBrimHat(Utility.RandomNeutralHue()));
+            AddItem(new WideBrimHat(Utility.RandomNeutralHue()));
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

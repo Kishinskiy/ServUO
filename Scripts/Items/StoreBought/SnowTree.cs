@@ -1,13 +1,10 @@
-using System;
-using Server;
 using Server.Gumps;
-using Server.Network;
 
 namespace Server.Items
 {
     public class SnowTreeAddon : BaseAddon
     {
-        public override BaseAddonDeed Deed { get { return new SnowTreeDeed(); } }
+        public override BaseAddonDeed Deed => new SnowTreeDeed();
 
         [Constructable]
         public SnowTreeAddon(bool trunk)
@@ -38,21 +35,25 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class SnowTreeDeed : BaseAddonDeed, IRewardOption
     {
-        public override BaseAddon Addon { get { return new SnowTreeAddon(m_Trunk); } }
-        public override int LabelNumber { get { return 1071103; } } // Snow Tree
-
         private bool m_Trunk;
+        public override BaseAddon Addon => new SnowTreeAddon(m_Trunk);
+        public override int LabelNumber => 1071103; // Snow Tree
 
         [Constructable]
         public SnowTreeDeed()
         {
             LootType = LootType.Blessed;
+        }
+
+        public SnowTreeDeed(Serial serial)
+            : base(serial)
+        {
         }
 
         public void GetOptions(RewardOptionList list)
@@ -77,12 +78,9 @@ namespace Server.Items
                 from.SendGump(new RewardOptionGump(this));
             }
             else
+            {
                 from.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.       	
-        }
-
-        public SnowTreeDeed(Serial serial)
-            : base(serial)
-        {
+            }
         }
 
         private void SendTarget(Mobile m)
@@ -101,7 +99,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

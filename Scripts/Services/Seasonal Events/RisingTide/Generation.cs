@@ -1,10 +1,6 @@
 using System;
-
-using Server;
-using Server.Items;
-using Server.Mobiles;
-using Server.Network;
 using Server.Engines.Points;
+using Server.Items;
 
 namespace Server.Engines.RisingTide
 {
@@ -15,19 +11,12 @@ namespace Server.Engines.RisingTide
             EventSink.WorldSave += OnWorldSave;
 
             if (BlackMarketMerchant.InstanceTram != null)
-            {
                 BlackMarketMerchant.InstanceTram.MoveToWorld(BlackMarketMerchant.SpawnLocation, Map.Trammel);
-            }
 
             if (BlackMarketMerchant.InstanceFel != null)
-            {
                 BlackMarketMerchant.InstanceFel.MoveToWorld(BlackMarketMerchant.SpawnLocation, Map.Felucca);
-            }
 
-            if (PointsSystem.RisingTide.Enabled && PlunderBeaconSpawner.Spawner == null)
-            {
-                new PlunderBeaconSpawner();
-            }
+            if (PointsSystem.RisingTide.Enabled && PlunderBeaconSpawner.Spawner == null) new PlunderBeaconSpawner();
         }
 
         private static void OnWorldSave(WorldSaveEventArgs e)
@@ -101,18 +90,12 @@ namespace Server.Engines.RisingTide
                 BlackMarketMerchant.InstanceFel.RangeHome = 2;
             }
 
-            if (PlunderBeaconSpawner.Spawner == null)
-            {
-                new PlunderBeaconSpawner();
-            }
+            if (PlunderBeaconSpawner.Spawner == null) new PlunderBeaconSpawner();
         }
 
         public static void Remove()
         {
-            if (PlunderBeaconSpawner.Spawner != null)
-            {
-                PlunderBeaconSpawner.Spawner.SystemDeactivate();
-            }
+            if (PlunderBeaconSpawner.Spawner != null) PlunderBeaconSpawner.Spawner.SystemDeactivate();
         }
     }
 }

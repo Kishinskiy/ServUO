@@ -1,13 +1,10 @@
-using System;
 using System.Collections.Generic;
 
 namespace Server.Engines.BulkOrders
 {
     public class LargeCarpentryBOD : LargeBOD
     {
-        public override BODType BODType { get { return BODType.Carpentry; } }
-
-        public static double[] m_CarpentryingMaterialChances = new double[]
+        public static double[] m_CarpentryingMaterialChances =
         {
             0.513718750, // None
             0.292968750, // Oak
@@ -18,11 +15,13 @@ namespace Server.Engines.BulkOrders
             0.003000000 // Frostwood
         };
 
+        public override BODType BODType => BODType.Carpentry;
+
         [Constructable]
         public LargeCarpentryBOD()
         {
             LargeBulkEntry[] entries;
-            bool useMaterials = true;
+            var useMaterials = true;
 
             switch (Utility.Random(7))
             {
@@ -50,9 +49,9 @@ namespace Server.Engines.BulkOrders
                     break;
             }
 
-            int hue = 1512;
-            int amountMax = Utility.RandomList(10, 15, 20, 20);
-            bool reqExceptional = (0.825 > Utility.RandomDouble());
+            var hue = 1512;
+            var amountMax = Utility.RandomList(10, 15, 20, 20);
+            var reqExceptional = 0.825 > Utility.RandomDouble();
 
             BulkMaterialType material;
 
@@ -61,20 +60,20 @@ namespace Server.Engines.BulkOrders
             else
                 material = BulkMaterialType.None;
 
-            this.Hue = hue;
-            this.AmountMax = amountMax;
-            this.Entries = entries;
-            this.RequireExceptional = reqExceptional;
-            this.Material = material;
+            Hue = hue;
+            AmountMax = amountMax;
+            Entries = entries;
+            RequireExceptional = reqExceptional;
+            Material = material;
         }
 
         public LargeCarpentryBOD(int amountMax, bool reqExceptional, BulkMaterialType mat, LargeBulkEntry[] entries)
         {
-            this.Hue = 1512;
-            this.AmountMax = amountMax;
-            this.Entries = entries;
-            this.RequireExceptional = reqExceptional;
-            this.Material = mat;
+            Hue = 1512;
+            AmountMax = amountMax;
+            Entries = entries;
+            RequireExceptional = reqExceptional;
+            Material = mat;
         }
 
         public LargeCarpentryBOD(Serial serial)
@@ -94,17 +93,19 @@ namespace Server.Engines.BulkOrders
 
         public override List<Item> ComputeRewards(bool full)
         {
-            List<Item> list = new List<Item>();
+            var list = new List<Item>();
 
-            RewardGroup rewardGroup = CarpentryRewardCalculator.Instance.LookupRewards(CarpentryRewardCalculator.Instance.ComputePoints(this));
+            var rewardGroup =
+                CarpentryRewardCalculator.Instance.LookupRewards(CarpentryRewardCalculator.Instance
+                    .ComputePoints(this));
 
             if (rewardGroup != null)
             {
                 if (full)
                 {
-                    for (int i = 0; i < rewardGroup.Items.Length; ++i)
+                    for (var i = 0; i < rewardGroup.Items.Length; ++i)
                     {
-                        Item item = rewardGroup.Items[i].Construct();
+                        var item = rewardGroup.Items[i].Construct();
 
                         if (item != null)
                             list.Add(item);
@@ -112,11 +113,11 @@ namespace Server.Engines.BulkOrders
                 }
                 else
                 {
-                    RewardItem rewardItem = rewardGroup.AcquireItem();
+                    var rewardItem = rewardGroup.AcquireItem();
 
                     if (rewardItem != null)
                     {
-                        Item item = rewardItem.Construct();
+                        var item = rewardItem.Construct();
 
                         if (item != null)
                             list.Add(item);
@@ -131,14 +132,14 @@ namespace Server.Engines.BulkOrders
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

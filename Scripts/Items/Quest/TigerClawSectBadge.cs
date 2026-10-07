@@ -1,14 +1,14 @@
-using System;
-
 namespace Server.Items
 {
     public class TigerClawSectBadge : Item
     {
+        public override int LabelNumber => 1073140; // A Tiger Claw Sect Badge
+
         [Constructable]
         public TigerClawSectBadge()
             : base(0x23D)
         {
-            this.LootType = LootType.Blessed;
+            LootType = LootType.Blessed;
         }
 
         public TigerClawSectBadge(Serial serial)
@@ -16,25 +16,18 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1073140;
-            }
-        }// A Tiger Claw Sect Badge
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

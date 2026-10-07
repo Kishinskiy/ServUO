@@ -4,23 +4,17 @@
  * Compiled & Modified by: [Feng / UO Wildlands Team]
  * * Licensed under the GNU General Public License v3.0 (GPL-3.0)
  */
+
 using System;
 using System.Collections.Generic;
-using Server;
 using Server.Gumps;
-using Server.Mobiles;
+using Server.Network;
 using Server.Targeting;
-using Server.Items;
 
 namespace Server.Custom.TownHouses
 {
     public class TownHouseSignGump : Gump
     {
-        private readonly Mobile m_From;
-        private readonly TownHouseController m_C;
-        private readonly int m_Page;       // Which "Tab" are we on? (Main, Friends, etc)
-        private readonly int m_ListPage;   // Pagination for the access lists
-
         // Page IDs
         private const int PAGE_MAIN = 0;
         private const int PAGE_FRIENDS = 1;
@@ -71,6 +65,10 @@ namespace Server.Custom.TownHouses
         private const int LabelHue = 0x481;
         private const int HeaderHue = 0x35;
         private const int ValueHue = 2213;
+        private readonly TownHouseController m_C;
+        private readonly Mobile m_From;
+        private readonly int m_ListPage; // Pagination for the access lists
+        private readonly int m_Page; // Which "Tab" are we on? (Main, Friends, etc)
 
         public TownHouseSignGump(Mobile from, TownHouseController c, int page = PAGE_MAIN, int listPage = 0)
             : base(50, 50)
@@ -88,7 +86,8 @@ namespace Server.Custom.TownHouses
             AddBackground(0, 0, 600, 520, 9270);
             AddAlphaRegion(10, 10, 580, 500);
 
-            AddHtml(10, 20, 580, 25, "<CENTER><BASEFONT COLOR=#FFD700>TOWN HOUSE PROPERTY</BASEFONT></CENTER>", false, false);
+            AddHtml(10, 20, 580, 25, "<CENTER><BASEFONT COLOR=#FFD700>TOWN HOUSE PROPERTY</BASEFONT></CENTER>", false,
+                false);
             AddImageTiled(20, 45, 560, 2, 96);
 
             switch (m_Page)
@@ -110,7 +109,7 @@ namespace Server.Custom.TownHouses
 
         private void BuildMain()
         {
-            int y = 60;
+            var y = 60;
 
             AddLabel(30, y, HeaderHue, "PROPERTY STATUS");
             y += 25;
@@ -118,7 +117,7 @@ namespace Server.Custom.TownHouses
             AddLabel(100, y, LabelHue, m_C.State.ToString());
             y += 20;
             AddLabel(30, y, LabelHue, "Owner:");
-            AddLabel(100, y, LabelHue, (m_C.Owner != null ? m_C.Owner.Name : "None"));
+            AddLabel(100, y, LabelHue, m_C.Owner != null ? m_C.Owner.Name : "None");
             y += 40;
 
             if (m_C.Owner == null)
@@ -175,7 +174,10 @@ namespace Server.Custom.TownHouses
                     y += 25;
 
                     AddButton(30, y, 4005, 4007, BTN_TogglePublic, GumpButtonType.Reply, 0);
-                    AddLabel(65, y, LabelHue, m_C.IsPublic ? "Access: Public (click to make Private)" : "Access: Private (click to make Public)");
+                    AddLabel(65, y, LabelHue,
+                        m_C.IsPublic
+                            ? "Access: Public (click to make Private)"
+                            : "Access: Private (click to make Public)");
                     y += 35;
                 }
             }
@@ -210,8 +212,8 @@ namespace Server.Custom.TownHouses
                 AddLabel(65, y, LabelHue, "Bans (" + m_C.Bans.Count + ")");
             }
 
-            int col2 = 300;
-            int y2 = 60;
+            var col2 = 300;
+            var y2 = 60;
             AddLabel(col2, y2, HeaderHue, "PROPERTY DETAILS");
             y2 += 25;
             AddLabel(col2, y2, LabelHue, "Lockdowns:");
@@ -221,7 +223,7 @@ namespace Server.Custom.TownHouses
             AddLabel(col2 + 100, y2, LabelHue, m_C.Secures.Count.ToString());
             y2 += 20;
             AddLabel(col2, y2, LabelHue, "Total Area:");
-            AddLabel(col2 + 100, y2, LabelHue, (m_C.Rect.Width * m_C.Rect.Height) + " Tiles");
+            AddLabel(col2 + 100, y2, LabelHue, m_C.Rect.Width * m_C.Rect.Height + " Tiles");
             y2 += 30;
 
             if (m_From.AccessLevel >= AccessLevel.GameMaster)
@@ -276,46 +278,44 @@ namespace Server.Custom.TownHouses
             AddLabel(30, 90, HeaderHue, title);
             AddImageTiled(30, 110, 250, 2, 96);
 
-            bool canEditList = (m_Page == PAGE_COOWNERS) ? m_C.IsOwner(m_From) : (m_C.IsOwner(m_From) || m_C.IsCoOwner(m_From));
+            var canEditList = m_Page == PAGE_COOWNERS
+                ? m_C.IsOwner(m_From)
+                : m_C.IsOwner(m_From) || m_C.IsCoOwner(m_From);
             if (canEditList || m_From.AccessLevel >= AccessLevel.GameMaster)
             {
                 AddButton(30, 120, 4005, 4007, BTN_AddTarget, GumpButtonType.Reply, 0);
                 AddLabel(65, 120, LabelHue, addText);
             }
 
-            int count = list.Count;
-            int perPage = 10;
-            int maxPage = Math.Max(0, (count - 1) / perPage);
-            int page = Math.Max(0, Math.Min(maxPage, m_ListPage));
+            var count = list.Count;
+            var perPage = 10;
+            var maxPage = Math.Max(0, (count - 1) / perPage);
+            var page = Math.Max(0, Math.Min(maxPage, m_ListPage));
 
             if (page > 0)
                 AddButton(200, 90, 4014, 4016, BTN_ListPrev, GumpButtonType.Reply, 0);
-            
-            AddLabel(240, 90, LabelHue, (page + 1) + "/" + (maxPage + 1));
+
+            AddLabel(240, 90, LabelHue, page + 1 + "/" + (maxPage + 1));
 
             if (page < maxPage)
                 AddButton(280, 90, 4005, 4007, BTN_ListNext, GumpButtonType.Reply, 0);
 
-            int y = 150;
-            int start = page * perPage;
-            int end = Math.Min(start + perPage, count);
+            var y = 150;
+            var start = page * perPage;
+            var end = Math.Min(start + perPage, count);
 
             if (count == 0)
-            {
                 AddLabel(30, y, LabelHue, "(List is empty)");
-            }
             else
-            {
-                for (int i = start; i < end; i++)
+                for (var i = start; i < end; i++)
                 {
-                    Mobile m = list[i];
-                    string name = (m != null ? m.Name : "Unknown");
+                    var m = list[i];
+                    var name = m != null ? m.Name : "Unknown";
 
                     AddButton(30, y + 3, 4017, 4019, BTN_REMOVE_BASE + i, GumpButtonType.Reply, 0);
                     AddLabel(65, y, LabelHue, name);
                     y += 25;
                 }
-            }
         }
 
         private void BuildSaleSetup()
@@ -327,32 +327,67 @@ namespace Server.Custom.TownHouses
             AddImageTiled(30, 120, 250, 2, 96);
 
             AddLabel(30, 140, LabelHue, "Enter the price you wish to sell for:");
-            
+
             AddImageTiled(30, 165, 150, 20, 2624);
             AddTextEntry(32, 165, 146, 20, ValueHue, TE_SalePrice, m_C.OwnerSalePrice.ToString());
             AddLabel(185, 165, LabelHue, "GP");
 
             AddButton(30, 200, 4005, 4007, BTN_Sell_Confirm, GumpButtonType.Reply, 0);
             AddLabel(65, 200, 0x35, "CONFIRM SALE");
-            
-            AddHtml(30, 240, 250, 100, "<BASEFONT COLOR=#FFFFFF>Note: Once set, anyone can purchase the house from the sign. The gold will be deposited into your bank.</BASEFONT>", false, false);
+
+            AddHtml(30, 240, 250, 100,
+                "<BASEFONT COLOR=#FFFFFF>Note: Once set, anyone can purchase the house from the sign. The gold will be deposited into your bank.</BASEFONT>",
+                false, false);
         }
 
-        public override void OnResponse(Server.Network.NetState sender, RelayInfo info)
+        public override void OnResponse(NetState sender, RelayInfo info)
         {
             if (m_From == null || m_From.Deleted || m_C == null || m_C.Deleted) return;
 
-            int bid = info.ButtonID;
+            var bid = info.ButtonID;
             if (bid == 0) return;
 
-            if (bid == BTN_BackToMain) { Refresh(m_From, m_C, PAGE_MAIN); return; }
-            if (bid == BTN_OpenFriends) { Refresh(m_From, m_C, PAGE_FRIENDS); return; }
-            if (bid == BTN_OpenCoOwners) { Refresh(m_From, m_C, PAGE_COOWNERS); return; }
-            if (bid == BTN_OpenBans) { Refresh(m_From, m_C, PAGE_BANS); return; }
-            if (bid == BTN_Sell_Setup) { Refresh(m_From, m_C, PAGE_SALE_SETUP); return; }
+            if (bid == BTN_BackToMain)
+            {
+                Refresh(m_From, m_C);
+                return;
+            }
 
-            if (bid == BTN_ListNext) { Refresh(m_From, m_C, m_Page, m_ListPage + 1); return; }
-            if (bid == BTN_ListPrev) { Refresh(m_From, m_C, m_Page, Math.Max(0, m_ListPage - 1)); return; }
+            if (bid == BTN_OpenFriends)
+            {
+                Refresh(m_From, m_C, PAGE_FRIENDS);
+                return;
+            }
+
+            if (bid == BTN_OpenCoOwners)
+            {
+                Refresh(m_From, m_C, PAGE_COOWNERS);
+                return;
+            }
+
+            if (bid == BTN_OpenBans)
+            {
+                Refresh(m_From, m_C, PAGE_BANS);
+                return;
+            }
+
+            if (bid == BTN_Sell_Setup)
+            {
+                Refresh(m_From, m_C, PAGE_SALE_SETUP);
+                return;
+            }
+
+            if (bid == BTN_ListNext)
+            {
+                Refresh(m_From, m_C, m_Page, m_ListPage + 1);
+                return;
+            }
+
+            if (bid == BTN_ListPrev)
+            {
+                Refresh(m_From, m_C, m_Page, Math.Max(0, m_ListPage - 1));
+                return;
+            }
 
             switch (bid)
             {
@@ -362,55 +397,70 @@ namespace Server.Custom.TownHouses
                 case BTN_Abandon: m_C.TryAbandon(m_From); break;
 
                 case BTN_Transfer:
-                    if (m_C.IsOwner(m_From)) {
-                         m_From.SendMessage("Target the player to transfer ownership to.");
-                         m_From.Target = new TransferTarget(m_C);
-                         return;
+                    if (m_C.IsOwner(m_From))
+                    {
+                        m_From.SendMessage("Target the player to transfer ownership to.");
+                        m_From.Target = new TransferTarget(m_C);
+                        return;
                     }
+
                     break;
 
                 case BTN_Lockdown:
-                    if (m_C.IsFriend(m_From)) {
+                    if (m_C.IsFriend(m_From))
+                    {
                         m_From.SendMessage("Target an item to lock down.");
                         m_From.Target = new LockdownTarget(m_C);
                         return;
                     }
+
                     break;
                 case BTN_Secure:
-                    if (m_C.IsFriend(m_From)) {
+                    if (m_C.IsFriend(m_From))
+                    {
                         m_From.SendMessage("Target a container to secure.");
                         m_From.Target = new SecureTarget(m_C);
                         return;
                     }
+
                     break;
                 case BTN_Release:
-                    if (m_C.IsFriend(m_From)) {
+                    if (m_C.IsFriend(m_From))
+                    {
                         m_From.SendMessage("Target an item to release.");
                         m_From.Target = new ReleaseTarget(m_C);
                         return;
                     }
+
                     break;
 
                 case BTN_Sell_Confirm:
-                    int price = ParseInt(info, TE_SalePrice, 0);
-                    if (m_C.TryBeginSale(m_From, price)) {
+                    var price = ParseInt(info, TE_SalePrice, 0);
+                    if (m_C.TryBeginSale(m_From, price))
+                    {
                         m_From.SendMessage("House is now for sale.");
-                        Refresh(m_From, m_C, PAGE_MAIN);
+                        Refresh(m_From, m_C);
                         return;
                     }
+
                     break;
 
                 case BTN_AddTarget:
-                    bool canEdit = (m_Page == PAGE_COOWNERS) ? m_C.IsOwner(m_From) : (m_C.IsOwner(m_From) || m_C.IsCoOwner(m_From));
+                    var canEdit = m_Page == PAGE_COOWNERS
+                        ? m_C.IsOwner(m_From)
+                        : m_C.IsOwner(m_From) || m_C.IsCoOwner(m_From);
                     if (canEdit || m_From.AccessLevel >= AccessLevel.GameMaster)
                     {
                         m_From.SendMessage("Target the player.");
                         m_From.Target = new AddListTarget(m_C, m_Page);
                         return;
                     }
+
                     break;
 
-                case BTN_GM_SetBounds: m_From.Target = new TownHouseBoundsTarget1(m_From, m_C); return;
+                case BTN_GM_SetBounds:
+                    m_From.Target = new TownHouseBoundsTarget1(m_From, m_C);
+                    return;
                 case BTN_GM_Highlight: m_C.ShowHighlight(m_From, TownHouseConfig.HighlightDuration); break;
                 case BTN_GM_CycleState: m_C.CycleState(); break;
                 case BTN_GM_ToggleWipe: m_C.ToggleWipePolicy(); break;
@@ -421,7 +471,7 @@ namespace Server.Custom.TownHouses
 
             if (bid >= BTN_REMOVE_BASE)
             {
-                int index = bid - BTN_REMOVE_BASE;
+                var index = bid - BTN_REMOVE_BASE;
                 List<Mobile> targetList = null;
 
                 if (m_Page == PAGE_FRIENDS) targetList = m_C.Friends;
@@ -430,7 +480,7 @@ namespace Server.Custom.TownHouses
 
                 if (targetList != null && index >= 0 && index < targetList.Count)
                 {
-                    Mobile toRemove = targetList[index];
+                    var toRemove = targetList[index];
                     if (m_Page == PAGE_FRIENDS) m_C.TryRemoveFriend(m_From, toRemove);
                     else if (m_Page == PAGE_COOWNERS) m_C.TryRemoveCoOwner(m_From, toRemove);
                     else if (m_Page == PAGE_BANS) m_C.TryUnban(m_From, toRemove);
@@ -442,10 +492,10 @@ namespace Server.Custom.TownHouses
 
         private void ApplyGMSettings(RelayInfo info)
         {
-            int purchase = ParseInt(info, TE_Purchase, m_C.PurchasePrice);
-            int lockLimit = ParseInt(info, TE_LockLimit, m_C.LockdownLimit);
-            int minZ = ParseInt(info, TE_MinZ, m_C.MinZ);
-            int maxZ = ParseInt(info, TE_MaxZ, m_C.MaxZ);
+            var purchase = ParseInt(info, TE_Purchase, m_C.PurchasePrice);
+            var lockLimit = ParseInt(info, TE_LockLimit, m_C.LockdownLimit);
+            var minZ = ParseInt(info, TE_MinZ, m_C.MinZ);
+            var maxZ = ParseInt(info, TE_MaxZ, m_C.MaxZ);
 
             // FIXED: Only 4 arguments to match new Controller
             m_C.ApplySettings(purchase, lockLimit, minZ, maxZ);
@@ -454,22 +504,37 @@ namespace Server.Custom.TownHouses
 
         private int ParseInt(RelayInfo info, int entryId, int fallback)
         {
-            TextRelay t = info.GetTextEntry(entryId);
-            return (t != null && int.TryParse(t.Text, out int v)) ? v : fallback;
+            var t = info.GetTextEntry(entryId);
+            return t != null && int.TryParse(t.Text, out var v) ? v : fallback;
         }
 
-        private class LockdownTarget : Target {
+        private class LockdownTarget : Target
+        {
             private readonly TownHouseController m_C;
-            public LockdownTarget(TownHouseController c) : base(30, false, TargetFlags.None) { m_C = c; }
-            protected override void OnTarget(Mobile from, object targeted) {
+
+            public LockdownTarget(TownHouseController c) : base(30, false, TargetFlags.None)
+            {
+                m_C = c;
+            }
+
+            protected override void OnTarget(Mobile from, object targeted)
+            {
                 if (m_C != null && targeted is Item) m_C.TryLockdown(from, (Item)targeted);
                 Refresh(from, m_C);
             }
         }
-        private class SecureTarget : Target {
+
+        private class SecureTarget : Target
+        {
             private readonly TownHouseController m_C;
-            public SecureTarget(TownHouseController c) : base(30, false, TargetFlags.None) { m_C = c; }
-            protected override void OnTarget(Mobile from, object targeted) {
+
+            public SecureTarget(TownHouseController c) : base(30, false, TargetFlags.None)
+            {
+                m_C = c;
+            }
+
+            protected override void OnTarget(Mobile from, object targeted)
+            {
                 if (m_C != null && targeted is Item)
                     m_C.TrySecure(from, (Item)targeted);
                 else
@@ -477,32 +542,60 @@ namespace Server.Custom.TownHouses
                 Refresh(from, m_C);
             }
         }
-        private class ReleaseTarget : Target {
+
+        private class ReleaseTarget : Target
+        {
             private readonly TownHouseController m_C;
-            public ReleaseTarget(TownHouseController c) : base(30, false, TargetFlags.None) { m_C = c; }
-            protected override void OnTarget(Mobile from, object targeted) {
+
+            public ReleaseTarget(TownHouseController c) : base(30, false, TargetFlags.None)
+            {
+                m_C = c;
+            }
+
+            protected override void OnTarget(Mobile from, object targeted)
+            {
                 if (m_C != null && targeted is Item) m_C.TryRelease(from, (Item)targeted);
                 Refresh(from, m_C);
             }
         }
-        private class TransferTarget : Target {
+
+        private class TransferTarget : Target
+        {
             private readonly TownHouseController m_C;
-            public TransferTarget(TownHouseController c) : base(30, false, TargetFlags.None) { m_C = c; }
-            protected override void OnTarget(Mobile from, object targeted) {
-                if (m_C != null && targeted is Mobile && ((Mobile)targeted).Player) m_C.TryTransfer(from, (Mobile)targeted);
+
+            public TransferTarget(TownHouseController c) : base(30, false, TargetFlags.None)
+            {
+                m_C = c;
+            }
+
+            protected override void OnTarget(Mobile from, object targeted)
+            {
+                if (m_C != null && targeted is Mobile && ((Mobile)targeted).Player)
+                    m_C.TryTransfer(from, (Mobile)targeted);
                 Refresh(from, m_C);
             }
         }
-        private class AddListTarget : Target {
+
+        private class AddListTarget : Target
+        {
             private readonly TownHouseController m_C;
             private readonly int m_Page;
-            public AddListTarget(TownHouseController c, int page) : base(30, false, TargetFlags.None) { m_C = c; m_Page = page; }
-            protected override void OnTarget(Mobile from, object targeted) {
-                if (m_C != null && targeted is Mobile && ((Mobile)targeted).Player) {
+
+            public AddListTarget(TownHouseController c, int page) : base(30, false, TargetFlags.None)
+            {
+                m_C = c;
+                m_Page = page;
+            }
+
+            protected override void OnTarget(Mobile from, object targeted)
+            {
+                if (m_C != null && targeted is Mobile && ((Mobile)targeted).Player)
+                {
                     if (m_Page == PAGE_FRIENDS) m_C.TryAddFriend(from, (Mobile)targeted);
                     else if (m_Page == PAGE_COOWNERS) m_C.TryAddCoOwner(from, (Mobile)targeted);
                     else if (m_Page == PAGE_BANS) m_C.TryBan(from, (Mobile)targeted);
                 }
+
                 Refresh(from, m_C, m_Page);
             }
         }

@@ -1,18 +1,16 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.IO;
-
-using Server;
-using Server.Mobiles;
+using System.Linq;
+using Server.Commands;
+using Server.Engines.Fellowship;
+using Server.Engines.Khaldun;
+using Server.Engines.RisingTide;
+using Server.Engines.SorcerersDungeon;
+using Server.Engines.TreasuresOfDoom;
 using Server.Gumps;
 using Server.Misc;
-using Server.Commands;
-using Server.Engines.TreasuresOfDoom;
-using Server.Engines.Khaldun;
-using Server.Engines.SorcerersDungeon;
-using Server.Engines.RisingTide;
-using Server.Engines.Fellowship;
+using Server.Mobiles;
 
 namespace Server.Engines.SeasonalEvents
 {
@@ -33,7 +31,7 @@ namespace Server.Engines.SeasonalEvents
     {
         Inactive,
         Active,
-        Seasonal,
+        Seasonal
     }
 
     public interface ISeasonalEventObject
@@ -42,8 +40,8 @@ namespace Server.Engines.SeasonalEvents
         bool EventActive { get; }
     }
 
-	public class SeasonalEventSystem
-	{
+    public class SeasonalEventSystem
+    {
         public static string FilePath = Path.Combine("Saves/Misc", "SeasonalEvents.bin");
 
         public static List<SeasonalEventEntry> Entries { get; set; }
@@ -62,35 +60,35 @@ namespace Server.Engines.SeasonalEvents
         {
             Entries = new List<SeasonalEventEntry>();
 
-            Entries.Add(new SeasonalEventEntry(EventType.TreasuresOfTokuno,     "Treasures of Tokuno",  EventStatus.Inactive));
-            Entries.Add(new SeasonalEventEntry(EventType.VirtueArtifacts,       "Virtue Artifacts",     EventStatus.Active));
-            Entries.Add(new SeasonalEventEntry(EventType.TreasuresOfKotlCity,   "Treasures of Kotl",    EventStatus.Inactive,   10, 1, 60));
-            Entries.Add(new SeasonalEventEntry(EventType.SorcerersDungeon,      "Sorcerer's Dungeon",   EventStatus.Seasonal,   10, 1, 60));
-            Entries.Add(new SeasonalEventEntry(EventType.TreasuresOfDoom,       "Treasures of Doom",    EventStatus.Seasonal,   10, 1, 60));
-            Entries.Add(new SeasonalEventEntry(EventType.TreasuresOfKhaldun,    "Treasures of Khaldun", EventStatus.Seasonal,   10, 1, 60));
-            Entries.Add(new SeasonalEventEntry(EventType.KrampusEncounter,      "Krampus Encounter",    EventStatus.Seasonal,   12, 1, 60));
-            Entries.Add(new SeasonalEventEntry(EventType.RisingTide,            "Rising Tide",          EventStatus.Active));
-            Entries.Add(new SeasonalEventEntry(EventType.Fellowship,            "Fellowship",           EventStatus.Inactive));
+            Entries.Add(
+                new SeasonalEventEntry(EventType.TreasuresOfTokuno, "Treasures of Tokuno", EventStatus.Inactive));
+            Entries.Add(new SeasonalEventEntry(EventType.VirtueArtifacts, "Virtue Artifacts", EventStatus.Active));
+            Entries.Add(new SeasonalEventEntry(EventType.TreasuresOfKotlCity, "Treasures of Kotl", EventStatus.Inactive,
+                10, 1, 60));
+            Entries.Add(new SeasonalEventEntry(EventType.SorcerersDungeon, "Sorcerer's Dungeon", EventStatus.Seasonal,
+                10, 1, 60));
+            Entries.Add(new SeasonalEventEntry(EventType.TreasuresOfDoom, "Treasures of Doom", EventStatus.Seasonal, 10,
+                1, 60));
+            Entries.Add(new SeasonalEventEntry(EventType.TreasuresOfKhaldun, "Treasures of Khaldun",
+                EventStatus.Seasonal, 10, 1, 60));
+            Entries.Add(new SeasonalEventEntry(EventType.KrampusEncounter, "Krampus Encounter", EventStatus.Seasonal,
+                12, 1, 60));
+            Entries.Add(new SeasonalEventEntry(EventType.RisingTide, "Rising Tide", EventStatus.Active));
+            Entries.Add(new SeasonalEventEntry(EventType.Fellowship, "Fellowship", EventStatus.Inactive));
         }
 
         [Usage("SeasonSystemGump")]
         [Description("Displays a menu to configure various seasonal systems.")]
         public static void SendGump(CommandEventArgs e)
         {
-            if (e.Mobile is PlayerMobile)
-            {
-                BaseGump.SendGump(new SeasonalEventGump((PlayerMobile)e.Mobile));
-            }
+            if (e.Mobile is PlayerMobile) BaseGump.SendGump(new SeasonalEventGump((PlayerMobile)e.Mobile));
         }
 
         public static bool IsActive(EventType type)
         {
             var entry = GetEntry(type);
 
-            if (entry != null)
-            {
-                return entry.IsActive();
-            }
+            if (entry != null) return entry.IsActive();
 
             return false;
         }
@@ -108,10 +106,7 @@ namespace Server.Engines.SeasonalEvents
             {
                 entry.Status = EventStatus.Inactive;
 
-                if (from is PlayerMobile)
-                {
-                    BaseGump.SendGump(new SeasonalEventGump((PlayerMobile)from));
-                }
+                if (from is PlayerMobile) BaseGump.SendGump(new SeasonalEventGump((PlayerMobile)from));
             }
         }
 
@@ -125,7 +120,7 @@ namespace Server.Engines.SeasonalEvents
 
                     writer.Write(Entries.Count);
 
-                    for(int i = 0; i < Entries.Count; i++)
+                    for (var i = 0; i < Entries.Count; i++)
                     {
                         writer.Write((int)Entries[i].EventType);
                         Entries[i].Serialize(writer);
@@ -141,16 +136,16 @@ namespace Server.Engines.SeasonalEvents
                 {
                     reader.ReadInt(); // version
 
-                    int count = reader.ReadInt();
+                    var count = reader.ReadInt();
 
-                    for (int i = 0; i < count; i++)
+                    for (var i = 0; i < count; i++)
                     {
                         var entry = GetEntry((EventType)reader.ReadInt());
                         entry.Deserialize(reader);
                     }
                 });
         }
-	}
+    }
 
     [PropertyObject]
     public class SeasonalEventEntry
@@ -160,20 +155,14 @@ namespace Server.Engines.SeasonalEvents
         [CommandProperty(AccessLevel.Administrator)]
         public EventStatus Status
         {
-            get
-            {
-                return _Status;
-            }
+            get => _Status;
             set
             {
                 var old = _Status;
 
                 _Status = value;
 
-                if (old != _Status)
-                {
-                    OnStatusChange();
-                }
+                if (old != _Status) OnStatusChange();
             }
         }
 
@@ -181,7 +170,7 @@ namespace Server.Engines.SeasonalEvents
         public string Name { get; private set; }
 
         [CommandProperty(AccessLevel.Administrator)]
-        public EventType EventType { get; private set; }
+        public EventType EventType { get; }
 
         [CommandProperty(AccessLevel.Administrator)]
         public int MonthStart { get; set; }
@@ -213,37 +202,34 @@ namespace Server.Engines.SeasonalEvents
         }
 
         /// <summary>
-        /// Dynamically checks if this event is active or not, based on time of year/override
+        ///     Dynamically checks if this event is active or not, based on time of year/override
         /// </summary>
         /// <returns></returns>
         public bool IsActive()
         {
             // ToT uses its own system, this just reads it
-            if (EventType == EventType.TreasuresOfTokuno)
-            {
-                return TreasuresOfTokuno.DropEra != TreasuresOfTokunoEra.None;
-            }
+            if (EventType == EventType.TreasuresOfTokuno) return TreasuresOfTokuno.DropEra != TreasuresOfTokunoEra.None;
 
             switch (Status)
             {
                 default:
-                    {
-                        return false;
-                    }
+                {
+                    return false;
+                }
                 case EventStatus.Active:
-                    {
-                        return true;
-                    }
+                {
+                    return true;
+                }
                 case EventStatus.Seasonal:
-                    {
-                        if (Duration >= 365)
-                            return true;
+                {
+                    if (Duration >= 365)
+                        return true;
 
-                        var now = DateTime.Now;
-                        var starts = new DateTime(now.Year, MonthStart, DayStart, 0, 0, 0);
+                    var now = DateTime.Now;
+                    var starts = new DateTime(now.Year, MonthStart, DayStart, 0, 0, 0);
 
-                        return now > starts && now < starts + TimeSpan.FromDays(Duration);
-                    }
+                    return now > starts && now < starts + TimeSpan.FromDays(Duration);
+                }
             }
         }
 

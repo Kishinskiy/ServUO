@@ -1,16 +1,19 @@
 using System;
 using System.Collections.Generic;
-using Server.Multis;
-using Server.ContextMenus;
-using Server.Mobiles;
-using Server.Engines.Points;
 using System.Linq;
+using Server.Engines.Points;
+using Server.Multis;
+using Server.Network;
 
 namespace Server.Items
 {
     public class TrashBarrel : BaseTrash, IChopable
     {
         private Timer m_Timer;
+
+        public override int LabelNumber => 1041064; // a trash barrel
+        public override int DefaultMaxWeight => 0; // A value of 0 signals unlimited weight
+        public override bool IsDecoContainer => false;
 
         [Constructable]
         public TrashBarrel()
@@ -26,39 +29,30 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
+        public void OnChop(Mobile from)
         {
-            get
+            var house = BaseHouse.FindHouseAt(from);
+
+            if (house != null && house.IsCoOwner(from))
             {
-                return 1041064;
-            }
-        }// a trash barrel
-        public override int DefaultMaxWeight
-        {
-            get
-            {
-                return 0;
-            }
-        }// A value of 0 signals unlimited weight
-        public override bool IsDecoContainer
-        {
-            get
-            {
-                return false;
+                Effects.PlaySound(Location, Map, 0x3B3);
+                from.SendLocalizedMessage(500461); // You destroy the item.
+                Destroy();
             }
         }
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (Items.Count > 0)
             {
@@ -121,27 +115,15 @@ namespace Server.Items
             return true;
         }
 
-        public void OnChop(Mobile from)
-        {
-            BaseHouse house = BaseHouse.FindHouseAt(from);
-
-            if (house != null && house.IsCoOwner(from))
-            {
-                Effects.PlaySound(Location, Map, 0x3B3);
-                from.SendLocalizedMessage(500461); // You destroy the item.
-                Destroy();
-            }
-        }
-
         public void Empty(int message)
         {
-            List<Item> items = Items;
+            var items = Items;
 
             if (items.Count > 0)
             {
-                PublicOverheadMessage(Network.MessageType.Regular, 0x3B2, message, "");
+                PublicOverheadMessage(MessageType.Regular, 0x3B2, message, "");
 
-                for (int i = items.Count - 1; i >= 0; --i)
+                for (var i = items.Count - 1; i >= 0; --i)
                 {
                     if (i >= items.Count)
                         continue;
@@ -149,37 +131,73 @@ namespace Server.Items
                     ConfirmCleanupItem(items[i]);
 
                     #region SA
+
                     if (.01 > Utility.RandomDouble())
                         DropToCavernOfDiscarded(items[i]);
                     else
                         items[i].Delete();
+
                     #endregion
                 }
 
                 if (m_Cleanup.Any(x => x.mobiles != null))
                 {
                     foreach (var m in m_Cleanup.Select(x => x.mobiles).Distinct())
-                    {
                         if (m_Cleanup.Find(x => x.mobiles == m && x.confirm) != null)
                         {
-                            double point = m_Cleanup.Where(x => x.mobiles == m && x.confirm).Sum(x => x.points);
-                            m.SendLocalizedMessage(1151280, String.Format("{0}\t{1}", point.ToString(), m_Cleanup.Count(r => r.mobiles == m))); // You have received approximately ~1_VALUE~points for turning in ~2_COUNT~items for Clean Up Britannia.
+                            var point = m_Cleanup.Where(x => x.mobiles == m && x.confirm).Sum(x => x.points);
+                            m.SendLocalizedMessage(1151280,
+                                string.Format("{0}\t{1}", point.ToString(),
+                                    m_Cleanup.Count(r =>
+                                        r.mobiles ==
+                                        m))); // You have received approximately ~1_VALUE~points for turning in ~2_COUNT~items for Clean Up Britannia.
                             PointsSystem.CleanUpBritannia.AwardPoints(m, point);
                         }
-                    }
+
                     m_Cleanup.Clear();
                 }
             }
 
             if (m_Timer != null)
-                m_Timer.Stop();            
+                m_Timer.Stop();
 
             m_Timer = null;
         }
 
+        #region SA
+
+        public static void DropToCavernOfDiscarded(Item item)
+        {
+            if (item == null || item.Deleted)
+                return;
+
+            var rec = new Rectangle2D(901, 482, 40, 27);
+            var map = Map.TerMur;
+
+            for (var i = 0; i < 50; i++)
+            {
+                var x = Utility.RandomMinMax(rec.X, rec.X + rec.Width);
+                var y = Utility.RandomMinMax(rec.Y, rec.Y + rec.Height);
+                var z = map.GetAverageZ(x, y);
+
+                var p = new Point3D(x, y, z);
+
+                if (map.CanSpawnMobile(p))
+                {
+                    item.MoveToWorld(p, map);
+                    return;
+                }
+            }
+
+            item.Delete();
+        }
+
+        #endregion
+
         private class EmptyTimer : Timer
         {
             private readonly TrashBarrel m_Barrel;
+
             public EmptyTimer(TrashBarrel barrel)
                 : base(TimeSpan.FromMinutes(3.0))
             {
@@ -192,33 +210,5 @@ namespace Server.Items
                 m_Barrel.Empty(501479); // Emptying the trashcan!
             }
         }
-
-        #region SA
-        public static void DropToCavernOfDiscarded(Item item)
-        {
-            if (item == null || item.Deleted)
-                return;
-
-            Rectangle2D rec = new Rectangle2D(901, 482, 40, 27);
-            Map map = Map.TerMur;
-
-            for (int i = 0; i < 50; i++)
-            {
-                int x = Utility.RandomMinMax(rec.X, rec.X + rec.Width);
-                int y = Utility.RandomMinMax(rec.Y, rec.Y + rec.Height);
-                int z = map.GetAverageZ(x, y);
-
-                Point3D p = new Point3D(x, y, z);
-
-                if (map.CanSpawnMobile(p))
-                {
-                    item.MoveToWorld(p, map);
-                    return;
-                }
-            }
-
-            item.Delete();
-        }
-        #endregion
     }
 }

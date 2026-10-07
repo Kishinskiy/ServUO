@@ -9,7 +9,7 @@ namespace Server.SkillHandlers
     {
         public static void Initialize()
         {
-            SkillInfo.Table[(int)SkillName.TasteID].Callback = new SkillUseCallback(OnUse);
+            SkillInfo.Table[(int)SkillName.TasteID].Callback = OnUse;
         }
 
         public static TimeSpan OnUse(Mobile m)
@@ -27,7 +27,7 @@ namespace Server.SkillHandlers
             public InternalTarget()
                 : base(2, false, TargetFlags.None)
             {
-                this.AllowNonlocal = true;
+                AllowNonlocal = true;
             }
 
             protected override void OnTarget(Mobile from, object targeted)
@@ -38,19 +38,16 @@ namespace Server.SkillHandlers
                 }
                 else if (targeted is Food)
                 {
-                    Food food = (Food)targeted;
+                    var food = (Food)targeted;
 
                     if (from.CheckTargetSkill(SkillName.TasteID, food, 0, 100))
                     {
                         if (food.Poison != null)
-                        {
                             food.SendLocalizedMessageTo(from, 1038284); // It appears to have poison smeared on it.
-                        }
                         else
-                        {
                             // No poison on the food
-                            food.SendLocalizedMessageTo(from, 1010600); // You detect nothing unusual about this substance.
-                        }
+                            food.SendLocalizedMessageTo(from,
+                                1010600); // You detect nothing unusual about this substance.
                     }
                     else
                     {
@@ -60,14 +57,14 @@ namespace Server.SkillHandlers
                 }
                 else if (targeted is BasePotion)
                 {
-                    BasePotion potion = (BasePotion)targeted;
+                    var potion = (BasePotion)targeted;
 
                     potion.SendLocalizedMessageTo(from, 502813); // You already know what kind of potion that is.
                     potion.SendLocalizedMessageTo(from, potion.LabelNumber);
                 }
                 else if (targeted is PotionKeg)
                 {
-                    PotionKeg keg = (PotionKeg)targeted;
+                    var keg = (PotionKeg)targeted;
 
                     if (keg.Held <= 0)
                     {

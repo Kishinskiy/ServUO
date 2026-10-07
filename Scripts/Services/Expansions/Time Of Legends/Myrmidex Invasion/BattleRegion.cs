@@ -1,15 +1,13 @@
 using System;
-using Server;
-using Server.Mobiles;
-using Server.Items;
-using System.Collections.Generic;
-using Server.Regions;
 using System.Xml;
+using Server.Items;
+using Server.Mobiles;
+using Server.Regions;
 
 namespace Server.Engines.MyrmidexInvasion
 {
     public class BattleRegion : DungeonRegion
-	{
+    {
         public BattleSpawner Spawner { get; set; }
 
         public BattleRegion(XmlElement xml, Map map, Region parent)
@@ -21,26 +19,24 @@ namespace Server.Engines.MyrmidexInvasion
         {
             base.OnDeath(m);
 
-            bool nomaster = m is BaseCreature && ((BaseCreature)m).GetMaster() == null;
+            var nomaster = m is BaseCreature && ((BaseCreature)m).GetMaster() == null;
 
             if (BattleSpawner.Instance != null && BattleSpawner.Instance.Active && nomaster && Spawner != null)
-            {
-                Timer.DelayCall<BaseCreature>(TimeSpan.FromSeconds(.25), Spawner.RegisterDeath, (BaseCreature)m);
-            }
+                Timer.DelayCall(TimeSpan.FromSeconds(.25), Spawner.RegisterDeath, (BaseCreature)m);
 
             // the delay ensures the corpse is created after death
             Timer.DelayCall(() =>
+            {
+                if (m.Corpse != null && (m is BritannianInfantry || m is TribeWarrior || m is TribeShaman ||
+                                         m is TribeChieftan || m is MyrmidexDrone || m is MyrmidexWarrior))
                 {
-                    if (m.Corpse != null && (m is BritannianInfantry || m is TribeWarrior || m is TribeShaman || m is TribeChieftan || m is MyrmidexDrone || m is MyrmidexWarrior))
-                    {
-                        Mobile killer = m.LastKiller;
+                    var killer = m.LastKiller;
 
-                        if (killer == null || (killer is BaseCreature && !(((BaseCreature)killer).GetMaster() is PlayerMobile)))
-                        {
-                            m.Corpse.Delete();
-                        }
-                    }
-                });
+                    if (killer == null ||
+                        (killer is BaseCreature && !(((BaseCreature)killer).GetMaster() is PlayerMobile)))
+                        m.Corpse.Delete();
+                }
+            });
         }
 
         public override void OnExit(Mobile m)
@@ -53,9 +49,10 @@ namespace Server.Engines.MyrmidexInvasion
 
         public override bool OnDamage(Mobile m, ref int Damage)
         {
-            Mobile attacker = m.FindMostRecentDamager(false);
+            var attacker = m.FindMostRecentDamager(false);
 
-            if (MyrmidexInvasionSystem.AreEnemies(m, attacker) && EodonianPotion.IsUnderEffects(attacker, PotionEffect.Kurak))
+            if (MyrmidexInvasionSystem.AreEnemies(m, attacker) &&
+                EodonianPotion.IsUnderEffects(attacker, PotionEffect.Kurak))
             {
                 Damage *= 3;
 
@@ -65,5 +62,5 @@ namespace Server.Engines.MyrmidexInvasion
 
             return base.OnDamage(m, ref Damage);
         }
-	}
+    }
 }

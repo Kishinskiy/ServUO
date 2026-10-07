@@ -1,10 +1,5 @@
 using System;
-using Server;
-using Server.Spells;
-using Server.Network;
-using Server.Mobiles;
 using Server.Items;
-using System.Collections.Generic;
 
 namespace Server.Spells.SkillMasteries
 {
@@ -12,19 +7,22 @@ namespace Server.Spells.SkillMasteries
     {
         public static string ModName = "MysticWeapon";
 
-        private static SpellInfo m_Info = new SpellInfo(
-                "Mystic Weapon", "Vas Ylem Wis",
-                -1,
-                9002,
-                Reagent.FertileDirt,
-                Reagent.Bone
-            );
+        private static readonly SpellInfo m_Info = new SpellInfo(
+            "Mystic Weapon", "Vas Ylem Wis",
+            -1,
+            9002,
+            Reagent.FertileDirt,
+            Reagent.Bone
+        );
 
-        public override double RequiredSkill { get { return 90; } }
-        public override int RequiredMana { get { return 40; } }
-        public override bool PartyEffects { get { return false; } }
+        private BaseWeapon _Weapon;
 
-        public override SkillName CastSkill { get { return SkillName.Mysticism; } }
+        public override double RequiredSkill => 90;
+        public override int RequiredMana => 40;
+        public override bool PartyEffects => false;
+
+        public override SkillName CastSkill => SkillName.Mysticism;
+
         public override SkillName DamageSkill
         {
             get
@@ -35,8 +33,6 @@ namespace Server.Spells.SkillMasteries
                 return SkillName.Imbuing;
             }
         }
-
-        private BaseWeapon _Weapon;
 
         public MysticWeaponSpell(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
@@ -50,14 +46,16 @@ namespace Server.Spells.SkillMasteries
 
         public override bool CheckCast()
         {
-            BaseWeapon weapon = GetWeapon();
+            var weapon = GetWeapon();
 
             if (weapon == null || weapon is Fists)
             {
                 Caster.SendLocalizedMessage(1060179); //You must be wielding a weapon to use this ability!
                 return false;
             }
-            else if (weapon.ExtendedWeaponAttributes.MysticWeapon > 0 || Enhancement.GetValue(Caster, ExtendedWeaponAttribute.MysticWeapon) > 0)
+
+            if (weapon.ExtendedWeaponAttributes.MysticWeapon > 0 ||
+                Enhancement.GetValue(Caster, ExtendedWeaponAttribute.MysticWeapon) > 0)
             {
                 Caster.SendMessage("That weapon is already under these effects.");
                 return false;
@@ -68,19 +66,24 @@ namespace Server.Spells.SkillMasteries
 
         public override void OnCast()
         {
-            BaseWeapon weapon = GetWeapon();
+            var weapon = GetWeapon();
 
             if (weapon == null || weapon is Fists)
+            {
                 Caster.SendLocalizedMessage(1060179); //You must be wielding a weapon to use this ability!
+            }
             else if (CheckSequence())
             {
-                double skill = ((Caster.Skills[CastSkill].Value * 1.5) + Caster.Skills[DamageSkill].Value);
-                double duration = (skill + (GetMasteryLevel() * 50)) * 2;
+                var skill = Caster.Skills[CastSkill].Value * 1.5 + Caster.Skills[DamageSkill].Value;
+                var duration = (skill + GetMasteryLevel() * 50) * 2;
 
                 Enhancement.SetValue(Caster, ExtendedWeaponAttribute.MysticWeapon, 25, "MysticWeapon");
-                BuffInfo.AddBuff(Caster, new BuffInfo(BuffIcon.MysticWeapon, 1155899, 1156055, TimeSpan.FromSeconds(duration), Caster));
+                BuffInfo.AddBuff(Caster,
+                    new BuffInfo(BuffIcon.MysticWeapon, 1155899, 1156055, TimeSpan.FromSeconds(duration), Caster));
 
-                Effects.SendLocationParticles(EffectItem.Create(Caster.Location, Caster.Map, EffectItem.DefaultDuration), 0x36CB, 1, 14, 0x55C, 7, 9915, 0);
+                Effects.SendLocationParticles(
+                    EffectItem.Create(Caster.Location, Caster.Map, EffectItem.DefaultDuration), 0x36CB, 1, 14, 0x55C, 7,
+                    9915, 0);
                 Caster.PlaySound(0x64E);
 
                 weapon.AddMysticMod(Caster);

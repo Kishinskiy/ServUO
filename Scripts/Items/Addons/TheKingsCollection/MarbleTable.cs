@@ -1,10 +1,11 @@
-using System;
 using Server.Gumps;
 
 namespace Server.Items
 {
     public class MarbleTableAddon : BaseAddon, IDyable
     {
+        public override BaseAddonDeed Deed => new MarbleTableDeed();
+
         [Constructable]
         public MarbleTableAddon(DirectionType type)
         {
@@ -25,6 +26,11 @@ namespace Server.Items
             }
         }
 
+        public MarbleTableAddon(Serial serial)
+            : base(serial)
+        {
+        }
+
         public virtual bool Dye(Mobile from, DyeTub sender)
         {
             if (Deleted)
@@ -34,35 +40,28 @@ namespace Server.Items
             return true;
         }
 
-        public MarbleTableAddon(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override BaseAddonDeed Deed { get { return new MarbleTableDeed(); } }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class MarbleTableDeed : BaseAddonDeed, IRewardOption
     {
-        public override int LabelNumber { get { return 1154152; } } // Marble Table
-
         private DirectionType _Direction;
+        public override int LabelNumber => 1154152; // Marble Table
+
+        public override BaseAddon Addon => new MarbleTableAddon(_Direction);
 
         [Constructable]
         public MarbleTableDeed()
-            : base()
         {
             LootType = LootType.Blessed;
         }
@@ -70,19 +69,6 @@ namespace Server.Items
         public MarbleTableDeed(Serial serial)
             : base(serial)
         {
-        }
-
-        public override void OnDoubleClick(Mobile from)
-        {
-            if (IsChildOf(from.Backpack))
-            {
-                from.CloseGump(typeof(AddonOptionGump));
-                from.SendGump(new AddonOptionGump(this, 1154194)); // Choose a Facing:
-            }
-            else
-            {
-                from.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.
-            }
         }
 
         public void GetOptions(RewardOptionList list)
@@ -99,18 +85,29 @@ namespace Server.Items
                 base.OnDoubleClick(from);
         }
 
-        public override BaseAddon Addon { get { return new MarbleTableAddon(_Direction); } }
-                
+        public override void OnDoubleClick(Mobile from)
+        {
+            if (IsChildOf(from.Backpack))
+            {
+                from.CloseGump(typeof(AddonOptionGump));
+                from.SendGump(new AddonOptionGump(this, 1154194)); // Choose a Facing:
+            }
+            else
+            {
+                from.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.
+            }
+        }
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

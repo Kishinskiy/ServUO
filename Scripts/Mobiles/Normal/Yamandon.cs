@@ -1,5 +1,5 @@
-using System;
 using System.Collections;
+using Server.Engines.Plants;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -8,6 +8,16 @@ namespace Server.Mobiles
     [CorpseName("a yamandon corpse")]
     public class Yamandon : BaseCreature
     {
+        public override bool ReacquireOnMovement => true;
+
+        public override Poison PoisonImmune => Poison.Lethal;
+
+        public override Poison HitPoison => Utility.RandomBool() ? Poison.Deadly : Poison.Lethal;
+
+        public override int TreasureMapLevel => 5;
+
+        public override int Hides => 20;
+
         [Constructable]
         public Yamandon()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -43,7 +53,7 @@ namespace Server.Mobiles
             Karma = -22000;
 
             if (Utility.RandomDouble() < .50)
-                PackItem(Engines.Plants.Seed.RandomBonsaiSeed());
+                PackItem(Seed.RandomBonsaiSeed());
 
             PackItem(new Eggs(2));
 
@@ -53,42 +63,6 @@ namespace Server.Mobiles
         public Yamandon(Serial serial)
             : base(serial)
         {
-        }
-
-        public override bool ReacquireOnMovement
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override Poison PoisonImmune
-        {
-            get
-            {
-                return Poison.Lethal;
-            }
-        }
-        public override Poison HitPoison
-        {
-            get
-            {
-                return Utility.RandomBool() ? Poison.Deadly : Poison.Lethal;
-            }
-        }
-        public override int TreasureMapLevel
-        {
-            get
-            {
-                return 5;
-            }
-        }
-        public override int Hides
-        {
-            get
-            {
-                return 20;
-            }
         }
 
         public override void GenerateLoot()
@@ -141,14 +115,14 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         private void DoCounter(Mobile attacker)
@@ -162,17 +136,17 @@ namespace Server.Mobiles
             if (0.2 > Utility.RandomDouble())
             {
                 /* Counterattack with Hit Poison Area
-                * 20-25 damage, unresistable
-                * Lethal poison, 100% of the time
-                * Particle effect: Type: "2" From: "0x4061A107" To: "0x0" ItemId: "0x36BD" ItemIdName: "explosion" FromLocation: "(296 615, 17)" ToLocation: "(296 615, 17)" Speed: "1" Duration: "10" FixedDirection: "True" Explode: "False" Hue: "0xA6" RenderMode: "0x0" Effect: "0x1F78" ExplodeEffect: "0x1" ExplodeSound: "0x0" Serial: "0x4061A107" Layer: "255" Unknown: "0x0"
-                * Doesn't work on provoked monsters
-                */
+                 * 20-25 damage, unresistable
+                 * Lethal poison, 100% of the time
+                 * Particle effect: Type: "2" From: "0x4061A107" To: "0x0" ItemId: "0x36BD" ItemIdName: "explosion" FromLocation: "(296 615, 17)" ToLocation: "(296 615, 17)" Speed: "1" Duration: "10" FixedDirection: "True" Explode: "False" Hue: "0xA6" RenderMode: "0x0" Effect: "0x1F78" ExplodeEffect: "0x1" ExplodeSound: "0x0" Serial: "0x4061A107" Layer: "255" Unknown: "0x0"
+                 * Doesn't work on provoked monsters
+                 */
                 Mobile target = null;
 
                 if (attacker is BaseCreature)
                 {
-                    Mobile m = ((BaseCreature)attacker).GetMaster();
-					
+                    var m = ((BaseCreature)attacker).GetMaster();
+
                     if (m != null)
                         target = m;
                 }
@@ -182,7 +156,7 @@ namespace Server.Mobiles
 
                 Animate(10, 4, 1, true, false, 0);
 
-                ArrayList targets = new ArrayList();
+                var targets = new ArrayList();
                 IPooledEnumerable eable = target.GetMobilesInRange(8);
 
                 foreach (Mobile m in eable)
@@ -190,16 +164,18 @@ namespace Server.Mobiles
                     if (m == this || !CanBeHarmful(m))
                         continue;
 
-                    if (m is BaseCreature && (((BaseCreature)m).Controlled || ((BaseCreature)m).Summoned || ((BaseCreature)m).Team != Team))
+                    if (m is BaseCreature && (((BaseCreature)m).Controlled || ((BaseCreature)m).Summoned ||
+                                              ((BaseCreature)m).Team != Team))
                         targets.Add(m);
                     else if (m.Player && m.Alive)
                         targets.Add(m);
                 }
+
                 eable.Free();
 
-                for (int i = 0; i < targets.Count; ++i)
+                for (var i = 0; i < targets.Count; ++i)
                 {
-                    Mobile m = (Mobile)targets[i];
+                    var m = (Mobile)targets[i];
 
                     DoHarmful(m);
 

@@ -1,11 +1,14 @@
-using System;
-using Server.Items;
-
 namespace Server.Mobiles
 {
     [CorpseName("a charred corpse")]
     public class FireGargoyle : BaseCreature, IAuraCreature
     {
+        public override int TreasureMapLevel => 1;
+
+        public override int Meat => 1;
+
+        public override bool CanFly => true;
+
         [Constructable]
         public FireGargoyle()
             : base(AIType.AI_Mage, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -51,28 +54,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override int TreasureMapLevel
-        {
-            get
-            {
-                return 1;
-            }
-        }
-        public override int Meat
-        {
-            get
-            {
-                return 1;
-            }
-        }
-        public override bool CanFly
-        {
-            get
-            {
-                return true;
-            }
-        }
-
         public void AuraEffect(Mobile m)
         {
             m.SendLocalizedMessage(1008112); // The intense heat is damaging you!
@@ -83,17 +64,17 @@ namespace Server.Mobiles
             AddLoot(LootPack.Rich);
             AddLoot(LootPack.Gems);
         }
-        
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

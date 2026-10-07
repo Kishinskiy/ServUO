@@ -1,20 +1,21 @@
-using System;
-
 namespace Server.Items
 {
     [Flipable]
     public class ParagonChest : LockableContainer
     {
-        private static readonly int[] m_ItemIDs = new int[]
+        private static readonly int[] m_ItemIDs =
         {
             0x9AB, 0xE40, 0xE41, 0xE7C
         };
-        private static readonly int[] m_Hues = new int[]
+
+        private static readonly int[] m_Hues =
         {
             0x0, 0x455, 0x47E, 0x89F, 0x8A5, 0x8AB,
             0x966, 0x96D, 0x972, 0x973, 0x979
         };
+
         private string m_Name;
+
         [Constructable]
         public ParagonChest(string name, int level)
             : base(Utility.RandomList(m_ItemIDs))
@@ -43,18 +44,18 @@ namespace Server.Items
 
         public void Flip()
         {
-            switch ( ItemID )
+            switch (ItemID)
             {
-                case 0x9AB :
+                case 0x9AB:
                     ItemID = 0xE7C;
                     break;
-                case 0xE7C :
+                case 0xE7C:
                     ItemID = 0x9AB;
                     break;
-                case 0xE40 :
+                case 0xE40:
                     ItemID = 0xE41;
                     break;
-                case 0xE41 :
+                case 0xE41:
                     ItemID = 0xE40;
                     break;
             }
@@ -64,7 +65,7 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
             writer.Write(m_Name);
         }
@@ -73,14 +74,14 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             m_Name = Utility.Intern(reader.ReadString());
         }
 
         private static void GetRandomAOSStats(out int attributeCount, out int min, out int max)
         {
-            int rnd = Utility.Random(15);
+            var rnd = Utility.Random(15);
 
             if (rnd < 1)
             {
@@ -121,7 +122,7 @@ namespace Server.Items
             TrapLevel = level;
             Locked = true;
 
-            switch ( level )
+            switch (level)
             {
                 case 1:
                     RequiredSkill = 36;
@@ -148,10 +149,10 @@ namespace Server.Items
 
             DropItem(new Gold(level * 200));
 
-            for (int i = 0; i < level; ++i)
+            for (var i = 0; i < level; ++i)
                 DropItem(Loot.RandomScroll(0, 63, SpellbookType.Regular));
 
-            for (int i = 0; i < level * 2; ++i)
+            for (var i = 0; i < level * 2; ++i)
             {
                 Item item;
 
@@ -173,7 +174,7 @@ namespace Server.Items
 
                 if (item is BaseWeapon)
                 {
-                    BaseWeapon weapon = (BaseWeapon)item;
+                    var weapon = (BaseWeapon)item;
 
                     if (Core.AOS)
                     {
@@ -195,7 +196,7 @@ namespace Server.Items
                 }
                 else if (item is BaseArmor)
                 {
-                    BaseArmor armor = (BaseArmor)item;
+                    var armor = (BaseArmor)item;
 
                     if (Core.AOS)
                     {
@@ -216,7 +217,7 @@ namespace Server.Items
                 }
                 else if (item is BaseHat)
                 {
-                    BaseHat hat = (BaseHat)item;
+                    var hat = (BaseHat)item;
 
                     if (Core.AOS)
                     {
@@ -243,20 +244,21 @@ namespace Server.Items
                 }
             }
 
-            for (int i = 0; i < level; i++)
+            for (var i = 0; i < level; i++)
             {
-                Item item = Loot.RandomPossibleReagent();
+                var item = Loot.RandomPossibleReagent();
                 item.Amount = Utility.RandomMinMax(40, 60);
                 DropItem(item);
             }
 
-            for (int i = 0; i < level; i++)
+            for (var i = 0; i < level; i++)
             {
-                Item item = Loot.RandomGem();
+                var item = Loot.RandomGem();
                 DropItem(item);
             }
 
-            DropItem(new TreasureMap(TreasureMapInfo.ConvertLevel(level + 1), (Siege.SiegeShard ?  Map.Felucca : Utility.RandomBool() ? Map.Felucca : Map.Trammel)));
+            DropItem(new TreasureMap(TreasureMapInfo.ConvertLevel(level + 1),
+                Siege.SiegeShard ? Map.Felucca : Utility.RandomBool() ? Map.Felucca : Map.Trammel));
         }
     }
 }

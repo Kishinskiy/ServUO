@@ -1,12 +1,15 @@
-using System;
-using Server;
-using Server.Items;
-
 namespace Server.Mobiles
 {
     [CorpseName("a dark guardians' corpse")]
     public class DarkGuardian : BaseCreature
     {
+        public override OppositionGroup OppositionGroup => OppositionGroup.FeyAndUndead;
+
+        public override int TreasureMapLevel => Utility.RandomMinMax(1, 3);
+        public override bool BleedImmune => true;
+        public override Poison PoisonImmune => Poison.Lethal;
+        public override bool Unprovokable => true;
+
         [Constructable]
         public DarkGuardian()
             : base(AIType.AI_NecroMage, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -59,16 +62,6 @@ namespace Server.Mobiles
             AddLoot(LootPack.MedScrolls, 2);
         }
 
-        public override OppositionGroup OppositionGroup
-        {
-            get { return OppositionGroup.FeyAndUndead; }
-        }
-
-        public override int TreasureMapLevel { get { return Utility.RandomMinMax(1, 3); } }
-        public override bool BleedImmune { get { return true; } }
-        public override Poison PoisonImmune { get { return Poison.Lethal; } }
-        public override bool Unprovokable { get { return true; } }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -78,7 +71,7 @@ namespace Server.Mobiles
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

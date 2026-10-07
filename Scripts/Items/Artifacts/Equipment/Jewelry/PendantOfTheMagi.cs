@@ -1,10 +1,11 @@
-using System;
-
 namespace Server.Items
 {
     public class PendantOfTheMagi : GoldNecklace
-	{
-		public override bool IsArtifact { get { return true; } }
+    {
+        public override bool IsArtifact => true;
+
+        public override int LabelNumber => 1072937; // Pendant of the Magi
+
         [Constructable]
         public PendantOfTheMagi()
         {
@@ -21,13 +22,6 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1072937;
-            }
-        }// Pendant of the Magi
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -39,7 +33,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

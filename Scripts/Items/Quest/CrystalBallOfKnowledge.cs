@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.Linq;
-using Server;
 using Server.Gumps;
 using Server.Network;
 
@@ -9,19 +6,19 @@ namespace Server.Items
 {
     public class CrystalBallOfKnowledge : Item
     {
-        private static SkillName[] _ExcludedSkills =
+        private static readonly SkillName[] _ExcludedSkills =
         {
             SkillName.Meditation, SkillName.Focus
         };
 
-        public override int LabelNumber { get { return 1112568; } } // Crystal Ball of Knowledge
-
         private bool m_Active;
+
+        public override int LabelNumber => 1112568; // Crystal Ball of Knowledge
 
         [CommandProperty(AccessLevel.GameMaster)]
         public bool Active
         {
-            get { return m_Active; }
+            get => m_Active;
             set
             {
                 if (m_Active != value)
@@ -49,19 +46,14 @@ namespace Server.Items
         public override void OnDoubleClick(Mobile from)
         {
             if (!IsChildOf(from.Backpack))
-            {
                 // You must have the object in your backpack to use it.
                 from.SendLocalizedMessage(1042010);
-            }
             /*else if ( ??? ) // TODO (SA)
-			{
-				// You cannot use the Crystal Ball of Knowledge right now.
-				from.SendLocalizedMessage( 1112569 );
-			}*/
-            else if (!from.HasGump(typeof(ToggleActivationGump)))
             {
-                from.SendGump(new ToggleActivationGump(this));
-            }
+                // You cannot use the Crystal Ball of Knowledge right now.
+                from.SendLocalizedMessage( 1112569 );
+            }*/
+            else if (!from.HasGump(typeof(ToggleActivationGump))) from.SendGump(new ToggleActivationGump(this));
         }
 
         public static bool IsAllowed(SkillName skill)
@@ -74,9 +66,9 @@ namespace Server.Items
             if (from.Backpack == null)
                 return false;
 
-            CrystalBallOfKnowledge[] balls = from.Backpack.FindItemsByType<CrystalBallOfKnowledge>().ToArray();
+            var balls = from.Backpack.FindItemsByType<CrystalBallOfKnowledge>().ToArray();
 
-            for (int i = 0; i < balls.Length; i++)
+            for (var i = 0; i < balls.Length; i++)
                 if (balls[i].Active)
                     return true;
 
@@ -85,18 +77,12 @@ namespace Server.Items
 
         public static void TellSkillDifficultyActive(Mobile from, SkillName skill, double chance)
         {
-            if (HasActiveBall(from))
-            {
-                GiveSkillDifficulty(from, skill, chance);
-            }
+            if (HasActiveBall(from)) GiveSkillDifficulty(from, skill, chance);
         }
 
         public static void TellSkillDifficulty(Mobile from, SkillName skill, double chance)
         {
-            if (HasActiveBall(from) && IsAllowed(skill))
-            {
-                GiveSkillDifficulty(from, skill, chance);
-            }
+            if (HasActiveBall(from) && IsAllowed(skill)) GiveSkillDifficulty(from, skill, chance);
         }
 
         public static void GiveSkillDifficulty(Mobile from, SkillName skill, double chance)
@@ -147,23 +133,23 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
-            writer.Write((bool)m_Active);
+            writer.Write(m_Active);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             m_Active = reader.ReadBool();
         }
 
         public class ToggleActivationGump : Gump
         {
-            private CrystalBallOfKnowledge m_Ball;
+            private readonly CrystalBallOfKnowledge m_Ball;
 
             public ToggleActivationGump(CrystalBallOfKnowledge ball)
                 : base(150, 200)
@@ -188,10 +174,9 @@ namespace Server.Items
 
             public override void OnResponse(NetState sender, RelayInfo info)
             {
-                Mobile from = sender.Mobile;
+                var from = sender.Mobile;
 
                 if (info.ButtonID == 2)
-                {
                     if (!m_Ball.Deleted && m_Ball.IsChildOf(from.Backpack))
                     {
                         m_Ball.Active = !m_Ball.Active;
@@ -201,7 +186,6 @@ namespace Server.Items
                         else
                             from.SendLocalizedMessage(1078485); // I will no longer tell you skill difficulty.
                     }
-                }
             }
         }
     }

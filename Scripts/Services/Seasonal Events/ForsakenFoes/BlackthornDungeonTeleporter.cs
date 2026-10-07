@@ -1,5 +1,3 @@
-using System;
-using Server;
 using Server.Engines.Fellowship;
 using Server.Mobiles;
 
@@ -37,14 +35,11 @@ namespace Server.Items
         {
             if (m is PlayerMobile)
             {
-                if (Worker.FellowshipChainList.ContainsKey(m) && Worker.FellowshipChainList[m] == Chain || Chain == FellowshipChain.None)
-                {
+                if ((Worker.FellowshipChainList.ContainsKey(m) && Worker.FellowshipChainList[m] == Chain) ||
+                    Chain == FellowshipChain.None)
                     Timer.DelayCall(DoTeleport, m);
-                }
                 else
-                {
                     m.SendLocalizedMessage(1159235); // You may not pass.                    
-                }
             }
 
             return base.OnMoveOver(m);
@@ -52,19 +47,13 @@ namespace Server.Items
 
         public virtual void DoTeleport(Mobile m)
         {
-            Map map = Map;
+            var map = Map;
 
-            if (map == null || map == Map.Internal)
-            {
-                map = m.Map;
-            }
+            if (map == null || map == Map.Internal) map = m.Map;
 
-            Point3D p = Dest;
+            var p = Dest;
 
-            if (p == Point3D.Zero)
-            {
-                p = m.Location;
-            }
+            if (p == Point3D.Zero) p = m.Location;
 
             BaseCreature.TeleportPets(m, p, map);
 
@@ -76,7 +65,7 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
             writer.Write(Dest);
             writer.Write((int)Chain);
@@ -85,7 +74,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             Dest = reader.ReadPoint3D();
             Chain = (FellowshipChain)reader.ReadInt();

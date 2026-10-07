@@ -1,83 +1,72 @@
-using System;
-
 namespace Server.Items
 {
     public class JewelryBoxFilter
     {
-        public bool IsDefault
-        {
-            get { return (!Ring && !Bracelet && !Earrings && !Necklace && !Talisman); }
-        }
+        private bool m_Bracelet;
 
-        public void Clear()
-        {
-            m_Ring = false;
-            m_Bracelet = false;
-            m_Earrings = false;
-            m_Necklace = false;
-            m_Talisman = false;
-        }
+        private bool m_Earrings;
+
+        private bool m_Necklace;
 
         private bool m_Ring;
 
+        private bool m_Talisman;
+        public bool IsDefault => !Ring && !Bracelet && !Earrings && !Necklace && !Talisman;
+
         public bool Ring
         {
-            get { return m_Ring; }
+            get => m_Ring;
             set
             {
-                if (value == true)
+                if (value)
                     Clear();
 
                 m_Ring = value;
             }
         }
 
-        private bool m_Bracelet;
         public bool Bracelet
         {
-            get { return m_Bracelet; }
+            get => m_Bracelet;
             set
             {
-                if (value == true)
+                if (value)
                     Clear();
 
                 m_Bracelet = value;
             }
         }
 
-        private bool m_Earrings;
         public bool Earrings
         {
-            get { return m_Earrings; }
+            get => m_Earrings;
             set
             {
-                if (value == true)
+                if (value)
                     Clear();
 
                 m_Earrings = value;
             }
         }
 
-        private bool m_Necklace;
         public bool Necklace
         {
-            get { return m_Necklace; }
+            get => m_Necklace;
             set
             {
-                if (value == true)
+                if (value)
                     Clear();
 
                 m_Necklace = value;
             }
         }
 
-        private bool m_Talisman;
         public bool Talisman
         {
-            get { return m_Talisman; }
+            get => m_Talisman;
             set
             {
-                if (value == true)
+                if (value)
                     Clear();
 
                 m_Talisman = value;
@@ -90,7 +79,7 @@ namespace Server.Items
 
         public JewelryBoxFilter(GenericReader reader)
         {
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             switch (version)
             {
@@ -104,21 +93,30 @@ namespace Server.Items
             }
         }
 
+        public void Clear()
+        {
+            m_Ring = false;
+            m_Bracelet = false;
+            m_Earrings = false;
+            m_Necklace = false;
+            m_Talisman = false;
+        }
+
         public void Serialize(GenericWriter writer)
         {
             if (IsDefault)
             {
-                writer.Write((int)0);
+                writer.Write(0);
             }
             else
             {
                 writer.Write(1);
 
-                writer.Write((bool)Ring);
-                writer.Write((bool)Bracelet);
-                writer.Write((bool)Earrings);
-                writer.Write((bool)Necklace);
-                writer.Write((bool)Talisman);
+                writer.Write(Ring);
+                writer.Write(Bracelet);
+                writer.Write(Earrings);
+                writer.Write(Necklace);
+                writer.Write(Talisman);
             }
         }
     }

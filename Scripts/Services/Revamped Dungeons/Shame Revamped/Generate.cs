@@ -1,10 +1,9 @@
 using System;
-using Server;
-using Server.Mobiles;
-using Server.Items;
-using Server.Commands;
 using System.Collections.Generic;
 using System.Linq;
+using Server.Commands;
+using Server.Items;
+using Server.Mobiles;
 
 namespace Server.Engines.ShameRevamped
 {
@@ -29,21 +28,23 @@ namespace Server.Engines.ShameRevamped
 
             RemoveItems();
 
-            CommandSystem.Handle(e.Mobile, Server.Commands.CommandSystem.Prefix + "XmlLoad RevampedSpawns/ShameRevamped.xml");
+            CommandSystem.Handle(e.Mobile, CommandSystem.Prefix + "XmlLoad RevampedSpawns/ShameRevamped.xml");
 
             // Level 1
-            Point3D altarLoc = new Point3D(5403, 43, 30);
+            var altarLoc = new Point3D(5403, 43, 30);
 
             if (!CheckForAltar(altarLoc, Map.Trammel))
             {
-                var altar = new ShameAltar(typeof(QuartzElemental), new Point3D(5490, 19, -25), new Point3D(5514, 10, 5), new Point3D(5387, 11, 30), 10);
+                var altar = new ShameAltar(typeof(QuartzElemental), new Point3D(5490, 19, -25),
+                    new Point3D(5514, 10, 5), new Point3D(5387, 11, 30), 10);
                 WeakEntityCollection.Add("newshame", altar);
                 altar.MoveToWorld(altarLoc, Map.Trammel);
             }
 
             if (!CheckForAltar(altarLoc, Map.Felucca))
             {
-                var altar = new ShameAltar(typeof(QuartzElemental), new Point3D(5490, 19, -25), new Point3D(5514, 10, 5), new Point3D(5387, 11, 30), 10);
+                var altar = new ShameAltar(typeof(QuartzElemental), new Point3D(5490, 19, -25),
+                    new Point3D(5514, 10, 5), new Point3D(5387, 11, 30), 10);
                 WeakEntityCollection.Add("newshame", altar);
                 altar.MoveToWorld(altarLoc, Map.Felucca);
             }
@@ -53,14 +54,16 @@ namespace Server.Engines.ShameRevamped
 
             if (!CheckForAltar(altarLoc, Map.Trammel))
             {
-                var altar = new ShameAltar(typeof(FlameElemental), new Point3D(5604, 102, 5), new Point3D(5514, 147, 25), new Point3D(5571, 115, 3), 20);
+                var altar = new ShameAltar(typeof(FlameElemental), new Point3D(5604, 102, 5),
+                    new Point3D(5514, 147, 25), new Point3D(5571, 115, 3), 20);
                 WeakEntityCollection.Add("newshame", altar);
                 altar.MoveToWorld(altarLoc, Map.Trammel);
             }
 
             if (!CheckForAltar(altarLoc, Map.Felucca))
             {
-                var altar = new ShameAltar(typeof(FlameElemental), new Point3D(5604, 102, 5), new Point3D(5514, 147, 25), new Point3D(5571, 115, 3), 20);
+                var altar = new ShameAltar(typeof(FlameElemental), new Point3D(5604, 102, 5),
+                    new Point3D(5514, 147, 25), new Point3D(5571, 115, 3), 20);
                 WeakEntityCollection.Add("newshame", altar);
                 altar.MoveToWorld(altarLoc, Map.Felucca);
             }
@@ -70,14 +73,16 @@ namespace Server.Engines.ShameRevamped
 
             if (!CheckForAltar(altarLoc, Map.Trammel))
             {
-                var altar = new ShameAltar(typeof(WindElemental), new Point3D(5538, 170, 5), new Point3D(5513, 176, 5), new Point3D(5618, 223, 0), 30);
+                var altar = new ShameAltar(typeof(WindElemental), new Point3D(5538, 170, 5), new Point3D(5513, 176, 5),
+                    new Point3D(5618, 223, 0), 30);
                 WeakEntityCollection.Add("newshame", altar);
                 altar.MoveToWorld(altarLoc, Map.Trammel);
             }
 
             if (!CheckForAltar(altarLoc, Map.Felucca))
             {
-                var altar = new ShameAltar(typeof(WindElemental), new Point3D(5538, 170, 5), new Point3D(5513, 176, 5), new Point3D(5618, 223, 0), 30);
+                var altar = new ShameAltar(typeof(WindElemental), new Point3D(5538, 170, 5), new Point3D(5513, 176, 5),
+                    new Point3D(5618, 223, 0), 30);
                 WeakEntityCollection.Add("newshame", altar);
                 altar.MoveToWorld(altarLoc, Map.Felucca);
             }
@@ -193,9 +198,8 @@ namespace Server.Engines.ShameRevamped
 
         public static void ResetOldSpawners(bool reset = true)
         {
-            Region r = Region.Find(new Point3D(5538, 170, 5), Map.Trammel);
+            var r = Region.Find(new Point3D(5538, 170, 5), Map.Trammel);
             foreach (var spawner in r.GetEnumeratedItems().OfType<XmlSpawner>())
-            {
                 if (spawner.Name.ToLower() != "shame_revamped" && spawner.Name.ToLower() != "shame_chest")
                 {
                     if (reset)
@@ -203,11 +207,9 @@ namespace Server.Engines.ShameRevamped
                     else
                         spawner.DoRespawn = true;
                 }
-            }
 
             r = Region.Find(new Point3D(5538, 170, 5), Map.Felucca);
             foreach (var spawner in r.GetEnumeratedItems().OfType<XmlSpawner>())
-            {
                 if (spawner.Name.ToLower() != "shame_revamped" && spawner.Name.ToLower() != "shame_chest")
                 {
                     if (reset)
@@ -215,7 +217,6 @@ namespace Server.Engines.ShameRevamped
                     else
                         spawner.DoRespawn = true;
                 }
-            }
         }
 
         public static bool RemoveItem(Point3D p, Map map, Type t)
@@ -223,14 +224,13 @@ namespace Server.Engines.ShameRevamped
             IPooledEnumerable eable = map.GetItemsInRange(p, 0);
 
             foreach (Item i in eable)
-            {
                 if (i.GetType() == t)
                 {
                     i.Delete();
                     eable.Free();
                     return true;
                 }
-            }
+
             eable.Free();
             return false;
         }
@@ -240,13 +240,12 @@ namespace Server.Engines.ShameRevamped
             IPooledEnumerable eable = map.GetItemsInRange(p, 0);
 
             foreach (Item i in eable)
-            {
                 if (i is ShameAltar || i is ShameWall)
                 {
                     eable.Free();
                     return true;
                 }
-            }
+
             eable.Free();
 
             return false;

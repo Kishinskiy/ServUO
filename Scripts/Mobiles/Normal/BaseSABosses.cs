@@ -7,10 +7,18 @@ namespace Server.Mobiles
     [TypeAlias("Server.Mobiles.BaseSABosses")]
     public abstract class BaseSABoss : BasePeerless
     {
-        public override bool GiveMLSpecial { get { return false; } }
+        private Dictionary<Mobile, int> m_DamageEntries;
+        public override bool GiveMLSpecial => false;
 
-        Dictionary<Mobile, int> m_DamageEntries;
-        public BaseSABoss(AIType aiType, FightMode fightMode, int rangePerception, int rangeFight, double activeSpeed, double passiveSpeed)
+        public abstract Type[] UniqueSAList { get; }
+        public abstract Type[] SharedSAList { get; }
+
+        public virtual bool NoGoodies => false;
+
+        public override bool DropPrimer => false;
+
+        public BaseSABoss(AIType aiType, FightMode fightMode, int rangePerception, int rangeFight, double activeSpeed,
+            double passiveSpeed)
             : base(aiType, fightMode, rangePerception, rangeFight, activeSpeed, passiveSpeed)
         {
         }
@@ -20,31 +28,18 @@ namespace Server.Mobiles
         {
         }
 
-        public abstract Type[] UniqueSAList { get; }
-        public abstract Type[] SharedSAList { get; }
-
-        public virtual bool NoGoodies
-        {
-            get
-            {
-                return false;
-            }
-        }
-
-        public override bool DropPrimer { get { return false; } }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         public virtual void RegisterDamageTo(Mobile m)
@@ -52,11 +47,11 @@ namespace Server.Mobiles
             if (m == null)
                 return;
 
-            foreach (DamageEntry de in m.DamageEntries)
+            foreach (var de in m.DamageEntries)
             {
-                Mobile damager = de.Damager;
+                var damager = de.Damager;
 
-                Mobile master = damager.GetDamageMaster(m);
+                var master = damager.GetDamageMaster(m);
 
                 if (master != null)
                     damager = master;
@@ -81,24 +76,22 @@ namespace Server.Mobiles
             if (artifact == null)
                 return;
 
-            int totalDamage = 0;
+            var totalDamage = 0;
 
-            Dictionary<Mobile, int> validEntries = new Dictionary<Mobile, int>();
+            var validEntries = new Dictionary<Mobile, int>();
 
-            foreach (KeyValuePair<Mobile, int> kvp in m_DamageEntries)
-            {
+            foreach (var kvp in m_DamageEntries)
                 if (IsEligible(kvp.Key, artifact))
                 {
                     validEntries.Add(kvp.Key, kvp.Value);
                     totalDamage += kvp.Value;
                 }
-            }
 
-            int randomDamage = Utility.RandomMinMax(1, totalDamage);
+            var randomDamage = Utility.RandomMinMax(1, totalDamage);
 
             totalDamage = 0;
 
-            foreach (KeyValuePair<Mobile, int> kvp in m_DamageEntries)
+            foreach (var kvp in m_DamageEntries)
             {
                 totalDamage += kvp.Value;
 
@@ -115,27 +108,29 @@ namespace Server.Mobiles
             if (to == null || artifact == null)
                 return;
 
-			to.PlaySound(0x5B4);
+            to.PlaySound(0x5B4);
 
-            Container pack = to.Backpack;
+            var pack = to.Backpack;
 
             if (pack == null || !pack.TryDropItem(to, artifact, false))
                 artifact.Delete();
             else
-                to.SendLocalizedMessage(1062317); // For your valor in combating the fallen beast, a special artifact has been bestowed on you.
+                to.SendLocalizedMessage(
+                    1062317); // For your valor in combating the fallen beast, a special artifact has been bestowed on you.
         }
 
         public bool IsEligible(Mobile m, Item Artifact)
         {
-            return m.Player && m.Alive && m.InRange(Location, 32) && m.Backpack != null && m.Backpack.CheckHold(m, Artifact, false);
+            return m.Player && m.Alive && m.InRange(Location, 32) && m.Backpack != null &&
+                   m.Backpack.CheckHold(m, Artifact, false);
         }
 
         public Item GetArtifact()
         {
-            double random = Utility.RandomDouble();
+            var random = Utility.RandomDouble();
             if (0.05 >= random)
                 return CreateArtifact(UniqueSAList);
-            else if (0.15 >= random)
+            if (0.15 >= random)
                 return CreateArtifact(SharedSAList);
 
             return null;
@@ -146,11 +141,11 @@ namespace Server.Mobiles
             if (list.Length == 0)
                 return null;
 
-            int random = Utility.Random(list.Length);
+            var random = Utility.Random(list.Length);
 
-            Type type = list[random];
+            var type = list[random];
 
-            Item artifact = Loot.Construct(type);
+            var artifact = Loot.Construct(type);
 
             return artifact;
         }
@@ -173,12 +168,12 @@ namespace Server.Mobiles
             if (Map == Map.Felucca || Map == Map.TerMur)
             {
                 //TODO: Confirm SE change or AoS one too?
-                List<DamageStore> rights = GetLootingRights();
-                List<Mobile> toGive = new List<Mobile>();
+                var rights = GetLootingRights();
+                var toGive = new List<Mobile>();
 
-                for (int i = rights.Count - 1; i >= 0; --i)
+                for (var i = rights.Count - 1; i >= 0; --i)
                 {
-                    DamageStore ds = rights[i];
+                    var ds = rights[i];
 
                     if (ds.m_HasRight)
                         toGive.Add(ds.m_Mobile);

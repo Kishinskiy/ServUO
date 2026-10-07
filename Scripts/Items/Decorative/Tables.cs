@@ -1,5 +1,3 @@
-using System;
-
 namespace Server.Items
 {
     [Furniture]
@@ -9,7 +7,7 @@ namespace Server.Items
         public ElegantLowTable()
             : base(0x2819)
         {
-            this.Weight = 1.0;
+            Weight = 1.0;
         }
 
         public ElegantLowTable(Serial serial)
@@ -21,14 +19,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -39,7 +37,7 @@ namespace Server.Items
         public PlainLowTable()
             : base(0x281A)
         {
-            this.Weight = 1.0;
+            Weight = 1.0;
         }
 
         public PlainLowTable(Serial serial)
@@ -51,14 +49,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -70,7 +68,7 @@ namespace Server.Items
         public LargeTable()
             : base(0xB90)
         {
-            this.Weight = 1.0;
+            Weight = 1.0;
         }
 
         public LargeTable(Serial serial)
@@ -82,17 +80,17 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            if (this.Weight == 4.0)
-                this.Weight = 1.0;
+            if (Weight == 4.0)
+                Weight = 1.0;
         }
     }
 
@@ -104,7 +102,7 @@ namespace Server.Items
         public Nightstand()
             : base(0xB35)
         {
-            this.Weight = 1.0;
+            Weight = 1.0;
         }
 
         public Nightstand(Serial serial)
@@ -116,17 +114,17 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            if (this.Weight == 4.0)
-                this.Weight = 1.0;
+            if (Weight == 4.0)
+                Weight = 1.0;
         }
     }
 
@@ -138,7 +136,7 @@ namespace Server.Items
         public YewWoodTable()
             : base(0xB8F)
         {
-            this.Weight = 1.0;
+            Weight = 1.0;
         }
 
         public YewWoodTable(Serial serial)
@@ -150,24 +148,24 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            if (this.Weight == 4.0)
-                this.Weight = 1.0;
+            if (Weight == 4.0)
+                Weight = 1.0;
         }
     }
 
     [Furniture]
     public class TerMurStyleTable : Item
     {
-        public override int LabelNumber { get { return 1095321; } } // Ter-Mur style table
+        public override int LabelNumber => 1095321; // Ter-Mur style table
 
         [Constructable]
         public TerMurStyleTable()
@@ -184,13 +182,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -1,22 +1,13 @@
-using System;
 using System.Collections.Generic;
-
-using Server;
 using Server.Items;
 using Server.Mobiles;
-using Server.Engines.Points;
 
 namespace Server.Engines.Khaldun
 {
     public class CaddelliteVendor : BaseVendor
     {
         private readonly List<SBInfo> m_SBInfos = new List<SBInfo>();
-        protected override List<SBInfo> SBInfos { get { return this.m_SBInfos; } }
-
-        public override void InitSBInfo()
-        {
-            m_SBInfos.Add(new SBCaddelliteTinker(this));
-        }
+        protected override List<SBInfo> SBInfos => m_SBInfos;
 
         public static CaddelliteVendor InstanceTram { get; set; }
         public static CaddelliteVendor InstanceFel { get; set; }
@@ -25,6 +16,16 @@ namespace Server.Engines.Khaldun
         public CaddelliteVendor()
             : base("the Tinker")
         {
+        }
+
+        public CaddelliteVendor(Serial serial)
+            : base(serial)
+        {
+        }
+
+        public override void InitSBInfo()
+        {
+            m_SBInfos.Add(new SBCaddelliteTinker(this));
         }
 
         public override void InitBody()
@@ -49,11 +50,6 @@ namespace Server.Engines.Khaldun
             SetWearable(new ThighBoots());
         }
 
-        public CaddelliteVendor(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -63,17 +59,11 @@ namespace Server.Engines.Khaldun
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            if (Map == Map.Felucca)
-            {
-                InstanceFel = this;
-            }
+            if (Map == Map.Felucca) InstanceFel = this;
 
-            if (Map == Map.Trammel)
-            {
-                InstanceTram = this;
-            }
+            if (Map == Map.Trammel) InstanceTram = this;
         }
     }
 
@@ -82,13 +72,13 @@ namespace Server.Engines.Khaldun
         private readonly List<GenericBuyInfo> m_BuyInfo;
         private readonly IShopSellInfo m_SellInfo = new InternalSellInfo();
 
+        public override IShopSellInfo SellInfo => m_SellInfo;
+        public override List<GenericBuyInfo> BuyInfo => m_BuyInfo;
+
         public SBCaddelliteTinker(BaseVendor owner)
         {
             m_BuyInfo = new InternalBuyInfo(owner);
         }
-
-        public override IShopSellInfo SellInfo { get { return m_SellInfo; } }
-        public override List<GenericBuyInfo> BuyInfo { get { return m_BuyInfo; } }
 
         public class InternalBuyInfo : List<GenericBuyInfo>
         {
@@ -99,12 +89,9 @@ namespace Server.Engines.Khaldun
                 Add(new GenericBuyInfo(typeof(CaddelliteFishingPole), 101265, 500, 3520, 0));
             }
         }
+
         public class InternalSellInfo : GenericSellInfo
         {
-            public InternalSellInfo()
-            {
-            }
         }
-
     }
 }

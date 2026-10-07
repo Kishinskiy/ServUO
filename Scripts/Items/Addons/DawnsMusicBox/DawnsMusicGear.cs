@@ -1,12 +1,21 @@
-﻿using System;
-using Server.Targeting;
+﻿using Server.Targeting;
 
 namespace Server.Items
 {
     [Flipable(0x1053, 0x1054)]
     public class DawnsMusicGear : Item
     {
-        private MusicName m_Music;
+        public static DawnsMusicGear RandomCommon =>
+            new DawnsMusicGear(DawnsMusicBox.RandomTrack(DawnsMusicRarity.Common));
+
+        public static DawnsMusicGear RandomUncommon =>
+            new DawnsMusicGear(DawnsMusicBox.RandomTrack(DawnsMusicRarity.Uncommon));
+
+        public static DawnsMusicGear RandomRare => new DawnsMusicGear(DawnsMusicBox.RandomTrack(DawnsMusicRarity.Rare));
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public MusicName Music { get; set; }
+
         [Constructable]
         public DawnsMusicGear()
             : this(DawnsMusicBox.RandomTrack(DawnsMusicRarity.Common))
@@ -17,9 +26,9 @@ namespace Server.Items
         public DawnsMusicGear(MusicName music)
             : base(0x1053)
         {
-            this.m_Music = music;
+            Music = music;
 
-            this.Weight = 1.0;
+            Weight = 1.0;
         }
 
         public DawnsMusicGear(Serial serial)
@@ -27,42 +36,9 @@ namespace Server.Items
         {
         }
 
-        public static DawnsMusicGear RandomCommon
-        {
-            get
-            {
-                return new DawnsMusicGear(DawnsMusicBox.RandomTrack(DawnsMusicRarity.Common));
-            }
-        }
-        public static DawnsMusicGear RandomUncommon
-        {
-            get
-            {
-                return new DawnsMusicGear(DawnsMusicBox.RandomTrack(DawnsMusicRarity.Uncommon));
-            }
-        }
-        public static DawnsMusicGear RandomRare
-        {
-            get
-            {
-                return new DawnsMusicGear(DawnsMusicBox.RandomTrack(DawnsMusicRarity.Rare));
-            }
-        }
-        [CommandProperty(AccessLevel.GameMaster)]
-        public MusicName Music
-        {
-            get
-            {
-                return this.m_Music;
-            }
-            set
-            {
-                this.m_Music = value;
-            }
-        }
         public override void AddNameProperty(ObjectPropertyList list)
         {
-            DawnsMusicInfo info = DawnsMusicBox.GetInfo(this.m_Music);
+            var info = DawnsMusicBox.GetInfo(Music);
 
             if (info != null)
             {
@@ -76,7 +52,9 @@ namespace Server.Items
                 list.Add(info.Name);
             }
             else
+            {
                 base.AddNameProperty(list);
+            }
         }
 
         public override void OnDoubleClick(Mobile from)
@@ -88,74 +66,79 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)1); // version
-			
-            writer.Write((int)this.m_Music);
+            writer.WriteEncodedInt(1); // version
+
+            writer.Write((int)Music);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
-			
-            switch ( version )
+            var version = reader.ReadEncodedInt();
+
+            switch (version)
             {
                 case 1:
-                    {
-                        this.m_Music = (MusicName)reader.ReadInt();
-                        break;
-                    }
+                {
+                    Music = (MusicName)reader.ReadInt();
+                    break;
+                }
             }
-			
+
             if (version == 0) // Music wasn't serialized in version 0, pick a new track of random rarity
             {
                 DawnsMusicRarity rarity;
-                double rand = Utility.RandomDouble();
-				
+                var rand = Utility.RandomDouble();
+
                 if (rand < 0.025)
                     rarity = DawnsMusicRarity.Rare;
                 else if (rand < 0.225)
                     rarity = DawnsMusicRarity.Uncommon;
                 else
                     rarity = DawnsMusicRarity.Common;
-				
-                this.m_Music = DawnsMusicBox.RandomTrack(rarity);
+
+                Music = DawnsMusicBox.RandomTrack(rarity);
             }
         }
 
         public class InternalTarget : Target
         {
             private readonly DawnsMusicGear m_Gear;
+
             public InternalTarget(DawnsMusicGear gear)
                 : base(2, false, TargetFlags.None)
             {
-                this.m_Gear = gear;
+                m_Gear = gear;
             }
 
             protected override void OnTarget(Mobile from, object targeted)
             {
-                if (this.m_Gear == null || this.m_Gear.Deleted)
+                if (m_Gear == null || m_Gear.Deleted)
                     return;
 
-                DawnsMusicBox box = targeted as DawnsMusicBox;
+                var box = targeted as DawnsMusicBox;
 
                 if (box != null)
                 {
-                    if (!box.Tracks.Contains(this.m_Gear.Music))
+                    if (!box.Tracks.Contains(m_Gear.Music))
                     {
-                        box.Tracks.Add(this.m_Gear.Music);
+                        box.Tracks.Add(m_Gear.Music);
                         box.InvalidateProperties();
 
-                        this.m_Gear.Delete();
+                        m_Gear.Delete();
 
                         from.SendLocalizedMessage(1071961); // This song has been added to the musicbox.
                     }
                     else
+                    {
                         from.SendLocalizedMessage(1071962); // This song track is already in the musicbox.
+                    }
                 }
                 else
+                {
                     from.SendLocalizedMessage(1071964); // Gears can only be put into a musicbox.
+                }
             }
         }
     }

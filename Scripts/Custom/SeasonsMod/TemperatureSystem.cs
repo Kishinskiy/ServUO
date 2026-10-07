@@ -1,10 +1,11 @@
 using System;
 using System.Collections.Generic;
-using Server;
+using System.Reflection;
 using Server.Items;
 using Server.Mobiles;
-using Server.Regions;
 using Server.Network;
+using Server.Regions;
+using Weather = Server.Misc.Weather;
 
 namespace Server.Custom.Seasons
 {
@@ -14,20 +15,21 @@ namespace Server.Custom.Seasons
         private static Timer m_Timer;
 
         // Список игроков с активным обморожением (для контроля иконки и скорости)
-        private static List<Mobile> m_FrozenPlayers = new List<Mobile>();
+        private static readonly List<Mobile> m_FrozenPlayers = new List<Mobile>();
 
         // ТАБЛИЦА НАМОКАНИЯ: Хранит текущий уровень влажности каждого игрока (от 0 до 100)
-        private static Dictionary<PlayerMobile, int> m_WetnessTable = new Dictionary<PlayerMobile, int>();
+        private static readonly Dictionary<PlayerMobile, int> m_WetnessTable = new Dictionary<PlayerMobile, int>();
+        private static readonly List<Mobile> m_OverheatedPlayers = new List<Mobile>();
 
         public static void Initialize()
         {
-            m_Timer = Timer.DelayCall(CheckInterval, CheckInterval, new TimerCallback(CheckPlayersTemperature));
-            EventSink.Login += new LoginEventHandler(EventSink_Login);
+            m_Timer = Timer.DelayCall(CheckInterval, CheckInterval, CheckPlayersTemperature);
+            EventSink.Login += EventSink_Login;
         }
 
         private static void EventSink_Login(LoginEventArgs e)
         {
-            PlayerMobile pm = e.Mobile as PlayerMobile;
+            var pm = e.Mobile as PlayerMobile;
             if (pm != null)
             {
                 if (pm.Map != Map.Trammel && pm.Map != Map.Felucca)
@@ -62,38 +64,30 @@ namespace Server.Custom.Seasons
             if (pm == null || pm.Map == null || pm.Map == Map.Internal)
                 return false;
 
-            List<Server.Misc.Weather> weatherList = Server.Misc.Weather.GetWeatherList(pm.Map);
+            var weatherList = Weather.GetWeatherList(pm.Map);
 
             if (weatherList != null)
-            {
-                for (int j = 0; j < weatherList.Count; ++j)
+                for (var j = 0; j < weatherList.Count; ++j)
                 {
-                    Server.Misc.Weather w = weatherList[j];
-                    bool isActivePercipitation = false;
-                    System.Reflection.FieldInfo activeField = typeof(Server.Misc.Weather).GetField("m_Active", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-                    if (activeField != null)
-                    {
-                        isActivePercipitation = (bool)activeField.GetValue(w);
-                    }
+                    var w = weatherList[j];
+                    var isActivePercipitation = false;
+                    var activeField =
+                        typeof(Weather).GetField("m_Active", BindingFlags.Instance | BindingFlags.NonPublic);
+                    if (activeField != null) isActivePercipitation = (bool)activeField.GetValue(w);
 
                     if (isActivePercipitation && w.Temperature > 0)
-                    {
                         if (w.IntersectsWith(new Rectangle2D(pm.X, pm.Y, 1, 1)))
-                        {
                             return true;
-                        }
-                    }
                 }
-            }
 
             return false;
         }
 
         private static void CheckPlayersTemperature()
         {
-            foreach (NetState state in NetState.Instances)
+            foreach (var state in NetState.Instances)
             {
-                PlayerMobile pm = state.Mobile as PlayerMobile;
+                var pm = state.Mobile as PlayerMobile;
 
                 if (pm == null || !pm.Alive || pm.AccessLevel > AccessLevel.Player)
                     continue;
@@ -128,7 +122,7 @@ namespace Server.Custom.Seasons
                     continue;
                 }
 
-                int season = pm.Map.Season;
+                var season = pm.Map.Season;
 
                 if (season == 3) // Зима
                 {
@@ -147,10 +141,7 @@ namespace Server.Custom.Seasons
                     else
                     {
                         // Дождь кончился, персонаж на улице — плавно сохнет сам (-5% за тик)
-                        if (m_WetnessTable[pm] > 0)
-                        {
-                            m_WetnessTable[pm] = Math.Max(0, m_WetnessTable[pm] - 5);
-                        }
+                        if (m_WetnessTable[pm] > 0) m_WetnessTable[pm] = Math.Max(0, m_WetnessTable[pm] - 5);
 
                         if (m_WetnessTable[pm] < 100)
                             RemoveFreezeDebuff(pm);
@@ -161,7 +152,7 @@ namespace Server.Custom.Seasons
 
         private static void HandleRainEffects(PlayerMobile pm)
         {
-            bool isProtected = IsWarmlyDressed(pm);
+            var isProtected = IsWarmlyDressed(pm);
 
             if (!isProtected)
             {
@@ -203,13 +194,14 @@ namespace Server.Custom.Seasons
                     RemoveFreezeDebuff(pm);
 
                 if (Utility.RandomDouble() < 0.05)
-                    pm.SendMessage(0x5D, "Дождь льет стеной, но плотный плащ защищает ваше тело от пронизывающей влаги.");
+                    pm.SendMessage(0x5D,
+                        "Дождь льет стеной, но плотный плащ защищает ваше тело от пронизывающей влаги.");
             }
         }
 
         private static void HandleWinterEffects(PlayerMobile pm)
         {
-            bool isWarmlyDressed = IsWarmlyDressed(pm);
+            var isWarmlyDressed = IsWarmlyDressed(pm);
             if (!isWarmlyDressed)
             {
                 pm.SendMessage(0x4B5, "Ваши конечности немеют от лютого холода! Вы больше не можете бежать.");
@@ -239,7 +231,7 @@ namespace Server.Custom.Seasons
         // =========================================================================
         private static bool IsInDoors(PlayerMobile pm)
         {
-            Region reg = pm.Region;
+            var reg = pm.Region;
             if (reg == null) return false;
 
             // 1. Проверка на стандартные дома игроков, подземелья и таверны
@@ -247,46 +239,40 @@ namespace Server.Custom.Seasons
             if (reg is DungeonRegion || reg.Name == "Inns" || reg.Name == "Taverns") return true;
 
             // 2. Попиксельный вертикальный сканер крыши (TileMatrix StaticTiles)
-            Map map = pm.Map;
+            var map = pm.Map;
             if (map != null && map != Map.Internal && map.Tiles != null)
             {
-                StaticTile[] statics = map.Tiles.GetStaticTiles(pm.X, pm.Y);
+                var statics = map.Tiles.GetStaticTiles(pm.X, pm.Y);
 
                 if (statics != null && statics.Length > 0)
-                {
-                    foreach (StaticTile tile in statics)
+                    foreach (var tile in statics)
                     {
-                        int id = tile.ID;
+                        var id = tile.ID;
 
                         // А. Проверка полов (если под ногами классический пол здания)
                         if (tile.Z <= pm.Z && tile.Z >= pm.Z - 5)
-                        {
-                            if ((id >= 0x413 && id <= 0x434) || (id >= 0x4E2 && id <= 0x518) || (id >= 0xAF6 && id <= 0xB3F) || (id >= 0x31F4 && id <= 0x320F))
-                            {
+                            if ((id >= 0x413 && id <= 0x434) || (id >= 0x4E2 && id <= 0x518) ||
+                                (id >= 0xAF6 && id <= 0xB3F) || (id >= 0x31F4 && id <= 0x320F))
                                 return true;
-                            }
-                        }
+
                         // Б. РЕНТГЕН-СКАНЕР КРЫШИ: Ищем любые блокирующие статические тайлы НАД головой игрока
                         // Проверяем высоту Z от уровня головы (+10 тайлов) до неба (+35 тайлов)
                         if (tile.Z > pm.Z + 10 && tile.Z <= pm.Z + 35)
-                        {
                             // Базовые ID крыш в UO: черепица (0x6A5-0x6D4, 0x759-0x788), дерево (0x33A-0x379) и т.д.
                             // Чтобы не перечислять сотни ID крыш, мы просто проверяем, является ли ассет частью статической геометрии здания
                             // (Поскольку над головой в лесу ничего не висит, любой статик на высоте Z+15 — это крыша, навес или перекрытие)
                             if (id > 0)
-                            {
                                 return true; // Персонаж находится ПОД крышей/навесом фермерского дома!
-                            }
-                        }
                     }
-                }
             }
+
             return false;
         }
+
         private static bool IsNearHeatSource(PlayerMobile pm)
         {
             IPooledEnumerable eable = pm.Map.GetItemsInRange(pm.Location, 3);
-            bool foundHeat = false;
+            var foundHeat = false;
             foreach (Item item in eable)
             {
                 if (item is Campfire || item.ItemID == 0xDE3 || item.ItemID == 0xDE9)
@@ -294,21 +280,24 @@ namespace Server.Custom.Seasons
                     foundHeat = true;
                     break;
                 }
+
                 if ((item.ItemID >= 0x461 && item.ItemID <= 0x46F) ||
-                (item.ItemID >= 0x937 && item.ItemID <= 0x966) ||
-                item.ItemID == 0x19AA || item.ItemID == 0x19A6)
+                    (item.ItemID >= 0x937 && item.ItemID <= 0x966) ||
+                    item.ItemID == 0x19AA || item.ItemID == 0x19A6)
                 {
                     foundHeat = true;
                     break;
                 }
             }
+
             eable.Free();
             return foundHeat;
         }
+
         private static bool IsWarmlyDressed(PlayerMobile pm)
         {
-            Item OuterTorso = pm.FindItemOnLayer(Layer.OuterTorso);
-            Item Cloak = pm.FindItemOnLayer(Layer.Cloak);
+            var OuterTorso = pm.FindItemOnLayer(Layer.OuterTorso);
+            var Cloak = pm.FindItemOnLayer(Layer.Cloak);
             if (Cloak != null)
             {
                 if (Cloak is WinterCloak)
@@ -316,36 +305,31 @@ namespace Server.Custom.Seasons
                 if (Cloak.Name != null && Cloak.Name.ToLower().Contains("зимний"))
                     return true;
             }
+
             if (OuterTorso != null)
-            {
                 if (OuterTorso.Name != null && OuterTorso.Name.ToLower().Contains("зимняя"))
                     return true;
-            }
             return false;
         }
+
         private static void ApplyFreezeDebuff(PlayerMobile pm)
         {
             if (!m_FrozenPlayers.Contains(pm))
             {
                 m_FrozenPlayers.Add(pm);
-                BuffInfo.AddBuff(pm, new BuffInfo(BuffIcon.Curse, 1075824, 1075824, "Вы замерзаете! Найдите источник тепла."));
-                if (!pm.Mounted)
-                {
-                    pm.SendSpeedControl(SpeedControlType.WalkSpeed);
-                }
+                BuffInfo.AddBuff(pm,
+                    new BuffInfo(BuffIcon.Curse, 1075824, 1075824, "Вы замерзаете! Найдите источник тепла."));
+                if (!pm.Mounted) pm.SendSpeedControl(SpeedControlType.WalkSpeed);
             }
             else
             {
                 if (!pm.Mounted)
-                {
                     pm.SendSpeedControl(SpeedControlType.WalkSpeed);
-                }
                 else
-                {
                     pm.SendSpeedControl(SpeedControlType.Disable);
-                }
             }
         }
+
         private static void RemoveFreezeDebuff(PlayerMobile pm)
         {
             if (m_FrozenPlayers.Contains(pm))
@@ -356,7 +340,7 @@ namespace Server.Custom.Seasons
                 pm.SendMessage(0x5D, "Тепло возвращается к вам, обморожение отступило.");
             }
         }
-        private static List<Mobile> m_OverheatedPlayers = new List<Mobile>();
+
         private static void HandleSummerEffects(PlayerMobile pm)
         {
             if (IsInDoors(pm) || IsRainingOverPlayer(pm))
@@ -364,15 +348,13 @@ namespace Server.Custom.Seasons
                 RemoveSummerDebuff(pm);
                 return;
             }
-            bool wearingWinterClothes = IsWarmlyDressed(pm);
+
+            var wearingWinterClothes = IsWarmlyDressed(pm);
             if (wearingWinterClothes)
             {
                 pm.SendMessage(0x26, "Вам невыносимо жарко в зимней одежде! Вы перегреваетесь.");
                 ApplySummerDebuff(pm);
-                if (pm.Stam > 15)
-                {
-                    pm.Stam -= Utility.RandomMinMax(8, 15);
-                }
+                if (pm.Stam > 15) pm.Stam -= Utility.RandomMinMax(8, 15);
                 if (pm.Mana > 10)
                 {
                     pm.Mana -= Utility.RandomMinMax(3, 7);
@@ -388,14 +370,18 @@ namespace Server.Custom.Seasons
                 RemoveSummerDebuff(pm);
             }
         }
+
         private static void ApplySummerDebuff(PlayerMobile pm)
         {
             if (!m_OverheatedPlayers.Contains(pm))
             {
                 m_OverheatedPlayers.Add(pm);
-                BuffInfo.AddBuff(pm, new BuffInfo(BuffIcon.MortalStrike, 1075647, 1075647, "Тепловой удар! Вы изнываете от жажды и жары. Снимите теплую одежду."));
+                BuffInfo.AddBuff(pm,
+                    new BuffInfo(BuffIcon.MortalStrike, 1075647, 1075647,
+                        "Тепловой удар! Вы изнываете от жажды и жары. Снимите теплую одежду."));
             }
         }
+
         private static void RemoveSummerDebuff(PlayerMobile pm)
         {
             if (m_OverheatedPlayers.Contains(pm))

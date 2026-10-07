@@ -1,6 +1,6 @@
-using Server.Mobiles;
 using System;
 using System.Collections.Generic;
+using Server.Mobiles;
 
 namespace Server.Services.Guardians
 {
@@ -20,18 +20,12 @@ namespace Server.Services.Guardians
 
         private static void EventSink_Login(LoginEventArgs e)
         {
-            if (e.Mobile is PlayerMobile pm && !PlayerMobCount.ContainsKey(pm))
-            {
-                PlayerMobCount[pm] = (null, 0);
-            }
+            if (e.Mobile is PlayerMobile pm && !PlayerMobCount.ContainsKey(pm)) PlayerMobCount[pm] = (null, 0);
         }
 
         private static void EventSink_Logout(LogoutEventArgs e)
         {
-            if (e.Mobile is PlayerMobile pm)
-            {
-                PlayerMobCount.Remove(pm);
-            }
+            if (e.Mobile is PlayerMobile pm) PlayerMobCount.Remove(pm);
         }
 
         private static void EventSink_CreatureDeath(CreatureDeathEventArgs e)
@@ -47,11 +41,10 @@ namespace Server.Services.Guardians
                 // Если игрок убил того же самого моба, что и в прошлый раз
                 if (currentData.MobType != null && currentData.MobType == mob.GetType())
                 {
-                    int newCount = currentData.Count + 1;
+                    var newCount = currentData.Count + 1;
 
                     // Шанс появления (после 50-100 убийств)
                     if (newCount > Utility.RandomMinMax(50, 100))
-                    {
                         try
                         {
                             SpawnGuardian(pm, mob, e.Corpse.Location);
@@ -65,11 +58,8 @@ namespace Server.Services.Guardians
                             // Сбрасываем счетчик после спавна стража
                             PlayerMobCount[pm] = (null, 0);
                         }
-                    }
                     else
-                    {
                         PlayerMobCount[pm] = (mob.GetType(), newCount);
-                    }
                 }
                 else
                 {
@@ -87,7 +77,7 @@ namespace Server.Services.Guardians
 
                 if (guardian != null && guardian is BaseCreature bc)
                 {
-                    string name = bc.Name;
+                    var name = bc.Name;
 
                     bc.IsParagon = true; // Вызывает вашу кастомную систему XmlParagon!
                     bc.Name = $"{name} guardian";

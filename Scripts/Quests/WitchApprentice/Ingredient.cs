@@ -24,7 +24,7 @@ namespace Server.Engines.Quests.Hag
 
     public class IngredientInfo
     {
-        private static readonly IngredientInfo[] m_Table = new IngredientInfo[]
+        private static readonly IngredientInfo[] m_Table =
         {
             // sheep liver
             new IngredientInfo(1055020, 5, typeof(Sheep)),
@@ -45,7 +45,8 @@ namespace Server.Engines.Quests.Hag
             // slime ooze
             new IngredientInfo(1055028, 5, typeof(Slime)),
             // spirit essence
-            new IngredientInfo(1055029, 5, typeof(Ghoul), typeof(Spectre), typeof(Shade), typeof(Wraith), typeof(Bogle)),
+            new IngredientInfo(1055029, 5, typeof(Ghoul), typeof(Spectre), typeof(Shade), typeof(Wraith),
+                typeof(Bogle)),
             // Swamp Water
             new IngredientInfo(1055030, 1),
             // Freshly Cut Red Mushrooms
@@ -57,68 +58,48 @@ namespace Server.Engines.Quests.Hag
             // Captain Blackheart's Whiskey
             new IngredientInfo(1055034, 1)
         };
-        private readonly int m_Name;
-        private readonly Type[] m_Creatures;
-        private readonly int m_Quantity;
+
+        public int Name { get; }
+
+        public Type[] Creatures { get; }
+
+        public int Quantity { get; }
+
         private IngredientInfo(int name, int quantity, params Type[] creatures)
         {
-            this.m_Name = name;
-            this.m_Creatures = creatures;
-            this.m_Quantity = quantity;
+            Name = name;
+            Creatures = creatures;
+            Quantity = quantity;
         }
 
-        public int Name
-        {
-            get
-            {
-                return this.m_Name;
-            }
-        }
-        public Type[] Creatures
-        {
-            get
-            {
-                return this.m_Creatures;
-            }
-        }
-        public int Quantity
-        {
-            get
-            {
-                return this.m_Quantity;
-            }
-        }
         public static IngredientInfo Get(Ingredient ingredient)
         {
-            int index = (int)ingredient;
+            var index = (int)ingredient;
 
             if (index >= 0 && index < m_Table.Length)
                 return m_Table[index];
-            else
-                return m_Table[0];
+            return m_Table[0];
         }
 
         public static Ingredient RandomIngredient(Ingredient[] oldIngredients)
         {
-            int length = m_Table.Length - oldIngredients.Length;
-            Ingredient[] ingredients = new Ingredient[length];
+            var length = m_Table.Length - oldIngredients.Length;
+            var ingredients = new Ingredient[length];
 
             for (int i = 0, n = 0; i < m_Table.Length && n < ingredients.Length; i++)
             {
-                Ingredient currIngredient = (Ingredient)i;
+                var currIngredient = (Ingredient)i;
 
-                bool found = false;
-                for (int j = 0; !found && j < oldIngredients.Length; j++)
-                {
+                var found = false;
+                for (var j = 0; !found && j < oldIngredients.Length; j++)
                     if (oldIngredients[j] == currIngredient)
                         found = true;
-                }
 
                 if (!found)
                     ingredients[n++] = currIngredient;
             }
 
-            int index = Utility.Random(ingredients.Length);
+            var index = Utility.Random(ingredients.Length);
 
             return ingredients[index];
         }

@@ -1,17 +1,14 @@
 using System;
 using Server.Gumps;
-using Server.Items;
 
 namespace Server.Mobiles
 {
     public class HungryCoconutCrabStatue : Item, ICreatureStatuette
     {
-        public override int LabelNumber { get { return 1159221; } } // Hungry Coconut Crab Statuette
-
-        public Type CreatureType { get { return typeof(HungryCoconutCrab); } }
+        public override int LabelNumber => 1159221; // Hungry Coconut Crab Statuette
 
         [Constructable]
-        public HungryCoconutCrabStatue() 
+        public HungryCoconutCrabStatue()
             : base(0xA336)
         {
             Hue = 2713;
@@ -22,41 +19,42 @@ namespace Server.Mobiles
         {
         }
 
+        public Type CreatureType => typeof(HungryCoconutCrab);
+
         public override void OnDoubleClick(Mobile from)
         {
             if (IsChildOf(from.Backpack))
-            {
                 from.SendGump(new ConfirmMountStatuetteGump(this));
-            }
             else
-            {
                 SendLocalizedMessageTo(from, 1010095); // This must be on your person to use.
-            }
         }
 
         public override void GetProperties(ObjectPropertyList list)
         {
             base.GetProperties(list);
-            
+
             list.Add(1159222); // *Redeemable for a pet*<br>*Requires High Seas Booster Pack*
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     [CorpseName("a coconut crab corpse")]
     public class HungryCoconutCrab : BaseCreature
-    {        
+    {
+        public override bool DeleteOnRelease => true;
+        public override FoodType FavoriteFood => FoodType.FruitsAndVegies;
+
         [Constructable]
         public HungryCoconutCrab()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -95,19 +93,16 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool DeleteOnRelease { get { return true; } }
-        public override FoodType FavoriteFood { get { return FoodType.FruitsAndVegies; } }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -1,15 +1,12 @@
-using System;
-
 using Server.Engines.Quests;
 
 namespace Server.Items
 {
     public class BaseRewardBackpack : Backpack
     {
-        public virtual int Level { get { return 1; } }
+        public virtual int Level => 1;
 
         public BaseRewardBackpack()
-            : base()
         {
             Hue = 1127;
 
@@ -24,9 +21,9 @@ namespace Server.Items
                 default: itemDrop = 3; break;
             }
 
-            for (int i = 0; i < itemDrop; i++)
+            for (var i = 0; i < itemDrop; i++)
             {
-                Item item = Loot.RandomArmorOrShieldOrWeaponOrJewelry(false, false, true);
+                var item = Loot.RandomArmorOrShieldOrWeaponOrJewelry(false, false, true);
 
                 if (item != null)
                 {
@@ -37,17 +34,11 @@ namespace Server.Items
 
             itemDrop = Utility.RandomMinMax(2, 3);
 
-            for (int i = 0; i < itemDrop; i++)
-            {
+            for (var i = 0; i < itemDrop; i++)
                 if (Level == 1)
-                {
                     DropItemStacked(Loot.RandomGem());
-                }
                 else
-                {
                     DropItemStacked(Loot.RandomRareGem());
-                }
-            }
 
             switch (Level)
             {
@@ -66,7 +57,7 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
@@ -79,11 +70,10 @@ namespace Server.Items
 
     public class DustyAdventurersBackpack : BaseRewardBackpack
     {
-        public override int LabelNumber { get { return 1113189; } } // Dusty Adventurer's Backpack
+        public override int LabelNumber => 1113189; // Dusty Adventurer's Backpack
 
         [Constructable]
         public DustyAdventurersBackpack()
-            : base()
         {
         }
 
@@ -96,7 +86,7 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
@@ -109,12 +99,11 @@ namespace Server.Items
 
     public class DustyExplorersBackpack : BaseRewardBackpack
     {
-        public override int LabelNumber { get { return 1113190; } } // Dusty Explorer's Backpack
-        public override int Level { get { return 2; } }
+        public override int LabelNumber => 1113190; // Dusty Explorer's Backpack
+        public override int Level => 2;
 
         [Constructable]
         public DustyExplorersBackpack()
-            : base()
         {
         }
 
@@ -127,7 +116,7 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
@@ -140,12 +129,11 @@ namespace Server.Items
 
     public class DustyHuntersBackpack : BaseRewardBackpack
     {
-        public override int LabelNumber { get { return 1113191; } } // Dusty Hunter's Backpack
-        public override int Level { get { return 3; } }
+        public override int LabelNumber => 1113191; // Dusty Hunter's Backpack
+        public override int Level => 3;
 
         [Constructable]
         public DustyHuntersBackpack()
-            : base()
         {
         }
 
@@ -158,7 +146,7 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)

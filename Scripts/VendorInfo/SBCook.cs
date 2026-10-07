@@ -1,40 +1,26 @@
-using System;
 using System.Collections.Generic;
 using Server.Items;
 
-namespace Server.Mobiles 
-{ 
-    public class SBCook : SBInfo 
-    { 
+namespace Server.Mobiles
+{
+    public class SBCook : SBInfo
+    {
         private readonly List<GenericBuyInfo> m_BuyInfo = new InternalBuyInfo();
         private readonly IShopSellInfo m_SellInfo = new InternalSellInfo();
-        public SBCook() 
-        { 
-        }
 
-        public override IShopSellInfo SellInfo
-        {
-            get
-            {
-                return m_SellInfo;
-            }
-        }
-        public override List<GenericBuyInfo> BuyInfo
-        {
-            get
-            {
-                return m_BuyInfo;
-            }
-        }
+        public override IShopSellInfo SellInfo => m_SellInfo;
 
-        public class InternalBuyInfo : List<GenericBuyInfo> 
-        { 
-            public InternalBuyInfo() 
+        public override List<GenericBuyInfo> BuyInfo => m_BuyInfo;
+
+        public class InternalBuyInfo : List<GenericBuyInfo>
+        {
+            public InternalBuyInfo()
             {
                 Add(new GenericBuyInfo("1044567", typeof(Skillet), 3, 20, 0x97F, 0));
                 Add(new GenericBuyInfo(typeof(BreadLoaf), 5, 20, 0x103B, 0, true));
                 Add(new GenericBuyInfo(typeof(BreadLoaf), 5, 20, 0x103C, 0, true));
-                Add(new GenericBuyInfo(typeof(ApplePie), 7, 20, 0x1041, 0, true)); //OSI just has Pie, not Apple/Fruit/Meat
+                Add(new GenericBuyInfo(typeof(ApplePie), 7, 20, 0x1041, 0,
+                    true)); //OSI just has Pie, not Apple/Fruit/Meat
                 Add(new GenericBuyInfo(typeof(Cake), 13, 20, 0x9E9, 0, true));
                 Add(new GenericBuyInfo(typeof(Muffins), 3, 20, 0x9EA, 0, true));
 
@@ -60,14 +46,13 @@ namespace Server.Mobiles
                 Add(new GenericBuyInfo(typeof(JarHoney), 3, 20, 0x9EC, 0, true));
                 Add(new GenericBuyInfo(typeof(RollingPin), 2, 20, 0x1043, 0));
                 Add(new GenericBuyInfo(typeof(FlourSifter), 2, 20, 0x103E, 0));
-                
             }
         }
 
-        public class InternalSellInfo : GenericSellInfo 
-        { 
-            public InternalSellInfo() 
-            { 
+        public class InternalSellInfo : GenericSellInfo
+        {
+            public InternalSellInfo()
+            {
                 Add(typeof(CheeseWheel), 12);
                 Add(typeof(CookedBird), 8);
                 Add(typeof(RoastPig), 53);

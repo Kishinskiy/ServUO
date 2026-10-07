@@ -9,23 +9,24 @@ namespace Server.Commands.Generic
     {
         public OnlineCommandImplementor()
         {
-            this.Accessors = new string[] { "Online" };
-            this.SupportRequirement = CommandSupport.Online;
-            this.SupportsConditionals = true;
-            this.AccessLevel = AccessLevel.GameMaster;
-            this.Usage = "Online <command> [condition]";
-            this.Description = "Invokes the command on all mobiles that are currently logged in. Optional condition arguments can further restrict the set of objects.";
+            Accessors = new[] { "Online" };
+            SupportRequirement = CommandSupport.Online;
+            SupportsConditionals = true;
+            AccessLevel = AccessLevel.GameMaster;
+            Usage = "Online <command> [condition]";
+            Description =
+                "Invokes the command on all mobiles that are currently logged in. Optional condition arguments can further restrict the set of objects.";
         }
 
         public override void Compile(Mobile from, BaseCommand command, ref string[] args, ref object obj)
         {
             try
             {
-                Extensions ext = Extensions.Parse(from, ref args);
+                var ext = Extensions.Parse(from, ref args);
 
                 bool items, mobiles;
 
-                if (!this.CheckObjectTypes(from, command, ext, out items, out mobiles))
+                if (!CheckObjectTypes(from, command, ext, out items, out mobiles))
                     return;
 
                 if (!mobiles) // sanity check
@@ -34,14 +35,14 @@ namespace Server.Commands.Generic
                     return;
                 }
 
-                ArrayList list = new ArrayList();
+                var list = new ArrayList();
 
                 IList<NetState> states = NetState.Instances;
 
-                for (int i = 0; i < states.Count; ++i)
+                for (var i = 0; i < states.Count; ++i)
                 {
-                    NetState ns = states[i];
-                    Mobile mob = ns.Mobile;
+                    var ns = states[i];
+                    var mob = ns.Mobile;
 
                     if (mob == null)
                         continue;

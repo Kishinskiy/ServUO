@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 using Server.Network;
 
@@ -8,6 +7,14 @@ namespace Server.Mobiles
     public class Kepetch : BaseCreature, ICarvable
     {
         public bool GatheredFur { get; set; }
+
+        public override int Meat => 5;
+        public override int Hides => 14;
+        public override HideType HideType => HideType.Spined;
+        public override FoodType FavoriteFood => FoodType.FruitsAndVegies | FoodType.GrainsAndHay;
+        public override int DragonBlood => 8;
+        public override int Fur => GatheredFur ? 0 : 15;
+        public override FurType FurType => FurType.Brown;
 
         [Constructable]
         public Kepetch()
@@ -50,14 +57,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override int Meat { get { return 5; } }
-        public override int Hides { get { return 14; } }
-        public override HideType HideType { get { return HideType.Spined; } }
-        public override FoodType FavoriteFood { get { return FoodType.FruitsAndVegies | FoodType.GrainsAndHay; } }
-        public override int DragonBlood { get { return 8; } }
-        public override int Fur { get { return GatheredFur ? 0 : 15; } }
-        public override FurType FurType { get { return FurType.Brown; } }
-
         public bool Carve(Mobile from, Item item)
         {
             if (!GatheredFur)
@@ -66,7 +65,8 @@ namespace Server.Mobiles
 
                 if (from.Backpack == null || !from.Backpack.TryDropItem(from, fur, false))
                 {
-                    from.SendLocalizedMessage(1112359); // You would not be able to place the gathered kepetch fur in your backpack!
+                    from.SendLocalizedMessage(
+                        1112359); // You would not be able to place the gathered kepetch fur in your backpack!
                     fur.Delete();
                 }
                 else
@@ -78,7 +78,8 @@ namespace Server.Mobiles
             }
             else
             {
-                PrivateOverheadMessage(MessageType.Regular, 0x3B2, 1112358, from.NetState); // The Kepetch nimbly escapes your attempts to shear its mane.
+                PrivateOverheadMessage(MessageType.Regular, 0x3B2, 1112358,
+                    from.NetState); // The Kepetch nimbly escapes your attempts to shear its mane.
             }
 
             return false;

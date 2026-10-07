@@ -1,14 +1,21 @@
-using Server;
 using System;
-using Server.Mobiles;
 using Server.Gumps;
+using Server.Mobiles;
 
 namespace Server.Services.TownCryer
 {
     public class CreateGreetingEntryGump : BaseTownCryerGump
     {
+        private string _Body;
+        private string _Body2;
+        private string _Body3;
+        private string _Expires;
+
+        private string _Headline;
+        private string _Link;
+        private string _LinkText;
         public TownCryerGreetingEntry Entry { get; set; }
-        public bool Edit { get; private set; }
+        public bool Edit { get; }
 
         public CreateGreetingEntryGump(PlayerMobile pm, TownCrier cryer, TownCryerGreetingEntry entry = null)
             : base(pm, cryer)
@@ -19,10 +26,10 @@ namespace Server.Services.TownCryer
             {
                 Edit = true;
 
-                _Headline = Entry.Title != null ? Entry.Title.String : String.Empty;
-                _Body = Entry.Body1 != null ? Entry.Body1.String : String.Empty;
-                _Body2 = Entry.Body2 != null ? Entry.Body2 : String.Empty;
-                _Body3 = Entry.Body3 != null ? Entry.Body3 : String.Empty;
+                _Headline = Entry.Title != null ? Entry.Title.String : string.Empty;
+                _Body = Entry.Body1 != null ? Entry.Body1.String : string.Empty;
+                _Body2 = Entry.Body2 != null ? Entry.Body2 : string.Empty;
+                _Body3 = Entry.Body3 != null ? Entry.Body3 : string.Empty;
 
                 _Link = Entry.Link;
                 _LinkText = Entry.LinkText;
@@ -34,7 +41,7 @@ namespace Server.Services.TownCryer
             base.AddGumpLayout();
 
             AddHtmlLocalized(58, 140, 100, 20, 1158027, false, false); // Author:
-            AddLabel(105, 140, 0, String.Format("{1} {0}", User.Name, User.AccessLevel.ToString()));
+            AddLabel(105, 140, 0, string.Format("{1} {0}", User.Name, User.AccessLevel.ToString()));
 
             AddHtmlLocalized(58, 160, 100, 20, 1158026, false, false); // Headline:
             AddBackground(58, 180, 740, 20, 0x2486);
@@ -73,63 +80,34 @@ namespace Server.Services.TownCryer
 
         private void HandleText(RelayInfo info)
         {
-            TextRelay relay = info.GetTextEntry(1);
+            var relay = info.GetTextEntry(1);
 
-            if (relay != null && !string.IsNullOrEmpty(relay.Text))
-            {
-                _Headline = relay.Text.Trim();
-            }
+            if (relay != null && !string.IsNullOrEmpty(relay.Text)) _Headline = relay.Text.Trim();
 
             relay = info.GetTextEntry(2);
 
-            if (relay != null && !string.IsNullOrEmpty(relay.Text))
-            {
-                _Body = relay.Text.Trim();
-            }
+            if (relay != null && !string.IsNullOrEmpty(relay.Text)) _Body = relay.Text.Trim();
 
             relay = info.GetTextEntry(3);
 
-            if (relay != null && !string.IsNullOrEmpty(relay.Text))
-            {
-                _Body2 = relay.Text.Trim();
-            }
+            if (relay != null && !string.IsNullOrEmpty(relay.Text)) _Body2 = relay.Text.Trim();
 
             relay = info.GetTextEntry(4);
 
-            if (relay != null && !string.IsNullOrEmpty(relay.Text))
-            {
-                _Body3 = relay.Text.Trim();
-            }
+            if (relay != null && !string.IsNullOrEmpty(relay.Text)) _Body3 = relay.Text.Trim();
 
             relay = info.GetTextEntry(5);
 
-            if (relay != null && !string.IsNullOrEmpty(relay.Text))
-            {
-                _Link = relay.Text.Trim();
-            }
+            if (relay != null && !string.IsNullOrEmpty(relay.Text)) _Link = relay.Text.Trim();
 
             relay = info.GetTextEntry(6);
 
-            if (relay != null && !string.IsNullOrEmpty(relay.Text))
-            {
-                _LinkText = relay.Text.Trim();
-            }
+            if (relay != null && !string.IsNullOrEmpty(relay.Text)) _LinkText = relay.Text.Trim();
 
             relay = info.GetTextEntry(7);
 
-            if (relay != null && !string.IsNullOrEmpty(relay.Text))
-            {
-                _Expires = relay.Text.Trim();
-            }
+            if (relay != null && !string.IsNullOrEmpty(relay.Text)) _Expires = relay.Text.Trim();
         }
-
-        private string _Headline;
-        private string _Body;
-        private string _Body2;
-        private string _Body3;
-        private string _Expires;
-        private string _Link;
-        private string _LinkText;
 
         public override void OnResponse(RelayInfo info)
         {
@@ -145,12 +123,9 @@ namespace Server.Services.TownCryer
                 var link = _Link;
                 var linkText = _LinkText;
 
-                int expires = -1;
+                var expires = -1;
 
-                if (!String.IsNullOrEmpty(exp))
-                {
-                    expires = Utility.ToInt32(exp);
-                }
+                if (!string.IsNullOrEmpty(exp)) expires = Utility.ToInt32(exp);
 
                 if (Entry == null)
                 {
@@ -165,19 +140,19 @@ namespace Server.Services.TownCryer
                     Entry.Link = link;
                     Entry.LinkText = linkText;
 
-                    if (expires >= 1 && expires <= 30)
-                    {
-                        Entry.Expires = DateTime.Now + TimeSpan.FromDays(expires);
-                    }
+                    if (expires >= 1 && expires <= 30) Entry.Expires = DateTime.Now + TimeSpan.FromDays(expires);
                 }
 
-                if(!Edit && (expires < 1 || expires > 30))
+                if (!Edit && (expires < 1 || expires > 30))
                 {
-                    User.SendLocalizedMessage(1158033); // The expiry can be between 1 and 30 days. Please check your entry and try again.
+                    User.SendLocalizedMessage(
+                        1158033); // The expiry can be between 1 and 30 days. Please check your entry and try again.
                 }
-                else if (string.IsNullOrEmpty(headline) || string.IsNullOrEmpty(body) || headline.Length < 5 || body.Length < 5)
+                else if (string.IsNullOrEmpty(headline) || string.IsNullOrEmpty(body) || headline.Length < 5 ||
+                         body.Length < 5)
                 {
-                    User.SendLocalizedMessage(1158032); // You have made an illegal entry.  Check your entries and try again.
+                    User.SendLocalizedMessage(
+                        1158032); // You have made an illegal entry.  Check your entries and try again.
                 }
                 else
                 {

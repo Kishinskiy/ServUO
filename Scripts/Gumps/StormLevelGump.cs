@@ -1,46 +1,29 @@
 ﻿using System;
 using Server.Commands;
+using Server.Mobiles;
 using Server.Network;
 
 namespace Server.Gumps
 {
     public class StormLevelEntry
     {
-        private readonly int m_Name;
-        private readonly Point3D[] m_Locations;
+        public int Name { get; }
+
+        public Point3D[] Locations { get; }
 
         public StormLevelEntry(int name, Point3D[] locations)
         {
-            this.m_Name = name;
-            this.m_Locations = locations;
+            Name = name;
+            Locations = locations;
         }
-
-        public int Name { get { return this.m_Name; } }
-        public Point3D[] Locations { get { return this.m_Locations; } }
     }
 
     public class StormLevelGump : Gump
     {
-        public static void Initialize()
-        {
-            CommandSystem.Register("StormLevelGump", AccessLevel.Administrator, new CommandEventHandler(StormLevel_OnCommand));
-        }
-
-        [Usage("StormLevelGump")]
-        public static void StormLevel_OnCommand(CommandEventArgs e)
-        {
-            Mobile from = e.Mobile;
-
-            if (!from.HasGump(typeof(StormLevelGump)))
-            {
-                from.SendGump(new StormLevelGump(from));
-            }
-        }
-
-        private static readonly StormLevelEntry[] m_Entries = new StormLevelEntry[]
+        private static readonly StormLevelEntry[] m_Entries =
         {
             // Britain
-            new StormLevelEntry(1011028, new Point3D[]
+            new StormLevelEntry(1011028, new[]
             {
                 new Point3D(1522, 1757, 28),
                 new Point3D(1519, 1619, 10),
@@ -50,7 +33,7 @@ namespace Server.Gumps
             }),
 
             // Trinsic
-            new StormLevelEntry(1011029, new Point3D[]
+            new StormLevelEntry(1011029, new[]
             {
                 new Point3D(2005, 2754, 30),
                 new Point3D(1993, 2827, 0),
@@ -60,7 +43,7 @@ namespace Server.Gumps
             }),
 
             // Vesper
-            new StormLevelEntry(1011030, new Point3D[]
+            new StormLevelEntry(1011030, new[]
             {
                 new Point3D(2973, 891, 0),
                 new Point3D(3003, 776, 0),
@@ -70,7 +53,7 @@ namespace Server.Gumps
             }),
 
             // Minoc
-            new StormLevelEntry(1011031, new Point3D[]
+            new StormLevelEntry(1011031, new[]
             {
                 new Point3D(2498, 392, 0),
                 new Point3D(2433, 541, 0),
@@ -80,7 +63,7 @@ namespace Server.Gumps
             }),
 
             // Jhelom ==
-            new StormLevelEntry(1011343, new Point3D[]
+            new StormLevelEntry(1011343, new[]
             {
                 new Point3D(490, 1166, 0),
                 new Point3D(652, 1098, 0),
@@ -90,7 +73,7 @@ namespace Server.Gumps
             }),
 
             // Moonglow
-            new StormLevelEntry(1011344, new Point3D[]
+            new StormLevelEntry(1011344, new[]
             {
                 new Point3D(4444, 1061, 0),
                 new Point3D(4443, 1066, 0),
@@ -100,7 +83,7 @@ namespace Server.Gumps
             }),
 
             // Yew
-            new StormLevelEntry(1011032, new Point3D[]
+            new StormLevelEntry(1011032, new[]
             {
                 new Point3D(490, 1166, 0),
                 new Point3D(652, 1098, 0),
@@ -110,17 +93,17 @@ namespace Server.Gumps
             }),
 
             // Magincia
-            new StormLevelEntry(1016172, new Point3D[]
+            new StormLevelEntry(1016172, new[]
             {
                 new Point3D(3669, 2099, 20),
                 new Point3D(3689, 2235, 20),
                 new Point3D(3680, 2067, 5),
                 new Point3D(3772, 2116, 20),
-                new Point3D(3660, 2122, 20),
+                new Point3D(3660, 2122, 20)
             }),
 
             // Cove
-            new StormLevelEntry(1011033, new Point3D[]
+            new StormLevelEntry(1011033, new[]
             {
                 new Point3D(2230, 1159, 0),
                 new Point3D(2218, 1203, 0),
@@ -128,9 +111,9 @@ namespace Server.Gumps
                 new Point3D(2236, 1224, 0),
                 new Point3D(2273, 1231, 0)
             }),
-            
+
             // Papua
-            new StormLevelEntry(1011057, new Point3D[]
+            new StormLevelEntry(1011057, new[]
             {
                 new Point3D(5720, 3109, -1),
                 new Point3D(5677, 3176, -3),
@@ -140,7 +123,7 @@ namespace Server.Gumps
             }),
 
             // Delucia
-            new StormLevelEntry(1011058, new Point3D[]
+            new StormLevelEntry(1011058, new[]
             {
                 new Point3D(5216, 4033, 37),
                 new Point3D(5262, 4049, 37),
@@ -150,7 +133,7 @@ namespace Server.Gumps
             }),
 
             // Skara Brae
-            new StormLevelEntry(1011347, new Point3D[]
+            new StormLevelEntry(1011347, new[]
             {
                 new Point3D(5216, 4033, 37),
                 new Point3D(5262, 4049, 37),
@@ -160,7 +143,7 @@ namespace Server.Gumps
             }),
 
             // Serpent's Hold
-            new StormLevelEntry(1011348, new Point3D[]
+            new StormLevelEntry(1011348, new[]
             {
                 new Point3D(5216, 4033, 37),
                 new Point3D(5262, 4049, 37),
@@ -175,11 +158,11 @@ namespace Server.Gumps
 
         public StormLevelGump(Mobile m) : base(50, 50)
         {
-            this.m_Mobile = m;
+            m_Mobile = m;
 
-            this.Closable = false;
-            this.Disposable = false;
-            this.Dragable = true;
+            Closable = false;
+            Disposable = false;
+            Dragable = true;
 
             AddPage(0);
             AddImage(0, 0, 206);
@@ -193,93 +176,74 @@ namespace Server.Gumps
             AddImageTiled(42, 44, 295, 267, 200);
 
             AddHtmlLocalized(49, 23, 200, 16, 1011043, false, false); // Magic Storm Level 5
-            AddHtmlLocalized(23, 51, 338, 67, 1011044, true, true); // This area has become unstable and you must leave. If you do not select a town to go to one will be picked at random. Please select a town from the list below:
+            AddHtmlLocalized(23, 51, 338, 67, 1011044, true,
+                true); // This area has become unstable and you must leave. If you do not select a town to go to one will be picked at random. Please select a town from the list below:
 
-            StormLevelEntry[] entries = m_Entries;
+            var entries = m_Entries;
 
-            for (int i = 0; i < entries.Length; i++)
+            for (var i = 0; i < entries.Length; i++)
             {
-                StormLevelEntry entry = entries[i];
+                var entry = entries[i];
 
                 if (i < 8)
                 {
-                    this.AddButton(34, 125 + 20 * i, 208, 209, i + 1, GumpButtonType.Reply, 0);
-                    this.AddHtmlLocalized(65, 125 + 20 * i, 335, 40, entry.Name, false, false);
+                    AddButton(34, 125 + 20 * i, 208, 209, i + 1, GumpButtonType.Reply, 0);
+                    AddHtmlLocalized(65, 125 + 20 * i, 335, 40, entry.Name, false, false);
                 }
                 else
                 {
-                    this.AddButton(210, 125 + 20 * (i - 8), 208, 209, i + 1, GumpButtonType.Reply, 0);
-                    this.AddHtmlLocalized(241, 125 + 20 * (i - 8), 335, 40, entry.Name, false, false);
+                    AddButton(210, 125 + 20 * (i - 8), 208, 209, i + 1, GumpButtonType.Reply, 0);
+                    AddHtmlLocalized(241, 125 + 20 * (i - 8), 335, 40, entry.Name, false, false);
                 }
             }
+        }
+
+        public static void Initialize()
+        {
+            CommandSystem.Register("StormLevelGump", AccessLevel.Administrator, StormLevel_OnCommand);
+        }
+
+        [Usage("StormLevelGump")]
+        public static void StormLevel_OnCommand(CommandEventArgs e)
+        {
+            var from = e.Mobile;
+
+            if (!from.HasGump(typeof(StormLevelGump))) from.SendGump(new StormLevelGump(from));
         }
 
         public void BeginClose()
         {
-            this.StopClose();
+            StopClose();
 
-            this.m_Timer = new CloseTimer(this.m_Mobile);
-            this.m_Timer.Start();
+            m_Timer = new CloseTimer(m_Mobile);
+            m_Timer.Start();
 
-            this.m_Mobile.Frozen = true;
+            m_Mobile.Frozen = true;
         }
 
         public void StopClose()
         {
-            if (this.m_Timer != null)
-                this.m_Timer.Stop();
+            if (m_Timer != null)
+                m_Timer.Stop();
 
-            this.m_Mobile.Frozen = false;
-        }
-
-        private class CloseTimer : Timer
-        {
-            private readonly Mobile m_Mobile;
-            private readonly DateTime m_End;
-            public CloseTimer(Mobile m)
-                : base(TimeSpan.Zero, TimeSpan.FromSeconds(1.0))
-            {
-                this.m_Mobile = m;
-                this.m_End = DateTime.UtcNow + TimeSpan.FromSeconds(10.0);
-            }
-
-            protected override void OnTick()
-            {
-                if (this.m_Mobile.NetState == null || DateTime.UtcNow > this.m_End)
-                {
-                    this.m_Mobile.Frozen = false;
-                    this.m_Mobile.CloseGump(typeof(StormLevelGump));
-
-                    StormLevelEntry[] entries = m_Entries;
-                    int id = Utility.Random(entries.Length);
-                    int idx = Utility.Random(entries[id].Locations.Length);
-                    Point3D dest = entries[id].Locations[idx];
-
-                    GoTo(m_Mobile, dest);
-                    this.Stop();
-                }
-                else
-                {
-                    this.m_Mobile.Frozen = true;
-                }
-            }
+            m_Mobile.Frozen = false;
         }
 
         public override void OnResponse(NetState state, RelayInfo info)
         {
-            Mobile from = state.Mobile;
+            var from = state.Mobile;
 
             if (info.ButtonID != 0)
-            {               
-                int index = info.ButtonID - 1;
-                StormLevelEntry[] entries = m_Entries;
+            {
+                var index = info.ButtonID - 1;
+                var entries = m_Entries;
 
                 if (index >= 0 && index < entries.Length)
                 {
-                    Point3D dest = entries[index].Locations[Utility.Random(entries[index].Locations.Length)];
+                    var dest = entries[index].Locations[Utility.Random(entries[index].Locations.Length)];
 
                     GoTo(from, dest);
-                    this.StopClose();
+                    StopClose();
                 }
             }
         }
@@ -296,8 +260,42 @@ namespace Server.Gumps
             else
                 destMap = from.Kills >= 5 ? Map.Felucca : Map.Trammel;
 
-            Mobiles.BaseCreature.TeleportPets(from, dest, destMap);
+            BaseCreature.TeleportPets(from, dest, destMap);
             from.MoveToWorld(dest, destMap);
+        }
+
+        private class CloseTimer : Timer
+        {
+            private readonly DateTime m_End;
+            private readonly Mobile m_Mobile;
+
+            public CloseTimer(Mobile m)
+                : base(TimeSpan.Zero, TimeSpan.FromSeconds(1.0))
+            {
+                m_Mobile = m;
+                m_End = DateTime.UtcNow + TimeSpan.FromSeconds(10.0);
+            }
+
+            protected override void OnTick()
+            {
+                if (m_Mobile.NetState == null || DateTime.UtcNow > m_End)
+                {
+                    m_Mobile.Frozen = false;
+                    m_Mobile.CloseGump(typeof(StormLevelGump));
+
+                    var entries = m_Entries;
+                    var id = Utility.Random(entries.Length);
+                    var idx = Utility.Random(entries[id].Locations.Length);
+                    var dest = entries[id].Locations[idx];
+
+                    GoTo(m_Mobile, dest);
+                    Stop();
+                }
+                else
+                {
+                    m_Mobile.Frozen = true;
+                }
+            }
         }
     }
 }

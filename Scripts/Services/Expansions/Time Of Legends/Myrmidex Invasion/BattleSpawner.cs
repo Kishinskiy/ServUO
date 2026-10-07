@@ -1,10 +1,9 @@
 using System;
-using Server;
-using Server.Mobiles;
-using Server.Items;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
 using Server.Commands;
+using Server.Items;
+using Server.Mobiles;
 
 namespace Server.Engines.MyrmidexInvasion
 {
@@ -15,21 +14,178 @@ namespace Server.Engines.MyrmidexInvasion
         public const int WaveDuration = 180;
         public const int MinCredit = 25;
 
-        private bool _Active;
+        private static readonly Point2D[][][] _NavPoints1 =
+        {
+            //Lane 1                                                                                                                                               
+            new[]
+            {
+                new[]
+                {
+                    new Point2D(853, 1785), new Point2D(853, 1800), new Point2D(853, 1815), new Point2D(855, 1830),
+                    new Point2D(855, 1845), new Point2D(855, 1860), new Point2D(855, 1875), /*shares with next*/
+                    new Point2D(860, 1883), new Point2D(872, 1887), new Point2D(891, 1887)
+                },
+                new[]
+                {
+                    new Point2D(903, 1875), new Point2D(903, 1860), new Point2D(903, 1845), new Point2D(903, 1830),
+                    new Point2D(903, 1815), /*shares with next*/ new Point2D(903, 1807), new Point2D(905, 1797),
+                    new Point2D(906, 1787)
+                }
+            },
 
-        public static BattleSpawner Instance { get; set; }
+            //Lane 2
+            new[]
+            {
+                new[]
+                {
+                    new Point2D(859, 1785), new Point2D(859, 1800), new Point2D(859, 1815), new Point2D(859, 1830),
+                    new Point2D(859, 1845), new Point2D(859, 1860), new Point2D(859, 1875), /*shares with prev*/
+                    new Point2D(860, 1883), new Point2D(872, 1887), new Point2D(891, 1887)
+                },
+                new[]
+                {
+                    new Point2D(909, 1875), new Point2D(909, 1860), new Point2D(909, 1845), new Point2D(909, 1830),
+                    new Point2D(909, 1815), /*shares with prev*/ new Point2D(909, 1807), new Point2D(910, 1797),
+                    new Point2D(912, 1787)
+                }
+            },
 
-        private Rectangle2D MyrmidexLeg = new Rectangle2D(949, 1776, 59, 136);
-        private Rectangle2D MiddleLeg = new Rectangle2D(889, 1776, 60, 136);
-        private Rectangle2D TribeLeg = new Rectangle2D(832, 1776, 57, 136);
+            //Lance 3
+            new[]
+            {
+                new[]
+                {
+                    new Point2D(865, 1785), new Point2D(865, 1800), new Point2D(865, 1815), new Point2D(865, 1830),
+                    new Point2D(865, 1845), new Point2D(865, 1860), new Point2D(865, 1875), /*shares with next*/
+                    new Point2D(872, 1880), new Point2D(879, 1887), new Point2D(891, 1887), new Point2D(903, 1885)
+                },
+                new[]
+                {
+                    new Point2D(915, 1875), new Point2D(915, 1860), new Point2D(915, 1845), new Point2D(915, 1830),
+                    new Point2D(915, 1815), /*shares with next*/ new Point2D(915, 1807), new Point2D(915, 1797),
+                    new Point2D(915, 1787)
+                }
+            },
+
+            // Lane 4
+            new[]
+            {
+                new[]
+                {
+                    new Point2D(871, 1785), new Point2D(871, 1800), new Point2D(871, 1815), new Point2D(871, 1830),
+                    new Point2D(871, 1845), new Point2D(871, 1860), new Point2D(871, 1875), /*shares with prev*/
+                    new Point2D(872, 1880), new Point2D(879, 1887), new Point2D(891, 1887), new Point2D(903, 1885),
+                    new Point2D(912, 1882)
+                },
+                new[]
+                {
+                    new Point2D(921, 1875), new Point2D(921, 1860), new Point2D(921, 1845), new Point2D(921, 1830),
+                    new Point2D(921, 1815), /*shares with prev*/ new Point2D(921, 1807), new Point2D(921, 1797),
+                    new Point2D(921, 1787)
+                }
+            }
+        };
+
+        private static readonly Point2D[][][] _NavPoints2 =
+        {
+            //Lane 1                                                                                                                                               
+            new[]
+            {
+                new[]
+                {
+                    new Point2D(906, 1877), new Point2D(904, 1860), new Point2D(903, 1845), new Point2D(903, 1830),
+                    new Point2D(903, 1815), /*shares with next*/ new Point2D(909, 1807), new Point2D(921, 1807),
+                    new Point2D(935, 1801), new Point2D(950, 1797), new Point2D(959, 1798), new Point2D(973, 1802)
+                },
+                new[]
+                {
+                    new Point2D(973, 1815), new Point2D(973, 1830), new Point2D(973, 1845), new Point2D(973, 1860),
+                    new Point2D(973, 1875)
+                }
+            },
+
+            //Lane 2
+            new[]
+            {
+                new[]
+                {
+                    new Point2D(909, 1877), new Point2D(909, 1860), new Point2D(909, 1845), new Point2D(909, 1830),
+                    new Point2D(909, 1815), /*shares with prev*/ new Point2D(909, 1807), new Point2D(921, 1807),
+                    new Point2D(935, 1801), new Point2D(950, 1797), new Point2D(959, 1798), new Point2D(973, 1802),
+                    new Point2D(979, 1805)
+                },
+                new[]
+                {
+                    new Point2D(979, 1820), new Point2D(979, 1820), new Point2D(979, 1835), new Point2D(979, 1850),
+                    new Point2D(979, 1865), new Point2D(979, 1880)
+                }
+            },
+
+            //Lance 3
+            new[]
+            {
+                new[]
+                {
+                    new Point2D(915, 1877), new Point2D(915, 1860), new Point2D(915, 1845), new Point2D(915, 1830),
+                    new Point2D(915, 1815), /*shares with next*/ new Point2D(921, 1807), new Point2D(935, 1801),
+                    new Point2D(950, 1797), new Point2D(959, 1798), new Point2D(973, 1802), new Point2D(979, 1805),
+                    new Point2D(985, 1809)
+                },
+                new[]
+                {
+                    new Point2D(985, 1825), new Point2D(985, 1840), new Point2D(985, 1855), new Point2D(985, 1870),
+                    new Point2D(985, 1885)
+                }
+            },
+
+            // Lane 4
+            new[]
+            {
+                new[]
+                {
+                    new Point2D(919, 1877), new Point2D(920, 1860), new Point2D(921, 1845), new Point2D(921, 1830),
+                    new Point2D(921, 1815), /*shares with prev*/ new Point2D(921, 1807), new Point2D(935, 1801),
+                    new Point2D(950, 1797), new Point2D(959, 1798), new Point2D(973, 1802), new Point2D(979, 1805),
+                    new Point2D(985, 1809), new Point2D(991, 1813)
+                },
+                new[]
+                {
+                    new Point2D(991, 1830), new Point2D(991, 1845), new Point2D(991, 1860), new Point2D(991, 1875),
+                    new Point2D(991, 1885)
+                }
+            }
+        };
+
+        private readonly Rectangle2D _MyrmidexSpawnZone = new Rectangle2D(971, 1856, 31, 10);
+
+        private readonly Type[][] _MyrmidexTypes =
+        {
+            new[] { typeof(MyrmidexDrone) },
+            new[] { typeof(MyrmidexWarrior), typeof(TribeWarrior) },
+            new[] { typeof(MyrmidexWarrior), typeof(TribeWarrior), typeof(TribeShaman) }
+        };
+
+        private readonly Rectangle2D _TribeSpawnZone = new Rectangle2D(844, 1800, 42, 10);
+
+        private readonly Type[][] _TribeTypes =
+        {
+            new[] { typeof(BritannianInfantry) },
+            new[] { typeof(BritannianInfantry), typeof(TribeWarrior) },
+            new[] { typeof(BritannianInfantry), typeof(TribeWarrior), typeof(TribeShaman) }
+        };
 
         public Rectangle2D Bounds = new Rectangle2D(828, 1762, 195, 158);
+        private Rectangle2D MiddleLeg = new Rectangle2D(889, 1776, 60, 136);
 
-        private Rectangle2D _MyrmidexSpawnZone = new Rectangle2D(971, 1856, 31, 10);
-        private Rectangle2D _TribeSpawnZone = new Rectangle2D(844, 1800, 42, 10);
+        private Rectangle2D MyrmidexLeg = new Rectangle2D(949, 1776, 59, 136);
+        private Rectangle2D TribeLeg = new Rectangle2D(832, 1776, 57, 136);
+
+        private bool _Active;
 
         private Rectangle2D _MyrmidexObjective = new Rectangle2D(909, 1871, 10, 10);
         private Rectangle2D _TribalObjective = new Rectangle2D(908, 1782, 10, 10);
+
+        public static BattleSpawner Instance { get; set; }
 
         public BattleRegion BattleRegion { get; set; }
         public Timer Timer { get; set; }
@@ -43,7 +199,7 @@ namespace Server.Engines.MyrmidexInvasion
         [CommandProperty(AccessLevel.GameMaster)]
         public bool Active
         {
-            get { return _Active; }
+            get => _Active;
             set
             {
                 if (_Active && !value)
@@ -104,11 +260,17 @@ namespace Server.Engines.MyrmidexInvasion
             _Active = true;
         }
 
+        public BattleSpawner(Serial serial)
+            : base(serial)
+        {
+        }
+
         public static void Initialize()
         {
             if (Instance != null)
             {
-                Instance.BattleRegion = Region.Regions.FirstOrDefault(r => r.GetType() == typeof(BattleRegion)) as BattleRegion;
+                Instance.BattleRegion =
+                    Region.Regions.FirstOrDefault(r => r.GetType() == typeof(BattleRegion)) as BattleRegion;
                 Instance.BattleRegion.Spawner = Instance;
             }
 
@@ -139,7 +301,8 @@ namespace Server.Engines.MyrmidexInvasion
                 if (LastPlayers != DateTime.MinValue)
                     LastPlayers = DateTime.MinValue;
 
-                if (LastMyrmidexWave + TimeSpan.FromSeconds(WaveDuration) < DateTime.UtcNow && MyrmidexTeam.Count < MaxWaves)
+                if (LastMyrmidexWave + TimeSpan.FromSeconds(WaveDuration) < DateTime.UtcNow &&
+                    MyrmidexTeam.Count < MaxWaves)
                     SpawnWave(Allegiance.Myrmidex);
 
                 if (LastTribeWave + TimeSpan.FromSeconds(WaveDuration) < DateTime.UtcNow && TribeTeam.Count < MaxWaves)
@@ -157,15 +320,15 @@ namespace Server.Engines.MyrmidexInvasion
 
         public void CheckAdvance()
         {
-            List<BaseCreature> myrmidex = GetAll(Allegiance.Myrmidex);
-            List<BaseCreature> tribes = GetAll(Allegiance.Tribes);
+            var myrmidex = GetAll(Allegiance.Myrmidex);
+            var tribes = GetAll(Allegiance.Tribes);
 
             IEnumerable<PlayerMobile> winners = null;
 
-            Dictionary<int, BaseCreature> hasBreached = new Dictionary<int, BaseCreature>();
-            bool opposedBreach = false;
+            var hasBreached = new Dictionary<int, BaseCreature>();
+            var opposedBreach = false;
 
-            IPooledEnumerable eable = this.Map.GetMobilesInBounds(_MyrmidexObjective);
+            IPooledEnumerable eable = Map.GetMobilesInBounds(_MyrmidexObjective);
 
             foreach (Mobile m in eable)
             {
@@ -174,9 +337,10 @@ namespace Server.Engines.MyrmidexInvasion
                     opposedBreach = true;
                     break; // once its opposed, no winner
                 }
-                else if (m is BaseCreature && myrmidex.Contains((BaseCreature)m))
+
+                if (m is BaseCreature && myrmidex.Contains((BaseCreature)m))
                 {
-                    int wave = GetWave(MyrmidexTeam, ((BaseCreature)m));
+                    var wave = GetWave(MyrmidexTeam, (BaseCreature)m);
 
                     hasBreached[wave] = (BaseCreature)m;
                 }
@@ -184,13 +348,11 @@ namespace Server.Engines.MyrmidexInvasion
 
             if (hasBreached.Count > 0 && !opposedBreach)
             {
-                foreach (var kvp in hasBreached)
-                {
-                    ClearWave(Allegiance.Myrmidex, GetWave(MyrmidexTeam, kvp.Value));
-                }
+                foreach (var kvp in hasBreached) ClearWave(Allegiance.Myrmidex, GetWave(MyrmidexTeam, kvp.Value));
 
                 winners = GetPlayers(Allegiance.Myrmidex);
-                RegionMessage(1156630); // The Myrmidex are victorious!  If you are allied to the Myrmidex visit the Tinker in the Barrab village to continue the quest!  Otherwise, continue the fight until your team is victorious!
+                RegionMessage(
+                    1156630); // The Myrmidex are victorious!  If you are allied to the Myrmidex visit the Tinker in the Barrab village to continue the quest!  Otherwise, continue the fight until your team is victorious!
             }
 
             eable.Free();
@@ -199,7 +361,7 @@ namespace Server.Engines.MyrmidexInvasion
 
             if (winners == null)
             {
-                eable = this.Map.GetMobilesInBounds(_TribalObjective);
+                eable = Map.GetMobilesInBounds(_TribalObjective);
 
                 foreach (Mobile m in eable)
                 {
@@ -208,9 +370,10 @@ namespace Server.Engines.MyrmidexInvasion
                         opposedBreach = true;
                         break; // once its opposed, no winner
                     }
-                    else if (m is BaseCreature && tribes.Contains((BaseCreature)m))
+
+                    if (m is BaseCreature && tribes.Contains((BaseCreature)m))
                     {
-                        int wave = GetWave(TribeTeam, ((BaseCreature)m));
+                        var wave = GetWave(TribeTeam, (BaseCreature)m);
 
                         hasBreached[wave] = (BaseCreature)m;
                     }
@@ -218,13 +381,11 @@ namespace Server.Engines.MyrmidexInvasion
 
                 if (hasBreached.Count > 0 && !opposedBreach)
                 {
-                    foreach (var kvp in hasBreached)
-                    {
-                        ClearWave(Allegiance.Tribes, GetWave(TribeTeam, kvp.Value));
-                    }
+                    foreach (var kvp in hasBreached) ClearWave(Allegiance.Tribes, GetWave(TribeTeam, kvp.Value));
 
                     winners = GetPlayers(Allegiance.Tribes);
-                    RegionMessage(1156631); // The Eodonians are victorious!  If you are allied to the Eodonians visit Professor Raffkin in Sir Geoffrey's camp to continue the quest! Otherwise, continue the fight until your team is victorious!
+                    RegionMessage(
+                        1156631); // The Eodonians are victorious!  If you are allied to the Eodonians visit Professor Raffkin in Sir Geoffrey's camp to continue the quest! Otherwise, continue the fight until your team is victorious!
                 }
             }
 
@@ -232,10 +393,9 @@ namespace Server.Engines.MyrmidexInvasion
             hasBreached.Clear();
 
             if (winners != null)
-            {
-                foreach(var pm in winners.Where(pm => Players.ContainsKey(pm) && Players[pm] > MinCredit))
+                foreach (var pm in winners.Where(pm => Players.ContainsKey(pm) && Players[pm] > MinCredit))
                 {
-                    AllianceEntry entry = MyrmidexInvasionSystem.GetEntry(pm);
+                    var entry = MyrmidexInvasionSystem.GetEntry(pm);
 
                     if (entry != null && !entry.CanRecieveQuest)
                         entry.CanRecieveQuest = true;
@@ -243,7 +403,6 @@ namespace Server.Engines.MyrmidexInvasion
                     if (Players.ContainsKey(pm))
                         Players.Remove(pm);
                 }
-            }
 
             ColUtility.Free(myrmidex);
             ColUtility.Free(tribes);
@@ -257,20 +416,13 @@ namespace Server.Engines.MyrmidexInvasion
             Dictionary<int, List<BaseCreature>> list;
 
             if (allegiance == Allegiance.Myrmidex)
-            {
                 list = MyrmidexTeam;
-            }
             else
-            {
                 list = TribeTeam;
-            }
 
             if (list.ContainsKey(wave))
             {
-                foreach (var bc in list[wave].Where(bc => bc.Alive))
-                {
-                    bc.Delete();
-                }
+                foreach (var bc in list[wave].Where(bc => bc.Alive)) bc.Delete();
 
                 ColUtility.Free(list[wave]);
                 list.Remove(wave);
@@ -282,22 +434,14 @@ namespace Server.Engines.MyrmidexInvasion
             if (BattleRegion == null)
                 return;
 
-            IEnumerable<BaseCreature> list = BattleRegion.GetEnumeratedMobiles().OfType<BaseCreature>();
+            var list = BattleRegion.GetEnumeratedMobiles().OfType<BaseCreature>();
 
-            foreach (BaseCreature bc in list.Where(b => b.Alive && !b.Controlled && !b.Summoned && b.GetMaster() == null))
-            {
+            foreach (var bc in list.Where(b => b.Alive && !b.Controlled && !b.Summoned && b.GetMaster() == null))
                 bc.Kill();
-            }
 
-            foreach (KeyValuePair<int, List<BaseCreature>> kvp in MyrmidexTeam)
-            {
-                ColUtility.Free(kvp.Value);
-            }
+            foreach (var kvp in MyrmidexTeam) ColUtility.Free(kvp.Value);
 
-            foreach (KeyValuePair<int, List<BaseCreature>> kvp in TribeTeam)
-            {
-                ColUtility.Free(kvp.Value);
-            }
+            foreach (var kvp in TribeTeam) ColUtility.Free(kvp.Value);
 
             MyrmidexTeam.Clear();
             TribeTeam.Clear();
@@ -307,7 +451,7 @@ namespace Server.Engines.MyrmidexInvasion
         {
             var list = MyrmidexTeam.Keys.ToList();
 
-            for(int i = 0; i < list.Count; i++)
+            for (var i = 0; i < list.Count; i++)
             {
                 var wave = list[i];
                 var bcList = MyrmidexTeam[wave];
@@ -319,17 +463,19 @@ namespace Server.Engines.MyrmidexInvasion
                 {
                     ColUtility.Free(bcList);
 
-                    if(MyrmidexTeam.ContainsKey(wave))
+                    if (MyrmidexTeam.ContainsKey(wave))
                         MyrmidexTeam.Remove(wave);
 
-                    RegionMessage(i == 0 ? 1156604 : 1156605); // The Eodonians have secured new ground, the front line has moved up!
+                    RegionMessage(i == 0
+                        ? 1156604
+                        : 1156605); // The Eodonians have secured new ground, the front line has moved up!
                 }
             }
 
             list.Clear();
             list = TribeTeam.Keys.ToList();
 
-            for (int i = 0; i < list.Count; i++)
+            for (var i = 0; i < list.Count; i++)
             {
                 var wave = list[i];
                 var bcList = TribeTeam[wave];
@@ -341,10 +487,12 @@ namespace Server.Engines.MyrmidexInvasion
                 {
                     ColUtility.Free(bcList);
 
-                    if(TribeTeam.ContainsKey(wave))
+                    if (TribeTeam.ContainsKey(wave))
                         TribeTeam.Remove(wave);
 
-                    RegionMessage(i == 0 ? 1156602 : 1156603); // The Myrmidex have secured new ground, the front line has moved up!
+                    RegionMessage(i == 0
+                        ? 1156602
+                        : 1156603); // The Myrmidex have secured new ground, the front line has moved up!
                 }
             }
 
@@ -355,27 +503,26 @@ namespace Server.Engines.MyrmidexInvasion
         {
             if (allegiance == Allegiance.Myrmidex)
             {
-                int wave = MyrmidexTeam.Count;
+                var wave = MyrmidexTeam.Count;
                 MyrmidexTeam[wave] = new List<BaseCreature>();
-                List<BaseCreature> list = MyrmidexTeam[wave];
+                var list = MyrmidexTeam[wave];
 
-                for (int i = 0; i < WaveCount; i++)
+                for (var i = 0; i < WaveCount; i++)
                 {
                     BaseCreature bc;
-                    Type type = _MyrmidexTypes[wave][Utility.Random(_MyrmidexTypes[wave].Length)];
+                    var type = _MyrmidexTypes[wave][Utility.Random(_MyrmidexTypes[wave].Length)];
 
                     if (type.IsSubclassOf(typeof(BaseEodonTribesman)))
-                        bc = Activator.CreateInstance(type, new object[] { EodonTribe.Barrab }) as BaseCreature;
+                        bc = Activator.CreateInstance(type, EodonTribe.Barrab) as BaseCreature;
                     else
                         bc = Activator.CreateInstance(type) as BaseCreature;
 
                     bc.NoLootOnDeath = true;
 
                     if (bc != null)
-                    {
-                        for (int j = 0; j < 20; j++)
+                        for (var j = 0; j < 20; j++)
                         {
-                            Point3D p = Map.TerMur.GetRandomSpawnPoint(_MyrmidexSpawnZone);
+                            var p = Map.TerMur.GetRandomSpawnPoint(_MyrmidexSpawnZone);
 
                             if (Map.TerMur.CanSpawnMobile(p.X, p.Y, p.Z))
                             {
@@ -386,37 +533,38 @@ namespace Server.Engines.MyrmidexInvasion
                                 break;
                             }
                         }
-                    }
                 }
 
                 LastMyrmidexWave = DateTime.UtcNow;
             }
             else
             {
-                int wave = TribeTeam.Count;
+                var wave = TribeTeam.Count;
                 TribeTeam[wave] = new List<BaseCreature>();
-                List<BaseCreature> list = TribeTeam[wave];
+                var list = TribeTeam[wave];
 
-                for (int i = 0; i < WaveCount; i++)
+                for (var i = 0; i < WaveCount; i++)
                 {
                     BaseCreature bc;
-                    Type type = _TribeTypes[wave][Utility.Random(_TribeTypes[wave].Length)];
+                    var type = _TribeTypes[wave][Utility.Random(_TribeTypes[wave].Length)];
 
                     if (type.IsSubclassOf(typeof(BaseEodonTribesman)))
                     {
-                        EodonTribe tribe = Utility.RandomList<EodonTribe>(EodonTribe.Jukari, EodonTribe.Kurak, EodonTribe.Barako, EodonTribe.Urali, EodonTribe.Sakkhra);
-                        bc = Activator.CreateInstance(type, new object[] { tribe }) as BaseCreature;
+                        var tribe = Utility.RandomList(EodonTribe.Jukari, EodonTribe.Kurak, EodonTribe.Barako,
+                            EodonTribe.Urali, EodonTribe.Sakkhra);
+                        bc = Activator.CreateInstance(type, tribe) as BaseCreature;
                     }
                     else
+                    {
                         bc = Activator.CreateInstance(type) as BaseCreature;
+                    }
 
                     bc.NoLootOnDeath = true;
 
                     if (bc != null)
-                    {
-                        for (int j = 0; j < 20; j++)
+                        for (var j = 0; j < 20; j++)
                         {
-                            Point3D p = Map.TerMur.GetRandomSpawnPoint(_TribeSpawnZone);
+                            var p = Map.TerMur.GetRandomSpawnPoint(_TribeSpawnZone);
 
                             if (Map.TerMur.CanSpawnMobile(p.X, p.Y, p.Z))
                             {
@@ -427,7 +575,6 @@ namespace Server.Engines.MyrmidexInvasion
                                 break;
                             }
                         }
-                    }
                 }
 
                 LastTribeWave = DateTime.UtcNow;
@@ -445,21 +592,19 @@ namespace Server.Engines.MyrmidexInvasion
             if (bc == null)
                 return false;
 
-            Map map = bc.Corpse != null ? bc.Corpse.Map : bc.Map;
-            Point3D p = bc.Corpse != null ? bc.Corpse.Location : bc.Location;
+            var map = bc.Corpse != null ? bc.Corpse.Map : bc.Map;
+            var p = bc.Corpse != null ? bc.Corpse.Location : bc.Location;
 
             if (map != null)
             {
                 IPooledEnumerable eable = map.GetMobilesInRange(p, 12);
 
                 foreach (Mobile m in eable)
-                {
                     if (m != killer && IsSameLeg(bc, m) && MyrmidexInvasionSystem.AreEnemies(bc, m))
                     {
                         eable.Free();
                         return true;
                     }
-                }
 
                 eable.Free();
             }
@@ -472,7 +617,8 @@ namespace Server.Engines.MyrmidexInvasion
             if (BattleRegion == null)
                 return null;
 
-            return BattleRegion.GetEnumeratedMobiles().OfType<PlayerMobile>().Where(p => MyrmidexInvasionSystem.IsAlliedWith(p, allegiance));
+            return BattleRegion.GetEnumeratedMobiles().OfType<PlayerMobile>()
+                .Where(p => MyrmidexInvasionSystem.IsAlliedWith(p, allegiance));
         }
 
         public bool HasPlayers(bool ignorestaff = true)
@@ -480,7 +626,8 @@ namespace Server.Engines.MyrmidexInvasion
             if (BattleRegion == null)
                 return false;
 
-            return BattleRegion.GetEnumeratedMobiles().Any(m => m is PlayerMobile && (!ignorestaff || m.AccessLevel == AccessLevel.Player));
+            return BattleRegion.GetEnumeratedMobiles().Any(m =>
+                m is PlayerMobile && (!ignorestaff || m.AccessLevel == AccessLevel.Player));
         }
 
         public bool IsInMyrmidexObjective(Point3D p)
@@ -495,10 +642,8 @@ namespace Server.Engines.MyrmidexInvasion
 
         public void RegionMessage(int message)
         {
-            foreach(var pm in BattleRegion.GetEnumeratedMobiles().OfType<PlayerMobile>())
-            {
+            foreach (var pm in BattleRegion.GetEnumeratedMobiles().OfType<PlayerMobile>())
                 pm.SendLocalizedMessage(message);
-            }
         }
 
         public bool IsSameLeg(IPoint2D p1, IPoint2D p2)
@@ -510,11 +655,9 @@ namespace Server.Engines.MyrmidexInvasion
 
         public int GetWave(Dictionary<int, List<BaseCreature>> list, BaseCreature bc)
         {
-            foreach (KeyValuePair<int, List<BaseCreature>> kvp in list)
-            {
+            foreach (var kvp in list)
                 if (kvp.Value.Contains(bc))
                     return kvp.Key;
-            }
 
             return -1;
         }
@@ -528,32 +671,34 @@ namespace Server.Engines.MyrmidexInvasion
             else
                 list = TribeTeam;
 
-            List<BaseCreature> bclist = new List<BaseCreature>();
+            var bclist = new List<BaseCreature>();
 
-            foreach (var kvp in list)
-            {
-                bclist.AddRange(kvp.Value.Where(bc => bc != null && !bc.Deleted && bc.Alive));
-            }
+            foreach (var kvp in list) bclist.AddRange(kvp.Value.Where(bc => bc != null && !bc.Deleted && bc.Alive));
 
             return bclist;
         }
 
         public void RegisterDeath(BaseCreature bc)
         {
-            List<DamageStore> rights = bc.GetLootingRights();
+            var rights = bc.GetLootingRights();
 
-            foreach(var ds in rights.Where(ds => ds.m_Mobile is PlayerMobile && ds.m_HasRight && MyrmidexInvasionSystem.AreEnemies(ds.m_Mobile, bc)))
-            {
+            foreach (var ds in rights.Where(ds =>
+                         ds.m_Mobile is PlayerMobile && ds.m_HasRight &&
+                         MyrmidexInvasionSystem.AreEnemies(ds.m_Mobile, bc)))
                 if (MyrmidexInvasionSystem.IsAlliedWith(bc, Allegiance.Myrmidex))
                 {
-                    int points = 1;
+                    var points = 1;
                     if (IsFrontLine(ds.m_Mobile, bc))
                     {
-                        ds.m_Mobile.SendLocalizedMessage(1156599); // You assist the Eodonians in pushing back the Myrmidex!
+                        ds.m_Mobile.SendLocalizedMessage(
+                            1156599); // You assist the Eodonians in pushing back the Myrmidex!
                         points *= 4;
                     }
                     else
-                        ds.m_Mobile.SendLocalizedMessage(1156600); // You kill one of the Myrmidex away from the front ranks and gain little recognition.
+                    {
+                        ds.m_Mobile.SendLocalizedMessage(1156600);
+                    }
+                    // You kill one of the Myrmidex away from the front ranks and gain little recognition.
 
                     if (!Players.ContainsKey((PlayerMobile)ds.m_Mobile))
                         Players[(PlayerMobile)ds.m_Mobile] = points;
@@ -562,73 +707,48 @@ namespace Server.Engines.MyrmidexInvasion
                 }
                 else
                 {
-                    int points = 1;
+                    var points = 1;
                     if (IsFrontLine(ds.m_Mobile, bc))
                     {
-                        ds.m_Mobile.SendLocalizedMessage(1156598); // You assist the Myrmidex in pushing back the Eodonians!
+                        ds.m_Mobile.SendLocalizedMessage(
+                            1156598); // You assist the Myrmidex in pushing back the Eodonians!
                         points *= 4;
                     }
                     else
-                        ds.m_Mobile.SendLocalizedMessage(1156601); // You kill one of the Eodonians away from the front ranks and gain little recognition.
+                    {
+                        ds.m_Mobile.SendLocalizedMessage(1156601);
+                    }
+                    // You kill one of the Eodonians away from the front ranks and gain little recognition.
 
                     if (!Players.ContainsKey((PlayerMobile)ds.m_Mobile))
                         Players[(PlayerMobile)ds.m_Mobile] = points;
                     else
                         Players[(PlayerMobile)ds.m_Mobile] += points;
                 }
-            }
         }
-
-        private Type[][] _MyrmidexTypes =
-        {
-            new Type[] { typeof(MyrmidexDrone) }, 
-            new Type[] { typeof(MyrmidexWarrior), typeof(TribeWarrior) },
-            new Type[] { typeof(MyrmidexWarrior), typeof(TribeWarrior), typeof(TribeShaman) }
-        };
-
-        private Type[][] _TribeTypes =
-        {
-            new Type[] { typeof(BritannianInfantry) },
-            new Type[] { typeof(BritannianInfantry), typeof(TribeWarrior) },
-            new Type[] { typeof(BritannianInfantry), typeof(TribeWarrior), typeof(TribeShaman) }
-        };
 
         public void AssignNavPoints()
         {
-            int myrcount = 0;
-            int trcount = 0;
+            var myrcount = 0;
+            var trcount = 0;
+
+            foreach (var kvp in MyrmidexTeam) myrcount += kvp.Value.Count;
+
+            foreach (var kvp in TribeTeam) trcount += kvp.Value.Count;
 
             foreach (var kvp in MyrmidexTeam)
-            {
-                myrcount += kvp.Value.Count;
-            }
-
-            foreach(var kvp in TribeTeam)
-            {
-                trcount += kvp.Value.Count;
-            }
-
-            foreach (var kvp in MyrmidexTeam)
-            {
-                foreach (var bc in kvp.Value)
-                {
-                    AssignNavpoints(bc, Allegiance.Myrmidex);
-                }
-            }
+            foreach (var bc in kvp.Value)
+                AssignNavpoints(bc, Allegiance.Myrmidex);
 
             foreach (var kvp in TribeTeam)
-            {
-                foreach (var bc in kvp.Value)
-                {
-                    AssignNavpoints(bc, Allegiance.Tribes);
-                }
-            }
+            foreach (var bc in kvp.Value)
+                AssignNavpoints(bc, Allegiance.Tribes);
         }
 
         public bool AssignNavpoints(BaseCreature bc, Allegiance allegiance)
         {
-            int lane = 0;
-            int leg = GetLeg(new Point2D(bc.X, bc.Y), out lane, allegiance);
+            var lane = 0;
+            var leg = GetLeg(new Point2D(bc.X, bc.Y), out lane, allegiance);
 
             if (leg == -1)
             {
@@ -636,15 +756,15 @@ namespace Server.Engines.MyrmidexInvasion
                 return false;
             }
 
-            Point2D[][][] uselist = allegiance == Allegiance.Myrmidex ? _NavPoints2 : _NavPoints1;
-            Point2D[] list = uselist[lane][leg];
+            var uselist = allegiance == Allegiance.Myrmidex ? _NavPoints2 : _NavPoints1;
+            var list = uselist[lane][leg];
 
-            int index = 0;
-            Point2D nearest = GetNearest(list, bc, out index);
+            var index = 0;
+            var nearest = GetNearest(list, bc, out index);
 
             if (nearest != Point2D.Zero)
             {
-                List<Point2D> points = new List<Point2D>();
+                var points = new List<Point2D>();
                 points.AddRange(uselist[lane][0]);
                 points.AddRange(uselist[lane][1]);
 
@@ -657,17 +777,11 @@ namespace Server.Engines.MyrmidexInvasion
                 points.ForEach(point =>
                 {
                     if (lane == 0)
-                    {
-                        point.X = point.X + (Utility.RandomMinMax(0, 2));
-                    }
+                        point.X = point.X + Utility.RandomMinMax(0, 2);
                     else if (lane == 3)
-                    {
-                        point.X = point.X - (Utility.RandomMinMax(0, 2));
-                    }
+                        point.X = point.X - Utility.RandomMinMax(0, 2);
                     else
-                    {
-                        point.X = point.X + (Utility.RandomMinMax(-2, 2));
-                    }
+                        point.X = point.X + Utility.RandomMinMax(-2, 2);
                 });
 
                 bc.NavPoints[Map.TerMur] = points;
@@ -678,15 +792,15 @@ namespace Server.Engines.MyrmidexInvasion
 
                 return true;
             }
-            else
-                bc.Delete();
+
+            bc.Delete();
 
             return false;
         }
 
         private int GetLeg(Point2D p, out int lane, Allegiance allegiance)
         {
-            bool tribe = allegiance == Allegiance.Tribes;
+            var tribe = allegiance == Allegiance.Tribes;
 
             int leg;
             Rectangle2D rec;
@@ -707,13 +821,13 @@ namespace Server.Engines.MyrmidexInvasion
                 rec = MyrmidexLeg;
             }
 
-            int div = rec.Width / 4;
+            var div = rec.Width / 4;
 
             if (p.X <= rec.X + div)
                 lane = 0;
-            else if (p.X <= rec.X + (div * 2))
+            else if (p.X <= rec.X + div * 2)
                 lane = 1;
-            else if (p.X <= rec.X + (div * 3))
+            else if (p.X <= rec.X + div * 3)
                 lane = 2;
             else
                 lane = 3;
@@ -725,13 +839,13 @@ namespace Server.Engines.MyrmidexInvasion
         {
             double closest = 20;
             index = 0;
-            Point2D p = Point2D.Zero;
+            var p = Point2D.Zero;
 
-            for (int i = 0; i < list.Length; i++)
+            for (var i = 0; i < list.Length; i++)
             {
-                Point2D current = list[i];
+                var current = list[i];
 
-                double dist = m.GetDistanceToSqrt(current);
+                var dist = m.GetDistanceToSqrt(current);
 
                 if (dist <= closest)
                 {
@@ -739,10 +853,7 @@ namespace Server.Engines.MyrmidexInvasion
                     closest = dist;
                     index = i;
 
-                    if (closest <= 2)
-                    {
-                        return p;
-                    }
+                    if (closest <= 2) return p;
                 }
             }
 
@@ -751,90 +862,46 @@ namespace Server.Engines.MyrmidexInvasion
 
         public static void CheckPoints(CommandEventArgs e)
         {
-            int hue = 1160;
-            foreach (Point2D[][] ps in _NavPoints1)
+            var hue = 1160;
+            foreach (var ps in _NavPoints1)
             {
                 hue++;
-                foreach (Point2D[] pss in ps)
+                foreach (var pss in ps)
+                foreach (var p in pss)
                 {
-                    foreach (Point2D p in pss)
-                    {
-                        var st = new Static(14089);
-                        st.Hue = hue;
-                        st.MoveToWorld(new Point3D(p.X, p.Y, Map.TerMur.GetAverageZ(p.X, p.Y)), Map.TerMur);
-                    }
+                    var st = new Static(14089);
+                    st.Hue = hue;
+                    st.MoveToWorld(new Point3D(p.X, p.Y, Map.TerMur.GetAverageZ(p.X, p.Y)), Map.TerMur);
                 }
             }
 
-            foreach (Point2D[][] ps in _NavPoints2)
+            foreach (var ps in _NavPoints2)
             {
                 hue--;
-                foreach (Point2D[] pss in ps)
+                foreach (var pss in ps)
+                foreach (var p in pss)
                 {
-                    foreach (Point2D p in pss)
-                    {
-                        var st = new Static(14089);
-                        st.Hue = hue;
-                        st.MoveToWorld(new Point3D(p.X, p.Y, Map.TerMur.GetAverageZ(p.X, p.Y)), Map.TerMur);
-                    }
+                    var st = new Static(14089);
+                    st.Hue = hue;
+                    st.MoveToWorld(new Point3D(p.X, p.Y, Map.TerMur.GetAverageZ(p.X, p.Y)), Map.TerMur);
                 }
             }
         }
-
-        private static Point2D[][][] _NavPoints1 =
-        {       
-            //Lane 1                                                                                                                                               
-            new Point2D[][] { new Point2D[] { new Point2D(853, 1785), new Point2D(853, 1800), new Point2D(853, 1815), new Point2D(855, 1830), new Point2D(855, 1845), new Point2D(855, 1860), new Point2D(855, 1875), /*shares with next*/ new Point2D(860, 1883), new Point2D(872, 1887), new Point2D(891, 1887) },
-                              new Point2D[] { new Point2D(903, 1875), new Point2D(903, 1860), new Point2D(903, 1845), new Point2D(903, 1830), new Point2D(903, 1815), /*shares with next*/ new Point2D(903, 1807), new Point2D(905, 1797), new Point2D(906, 1787) } },
-
-            //Lane 2
-            new Point2D[][] { new Point2D[] { new Point2D(859, 1785), new Point2D(859, 1800), new Point2D(859, 1815), new Point2D(859, 1830), new Point2D(859, 1845), new Point2D(859, 1860), new Point2D(859, 1875), /*shares with prev*/ new Point2D(860, 1883), new Point2D(872, 1887), new Point2D(891, 1887) },
-                              new Point2D[] { new Point2D(909, 1875), new Point2D(909, 1860), new Point2D(909, 1845), new Point2D(909, 1830), new Point2D(909, 1815), /*shares with prev*/ new Point2D(909, 1807), new Point2D(910, 1797), new Point2D(912, 1787) } },
-            
-            //Lance 3
-            new Point2D[][] { new Point2D[] { new Point2D(865, 1785), new Point2D(865, 1800), new Point2D(865, 1815), new Point2D(865, 1830), new Point2D(865, 1845), new Point2D(865, 1860), new Point2D(865, 1875), /*shares with next*/ new Point2D(872, 1880), new Point2D(879, 1887), new Point2D(891, 1887), new Point2D(903, 1885) },
-                              new Point2D[] { new Point2D(915, 1875), new Point2D(915, 1860), new Point2D(915, 1845), new Point2D(915, 1830), new Point2D(915, 1815), /*shares with next*/ new Point2D(915, 1807), new Point2D(915, 1797), new Point2D(915, 1787) } },
-
-            // Lane 4
-            new Point2D[][] { new Point2D[] { new Point2D(871, 1785), new Point2D(871, 1800), new Point2D(871, 1815), new Point2D(871, 1830), new Point2D(871, 1845), new Point2D(871, 1860), new Point2D(871, 1875), /*shares with prev*/ new Point2D(872, 1880), new Point2D(879, 1887), new Point2D(891, 1887), new Point2D(903, 1885), new Point2D(912, 1882) },
-                              new Point2D[] { new Point2D(921, 1875), new Point2D(921, 1860), new Point2D(921, 1845), new Point2D(921, 1830), new Point2D(921, 1815), /*shares with prev*/ new Point2D(921, 1807), new Point2D(921, 1797), new Point2D(921, 1787) } }
-        };
-
-        private static Point2D[][][] _NavPoints2 =
-        {       
-            //Lane 1                                                                                                                                               
-            new Point2D[][] { 
-                              new Point2D[] { new Point2D(906, 1877), new Point2D(904, 1860), new Point2D(903, 1845), new Point2D(903, 1830), new Point2D(903, 1815), /*shares with next*/ new Point2D(909, 1807), new Point2D(921, 1807), new Point2D(935, 1801), new Point2D(950, 1797), new Point2D(959, 1798), new Point2D(973, 1802) },
-                              new Point2D[] { new Point2D(973, 1815), new Point2D(973, 1830), new Point2D(973, 1845), new Point2D(973, 1860), new Point2D(973, 1875) } },
-
-            //Lane 2
-            new Point2D[][] { 
-                              new Point2D[] { new Point2D(909, 1877), new Point2D(909, 1860), new Point2D(909, 1845), new Point2D(909, 1830), new Point2D(909, 1815), /*shares with prev*/ new Point2D(909, 1807), new Point2D(921, 1807), new Point2D(935, 1801), new Point2D(950, 1797), new Point2D(959, 1798), new Point2D(973, 1802), new Point2D(979, 1805) },
-                              new Point2D[] { new Point2D(979, 1820), new Point2D(979, 1820), new Point2D(979, 1835), new Point2D(979, 1850), new Point2D(979, 1865), new Point2D(979, 1880) } },
-            
-            //Lance 3
-            new Point2D[][] { 
-                              new Point2D[] { new Point2D(915, 1877), new Point2D(915, 1860), new Point2D(915, 1845), new Point2D(915, 1830), new Point2D(915, 1815), /*shares with next*/ new Point2D(921, 1807), new Point2D(935, 1801), new Point2D(950, 1797), new Point2D(959, 1798), new Point2D(973, 1802), new Point2D(979, 1805), new Point2D(985, 1809) },
-                              new Point2D[] { new Point2D(985, 1825), new Point2D(985, 1840), new Point2D(985, 1855), new Point2D(985, 1870), new Point2D(985, 1885) } },
-
-            // Lane 4
-            new Point2D[][] { 
-                              new Point2D[] { new Point2D(919, 1877), new Point2D(920, 1860), new Point2D(921, 1845), new Point2D(921, 1830), new Point2D(921, 1815), /*shares with prev*/ new Point2D(921, 1807), new Point2D(935, 1801), new Point2D(950, 1797), new Point2D(959, 1798), new Point2D(973, 1802), new Point2D(979, 1805), new Point2D(985, 1809), new Point2D(991, 1813) },
-                              new Point2D[] { new Point2D(991, 1830), new Point2D(991, 1845), new Point2D(991, 1860), new Point2D(991, 1875), new Point2D(991, 1885) } }
-        };
 
         private void AssignFlags()
         {
             if (BattleRegion != null)
             {
-                BattleFlag flag = BattleRegion.GetEnumeratedItems().OfType<BattleFlag>().FirstOrDefault(i => i != null && i.ItemID == 17099);
+                var flag = BattleRegion.GetEnumeratedItems().OfType<BattleFlag>()
+                    .FirstOrDefault(i => i != null && i.ItemID == 17099);
                 if (flag != null)
                 {
                     TribalFlag = flag;
                     flag.BattleSpawner = this;
                 }
 
-                flag = BattleRegion.GetEnumeratedItems().OfType<BattleFlag>().FirstOrDefault(i => i != null && i.ItemID == 1068);
+                flag = BattleRegion.GetEnumeratedItems().OfType<BattleFlag>()
+                    .FirstOrDefault(i => i != null && i.ItemID == 1068);
                 if (flag != null)
                 {
                     MyrmidexFlag = flag;
@@ -856,11 +923,6 @@ namespace Server.Engines.MyrmidexInvasion
             base.Delete();
         }
 
-        public BattleSpawner(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -869,7 +931,7 @@ namespace Server.Engines.MyrmidexInvasion
             writer.Write(_Active);
 
             writer.Write(MyrmidexTeam.Count);
-            foreach (KeyValuePair<int, List<BaseCreature>> kvp in MyrmidexTeam)
+            foreach (var kvp in MyrmidexTeam)
             {
                 writer.Write(kvp.Key);
                 writer.Write(kvp.Value.Count);
@@ -877,7 +939,7 @@ namespace Server.Engines.MyrmidexInvasion
             }
 
             writer.Write(TribeTeam.Count);
-            foreach (KeyValuePair<int, List<BaseCreature>> kvp in TribeTeam)
+            foreach (var kvp in TribeTeam)
             {
                 writer.Write(kvp.Key);
                 writer.Write(kvp.Value.Count);
@@ -885,7 +947,7 @@ namespace Server.Engines.MyrmidexInvasion
             }
 
             writer.Write(Players.Count);
-            foreach (KeyValuePair<PlayerMobile, int> kvp in Players)
+            foreach (var kvp in Players)
             {
                 writer.Write(kvp.Key);
                 writer.Write(kvp.Value);
@@ -895,7 +957,7 @@ namespace Server.Engines.MyrmidexInvasion
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int v = reader.ReadInt();
+            var v = reader.ReadInt();
 
             Instance = this;
 
@@ -904,59 +966,49 @@ namespace Server.Engines.MyrmidexInvasion
             Players = new Dictionary<PlayerMobile, int>();
 
             if (v > 1)
-            {
                 _Active = reader.ReadBool();
-            }
             else
-            {
                 _Active = true;
-            }
 
-            int count = reader.ReadInt();
-            for (int i = 0; i < count; i++)
+            var count = reader.ReadInt();
+            for (var i = 0; i < count; i++)
             {
-                int wave = reader.ReadInt();
-                int c = reader.ReadInt();
+                var wave = reader.ReadInt();
+                var c = reader.ReadInt();
 
                 MyrmidexTeam[wave] = new List<BaseCreature>();
 
-                for (int j = 0; j < c; j++)
+                for (var j = 0; j < c; j++)
                 {
-                    BaseCreature bc = reader.ReadMobile() as BaseCreature;
+                    var bc = reader.ReadMobile() as BaseCreature;
 
-                    if (bc != null)
-                    {
-                        MyrmidexTeam[wave].Add(bc);
-                        //AssignNavpoints(bc, Allegiance.Myrmidex);
-                    }
+                    if (bc != null) MyrmidexTeam[wave].Add(bc);
+                    //AssignNavpoints(bc, Allegiance.Myrmidex);
                 }
             }
 
             count = reader.ReadInt();
-            for (int i = 0; i < count; i++)
+            for (var i = 0; i < count; i++)
             {
-                int wave = reader.ReadInt();
-                int c = reader.ReadInt();
+                var wave = reader.ReadInt();
+                var c = reader.ReadInt();
 
                 TribeTeam[wave] = new List<BaseCreature>();
 
-                for (int j = 0; j < c; j++)
+                for (var j = 0; j < c; j++)
                 {
-                    BaseCreature bc = reader.ReadMobile() as BaseCreature;
+                    var bc = reader.ReadMobile() as BaseCreature;
 
-                    if (bc != null)
-                    {
-                        TribeTeam[wave].Add(bc);
-                        //AssignNavpoints(bc, Allegiance.Tribes);
-                    }
+                    if (bc != null) TribeTeam[wave].Add(bc);
+                    //AssignNavpoints(bc, Allegiance.Tribes);
                 }
             }
 
             count = reader.ReadInt();
-            for (int i = 0; i < count; i++)
+            for (var i = 0; i < count; i++)
             {
-                PlayerMobile pm = reader.ReadMobile() as PlayerMobile;
-                int score = reader.ReadInt();
+                var pm = reader.ReadMobile() as PlayerMobile;
+                var score = reader.ReadInt();
 
                 if (pm != null)
                     Players[pm] = score;
@@ -977,19 +1029,10 @@ namespace Server.Engines.MyrmidexInvasion
         private void FixFlags()
         {
             if (BattleRegion != null)
-            {
-                foreach (Item item in BattleRegion.GetEnumeratedItems())
-                {
-                    if (item is Static && (item.ItemID == 9))
-                    {
+                foreach (var item in BattleRegion.GetEnumeratedItems())
+                    if (item is Static && item.ItemID == 9)
                         item.Delete();
-                    }
-                    else if (item is BattleFlag)
-                    {
-                        item.Delete();
-                    }
-                }
-            }
+                    else if (item is BattleFlag) item.Delete();
 
             Item st = new Static(0xA1F);
             st.MoveToWorld(new Point3D(913, 1871, 0), Map.TerMur);
@@ -997,7 +1040,7 @@ namespace Server.Engines.MyrmidexInvasion
             st = new Static(0xA1F);
             st.MoveToWorld(new Point3D(914, 1871, 0), Map.TerMur);
 
-            BattleFlag bflag = new BattleFlag(0x42CB, 0);
+            var bflag = new BattleFlag(0x42CB, 0);
             bflag.MoveToWorld(new Point3D(914, 1872, 5), Map.TerMur);
 
             st = new Static(0xA1F);

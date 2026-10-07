@@ -1,9 +1,9 @@
-using System;
-
 namespace Server.Items
 {
     public class EssenceSingularity : Item, ICommodity
     {
+        public override int LabelNumber => 1113341; // essence of singularity
+
         [Constructable]
         public EssenceSingularity()
             : this(1)
@@ -24,39 +24,22 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1113341;
-            }
-        }// essence of singularity
-		TextDefinition ICommodity.Description
-        {
-            get
-            {
-                return this.LabelNumber;
-            }
-        }
-        bool ICommodity.IsDeedable
-        {
-            get
-            {
-                return true;
-            }
-        }
+        TextDefinition ICommodity.Description => LabelNumber;
+
+        bool ICommodity.IsDeedable => true;
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

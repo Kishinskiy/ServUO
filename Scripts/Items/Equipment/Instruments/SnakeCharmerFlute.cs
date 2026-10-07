@@ -1,37 +1,31 @@
 using System;
 using System.Linq;
-
-using Server;
-using Server.Network;
-using Server.Mobiles;
-using Server.Targeting;
 using Server.Engines.Craft;
+using Server.Mobiles;
+using Server.Network;
+using Server.Targeting;
 
 namespace Server.Items
 {
     public class SnakeCharmerFlute : BambooFlute
     {
-        public override int LabelNumber { get { return 1112174; } } // snake charmer flute
+        private static readonly Type[] m_SnakeTypes =
+        {
+            typeof(LavaSnake), typeof(Snake),
+            typeof(CoralSnake), typeof(GiantSerpent),
+            typeof(SilverSerpent)
+        };
 
-        public override int InitMinUses
-        {
-            get
-            {
-                return 50;
-            }
-        }
-        public override int InitMaxUses
-        {
-            get
-            {
-                return 80;
-            }
-        }
+        public override int LabelNumber => 1112174; // snake charmer flute
+
+        public override int InitMinUses => 50;
+
+        public override int InitMaxUses => 80;
 
         [Constructable]
         public SnakeCharmerFlute()
         {
-            this.Hue = 0x187;
+            Hue = 0x187;
         }
 
         public SnakeCharmerFlute(Serial serial)
@@ -52,9 +46,36 @@ namespace Server.Items
             }
         }
 
+        private static bool IsSnake(BaseCreature bc)
+        {
+            return m_SnakeTypes.Any(t => t == bc.GetType());
+        }
+
+        public override int OnCraft(int quality, bool makersMark, Mobile from, CraftSystem craftSystem, Type typeRes,
+            ITool tool, CraftItem craftItem, int resHue)
+        {
+            base.OnCraft(quality, makersMark, from, craftSystem, typeRes, tool, craftItem, resHue);
+
+            Hue = 0x187;
+
+            return quality;
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0); // version
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
+        }
+
         private class CharmTarget : Target
         {
-            private SnakeCharmerFlute m_Flute;
+            private readonly SnakeCharmerFlute m_Flute;
 
             public CharmTarget(SnakeCharmerFlute flute)
                 : base(12, false, TargetFlags.None)
@@ -64,13 +85,14 @@ namespace Server.Items
 
             protected override void OnTarget(Mobile from, object targeted)
             {
-                BaseCreature bc = targeted as BaseCreature;
+                var bc = targeted as BaseCreature;
 
                 if (bc != null && IsSnake(bc))
                 {
                     if (bc.CharmMaster != null)
                     {
-                        bc.PrivateOverheadMessage(MessageType.Regular, 0x3B2, 502802, from.NetState); // Someone else is already taming this.
+                        bc.PrivateOverheadMessage(MessageType.Regular, 0x3B2, 502802,
+                            from.NetState); // Someone else is already taming this.
                     }
                     else
                     {
@@ -86,8 +108,8 @@ namespace Server.Items
 
             private class InternalTarget : Target
             {
-                private BaseCreature m_Snake;
-                private SnakeCharmerFlute m_Flute;
+                private readonly SnakeCharmerFlute m_Flute;
+                private readonly BaseCreature m_Snake;
 
                 public InternalTarget(BaseCreature snake, SnakeCharmerFlute flute)
                     : base(10, true, TargetFlags.None)
@@ -100,7 +122,7 @@ namespace Server.Items
                 {
                     if (targ is IPoint2D)
                     {
-                        Point2D p = new Point2D((IPoint2D)targ);
+                        var p = new Point2D((IPoint2D)targ);
 
                         if (!m_Snake.InRange(p, 10))
                         {
@@ -114,8 +136,8 @@ namespace Server.Items
 
                             from.BeginAction(typeof(SnakeCharmerFlute));
 
-                            Timer.DelayCall(TimeSpan.FromSeconds(5.0), new TimerCallback(
-                                delegate { from.EndAction(typeof(SnakeCharmerFlute)); }));
+                            Timer.DelayCall(TimeSpan.FromSeconds(5.0),
+                                delegate { from.EndAction(typeof(SnakeCharmerFlute)); });
 
                             m_Flute.PlayInstrumentWell(from);
                             m_Flute.UsesRemaining--;
@@ -130,39 +152,6 @@ namespace Server.Items
                     }
                 }
             }
-        }
-
-        private static bool IsSnake(BaseCreature bc)
-        {
-            return m_SnakeTypes.Any(t => t == bc.GetType());
-        }
-
-        private static Type[] m_SnakeTypes = new Type[]
-        {
-            typeof(LavaSnake),    typeof(Snake),
-            typeof(CoralSnake),   typeof(GiantSerpent),
-            typeof(SilverSerpent)
-        };
-
-        public override int OnCraft(int quality, bool makersMark, Mobile from, CraftSystem craftSystem, Type typeRes, ITool tool, CraftItem craftItem, int resHue)
-        {
-            base.OnCraft(quality, makersMark, from, craftSystem, typeRes, tool, craftItem, resHue);
-
-            Hue = 0x187;
-
-            return quality;
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.Write((int)0); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            int version = reader.ReadInt();
         }
     }
 }

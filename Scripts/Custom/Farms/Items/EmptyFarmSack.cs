@@ -1,7 +1,3 @@
-using System;
-using Server;
-using Server.Items;
-
 namespace Server.Custom.Farms
 {
     public class EmptyFarmSack : Item
@@ -14,6 +10,10 @@ namespace Server.Custom.Farms
             Hue = 1718;
         }
 
+        public EmptyFarmSack(Serial serial) : base(serial)
+        {
+        }
+
         public override void OnDoubleClick(Mobile from)
         {
             if (!IsChildOf(from.Backpack))
@@ -22,13 +22,21 @@ namespace Server.Custom.Farms
                 return;
             }
 
-            from.SendMessage("Выберите стак овощей (картофель, лук, капуста, морковь, салат, тыква), чтобы наполнить этот мешок.");
+            from.SendMessage(
+                "Выберите стак овощей (картофель, лук, капуста, морковь, салат, тыква), чтобы наполнить этот мешок.");
             from.Target = new PackVegetableTarget(this);
         }
-        public EmptyFarmSack(Serial serial) : base(serial) { }
-        public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write(0); }
-        public override void Deserialize(GenericReader reader) { base.Deserialize(reader); reader.ReadInt(); }
-    }
 
-    
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            reader.ReadInt();
+        }
+    }
 }

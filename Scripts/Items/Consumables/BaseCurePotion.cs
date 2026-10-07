@@ -1,36 +1,25 @@
-using System;
 using Server.Spells;
+using Server.Spells.Necromancy;
 
 namespace Server.Items
 {
     public class CureLevelInfo
     {
-        private readonly Poison m_Poison;
-        private readonly double m_Chance;
+        public Poison Poison { get; }
+
+        public double Chance { get; }
+
         public CureLevelInfo(Poison poison, double chance)
         {
-            this.m_Poison = poison;
-            this.m_Chance = chance;
-        }
-
-        public Poison Poison
-        {
-            get
-            {
-                return this.m_Poison;
-            }
-        }
-        public double Chance
-        {
-            get
-            {
-                return this.m_Chance;
-            }
+            Poison = poison;
+            Chance = chance;
         }
     }
 
     public abstract class BaseCurePotion : BasePotion
     {
+        public abstract CureLevelInfo[] LevelInfo { get; }
+
         public BaseCurePotion(PotionEffect effect)
             : base(0xF07, effect)
         {
@@ -41,33 +30,32 @@ namespace Server.Items
         {
         }
 
-        public abstract CureLevelInfo[] LevelInfo { get; }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         public void DoCure(Mobile from)
         {
-            bool cure = false;
+            var cure = false;
 
-            CureLevelInfo[] info = this.LevelInfo;
+            var info = LevelInfo;
 
-            for (int i = 0; i < info.Length; ++i)
+            for (var i = 0; i < info.Length; ++i)
             {
-                CureLevelInfo li = info[i];
+                var li = info[i];
 
                 if (li.Poison.RealLevel == from.Poison.RealLevel &&
-					Scale(from, li.Chance) > Utility.RandomDouble())
+                    Scale(from, li.Chance) > Utility.RandomDouble())
                 {
                     cure = true;
                     break;
@@ -89,7 +77,7 @@ namespace Server.Items
 
         public override void Drink(Mobile from)
         {
-            if (TransformationSpellHelper.UnderTransformation(from, typeof(Spells.Necromancy.VampiricEmbraceSpell)))
+            if (TransformationSpellHelper.UnderTransformation(from, typeof(VampiricEmbraceSpell)))
             {
                 from.SendLocalizedMessage(1061652); // The garlic in the potion would surely kill you.
             }

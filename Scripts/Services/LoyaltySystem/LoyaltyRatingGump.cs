@@ -1,9 +1,8 @@
-﻿using System;
+﻿using System.Linq;
+using Server.Engines.CityLoyalty;
 using Server.Gumps;
 using Server.Mobiles;
-using System.Linq;
 using Server.Network;
-using Server.Engines.CityLoyalty;
 
 namespace Server.Engines.Points
 {
@@ -22,7 +21,7 @@ namespace Server.Engines.Points
 
             AddHtmlLocalized(0, 8, 345, 20, 1152187, false, false); // <center>Loyalty Ratings</center>
 
-            int y = 40;
+            var y = 40;
 
             foreach (var sys in PointsSystem.Systems.Where(sys => sys.ShowOnLoyaltyGump))
             {
@@ -31,7 +30,7 @@ namespace Server.Engines.Points
                 else if (sys.Name.String != null)
                     AddHtml(50, y, 150, 20, sys.Name.String, false, false);
 
-                TextDefinition title = sys.GetTitle(pm);
+                var title = sys.GetTitle(pm);
 
                 if (title != null)
                 {
@@ -41,7 +40,8 @@ namespace Server.Engines.Points
                         AddHtml(68, y + 20, 100, 20, title.String, false, false);
                 }
 
-                AddHtmlLocalized(175, y + 20, 100, 20, 1095171, ((int)sys.GetPoints(pm)).ToString(), 0, false, false); // (~1_AMT~ points)
+                AddHtmlLocalized(175, y + 20, 100, 20, 1095171, ((int)sys.GetPoints(pm)).ToString(), 0, false,
+                    false); // (~1_AMT~ points)
 
                 y += 45;
             }
@@ -51,14 +51,14 @@ namespace Server.Engines.Points
 
             if (CityLoyaltySystem.Enabled && CityLoyaltySystem.Cities != null)
             {
-                AddHtmlLocalized(60, 395, 150, 20, 1152190, false, false);  // City Loyalty
+                AddHtmlLocalized(60, 395, 150, 20, 1152190, false, false); // City Loyalty
                 AddButton(40, 400, 2103, 2104, 1, GumpButtonType.Reply, 0);
             }
         }
 
         public override void OnResponse(NetState state, RelayInfo info)
         {
-            PlayerMobile pm = state.Mobile as PlayerMobile;
+            var pm = state.Mobile as PlayerMobile;
 
             if (CityLoyaltySystem.Enabled && CityLoyaltySystem.Cities != null && pm != null && info.ButtonID == 1)
                 BaseGump.SendGump(new CityLoyaltyGump(pm));

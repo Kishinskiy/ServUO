@@ -1,14 +1,22 @@
-using System;
+using Server.Engines.VeteranRewards;
 
 namespace Server.Items
 {
-    public class RunebookDyeTub : DyeTub, Engines.VeteranRewards.IRewardItem
+    public class RunebookDyeTub : DyeTub, IRewardItem
     {
-        private bool m_IsRewardItem;
+        public override bool AllowDyables => false;
+
+        public override bool AllowRunebooks => true;
+
+        public override int TargetMessage => 1049774; // Target the runebook or runestone to dye
+        public override int FailMessage => 1049775; // You can only dye runestones or runebooks with this tub.
+        public override int LabelNumber => 1049740; // Runebook Dye Tub
+        public override CustomHuePicker CustomHuePicker => CustomHuePicker.LeatherDyeTub;
+
         [Constructable]
         public RunebookDyeTub()
         {
-            this.LootType = LootType.Blessed;
+            LootType = LootType.Blessed;
         }
 
         public RunebookDyeTub(Serial serial)
@@ -16,63 +24,12 @@ namespace Server.Items
         {
         }
 
-        public override bool AllowDyables
-        {
-            get
-            {
-                return false;
-            }
-        }
-        public override bool AllowRunebooks
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override int TargetMessage
-        {
-            get
-            {
-                return 1049774;
-            }
-        }// Target the runebook or runestone to dye
-        public override int FailMessage
-        {
-            get
-            {
-                return 1049775;
-            }
-        }// You can only dye runestones or runebooks with this tub.
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1049740;
-            }
-        }// Runebook Dye Tub
-        public override CustomHuePicker CustomHuePicker
-        {
-            get
-            {
-                return CustomHuePicker.LeatherDyeTub;
-            }
-        }
         [CommandProperty(AccessLevel.GameMaster)]
-        public bool IsRewardItem
-        {
-            get
-            {
-                return this.m_IsRewardItem;
-            }
-            set
-            {
-                this.m_IsRewardItem = value;
-            }
-        }
+        public bool IsRewardItem { get; set; }
+
         public override void OnDoubleClick(Mobile from)
         {
-            if (this.m_IsRewardItem && !Engines.VeteranRewards.RewardSystem.CheckIsUsableBy(from, this, null))
+            if (IsRewardItem && !RewardSystem.CheckIsUsableBy(from, this, null))
                 return;
 
             base.OnDoubleClick(from);
@@ -82,7 +39,7 @@ namespace Server.Items
         {
             base.GetProperties(list);
 
-            if (Core.ML && this.m_IsRewardItem)
+            if (Core.ML && IsRewardItem)
                 list.Add(1076220); // 4th Year Veteran Reward
         }
 
@@ -90,24 +47,24 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)1); // version
+            writer.Write(1); // version
 
-            writer.Write((bool)this.m_IsRewardItem);
+            writer.Write(IsRewardItem);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            switch ( version )
+            switch (version)
             {
                 case 1:
-                    {
-                        this.m_IsRewardItem = reader.ReadBool();
-                        break;
-                    }
+                {
+                    IsRewardItem = reader.ReadBool();
+                    break;
+                }
             }
         }
     }

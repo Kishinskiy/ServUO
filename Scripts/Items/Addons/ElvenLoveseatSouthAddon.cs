@@ -1,14 +1,14 @@
-using System;
-
 namespace Server.Items
 {
     public class ElvenLoveseatSouthAddon : BaseAddon
     {
+        public override BaseAddonDeed Deed => new ElvenLoveseatSouthDeed();
+
         [Constructable]
         public ElvenLoveseatSouthAddon()
         {
-            this.AddComponent(new AddonComponent(0x308A), 0, 0, 0);
-            this.AddComponent(new AddonComponent(0x308B), 0, -1, 0);
+            AddComponent(new AddonComponent(0x308A), 0, 0, 0);
+            AddComponent(new AddonComponent(0x308B), 0, -1, 0);
         }
 
         public ElvenLoveseatSouthAddon(Serial serial)
@@ -16,13 +16,6 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonDeed Deed
-        {
-            get
-            {
-                return new ElvenLoveseatSouthDeed();
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -34,12 +27,16 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class ElvenLoveseatSouthDeed : BaseAddonDeed
     {
+        public override BaseAddon Addon => new ElvenLoveseatSouthAddon();
+
+        public override int LabelNumber => 1072867; // elven loveseat (south)
+
         [Constructable]
         public ElvenLoveseatSouthDeed()
         {
@@ -50,20 +47,6 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddon Addon
-        {
-            get
-            {
-                return new ElvenLoveseatSouthAddon();
-            }
-        }
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1072867;
-            }
-        }// elven loveseat (south)
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -75,7 +58,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

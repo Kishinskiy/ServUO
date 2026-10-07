@@ -1,9 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
-using Server.Mobiles;
 using Server.Gumps;
+using Server.Mobiles;
 using Server.Network;
 
 namespace Server.Engines.UOStore
@@ -26,10 +25,7 @@ namespace Server.Engines.UOStore
             {
                 var profile = UltimaStore.GetProfile(User, false);
 
-                if (profile != null)
-                {
-                    return profile.Category;
-                }
+                if (profile != null) return profile.Category;
 
                 return PlayerProfile.DefaultCategory;
             }
@@ -41,10 +37,7 @@ namespace Server.Engines.UOStore
             {
                 var profile = UltimaStore.GetProfile(User, false);
 
-                if (profile != null)
-                {
-                    return profile.SortBy;
-                }
+                if (profile != null) return profile.SortBy;
 
                 return PlayerProfile.DefaultSortBy;
             }
@@ -56,10 +49,7 @@ namespace Server.Engines.UOStore
             {
                 var profile = UltimaStore.GetProfile(User, false);
 
-                if (profile != null)
-                {
-                    return profile.Cart;
-                }
+                if (profile != null) return profile.Cart;
 
                 return null;
             }
@@ -97,31 +87,36 @@ namespace Server.Engines.UOStore
 
             AddECHandleInput();
 
-            AddButton(36, 97, Category == StoreCategory.Featured ? 0x9C5F : 0x9C55, 0x9C5F, 100, GumpButtonType.Reply, 0);
+            AddButton(36, 97, Category == StoreCategory.Featured ? 0x9C5F : 0x9C55, 0x9C5F, 100, GumpButtonType.Reply,
+                0);
             AddHtmlLocalized(36, 100, 125, 25, 1114513, "#1156587", 0x7FFF, false, false); // Featured
 
             AddECHandleInput();
             AddECHandleInput();
 
-            AddButton(36, 126, Category == StoreCategory.Character ? 0x9C5F : 0x9C55, 0x9C5F, 101, GumpButtonType.Reply, 0);
+            AddButton(36, 126, Category == StoreCategory.Character ? 0x9C5F : 0x9C55, 0x9C5F, 101, GumpButtonType.Reply,
+                0);
             AddHtmlLocalized(36, 129, 125, 25, 1114513, "#1156588", 0x7FFF, false, false); // Character
 
             AddECHandleInput();
             AddECHandleInput();
 
-            AddButton(36, 155, Category == StoreCategory.Equipment ? 0x9C5F : 0x9C55, 0x9C5F, 102, GumpButtonType.Reply, 0);
+            AddButton(36, 155, Category == StoreCategory.Equipment ? 0x9C5F : 0x9C55, 0x9C5F, 102, GumpButtonType.Reply,
+                0);
             AddHtmlLocalized(36, 158, 125, 25, 1114513, "#1078237", 0x7FFF, false, false); // Equipment
 
             AddECHandleInput();
             AddECHandleInput();
 
-            AddButton(36, 184, Category == StoreCategory.Decorations ? 0x9C5F : 0x9C55, 0x9C5F, 103, GumpButtonType.Reply, 0);
+            AddButton(36, 184, Category == StoreCategory.Decorations ? 0x9C5F : 0x9C55, 0x9C5F, 103,
+                GumpButtonType.Reply, 0);
             AddHtmlLocalized(36, 187, 125, 25, 1114513, "#1044501", 0x7FFF, false, false); // Decorations
 
             AddECHandleInput();
             AddECHandleInput();
 
-            AddButton(36, 213, Category == StoreCategory.Mounts ? 0x9C5F : 0x9C55, 0x9C5F, 104, GumpButtonType.Reply, 0);
+            AddButton(36, 213, Category == StoreCategory.Mounts ? 0x9C5F : 0x9C55, 0x9C5F, 104, GumpButtonType.Reply,
+                0);
             AddHtmlLocalized(36, 216, 125, 25, 1114513, "#1154981", 0x7FFF, false, false); // Mounts
 
             AddECHandleInput();
@@ -148,27 +143,34 @@ namespace Server.Engines.UOStore
 
             AddHtmlLocalized(36, 334, 125, 25, 1114513, "#1044580", 0x2945, false, false); // Sort By
 
-            AddButton(43, 360, SortBy == SortBy.Name ? 0x9C4F : 0x9C4E, SortBy == SortBy.Name ? 0x9C4F : 0x9C4E, 108, GumpButtonType.Reply, 0);
+            AddButton(43, 360, SortBy == SortBy.Name ? 0x9C4F : 0x9C4E, SortBy == SortBy.Name ? 0x9C4F : 0x9C4E, 108,
+                GumpButtonType.Reply, 0);
             AddHtmlLocalized(68, 360, 88, 25, 1037013, 0x6B55, false, false); // Name
 
-            AddButton(43, 386, SortBy == SortBy.PriceLower ? 0x9C4F : 0x9C4E, SortBy == SortBy.PriceLower ? 0x9C4F : 0x9C4E, 109, GumpButtonType.Reply, 0);
+            AddButton(43, 386, SortBy == SortBy.PriceLower ? 0x9C4F : 0x9C4E,
+                SortBy == SortBy.PriceLower ? 0x9C4F : 0x9C4E, 109, GumpButtonType.Reply, 0);
             AddHtmlLocalized(68, 386, 88, 25, 1062218, 0x6B55, false, false); // Price Down
             AddImage(110, 386, 0x9C60);
 
-            AddButton(43, 412, SortBy == SortBy.PriceHigher ? 0x9C4F : 0x9C4E, SortBy == SortBy.PriceHigher ? 0x9C4F : 0x9C4E, 110, GumpButtonType.Reply, 0);
+            AddButton(43, 412, SortBy == SortBy.PriceHigher ? 0x9C4F : 0x9C4E,
+                SortBy == SortBy.PriceHigher ? 0x9C4F : 0x9C4E, 110, GumpButtonType.Reply, 0);
             AddHtmlLocalized(68, 412, 88, 25, 1062218, 0x6B55, false, false); // Price Up
             AddImage(110, 412, 0x9C61);
 
-            AddButton(43, 438, SortBy == SortBy.Newest ? 0x9C4F : 0x9C4E, SortBy == SortBy.Newest ? 0x9C4F : 0x9C4E, 111, GumpButtonType.Reply, 0);
+            AddButton(43, 438, SortBy == SortBy.Newest ? 0x9C4F : 0x9C4E, SortBy == SortBy.Newest ? 0x9C4F : 0x9C4E,
+                111, GumpButtonType.Reply, 0);
             AddHtmlLocalized(68, 438, 88, 25, 1156590, 0x6B55, false, false); // Newest
 
-            AddButton(43, 464, SortBy == SortBy.Oldest ? 0x9C4F : 0x9C4E, SortBy == SortBy.Oldest ? 0x9C4F : 0x9C4E, 112, GumpButtonType.Reply, 0);
+            AddButton(43, 464, SortBy == SortBy.Oldest ? 0x9C4F : 0x9C4E, SortBy == SortBy.Oldest ? 0x9C4F : 0x9C4E,
+                112, GumpButtonType.Reply, 0);
             AddHtmlLocalized(68, 464, 88, 25, 1156591, 0x6B55, false, false); // Oldest
 
             AddECHandleInput();
 
             AddButton(598, 36, Category == StoreCategory.Cart ? 0x9C5E : 0x9C54, 0x9C5E, 113, GumpButtonType.Reply, 0);
-            AddHtmlLocalized(628, 39, 123, 25, 1156593, String.Format("@{0}@{1}", UltimaStore.CartCount(User), Configuration.CartCapacity), 0x7FFF, false, false);
+            AddHtmlLocalized(628, 39, 123, 25, 1156593,
+                string.Format("@{0}@{1}", UltimaStore.CartCount(User), Configuration.CartCapacity), 0x7FFF, false,
+                false);
 
             AddECHandleInput();
 
@@ -205,19 +207,20 @@ namespace Server.Engines.UOStore
                         var index = UltimaStore.Entries.IndexOf(entry);
 
                         if (entry.Name[0].Number > 0)
-                            AddHtmlLocalized(175, 84 + (35 * i), 256, 25, entry.Name[0].Number, 0x6B55, false, false);
+                            AddHtmlLocalized(175, 84 + 35 * i, 256, 25, entry.Name[0].Number, 0x6B55, false, false);
                         else
-                            AddHtml(175, 84 + (35 * i), 256, 25, Color(C16232(0x6B55), entry.Name[0].String), false, false);
+                            AddHtml(175, 84 + 35 * i, 256, 25, Color(C16232(0x6B55), entry.Name[0].String), false,
+                                false);
 
-                        AddButton(431, 81 + (35 * i), 0x9C52, 0x9C5C, index + 2000, GumpButtonType.Reply, 0);
+                        AddButton(431, 81 + 35 * i, 0x9C52, 0x9C5C, index + 2000, GumpButtonType.Reply, 0);
 
-                        AddLabelCropped(457, 82 + (35 * i), 38, 22, 0x9C2, amount.ToString());
-                        AddLabelCropped(531, 82 + (35 * i), 100, 14, 0x1C7, (entry.Cost * amount).ToString("N0"));
+                        AddLabelCropped(457, 82 + 35 * i, 38, 22, 0x9C2, amount.ToString());
+                        AddLabelCropped(531, 82 + 35 * i, 100, 14, 0x1C7, (entry.Cost * amount).ToString("N0"));
 
-                        AddButton(653, 81 + (35 * i), 0x9C52, 0x9C5C, index + 3000, GumpButtonType.Reply, 0);
-                        AddHtmlLocalized(653, 84 + (35 * i), 64, 22, 1114513, "#1011403", 0x7FFF, false, false); // Remove
+                        AddButton(653, 81 + 35 * i, 0x9C52, 0x9C5C, index + 3000, GumpButtonType.Reply, 0);
+                        AddHtmlLocalized(653, 84 + 35 * i, 64, 22, 1114513, "#1011403", 0x7FFF, false, false); // Remove
 
-                        AddImage(175, 109 + (35 * i), 0x9C4D);
+                        AddImage(175, 109 + 35 * i, 0x9C4D);
 
                         ++i;
                     }
@@ -268,34 +271,28 @@ namespace Server.Engines.UOStore
                     {
                         var item = UltimaStore.UltimaStoreContainer.FindDisplayItem(entry.ItemType);
 
-                        if (item != null)
-                        {
-                            AddItemProperty(item);
-                        }
+                        if (item != null) AddItemProperty(item);
                     }
 
-                    if (IsFeatured(entry))
-                    {
-                        AddImage(x, y + 189, 0x9C58);
-                    }
+                    if (IsFeatured(entry)) AddImage(x, y + 189, 0x9C58);
 
-                    for (int j = 0; j < entry.Name.Length; j++)
-                    {
+                    for (var j = 0; j < entry.Name.Length; j++)
                         if (entry.Name[j].Number > 0)
-                            AddHtmlLocalized(x, y + (j * 14) + 4, 183, 25, 1114513, String.Format("#{0}", entry.Name[j].Number.ToString()), 0x7FFF, false, false);
+                            AddHtmlLocalized(x, y + j * 14 + 4, 183, 25, 1114513,
+                                string.Format("#{0}", entry.Name[j].Number.ToString()), 0x7FFF, false, false);
                         else
-                            AddHtml(x, y + (j * 14) + 4, 183, 25, ColorAndCenter("#FFFFFF", entry.Name[j].String), false, false);
-                    }
+                            AddHtml(x, y + j * 14 + 4, 183, 25, ColorAndCenter("#FFFFFF", entry.Name[j].String), false,
+                                false);
 
                     if (entry.ItemID > 0)
                     {
                         var b = ItemBounds.Table[entry.ItemID];
 
-                        AddItem((x + 91) - b.Width / 2 - b.X, (y + 108) - b.Height / 2 - b.Y, entry.ItemID, entry.Hue);
+                        AddItem(x + 91 - b.Width / 2 - b.X, y + 108 - b.Height / 2 - b.Y, entry.ItemID, entry.Hue);
                     }
                     else
                     {
-                        AddImage((x + 91) - 72, (y + 108) - 72, entry.GumpID);
+                        AddImage(x + 91 - 72, y + 108 - 72, entry.GumpID);
                     }
 
                     AddImage(x + 60, y + 192, 0x9C56);
@@ -308,15 +305,9 @@ namespace Server.Engines.UOStore
                     ++listIndex;
                 }
 
-                if (Page + 1 < pages)
-                {
-                    AddButton(692, 516, 0x9C51, 0x9C5B, 116, GumpButtonType.Reply, 0);
-                }
+                if (Page + 1 < pages) AddButton(692, 516, 0x9C51, 0x9C5B, 116, GumpButtonType.Reply, 0);
 
-                if (Page > 0)
-                {
-                    AddButton(648, 516, 0x9C50, 0x9C5A, 117, GumpButtonType.Reply, 0);
-                }
+                if (Page > 0) AddButton(648, 516, 0x9C50, 0x9C5A, 117, GumpButtonType.Reply, 0);
             }
 
             if (Configuration.CurrencyDisplay)
@@ -329,33 +320,25 @@ namespace Server.Engines.UOStore
         public bool IsFeatured(StoreEntry entry)
         {
             return entry.Category == StoreCategory.Featured ||
-                UltimaStore.Entries.Any(e => e.ItemType == entry.ItemType && e.Category == StoreCategory.Featured);
+                   UltimaStore.Entries.Any(e => e.ItemType == entry.ItemType && e.Category == StoreCategory.Featured);
         }
 
         public static void ReleaseHidden(PlayerMobile pm)
         {
             if (pm.HasGump(typeof(UltimaStoreGump)) || pm.HasGump(typeof(NoFundsGump)) ||
                 pm.HasGump(typeof(ConfirmPurchaseGump)) || pm.HasGump(typeof(ConfirmCartGump)))
-            {
                 return;
-            }
 
             pm.Frozen = false;
             pm.TempSquelched = false;
             pm.SendLocalizedMessage(501235, "", 0x35); // Help request aborted.
 
-            if (pm.AccessLevel < AccessLevel.Counselor)
-            {
-                pm.RevealingAction();
-            }
+            if (pm.AccessLevel < AccessLevel.Counselor) pm.RevealingAction();
         }
 
         public override void OnServerClose(NetState owner)
         {
-            if (owner.Mobile is PlayerMobile)
-            {
-                ReleaseHidden((PlayerMobile)owner.Mobile);
-            }
+            if (owner.Mobile is PlayerMobile) ReleaseHidden((PlayerMobile)owner.Mobile);
         }
 
         public override void OnResponse(RelayInfo info)
@@ -407,14 +390,10 @@ namespace Server.Engines.UOStore
                 // FAQ
                 case 107:
                 {
-                    if (!String.IsNullOrWhiteSpace(Configuration.Website))
-                    {
+                    if (!string.IsNullOrWhiteSpace(Configuration.Website))
                         User.LaunchBrowser(Configuration.Website);
-                    }
                     else
-                    {
                         User.LaunchBrowser("https://uo.com/ultima-store/");
-                    }
 
                     Refresh();
                     return;
@@ -453,10 +432,7 @@ namespace Server.Engines.UOStore
                 // Cart View
                 case 113:
                 {
-                    if (profile != null)
-                    {
-                        profile.Category = StoreCategory.Cart;
-                    }
+                    if (profile != null) profile.Category = StoreCategory.Cart;
 
                     Refresh();
                     return;
@@ -467,7 +443,7 @@ namespace Server.Engines.UOStore
                 {
                     var searchTxt = info.GetTextEntry(0);
 
-                    if (searchTxt != null && !String.IsNullOrEmpty(searchTxt.Text))
+                    if (searchTxt != null && !string.IsNullOrEmpty(searchTxt.Text))
                     {
                         Search = true;
                         SearchText = searchTxt.Text;
@@ -486,25 +462,18 @@ namespace Server.Engines.UOStore
                 {
                     if (UltimaStore.CartCount(User) == 0)
                     {
-                        if (profile != null)
-                        {
-                            profile.Category = StoreCategory.Cart;
-                        }
+                        if (profile != null) profile.Category = StoreCategory.Cart;
 
                         Refresh();
                         return;
                     }
 
-                    int total = UltimaStore.GetSubTotal(Cart);
+                    var total = UltimaStore.GetSubTotal(Cart);
 
                     if (total <= UltimaStore.GetCurrency(User, true))
-                    {
                         SendGump(new ConfirmPurchaseGump(User));
-                    }
                     else
-                    {
                         SendGump(new NoFundsGump(User));
-                    }
 
                     return;
                 }
@@ -548,17 +517,15 @@ namespace Server.Engines.UOStore
 
                 var entry = UltimaStore.Entries[id - 2000];
 
-                SendGump(new ConfirmCartGump(User, this, entry, Cart != null && Cart.ContainsKey(entry) ? Cart[entry] : 0));
+                SendGump(new ConfirmCartGump(User, this, entry,
+                    Cart != null && Cart.ContainsKey(entry) ? Cart[entry] : 0));
                 return;
             }
             else if (id < 4000) // Remove From Cart
             {
                 var entry = UltimaStore.Entries[id - 3000];
 
-                if (profile != null)
-                {
-                    profile.RemoveFromCart(entry);
-                }
+                if (profile != null) profile.RemoveFromCart(entry);
 
                 Refresh();
                 return;
@@ -570,12 +537,12 @@ namespace Server.Engines.UOStore
 
     public class ConfirmCartGump : BaseGump
     {
-        public UltimaStoreGump Gump { get; private set; }
-        public StoreEntry Entry { get; private set; }
-        public int Current { get; private set; }
+        public UltimaStoreGump Gump { get; }
+        public StoreEntry Entry { get; }
+        public int Current { get; }
 
         public ConfirmCartGump(PlayerMobile pm, UltimaStoreGump gump, StoreEntry entry, int current = 0)
-            : base(pm, gump.X + (760 / 2) - 205, gump.Y + (574 / 2) - 100)
+            : base(pm, gump.X + 760 / 2 - 205, gump.Y + 574 / 2 - 100)
         {
             Gump = gump;
             Entry = entry;
@@ -590,16 +557,12 @@ namespace Server.Engines.UOStore
             AddHtmlLocalized(10, 10, 400, 20, 1114513, "#1077826", 0x7FFF, false, false); // Quantity
 
             for (var i = 0; i < Entry.Name.Length; i++)
-            {
                 if (Entry.Name[i].Number > 0)
-                {
-                    AddHtmlLocalized(10, 60 + (i * 14), 400, 20, 1114513, String.Format("#{0}", Entry.Name[i].Number), 0x6B45, false, false);
-                }
+                    AddHtmlLocalized(10, 60 + i * 14, 400, 20, 1114513, string.Format("#{0}", Entry.Name[i].Number),
+                        0x6B45, false, false);
                 else
-                {
-                    AddHtml(10, 60 + (i * 14), 400, 20, ColorAndCenter(C16232(0x6B45), Entry.Name[i].String), false, false);
-                }
-            }
+                    AddHtml(10, 60 + i * 14, 400, 20, ColorAndCenter(C16232(0x6B45), Entry.Name[i].String), false,
+                        false);
 
             AddHtmlLocalized(30, 100, 200, 20, 1114514, "#1150152", 0x7FFF, false, false); // Quantity to Buy:
 
@@ -622,10 +585,7 @@ namespace Server.Engines.UOStore
 
         public override void OnServerClose(NetState owner)
         {
-            if (owner.Mobile is PlayerMobile)
-            {
-                UltimaStoreGump.ReleaseHidden(User);
-            }
+            if (owner.Mobile is PlayerMobile) UltimaStoreGump.ReleaseHidden(User);
         }
 
         public override void OnResponse(RelayInfo info)
@@ -634,22 +594,17 @@ namespace Server.Engines.UOStore
             {
                 var amtText = info.GetTextEntry(0);
 
-                if (amtText != null && !String.IsNullOrWhiteSpace(amtText.Text))
+                if (amtText != null && !string.IsNullOrWhiteSpace(amtText.Text))
                 {
                     var amount = Utility.ToInt32(amtText.Text);
 
                     if (amount > 0)
                     {
                         if (amount <= 10)
-                        {
                             UltimaStore.GetProfile(User).SetCartAmount(Entry, amount);
-                        }
                         else
-                        {
                             User.SendLocalizedMessage(1150315); // That text is unacceptable.
-                            //User.SendLocalizedMessage(1156836); // You can't exceed 125 items per purchase. 
-                        }
-
+                        //User.SendLocalizedMessage(1156836); // You can't exceed 125 items per purchase. 
                         Gump.Refresh();
                     }
                 }
@@ -678,7 +633,8 @@ namespace Server.Engines.UOStore
             AddBackground(0, 0, 410, 200, 0x9C40);
             AddHtmlLocalized(10, 10, 400, 20, 1114513, "#1156750", 0x7FFF, false, false); // Purchase Confirmation
 
-            AddHtmlLocalized(30, 60, 350, 60, 1156749, 0x7FFF, false, false); // Are you sure you want to complete this purchase?
+            AddHtmlLocalized(30, 60, 350, 60, 1156749, 0x7FFF, false,
+                false); // Are you sure you want to complete this purchase?
 
             AddECHandleInput();
 
@@ -696,18 +652,12 @@ namespace Server.Engines.UOStore
 
         public override void OnServerClose(NetState owner)
         {
-            if (owner.Mobile is PlayerMobile)
-            {
-                UltimaStoreGump.ReleaseHidden(User);
-            }
+            if (owner.Mobile is PlayerMobile) UltimaStoreGump.ReleaseHidden(User);
         }
 
         public override void OnResponse(RelayInfo info)
         {
-            if (info.ButtonID == 195)
-            {
-                UltimaStore.TryPurchase(User);
-            }
+            if (info.ButtonID == 195) UltimaStore.TryPurchase(User);
 
             UltimaStoreGump.ReleaseHidden(User);
         }
@@ -728,7 +678,11 @@ namespace Server.Engines.UOStore
             AddBackground(0, 0, 410, 200, 0x9C40);
             AddHtmlLocalized(10, 10, 400, 20, 1114513, "#1156747", 0x7FFF, false, false); // Insufficient Funds
 
-            AddHtml(30, 60, 350, 60, Color("#da0000", String.Format("This transaction cannot be completed due to insufficient funds available. Visit your shards website for more information on how to obtain {0}.", Configuration.CurrencyName)), false, false);
+            AddHtml(30, 60, 350, 60,
+                Color("#da0000",
+                    string.Format(
+                        "This transaction cannot be completed due to insufficient funds available. Visit your shards website for more information on how to obtain {0}.",
+                        Configuration.CurrencyName)), false, false);
 
             AddECHandleInput();
 
@@ -746,24 +700,17 @@ namespace Server.Engines.UOStore
 
         public override void OnServerClose(NetState owner)
         {
-            if (owner.Mobile is PlayerMobile)
-            {
-                UltimaStoreGump.ReleaseHidden(User);
-            }
+            if (owner.Mobile is PlayerMobile) UltimaStoreGump.ReleaseHidden(User);
         }
 
         public override void OnResponse(RelayInfo info)
         {
             if (info.ButtonID == 195)
             {
-                if (!String.IsNullOrEmpty(Configuration.Website))
-                {
+                if (!string.IsNullOrEmpty(Configuration.Website))
                     User.LaunchBrowser(Configuration.Website);
-                }
                 else
-                {
                     User.LaunchBrowser("https://uo.com/ultima-store/");
-                }
             }
 
             UltimaStoreGump.ReleaseHidden(User);
@@ -789,7 +736,8 @@ namespace Server.Engines.UOStore
             AddBackground(0, 0, 400, 340, 0x9C40);
 
             AddHtmlLocalized(0, 10, 400, 20, 1114513, "#1062516", 0x7FFF, false, false); // Enter Promotional Code
-            AddHtmlLocalized(20, 60, 355, 160, 1062869, C32216(0xFFFF00), false, true); // Enter your promotional code EXACTLY as it was given to you (including dashes). Enter no other text in the box aside from your promotional code.
+            AddHtmlLocalized(20, 60, 355, 160, 1062869, C32216(0xFFFF00), false,
+                true); // Enter your promotional code EXACTLY as it was given to you (including dashes). Enter no other text in the box aside from your promotional code.
 
             AddECHandleInput();
 
@@ -810,10 +758,7 @@ namespace Server.Engines.UOStore
 
         public override void OnServerClose(NetState owner)
         {
-            if (owner.Mobile is PlayerMobile)
-            {
-                UltimaStoreGump.ReleaseHidden(User);
-            }
+            if (owner.Mobile is PlayerMobile) UltimaStoreGump.ReleaseHidden(User);
         }
 
         public override void OnResponse(RelayInfo info)
@@ -822,7 +767,7 @@ namespace Server.Engines.UOStore
             {
                 var text = info.GetTextEntry(1);
 
-                if (text != null && !String.IsNullOrEmpty(text.Text))
+                if (text != null && !string.IsNullOrEmpty(text.Text))
                 {
                     // execute code here
                 }

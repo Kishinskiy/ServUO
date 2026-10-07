@@ -16,14 +16,17 @@ namespace Server.Items
 
     public class MiningCart : BaseAddon, IRewardItem
     {
-        public override bool ForceShowProperties { get { return true; } }
+        private int m_Gems;
+
+        private int m_Ore;
+        public override bool ForceShowProperties => true;
 
         public override BaseAddonDeed Deed
         {
             get
             {
-                MiningCartDeed deed = new MiningCartDeed();
-                deed.IsRewardItem = m_IsRewardItem;
+                var deed = new MiningCartDeed();
+                deed.IsRewardItem = IsRewardItem;
                 deed.Gems = m_Gems;
                 deed.Ore = m_Ore;
 
@@ -31,41 +34,13 @@ namespace Server.Items
             }
         }
 
-        private bool m_IsRewardItem;
-
         [CommandProperty(AccessLevel.GameMaster)]
-        public bool IsRewardItem
-        {
-            get
-            {
-                return m_IsRewardItem;
-            }
-            set
-            {
-                m_IsRewardItem = value;
-            }
-        }
-
-        private MiningCartType m_CartType;
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public MiningCartType CartType
-        {
-            get
-            {
-                return m_CartType;
-            }
-        }
-
-        private int m_Gems;
+        public MiningCartType CartType { get; private set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public int Gems
         {
-            get
-            {
-                return m_Gems;
-            }
+            get => m_Gems;
             set
             {
                 m_Gems = value;
@@ -73,15 +48,10 @@ namespace Server.Items
             }
         }
 
-        private int m_Ore;
-
         [CommandProperty(AccessLevel.GameMaster)]
         public int Ore
         {
-            get
-            {
-                return m_Ore;
-            }
+            get => m_Ore;
             set
             {
                 m_Ore = value;
@@ -94,11 +64,10 @@ namespace Server.Items
 
         [Constructable]
         public MiningCart(MiningCartType type)
-            : base()
         {
-            m_CartType = type;
+            CartType = type;
 
-            switch ( type )
+            switch (type)
             {
                 case MiningCartType.OreSouth:
                     AddComponent(new InternalAddonComponent(0x1A83, 1026786), 0, 0, 0);
@@ -150,9 +119,12 @@ namespace Server.Items
         {
         }
 
+        [CommandProperty(AccessLevel.GameMaster)]
+        public bool IsRewardItem { get; set; }
+
         private void GiveResources()
         {
-            switch ( m_CartType )
+            switch (CartType)
             {
                 case MiningCartType.OreSouth:
                 case MiningCartType.OreEast:
@@ -169,7 +141,7 @@ namespace Server.Items
         {
             if (NextResourceCount < DateTime.UtcNow)
             {
-                switch (m_CartType)
+                switch (CartType)
                 {
                     case MiningCartType.OreSouth:
                     case MiningCartType.OreEast:
@@ -187,34 +159,31 @@ namespace Server.Items
 
         public override void OnComponentUsed(AddonComponent c, Mobile from)
         {
-            BaseHouse house = BaseHouse.FindHouseAt(this);
+            var house = BaseHouse.FindHouseAt(this);
 
             /*
-            * Unique problems have unique solutions.  OSI does not have a problem with 1000s of mining carts
-            * due to the fact that they have only a miniscule fraction of the number of 10 year vets that a
-            * typical RunUO shard will have (RunUO's scaled down account aging system makes this a unique problem),
-            * and the "freeness" of free accounts. We also dont have mitigating factors like inactive (unpaid)
-            * accounts not gaining veteran time.
-            *
-            * The lack of high end vets and vet rewards on OSI has made testing the *exact* ranging/stacking
-            * behavior of these things all but impossible, so either way its just an estimation.
-            *
-            * If youd like your shard's carts/stumps to work the way they did before, simply replace the check
-            * below with this line of code:
-            *
-            * if (!from.InRange(GetWorldLocation(), 2)
-            *
-            * However, I am sure these checks are more accurate to OSI than the former version was.
-            *
-            */
+             * Unique problems have unique solutions.  OSI does not have a problem with 1000s of mining carts
+             * due to the fact that they have only a miniscule fraction of the number of 10 year vets that a
+             * typical RunUO shard will have (RunUO's scaled down account aging system makes this a unique problem),
+             * and the "freeness" of free accounts. We also dont have mitigating factors like inactive (unpaid)
+             * accounts not gaining veteran time.
+             *
+             * The lack of high end vets and vet rewards on OSI has made testing the *exact* ranging/stacking
+             * behavior of these things all but impossible, so either way its just an estimation.
+             *
+             * If youd like your shard's carts/stumps to work the way they did before, simply replace the check
+             * below with this line of code:
+             *
+             * if (!from.InRange(GetWorldLocation(), 2)
+             *
+             * However, I am sure these checks are more accurate to OSI than the former version was.
+             *
+             */
 
-            if (!from.InRange(GetWorldLocation(), 2) || !from.InLOS(this) || !((from.Z - Z) > -3 && (from.Z - Z) < 3))
-            {
-                from.LocalOverheadMessage(Network.MessageType.Regular, 0x3B2, 1019045); // I can't reach that.
-            }
+            if (!from.InRange(GetWorldLocation(), 2) || !from.InLOS(this) || !(from.Z - Z > -3 && from.Z - Z < 3))
+                from.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1019045); // I can't reach that.
             else if (house != null && house.HasSecureAccess(from, SecureLevel.Friends))
-            {
-                switch ( m_CartType )
+                switch (CartType)
                 {
                     case MiningCartType.OreSouth:
                     case MiningCartType.OreEast:
@@ -222,7 +191,7 @@ namespace Server.Items
                         {
                             Item ingots = null;
 
-                            switch ( Utility.Random(9) )
+                            switch (Utility.Random(9))
                             {
                                 case 0:
                                     ingots = new IronIngot();
@@ -253,22 +222,27 @@ namespace Server.Items
                                     break;
                             }
 
-                            int amount = Math.Min(10, m_Ore);
+                            var amount = Math.Min(10, m_Ore);
                             ingots.Amount = amount;
 
                             if (!from.PlaceInBackpack(ingots))
                             {
                                 ingots.Delete();
-                                from.SendLocalizedMessage(1078837); // Your backpack is full! Please make room and try again.
+                                from.SendLocalizedMessage(
+                                    1078837); // Your backpack is full! Please make room and try again.
                             }
                             else
                             {
-                                PublicOverheadMessage(MessageType.Regular, 0, 1094724, amount.ToString()); // Ore: ~1_COUNT~
+                                PublicOverheadMessage(MessageType.Regular, 0, 1094724,
+                                    amount.ToString()); // Ore: ~1_COUNT~
                                 m_Ore -= amount;
                             }
                         }
                         else
-                            from.SendLocalizedMessage(1094725); // There are no more resources available at this time.
+                        {
+                            from.SendLocalizedMessage(1094725);
+                        }
+                        // There are no more resources available at this time.
 
                         break;
                     case MiningCartType.GemSouth:
@@ -277,7 +251,7 @@ namespace Server.Items
                         {
                             Item gems = null;
 
-                            switch ( Utility.Random(15) )
+                            switch (Utility.Random(15))
                             {
                                 case 0:
                                     gems = new Amber();
@@ -306,7 +280,7 @@ namespace Server.Items
                                 case 8:
                                     gems = new Tourmaline();
                                     break;
-                                    // Mondain's Legacy gems
+                                // Mondain's Legacy gems
                                 case 9:
                                     gems = new PerfectEmerald();
                                     break;
@@ -327,28 +301,73 @@ namespace Server.Items
                                     break;
                             }
 
-                            int amount = Math.Min(5, m_Gems);
+                            var amount = Math.Min(5, m_Gems);
                             gems.Amount = amount;
 
                             if (!from.PlaceInBackpack(gems))
                             {
                                 gems.Delete();
-                                from.SendLocalizedMessage(1078837); // Your backpack is full! Please make room and try again.
+                                from.SendLocalizedMessage(
+                                    1078837); // Your backpack is full! Please make room and try again.
                             }
                             else
                             {
-                                PublicOverheadMessage(MessageType.Regular, 0, 1094723, amount.ToString()); // Gems: ~1_COUNT~
+                                PublicOverheadMessage(MessageType.Regular, 0, 1094723,
+                                    amount.ToString()); // Gems: ~1_COUNT~
                                 m_Gems -= amount;
                             }
                         }
                         else
-                            from.SendLocalizedMessage(1094725); // There are no more resources available at this time.
+                        {
+                            from.SendLocalizedMessage(1094725);
+                        }
+                        // There are no more resources available at this time.
 
                         break;
                 }
-            }
             else
                 from.SendLocalizedMessage(1061637); // You are not allowed to access 
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+
+            writer.WriteEncodedInt(1); // version
+
+            TryGiveResourceCount();
+
+            #region version 1
+
+            writer.Write((int)CartType);
+
+            #endregion
+
+            writer.Write(IsRewardItem);
+            writer.Write(m_Gems);
+            writer.Write(m_Ore);
+            writer.Write(NextResourceCount);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+
+            var version = reader.ReadEncodedInt();
+
+            switch (version)
+            {
+                case 1:
+                    CartType = (MiningCartType)reader.ReadInt();
+                    goto case 0;
+                case 0:
+                    IsRewardItem = reader.ReadBool();
+                    m_Gems = reader.ReadInt();
+                    m_Ore = reader.ReadInt();
+
+                    NextResourceCount = reader.ReadDateTime();
+                    break;
+            }
         }
 
         private class InternalAddonComponent : LocalizedAddonComponent
@@ -358,25 +377,25 @@ namespace Server.Items
             {
             }
 
+            public InternalAddonComponent(Serial serial)
+                : base(serial)
+            {
+            }
+
             public override void GetProperties(ObjectPropertyList list)
             {
                 base.GetProperties(list);
 
                 if (Addon is MiningCart)
-                {
                     switch (((MiningCart)Addon).CartType)
                     {
                         case MiningCartType.OreSouth:
-                        case MiningCartType.OreEast: list.Add(1094724, ((MiningCart)Addon).Ore.ToString()); break; // Ore: ~1_COUNT~
+                        case MiningCartType.OreEast
+                            : list.Add(1094724, ((MiningCart)Addon).Ore.ToString()); break; // Ore: ~1_COUNT~
                         case MiningCartType.GemSouth:
-                        case MiningCartType.GemEast: list.Add(1094723, ((MiningCart)Addon).Gems.ToString()); break; // Gems: ~1_COUNT~
+                        case MiningCartType.GemEast
+                            : list.Add(1094723, ((MiningCart)Addon).Gems.ToString()); break; // Gems: ~1_COUNT~
                     }
-                }
-            }
-
-            public InternalAddonComponent(Serial serial)
-                : base(serial)
-            {
             }
 
             public override void Serialize(GenericWriter writer)
@@ -390,65 +409,27 @@ namespace Server.Items
             {
                 base.Deserialize(reader);
 
-                int version = reader.ReadEncodedInt();
-            }
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-
-            writer.WriteEncodedInt(1); // version
-
-            TryGiveResourceCount();
-
-            #region version 1
-            writer.Write((int)m_CartType);
-            #endregion
-
-            writer.Write((bool)m_IsRewardItem);
-            writer.Write((int)m_Gems);
-            writer.Write((int)m_Ore);
-            writer.Write(NextResourceCount);
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadEncodedInt();
-
-            switch ( version )
-            {
-                case 1:
-                    m_CartType = (MiningCartType)reader.ReadInt();
-                    goto case 0;
-                case 0:
-                    m_IsRewardItem = reader.ReadBool();
-                    m_Gems = reader.ReadInt();
-                    m_Ore = reader.ReadInt();
-
-                    NextResourceCount = reader.ReadDateTime();
-                    break;
+                var version = reader.ReadEncodedInt();
             }
         }
     }
 
     public class MiningCartDeed : BaseAddonDeed, IRewardItem, IRewardOption
     {
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1080385;
-            }
-        }// deed for a mining cart decoration
+        private MiningCartType m_CartType;
+
+        private int m_Gems;
+
+        private bool m_IsRewardItem;
+
+        private int m_Ore;
+        public override int LabelNumber => 1080385; // deed for a mining cart decoration
 
         public override BaseAddon Addon
         {
             get
             {
-                MiningCart addon = new MiningCart(m_CartType);
+                var addon = new MiningCart(m_CartType);
                 addon.IsRewardItem = m_IsRewardItem;
                 addon.Gems = m_Gems;
                 addon.Ore = m_Ore;
@@ -457,33 +438,10 @@ namespace Server.Items
             }
         }
 
-        private MiningCartType m_CartType;
-
-        private bool m_IsRewardItem;
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public bool IsRewardItem
-        {
-            get
-            {
-                return m_IsRewardItem;
-            }
-            set
-            {
-                m_IsRewardItem = value;
-                InvalidateProperties();
-            }
-        }
-
-        private int m_Gems;
-
         [CommandProperty(AccessLevel.GameMaster)]
         public int Gems
         {
-            get
-            {
-                return m_Gems;
-            }
+            get => m_Gems;
             set
             {
                 m_Gems = value;
@@ -491,15 +449,10 @@ namespace Server.Items
             }
         }
 
-        private int m_Ore;
-
         [CommandProperty(AccessLevel.GameMaster)]
         public int Ore
         {
-            get
-            {
-                return m_Ore;
-            }
+            get => m_Ore;
             set
             {
                 m_Ore = value;
@@ -509,7 +462,6 @@ namespace Server.Items
 
         [Constructable]
         public MiningCartDeed()
-            : base()
         {
             LootType = LootType.Blessed;
         }
@@ -517,6 +469,33 @@ namespace Server.Items
         public MiningCartDeed(Serial serial)
             : base(serial)
         {
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public bool IsRewardItem
+        {
+            get => m_IsRewardItem;
+            set
+            {
+                m_IsRewardItem = value;
+                InvalidateProperties();
+            }
+        }
+
+        public void GetOptions(RewardOptionList list)
+        {
+            list.Add((int)MiningCartType.OreSouth, 1080391);
+            list.Add((int)MiningCartType.OreEast, 1080390);
+            list.Add((int)MiningCartType.GemSouth, 1080500);
+            list.Add((int)MiningCartType.GemEast, 1080499);
+        }
+
+        public void OnOptionSelected(Mobile from, int choice)
+        {
+            m_CartType = (MiningCartType)choice;
+
+            if (!Deleted)
+                base.OnDoubleClick(from);
         }
 
         public override void GetProperties(ObjectPropertyList list)
@@ -538,7 +517,9 @@ namespace Server.Items
                 from.SendGump(new RewardOptionGump(this));
             }
             else
+            {
                 from.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.
+            }
         }
 
         public override void Serialize(GenericWriter writer)
@@ -547,36 +528,20 @@ namespace Server.Items
 
             writer.WriteEncodedInt(0); // version
 
-            writer.Write((bool)m_IsRewardItem);
-            writer.Write((int)m_Gems);
-            writer.Write((int)m_Ore);
+            writer.Write(m_IsRewardItem);
+            writer.Write(m_Gems);
+            writer.Write(m_Ore);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
 
             m_IsRewardItem = reader.ReadBool();
             m_Gems = reader.ReadInt();
             m_Ore = reader.ReadInt();
-        }
-
-        public void GetOptions(RewardOptionList list)
-        {
-            list.Add((int)MiningCartType.OreSouth, 1080391);
-            list.Add((int)MiningCartType.OreEast, 1080390);
-            list.Add((int)MiningCartType.GemSouth, 1080500);
-            list.Add((int)MiningCartType.GemEast, 1080499);
-        }
-
-        public void OnOptionSelected(Mobile from, int choice)
-        {
-            m_CartType = (MiningCartType)choice;
-
-            if (!Deleted)
-                base.OnDoubleClick(from);
         }
     }
 }

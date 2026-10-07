@@ -6,19 +6,28 @@ namespace Server.Items
 {
     public class ShipPaintingAddon : BaseAddon
     {
-        public override bool ForceShowProperties { get { return true; } }
+        private int m_ResourceCount;
+        public override bool ForceShowProperties => true;
 
         [CommandProperty(AccessLevel.GameMaster)]
         public DateTime NextResourceCount { get; set; }
 
-        private int m_ResourceCount;
-
         [CommandProperty(AccessLevel.GameMaster)]
-        public int ResourceCount { get { return m_ResourceCount; } set { m_ResourceCount = value; UpdateProperties(); } }
+        public int ResourceCount
+        {
+            get => m_ResourceCount;
+            set
+            {
+                m_ResourceCount = value;
+                UpdateProperties();
+            }
+        }
+
+        public override BaseAddonDeed Deed => new ShipPaintingDeed();
 
         [Constructable]
         public ShipPaintingAddon(DirectionType type)
-           : this(type, 0, DateTime.UtcNow + TimeSpan.FromDays(7))
+            : this(type, 0, DateTime.UtcNow + TimeSpan.FromDays(7))
         {
         }
 
@@ -46,9 +55,10 @@ namespace Server.Items
 
         public override void OnComponentUsed(AddonComponent component, Mobile from)
         {
-            BaseHouse house = BaseHouse.FindHouseAt(from);
+            var house = BaseHouse.FindHouseAt(from);
 
-            if (house != null && (house.IsOwner(from) || (house.LockDowns.ContainsKey(this) && house.LockDowns[this] == from)))
+            if (house != null && (house.IsOwner(from) ||
+                                  (house.LockDowns.ContainsKey(this) && house.LockDowns[this] == from)))
             {
                 if (ResourceCount > 0)
                 {
@@ -62,43 +72,6 @@ namespace Server.Items
             else
             {
                 from.SendLocalizedMessage(502092); // You must be in your house to do this.
-            }
-        }
-
-        public override BaseAddonDeed Deed { get { return new ShipPaintingDeed(); } }
-
-        private class ShipPaintingComponent : LocalizedAddonComponent
-        {
-            public ShipPaintingComponent(int id)
-                : base(id, 1098378) // painting
-            {
-            }
-
-            public override void GetProperties(ObjectPropertyList list)
-            {
-                base.GetProperties(list);
-
-                if (Addon is ShipPaintingAddon)
-                {
-                    list.Add(1154175, ((ShipPaintingAddon)Addon).ResourceCount.ToString()); // Powder Charges: ~1_COUNT~
-                }
-            }
-
-            public ShipPaintingComponent(Serial serial)
-                : base(serial)
-            {
-            }
-
-            public override void Serialize(GenericWriter writer)
-            {
-                base.Serialize(writer);
-                writer.Write(0); // Version
-            }
-
-            public override void Deserialize(GenericReader reader)
-            {
-                base.Deserialize(reader);
-                int version = reader.ReadInt();
             }
         }
 
@@ -116,7 +89,7 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
 
             TryGiveResourceCount();
 
@@ -127,22 +100,55 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             m_ResourceCount = reader.ReadInt();
             NextResourceCount = reader.ReadDateTime();
         }
-    }    
+
+        private class ShipPaintingComponent : LocalizedAddonComponent
+        {
+            public ShipPaintingComponent(int id)
+                : base(id, 1098378) // painting
+            {
+            }
+
+            public ShipPaintingComponent(Serial serial)
+                : base(serial)
+            {
+            }
+
+            public override void GetProperties(ObjectPropertyList list)
+            {
+                base.GetProperties(list);
+
+                if (Addon is ShipPaintingAddon)
+                    list.Add(1154175, ((ShipPaintingAddon)Addon).ResourceCount.ToString()); // Powder Charges: ~1_COUNT~
+            }
+
+            public override void Serialize(GenericWriter writer)
+            {
+                base.Serialize(writer);
+                writer.Write(0); // Version
+            }
+
+            public override void Deserialize(GenericReader reader)
+            {
+                base.Deserialize(reader);
+                var version = reader.ReadInt();
+            }
+        }
+    }
 
     public class ShipPaintingDeed : BaseAddonDeed, IRewardOption
     {
-        public override int LabelNumber { get { return 1154180; } } // Ship Painting 
-
         private DirectionType _Direction;
+        public override int LabelNumber => 1154180; // Ship Painting 
+
+        public override BaseAddon Addon => new ShipPaintingAddon(_Direction);
 
         [Constructable]
         public ShipPaintingDeed()
-            : base()
         {
             LootType = LootType.Blessed;
         }
@@ -150,19 +156,6 @@ namespace Server.Items
         public ShipPaintingDeed(Serial serial)
             : base(serial)
         {
-        }
-
-        public override void OnDoubleClick(Mobile from)
-        {
-            if (IsChildOf(from.Backpack))
-            {
-                from.CloseGump(typeof(AddonOptionGump));
-                from.SendGump(new AddonOptionGump(this, 1154194)); // Choose a Facing:
-            }
-            else
-            {
-                from.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.
-            }
         }
 
         public void GetOptions(RewardOptionList list)
@@ -179,18 +172,29 @@ namespace Server.Items
                 base.OnDoubleClick(from);
         }
 
-        public override BaseAddon Addon { get { return new ShipPaintingAddon(_Direction); } }
-                
+        public override void OnDoubleClick(Mobile from)
+        {
+            if (IsChildOf(from.Backpack))
+            {
+                from.CloseGump(typeof(AddonOptionGump));
+                from.SendGump(new AddonOptionGump(this, 1154194)); // Choose a Facing:
+            }
+            else
+            {
+                from.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.
+            }
+        }
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

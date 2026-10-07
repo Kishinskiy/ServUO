@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.IO;
-
+using System.Linq;
 using Server.Items;
 
 namespace Server.Engines.Astronomy
@@ -46,43 +45,26 @@ namespace Server.Engines.Astronomy
                 DiscoveredConstellations = new List<int>();
 
                 // comets
-                for (int i = 0x68D; i <= 0x693; i++)
-                {
-                    InterstellarObjects.Add(new Tuple<int, int>(i, 1158514));
-                }
+                for (var i = 0x68D; i <= 0x693; i++) InterstellarObjects.Add(new Tuple<int, int>(i, 1158514));
 
                 // felucca
-                for (int i = 0x69F; i <= 0x6A6; i++)
-                {
-                    InterstellarObjects.Add(new Tuple<int, int>(i, 1158734));
-                }
+                for (var i = 0x69F; i <= 0x6A6; i++) InterstellarObjects.Add(new Tuple<int, int>(i, 1158734));
 
                 // trammel
-                for (int i = 0x6A7; i <= 0x6AE; i++)
-                {
-                    InterstellarObjects.Add(new Tuple<int, int>(i, 1158735));
-                }
+                for (var i = 0x6A7; i <= 0x6AE; i++) InterstellarObjects.Add(new Tuple<int, int>(i, 1158735));
 
                 // galaxy
-                for (int i = 0x6AF; i <= 0x6BC; i++)
-                {
-                    InterstellarObjects.Add(new Tuple<int, int>(i, 1158736));
-                }
+                for (var i = 0x6AF; i <= 0x6BC; i++) InterstellarObjects.Add(new Tuple<int, int>(i, 1158736));
 
                 // planet
-                for (int i = 0x6BD; i <= 0x6CD; i++)
-                {
-                    InterstellarObjects.Add(new Tuple<int, int>(i, 1158737));
-                }
+                for (var i = 0x6BD; i <= 0x6CD; i++) InterstellarObjects.Add(new Tuple<int, int>(i, 1158737));
             }
         }
 
         public static void Initialize()
         {
             if (Enabled && LoadedConstellations < MaxConstellations)
-            {
                 CreateConstellations(MaxConstellations - LoadedConstellations);
-            }
         }
 
         private static void CreateConstellations(int amount)
@@ -91,25 +73,27 @@ namespace Server.Engines.Astronomy
 
             if (LoadedConstellations > 0)
             {
-                if (Constellations.Where(c => c.TimeCoordinate == TimeCoordinate.FiveToEight).Count() > Constellations.Where(c => c.TimeCoordinate == TimeCoordinate.NineToEleven).Count())
+                if (Constellations.Where(c => c.TimeCoordinate == TimeCoordinate.FiveToEight).Count() >
+                    Constellations.Where(c => c.TimeCoordinate == TimeCoordinate.NineToEleven).Count())
                     next = TimeCoordinate.NineToEleven;
-                else if (Constellations.Where(c => c.TimeCoordinate == TimeCoordinate.NineToEleven).Count() > Constellations.Where(c => c.TimeCoordinate == TimeCoordinate.Midnight).Count())
+                else if (Constellations.Where(c => c.TimeCoordinate == TimeCoordinate.NineToEleven).Count() >
+                         Constellations.Where(c => c.TimeCoordinate == TimeCoordinate.Midnight).Count())
                     next = TimeCoordinate.Midnight;
-                else if (Constellations.Where(c => c.TimeCoordinate == TimeCoordinate.Midnight).Count() > Constellations.Where(c => c.TimeCoordinate == TimeCoordinate.OneToFour).Count())
+                else if (Constellations.Where(c => c.TimeCoordinate == TimeCoordinate.Midnight).Count() >
+                         Constellations.Where(c => c.TimeCoordinate == TimeCoordinate.OneToFour).Count())
                     next = TimeCoordinate.OneToFour;
             }
 
-            for (int i = 0; i < amount; i++)
+            for (var i = 0; i < amount; i++)
             {
-                int ra = 0;
-                double dec = 0.0;
+                var ra = 0;
+                var dec = 0.0;
 
                 do
                 {
                     ra = Utility.RandomMinMax(0, MaxRA);
                     dec = Utility.RandomMinMax(0, (int)MaxDEC) + Utility.RandomList(.2, .4, .6, .8, .0);
-                }
-                while (CheckExists(next, ra, dec));
+                } while (CheckExists(next, ra, dec));
 
                 var info = new ConstellationInfo(next, ra, dec, ConstellationInfo.RandomStarPositions());
                 Constellations.Add(info);
@@ -152,7 +136,7 @@ namespace Server.Engines.Astronomy
 
         public static bool CheckNameExists(string name)
         {
-            return Constellations.Any(c => !String.IsNullOrEmpty(c.Name) && c.Name.ToLower() == name.ToLower());
+            return Constellations.Any(c => !string.IsNullOrEmpty(c.Name) && c.Name.ToLower() == name.ToLower());
         }
 
         public static TimeCoordinate GetTimeCoordinate(IEntity e)
@@ -161,25 +145,13 @@ namespace Server.Engines.Astronomy
 
             Clock.GetTime(e.Map, e.X, e.Y, out hours, out minutes, out totalMinutes);
 
-            if (hours >= 17 && hours < 21)
-            {
-                return TimeCoordinate.FiveToEight;
-            }
+            if (hours >= 17 && hours < 21) return TimeCoordinate.FiveToEight;
 
-            if (hours >= 21 && hours < 24)
-            {
-                return TimeCoordinate.NineToEleven;
-            }
+            if (hours >= 21 && hours < 24) return TimeCoordinate.NineToEleven;
 
-            if ((hours >= 24 && hours < 1) || hours == 0)
-            {
-                return TimeCoordinate.Midnight;
-            }
+            if ((hours >= 24 && hours < 1) || hours == 0) return TimeCoordinate.Midnight;
 
-            if (hours >= 1 && hours <= 4)
-            {
-                return TimeCoordinate.OneToFour;
-            }
+            if (hours >= 1 && hours <= 4) return TimeCoordinate.OneToFour;
 
             return TimeCoordinate.Day;
         }
@@ -220,10 +192,7 @@ namespace Server.Engines.Astronomy
 
         public static void AddDiscovery(ConstellationInfo info)
         {
-            if (!DiscoveredConstellations.Contains(info.Identifier))
-            {
-                DiscoveredConstellations.Add(info.Identifier);
-            }
+            if (!DiscoveredConstellations.Contains(info.Identifier)) DiscoveredConstellations.Add(info.Identifier);
         }
 
         public static void OnSave(WorldSaveEventArgs e)
@@ -236,10 +205,7 @@ namespace Server.Engines.Astronomy
 
                     writer.Write(Constellations.Count);
 
-                    foreach (var info in Constellations)
-                    {
-                        info.Serialize(writer);
-                    }
+                    foreach (var info in Constellations) info.Serialize(writer);
                 });
         }
 
@@ -253,10 +219,7 @@ namespace Server.Engines.Astronomy
 
                     LoadedConstellations = reader.ReadInt();
 
-                    for (int i = 0; i < LoadedConstellations; i++)
-                    {
-                        Constellations.Add(new ConstellationInfo(reader));
-                    }
+                    for (var i = 0; i < LoadedConstellations; i++) Constellations.Add(new ConstellationInfo(reader));
                 });
         }
     }

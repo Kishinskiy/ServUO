@@ -5,22 +5,27 @@ namespace Server.Items
 {
     public class FirstAidBelt : Container
     {
-        public override bool IsArtifact { get { return true; } }
-        public override int LabelNumber { get { return 1158681; } } // First Aid Belt
+        private static readonly Type[] m_Bandage =
+        {
+            typeof(Bandage), typeof(EnhancedBandage)
+        };
 
-        public override int DefaultGumpID { get { return 0x3C; } }
-        public override int DefaultMaxItems { get { return 1; } }
-        public override int DefaultMaxWeight { get { return 100; } }
-        public override double DefaultWeight { get { return 2.0; } }
+        private AosAttributes m_Attributes;
+        private int m_HealingBonus;
 
         private int m_WeightReduction;
-        private int m_HealingBonus;
-        private AosAttributes m_Attributes;
+        public override bool IsArtifact => true;
+        public override int LabelNumber => 1158681; // First Aid Belt
+
+        public override int DefaultGumpID => 0x3C;
+        public override int DefaultMaxItems => 1;
+        public override int DefaultMaxWeight => 100;
+        public override double DefaultWeight => 2.0;
 
         [CommandProperty(AccessLevel.GameMaster)]
         public int WeightReduction
         {
-            get { return m_WeightReduction; }
+            get => m_WeightReduction;
             set
             {
                 m_WeightReduction = value;
@@ -31,7 +36,7 @@ namespace Server.Items
         [CommandProperty(AccessLevel.GameMaster)]
         public int HealingBonus
         {
-            get { return m_HealingBonus; }
+            get => m_HealingBonus;
             set
             {
                 m_HealingBonus = value;
@@ -40,11 +45,17 @@ namespace Server.Items
         }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public AosAttributes Attributes { get { return m_Attributes; } set { } }
+        public AosAttributes Attributes
+        {
+            get => m_Attributes;
+            set { }
+        }
 
-        public Item Bandage { get { return Items.Count > 0 ? Items[0] : null; } }
-        public int MaxBandage { get { return DefaultMaxWeight * 10; } }
-        
+        public Item Bandage => Items.Count > 0 ? Items[0] : null;
+        public int MaxBandage => DefaultMaxWeight * 10;
+
+        public override bool DisplaysContent => false;
+
         [Constructable]
         public FirstAidBelt()
             : base(0xA1F6)
@@ -54,24 +65,19 @@ namespace Server.Items
             m_Attributes = new AosAttributes(this);
         }
 
-        public override void OnAfterDuped(Item newItem)
-        {
-            var belt = newItem as FirstAidBelt;
-
-            if (belt != null)
-            {
-                belt.m_Attributes = new AosAttributes(newItem, m_Attributes);
-            }
-
-            base.OnAfterDuped(newItem);
-        }
-
         public FirstAidBelt(Serial serial)
             : base(serial)
         {
         }
 
-        public override bool DisplaysContent { get { return false; } }
+        public override void OnAfterDuped(Item newItem)
+        {
+            var belt = newItem as FirstAidBelt;
+
+            if (belt != null) belt.m_Attributes = new AosAttributes(newItem, m_Attributes);
+
+            base.OnAfterDuped(newItem);
+        }
 
         public override void UpdateTotal(Item sender, TotalType type, int delta)
         {
@@ -82,7 +88,7 @@ namespace Server.Items
 
         public override int GetTotal(TotalType type)
         {
-            int total = base.GetTotal(type);
+            var total = base.GetTotal(type);
 
             if (type == TotalType.Weight)
                 total -= total * m_WeightReduction / 100;
@@ -90,15 +96,10 @@ namespace Server.Items
             return total;
         }
 
-        private static readonly Type[] m_Bandage = new Type[]
-        {
-            typeof(Bandage), typeof(EnhancedBandage)
-        };
-
         public bool CheckType(Item item)
         {
-            Type type = item.GetType();
-            Item bandage = Bandage;
+            var type = item.GetType();
+            var bandage = Bandage;
 
             if (bandage != null)
             {
@@ -107,17 +108,16 @@ namespace Server.Items
             }
             else
             {
-                for (int i = 0; i < m_Bandage.Length; i++)
-                {
+                for (var i = 0; i < m_Bandage.Length; i++)
                     if (type == m_Bandage[i])
                         return true;
-                }
             }
 
             return false;
         }
 
-        public override bool CheckHold(Mobile m, Item item, bool message, bool checkItems, int plusItems, int plusWeight)
+        public override bool CheckHold(Mobile m, Item item, bool message, bool checkItems, int plusItems,
+            int plusWeight)
         {
             if (!Movable)
                 return false;
@@ -132,14 +132,13 @@ namespace Server.Items
 
             if (!checkItems || Items.Count < DefaultMaxItems)
             {
-                int currentAmount = 0;
+                var currentAmount = 0;
 
                 Items.ForEach(i => currentAmount += i.Amount);
 
                 if (item.Amount + currentAmount <= MaxBandage)
                     return base.CheckHold(m, item, message, checkItems, plusItems, plusWeight);
-                else
-                    m.SendLocalizedMessage(1080017); // That container cannot hold more items.
+                m.SendLocalizedMessage(1080017); // That container cannot hold more items.
             }
 
             return false;
@@ -147,16 +146,13 @@ namespace Server.Items
 
         public override bool CheckStack(Mobile from, Item item)
         {
-            if (!CheckType(item))
-            {
-                return false;
-            }
+            if (!CheckType(item)) return false;
 
-            Item bandage = Bandage;
+            var bandage = Bandage;
 
             if (bandage != null)
             {
-                int currentAmount = Items.Sum(i => i.Amount);
+                var currentAmount = Items.Sum(i => i.Amount);
 
                 if (item.Amount + currentAmount <= MaxBandage)
                     return base.CheckStack(from, item);
@@ -259,7 +255,8 @@ namespace Server.Items
             if (Bandage != null)
                 weight = Bandage.Weight * Bandage.Amount;
 
-            list.Add(1072241, "{0}\t{1}\t{2}\t{3}", Items.Count, DefaultMaxItems, (int)weight, DefaultMaxWeight); // Contents: ~1_COUNT~/~2_MAXCOUNT items, ~3_WEIGHT~/~4_MAXWEIGHT~ stones
+            list.Add(1072241, "{0}\t{1}\t{2}\t{3}", Items.Count, DefaultMaxItems, (int)weight,
+                DefaultMaxWeight); // Contents: ~1_COUNT~/~2_MAXCOUNT items, ~3_WEIGHT~/~4_MAXWEIGHT~ stones
 
             if ((prop = m_WeightReduction) != 0)
                 list.Add(1072210, prop.ToString()); // Weight reduction: ~1_PERCENTAGE~%
@@ -287,31 +284,27 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             switch (version)
             {
                 case 1:
-                    {
-                        if (reader.ReadInt() == 1)
-                        {
-                            m_Attributes = new AosAttributes(this, reader);
-                        }
-                        else
-                        {
-                            m_Attributes = new AosAttributes(this);
-                        }
-
-                        m_HealingBonus = reader.ReadInt();
-                        m_WeightReduction = reader.ReadInt();
-                        break;
-                    }
-                case 0:
-                    {
+                {
+                    if (reader.ReadInt() == 1)
+                        m_Attributes = new AosAttributes(this, reader);
+                    else
                         m_Attributes = new AosAttributes(this);
-                        m_WeightReduction = reader.ReadInt();
-                        break;
-                    }
+
+                    m_HealingBonus = reader.ReadInt();
+                    m_WeightReduction = reader.ReadInt();
+                    break;
+                }
+                case 0:
+                {
+                    m_Attributes = new AosAttributes(this);
+                    m_WeightReduction = reader.ReadInt();
+                    break;
+                }
             }
         }
 
@@ -319,7 +312,7 @@ namespace Server.Items
         {
             if (RootParent is Mobile)
             {
-                Mobile m = (Mobile)RootParent;
+                var m = (Mobile)RootParent;
 
                 m.UpdateTotals();
             }

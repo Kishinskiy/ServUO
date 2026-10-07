@@ -1,4 +1,3 @@
-using System;
 using Server.Spells.First;
 
 namespace Server.Items
@@ -20,19 +19,19 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         public override void OnWandUse(Mobile from)
         {
-            this.Cast(new WeakenSpell(from, this));
+            Cast(new WeakenSpell(from, this));
         }
     }
 }

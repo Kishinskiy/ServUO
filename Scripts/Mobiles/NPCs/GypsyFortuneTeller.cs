@@ -1,109 +1,85 @@
 #region References
+
 using Server.Items;
+
 #endregion
 
 namespace Server.Mobiles
 {
-	public class GypsyFortuneTeller : BaseHealer
-	{
-		[Constructable]
-		public GypsyFortuneTeller()
-		{
-			Title = "the fortune teller";
-			SetSkill(SkillName.Begging, 64.0, 100.0);
-		}
+    public class GypsyFortuneTeller : BaseHealer
+    {
+        public override bool IsInvulnerable => true;
 
-		public GypsyFortuneTeller(Serial serial)
-			: base(serial)
-		{ }
-		
-		public override bool IsInvulnerable
+        [Constructable]
+        public GypsyFortuneTeller()
         {
-            get
-            {
-                return true;
-            }
+            Title = "the fortune teller";
+            SetSkill(SkillName.Begging, 64.0, 100.0);
         }
-		
-		public override void InitOutfit()
-		{
-			base.InitOutfit();
 
-			switch (Utility.Random(4))
-			{
-				case 0:
-					AddItem(new JesterHat(Utility.RandomBrightHue()));
-					break;
-				case 1:
-					AddItem(new Bandana(Utility.RandomBrightHue()));
-					break;
-				case 2:
-					AddItem(new SkullCap(Utility.RandomBrightHue()));
-					break;
-			}
+        public GypsyFortuneTeller(Serial serial)
+            : base(serial)
+        {
+        }
 
-			Item item = FindItemOnLayer(Layer.Pants);
+        public override void InitOutfit()
+        {
+            base.InitOutfit();
 
-			if (item != null)
-			{
-				item.Hue = Utility.RandomBrightHue();
-			}
+            switch (Utility.Random(4))
+            {
+                case 0:
+                    AddItem(new JesterHat(Utility.RandomBrightHue()));
+                    break;
+                case 1:
+                    AddItem(new Bandana(Utility.RandomBrightHue()));
+                    break;
+                case 2:
+                    AddItem(new SkullCap(Utility.RandomBrightHue()));
+                    break;
+            }
 
-			item = FindItemOnLayer(Layer.Shoes);
+            var item = FindItemOnLayer(Layer.Pants);
 
-			if (item != null)
-			{
-				item.Hue = Utility.RandomBrightHue();
-			}
+            if (item != null) item.Hue = Utility.RandomBrightHue();
 
-			item = FindItemOnLayer(Layer.OuterLegs);
+            item = FindItemOnLayer(Layer.Shoes);
 
-			if (item != null)
-			{
-				item.Hue = Utility.RandomBrightHue();
-			}
+            if (item != null) item.Hue = Utility.RandomBrightHue();
 
-			item = FindItemOnLayer(Layer.InnerLegs);
+            item = FindItemOnLayer(Layer.OuterLegs);
 
-			if (item != null)
-			{
-				item.Hue = Utility.RandomBrightHue();
-			}
+            if (item != null) item.Hue = Utility.RandomBrightHue();
 
-			item = FindItemOnLayer(Layer.OuterTorso);
+            item = FindItemOnLayer(Layer.InnerLegs);
 
-			if (item != null)
-			{
-				item.Hue = Utility.RandomBrightHue();
-			}
+            if (item != null) item.Hue = Utility.RandomBrightHue();
 
-			item = FindItemOnLayer(Layer.InnerTorso);
+            item = FindItemOnLayer(Layer.OuterTorso);
 
-			if (item != null)
-			{
-				item.Hue = Utility.RandomBrightHue();
-			}
+            if (item != null) item.Hue = Utility.RandomBrightHue();
 
-			item = FindItemOnLayer(Layer.Shirt);
+            item = FindItemOnLayer(Layer.InnerTorso);
 
-			if (item != null)
-			{
-				item.Hue = Utility.RandomBrightHue();
-			}
-		}
+            if (item != null) item.Hue = Utility.RandomBrightHue();
 
-		public override void Serialize(GenericWriter writer)
-		{
-			base.Serialize(writer);
+            item = FindItemOnLayer(Layer.Shirt);
 
-			writer.Write(0); // version
-		}
+            if (item != null) item.Hue = Utility.RandomBrightHue();
+        }
 
-		public override void Deserialize(GenericReader reader)
-		{
-			base.Deserialize(reader);
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
 
-			int version = reader.ReadInt();
-		}
-	}
+            writer.Write(0); // version
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+
+            var version = reader.ReadInt();
+        }
+    }
 }

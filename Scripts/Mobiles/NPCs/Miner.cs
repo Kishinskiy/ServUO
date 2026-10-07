@@ -1,11 +1,14 @@
-using System;
 using System.Collections.Generic;
+using Server.Items;
 
 namespace Server.Mobiles
 {
     public class Miner : BaseVendor
     {
         private readonly List<SBInfo> m_SBInfos = new List<SBInfo>();
+
+        protected override List<SBInfo> SBInfos => m_SBInfos;
+
         [Constructable]
         public Miner()
             : base("the miner")
@@ -18,13 +21,6 @@ namespace Server.Mobiles
         {
         }
 
-        protected override List<SBInfo> SBInfos
-        {
-            get
-            {
-                return m_SBInfos;
-            }
-        }
         public override void InitSBInfo()
         {
             m_SBInfos.Add(new SBMiner());
@@ -32,10 +28,10 @@ namespace Server.Mobiles
 
         public override void InitOutfit()
         {
-            AddItem(new Server.Items.FancyShirt(0x3E4));
-            AddItem(new Server.Items.LongPants(0x192));
-            AddItem(new Server.Items.Pickaxe());
-            AddItem(new Server.Items.ThighBoots(0x283));
+            AddItem(new FancyShirt(0x3E4));
+            AddItem(new LongPants(0x192));
+            AddItem(new Pickaxe());
+            AddItem(new ThighBoots(0x283));
 
             base.InitOutfit();
         }
@@ -44,14 +40,14 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -1,17 +1,16 @@
-using Server;
-using System;
-using Server.Items;
-using Server.Gumps;
-using Server.Mobiles;
 using System.Collections.Generic;
+using Server.Gumps;
+using Server.Items;
+using Server.Mobiles;
 
 namespace Server.Engines.ArenaSystem
 {
     [DeleteConfirm("Are you sure you want to delete this? Deleting this stone will remove this arena from the system.")]
     public class ArenaStone : Item
     {
-        public override bool ForceShowProperties { get { return true; } }
-        public override int LabelNumber { get { return 1115878; } }
+        private List<Item> _Items;
+        public override bool ForceShowProperties => true;
+        public override int LabelNumber => 1115878;
 
         [CommandProperty(AccessLevel.GameMaster)]
         public PVPArena Arena { get; set; }
@@ -19,8 +18,12 @@ namespace Server.Engines.ArenaSystem
         [CommandProperty(AccessLevel.GameMaster)]
         public bool ShowArenaEffects
         {
-            get { return false; }
-            set { if (value) DoArenaEffects(); if (!value) HideArenaEffects(); }
+            get => false;
+            set
+            {
+                if (value) DoArenaEffects();
+                if (!value) HideArenaEffects();
+            }
         }
 
         [Constructable]
@@ -33,28 +36,31 @@ namespace Server.Engines.ArenaSystem
             Hue = 1194;
         }
 
+        public ArenaStone(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void OnDoubleClick(Mobile from)
         {
             if (from is PlayerMobile && from.InRange(Location, 10))
             {
-                PlayerMobile pm = from as PlayerMobile;
+                var pm = from as PlayerMobile;
 
                 if (pm.Young)
                 {
-                    from.SendLocalizedMessage(1116002); // Young players and Trial Account users may not participate in duels.
+                    from.SendLocalizedMessage(
+                        1116002); // Young players and Trial Account users may not participate in duels.
                 }
                 else if (Arena != null && PVPArenaSystem.Enabled)
                 {
                     if (Arena.CurrentDuel != null && Arena.CurrentDuel.IsParticipant(pm))
                     {
                         if (Arena.CurrentDuel.InPreFight)
-                        {
                             BaseGump.SendGump(new OfferDuelGump(pm, Arena.CurrentDuel, Arena, false, true));
-                        }
                         else
-                        {
-                            from.SendLocalizedMessage(1116387); // Please wait until the session which you participated is finished completely.
-                        }
+                            from.SendLocalizedMessage(
+                                1116387); // Please wait until the session which you participated is finished completely.
                     }
                     else
                     {
@@ -65,13 +71,9 @@ namespace Server.Engines.ArenaSystem
                             var booked = PVPArenaSystem.Instance.GetBookedDuel(pm);
 
                             if (booked != null)
-                            {
                                 BaseGump.SendGump(new OfferDuelGump(pm, booked, booked.Arena, true));
-                            }
                             else
-                            {
                                 BaseGump.SendGump(new ArenaStoneGump(pm, Arena));
-                            }
                         }
                         else
                         {
@@ -86,8 +88,6 @@ namespace Server.Engines.ArenaSystem
             }
         }
 
-        private List<Item> _Items;
-
         public void DoArenaEffects()
         {
             if (Arena == null)
@@ -96,17 +96,13 @@ namespace Server.Engines.ArenaSystem
             _Items = new List<Item>();
 
             foreach (var rec in Arena.Definition.EffectAreas)
-            {
-                for (int x = rec.X; x < rec.X + rec.Width; x++)
+                for (var x = rec.X; x < rec.X + rec.Width; x++)
+                for (var y = rec.Y; y < rec.Y + rec.Height; y++)
                 {
-                    for (int y = rec.Y; y < rec.Y + rec.Height; y++)
-                    {
-                        var st = new Static(0x3709);
-                        st.MoveToWorld(new Point3D(x, y, Arena.Definition.Map.GetAverageZ(x, y)), Map);
-                        _Items.Add(st);
-                    }
+                    var st = new Static(0x3709);
+                    st.MoveToWorld(new Point3D(x, y, Arena.Definition.Map.GetAverageZ(x, y)), Map);
+                    _Items.Add(st);
                 }
-            }
         }
 
         public void HideArenaEffects()
@@ -114,10 +110,7 @@ namespace Server.Engines.ArenaSystem
             if (_Items == null)
                 return;
 
-            _Items.ForEach(s =>
-                {
-                    s.Delete();
-                });
+            _Items.ForEach(s => { s.Delete(); });
 
             ColUtility.Free(_Items);
             _Items = null;
@@ -128,29 +121,21 @@ namespace Server.Engines.ArenaSystem
             base.Delete();
 
             Timer.DelayCall(() =>
-                {
-                    if (Arena != null && PVPArenaSystem.Instance != null)
-                    {
-                        PVPArenaSystem.Instance.AddBlockedArena(Arena);
-                    }
-                });
-        }
-
-        public ArenaStone(Serial serial)
-            : base(serial)
-        {
+            {
+                if (Arena != null && PVPArenaSystem.Instance != null) PVPArenaSystem.Instance.AddBlockedArena(Arena);
+            });
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

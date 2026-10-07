@@ -9,7 +9,7 @@ namespace Server.Items
         [CommandProperty(AccessLevel.GameMaster)]
         public bool Active
         {
-            get { return Visible; }
+            get => Visible;
             set
             {
                 if (Active != value)
@@ -32,8 +32,13 @@ namespace Server.Items
 
             MoveToWorld(location, map);
 
-            m_SoundTimer = Timer.DelayCall(TimeSpan.Zero, TimeSpan.FromSeconds(Utility.RandomMinMax(5, 50)), new TimerCallback(PlaySound));
+            m_SoundTimer = Timer.DelayCall(TimeSpan.Zero, TimeSpan.FromSeconds(Utility.RandomMinMax(5, 50)), PlaySound);
             m_SoundTimer.Start();
+        }
+
+        public EnergyBarrier(Serial serial)
+            : base(serial)
+        {
         }
 
         protected void PlaySound()
@@ -52,23 +57,18 @@ namespace Server.Items
                 m_SoundTimer.Stop();
         }
 
-        public EnergyBarrier(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            m_SoundTimer = Timer.DelayCall(TimeSpan.Zero, TimeSpan.FromSeconds(5.0), new TimerCallback(PlaySound));
+            m_SoundTimer = Timer.DelayCall(TimeSpan.Zero, TimeSpan.FromSeconds(5.0), PlaySound);
             m_SoundTimer.Start();
         }
     }

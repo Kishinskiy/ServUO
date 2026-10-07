@@ -1,12 +1,10 @@
-using System;
-
 namespace Server.Factions
 {
     public class SkaraBrae : Town
     {
         public SkaraBrae()
         {
-            this.Definition =
+            Definition =
                 new TownDefinition(
                     6,
                     0x186F,

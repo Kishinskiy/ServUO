@@ -1,4 +1,3 @@
-using System;
 using System.Collections;
 using System.Drawing;
 
@@ -12,93 +11,32 @@ namespace Server.Engines.Reports
     // This class represents a data point in a chart
     //
     //*********************************************************************
-    public class DataItem 
+    public class DataItem
     {
-        private string _label;
-        private string _description;
-        private float _value;
-        private Color _color;
-        private float _startPos;
-        private float _sweepSize;
+        public string Label { get; set; }
+
+        public string Description { get; set; }
+
+        public float Value { get; set; }
+
+        public Color ItemColor { get; set; }
+
+        public float StartPos { get; set; }
+
+        public float SweepSize { get; set; }
+
         public DataItem(string label, string desc, float data, float start, float sweep, Color clr)
         {
-            this._label = label;
-            this._description = desc;
-            this._value = data;
-            this._startPos = start;
-            this._sweepSize = sweep;
-            this._color = clr;
+            Label = label;
+            Description = desc;
+            Value = data;
+            StartPos = start;
+            SweepSize = sweep;
+            ItemColor = clr;
         }
 
         private DataItem()
         {
-        }
-
-        public string Label 
-        {
-            get
-            {
-                return this._label;
-            }
-            set
-            {
-                this._label = value;
-            }
-        }
-        public string Description 
-        {
-            get
-            {
-                return this._description;
-            }
-            set
-            {
-                this._description = value;
-            }
-        }
-        public float Value 
-        {
-            get
-            {
-                return this._value;
-            }
-            set
-            {
-                this._value = value;
-            }
-        }
-        public Color ItemColor 
-        {
-            get
-            {
-                return this._color;
-            }
-            set
-            {
-                this._color = value;
-            }
-        }
-        public float StartPos
-        {
-            get
-            {
-                return this._startPos;
-            }
-            set
-            {
-                this._startPos = value;
-            }
-        }
-        public float SweepSize
-        {
-            get
-            {
-                return this._sweepSize;
-            }
-            set
-            {
-                this._sweepSize = value;
-            }
         }
     }
 
@@ -107,37 +45,32 @@ namespace Server.Engines.Reports
     // Custom Collection for ChartItems
     //
     //*********************************************************************
-    public class ChartItemsCollection : CollectionBase 
+    public class ChartItemsCollection : CollectionBase
     {
-        public DataItem this[int index] 
+        public DataItem this[int index]
         {
-            get
-            {
-                return (DataItem)(this.List[index]);
-            }
-            set
-            {
-                this.List[index] = value;
-            }
-        }
-        public int Add(DataItem value) 
-        {
-            return this.List.Add(value);
+            get => (DataItem)List[index];
+            set => List[index] = value;
         }
 
-        public int IndexOf(DataItem value) 
+        public int Add(DataItem value)
         {
-            return this.List.IndexOf(value);
+            return List.Add(value);
         }
 
-        public bool Contains(DataItem value) 
+        public int IndexOf(DataItem value)
         {
-            return this.List.Contains(value);
+            return List.IndexOf(value);
         }
 
-        public void Remove(DataItem value) 
+        public bool Contains(DataItem value)
         {
-            this.List.Remove(value);
+            return List.Contains(value);
+        }
+
+        public void Remove(DataItem value)
+        {
+            List.Remove(value);
         }
     }
 }

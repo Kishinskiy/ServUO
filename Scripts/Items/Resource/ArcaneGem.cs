@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using Server.Targeting;
 
 namespace Server.Items
@@ -7,7 +5,7 @@ namespace Server.Items
     public class ArcaneGem : Item, ICommodity
     {
         public const int DefaultArcaneHue = 2117;
-        public override int LabelNumber {get {return 1114115;} } // Arcane Gem
+        public override int LabelNumber => 1114115; // Arcane Gem
 
         [Constructable]
         public ArcaneGem()
@@ -29,21 +27,21 @@ namespace Server.Items
         {
         }
 
-        TextDefinition ICommodity.Description { get { return LabelNumber; } }
-        bool ICommodity.IsDeedable { get { return true; } }
-       
+        TextDefinition ICommodity.Description => LabelNumber;
+        bool ICommodity.IsDeedable => true;
+
         public static bool ConsumeCharges(Mobile from, int amount)
         {
-            List<Item> items = from.Items;
-            int avail = 0;
+            var items = from.Items;
+            var avail = 0;
 
-            for (int i = 0; i < items.Count; ++i)
+            for (var i = 0; i < items.Count; ++i)
             {
-                Item obj = items[i];
+                var obj = items[i];
 
                 if (obj is IArcaneEquip)
                 {
-                    IArcaneEquip eq = (IArcaneEquip)obj;
+                    var eq = (IArcaneEquip)obj;
 
                     if (eq.IsArcane)
                         avail += eq.CurArcaneCharges;
@@ -53,13 +51,13 @@ namespace Server.Items
             if (avail < amount)
                 return false;
 
-            for (int i = 0; i < items.Count; ++i)
+            for (var i = 0; i < items.Count; ++i)
             {
-                Item obj = items[i];
+                var obj = items[i];
 
                 if (obj is IArcaneEquip)
                 {
-                    IArcaneEquip eq = (IArcaneEquip)obj;
+                    var eq = (IArcaneEquip)obj;
 
                     if (eq.IsArcane)
                     {
@@ -68,11 +66,9 @@ namespace Server.Items
                             eq.CurArcaneCharges -= amount;
                             break;
                         }
-                        else
-                        {
-                            amount -= eq.CurArcaneCharges;
-                            eq.CurArcaneCharges = 0;
-                        }
+
+                        amount -= eq.CurArcaneCharges;
+                        eq.CurArcaneCharges = 0;
                     }
                 }
             }
@@ -83,22 +79,18 @@ namespace Server.Items
         public override void OnDoubleClick(Mobile from)
         {
             if (!IsChildOf(from.Backpack))
-            {
                 from.SendLocalizedMessage(1042010); // You must have the object in your backpack to use it.
-            }
             else
-            {
-                from.BeginTarget(2, false, TargetFlags.None, new TargetCallback(OnTarget));
-            }
+                from.BeginTarget(2, false, TargetFlags.None, OnTarget);
         }
 
         public int GetChargesFor(Mobile m)
         {
-            int v = (int)(m.Skills[SkillName.Tailoring].Value / 5);
+            var v = (int)(m.Skills[SkillName.Tailoring].Value / 5);
 
             if (v < 16)
                 return 16;
-            else if (v > 24)
+            if (v > 24)
                 return 24;
 
             return v;
@@ -114,8 +106,8 @@ namespace Server.Items
 
             if (obj is IArcaneEquip && obj is Item)
             {
-                Item item = (Item)obj;
-                CraftResource resource = CraftResource.None;
+                var item = (Item)obj;
+                var resource = CraftResource.None;
 
                 if (item is BaseClothing)
                     resource = ((BaseClothing)item).Resource;
@@ -124,15 +116,15 @@ namespace Server.Items
                 else if (item is BaseWeapon) // Sanity, weapons cannot recieve gems...
                     resource = ((BaseWeapon)item).Resource;
 
-                IArcaneEquip eq = (IArcaneEquip)obj;
+                var eq = (IArcaneEquip)obj;
 
                 if (!item.IsChildOf(from.Backpack))
                 {
                     from.SendMessage("You may only target items in your backpack.");
                     return;
-                }             
+                }
 
-                int charges = GetChargesFor(from);
+                var charges = GetChargesFor(from);
 
                 if (eq.IsArcane)
                 {
@@ -153,7 +145,6 @@ namespace Server.Items
                         {
                             eq.CurArcaneCharges += charges;
                             from.SendMessage("You are only able to restore some of the charges.");
-
                         }
 
                         Consume();
@@ -161,7 +152,7 @@ namespace Server.Items
                 }
                 else if (from.Skills[SkillName.Tailoring].Value >= 60.0)
                 {
-                    bool isExceptional = false;
+                    var isExceptional = false;
 
                     if (item is BaseClothing)
                         isExceptional = ((BaseClothing)item).Quality == ItemQuality.Exceptional;
@@ -174,18 +165,19 @@ namespace Server.Items
                     {
                         if (item is BaseClothing)
                         {
-                            BaseClothing cloth = item as BaseClothing;
+                            var cloth = item as BaseClothing;
 
                             cloth.Quality = ItemQuality.Normal;
                             cloth.Crafter = from;
                         }
                         else if (item is BaseArmor)
                         {
-                            BaseArmor armor = item as BaseArmor;
+                            var armor = item as BaseArmor;
 
                             if (armor.IsImbued || armor.IsArtifact || RunicReforging.GetArtifactRarity(armor) > 0)
                             {
-                                from.SendLocalizedMessage(1049690); // Arcane gems cannot be used on that type of leather.
+                                from.SendLocalizedMessage(
+                                    1049690); // Arcane gems cannot be used on that type of leather.
                                 return;
                             }
 
@@ -199,7 +191,7 @@ namespace Server.Items
                         }
                         else if (item is BaseWeapon) // Sanity, weapons cannot recieve gems...
                         {
-                            BaseWeapon weapon = item as BaseWeapon;
+                            var weapon = item as BaseWeapon;
 
                             weapon.Quality = ItemQuality.Normal;
                             weapon.Crafter = from;
@@ -216,7 +208,8 @@ namespace Server.Items
                     }
                     else
                     {
-                        from.SendMessage("You can only use this on exceptionally crafted robes, thigh boots, cloaks, or leather gloves.");
+                        from.SendMessage(
+                            "You can only use this on exceptionally crafted robes, thigh boots, cloaks, or leather gloves.");
                     }
                 }
                 else
@@ -226,20 +219,21 @@ namespace Server.Items
             }
             else
             {
-                from.SendMessage("You can only use this on exceptionally crafted robes, thigh boots, cloaks, or leather gloves.");
+                from.SendMessage(
+                    "You can only use this on exceptionally crafted robes, thigh boots, cloaks, or leather gloves.");
             }
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

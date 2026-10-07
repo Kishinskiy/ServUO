@@ -1,12 +1,25 @@
 using System;
-using System.Collections;
+using Server.Engines.Plants;
 using Server.Items;
+using Server.SkillHandlers;
 
 namespace Server.Mobiles
 {
     [CorpseName("a hiryu corpse")]
     public class LesserHiryu : BaseMount
     {
+        public override bool StatLossAfterTame => true;
+
+        public override int TreasureMapLevel => 3;
+
+        public override int Meat => 16;
+
+        public override int Hides => 60;
+
+        public override FoodType FavoriteFood => FoodType.Meat;
+
+        public override bool CanAngerOnTame => true;
+
         [Constructable]
         public LesserHiryu()
             : base("a lesser hiryu", 243, 0x3E94, AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -43,7 +56,7 @@ namespace Server.Mobiles
             MinTameSkill = 98.7;
 
             if (Utility.RandomDouble() < .33)
-                PackItem(Engines.Plants.Seed.RandomBonsaiSeed());
+                PackItem(Seed.RandomBonsaiSeed());
 
             SetWeaponAbility(WeaponAbility.Dismount);
             SetSpecialAbility(SpecialAbility.GraspingClaw);
@@ -52,49 +65,6 @@ namespace Server.Mobiles
         public LesserHiryu(Serial serial)
             : base(serial)
         {
-        }
-
-        public override bool StatLossAfterTame
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override int TreasureMapLevel
-        {
-            get
-            {
-                return 3;
-            }
-        }
-        public override int Meat
-        {
-            get
-            {
-                return 16;
-            }
-        }
-        public override int Hides
-        {
-            get
-            {
-                return 60;
-            }
-        }
-        public override FoodType FavoriteFood
-        {
-            get
-            {
-                return FoodType.Meat;
-            }
-        }
-        public override bool CanAngerOnTame
-        {
-            get
-            {
-                return true;
-            }
         }
 
         public override bool OverrideBondingReqs()
@@ -141,27 +111,18 @@ namespace Server.Mobiles
             {
                 var profile = PetTrainingHelper.GetAbilityProfile(this);
 
-                if (profile != null && profile.HasCustomized())
-                {
-                    return base.GetControlChance(m, useBaseSkill);
-                }
+                if (profile != null && profile.HasCustomized()) return base.GetControlChance(m, useBaseSkill);
             }
 
-            double tamingChance = base.GetControlChance(m, useBaseSkill);
+            var tamingChance = base.GetControlChance(m, useBaseSkill);
 
-            if (tamingChance >= 0.95)
-            {
-                return tamingChance;
-            }
+            if (tamingChance >= 0.95) return tamingChance;
 
-            double skill = (useBaseSkill ? m.Skills.Bushido.Base : m.Skills.Bushido.Value);
+            var skill = useBaseSkill ? m.Skills.Bushido.Base : m.Skills.Bushido.Value;
 
-            if (skill < 90.0)
-            {
-                return tamingChance;
-            }
+            if (skill < 90.0) return tamingChance;
 
-            double bushidoChance = (skill - 30.0) / 100;
+            var bushidoChance = (skill - 30.0) / 100;
 
             if (m.Skills.Bushido.Base >= 120)
                 bushidoChance += 0.05;
@@ -172,13 +133,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)4);
+            writer.Write(4);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (version == 0)
                 Timer.DelayCall(TimeSpan.Zero, delegate { Hue = GetHue(); });
@@ -186,34 +147,21 @@ namespace Server.Mobiles
             if (version <= 1)
                 Timer.DelayCall(TimeSpan.Zero, delegate
                 {
-                    if (InternalItem != null)
-                    {
-                        InternalItem.Hue = Hue;
-                    }
+                    if (InternalItem != null) InternalItem.Hue = Hue;
                 });
 
             if (version < 2)
-            {
-                for (int i = 0; i < Skills.Length; ++i)
+                for (var i = 0; i < Skills.Length; ++i)
                 {
                     Skills[i].Cap = Math.Max(100.0, Skills[i].Cap * 0.9);
 
-                    if (Skills[i].Base > Skills[i].Cap)
-                    {
-                        Skills[i].Base = Skills[i].Cap;
-                    }
+                    if (Skills[i].Base > Skills[i].Cap) Skills[i].Base = Skills[i].Cap;
                 }
-            }
 
-            if (version < 3)
-            {
-                SetWeaponAbility(WeaponAbility.Dismount);
-            }
+            if (version < 3) SetWeaponAbility(WeaponAbility.Dismount);
 
             if (version < 3 && Controlled && RawStr >= 301 && ControlSlots == ControlSlotsMin)
-            {
-                Server.SkillHandlers.AnimalTaming.ScaleStats(this, 0.5);
-            }
+                AnimalTaming.ScaleStats(this, 0.5);
 
             if (version < 4 && PetTrainingHelper.Enabled && ControlSlots <= 3)
             {
@@ -230,7 +178,7 @@ namespace Server.Mobiles
 
         private static int GetHue()
         {
-            int rand = Utility.Random(527);
+            var rand = Utility.Random(527);
 
             /*
 
@@ -245,13 +193,13 @@ namespace Server.Mobiles
 
             if (rand <= 0)
                 return 0x8258;
-            else if (rand <= 1)
+            if (rand <= 1)
                 return 0x88AB;
-            else if (rand <= 6)
+            if (rand <= 6)
                 return 0x87D4;
-            else if (rand <= 16)
+            if (rand <= 16)
                 return 0x8163;
-            else if (rand <= 26)
+            if (rand <= 26)
                 return 0x8295;
 
             return 0;

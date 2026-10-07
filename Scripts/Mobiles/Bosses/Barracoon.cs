@@ -8,6 +8,59 @@ namespace Server.Mobiles
 {
     public class Barracoon : BaseChampion
     {
+        public override ChampionSkullType SkullType => ChampionSkullType.Greed;
+
+        public override Type[] UniqueList
+        {
+            get { return new[] { typeof(FangOfRactus) }; }
+        }
+
+        public override Type[] SharedList
+        {
+            get
+            {
+                return new[]
+                {
+                    typeof(EmbroideredOakLeafCloak),
+                    typeof(DjinnisRing),
+                    typeof(DetectiveBoots),
+                    typeof(GauntletsOfAnger)
+                };
+            }
+        }
+
+        public override Type[] DecorativeList
+        {
+            get { return new[] { typeof(SwampTile), typeof(MonsterStatuette) }; }
+        }
+
+        public override MonsterStatuetteType[] StatueTypes
+        {
+            get { return new[] { MonsterStatuetteType.Slime }; }
+        }
+
+        public override bool AlwaysMurderer => true;
+
+        public override bool AutoDispel => true;
+
+        public override double AutoDispelChance => 1.0;
+
+        public override bool BardImmune => !Core.SE;
+
+        public override bool AllureImmune => true;
+
+        public override bool Unprovokable => Core.SE;
+
+        public override bool Uncalmable => Core.SE;
+
+        public override Poison PoisonImmune => Poison.Deadly;
+
+        public override bool ShowFameTitle => false;
+
+        public override bool ClickTitle => false;
+
+        public override bool ForceStayHome => true;
+
         [Constructable]
         public Barracoon()
             : base(AIType.AI_Melee)
@@ -61,120 +114,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override ChampionSkullType SkullType
-        {
-            get
-            {
-                return ChampionSkullType.Greed;
-            }
-        }
-        public override Type[] UniqueList
-        {
-            get
-            {
-                return new Type[] { typeof(FangOfRactus) };
-            }
-        }
-        public override Type[] SharedList
-        {
-            get
-            {
-                return new Type[]
-                {
-                    typeof(EmbroideredOakLeafCloak),
-                    typeof(DjinnisRing),
-                    typeof(DetectiveBoots),
-                    typeof(GauntletsOfAnger)
-                };
-            }
-        }
-        public override Type[] DecorativeList
-        {
-            get
-            {
-                return new Type[] { typeof(SwampTile), typeof(MonsterStatuette) };
-            }
-        }
-        public override MonsterStatuetteType[] StatueTypes
-        {
-            get
-            {
-                return new MonsterStatuetteType[] { MonsterStatuetteType.Slime };
-            }
-        }
-        public override bool AlwaysMurderer
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool AutoDispel
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override double AutoDispelChance
-        {
-            get
-            {
-                return 1.0;
-            }
-        }
-        public override bool BardImmune
-        {
-            get
-            {
-                return !Core.SE;
-            }
-        }
-		public override bool AllureImmune
-		{
-			get
-			{
-				return true;
-			}
-		}
-        public override bool Unprovokable
-        {
-            get
-            {
-                return Core.SE;
-            }
-        }
-        public override bool Uncalmable
-        {
-            get
-            {
-                return Core.SE;
-            }
-        }
-        public override Poison PoisonImmune
-        {
-            get
-            {
-                return Poison.Deadly;
-            }
-        }
-        public override bool ShowFameTitle
-        {
-            get
-            {
-                return false;
-            }
-        }
-        public override bool ClickTitle
-        {
-            get
-            {
-                return false;
-            }
-        }
-
-        public override bool ForceStayHome { get { return true; } }
-
         public override void GenerateLoot()
         {
             AddLoot(LootPack.UltraRich, 3);
@@ -185,7 +124,7 @@ namespace Server.Mobiles
             if (!m.CanBeginAction(typeof(PolymorphSpell)) || !m.CanBeginAction(typeof(IncognitoSpell)) || m.IsBodyMod)
                 return;
 
-            IMount mount = m.Mount;
+            var mount = m.Mount;
 
             if (mount != null)
                 mount.Rider = null;
@@ -200,31 +139,30 @@ namespace Server.Mobiles
             {
                 m.BodyMod = 42;
                 m.HueMod = 0;
-                if (m == this) { 
+                if (m == this)
+                {
                     m_SlayerVulnerabilities.Add("Vermin");
                     m_SlayerVulnerabilities.Add("Repond");
                 }
-   
+
                 new ExpirePolymorphTimer(m).Start();
             }
         }
 
         public void SpawnRatmen(Mobile target)
         {
-            Map map = Map;
+            var map = Map;
 
             if (map == null)
                 return;
 
-            int rats = 0;
+            var rats = 0;
 
             IPooledEnumerable eable = GetMobilesInRange(10);
 
             foreach (Mobile m in eable)
-            {
                 if (m is Ratman || m is RatmanArcher || m is RatmanMage)
                     ++rats;
-            }
 
             eable.Free();
 
@@ -232,13 +170,13 @@ namespace Server.Mobiles
             {
                 PlaySound(0x3D);
 
-                int newRats = Utility.RandomMinMax(3, 6);
+                var newRats = Utility.RandomMinMax(3, 6);
 
-                for (int i = 0; i < newRats; ++i)
+                for (var i = 0; i < newRats; ++i)
                 {
                     BaseCreature rat;
 
-                    switch ( Utility.Random(5) )
+                    switch (Utility.Random(5))
                     {
                         default:
                         case 0:
@@ -256,14 +194,14 @@ namespace Server.Mobiles
 
                     rat.Team = Team;
 
-                    bool validLocation = false;
-                    Point3D loc = Location;
+                    var validLocation = false;
+                    var loc = Location;
 
-                    for (int j = 0; !validLocation && j < 10; ++j)
+                    for (var j = 0; !validLocation && j < 10; ++j)
                     {
-                        int x = X + Utility.Random(3) - 1;
-                        int y = Y + Utility.Random(3) - 1;
-                        int z = map.GetAverageZ(x, y);
+                        var x = X + Utility.Random(3) - 1;
+                        var y = Y + Utility.Random(3) - 1;
+                        var z = map.GetAverageZ(x, y);
 
                         if (validLocation = map.CanFit(x, y, Z, 16, false, false))
                             loc = new Point3D(x, y, Z);
@@ -318,21 +256,22 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             m_SlayerVulnerabilities.Clear();
         }
 
         private class ExpirePolymorphTimer : Timer
         {
-            private Mobile m_Owner;
+            private readonly Mobile m_Owner;
+
             public ExpirePolymorphTimer(Mobile owner)
                 : base(TimeSpan.FromMinutes(3.0)) //3.0
             {
@@ -351,7 +290,7 @@ namespace Server.Mobiles
                     if (m_Owner.SlayerVulnerabilities != null)
                     {
                         m_Owner.SlayerVulnerabilities.Remove("Vermin");
-                        m_Owner.SlayerVulnerabilities.Remove("Repond");    
+                        m_Owner.SlayerVulnerabilities.Remove("Repond");
                     }
                 }
             }

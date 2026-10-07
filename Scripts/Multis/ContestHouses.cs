@@ -1,7 +1,6 @@
 using System;
-using System.Linq;
 using System.Collections.Generic;
-
+using System.Linq;
 using Server.Items;
 
 namespace Server.Multis
@@ -18,23 +17,18 @@ namespace Server.Multis
         public ContestHouseType HouseType { get; set; }
         public List<Item> Fixtures { get; private set; }
 
-        public virtual int SignPostID { get { return 9; } }
+        public virtual int SignPostID => 9;
 
-        public override Point3D BaseBanLocation
-        { 
-            get
-            { 
-                return new Point3D(Components.Min.X, Components.Height - 1 - Components.Center.Y, 0); 
-            } 
-        }
+        public override Point3D BaseBanLocation =>
+            new Point3D(Components.Min.X, Components.Height - 1 - Components.Center.Y, 0);
 
         public override Rectangle2D[] Area
         {
             get
             {
-                MultiComponentList mcl = Components;
+                var mcl = Components;
 
-                return new Rectangle2D[] { new Rectangle2D(mcl.Min.X, mcl.Min.Y, mcl.Width, mcl.Height) };
+                return new[] { new Rectangle2D(mcl.Min.X, mcl.Min.Y, mcl.Width, mcl.Height) };
             }
         }
 
@@ -44,6 +38,11 @@ namespace Server.Multis
             HouseType = type;
 
             AutoAddFixtures();
+        }
+
+        public BaseContestHouse(Serial serial)
+            : base(serial)
+        {
         }
 
         protected void SetSign(int xOffset, int yOffset, int zOffset, bool post)
@@ -69,29 +68,21 @@ namespace Server.Multis
             base.OnAfterDelete();
 
             if (Fixtures != null)
-            {
                 foreach (var item in Fixtures)
-                {
                     item.Delete();
-                }
-            }
         }
 
         public override void OnLocationChange(Point3D oldLocation)
         {
             base.OnLocationChange(oldLocation);
 
-            int x = base.Location.X - oldLocation.X;
-            int y = base.Location.Y - oldLocation.Y;
-            int z = base.Location.Z - oldLocation.Z;
+            var x = base.Location.X - oldLocation.X;
+            var y = base.Location.Y - oldLocation.Y;
+            var z = base.Location.Z - oldLocation.Z;
 
             if (Fixtures != null)
-            {
                 foreach (var item in Fixtures)
-                {
                     item.Location = new Point3D(item.X + x, item.Y + y, item.Z + z);
-                }
-            }
         }
 
         public override void OnMapChange()
@@ -99,12 +90,8 @@ namespace Server.Multis
             base.OnMapChange();
 
             if (Fixtures != null)
-            {
                 foreach (var item in Fixtures)
-                {
                     item.Map = Map;
-                }
-            }
         }
 
         public void AddTeleporters(int id, Point3D offset1, Point3D offset2)
@@ -124,22 +111,16 @@ namespace Server.Multis
 
         public void AddFixture(Item item)
         {
-            if (Fixtures == null)
-            {
-                Fixtures = new List<Item>();
-            }
+            if (Fixtures == null) Fixtures = new List<Item>();
 
             Fixtures.Add(item);
         }
 
         public override bool IsInside(Point3D p, int height)
         {
-            bool isInside = base.IsInside(p, height);
+            var isInside = base.IsInside(p, height);
 
-            if (!isInside)
-            {
-                return Fixtures != null && Fixtures.OfType<HouseTeleporter>().Any(fix => fix.Location == p);
-            }
+            if (!isInside) return Fixtures != null && Fixtures.OfType<HouseTeleporter>().Any(fix => fix.Location == p);
 
             return isInside;
         }
@@ -151,7 +132,6 @@ namespace Server.Multis
             var teleporters = new Dictionary<int, List<MultiTileEntry>>();
 
             foreach (var entry in components.List.Where(e => e.m_Flags == 0))
-            {
                 // Telepoters
                 if (entry.m_ItemID >= 0x181D && entry.m_ItemID <= 0x1828)
                 {
@@ -167,7 +147,7 @@ namespace Server.Multis
                 }
                 else
                 {
-                    ItemData data = TileData.ItemTable[entry.m_ItemID & TileData.MaxItemValue];
+                    var data = TileData.ItemTable[entry.m_ItemID & TileData.MaxItemValue];
 
                     // door
                     if ((data.Flags & TileFlag.Door) != 0)
@@ -182,91 +162,80 @@ namespace Server.Multis
                         AddFixture(st);
                     }
                 }
-            }
 
             foreach (var door in Doors.OfType<BaseDoor>())
-            {
-                foreach (var check in Doors.OfType<BaseDoor>().Where(d => d != door))
+            foreach (var check in Doors.OfType<BaseDoor>().Where(d => d != door))
+                if (door.InRange(check.Location, 1))
                 {
-                    if (door.InRange(check.Location, 1))
-                    {
-                        door.Link = check;
-                        check.Link = door;
-                    }
+                    door.Link = check;
+                    check.Link = door;
                 }
-            }
 
             foreach (var kvp in teleporters)
             {
                 if (kvp.Value.Count > 2)
                 {
-                    Utility.WriteConsoleColor(ConsoleColor.Yellow, String.Format("Warning: More than 2 teleporters detected for {0}!", kvp.Key.ToString("X")));
+                    Utility.WriteConsoleColor(ConsoleColor.Yellow,
+                        string.Format("Warning: More than 2 teleporters detected for {0}!", kvp.Key.ToString("X")));
                 }
                 else if (kvp.Value.Count <= 1)
                 {
-                    Utility.WriteConsoleColor(ConsoleColor.Yellow, String.Format("Warning: 1 or less teleporters detected for {0}!", kvp.Key.ToString("X")));
+                    Utility.WriteConsoleColor(ConsoleColor.Yellow,
+                        string.Format("Warning: 1 or less teleporters detected for {0}!", kvp.Key.ToString("X")));
 
                     continue;
                 }
 
-                AddTeleporters(kvp.Key, new Point3D(kvp.Value[0].m_OffsetX, kvp.Value[0].m_OffsetY, kvp.Value[0].m_OffsetZ), new Point3D(kvp.Value[1].m_OffsetX, kvp.Value[1].m_OffsetY, kvp.Value[1].m_OffsetZ));
+                AddTeleporters(kvp.Key,
+                    new Point3D(kvp.Value[0].m_OffsetX, kvp.Value[0].m_OffsetY, kvp.Value[0].m_OffsetZ),
+                    new Point3D(kvp.Value[1].m_OffsetX, kvp.Value[1].m_OffsetY, kvp.Value[1].m_OffsetZ));
             }
 
             teleporters.Clear();
         }
 
-        public BaseContestHouse(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);//version
+            writer.Write(0); //version
 
             writer.Write((int)HouseType);
 
             writer.Write(Fixtures != null ? Fixtures.Count : 0);
 
             if (Fixtures != null)
-            {
                 foreach (var item in Fixtures)
-                {
                     writer.Write(item);
-                }
-            }
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             HouseType = (ContestHouseType)reader.ReadInt();
 
-            int count = reader.ReadInt();
+            var count = reader.ReadInt();
 
-            for(int i = 0; i < count; i++)
+            for (var i = 0; i < count; i++)
             {
                 var item = reader.ReadItem();
 
-                if (item != null)
-                {
-                    AddFixture(item);
-                }
+                if (item != null) AddFixture(item);
             }
         }
     }
 
     public class TrinsicKeep : BaseContestHouse
     {
-        public static Rectangle2D[] AreaArray = new Rectangle2D[] 
-        { 
+        public static Rectangle2D[] AreaArray =
+        {
             new Rectangle2D(-11, -11, 23, 23), new Rectangle2D(-10, 13, 6, 1),
-            new Rectangle2D(-2, 13, 6, 1), new Rectangle2D(6, 13, 7, 1) 
+            new Rectangle2D(-2, 13, 6, 1), new Rectangle2D(6, 13, 7, 1)
         };
-        
+
+        public override Rectangle2D[] Area => AreaArray;
+
         public TrinsicKeep(Mobile owner)
             : base(ContestHouseType.Keep, 0x147E, owner, 2113, 18)
         {
@@ -278,35 +247,27 @@ namespace Server.Multis
         {
         }
 
-        public override Rectangle2D[] Area
-        {
-            get
-            {
-                return AreaArray;
-            }
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);//version
+            writer.Write(0); //version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class GothicRoseCastle : BaseContestHouse
     {
-        public static Rectangle2D[] AreaArray = new Rectangle2D[]
-        { 
+        public static Rectangle2D[] AreaArray =
+        {
             new Rectangle2D(-15, -15, 31, 31),
-            new Rectangle2D(-14, 16, 11, 1), 
+            new Rectangle2D(-14, 16, 11, 1),
             new Rectangle2D(-2, 16, 6, 1),
-            new Rectangle2D(5, 16, 11, 1) 
+            new Rectangle2D(5, 16, 11, 1)
         };
 
         public GothicRoseCastle(Mobile owner)
@@ -323,13 +284,13 @@ namespace Server.Multis
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);//version
+            writer.Write(0); //version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -349,13 +310,13 @@ namespace Server.Multis
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);//version
+            writer.Write(0); //version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -375,13 +336,13 @@ namespace Server.Multis
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);//version
+            writer.Write(0); //version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -401,25 +362,27 @@ namespace Server.Multis
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);//version
+            writer.Write(0); //version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class FeudalCastle : BaseContestHouse
     {
-        public static Rectangle2D[] AreaArray = new Rectangle2D[] 
+        public static Rectangle2D[] AreaArray =
         {
-            new Rectangle2D(-15, -15, 31, 31), 
+            new Rectangle2D(-15, -15, 31, 31),
             new Rectangle2D(5, 16, 1, 1),
             new Rectangle2D(7, 16, 4, 1),
-            new Rectangle2D(12, 16, 1, 1) 
+            new Rectangle2D(12, 16, 1, 1)
         };
+
+        public override Rectangle2D[] Area => AreaArray;
 
         public FeudalCastle(Mobile owner)
             : base(ContestHouseType.Castle, 0x1483, owner, 3281, 28)
@@ -432,24 +395,16 @@ namespace Server.Multis
         {
         }
 
-        public override Rectangle2D[] Area
-        {
-            get
-            {
-                return AreaArray;
-            }
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);//version
+            writer.Write(0); //version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -469,30 +424,29 @@ namespace Server.Multis
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1);//version
+            writer.Write(1); //version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            if (version == 0)
-            {
-                AddTeleporters(0x1822, new Point3D(4, 3, 47), new Point3D(11, -10, 67));
-            }
+            if (version == 0) AddTeleporters(0x1822, new Point3D(4, 3, 47), new Point3D(11, -10, 67));
         }
     }
 
     public class TraditionalKeep : BaseContestHouse
     {
-        public static Rectangle2D[] AreaArray = new Rectangle2D[] 
-        { 
+        public static Rectangle2D[] AreaArray =
+        {
             new Rectangle2D(-11, -11, 23, 23),
             new Rectangle2D(-10, 13, 6, 1),
             new Rectangle2D(-2, 13, 6, 1),
-            new Rectangle2D(6, 13, 7, 1),
+            new Rectangle2D(6, 13, 7, 1)
         };
+
+        public override Rectangle2D[] Area => AreaArray;
 
         public TraditionalKeep(Mobile owner)
             : base(ContestHouseType.Keep, 0x1485, owner, 2113, 18)
@@ -505,24 +459,16 @@ namespace Server.Multis
         {
         }
 
-        public override Rectangle2D[] Area
-        {
-            get
-            {
-                return AreaArray;
-            }
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);//version
+            writer.Write(0); //version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -542,13 +488,13 @@ namespace Server.Multis
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);//version
+            writer.Write(0); //version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -568,19 +514,19 @@ namespace Server.Multis
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);//version
+            writer.Write(0); //version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class SandalwoodKeep : BaseContestHouse
     {
-        public override int SignPostID { get { return 353; } }
+        public override int SignPostID => 353;
 
         public SandalwoodKeep(Mobile owner)
             : base(ContestHouseType.Keep, 0x1488, owner, 2113, 18)
@@ -596,13 +542,13 @@ namespace Server.Multis
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1);//version
+            writer.Write(1); //version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (version == 0)
             {
@@ -619,7 +565,7 @@ namespace Server.Multis
         {
             SetSign(-11, 13, 7, false);
         }
-        
+
         public CasaMoga(Serial serial)
             : base(serial)
         {
@@ -628,13 +574,13 @@ namespace Server.Multis
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);//version
+            writer.Write(0); //version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -654,13 +600,13 @@ namespace Server.Multis
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);//version
+            writer.Write(0); //version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -680,13 +626,13 @@ namespace Server.Multis
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);//version
+            writer.Write(0); //version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -706,19 +652,19 @@ namespace Server.Multis
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);//version
+            writer.Write(0); //version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class OkinawaSweetDreamCastle : BaseContestHouse
     {
-        public static Rectangle2D[] AreaArray = new Rectangle2D[]
+        public static Rectangle2D[] AreaArray =
         {
             new Rectangle2D(-15, -15, 31, 31),
             new Rectangle2D(-14, 16, 6, 1),
@@ -726,7 +672,7 @@ namespace Server.Multis
             new Rectangle2D(10, 16, 5, 1)
         };
 
-        public override Rectangle2D[] Area { get { return AreaArray; } }
+        public override Rectangle2D[] Area => AreaArray;
 
         public OkinawaSweetDreamCastle(Mobile owner)
             : base(ContestHouseType.Castle, 0x148D, owner, 3281, 28)
@@ -742,13 +688,13 @@ namespace Server.Multis
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);//version
+            writer.Write(0); //version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -768,19 +714,19 @@ namespace Server.Multis
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);//version
+            writer.Write(0); //version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class GrimswindSisters : BaseContestHouse
     {
-        public static Rectangle2D[] AreaArray = new Rectangle2D[]
+        public static Rectangle2D[] AreaArray =
         {
             new Rectangle2D(-15, -15, 31, 31),
             new Rectangle2D(-14, 16, 9, 1),
@@ -788,7 +734,7 @@ namespace Server.Multis
             new Rectangle2D(7, 16, 9, 1)
         };
 
-        public override Rectangle2D[] Area { get { return AreaArray; } }
+        public override Rectangle2D[] Area => AreaArray;
 
         public GrimswindSisters(Mobile owner)
             : base(ContestHouseType.Castle, 0x148F, owner, 3281, 28)
@@ -804,13 +750,13 @@ namespace Server.Multis
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);//version
+            writer.Write(0); //version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

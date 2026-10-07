@@ -1,6 +1,5 @@
 using System;
 using Server.Engines.VeteranRewards;
-using Server.Gumps;
 using Server.Multis;
 using Server.Network;
 
@@ -14,26 +13,13 @@ namespace Server.Items
         [CommandProperty(AccessLevel.GameMaster)]
         public DateTime NextResourceCount { get; set; }
 
-        public override bool ForceShowProperties { get { return true; } }
-
-        [Constructable]
-        public SheepStatue(int itemID)
-            : base()
-        {
-            AddComponent(new InternalAddonComponent(itemID), 0, 0, 0);
-            NextResourceCount = DateTime.UtcNow + TimeSpan.FromDays(1);
-        }
-
-        public SheepStatue(Serial serial)
-            : base(serial)
-        {
-        }
+        public override bool ForceShowProperties => true;
 
         public override BaseAddonDeed Deed
         {
             get
             {
-                SheepStatueDeed deed = new SheepStatueDeed();
+                var deed = new SheepStatueDeed();
                 deed.IsRewardItem = m_IsRewardItem;
                 deed.ResourceCount = m_ResourceCount;
 
@@ -42,26 +28,9 @@ namespace Server.Items
         }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public bool IsRewardItem
-        {
-            get
-            {
-                return m_IsRewardItem;
-            }
-            set
-            {
-                m_IsRewardItem = value;
-                UpdateProperties();
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
         public int ResourceCount
         {
-            get
-            {
-                return m_ResourceCount;
-            }
+            get => m_ResourceCount;
             set
             {
                 m_ResourceCount = value;
@@ -78,32 +47,55 @@ namespace Server.Items
             }
         }
 
+        [Constructable]
+        public SheepStatue(int itemID)
+        {
+            AddComponent(new InternalAddonComponent(itemID), 0, 0, 0);
+            NextResourceCount = DateTime.UtcNow + TimeSpan.FromDays(1);
+        }
+
+        public SheepStatue(Serial serial)
+            : base(serial)
+        {
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public bool IsRewardItem
+        {
+            get => m_IsRewardItem;
+            set
+            {
+                m_IsRewardItem = value;
+                UpdateProperties();
+            }
+        }
+
         public override void OnComponentUsed(AddonComponent c, Mobile from)
         {
-            BaseHouse house = BaseHouse.FindHouseAt(this);
+            var house = BaseHouse.FindHouseAt(this);
 
             /*
-            * Unique problems have unique solutions.  OSI does not have a problem with 1000s of mining carts
-            * due to the fact that they have only a miniscule fraction of the number of 10 year vets that a
-            * typical RunUO shard will have (RunUO's scaled down account aging system makes this a unique problem),
-            * and the "freeness" of free accounts. We also dont have mitigating factors like inactive (unpaid)
-            * accounts not gaining veteran time.
-            *
-            * The lack of high end vets and vet rewards on OSI has made testing the *exact* ranging/stacking
-            * behavior of these things all but impossible, so either way its just an estimation.
-            *
-            * If youd like your shard's carts/stumps to work the way they did before, simply replace the check
-            * below with this line of code:
-            *
-            * if (!from.InRange(GetWorldLocation(), 2)
-            *
-            * However, I am sure these checks are more accurate to OSI than the former version was.
-            *
-            */
+             * Unique problems have unique solutions.  OSI does not have a problem with 1000s of mining carts
+             * due to the fact that they have only a miniscule fraction of the number of 10 year vets that a
+             * typical RunUO shard will have (RunUO's scaled down account aging system makes this a unique problem),
+             * and the "freeness" of free accounts. We also dont have mitigating factors like inactive (unpaid)
+             * accounts not gaining veteran time.
+             *
+             * The lack of high end vets and vet rewards on OSI has made testing the *exact* ranging/stacking
+             * behavior of these things all but impossible, so either way its just an estimation.
+             *
+             * If youd like your shard's carts/stumps to work the way they did before, simply replace the check
+             * below with this line of code:
+             *
+             * if (!from.InRange(GetWorldLocation(), 2)
+             *
+             * However, I am sure these checks are more accurate to OSI than the former version was.
+             *
+             */
 
-            if (!from.InRange(GetWorldLocation(), 2) || !from.InLOS(this) || !((from.Z - Z) > -3 && (from.Z - Z) < 3))
+            if (!from.InRange(GetWorldLocation(), 2) || !from.InLOS(this) || !(from.Z - Z > -3 && from.Z - Z < 3))
             {
-                from.LocalOverheadMessage(Network.MessageType.Regular, 0x3B2, 1019045); // I can't reach that.
+                from.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1019045); // I can't reach that.
             }
             else if (house != null && house.HasSecureAccess(from, SecureLevel.Friends))
             {
@@ -111,7 +103,7 @@ namespace Server.Items
                 {
                     Item res = null;
 
-                    switch ( Utility.Random(5) )
+                    switch (Utility.Random(5))
                     {
                         case 0: res = new Wool(); break;
                         case 1: res = new Leather(); break;
@@ -120,7 +112,7 @@ namespace Server.Items
                         case 4: res = new BarbedLeather(); break;
                     }
 
-                    int amount = Math.Min(10, m_ResourceCount);
+                    var amount = Math.Min(10, m_ResourceCount);
                     res.Amount = amount;
 
                     if (!from.PlaceInBackpack(res))
@@ -131,50 +123,18 @@ namespace Server.Items
                     else
                     {
                         ResourceCount -= amount;
-                        PublicOverheadMessage(MessageType.Regular, 0, 1151834, m_ResourceCount.ToString()); // Resources: ~1_COUNT~
+                        PublicOverheadMessage(MessageType.Regular, 0, 1151834,
+                            m_ResourceCount.ToString()); // Resources: ~1_COUNT~
                     }
                 }
                 else
-                    from.SendLocalizedMessage(1094725); // There are no more ResourceCounts available at this time.
-            }
-            else
-                from.SendLocalizedMessage(1061637); // You are not allowed to access 
-        }
-
-        private class InternalAddonComponent : AddonComponent
-        {
-            public InternalAddonComponent(int id)
-                :base(id)
-            {
-            }
-
-            public override void GetProperties(ObjectPropertyList list)
-            {
-                base.GetProperties(list);
-
-                if (Addon is SheepStatue)
                 {
-                    list.Add(1151834, ((SheepStatue)Addon).ResourceCount.ToString()); // Resources: ~1_val~
+                    from.SendLocalizedMessage(1094725); // There are no more ResourceCounts available at this time.
                 }
             }
-
-            public InternalAddonComponent(Serial serial)
-                : base(serial)
+            else
             {
-            }
-
-            public override void Serialize(GenericWriter writer)
-            {
-                base.Serialize(writer);
-
-                writer.WriteEncodedInt(0); // version
-            }
-
-            public override void Deserialize(GenericReader reader)
-            {
-                base.Deserialize(reader);
-
-                int version = reader.ReadEncodedInt();
+                from.SendLocalizedMessage(1061637); // You are not allowed to access 
             }
         }
 
@@ -186,8 +146,8 @@ namespace Server.Items
 
             TryGiveResourceCount();
 
-            writer.Write((bool)m_IsRewardItem);
-            writer.Write((int)m_ResourceCount);
+            writer.Write(m_IsRewardItem);
+            writer.Write(m_ResourceCount);
 
             writer.Write(NextResourceCount);
         }
@@ -196,7 +156,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
 
             m_IsRewardItem = reader.ReadBool();
             m_ResourceCount = reader.ReadInt();
@@ -212,6 +172,41 @@ namespace Server.Items
                 NextResourceCount = DateTime.UtcNow + TimeSpan.FromDays(1);
             }
         }
+
+        private class InternalAddonComponent : AddonComponent
+        {
+            public InternalAddonComponent(int id)
+                : base(id)
+            {
+            }
+
+            public InternalAddonComponent(Serial serial)
+                : base(serial)
+            {
+            }
+
+            public override void GetProperties(ObjectPropertyList list)
+            {
+                base.GetProperties(list);
+
+                if (Addon is SheepStatue)
+                    list.Add(1151834, ((SheepStatue)Addon).ResourceCount.ToString()); // Resources: ~1_val~
+            }
+
+            public override void Serialize(GenericWriter writer)
+            {
+                base.Serialize(writer);
+
+                writer.WriteEncodedInt(0); // version
+            }
+
+            public override void Deserialize(GenericReader reader)
+            {
+                base.Deserialize(reader);
+
+                var version = reader.ReadEncodedInt();
+            }
+        }
     }
 
     public class SheepStatueDeed : BaseAddonDeed, IRewardItem
@@ -219,9 +214,33 @@ namespace Server.Items
         private bool m_IsRewardItem;
         private int m_ResourceCount;
 
+        public override int LabelNumber => 1151835; // Sheep Statue Deed
+
+        public override BaseAddon Addon
+        {
+            get
+            {
+                var addon = new SheepStatue(m_ResourceCount > 0 ? 0x4A94 : 0x4A95);
+                addon.IsRewardItem = m_IsRewardItem;
+                addon.ResourceCount = m_ResourceCount;
+
+                return addon;
+            }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int ResourceCount
+        {
+            get => m_ResourceCount;
+            set
+            {
+                m_ResourceCount = value;
+                InvalidateProperties();
+            }
+        }
+
         [Constructable]
         public SheepStatueDeed()
-            : base()
         {
             LootType = LootType.Blessed;
         }
@@ -231,51 +250,17 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1151835;
-            }
-        }// Sheep Statue Deed
-
-        public override BaseAddon Addon
-        {
-            get
-            {
-                SheepStatue addon = new SheepStatue(m_ResourceCount > 0 ? 0x4A94 : 0x4A95);
-                addon.IsRewardItem = m_IsRewardItem;
-                addon.ResourceCount = m_ResourceCount;
-
-                return addon;
-            }
-        }
         [CommandProperty(AccessLevel.GameMaster)]
         public bool IsRewardItem
         {
-            get
-            {
-                return m_IsRewardItem;
-            }
+            get => m_IsRewardItem;
             set
             {
                 m_IsRewardItem = value;
                 InvalidateProperties();
             }
         }
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int ResourceCount
-        {
-            get
-            {
-                return m_ResourceCount;
-            }
-            set
-            {
-                m_ResourceCount = value;
-                InvalidateProperties();
-            }
-        }
+
         public override void GetProperties(ObjectPropertyList list)
         {
             base.GetProperties(list);
@@ -290,9 +275,7 @@ namespace Server.Items
                 return;
 
             if (!IsChildOf(from.Backpack))
-            {
                 from.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.
-            }
             else
                 base.OnDoubleClick(from);
         }
@@ -303,15 +286,15 @@ namespace Server.Items
 
             writer.WriteEncodedInt(0); // version
 
-            writer.Write((bool)m_IsRewardItem);
-            writer.Write((int)m_ResourceCount);
+            writer.Write(m_IsRewardItem);
+            writer.Write(m_ResourceCount);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
 
             m_IsRewardItem = reader.ReadBool();
             m_ResourceCount = reader.ReadInt();

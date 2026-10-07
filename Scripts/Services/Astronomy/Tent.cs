@@ -1,18 +1,16 @@
-﻿using Server;
-
-namespace Server.Items
+﻿namespace Server.Items
 {
     public class AstronomyTent : BaseAddon
     {
-        public override BaseAddonDeed Deed { get { return null; } }
+        public override BaseAddonDeed Deed => null;
 
         [Constructable]
         public AstronomyTent()
         {
             // yellow walls
-            int hue = 2721;
+            var hue = 2721;
 
-            AddonComponent comp = new AddonComponent(0x369);
+            var comp = new AddonComponent(0x369);
             comp.Hue = hue;
             AddComponent(comp, -1, 3, 0);
 
@@ -183,21 +181,21 @@ namespace Server.Items
             AddComponent(comp, -1, 0, 27);
 
             // South Facing
-            for (int x = -3; x <= 4; x++)
+            for (var x = -3; x <= 4; x++)
             {
                 comp = new AddonComponent(0x601);
                 comp.Hue = hue;
                 AddComponent(comp, x, 3, 18);
             }
 
-            for (int x = -2; x <= 3; x++)
+            for (var x = -2; x <= 3; x++)
             {
                 comp = new AddonComponent(0x601);
                 comp.Hue = hue;
                 AddComponent(comp, x, 2, 21);
             }
 
-            for (int x = -1; x <= 2; x++)
+            for (var x = -1; x <= 2; x++)
             {
                 comp = new AddonComponent(0x601);
                 comp.Hue = hue;
@@ -205,21 +203,21 @@ namespace Server.Items
             }
 
             // North Facing
-            for (int x = -3; x <= 4; x++)
+            for (var x = -3; x <= 4; x++)
             {
                 comp = new AddonComponent(0x600);
                 comp.Hue = hue;
                 AddComponent(comp, x, -3, 18);
             }
 
-            for (int x = -2; x <= 3; x++)
+            for (var x = -2; x <= 3; x++)
             {
                 comp = new AddonComponent(0x600);
                 comp.Hue = hue;
                 AddComponent(comp, x, -2, 21);
             }
 
-            for (int x = -1; x <= 2; x++)
+            for (var x = -1; x <= 2; x++)
             {
                 comp = new AddonComponent(0x600);
                 comp.Hue = hue;
@@ -227,14 +225,14 @@ namespace Server.Items
             }
 
             // West Facing
-            for (int y = -2; y <= 2; y++)
+            for (var y = -2; y <= 2; y++)
             {
                 comp = new AddonComponent(0x5FF);
                 comp.Hue = hue;
                 AddComponent(comp, -4, y, 18);
             }
 
-            for (int y = -1; y <= 1; y++)
+            for (var y = -1; y <= 1; y++)
             {
                 comp = new AddonComponent(0x5FF);
                 comp.Hue = hue;
@@ -246,14 +244,14 @@ namespace Server.Items
             AddComponent(comp, -2, 0, 24);
 
             // East Facing
-            for (int y = -2; y <= 2; y++)
+            for (var y = -2; y <= 2; y++)
             {
                 comp = new AddonComponent(0x602);
                 comp.Hue = hue;
                 AddComponent(comp, 5, y, 18);
             }
 
-            for (int y = -1; y <= 1; y++)
+            for (var y = -1; y <= 1; y++)
             {
                 comp = new AddonComponent(0x602);
                 comp.Hue = hue;
@@ -285,7 +283,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

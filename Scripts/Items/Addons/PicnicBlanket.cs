@@ -1,10 +1,11 @@
-using System;
 using Server.Gumps;
 
 namespace Server.Items
 {
     public class PicnicBlanketAddon : BaseAddon
     {
+        public override BaseAddonDeed Deed => new PicnicBlanketDeed();
+
         [Constructable]
         public PicnicBlanketAddon(DirectionType type)
         {
@@ -34,18 +35,16 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonDeed Deed { get { return new PicnicBlanketDeed(); } }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -53,6 +52,11 @@ namespace Server.Items
     {
         public PicnicBlanketComponent(int id)
             : base(id, 1125186) // blanket
+        {
+        }
+
+        public PicnicBlanketComponent(Serial serial)
+            : base(serial)
         {
         }
 
@@ -67,11 +71,6 @@ namespace Server.Items
             return true;
         }
 
-        public PicnicBlanketComponent(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -81,21 +80,19 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class PicnicBlanketDeed : BaseAddonDeed, IRewardOption
     {
-        public override int LabelNumber { get { return 1158332; } } // picnic blanket
-
-        public override BaseAddon Addon { get { return new PicnicBlanketAddon(_Direction); } }
-
         private DirectionType _Direction;
+        public override int LabelNumber => 1158332; // picnic blanket
+
+        public override BaseAddon Addon => new PicnicBlanketAddon(_Direction);
 
         [Constructable]
         public PicnicBlanketDeed()
-            : base()
         {
         }
 
@@ -134,13 +131,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

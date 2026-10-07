@@ -1,32 +1,40 @@
 using System;
 using Server.Commands;
+using Server.Items;
 using Server.PathAlgorithms;
 using Server.PathAlgorithms.FastAStar;
 using Server.PathAlgorithms.SlowAStar;
+using Server.Spells;
 using Server.Targeting;
 
 namespace Server
 {
     public sealed class MovementPath
     {
-        private static PathAlgorithm m_OverrideAlgorithm;
-        private readonly Map m_Map;
-        private readonly Point3D m_Start;
-        private readonly Point3D m_Goal;
-        private readonly Direction[] m_Directions;
+        public static PathAlgorithm OverrideAlgorithm { get; set; }
 
-        public MovementPath(Mobile m, Point3D goal) 
+        public Map Map { get; }
+
+        public Point3D Start { get; }
+
+        public Point3D Goal { get; }
+
+        public Direction[] Directions { get; }
+
+        public bool Success => Directions != null && Directions.Length > 0;
+
+        public MovementPath(Mobile m, Point3D goal)
             : this(m, goal, m.Map)
         {
         }
 
         public MovementPath(IPoint3D p, Point3D goal, Map map)
         {
-            Point3D start = new Point3D(p);
+            var start = new Point3D(p);
 
-            this.m_Map = map;
-            this.m_Start = start;
-            this.m_Goal = goal;
+            Map = map;
+            Start = start;
+            Goal = goal;
 
             if (map == null || map == Map.Internal)
                 return;
@@ -36,17 +44,13 @@ namespace Server
 
             try
             {
-                PathAlgorithm alg = m_OverrideAlgorithm;
+                var alg = OverrideAlgorithm;
 
-                if (alg == null)
-                {
-                    alg = FastAStarAlgorithm.Instance;
-                    //if ( !alg.CheckCondition( m, map, start, goal ) )	// SlowAstar is still broken
-                    //	alg = SlowAStarAlgorithm.Instance;		// TODO: Fix SlowAstar
-                }
-
+                if (alg == null) alg = FastAStarAlgorithm.Instance;
+                //if ( !alg.CheckCondition( m, map, start, goal ) )	// SlowAstar is still broken
+                //	alg = SlowAStarAlgorithm.Instance;		// TODO: Fix SlowAstar
                 if (alg != null && alg.CheckCondition(p, map, start, goal))
-                    this.m_Directions = alg.Find(p, map, start, goal);
+                    Directions = alg.Find(p, map, start, goal);
             }
             catch (Exception e)
             {
@@ -55,75 +59,29 @@ namespace Server
             }
         }
 
-        public static PathAlgorithm OverrideAlgorithm
-        {
-            get
-            {
-                return m_OverrideAlgorithm;
-            }
-            set
-            {
-                m_OverrideAlgorithm = value;
-            }
-        }
-        public Map Map
-        {
-            get
-            {
-                return this.m_Map;
-            }
-        }
-        public Point3D Start
-        {
-            get
-            {
-                return this.m_Start;
-            }
-        }
-        public Point3D Goal
-        {
-            get
-            {
-                return this.m_Goal;
-            }
-        }
-        public Direction[] Directions
-        {
-            get
-            {
-                return this.m_Directions;
-            }
-        }
-        public bool Success
-        {
-            get
-            {
-                return (this.m_Directions != null && this.m_Directions.Length > 0);
-            }
-        }
         public static void Initialize()
         {
-            CommandSystem.Register("Path", AccessLevel.GameMaster, new CommandEventHandler(Path_OnCommand));
+            CommandSystem.Register("Path", AccessLevel.GameMaster, Path_OnCommand);
         }
 
         public static void Path_OnCommand(CommandEventArgs e)
         {
-            e.Mobile.BeginTarget(-1, true, TargetFlags.None, new TargetCallback(Path_OnTarget));
+            e.Mobile.BeginTarget(-1, true, TargetFlags.None, Path_OnTarget);
             e.Mobile.SendMessage("Target a location and a path will be drawn there.");
         }
 
         public static void Path_OnTarget(Mobile from, object obj)
         {
-            IPoint3D p = obj as IPoint3D;
+            var p = obj as IPoint3D;
 
             if (p == null)
                 return;
 
-            Spells.SpellHelper.GetSurfaceTop(ref p);
+            SpellHelper.GetSurfaceTop(ref p);
 
             Path(from, p, FastAStarAlgorithm.Instance, "Fast", 0);
             Path(from, p, SlowAStarAlgorithm.Instance, "Slow", 2);
-            m_OverrideAlgorithm = null;
+            OverrideAlgorithm = null;
             /*MovementPath path = new MovementPath( from, new Point3D( p ) );
             if ( !path.Success )
             {
@@ -146,9 +104,9 @@ namespace Server
 
         public static void Pathfind(object state)
         {
-            object[] states = (object[])state;
-            Mobile from = (Mobile)states[0];
-            Direction d = (Direction)states[1];
+            var states = (object[])state;
+            var from = (Mobile)states[0];
+            var d = (Direction)states[1];
 
             try
             {
@@ -165,12 +123,12 @@ namespace Server
 
         private static void Path(Mobile from, IPoint3D p, PathAlgorithm alg, string name, int zOffset)
         {
-            m_OverrideAlgorithm = alg;
+            OverrideAlgorithm = alg;
 
-            long start = DateTime.UtcNow.Ticks;
-            MovementPath path = new MovementPath(from, new Point3D(p));
-            long end = DateTime.UtcNow.Ticks;
-            double len = Math.Round((end - start) / 10000.0, 2);
+            var start = DateTime.UtcNow.Ticks;
+            var path = new MovementPath(from, new Point3D(p));
+            var end = DateTime.UtcNow.Ticks;
+            var len = Math.Round((end - start) / 10000.0, 2);
 
             if (!path.Success)
             {
@@ -180,15 +138,15 @@ namespace Server
             {
                 from.SendMessage("{0} path success: {1}ms", name, len);
 
-                int x = from.X;
-                int y = from.Y;
-                int z = from.Z;
+                var x = from.X;
+                var y = from.Y;
+                var z = from.Z;
 
-                for (int i = 0; i < path.Directions.Length; ++i)
+                for (var i = 0; i < path.Directions.Length; ++i)
                 {
                     Movement.Movement.Offset(path.Directions[i], ref x, ref y);
 
-                    new Items.RecallRune().MoveToWorld(new Point3D(x, y, z + zOffset), from.Map);
+                    new RecallRune().MoveToWorld(new Point3D(x, y, z + zOffset), from.Map);
                 }
             }
         }

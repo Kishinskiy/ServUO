@@ -1,13 +1,10 @@
-using System;
-using Server;
 using Server.Gumps;
-using Server.Network;
 
 namespace Server.Items
 {
     public class MapleTreeAddon : BaseAddon
     {
-        public override BaseAddonDeed Deed { get { return new MapleTreeDeed(); } }
+        public override BaseAddonDeed Deed => new MapleTreeDeed();
 
         [Constructable]
         public MapleTreeAddon(bool trunk)
@@ -34,16 +31,15 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class MapleTreeDeed : BaseAddonDeed, IRewardOption
     {
-        public override BaseAddon Addon { get { return new MapleTreeAddon(m_Trunk); } }
-        public override int LabelNumber { get { return 1071104; } } // Maple Tree
-
         private bool m_Trunk;
+        public override BaseAddon Addon => new MapleTreeAddon(m_Trunk);
+        public override int LabelNumber => 1071104; // Maple Tree
 
         [Constructable]
         public MapleTreeDeed()
@@ -78,7 +74,9 @@ namespace Server.Items
                 from.SendGump(new RewardOptionGump(this));
             }
             else
+            {
                 from.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.       	
+            }
         }
 
         public override void Serialize(GenericWriter writer)
@@ -92,7 +90,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

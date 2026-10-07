@@ -1,5 +1,3 @@
-using System;
-using Server.Mobiles;
 using System.Collections.Generic;
 
 namespace Server.Items
@@ -9,8 +7,10 @@ namespace Server.Items
         [CommandProperty(AccessLevel.GameMaster)]
         public KotlAutomaton Automaton { get; set; }
 
-        public override int LabelNumber { get { return 1124395; } } // Automaton
-        public override bool HandlesOnMovement { get { return Automaton == null; } }
+        public override int LabelNumber => 1124395; // Automaton
+        public override bool HandlesOnMovement => Automaton == null;
+
+        public static Dictionary<KotlAutomaton, AutomatonStatue> Statues { get; set; }
 
         [Constructable]
         public AutomatonStatue()
@@ -19,11 +19,17 @@ namespace Server.Items
             Movable = false;
         }
 
+        public AutomatonStatue(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void OnMovement(Mobile m, Point3D lastLocation)
         {
             base.OnMovement(m, lastLocation);
 
-            if (m.Player && m.InRange(this.Location, 5) && m.AccessLevel == AccessLevel.Player && 0.5 > Utility.RandomDouble())
+            if (m.Player && m.InRange(Location, 5) && m.AccessLevel == AccessLevel.Player &&
+                0.5 > Utility.RandomDouble())
             {
                 var automaton = new KotlAutomaton();
                 automaton.MoveToWorld(Location, Map);
@@ -37,8 +43,6 @@ namespace Server.Items
             }
         }
 
-        public static Dictionary<KotlAutomaton, AutomatonStatue> Statues { get; set; }
-
         public static void OnBirth(KotlAutomaton automaton, AutomatonStatue statue)
         {
             if (Statues == null)
@@ -46,7 +50,6 @@ namespace Server.Items
 
             if (!Statues.ContainsKey(automaton))
                 Statues[automaton] = statue;
-
         }
 
         public static void OnDeath(KotlAutomaton automaton)
@@ -64,16 +67,11 @@ namespace Server.Items
             }
         }
 
-        public AutomatonStatue(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
             if (Automaton != null)
             {
@@ -90,16 +88,13 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (reader.ReadInt() == 0)
             {
                 Automaton = reader.ReadMobile() as KotlAutomaton;
 
-                if (Automaton == null)
-                {
-                    Delete();
-                }
+                if (Automaton == null) Delete();
             }
         }
     }

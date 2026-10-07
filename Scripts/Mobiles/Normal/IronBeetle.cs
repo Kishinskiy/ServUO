@@ -1,15 +1,17 @@
 using System;
 using System.Collections.Generic;
-using Server.Items;
 using Server.ContextMenus;
 using Server.Engines.Harvest;
-using Server.Regions;
+using Server.Items;
 
 namespace Server.Mobiles
 {
     [CorpseName("an iron beetle corpse")]
     public class IronBeetle : BaseCreature
     {
+        public override bool SubdueBeforeTame => true;
+        public override bool StatLossAfterTame => true;
+
         [Constructable]
         public IronBeetle()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.25, 0.5)
@@ -54,6 +56,11 @@ namespace Server.Mobiles
             m_MiningTimer = Timer.DelayCall(MiningInterval, MiningInterval, DoMining);
         }
 
+        public IronBeetle(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void GenerateLoot()
         {
             AddLoot(LootPack.Meager);
@@ -74,33 +81,66 @@ namespace Server.Mobiles
                 c.DropItem(new UndamagedIronBeetleScale());
         }
 
-        public override bool SubdueBeforeTame { get { return true; } }
-        public override bool StatLossAfterTame { get { return true; } }
+        public override bool OverrideBondingReqs()
+        {
+            return true;
+        }
 
-        public override bool OverrideBondingReqs() { return true; }
-
-        public override double GetControlChance(Mobile m, bool useBaseSkill) 
+        public override double GetControlChance(Mobile m, bool useBaseSkill)
         {
             if (PetTrainingHelper.Enabled)
             {
                 var profile = PetTrainingHelper.GetAbilityProfile(this);
 
-                if (profile != null && profile.HasCustomized())
-                {
-                    return base.GetControlChance(m, useBaseSkill);
-                }
+                if (profile != null && profile.HasCustomized()) return base.GetControlChance(m, useBaseSkill);
             }
 
-            return 1.0; 
+            return 1.0;
         }
 
-        public override int GetAngerSound() { return 0x21D; }
-        public override int GetIdleSound() { return 0x21D; }
-        public override int GetAttackSound() { return 0x162; }
-        public override int GetHurtSound() { return 0x163; }
-        public override int GetDeathSound() { return 0x21D; }
+        public override int GetAngerSound()
+        {
+            return 0x21D;
+        }
+
+        public override int GetIdleSound()
+        {
+            return 0x21D;
+        }
+
+        public override int GetAttackSound()
+        {
+            return 0x162;
+        }
+
+        public override int GetHurtSound()
+        {
+            return 0x163;
+        }
+
+        public override int GetDeathSound()
+        {
+            return 0x21D;
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+
+            writer.Write(0);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+
+            var version = reader.ReadInt();
+
+            m_MiningTimer = Timer.DelayCall(MiningInterval, MiningInterval, DoMining);
+        }
 
         #region Mining
+
         private static readonly TimeSpan MiningInterval = TimeSpan.FromSeconds(5.0);
 
         private Timer m_MiningTimer;
@@ -114,10 +154,22 @@ namespace Server.Mobiles
                 case Direction.South: ++y; break;
                 case Direction.West: --x; break;
                 case Direction.East: ++x; break;
-                case Direction.Right: ++x; --y; break;
-                case Direction.Left: --x; ++y; break;
-                case Direction.Down: ++x; ++y; break;
-                case Direction.Up: --x; --y; break;
+                case Direction.Right:
+                    ++x;
+                    --y;
+                    break;
+                case Direction.Left:
+                    --x;
+                    ++y;
+                    break;
+                case Direction.Down:
+                    ++x;
+                    ++y;
+                    break;
+                case Direction.Up:
+                    --x;
+                    --y;
+                    break;
             }
         }
 
@@ -131,9 +183,7 @@ namespace Server.Mobiles
             m_NextOreEat = DateTime.UtcNow + TimeSpan.FromSeconds(3.0);
 
             if (0.5 > Utility.RandomDouble())
-            {
-                foreach (Item item in Map.GetItemsInRange(Location, 1))
-                {
+                foreach (var item in Map.GetItemsInRange(Location, 1))
                     if (item is BaseOre)
                     {
                         // Epic coolness: turn to the ore hue!
@@ -143,8 +193,6 @@ namespace Server.Mobiles
 
                         return;
                     }
-                }
-            }
         }
 
         public void DoMining()
@@ -157,36 +205,36 @@ namespace Server.Mobiles
                 return;
 
             HarvestSystem system = Mining.System;
-            HarvestDefinition def = Mining.System.OreAndStone;
+            var def = Mining.System.OreAndStone;
 
             // Our target is the land tile under us
-            Map map = Map;
-            Point3D loc = Location;
+            var map = Map;
+            var loc = Location;
             int x = 0, y = 0;
             GetMiningOffset(Direction, ref x, ref y);
             loc.X += x;
             loc.Y += y;
-            int tileId = map.Tiles.GetLandTile(loc.X, loc.Y).ID & 0x3FFF;
+            var tileId = map.Tiles.GetLandTile(loc.X, loc.Y).ID & 0x3FFF;
 
             if (!def.Validate(tileId))
                 return;
 
-            HarvestBank bank = def.GetBank(map, loc.X, loc.Y);
+            var bank = def.GetBank(map, loc.X, loc.Y);
 
             if (bank == null || bank.Current < def.ConsumedPerHarvest)
                 return;
 
-            HarvestVein vein = bank.Vein;
+            var vein = bank.Vein;
 
             if (vein == null)
                 return;
 
-            HarvestResource primary = vein.PrimaryResource;
-            HarvestResource fallback = def.Resources[0];
+            var primary = vein.PrimaryResource;
+            var fallback = def.Resources[0];
 
-            HarvestResource resource = system.MutateResource(this, null, def, map, loc, vein, primary, fallback);
+            var resource = system.MutateResource(this, null, def, map, loc, vein, primary, fallback);
 
-            double skillBase = Skills[def.Skill].Base;
+            var skillBase = Skills[def.Skill].Base;
 
             Type type = null;
 
@@ -199,7 +247,7 @@ namespace Server.Mobiles
 
                 if (type != null)
                 {
-                    Item item = system.Construct(type, this, null);
+                    var item = system.Construct(type, this, null);
 
                     if (item == null)
                     {
@@ -209,10 +257,10 @@ namespace Server.Mobiles
                     {
                         if (item.Stackable)
                         {
-                            int amount = def.ConsumedPerHarvest;
-                            int feluccaAmount = def.ConsumedPerFeluccaHarvest;
+                            var amount = def.ConsumedPerHarvest;
+                            var feluccaAmount = def.ConsumedPerFeluccaHarvest;
 
-                            bool inFelucca = (map == Map.Felucca);
+                            var inFelucca = map == Map.Felucca;
 
                             if (inFelucca)
                                 item.Amount = feluccaAmount;
@@ -228,11 +276,11 @@ namespace Server.Mobiles
                         system.DoHarvestingSound(this, null, def, null);
 
                         // Mine for gems
-                        BonusHarvestResource bonus = def.GetBonusResource();
+                        var bonus = def.GetBonusResource();
 
                         if (bonus != null && bonus.Type != null && skillBase >= bonus.ReqSkill)
                         {
-                            Item bonusItem = system.Construct(bonus.Type, this, null);
+                            var bonusItem = system.Construct(bonus.Type, this, null);
 
                             bonusItem.MoveToWorld(loc, map);
                         }
@@ -247,40 +295,21 @@ namespace Server.Mobiles
 
             if (Controlled && ControlMaster == from)
             {
-                PlayerMobile pm = from as PlayerMobile;
+                var pm = from as PlayerMobile;
 
                 if (pm == null)
                     return;
 
-                ContextMenuEntry miningEntry = new ContextMenuEntry(pm.ToggleMiningStone ? 6179 : 6178);
+                var miningEntry = new ContextMenuEntry(pm.ToggleMiningStone ? 6179 : 6178);
                 miningEntry.Color = 0x421F;
                 list.Add(miningEntry);
 
-                list.Add(new BaseHarvestTool.ToggleMiningStoneEntry(pm, MiningType.OreOnly, 6176));         // Set To Ore
-                list.Add(new BaseHarvestTool.ToggleMiningStoneEntry(pm, MiningType.OreAndStone, 6177));     // Set To Ore and Stone
+                list.Add(new BaseHarvestTool.ToggleMiningStoneEntry(pm, MiningType.OreOnly, 6176)); // Set To Ore
+                list.Add(new BaseHarvestTool.ToggleMiningStoneEntry(pm, MiningType.OreAndStone,
+                    6177)); // Set To Ore and Stone
             }
         }
-        #endregion        
 
-        public IronBeetle(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-
-            writer.Write((int)0);
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
-
-            m_MiningTimer = Timer.DelayCall(MiningInterval, MiningInterval, DoMining);
-        }
+        #endregion
     }
 }

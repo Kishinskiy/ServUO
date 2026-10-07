@@ -1,12 +1,21 @@
 /* Based on Skeletal Dragon, still have to get detailed info on Skeletal Drake
     2017/4/09 update: brought more into line with the one extant data point*/
-using System;
 
 namespace Server.Mobiles
 {
     [CorpseName("a skeletal drake corpse")]
     public class SkeletalDrake : BaseCreature
     {
+        public override bool AutoDispel => true;
+        public override bool BleedImmune => true;
+        public override bool ReacquireOnMovement => true;
+        public override int Hides => 20;
+        public override int Meat => 19; // where's it hiding these? :)
+        public override HideType HideType => HideType.Barbed;
+        public override OppositionGroup OppositionGroup => OppositionGroup.FeyAndUndead;
+        public override Poison PoisonImmune => Poison.Lethal;
+        public override TribeType Tribe => TribeType.Undead;
+
         [Constructable]
         public SkeletalDrake()
             : base(AIType.AI_NecroMage, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -50,16 +59,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool AutoDispel { get { return true; } }
-        public override bool BleedImmune { get { return true; } }
-        public override bool ReacquireOnMovement { get { return true; } }
-        public override int Hides { get { return 20; } }
-        public override int Meat { get { return 19; } }// where's it hiding these? :)
-        public override HideType HideType { get { return HideType.Barbed; } }
-        public override OppositionGroup OppositionGroup { get { return OppositionGroup.FeyAndUndead; } }
-        public override Poison PoisonImmune { get { return Poison.Lethal; } }
-        public override TribeType Tribe { get { return TribeType.Undead; } }
-
         public override void GenerateLoot()
         {
             AddLoot(LootPack.FilthyRich, 2);
@@ -69,13 +68,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

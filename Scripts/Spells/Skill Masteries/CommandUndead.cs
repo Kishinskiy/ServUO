@@ -1,37 +1,54 @@
 using System;
-using Server;
-using Server.Spells;
-using Server.Network;
-using Server.Mobiles;
+using Server.Engines.Quests.Doom;
+using Server.Engines.Shadowguard;
 using Server.Items;
+using Server.Mobiles;
 
 namespace Server.Spells.SkillMasteries
 {
-	public class CommandUndeadSpell : SkillMasterySpell
-	{
-		private static SpellInfo m_Info = new SpellInfo(
-				"Command Undead", "In Corp Xen Por",
-				204,
-				9061,
-                Reagent.DaemonBlood,
-                Reagent.PigIron,
-                Reagent.BatWing
-			);
+    public class CommandUndeadSpell : SkillMasterySpell
+    {
+        private static readonly SpellInfo m_Info = new SpellInfo(
+            "Command Undead", "In Corp Xen Por",
+            204,
+            9061,
+            Reagent.DaemonBlood,
+            Reagent.PigIron,
+            Reagent.BatWing
+        );
 
-		public override double RequiredSkill{ get { return 90; } }
-		public override double UpKeep { get { return 0; } }
-		public override int RequiredMana{ get { return 40; } }
-		public override bool PartyEffects { get { return false; } }
+        public override double RequiredSkill => 90;
+        public override double UpKeep => 0;
+        public override int RequiredMana => 40;
+        public override bool PartyEffects => false;
 
-        public override SkillName CastSkill { get { return SkillName.Necromancy; } }
-        public override SkillName DamageSkill { get { return SkillName.SpiritSpeak; } }
+        public override SkillName CastSkill => SkillName.Necromancy;
+        public override SkillName DamageSkill => SkillName.SpiritSpeak;
 
-        public override TimeSpan CastDelayBase { get { return TimeSpan.FromSeconds(3.0); } }
+        public override TimeSpan CastDelayBase => TimeSpan.FromSeconds(3.0);
+
+        public static Type[] CommandTypes { get; } =
+        {
+            typeof(SkeletalDragon)
+        };
+
+        public static Type[] NoCommandTypes { get; } =
+        {
+            typeof(UnfrozenMummy),
+            typeof(RedDeath),
+            typeof(SirPatrick),
+            typeof(LadyJennifyr),
+            typeof(MasterMikael),
+            typeof(MasterJonath),
+            typeof(LadyMarai),
+            typeof(Niporailem),
+            typeof(PestilentBandage)
+        };
 
         public CommandUndeadSpell(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
-		{
-		}
+        {
+        }
 
         public override void OnCast()
         {
@@ -40,7 +57,7 @@ namespace Server.Spells.SkillMasteries
 
         protected override void OnTarget(object o)
         {
-            BaseCreature bc = o as BaseCreature;
+            var bc = o as BaseCreature;
 
             if (bc == null || !Caster.CanSee(bc.Location) || !Caster.InLOS(bc))
             {
@@ -58,10 +75,11 @@ namespace Server.Spells.SkillMasteries
                 }
                 else if (CheckSequence())
                 {
-                    double difficulty = Items.BaseInstrument.GetBaseDifficulty(bc);
-                    double skill = ((Caster.Skills[CastSkill].Value + Caster.Skills[DamageSkill].Value) / 2) + (GetMasteryLevel() * 3) + 1;
+                    var difficulty = BaseInstrument.GetBaseDifficulty(bc);
+                    var skill = (Caster.Skills[CastSkill].Value + Caster.Skills[DamageSkill].Value) / 2 +
+                                GetMasteryLevel() * 3 + 1;
 
-                    double chance = (skill - (difficulty - 25)) / ((difficulty + 25) - (difficulty - 25));
+                    var chance = (skill - (difficulty - 25)) / (difficulty + 25 - (difficulty - 25));
 
                     if (chance >= Utility.RandomDouble())
                     {
@@ -79,23 +97,18 @@ namespace Server.Spells.SkillMasteries
                             bc.PlaySound(0x5C4);
                             bc.Allured = true;
 
-                            Container pack = bc.Backpack;
+                            var pack = bc.Backpack;
 
                             if (pack != null)
-                            {
-                                for (int i = pack.Items.Count - 1; i >= 0; --i)
+                                for (var i = pack.Items.Count - 1; i >= 0; --i)
                                 {
                                     if (i >= pack.Items.Count)
                                         continue;
 
                                     pack.Items[i].Delete();
                                 }
-                            }
 
-                            if (bc is SkeletalDragon)
-                            {
-                                Server.Engines.Quests.Doom.BellOfTheDead.TryRemoveDragon((SkeletalDragon)bc);
-                            }
+                            if (bc is SkeletalDragon) BellOfTheDead.TryRemoveDragon((SkeletalDragon)bc);
 
                             Caster.PlaySound(0x5C4);
                             Caster.SendLocalizedMessage(1156013); // You command the undead to follow and protect you.
@@ -103,58 +116,35 @@ namespace Server.Spells.SkillMasteries
                     }
                     else
                     {
-                        Caster.SendLocalizedMessage(1156014); // The undead becomes enraged by your command attempt and attacks you.
+                        Caster.SendLocalizedMessage(
+                            1156014); // The undead becomes enraged by your command attempt and attacks you.
                     }
                 }
             }
             else
+            {
                 Caster.SendLocalizedMessage(1156015); // You cannot command that!
+            }
 
             //FinishSequence();
         }
 
-        public static Type[] CommandTypes { get { return _CommandTypes; } }
-        public static Type[] NoCommandTypes { get { return _NoCommandTypes; } }
-
-        private static Type[] _CommandTypes =
-        {
-            typeof(SkeletalDragon)
-        };
-
-        private static Type[] _NoCommandTypes =
-        {
-
-            typeof(UnfrozenMummy),
-            typeof(RedDeath),
-            typeof(SirPatrick),
-            typeof(LadyJennifyr),
-            typeof(MasterMikael),
-            typeof(MasterJonath),
-            typeof(LadyMarai),
-            typeof(Niporailem),
-            typeof(PestilentBandage),
-        };
-
         public static bool ValidateTarget(BaseCreature bc)
         {
-            if (bc is BaseRenowned || bc is BaseChampion || bc is Server.Engines.Shadowguard.ShadowguardBoss)
+            if (bc is BaseRenowned || bc is BaseChampion || bc is ShadowguardBoss)
                 return false;
 
-            foreach (var t in _CommandTypes)
-            {
+            foreach (var t in CommandTypes)
                 if (t == bc.GetType())
                     return true;
-            }
 
-            foreach (var t in _NoCommandTypes)
-            {
+            foreach (var t in NoCommandTypes)
                 if (t == bc.GetType())
                     return false;
-            }
 
-            SlayerEntry entry = SlayerGroup.GetEntryByName(SlayerName.Silver);
+            var entry = SlayerGroup.GetEntryByName(SlayerName.Silver);
 
             return entry != null && entry.Slays(bc);
         }
-	}
+    }
 }

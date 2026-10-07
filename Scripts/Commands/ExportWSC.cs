@@ -1,4 +1,3 @@
-using System;
 using System.Collections;
 using System.IO;
 using Server.Items;
@@ -8,22 +7,22 @@ namespace Server.Commands
     public class ExportCommand
     {
         private const string ExportFile = @"C:\Uo\WorldForge\items.wsc";
+
         public static void Initialize()
         {
-            CommandSystem.Register("ExportWSC", AccessLevel.Administrator, new CommandEventHandler(Export_OnCommand));
+            CommandSystem.Register("ExportWSC", AccessLevel.Administrator, Export_OnCommand);
         }
 
         public static void Export_OnCommand(CommandEventArgs e)
         {
-            StreamWriter w = new StreamWriter(ExportFile);
-            ArrayList remove = new ArrayList();
-            int count = 0;
+            var w = new StreamWriter(ExportFile);
+            var remove = new ArrayList();
+            var count = 0;
 
             e.Mobile.SendMessage("Exporting all static items to \"{0}\"...", ExportFile);
             e.Mobile.SendMessage("This will delete all static items in the world.  Please make a backup.");
 
-            foreach (Item item in World.Items.Values)
-            {
+            foreach (var item in World.Items.Values)
                 if ((item is Static || item is BaseFloor || item is BaseWall) &&
                     item.RootParent == null)
                 {
@@ -51,7 +50,6 @@ namespace Server.Commands
                     remove.Add(item);
                     w.Flush();
                 }
-            }
 
             w.Close();
 

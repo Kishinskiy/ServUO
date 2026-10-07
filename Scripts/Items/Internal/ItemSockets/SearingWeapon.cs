@@ -1,5 +1,3 @@
-using System;
-
 using Server.ContextMenus;
 
 namespace Server.Items
@@ -99,10 +97,7 @@ namespace Server.Items
                 {
                     var socket = Weapon.GetSocket<SearingWeapon>();
 
-                    if (socket != null)
-                    {
-                        socket.ToggleExtinguish(From);
-                    }
+                    if (socket != null) socket.ToggleExtinguish(From);
                 }
             }
         }

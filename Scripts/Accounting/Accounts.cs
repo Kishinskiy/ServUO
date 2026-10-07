@@ -9,22 +9,16 @@ namespace Server.Accounting
     {
         private static Dictionary<string, IAccount> m_Accounts = new Dictionary<string, IAccount>();
 
-        public static void Configure()
-        {
-            EventSink.WorldLoad += new WorldLoadEventHandler(Load);
-            EventSink.WorldSave += new WorldSaveEventHandler(Save);
-        }
+        public static int Count => m_Accounts.Count;
 
         static Accounts()
         {
         }
 
-        public static int Count
+        public static void Configure()
         {
-            get
-            {
-                return m_Accounts.Count;
-            }
+            EventSink.WorldLoad += Load;
+            EventSink.WorldSave += Save;
         }
 
         public static ICollection<IAccount> GetAccounts()
@@ -45,7 +39,7 @@ namespace Server.Accounting
         {
             m_Accounts[a.Username] = a;
         }
-		
+
         public static void Remove(string username)
         {
             m_Accounts.Remove(username);
@@ -55,27 +49,25 @@ namespace Server.Accounting
         {
             m_Accounts = new Dictionary<string, IAccount>(32, StringComparer.OrdinalIgnoreCase);
 
-            string filePath = Path.Combine("Saves/Accounts", "accounts.xml");
+            var filePath = Path.Combine("Saves/Accounts", "accounts.xml");
 
             if (!File.Exists(filePath))
                 return;
 
-            XmlDocument doc = new XmlDocument();
+            var doc = new XmlDocument();
             doc.Load(filePath);
 
-            XmlElement root = doc["accounts"];
+            var root = doc["accounts"];
 
             foreach (XmlElement account in root.GetElementsByTagName("account"))
-            {
                 try
                 {
-                    Account acct = new Account(account);
+                    var acct = new Account(account);
                 }
                 catch
                 {
                     Console.WriteLine("Warning: Account instance load failed");
                 }
-            }
         }
 
         public static void Save(WorldSaveEventArgs e)
@@ -83,11 +75,11 @@ namespace Server.Accounting
             if (!Directory.Exists("Saves/Accounts"))
                 Directory.CreateDirectory("Saves/Accounts");
 
-            string filePath = Path.Combine("Saves/Accounts", "accounts.xml");
+            var filePath = Path.Combine("Saves/Accounts", "accounts.xml");
 
-            using (StreamWriter op = new StreamWriter(filePath))
+            using (var op = new StreamWriter(filePath))
             {
-                XmlTextWriter xml = new XmlTextWriter(op);
+                var xml = new XmlTextWriter(op);
 
                 xml.Formatting = Formatting.Indented;
                 xml.IndentChar = '\t';

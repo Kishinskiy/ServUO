@@ -8,26 +8,27 @@ namespace Server
     {
         public string Title { get; set; }
 
-        public AosAttributes Attributes { get; private set; }
-        public AosWeaponAttributes WeaponAttributes { get; private set; }
-        public AosArmorAttributes ArmorAttributes { get; private set; }
-        public SAAbsorptionAttributes AbsorptionAttributes { get; private set; }
-        public ExtendedWeaponAttributes ExtendedWeaponAttributes { get; private set; }
+        public AosAttributes Attributes { get; }
+        public AosWeaponAttributes WeaponAttributes { get; }
+        public AosArmorAttributes ArmorAttributes { get; }
+        public SAAbsorptionAttributes AbsorptionAttributes { get; }
+        public ExtendedWeaponAttributes ExtendedWeaponAttributes { get; }
 
         public EnhancementAttributes(string title)
         {
-            this.Title = title;
-            this.Attributes = new AosAttributes(null);
-            this.WeaponAttributes = new AosWeaponAttributes(null);
-            this.ArmorAttributes = new AosArmorAttributes(null);
-            this.AbsorptionAttributes = new SAAbsorptionAttributes(null);
-            this.ExtendedWeaponAttributes = new ExtendedWeaponAttributes(null);
+            Title = title;
+            Attributes = new AosAttributes(null);
+            WeaponAttributes = new AosWeaponAttributes(null);
+            ArmorAttributes = new AosArmorAttributes(null);
+            AbsorptionAttributes = new SAAbsorptionAttributes(null);
+            ExtendedWeaponAttributes = new ExtendedWeaponAttributes(null);
         }
     }
 
     public class Enhancement
     {
-        public static Dictionary<Mobile, List<EnhancementAttributes>> EnhancementList = new Dictionary<Mobile, List<EnhancementAttributes>>();
+        public static Dictionary<Mobile, List<EnhancementAttributes>> EnhancementList =
+            new Dictionary<Mobile, List<EnhancementAttributes>>();
 
         public static bool AddMobile(Mobile m)
         {
@@ -41,10 +42,13 @@ namespace Server
         }
 
         /// <summary>
-        /// Removes the mobile and/or attributes from the dictionary
+        ///     Removes the mobile and/or attributes from the dictionary
         /// </summary>
         /// <param name="m"></param>
-        /// <param name="title">null or default value will remove the entire entry. Add the title arg to remove only that element from the list.</param>
+        /// <param name="title">
+        ///     null or default value will remove the entire entry. Add the title arg to remove only that element
+        ///     from the list.
+        /// </param>
         /// <returns></returns>
         public static bool RemoveMobile(Mobile m, string title = null)
         {
@@ -52,11 +56,11 @@ namespace Server
             {
                 if (title != null)
                 {
-                    EnhancementAttributes match = EnhancementList[m].FirstOrDefault(attrs => attrs.Title == title);
+                    var match = EnhancementList[m].FirstOrDefault(attrs => attrs.Title == title);
 
                     if (match != null && EnhancementList[m].Contains(match))
                     {
-                        if(match.Attributes.BonusStr > 0)
+                        if (match.Attributes.BonusStr > 0)
                             m.RemoveStatMod("MagicalEnhancementStr");
 
                         if (match.Attributes.BonusDex > 0)
@@ -69,12 +73,13 @@ namespace Server
                     }
                 }
 
-                if(EnhancementList[m].Count == 0 || title == null)
+                if (EnhancementList[m].Count == 0 || title == null)
                     EnhancementList.Remove(m);
 
                 m.CheckStatTimers();
                 m.UpdateResistances();
-                m.Delta(MobileDelta.Stat | MobileDelta.WeaponDamage | MobileDelta.Hits | MobileDelta.Stam | MobileDelta.Mana);
+                m.Delta(MobileDelta.Stat | MobileDelta.WeaponDamage | MobileDelta.Hits | MobileDelta.Stam |
+                        MobileDelta.Mana);
 
                 m.Items.ForEach(i => i.InvalidateProperties());
 
@@ -91,7 +96,7 @@ namespace Server
 
             if (EnhancementList.ContainsKey(m))
             {
-                int value = 0;
+                var value = 0;
                 EnhancementList[m].ForEach(attrs => value += attrs.Attributes[att]);
                 return value;
             }
@@ -120,7 +125,7 @@ namespace Server
                 m.AddStatMod(new StatMod(StatType.Int, "MagicalEnhancementInt", value, TimeSpan.Zero));
             }
 
-            EnhancementAttributes match = EnhancementList[m].FirstOrDefault(attrs => attrs.Title == title);
+            var match = EnhancementList[m].FirstOrDefault(attrs => attrs.Title == title);
 
             if (match != null)
             {
@@ -136,7 +141,8 @@ namespace Server
 
             m.CheckStatTimers();
             m.UpdateResistances();
-            m.Delta(MobileDelta.Stat | MobileDelta.WeaponDamage | MobileDelta.Hits | MobileDelta.Stam | MobileDelta.Mana);
+            m.Delta(MobileDelta.Stat | MobileDelta.WeaponDamage | MobileDelta.Hits | MobileDelta.Stam |
+                    MobileDelta.Mana);
         }
 
         public static int GetValue(Mobile m, AosWeaponAttribute att)
@@ -146,7 +152,7 @@ namespace Server
 
             if (EnhancementList.ContainsKey(m))
             {
-                int value = 0;
+                var value = 0;
                 EnhancementList[m].ForEach(attrs => value += attrs.WeaponAttributes[att]);
                 return value;
             }
@@ -159,7 +165,7 @@ namespace Server
             if (!EnhancementList.ContainsKey(m))
                 AddMobile(m);
 
-            EnhancementAttributes match = EnhancementList[m].FirstOrDefault(attrs => attrs.Title == title);
+            var match = EnhancementList[m].FirstOrDefault(attrs => attrs.Title == title);
 
             if (match != null)
             {
@@ -175,7 +181,8 @@ namespace Server
 
             m.CheckStatTimers();
             m.UpdateResistances();
-            m.Delta(MobileDelta.Stat | MobileDelta.WeaponDamage | MobileDelta.Hits | MobileDelta.Stam | MobileDelta.Mana);
+            m.Delta(MobileDelta.Stat | MobileDelta.WeaponDamage | MobileDelta.Hits | MobileDelta.Stam |
+                    MobileDelta.Mana);
         }
 
         public static int GetValue(Mobile m, AosArmorAttribute att)
@@ -185,7 +192,7 @@ namespace Server
 
             if (EnhancementList.ContainsKey(m))
             {
-                int value = 0;
+                var value = 0;
                 EnhancementList[m].ForEach(attrs => value += attrs.ArmorAttributes[att]);
                 return value;
             }
@@ -198,7 +205,7 @@ namespace Server
             if (!EnhancementList.ContainsKey(m))
                 AddMobile(m);
 
-            EnhancementAttributes match = EnhancementList[m].FirstOrDefault(attrs => attrs.Title == title);
+            var match = EnhancementList[m].FirstOrDefault(attrs => attrs.Title == title);
 
             if (match != null)
             {
@@ -214,7 +221,8 @@ namespace Server
 
             m.CheckStatTimers();
             m.UpdateResistances();
-            m.Delta(MobileDelta.Stat | MobileDelta.WeaponDamage | MobileDelta.Hits | MobileDelta.Stam | MobileDelta.Mana);
+            m.Delta(MobileDelta.Stat | MobileDelta.WeaponDamage | MobileDelta.Hits | MobileDelta.Stam |
+                    MobileDelta.Mana);
         }
 
         public static int GetValue(Mobile m, SAAbsorptionAttribute att)
@@ -224,7 +232,7 @@ namespace Server
 
             if (EnhancementList.ContainsKey(m))
             {
-                int value = 0;
+                var value = 0;
                 EnhancementList[m].ForEach(attrs => value += attrs.AbsorptionAttributes[att]);
                 return value;
             }
@@ -237,7 +245,7 @@ namespace Server
             if (!EnhancementList.ContainsKey(m))
                 AddMobile(m);
 
-            EnhancementAttributes match = EnhancementList[m].FirstOrDefault(attrs => attrs.Title == title);
+            var match = EnhancementList[m].FirstOrDefault(attrs => attrs.Title == title);
 
             if (match != null)
             {
@@ -253,7 +261,8 @@ namespace Server
 
             m.CheckStatTimers();
             m.UpdateResistances();
-            m.Delta(MobileDelta.Stat | MobileDelta.WeaponDamage | MobileDelta.Hits | MobileDelta.Stam | MobileDelta.Mana);
+            m.Delta(MobileDelta.Stat | MobileDelta.WeaponDamage | MobileDelta.Hits | MobileDelta.Stam |
+                    MobileDelta.Mana);
         }
 
         public static int GetValue(Mobile m, ExtendedWeaponAttribute att)
@@ -263,7 +272,7 @@ namespace Server
 
             if (EnhancementList.ContainsKey(m))
             {
-                int value = 0;
+                var value = 0;
                 EnhancementList[m].ForEach(attrs => value += attrs.ExtendedWeaponAttributes[att]);
                 return value;
             }
@@ -276,7 +285,7 @@ namespace Server
             if (!EnhancementList.ContainsKey(m))
                 AddMobile(m);
 
-            EnhancementAttributes match = EnhancementList[m].FirstOrDefault(attrs => attrs.Title == title);
+            var match = EnhancementList[m].FirstOrDefault(attrs => attrs.Title == title);
 
             if (match != null)
             {
@@ -292,7 +301,8 @@ namespace Server
 
             m.CheckStatTimers();
             m.UpdateResistances();
-            m.Delta(MobileDelta.Stat | MobileDelta.WeaponDamage | MobileDelta.Hits | MobileDelta.Stam | MobileDelta.Mana);
+            m.Delta(MobileDelta.Stat | MobileDelta.WeaponDamage | MobileDelta.Hits | MobileDelta.Stam |
+                    MobileDelta.Mana);
         }
     }
 }

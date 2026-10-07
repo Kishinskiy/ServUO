@@ -1,9 +1,7 @@
-using Server;
-using System;
-using Server.Mobiles;
-using Server.Engines.Despise;
 using System.Collections.Generic;
 using System.Linq;
+using Server.Engines.Despise;
+using Server.Mobiles;
 
 namespace Server.Items
 {
@@ -11,6 +9,11 @@ namespace Server.Items
     {
         [Constructable]
         public DespiseTeleporter()
+        {
+        }
+
+        public DespiseTeleporter(Serial serial)
+            : base(serial)
         {
         }
 
@@ -24,19 +27,19 @@ namespace Server.Items
 
         public override void DoTeleport(Mobile m)
         {
-            Map map = MapDest;
+            var map = MapDest;
 
             if (map == null || map == Map.Internal)
                 map = m.Map;
 
-            Point3D p = PointDest;
+            var p = PointDest;
 
             if (p == Point3D.Zero)
                 p = m.Location;
 
             TeleportPets(m, p, map);
 
-            bool sendEffect = (!m.Hidden || m.AccessLevel == AccessLevel.Player);
+            var sendEffect = !m.Hidden || m.AccessLevel == AccessLevel.Player;
 
             if (SourceEffect && sendEffect)
                 Effects.SendLocationEffect(m.Location, m.Map, 0x3728, 10, 10);
@@ -56,49 +59,35 @@ namespace Server.Items
             IPooledEnumerable eable = master.GetMobilesInRange(3);
 
             foreach (Mobile m in eable)
-            {
                 if (m is BaseCreature && !(m is DespiseCreature))
                 {
-                    BaseCreature pet = (BaseCreature)m;
+                    var pet = (BaseCreature)m;
 
                     if (pet.Controlled && pet.ControlMaster == master)
-                    {
                         if (pet.ControlOrder == OrderType.Guard || pet.ControlOrder == OrderType.Follow ||
                             pet.ControlOrder == OrderType.Come)
-                        {
                             move.Add(pet);
-                        }
-                    }
                 }
-            }
 
             eable.Free();
 
-            foreach (Mobile m in move)
-            {
-                m.MoveToWorld(loc, map);
-            }
+            foreach (var m in move) m.MoveToWorld(loc, map);
 
             move.Clear();
             move.TrimExcess();
         }
 
-        public DespiseTeleporter(Serial serial)
-            : base(serial)
-		{
-		}
-		
-		public override void Serialize(GenericWriter writer)
-		{
-			base.Serialize(writer);
-			writer.Write((int)0);
-		}
-		
-		public override void Deserialize(GenericReader reader)
-		{
-			base.Deserialize(reader);
-			int v = reader.ReadInt();
-		}
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var v = reader.ReadInt();
+        }
     }
 
     public class GateTeleporter : Item
@@ -109,7 +98,7 @@ namespace Server.Items
         [CommandProperty(AccessLevel.GameMaster)]
         public Point3D Destination
         {
-            get { return _Destination; }
+            get => _Destination;
             set
             {
                 if (_Destination != value)
@@ -123,7 +112,7 @@ namespace Server.Items
         [CommandProperty(AccessLevel.GameMaster)]
         public Map DestinationMap
         {
-            get { return _DestinationMap; }
+            get => _DestinationMap;
             set
             {
                 if (DestinationMap != value)
@@ -155,32 +144,34 @@ namespace Server.Items
             AssignTeleporters();
         }
 
+        public GateTeleporter(Serial serial)
+            : base(serial)
+        {
+        }
+
         private void AssignTeleporters()
         {
             if (Teleporters != null)
             {
-                foreach (var tele in Teleporters.Where(t => t != null && !t.Deleted))
-                {
-                    tele.Delete();
-                }
+                foreach (var tele in Teleporters.Where(t => t != null && !t.Deleted)) tele.Delete();
 
                 ColUtility.Free(Teleporters);
             }
 
             Teleporters = new List<InternalTeleporter>();
 
-            for (int i = 0; i <= 7; i++)
+            for (var i = 0; i <= 7; i++)
             {
-                Direction offset = (Direction)i;
+                var offset = (Direction)i;
 
                 var tele = new InternalTeleporter(this, _Destination, _DestinationMap);
 
-                int x = this.X;
-                int y = this.Y;
-                int z = this.Z;
+                var x = X;
+                var y = Y;
+                var z = Z;
 
                 Movement.Movement.Offset(offset, ref x, ref y);
-                tele.MoveToWorld(new Point3D(x, y, z), this.Map);
+                tele.MoveToWorld(new Point3D(x, y, z), Map);
 
                 Teleporters.Add(tele);
             }
@@ -189,44 +180,31 @@ namespace Server.Items
         public void AssignDestination(Point3D p)
         {
             if (Teleporters == null)
-            {
                 AssignTeleporters();
-            }
             else
-            {
                 Teleporters.ForEach(t => t.PointDest = p);
-            }
         }
 
         public void AssignMap(Map map)
         {
             if (Teleporters == null)
-            {
                 AssignTeleporters();
-            }
             else
-            {
                 Teleporters.ForEach(t => t.MapDest = map);
-            }
         }
 
         public override void OnMapChange()
         {
-            if (Teleporters != null)
-            {
-                Teleporters.ForEach(t => t.Map = Map);
-            }
+            if (Teleporters != null) Teleporters.ForEach(t => t.Map = Map);
         }
 
         public override void OnLocationChange(Point3D old)
         {
             if (Teleporters != null)
-            {
                 Teleporters.ForEach(t =>
-                    {
-                        t.Location = new Point3D(X + (t.X - old.X), Y + (t.Y - old.Y), Z + (t.Z - old.Z));
-                    });
-            }
+                {
+                    t.Location = new Point3D(X + (t.X - old.X), Y + (t.Y - old.Y), Z + (t.Z - old.Z));
+                });
         }
 
         public override void Delete()
@@ -241,37 +219,29 @@ namespace Server.Items
             }
         }
 
-        public GateTeleporter(Serial serial)
-            : base(serial)
-		{
-		}
-		
-		public override void Serialize(GenericWriter writer)
-		{
-			base.Serialize(writer);
-			writer.Write((int)0);
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
 
             writer.Write(_Destination);
             writer.Write(_DestinationMap);
 
             writer.Write(Teleporters == null ? 0 : Teleporters.Count);
 
-            if (Teleporters != null)
-            {
-                Teleporters.ForEach(t => writer.Write(t));
-            }
-		}
-		
-		public override void Deserialize(GenericReader reader)
-		{
-			base.Deserialize(reader);
-			int v = reader.ReadInt();
+            if (Teleporters != null) Teleporters.ForEach(t => writer.Write(t));
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var v = reader.ReadInt();
 
             _Destination = reader.ReadPoint3D();
             _DestinationMap = reader.ReadMap();
 
-            int count = reader.ReadInt();
-            for (int i = 0; i < count; i++)
+            var count = reader.ReadInt();
+            for (var i = 0; i < count; i++)
             {
                 if (Teleporters == null)
                     Teleporters = new List<InternalTeleporter>();
@@ -284,12 +254,15 @@ namespace Server.Items
                     tele.Master = this;
                 }
             }
-		}
+        }
 
         public class InternalTeleporter : Teleporter
         {
             [CommandProperty(AccessLevel.GameMaster)]
             public GateTeleporter Master { get; set; }
+
+            public override bool HandlesOnMovement =>
+                Master != null && Utility.InRange(Master.Location, Location, 1) && Map == Master.Map;
 
             public InternalTeleporter(GateTeleporter master, Point3D dest, Map destMap)
                 : base(dest, destMap, true)
@@ -297,50 +270,47 @@ namespace Server.Items
                 Master = master;
             }
 
+            public InternalTeleporter(Serial serial)
+                : base(serial)
+            {
+            }
+
             public override bool OnMoveOver(Mobile m)
             {
                 return true;
             }
 
-            public override bool HandlesOnMovement { get { return Master != null && Utility.InRange(Master.Location, Location, 1) && this.Map == Master.Map; } }
-            
             public override void OnMovement(Mobile m, Point3D oldLocation)
             {
-                if (Master == null || Master.Destination == Point3D.Zero || Master.Map == null || Master.Map == Map.Internal)
+                if (Master == null || Master.Destination == Point3D.Zero || Master.Map == null ||
+                    Master.Map == Map.Internal)
                     return;
 
                 if (m.Location == Location)
                 {
                     var eable = Map.GetItemsInRange(oldLocation, 0);
 
-                    foreach (Item item in eable)
-                    {
+                    foreach (var item in eable)
                         if (item is InternalTeleporter || item == Master)
                         {
                             eable.Free();
                             return;
                         }
-                    }
 
                     base.OnMoveOver(m);
                 }
             }
 
-            public InternalTeleporter(Serial serial)
-                : base(serial)
-            {
-            }
-
             public override void Serialize(GenericWriter writer)
             {
                 base.Serialize(writer);
-                writer.Write((int)0);
+                writer.Write(0);
             }
 
             public override void Deserialize(GenericReader reader)
             {
                 base.Deserialize(reader);
-                int v = reader.ReadInt();
+                var v = reader.ReadInt();
             }
         }
     }

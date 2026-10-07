@@ -1,8 +1,6 @@
 using System;
 using System.Linq;
-
 using Server.Items;
-using Server.Network;
 using Server.Spells;
 
 namespace Server.Mobiles
@@ -10,7 +8,7 @@ namespace Server.Mobiles
     [CorpseName("a monstrous interred grizzle corpse")]
     public class MonstrousInterredGrizzle : BasePeerless
     {
-        private static readonly int[] m_Tiles = new int[]
+        private static readonly int[] m_Tiles =
         {
             -2, 0,
             2, 0,
@@ -25,12 +23,16 @@ namespace Server.Mobiles
 
         private readonly DateTime m_NextDrop = DateTime.UtcNow;
 
+        public override bool GivesMLMinorArtifact => true;
+
+        public override int TreasureMapLevel => 5;
+
         [Constructable]
         public MonstrousInterredGrizzle()
             : base(AIType.AI_Spellweaving, FightMode.Closest, 10, 1, 0.2, 0.4)
         {
             Name = "a monstrous interred grizzle";
-            Body = 0x103;			
+            Body = 0x103;
             BaseSoundID = 589;
 
             SetStr(1198, 1207);
@@ -67,10 +69,8 @@ namespace Server.Mobiles
             PackResources(8);
             PackTalismans(5);
 
-            for (int i = 0; i < Utility.RandomMinMax(1, 6); i++)
-            {
+            for (var i = 0; i < Utility.RandomMinMax(1, 6); i++)
                 PackItem(Loot.RandomScroll(0, Loot.ArcanistScrollTypes.Length, SpellbookType.Arcanist));
-            }
 
             SetSpecialAbility(SpecialAbility.HowlOfCacophony);
         }
@@ -78,21 +78,6 @@ namespace Server.Mobiles
         public MonstrousInterredGrizzle(Serial serial)
             : base(serial)
         {
-        }
-
-        public override bool GivesMLMinorArtifact
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override int TreasureMapLevel
-        {
-            get
-            {
-                return 5;
-            }
         }
 
         public override void GenerateLoot()
@@ -129,7 +114,6 @@ namespace Server.Mobiles
                 c.DropItem(new GrizzledMareStatuette());
 
             if (Utility.RandomDouble() < 0.05)
-            {
                 switch (Utility.Random(5))
                 {
                     case 0:
@@ -148,7 +132,6 @@ namespace Server.Mobiles
                         c.DropItem(new GrizzleVambraces());
                         break;
                 }
-            }
         }
 
         public override int GetDeathSound()
@@ -179,15 +162,15 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-			
-            writer.Write((int)0); // version
+
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-			
-            int version = reader.ReadInt();
+
+            var version = reader.ReadInt();
         }
 
         public override void OnDamage(int amount, Mobile from, bool willKill)
@@ -205,13 +188,15 @@ namespace Server.Mobiles
     }
 
     public class InfernalOoze : Item
-    { 
-        private bool m_Corrosive;
-        private int m_Damage;
-        private Mobile m_Owner;
+    {
+        private readonly int m_Damage;
+        private readonly Mobile m_Owner;
+
+        private readonly DateTime m_StartTime;
         private Timer m_Timer;
 
-        private DateTime m_StartTime;
+        [CommandProperty(AccessLevel.GameMaster)]
+        public bool Corrosive { get; set; }
 
         public InfernalOoze(Mobile owner)
             : this(owner, false)
@@ -227,18 +212,16 @@ namespace Server.Mobiles
             Hue = 0x95;
 
             m_Damage = damage;
-			
-            m_Corrosive = corrosive;
+
+            Corrosive = corrosive;
             m_StartTime = DateTime.UtcNow;
 
             m_Timer = Timer.DelayCall(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1), OnTick);
         }
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public bool Corrosive
+        public InfernalOoze(Serial serial)
+            : base(serial)
         {
-            get { return m_Corrosive; }
-            set { m_Corrosive = value; }
         }
 
         private void OnTick()
@@ -257,12 +240,8 @@ namespace Server.Mobiles
                 return;
 
             if (!Deleted && Map != Map.Internal && Map != null)
-            {
                 foreach (var m in SpellHelper.AcquireIndirectTargets(m_Owner, Location, Map, 0).OfType<Mobile>())
-                {
                     OnMoveOver(m);
-                }
-            }
         }
 
         public override bool OnMoveOver(Mobile m)
@@ -270,21 +249,18 @@ namespace Server.Mobiles
             if (Map == null)
                 return base.OnMoveOver(m);
 
-            if ((m is BaseCreature && ((BaseCreature)m).GetMaster() is PlayerMobile) || m.Player)
-            {
-                Damage(m);
-            }
+            if ((m is BaseCreature && ((BaseCreature)m).GetMaster() is PlayerMobile) || m.Player) Damage(m);
 
             return base.OnMoveOver(m);
         }
 
         public virtual void Damage(Mobile m)
-        { 
-            if (m_Corrosive)
+        {
+            if (Corrosive)
             {
-                for (int i = 0; i < m.Items.Count; i++)
+                for (var i = 0; i < m.Items.Count; i++)
                 {
-                    IDurability item = m.Items[i] as IDurability;
+                    var item = m.Items[i] as IDurability;
 
                     if (item != null && Utility.RandomDouble() < 0.25)
                     {
@@ -297,11 +273,11 @@ namespace Server.Mobiles
             }
             else
             {
-                int dmg = m_Damage;
+                var dmg = m_Damage;
 
                 if (m is PlayerMobile)
                 {
-                    PlayerMobile pm = m as PlayerMobile;
+                    var pm = m as PlayerMobile;
                     dmg = (int)BalmOfProtection.HandleDamage(pm, dmg);
                     AOS.Damage(m, m_Owner, dmg, 0, 0, 0, 100, 0);
                 }
@@ -323,23 +299,18 @@ namespace Server.Mobiles
             }
         }
 
-        public InfernalOoze(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             Delete();
         }

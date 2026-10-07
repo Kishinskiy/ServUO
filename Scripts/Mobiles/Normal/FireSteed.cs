@@ -6,6 +6,10 @@ namespace Server.Mobiles
     [CorpseName("a fire steed corpse")]
     public class FireSteed : BaseMount
     {
+        public override FoodType FavoriteFood => FoodType.Meat;
+
+        public override PackInstinct PackInstinct => PackInstinct.Daemon | PackInstinct.Equine;
+
         [Constructable]
         public FireSteed()
             : this("a fire steed")
@@ -58,46 +62,26 @@ namespace Server.Mobiles
         {
         }
 
-        public override FoodType FavoriteFood
-        {
-            get
-            {
-                return FoodType.Meat;
-            }
-        }
-        public override PackInstinct PackInstinct
-        {
-            get
-            {
-                return PackInstinct.Daemon | PackInstinct.Equine;
-            }
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)1); // version
+            writer.Write(1); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (version < 1)
-            {
-                for (int i = 0; i < Skills.Length; ++i)
+                for (var i = 0; i < Skills.Length; ++i)
                 {
                     Skills[i].Cap = Math.Max(100.0, Skills[i].Cap * 0.9);
 
-                    if (Skills[i].Base > Skills[i].Cap)
-                    {
-                        Skills[i].Base = Skills[i].Cap;
-                    }
+                    if (Skills[i].Base > Skills[i].Cap) Skills[i].Base = Skills[i].Cap;
                 }
-            }
         }
     }
 }

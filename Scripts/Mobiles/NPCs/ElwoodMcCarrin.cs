@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 using Server.Mobiles;
 
@@ -19,35 +18,35 @@ namespace Server.Engines.Quests.Collector
 
         public override void InitBody()
         {
-            this.InitStats(100, 100, 25);
+            InitStats(100, 100, 25);
 
-            this.Hue = 0x83ED;
+            Hue = 0x83ED;
 
-            this.Female = false;
-            this.Body = 0x190;
-            this.Name = "Elwood McCarrin";
+            Female = false;
+            Body = 0x190;
+            Name = "Elwood McCarrin";
         }
 
         public override void InitOutfit()
         {
-            this.AddItem(new FancyShirt());
-            this.AddItem(new LongPants(0x544));
-            this.AddItem(new Shoes(0x454));
-            this.AddItem(new JesterHat(0x4D2));
-            this.AddItem(new FullApron(0x4D2));
+            AddItem(new FancyShirt());
+            AddItem(new LongPants(0x544));
+            AddItem(new Shoes(0x454));
+            AddItem(new JesterHat(0x4D2));
+            AddItem(new FullApron(0x4D2));
 
-            this.HairItemID = 0x203D; // Pony Tail
-            this.HairHue = 0x47D;
+            HairItemID = 0x203D; // Pony Tail
+            HairHue = 0x47D;
 
-            this.FacialHairItemID = 0x2040; // Goatee
-            this.FacialHairHue = 0x47D;
+            FacialHairItemID = 0x2040; // Goatee
+            FacialHairHue = 0x47D;
         }
 
         public override void OnTalk(PlayerMobile player, bool contextMenu)
         {
-            this.Direction = this.GetDirectionTo(player);
+            Direction = GetDirectionTo(player);
 
-            QuestSystem qs = player.Quest;
+            var qs = player.Quest;
 
             if (qs is CollectorQuest)
             {
@@ -57,7 +56,7 @@ namespace Server.Engines.Quests.Collector
                 }
                 else
                 {
-                    QuestObjective obj = qs.FindObjective(typeof(ReturnPearlsObjective));
+                    var obj = qs.FindObjective(typeof(ReturnPearlsObjective));
 
                     if (obj != null && !obj.Completed)
                     {
@@ -119,14 +118,10 @@ namespace Server.Engines.Quests.Collector
                                 {
                                     obj.Complete();
 
-                                    if (this.GiveReward(player))
-                                    {
+                                    if (GiveReward(player))
                                         qs.AddConversation(new EndConversation());
-                                    }
                                     else
-                                    {
                                         qs.AddConversation(new FullEndConversation(true));
-                                    }
                                 }
                                 else
                                 {
@@ -134,7 +129,7 @@ namespace Server.Engines.Quests.Collector
 
                                     if (obj != null && !obj.Completed)
                                     {
-                                        if (this.GiveReward(player))
+                                        if (GiveReward(player))
                                         {
                                             obj.Complete();
                                             qs.AddConversation(new EndConversation());
@@ -155,25 +150,21 @@ namespace Server.Engines.Quests.Collector
                 QuestSystem newQuest = new CollectorQuest(player);
 
                 if (qs == null && QuestSystem.CanOfferQuest(player, typeof(CollectorQuest)))
-                {
                     newQuest.SendOffer();
-                }
                 else
-                {
                     newQuest.AddConversation(new DontOfferConversation());
-                }
             }
         }
 
         public bool GiveReward(Mobile to)
         {
-            Bag bag = new Bag();
+            var bag = new Bag();
 
             bag.DropItem(new Gold(Utility.RandomMinMax(500, 1000)));
 
             if (Utility.RandomBool())
             {
-                BaseWeapon weapon = Loot.RandomWeapon();
+                var weapon = Loot.RandomWeapon();
 
                 if (Core.AOS)
                 {
@@ -181,9 +172,9 @@ namespace Server.Engines.Quests.Collector
                 }
                 else
                 {
-                    weapon.DamageLevel = (WeaponDamageLevel)BaseCreature.RandomMinMaxScaled(2, 3);
-                    weapon.AccuracyLevel = (WeaponAccuracyLevel)BaseCreature.RandomMinMaxScaled(2, 3);
-                    weapon.DurabilityLevel = (WeaponDurabilityLevel)BaseCreature.RandomMinMaxScaled(2, 3);
+                    weapon.DamageLevel = (WeaponDamageLevel)RandomMinMaxScaled(2, 3);
+                    weapon.AccuracyLevel = (WeaponAccuracyLevel)RandomMinMaxScaled(2, 3);
+                    weapon.DurabilityLevel = (WeaponDurabilityLevel)RandomMinMaxScaled(2, 3);
                 }
 
                 bag.DropItem(weapon);
@@ -203,11 +194,11 @@ namespace Server.Engines.Quests.Collector
                 }
                 else
                 {
-                    BaseArmor armor = Loot.RandomArmorOrShield();
+                    var armor = Loot.RandomArmorOrShield();
                     item = armor;
 
-                    armor.ProtectionLevel = (ArmorProtectionLevel)BaseCreature.RandomMinMaxScaled(2, 3);
-                    armor.Durability = (ArmorDurabilityLevel)BaseCreature.RandomMinMaxScaled(2, 3);
+                    armor.ProtectionLevel = (ArmorProtectionLevel)RandomMinMaxScaled(2, 3);
+                    armor.Durability = (ArmorDurabilityLevel)RandomMinMaxScaled(2, 3);
                 }
 
                 bag.DropItem(item);
@@ -215,29 +206,24 @@ namespace Server.Engines.Quests.Collector
 
             bag.DropItem(new Obsidian());
 
-            if (to.PlaceInBackpack(bag))
-            {
-                return true;
-            }
-            else
-            {
-                bag.Delete();
-                return false;
-            }
+            if (to.PlaceInBackpack(bag)) return true;
+
+            bag.Delete();
+            return false;
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

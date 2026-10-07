@@ -24,9 +24,12 @@ namespace Server.Items
         SandstoneHouseWithPatio,
         SmallStoneWorkshop,
         SmallMarbleWorkshop,
+
         #region Veteran Rewards
+
         MalasMountainPass,
         ChurchAtNight
+
         #endregion
     }
 
@@ -34,7 +37,7 @@ namespace Server.Items
     {
         private MiniHouseType Type { get; set; }
 
-        public override int LabelNumber { get { return ((MiniHouseAddon)Addon).LabelNumber; } }
+        public override int LabelNumber => ((MiniHouseAddon)Addon).LabelNumber;
 
         public MiniHouseAddonComponent(int itemID)
             : base(itemID)
@@ -49,7 +52,7 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
             writer.Write((int)Type);
         }
@@ -57,7 +60,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             Type = (MiniHouseType)reader.ReadInt();
         }
@@ -65,20 +68,21 @@ namespace Server.Items
 
     public class MiniHouseAddon : BaseAddon
     {
-        public override int LabelNumber { get { return MiniHouseInfo.GetInfo(m_Type).LabelNumber; } }
-
         private MiniHouseType m_Type;
+        public override int LabelNumber => MiniHouseInfo.GetInfo(m_Type).LabelNumber;
 
         [CommandProperty(AccessLevel.GameMaster)]
         public MiniHouseType Type
         {
-            get { return m_Type; }
+            get => m_Type;
             set
             {
                 m_Type = value;
                 Construct();
             }
         }
+
+        public override BaseAddonDeed Deed => new MiniHouseDeed(m_Type);
 
         [Constructable]
         public MiniHouseAddon()
@@ -97,15 +101,10 @@ namespace Server.Items
             : base(serial)
         {
         }
-                
-        public override BaseAddonDeed Deed
-        {
-            get { return new MiniHouseDeed(m_Type); }
-        }       
 
         public void Construct()
         {
-            foreach (AddonComponent c in Components)
+            foreach (var c in Components)
             {
                 c.Addon = null;
                 c.Delete();
@@ -113,21 +112,21 @@ namespace Server.Items
 
             Components.Clear();
 
-            MiniHouseInfo info = MiniHouseInfo.GetInfo(m_Type);
+            var info = MiniHouseInfo.GetInfo(m_Type);
 
-            int size = (int)Math.Sqrt(info.Graphics.Length);
-            int num = 0;
+            var size = (int)Math.Sqrt(info.Graphics.Length);
+            var num = 0;
 
-            for (int y = 0; y < size; ++y)
-                for (int x = 0; x < size; ++x)
-                    if (info.Graphics[num] != 0x1) // Veteran Rewards Mod
-                        AddComponent(new MiniHouseAddonComponent(info.Graphics[num++]), size - x - 1, size - y - 1, 0);
+            for (var y = 0; y < size; ++y)
+            for (var x = 0; x < size; ++x)
+                if (info.Graphics[num] != 0x1) // Veteran Rewards Mod
+                    AddComponent(new MiniHouseAddonComponent(info.Graphics[num++]), size - x - 1, size - y - 1, 0);
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1); // version
+            writer.Write(1); // version
 
             writer.Write((int)m_Type);
         }
@@ -135,25 +134,27 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             switch (version)
             {
                 case 1:
                 case 0:
-                    {
-                        m_Type = (MiniHouseType)reader.ReadInt();
-                        break;
-                    }
+                {
+                    m_Type = (MiniHouseType)reader.ReadInt();
+                    break;
+                }
             }
 
             if (version == 0)
-                Timer.DelayCall(TimeSpan.FromSeconds(30.0), new TimerCallback(Construct));
+                Timer.DelayCall(TimeSpan.FromSeconds(30.0), Construct);
         }
     }
 
     public class MiniHouseDeed : BaseAddonDeed
     {
+        private MiniHouseType m_Type;
+
         public override int LabelNumber
         {
             get
@@ -170,12 +171,10 @@ namespace Server.Items
             }
         }
 
-        private MiniHouseType m_Type;
-
         [CommandProperty(AccessLevel.GameMaster)]
         public MiniHouseType Type
         {
-            get { return m_Type; }
+            get => m_Type;
             set
             {
                 m_Type = value;
@@ -183,7 +182,7 @@ namespace Server.Items
             }
         }
 
-        public override BaseAddon Addon { get { return new MiniHouseAddon(m_Type); } }
+        public override BaseAddon Addon => new MiniHouseAddon(m_Type);
 
         [Constructable]
         public MiniHouseDeed()
@@ -202,8 +201,8 @@ namespace Server.Items
         public MiniHouseDeed(Serial serial)
             : base(serial)
         {
-        }       
-        
+        }
+
         public override void GetProperties(ObjectPropertyList list)
         {
             base.GetProperties(list);
@@ -214,7 +213,7 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
             writer.Write((int)m_Type);
         }
@@ -222,15 +221,15 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             switch (version)
             {
                 case 0:
-                    {
-                        m_Type = (MiniHouseType)reader.ReadInt();
-                        break;
-                    }
+                {
+                    m_Type = (MiniHouseType)reader.ReadInt();
+                    break;
+                }
             }
 
             if (Weight == 0.0)
@@ -240,8 +239,7 @@ namespace Server.Items
 
     public class MiniHouseInfo
     {
-        public static MiniHouseInfo[] Info { get { return m_Info; } }
-        private static readonly MiniHouseInfo[] m_Info = new MiniHouseInfo[]
+        public static MiniHouseInfo[] Info { get; } =
         {
             /* Stone and plaster house           */ new MiniHouseInfo(0x22C4, 1, 1011303),
             /* Field stone house                 */ new MiniHouseInfo(0x22DE, 1, 1011304),
@@ -254,7 +252,9 @@ namespace Server.Items
             /* Two-story stone and plaster house */ new MiniHouseInfo(1011311, 0x22FC, 0x22FD, 0x22FF, 0x22FE),
             /* Tower                             */ new MiniHouseInfo(1011312, 0x22F7, 0x22F8, 0x22FA, 0x22F9),
             /* Small stone keep                  */ new MiniHouseInfo(0x22E6, 9, 1011313),
-            /* Castle                            */ new MiniHouseInfo(1011314, 0x22CE, 0x22D0, 0x22D2, 0x22D7, 0x22CF, 0x22D1, 0x22D4, 0x22D9, 0x22D3, 0x22D5, 0x22D6, 0x22DB, 0x22D8, 0x22DA, 0x22DC, 0x22DD),
+            /* Castle                            */
+            new MiniHouseInfo(1011314, 0x22CE, 0x22D0, 0x22D2, 0x22D7, 0x22CF, 0x22D1, 0x22D4, 0x22D9, 0x22D3, 0x22D5,
+                0x22D6, 0x22DB, 0x22D8, 0x22DA, 0x22DC, 0x22DD),
             /* Large house with patio            */ new MiniHouseInfo(0x22E2, 4, 1011315),
             /* Marble house with patio           */ new MiniHouseInfo(0x22EF, 4, 1011316),
             /* Small stone tower                 */ new MiniHouseInfo(0x22F5, 1, 1011317),
@@ -267,37 +267,34 @@ namespace Server.Items
             /* Church At Night                   */ new MiniHouseInfo(1072215, 0x2318, 0x2317, 0x2319, 0x1)
         };
 
-        private readonly int[] m_Graphics;
-        private readonly int m_LabelNumber;
+        public int[] Graphics { get; }
+
+        public int LabelNumber { get; }
 
         public MiniHouseInfo(int start, int count, int labelNumber)
         {
-            m_Graphics = new int[count];
+            Graphics = new int[count];
 
-            for (int i = 0; i < count; ++i)
-                m_Graphics[i] = start + i;
+            for (var i = 0; i < count; ++i)
+                Graphics[i] = start + i;
 
-            m_LabelNumber = labelNumber;
+            LabelNumber = labelNumber;
         }
 
         public MiniHouseInfo(int labelNumber, params int[] graphics)
         {
-            m_LabelNumber = labelNumber;
-            m_Graphics = graphics;
+            LabelNumber = labelNumber;
+            Graphics = graphics;
         }
-
-        public int[] Graphics { get { return m_Graphics; } }
-
-        public int LabelNumber { get { return m_LabelNumber; } }
 
         public static MiniHouseInfo GetInfo(MiniHouseType type)
         {
-            int v = (int)type;
+            var v = (int)type;
 
-            if (v < 0 || v >= m_Info.Length)
+            if (v < 0 || v >= Info.Length)
                 v = 0;
 
-            return m_Info[v];
+            return Info[v];
         }
     }
 }

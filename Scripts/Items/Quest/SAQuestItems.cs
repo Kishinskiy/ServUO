@@ -1,4 +1,5 @@
 using System;
+using Server.Engines.Quests;
 using Server.Mobiles;
 using Server.Targeting;
 
@@ -6,6 +7,8 @@ namespace Server.Items
 {
     public class AcidSac : Item
     {
+        public override int LabelNumber => 1111654; // acid sac
+
         [Constructable]
         public AcidSac()
             : base(0x0C67)
@@ -20,13 +23,6 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1111654;
-            }
-        }// acid sac
         public override void OnDoubleClick(Mobile from)
         {
             if (IsChildOf(from.Backpack))
@@ -35,21 +31,23 @@ namespace Server.Items
                 from.Target = new InternalTarget(this);
             }
             else
+            {
                 from.SendLocalizedMessage(1080063); // This must be in your backpack to use it.
+            }
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         private class InternalTarget : Target
@@ -57,6 +55,7 @@ namespace Server.Items
             private readonly Item m_Item;
             private Item wall;
             private Item wallandvine;
+
             public InternalTarget(Item item)
                 : base(2, false, TargetFlags.None)
             {
@@ -65,18 +64,19 @@ namespace Server.Items
 
             protected override void OnTarget(Mobile from, object targeted)
             {
-                PlayerMobile pm = from as PlayerMobile;
+                var pm = from as PlayerMobile;
 
                 if (m_Item.Deleted)
                     return;
 
                 if (targeted is AddonComponent)
                 {
-                    AddonComponent addoncomponent = (AddonComponent)targeted;
+                    var addoncomponent = (AddonComponent)targeted;
 
-                    if (addoncomponent is MagicVinesComponent || addoncomponent is StoneWallComponent || addoncomponent is DungeonWallComponent)
+                    if (addoncomponent is MagicVinesComponent || addoncomponent is StoneWallComponent ||
+                        addoncomponent is DungeonWallComponent)
                     {
-                        int Xs = addoncomponent.X;
+                        var Xs = addoncomponent.X;
 
                         if (addoncomponent is MagicVinesComponent)
                             Xs += -1;
@@ -98,14 +98,16 @@ namespace Server.Items
 
                         m_Item.Consume();
 
-                        wall.PublicOverheadMessage(0, 1358, 1111662); // The acid quickly burns through the writhing wallvines, revealing the strange wall.
+                        wall.PublicOverheadMessage(0, 1358,
+                            1111662); // The acid quickly burns through the writhing wallvines, revealing the strange wall.
 
-                        Timer.DelayCall(TimeSpan.FromSeconds(15.0), delegate()
+                        Timer.DelayCall(TimeSpan.FromSeconds(15.0), delegate
                         {
                             wallandvine.MoveToWorld(wall.Location, wall.Map);
 
                             wall.Delete();
-                            wallandvine.PublicOverheadMessage(0, 1358, 1111663); // The vines recover from the acid and, spreading like tentacles, reclaim their grip over the wall.
+                            wallandvine.PublicOverheadMessage(0, 1358,
+                                1111663); // The vines recover from the acid and, spreading like tentacles, reclaim their grip over the wall.
                         });
                     }
                 }
@@ -113,7 +115,6 @@ namespace Server.Items
                 {
                     from.SendLocalizedMessage(1111657); // The acid swiftly burn through it.
                     m_Item.Consume();
-                    return; // Exit the method, because addoncomponent is null
                 }
             }
         }
@@ -121,11 +122,13 @@ namespace Server.Items
 
     public class AncientPotteryFragments : Item
     {
+        public override int LabelNumber => 1112990; // Ancient Pottery fragments
+
         [Constructable]
         public AncientPotteryFragments()
-			: base(0x2243)
+            : base(0x2243)
         {
-			Hue = 2108;
+            Hue = 2108;
         }
 
         public AncientPotteryFragments(Serial serial)
@@ -133,30 +136,25 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1112990;
-            }
-        }// Ancient Pottery fragments
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class BouraPelt : Item, ICommodity
     {
+        public override int LabelNumber => 1113355; // boura pelt
+
         [Constructable]
         public BouraPelt()
             : this(1)
@@ -176,33 +174,28 @@ namespace Server.Items
         {
         }
 
-        TextDefinition ICommodity.Description { get { return LabelNumber; } }
-        bool ICommodity.IsDeedable { get { return true; } }
+        TextDefinition ICommodity.Description => LabelNumber;
+        bool ICommodity.IsDeedable => true;
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1113355;
-            }
-        }// boura pelt
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class ClawSlasherVeils : Item
     {
+        public override int LabelNumber => 1031704; // Claw of Slasher of Veils
+
         [Constructable]
         public ClawSlasherVeils()
             : this(1)
@@ -222,30 +215,25 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1031704;
-            }
-        }// Claw of Slasher of Veils
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class CongealedSlugAcid : Item
     {
+        public override int LabelNumber => 1112901; // Congealed Slug Acid
+
         [Constructable]
         public CongealedSlugAcid()
             : this(1)
@@ -265,31 +253,26 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1112901;
-            }
-        }// Congealed Slug Acid
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     [TypeAlias("Server.Items.EnchantEssence")]
     public class EnchantedEssence : Item, ICommodity
     {
+        public override int LabelNumber => 1031698; // Enchaned Essence
+
         [Constructable]
         public EnchantedEssence()
             : this(1)
@@ -309,44 +292,29 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1031698;
-            }
-        }// Enchaned Essence
-		TextDefinition ICommodity.Description
-        {
-            get
-            {
-                return this.LabelNumber;
-            }
-        }
-        bool ICommodity.IsDeedable
-        {
-            get
-            {
-                return true;
-            }
-        }
+        TextDefinition ICommodity.Description => LabelNumber;
+
+        bool ICommodity.IsDeedable => true;
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class FairyDragonWing : Item
     {
+        public override int LabelNumber => 1112899; // Fairy Dragon Wing
+
         [Constructable]
         public FairyDragonWing()
             : this(1)
@@ -368,30 +336,25 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1112899;
-            }
-        }// Fairy Dragon Wing
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class LeatherWolfSkin : Item
     {
+        public override int LabelNumber => 1112906; // leather wolf skin
+
         [Constructable]
         public LeatherWolfSkin()
             : this(1)
@@ -413,25 +376,18 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1112906;
-            }
-        }// leather wolf skin
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)1); // version
+            writer.Write(1); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (version == 0)
             {
@@ -443,6 +399,8 @@ namespace Server.Items
 
     public class LuckyCoin : Item, ICommodity
     {
+        public override int LabelNumber => 1113366; // lucky coin
+
         [Constructable]
         public LuckyCoin()
             : this(1)
@@ -464,16 +422,8 @@ namespace Server.Items
         {
         }
 
-        TextDefinition ICommodity.Description { get { return LabelNumber; } }
-        bool ICommodity.IsDeedable { get { return true; } }
-
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1113366;
-            }
-        }// lucky coin
+        TextDefinition ICommodity.Description => LabelNumber;
+        bool ICommodity.IsDeedable => true;
 
         public override void OnDoubleClick(Mobile from)
         {
@@ -484,9 +434,23 @@ namespace Server.Items
             }
         }
 
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+
+            writer.Write(0); // version
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+
+            var version = reader.ReadInt();
+        }
+
         private class InternalTarget : Target
         {
-            private LuckyCoin m_Coin;
+            private readonly LuckyCoin m_Coin;
 
             public InternalTarget(LuckyCoin coin)
                 : base(3, false, TargetFlags.None)
@@ -498,33 +462,23 @@ namespace Server.Items
             {
                 if (targeted is AddonComponent && ((AddonComponent)targeted).Addon is FountainOfFortune)
                 {
-                    AddonComponent c = (AddonComponent)targeted;
+                    var c = (AddonComponent)targeted;
 
                     if (c.Addon is FountainOfFortune)
                         ((FountainOfFortune)c.Addon).OnTarget(from, m_Coin);
                 }
                 else
+                {
                     from.SendLocalizedMessage(1113369); // That is not sacred waters. Try looking in the Underworld.
+                }
             }
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-
-            writer.Write((int)0); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
         }
     }
 
     public class MagicalResidue : Item, ICommodity
     {
+        public override int LabelNumber => 1031697; // Magical Residue
+
         [Constructable]
         public MagicalResidue()
             : this(1)
@@ -544,39 +498,22 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1031697;
-            }
-        }// Magical Residue
-		TextDefinition ICommodity.Description
-        {
-            get
-            {
-                return this.LabelNumber;
-            }
-        }
-        bool ICommodity.IsDeedable
-        {
-            get
-            {
-                return true;
-            }
-        }
+        TextDefinition ICommodity.Description => LabelNumber;
+
+        bool ICommodity.IsDeedable => true;
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -605,14 +542,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (ItemID != 0x1BEA)
                 ItemID = 0x1BEA;
@@ -621,6 +558,8 @@ namespace Server.Items
 
     public class RelicFragment : Item, ICommodity
     {
+        public override int LabelNumber => 1031699; // Relic Fragment
+
         [Constructable]
         public RelicFragment()
             : this(1)
@@ -640,83 +579,61 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1031699;
-            }
-        }// Relic Fragment
-		TextDefinition ICommodity.Description
-        {
-            get
-            {
-                return this.LabelNumber;
-            }
-        }
-        bool ICommodity.IsDeedable
-        {
-            get
-            {
-                return true;
-            }
-        }
+        TextDefinition ICommodity.Description => LabelNumber;
+
+        bool ICommodity.IsDeedable => true;
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class SearedFireAntGoo : Item
     {
+        public override int LabelNumber => 1112902; // Seared Fire Ant Goo
+
         [Constructable]
         public SearedFireAntGoo()
-			: this(1)
+            : this(1)
         {
         }
 
-		[Constructable]
-		public SearedFireAntGoo(int amount)
+        [Constructable]
+        public SearedFireAntGoo(int amount)
             : base(0x122E)
-		{
-			Stackable = true;
-			Amount = amount;
+        {
+            Stackable = true;
+            Amount = amount;
             Hue = 1359;
-		}
+        }
 
         public SearedFireAntGoo(Serial serial)
             : base(serial)
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1112902;
-            }
-        }// Seared Fire Ant Goo
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (ItemID != 0x122E)
                 ItemID = 0x122E;
@@ -725,6 +642,8 @@ namespace Server.Items
 
     public class StygianDragonHead : Item
     {
+        public override int LabelNumber => 1031700; // Stygian Dragon Head
+
         [Constructable]
         public StygianDragonHead()
             : this(1)
@@ -744,30 +663,25 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1031700;
-            }
-        }// Stygian Dragon Head
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class TatteredAncientScroll : Item
     {
+        public override int LabelNumber => 1112991; // Tattered Remnants of an Ancient Scroll
+
         [Constructable]
         public TatteredAncientScroll()
             : this(1)
@@ -785,25 +699,18 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1112991;
-            }
-        }// Tattered Remnants of an Ancient Scroll
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)1); // version
+            writer.Write(1); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (version == 0 && ItemID != 0x1437)
                 ItemID = 0x1437;
@@ -818,6 +725,8 @@ namespace Server.Items
 
     public class UndamagedIronBeetleScale : Item, ICommodity
     {
+        public override int LabelNumber => 1112905; // Undamaged Iron Beetle Scale
+
         [Constructable]
         public UndamagedIronBeetleScale()
             : this(1)
@@ -837,28 +746,21 @@ namespace Server.Items
         {
         }
 
-        TextDefinition ICommodity.Description { get { return LabelNumber; } }
-        bool ICommodity.IsDeedable { get { return true; } }
+        TextDefinition ICommodity.Description => LabelNumber;
+        bool ICommodity.IsDeedable => true;
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1112905;
-            }
-        }// Undamaged Iron Beetle Scale
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (ItemID != 0x26B3)
                 ItemID = 0x26B3;
@@ -867,6 +769,8 @@ namespace Server.Items
 
     public class UndeadGargHorn : Item
     {
+        public override int LabelNumber => 1112903; // Undamaged Undead Gargoyle Horns
+
         [Constructable]
         public UndeadGargHorn()
             : this(1)
@@ -886,25 +790,18 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1112903;
-            }
-        }// Undamaged Undead Gargoyle Horns
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (ItemID != 0x315C)
                 ItemID = 0x315C;
@@ -913,6 +810,8 @@ namespace Server.Items
 
     public class UndeadGargMedallion : Item
     {
+        public override int LabelNumber => 1112907; // Undead Gargoyle Medallion
+
         [Constructable]
         public UndeadGargMedallion()
             : this(1)
@@ -935,25 +834,18 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1112907;
-            }
-        }// Undead Gargoyle Medallion
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (ItemID != 0x1088)
                 ItemID = 0x1088;
@@ -963,6 +855,8 @@ namespace Server.Items
     [TypeAlias("Server.Items.UntransTome")]
     public class UntranslatedAncientTome : Item
     {
+        public override int LabelNumber => 1112992; // Untranslated Ancient Tome
+
         [Constructable]
         public UntranslatedAncientTome()
             : this(1)
@@ -984,25 +878,18 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1112992;
-            }
-        }// Untranslated Ancient Tome
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (ItemID != 0x0FF2)
                 ItemID = 0x0FF2;
@@ -1011,7 +898,7 @@ namespace Server.Items
 
     public class CrystalDust : Item
     {
-        public override int LabelNumber { get { return 1112328; } } // crystal dust
+        public override int LabelNumber => 1112328; // crystal dust
 
         [Constructable]
         public CrystalDust()
@@ -1038,20 +925,20 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class BarrelOfBarley : Item
     {
-        public override int LabelNumber { get { return 1094999; } } // Barrel of Barley
+        public override int LabelNumber => 1094999; // Barrel of Barley
 
         [Constructable]
         public BarrelOfBarley()
@@ -1068,19 +955,19 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class FlintsLogbook : Item
     {
-        public override int LabelNumber { get { return 1095000; } } // Flint's Logbook
+        public override int LabelNumber => 1095000; // Flint's Logbook
 
         [Constructable]
         public FlintsLogbook()
@@ -1096,29 +983,30 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class BottleOfFlintsPungnentBrew : BaseBeverage
     {
-        public override int LabelNumber
-        {
-            get
-            {
-                return IsEmpty ? 1113607 : 1094967; // a bottle of Flint's Pungent Brew
-            }
-        }
+        public override int LabelNumber => IsEmpty ? 1113607 : 1094967; // a bottle of Flint's Pungent Brew
+
+        public override int MaxQuantity => 5;
 
         [Constructable]
         public BottleOfFlintsPungnentBrew()
             : base(BeverageType.Ale)
+        {
+        }
+
+        public BottleOfFlintsPungnentBrew(Serial serial)
+            : base(serial)
         {
         }
 
@@ -1127,30 +1015,23 @@ namespace Server.Items
             return 0x99F;
         }
 
-        public override int MaxQuantity { get { return 5; } }
-
-        public BottleOfFlintsPungnentBrew(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     [Flipable(6870, 6871)]
     public class KegOfFlintsPungnentBrew : Item
     {
-        public override int LabelNumber { get { return 1113608; } } // a keg of Flint's Pungent Brew
+        public override int LabelNumber => 1113608; // a keg of Flint's Pungent Brew
 
         [Constructable]
         public KegOfFlintsPungnentBrew()
@@ -1167,19 +1048,19 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class FloorTrapComponent : Item
     {
-        public override int LabelNumber { get { return 1095001; } } // Floor Trap Components
+        public override int LabelNumber => 1095001; // Floor Trap Components
 
         [Constructable]
         public FloorTrapComponent()
@@ -1195,19 +1076,19 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class DuganMissingQuestCorpse : QuestHintItem
     {
-        public override Type QuestType { get { return typeof(Server.Engines.Quests.Missing); } }
+        public override Type QuestType => typeof(Missing);
 
         [Constructable]
         public DuganMissingQuestCorpse()
@@ -1229,15 +1110,15 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class FlintLostBarrelHint : QuestHintItem
     {
-        public override Type QuestType { get { return typeof(Server.Engines.Quests.ThievesBeAfootQuest); } }
-        public override Type QuestItemType { get { return typeof(BarrelOfBarley); } }
-        public override int DefaultRange { get { return 5; } }
+        public override Type QuestType => typeof(ThievesBeAfootQuest);
+        public override Type QuestItemType => typeof(BarrelOfBarley);
+        public override int DefaultRange => 5;
 
         [Constructable]
         public FlintLostBarrelHint()
@@ -1259,15 +1140,15 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class FlintLostLogbookHint : QuestHintItem
     {
-        public override Type QuestType { get { return typeof(Server.Engines.Quests.BibliophileQuest); } }
-        public override Type QuestItemType { get { return typeof(FlintsLogbook); } }
-        public override int DefaultRange { get { return 5; } }
+        public override Type QuestType => typeof(BibliophileQuest);
+        public override Type QuestItemType => typeof(FlintsLogbook);
+        public override int DefaultRange => 5;
 
         [Constructable]
         public FlintLostLogbookHint()
@@ -1289,7 +1170,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

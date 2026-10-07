@@ -1,19 +1,7 @@
-using Server;
-using System;
-
 namespace Server.Items
 {
-
     public class ExperimentalBook : BrownBook
     {
-        public override int LabelNumber { get { return 1113479; } } // 
-
-        [Constructable]
-        public ExperimentalBook() : base(false)
-        {
-            ItemID = 4030;
-        }
-
         public static readonly BookContent Content = new BookContent(
             "Read Me!", "Sir Wilber",
             new BookPageInfo(
@@ -49,7 +37,7 @@ namespace Server.Items
                 "colored region that will",
                 "bring your gem back to neutral",
                 "state (grey). "),
-                new BookPageInfo(
+            new BookPageInfo(
                 "Failing when the gem reaches",
                 "the extreme of any state get you",
                 "expelled from the room and you",
@@ -61,24 +49,31 @@ namespace Server.Items
                 "gem in the box to receive",
                 "your reward."));
 
-        public override BookContent DefaultContent { get { return Content; } }
+        public override int LabelNumber => 1113479; // 
+
+        public override BookContent DefaultContent => Content;
+
+        [Constructable]
+        public ExperimentalBook() : base(false)
+        {
+            ItemID = 4030;
+        }
 
         public ExperimentalBook(Serial serial)
             : base(serial)
         {
-
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // ver
+            writer.Write(0); // ver
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

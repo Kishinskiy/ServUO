@@ -1,12 +1,12 @@
-using System;
+using Server.Mobiles;
 
 namespace Server.Items
 {
     public class CandlewoodTorch : BaseShield
     {
-        public override int LabelNumber { get { return 1094957; } } //Candlewood Torch
-        public override bool IsArtifact { get { return true; } }
-        public bool Burning { get { return ItemID == 0xA12; } }
+        public override int LabelNumber => 1094957; //Candlewood Torch
+        public override bool IsArtifact => true;
+        public bool Burning => ItemID == 0xA12;
 
         [Constructable]
         public CandlewoodTorch()
@@ -32,21 +32,16 @@ namespace Server.Items
             else
             {
                 if (ItemID == 0xF6B)
-                {
                     ItemID = 0xA12;
-                }
-                else if (ItemID == 0xA12)
-                {
-                    ItemID = 0xF6B;
-                }
+                else if (ItemID == 0xA12) ItemID = 0xF6B;
             }
 
             var parent = Parent as Mobile;
 
             if (parent == from && Burning)
             {
-                Mobiles.MeerMage.StopEffect((Mobile)parent, true);
-                SwarmContext.CheckRemove((Mobile)parent);
+                MeerMage.StopEffect(parent, true);
+                SwarmContext.CheckRemove(parent);
             }
         }
 
@@ -56,7 +51,7 @@ namespace Server.Items
 
             if (parent is Mobile && Burning)
             {
-                Mobiles.MeerMage.StopEffect((Mobile)parent, true);
+                MeerMage.StopEffect((Mobile)parent, true);
                 SwarmContext.CheckRemove((Mobile)parent);
             }
         }
@@ -70,7 +65,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
 
             if (version < 1)
             {

@@ -1,15 +1,19 @@
-﻿using Server;
-using System;
+﻿using System;
+using Server.Engines.Quests;
 using Server.Items;
 using Server.Multis;
-using System.Collections.Generic;
-using Server.Engines.Quests;
 
 namespace Server.Mobiles
 {
     public class SeaMarketOfficer : MondainQuester
     {
-        public override Type[] Quests { get { return new Type[] { typeof(ProfessionalBountyQuest) }; } }
+        public override Type[] Quests
+        {
+            get { return new[] { typeof(ProfessionalBountyQuest) }; }
+        }
+
+        public static SeaMarketOfficer TramInstance { get; set; }
+        public static SeaMarketOfficer FelInstance { get; set; }
 
         public SeaMarketOfficer()
         {
@@ -17,6 +21,10 @@ namespace Server.Mobiles
             Name = NameList.RandomName("male");
 
             CantWalk = true;
+        }
+
+        public SeaMarketOfficer(Serial serial) : base(serial)
+        {
         }
 
         public override void InitBody()
@@ -41,17 +49,18 @@ namespace Server.Mobiles
         {
             if (!HasQuest(pm))
             {
-                BaseBoat boat = FishQuestHelper.GetBoat(pm);
+                var boat = FishQuestHelper.GetBoat(pm);
 
                 if (boat != null && boat is BaseGalleon)
                 {
                     if (((BaseGalleon)boat).Scuttled)
                     {
-                        pm.SendLocalizedMessage(1116752); //Your ship is a mess!  Fix it first and then we can talk about catching pirates.
+                        pm.SendLocalizedMessage(
+                            1116752); //Your ship is a mess!  Fix it first and then we can talk about catching pirates.
                     }
                     else
                     {
-                        ProfessionalBountyQuest q = new ProfessionalBountyQuest((BaseGalleon)boat);
+                        var q = new ProfessionalBountyQuest((BaseGalleon)boat);
                         q.Owner = pm;
                         q.Quester = this;
 
@@ -61,7 +70,8 @@ namespace Server.Mobiles
                 }
                 else
                 {
-                    SayTo(pm, 1116751); //The ship you are captaining could not take on a pirate ship.  Bring a warship if you want this quest.
+                    SayTo(pm,
+                        1116751); //The ship you are captaining could not take on a pirate ship.  Bring a warship if you want this quest.
                     OnOfferFailed();
                 }
             }
@@ -76,20 +86,16 @@ namespace Server.Mobiles
             if (pm.Quests == null)
                 return false;
 
-            for (int i = 0; i < pm.Quests.Count; i++)
+            for (var i = 0; i < pm.Quests.Count; i++)
             {
-                BaseQuest quest = pm.Quests[i];
+                var quest = pm.Quests[i];
 
                 if (quest is ProfessionalBountyQuest)
                 {
                     if (this == quest.Quester)
-                    {
-                        for (int j = 0; j < quest.Objectives.Count; j++)
-                        {
+                        for (var j = 0; j < quest.Objectives.Count; j++)
                             if (quest.Objectives[j].Update(pm))
                                 quest.Objectives[j].Complete();
-                        }
-                    }
 
                     if (quest.Completed)
                     {
@@ -105,34 +111,25 @@ namespace Server.Mobiles
                     return true;
                 }
             }
+
             return false;
         }
-
-        public SeaMarketOfficer(Serial serial) : base(serial) { }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (Map == Map.Trammel)
-            {
                 TramInstance = this;
-            }
-            else if (Map == Map.Felucca)
-            {
-                FelInstance = this;
-            }
+            else if (Map == Map.Felucca) FelInstance = this;
         }
-
-        public static SeaMarketOfficer TramInstance { get; set; }
-        public static SeaMarketOfficer FelInstance { get; set; }
 
         public static void Initialize()
         {

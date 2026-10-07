@@ -6,14 +6,14 @@ namespace Server.Items
 {
     public class HolidayGiftGiver2019 : GiftGiver
     {
+        public override DateTime Start => new DateTime(2019, 12, 03);
+        public override DateTime Finish => new DateTime(2020, 01, 03);
+        public override TimeSpan MinimumAge => TimeSpan.FromDays(30);
+
         public static void Initialize()
         {
             GiftGiving.Register(new HolidayGiftGiver2019());
         }
-
-        public override DateTime Start { get { return new DateTime(2019, 12, 03); } }
-        public override DateTime Finish { get { return new DateTime(2020, 01, 03); } }
-        public override TimeSpan MinimumAge { get { return TimeSpan.FromDays(30); } }
 
         public override void GiveGift(Mobile mob)
         {
@@ -22,10 +22,12 @@ namespace Server.Items
             switch (GiveGift(mob, token))
             {
                 case GiftResult.Backpack:
-                    mob.SendLocalizedMessage(1062835); // Happy Holidays from the Origin team!  Gift items have been placed in your backpack.
+                    mob.SendLocalizedMessage(
+                        1062835); // Happy Holidays from the Origin team!  Gift items have been placed in your backpack.
                     break;
                 case GiftResult.BankBox:
-                    mob.SendLocalizedMessage(1062836); // Happy Holidays from the Origin team!  Gift items have been placed in your bank box.
+                    mob.SendLocalizedMessage(
+                        1062836); // Happy Holidays from the Origin team!  Gift items have been placed in your bank box.
                     break;
             }
         }
@@ -41,14 +43,15 @@ namespace Server.Items
 
     public class HolidayGiftToken2019 : Item, IRewardOption
     {
-        public override int LabelNumber { get { return 1159257; } } // 2019 Holiday Gift Token
+        public override int LabelNumber => 1159257; // 2019 Holiday Gift Token
 
         public HolidayGift2019 Gift { get; set; }
 
         [Constructable]
         public HolidayGiftToken2019()
-           : this(HolidayGift2019.None)
-        { }
+            : this(HolidayGift2019.None)
+        {
+        }
 
         [Constructable]
         public HolidayGiftToken2019(HolidayGift2019 gift)
@@ -59,6 +62,11 @@ namespace Server.Items
             Weight = 1.0;
             Gift = gift;
             Hue = 133;
+        }
+
+        public HolidayGiftToken2019(Serial serial)
+            : base(serial)
+        {
         }
 
         public void GetOptions(RewardOptionList list)
@@ -91,7 +99,7 @@ namespace Server.Items
 
         public void GiveGift(Mobile from)
         {
-            GiftBox box = new GiftBox();
+            var box = new GiftBox();
 
             Item gift = new GingerBreadCookie();
             gift.LootType = LootType.Regular;
@@ -102,52 +110,47 @@ namespace Server.Items
             else
                 box.DropItem(new Poinsettia(1154));
 
-            switch(Gift)
+            switch (Gift)
             {
                 case HolidayGift2019.JollyHolidayTree:
-                    {
-                        box.DropItem(new JollyHolidayTreeDeed());
-                        break;
-                    }
+                {
+                    box.DropItem(new JollyHolidayTreeDeed());
+                    break;
+                }
                 case HolidayGift2019.DoveCage:
-                    {
-                        box.DropItem(new DoveCage());
-                        break;
-                    }
+                {
+                    box.DropItem(new DoveCage());
+                    break;
+                }
                 case HolidayGift2019.HolidayWallArt:
+                {
+                    switch (Utility.Random(2))
                     {
-                        switch (Utility.Random(2))
+                        case 0:
                         {
-                            case 0:
-                                {
-                                    box.DropItem(new HolidayWallArt1());
-                                    break;
-                                }
-                            case 1:
-                                {
-                                    box.DropItem(new HolidayWallArt2());
-                                    break;
-                                }
-                            case 2:
-                                {
-                                    box.DropItem(new HolidayWallArt3());
-                                    break;
-                                }
+                            box.DropItem(new HolidayWallArt1());
+                            break;
                         }
-                            
-                        break;
+                        case 1:
+                        {
+                            box.DropItem(new HolidayWallArt2());
+                            break;
+                        }
+                        case 2:
+                        {
+                            box.DropItem(new HolidayWallArt3());
+                            break;
+                        }
                     }
+
+                    break;
+                }
             }
 
             from.SendLocalizedMessage(1062306); // Your gift has been created and placed in your backpack.
             from.AddToBackpack(box);
 
             Delete();
-        }
-
-        public HolidayGiftToken2019(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -159,7 +162,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

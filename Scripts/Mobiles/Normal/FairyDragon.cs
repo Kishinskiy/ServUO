@@ -1,5 +1,7 @@
 ﻿#region References
+
 using Server.Items;
+
 #endregion
 
 namespace Server.Mobiles
@@ -7,13 +9,12 @@ namespace Server.Mobiles
     [CorpseName("a Fairy dragon corpse")]
     public class FairyDragon : BaseCreature
     {
-
-        public override bool AutoDispel { get { return !Controlled; } }
-        public override int TreasureMapLevel { get { return 3; } }
-        public override int Meat { get { return 9; } }
-        public override Poison HitPoison { get { return Poison.Greater; } }
-        public override double HitPoisonChance { get { return 0.75; } }
-        public override FoodType FavoriteFood { get { return FoodType.Meat; } }
+        public override bool AutoDispel => !Controlled;
+        public override int TreasureMapLevel => 3;
+        public override int Meat => 9;
+        public override Poison HitPoison => Poison.Greater;
+        public override double HitPoisonChance => 0.75;
+        public override FoodType FavoriteFood => FoodType.Meat;
 
         [Constructable]
         public FairyDragon()
@@ -55,7 +56,8 @@ namespace Server.Mobiles
 
         public FairyDragon(Serial serial)
             : base(serial)
-        { }
+        {
+        }
 
         public override void GenerateLoot()
         {
@@ -65,19 +67,11 @@ namespace Server.Mobiles
 
         public override void OnDeath(Container c)
         {
-
             base.OnDeath(c);
 
-            if (Utility.RandomDouble() <= 0.25)
-            {
-                c.DropItem(new FairyDragonWing());
-            }
+            if (Utility.RandomDouble() <= 0.25) c.DropItem(new FairyDragonWing());
 
-            if (Utility.RandomDouble() < 0.10)
-            {
-                c.DropItem(new DraconicOrb());
-
-            }
+            if (Utility.RandomDouble() < 0.10) c.DropItem(new DraconicOrb());
         }
 
         public override int GetAttackSound()

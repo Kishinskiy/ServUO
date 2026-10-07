@@ -1,15 +1,15 @@
-﻿using Server;
-using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using Server.Engines.Craft;
 
 namespace Server.Items
 {
-    public class ManaPhasingOrb : BaseTalisman, Server.Engines.Craft.IRepairable
+    public class ManaPhasingOrb : BaseTalisman, IRepairable
     {
-        public override int LabelNumber { get { return 1116230; } }
-        public Server.Engines.Craft.CraftSystem RepairSystem { get { return Server.Engines.Craft.DefTinkering.CraftSystem; } }
-        public override int InitMinHits { get { return 255; } }
-        public override int InitMaxHits { get { return 255; } }
+        public override int LabelNumber => 1116230;
+        public override int InitMinHits => 255;
+        public override int InitMaxHits => 255;
+
+        public static List<Mobile> _ManaPhaseTable { get; set; }
 
         [Constructable]
         public ManaPhasingOrb() : base(4246)
@@ -41,6 +41,13 @@ namespace Server.Items
             }
         }
 
+        public ManaPhasingOrb(Serial serial)
+            : base(serial)
+        {
+        }
+
+        public CraftSystem RepairSystem => DefTinkering.CraftSystem;
+
         public static bool IsInManaPhase(Mobile from)
         {
             return _ManaPhaseTable != null && _ManaPhaseTable.Contains(from);
@@ -57,12 +64,15 @@ namespace Server.Items
         public override void OnDoubleClick(Mobile from)
         {
             if (from.Talisman != this)
+            {
                 from.SendLocalizedMessage(502641); // You must equip this item to use it.
+            }
             else
             {
                 if (ChargeTime > 0)
                 {
-                    from.SendLocalizedMessage(1116163); //You must wait a few seconds before attempting to phase mana again.
+                    from.SendLocalizedMessage(
+                        1116163); //You must wait a few seconds before attempting to phase mana again.
                     return;
                 }
 
@@ -100,24 +110,16 @@ namespace Server.Items
             from.SendLocalizedMessage(1116165); //You will no longer attempt to draw magical energy from the void.
         }
 
-        public static List<Mobile> _ManaPhaseTable { get; set; }
-
-        public ManaPhasingOrb(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
-
 }

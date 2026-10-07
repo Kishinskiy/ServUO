@@ -13,10 +13,10 @@ namespace Server.Items
     {
         public static int GetAmount(this Container cont, Type type, bool recurse, bool includeDeeds)
         {
-            int amount = cont.GetAmount(type, recurse);
+            var amount = cont.GetAmount(type, recurse);
 
             var deeds = cont.FindItemsByType(typeof(CommodityDeed), recurse);
-            foreach(CommodityDeed deed in deeds)
+            foreach (CommodityDeed deed in deeds)
             {
                 if (deed.Commodity == null)
                     continue;
@@ -29,21 +29,19 @@ namespace Server.Items
 
         public static int GetAmount(this Container cont, Type[] types, bool recurse, bool includeDeeds)
         {
-            int amount = cont.GetAmount(types, recurse);
+            var amount = cont.GetAmount(types, recurse);
 
             var deeds = cont.FindItemsByType(typeof(CommodityDeed), recurse);
             foreach (CommodityDeed deed in deeds)
             {
                 if (deed.Commodity == null)
                     continue;
-                foreach (Type type in types)
-                {
+                foreach (var type in types)
                     if (deed.Commodity.GetType() == type)
                     {
                         amount += deed.Commodity.Amount;
                         break;
                     }
-                }
             }
 
             return amount;
@@ -51,12 +49,11 @@ namespace Server.Items
 
         public static int ConsumeTotal(this Container cont, Type type, int amount, bool recurse, bool includeDeeds)
         {
-            int left = amount;
+            var left = amount;
 
             var items = cont.FindItemsByType(type, recurse);
-            foreach(Item item in items)
-            {
-                if(item.Amount <= left)
+            foreach (var item in items)
+                if (item.Amount <= left)
                 {
                     left -= item.Amount;
                     item.Delete();
@@ -67,19 +64,18 @@ namespace Server.Items
                     left = 0;
                     break;
                 }
-            }
 
             if (!includeDeeds)
                 return amount - left;
 
             var deeds = cont.FindItemsByType(typeof(CommodityDeed), recurse);
-            foreach(CommodityDeed deed in deeds)
+            foreach (CommodityDeed deed in deeds)
             {
                 if (deed.Commodity == null)
                     continue;
                 if (deed.Commodity.GetType() != type)
                     continue;
-                if(deed.Commodity.Amount <= left)
+                if (deed.Commodity.Amount <= left)
                 {
                     left -= deed.Commodity.Amount;
                     deed.Delete();
@@ -99,6 +95,9 @@ namespace Server.Items
 
     public class CommodityDeed : Item
     {
+        [CommandProperty(AccessLevel.GameMaster)]
+        public Item Commodity { get; private set; }
+
         public CommodityDeed(Item commodity)
             : base(0x14F0)
         {
@@ -121,20 +120,13 @@ namespace Server.Items
         {
         }
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public Item Commodity { get; private set; }
-
 
         public override void AddNameProperty(ObjectPropertyList list)
         {
             if (Commodity == null)
-            {
                 list.Add(1047016);
-            }
             else
-            {
                 list.Add(1115599, string.Format("{0}\t#{1}", Commodity.Amount, Commodity.LabelNumber));
-            }
         }
 
         public bool SetCommodity(Item item)
@@ -151,16 +143,14 @@ namespace Server.Items
 
                 return true;
             }
-            else
-            {
-                return false;
-            }
+
+            return false;
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1); // version
+            writer.Write(1); // version
 
             writer.Write(Commodity);
         }
@@ -168,20 +158,17 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             Commodity = reader.ReadItem();
 
-            switch ( version )
+            switch (version)
             {
                 case 0:
-                    {
-                        if (Commodity != null)
-                        {
-                            Hue = 0x592;
-                        }
-                        break;
-                    }
+                {
+                    if (Commodity != null) Hue = 0x592;
+                    break;
+                }
             }
         }
 
@@ -198,22 +185,18 @@ namespace Server.Items
             base.GetProperties(list);
 
             if (Commodity != null)
-            {
                 list.Add(1060747); // filled
-            }
             else
-            {
                 list.Add(1060748); // unfilled
-            }
         }
 
         public override void OnDoubleClick(Mobile from)
         {
             int number;
 
-            BankBox box = from.FindBankNoCreate();
-            CommodityDeedBox cox = CommodityDeedBox.Find(this);
-            GalleonHold hold = RootParent as GalleonHold;
+            var box = from.FindBankNoCreate();
+            var cox = CommodityDeedBox.Find(this);
+            var hold = RootParent as GalleonHold;
 
             // Veteran Rewards mods
             if (Commodity != null)
@@ -239,7 +222,9 @@ namespace Server.Items
                         Delete();
                     }
                     else
+                    {
                         number = 1080525; // The commodity deed box must be secured before you can use it.
+                    }
                 }
                 else if (hold != null)
                 {
@@ -253,13 +238,9 @@ namespace Server.Items
                 else
                 {
                     if (Core.ML)
-                    {
                         number = 1080526; // That must be in your bank box or commodity deed box to use it.
-                    }
                     else
-                    {
                         number = 1047024; // To claim the resources ....
-                    }
                 }
             }
             else if (cox != null && !cox.IsSecure)
@@ -269,13 +250,9 @@ namespace Server.Items
             else if ((box == null || !IsChildOf(box)) && cox == null && hold == null)
             {
                 if (Core.ML)
-                {
                     number = 1080526; // That must be in your bank box or commodity deed box to use it.
-                }
                 else
-                {
                     number = 1047026; // That must be in your bank box to use it.
-                }
             }
             else
             {
@@ -310,34 +287,26 @@ namespace Server.Items
                 }
                 else if (targeted is Item)
                 {
-                    BankBox box = from.FindBankNoCreate();
-                    CommodityDeedBox cox = CommodityDeedBox.Find(m_Deed);
-                    GalleonHold hold = ((Item)targeted).RootParent as GalleonHold;
+                    var box = from.FindBankNoCreate();
+                    var cox = CommodityDeedBox.Find(m_Deed);
+                    var hold = ((Item)targeted).RootParent as GalleonHold;
 
                     // Veteran Rewards mods
-                    if (box != null && m_Deed.IsChildOf(box) && ((Item)targeted).IsChildOf(box) ||
+                    if ((box != null && m_Deed.IsChildOf(box) && ((Item)targeted).IsChildOf(box)) ||
                         (cox != null && cox.IsSecure && ((Item)targeted).IsChildOf(cox)) ||
                         hold != null)
                     {
                         if (m_Deed.SetCommodity((Item)targeted))
-                        {
                             number = 1047030; // The commodity deed has been filled.
-                        }
                         else
-                        {
                             number = 1047027; // That is not a commodity the bankers will fill a commodity deed with.
-                        }
                     }
                     else
                     {
                         if (Core.ML)
-                        {
                             number = 1080526; // That must be in your bank box or commodity deed box to use it.
-                        }
                         else
-                        {
                             number = 1047026; // That must be in your bank box to use it.
-                        }
                     }
                 }
                 else

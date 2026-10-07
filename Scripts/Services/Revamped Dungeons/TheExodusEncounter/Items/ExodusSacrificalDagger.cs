@@ -1,8 +1,9 @@
 using System;
-using Server.Targeting;
-using Server.Engines.PartySystem;
-using Server.Mobiles;
 using Server.Engines.Craft;
+using Server.Engines.PartySystem;
+using Server.Misc;
+using Server.Mobiles;
+using Server.Targeting;
 
 namespace Server.Items
 {
@@ -10,9 +11,31 @@ namespace Server.Items
     [FlipableAttribute(0x2D21, 0x2D2D)]
     public class ExodusSacrificalDagger : BaseKnife
     {
-        public override int LabelNumber { get { return 1153500; } } // exodus sacrificial dagger
         private int m_Lifespan;
         private Timer m_Timer;
+        public override int LabelNumber => 1153500; // exodus sacrificial dagger
+
+        public override int InitMinHits => 60;
+        public override int InitMaxHits => 60;
+        public override int AosStrengthReq => 15;
+        public override SkillName DefSkill => SkillName.Fencing;
+        public override float MlSpeed => 2.00f;
+        public override int AosMinDamage => 10;
+        public override int AosMaxDamage => 12;
+        public override int PhysicalResistance => 12;
+
+        public virtual int Lifespan => 604800;
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int TimeLeft
+        {
+            get => m_Lifespan;
+            set
+            {
+                m_Lifespan = value;
+                InvalidateProperties();
+            }
+        }
 
         [Constructable]
         public ExodusSacrificalDagger() : base(0x2D2D)
@@ -28,23 +51,19 @@ namespace Server.Items
             }
         }
 
-        public override int InitMinHits { get { return 60; } }
-        public override int InitMaxHits { get { return 60; } }
-        public override int AosStrengthReq { get { return 15; } }
-        public override SkillName DefSkill { get { return SkillName.Fencing; } }
-        public override float MlSpeed { get { return 2.00f; } }
-        public override int AosMinDamage { get { return 10; } }
-        public override int AosMaxDamage { get { return 12; } }
-        public override int PhysicalResistance { get { return 12; } }
+        public ExodusSacrificalDagger(Serial serial) : base(serial)
+        {
+        }
 
         public override void OnDoubleClick(Mobile from)
         {
-            RobeofRite robe = from.FindItemOnLayer(Layer.OuterTorso) as RobeofRite;
-            ExodusSacrificalDagger dagger = from.FindItemOnLayer(Layer.OneHanded) as ExodusSacrificalDagger;
+            var robe = from.FindItemOnLayer(Layer.OuterTorso) as RobeofRite;
+            var dagger = from.FindItemOnLayer(Layer.OneHanded) as ExodusSacrificalDagger;
 
             if (Party.Get(from) == null)
             {
-                from.SendLocalizedMessage(1153596); // You must join a party with the players you wish to perform the ritual with. 
+                from.SendLocalizedMessage(
+                    1153596); // You must join a party with the players you wish to perform the ritual with. 
             }
             else if (robe == null || dagger == null)
             {
@@ -53,90 +72,27 @@ namespace Server.Items
             else if (!((PlayerMobile)from).UseSummoningRite)
             {
                 from.SendLocalizedMessage(1153603); // You must first use the Summoning Rite on a Summoning Tome.
-                return;
             }
             else
             {
-                from.SendLocalizedMessage(1153604); // Target the summoning tome or yourself to declare your intentions for performing this ritual...
+                from.SendLocalizedMessage(
+                    1153604); // Target the summoning tome or yourself to declare your intentions for performing this ritual...
                 from.Target = new SacrificalTarget(this);
             }
         }
 
-        public class SacrificalTarget : Target
-        {
-            private Item m_Dagger;
-
-            public SacrificalTarget(Item dagger) : base(2, true, TargetFlags.None)
-            {
-                m_Dagger = dagger;
-            }
-
-            protected override void OnTarget(Mobile from, object targeted)
-            {
-                if (targeted is ExodusTomeAltar)
-                {
-                    ExodusTomeAltar altar = (ExodusTomeAltar)targeted;
-
-                    if (altar.CheckParty(altar.Owner, from))
-                    {  
-                        bool SacrificalRitual = altar.Rituals.Find(s => s.RitualMobile == from).Ritual2;
-
-                        if (!SacrificalRitual)
-                        {
-                            ((PlayerMobile)from).UseSummoningRite = false;
-                            from.Say(1153605); // *You thrust the dagger into your flesh as tribute to Exodus!*
-                            altar.Rituals.Find(s => s.RitualMobile == from).Ritual2 = true;
-                            m_Dagger.Delete();
-                            Misc.Titles.AwardKarma(from, 10000, true);
-                            Effects.SendLocationParticles(EffectItem.Create(altar.Location, altar.Map, TimeSpan.FromSeconds(2)), 0x373A, 10, 10, 2023);
-
-                            from.SendLocalizedMessage(1153598, from.Name); // ~1_PLAYER~ has read the Summoning Rite! 
-                        }
-                        else
-                        {
-                            from.SendLocalizedMessage(1153599); // You've already used this item in another ritual. 
-                        }
-                    }
-                    else
-                    {
-                        from.SendLocalizedMessage(1153595); // You must first join the party of the person who built this altar.
-                    }
-                }
-                else
-                {
-                    from.SendLocalizedMessage(1153601); // That is not a Summoning Tome. 
-                }
-            }
-        }
-
-        public ExodusSacrificalDagger(Serial serial) : base(serial)
-        {
-        }        
-
-        public virtual int Lifespan { get { return 604800; } }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int TimeLeft
-        {
-            get { return m_Lifespan; }
-            set
-            {
-                m_Lifespan = value;
-                InvalidateProperties();
-            }
-        }
         public override void GetProperties(ObjectPropertyList list)
         {
             base.GetProperties(list);
 
             if (Lifespan > 0)
             {
-                TimeSpan t = TimeSpan.FromSeconds(m_Lifespan);
+                var t = TimeSpan.FromSeconds(m_Lifespan);
 
-                int weeks = (int)t.Days / 7;
-                int days = t.Days;
-                int hours = t.Hours;
-                int minutes = t.Minutes;
+                var weeks = t.Days / 7;
+                var days = t.Days;
+                var hours = t.Hours;
+                var minutes = t.Minutes;
 
                 if (weeks > 0)
                     list.Add(string.Format("Lifespan: {0} {1}", weeks, weeks == 1 ? "week" : "weeks"));
@@ -156,7 +112,7 @@ namespace Server.Items
             if (m_Timer != null)
                 return;
 
-            m_Timer = Timer.DelayCall(TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10), new TimerCallback(Slice));
+            m_Timer = Timer.DelayCall(TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10), Slice);
             m_Timer.Priority = TimerPriority.OneSecond;
         }
 
@@ -182,19 +138,21 @@ namespace Server.Items
         {
             if (RootParent is Mobile)
             {
-                Mobile parent = (Mobile)RootParent;
+                var parent = (Mobile)RootParent;
 
                 if (Name == null)
                     parent.SendLocalizedMessage(1072515, "#" + LabelNumber); // The ~1_name~ expired...
                 else
                     parent.SendLocalizedMessage(1072515, Name); // The ~1_name~ expired...
 
-                Effects.SendLocationParticles(EffectItem.Create(parent.Location, parent.Map, EffectItem.DefaultDuration), 0x3728, 8, 20, 5042);
+                Effects.SendLocationParticles(
+                    EffectItem.Create(parent.Location, parent.Map, EffectItem.DefaultDuration), 0x3728, 8, 20, 5042);
                 Effects.PlaySound(parent.Location, parent.Map, 0x201);
             }
             else
             {
-                Effects.SendLocationParticles(EffectItem.Create(Location, Map, EffectItem.DefaultDuration), 0x3728, 8, 20, 5042);
+                Effects.SendLocationParticles(EffectItem.Create(Location, Map, EffectItem.DefaultDuration), 0x3728, 8,
+                    20, 5042);
                 Effects.PlaySound(Location, Map, 0x201);
             }
 
@@ -205,34 +163,84 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-			
-            writer.Write((int)0); // version
-            writer.Write((int)m_Lifespan);
+
+            writer.Write(0); // version
+            writer.Write(m_Lifespan);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-			
-            int version = reader.ReadInt();
+
+            var version = reader.ReadInt();
             m_Lifespan = reader.ReadInt();
 
             StartTimer();
+        }
+
+        public class SacrificalTarget : Target
+        {
+            private readonly Item m_Dagger;
+
+            public SacrificalTarget(Item dagger) : base(2, true, TargetFlags.None)
+            {
+                m_Dagger = dagger;
+            }
+
+            protected override void OnTarget(Mobile from, object targeted)
+            {
+                if (targeted is ExodusTomeAltar)
+                {
+                    var altar = (ExodusTomeAltar)targeted;
+
+                    if (altar.CheckParty(altar.Owner, from))
+                    {
+                        var SacrificalRitual = altar.Rituals.Find(s => s.RitualMobile == from).Ritual2;
+
+                        if (!SacrificalRitual)
+                        {
+                            ((PlayerMobile)from).UseSummoningRite = false;
+                            from.Say(1153605); // *You thrust the dagger into your flesh as tribute to Exodus!*
+                            altar.Rituals.Find(s => s.RitualMobile == from).Ritual2 = true;
+                            m_Dagger.Delete();
+                            Titles.AwardKarma(from, 10000, true);
+                            Effects.SendLocationParticles(
+                                EffectItem.Create(altar.Location, altar.Map, TimeSpan.FromSeconds(2)), 0x373A, 10, 10,
+                                2023);
+
+                            from.SendLocalizedMessage(1153598, from.Name); // ~1_PLAYER~ has read the Summoning Rite! 
+                        }
+                        else
+                        {
+                            from.SendLocalizedMessage(1153599); // You've already used this item in another ritual. 
+                        }
+                    }
+                    else
+                    {
+                        from.SendLocalizedMessage(
+                            1153595); // You must first join the party of the person who built this altar.
+                    }
+                }
+                else
+                {
+                    from.SendLocalizedMessage(1153601); // That is not a Summoning Tome. 
+                }
+            }
         }
     }
 
     [FlipableAttribute(0x0902, 0x406A)]
     public class ExodusSacrificalGargishDagger : ExodusSacrificalDagger
     {
+        public override Race RequiredRace => Race.Gargoyle;
+        public override bool CanBeWornByGargoyles => true;
+
         [Constructable]
         public ExodusSacrificalGargishDagger()
         {
             ItemID = 0x406A;
             Weight = 4.0;
         }
-
-        public override Race RequiredRace { get { return Race.Gargoyle; } }
-        public override bool CanBeWornByGargoyles { get { return true; } }
 
         public ExodusSacrificalGargishDagger(Serial serial) : base(serial)
         {
@@ -241,14 +249,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }
- 

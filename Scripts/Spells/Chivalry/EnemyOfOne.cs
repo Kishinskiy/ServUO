@@ -1,6 +1,6 @@
 using System;
-using Server.Mobiles;
 using System.Collections.Generic;
+using Server.Mobiles;
 
 namespace Server.Spells.Chivalry
 {
@@ -11,26 +11,31 @@ namespace Server.Spells.Chivalry
             -1,
             9002);
 
+        private static readonly Dictionary<Mobile, EnemyOfOneContext> m_Table =
+            new Dictionary<Mobile, EnemyOfOneContext>();
+
+        public override TimeSpan CastDelayBase => TimeSpan.FromSeconds(0.5);
+
+        public override double RequiredSkill => 45.0;
+        public override int RequiredMana => 20;
+        public override int RequiredTithing => 10;
+        public override int MantraNumber => 1060723; // Forul Solum
+        public override bool BlocksMovement => false;
+
+        public static Dictionary<Type, string> NameCache { get; set; }
+
         public EnemyOfOneSpell(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
         {
         }
 
-        public override TimeSpan CastDelayBase { get { return TimeSpan.FromSeconds(0.5); } }
-
-        public override double RequiredSkill { get { return 45.0; } }
-        public override int RequiredMana { get { return 20; } }
-        public override int RequiredTithing { get { return 10; } }
-        public override int MantraNumber { get { return 1060723; } } // Forul Solum
-        public override bool BlocksMovement { get { return false; } }
-
         public override TimeSpan GetCastDelay()
         {
-            TimeSpan delay = base.GetCastDelay();
+            var delay = base.GetCastDelay();
 
             if (Core.SA && UnderEffect(Caster))
             {
-                double milliseconds = delay.TotalMilliseconds / 2;
+                var milliseconds = delay.TotalMilliseconds / 2;
 
                 delay = TimeSpan.FromMilliseconds(milliseconds);
             }
@@ -79,8 +84,6 @@ namespace Server.Spells.Chivalry
             Caster.FixedParticles(0x37B9, 1, 30, 9502, 43, 3, EffectLayer.Head);
         }
 
-        private static readonly Dictionary<Mobile, EnemyOfOneContext> m_Table = new Dictionary<Mobile, EnemyOfOneContext>();
-
         public static EnemyOfOneContext GetContext(Mobile m)
         {
             if (!m_Table.ContainsKey(m))
@@ -108,8 +111,6 @@ namespace Server.Spells.Chivalry
             }
         }
 
-        public static Dictionary<Type, string> NameCache { get; set; }
-
         public static void Configure()
         {
             if (NameCache == null)
@@ -118,35 +119,29 @@ namespace Server.Spells.Chivalry
 
         public static string GetTypeName(Mobile defender)
         {
-            if (defender is PlayerMobile || (defender is BaseCreature && ((BaseCreature)defender).GetMaster() is PlayerMobile))
-            {
+            if (defender is PlayerMobile ||
+                (defender is BaseCreature && ((BaseCreature)defender).GetMaster() is PlayerMobile))
                 return defender.Name;
-            }
 
-            Type t = defender.GetType();
+            var t = defender.GetType();
 
-            if (NameCache.ContainsKey(t))
-            {
-                return NameCache[t];
-            }
+            if (NameCache.ContainsKey(t)) return NameCache[t];
 
             return AddNameToCache(t);
         }
 
         public static string AddNameToCache(Type t)
         {
-            string name = t.Name;
+            var name = t.Name;
 
             if (name != null)
             {
-                for (int i = 0; i < name.Length; i++)
-                {
-                    if (i > 0 && Char.IsUpper(name[i]))
+                for (var i = 0; i < name.Length; i++)
+                    if (i > 0 && char.IsUpper(name[i]))
                     {
                         name = name.Insert(i, " ");
                         i++;
                     }
-                }
 
                 if (name.EndsWith("y"))
                 {
@@ -166,152 +161,138 @@ namespace Server.Spells.Chivalry
         }
     }
 
-	public class EnemyOfOneContext
-	{
-		private Mobile m_Owner;
-		private Timer m_Timer;
-		private DateTime m_Expire;
-		private Type m_TargetType;
-		private int m_DamageScalar;
-        private string m_TypeName;
+    public class EnemyOfOneContext
+    {
+        private DateTime m_Expire;
 
         private Mobile m_PlayerOrPet;
 
-		public Mobile Owner { get { return m_Owner; } }
-		public Timer Timer { get { return m_Timer; } }
-		public Type TargetType { get { return m_TargetType; } }
-		public int DamageScalar { get { return m_DamageScalar; } }
-        public string TypeName { get { return m_TypeName; } }
+        public Mobile Owner { get; }
 
-		public EnemyOfOneContext(Mobile owner, Timer timer, DateTime expire)
-		{
-			m_Owner = owner;
-			m_Timer = timer;
-			m_Expire = expire;
-			m_TargetType = null;
-			m_DamageScalar = 50;
-		}
+        public Timer Timer { get; private set; }
 
-		public bool IsWaitingForEnemy { get { return m_TargetType == null; } }
+        public Type TargetType { get; private set; }
 
-		public bool IsEnemy(Mobile m)
-		{
-            if (m is BaseCreature && ((BaseCreature)m).GetMaster() == Owner)
-            {
-                return false;
-            }
+        public int DamageScalar { get; private set; }
+
+        public string TypeName { get; private set; }
+
+        public bool IsWaitingForEnemy => TargetType == null;
+
+        public EnemyOfOneContext(Mobile owner, Timer timer, DateTime expire)
+        {
+            Owner = owner;
+            Timer = timer;
+            m_Expire = expire;
+            TargetType = null;
+            DamageScalar = 50;
+        }
+
+        public bool IsEnemy(Mobile m)
+        {
+            if (m is BaseCreature && ((BaseCreature)m).GetMaster() == Owner) return false;
 
             if (m_PlayerOrPet != null)
             {
-                if (m_PlayerOrPet == m)
-                {
-                    return true;
-                }
+                if (m_PlayerOrPet == m) return true;
             }
-            else if (m_TargetType == m.GetType())
+            else if (TargetType == m.GetType())
             {
                 return true;
             }
 
             return false;
-		}
+        }
 
-		public void OnCast()
-		{
-			UpdateBuffInfo();
-		}
+        public void OnCast()
+        {
+            UpdateBuffInfo();
+        }
 
         private void UpdateDamage()
         {
-            var chivalry = (int)m_Owner.Skills.Chivalry.Value;
-            m_DamageScalar = 10 + ((chivalry - 40) * 9) / 10;
+            var chivalry = (int)Owner.Skills.Chivalry.Value;
+            DamageScalar = 10 + (chivalry - 40) * 9 / 10;
 
             if (m_PlayerOrPet != null)
-                m_DamageScalar /= 2;
+                DamageScalar /= 2;
         }
 
-		private void UpdateBuffInfo()
-		{
-            if (m_TypeName == null)
-            {
-                BuffInfo.AddBuff(m_Owner, new BuffInfo(BuffIcon.EnemyOfOne, 1075653, 1075902, m_Expire - DateTime.UtcNow, m_Owner, string.Format("{0}\t{1}", m_DamageScalar, "100"), true));
-            }
+        private void UpdateBuffInfo()
+        {
+            if (TypeName == null)
+                BuffInfo.AddBuff(Owner,
+                    new BuffInfo(BuffIcon.EnemyOfOne, 1075653, 1075902, m_Expire - DateTime.UtcNow, Owner,
+                        string.Format("{0}\t{1}", DamageScalar, "100"), true));
             else
+                BuffInfo.AddBuff(Owner,
+                    new BuffInfo(BuffIcon.EnemyOfOne, 1075653, 1075654, m_Expire - DateTime.UtcNow, Owner,
+                        string.Format("{0}\t{1}\t{2}\t{3}", DamageScalar, TypeName, ".", "100"), true));
+        }
+
+        public void OnHit(Mobile defender)
+        {
+            if (TargetType == null)
             {
-                BuffInfo.AddBuff(m_Owner, new BuffInfo(BuffIcon.EnemyOfOne, 1075653, 1075654, m_Expire - DateTime.UtcNow, m_Owner, string.Format("{0}\t{1}\t{2}\t{3}", m_DamageScalar, TypeName, ".", "100"), true));
-            }
-		}
+                TypeName = EnemyOfOneSpell.GetTypeName(defender);
 
-		public void OnHit(Mobile defender)
-		{
-			if (m_TargetType == null)
-			{
-                m_TypeName = EnemyOfOneSpell.GetTypeName(defender);
-
-                if (defender is PlayerMobile || (defender is BaseCreature && ((BaseCreature)defender).GetMaster() is PlayerMobile))
+                if (defender is PlayerMobile ||
+                    (defender is BaseCreature && ((BaseCreature)defender).GetMaster() is PlayerMobile))
                 {
                     m_PlayerOrPet = defender;
-                    TimeSpan duration = TimeSpan.FromSeconds(8);
+                    var duration = TimeSpan.FromSeconds(8);
 
-                    if (DateTime.UtcNow + duration < m_Expire)
+                    if (DateTime.UtcNow + duration < m_Expire) m_Expire = DateTime.UtcNow + duration;
+
+                    if (Timer != null)
                     {
-                        m_Expire = DateTime.UtcNow + duration;
+                        Timer.Stop();
+                        Timer = null;
                     }
 
-                    if (m_Timer != null)
-                    {
-                        m_Timer.Stop();
-                        m_Timer = null;
-                    }
-
-                    m_Timer = Timer.DelayCall(duration, EnemyOfOneSpell.RemoveEffect, m_Owner);
+                    Timer = Timer.DelayCall(duration, EnemyOfOneSpell.RemoveEffect, Owner);
                 }
                 else
                 {
-                    m_TargetType = defender.GetType();
+                    TargetType = defender.GetType();
                 }
 
                 UpdateDamage();
-				DeltaEnemies();
-				UpdateBuffInfo();
-			}
+                DeltaEnemies();
+                UpdateBuffInfo();
+            }
             else if (Core.SA)
             {
                 // Odd but OSI recalculates when the target changes...
                 UpdateDamage();
             }
-		}
+        }
 
-		public void OnRemoved()
-		{
-			if (m_Timer != null)
-				m_Timer.Stop();
+        public void OnRemoved()
+        {
+            if (Timer != null)
+                Timer.Stop();
 
-			DeltaEnemies();
+            DeltaEnemies();
 
-			BuffInfo.RemoveBuff(m_Owner, BuffIcon.EnemyOfOne);
-		}
+            BuffInfo.RemoveBuff(Owner, BuffIcon.EnemyOfOne);
+        }
 
-		private void DeltaEnemies()
-		{
-            IPooledEnumerable eable = m_Owner.GetMobilesInRange(18);
+        private void DeltaEnemies()
+        {
+            IPooledEnumerable eable = Owner.GetMobilesInRange(18);
 
-			foreach (Mobile m in eable)
-			{
+            foreach (Mobile m in eable)
                 if (m_PlayerOrPet != null)
                 {
-                    if (m == m_PlayerOrPet)
-                    {
-                        m.Delta(MobileDelta.Noto);
-                    }
+                    if (m == m_PlayerOrPet) m.Delta(MobileDelta.Noto);
                 }
-                else if (m.GetType() == m_TargetType)
+                else if (m.GetType() == TargetType)
                 {
                     m.Delta(MobileDelta.Noto);
                 }
-			}
 
             eable.Free();
-		}
-	}
+        }
+    }
 }

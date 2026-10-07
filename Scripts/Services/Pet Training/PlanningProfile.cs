@@ -1,5 +1,4 @@
 using System;
-using Server;
 using System.Collections.Generic;
 using System.Linq;
 using Server.Items;
@@ -9,12 +8,47 @@ namespace Server.Mobiles
     public class PlanningProfile
     {
         public BaseCreature Creature { get; private set; }
-        public List<PlanningEntry> Entries { get; private set; }
+        public List<PlanningEntry> Entries { get; }
 
         public PlanningProfile(BaseCreature bc)
         {
             Creature = bc;
             Entries = new List<PlanningEntry>();
+        }
+
+        public PlanningProfile(BaseCreature bc, GenericReader reader)
+        {
+            var version = reader.ReadInt();
+
+            Entries = new List<PlanningEntry>();
+
+            var count = reader.ReadInt();
+            for (var i = 0; i < count; i++)
+                switch (reader.ReadInt())
+                {
+                    case 0: break;
+                    case 1:
+                        Entries.Add(new PlanningEntry((MagicalAbility)reader.ReadInt(), reader.ReadInt(),
+                            reader.ReadInt())); break;
+                    case 2:
+                        Entries.Add(new PlanningEntry(SpecialAbility.Abilities[reader.ReadInt()], reader.ReadInt(),
+                            reader.ReadInt())); break;
+                    case 3:
+                        Entries.Add(new PlanningEntry(AreaEffect.Effects[reader.ReadInt()], reader.ReadInt(),
+                            reader.ReadInt())); break;
+                    case 4:
+                        Entries.Add(new PlanningEntry(WeaponAbility.Abilities[reader.ReadInt()], reader.ReadInt(),
+                            reader.ReadInt())); break;
+                    case 5:
+                        Entries.Add(new PlanningEntry((PetStat)reader.ReadInt(), reader.ReadInt(), reader.ReadInt()));
+                        break;
+                    case 6:
+                        Entries.Add(new PlanningEntry((ResistanceType)reader.ReadInt(), reader.ReadInt(),
+                            reader.ReadInt())); break;
+                    case 7:
+                        Entries.Add(new PlanningEntry((SkillName)reader.ReadInt(), reader.ReadInt(), reader.ReadInt()));
+                        break;
+                }
         }
 
         public void Clear()
@@ -36,58 +70,15 @@ namespace Server.Mobiles
                 var trainingPoint = PetTrainingHelper.GetTrainingPoint(tp);
 
                 foreach (var en in Entries)
-                {
                     if (trainingPoint.Requirements != null && trainingPoint.Requirements.Length > 0)
-                    {
                         foreach (var req in trainingPoint.Requirements.Where(r => r != null))
-                        {
                             if ((req.Requirement is WeaponAbility && en.TrainPoint is WeaponAbility) ||
-                               (req.Requirement is SpecialAbility && en.TrainPoint is SpecialAbility) ||
+                                (req.Requirement is SpecialAbility && en.TrainPoint is SpecialAbility) ||
                                 (req.Requirement is AreaEffect && en.TrainPoint is AreaEffect))
                             {
                                 en.Value = 0;
                                 en.Cost = 0;
                             }
-                        }
-                    }
-                }
-            }
-        }
-
-        public class PlanningEntry
-        {
-            public object TrainPoint { get; private set; }
-            public int Value { get; set; }
-            public int Cost { get; set; }
-
-            public PlanningEntry(object tp, int value, int cost)
-            {
-                TrainPoint = tp;
-                Value = value;
-                Cost = cost;
-            }
-        }
-
-        public PlanningProfile(BaseCreature bc, GenericReader reader)
-        {
-            int version = reader.ReadInt();
-
-            Entries = new List<PlanningEntry>();
-
-            int count = reader.ReadInt();
-            for (int i = 0; i < count; i++)
-            {
-                switch (reader.ReadInt())
-                {
-                    case 0: break;
-                    case 1: Entries.Add(new PlanningEntry((MagicalAbility)reader.ReadInt(), reader.ReadInt(), reader.ReadInt())); break;
-                    case 2: Entries.Add(new PlanningEntry(SpecialAbility.Abilities[reader.ReadInt()], reader.ReadInt(), reader.ReadInt())); break;
-                    case 3: Entries.Add(new PlanningEntry(AreaEffect.Effects[reader.ReadInt()], reader.ReadInt(), reader.ReadInt())); break;
-                    case 4: Entries.Add(new PlanningEntry(WeaponAbility.Abilities[reader.ReadInt()], reader.ReadInt(), reader.ReadInt())); break;
-                    case 5: Entries.Add(new PlanningEntry((PetStat)reader.ReadInt(), reader.ReadInt(), reader.ReadInt())); break;
-                    case 6: Entries.Add(new PlanningEntry((ResistanceType)reader.ReadInt(), reader.ReadInt(), reader.ReadInt())); break;
-                    case 7: Entries.Add(new PlanningEntry((SkillName)reader.ReadInt(), reader.ReadInt(), reader.ReadInt())); break;
-                }
             }
         }
 
@@ -97,10 +88,10 @@ namespace Server.Mobiles
 
             writer.Write(Entries.Count);
 
-            for(int i = 0; i < Entries.Count; i++)
+            for (var i = 0; i < Entries.Count; i++)
             {
                 var entry = Entries[i];
-                object o = entry.TrainPoint;
+                var o = entry.TrainPoint;
 
                 if (o is MagicalAbility)
                 {
@@ -155,6 +146,20 @@ namespace Server.Mobiles
                 {
                     writer.Write(0);
                 }
+            }
+        }
+
+        public class PlanningEntry
+        {
+            public object TrainPoint { get; }
+            public int Value { get; set; }
+            public int Cost { get; set; }
+
+            public PlanningEntry(object tp, int value, int cost)
+            {
+                TrainPoint = tp;
+                Value = value;
+                Cost = cost;
             }
         }
     }

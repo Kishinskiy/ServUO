@@ -1,10 +1,11 @@
-using System;
-
 namespace Server.Items
 {
     public class GoldBricks : Item
     {
-		public override bool IsArtifact { get { return true; } }
+        public override bool IsArtifact => true;
+
+        public override int LabelNumber => 1063489;
+
         [Constructable]
         public GoldBricks()
             : base(0x1BEB)
@@ -16,25 +17,18 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1063489;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

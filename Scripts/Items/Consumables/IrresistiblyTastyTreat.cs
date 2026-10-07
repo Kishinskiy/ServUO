@@ -1,15 +1,15 @@
 using System;
-using Server.Mobiles;
-using Server.Targeting;
 
 namespace Server.Items
 {
     public class IrresistiblyTastyTreat : TastyTreat
     {
-        public override double Bonus { get { return 0.15; } }
-        public override TimeSpan Duration { get { return TimeSpan.FromMinutes(20); } }
-        public override TimeSpan CoolDown { get { return TimeSpan.FromMinutes(120); } }
-        public override int DamageBonus { get { return 10; } }
+        public override double Bonus => 0.15;
+        public override TimeSpan Duration => TimeSpan.FromMinutes(20);
+        public override TimeSpan CoolDown => TimeSpan.FromMinutes(120);
+        public override int DamageBonus => 10;
+
+        public override int LabelNumber => 1113005; //Irresistibly Tasty Treat
 
         [Constructable]
         public IrresistiblyTastyTreat() : this(1)
@@ -28,20 +28,18 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber { get { return 1113005; } } //Irresistibly Tasty Treat
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = (InheritsItem ? 0 : reader.ReadInt()); //Required for TastyTreat Insertion
+            var version = InheritsItem ? 0 : reader.ReadInt(); //Required for TastyTreat Insertion
         }
     }
 }

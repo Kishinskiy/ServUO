@@ -1,19 +1,17 @@
 using System;
-using Server;
-using Server.Items;
 using System.Linq;
+using Server.Items;
 using Server.Network;
-using Server.Engines.CityLoyalty;
 
 namespace Server.Mobiles
 {
     public class Raider : BaseCreature
-	{
+    {
         public DateTime DeleteTime { get; set; }
 
-        public override bool Commandable { get { return false; } }
-        public override bool ReduceSpeedWithDamage { get { return false; } }
-        public override bool AlwaysMurderer { get { return true; } }
+        public override bool Commandable => false;
+        public override bool ReduceSpeedWithDamage => false;
+        public override bool AlwaysMurderer => true;
 
         [Constructable]
         public Raider()
@@ -30,7 +28,7 @@ namespace Server.Mobiles
             SetHits(400, 650);
             SetDamage(21, 28);
 
-            if (this.Female = Utility.RandomBool())
+            if (Female = Utility.RandomBool())
             {
                 Body = 0x191;
                 Name = NameList.RandomName("female");
@@ -71,15 +69,32 @@ namespace Server.Mobiles
             switch (Utility.Random(4))
             {
                 default:
-                case 0: bow = new CompositeBow(); PackItem(new Arrow(25)); break;
-                case 1: bow = new Crossbow(); PackItem(new Bolt(25)); break;
-                case 2: bow = new Bow(); PackItem(new Arrow(25)); break;
-                case 3: bow = new HeavyCrossbow(); PackItem(new Bolt(25)); break;
+                case 0:
+                    bow = new CompositeBow();
+                    PackItem(new Arrow(25));
+                    break;
+                case 1:
+                    bow = new Crossbow();
+                    PackItem(new Bolt(25));
+                    break;
+                case 2:
+                    bow = new Bow();
+                    PackItem(new Arrow(25));
+                    break;
+                case 3:
+                    bow = new HeavyCrossbow();
+                    PackItem(new Bolt(25));
+                    break;
             }
 
             SetWearable(bow);
 
             ControlSlots = 0;
+        }
+
+        public Raider(Serial serial)
+            : base(serial)
+        {
         }
 
         public bool TryArrest(Mobile m)
@@ -92,10 +107,12 @@ namespace Server.Mobiles
             {
                 m.SendLocalizedMessage(1152249); // You already have a prisoner.
             }
-            else if (Hits > ((double)HitsMax / 10))
+            else if (Hits > (double)HitsMax / 10)
             {
-                m.SendLocalizedMessage(1152229); // That person won't sit still for it! A more aggressive approach is in order.
-                m.NonlocalOverheadMessage(MessageType.Regular, 0x3B2, 1152237, String.Format("{0}\t{1}", m.Name, this.Name, "raider"));
+                m.SendLocalizedMessage(
+                    1152229); // That person won't sit still for it! A more aggressive approach is in order.
+                m.NonlocalOverheadMessage(MessageType.Regular, 0x3B2, 1152237,
+                    string.Format("{0}\t{1}", m.Name, Name, "raider"));
             }
             else
             {
@@ -106,8 +123,9 @@ namespace Server.Mobiles
                 ControlTarget = m;
                 ControlOrder = OrderType.Follow;
 
-                m.SendLocalizedMessage(1152236, this.Name); // You arrest the ~1_name~. Take the criminal to the guard captain.
-                m.NonlocalOverheadMessage(MessageType.Regular, 0x3B2, 1152238, String.Format("{0}\t{1}", m.Name, this.Name));
+                m.SendLocalizedMessage(1152236,
+                    Name); // You arrest the ~1_name~. Take the criminal to the guard captain.
+                m.NonlocalOverheadMessage(MessageType.Regular, 0x3B2, 1152238, string.Format("{0}\t{1}", m.Name, Name));
 
                 return true;
             }
@@ -127,9 +145,8 @@ namespace Server.Mobiles
             if (DeleteTime != DateTime.MinValue && DateTime.UtcNow > DeleteTime)
             {
                 if (ControlMaster != null && ControlMaster.NetState != null)
-                {
-                    ControlMaster.SendLocalizedMessage(1152248); // You did not take your prisoner to the Guard Captain in time.
-                }
+                    ControlMaster
+                        .SendLocalizedMessage(1152248); // You did not take your prisoner to the Guard Captain in time.
 
                 Delete();
             }
@@ -140,15 +157,10 @@ namespace Server.Mobiles
             AddLoot(LootPack.FilthyRich, 2);
         }
 
-        public Raider(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
 
             Timer.DelayCall(TimeSpan.FromSeconds(10), CheckDelete);
 
@@ -158,9 +170,9 @@ namespace Server.Mobiles
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             DeleteTime = reader.ReadDateTime();
         }
-	}
+    }
 }

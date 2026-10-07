@@ -1,4 +1,3 @@
-using System;
 using Server.Misc;
 
 namespace Server.Mobiles
@@ -6,12 +5,24 @@ namespace Server.Mobiles
     [CorpseName("a lizardman squatter corpse")]
     public class LizardmanSquatter : BaseCreature
     {
+        public override InhumanSpeech SpeechType => InhumanSpeech.Lizardman;
+
+        public override bool CanRummageCorpses => true;
+
+        public override int Meat => 1;
+
+        public override int Hides => 12;
+
+        public override int TreasureMapLevel => 2;
+
+        public override HideType HideType => HideType.Spined;
+
         [Constructable]
         public LizardmanSquatter()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
         {
-            this.Name = NameList.RandomName("lizardman");
-            this.Title = "the squatter";
+            Name = NameList.RandomName("lizardman");
+            Title = "the squatter";
             Body = Utility.RandomList(35, 36);
             BaseSoundID = 417;
 
@@ -45,48 +56,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override InhumanSpeech SpeechType
-        {
-            get
-            {
-                return InhumanSpeech.Lizardman;
-            }
-        }
-        public override bool CanRummageCorpses
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override int Meat
-        {
-            get
-            {
-                return 1;
-            }
-        }
-        public override int Hides
-        {
-            get
-            {
-                return 12;
-            }
-        }
-		public override int TreasureMapLevel
-        {
-            get
-            {
-                return 2;
-            }
-        }
-        public override HideType HideType
-        {
-            get
-            {
-                return HideType.Spined;
-            }
-        }
         public override void GenerateLoot()
         {
             AddLoot(LootPack.Meager);
@@ -95,13 +64,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

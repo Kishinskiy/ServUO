@@ -1,26 +1,20 @@
 using System;
+using Server.Engines.VvV;
+using Server.Items;
 using Server.Multis;
 using Server.Network;
+using Server.Spells.Sixth;
+using Server.Targeting;
 
 namespace Server.SkillHandlers
 {
     public class Hiding
     {
-        private static bool m_CombatOverride;
-        public static bool CombatOverride
-        {
-            get
-            {
-                return m_CombatOverride;
-            }
-            set
-            {
-                m_CombatOverride = value;
-            }
-        }
+        public static bool CombatOverride { get; set; }
+
         public static void Initialize()
         {
-            SkillInfo.Table[21].Callback = new SkillUseCallback(OnUse);
+            SkillInfo.Table[21].Callback = OnUse;
         }
 
         public static TimeSpan OnUse(Mobile m)
@@ -31,19 +25,13 @@ namespace Server.SkillHandlers
                 return TimeSpan.FromSeconds(1.0);
             }
 
-            if (Server.Engines.VvV.ManaSpike.UnderEffects(m))
-            {
-                return TimeSpan.FromSeconds(1.0);
-            }
+            if (ManaSpike.UnderEffects(m)) return TimeSpan.FromSeconds(1.0);
 
-            if (Core.ML && m.Target != null)
-            {
-                Targeting.Target.Cancel(m);
-            }
+            if (Core.ML && m.Target != null) Target.Cancel(m);
 
-            double bonus = 0.0;
+            var bonus = 0.0;
 
-            BaseHouse house = BaseHouse.FindHouseAt(m);
+            var house = BaseHouse.FindHouseAt(m);
 
             if (house != null && house.IsFriend(m))
             {
@@ -68,32 +56,31 @@ namespace Server.SkillHandlers
             }
 
             //int range = 18 - (int)(m.Skills[SkillName.Hiding].Value / 10);
-            int skill = Math.Min(100, (int)m.Skills[SkillName.Hiding].Value);
-            int range = Math.Min((int)((100 - skill) / 2) + 8, 18);	//Cap of 18 not OSI-exact, intentional difference
+            var skill = Math.Min(100, (int)m.Skills[SkillName.Hiding].Value);
+            var range = Math.Min((100 - skill) / 2 + 8, 18); //Cap of 18 not OSI-exact, intentional difference
 
-            bool badCombat = (!m_CombatOverride && m.Combatant is Mobile && m.InRange(m.Combatant.Location, range) && ((Mobile)m.Combatant).InLOS(m.Combatant));
-            bool ok = (!badCombat /*&& m.CheckSkill( SkillName.Hiding, 0.0 - bonus, 100.0 - bonus )*/);
+            var badCombat = !CombatOverride && m.Combatant is Mobile && m.InRange(m.Combatant.Location, range) &&
+                            ((Mobile)m.Combatant).InLOS(m.Combatant);
+            var ok = !badCombat /*&& m.CheckSkill( SkillName.Hiding, 0.0 - bonus, 100.0 - bonus )*/;
 
             if (ok)
             {
-                if (!m_CombatOverride)
+                if (!CombatOverride)
                 {
                     IPooledEnumerable eable = m.GetMobilesInRange(range);
 
                     foreach (Mobile check in eable)
-                    {
                         if (check.InLOS(m) && check.Combatant == m)
                         {
                             badCombat = true;
                             ok = false;
                             break;
                         }
-                    }
 
                     eable.Free();
                 }
 
-                ok = (!badCombat && m.CheckSkill(SkillName.Hiding, 0.0 - bonus, 100.0 - bonus));
+                ok = !badCombat && m.CheckSkill(SkillName.Hiding, 0.0 - bonus, 100.0 - bonus);
             }
 
             if (badCombat)
@@ -105,25 +92,23 @@ namespace Server.SkillHandlers
                 return TimeSpan.Zero;
                 //return TimeSpan.FromSeconds(1.0);
             }
-            else 
+
+            if (ok)
             {
-                if (ok)
-                {
-                    m.Hidden = true;
-                    m.Warmode = false;
-					Server.Spells.Sixth.InvisibilitySpell.RemoveTimer(m);
-                    Server.Items.InvisibilityPotion.RemoveTimer(m);
-                    m.LocalOverheadMessage(MessageType.Regular, 0x1F4, 501240); // You have hidden yourself well.
-                }
-                else
-                {
-                    m.RevealingAction();
-
-                    m.LocalOverheadMessage(MessageType.Regular, 0x22, 501241); // You can't seem to hide here.
-                }
-
-                return TimeSpan.FromSeconds(10.0);
+                m.Hidden = true;
+                m.Warmode = false;
+                InvisibilitySpell.RemoveTimer(m);
+                InvisibilityPotion.RemoveTimer(m);
+                m.LocalOverheadMessage(MessageType.Regular, 0x1F4, 501240); // You have hidden yourself well.
             }
+            else
+            {
+                m.RevealingAction();
+
+                m.LocalOverheadMessage(MessageType.Regular, 0x22, 501241); // You can't seem to hide here.
+            }
+
+            return TimeSpan.FromSeconds(10.0);
         }
     }
 }

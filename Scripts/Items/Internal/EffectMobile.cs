@@ -6,7 +6,7 @@ namespace Server.Mobiles
     public class EffectMobile : Mobile
     {
         public static readonly TimeSpan DefaultDuration = TimeSpan.FromSeconds(1.0);
-        private static readonly List<EffectMobile> m_Free = new List<EffectMobile>();// List of available EffectMobiles
+        private static readonly List<EffectMobile> m_Free = new List<EffectMobile>(); // List of available EffectMobiles
 
         public EffectMobile(Serial serial)
             : base(serial)
@@ -23,9 +23,11 @@ namespace Server.Mobiles
         {
             EffectMobile mobile = null;
 
-            for (int i = m_Free.Count - 1; mobile == null && i >= 0; --i) // We reuse new entries first so decay works better
+            for (var i = m_Free.Count - 1;
+                 mobile == null && i >= 0;
+                 --i) // We reuse new entries first so decay works better
             {
-                EffectMobile free = m_Free[i];
+                var free = m_Free[i];
 
                 m_Free.RemoveAt(i);
 
@@ -51,14 +53,14 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             Delete();
         }
@@ -66,6 +68,7 @@ namespace Server.Mobiles
         private class FreeTimer : Timer
         {
             private readonly EffectMobile m_Mobile;
+
             public FreeTimer(EffectMobile mobile, TimeSpan delay)
                 : base(delay)
             {

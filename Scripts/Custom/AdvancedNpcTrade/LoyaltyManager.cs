@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using Server;
+using Microsoft.Data.Sqlite;
 using Server.Mobiles;
-using Microsoft.Data.Sqlite; // Теперь эта библиотека официально подключена в .csproj!
+
+// Теперь эта библиотека официально подключена в .csproj!
 
 namespace Server.Custom.AdvancedNpcTrade
 {
@@ -12,18 +13,15 @@ namespace Server.Custom.AdvancedNpcTrade
         private static readonly Dictionary<Tuple<Serial, Serial>, LoyaltyInfo> _data
             = new Dictionary<Tuple<Serial, Serial>, LoyaltyInfo>();
 
-        private static readonly string _dbFolder = Path.Combine(Core.BaseDirectory, "Scripts/Custom/AdvancedNpcTrade/Data");
-        private static readonly string _dbPath = Path.Combine(Core.BaseDirectory, "Scripts/Custom/AdvancedNpcTrade/Data/LoyaltyDatabase.db");
+        private static readonly string _dbFolder =
+            Path.Combine(Core.BaseDirectory, "Scripts/Custom/AdvancedNpcTrade/Data");
+
+        private static readonly string _dbPath =
+            Path.Combine(Core.BaseDirectory, "Scripts/Custom/AdvancedNpcTrade/Data/LoyaltyDatabase.db");
+
         private static readonly string _connectionString = $"Data Source={_dbPath};";
 
         private static readonly TimeSpan MaxInactivity = TimeSpan.FromDays(90.0);
-
-        public class LoyaltyInfo
-        {
-            public LoyaltyLevel Level { get; set; } = LoyaltyLevel.None;
-            public double Purchases { get; set; } = 0.0;
-            public DateTime LastPurchase { get; set; } = DateTime.UtcNow;
-        }
 
         // 1. ИНИЦИАЛИЗАЦИЯ И АВТОМАТИЧЕСКОЕ СОЗДАНИЕ ТАБЛИЦЫ
         public static void Initialize()
@@ -37,7 +35,7 @@ namespace Server.Custom.AdvancedNpcTrade
                 {
                     connection.Open();
 
-                    string createTableQuery = @"
+                    var createTableQuery = @"
                         CREATE TABLE IF NOT EXISTS LoyaltyRecords (
                             VendorSerial INTEGER,
                             PlayerSerial INTEGER,
@@ -59,18 +57,15 @@ namespace Server.Custom.AdvancedNpcTrade
             }
 
             // Подписываемся на события сохранения ServUO
-            EventSink.Shutdown += (e) => Save();
-            EventSink.WorldSave += (e) => Save(); // Сохранение при команде [save
-            EventSink.ServerStarted += new ServerStartedEventHandler(Load);
+            EventSink.Shutdown += e => Save();
+            EventSink.WorldSave += e => Save(); // Сохранение при команде [save
+            EventSink.ServerStarted += Load;
         }
 
         public static LoyaltyInfo GetInfo(BaseVendor vendor, Mobile player)
         {
             var key = Tuple.Create(vendor.Serial, player.Serial);
-            if (!_data.TryGetValue(key, out LoyaltyInfo info))
-            {
-                info = new LoyaltyInfo();
-            }
+            if (!_data.TryGetValue(key, out var info)) info = new LoyaltyInfo();
 
             return info;
         }
@@ -78,7 +73,7 @@ namespace Server.Custom.AdvancedNpcTrade
         public static void AddPurchase(BaseVendor vendor, Mobile player, double amount)
         {
             var key = Tuple.Create(vendor.Serial, player.Serial);
-            if (!_data.TryGetValue(key, out LoyaltyInfo info))
+            if (!_data.TryGetValue(key, out var info))
             {
                 info = new LoyaltyInfo();
                 _data[key] = info;
@@ -104,20 +99,21 @@ namespace Server.Custom.AdvancedNpcTrade
                     // Открываем транзакцию — это избавит сервер от микрофризов при [save]
                     using (var transaction = connection.BeginTransaction())
                     {
-                        List<Tuple<Serial, Serial>> keysToRemove = new List<Tuple<Serial, Serial>>();
-                        DateTime now = DateTime.UtcNow;
+                        var keysToRemove = new List<Tuple<Serial, Serial>>();
+                        var now = DateTime.UtcNow;
 
-                        string upsertQuery = @"
+                        var upsertQuery = @"
                             INSERT OR REPLACE INTO LoyaltyRecords (VendorSerial, PlayerSerial, LoyaltyLevel, Purchases, LastPurchase)
                             VALUES (@vSer, @pSer, @lvl, @purch, @last);";
 
-                        string deleteQuery = "DELETE FROM LoyaltyRecords WHERE VendorSerial = @vSer AND PlayerSerial = @pSer;";
+                        var deleteQuery =
+                            "DELETE FROM LoyaltyRecords WHERE VendorSerial = @vSer AND PlayerSerial = @pSer;";
 
                         foreach (var kvp in _data)
                         {
-                            BaseVendor vendor = World.FindMobile(kvp.Key.Item1) as BaseVendor;
-                            Mobile player = World.FindMobile(kvp.Key.Item2);
-                            bool isExpired = (now - kvp.Value.LastPurchase) > MaxInactivity;
+                            var vendor = World.FindMobile(kvp.Key.Item1) as BaseVendor;
+                            var player = World.FindMobile(kvp.Key.Item2);
+                            var isExpired = now - kvp.Value.LastPurchase > MaxInactivity;
 
                             // Если сущности удалены или запись устарела на 30 дней — стираем строку
                             if (vendor == null || player == null || isExpired || kvp.Value.Purchases <= 0.0)
@@ -130,6 +126,7 @@ namespace Server.Custom.AdvancedNpcTrade
                                     delCmd.Parameters.AddWithValue("@pSer", kvp.Key.Item2.Value);
                                     delCmd.ExecuteNonQuery();
                                 }
+
                                 continue;
                             }
 
@@ -147,10 +144,7 @@ namespace Server.Custom.AdvancedNpcTrade
 
                         transaction.Commit(); // Применяем изменения
 
-                        foreach (var key in keysToRemove)
-                        {
-                            _data.Remove(key);
-                        }
+                        foreach (var key in keysToRemove) _data.Remove(key);
                     }
                 }
             }
@@ -174,23 +168,24 @@ namespace Server.Custom.AdvancedNpcTrade
                 {
                     connection.Open();
 
-                    string selectQuery = "SELECT VendorSerial, PlayerSerial, LoyaltyLevel, Purchases, LastPurchase FROM LoyaltyRecords;";
+                    var selectQuery =
+                        "SELECT VendorSerial, PlayerSerial, LoyaltyLevel, Purchases, LastPurchase FROM LoyaltyRecords;";
 
                     using (var command = new SqliteCommand(selectQuery, connection))
-                    using (SqliteDataReader reader = command.ExecuteReader())
+                    using (var reader = command.ExecuteReader())
                     {
                         while (reader.Read())
                         {
-                            int vSerValue = reader.GetInt32(0);
-                            int pSerValue = reader.GetInt32(1);
-                            int lvlValue = reader.GetInt32(2);
-                            double purchases = reader.GetDouble(3);
-                            string dateText = reader.GetString(4);
+                            var vSerValue = reader.GetInt32(0);
+                            var pSerValue = reader.GetInt32(1);
+                            var lvlValue = reader.GetInt32(2);
+                            var purchases = reader.GetDouble(3);
+                            var dateText = reader.GetString(4);
 
-                            Serial vendorSer = (Serial)vSerValue;
-                            Serial playerSer = (Serial)pSerValue;
-                            LoyaltyLevel level = (LoyaltyLevel)lvlValue;
-                            DateTime lastPurchase = DateTime.Parse(dateText);
+                            var vendorSer = (Serial)vSerValue;
+                            var playerSer = (Serial)pSerValue;
+                            var level = (LoyaltyLevel)lvlValue;
+                            var lastPurchase = DateTime.Parse(dateText);
 
                             var key = Tuple.Create(vendorSer, playerSer);
                             _data[key] = new LoyaltyInfo
@@ -207,6 +202,13 @@ namespace Server.Custom.AdvancedNpcTrade
             {
                 Console.WriteLine($"[AdvancedNpcTrade] Ошибка загрузки из базы данных SQLite: {ex.Message}");
             }
+        }
+
+        public class LoyaltyInfo
+        {
+            public LoyaltyLevel Level { get; set; } = LoyaltyLevel.None;
+            public double Purchases { get; set; }
+            public DateTime LastPurchase { get; set; } = DateTime.UtcNow;
         }
     }
 }

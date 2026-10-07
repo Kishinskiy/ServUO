@@ -1,7 +1,4 @@
-using Server;
-using System;
 using Server.Mobiles;
-using System.Linq;
 
 namespace Server.Engines.Exodus
 {
@@ -12,27 +9,25 @@ namespace Server.Engines.Exodus
         [CommandProperty(AccessLevel.GameMaster)]
         public static bool Active
         {
-            get { return m_Active; }
-            set { if (value) Start(); else Stop();}
-        }
-
-        private static ClockworkExodus m_Mobile;
-
-        [CommandProperty(AccessLevel.Administrator)]
-        public static ClockworkExodus Mobile
-        {
-            get { return m_Mobile; }
-            set { m_Mobile = value; }
+            get => m_Active;
+            set
+            {
+                if (value) Start();
+                else Stop();
+            }
         }
 
         [CommandProperty(AccessLevel.Administrator)]
-        public static VerLorRegController IlshenarInstance { get; set; }        
+        public static ClockworkExodus Mobile { get; set; }
+
+        [CommandProperty(AccessLevel.Administrator)]
+        public static VerLorRegController IlshenarInstance { get; set; }
 
         public VerLorRegController(Map map) : base(7107)
         {
-            this.Name = "Ver Lor Reg Controller";
-            this.Visible = false;
-            this.Movable = false;
+            Name = "Ver Lor Reg Controller";
+            Visible = false;
+            Movable = false;
 
             Start();
         }
@@ -54,19 +49,19 @@ namespace Server.Engines.Exodus
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
 
-            writer.Write((bool)m_Active);
-            writer.WriteMobile(m_Mobile);
+            writer.Write(m_Active);
+            writer.WriteMobile(Mobile);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             m_Active = reader.ReadBool();
-            m_Mobile = (ClockworkExodus)reader.ReadMobile();
+            Mobile = (ClockworkExodus)reader.ReadMobile();
 
             if (Map == Map.Ilshenar)
                 IlshenarInstance = this;
@@ -79,14 +74,14 @@ namespace Server.Engines.Exodus
 
             m_Active = true;
 
-            if (m_Mobile == null)
+            if (Mobile == null)
             {
-                ClockworkExodus m = new ClockworkExodus();
+                var m = new ClockworkExodus();
                 m.Home = new Point3D(854, 642, -40);
                 m.RangeHome = 4;
                 m.MoveToWorld(new Point3D(854, 642, -40), Map.Ilshenar);
-                m_Mobile = m;
-            }          
+                Mobile = m;
+            }
         }
 
         public static void Stop()
@@ -95,8 +90,8 @@ namespace Server.Engines.Exodus
                 return;
 
             m_Active = false;
-            m_Mobile.Delete();
-            m_Mobile = null;                        
-        }        
+            Mobile.Delete();
+            Mobile = null;
+        }
     }
 }

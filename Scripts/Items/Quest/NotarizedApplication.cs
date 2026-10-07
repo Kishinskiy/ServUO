@@ -1,15 +1,15 @@
-using System;
-
 namespace Server.Items
 {
     public class NotarizedApplication : Item
     {
+        public override int LabelNumber => 1073135; // Notarized Application
+
         [Constructable]
         public NotarizedApplication()
             : base(0x14EF)
         {
-            this.LootType = LootType.Blessed;
-            this.Weight = 1.0;
+            LootType = LootType.Blessed;
+            Weight = 1.0;
         }
 
         public NotarizedApplication(Serial serial)
@@ -17,25 +17,18 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1073135;
-            }
-        }// Notarized Application
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

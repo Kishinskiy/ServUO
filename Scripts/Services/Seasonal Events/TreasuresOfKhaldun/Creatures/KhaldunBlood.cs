@@ -1,11 +1,13 @@
 using Server.Items;
-using System;
 
 namespace Server.Mobiles
 {
     [CorpseName("a Bloody corpse")]
     public class KhaldunBlood : BaseCreature
     {
+        public override Poison PoisonImmune => Poison.Lesser;
+        public override Poison HitPoison => Poison.Lesser;
+
         [Constructable]
         public KhaldunBlood()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -50,18 +52,12 @@ namespace Server.Mobiles
         {
         }
 
-        public override void OnBeforeDamage(Mobile from, ref int totalDamage, Server.DamageType type)
+        public override void OnBeforeDamage(Mobile from, ref int totalDamage, DamageType type)
         {
-            if (Region.IsPartOf("Khaldun") && IsChampionSpawn && !Caddellite.CheckDamage(from, type))
-            {
-                totalDamage = 0;
-            }
+            if (Region.IsPartOf("Khaldun") && IsChampionSpawn && !Caddellite.CheckDamage(from, type)) totalDamage = 0;
 
             base.OnBeforeDamage(from, ref totalDamage, type);
         }
-
-        public override Poison PoisonImmune { get { return Poison.Lesser; } }
-        public override Poison HitPoison { get { return Poison.Lesser; } }
 
         public override void GenerateLoot()
         {
@@ -72,13 +68,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

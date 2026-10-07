@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +5,12 @@ namespace Server.Mobiles
     [CorpseName("a human corpse")]
     public class Protector : BaseCreature
     {
+        public override bool AlwaysMurderer => true;
+
+        public override bool PropertyTitle => false;
+
+        public override bool ShowFameTitle => false;
+
         [Constructable]
         public Protector()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -47,7 +52,7 @@ namespace Server.Mobiles
             boots.Movable = false;
             boots.Hue = Utility.Random(2);
 
-            Item shroud = new Item(0x204E);
+            var shroud = new Item(0x204E);
             shroud.Layer = Layer.OuterTorso;
             shroud.Movable = false;
             shroud.Hue = Utility.Random(2);
@@ -61,27 +66,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool AlwaysMurderer
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool PropertyTitle
-        {
-            get
-            {
-                return false;
-            }
-        }
-        public override bool ShowFameTitle
-        {
-            get
-            {
-                return false;
-            }
-        }
         public override void GenerateLoot(bool spawning)
         {
             if (spawning)
@@ -93,29 +77,29 @@ namespace Server.Mobiles
 
         public override void GenerateLoot()
         {
-            this.AddLoot(LootPack.FilthyRich);
+            AddLoot(LootPack.FilthyRich);
         }
-      
-        public override void OnDeath( Container c )
-        {
-			base.OnDeath( c );
 
-			if ( Utility.RandomDouble() < 0.4 )
-			c.DropItem( new ProtectorsEssence() );
+        public override void OnDeath(Container c)
+        {
+            base.OnDeath(c);
+
+            if (Utility.RandomDouble() < 0.4)
+                c.DropItem(new ProtectorsEssence());
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -1,5 +1,5 @@
 using System;
-using System.Collections;
+using Server.Engines.Plants;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -7,6 +7,20 @@ namespace Server.Mobiles
     [CorpseName("a bake kitsune corpse")]
     public class BakeKitsune : BaseCreature
     {
+        public override int Meat => 5;
+
+        public override int Hides => 30;
+
+        public override HideType HideType => HideType.Regular;
+
+        public override FoodType FavoriteFood => FoodType.Fish;
+
+        public override bool ShowFameTitle => false;
+
+        public override bool ClickTitle => false;
+
+        public override bool PropertyTitle => false;
+
         [Constructable]
         public BakeKitsune()
             : base(AIType.AI_Mage, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -45,9 +59,14 @@ namespace Server.Mobiles
             MinTameSkill = 80.7;
 
             if (Utility.RandomDouble() < .25)
-                PackItem(Engines.Plants.Seed.RandomBonsaiSeed());
+                PackItem(Seed.RandomBonsaiSeed());
 
             SetSpecialAbility(SpecialAbility.Rage);
+        }
+
+        public BakeKitsune(Serial serial)
+            : base(serial)
+        {
         }
 
         public override void GenerateLoot()
@@ -57,60 +76,10 @@ namespace Server.Mobiles
             AddLoot(LootPack.MedScrolls, 2);
         }
 
-        public override int Meat
-        {
-            get
-            {
-                return 5;
-            }
-        }
-        public override int Hides
-        {
-            get
-            {
-                return 30;
-            }
-        }
-        public override HideType HideType
-        {
-            get
-            {
-                return HideType.Regular;
-            }
-        }
-        public override FoodType FavoriteFood
-        {
-            get
-            {
-                return FoodType.Fish;
-            }
-        }
-        public override bool ShowFameTitle
-        {
-            get
-            {
-                return false;
-            }
-        }
-        public override bool ClickTitle
-        {
-            get
-            {
-                return false;
-            }
-        }
-        public override bool PropertyTitle
-        {
-            get
-            {
-                return false;
-            }
-        }
-
         public override void OnCombatantChange()
         {
             if (Combatant == null && !IsBodyMod && !Controlled && m_DisguiseTimer == null && Utility.RandomBool())
-                m_DisguiseTimer = Timer.DelayCall(TimeSpan.FromSeconds(Utility.RandomMinMax(15, 30)), new TimerCallback(Disguise));
+                m_DisguiseTimer = Timer.DelayCall(TimeSpan.FromSeconds(Utility.RandomMinMax(15, 30)), Disguise);
         }
 
         public override bool OnBeforeDeath()
@@ -120,7 +89,56 @@ namespace Server.Mobiles
             return base.OnBeforeDeath();
         }
 
+        public override int GetAngerSound()
+        {
+            return 0x4DE;
+        }
+
+        public override int GetIdleSound()
+        {
+            return 0x4DD;
+        }
+
+        public override int GetAttackSound()
+        {
+            return 0x4DC;
+        }
+
+        public override int GetHurtSound()
+        {
+            return 0x4DF;
+        }
+
+        public override int GetDeathSound()
+        {
+            return 0x4DB;
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(1);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
+
+            if (version == 0 && PhysicalResistance > 60)
+            {
+                SetResistance(ResistanceType.Physical, 40, 60);
+                SetResistance(ResistanceType.Fire, 70, 90);
+                SetResistance(ResistanceType.Cold, 40, 60);
+                SetResistance(ResistanceType.Poison, 40, 60);
+                SetResistance(ResistanceType.Energy, 40, 60);
+            }
+
+            Timer.DelayCall(TimeSpan.Zero, RemoveDisguise);
+        }
+
         #region Disguise
+
         private Timer m_DisguiseTimer;
 
         public void Disguise()
@@ -151,7 +169,7 @@ namespace Server.Mobiles
             FacialHairItemID = Race.Human.RandomFacialHair(this);
             FacialHairHue = HairHue;
 
-            switch ( Utility.Random(4) )
+            switch (Utility.Random(4))
             {
                 case 0:
                     AddItem(new Shoes(Utility.RandomNeutralHue()));
@@ -170,14 +188,14 @@ namespace Server.Mobiles
             AddItem(new Robe(Utility.RandomNondyedHue()));
 
             m_DisguiseTimer = null;
-            m_DisguiseTimer = Timer.DelayCall(TimeSpan.FromSeconds(75), new TimerCallback(RemoveDisguise));
+            m_DisguiseTimer = Timer.DelayCall(TimeSpan.FromSeconds(75), RemoveDisguise);
         }
 
         public void RemoveDisguise()
         {
             if (!IsBodyMod)
                 return;
-			
+
             Name = "a bake kitsune";
             Title = null;
             BodyMod = 0;
@@ -195,65 +213,12 @@ namespace Server.Mobiles
 
         public void DeleteItemOnLayer(Layer layer)
         {
-            Item item = FindItemOnLayer(layer);
+            var item = FindItemOnLayer(layer);
 
             if (item != null)
                 item.Delete();
         }
 
         #endregion
-        	
-        public override int GetAngerSound()
-        {
-            return 0x4DE;
-        }
-
-        public override int GetIdleSound()
-        {
-            return 0x4DD;
-        }
-
-        public override int GetAttackSound()
-        {
-            return 0x4DC;
-        }
-
-        public override int GetHurtSound()
-        {
-            return 0x4DF;
-        }
-
-        public override int GetDeathSound()
-        {
-            return 0x4DB;
-        }
-
-        public BakeKitsune(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.Write((int)1);
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            int version = reader.ReadInt();
-
-            if (version == 0 && PhysicalResistance > 60)
-            {
-                SetResistance(ResistanceType.Physical, 40, 60);
-                SetResistance(ResistanceType.Fire, 70, 90);
-                SetResistance(ResistanceType.Cold, 40, 60);
-                SetResistance(ResistanceType.Poison, 40, 60);
-                SetResistance(ResistanceType.Energy, 40, 60);
-            }
-
-            Timer.DelayCall(TimeSpan.Zero, new TimerCallback(RemoveDisguise));
-        }
     }
 }

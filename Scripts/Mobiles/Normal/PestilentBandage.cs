@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -12,16 +11,18 @@ namespace Server.Mobiles
         // Loot and Fame/Karma are also guesses at this point.
         //
         // They also apparently have a Poison Attack, which I've stolen from Yamandons.
-        public override double HealChance { get { return 1.0; } }
+        public override double HealChance => 1.0;
+
+        public override Poison HitPoison => Poison.Lethal;
 
         [Constructable]
         public PestilentBandage()
-            : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)// NEED TO CHECK
+            : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4) // NEED TO CHECK
         {
             Name = "a pestilent bandage";
             Body = 154;
-            Hue = 0x515; 
-            BaseSoundID = 471; 
+            Hue = 0x515;
+            BaseSoundID = 471;
 
             SetStr(691, 740);
             SetDex(141, 180);
@@ -52,7 +53,7 @@ namespace Server.Mobiles
 
             // VirtualArmor = 28; // Don't know what it should be
 
-            PackItem(new Bandage(5));  // How many?
+            PackItem(new Bandage(5)); // How many?
 
             SetAreaEffect(AreaEffect.PoisonBreath);
         }
@@ -62,28 +63,21 @@ namespace Server.Mobiles
         {
         }
 
-        public override Poison HitPoison
-        {
-            get
-            {
-                return Poison.Lethal;
-            }
-        }
         public override void GenerateLoot()
         {
-            AddLoot(LootPack.Rich);  // Need to verify
+            AddLoot(LootPack.Rich); // Need to verify
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

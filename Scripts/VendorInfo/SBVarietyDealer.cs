@@ -1,31 +1,16 @@
-using System;
 using System.Collections.Generic;
 using Server.Items;
 
-namespace Server.Mobiles 
-{ 
+namespace Server.Mobiles
+{
     public class SBVarietyDealer : SBInfo
     {
         private readonly List<GenericBuyInfo> m_BuyInfo = new InternalBuyInfo();
         private readonly IShopSellInfo m_SellInfo = new InternalSellInfo();
-        public SBVarietyDealer()
-        {
-        }
 
-        public override IShopSellInfo SellInfo
-        {
-            get
-            {
-                return m_SellInfo;
-            }
-        }
-        public override List<GenericBuyInfo> BuyInfo
-        {
-            get
-            {
-                return m_BuyInfo;
-            }
-        }
+        public override IShopSellInfo SellInfo => m_SellInfo;
+
+        public override List<GenericBuyInfo> BuyInfo => m_BuyInfo;
 
         public class InternalBuyInfo : List<GenericBuyInfo>
         {
@@ -47,32 +32,32 @@ namespace Server.Mobiles
                 Add(new GenericBuyInfo(typeof(Bolt), 6, Utility.Random(30, 60), 0x1BFB, 0, true));
                 Add(new GenericBuyInfo(typeof(Arrow), 3, Utility.Random(30, 60), 0xF3F, 0, true));
 
-                Add(new GenericBuyInfo(typeof(BlackPearl), 5, 999, 0xF7A, 0)); 
-                Add(new GenericBuyInfo(typeof(Bloodmoss), 5, 999, 0xF7B, 0)); 
-                Add(new GenericBuyInfo(typeof(MandrakeRoot), 3, 999, 0xF86, 0)); 
-                Add(new GenericBuyInfo(typeof(Garlic), 3, 999, 0xF84, 0)); 
-                Add(new GenericBuyInfo(typeof(Ginseng), 3, 999, 0xF85, 0)); 
-                Add(new GenericBuyInfo(typeof(Nightshade), 3, 999, 0xF88, 0)); 
-                Add(new GenericBuyInfo(typeof(SpidersSilk), 3, 999, 0xF8D, 0)); 
+                Add(new GenericBuyInfo(typeof(BlackPearl), 5, 999, 0xF7A, 0));
+                Add(new GenericBuyInfo(typeof(Bloodmoss), 5, 999, 0xF7B, 0));
+                Add(new GenericBuyInfo(typeof(MandrakeRoot), 3, 999, 0xF86, 0));
+                Add(new GenericBuyInfo(typeof(Garlic), 3, 999, 0xF84, 0));
+                Add(new GenericBuyInfo(typeof(Ginseng), 3, 999, 0xF85, 0));
+                Add(new GenericBuyInfo(typeof(Nightshade), 3, 999, 0xF88, 0));
+                Add(new GenericBuyInfo(typeof(SpidersSilk), 3, 999, 0xF8D, 0));
                 Add(new GenericBuyInfo(typeof(SulfurousAsh), 3, 999, 0xF8C, 0));
 
                 Add(new GenericBuyInfo(typeof(BreadLoaf), 7, 10, 0x103B, 0, true));
                 Add(new GenericBuyInfo(typeof(Backpack), 15, 20, 0x9B2, 0));
 
-                Type[] types = Loot.RegularScrollTypes;
+                var types = Loot.RegularScrollTypes;
 
-                int circles = 3;
+                var circles = 3;
 
-                for (int i = 0; i < circles * 8 && i < types.Length; ++i)
+                for (var i = 0; i < circles * 8 && i < types.Length; ++i)
                 {
-                    int itemID = 0x1F2E + i;
+                    var itemID = 0x1F2E + i;
 
                     if (i == 6)
                         itemID = 0x1F2D;
                     else if (i > 6)
                         --itemID;
 
-                    Add(new GenericBuyInfo(types[i], 12 + ((i / 8) * 10), 20, itemID, 0, true));
+                    Add(new GenericBuyInfo(types[i], 12 + i / 8 * 10, 20, itemID, 0, true));
                 }
 
                 if (Core.AOS)
@@ -137,10 +122,10 @@ namespace Server.Mobiles
                     Add(typeof(PigIron), 3);
                 }
 
-                Type[] types = Loot.RegularScrollTypes;
+                var types = Loot.RegularScrollTypes;
 
-                for (int i = 0; i < types.Length; ++i)
-                    Add(types[i], ((i / 8) + 2) * 5);
+                for (var i = 0; i < types.Length; ++i)
+                    Add(types[i], (i / 8 + 2) * 5);
             }
         }
     }

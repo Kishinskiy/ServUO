@@ -5,6 +5,17 @@ namespace Server.Engines.Quests
 {
     public class Dugan : MondainQuester
     {
+        public override Type[] Quests
+        {
+            get
+            {
+                return new[]
+                {
+                    typeof(Missing)
+                };
+            }
+        }
+
         [Constructable]
         public Dugan()
             : base("Elder Dugan", "the Prospector")
@@ -14,17 +25,6 @@ namespace Server.Engines.Quests
         public Dugan(Serial serial)
             : base(serial)
         {
-        }
-
-        public override Type[] Quests
-        {
-            get
-            {
-                return new Type[] 
-                {
-                    typeof(Missing)
-                };
-            }
         }
 
         public override void InitBody()
@@ -57,14 +57,14 @@ namespace Server.Engines.Quests
         {
             base.Serialize(writer);
 
-            writer.Write((int)1); // version
+            writer.Write(1); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (version == 0)
             {

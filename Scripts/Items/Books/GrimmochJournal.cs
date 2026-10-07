@@ -1,5 +1,3 @@
-using System;
-
 namespace Server.Items
 {
     public class GrimmochJournal1 : BaseBook
@@ -51,6 +49,9 @@ namespace Server.Items
                 "timeline for",
                 "excavating the Tomb's",
                 "entrance."));
+
+        public override BookContent DefaultContent => Content;
+
         [Constructable]
         public GrimmochJournal1()
             : base(Utility.Random(0xFF1, 2), false)
@@ -62,25 +63,18 @@ namespace Server.Items
         {
         }
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
@@ -148,6 +142,9 @@ namespace Server.Items
                 "be open, rather than",
                 "shocked that they'd",
                 "finally given way."));
+
+        public override BookContent DefaultContent => Content;
+
         [Constructable]
         public GrimmochJournal2()
             : base(Utility.Random(0xFF1, 2), false)
@@ -159,25 +156,18 @@ namespace Server.Items
         {
         }
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
@@ -242,6 +232,9 @@ namespace Server.Items
             new BookPageInfo(
                 "shut up, and got back",
                 "to work."));
+
+        public override BookContent DefaultContent => Content;
+
         [Constructable]
         public GrimmochJournal3()
             : base(Utility.Random(0xFF1, 2), false)
@@ -253,25 +246,18 @@ namespace Server.Items
         {
         }
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
@@ -333,6 +319,9 @@ namespace Server.Items
                 "main antechamber, so",
                 "there's no use moaning",
                 "about it now."));
+
+        public override BookContent DefaultContent => Content;
+
         [Constructable]
         public GrimmochJournal6()
             : base(Utility.Random(0xFF1, 2), false)
@@ -344,25 +333,18 @@ namespace Server.Items
         {
         }
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
@@ -414,6 +396,9 @@ namespace Server.Items
                 "access to this primeval",
                 "crypt, seal it up again",
                 "for all eternity."));
+
+        public override BookContent DefaultContent => Content;
+
         [Constructable]
         public GrimmochJournal7()
             : base(Utility.Random(0xFF1, 2), false)
@@ -425,25 +410,18 @@ namespace Server.Items
         {
         }
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
@@ -480,6 +458,9 @@ namespace Server.Items
                 "laughter from behind"),
             new BookPageInfo(
                 "the stones."));
+
+        public override BookContent DefaultContent => Content;
+
         [Constructable]
         public GrimmochJournal11()
             : base(Utility.Random(0xFF1, 2), false)
@@ -491,25 +472,18 @@ namespace Server.Items
         {
         }
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
@@ -561,6 +535,9 @@ namespace Server.Items
                 "undead legions struck",
                 "again.  I cannot go on...",
                 "I cannot go on."));
+
+        public override BookContent DefaultContent => Content;
+
         [Constructable]
         public GrimmochJournal14()
             : base(Utility.Random(0xFF1, 2), false)
@@ -572,25 +549,18 @@ namespace Server.Items
         {
         }
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
@@ -645,6 +615,9 @@ namespace Server.Items
                 "his or mine, I can no"),
             new BookPageInfo(
                 "longer tell."));
+
+        public override BookContent DefaultContent => Content;
+
         [Constructable]
         public GrimmochJournal17()
             : base(Utility.Random(0xFF1, 2), false)
@@ -656,25 +629,18 @@ namespace Server.Items
         {
         }
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
@@ -687,6 +653,9 @@ namespace Server.Items
                 "",
                 "We no longer bury the",
                 "dead."));
+
+        public override BookContent DefaultContent => Content;
+
         [Constructable]
         public GrimmochJournal23()
             : base(Utility.Random(0xFF1, 2), false)
@@ -698,25 +667,18 @@ namespace Server.Items
         {
         }
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

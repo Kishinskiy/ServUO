@@ -1,79 +1,70 @@
-using Server;
-using System;
-using Server.Items;
-using System.Collections.Generic;
 using System.IO;
+using Server.Items;
 
 namespace Server.Engines.Distillation
 {
-	public class DistillationContext
-	{
-		private Group m_LastGroup;
-		private Liquor m_LastLiquor;
-		private Yeast[] m_SelectedYeast = new Yeast[4];
-		private bool m_MakeStrong;
-		private bool m_Mark;
-		private string m_Label;
-		
-		public Group LastGroup { get { return m_LastGroup; } set { m_LastGroup = value; } }
-		public Liquor LastLiquor { get { return m_LastLiquor; } set { m_LastLiquor = value; } }
-		public Yeast[] SelectedYeast { get { return m_SelectedYeast; } }
-		public bool MakeStrong { get { return m_MakeStrong; } set { m_MakeStrong = value; } }
-		public bool Mark { get { return m_Mark; } set { m_Mark = value; } }
-		public string Label { get { return m_Label; } set { m_Label = value; } }
-		
-		public DistillationContext()
-		{
-			m_LastGroup = Group.WheatBased;
-			m_LastLiquor = Liquor.None;
-			m_MakeStrong = false;
-			m_Mark = true;
-			m_Label = null;
-		}
-		
-		public bool YeastInUse(Yeast yeast)
-		{
-			foreach(Yeast y in m_SelectedYeast)
-			{
-				if(y != null && y == yeast)
-					return true;
-			}
-			
-			return false;
-		}
-		
-		public void ClearYeasts()
-		{
-			for(int i = 0; i < m_SelectedYeast.Length; i++)
-			{
-				m_SelectedYeast[i] = null;
-			}
-		}
-		
-		public DistillationContext(GenericReader reader)
-		{
-			int version = reader.ReadInt();
-			
-			m_LastGroup = (Group)reader.ReadInt();
-			m_LastLiquor = (Liquor)reader.ReadInt();
-			m_MakeStrong = reader.ReadBool();
-			m_Mark = reader.ReadBool();
-			m_Label = reader.ReadString();
-		}
-		
-		public void Serialize(GenericWriter writer)
-		{
-			writer.Write((int)0);
-			
-			writer.Write((int)m_LastGroup);
-			writer.Write((int)m_LastLiquor);
-			writer.Write(m_MakeStrong);
-			writer.Write(m_Mark);
-			writer.Write(m_Label);
-		}
+    public class DistillationContext
+    {
+        public Group LastGroup { get; set; }
+
+        public Liquor LastLiquor { get; set; }
+
+        public Yeast[] SelectedYeast { get; } = new Yeast[4];
+
+        public bool MakeStrong { get; set; }
+
+        public bool Mark { get; set; }
+
+        public string Label { get; set; }
+
+        public DistillationContext()
+        {
+            LastGroup = Group.WheatBased;
+            LastLiquor = Liquor.None;
+            MakeStrong = false;
+            Mark = true;
+            Label = null;
+        }
+
+        public DistillationContext(GenericReader reader)
+        {
+            var version = reader.ReadInt();
+
+            LastGroup = (Group)reader.ReadInt();
+            LastLiquor = (Liquor)reader.ReadInt();
+            MakeStrong = reader.ReadBool();
+            Mark = reader.ReadBool();
+            Label = reader.ReadString();
+        }
+
+        public bool YeastInUse(Yeast yeast)
+        {
+            foreach (var y in SelectedYeast)
+                if (y != null && y == yeast)
+                    return true;
+
+            return false;
+        }
+
+        public void ClearYeasts()
+        {
+            for (var i = 0; i < SelectedYeast.Length; i++) SelectedYeast[i] = null;
+        }
+
+        public void Serialize(GenericWriter writer)
+        {
+            writer.Write(0);
+
+            writer.Write((int)LastGroup);
+            writer.Write((int)LastLiquor);
+            writer.Write(MakeStrong);
+            writer.Write(Mark);
+            writer.Write(Label);
+        }
 
         #region Serialize/Deserialize Persistence
-        private static string FilePath = Path.Combine("Saves", "CraftContext", "DistillationContexts.bin");
+
+        private static readonly string FilePath = Path.Combine("Saves", "CraftContext", "DistillationContexts.bin");
 
         public static void Configure()
         {
@@ -91,7 +82,7 @@ namespace Server.Engines.Distillation
 
                     writer.Write(DistillationSystem.Contexts.Count);
 
-                    foreach (KeyValuePair<Mobile, DistillationContext> kvp in DistillationSystem.Contexts)
+                    foreach (var kvp in DistillationSystem.Contexts)
                     {
                         writer.Write(kvp.Key);
                         kvp.Value.Serialize(writer);
@@ -105,19 +96,20 @@ namespace Server.Engines.Distillation
                 FilePath,
                 reader =>
                 {
-                    int version = reader.ReadInt();
+                    var version = reader.ReadInt();
 
-                    int count = reader.ReadInt();
-                    for (int i = 0; i < count; i++)
+                    var count = reader.ReadInt();
+                    for (var i = 0; i < count; i++)
                     {
-                        Mobile m = reader.ReadMobile();
-                        DistillationContext context = new DistillationContext(reader);
+                        var m = reader.ReadMobile();
+                        var context = new DistillationContext(reader);
 
                         if (m != null)
                             DistillationSystem.Contexts[m] = context;
                     }
                 });
         }
+
         #endregion
-	}
+    }
 }

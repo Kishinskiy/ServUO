@@ -1,21 +1,28 @@
 using System;
-using Server.Items;
 using System.Collections.Generic;
+using Server.Items;
 using Server.Mobiles;
 
 namespace Server.Engines.Quests
-{ 
+{
     public class Vrulkax : BaseVendor
     {
-        protected readonly List<SBInfo> m_SBInfos = new List<SBInfo>();
-        protected override List<SBInfo> SBInfos { get { return this.m_SBInfos; } }
-
-        public override bool IsActiveVendor { get { return false; } }
-        public override bool IsInvulnerable { get { return true; } }
-
-        public override void InitSBInfo()
+        private readonly Type[][] _Table =
         {
-        }
+            new[] { typeof(BritchesOfWarding), typeof(GargishBritchesOfWarding) },
+            new[] { typeof(GlovesOfFeudalGrip), typeof(GargishKiltOfFeudalVise) },
+            new[] { typeof(CuffsOfTheArchmage), typeof(GargishCuffsOfTheArchmage) },
+            new[] { typeof(BritchesOfWarding), typeof(GargishBritchesOfWarding) },
+            new[] { typeof(BowOfTheInfiniteSwarm), typeof(GlaiveOfTheInfiniteSwarm) }
+        };
+
+        protected readonly List<SBInfo> m_SBInfos = new List<SBInfo>();
+
+        private DateTime _NextSpeak;
+        protected override List<SBInfo> SBInfos => m_SBInfos;
+
+        public override bool IsActiveVendor => false;
+        public override bool IsInvulnerable => true;
 
         [Constructable]
         public Vrulkax()
@@ -24,22 +31,21 @@ namespace Server.Engines.Quests
             Name = "Vrulkax";
         }
 
-        private Type[][] _Table = 
+        public Vrulkax(Serial serial)
+            : base(serial)
         {
-            new Type[] { typeof(BritchesOfWarding), typeof(GargishBritchesOfWarding) },
-            new Type[] { typeof(GlovesOfFeudalGrip), typeof(GargishKiltOfFeudalVise) },
-            new Type[] { typeof(CuffsOfTheArchmage), typeof(GargishCuffsOfTheArchmage) },
-            new Type[] { typeof(BritchesOfWarding), typeof(GargishBritchesOfWarding) },
-            new Type[] { typeof(BowOfTheInfiniteSwarm), typeof(GlaiveOfTheInfiniteSwarm) }
-        };
+        }
+
+        public override void InitSBInfo()
+        {
+        }
 
         public override bool OnDragDrop(Mobile from, Item dropped)
         {
-            foreach (Type[] t in _Table)
-            {
+            foreach (var t in _Table)
                 if (dropped is IDurability && t[0] == dropped.GetType())
                 {
-                    IDurability dur = dropped as IDurability;
+                    var dur = dropped as IDurability;
 
                     if (dur != null && dur.MaxHitPoints == 255 && dur.HitPoints == 255)
                     {
@@ -58,13 +64,10 @@ namespace Server.Engines.Quests
                         return false;
                     }
                 }
-            }
 
             SayTo(from, 1157365); // I'm sorry, I cannot accept this item.
             return false;
         }
-
-        private DateTime _NextSpeak;
 
         public override void OnMovement(Mobile m, Point3D oldLocation)
         {
@@ -75,11 +78,6 @@ namespace Server.Engines.Quests
             }
 
             base.OnMovement(m, oldLocation);
-        }
-
-        public Vrulkax(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void InitBody()
@@ -106,14 +104,14 @@ namespace Server.Engines.Quests
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

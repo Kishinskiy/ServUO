@@ -1,6 +1,3 @@
-using System;
-using Server.Items;
-using Server.Mobiles;
 using Server.Gumps;
 using Server.Network;
 
@@ -8,7 +5,7 @@ namespace Server.Engines.Quests
 {
     public class QuestInfoGump : BaseQuestGump
     {
-        private int m_Cliloc;
+        private readonly int m_Cliloc;
 
         public QuestInfoGump(int cliloc) : base(0, 0)
         {
@@ -34,17 +31,19 @@ namespace Server.Engines.Quests
             AddImage(90, 33, 0x232D);
             AddImageTiled(130, 65, 175, 1, 0x238D);
 
-            AddHtmlObject(160, 108, 330, 16, 1075781, DarkGreen, false, false);            // Test of Humility
+            AddHtmlObject(160, 108, 330, 16, 1075781, DarkGreen, false, false); // Test of Humility
 
             AddHtmlObject(98, 156, 312, 180, cliloc, LightGreen, false, true);
 
             AddButton(313, 395, 0x2EEC, 0x2EEE, 0, GumpButtonType.Reply, 0);
         }
 
-        public override void OnResponse(Server.Network.NetState state, RelayInfo info)
+        public override void OnResponse(NetState state, RelayInfo info)
         {
             if (m_Cliloc == 1075783)
-                state.Mobile.SendLocalizedMessage(1075787); // I feel that thou hast yet more to learn about Humility... Please ponder these things further, and visit me again on the 'morrow.
+                state.Mobile
+                    .SendLocalizedMessage(
+                        1075787); // I feel that thou hast yet more to learn about Humility... Please ponder these things further, and visit me again on the 'morrow.
         }
     }
 }

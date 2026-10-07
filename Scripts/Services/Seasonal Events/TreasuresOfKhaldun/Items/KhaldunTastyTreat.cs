@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
 using Server.Mobiles;
 using Server.Targeting;
 
@@ -11,7 +10,9 @@ namespace Server.Items
     {
         public const int Duration = 1; // hours
 
-        public override int LabelNumber { get { return 1158680; } } // khaldun tasty treat
+        public override int LabelNumber => 1158680; // khaldun tasty treat
+
+        public static Dictionary<BaseCreature, DateTime> Table { get; set; }
 
         [Constructable]
         public KhaldunTastyTreat()
@@ -26,6 +27,11 @@ namespace Server.Items
             Amount = amount;
         }
 
+        public KhaldunTastyTreat(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override bool DropToMobile(Mobile from, Mobile target, Point3D p)
         {
             TryFeed(from, target);
@@ -36,31 +42,23 @@ namespace Server.Items
         public override void OnDoubleClick(Mobile m)
         {
             if (IsChildOf(m.Backpack))
-            {
                 m.BeginTarget(2, false, TargetFlags.Beneficial, (from, targeted) =>
                 {
-                    if (targeted is Mobile)
-                    {
-                        TryFeed(from, (Mobile)targeted);
-                    }
+                    if (targeted is Mobile) TryFeed(from, (Mobile)targeted);
                 });
-            }
         }
 
         private void TryFeed(Mobile from, Mobile target)
         {
-            if (target is BaseCreature && !((BaseCreature)target).IsDeadBondedPet && ((BaseCreature)target).ControlMaster == from)
+            if (target is BaseCreature && !((BaseCreature)target).IsDeadBondedPet &&
+                ((BaseCreature)target).ControlMaster == from)
             {
-                BaseCreature bc = (BaseCreature)target;
+                var bc = (BaseCreature)target;
 
                 if (UnderInfluence(bc))
-                {
                     from.SendLocalizedMessage(1113051); //Your pet is still enjoying the last tasty treat!
-                }
                 else
-                {
                     DoEffects(bc.ControlMaster, bc);
-                }
             }
         }
 
@@ -73,10 +71,7 @@ namespace Server.Items
 
             bc.Loyalty = BaseCreature.MaxLoyalty;
 
-            if (Table == null)
-            {
-                Table = new Dictionary<BaseCreature, DateTime>();
-            }
+            if (Table == null) Table = new Dictionary<BaseCreature, DateTime>();
 
             Table.Add(bc, DateTime.UtcNow + TimeSpan.FromHours(1));
             Timer.DelayCall(TimeSpan.FromHours(Duration), RemoveInfluence, bc);
@@ -86,8 +81,6 @@ namespace Server.Items
             Consume();
             return true;
         }
-
-        public static Dictionary<BaseCreature, DateTime> Table { get; set; }
 
         public static void Initialize()
         {
@@ -112,10 +105,7 @@ namespace Server.Items
                     Caddellite.UpdateBuff(bc.ControlMaster);
                 }
 
-                if (Table.Count == 0)
-                {
-                    Table = null;
-                }
+                if (Table.Count == 0) Table = null;
             }
         }
 
@@ -126,12 +116,8 @@ namespace Server.Items
                 var pm = m as PlayerMobile;
 
                 foreach (var pet in pm.AllFollowers.OfType<BaseCreature>())
-                {
                     if (UnderInfluence(pet))
-                    {
                         return pet;
-                    }
-                }
             }
 
             return null;
@@ -144,22 +130,20 @@ namespace Server.Items
             writer.Write(Table == null ? 0 : Table.Count);
 
             if (Table != null)
-            {
                 foreach (var kpv in Table)
                 {
                     writer.Write(kpv.Key);
                     writer.Write(kpv.Value);
                 }
-            }
         }
 
         public static void Load(GenericReader reader)
         {
             reader.ReadInt(); // version
 
-            int count = reader.ReadInt();
+            var count = reader.ReadInt();
 
-            for (int i = 0; i < count; i++)
+            for (var i = 0; i < count; i++)
             {
                 var bc = reader.ReadMobile() as BaseCreature;
                 var dt = reader.ReadDateTime();
@@ -170,7 +154,7 @@ namespace Server.Items
                         Table = new Dictionary<BaseCreature, DateTime>();
 
                     Table[bc] = dt;
-                    
+
                     Timer.DelayCall(dt - DateTime.UtcNow, RemoveInfluence, bc);
                 }
             }
@@ -180,29 +164,21 @@ namespace Server.Items
         {
             var pm = e.Mobile as PlayerMobile;
 
-            if (pm != null)
-            {
-                Timer.DelayCall(() => Caddellite.UpdateBuff(pm));
-            }
+            if (pm != null) Timer.DelayCall(() => Caddellite.UpdateBuff(pm));
         }
 
-        public KhaldunTastyTreat(Serial serial)
-            : base(serial)
-        {
-        }
-        
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +5,10 @@ namespace Server.Mobiles
     [CorpseName("a treefellow corpse")]
     public class FeralTreefellow : BaseCreature
     {
+        public override OppositionGroup OppositionGroup => OppositionGroup.FeyAndUndead;
+
+        public override bool BleedImmune => true;
+
         [Constructable]
         public FeralTreefellow()
             : base(AIType.AI_Melee, FightMode.Aggressor, 10, 1, 0.2, 0.4)
@@ -28,12 +31,12 @@ namespace Server.Mobiles
             SetResistance(ResistanceType.Poison, 60, 70);
             SetResistance(ResistanceType.Energy, 40, 60);
 
-            SetSkill(SkillName.MagicResist, 40.1, 55.0);// Unknown
-            SetSkill(SkillName.Tactics, 65.1, 90.0);// Unknown
-            SetSkill(SkillName.Wrestling, 65.1, 85.0);// Unknown
+            SetSkill(SkillName.MagicResist, 40.1, 55.0); // Unknown
+            SetSkill(SkillName.Tactics, 65.1, 90.0); // Unknown
+            SetSkill(SkillName.Wrestling, 65.1, 85.0); // Unknown
 
-            Fame = 1000;  //Unknown
-            Karma = -3000;  //Unknown
+            Fame = 1000; //Unknown
+            Karma = -3000; //Unknown
 
             VirtualArmor = 24;
             PackItem(new Log(Utility.RandomMinMax(23, 34)));
@@ -44,21 +47,6 @@ namespace Server.Mobiles
         public FeralTreefellow(Serial serial)
             : base(serial)
         {
-        }
-
-        public override OppositionGroup OppositionGroup
-        {
-            get
-            {
-                return OppositionGroup.FeyAndUndead;
-            }
-        }
-        public override bool BleedImmune
-        {
-            get
-            {
-                return true;
-            }
         }
 
         public override int GetIdleSound()
@@ -84,13 +72,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

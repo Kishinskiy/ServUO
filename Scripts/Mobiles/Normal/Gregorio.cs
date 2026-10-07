@@ -1,22 +1,31 @@
-using System;
 using Server.Engines.Quests;
 using Server.Items;
 
 namespace Server.Mobiles
 {
     public class Gregorio : BaseCreature
-    { 
+    {
+        /*public override bool InitialInnocent
+        {
+            get
+            {
+                return true;
+            }
+        }*/
+
+        public override bool AlwaysMurderer => true;
+
         [Constructable]
         public Gregorio()
             : base(AIType.AI_Melee, FightMode.Aggressor, 10, 1, 0.2, 0.4)
-        { 
+        {
             Race = Race.Human;
             Name = "Gregorio";
             Title = "the brigand";
-			
+
             InitBody();
             InitOutfit();
-			
+
             SetStr(86, 100);
             SetDex(81, 95);
             SetInt(61, 75);
@@ -32,8 +41,8 @@ namespace Server.Mobiles
 
             SetSkill(SkillName.MagicResist, 25.0, 50.0);
             SetSkill(SkillName.Tactics, 80.0, 100.0);
-            SetSkill(SkillName.Wrestling, 80.0, 100.0);	
-			
+            SetSkill(SkillName.Wrestling, 80.0, 100.0);
+
             PackGold(50, 150);
         }
 
@@ -41,16 +50,6 @@ namespace Server.Mobiles
             : base(serial)
         {
         }
-
-        /*public override bool InitialInnocent
-        {
-            get
-            {
-                return true;
-            }
-        }*/
-
-        public override bool AlwaysMurderer { get { return true; } }
 
         public override int Damage(int amount, Mobile from, bool informMount, bool checkDisrupt)
         {
@@ -61,15 +60,13 @@ namespace Server.Mobiles
             {
                 var pm = (PlayerMobile)from;
 
-                BaseQuest quest = QuestHelper.GetQuest(pm, typeof(GuiltyQuest));
+                var quest = QuestHelper.GetQuest(pm, typeof(GuiltyQuest));
 
-                if (quest != null && !quest.Completed)
-                {
-                    return base.Damage(amount, from, informMount, checkDisrupt);
-                }
+                if (quest != null && !quest.Completed) return base.Damage(amount, from, informMount, checkDisrupt);
             }
 
-            from.SendLocalizedMessage(1075456); // You are not allowed to damage this NPC unless your on the Guilty Quest
+            from.SendLocalizedMessage(
+                1075456); // You are not allowed to damage this NPC unless your on the Guilty Quest
             return 0;
         }
 
@@ -82,25 +79,23 @@ namespace Server.Mobiles
             {
                 var pm = (PlayerMobile)from;
 
-                BaseQuest quest = QuestHelper.GetQuest(pm, typeof(GuiltyQuest));
+                var quest = QuestHelper.GetQuest(pm, typeof(GuiltyQuest));
 
-                if (quest != null && !quest.Completed)
-                {
-                    return base.CanBeHarmedBy(from, message);
-                }
+                if (quest != null && !quest.Completed) return base.CanBeHarmedBy(from, message);
             }
 
-            from.SendLocalizedMessage(1075456); // You are not allowed to damage this NPC unless your on the Guilty Quest
+            from.SendLocalizedMessage(
+                1075456); // You are not allowed to damage this NPC unless your on the Guilty Quest
             return false;
         }
 
         public void InitBody()
         {
             InitStats(100, 100, 25);
-				
+
             Hue = 0x8412;
-            Female = false;		
-			
+            Female = false;
+
             HairItemID = 0x203C;
             HairHue = 0x47A;
             FacialHairItemID = 0x204D;
@@ -108,7 +103,7 @@ namespace Server.Mobiles
         }
 
         public void InitOutfit()
-        { 
+        {
             AddItem(new Sandals(0x75E));
             AddItem(new Shirt());
             AddItem(new ShortPants(0x66C));
@@ -119,15 +114,15 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-	
-            writer.Write((int)0); // version
+
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-	
-            int version = reader.ReadInt();
+
+            var version = reader.ReadInt();
         }
     }
 }

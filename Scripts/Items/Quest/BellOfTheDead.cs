@@ -9,11 +9,18 @@ namespace Server.Engines.Quests.Doom
 {
     public class BellOfTheDead : Item
     {
-        private Chyloth m_Chyloth;
-        private SkeletalDragon m_Dragon;
-        private bool m_Summoning;
-
         public static List<BellOfTheDead> Instances { get; set; } // Just incase someone has more than 1
+
+        public override int LabelNumber => 1050018; // bell of the dead
+
+        [CommandProperty(AccessLevel.GameMaster, AccessLevel.Administrator)]
+        public Chyloth Chyloth { get; set; }
+
+        [CommandProperty(AccessLevel.GameMaster, AccessLevel.Administrator)]
+        public SkeletalDragon Dragon { get; set; }
+
+        [CommandProperty(AccessLevel.GameMaster, AccessLevel.Administrator)]
+        public bool Summoning { get; set; }
 
         [Constructable]
         public BellOfTheDead()
@@ -33,50 +40,6 @@ namespace Server.Engines.Quests.Doom
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1050018;
-            }
-        }// bell of the dead
-        [CommandProperty(AccessLevel.GameMaster, AccessLevel.Administrator)]
-        public Chyloth Chyloth
-        {
-            get
-            {
-                return m_Chyloth;
-            }
-            set
-            {
-                m_Chyloth = value;
-            }
-        }
-        [CommandProperty(AccessLevel.GameMaster, AccessLevel.Administrator)]
-        public SkeletalDragon Dragon
-        {
-            get
-            {
-                return m_Dragon;
-            }
-            set
-            {
-                m_Dragon = value;
-            }
-        }
-        [CommandProperty(AccessLevel.GameMaster, AccessLevel.Administrator)]
-        public bool Summoning
-        {
-            get
-            {
-                return m_Summoning;
-            }
-            set
-            {
-                m_Summoning = value;
-            }
-        }
-
         public static void TryRemoveDragon(SkeletalDragon dragon)
         {
             if (Instances == null)
@@ -84,10 +47,7 @@ namespace Server.Engines.Quests.Doom
 
             var bell = Instances.FirstOrDefault(x => x.Dragon == dragon);
 
-            if (bell != null)
-            {
-                bell.Dragon = null;
-            }
+            if (bell != null) bell.Dragon = null;
         }
 
         public override void OnDoubleClick(Mobile from)
@@ -100,17 +60,19 @@ namespace Server.Engines.Quests.Doom
 
         public virtual void BeginSummon(Mobile from)
         {
-            if (m_Chyloth != null && !m_Chyloth.Deleted)
+            if (Chyloth != null && !Chyloth.Deleted)
             {
-                from.SendLocalizedMessage(1050010); // The ferry man has already been summoned.  There is no need to ring for him again.
+                from.SendLocalizedMessage(
+                    1050010); // The ferry man has already been summoned.  There is no need to ring for him again.
             }
-            else if (m_Dragon != null && !m_Dragon.Deleted && !m_Dragon.Controlled)
+            else if (Dragon != null && !Dragon.Deleted && !Dragon.Controlled)
             {
-                from.SendLocalizedMessage(1050017); // The ferryman has recently been summoned already.  You decide against ringing the bell again so soon.
+                from.SendLocalizedMessage(
+                    1050017); // The ferryman has recently been summoned already.  You decide against ringing the bell again so soon.
             }
-            else if (!m_Summoning)
+            else if (!Summoning)
             {
-                m_Summoning = true;
+                Summoning = true;
 
                 Effects.PlaySound(GetWorldLocation(), Map, 0x100);
 
@@ -120,36 +82,39 @@ namespace Server.Engines.Quests.Doom
 
         public virtual void EndSummon(object state)
         {
-            Mobile from = (Mobile)state;
+            var from = (Mobile)state;
 
-            if (m_Chyloth != null && !m_Chyloth.Deleted)
+            if (Chyloth != null && !Chyloth.Deleted)
             {
-                from.SendLocalizedMessage(1050010); // The ferry man has already been summoned.  There is no need to ring for him again.
+                from.SendLocalizedMessage(
+                    1050010); // The ferry man has already been summoned.  There is no need to ring for him again.
             }
-            else if (m_Dragon != null && !m_Dragon.Deleted && !m_Dragon.Controlled)
+            else if (Dragon != null && !Dragon.Deleted && !Dragon.Controlled)
             {
-                from.SendLocalizedMessage(1050017); // The ferryman has recently been summoned already.  You decide against ringing the bell again so soon.
+                from.SendLocalizedMessage(
+                    1050017); // The ferryman has recently been summoned already.  You decide against ringing the bell again so soon.
             }
-            else if (m_Summoning)
+            else if (Summoning)
             {
-                m_Summoning = false;
+                Summoning = false;
 
-                Point3D loc = GetWorldLocation();
+                var loc = GetWorldLocation();
 
                 loc.Z -= 16;
 
-                Effects.SendLocationParticles(EffectItem.Create(loc, Map, EffectItem.DefaultDuration), 0x3728, 10, 10, 0, 0, 2023, 0);
+                Effects.SendLocationParticles(EffectItem.Create(loc, Map, EffectItem.DefaultDuration), 0x3728, 10, 10,
+                    0, 0, 2023, 0);
                 Effects.PlaySound(loc, Map, 0x1FE);
 
-                m_Chyloth = new Chyloth();
+                Chyloth = new Chyloth();
 
-                m_Chyloth.Direction = (Direction)(7 & (4 + (int)from.GetDirectionTo(loc)));
-                m_Chyloth.MoveToWorld(loc, Map);
+                Chyloth.Direction = (Direction)(7 & (4 + (int)from.GetDirectionTo(loc)));
+                Chyloth.MoveToWorld(loc, Map);
 
-                m_Chyloth.Bell = this;
-                m_Chyloth.AngryAt = from;
-                m_Chyloth.BeginGiveWarning();
-                m_Chyloth.BeginRemove(TimeSpan.FromSeconds(40.0));
+                Chyloth.Bell = this;
+                Chyloth.AngryAt = from;
+                Chyloth.BeginGiveWarning();
+                Chyloth.BeginRemove(TimeSpan.FromSeconds(40.0));
             }
         }
 
@@ -157,28 +122,28 @@ namespace Server.Engines.Quests.Doom
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
-            writer.Write((Mobile)m_Chyloth);
-            writer.Write((Mobile)m_Dragon);
+            writer.Write(Chyloth);
+            writer.Write(Dragon);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (Instances == null)
                 Instances = new List<BellOfTheDead>();
 
             Instances.Add(this);
 
-            m_Chyloth = reader.ReadMobile() as Chyloth;
-            m_Dragon = reader.ReadMobile() as SkeletalDragon;
+            Chyloth = reader.ReadMobile() as Chyloth;
+            Dragon = reader.ReadMobile() as SkeletalDragon;
 
-            if (m_Chyloth != null)
-                m_Chyloth.Delete();
+            if (Chyloth != null)
+                Chyloth.Delete();
         }
     }
 }

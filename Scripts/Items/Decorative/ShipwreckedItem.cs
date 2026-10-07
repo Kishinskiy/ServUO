@@ -1,5 +1,3 @@
-using System;
-
 namespace Server.Items
 {
     public interface IShipwreckedItem
@@ -16,35 +14,32 @@ namespace Server.Items
         {
             m_IsBarnacleItem = barnacle;
 
-            int weight = this.ItemData.Weight;
+            var weight = ItemData.Weight;
 
             if (weight >= 255 || weight <= 0)
                 weight = 1;
 
-            this.Weight = weight;
+            Weight = weight;
         }
 
-        public override void OnSingleClick(Mobile from)
+        public ShipwreckedItem(Serial serial)
+            : base(serial)
         {
-            this.LabelTo(from, 1050039, String.Format("#{0}\t#1041645", this.LabelNumber));
         }
 
-        public override void AddNameProperties(ObjectPropertyList list)
+        public bool Dye(Mobile from, DyeTub sender)
         {
-            if (m_IsBarnacleItem)
-            {
-                if (LabelNumber > 0)
-                    list.Add(1151075, String.Format("#{0}", LabelNumber)); //barnacle covered ~1_token~
-                else
-                    list.Add(1151075, this.ItemData.Name); //barnacle covered ~1_token~
+            if (Deleted)
+                return false;
 
-                list.Add(1041645); // recovered from a shipwreck
-            }
-            else
+            if (ItemID >= 0x13A4 && ItemID <= 0x13AE)
             {
-                base.AddNameProperties(list);
-                list.Add(1041645); // recovered from a shipwreck
+                Hue = sender.DyedHue;
+                return true;
             }
+
+            from.SendLocalizedMessage(sender.FailMessage);
+            return false;
         }
 
         public virtual void OnFlip(Mobile m)
@@ -66,16 +61,44 @@ namespace Server.Items
             }
         }
 
-        public ShipwreckedItem(Serial serial)
-            : base(serial)
+        #region IShipwreckedItem Members
+
+        public bool IsShipwreckedItem
         {
+            get => true; //It's a ShipwreckedItem item.  'Course it's gonna be a Shipwreckeditem
+            set { }
+        }
+
+        #endregion
+
+        public override void OnSingleClick(Mobile from)
+        {
+            LabelTo(from, 1050039, string.Format("#{0}\t#1041645", LabelNumber));
+        }
+
+        public override void AddNameProperties(ObjectPropertyList list)
+        {
+            if (m_IsBarnacleItem)
+            {
+                if (LabelNumber > 0)
+                    list.Add(1151075, string.Format("#{0}", LabelNumber)); //barnacle covered ~1_token~
+                else
+                    list.Add(1151075, ItemData.Name); //barnacle covered ~1_token~
+
+                list.Add(1041645); // recovered from a shipwreck
+            }
+            else
+            {
+                base.AddNameProperties(list);
+                list.Add(1041645); // recovered from a shipwreck
+            }
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)1); // version
+            writer.Write(1); // version
             writer.Write(m_IsBarnacleItem);
         }
 
@@ -83,7 +106,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             switch (version)
             {
@@ -94,34 +117,5 @@ namespace Server.Items
                     break;
             }
         }
-
-        public bool Dye(Mobile from, DyeTub sender)
-        {
-            if (this.Deleted)
-                return false;
-
-            if (this.ItemID >= 0x13A4 && this.ItemID <= 0x13AE)
-            {
-                this.Hue = sender.DyedHue;
-                return true;
-            }
-
-            from.SendLocalizedMessage(sender.FailMessage);
-            return false;
-        }
-
-        #region IShipwreckedItem Members
-
-        public bool IsShipwreckedItem
-        {
-            get
-            {
-                return true;	//It's a ShipwreckedItem item.  'Course it's gonna be a Shipwreckeditem
-            }
-            set
-            {
-            }
-        }
-        #endregion
     }
 }

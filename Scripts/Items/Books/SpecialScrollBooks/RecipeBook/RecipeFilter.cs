@@ -1,20 +1,8 @@
-using System;
-
 namespace Server.Items
 {
     public class RecipeScrollFilter
     {
-        public bool IsDefault
-        {
-            get { return (Skill == 0 && Expansion == 0 && Amount == 0); }
-        }
-
-        public void Clear()
-        {
-            Skill = 0;
-            Expansion = 0;
-            Amount = 0;
-        }
+        public bool IsDefault => Skill == 0 && Expansion == 0 && Amount == 0;
 
         public int Skill { get; set; }
 
@@ -28,7 +16,7 @@ namespace Server.Items
 
         public RecipeScrollFilter(GenericReader reader)
         {
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             switch (version)
             {
@@ -40,19 +28,26 @@ namespace Server.Items
             }
         }
 
+        public void Clear()
+        {
+            Skill = 0;
+            Expansion = 0;
+            Amount = 0;
+        }
+
         public void Serialize(GenericWriter writer)
         {
             if (IsDefault)
             {
-                writer.Write((int)0);
+                writer.Write(0);
             }
             else
             {
                 writer.Write(1);
 
-                writer.Write((int)Skill);
-                writer.Write((int)Expansion);
-                writer.Write((int)Amount);
+                writer.Write(Skill);
+                writer.Write(Expansion);
+                writer.Write(Amount);
             }
         }
     }

@@ -10,6 +10,10 @@ namespace Server.Custom.Farms
             Hue = 1436; // Сделаем его приятного травянисто-зеленого цвета, чтобы выделялся в луте
         }
 
+        public FarmSeedBag(Serial serial) : base(serial)
+        {
+        }
+
         public override void OnDoubleClick(Mobile from)
         {
             if (!IsChildOf(from.Backpack))
@@ -19,13 +23,13 @@ namespace Server.Custom.Farms
             }
 
             // Розыгрыш случайного количества семян (от 1 до 5 включительно)
-            int count = Utility.RandomMinMax(1, 5);
+            var count = Utility.RandomMinMax(1, 5);
 
             // Розыгрыш типа семян (от 0 до 5, так как у нас 6 видов овощей)
-            int seedType = Utility.Random(6);
+            var seedType = Utility.Random(6);
 
             Item spawnedSeed;
-            string seedName = "";
+            var seedName = "";
 
             switch (seedType)
             {
@@ -61,7 +65,7 @@ namespace Server.Custom.Farms
                 from.PlaySound(0x57); // Воспроизводим шуршащий звук пересыпания зерен/крупы
                 from.SendMessage($"Вы открыли мешочек и нашли там семена {seedName} в количестве {count} шт.!");
 
-                this.Delete(); // Уничтожаем мешок, так как он израсходован
+                Delete(); // Уничтожаем мешок, так как он израсходован
             }
             else
             {
@@ -71,20 +75,16 @@ namespace Server.Custom.Farms
             }
         }
 
-        public FarmSeedBag(Serial serial) : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -10,19 +10,20 @@ namespace Server.Commands.Generic
     {
         public static IComparer Compile(AssemblyEmitter assembly, Type objectType, Property[] props)
         {
-            TypeBuilder typeBuilder = assembly.DefineType(
+            var typeBuilder = assembly.DefineType(
                 "__distinct",
                 TypeAttributes.Public,
                 typeof(object));
 
             #region Constructor
+
             {
-                ConstructorBuilder ctor = typeBuilder.DefineConstructor(
+                var ctor = typeBuilder.DefineConstructor(
                     MethodAttributes.Public,
                     CallingConventions.Standard,
                     Type.EmptyTypes);
 
-                ILGenerator il = ctor.GetILGenerator();
+                var il = ctor.GetILGenerator();
 
                 // : base()
                 il.Emit(OpCodes.Ldarg_0);
@@ -31,27 +32,30 @@ namespace Server.Commands.Generic
                 // return;
                 il.Emit(OpCodes.Ret);
             }
+
             #endregion
 
             #region IComparer
+
             typeBuilder.AddInterfaceImplementation(typeof(IComparer));
 
             MethodBuilder compareMethod;
 
             #region Compare
+
             {
-                MethodEmitter emitter = new MethodEmitter(typeBuilder);
+                var emitter = new MethodEmitter(typeBuilder);
 
                 emitter.Define(
                     /*  name  */ "Compare",
                     /*  attr  */ MethodAttributes.Public | MethodAttributes.Virtual,
                     /* return */ typeof(int),
-                    /* params */ new Type[] { typeof(object), typeof(object) });
+                    /* params */ new[] { typeof(object), typeof(object) });
 
-                LocalBuilder a = emitter.CreateLocal(objectType);
-                LocalBuilder b = emitter.CreateLocal(objectType);
+                var a = emitter.CreateLocal(objectType);
+                var b = emitter.CreateLocal(objectType);
 
-                LocalBuilder v = emitter.CreateLocal(typeof(int));
+                var v = emitter.CreateLocal(typeof(int));
 
                 emitter.LoadArgument(1);
                 emitter.CastAs(objectType);
@@ -64,9 +68,9 @@ namespace Server.Commands.Generic
                 emitter.Load(0);
                 emitter.StoreLocal(v);
 
-                Label end = emitter.CreateLabel();
+                var end = emitter.CreateLabel();
 
-                for (int i = 0; i < props.Length; ++i)
+                for (var i = 0; i < props.Length; ++i)
                 {
                     if (i > 0)
                     {
@@ -74,13 +78,13 @@ namespace Server.Commands.Generic
                         emitter.BranchIfTrue(end); // if ( v != 0 ) return v;
                     }
 
-                    Property prop = props[i];
+                    var prop = props[i];
 
                     emitter.LoadLocal(a);
                     emitter.Chain(prop);
 
-                    bool couldCompare =
-                        emitter.CompareTo(1, delegate()
+                    var couldCompare =
+                        emitter.CompareTo(1, delegate
                         {
                             emitter.LoadLocal(b);
                             emitter.Chain(prop);
@@ -101,7 +105,7 @@ namespace Server.Commands.Generic
                     emitter.Method,
                     typeof(IComparer).GetMethod(
                         "Compare",
-                        new Type[]
+                        new[]
                         {
                             typeof(object),
                             typeof(object)
@@ -109,21 +113,25 @@ namespace Server.Commands.Generic
 
                 compareMethod = emitter.Method;
             }
+
             #endregion
+
             #endregion
 
             #region IEqualityComparer
+
             typeBuilder.AddInterfaceImplementation(typeof(IEqualityComparer<object>));
 
             #region Equals
+
             {
-                MethodEmitter emitter = new MethodEmitter(typeBuilder);
+                var emitter = new MethodEmitter(typeBuilder);
 
                 emitter.Define(
                     /*  name  */ "Equals",
                     /*  attr  */ MethodAttributes.Public | MethodAttributes.Virtual,
                     /* return */ typeof(bool),
-                    /* params */ new Type[] { typeof(object), typeof(object) });
+                    /* params */ new[] { typeof(object), typeof(object) });
 
                 emitter.Generator.Emit(OpCodes.Ldarg_0);
                 emitter.Generator.Emit(OpCodes.Ldarg_1);
@@ -141,40 +149,42 @@ namespace Server.Commands.Generic
                     emitter.Method,
                     typeof(IEqualityComparer<object>).GetMethod(
                         "Equals",
-                        new Type[]
+                        new[]
                         {
                             typeof(object),
                             typeof(object)
                         }));
             }
+
             #endregion
 
             #region GetHashCode
+
             {
-                MethodEmitter emitter = new MethodEmitter(typeBuilder);
+                var emitter = new MethodEmitter(typeBuilder);
 
                 emitter.Define(
                     /*  name  */ "GetHashCode",
                     /*  attr  */ MethodAttributes.Public | MethodAttributes.Virtual,
                     /* return */ typeof(int),
-                    /* params */ new Type[] { typeof(object) });
+                    /* params */ new[] { typeof(object) });
 
-                LocalBuilder obj = emitter.CreateLocal(objectType);
+                var obj = emitter.CreateLocal(objectType);
 
                 emitter.LoadArgument(1);
                 emitter.CastAs(objectType);
                 emitter.StoreLocal(obj);
 
-                for (int i = 0; i < props.Length; ++i)
+                for (var i = 0; i < props.Length; ++i)
                 {
-                    Property prop = props[i];
+                    var prop = props[i];
 
                     emitter.LoadLocal(obj);
                     emitter.Chain(prop);
 
-                    Type active = emitter.Active;
+                    var active = emitter.Active;
 
-                    MethodInfo getHashCode = active.GetMethod("GetHashCode", Type.EmptyTypes);
+                    var getHashCode = active.GetMethod("GetHashCode", Type.EmptyTypes);
 
                     if (getHashCode == null)
                         getHashCode = typeof(object).GetMethod("GetHashCode", Type.EmptyTypes);
@@ -183,10 +193,10 @@ namespace Server.Commands.Generic
                     {
                         if (!active.IsValueType)
                         {
-                            LocalBuilder value = emitter.AcquireTemp(active);
+                            var value = emitter.AcquireTemp(active);
 
-                            Label valueNotNull = emitter.CreateLabel();
-                            Label done = emitter.CreateLabel();
+                            var valueNotNull = emitter.CreateLabel();
+                            var done = emitter.CreateLabel();
 
                             emitter.StoreLocal(value);
                             emitter.LoadLocal(value);
@@ -223,15 +233,17 @@ namespace Server.Commands.Generic
                     emitter.Method,
                     typeof(IEqualityComparer<object>).GetMethod(
                         "GetHashCode",
-                        new Type[]
+                        new[]
                         {
                             typeof(object)
                         }));
             }
-            #endregion
+
             #endregion
 
-            Type comparerType = typeBuilder.CreateType();
+            #endregion
+
+            var comparerType = typeBuilder.CreateType();
 
             return (IComparer)Activator.CreateInstance(comparerType);
         }

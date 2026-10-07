@@ -1,17 +1,16 @@
-using System;
-
 namespace Server.Items
 {
     public class EssenceBox : WoodenBox
     {
+        public override int LabelNumber => 1113770; //Essence Box
+
         [Constructable]
         public EssenceBox()
-            : base()
         {
-            this.Movable = true;
-            this.Hue = 2306;
+            Movable = true;
+            Hue = 2306;
 
-           this.DropItem(Loot.RandomEssence());                   
+            DropItem(Loot.RandomEssence());
         }
 
         public EssenceBox(Serial serial)
@@ -19,25 +18,18 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1113770;
-            }
-        }//Essence Box
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

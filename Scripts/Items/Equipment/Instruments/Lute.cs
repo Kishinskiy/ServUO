@@ -1,5 +1,3 @@
-using System;
-
 namespace Server.Items
 {
     public class Lute : BaseInstrument
@@ -8,7 +6,7 @@ namespace Server.Items
         public Lute()
             : base(0xEB3, 0x4C, 0x4D)
         {
-            this.Weight = 5.0;
+            Weight = 5.0;
         }
 
         public Lute(Serial serial)
@@ -20,17 +18,17 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            if (this.Weight == 3.0)
-                this.Weight = 5.0;
+            if (Weight == 3.0)
+                Weight = 5.0;
         }
     }
 }

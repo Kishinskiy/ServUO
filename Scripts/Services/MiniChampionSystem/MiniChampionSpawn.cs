@@ -1,34 +1,111 @@
-using Server;
 using System;
 using System.Collections.Generic;
+using Server.Commands;
 using Server.Gumps;
 using Server.Mobiles;
-using Server.Commands;
-using System.Linq;
 
 namespace Server.Engines.MiniChamps
-{  
+{
     public class MiniChamp : Item
     {
-        public static void Initialize()
+        private static readonly List<MiniChamp> Controllers = new List<MiniChamp>();
+        public List<Mobile> Despawns;
+        private List<MiniChampSpawnInfo> Spawn;
+
+        private bool m_Active;
+        private int m_Level;
+        private int m_SpawnRange;
+        private Timer m_Timer, m_RestartTimer;
+        private MiniChampType m_Type;
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public Point3D BossSpawnPoint { get; set; }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int SpawnRange
         {
-            CommandSystem.Register("GenMiniChamp", AccessLevel.Administrator, new CommandEventHandler(GenStoneRuins_OnCommand));
+            get => m_SpawnRange;
+            set
+            {
+                m_SpawnRange = value;
+                InvalidateProperties();
+            }
         }
 
-        private static List<MiniChamp> Controllers = new List<MiniChamp>();
+        [CommandProperty(AccessLevel.GameMaster)]
+        public TimeSpan RestartDelay { get; set; }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public MiniChampType Type
+        {
+            get => m_Type;
+            set
+            {
+                m_Type = value;
+                InvalidateProperties();
+            }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public bool Active
+        {
+            get => m_Active;
+            set
+            {
+                if (value)
+                    Start();
+                else
+                    Stop();
+            }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int Level
+        {
+            get => m_Level;
+            set
+            {
+                m_Level = value;
+                InvalidateProperties();
+            }
+        }
+
+        [Constructable]
+        public MiniChamp()
+            : base(0xBD2)
+        {
+            Movable = false;
+            Visible = false;
+            Name = "Mini Champion Controller";
+
+            Despawns = new List<Mobile>();
+            Spawn = new List<MiniChampSpawnInfo>();
+            RestartDelay = TimeSpan.FromMinutes(5.0);
+            m_SpawnRange = 30;
+            BossSpawnPoint = Point3D.Zero;
+
+            Controllers.Add(this);
+        }
+
+        public MiniChamp(Serial serial)
+            : base(serial)
+        {
+        }
+
+        public static void Initialize()
+        {
+            CommandSystem.Register("GenMiniChamp", AccessLevel.Administrator, GenStoneRuins_OnCommand);
+        }
 
         [Usage("GenMiniChamp")]
         [Description("MiniChampion Generator")]
         public static void GenStoneRuins_OnCommand(CommandEventArgs e)
         {
-            foreach (var controller in Controllers)
-            {
-                controller.Delete();
-            }
+            foreach (var controller in Controllers) controller.Delete();
 
-            Map map = Map.TerMur;
+            var map = Map.TerMur;
 
-            MiniChamp MiniChamp = new MiniChamp();
+            var MiniChamp = new MiniChamp();
 
             MiniChamp.Type = MiniChampType.CrimsonVeins;
             MiniChamp.MoveToWorld(new Point3D(974, 161, -10), map);
@@ -68,7 +145,7 @@ namespace Server.Engines.MiniChamps
             MiniChamp.Type = MiniChampType.FireTemple;
             MiniChamp.MoveToWorld(new Point3D(546, 760, -91), map);
             MiniChamp.Active = true;
-            
+
             MiniChamp = new MiniChamp();
             MiniChamp.Type = MiniChampType.LandsoftheLich;
             MiniChamp.MoveToWorld(new Point3D(530, 658, 9), map);
@@ -101,76 +178,6 @@ namespace Server.Engines.MiniChamps
             MiniChamp.Active = true;
 
             e.Mobile.SendMessage("Created Mini Champion Spawns.");
-        }
-
-        private bool m_Active;
-        private MiniChampType m_Type;
-        private List<MiniChampSpawnInfo> Spawn;
-        public List<Mobile> Despawns;
-        private int m_Level;
-        private int m_SpawnRange;
-        private TimeSpan m_RestartDelay;
-        private Timer m_Timer, m_RestartTimer;
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public Point3D BossSpawnPoint { get; set; }        
-
-        [Constructable]
-        public MiniChamp()
-            : base(0xBD2)
-        {
-            Movable = false;
-            Visible = false;
-            Name = "Mini Champion Controller";
-
-            Despawns = new List<Mobile>();
-            Spawn = new List<MiniChampSpawnInfo>();
-            m_RestartDelay = TimeSpan.FromMinutes(5.0);
-            m_SpawnRange = 30;
-            BossSpawnPoint = Point3D.Zero;
-
-            Controllers.Add(this);
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int SpawnRange
-        {
-            get { return m_SpawnRange; }
-            set { m_SpawnRange = value; InvalidateProperties(); }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public TimeSpan RestartDelay
-        {
-            get { return m_RestartDelay; }
-            set { m_RestartDelay = value; }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public MiniChampType Type
-        {
-            get { return m_Type; }
-            set { m_Type = value; InvalidateProperties(); }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public bool Active
-        {
-            get { return m_Active; }
-            set
-            {
-                if (value)
-                    Start();
-                else
-                    Stop();
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int Level
-        {
-            get { return m_Level; }
-            set { m_Level = value; InvalidateProperties(); }
         }
 
         public void Start()
@@ -220,10 +227,7 @@ namespace Server.Engines.MiniChamps
 
         public void Despawn()
         {
-            foreach (var toDespawn in Despawns)
-            {
-                toDespawn.Delete();
-            }
+            foreach (var toDespawn in Despawns) toDespawn.Delete();
 
             Despawns.Clear();
         }
@@ -233,53 +237,31 @@ namespace Server.Engines.MiniChamps
             if (!m_Active || Deleted)
                 return;
 
-            bool changed = false;
-            bool done = true;
+            var changed = false;
+            var done = true;
 
             foreach (var spawn in Spawn)
             {
-                if (spawn.Slice() && !changed)
-                {
-                    changed = true;
-                }
+                if (spawn.Slice() && !changed) changed = true;
 
-                if (!spawn.Done && done)
-                {
-                    done = false;
-                }
+                if (!spawn.Done && done) done = false;
             }
 
-            if (done)
-            {
-                AdvanceLevel();
-            }
+            if (done) AdvanceLevel();
 
             if (m_Active)
-            {
                 foreach (var spawn in Spawn)
-                {
                     if (spawn.Respawn() && !changed)
-                    {
                         changed = true;
-                    }
-                }
-            }
 
-            if (done || changed)
-            {
-                InvalidateProperties();
-            }
+            if (done || changed) InvalidateProperties();
         }
 
         public void ClearSpawn()
         {
             foreach (var spawn in Spawn)
-            {
-                foreach (var creature in spawn.Creatures)
-                {
-                    Despawns.Add(creature);
-                }
-            }
+            foreach (var creature in spawn.Creatures)
+                Despawns.Add(creature);
 
             Spawn.Clear();
         }
@@ -288,34 +270,28 @@ namespace Server.Engines.MiniChamps
         {
             Level++;
 
-            MiniChampInfo info = MiniChampInfo.GetInfo(m_Type);
-            MiniChampLevelInfo levelInfo = info.GetLevelInfo(Level);
+            var info = MiniChampInfo.GetInfo(m_Type);
+            var levelInfo = info.GetLevelInfo(Level);
 
             if (levelInfo != null && Level <= info.MaxLevel)
             {
                 ClearSpawn();
 
-                if (m_Type == MiniChampType.MeraktusTheTormented)
-                {
-                    MinotaurShouts();
-                }
+                if (m_Type == MiniChampType.MeraktusTheTormented) MinotaurShouts();
 
-                foreach(var type in levelInfo.Types)
-                {
-                    Spawn.Add(new MiniChampSpawnInfo(this, type));
-                }
+                foreach (var type in levelInfo.Types) Spawn.Add(new MiniChampSpawnInfo(this, type));
             }
             else // begin restart
             {
                 Stop();
 
-                m_RestartTimer = Timer.DelayCall(m_RestartDelay, new TimerCallback(Start));
+                m_RestartTimer = Timer.DelayCall(RestartDelay, Start);
             }
         }
 
         private void MinotaurShouts()
         {
-            int cliloc = 0;
+            var cliloc = 0;
 
             switch (Level)
             {
@@ -337,11 +313,9 @@ namespace Server.Engines.MiniChamps
 
             IPooledEnumerable eable = GetMobilesInRange(m_SpawnRange);
 
-            foreach(Mobile x in eable)
-            {
+            foreach (Mobile x in eable)
                 if (x is PlayerMobile)
                     x.SendLocalizedMessage(cliloc);
-            }
 
             eable.Free();
         }
@@ -355,15 +329,12 @@ namespace Server.Engines.MiniChamps
 
             if (m_Active)
             {
-                MiniChampInfo info = MiniChampInfo.GetInfo(m_Type);
+                var info = MiniChampInfo.GetInfo(m_Type);
 
                 list.Add(1060742); // active
                 list.Add("Level {0} / {1}", Level, info != null ? info.MaxLevel.ToString() : "???"); // ~1_val~: ~2_val~
 
-                for (int i = 0; i < Spawn.Count; i++)
-                {
-                    Spawn[i].AddProperties(list, i + 1150301);
-                }
+                for (var i = 0; i < Spawn.Count; i++) Spawn[i].AddProperties(list, i + 1150301);
             }
             else
             {
@@ -384,30 +355,22 @@ namespace Server.Engines.MiniChamps
             base.OnDelete();
         }
 
-        public MiniChamp(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
             writer.Write(BossSpawnPoint);
-            writer.Write((bool)m_Active);
+            writer.Write(m_Active);
             writer.Write((int)m_Type);
-            writer.Write((int)m_Level);
-            writer.Write((int)m_SpawnRange);
-            writer.Write((TimeSpan)m_RestartDelay);
+            writer.Write(m_Level);
+            writer.Write(m_SpawnRange);
+            writer.Write(RestartDelay);
 
-            writer.Write((int)Spawn.Count);
+            writer.Write(Spawn.Count);
 
-            for (int i = 0; i < Spawn.Count; i++)
-            {
-                Spawn[i].Serialize(writer);
-            }
+            for (var i = 0; i < Spawn.Count; i++) Spawn[i].Serialize(writer);
 
             writer.Write(Despawns, true);
         }
@@ -416,42 +379,39 @@ namespace Server.Engines.MiniChamps
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             switch (version)
             {
                 case 0:
+                {
+                    Spawn = new List<MiniChampSpawnInfo>();
+
+                    BossSpawnPoint = reader.ReadPoint3D();
+                    m_Active = reader.ReadBool();
+                    m_Type = (MiniChampType)reader.ReadInt();
+                    m_Level = reader.ReadInt();
+                    m_SpawnRange = reader.ReadInt();
+                    RestartDelay = reader.ReadTimeSpan();
+
+                    var spawnCount = reader.ReadInt();
+
+                    for (var i = 0; i < spawnCount; i++) Spawn.Add(new MiniChampSpawnInfo(reader));
+
+                    Despawns = reader.ReadStrongMobileList();
+
+                    if (m_Active)
                     {
-                        Spawn = new List<MiniChampSpawnInfo>();
-
-                        BossSpawnPoint = reader.ReadPoint3D();
-                        m_Active = reader.ReadBool();
-                        m_Type = (MiniChampType)reader.ReadInt();
-                        m_Level = reader.ReadInt();
-                        m_SpawnRange = reader.ReadInt();
-                        m_RestartDelay = reader.ReadTimeSpan();
-
-                        int spawnCount = reader.ReadInt();
-
-                        for (int i = 0; i < spawnCount; i++)
-                        {
-                            Spawn.Add(new MiniChampSpawnInfo(reader));
-                        }
-
-                        Despawns = reader.ReadStrongMobileList();
-
-                        if (m_Active)
-                        {
-                            m_Timer = new SliceTimer(this);
-                            m_Timer.Start();
-                        }
-                        else
-                        {
-                            m_RestartTimer = Timer.DelayCall(m_RestartDelay, new TimerCallback(Start));
-                        }
-
-                        break;
+                        m_Timer = new SliceTimer(this);
+                        m_Timer.Start();
                     }
+                    else
+                    {
+                        m_RestartTimer = Timer.DelayCall(RestartDelay, Start);
+                    }
+
+                    break;
+                }
             }
 
             Controllers.Add(this);
@@ -460,7 +420,7 @@ namespace Server.Engines.MiniChamps
 
     public class SliceTimer : Timer
     {
-        private MiniChamp m_Controller;
+        private readonly MiniChamp m_Controller;
 
         public SliceTimer(MiniChamp controller)
             : base(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1))

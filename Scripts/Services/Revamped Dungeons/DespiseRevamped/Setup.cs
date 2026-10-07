@@ -1,9 +1,6 @@
-using Server;
-using System;
+using Server.Commands;
 using Server.Items;
 using Server.Mobiles;
-using Server.Commands;
-using System.Collections.Generic;
 
 namespace Server.Engines.Despise
 {
@@ -11,8 +8,8 @@ namespace Server.Engines.Despise
     {
         public static void Initialize()
         {
-            CommandSystem.Register("SetupDespise", AccessLevel.GameMaster, new CommandEventHandler(SetupDespise_OnCommand));
-            CommandSystem.Register("DeleteDespise", AccessLevel.GameMaster, new CommandEventHandler(DeleteDespise_OnCommand));
+            CommandSystem.Register("SetupDespise", AccessLevel.GameMaster, SetupDespise_OnCommand);
+            CommandSystem.Register("DeleteDespise", AccessLevel.GameMaster, DeleteDespise_OnCommand);
         }
 
         private static void DeleteDespise_OnCommand(CommandEventArgs e)
@@ -27,11 +24,11 @@ namespace Server.Engines.Despise
             {
                 DespiseController.RemoveAnkh();
 
-                DespiseController controller = new DespiseController();
+                var controller = new DespiseController();
                 WeakEntityCollection.Add("despise", controller);
                 controller.MoveToWorld(new Point3D(5571, 626, 30), Map.Trammel);
 
-                DespiseAnkh ankh = new DespiseAnkh(Alignment.Good);
+                var ankh = new DespiseAnkh(Alignment.Good);
                 WeakEntityCollection.Add("despise", ankh);
                 ankh.MoveToWorld(new Point3D(5474, 525, 79), Map.Trammel);
 
@@ -46,15 +43,14 @@ namespace Server.Engines.Despise
                 DespiseTeleporter tele = null;
 
                 //Wisp
-                MysteriousWisp wisp = new MysteriousWisp();
+                var wisp = new MysteriousWisp();
                 WeakEntityCollection.Add("despise", wisp);
                 wisp.MoveToWorld(new Point3D(1303, 1088, 0), Map.Trammel);
 
                 foreach (Item item in eable)
-                {
                     if (item is Teleporter)
                     {
-                        Teleporter old = (Teleporter)item;
+                        var old = (Teleporter)item;
 
                         tele = new DespiseTeleporter();
                         WeakEntityCollection.Add("despise", tele);
@@ -64,13 +60,15 @@ namespace Server.Engines.Despise
 
                         old.Delete();
                     }
-                }
+
                 eable.Free();
 
                 e.Mobile.SendMessage("Despise setup complete");
             }
             else
+            {
                 e.Mobile.SendMessage("Despise appears to already be setup");
+            }
 
             DespiseController.Instance.CheckSpawnersVersion3();
         }
@@ -78,8 +76,8 @@ namespace Server.Engines.Despise
         public static void SetupTeleporters()
         {
             //Gate1
-            GateTeleporter gate1 = new GateTeleporter(3948, 1965, new Point3D(5458, 610, 50), Map.Trammel);
-            GateTeleporter gate2 = new GateTeleporter(3948, 1960, new Point3D(5476, 737, 5), Map.Trammel);
+            var gate1 = new GateTeleporter(3948, 1965, new Point3D(5458, 610, 50), Map.Trammel);
+            var gate2 = new GateTeleporter(3948, 1960, new Point3D(5476, 737, 5), Map.Trammel);
             WeakEntityCollection.Add("despise", gate1);
             WeakEntityCollection.Add("despise", gate2);
 

@@ -1,12 +1,10 @@
-using System;
-using Server;
 using Server.Gumps;
 
 namespace Server.Items
 {
     public class Anniversary22GiftToken : Item, IRewardOption
     {
-        public override int LabelNumber { get { return 1159145; } } // 22nd Anniversary Gift Token
+        public override int LabelNumber => 1159145; // 22nd Anniversary Gift Token
 
         [Constructable]
         public Anniversary22GiftToken()
@@ -16,17 +14,9 @@ namespace Server.Items
             LootType = LootType.Blessed;
         }
 
-        public override void OnDoubleClick(Mobile from)
+        public Anniversary22GiftToken(Serial serial)
+            : base(serial)
         {
-            if (IsChildOf(from.Backpack))
-            {
-                from.CloseGump(typeof(RewardOptionGump));
-                from.SendGump(new RewardOptionGump(this, 1156888));
-            }
-            else
-            {
-                from.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.
-            }
         }
 
         public void GetOptions(RewardOptionList list)
@@ -43,7 +33,7 @@ namespace Server.Items
             var bag = new Bag();
             bag.Hue = 1286;
 
-            bool chance = Utility.RandomDouble() < .1;
+            var chance = Utility.RandomDouble() < .1;
 
             Item item;
 
@@ -53,66 +43,51 @@ namespace Server.Items
                     bag.Delete();
                     break;
                 case 1:
-                    {
-                        item = new CopperWings();
+                {
+                    item = new CopperWings();
 
-                        if (chance)
-                        {
-                            item.Hue = 2951;
-                        }
+                    if (chance) item.Hue = 2951;
 
-                        bag.DropItem(item);
-                        from.AddToBackpack(bag);
-                        Delete();
-                        break;
-                    }
+                    bag.DropItem(item);
+                    from.AddToBackpack(bag);
+                    Delete();
+                    break;
+                }
                 case 2:
-                    {
-                        item = new CopperPortrait1();
+                {
+                    item = new CopperPortrait1();
 
-                        if (chance)
-                        {
-                            item.Hue = 2951;
-                        }
+                    if (chance) item.Hue = 2951;
 
-                        bag.DropItem(item);
+                    bag.DropItem(item);
 
-                        item = new CopperPortrait2();
+                    item = new CopperPortrait2();
 
-                        if (chance)
-                        {
-                            item.Hue = 2951;
-                        }
+                    if (chance) item.Hue = 2951;
 
-                        bag.DropItem(item);
+                    bag.DropItem(item);
 
-                        from.AddToBackpack(bag);
-                        Delete();
-                        break;
-                    }
-                    
+                    from.AddToBackpack(bag);
+                    Delete();
+                    break;
+                }
+
                 case 3:
-                    {
-                        item = new CopperShipReliefAddonDeed();
+                {
+                    item = new CopperShipReliefAddonDeed();
 
-                        if (chance)
-                        {
-                            item.Hue = 2951;
-                        }
+                    if (chance) item.Hue = 2951;
 
-                        bag.DropItem(item);
+                    bag.DropItem(item);
 
-                        from.AddToBackpack(bag);
-                        Delete();
-                        break;
-                    }
+                    from.AddToBackpack(bag);
+                    Delete();
+                    break;
+                }
                 case 4:
                     item = new CopperSunflower();
 
-                    if (chance)
-                    {
-                        item.Hue = 2951;
-                    }
+                    if (chance) item.Hue = 2951;
 
                     bag.DropItem(item);
 
@@ -122,21 +97,29 @@ namespace Server.Items
             }
         }
 
-        public Anniversary22GiftToken(Serial serial)
-            : base(serial)
+        public override void OnDoubleClick(Mobile from)
         {
+            if (IsChildOf(from.Backpack))
+            {
+                from.CloseGump(typeof(RewardOptionGump));
+                from.SendGump(new RewardOptionGump(this, 1156888));
+            }
+            else
+            {
+                from.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.
+            }
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

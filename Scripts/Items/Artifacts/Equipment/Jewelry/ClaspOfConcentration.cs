@@ -1,10 +1,11 @@
-using System;
-
 namespace Server.Items
 {
     public class ClaspOfConcentration : SilverBracelet
-	{
-		public override bool IsArtifact { get { return true; } }
+    {
+        public override bool IsArtifact => true;
+
+        public override int LabelNumber => 1077695; // Clasp of Concentration
+
         [Constructable]
         public ClaspOfConcentration()
         {
@@ -20,13 +21,6 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1077695;
-            }
-        }// Clasp of Concentration
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -38,7 +32,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

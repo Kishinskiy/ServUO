@@ -1,29 +1,46 @@
 using System;
-using Server;
-using Server.Mobiles;
-using Server.ContextMenus;
 using System.Collections.Generic;
+using Server.ContextMenus;
+using Server.Mobiles;
 using Server.Network;
+using Server.Spells;
 
 namespace Server.Items
 {
     public class UndertakersStaff : GnarledStaff
     {
-        private static Dictionary<Mobile, CorpseRetrieveTimer> _Timers = new Dictionary<Mobile, CorpseRetrieveTimer>();
+        private static readonly Dictionary<Mobile, CorpseRetrieveTimer> _Timers =
+            new Dictionary<Mobile, CorpseRetrieveTimer>();
 
         private int _Charges;
         private bool _SummonAll;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int Charges { get { return _Charges; } set { _Charges = value; InvalidateProperties(); } }
+        public int Charges
+        {
+            get => _Charges;
+            set
+            {
+                _Charges = value;
+                InvalidateProperties();
+            }
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public bool SummonAll { get { return _SummonAll; } set { _SummonAll = value; InvalidateProperties(); } }
+        public bool SummonAll
+        {
+            get => _SummonAll;
+            set
+            {
+                _SummonAll = value;
+                InvalidateProperties();
+            }
+        }
 
-        public override int LabelNumber { get { return 1071498; } } // Undertaker's Staff
-        public override bool IsArtifact { get { return true; } }
-		public override int InitMinHits { get { return 255; } }
-        public override int InitMaxHits { get { return 255; } }
+        public override int LabelNumber => 1071498; // Undertaker's Staff
+        public override bool IsArtifact => true;
+        public override int InitMinHits => 255;
+        public override int InitMaxHits => 255;
 
         [Constructable]
         public UndertakersStaff()
@@ -35,10 +52,15 @@ namespace Server.Items
             SummonAll = true;
         }
 
+        public UndertakersStaff(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void GetProperties(ObjectPropertyList list)
         {
             base.GetProperties(list);
-            list.Add(1071518, String.Format("#{0}", _SummonAll ? "1071508" : "1071507"));
+            list.Add(1071518, string.Format("#{0}", _SummonAll ? "1071508" : "1071507"));
             list.Add(1060584, _Charges.ToString());
         }
 
@@ -49,18 +71,18 @@ namespace Server.Items
             if (IsChildOf(from.Backpack))
             {
                 var entry1 = new SimpleContextMenuEntry(from, 1071507, m =>
-                    {
-                        SummonAll = false;
-                        InvalidateProperties();
-                    }); // Summon Most Recent Corpse Only
+                {
+                    SummonAll = false;
+                    InvalidateProperties();
+                }); // Summon Most Recent Corpse Only
 
-                var entry2 = new SimpleContextMenuEntry(from, 1071508, m => 
-                    {
-                        _SummonAll = true;
-                        InvalidateProperties();
-                    }); // Summon All Corpses
+                var entry2 = new SimpleContextMenuEntry(from, 1071508, m =>
+                {
+                    _SummonAll = true;
+                    InvalidateProperties();
+                }); // Summon All Corpses
 
-                if(_SummonAll)
+                if (_SummonAll)
                     entry2.Flags |= CMEFlags.Highlighted;
                 else
                     entry1.Flags |= CMEFlags.Highlighted;
@@ -75,10 +97,7 @@ namespace Server.Items
 
         public override void OnDoubleClick(Mobile m)
         {
-            if (!_Timers.ContainsKey(m) && (IsChildOf(m.Backpack) || m.FindItemOnLayer(Layer) == this))
-            {
-                TryGetCorpse(m);
-            }
+            if (!_Timers.ContainsKey(m) && (IsChildOf(m.Backpack) || m.FindItemOnLayer(Layer) == this)) TryGetCorpse(m);
         }
 
         private void TryGetCorpse(Mobile m)
@@ -93,13 +112,16 @@ namespace Server.Items
 
                     if (corpses != null)
                     {
-                        m.SendLocalizedMessage(1071527, corpses.Count.ToString()); // The staff reaches out to ~1_COUNT~ of your corpses and tries to draw them to you...
+                        m.SendLocalizedMessage(1071527,
+                            corpses.Count
+                                .ToString()); // The staff reaches out to ~1_COUNT~ of your corpses and tries to draw them to you...
 
-                         _Timers[m] = new CorpseRetrieveTimer(m, corpses, this);
+                        _Timers[m] = new CorpseRetrieveTimer(m, corpses, this);
                     }
                     else
                     {
-                        m.SendLocalizedMessage(1071511); // The staff glows slightly, then fades. Its magic is unable to locate a corpse of yours to recover.
+                        m.SendLocalizedMessage(
+                            1071511); // The staff glows slightly, then fades. Its magic is unable to locate a corpse of yours to recover.
                     }
                 }
                 else
@@ -108,13 +130,15 @@ namespace Server.Items
 
                     if (corpse != null)
                     {
-                        m.SendLocalizedMessage(1071528); // The staff reaches out to your corpse and tries to draw it to you...
-                    
+                        m.SendLocalizedMessage(
+                            1071528); // The staff reaches out to your corpse and tries to draw it to you...
+
                         _Timers[m] = new CorpseRetrieveTimer(m, new List<Corpse> { corpse }, this);
                     }
                     else
                     {
-                        m.SendLocalizedMessage(1071511); // The staff glows slightly, then fades. Its magic is unable to locate a corpse of yours to recover.
+                        m.SendLocalizedMessage(
+                            1071511); // The staff glows slightly, then fades. Its magic is unable to locate a corpse of yours to recover.
                     }
                 }
             }
@@ -122,12 +146,13 @@ namespace Server.Items
 
         private bool CanGetCorpse(Mobile m, bool firstCheck = true)
         {
-            if(m.Criminal)
+            if (m.Criminal)
             {
                 m.SendLocalizedMessage(1071510); // You are a criminal and cannot use this item...
                 return false;
             }
-            else if (Spells.SpellHelper.CheckCombat(m))
+
+            if (SpellHelper.CheckCombat(m))
             {
                 m.SendLocalizedMessage(1071514); // You cannot use this item during the heat of battle.
                 return false;
@@ -143,22 +168,23 @@ namespace Server.Items
 
             if (corpses == null || corpses.Count == 0)
             {
-                m.SendLocalizedMessage(1071511); // The staff glows slightly, then fades. Its magic is unable to locate a corpse of yours to recover.
+                m.SendLocalizedMessage(
+                    1071511); // The staff glows slightly, then fades. Its magic is unable to locate a corpse of yours to recover.
                 return;
             }
 
-            bool tooFar = false;
-            bool notEnoughTime = false;
-            bool tooManySummons = false;
-            bool success = true;
+            var tooFar = false;
+            var notEnoughTime = false;
+            var tooManySummons = false;
+            var success = true;
 
             if (_SummonAll)
             {
-                List<Corpse> copy = new List<Corpse>(corpses);
+                var copy = new List<Corpse>(corpses);
 
                 foreach (var c in copy)
                 {
-                    bool remove = false;
+                    var remove = false;
 
                     if (c.Map != m.Map)
                     {
@@ -166,7 +192,8 @@ namespace Server.Items
                         tooFar = true;
                     }
 
-                    if (c.Killer is PlayerMobile && c.Killer != m && c.TimeOfDeath + TimeSpan.FromSeconds(180) > DateTime.UtcNow)
+                    if (c.Killer is PlayerMobile && c.Killer != m &&
+                        c.TimeOfDeath + TimeSpan.FromSeconds(180) > DateTime.UtcNow)
                     {
                         remove = true;
                         notEnoughTime = true;
@@ -187,12 +214,13 @@ namespace Server.Items
             }
             else
             {
-                Corpse c = corpses[0];
+                var c = corpses[0];
 
                 if (c.Map != m.Map)
                     tooFar = true;
 
-                if (c.Killer is PlayerMobile && c.Killer != m && c.TimeOfDeath + TimeSpan.FromSeconds(180) > DateTime.UtcNow)
+                if (c.Killer is PlayerMobile && c.Killer != m &&
+                    c.TimeOfDeath + TimeSpan.FromSeconds(180) > DateTime.UtcNow)
                     notEnoughTime = true;
 
                 if (Corpse.PlayerCorpses != null && Corpse.PlayerCorpses.ContainsKey(c) && Corpse.PlayerCorpses[c] >= 3)
@@ -203,7 +231,8 @@ namespace Server.Items
                     if (tooFar)
                         m.SendLocalizedMessage(1071512); // ...but the corpse is too far away!
                     else if (notEnoughTime)
-                        m.SendLocalizedMessage(1071515); // ...but not enough time has passed since you were slain in battle!
+                        m.SendLocalizedMessage(
+                            1071515); // ...but not enough time has passed since you were slain in battle!
                     else
                         m.SendLocalizedMessage(1071517); // ...but the corpse has already been summoned too many times!
 
@@ -225,17 +254,21 @@ namespace Server.Items
 
                 if (_SummonAll)
                 {
-                    m.SendLocalizedMessage(1071530, corpses.Count.ToString()); // ...and succeeds in summoning ~1_COUNT~ of them!
+                    m.SendLocalizedMessage(1071530,
+                        corpses.Count.ToString()); // ...and succeeds in summoning ~1_COUNT~ of them!
 
                     if (tooFar)
                         m.SendLocalizedMessage(1071513); // ...but one of them is too far away!
                     else if (notEnoughTime)
-                        m.SendLocalizedMessage(1071516); // ...but one of them deflects the magic because of the stain of war!
+                        m.SendLocalizedMessage(
+                            1071516); // ...but one of them deflects the magic because of the stain of war!
                     else if (tooManySummons)
                         m.SendLocalizedMessage(1071519); // ...but one of them has already been summoned too many times!
                 }
                 else
+                {
                     m.SendLocalizedMessage(1071529); // ...and succeeds in the summoning of it!
+                }
 
                 if (Charges <= 0)
                 {
@@ -254,13 +287,11 @@ namespace Server.Items
             if (Corpse.PlayerCorpses == null)
                 return 0;
 
-            int count = 0;
+            var count = 0;
 
             foreach (var kvp in Corpse.PlayerCorpses)
-            {
                 if (kvp.Key.Owner == m && kvp.Value < 3)
                     count++;
-            }
 
             return count;
         }
@@ -279,7 +310,7 @@ namespace Server.Items
                     if (list == null)
                         list = new List<Corpse>();
 
-                    if(!list.Contains(kvp.Key))
+                    if (!list.Contains(kvp.Key))
                         list.Add(kvp.Key);
                 }
 
@@ -320,12 +351,28 @@ namespace Server.Items
         public bool IsSummoning()
         {
             foreach (var timer in _Timers.Values)
-            {
                 if (timer.Staff == this)
                     return true;
-            }
 
             return false;
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0); // version
+
+            writer.Write(_Charges);
+            writer.Write(_SummonAll);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            reader.ReadInt();
+
+            _Charges = reader.ReadInt();
+            _SummonAll = reader.ReadBool();
         }
 
         public class CorpseRetrieveTimer : Timer
@@ -348,29 +395,6 @@ namespace Server.Items
             {
                 Staff.TryEndSummon(From, Corpses);
             }
-        }
-
-        public UndertakersStaff(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.Write((int)0); // version
-
-            writer.Write(_Charges);
-            writer.Write(_SummonAll);
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            reader.ReadInt();
-
-            _Charges = reader.ReadInt();
-            _SummonAll = reader.ReadBool();
         }
     }
 }

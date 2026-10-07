@@ -1,10 +1,6 @@
 using System;
-using Server;
-using Server.Network;
-using Server.Regions;
 using Server.Mobiles;
-using Server.Items;
-using Server.Targeting;
+using Server.Network;
 
 namespace Server.Items
 {
@@ -18,10 +14,7 @@ namespace Server.Items
             Weight = 1;
             Movable = false;
 
-            Timer.DelayCall(TimeSpan.FromMinutes(10.0), delegate()
-            {
-                Delete();
-            });
+            Timer.DelayCall(TimeSpan.FromMinutes(10.0), delegate { Delete(); });
         }
 
         public CreepyWeeds(Serial serial)
@@ -34,8 +27,8 @@ namespace Server.Items
             if (!CheckUse(from))
                 return;
 
-            Map map = Map;
-            Point3D loc = Location;
+            var map = Map;
+            var loc = Location;
 
             if (map != null && map != Map.Internal && from.InRange(loc, 1) && from.InLOS(this))
             {
@@ -58,16 +51,20 @@ namespace Server.Items
                     case 4:
                         new Ballem().MoveToWorld(loc, map);
                         break;
-                    case 5: case 10: case 15:
-						if (Utility.RandomDouble() < 0.20)
+                    case 5:
+                    case 10:
+                    case 15:
+                        if (Utility.RandomDouble() < 0.20)
                         {
                             from.AddToBackpack(new FNPitchfork());
 
-                            from.SendMessage("You find Farmer Nash's pitchfork under one of the brambles of weeds. You pick up the pitchfork and put it in your backpack."); 
+                            from.SendMessage(
+                                "You find Farmer Nash's pitchfork under one of the brambles of weeds. You pick up the pitchfork and put it in your backpack.");
                         }
-						break;
-                  }
-             }
+
+                        break;
+                }
+            }
         }
 
         public override void Serialize(GenericWriter writer)
@@ -81,26 +78,22 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
 
         protected virtual bool CheckUse(Mobile from)
         {
-            PlayerMobile pm = from as PlayerMobile;
+            var pm = from as PlayerMobile;
 
-            if (Deleted || !IsAccessibleTo(from))
-            {
-                return false;
-            }
-            else if (from.Map != Map || !from.InRange(GetWorldLocation(), 1))
+            if (Deleted || !IsAccessibleTo(from)) return false;
+
+            if (from.Map != Map || !from.InRange(GetWorldLocation(), 1))
             {
                 from.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1019045); // I can't reach that.
                 return false;
             }
-            else
-            {
-                return true;
-            }
+
+            return true;
         }
     }
 }

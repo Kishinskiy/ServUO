@@ -5,6 +5,9 @@ namespace Server.Mobiles
     public class AnimalBuyInfo : GenericBuyInfo
     {
         private readonly int m_ControlSlots;
+
+        public override int ControlSlots => m_ControlSlots;
+
         public AnimalBuyInfo(int controlSlots, Type type, int price, int amount, int itemID, int hue)
             : this(controlSlots, null, type, price, amount, itemID, hue)
         {
@@ -14,14 +17,6 @@ namespace Server.Mobiles
             : base(name, type, price, amount, itemID, hue)
         {
             m_ControlSlots = controlSlots;
-        }
-
-        public override int ControlSlots
-        {
-            get
-            {
-                return m_ControlSlots;
-            }
         }
     }
 }

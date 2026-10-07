@@ -1,8 +1,7 @@
 using System;
-using Server;
-using Server.Engines.Craft;
-using Server.ContextMenus;
 using System.Collections.Generic;
+using Server.ContextMenus;
+using Server.Engines.Craft;
 using Server.Multis;
 using Server.Network;
 
@@ -14,14 +13,14 @@ namespace Server.Items
         private int _LabelNumber;
         private bool _TurnedOn;
 
-        public override CraftSystem CraftSystem { get { return _CraftSystem; } }
-        public override bool BreakOnDepletion { get { return false; } }
-        public override bool ForceShowProperties { get { return true; } }
-        public override int LabelNumber { get { return _LabelNumber; } }
+        public override CraftSystem CraftSystem => _CraftSystem;
+        public override bool BreakOnDepletion => false;
+        public override bool ForceShowProperties => true;
+        public override int LabelNumber => _LabelNumber;
 
-        public virtual bool NeedsWall { get { return false; } }
-        public virtual int MaxUses { get { return 5000; } }
-        public virtual Point3D WallPosition { get { return Point3D.Zero; } }
+        public virtual bool NeedsWall => false;
+        public virtual int MaxUses => 5000;
+        public virtual Point3D WallPosition => Point3D.Zero;
 
         [CommandProperty(AccessLevel.GameMaster)]
         public CraftAddon Addon { get; set; }
@@ -44,10 +43,7 @@ namespace Server.Items
         [CommandProperty(AccessLevel.GameMaster)]
         public bool TurnedOn
         {
-            get
-            {
-                return _TurnedOn;
-            }
+            get => _TurnedOn;
             set
             {
                 if (_TurnedOn != value)
@@ -62,12 +58,14 @@ namespace Server.Items
             }
         }
 
-        public AddonToolComponent(CraftSystem system, int inactiveid, int activeid, int cliloc, int uses, CraftAddon addon)
+        public AddonToolComponent(CraftSystem system, int inactiveid, int activeid, int cliloc, int uses,
+            CraftAddon addon)
             : this(system, inactiveid, activeid, 0, 0, cliloc, uses, addon)
         {
         }
 
-        public AddonToolComponent(CraftSystem system, int inactiveid, int activeid, int inactivemessage, int activemessage, int cliloc, int uses, CraftAddon addon)
+        public AddonToolComponent(CraftSystem system, int inactiveid, int activeid, int inactivemessage,
+            int activemessage, int cliloc, int uses, CraftAddon addon)
             : base(0, inactiveid)
         {
             _CraftSystem = system;
@@ -82,6 +80,11 @@ namespace Server.Items
             ActiveMessage = activemessage;
 
             UsesRemaining = uses;
+        }
+
+        public AddonToolComponent(Serial serial)
+            : base(serial)
+        {
         }
 
         public void OnChop(Mobile from)
@@ -99,30 +102,30 @@ namespace Server.Items
             if (Addon == null)
                 return;
 
-            BaseHouse house = BaseHouse.FindHouseAt(this);
+            var house = BaseHouse.FindHouseAt(this);
 
             if (house != null && house.HasSecureAccess(from, Addon.Level))
             {
                 list.Add(new SimpleContextMenuEntry(from, 1155742, m => // Toggle: On/Off
                 {
-                        if (_TurnedOn)
-                        {
-                            TurnedOn = false;
+                    if (_TurnedOn)
+                    {
+                        TurnedOn = false;
 
-                            if (InactiveMessage != 0)
-                                PrivateOverheadMessage(MessageType.Regular, 0x3B2, InactiveMessage, from.NetState);
-                        }
-                        else
-                        {
-                            TurnedOn = true;
+                        if (InactiveMessage != 0)
+                            PrivateOverheadMessage(MessageType.Regular, 0x3B2, InactiveMessage, from.NetState);
+                    }
+                    else
+                    {
+                        TurnedOn = true;
 
-                            if (ActiveMessage != 0)
-                            {
-                                PrivateOverheadMessage(MessageType.Regular, 0x3B2, ActiveMessage, from.NetState);
-                                from.PlaySound(84);
-                            }
+                        if (ActiveMessage != 0)
+                        {
+                            PrivateOverheadMessage(MessageType.Regular, 0x3B2, ActiveMessage, from.NetState);
+                            from.PlaySound(84);
                         }
-                    }, 8));
+                    }
+                }, 8));
 
                 SetSecureLevelEntry.AddTo(from, Addon, list);
             }
@@ -132,7 +135,7 @@ namespace Server.Items
         {
             if (m.InRange(GetWorldLocation(), 2))
             {
-                BaseHouse house = BaseHouse.FindHouseAt(m);
+                var house = BaseHouse.FindHouseAt(m);
 
                 if (house == null || Addon == null || !house.HasSecureAccess(m, Addon.Level))
                 {
@@ -182,7 +185,7 @@ namespace Server.Items
 
         public override bool OnDragDrop(Mobile from, Item dropped)
         {
-            BaseHouse house = BaseHouse.FindHouseAt(this);
+            var house = BaseHouse.FindHouseAt(this);
 
             if (house != null && Addon != null && house.HasSecureAccess(from, Addon.Level))
             {
@@ -194,11 +197,12 @@ namespace Server.Items
                     {
                         if (UsesRemaining >= MaxUses)
                         {
-                            from.SendLocalizedMessage(1155740); // Adding this to the power tool would put it over the max number of charges the tool can hold.
+                            from.SendLocalizedMessage(
+                                1155740); // Adding this to the power tool would put it over the max number of charges the tool can hold.
                         }
                         else
                         {
-                            int toadd = Math.Min(tool.UsesRemaining, MaxUses - UsesRemaining);
+                            var toadd = Math.Min(tool.UsesRemaining, MaxUses - UsesRemaining);
 
                             UsesRemaining += toadd;
                             tool.UsesRemaining -= toadd;
@@ -229,15 +233,10 @@ namespace Server.Items
             return false;
         }
 
-        public AddonToolComponent(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1);
+            writer.Write(1);
 
             writer.Write(InactiveMessage);
             writer.Write(ActiveMessage);
@@ -252,27 +251,27 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             switch (version)
             {
                 case 1:
-                    {
-                        InactiveMessage = reader.ReadInt();
-                        ActiveMessage = reader.ReadInt();
-                        goto case 0;
-                    }
+                {
+                    InactiveMessage = reader.ReadInt();
+                    ActiveMessage = reader.ReadInt();
+                    goto case 0;
+                }
                 case 0:
-                    {
-                        Offset = reader.ReadPoint3D();
-                        Addon = reader.ReadItem() as CraftAddon;
-                        _LabelNumber = reader.ReadInt();
-                        ActiveID = reader.ReadInt();
-                        InactiveID = reader.ReadInt();
-                        TurnedOn = reader.ReadBool();
-                        break;
-                    }
-            }            
+                {
+                    Offset = reader.ReadPoint3D();
+                    Addon = reader.ReadItem() as CraftAddon;
+                    _LabelNumber = reader.ReadInt();
+                    ActiveID = reader.ReadInt();
+                    InactiveID = reader.ReadInt();
+                    TurnedOn = reader.ReadBool();
+                    break;
+                }
+            }
 
             if (Addon != null)
                 Addon.OnCraftComponentLoaded(this);

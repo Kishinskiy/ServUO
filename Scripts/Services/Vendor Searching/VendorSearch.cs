@@ -1,44 +1,57 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
-using System.IO;
-
-using Server;
+using Server.Commands;
+using Server.ContextMenus;
+using Server.Engines.Auction;
+using Server.Engines.Plants;
+using Server.Factions;
+using Server.Gumps;
 using Server.Items;
 using Server.Mobiles;
-using Server.ContextMenus;
-using Server.Commands;
-using Server.Targeting;
 using Server.Regions;
-using Server.Gumps;
-using Server.Engines.Auction;
+using Server.Targeting;
+using Ultima;
 
 namespace Server.Engines.VendorSearching
 {
-	public class VendorSearch
-	{
+    public class VendorSearch
+    {
         public static string FilePath = Path.Combine("Saves/Misc", "VendorSearch.bin");
-        public static Ultima.StringList StringList { get; private set; }
+
+        private static readonly Type[] _SearchableContainers =
+        {
+            typeof(BaseQuiver), typeof(BaseResourceSatchel),
+            typeof(FishBowl), typeof(FirstAidBelt),
+            typeof(SeedBox), typeof(BaseSpecialScrollBook),
+            typeof(GardenShedBarrel), typeof(JewelryBox)
+        };
+
+        public static StringList StringList { get; private set; }
+
+        public static Dictionary<PlayerMobile, SearchCriteria> Contexts { get; set; }
+        public static List<SearchCategory> Categories { get; set; }
+
+        public static Dictionary<string, Type> Keywords { get; set; }
 
         public static List<SearchItem> DoSearchAuction(Mobile m, SearchCriteria criteria)
         {
             if (criteria == null || Auction.Auction.Auctions == null || Auction.Auction.Auctions.Count == 0)
-            {
                 return null;
-            }
 
-            List<SearchItem> list = new List<SearchItem>();
-            bool excludefel = criteria.Details.FirstOrDefault(d => d.Attribute is Misc && (Misc)d.Attribute == Misc.ExcludeFel) != null;
+            var list = new List<SearchItem>();
+            var excludefel =
+                criteria.Details.FirstOrDefault(d => d.Attribute is Misc && (Misc)d.Attribute == Misc.ExcludeFel) !=
+                null;
 
-            foreach (Auction.Auction pv in Auction.Auction.Auctions.Where(pv => pv.AuctionItem != null &&
-                                                                                pv.AuctionItem.Map != Map.Internal &&
-                                                                               pv.AuctionItem.Map != null &&
-                                                                               pv.OnGoing &&
-                                                                               (!excludefel || pv.AuctionItem.Map != Map.Felucca)))
-            {
+            foreach (var pv in Auction.Auction.Auctions.Where(pv => pv.AuctionItem != null &&
+                                                                    pv.AuctionItem.Map != Map.Internal &&
+                                                                    pv.AuctionItem.Map != null &&
+                                                                    pv.OnGoing &&
+                                                                    (!excludefel || pv.AuctionItem.Map != Map.Felucca)))
                 list.Add(new SearchItem(pv.Safe, pv.AuctionItem, (int)pv.Buyout, false));
-            }
 
             switch (criteria.SortBy)
             {
@@ -54,23 +67,25 @@ namespace Server.Engines.VendorSearching
             if (criteria == null || PlayerVendor.PlayerVendors == null || PlayerVendor.PlayerVendors.Count == 0)
                 return null;
 
-            List<SearchItem> list = new List<SearchItem>();
-            bool excludefel = criteria.Details.FirstOrDefault(d => d.Attribute is Misc && (Misc)d.Attribute == Misc.ExcludeFel) != null;
+            var list = new List<SearchItem>();
+            var excludefel =
+                criteria.Details.FirstOrDefault(d => d.Attribute is Misc && (Misc)d.Attribute == Misc.ExcludeFel) !=
+                null;
 
-            foreach (PlayerVendor pv in PlayerVendor.PlayerVendors.Where(pv => pv.Map != Map.Internal &&
-                                                                               pv.Map != null &&
-                                                                               pv.Backpack != null &&
-                                                                               pv.VendorSearch &&
-                                                                               pv.Backpack.Items.Count > 0 && 
-                                                                               (!excludefel || pv.Map != Map.Felucca)))
+            foreach (var pv in PlayerVendor.PlayerVendors.Where(pv => pv.Map != Map.Internal &&
+                                                                      pv.Map != null &&
+                                                                      pv.Backpack != null &&
+                                                                      pv.VendorSearch &&
+                                                                      pv.Backpack.Items.Count > 0 &&
+                                                                      (!excludefel || pv.Map != Map.Felucca)))
             {
-                List<Item> items = GetItems(pv);
+                var items = GetItems(pv);
 
-                foreach (Item item in items)
+                foreach (var item in items)
                 {
-                    VendorItem vendorItem = pv.GetVendorItem(item);
-                    int price = 0;
-                    bool isChild = false;
+                    var vendorItem = pv.GetVendorItem(item);
+                    var price = 0;
+                    var isChild = false;
 
                     if (vendorItem != null)
                     {
@@ -88,9 +103,7 @@ namespace Server.Engines.VendorSearching
                     }
 
                     if (price > 0 && CheckMatch(item, price, criteria))
-                    {
                         list.Add(new SearchItem(pv, item, price, isChild));
-                    }
                 }
 
                 ColUtility.Free(items);
@@ -107,34 +120,28 @@ namespace Server.Engines.VendorSearching
 
         private static VendorItem GetParentVendorItem(PlayerVendor pv, Container parent)
         {
-            VendorItem vendorItem = pv.GetVendorItem(parent);
+            var vendorItem = pv.GetVendorItem(parent);
 
             if (vendorItem == null)
-            {
                 if (parent.Parent is Container)
-                {
                     return GetParentVendorItem(pv, (Container)parent.Parent);
-                }
-            }
 
             return vendorItem;
         }
 
-		public static bool CheckMatch(Item item, int price, SearchCriteria searchCriteria)
-		{
+        public static bool CheckMatch(Item item, int price, SearchCriteria searchCriteria)
+        {
             if (item is CommodityDeed && ((CommodityDeed)item).Commodity != null)
-            {
                 item = ((CommodityDeed)item).Commodity;
-            }
 
             if (searchCriteria.MinPrice > -1 && price < searchCriteria.MinPrice)
-				return false;
+                return false;
 
             if (searchCriteria.MaxPrice > -1 && price > searchCriteria.MaxPrice)
-				return false;
-			
-			if (!string.IsNullOrEmpty(searchCriteria.SearchName))
-			{
+                return false;
+
+            if (!string.IsNullOrEmpty(searchCriteria.SearchName))
+            {
                 string name;
 
                 if (item is CommodityDeed && ((CommodityDeed)item).Commodity is ICommodity)
@@ -142,75 +149,66 @@ namespace Server.Engines.VendorSearching
                     var commodity = (ICommodity)((CommodityDeed)item).Commodity;
 
                     if (!string.IsNullOrEmpty(commodity.Description.String))
-                    {
                         name = commodity.Description.String;
-                    }
                     else
-                    {
                         name = StringList.GetString(commodity.Description.Number);
-                    }
                 }
                 else
                 {
                     name = GetItemName(item);
                 }
-				
-				if(name == null)
-				{
-                    return false; // TODO? REturn null names?
-				}
 
-                if (!CheckKeyword(searchCriteria.SearchName, item) && name.ToLower().IndexOf(searchCriteria.SearchName.ToLower()) < 0)
-                {
-                    return false;
-                }
-			}
+                if (name == null) return false; // TODO? REturn null names?
 
-            if (searchCriteria.SearchType != Layer.Invalid && searchCriteria.SearchType != item.Layer)
-			{
-				return false;
-			}
-			
-			if(searchCriteria.Details.Count == 0)
-				return true;
-			
-            foreach(SearchDetail detail in searchCriteria.Details)
-			{
-                object o = detail.Attribute;
-                int value = detail.Value;
+                if (!CheckKeyword(searchCriteria.SearchName, item) &&
+                    name.ToLower().IndexOf(searchCriteria.SearchName.ToLower()) < 0) return false;
+            }
+
+            if (searchCriteria.SearchType != Layer.Invalid && searchCriteria.SearchType != item.Layer) return false;
+
+            if (searchCriteria.Details.Count == 0)
+                return true;
+
+            foreach (var detail in searchCriteria.Details)
+            {
+                var o = detail.Attribute;
+                var value = detail.Value;
 
                 if (value == 0)
                     value = 1;
 
                 if (o is AosAttribute)
                 {
-                    AosAttributes attrs = RunicReforging.GetAosAttributes(item);
+                    var attrs = RunicReforging.GetAosAttributes(item);
 
                     if (attrs == null || attrs[(AosAttribute)o] < value)
                         return false;
                 }
                 else if (o is AosWeaponAttribute)
                 {
-                    AosWeaponAttributes attrs = RunicReforging.GetAosWeaponAttributes(item);
+                    var attrs = RunicReforging.GetAosWeaponAttributes(item);
 
                     if ((AosWeaponAttribute)o == AosWeaponAttribute.MageWeapon)
                     {
-                        if (attrs == null || attrs[(AosWeaponAttribute)o] == 0 || attrs[(AosWeaponAttribute)o] > Math.Max(0, 30 - value))
+                        if (attrs == null || attrs[(AosWeaponAttribute)o] == 0 ||
+                            attrs[(AosWeaponAttribute)o] > Math.Max(0, 30 - value))
                             return false;
                     }
                     else if (attrs == null || attrs[(AosWeaponAttribute)o] < value)
+                    {
                         return false;
+                    }
                 }
                 else if (o is SAAbsorptionAttribute)
                 {
-                    SAAbsorptionAttributes attrs = RunicReforging.GetSAAbsorptionAttributes(item);
+                    var attrs = RunicReforging.GetSAAbsorptionAttributes(item);
 
                     if (attrs == null || attrs[(SAAbsorptionAttribute)o] < value)
                         return false;
                 }
                 else if (o is AosArmorAttribute)
                 {
-                    AosArmorAttributes attrs = RunicReforging.GetAosArmorAttributes(item);
+                    var attrs = RunicReforging.GetAosArmorAttributes(item);
 
                     if (attrs == null || attrs[(AosArmorAttribute)o] < value)
                         return false;
@@ -219,18 +217,19 @@ namespace Server.Engines.VendorSearching
                 {
                     if (detail.Category != Category.RequiredSkill)
                     {
-                        AosSkillBonuses skillbonuses = RunicReforging.GetAosSkillBonuses(item);
+                        var skillbonuses = RunicReforging.GetAosSkillBonuses(item);
 
                         if (skillbonuses != null)
                         {
-                            bool hasSkill = false;
+                            var hasSkill = false;
 
-                            for (int i = 0; i < 5; i++)
+                            for (var i = 0; i < 5; i++)
                             {
                                 SkillName check;
                                 double bonus;
 
-                                if (skillbonuses.GetValues(i, out check, out bonus) && check == (SkillName)o && bonus >= value)
+                                if (skillbonuses.GetValues(i, out check, out bonus) && check == (SkillName)o &&
+                                    bonus >= value)
                                 {
                                     hasSkill = true;
                                     break;
@@ -263,22 +262,37 @@ namespace Server.Engines.VendorSearching
                 {
                     if (item is BaseWeapon)
                     {
-                        BaseWeapon wep = item as BaseWeapon;
+                        var wep = item as BaseWeapon;
 
                         if (detail.Category == Category.DamageType)
                         {
                             int phys, fire, cold, pois, nrgy, chaos, direct;
-                            wep.GetDamageTypes(null, out phys, out fire, out cold, out pois, out nrgy, out chaos, out direct);
+                            wep.GetDamageTypes(null, out phys, out fire, out cold, out pois, out nrgy, out chaos,
+                                out direct);
 
                             switch ((AosElementAttribute)o)
                             {
-                                case AosElementAttribute.Physical: if (phys < value) return false; break;
-                                case AosElementAttribute.Fire: if (fire < value) return false; break;
-                                case AosElementAttribute.Cold: if (cold < value) return false; break;
-                                case AosElementAttribute.Poison: if (pois < value) return false; break;
-                                case AosElementAttribute.Energy: if (nrgy < value) return false; break;
-                                case AosElementAttribute.Chaos: if (chaos < value) return false; break;
-                                case AosElementAttribute.Direct: if (direct < value) return false; break;
+                                case AosElementAttribute.Physical:
+                                    if (phys < value) return false;
+                                    break;
+                                case AosElementAttribute.Fire:
+                                    if (fire < value) return false;
+                                    break;
+                                case AosElementAttribute.Cold:
+                                    if (cold < value) return false;
+                                    break;
+                                case AosElementAttribute.Poison:
+                                    if (pois < value) return false;
+                                    break;
+                                case AosElementAttribute.Energy:
+                                    if (nrgy < value) return false;
+                                    break;
+                                case AosElementAttribute.Chaos:
+                                    if (chaos < value) return false;
+                                    break;
+                                case AosElementAttribute.Direct:
+                                    if (direct < value) return false;
+                                    break;
                             }
                         }
                         else
@@ -305,7 +319,7 @@ namespace Server.Engines.VendorSearching
                     }
                     else if (item is BaseArmor && detail.Category == Category.Resists)
                     {
-                        BaseArmor armor = item as BaseArmor;
+                        var armor = item as BaseArmor;
 
                         switch ((AosElementAttribute)o)
                         {
@@ -328,12 +342,9 @@ namespace Server.Engines.VendorSearching
                     }
                     else if (detail.Category != Category.DamageType)
                     {
-                        AosElementAttributes attrs = RunicReforging.GetElementalAttributes(item);
+                        var attrs = RunicReforging.GetElementalAttributes(item);
 
-                        if (attrs == null || attrs[(AosElementAttribute)o] < value)
-                        {
-                            return false;
-                        }
+                        if (attrs == null || attrs[(AosElementAttribute)o] < value) return false;
                     }
                     else
                     {
@@ -362,7 +373,7 @@ namespace Server.Engines.VendorSearching
                                 return false;
                             break;
                         case Misc.FactionItem:
-                            if (!(item is Factions.IFactionItem))
+                            if (!(item is IFactionItem))
                                 return false;
                             break;
                         case Misc.PromotionalToken:
@@ -386,22 +397,22 @@ namespace Server.Engines.VendorSearching
                                 return false;
                             break;
                         case Misc.Brittle:
-                            NegativeAttributes neg2 = RunicReforging.GetNegativeAttributes(item);
+                            var neg2 = RunicReforging.GetNegativeAttributes(item);
                             if (neg2 == null || neg2.Brittle == 0)
                                 return false;
                             break;
                         case Misc.NotBrittle:
-                            NegativeAttributes neg3 = RunicReforging.GetNegativeAttributes(item);
+                            var neg3 = RunicReforging.GetNegativeAttributes(item);
                             if (neg3 != null && neg3.Brittle > 0)
                                 return false;
                             break;
                         case Misc.Antique:
-                            NegativeAttributes neg4 = RunicReforging.GetNegativeAttributes(item);
+                            var neg4 = RunicReforging.GetNegativeAttributes(item);
                             if (neg4 == null || neg4.Antique == 0)
                                 return false;
                             break;
                         case Misc.NotAntique:
-                            NegativeAttributes neg5 = RunicReforging.GetNegativeAttributes(item);
+                            var neg5 = RunicReforging.GetNegativeAttributes(item);
                             if (neg5 != null && neg5.Antique > 0)
                                 return false;
                             break;
@@ -409,7 +420,7 @@ namespace Server.Engines.VendorSearching
                 }
                 else if (o is string)
                 {
-                    string str = o as string;
+                    var str = o as string;
 
                     if (str == "WeaponVelocity" && (!(item is BaseRanged) || ((BaseRanged)item).Velocity < value))
                         return false;
@@ -418,37 +429,30 @@ namespace Server.Engines.VendorSearching
                         return false;
 
                     if (str == "ArtifactRarity" && (!(item is IArtifact) || ((IArtifact)item).ArtifactRarity < value))
-                    {
                         return false;
-                    }
                 }
-			}
+            }
 
             return true;
-		}
+        }
 
         private static bool CheckSlayer(Item item, object o)
         {
             if (o is TalismanSlayerName && (TalismanSlayerName)o == TalismanSlayerName.Undead)
             {
-                if (!(item is ISlayer) || ((((ISlayer)item).Slayer != SlayerName.Silver && ((ISlayer)item).Slayer2 != SlayerName.Silver)))
-                {
+                if (!(item is ISlayer) || ((ISlayer)item).Slayer != SlayerName.Silver &&
+                    ((ISlayer)item).Slayer2 != SlayerName.Silver)
                     if (!(item is BaseTalisman) || ((BaseTalisman)item).Slayer != TalismanSlayerName.Undead)
-                    {
                         return false;
-                    }
-                }
             }
             else
             {
-                if (o is SlayerName && (!(item is ISlayer) || (((ISlayer)item).Slayer != (SlayerName)o && ((ISlayer)item).Slayer2 != (SlayerName)o)))
-                {
-                    return false;
-                }
-                else if (o is TalismanSlayerName && (!(item is BaseTalisman) || ((BaseTalisman)item).Slayer != (TalismanSlayerName)o))
-                {
-                    return false;
-                }
+                if (o is SlayerName && (!(item is ISlayer) ||
+                                        (((ISlayer)item).Slayer != (SlayerName)o &&
+                                         ((ISlayer)item).Slayer2 != (SlayerName)o))) return false;
+
+                if (o is TalismanSlayerName &&
+                    (!(item is BaseTalisman) || ((BaseTalisman)item).Slayer != (TalismanSlayerName)o)) return false;
             }
 
             return true;
@@ -456,7 +460,7 @@ namespace Server.Engines.VendorSearching
 
         private static bool CheckCanRepair(Item item)
         {
-            NegativeAttributes neg = RunicReforging.GetNegativeAttributes(item);
+            var neg = RunicReforging.GetNegativeAttributes(item);
 
             return neg != null && neg.NoRepair != 0;
         }
@@ -464,35 +468,25 @@ namespace Server.Engines.VendorSearching
         private static bool CheckKeyword(string searchstring, Item item)
         {
             if (item is CommodityDeed && ((CommodityDeed)item).Commodity != null)
-            {
                 item = ((CommodityDeed)item).Commodity;
-            }
 
             if (item is IResource)
             {
                 var resName = CraftResources.GetName(((IResource)item).Resource);
 
-                if (resName.ToLower().IndexOf(searchstring.ToLower()) >= 0)
-                {
-                    return true;
-                }
+                if (resName.ToLower().IndexOf(searchstring.ToLower()) >= 0) return true;
             }
 
             if (item is ICommodity)
             {
                 var commodity = (ICommodity)item;
 
-                string name = commodity.Description.String;
+                var name = commodity.Description.String;
 
                 if (string.IsNullOrEmpty(name) && commodity.Description.Number > 0)
-                {
                     name = StringList.GetString(commodity.Description.Number);
-                }
 
-                if (!string.IsNullOrEmpty(name) && name.ToLower().IndexOf(searchstring.ToLower()) >= 0)
-                {
-                    return true;
-                }
+                if (!string.IsNullOrEmpty(name) && name.ToLower().IndexOf(searchstring.ToLower()) >= 0) return true;
             }
 
             return Keywords.ContainsKey(searchstring.ToLower()) && Keywords[searchstring.ToLower()] == item.GetType();
@@ -500,51 +494,33 @@ namespace Server.Engines.VendorSearching
 
         public static bool IsGargoyle(Item item)
         {
-            if (item is BaseArmor)
-            {
-                return ((BaseArmor)item).RequiredRace == Race.Gargoyle;
-            }
-            else if (item is BaseWeapon)
-            {
-                return ((BaseWeapon)item).RequiredRace == Race.Gargoyle;
-            }
-            else if (item is BaseClothing)
-            {
-                return ((BaseClothing)item).RequiredRace == Race.Gargoyle;
-            }
-            else if (item is BaseJewel)
-            {
-                return ((BaseJewel)item).RequiredRace == Race.Gargoyle;
-            }
+            if (item is BaseArmor) return ((BaseArmor)item).RequiredRace == Race.Gargoyle;
+
+            if (item is BaseWeapon) return ((BaseWeapon)item).RequiredRace == Race.Gargoyle;
+
+            if (item is BaseClothing) return ((BaseClothing)item).RequiredRace == Race.Gargoyle;
+
+            if (item is BaseJewel) return ((BaseJewel)item).RequiredRace == Race.Gargoyle;
 
             return false;
         }
 
         public static bool IsElf(Item item)
         {
-            if (item is BaseArmor)
-            {
-                return ((BaseArmor)item).RequiredRace == Race.Elf;
-            }
-            else if (item is BaseWeapon)
-            {
-                return ((BaseWeapon)item).RequiredRace == Race.Elf;
-            }
-            else if (item is BaseClothing)
-            {
-                return ((BaseClothing)item).RequiredRace == Race.Elf;
-            }
-            else if (item is BaseJewel)
-            {
-                return ((BaseJewel)item).RequiredRace == Race.Elf;
-            }
+            if (item is BaseArmor) return ((BaseArmor)item).RequiredRace == Race.Elf;
+
+            if (item is BaseWeapon) return ((BaseWeapon)item).RequiredRace == Race.Elf;
+
+            if (item is BaseClothing) return ((BaseClothing)item).RequiredRace == Race.Elf;
+
+            if (item is BaseJewel) return ((BaseJewel)item).RequiredRace == Race.Elf;
 
             return false;
         }
 
         public static SearchCriteria AddNewContext(PlayerMobile pm)
         {
-            SearchCriteria criteria = new SearchCriteria();
+            var criteria = new SearchCriteria();
 
             Contexts[pm] = criteria;
 
@@ -558,11 +534,6 @@ namespace Server.Engines.VendorSearching
 
             return null;
         }
-
-        public static Dictionary<PlayerMobile, SearchCriteria> Contexts { get; set; }
-        public static List<SearchCategory> Categories { get; set; }
-
-        public static Dictionary<string, Type> Keywords { get; set; }
 
         public static void Configure()
         {
@@ -581,13 +552,11 @@ namespace Server.Engines.VendorSearching
                     writer.Write(Contexts == null ? 0 : Contexts.Where(kvp => !kvp.Value.IsEmpty).Count());
 
                     if (Contexts != null)
-                    {
                         foreach (var kvp in Contexts.Where(kvp => !kvp.Value.IsEmpty))
                         {
                             writer.Write(kvp.Key);
                             kvp.Value.Serialize(writer);
                         }
-                    }
                 });
         }
 
@@ -597,12 +566,12 @@ namespace Server.Engines.VendorSearching
                 FilePath,
                 reader =>
                 {
-                    int version = reader.ReadInt();
-                    int count = reader.ReadInt();
+                    var version = reader.ReadInt();
+                    var count = reader.ReadInt();
 
-                    for (int i = 0; i < count; i++)
+                    for (var i = 0; i < count; i++)
                     {
-                        PlayerMobile pm = reader.ReadMobile() as PlayerMobile;
+                        var pm = reader.ReadMobile() as PlayerMobile;
                         var criteria = new SearchCriteria(reader);
 
                         if (pm != null)
@@ -620,57 +589,51 @@ namespace Server.Engines.VendorSearching
         {
             try
             {
-                StringList = new Ultima.StringList("enu");
+                StringList = new StringList("enu");
             }
-            catch { }
+            catch
+            {
+            }
 
             CommandSystem.Register("GetOPLString", AccessLevel.Administrator, e =>
+            {
+                e.Mobile.BeginTarget(-1, false, TargetFlags.None, (m, targeted) =>
                 {
-                    e.Mobile.BeginTarget(-1, false, TargetFlags.None, (m, targeted) =>
-                        {
-                            if (targeted is Item)
-                            {
-                                Console.WriteLine(GetItemName((Item)targeted));
-                                e.Mobile.SendMessage(GetItemName((Item)targeted));
-                            }
-                        });
+                    if (targeted is Item)
+                    {
+                        Console.WriteLine(GetItemName((Item)targeted));
+                        e.Mobile.SendMessage(GetItemName((Item)targeted));
+                    }
                 });
+            });
 
             Categories = new List<SearchCategory>();
 
-            if (Contexts == null)
-            {
-                Contexts = new Dictionary<PlayerMobile, SearchCriteria>();
-            }
+            if (Contexts == null) Contexts = new Dictionary<PlayerMobile, SearchCriteria>();
 
             Timer.DelayCall(TimeSpan.FromSeconds(1), () =>
+            {
+                var price = new SearchCategory(Category.PriceRange);
+                Categories.Add(price);
+
+                SearchCriteriaCategory.AllCategories.ToList().ForEach(x =>
                 {
-                    SearchCategory price = new SearchCategory(Category.PriceRange);
-                    Categories.Add(price);
+                    var cat = new SearchCategory(x.Category);
 
-                    SearchCriteriaCategory.AllCategories.ToList().ForEach(x =>
+                    x.Criteria.ToList().ForEach(y =>
                     {
-                        SearchCategory cat = new SearchCategory(x.Category);
-
-                        x.Criteria.ToList().ForEach(y =>
-                        {
-                            if (y.PropCliloc != 0)
-                            {
-                                cat.Register(y.Object, y.Cliloc, y.PropCliloc);
-                            }
-                            else
-                            {
-                                cat.Register(y.Object, y.Cliloc);
-                            }
-
-                        });
-
-                        Categories.Add(cat);
+                        if (y.PropCliloc != 0)
+                            cat.Register(y.Object, y.Cliloc, y.PropCliloc);
+                        else
+                            cat.Register(y.Object, y.Cliloc);
                     });
 
-                    SearchCategory sort = new SearchCategory(Category.Sort);
-                    Categories.Add(sort);
+                    Categories.Add(cat);
                 });
+
+                var sort = new SearchCategory(Category.Sort);
+                Categories.Add(sort);
+            });
 
             Keywords = new Dictionary<string, Type>();
 
@@ -683,60 +646,49 @@ namespace Server.Engines.VendorSearching
             if (StringList == null || item.Name != null)
                 return item.Name;
 
-            ObjectPropertyList opl = new ObjectPropertyList(item);
+            var opl = new ObjectPropertyList(item);
             item.GetProperties(opl);
 
             if (opl == null)
-            {
                 //if there was a problem with this process, just return null
                 return null;
-            }
 
             //since the object property list is based on a packet object, the property info is packed away in a packet format
-            byte[] data = opl.UnderlyingStream.UnderlyingStream.ToArray();
+            var data = opl.UnderlyingStream.UnderlyingStream.ToArray();
 
-            int index = 15; // First localization number index
+            var index = 15; // First localization number index
             string basestring = null;
 
             //reset the number property
             uint number = 0;
 
             //if there's not enough room for another record, quit
-            if (index + 4 >= data.Length)
-            {
-                return null;
-            }
+            if (index + 4 >= data.Length) return null;
 
             //read number property from the packet data
-            number = (uint)(data[index++] << 24 | data[index++] << 16 | data[index++] << 8 | data[index++]);
+            number = (uint)((data[index++] << 24) | (data[index++] << 16) | (data[index++] << 8) | data[index++]);
 
             //reset the length property
             ushort length = 0;
 
             //if there's not enough room for another record, quit
-            if (index + 2 > data.Length)
-            {
-                return null;
-            }
+            if (index + 2 > data.Length) return null;
 
             //read length property from the packet data
-            length = (ushort)(data[index++] << 8 | data[index++]);
+            length = (ushort)((data[index++] << 8) | data[index++]);
 
             //determine the location of the end of the string
-            int end = index + length;
+            var end = index + length;
 
             //truncate if necessary
-            if (end >= data.Length)
-            {
-                end = data.Length - 1;
-            }
+            if (end >= data.Length) end = data.Length - 1;
 
             //read the string into a StringBuilder object
 
-            StringBuilder s = new StringBuilder();
+            var s = new StringBuilder();
             while (index + 2 <= end + 1)
             {
-                short next = (short)(data[index++] | data[index++] << 8);
+                var next = (short)(data[index++] | (data[index++] << 8));
 
                 if (next == 0)
                     break;
@@ -745,61 +697,47 @@ namespace Server.Engines.VendorSearching
             }
 
             basestring = StringList.GetString((int)number);
-            string args = s.ToString();
+            var args = s.ToString();
 
-            if (args == null || args == string.Empty)
-            {
-                return basestring;
-            }
+            if (args == null || args == string.Empty) return basestring;
 
-            string[] parms = args.Split('\t');
+            var parms = args.Split('\t');
 
             try
             {
                 if (parms.Length > 1)
-                {
-                    for (int i = 0; i < parms.Length; i++)
+                    for (var i = 0; i < parms.Length; i++)
                     {
                         parms[i] = parms[i].Trim(' ');
 
                         if (parms[i].IndexOf("#") == 0)
-                        {
-                            parms[i] = StringList.GetString(Convert.ToInt32(parms[i].Substring(1, parms[i].Length - 1)));
-                        }
+                            parms[i] = StringList.GetString(
+                                Convert.ToInt32(parms[i].Substring(1, parms[i].Length - 1)));
                     }
-                }
                 else if (parms.Length == 1 && parms[0].IndexOf("#") == 0)
-                {
                     parms[0] = StringList.GetString(Convert.ToInt32(args.Substring(1, parms[0].Length - 1)));
-                }
             }
             catch
             {
                 return null;
             }
 
-            Ultima.StringEntry entry = StringList.GetEntry((int)number);
+            var entry = StringList.GetEntry((int)number);
 
-            if (entry != null)
-            {
-                return entry.Format(parms);
-            }
+            if (entry != null) return entry.Format(parms);
 
             return basestring;
         }
 
         private static List<Item> GetItems(PlayerVendor pv)
         {
-            List<Item> list = new List<Item>();
+            var list = new List<Item>();
 
-            foreach (Item item in pv.Items)
+            foreach (var item in pv.Items)
                 if (item.Movable && item != pv.Backpack && item.Layer != Layer.Hair && item.Layer != Layer.FacialHair)
                     list.Add(item);
 
-            if (pv.Backpack != null)
-            {
-                GetItems(pv.Backpack, list);
-            }
+            if (pv.Backpack != null) GetItems(pv.Backpack, list);
 
             return list;
         }
@@ -809,38 +747,29 @@ namespace Server.Engines.VendorSearching
             if (c == null || c.Items.Count == 0)
                 return;
 
-            foreach (Item item in c.Items)
-            {
+            foreach (var item in c.Items)
                 if (item is Container && !IsSearchableContainer(item.GetType()))
                     GetItems((Container)item, list);
                 else
                     list.Add(item);
-            }
         }
 
         public static bool CanSearch(Mobile m)
         {
-            Region r = m.Region;
+            var r = m.Region;
 
             if (r.GetLogoutDelay(m) == TimeSpan.Zero)
                 return true;
 
-            return r is GuardedRegion && !((GuardedRegion)r).Disabled || r is HouseRegion && ((HouseRegion)r).House.IsFriend(m);
+            return (r is GuardedRegion && !((GuardedRegion)r).Disabled) ||
+                   (r is HouseRegion && ((HouseRegion)r).House.IsFriend(m));
         }
 
         private static bool IsSearchableContainer(Type type)
         {
             return _SearchableContainers.Any(t => t == type || type.IsSubclassOf(t));
         }
-
-        private static Type[] _SearchableContainers =
-        {
-            typeof(BaseQuiver),         typeof(BaseResourceSatchel),
-            typeof(FishBowl),           typeof(FirstAidBelt),
-            typeof(Plants.SeedBox),     typeof(BaseSpecialScrollBook),
-            typeof(GardenShedBarrel),   typeof(JewelryBox),
-        };
-	}
+    }
 
     public enum SortBy
     {
@@ -904,10 +833,10 @@ namespace Server.Engines.VendorSearching
 
     public class SearchCategory
     {
-        public Category Category { get; private set; }
-        public int Label { get { return (int)Category; } }
+        public Category Category { get; }
+        public int Label => (int)Category;
 
-        public List<Tuple<object, int, int>> Objects { get; private set; }
+        public List<Tuple<object, int, int>> Objects { get; }
 
         public SearchCategory(Category category)
         {
@@ -919,17 +848,13 @@ namespace Server.Engines.VendorSearching
         public void Register(object o, int label)
         {
             if (Objects.FirstOrDefault(t => t.Item1 == o) == null)
-            {
                 Objects.Add(new Tuple<object, int, int>(o, label, 0));
-            }
         }
 
         public void Register(object o, int label, int pcliloc)
         {
             if (Objects.FirstOrDefault(t => t.Item1 == o) == null)
-            {
                 Objects.Add(new Tuple<object, int, int>(o, label, pcliloc));
-            }
         }
     }
 
@@ -946,6 +871,9 @@ namespace Server.Engines.VendorSearching
 
         public List<SearchDetail> Details { get; set; }
 
+        public bool IsEmpty => Details.Count == 0 && !EntryPrice && string.IsNullOrEmpty(SearchName) &&
+                               SearchType == Layer.Invalid;
+
         public SearchCriteria()
         {
             Details = new List<SearchDetail>();
@@ -953,6 +881,28 @@ namespace Server.Engines.VendorSearching
             MinPrice = 0;
             MaxPrice = 175000000;
             SearchType = Layer.Invalid;
+        }
+
+        public SearchCriteria(GenericReader reader)
+        {
+            var version = reader.ReadInt();
+
+            Details = new List<SearchDetail>();
+
+            if (version > 1)
+                Auction = reader.ReadBool();
+
+            if (version != 0)
+                EntryPrice = reader.ReadBool();
+
+            SearchType = (Layer)reader.ReadInt();
+            SearchName = reader.ReadString();
+            SortBy = (SortBy)reader.ReadInt();
+            MinPrice = reader.ReadLong();
+            MaxPrice = reader.ReadLong();
+
+            var count = reader.ReadInt();
+            for (var i = 0; i < count; i++) Details.Add(new SearchDetail(reader));
         }
 
         public void Reset()
@@ -972,23 +922,20 @@ namespace Server.Engines.VendorSearching
 
         public int GetValueForDetails(object o)
         {
-            SearchDetail detail = Details.FirstOrDefault(d => d.Attribute == o);
+            var detail = Details.FirstOrDefault(d => d.Attribute == o);
 
             return detail != null ? detail.Value : 0;
         }
 
         public void TryAddDetails(object o, int name, int propname, int value, Category cat)
         {
-            SearchDetail d = Details.FirstOrDefault(det => det.Attribute == o);
+            var d = Details.FirstOrDefault(det => det.Attribute == o);
 
             if (o is Layer)
             {
-                SearchDetail layer = Details.FirstOrDefault(det => det.Attribute is Layer && (Layer)det.Attribute != (Layer)o);
+                var layer = Details.FirstOrDefault(det => det.Attribute is Layer && (Layer)det.Attribute != (Layer)o);
 
-                if (layer != null)
-                {
-                    Details.Remove(layer);
-                }
+                if (layer != null) Details.Remove(layer);
 
                 Details.Add(new SearchDetail(o, name, propname, value, cat));
                 SearchType = (Layer)o;
@@ -1010,42 +957,12 @@ namespace Server.Engines.VendorSearching
             }*/
         }
 
-        public bool IsEmpty
-        {
-            get { return Details.Count == 0 && !EntryPrice && string.IsNullOrEmpty(SearchName) && SearchType == Layer.Invalid; }
-        }
-
-        public SearchCriteria(GenericReader reader)
-        {
-            int version = reader.ReadInt();
-
-            Details = new List<SearchDetail>();
-
-            if (version > 1)
-                Auction = reader.ReadBool();
-
-            if (version != 0)
-                EntryPrice = reader.ReadBool();
-
-            SearchType = (Layer)reader.ReadInt();
-            SearchName = reader.ReadString();
-            SortBy = (SortBy)reader.ReadInt();
-            MinPrice = reader.ReadLong();
-            MaxPrice = reader.ReadLong();
-
-            int count = reader.ReadInt();
-            for (int i = 0; i < count; i++)
-            {
-                Details.Add(new SearchDetail(reader));
-            }
-        }
-
         public void Serialize(GenericWriter writer)
         {
             writer.Write(2);
 
-            writer.Write((bool)Auction);
-            writer.Write((bool)EntryPrice);
+            writer.Write(Auction);
+            writer.Write(EntryPrice);
             writer.Write((int)SearchType);
             writer.Write(SearchName);
             writer.Write((int)SortBy);
@@ -1054,10 +971,7 @@ namespace Server.Engines.VendorSearching
 
             writer.Write(Details.Count);
 
-            for (int i = 0; i < Details.Count; i++)
-            {
-                Details[i].Serialize(writer);
-            }
+            for (var i = 0; i < Details.Count; i++) Details[i].Serialize(writer);
         }
     }
 
@@ -1079,7 +993,7 @@ namespace Server.Engines.VendorSearching
             TalismanSlayerName,
             TalismanSkill,
             TalismanRemoval,
-            Int,
+            Int
         }
 
         public object Attribute { get; set; }
@@ -1099,12 +1013,9 @@ namespace Server.Engines.VendorSearching
 
         public SearchDetail(GenericReader reader)
         {
-            int version = reader.ReadInt(); // version
+            var version = reader.ReadInt(); // version
 
-            if (version > 0)
-            {
-                PropLabel = reader.ReadInt();
-            }
+            if (version > 0) PropLabel = reader.ReadInt();
 
             ReadAttribute(reader);
 
@@ -1120,15 +1031,15 @@ namespace Server.Engines.VendorSearching
             writer.Write(PropLabel);
 
             WriteAttribute(writer);
-            
-            writer.Write(Label);            
+
+            writer.Write(Label);
             writer.Write(Value);
             writer.Write((int)Category);
         }
 
         private void WriteAttribute(GenericWriter writer)
         {
-            int attrID = GetAttributeID(Attribute);
+            var attrID = GetAttributeID(Attribute);
             writer.Write(attrID);
 
             switch (attrID)
@@ -1186,7 +1097,7 @@ namespace Server.Engines.VendorSearching
 
             if (o is AosElementAttribute)
                 return (int)AttributeID.AosElementAttribute;
-            
+
             if (o is SkillName)
                 return (int)AttributeID.SkillName;
 
@@ -1219,7 +1130,6 @@ namespace Server.Engines.VendorSearching
 
             return (int)AttributeID.None;
         }
-
     }
 
     public class SearchVendors : ContextMenuEntry
@@ -1236,10 +1146,7 @@ namespace Server.Engines.VendorSearching
 
         public override void OnClick()
         {
-            if (VendorSearch.CanSearch(Player))
-            {
-                BaseGump.SendGump(new VendorSearchGump(Player));
-            }
+            if (VendorSearch.CanSearch(Player)) BaseGump.SendGump(new VendorSearchGump(Player));
         }
     }
 

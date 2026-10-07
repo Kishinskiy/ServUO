@@ -1,5 +1,3 @@
-using System;
-using Server.Items;
 using Server.Mobiles;
 
 namespace Server.Items
@@ -8,6 +6,11 @@ namespace Server.Items
     {
         [CommandProperty(AccessLevel.GameMaster)]
         public MacawSpawner MacawSpawner { get; set; }
+
+        public override MeatType MeatType => MeatType.Bird;
+        public override int Feathers => 32;
+        public override int Meat => 1;
+        public override FoodType FavoriteFood => FoodType.FruitsAndVegies | FoodType.GrainsAndHay;
 
         [Constructable]
         public Macaw()
@@ -48,16 +51,35 @@ namespace Server.Items
             Karma = -7000;
         }
 
-        public override int GetIdleSound() { return 0x2EF; }
-        public override int GetAttackSound() { return 0x2EE; }
-        public override int GetAngerSound() { return 0x2EF; }
-        public override int GetHurtSound() { return 0x2F1; }
-        public override int GetDeathSound() { return 0x2F2; }
+        public Macaw(Serial serial)
+            : base(serial)
+        {
+        }
 
-        public override MeatType MeatType { get { return MeatType.Bird; } }
-        public override int Feathers { get { return 32; } }
-        public override int Meat { get { return 1; } }
-        public override FoodType FavoriteFood { get { return FoodType.FruitsAndVegies | FoodType.GrainsAndHay; } }
+        public override int GetIdleSound()
+        {
+            return 0x2EF;
+        }
+
+        public override int GetAttackSound()
+        {
+            return 0x2EE;
+        }
+
+        public override int GetAngerSound()
+        {
+            return 0x2EF;
+        }
+
+        public override int GetHurtSound()
+        {
+            return 0x2F1;
+        }
+
+        public override int GetDeathSound()
+        {
+            return 0x2F2;
+        }
 
         public override void GenerateLoot()
         {
@@ -65,15 +87,15 @@ namespace Server.Items
         }
 
         protected override void OnLocationChange(Point3D oldLocation)
-		{
-			base.OnLocationChange(oldLocation);
+        {
+            base.OnLocationChange(oldLocation);
 
             if (MacawSpawner != null && !InRange(MacawSpawner.Location, 20))
-			{
+            {
                 MacawSpawner.Spawn.Remove(this);
                 MacawSpawner = null;
-			}
-		}
+            }
+        }
 
         public override void OnDeath(Container c)
         {
@@ -91,23 +113,18 @@ namespace Server.Items
                 MacawSpawner.Spawn.Remove(this);
         }
 
-        public Macaw(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

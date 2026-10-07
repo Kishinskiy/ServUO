@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using Server.ContextMenus;
 using Server.Gumps;
@@ -11,6 +10,7 @@ namespace Server.Items
         public const int ResurrectRange = 2;
         public const int TitheRange = 2;
         public const int LockRange = 2;
+
         public static void GetContextMenuEntries(Mobile from, Item item, List<ContextMenuEntry> list)
         {
             if (from is PlayerMobile)
@@ -28,20 +28,25 @@ namespace Server.Items
                 return;
 
             if (!m.InRange(item.GetWorldLocation(), ResurrectRange))
+            {
                 m.SendLocalizedMessage(500446); // That is too far away.
+            }
             else if (m.Map != null && m.Map.CanFit(m.Location, 16, false, false))
             {
                 m.CloseGump(typeof(ResurrectGump));
                 m.SendGump(new ResurrectGump(m, ResurrectMessage.VirtueShrine));
             }
             else
+            {
                 m.SendLocalizedMessage(502391); // Thou can not be resurrected there!
+            }
         }
 
         private class ResurrectEntry : ContextMenuEntry
         {
-            private readonly Mobile m_Mobile;
             private readonly Item m_Item;
+            private readonly Mobile m_Mobile;
+
             public ResurrectEntry(Mobile mobile, Item item)
                 : base(6195, ResurrectRange)
             {
@@ -60,6 +65,7 @@ namespace Server.Items
         private class LockKarmaEntry : ContextMenuEntry
         {
             private readonly PlayerMobile m_Mobile;
+
             public LockKarmaEntry(PlayerMobile mobile)
                 : base(mobile.KarmaLocked ? 6197 : 6196, LockRange)
             {
@@ -71,15 +77,18 @@ namespace Server.Items
                 m_Mobile.KarmaLocked = !m_Mobile.KarmaLocked;
 
                 if (m_Mobile.KarmaLocked)
-                    m_Mobile.SendLocalizedMessage(1060192); // Your karma has been locked. Your karma can no longer be raised.
+                    m_Mobile.SendLocalizedMessage(
+                        1060192); // Your karma has been locked. Your karma can no longer be raised.
                 else
-                    m_Mobile.SendLocalizedMessage(1060191); // Your karma has been unlocked. Your karma can be raised again.
+                    m_Mobile.SendLocalizedMessage(
+                        1060191); // Your karma has been unlocked. Your karma can be raised again.
             }
         }
 
         private class TitheEntry : ContextMenuEntry
         {
             private readonly Mobile m_Mobile;
+
             public TitheEntry(Mobile mobile)
                 : base(6198, TitheRange)
             {
@@ -99,6 +108,22 @@ namespace Server.Items
     public class AnkhWest : Item
     {
         private InternalItem m_Item;
+
+        public override bool HandlesOnMovement => true; // Tell the core that we implement OnMovement
+
+        [Hue]
+        [CommandProperty(AccessLevel.GameMaster)]
+        public override int Hue
+        {
+            get => base.Hue;
+            set
+            {
+                base.Hue = value;
+                if (m_Item.Hue != value)
+                    m_Item.Hue = value;
+            }
+        }
+
         [Constructable]
         public AnkhWest()
             : this(false)
@@ -119,30 +144,10 @@ namespace Server.Items
         {
         }
 
-        public override bool HandlesOnMovement
-        {
-            get
-            {
-                return true;
-            }
-        }// Tell the core that we implement OnMovement
-        [Hue, CommandProperty(AccessLevel.GameMaster)]
-        public override int Hue
-        {
-            get
-            {
-                return base.Hue;
-            }
-            set
-            {
-                base.Hue = value;
-                if (m_Item.Hue != value)
-                    m_Item.Hue = value;
-            }
-        }
         public override void OnMovement(Mobile m, Point3D oldLocation)
         {
-            if (Parent == null && Utility.InRange(Location, m.Location, 1) && !Utility.InRange(Location, oldLocation, 1))
+            if (Parent == null && Utility.InRange(Location, m.Location, 1) &&
+                !Utility.InRange(Location, oldLocation, 1))
                 Ankhs.Resurrect(m, this);
         }
 
@@ -181,7 +186,7 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
             writer.Write(m_Item);
         }
@@ -190,7 +195,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             m_Item = reader.ReadItem() as InternalItem;
         }
@@ -198,6 +203,22 @@ namespace Server.Items
         private class InternalItem : Item
         {
             private AnkhWest m_Item;
+
+            public override bool HandlesOnMovement => true; // Tell the core that we implement OnMovement
+
+            [Hue]
+            [CommandProperty(AccessLevel.GameMaster)]
+            public override int Hue
+            {
+                get => base.Hue;
+                set
+                {
+                    base.Hue = value;
+                    if (m_Item.Hue != value)
+                        m_Item.Hue = value;
+                }
+            }
+
             public InternalItem(bool bloodied, AnkhWest item)
                 : base(bloodied ? 0x1D97 : 0x2)
             {
@@ -211,27 +232,6 @@ namespace Server.Items
             {
             }
 
-            public override bool HandlesOnMovement
-            {
-                get
-                {
-                    return true;
-                }
-            }// Tell the core that we implement OnMovement
-            [Hue, CommandProperty(AccessLevel.GameMaster)]
-            public override int Hue
-            {
-                get
-                {
-                    return base.Hue;
-                }
-                set
-                {
-                    base.Hue = value;
-                    if (m_Item.Hue != value)
-                        m_Item.Hue = value;
-                }
-            }
             public override void OnLocationChange(Point3D oldLocation)
             {
                 if (m_Item != null)
@@ -254,7 +254,8 @@ namespace Server.Items
 
             public override void OnMovement(Mobile m, Point3D oldLocation)
             {
-                if (Parent == null && Utility.InRange(Location, m.Location, 1) && !Utility.InRange(Location, oldLocation, 1))
+                if (Parent == null && Utility.InRange(Location, m.Location, 1) &&
+                    !Utility.InRange(Location, oldLocation, 1))
                     Ankhs.Resurrect(m, this);
             }
 
@@ -273,7 +274,7 @@ namespace Server.Items
             {
                 base.Serialize(writer);
 
-                writer.Write((int)0); // version
+                writer.Write(0); // version
 
                 writer.Write(m_Item);
             }
@@ -282,7 +283,7 @@ namespace Server.Items
             {
                 base.Deserialize(reader);
 
-                int version = reader.ReadInt();
+                var version = reader.ReadInt();
 
                 m_Item = reader.ReadItem() as AnkhWest;
             }
@@ -293,6 +294,22 @@ namespace Server.Items
     public class AnkhNorth : Item
     {
         private InternalItem m_Item;
+
+        public override bool HandlesOnMovement => true; // Tell the core that we implement OnMovement
+
+        [Hue]
+        [CommandProperty(AccessLevel.GameMaster)]
+        public override int Hue
+        {
+            get => base.Hue;
+            set
+            {
+                base.Hue = value;
+                if (m_Item.Hue != value)
+                    m_Item.Hue = value;
+            }
+        }
+
         [Constructable]
         public AnkhNorth()
             : this(false)
@@ -313,30 +330,10 @@ namespace Server.Items
         {
         }
 
-        public override bool HandlesOnMovement
-        {
-            get
-            {
-                return true;
-            }
-        }// Tell the core that we implement OnMovement
-        [Hue, CommandProperty(AccessLevel.GameMaster)]
-        public override int Hue
-        {
-            get
-            {
-                return base.Hue;
-            }
-            set
-            {
-                base.Hue = value;
-                if (m_Item.Hue != value)
-                    m_Item.Hue = value;
-            }
-        }
         public override void OnMovement(Mobile m, Point3D oldLocation)
         {
-            if (Parent == null && Utility.InRange(Location, m.Location, 1) && !Utility.InRange(Location, oldLocation, 1))
+            if (Parent == null && Utility.InRange(Location, m.Location, 1) &&
+                !Utility.InRange(Location, oldLocation, 1))
                 Ankhs.Resurrect(m, this);
         }
 
@@ -375,7 +372,7 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
             writer.Write(m_Item);
         }
@@ -384,7 +381,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             m_Item = reader.ReadItem() as InternalItem;
         }
@@ -393,6 +390,22 @@ namespace Server.Items
         private class InternalItem : Item
         {
             private AnkhNorth m_Item;
+
+            public override bool HandlesOnMovement => true; // Tell the core that we implement OnMovement
+
+            [Hue]
+            [CommandProperty(AccessLevel.GameMaster)]
+            public override int Hue
+            {
+                get => base.Hue;
+                set
+                {
+                    base.Hue = value;
+                    if (m_Item.Hue != value)
+                        m_Item.Hue = value;
+                }
+            }
+
             public InternalItem(bool bloodied, AnkhNorth item)
                 : base(bloodied ? 0x1E5C : 0x5)
             {
@@ -406,27 +419,6 @@ namespace Server.Items
             {
             }
 
-            public override bool HandlesOnMovement
-            {
-                get
-                {
-                    return true;
-                }
-            }// Tell the core that we implement OnMovement
-            [Hue, CommandProperty(AccessLevel.GameMaster)]
-            public override int Hue
-            {
-                get
-                {
-                    return base.Hue;
-                }
-                set
-                {
-                    base.Hue = value;
-                    if (m_Item.Hue != value)
-                        m_Item.Hue = value;
-                }
-            }
             public override void OnLocationChange(Point3D oldLocation)
             {
                 if (m_Item != null)
@@ -449,7 +441,8 @@ namespace Server.Items
 
             public override void OnMovement(Mobile m, Point3D oldLocation)
             {
-                if (Parent == null && Utility.InRange(Location, m.Location, 1) && !Utility.InRange(Location, oldLocation, 1))
+                if (Parent == null && Utility.InRange(Location, m.Location, 1) &&
+                    !Utility.InRange(Location, oldLocation, 1))
                     Ankhs.Resurrect(m, this);
             }
 
@@ -468,7 +461,7 @@ namespace Server.Items
             {
                 base.Serialize(writer);
 
-                writer.Write((int)0); // version
+                writer.Write(0); // version
 
                 writer.Write(m_Item);
             }
@@ -477,7 +470,7 @@ namespace Server.Items
             {
                 base.Deserialize(reader);
 
-                int version = reader.ReadInt();
+                var version = reader.ReadInt();
 
                 m_Item = reader.ReadItem() as AnkhNorth;
             }
@@ -485,7 +478,9 @@ namespace Server.Items
 
         private class MemorialStone : Item
         {
-            public override int LabelNumber { get { return 1071563; } } // Memorial Stone
+            public override int LabelNumber => 1071563; // Memorial Stone
+
+            public override bool HandlesOnMovement => true;
 
             [Constructable]
             public MemorialStone()
@@ -499,11 +494,10 @@ namespace Server.Items
             {
             }
 
-            public override bool HandlesOnMovement { get { return true; } }
-
             public override void OnMovement(Mobile m, Point3D oldLocation)
             {
-                if (Parent == null && Utility.InRange(Location, m.Location, 1) && !Utility.InRange(Location, oldLocation, 1))
+                if (Parent == null && Utility.InRange(Location, m.Location, 1) &&
+                    !Utility.InRange(Location, oldLocation, 1))
                     Ankhs.Resurrect(m, this);
             }
 
@@ -522,14 +516,14 @@ namespace Server.Items
             {
                 base.Serialize(writer);
 
-                writer.Write((int)0); // version
+                writer.Write(0); // version
             }
 
             public override void Deserialize(GenericReader reader)
             {
                 base.Deserialize(reader);
 
-                int version = reader.ReadInt();
+                var version = reader.ReadInt();
             }
         }
     }

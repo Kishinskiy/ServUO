@@ -4,8 +4,8 @@ using Server.Mobiles;
 namespace Server.Custom.SurvivalSystem
 {
     /// <summary>
-    /// A readable book that shows the player their current Hunger, Thirst and Drunk (BAC) values.
-    /// Any player can open the book from their inventory to view the information.
+    ///     A readable book that shows the player their current Hunger, Thirst and Drunk (BAC) values.
+    ///     Any player can open the book from their inventory to view the information.
     /// </summary>
     public class SurvivalInfoBook : BaseBook
     {
@@ -17,21 +17,23 @@ namespace Server.Custom.SurvivalSystem
             : base(BookItemID, "Survival Info", "ServUO", PageCount, false)
         {
             // Ensure the book has at least an empty page so the client can open it.
-            this.BookString = string.Empty;
+            BookString = string.Empty;
         }
 
-        public SurvivalInfoBook(Serial serial) : base(serial) { }
+        public SurvivalInfoBook(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         // Open a custom gump displaying the player's survival stats.

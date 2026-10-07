@@ -1,32 +1,27 @@
 using System;
 using System.Collections.Generic;
-
-using Server.Network;
-using Server.Spells;
 using Server.ContextMenus;
+using Server.Gumps;
 using Server.Mobiles;
 using Server.Spells.SkillMasteries;
-using Server.Gumps;
 using Server.Spells.Spellweaving;
 
 namespace Server.Items
 {
     [Flipable(0x225A, 0x225B)]
-	public class BookOfMasteries : Spellbook
-	{
-		public override SpellbookType SpellbookType{ get{ return SpellbookType.SkillMasteries; } }
-		public override int BookOffset{ get{ return 700; } }
-		public override int BookCount{ get{ return 45; } }
+    public class BookOfMasteries : Spellbook
+    {
+        private static Dictionary<Mobile, DateTime> m_Cooldown = new Dictionary<Mobile, DateTime>();
 
         private ulong _Content;
+        public override SpellbookType SpellbookType => SpellbookType.SkillMasteries;
+        public override int BookOffset => 700;
+        public override int BookCount => 45;
 
         [CommandProperty(AccessLevel.GameMaster)]
         public new ulong Content
         {
-            get
-            {
-                return _Content;
-            }
+            get => _Content;
             set
             {
                 if (_Content != value)
@@ -38,28 +33,33 @@ namespace Server.Items
             }
         }
 
-		[Constructable]
-		public BookOfMasteries() : this( 0x1FFFFFFFFFFF )
-		{
-		}
+        [Constructable]
+        public BookOfMasteries() : this(0x1FFFFFFFFFFF)
+        {
+        }
 
-		[Constructable]
-		public BookOfMasteries( ulong content ) : base( content, 0x225A )
-		{
-			Layer = Layer.OneHanded;
+        [Constructable]
+        public BookOfMasteries(ulong content) : base(content, 0x225A)
+        {
+            Layer = Layer.OneHanded;
 
             _Content = content;
-		}
+        }
+
+        public BookOfMasteries(Serial serial)
+            : base(serial)
+        {
+        }
 
         public override void GetContextMenuEntries(Mobile from, List<ContextMenuEntry> list)
         {
             base.GetContextMenuEntries(from, list);
 
             var menu = new SimpleContextMenuEntry(from, 1151948, m =>
-                {
-                    if (m is PlayerMobile && IsChildOf(m.Backpack) && CheckCooldown(m))
-                        BaseGump.SendGump(new MasterySelectionGump(m as PlayerMobile, this));
-                });
+            {
+                if (m is PlayerMobile && IsChildOf(m.Backpack) && CheckCooldown(m))
+                    BaseGump.SendGump(new MasterySelectionGump(m as PlayerMobile, this));
+            });
 
             if (!IsChildOf(from.Backpack) || !CheckCooldown(from))
                 menu.Enabled = false;
@@ -67,11 +67,9 @@ namespace Server.Items
             list.Add(menu);
         }
 
-        private static Dictionary<Mobile, DateTime> m_Cooldown = new Dictionary<Mobile, DateTime>();
-
         public static void AddToCooldown(Mobile from)
         {
-            if(m_Cooldown == null)
+            if (m_Cooldown == null)
                 m_Cooldown = new Dictionary<Mobile, DateTime>();
 
             m_Cooldown[from] = DateTime.UtcNow + TimeSpan.FromMinutes(10);
@@ -100,39 +98,34 @@ namespace Server.Items
         {
             base.AddProperty(list);
 
-            if(RootParent is Mobile)
+            if (RootParent is Mobile)
             {
-                SkillName sk = ((Mobile)RootParent).Skills.CurrentMastery;
+                var sk = ((Mobile)RootParent).Skills.CurrentMastery;
 
                 if (sk > 0)
                 {
                     list.Add(MasteryInfo.GetLocalization(sk));
 
                     if (sk == SkillName.Spellweaving)
-                    {
-                        list.Add(1060485, ArcanistSpell.GetMasteryFocusLevel((Mobile)RootParent).ToString()); // strength bonus ~1_val~
-                    }
+                        list.Add(1060485,
+                            ArcanistSpell.GetMasteryFocusLevel((Mobile)RootParent)
+                                .ToString()); // strength bonus ~1_val~
                 }
             }
         }
 
-        public BookOfMasteries(Serial serial)
-            : base(serial)
-		{
-		}
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
 
-		public override void Serialize( GenericWriter writer )
-		{
-			base.Serialize( writer );
+            writer.WriteEncodedInt(1); // version
+        }
 
-			writer.WriteEncodedInt( 1 ); // version
-		}
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
 
-		public override void Deserialize( GenericReader reader )
-		{
-			base.Deserialize( reader );
-
-			int version = reader.ReadEncodedInt();
-		}
-	}
+            var version = reader.ReadEncodedInt();
+        }
+    }
 }

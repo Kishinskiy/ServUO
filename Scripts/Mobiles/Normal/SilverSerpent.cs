@@ -1,4 +1,4 @@
-using System;
+using Server.Ethics;
 using Server.Factions;
 using Server.Items;
 
@@ -8,6 +8,13 @@ namespace Server.Mobiles
     [TypeAlias("Server.Mobiles.Silverserpant")]
     public class SilverSerpent : BaseCreature
     {
+        public override Faction FactionAllegiance => TrueBritannians.Instance;
+        public override Ethic EthicAllegiance => Ethic.Hero;
+        public override bool DeathAdderCharmable => true;
+        public override int Meat => 1;
+        public override Poison PoisonImmune => Poison.Lethal;
+        public override Poison HitPoison => Poison.Lethal;
+
         [Constructable]
         public SilverSerpent()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -51,13 +58,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override Faction FactionAllegiance { get { return TrueBritannians.Instance; } }
-        public override Ethics.Ethic EthicAllegiance { get { return Ethics.Ethic.Hero; } }
-        public override bool DeathAdderCharmable { get { return true; } }
-        public override int Meat { get { return 1; } }
-        public override Poison PoisonImmune { get { return Poison.Lethal; } }
-        public override Poison HitPoison { get { return Poison.Lethal; } }
-
         public override void GenerateLoot()
         {
             AddLoot(LootPack.Average);
@@ -75,13 +75,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -6,27 +6,7 @@ namespace Server.Engines.BulkOrders
 {
     public class LargeTinkerBOD : LargeBOD
     {
-        public override BODType BODType { get { return BODType.Tinkering; } }
-
-        private GemType _GemType;
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public GemType GemType
-        {
-            get { return _GemType; }
-            set
-            {
-                if (Entries.Length > 0 && Entries[0].Details != null && Entries[0].Details.Type != null && Entries[0].Details.Type.IsSubclassOf(typeof(BaseJewel)))
-                {
-                    _GemType = value;
-                    AssignGemNumbers();
-
-                    InvalidateProperties();
-                }
-            }
-        }
-
-        public static double[] m_BlackTinkerMaterialChances = new double[]
+        public static double[] m_BlackTinkerMaterialChances =
         {
             0.501953125, // None
             0.250000000, // Dull Copper
@@ -36,19 +16,39 @@ namespace Server.Engines.BulkOrders
             0.015625000, // Gold
             0.007812500, // Agapite
             0.003906250, // Verite
-            0.001953125  // Valorite
+            0.001953125 // Valorite
         };
+
+        private GemType _GemType;
+        public override BODType BODType => BODType.Tinkering;
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public GemType GemType
+        {
+            get => _GemType;
+            set
+            {
+                if (Entries.Length > 0 && Entries[0].Details != null && Entries[0].Details.Type != null &&
+                    Entries[0].Details.Type.IsSubclassOf(typeof(BaseJewel)))
+                {
+                    _GemType = value;
+                    AssignGemNumbers();
+
+                    InvalidateProperties();
+                }
+            }
+        }
 
         [Constructable]
         public LargeTinkerBOD()
         {
             LargeBulkEntry[] entries;
-            bool useMaterials = true;
-            bool jewelry = false;
-			
-            int rand = Utility.Random(4);
+            var useMaterials = true;
+            var jewelry = false;
 
-            switch ( rand )
+            var rand = Utility.Random(4);
+
+            switch (rand)
             {
                 default:
                 case 0:
@@ -68,8 +68,8 @@ namespace Server.Engines.BulkOrders
                     break;
             }
 
-            int amountMax = Utility.RandomList(10, 15, 20, 20);
-            bool reqExceptional = (0.825 > Utility.RandomDouble());
+            var amountMax = Utility.RandomList(10, 15, 20, 20);
+            var reqExceptional = 0.825 > Utility.RandomDouble();
 
             BulkMaterialType material;
 
@@ -84,13 +84,11 @@ namespace Server.Engines.BulkOrders
             RequireExceptional = reqExceptional;
             Material = material;
 
-            if (jewelry)
-            {
-                AssignGemType();
-            }
+            if (jewelry) AssignGemType();
         }
 
-        public LargeTinkerBOD(int amountMax, bool reqExceptional, BulkMaterialType mat, LargeBulkEntry[] entries, GemType gemType)
+        public LargeTinkerBOD(int amountMax, bool reqExceptional, BulkMaterialType mat, LargeBulkEntry[] entries,
+            GemType gemType)
         {
             Hue = 1109;
             AmountMax = amountMax;
@@ -100,19 +98,17 @@ namespace Server.Engines.BulkOrders
             _GemType = gemType;
         }
 
-        public override bool CheckType(SmallBOD small, Type type)
-        {
-            if (_GemType != GemType.None && (!(small is SmallTinkerBOD) || ((SmallTinkerBOD)small).GemType != _GemType))
-            {
-                return false;
-            }
-
-            return base.CheckType(small, type);
-        }
-
         public LargeTinkerBOD(Serial serial)
             : base(serial)
         {
+        }
+
+        public override bool CheckType(SmallBOD small, Type type)
+        {
+            if (_GemType != GemType.None &&
+                (!(small is SmallTinkerBOD) || ((SmallTinkerBOD)small).GemType != _GemType)) return false;
+
+            return base.CheckType(small, type);
         }
 
         public override int ComputeFame()
@@ -127,17 +123,19 @@ namespace Server.Engines.BulkOrders
 
         public override List<Item> ComputeRewards(bool full)
         {
-            List<Item> list = new List<Item>();
+            var list = new List<Item>();
 
-            RewardGroup rewardGroup = TinkeringRewardCalculator.Instance.LookupRewards(TinkeringRewardCalculator.Instance.ComputePoints(this));
+            var rewardGroup =
+                TinkeringRewardCalculator.Instance.LookupRewards(TinkeringRewardCalculator.Instance
+                    .ComputePoints(this));
 
             if (rewardGroup != null)
             {
                 if (full)
                 {
-                    for (int i = 0; i < rewardGroup.Items.Length; ++i)
+                    for (var i = 0; i < rewardGroup.Items.Length; ++i)
                     {
-                        Item item = rewardGroup.Items[i].Construct();
+                        var item = rewardGroup.Items[i].Construct();
 
                         if (item != null)
                             list.Add(item);
@@ -145,11 +143,11 @@ namespace Server.Engines.BulkOrders
                 }
                 else
                 {
-                    RewardItem rewardItem = rewardGroup.AcquireItem();
+                    var rewardItem = rewardGroup.AcquireItem();
 
                     if (rewardItem != null)
                     {
-                        Item item = rewardItem.Construct();
+                        var item = rewardItem.Construct();
 
                         if (item != null)
                             list.Add(item);
@@ -170,23 +168,17 @@ namespace Server.Engines.BulkOrders
         {
             foreach (var entry in Entries)
             {
-                Type jewelType = entry.Details.Type;
+                var jewelType = entry.Details.Type;
 
-                int offset = (int)GemType - 1;
-                int loc = 0;
+                var offset = (int)GemType - 1;
+                var loc = 0;
 
                 if (jewelType == typeof(GoldRing) || jewelType == typeof(SilverRing))
-                {
                     loc = 1044176;
-                }
                 else if (jewelType == typeof(GoldBracelet) || jewelType == typeof(SilverBracelet))
-                {
                     loc = 1044221;
-                }
                 else
-                {
                     loc = 1044203;
-                }
 
                 entry.Details.Number = loc + offset;
             }
@@ -198,7 +190,7 @@ namespace Server.Engines.BulkOrders
         {
             base.Serialize(writer);
 
-            writer.Write((int)1); // version
+            writer.Write(1); // version
 
             writer.Write((int)_GemType);
         }
@@ -207,7 +199,7 @@ namespace Server.Engines.BulkOrders
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             switch (version)
             {
@@ -218,17 +210,12 @@ namespace Server.Engines.BulkOrders
 
             if (version < 1 && Entries != null && Entries.Length > 0 && Entries[0].Details != null)
             {
-                Type t = Entries[0].Details.Type;
+                var t = Entries[0].Details.Type;
 
                 if (SmallTinkerBOD.CannotAssignMaterial(t) && Material != BulkMaterialType.None)
-                {
                     Material = BulkMaterialType.None;
-                }
 
-                if (t.IsSubclassOf(typeof(BaseJewel)))
-                {
-                    AssignGemType();
-                }
+                if (t.IsSubclassOf(typeof(BaseJewel))) AssignGemType();
             }
         }
     }

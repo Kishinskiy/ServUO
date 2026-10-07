@@ -1,10 +1,11 @@
-using System;
-
 namespace Server.Items
 {
     public class OverseerSunderedBlade : RadiantScimitar
-	{
-		public override bool IsArtifact { get { return true; } }
+    {
+        public override bool IsArtifact => true;
+
+        public override int LabelNumber => 1072920; // Overseer Sundered Blade
+
         [Constructable]
         public OverseerSunderedBlade()
         {
@@ -13,7 +14,7 @@ namespace Server.Items
             Attributes.WeaponSpeed = 35;
             Attributes.WeaponDamage = 45;
 
-            Hue = this.GetElementalDamageHue();
+            Hue = GetElementalDamageHue();
         }
 
         public OverseerSunderedBlade(Serial serial)
@@ -21,14 +22,8 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1072920;
-            }
-        }// Overseer Sundered Blade
-        public override void GetDamageTypes(Mobile wielder, out int phys, out int fire, out int cold, out int pois, out int nrgy, out int chaos, out int direct)
+        public override void GetDamageTypes(Mobile wielder, out int phys, out int fire, out int cold, out int pois,
+            out int nrgy, out int chaos, out int direct)
         {
             phys = cold = pois = nrgy = chaos = direct = 0;
             fire = 100;
@@ -45,7 +40,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

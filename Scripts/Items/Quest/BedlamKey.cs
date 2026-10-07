@@ -1,9 +1,9 @@
-using System;
-
 namespace Server.Items
 {
     public class BedlamKey : MasterKey
     {
+        public override int Lifespan => 600;
+
         public BedlamKey()
             : base(0xFF3)
         {
@@ -14,32 +14,25 @@ namespace Server.Items
         {
         }
 
-        public override int Lifespan
-        {
-            get
-            {
-                return 600;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         public override bool CanOfferConfirmation(Mobile from)
         {
             if (from.Region != null && from.Region.IsPartOf("Bedlam"))
                 return base.CanOfferConfirmation(from);
-				
+
             return false;
         }
     }

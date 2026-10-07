@@ -1,14 +1,12 @@
-using System;
-using Server;
-using Server.Items;
-
 namespace Server.Custom.Farms
 {
     // Теперь забор — это просто стакающийся строительный материал для топора
     public class SimpleFarmFence : Item
     {
         [Constructable]
-        public SimpleFarmFence() : this(1) { }
+        public SimpleFarmFence() : this(1)
+        {
+        }
 
         [Constructable]
         public SimpleFarmFence(int amount) : base(0x844)
@@ -19,14 +17,26 @@ namespace Server.Custom.Farms
             Amount = amount;
         }
 
+        public SimpleFarmFence(Serial serial) : base(serial)
+        {
+        }
+
         public override bool StackWith(Mobile from, Item dropped, bool playSound)
         {
-            if (this.Amount + dropped.Amount > 64) return false;
+            if (Amount + dropped.Amount > 64) return false;
             return base.StackWith(from, dropped, playSound);
         }
 
-        public SimpleFarmFence(Serial serial) : base(serial) { }
-        public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write((int)0); }
-        public override void Deserialize(GenericReader reader) { base.Deserialize(reader); reader.ReadInt(); }
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            reader.ReadInt();
+        }
     }
 }

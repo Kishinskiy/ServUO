@@ -6,22 +6,7 @@ namespace Server.Engines.Quests
 {
     public class Neville : BaseEscort
     {
-        public static void Initialize()
-        {
-            if (Core.SA)
-                Spawn();
-        }
-
-        public static Point3D HomeLocation { get { return new Point3D(1150, 964, -42); } }
-        public static int HomeRange { get { return 5; } }
-
-        public override Type[] Quests { get { return new Type[] { typeof(EscortToDugan) }; } }
-
-        private DateTime m_TalkTime;
-
-        public static List<Neville> Instances { get; set; }
-
-        string[] NevilleSay = new string[]
+        private readonly string[] NevilleSay =
         {
             "Save Us",
             "Murder is being done!",
@@ -32,9 +17,20 @@ namespace Server.Engines.Quests
             "Tisawful! Death! Ah!"
         };
 
+        private DateTime m_TalkTime;
+
+        public static Point3D HomeLocation => new Point3D(1150, 964, -42);
+        public static int HomeRange => 5;
+
+        public override Type[] Quests
+        {
+            get { return new[] { typeof(EscortToDugan) }; }
+        }
+
+        public static List<Neville> Instances { get; set; }
+
         [Constructable]
         public Neville()
-            : base()
         {
             Name = "Neville Brightwhistle";
 
@@ -51,6 +47,12 @@ namespace Server.Engines.Quests
         {
         }
 
+        public static void Initialize()
+        {
+            if (Core.SA)
+                Spawn();
+        }
+
         public override bool CanBeDamaged()
         {
             return false;
@@ -65,10 +67,7 @@ namespace Server.Engines.Quests
         {
             if (DateTime.UtcNow >= m_TalkTime)
             {
-                if (!Alive || Deleted || ControlMaster == null)
-                {
-                    return;
-                }
+                if (!Alive || Deleted || ControlMaster == null) return;
 
                 if (!ControlMaster.Hidden && ControlMaster.Aggressors.Count > 0)
                 {
@@ -91,11 +90,7 @@ namespace Server.Engines.Quests
             if (Instances != null && Instances.Contains(this))
                 Instances.Remove(this);
 
-            Timer.DelayCall(TimeSpan.FromSeconds(3), new TimerCallback(
-                delegate
-                {
-                    Spawn();
-                }));            
+            Timer.DelayCall(TimeSpan.FromSeconds(3), delegate { Spawn(); });
 
             base.OnDelete();
         }
@@ -105,7 +100,7 @@ namespace Server.Engines.Quests
             if (Instances != null && Instances.Count > 0)
                 return;
 
-            Neville creature = new Neville();
+            var creature = new Neville();
             creature.Home = HomeLocation;
             creature.RangeHome = HomeRange;
             creature.MoveToWorld(HomeLocation, Map.TerMur);
@@ -134,13 +129,13 @@ namespace Server.Engines.Quests
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (Instances == null)
                 Instances = new List<Neville>();

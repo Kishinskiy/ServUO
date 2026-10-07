@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +7,12 @@ namespace Server.Mobiles
     [CorpseName("an ore elemental corpse")]
     public class DullCopperElemental : BaseCreature
     {
+        public override bool AutoDispel => true;
+
+        public override bool BleedImmune => true;
+
+        public override int TreasureMapLevel => 1;
+
         [Constructable]
         public DullCopperElemental()
             : this(2)
@@ -55,28 +62,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool AutoDispel
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool BleedImmune
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override int TreasureMapLevel
-        {
-            get
-            {
-                return 1;
-            }
-        }
-
         public override bool OnBeforeDeath()
         {
             if (Map == null)
@@ -86,26 +71,20 @@ namespace Server.Mobiles
             PlaySound(0x307);
 
             IPooledEnumerable eable = Map.GetMobilesInRange(Location, 4);
-            var list = new System.Collections.Generic.List<Mobile>();
+            var list = new List<Mobile>();
 
             foreach (Mobile m in eable)
-            {
-                if (m != this && m.Alive && m.AccessLevel == AccessLevel.Player && 
+                if (m != this && m.Alive && m.AccessLevel == AccessLevel.Player &&
                     (m is PlayerMobile || (m is BaseCreature && !((BaseCreature)m).IsMonster)))
-                {
                     list.Add(m);
-                }
-            }
 
             foreach (var m in list)
-            {
-                Timer.DelayCall<Mobile>(TimeSpan.FromSeconds(.5), mob =>
-                    {
-                        mob.FixedParticles(0x36BD, 20, 10, 5044, EffectLayer.Head);
-                        mob.PlaySound(0x307);
-                        AOS.Damage(mob, this, Utility.RandomMinMax(25, 50), 50, 50, 0, 0, 0);
-                    }, m);
-            }
+                Timer.DelayCall(TimeSpan.FromSeconds(.5), mob =>
+                {
+                    mob.FixedParticles(0x36BD, 20, 10, 5044, EffectLayer.Head);
+                    mob.PlaySound(0x307);
+                    AOS.Damage(mob, this, Utility.RandomMinMax(25, 50), 50, 50, 0, 0, 0);
+                }, m);
 
             ColUtility.Free(list);
 
@@ -121,13 +100,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

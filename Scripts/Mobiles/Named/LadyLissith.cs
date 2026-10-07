@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,10 +5,11 @@ namespace Server.Mobiles
     [CorpseName("a Lady Lissith corpse")]
     public class LadyLissith : GiantBlackWidow
     {
+        public override bool CanBeParagon => false;
+
         [Constructable]
         public LadyLissith()
         {
-
             Name = "Lady Lissith";
             Hue = 0x452;
 
@@ -40,10 +40,8 @@ namespace Server.Mobiles
             Fame = 18900;
             Karma = -18900;
 
-            for (int i = 0; i < Utility.RandomMinMax(0, 1); i++)
-            {
+            for (var i = 0; i < Utility.RandomMinMax(0, 1); i++)
                 PackItem(Loot.RandomScroll(0, Loot.ArcanistScrollTypes.Length, SpellbookType.Arcanist));
-            }
 
             SetWeaponAbility(WeaponAbility.BleedAttack);
         }
@@ -52,19 +50,19 @@ namespace Server.Mobiles
             : base(serial)
         {
         }
-		public override bool CanBeParagon { get { return false; } }
-        public override void OnDeath( Container c )
+
+        public override void OnDeath(Container c)
         {
-            base.OnDeath( c );
+            base.OnDeath(c);
 
-            if ( Utility.RandomDouble() < 0.025 )
-            c.DropItem( new GreymistChest() );
+            if (Utility.RandomDouble() < 0.025)
+                c.DropItem(new GreymistChest());
 
-            if ( Utility.RandomDouble() < 0.45 )
-            c.DropItem( new LissithsSilk() );
+            if (Utility.RandomDouble() < 0.45)
+                c.DropItem(new LissithsSilk());
 
-            if ( Utility.RandomDouble() < 0.1 )
-            c.DropItem( new ParrotItem() );
+            if (Utility.RandomDouble() < 0.1)
+                c.DropItem(new ParrotItem());
         }
 
         /*public override bool GivesMLMinorArtifact
@@ -83,14 +81,14 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

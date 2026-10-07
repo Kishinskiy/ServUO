@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +5,11 @@ namespace Server.Mobiles
     [CorpseName("a skeletal corpse")]
     public class SkelementalMage : BaseCreature
     {
+        public override bool BleedImmune => true;
+        public override OppositionGroup OppositionGroup => OppositionGroup.FeyAndUndead;
+        public override Poison PoisonImmune => Poison.Regular;
+        public override TribeType Tribe => TribeType.Undead;
+
         [Constructable]
         public SkelementalMage()
             : this(Utility.RandomBool() ? SkelementalKnight.SkeletalType.Cold : SkelementalKnight.SkeletalType.Fire)
@@ -25,33 +29,33 @@ namespace Server.Mobiles
             switch (type)
             {
                 case SkelementalKnight.SkeletalType.Fire:
-                    {
-                        Hue = 2634;
-                        SetDamageType(ResistanceType.Fire, 100);
-                        cold = 5;
-                        break;
-                    }
+                {
+                    Hue = 2634;
+                    SetDamageType(ResistanceType.Fire, 100);
+                    cold = 5;
+                    break;
+                }
                 case SkelementalKnight.SkeletalType.Cold:
-                    {
-                        Hue = 2581;
-                        SetDamageType(ResistanceType.Cold, 100);
-                        fire = 5;
-                        break;
-                    }
+                {
+                    Hue = 2581;
+                    SetDamageType(ResistanceType.Cold, 100);
+                    fire = 5;
+                    break;
+                }
                 case SkelementalKnight.SkeletalType.Poison:
-                    {
-                        Hue = 2688;
-                        SetDamageType(ResistanceType.Poison, 100);
-                        energy = 5;
-                        break;
-                    }
+                {
+                    Hue = 2688;
+                    SetDamageType(ResistanceType.Poison, 100);
+                    energy = 5;
+                    break;
+                }
                 case SkelementalKnight.SkeletalType.Energy:
-                    {
-                        Hue = 2717;
-                        SetDamageType(ResistanceType.Energy, 100);
-                        poison = 5;
-                        break;
-                    }
+                {
+                    Hue = 2717;
+                    SetDamageType(ResistanceType.Energy, 100);
+                    poison = 5;
+                    break;
+                }
             }
 
             SetStr(200, 250);
@@ -92,11 +96,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool BleedImmune { get { return true; } }
-        public override OppositionGroup OppositionGroup { get { return OppositionGroup.FeyAndUndead; } }
-        public override Poison PoisonImmune { get { return Poison.Regular; } }
-        public override TribeType Tribe { get { return TribeType.Undead; } }
-
         public override void GenerateLoot()
         {
             AddLoot(LootPack.Average);
@@ -104,12 +103,9 @@ namespace Server.Mobiles
             AddLoot(LootPack.Potions);
         }
 
-        public override void OnBeforeDamage(Mobile from, ref int totalDamage, Server.DamageType type)
+        public override void OnBeforeDamage(Mobile from, ref int totalDamage, DamageType type)
         {
-            if (Region.IsPartOf("Khaldun") && IsChampionSpawn && !Caddellite.CheckDamage(from, type))
-            {
-                totalDamage = 0;
-            }
+            if (Region.IsPartOf("Khaldun") && IsChampionSpawn && !Caddellite.CheckDamage(from, type)) totalDamage = 0;
 
             base.OnBeforeDamage(from, ref totalDamage, type);
         }
@@ -117,13 +113,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -1,5 +1,6 @@
-using System;
 using System.Collections.Generic;
+using Server.Mobiles;
+using Server.SkillHandlers;
 using Server.Targeting;
 
 namespace Server.Spells.Sixth
@@ -12,18 +13,14 @@ namespace Server.Spells.Sixth
             9002,
             Reagent.Bloodmoss,
             Reagent.SulfurousAsh);
+
+        public override SpellCircle Circle => SpellCircle.Sixth;
+
         public RevealSpell(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
         {
         }
 
-        public override SpellCircle Circle
-        {
-            get
-            {
-                return SpellCircle.Sixth;
-            }
-        }
         public override void OnCast()
         {
             Caster.Target = new InternalTarget(this);
@@ -41,29 +38,31 @@ namespace Server.Spells.Sixth
 
                 SpellHelper.GetSurfaceTop(ref p);
 
-                List<Mobile> targets = new List<Mobile>();
+                var targets = new List<Mobile>();
 
-                Map map = Caster.Map;
+                var map = Caster.Map;
 
                 if (map != null)
                 {
-                    IPooledEnumerable eable = map.GetMobilesInRange(new Point3D(p), 1 + (int)(Caster.Skills[SkillName.Magery].Value / 20.0));
+                    IPooledEnumerable eable = map.GetMobilesInRange(new Point3D(p),
+                        1 + (int)(Caster.Skills[SkillName.Magery].Value / 20.0));
 
                     foreach (Mobile m in eable)
                     {
-                        if ((m is Mobiles.ShadowKnight && (m.X != p.X || m.Y != p.Y)) || !SkillHandlers.DetectHidden.CanDetect(Caster, m))
+                        if ((m is ShadowKnight && (m.X != p.X || m.Y != p.Y)) || !DetectHidden.CanDetect(Caster, m))
                             continue;
 
-                        if (m.Hidden && (m.IsPlayer() || Caster.AccessLevel > m.AccessLevel) && CheckDifficulty(Caster, m))
+                        if (m.Hidden && (m.IsPlayer() || Caster.AccessLevel > m.AccessLevel) &&
+                            CheckDifficulty(Caster, m))
                             targets.Add(m);
                     }
 
                     eable.Free();
                 }
 
-                for (int i = 0; i < targets.Count; ++i)
+                for (var i = 0; i < targets.Count; ++i)
                 {
-                    Mobile m = targets[i];
+                    var m = targets[i];
 
                     m.RevealingAction();
 
@@ -84,12 +83,12 @@ namespace Server.Spells.Sixth
             if (!Core.AOS || InvisibilitySpell.HasTimer(m))
                 return true;
 
-            int magery = from.Skills[SkillName.Magery].Fixed;
-            int detectHidden = from.Skills[SkillName.DetectHidden].Fixed;
+            var magery = from.Skills[SkillName.Magery].Fixed;
+            var detectHidden = from.Skills[SkillName.DetectHidden].Fixed;
 
-            int hiding = m.Skills[SkillName.Hiding].Fixed;
-            int stealth = m.Skills[SkillName.Stealth].Fixed;
-            int divisor = hiding + stealth;
+            var hiding = m.Skills[SkillName.Hiding].Fixed;
+            var stealth = m.Skills[SkillName.Stealth].Fixed;
+            var divisor = hiding + stealth;
 
             int chance;
             if (divisor > 0)
@@ -103,6 +102,7 @@ namespace Server.Spells.Sixth
         public class InternalTarget : Target
         {
             private readonly RevealSpell m_Owner;
+
             public InternalTarget(RevealSpell owner)
                 : base(Core.ML ? 10 : 12, true, TargetFlags.None)
             {
@@ -111,7 +111,7 @@ namespace Server.Spells.Sixth
 
             protected override void OnTarget(Mobile from, object o)
             {
-                IPoint3D p = o as IPoint3D;
+                var p = o as IPoint3D;
 
                 if (p != null)
                     m_Owner.Target(p);

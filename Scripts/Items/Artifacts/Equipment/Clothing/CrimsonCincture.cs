@@ -1,17 +1,18 @@
-using System;
 using Server.Engines.Craft;
 
 namespace Server.Items
 {
     [Alterable(typeof(DefTailoring), typeof(GargishCrimsonCincture))]
     public class CrimsonCincture : HalfApron
-	{
-		public override bool IsArtifact { get { return true; } }
+    {
+        public override bool IsArtifact => true;
+
+        public override int LabelNumber => 1075043; // Crimson Cincture
+
         [Constructable]
         public CrimsonCincture()
-            : base()
         {
-            Hue = 0x485;		
+            Hue = 0x485;
             Attributes.BonusDex = 5;
             Attributes.BonusHits = 10;
             Attributes.RegenHits = 2;
@@ -22,35 +23,29 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1075043;
-            }
-        }// Crimson Cincture
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-			
-            writer.Write((int)0); // version
+
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-			
-            int version = reader.ReadInt();
+
+            var version = reader.ReadInt();
         }
     }
 
     public class GargishCrimsonCincture : GargoyleHalfApron
     {
-        public override bool IsArtifact { get { return true; } }
+        public override bool IsArtifact => true;
+
+        public override int LabelNumber => 1075043; // Crimson Cincture
 
         [Constructable]
         public GargishCrimsonCincture()
-            : base()
         {
             Hue = 0x485;
             Attributes.BonusDex = 5;
@@ -63,25 +58,18 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1075043;
-            }
-        }// Crimson Cincture
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

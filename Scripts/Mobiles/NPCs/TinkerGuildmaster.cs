@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using Server.ContextMenus;
 using Server.Items;
@@ -7,6 +6,8 @@ namespace Server.Mobiles
 {
     public class TinkerGuildmaster : BaseGuildmaster
     {
+        public override NpcGuild NpcGuild => NpcGuild.TinkersGuild;
+
         [Constructable]
         public TinkerGuildmaster()
             : base("tinker")
@@ -21,42 +22,32 @@ namespace Server.Mobiles
         {
         }
 
-        public override NpcGuild NpcGuild
-        {
-            get
-            {
-                return NpcGuild.TinkersGuild;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         public override void AddCustomContextEntries(Mobile from, List<ContextMenuEntry> list)
         {
             base.AddCustomContextEntries(from, list);
 
-            if (Core.ML && from.Alive)
-            {
-                list.Add(new RechargeEntry(from, this));
-            }
+            if (Core.ML && from.Alive) list.Add(new RechargeEntry(from, this));
         }
 
         private class RechargeEntry : ContextMenuEntry
         {
+            private readonly BaseEngravingTool Tool;
             private readonly Mobile m_From;
             private readonly Mobile m_Vendor;
-            private readonly BaseEngravingTool Tool;
 
             public RechargeEntry(Mobile from, Mobile vendor)
                 : base(6271, 6)
@@ -79,10 +70,14 @@ namespace Server.Mobiles
                     if (Banker.GetBalance(m_From) >= 100000)
                         m_From.SendGump(new BaseEngravingTool.ConfirmGump(Tool, m_Vendor));
                     else
-                        m_Vendor.Say(1076167); // You need a 100,000 gold and a blue diamond to recharge the weapon engraver.
+                        m_Vendor.Say(
+                            1076167); // You need a 100,000 gold and a blue diamond to recharge the weapon engraver.
                 }
                 else
-                    m_Vendor.Say(1076164); // I can only help with this if you are carrying an engraving tool that needs repair.
+                {
+                    m_Vendor.Say(
+                        1076164); // I can only help with this if you are carrying an engraving tool that needs repair.
+                }
             }
         }
     }

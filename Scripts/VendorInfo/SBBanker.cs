@@ -1,8 +1,7 @@
-using System;
 using System.Collections.Generic;
-using Server.Items;
 using Server.Custom.ExileHunterBestiary.Items;
-
+using Server.Items;
+using Server.Multis;
 
 namespace Server.Mobiles
 {
@@ -10,24 +9,10 @@ namespace Server.Mobiles
     {
         private readonly List<GenericBuyInfo> m_BuyInfo = new InternalBuyInfo();
         private readonly IShopSellInfo m_SellInfo = new InternalSellInfo();
-        public SBBanker()
-        {
-        }
 
-        public override IShopSellInfo SellInfo
-        {
-            get
-            {
-                return m_SellInfo;
-            }
-        }
-        public override List<GenericBuyInfo> BuyInfo
-        {
-            get
-            {
-                return m_BuyInfo;
-            }
-        }
+        public override IShopSellInfo SellInfo => m_SellInfo;
+
+        public override List<GenericBuyInfo> BuyInfo => m_BuyInfo;
 
         public class InternalBuyInfo : List<GenericBuyInfo>
         {
@@ -37,10 +22,11 @@ namespace Server.Mobiles
                 Add(new GenericBuyInfo(typeof(HunterBestiary), 500, 5, 0x2252, 1153));
 
 
-                if (Multis.BaseHouse.NewVendorSystem)
+                if (BaseHouse.NewVendorSystem)
                 {
                     Add(new GenericBuyInfo("1062332", typeof(VendorRentalContract), 1252, 20, 0x14F0, 0x672));
-                    Add(new GenericBuyInfo("1159156", typeof(CommissionContractOfEmployment), 28127, 20, 0x14F0, 0x672));
+                    Add(new GenericBuyInfo("1159156", typeof(CommissionContractOfEmployment), 28127, 20, 0x14F0,
+                        0x672));
                 }
 
                 Add(new GenericBuyInfo("1047016", typeof(CommodityDeed), 5, 20, 0x14F0, 0x47));
@@ -49,9 +35,6 @@ namespace Server.Mobiles
 
         public class InternalSellInfo : GenericSellInfo
         {
-            public InternalSellInfo()
-            {
-            }
         }
     }
 }

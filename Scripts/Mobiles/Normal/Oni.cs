@@ -1,10 +1,13 @@
-using System;
+using Server.Engines.Plants;
 
 namespace Server.Mobiles
 {
     [CorpseName("an oni corpse")]
     public class Oni : BaseCreature
     {
+        public override bool CanRummageCorpses => true;
+
+        public override int TreasureMapLevel => 4;
         //private DateTime m_NextAbilityTime;
 
         [Constructable]
@@ -43,7 +46,7 @@ namespace Server.Mobiles
             Karma = -15000;
 
             if (Utility.RandomDouble() < .33)
-                PackItem(Engines.Plants.Seed.RandomBonsaiSeed());
+                PackItem(Seed.RandomBonsaiSeed());
 
             SetSpecialAbility(SpecialAbility.AngryFire);
         }
@@ -53,20 +56,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool CanRummageCorpses
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override int TreasureMapLevel
-        {
-            get
-            {
-                return 4;
-            }
-        }
         public override int GetAngerSound()
         {
             return 0x4E3;
@@ -101,14 +90,14 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

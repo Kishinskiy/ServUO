@@ -1,36 +1,37 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using Server.Items;
-using Server.Targeting;
 using Server.Gumps;
+using Server.Items;
 using Server.Network;
+using Server.Targeting;
 
 namespace Server.Commands
 {
     public class SignParser
     {
         private static readonly Queue<Item> m_ToDelete = new Queue<Item>();
+
         public static void Initialize()
         {
-            CommandSystem.Register("SignGen", AccessLevel.Administrator, new CommandEventHandler(SignGen_OnCommand));
-			CommandSystem.Register("SignSave", AccessLevel.Administrator, new CommandEventHandler(SignSave_OnCommand));
-			CommandSystem.Register("SignRemove", AccessLevel.Administrator, new CommandEventHandler(SignRemove_OnCommand));
-		}
+            CommandSystem.Register("SignGen", AccessLevel.Administrator, SignGen_OnCommand);
+            CommandSystem.Register("SignSave", AccessLevel.Administrator, SignSave_OnCommand);
+            CommandSystem.Register("SignRemove", AccessLevel.Administrator, SignRemove_OnCommand);
+        }
 
-		[Usage("SignRemove")]
-		[Description("Removes the targeted sign from the world and from the signs configuration file.")]
-		public static void SignRemove_OnCommand(CommandEventArgs c)
-		{
-			c.Mobile.Target = new SignRemoveTarget();
-		}
+        [Usage("SignRemove")]
+        [Description("Removes the targeted sign from the world and from the signs configuration file.")]
+        public static void SignRemove_OnCommand(CommandEventArgs c)
+        {
+            c.Mobile.Target = new SignRemoveTarget();
+        }
 
-		[Usage("SignSave")]
-		[Description("Saves the targeted sign to the signs configuration file.")]
-		public static void SignSave_OnCommand(CommandEventArgs c)
-		{
-			c.Mobile.Target = new SignSaveTarget();
-		}
+        [Usage("SignSave")]
+        [Description("Saves the targeted sign to the signs configuration file.")]
+        public static void SignSave_OnCommand(CommandEventArgs c)
+        {
+            c.Mobile.Target = new SignSaveTarget();
+        }
 
         [Usage("SignGen")]
         [Description("Generates world/shop signs on all facets.")]
@@ -42,28 +43,28 @@ namespace Server.Commands
         public static void Parse(Mobile from)
         {
             from.SendMessage("Generating signs, please wait.");
-			List<SignEntry> list = SignEntry.LoadConfig("Data/signs.cfg");
+            var list = SignEntry.LoadConfig("Data/signs.cfg");
 
-            Map[] brit = new Map[] { Map.Felucca, Map.Trammel };
-            Map[] fel = new Map[] { Map.Felucca };
-            Map[] tram = new Map[] { Map.Trammel };
-            Map[] ilsh = new Map[] { Map.Ilshenar };
-            Map[] malas = new Map[] { Map.Malas };
-            Map[] tokuno = new Map[] { Map.Tokuno };
+            var brit = new[] { Map.Felucca, Map.Trammel };
+            var fel = new[] { Map.Felucca };
+            var tram = new[] { Map.Trammel };
+            var ilsh = new[] { Map.Ilshenar };
+            var malas = new[] { Map.Malas };
+            var tokuno = new[] { Map.Tokuno };
 
-            for (int i = 0; i < list.Count; ++i)
+            for (var i = 0; i < list.Count; ++i)
             {
-                SignEntry e = list[i];
+                var e = list[i];
                 Map[] maps = null;
 
-                switch ( e.m_Map )
+                switch (e.m_Map)
                 {
                     case 0:
                         maps = brit;
                         break; // Trammel and Felucca
                     case 1:
                         maps = fel;
-                        break;  // Felucca
+                        break; // Felucca
                     case 2:
                         maps = tram;
                         break; // Trammel
@@ -78,7 +79,7 @@ namespace Server.Commands
                         break; // Tokuno Islands
                 }
 
-                for (int j = 0; maps != null && j < maps.Length; ++j)
+                for (var j = 0; maps != null && j < maps.Length; ++j)
                     Add_Static(e.m_ItemID, e.m_Location, maps[j], e.m_Text);
             }
 
@@ -90,10 +91,8 @@ namespace Server.Commands
             IPooledEnumerable eable = map.GetItemsInRange(location, 0);
 
             foreach (Item item in eable)
-            {
                 if (item is Sign && item.Z == location.Z && item.ItemID == itemID)
                     m_ToDelete.Enqueue(item);
-            }
 
             eable.Free();
 
@@ -111,7 +110,8 @@ namespace Server.Commands
                 sign = new Sign(itemID);
                 sign.Name = name;
             }
-			WeakEntityCollection.Add("sign", sign);
+
+            WeakEntityCollection.Add("sign", sign);
 
             if (map == Map.Malas)
             {
@@ -124,229 +124,214 @@ namespace Server.Commands
             sign.MoveToWorld(location, map);
         }
 
-		private class SignEntry
-		{
-			public static readonly int BritMapId = 0;
-			public readonly string m_Text;
-			public readonly Point3D m_Location;
-			public readonly int m_ItemID;
-			public readonly int m_Map;
+        private class SignEntry
+        {
+            public static readonly int BritMapId = 0;
+            public readonly int m_ItemID;
+            public readonly Point3D m_Location;
+            public readonly int m_Map;
+            public readonly string m_Text;
 
-			public SignEntry(string text, Point3D pt, int itemID, int mapLoc)
-			{
-				this.m_Text = text;
-				this.m_Location = pt;
-				this.m_ItemID = itemID;
-				this.m_Map = mapLoc;
-			}
+            public SignEntry(string text, Point3D pt, int itemID, int mapLoc)
+            {
+                m_Text = text;
+                m_Location = pt;
+                m_ItemID = itemID;
+                m_Map = mapLoc;
+            }
 
-			public static int GetIdForMap(Map map)
-			{
-				if (map == Map.Felucca) return 1;
-				if (map == Map.Trammel) return 2;
-				if (map == Map.Ilshenar) return 3;
-				if (map == Map.Malas) return 4;
-				if (map == Map.Tokuno) return 5;
-				if (map == Map.TerMur) return 6;
-				throw new ArgumentException(String.Format("Unhandled map {0}", map.Name));
-			}
+            public static int GetIdForMap(Map map)
+            {
+                if (map == Map.Felucca) return 1;
+                if (map == Map.Trammel) return 2;
+                if (map == Map.Ilshenar) return 3;
+                if (map == Map.Malas) return 4;
+                if (map == Map.Tokuno) return 5;
+                if (map == Map.TerMur) return 6;
+                throw new ArgumentException(string.Format("Unhandled map {0}", map.Name));
+            }
 
-			public static List<SignEntry> LoadConfig(String path)
-			{
-				List<SignEntry> list = new List<SignEntry>();
-				string cfg = Path.Combine(Core.BaseDirectory, path);
+            public static List<SignEntry> LoadConfig(string path)
+            {
+                var list = new List<SignEntry>();
+                var cfg = Path.Combine(Core.BaseDirectory, path);
 
-				if (File.Exists(cfg))
-				{
-					using (StreamReader ip = new StreamReader(cfg))
-					{
-						string line;
+                if (File.Exists(cfg))
+                    using (var ip = new StreamReader(cfg))
+                    {
+                        string line;
 
-						while ((line = ip.ReadLine()) != null)
-						{
+                        while ((line = ip.ReadLine()) != null)
+                        {
                             if (string.IsNullOrEmpty(line))
                                 continue;
 
-							string[] split = line.Split(' ');
+                            var split = line.Split(' ');
 
-							SignEntry e = new SignEntry(
-								line.Substring(split[0].Length + 1 + split[1].Length + 1 + split[2].Length + 1 + split[3].Length + 1 + split[4].Length + 1),
-								new Point3D(Utility.ToInt32(split[2]), Utility.ToInt32(split[3]), Utility.ToInt32(split[4])),
-								Utility.ToInt32(split[1]), Utility.ToInt32(split[0]));
+                            var e = new SignEntry(
+                                line.Substring(split[0].Length + 1 + split[1].Length + 1 + split[2].Length + 1 +
+                                               split[3].Length + 1 + split[4].Length + 1),
+                                new Point3D(Utility.ToInt32(split[2]), Utility.ToInt32(split[3]),
+                                    Utility.ToInt32(split[4])),
+                                Utility.ToInt32(split[1]), Utility.ToInt32(split[0]));
 
-							list.Add(e);
-						}
-					}
-				}
+                            list.Add(e);
+                        }
+                    }
 
-				return list;
-			}
+                return list;
+            }
 
-			public static void WriteConfig(List<SignEntry> signs, String path)
-			{
-				string cfg = Path.Combine(Core.BaseDirectory, path);
-				using (StreamWriter op = new StreamWriter(cfg))
-				{
-					foreach(SignEntry sign in signs)
-					{
-						string line = String.Format("{0} {1} {2} {3} {4} {5}", sign.m_Map,
-							sign.m_ItemID, sign.m_Location.X, sign.m_Location.Y,
-							sign.m_Location.Z, sign.m_Text);
-						op.WriteLine(line);
-					}
-				}
-			}
-		}
+            public static void WriteConfig(List<SignEntry> signs, string path)
+            {
+                var cfg = Path.Combine(Core.BaseDirectory, path);
+                using (var op = new StreamWriter(cfg))
+                {
+                    foreach (var sign in signs)
+                    {
+                        var line = string.Format("{0} {1} {2} {3} {4} {5}", sign.m_Map,
+                            sign.m_ItemID, sign.m_Location.X, sign.m_Location.Y,
+                            sign.m_Location.Z, sign.m_Text);
+                        op.WriteLine(line);
+                    }
+                }
+            }
+        }
 
-		private class SignRemoveTarget : Target
-		{
-			public SignRemoveTarget()
-				: base(-1, false, TargetFlags.None)
-			{
-			}
+        private class SignRemoveTarget : Target
+        {
+            public SignRemoveTarget()
+                : base(-1, false, TargetFlags.None)
+            {
+            }
 
-			protected override void OnTarget(Mobile from, object o)
-			{
-				if (!(o is Sign)) return;
-				Sign target = (Sign)o;
-				int targetMap = SignEntry.GetIdForMap(target.Map);
-				SignEntry toRemove = null;
+            protected override void OnTarget(Mobile from, object o)
+            {
+                if (!(o is Sign)) return;
+                var target = (Sign)o;
+                var targetMap = SignEntry.GetIdForMap(target.Map);
+                SignEntry toRemove = null;
 
-				List<SignEntry> signs = SignEntry.LoadConfig("Data/signs.cfg");
-				foreach(SignEntry sign in signs)
-				{
-					if(sign.m_Map == targetMap ||
-						(sign.m_Map == 0 && (
-							targetMap == 1 ||
-							targetMap == 2
-						)))
-					{
-						if(sign.m_Location.CompareTo(target.Location) == 0)
-						{
-							RemoveSign(target);
-							toRemove = sign;
-						}
-					}
-				}
-				
-				if(toRemove != null)
-				{
-					signs.Remove(toRemove);
-					SignEntry.WriteConfig(signs, "Data/signs.cfg");
-				}
-				else
-				{
-					from.SendMessage("An entry for that sign was not found.");
-				}
-			}
+                var signs = SignEntry.LoadConfig("Data/signs.cfg");
+                foreach (var sign in signs)
+                    if (sign.m_Map == targetMap ||
+                        (sign.m_Map == 0 && (
+                            targetMap == 1 ||
+                            targetMap == 2
+                        )))
+                        if (sign.m_Location.CompareTo(target.Location) == 0)
+                        {
+                            RemoveSign(target);
+                            toRemove = sign;
+                        }
 
-			private void RemoveSign(Sign sign)
-			{
-				IPooledEnumerable eable;
+                if (toRemove != null)
+                {
+                    signs.Remove(toRemove);
+                    SignEntry.WriteConfig(signs, "Data/signs.cfg");
+                }
+                else
+                {
+                    from.SendMessage("An entry for that sign was not found.");
+                }
+            }
 
-				m_ToDelete.Enqueue(sign);
-				if (sign.Map == Map.Trammel)
-				{
-					eable = Map.Felucca.GetItemsInRange(sign.Location, 0);
-					foreach (Item item in eable)
-					{
-						if (item is Sign && item.Z == sign.Location.Z && item.ItemID == sign.ItemID)
-							m_ToDelete.Enqueue(item);
-					}
-					eable.Free();
-				}
-				if (sign.Map == Map.Felucca)
-				{
-					eable = Map.Trammel.GetItemsInRange(sign.Location, 0);
-					foreach (Item item in eable)
-					{
-						if (item is Sign && item.Z == sign.Location.Z && item.ItemID == sign.ItemID)
-							m_ToDelete.Enqueue(item);
-					}
-					eable.Free();
-				}
+            private void RemoveSign(Sign sign)
+            {
+                IPooledEnumerable eable;
 
-				while (m_ToDelete.Count > 0)
-					m_ToDelete.Dequeue().Delete();
-			}
-		}
+                m_ToDelete.Enqueue(sign);
+                if (sign.Map == Map.Trammel)
+                {
+                    eable = Map.Felucca.GetItemsInRange(sign.Location, 0);
+                    foreach (Item item in eable)
+                        if (item is Sign && item.Z == sign.Location.Z && item.ItemID == sign.ItemID)
+                            m_ToDelete.Enqueue(item);
+                    eable.Free();
+                }
 
-		private class SignSaveTarget : Target
-		{
-			public int TargetMap { get; set; }
-			private Sign m_Sign;
-			private Mobile m_From;
+                if (sign.Map == Map.Felucca)
+                {
+                    eable = Map.Trammel.GetItemsInRange(sign.Location, 0);
+                    foreach (Item item in eable)
+                        if (item is Sign && item.Z == sign.Location.Z && item.ItemID == sign.ItemID)
+                            m_ToDelete.Enqueue(item);
+                    eable.Free();
+                }
 
-			public SignSaveTarget()
-				: base(-1, false, TargetFlags.None)
-			{
-			}
+                while (m_ToDelete.Count > 0)
+                    m_ToDelete.Dequeue().Delete();
+            }
+        }
 
-			protected override void OnTarget(Mobile from, object o)
-			{
-				if (!(o is Sign)) return;
-				m_Sign = (Sign)o;
-				m_From = from;
+        private class SignSaveTarget : Target
+        {
+            private Mobile m_From;
+            private Sign m_Sign;
+            public int TargetMap { get; set; }
 
-				TargetMap = SignEntry.GetIdForMap(m_Sign.Map);
+            public SignSaveTarget()
+                : base(-1, false, TargetFlags.None)
+            {
+            }
 
-				if(m_Sign.Map == Map.Felucca ||
-					m_Sign.Map == Map.Trammel)
-				{
-					from.SendGump(new BritGump(this));
-				}
-				else
-				{
-					DoSave();
-				}
-			}
+            protected override void OnTarget(Mobile from, object o)
+            {
+                if (!(o is Sign)) return;
+                m_Sign = (Sign)o;
+                m_From = from;
 
-			public void DoSave()
-			{
-				List<SignEntry> signs = SignEntry.LoadConfig("Data/signs.cfg");
-				foreach(SignEntry sign in signs)
-				{
-					if(sign.m_Map == TargetMap &&
-						sign.m_Location.CompareTo(m_Sign.Location) == 0)
-					{
-						m_From.SendMessage("A sign is already configured for this location.");
-						return;
-					}
-				}
-				signs.Add(new SignEntry(m_Sign.Name, m_Sign.Location, m_Sign.ItemID, TargetMap));
-				SignEntry.WriteConfig(signs, "Data/signs.cfg");
-			}
-		}
+                TargetMap = SignEntry.GetIdForMap(m_Sign.Map);
 
-		private class BritGump : Gump
-		{
-			private SignSaveTarget m_Target;
+                if (m_Sign.Map == Map.Felucca ||
+                    m_Sign.Map == Map.Trammel)
+                    from.SendGump(new BritGump(this));
+                else
+                    DoSave();
+            }
 
-			public BritGump(SignSaveTarget target)
-				: base(30, 20)
-			{
-				this.m_Target = target;
-				this.Dragable = false;
-				this.Resizable = false;
-				this.Closable = false;
+            public void DoSave()
+            {
+                var signs = SignEntry.LoadConfig("Data/signs.cfg");
+                foreach (var sign in signs)
+                    if (sign.m_Map == TargetMap &&
+                        sign.m_Location.CompareTo(m_Sign.Location) == 0)
+                    {
+                        m_From.SendMessage("A sign is already configured for this location.");
+                        return;
+                    }
 
-				this.AddPage(0);
-				this.AddBackground(0, 0, 550, 440, 5054);
-				this.AddBackground(10, 10, 530, 420, 3000);
+                signs.Add(new SignEntry(m_Sign.Name, m_Sign.Location, m_Sign.ItemID, TargetMap));
+                SignEntry.WriteConfig(signs, "Data/signs.cfg");
+            }
+        }
 
-				this.AddLabel(20, 20, 0, "Add this sign to both facets?");
-				this.AddButton(20, 40, 2453, 2454, 0, GumpButtonType.Reply, 0);
-				this.AddButton(450, 40, 2450, 2451, 1, GumpButtonType.Reply, 0);
-			}
+        private class BritGump : Gump
+        {
+            private readonly SignSaveTarget m_Target;
 
-			public override void OnResponse(NetState sender, RelayInfo info)
-			{
-				if(info.ButtonID == 1)
-				{
-					m_Target.TargetMap = SignEntry.BritMapId;
-				}
-				m_Target.DoSave();
-			}
-		}
-	}
+            public BritGump(SignSaveTarget target)
+                : base(30, 20)
+            {
+                m_Target = target;
+                Dragable = false;
+                Resizable = false;
+                Closable = false;
+
+                AddPage(0);
+                AddBackground(0, 0, 550, 440, 5054);
+                AddBackground(10, 10, 530, 420, 3000);
+
+                AddLabel(20, 20, 0, "Add this sign to both facets?");
+                AddButton(20, 40, 2453, 2454, 0, GumpButtonType.Reply, 0);
+                AddButton(450, 40, 2450, 2451, 1, GumpButtonType.Reply, 0);
+            }
+
+            public override void OnResponse(NetState sender, RelayInfo info)
+            {
+                if (info.ButtonID == 1) m_Target.TargetMap = SignEntry.BritMapId;
+                m_Target.DoSave();
+            }
+        }
+    }
 }

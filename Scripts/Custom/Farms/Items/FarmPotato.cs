@@ -1,14 +1,5 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using Server;
-using Server.Items;
-using Server.Regions;
-using Server.Targeting;
-
 namespace Server.Custom.Farms
 {
-
     // =========================================================================
     // 1. ПРЕДМЕТ: КАСТОМНЫЙ КАРТОФЕЛЬ (ПЛОД ДЛЯ ИНВЕНТАРЯ)
     // =========================================================================
@@ -27,6 +18,11 @@ namespace Server.Custom.Farms
             Hue = 52;
             Stackable = true;
             Amount = amount;
+        }
+
+
+        public FarmPotato(Serial serial) : base(serial)
+        {
         }
 
         protected override void OnAmountChange(int oldValue)
@@ -50,11 +46,6 @@ namespace Server.Custom.Farms
 
             // Вызываем наш универсальный таргет и передаем тип Potato
             from.Target = new FarmVegetableTarget(this, VegetableType.Potato);
-        }
-
-
-        public FarmPotato(Serial serial) : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)

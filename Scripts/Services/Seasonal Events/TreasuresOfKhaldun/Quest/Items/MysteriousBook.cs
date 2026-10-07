@@ -1,21 +1,14 @@
-using System;
-using System.Collections.Generic;
-
-using Server;
-using Server.Prompts;
-using Server.Mobiles;
-using Server.Items;
-using Server.SkillHandlers;
-using Server.Network;
-using Server.Gumps;
 using Server.Engines.Quests;
+using Server.Mobiles;
+using Server.Network;
+using Server.SkillHandlers;
 
 namespace Server.Engines.Khaldun
 {
     public class MysteriousBook : Item, IForensicTarget
     {
-        public override int LabelNumber { get { return 1158583; } } // mysterious book
         public static readonly Point3D SpawnLocation = new Point3D(6240, 2885, 7);
+        public override int LabelNumber => 1158583; // mysterious book
 
         [CommandProperty(AccessLevel.GameMaster)]
         public TrapDoor Door { get; set; }
@@ -26,6 +19,11 @@ namespace Server.Engines.Khaldun
             Movable = false;
             Door = door;
             Hue = 1950;
+        }
+
+        public MysteriousBook(Serial serial)
+            : base(serial)
+        {
         }
 
         public void OnForensicEval(Mobile m)
@@ -43,8 +41,10 @@ namespace Server.Engines.Khaldun
                 }
                 else
                 {
-                    m.PrivateOverheadMessage(MessageType.Regular, 0x47E, 1157722, "Forensics", m.NetState); // *Your proficiency in ~1_SKILL~ reveals more about the item*
-                    m.SendLocalizedMessage(1158612, null, 0x23); // You have identified a clue! This item seems pertinent to the investigation!
+                    m.PrivateOverheadMessage(MessageType.Regular, 0x47E, 1157722, "Forensics",
+                        m.NetState); // *Your proficiency in ~1_SKILL~ reveals more about the item*
+                    m.SendLocalizedMessage(1158612, null,
+                        0x23); // You have identified a clue! This item seems pertinent to the investigation!
 
                     m.SendSound(quest.UpdateSound);
                     m.SendSound(m.Female ? 0x30B : 0x41A);
@@ -69,8 +69,10 @@ namespace Server.Engines.Khaldun
                 }
                 else
                 {
-                    m.PrivateOverheadMessage(MessageType.Regular, 0x47E, 1158582, m.NetState); // *You copy several pages onto some parchment and roll it up...*
-                    m.SendLocalizedMessage(1158612, null, 0x23); // You have identified a clue! This item seems pertinent to the investigation!
+                    m.PrivateOverheadMessage(MessageType.Regular, 0x47E, 1158582,
+                        m.NetState); // *You copy several pages onto some parchment and roll it up...*
+                    m.SendLocalizedMessage(1158612, null,
+                        0x23); // You have identified a clue! This item seems pertinent to the investigation!
                     m.AddToBackpack(new RolledParchment(GetPage()));
                     m.PlaySound(0x249);
 
@@ -83,10 +85,7 @@ namespace Server.Engines.Khaldun
 
         private void SetFoundClue1(GoingGumshoeQuest2 quest)
         {
-            if (Door == null)
-            {
-                return;
-            }
+            if (Door == null) return;
 
             switch (Door.Keyword.ToLower())
             {
@@ -99,10 +98,7 @@ namespace Server.Engines.Khaldun
 
         private void SetFoundClue2(GoingGumshoeQuest2 quest)
         {
-            if (Door == null)
-            {
-                return;
-            }
+            if (Door == null) return;
 
             switch (Door.Keyword.ToLower())
             {
@@ -115,10 +111,7 @@ namespace Server.Engines.Khaldun
 
         private bool HasFoundClue1(GoingGumshoeQuest2 quest)
         {
-            if (Door == null)
-            {
-                return false;
-            }
+            if (Door == null) return false;
 
             switch (Door.Keyword.ToLower())
             {
@@ -133,10 +126,7 @@ namespace Server.Engines.Khaldun
 
         private bool HasFoundClue2(GoingGumshoeQuest2 quest)
         {
-            if (Door == null)
-            {
-                return false;
-            }
+            if (Door == null) return false;
 
             switch (Door.Keyword.ToLower())
             {
@@ -151,10 +141,7 @@ namespace Server.Engines.Khaldun
 
         private int GetPage()
         {
-            if (Door == null)
-            {
-                return 0;
-            }
+            if (Door == null) return 0;
 
             switch (Door.Keyword.ToLower())
             {
@@ -167,16 +154,11 @@ namespace Server.Engines.Khaldun
             return 0;
         }
 
-        public MysteriousBook(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
             writer.Write(Door);
         }
 
@@ -184,7 +166,7 @@ namespace Server.Engines.Khaldun
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
             Door = reader.ReadItem() as TrapDoor;
         }
     }

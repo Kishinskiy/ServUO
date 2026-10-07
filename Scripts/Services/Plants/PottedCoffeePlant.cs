@@ -1,15 +1,14 @@
-using Server;
 using System;
-using Server.Network;
 using Server.Engines.Plants;
 using Server.Gumps;
 using Server.Multis;
+using Server.Network;
 
 namespace Server.Items
 {
     public class CoffeeGrounds : Item
     {
-        public override int LabelNumber { get { return 1155735; } } // Coffee Grounds
+        public override int LabelNumber => 1155735; // Coffee Grounds
 
         [Constructable]
         public CoffeeGrounds()
@@ -34,19 +33,19 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class CoffeePod : Item
     {
-        public override int LabelNumber { get { return 1123484; } } // Coffee Pod
+        public override int LabelNumber => 1123484; // Coffee Pod
 
         [Constructable]
         public CoffeePod()
@@ -70,13 +69,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -84,23 +83,39 @@ namespace Server.Items
     {
         public static readonly TimeSpan CheckDelay = TimeSpan.FromHours(23.0);
 
-        public override int LabelNumber { get { return 1123480; } } // Potted Coffee Plant
-
         private PlantStatus m_PlantStatus;
         private Timer m_Timer;
+
+        public override int LabelNumber => 1123480; // Potted Coffee Plant
 
         [CommandProperty(AccessLevel.GameMaster)]
         public PlantStatus PlantStatus
         {
-            get { return m_PlantStatus; }
+            get => m_PlantStatus;
             set
             {
                 switch (value)
                 {
-                    case PlantStatus.Stage1: { ItemID = 0x9A20; break; }
-                    case PlantStatus.Stage2: { ItemID = 0x9A21; break; }
-                    case PlantStatus.Stage3: { ItemID = 0x9A22; break; }
-                    case PlantStatus.Stage4: { ItemID = 0x9A23; break; }
+                    case PlantStatus.Stage1:
+                    {
+                        ItemID = 0x9A20;
+                        break;
+                    }
+                    case PlantStatus.Stage2:
+                    {
+                        ItemID = 0x9A21;
+                        break;
+                    }
+                    case PlantStatus.Stage3:
+                    {
+                        ItemID = 0x9A22;
+                        break;
+                    }
+                    case PlantStatus.Stage4:
+                    {
+                        ItemID = 0x9A23;
+                        break;
+                    }
                 }
 
                 m_PlantStatus = value;
@@ -109,9 +124,6 @@ namespace Server.Items
 
         [CommandProperty(AccessLevel.GameMaster)]
         public DateTime NextGrowth { get; set; }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public SecureLevel Level { get; set; }
 
         [Constructable]
         public PottedCoffeePlant()
@@ -123,12 +135,20 @@ namespace Server.Items
             StartTimer();
         }
 
+        public PottedCoffeePlant(Serial serial)
+            : base(serial)
+        {
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public SecureLevel Level { get; set; }
+
         public bool CheckAccessible(Mobile from, Item item)
         {
             if (from.AccessLevel >= AccessLevel.GameMaster)
                 return true; // Staff can access anything
 
-            BaseHouse house = BaseHouse.FindHouseAt(item);
+            var house = BaseHouse.FindHouseAt(item);
 
             if (house == null)
                 return false;
@@ -174,7 +194,7 @@ namespace Server.Items
             if (m_Timer != null)
                 return;
 
-            m_Timer = Timer.DelayCall(TimeSpan.FromHours(1.0), TimeSpan.FromHours(1.0), new TimerCallback(OnTick));
+            m_Timer = Timer.DelayCall(TimeSpan.FromHours(1.0), TimeSpan.FromHours(1.0), OnTick);
         }
 
         public override void OnDoubleClick(Mobile from)
@@ -202,26 +222,21 @@ namespace Server.Items
             }
         }
 
-        public PottedCoffeePlant(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
             writer.Write((int)PlantStatus);
             writer.Write((int)Level);
-            writer.Write((DateTime)NextGrowth);
+            writer.Write(NextGrowth);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
             PlantStatus = (PlantStatus)reader.ReadInt();
             Level = (SecureLevel)reader.ReadInt();
             NextGrowth = reader.ReadDateTime();

@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +5,14 @@ namespace Server.Mobiles
     [CorpseName("a Guile corpse")]
     public class Guile : Changeling
     {
+        public override bool CanBeParagon => false;
+
+        public override string DefaultName => "Guile";
+
+        public override int DefaultHue => 0x3F;
+
+        public override bool GivesMLMinorArtifact => true;
+
         [Constructable]
         public Guile()
         {
@@ -39,10 +46,8 @@ namespace Server.Mobiles
             Fame = 21000;
             Karma = -21000;
 
-            for (int i = 0; i < Utility.RandomMinMax(0, 1); i++)
-            {
+            for (var i = 0; i < Utility.RandomMinMax(0, 1); i++)
                 PackItem(Loot.RandomScroll(0, Loot.ArcanistScrollTypes.Length, SpellbookType.Arcanist));
-            }
 
             SetSpecialAbility(SpecialAbility.StealLife);
         }
@@ -50,28 +55,6 @@ namespace Server.Mobiles
         public Guile(Serial serial)
             : base(serial)
         {
-        }
-		public override bool CanBeParagon { get { return false; } }
-        public override string DefaultName
-        {
-            get
-            {
-                return "Guile";
-            }
-        }
-        public override int DefaultHue
-        {
-            get
-            {
-                return 0x3F;
-            }
-        }
-        public override bool GivesMLMinorArtifact
-        {
-            get
-            {
-                return true;
-            }
         }
 
         public override void GenerateLoot()
@@ -83,14 +66,14 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

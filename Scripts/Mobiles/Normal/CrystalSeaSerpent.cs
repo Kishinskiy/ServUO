@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +5,13 @@ namespace Server.Mobiles
     [CorpseName("a crystal sea serpent corpse")]
     public class CrystalSeaSerpent : SeaSerpent
     {
+        public override int TreasureMapLevel => 3;
+        public override int Meat => 10;
+        public override int Hides => 11;
+        public override HideType HideType => HideType.Horned;
+        public override int Scales => 8;
+        public override ScaleType ScaleType => ScaleType.Blue;
+
         [Constructable]
         public CrystalSeaSerpent()
         {
@@ -31,44 +37,37 @@ namespace Server.Mobiles
             SetResistance(ResistanceType.Energy, 60, 80);
         }
 
-        public override void OnDeath( Container c )
-        {
-        base.OnDeath( c );
-
-            if ( Utility.RandomDouble() < 0.05 )
-            c.DropItem( new CrushedCrystals() );
-
-            if ( Utility.RandomDouble() < 0.1 )
-            c.DropItem( new IcyHeart() );
-
-            if ( Utility.RandomDouble() < 0.1 )
-            c.DropItem( new LuckyDagger() );
-        }
-
-        public override int TreasureMapLevel { get { return 3; } }
-        public override int Meat{ get{ return 10; } }
-        public override int Hides{ get{ return 11; } }
-        public override HideType HideType{ get{ return HideType.Horned; } }
-        public override int Scales{ get{ return 8; } }
-        public override ScaleType ScaleType{ get{ return ScaleType.Blue; } } 
-
         public CrystalSeaSerpent(Serial serial)
             : base(serial)
         {
+        }
+
+        public override void OnDeath(Container c)
+        {
+            base.OnDeath(c);
+
+            if (Utility.RandomDouble() < 0.05)
+                c.DropItem(new CrushedCrystals());
+
+            if (Utility.RandomDouble() < 0.1)
+                c.DropItem(new IcyHeart());
+
+            if (Utility.RandomDouble() < 0.1)
+                c.DropItem(new LuckyDagger());
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

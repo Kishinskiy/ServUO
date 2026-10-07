@@ -1,8 +1,5 @@
-using System;
-using Server;
-using Server.Mobiles;
 using Server.Gumps;
-using Server.Network;
+using Server.Mobiles;
 
 namespace Server.Items
 {
@@ -11,10 +8,10 @@ namespace Server.Items
     {
         private Mobile _Clicker;
 
-        public override BaseAddonDeed Deed { get { return new SkeletalHangmanAddonDeed(); } }
+        public override BaseAddonDeed Deed => new SkeletalHangmanAddonDeed();
 
         [Constructable]
-        public SkeletalHangmanAddon() 
+        public SkeletalHangmanAddon()
             : this(null)
         {
         }
@@ -25,6 +22,11 @@ namespace Server.Items
 
             AddComponent(new AddonComponent(0x9D39), 0, 0, 0);
             AddComponent(new InternalComponent(0x9D38), 0, 1, 0);
+        }
+
+        public SkeletalHangmanAddon(Serial serial)
+            : base(serial)
+        {
         }
 
         public virtual void Flip(Mobile from, Direction direction)
@@ -42,51 +44,6 @@ namespace Server.Items
             }
         }
 
-        public class InternalComponent : AddonComponent
-        {
-            public override bool ForceShowProperties { get { return true; } }
-
-            public InternalComponent(int id) : base(id)
-            {
-            }
-
-            public override void AddNameProperty(ObjectPropertyList list)
-            {
-                SkeletalHangmanAddon addon = Addon as SkeletalHangmanAddon;
-
-                if (addon._Clicker != null)
-                {
-                    list.Add(1156983, addon._Clicker.Name);
-                }
-                else
-                {
-                    list.Add(1156982);
-                }
-            }
-
-            public InternalComponent(Serial serial)
-                : base(serial)
-            {
-            }
-
-            public override void Serialize(GenericWriter writer)
-            {
-                base.Serialize(writer);
-                writer.Write(0);
-            }
-
-            public override void Deserialize(GenericReader reader)
-            {
-                base.Deserialize(reader);
-                int version = reader.ReadInt();
-            }
-        }
-
-        public SkeletalHangmanAddon(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -98,21 +55,61 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             _Clicker = reader.ReadMobile();
+        }
+
+        public class InternalComponent : AddonComponent
+        {
+            public override bool ForceShowProperties => true;
+
+            public InternalComponent(int id) : base(id)
+            {
+            }
+
+            public InternalComponent(Serial serial)
+                : base(serial)
+            {
+            }
+
+            public override void AddNameProperty(ObjectPropertyList list)
+            {
+                var addon = Addon as SkeletalHangmanAddon;
+
+                if (addon._Clicker != null)
+                    list.Add(1156983, addon._Clicker.Name);
+                else
+                    list.Add(1156982);
+            }
+
+            public override void Serialize(GenericWriter writer)
+            {
+                base.Serialize(writer);
+                writer.Write(0);
+            }
+
+            public override void Deserialize(GenericReader reader)
+            {
+                base.Deserialize(reader);
+                var version = reader.ReadInt();
+            }
         }
     }
 
     public class SkeletalHangmanAddonDeed : BaseAddonDeed
     {
-        public override int LabelNumber { get { return 1156982; } } // Skeletal Hangman
-        public override BaseAddon Addon { get { return new SkeletalHangmanAddon(_Clicker); } }
-
         private Mobile _Clicker;
+        public override int LabelNumber => 1156982; // Skeletal Hangman
+        public override BaseAddon Addon => new SkeletalHangmanAddon(_Clicker);
 
         [Constructable]
         public SkeletalHangmanAddonDeed()
+        {
+        }
+
+        public SkeletalHangmanAddonDeed(Serial serial)
+            : base(serial)
         {
         }
 
@@ -121,11 +118,6 @@ namespace Server.Items
             _Clicker = m;
 
             base.OnDoubleClick(m);
-        }
-
-        public SkeletalHangmanAddonDeed(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -137,14 +129,14 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     [FlipableAddon(Direction.South, Direction.East)]
     public class KotlSacraficialAltarAddon : BaseAddon
     {
-        public override BaseAddonDeed Deed { get { return new KotlSacraficialAltarAddonDeed(); } }
+        public override BaseAddonDeed Deed => new KotlSacraficialAltarAddonDeed();
 
         [Constructable]
         public KotlSacraficialAltarAddon()
@@ -153,6 +145,11 @@ namespace Server.Items
             AddComponent(new AddonComponent(0x9D60), 0, 1, 0);
             AddComponent(new AddonComponent(0x9D61), 1, 0, 0);
             AddComponent(new AddonComponent(0x9D62), 1, 1, 0);
+        }
+
+        public KotlSacraficialAltarAddon(Serial serial)
+            : base(serial)
+        {
         }
 
         public virtual void Flip(Mobile from, Direction direction)
@@ -174,11 +171,6 @@ namespace Server.Items
             }
         }
 
-        public KotlSacraficialAltarAddon(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -188,14 +180,14 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class KotlSacraficialAltarAddonDeed : BaseAddonDeed
     {
-        public override BaseAddon Addon { get { return new KotlSacraficialAltarAddon(); } }
-        public override int LabelNumber { get { return 1124311; } } // Kotl Sacrificial Altar
+        public override BaseAddon Addon => new KotlSacraficialAltarAddon();
+        public override int LabelNumber => 1124311; // Kotl Sacrificial Altar
 
         [Constructable]
         public KotlSacraficialAltarAddonDeed()
@@ -216,7 +208,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -224,7 +216,7 @@ namespace Server.Items
     {
         private TextDefinition _Title;
 
-        public override TextDefinition Title { get { return _Title; } }
+        public override TextDefinition Title => _Title;
 
         public TreasuresOfKotlRewardDeed(int localization)
         {
@@ -247,7 +239,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             _Title = TextDefinition.Deserialize(reader);
         }
@@ -255,7 +247,19 @@ namespace Server.Items
 
     public class KatalkotlsRing : SilverRing
     {
-        public override int LabelNumber { get { return 1156989; } }
+        public static SkillName[] Skills =
+        {
+            SkillName.Necromancy,
+            SkillName.Magery,
+            SkillName.Bushido,
+            SkillName.Chivalry,
+            SkillName.Ninjitsu,
+            SkillName.Mysticism
+        };
+
+        public override int LabelNumber => 1156989;
+
+        public bool HasSkillBonus => SkillBonuses.Skill_3_Value != 0;
 
         [Constructable]
         public KatalkotlsRing()
@@ -269,46 +273,24 @@ namespace Server.Items
             Attributes.SpellDamage = 20;
         }
 
-        public bool HasSkillBonus
+        public KatalkotlsRing(Serial serial)
+            : base(serial)
         {
-            get { return SkillBonuses.Skill_3_Value != 0; }
         }
 
         public override void OnDoubleClick(Mobile m)
         {
             if (IsChildOf(m.Backpack) && m is PlayerMobile && !HasSkillBonus)
-            {
                 BaseGump.SendGump(new ApplySkillBonusGump((PlayerMobile)m, SkillBonuses, Skills, 20, 2));
-            }
             else
-            {
                 base.OnDoubleClick(m);
-            }
         }
 
         public override void GetProperties(ObjectPropertyList list)
         {
             base.GetProperties(list);
 
-            if (!HasSkillBonus)
-            {
-                list.Add(1155609); // Double Click to Set Skill Bonus
-            }
-        }
-
-        public static SkillName[] Skills =
-        {
-            SkillName.Necromancy,
-            SkillName.Magery,
-            SkillName.Bushido,
-            SkillName.Chivalry,
-            SkillName.Ninjitsu,
-            SkillName.Mysticism
-        };
-
-        public KatalkotlsRing(Serial serial)
-            : base(serial)
-        {
+            if (!HasSkillBonus) list.Add(1155609); // Double Click to Set Skill Bonus
         }
 
         public override void Serialize(GenericWriter writer)
@@ -320,13 +302,13 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class BootsOfEscaping : ThighBoots
     {
-        public override int LabelNumber { get { return 1155607; } } // Boots of Escaping
+        public override int LabelNumber => 1155607; // Boots of Escaping
 
         public BootsOfEscaping()
         {
@@ -348,13 +330,13 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class TalonsOfEscaping : LeatherTalons
     {
-        public override int LabelNumber { get { return 1155682; } } // Talons of Escaping
+        public override int LabelNumber => 1155682; // Talons of Escaping
 
         public TalonsOfEscaping()
         {
@@ -376,29 +358,28 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class TribalBanner : Item, IFlipable
     {
-        public override int LabelNumber { get { return ItemID + 1084024; } }
-        public override bool ForceShowProperties { get { return true; } }
-
-        public int NorthID { get { return GetTribeID(_Tribe); } }
-        public int WestID { get { return GetTribeID(_Tribe) + 1; } }
-
         private EodonTribe _Tribe;
+        public override int LabelNumber => ItemID + 1084024;
+        public override bool ForceShowProperties => true;
+
+        public int NorthID => GetTribeID(_Tribe);
+        public int WestID => GetTribeID(_Tribe) + 1;
 
         [CommandProperty(AccessLevel.GameMaster)]
         public EodonTribe Tribe
         {
-            get { return _Tribe; }
+            get => _Tribe;
             set
             {
                 _Tribe = value;
 
-                int id = GetTribeID(_Tribe);
+                var id = GetTribeID(_Tribe);
 
                 if (ItemID != id)
                     ItemID = id;
@@ -411,6 +392,24 @@ namespace Server.Items
         public TribalBanner(EodonTribe tribe) : base(GetTribeID(tribe))
         {
             _Tribe = tribe;
+        }
+
+        public TribalBanner(Serial serial)
+            : base(serial)
+        {
+        }
+
+        public void OnFlip(Mobile from)
+        {
+            // lets make sure we have the right ID before we begin
+            var id = ItemID;
+
+            if (id != WestID && id != NorthID) id = WestID;
+
+            if (id == WestID)
+                ItemID = NorthID;
+            else
+                ItemID = WestID;
         }
 
         public static int GetTribeID(EodonTribe tribe)
@@ -427,27 +426,6 @@ namespace Server.Items
             }
         }
 
-        public void OnFlip(Mobile from)
-        {
-            // lets make sure we have the right ID before we begin
-            int id = ItemID;
-
-            if (id != WestID && id != NorthID)
-            {
-                id = WestID;
-            }
-
-            if (id == WestID)
-                ItemID = NorthID;
-            else
-                ItemID = WestID;
-        }
-
-        public TribalBanner(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -459,7 +437,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             _Tribe = (EodonTribe)reader.ReadInt();
         }

@@ -1,17 +1,17 @@
 using System;
+using System.Collections.Generic;
 using Server.Accounting;
 using Server.ContextMenus;
 using Server.Gumps;
 using Server.Mobiles;
 using Server.Network;
 using Server.Targeting;
-using System.Collections.Generic;
 
 namespace Server.Items
 {
     public class PetWhistle : Item
     {
-        public override int LabelNumber { get { return 1126239; } } // whistle
+        public override int LabelNumber => 1126239; // whistle
 
         [CommandProperty(AccessLevel.GameMaster)]
         public DateTime NextLinkedTime { get; set; }
@@ -23,7 +23,7 @@ namespace Server.Items
         public BaseCreature PetLinked { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public bool IsUsable { get { return NextLinkedTime < DateTime.UtcNow; } }
+        public bool IsUsable => NextLinkedTime < DateTime.UtcNow;
 
         [Constructable]
         public PetWhistle()
@@ -41,11 +41,12 @@ namespace Server.Items
         {
             if (!string.IsNullOrEmpty(Account))
             {
-                Account acct = from.Account as Account;
+                var acct = from.Account as Account;
 
                 if (acct == null || acct.Username != Account)
                 {
-                    from.SendLocalizedMessage(1151920); // This item is Account Bound, you are not permitted to take this action.
+                    from.SendLocalizedMessage(
+                        1151920); // This item is Account Bound, you are not permitted to take this action.
                     return;
                 }
             }
@@ -85,6 +86,26 @@ namespace Server.Items
             base.GetContextMenuEntries(from, list);
 
             list.Add(new LinkBondedPetEntry(from, this));
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
+
+            writer.Write(Account);
+            writer.Write(NextLinkedTime);
+            writer.Write(PetLinked);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
+
+            Account = reader.ReadString();
+            NextLinkedTime = reader.ReadDateTime();
+            PetLinked = (BaseCreature)reader.ReadMobile();
         }
 
         private class LinkBondedPetEntry : ContextMenuEntry
@@ -154,14 +175,12 @@ namespace Server.Items
                         }
                         else
                         {
-                            if ((DateTime.UtcNow -_Item.NextLinkedTime).Seconds > 60)
-                            {
-                                from.SendLocalizedMessage(1159391); // You must wait ~1_minutes~ minutes before you can link another pet to this whistle.
-                            }
+                            if ((DateTime.UtcNow - _Item.NextLinkedTime).Seconds > 60)
+                                from.SendLocalizedMessage(
+                                    1159391); // You must wait ~1_minutes~ minutes before you can link another pet to this whistle.
                             else
-                            {
-                                from.SendLocalizedMessage(1159392); // You must wait ~1_seconds~ seconds before you can link another pet to this whistle.
-                            }                            
+                                from.SendLocalizedMessage(
+                                    1159392); // You must wait ~1_seconds~ seconds before you can link another pet to this whistle.
                         }
                     }
                     else
@@ -204,15 +223,16 @@ namespace Server.Items
                 AddButton(41, 193, 0xFA5, 0xFA6, 1006, GumpButtonType.Reply, 0);
                 AddHtmlLocalized(81, 217, 157, 22, 1159388, 0x76F2, false, false); // What's that?
                 AddButton(41, 217, 0xFA5, 0xFA6, 1008, GumpButtonType.Reply, 0);
-                AddHtmlLocalized(40, 15, 200, 18, 1159360, item.PetLinked.Name, 0x6A05, false, false); // Pet Whistle for ~1_name~
+                AddHtmlLocalized(40, 15, 200, 18, 1159360, item.PetLinked.Name, 0x6A05, false,
+                    false); // Pet Whistle for ~1_name~
             }
 
             public override void OnResponse(NetState sender, RelayInfo info)
             {
-                if (_Item.Deleted ||_Item.PetLinked == null)
+                if (_Item.Deleted || _Item.PetLinked == null)
                     return;
 
-                Mobile m = sender.Mobile;
+                var m = sender.Mobile;
 
                 if (_Item.PetLinked.ControlOrder != OrderType.Stay || _Item.PetLinked.ControlMaster != m)
                     m.SendLocalizedMessage(1159389); // You must command your pet to stay before using this item.
@@ -244,26 +264,6 @@ namespace Server.Items
                         break;
                 }
             }
-        }        
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.Write(0);
-
-            writer.Write(Account);
-            writer.Write(NextLinkedTime);
-            writer.Write(PetLinked);
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            int version = reader.ReadInt();
-
-            Account = reader.ReadString();
-            NextLinkedTime = reader.ReadDateTime();
-            PetLinked = (BaseCreature)reader.ReadMobile();
         }
     }
 }

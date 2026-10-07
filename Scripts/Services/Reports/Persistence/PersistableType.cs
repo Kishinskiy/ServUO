@@ -7,7 +7,8 @@ namespace Server.Engines.Reports
 
     public sealed class PersistableTypeRegistry
     {
-        private static Hashtable m_Table;
+        private static readonly Hashtable m_Table;
+
         static PersistableTypeRegistry()
         {
             m_Table = new Hashtable(StringComparer.OrdinalIgnoreCase);
@@ -42,27 +43,14 @@ namespace Server.Engines.Reports
 
     public sealed class PersistableType
     {
-        private readonly string m_Name;
-        private readonly ConstructCallback m_Constructor;
+        public string Name { get; }
+
+        public ConstructCallback Constructor { get; }
+
         public PersistableType(string name, ConstructCallback constructor)
         {
-            this.m_Name = name;
-            this.m_Constructor = constructor;
-        }
-
-        public string Name
-        {
-            get
-            {
-                return this.m_Name;
-            }
-        }
-        public ConstructCallback Constructor
-        {
-            get
-            {
-                return this.m_Constructor;
-            }
+            Name = name;
+            Constructor = constructor;
         }
     }
 }

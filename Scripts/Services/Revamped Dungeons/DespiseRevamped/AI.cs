@@ -1,19 +1,13 @@
-using System;
-using System.Collections;
-using Server.Targeting;
-using Server.Network;
-using Server.Mobiles;
 using System.Collections.Generic;
 using Server.ContextMenus;
-using Server.Spells;
+using Server.Mobiles;
 
 namespace Server.Engines.Despise
 {
     public class DespiseMeleeAI : MeleeAI
     {
+        private readonly DespiseCreature m_Creature;
         private long _NextAggressorCheck;
-
-        private DespiseCreature m_Creature;
 
         public DespiseMeleeAI(DespiseCreature m) : base(m)
         {
@@ -28,88 +22,86 @@ namespace Server.Engines.Despise
             switch (m_Creature.Orb.Aggression)
             {
                 default:
-                    {
-                        m_Creature.ControlOrder = OrderType.Follow;
-                        DoOrderFollow();
-                    }
+                {
+                    m_Creature.ControlOrder = OrderType.Follow;
+                    DoOrderFollow();
+                }
                     break;
                 case Aggression.Defensive:
+                {
+                    if (m_Creature.Combatant != null)
                     {
-                        if (m_Creature.Combatant != null)
+                        if (m_Creature.ControlOrder == OrderType.Follow)
                         {
-                            if (m_Creature.ControlOrder == OrderType.Follow)
-                            {
-                                m_Creature.ControlOrder = OrderType.Attack;
-                                Action = ActionType.Combat;
-                            }
-
-                            break;
+                            m_Creature.ControlOrder = OrderType.Attack;
+                            Action = ActionType.Combat;
                         }
 
-                        if (_NextAggressorCheck <= Core.TickCount)
-                        {
-                            IPoint3D p = m_Creature.Orb.GetAnchorActual();
-                            double range = m_Creature.RangePerception;
+                        break;
+                    }
 
-                            IPooledEnumerable eable = m_Creature.Map.GetMobilesInRange(new Point3D(p), (int)range);
-                            Mobile closest = null;
+                    if (_NextAggressorCheck <= Core.TickCount)
+                    {
+                        var p = m_Creature.Orb.GetAnchorActual();
+                        double range = m_Creature.RangePerception;
 
-                            foreach (Mobile m in eable)
+                        IPooledEnumerable eable = m_Creature.Map.GetMobilesInRange(new Point3D(p), (int)range);
+                        Mobile closest = null;
+
+                        foreach (Mobile m in eable)
+                            if (m.Combatant == m_Creature || m.Combatant == m_Creature.ControlMaster)
                             {
-                                if (m.Combatant == m_Creature || m.Combatant == m_Creature.ControlMaster)
+                                var dist = closest == null ? range : closest.GetDistanceToSqrt(m_Creature);
+                                if (closest == null || dist < range)
                                 {
-                                    double dist = closest == null ? range : closest.GetDistanceToSqrt(m_Creature);
-                                    if (closest == null || dist < range)
-                                    {
-                                        range = dist;
-                                        closest = m;
-                                    }
+                                    range = dist;
+                                    closest = m;
                                 }
                             }
 
-                            eable.Free();
+                        eable.Free();
 
-                            if (closest != null)
-                            {
-                                m_Creature.ControlTarget = closest;
-                                m_Creature.ControlOrder = OrderType.Attack;
-                                m_Creature.Combatant = closest;
-                                m_Creature.DebugSay("But -that- is not dead. Here we go again...");
-
-                                Action = ActionType.Combat;
-                            }
-
-                            _NextAggressorCheck = Core.TickCount + 1000;
-                        }
-                    }
-                    break;
-                case Aggression.Aggressive:
-                    {
-                        if (m_Creature.Combatant != null)
+                        if (closest != null)
                         {
-                            if (m_Creature.ControlOrder == OrderType.Follow)
-                            {
-                                m_Creature.ControlOrder = OrderType.Attack;
-                                Action = ActionType.Combat;
-                            }
-
-                            break;
-                        }
-
-                        if (AcquireFocusMob(m_Creature.RangePerception, m_Creature.FightMode, false, false, true))
-                        {
-                            if (m_Creature.FocusMob == m_Creature.ControlMaster)
-                                break;
-
-                            if (m_Creature.Debug)
-                                m_Creature.DebugSay("I have detected {0}, attacking", m_Creature.FocusMob.Name);
-
+                            m_Creature.ControlTarget = closest;
                             m_Creature.ControlOrder = OrderType.Attack;
-                            m_Creature.Combatant = m_Creature.FocusMob;
+                            m_Creature.Combatant = closest;
+                            m_Creature.DebugSay("But -that- is not dead. Here we go again...");
 
                             Action = ActionType.Combat;
                         }
+
+                        _NextAggressorCheck = Core.TickCount + 1000;
                     }
+                }
+                    break;
+                case Aggression.Aggressive:
+                {
+                    if (m_Creature.Combatant != null)
+                    {
+                        if (m_Creature.ControlOrder == OrderType.Follow)
+                        {
+                            m_Creature.ControlOrder = OrderType.Attack;
+                            Action = ActionType.Combat;
+                        }
+
+                        break;
+                    }
+
+                    if (AcquireFocusMob(m_Creature.RangePerception, m_Creature.FightMode, false, false, true))
+                    {
+                        if (m_Creature.FocusMob == m_Creature.ControlMaster)
+                            break;
+
+                        if (m_Creature.Debug)
+                            m_Creature.DebugSay("I have detected {0}, attacking", m_Creature.FocusMob.Name);
+
+                        m_Creature.ControlOrder = OrderType.Attack;
+                        m_Creature.Combatant = m_Creature.FocusMob;
+
+                        Action = ActionType.Combat;
+                    }
+                }
                     break;
             }
 
@@ -133,12 +125,11 @@ namespace Server.Engines.Despise
             return base.DoOrderFollow();
         }
 
-        public override bool AcquireFocusMob(int iRange, FightMode acqType, bool bPlayerOnly, bool bFacFriend, bool bFacFoe)
+        public override bool AcquireFocusMob(int iRange, FightMode acqType, bool bPlayerOnly, bool bFacFriend,
+            bool bFacFoe)
         {
             if (m_Creature.Orb == null || m_Creature.ControlMaster == null)
-            {
                 return base.AcquireFocusMob(iRange, acqType, bPlayerOnly, bFacFriend, bFacFoe);
-            }
 
             if (m_Creature.Orb.Aggression != Aggression.Aggressive)
                 return false;
@@ -151,13 +142,13 @@ namespace Server.Engines.Despise
 
             m_Creature.NextReacquireTime = Core.TickCount + (int)m_Creature.ReacquireDelay.TotalMilliseconds;
 
-            int range = m_Creature.RangePerception;
-            IPoint3D p = m_Creature.Orb.Anchor as IPoint3D;
+            var range = m_Creature.RangePerception;
+            var p = m_Creature.Orb.Anchor as IPoint3D;
 
             if (p == null)
                 p = m_Creature;
 
-            Mobile focus = GetFocus(p, range);
+            var focus = GetFocus(p, range);
 
             if (focus != null)
             {
@@ -172,17 +163,17 @@ namespace Server.Engines.Despise
         {
             IPooledEnumerable eable = m_Creature.Map.GetMobilesInRange(new Point3D(p), range);
             Mobile focus = null;
-            int dist = range;
+            var dist = range;
 
             foreach (Mobile m in eable)
-            {
                 if (m is DespiseCreature || m is DespiseBoss)
                 {
-                    DespiseCreature dc = m as DespiseCreature;
+                    var dc = m as DespiseCreature;
 
-                    if(m is DespiseBoss || (dc != null && (dc.Orb == null && !dc.Controlled) || (dc.Alignment != m_Creature.Alignment)))
+                    if (m is DespiseBoss || (dc != null && dc.Orb == null && !dc.Controlled) ||
+                        dc.Alignment != m_Creature.Alignment)
                     {
-                        int distance = (int)m_Creature.GetDistanceToSqrt(m);
+                        var distance = (int)m_Creature.GetDistanceToSqrt(m);
 
                         if (focus == null || distance < dist)
                         {
@@ -191,7 +182,6 @@ namespace Server.Engines.Despise
                         }
                     }
                 }
-            }
 
             eable.Free();
             return focus;
@@ -200,24 +190,17 @@ namespace Server.Engines.Despise
         public override bool WalkMobileRange(IPoint3D p, int iSteps, bool bRun, int iWantDistMin, int iWantDistMax)
         {
             if (m_Creature.Orb == null || m_Creature.ControlMaster == null)
-            {
                 return base.WalkMobileRange(p, iSteps, bRun, iWantDistMin, iWantDistMax);
-            }
 
-            int range = m_Creature.GetLeashLength();
+            var range = m_Creature.GetLeashLength();
 
             if (p is Mobile && (Mobile)p == m_Creature.ControlMaster)
             {
                 p = m_Creature.Orb.GetAnchorActual();
 
-                if (m_Creature.InRange(p, range))
-                {
-                    return false;
-                }
-                else
-                {
-                    return base.WalkMobileRange(p, iSteps, bRun, range, range);
-                }
+                if (m_Creature.InRange(p, range)) return false;
+
+                return base.WalkMobileRange(p, iSteps, bRun, range, range);
             }
 
             return base.WalkMobileRange(p, iSteps, bRun, iWantDistMin, iWantDistMax);
@@ -234,9 +217,8 @@ namespace Server.Engines.Despise
 
     public class DespiseMageAI : MageAI
     {
+        private readonly DespiseCreature m_Creature;
         private long _NextAggressorCheck;
-
-        private DespiseCreature m_Creature;
 
         public DespiseMageAI(DespiseCreature m)
             : base(m)
@@ -252,88 +234,86 @@ namespace Server.Engines.Despise
             switch (m_Creature.Orb.Aggression)
             {
                 default:
-                    {
-                        m_Creature.ControlOrder = OrderType.Follow;
-                        DoOrderFollow();
-                    }
+                {
+                    m_Creature.ControlOrder = OrderType.Follow;
+                    DoOrderFollow();
+                }
                     break;
                 case Aggression.Defensive:
+                {
+                    if (m_Creature.Combatant != null)
                     {
-                        if (m_Creature.Combatant != null)
+                        if (m_Creature.ControlOrder == OrderType.Follow)
                         {
-                            if (m_Creature.ControlOrder == OrderType.Follow)
-                            {
-                                m_Creature.ControlOrder = OrderType.Attack;
-                                Action = ActionType.Combat;
-                            }
-
-                            break;
+                            m_Creature.ControlOrder = OrderType.Attack;
+                            Action = ActionType.Combat;
                         }
 
-                        if (_NextAggressorCheck <= Core.TickCount)
-                        {
-                            IPoint3D p = m_Creature.Orb.GetAnchorActual();
-                            double range = m_Creature.RangePerception;
+                        break;
+                    }
 
-                            IPooledEnumerable eable = m_Creature.Map.GetMobilesInRange(new Point3D(p), (int)range);
-                            Mobile closest = null;
+                    if (_NextAggressorCheck <= Core.TickCount)
+                    {
+                        var p = m_Creature.Orb.GetAnchorActual();
+                        double range = m_Creature.RangePerception;
 
-                            foreach (Mobile m in eable)
+                        IPooledEnumerable eable = m_Creature.Map.GetMobilesInRange(new Point3D(p), (int)range);
+                        Mobile closest = null;
+
+                        foreach (Mobile m in eable)
+                            if (m.Combatant == m_Creature || m.Combatant == m_Creature.ControlMaster)
                             {
-                                if (m.Combatant == m_Creature || m.Combatant == m_Creature.ControlMaster)
+                                var dist = closest == null ? range : closest.GetDistanceToSqrt(m_Creature);
+                                if (closest == null || dist < range)
                                 {
-                                    double dist = closest == null ? range : closest.GetDistanceToSqrt(m_Creature);
-                                    if (closest == null || dist < range)
-                                    {
-                                        range = dist;
-                                        closest = m;
-                                    }
+                                    range = dist;
+                                    closest = m;
                                 }
                             }
 
-                            eable.Free();
+                        eable.Free();
 
-                            if (closest != null)
-                            {
-                                m_Creature.ControlTarget = closest;
-                                m_Creature.ControlOrder = OrderType.Attack;
-                                m_Creature.Combatant = closest;
-                                m_Creature.DebugSay("But -that- is not dead. Here we go again...");
-
-                                Action = ActionType.Combat;
-                            }
-
-                            _NextAggressorCheck = Core.TickCount + 1000;
-                        }
-                    }
-                    break;
-                case Aggression.Aggressive:
-                    {
-                        if (m_Creature.Combatant != null)
+                        if (closest != null)
                         {
-                            if (m_Creature.ControlOrder == OrderType.Follow)
-                            {
-                                m_Creature.ControlOrder = OrderType.Attack;
-                                Action = ActionType.Combat;
-                            }
-
-                            break;
-                        }
-
-                        if (AcquireFocusMob(m_Creature.RangePerception, m_Creature.FightMode, false, false, true))
-                        {
-                            if (m_Creature.FocusMob == m_Creature.ControlMaster)
-                                break;
-
-                            if (m_Creature.Debug)
-                                m_Creature.DebugSay("I have detected {0}, attacking", m_Creature.FocusMob.Name);
-
+                            m_Creature.ControlTarget = closest;
                             m_Creature.ControlOrder = OrderType.Attack;
-                            m_Creature.Combatant = m_Creature.FocusMob;
+                            m_Creature.Combatant = closest;
+                            m_Creature.DebugSay("But -that- is not dead. Here we go again...");
 
                             Action = ActionType.Combat;
                         }
+
+                        _NextAggressorCheck = Core.TickCount + 1000;
                     }
+                }
+                    break;
+                case Aggression.Aggressive:
+                {
+                    if (m_Creature.Combatant != null)
+                    {
+                        if (m_Creature.ControlOrder == OrderType.Follow)
+                        {
+                            m_Creature.ControlOrder = OrderType.Attack;
+                            Action = ActionType.Combat;
+                        }
+
+                        break;
+                    }
+
+                    if (AcquireFocusMob(m_Creature.RangePerception, m_Creature.FightMode, false, false, true))
+                    {
+                        if (m_Creature.FocusMob == m_Creature.ControlMaster)
+                            break;
+
+                        if (m_Creature.Debug)
+                            m_Creature.DebugSay("I have detected {0}, attacking", m_Creature.FocusMob.Name);
+
+                        m_Creature.ControlOrder = OrderType.Attack;
+                        m_Creature.Combatant = m_Creature.FocusMob;
+
+                        Action = ActionType.Combat;
+                    }
+                }
                     break;
             }
 
@@ -357,12 +337,11 @@ namespace Server.Engines.Despise
             return base.DoOrderFollow();
         }
 
-        public override bool AcquireFocusMob(int iRange, FightMode acqType, bool bPlayerOnly, bool bFacFriend, bool bFacFoe)
+        public override bool AcquireFocusMob(int iRange, FightMode acqType, bool bPlayerOnly, bool bFacFriend,
+            bool bFacFoe)
         {
             if (m_Creature.Orb == null || m_Creature.ControlMaster == null)
-            {
                 return base.AcquireFocusMob(iRange, acqType, bPlayerOnly, bFacFriend, bFacFoe);
-            }
 
             if (m_Creature.Orb.Aggression != Aggression.Aggressive)
                 return false;
@@ -375,13 +354,13 @@ namespace Server.Engines.Despise
 
             m_Creature.NextReacquireTime = Core.TickCount + (int)m_Creature.ReacquireDelay.TotalMilliseconds;
 
-            int range = m_Creature.RangePerception;
-            IPoint3D p = m_Creature.Orb.Anchor as IPoint3D;
+            var range = m_Creature.RangePerception;
+            var p = m_Creature.Orb.Anchor as IPoint3D;
 
             if (p == null)
                 p = m_Creature;
 
-            Mobile focus = GetFocus(p, range);
+            var focus = GetFocus(p, range);
 
             if (focus != null)
             {
@@ -396,17 +375,17 @@ namespace Server.Engines.Despise
         {
             IPooledEnumerable eable = m_Creature.Map.GetMobilesInRange(new Point3D(p), range);
             Mobile focus = null;
-            int dist = range;
+            var dist = range;
 
             foreach (Mobile m in eable)
-            {
                 if (m is DespiseCreature || m is DespiseBoss)
                 {
-                    DespiseCreature dc = m as DespiseCreature;
+                    var dc = m as DespiseCreature;
 
-                    if (m is DespiseBoss || (dc != null && (dc.Orb == null && !dc.Controlled) || (dc.Alignment != m_Creature.Alignment)))
+                    if (m is DespiseBoss || (dc != null && dc.Orb == null && !dc.Controlled) ||
+                        dc.Alignment != m_Creature.Alignment)
                     {
-                        int distance = (int)m_Creature.GetDistanceToSqrt(m);
+                        var distance = (int)m_Creature.GetDistanceToSqrt(m);
 
                         if (focus == null || distance < dist)
                         {
@@ -415,7 +394,6 @@ namespace Server.Engines.Despise
                         }
                     }
                 }
-            }
 
             eable.Free();
             return focus;
@@ -424,24 +402,17 @@ namespace Server.Engines.Despise
         public override bool WalkMobileRange(IPoint3D p, int iSteps, bool bRun, int iWantDistMin, int iWantDistMax)
         {
             if (m_Creature.Orb == null || m_Creature.ControlMaster == null)
-            {
                 return base.WalkMobileRange(p, iSteps, bRun, iWantDistMin, iWantDistMax);
-            }
 
-            int range = m_Creature.GetLeashLength();
+            var range = m_Creature.GetLeashLength();
 
             if (p is Mobile && (Mobile)p == m_Creature.ControlMaster)
             {
                 p = m_Creature.Orb.GetAnchorActual();
 
-                if (m_Creature.InRange(p, range))
-                {
-                    return false;
-                }
-                else
-                {
-                    return base.WalkMobileRange(p, iSteps, bRun, range, range);
-                }
+                if (m_Creature.InRange(p, range)) return false;
+
+                return base.WalkMobileRange(p, iSteps, bRun, range, range);
             }
 
             return base.WalkMobileRange(p, iSteps, bRun, iWantDistMin, iWantDistMax);

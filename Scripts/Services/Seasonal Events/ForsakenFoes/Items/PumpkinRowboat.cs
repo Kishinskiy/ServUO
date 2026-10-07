@@ -1,30 +1,25 @@
-using System;
-using System.Linq;
 using System.Collections.Generic;
-
-using Server;
 using Server.Items;
-using Server.Engines.PartySystem;
 
 namespace Server.Multis
 {
     public class PumpkinRowBoat : BaseBoat
     {
-        public override int NorthID { get { return 0x50; } }
-        public override int EastID { get { return 0x51; } }
-        public override int SouthID { get { return 0x52; } }
-        public override int WestID { get { return 0x53; } }
+        public override int NorthID => 0x50;
+        public override int EastID => 0x51;
+        public override int SouthID => 0x52;
+        public override int WestID => 0x53;
 
-        public override int HoldDistance { get { return -1; } }
-        public override int TillerManDistance { get { return -2; } }
+        public override int HoldDistance => -1;
+        public override int TillerManDistance => -2;
 
-        public override Point3D MarkOffset { get { return new Point3D(0, 1, 3); } }
+        public override Point3D MarkOffset => new Point3D(0, 1, 3);
 
-        public override BaseDockedBoat DockedBoat { get { return new DockedPumpkinRowBoat(this); } }
+        public override BaseDockedBoat DockedBoat => new DockedPumpkinRowBoat(this);
 
-        public override bool IsClassicBoat { get { return false; } }
-        public override bool IsRowBoat { get { return true; } }
-        public override bool CanLinkToLighthouse { get { return false; } }
+        public override bool IsClassicBoat => false;
+        public override bool IsRowBoat => true;
+        public override bool CanLinkToLighthouse => false;
 
         [CommandProperty(AccessLevel.GameMaster)]
         public MooringBlock Line { get; private set; }
@@ -64,6 +59,11 @@ namespace Server.Multis
             Rudder.Handle = new PumpkinRudderHandle(Rudder, d);
         }
 
+        public PumpkinRowBoat(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void Delete()
         {
             if (Line != null)
@@ -80,19 +80,19 @@ namespace Server.Multis
             if (Rudder == null || Rudder.Handle == null)
                 return;
 
-            switch(facing)
+            switch (facing)
             {
                 case Direction.North:
-                    {
-                        Rudder.Y++;
-                        break;
-                    }
+                {
+                    Rudder.Y++;
+                    break;
+                }
                 case Direction.West:
-                    {
-                        Rudder.X++;
-                        Rudder.Y++;
-                        break;
-                    }
+                {
+                    Rudder.X++;
+                    Rudder.Y++;
+                    break;
+                }
             }
 
             Line.SetFacing(facing);
@@ -106,31 +106,29 @@ namespace Server.Multis
             if (Line != null)
                 Line.Location = new Point3D(X + (Line.X - old.X), Y + (Line.Y - old.Y), Z + (Line.Z - old.Z));
 
-            if(Rudder != null && Rudder.Handle != null)
-                Rudder.Handle.Location = new Point3D(X + (Rudder.Handle.X - old.X), Y + (Rudder.Handle.Y - old.Y), Z + (Rudder.Handle.Z - old.Z));
+            if (Rudder != null && Rudder.Handle != null)
+                Rudder.Handle.Location = new Point3D(X + (Rudder.Handle.X - old.X), Y + (Rudder.Handle.Y - old.Y),
+                    Z + (Rudder.Handle.Z - old.Z));
         }
 
         /// <summary>
-        /// This must be overriden due to the tillerman not being in the MCL bounds
+        ///     This must be overriden due to the tillerman not being in the MCL bounds
         /// </summary>
         /// <returns></returns>
         public override IEnumerable<IEntity> GetEntitiesOnBoard()
         {
-            Map map = Map;
+            var map = Map;
 
             if (map == null || map == Map.Internal)
                 yield break;
 
-            MultiComponentList mcl = Components;
-            IPooledEnumerable eable = map.GetObjectsInBounds(new Rectangle2D(X + mcl.Min.X, Y + mcl.Min.Y, mcl.Width, mcl.Height));
+            var mcl = Components;
+            IPooledEnumerable eable =
+                map.GetObjectsInBounds(new Rectangle2D(X + mcl.Min.X, Y + mcl.Min.Y, mcl.Width, mcl.Height));
 
             foreach (IEntity ent in eable)
-            {
                 if (Contains(ent) && CheckOnBoard(ent))
-                {
                     yield return ent;
-                }
-            }
 
             eable.Free();
             yield return Rudder;
@@ -179,15 +177,10 @@ namespace Server.Multis
             return true;
         }
 
-        public PumpkinRowBoat(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
 
             writer.Write(Rudder);
             writer.Write(Line);
@@ -196,7 +189,7 @@ namespace Server.Multis
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             Rudder = reader.ReadItem() as PumpkinRudder;
             Line = reader.ReadItem() as MooringBlock;
@@ -207,8 +200,8 @@ namespace Server.Multis
 
     public class PumpkinRowBoatDeed : BaseBoatDeed
     {
-        public override int LabelNumber { get { return 1159233; } } // Pumpkin Rowboat
-        public override BaseBoat Boat { get { return new PumpkinRowBoat(BoatDirection); } }
+        public override int LabelNumber => 1159233; // Pumpkin Rowboat
+        public override BaseBoat Boat => new PumpkinRowBoat(BoatDirection);
 
         [Constructable]
         public PumpkinRowBoatDeed()
@@ -224,13 +217,13 @@ namespace Server.Multis
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
     }
 
@@ -240,6 +233,11 @@ namespace Server.Multis
             : base(boat)
         {
             SetFacing(d);
+        }
+
+        public MooringBlock(Serial serial)
+            : base(serial)
+        {
         }
 
         public void SetFacing(Direction dir)
@@ -257,21 +255,16 @@ namespace Server.Multis
             }
         }
 
-        public MooringBlock(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -280,7 +273,12 @@ namespace Server.Multis
         public PumpkinRudder(BaseBoat boat, Direction d)
             : base(boat, d)
         {
-        }       
+        }
+
+        public PumpkinRudder(Serial serial)
+            : base(serial)
+        {
+        }
 
         public override void SetFacing(Direction dir)
         {
@@ -304,32 +302,24 @@ namespace Server.Multis
             }
         }
 
-        public PumpkinRudder(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            if (ItemID == 42030)
-            {
-                Y++;
-            }
+            if (ItemID == 42030) Y++;
 
             if (ItemID == 42044)
             {
                 X++;
                 Y++;
-            }                
+            }
         }
     }
 
@@ -340,12 +330,16 @@ namespace Server.Multis
         {
         }
 
+        public PumpkinRudderHandle(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void SetFacing(Direction dir)
         {
             if (Rudder == null)
                 Delete();
             else
-            {
                 switch (dir)
                 {
                     default:
@@ -366,30 +360,24 @@ namespace Server.Multis
                         MoveToWorld(new Point3D(Rudder.X + 1, Rudder.Y + 1, Rudder.Z + 9), Map);
                         break;
                 }
-            }
-        }
-
-        public PumpkinRudderHandle(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class DockedPumpkinRowBoat : BaseDockedBoat
     {
-        public override BaseBoat Boat { get { return new PumpkinRowBoat(BoatDirection); } }
+        public override BaseBoat Boat => new PumpkinRowBoat(BoatDirection);
 
         public DockedPumpkinRowBoat(BaseBoat boat)
             : base(0x50, Point3D.Zero, boat)
@@ -404,13 +392,13 @@ namespace Server.Multis
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
     }
 }

@@ -1,12 +1,8 @@
 using System;
-using Server;
+using Server.Engines.Points;
+using Server.Gumps;
 using Server.Items;
 using Server.Mobiles;
-using Server.Gumps;
-using Server.Guilds;
-using Server.Network;
-using Server.Engines.Points;
-using System.Collections.Generic;
 
 namespace Server.Engines.VvV
 {
@@ -43,7 +39,7 @@ namespace Server.Engines.VvV
             }
             else if (citem.Type == typeof(VvVSteedStatuette))
             {
-                SteedType type = index == 5 || index == 6 ? SteedType.WarHorse : SteedType.Ostard;
+                var type = index == 5 || index == 6 ? SteedType.WarHorse : SteedType.Ostard;
 
                 item = new VvVSteedStatuette(type, citem.Hue);
             }
@@ -72,7 +68,9 @@ namespace Server.Engines.VvV
                 item = ScrollOfTranscendence.CreateRandom(10, 10);
             }
             else
+            {
                 item = Activator.CreateInstance(citem.Type) as Item;
+            }
 
             if (item != null)
             {
@@ -80,7 +78,8 @@ namespace Server.Engines.VvV
 
                 if (User.Backpack == null || !User.Backpack.TryDropItem(User, item, false))
                 {
-                    User.SendLocalizedMessage(1074361); // The reward could not be given.  Make sure you have room in your pack.
+                    User.SendLocalizedMessage(
+                        1074361); // The reward could not be given.  Make sure you have room in your pack.
                     item.Delete();
                 }
                 else

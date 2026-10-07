@@ -1,5 +1,4 @@
 using Server.Items;
-using Server.Services;
 
 namespace Server.Mobiles
 {
@@ -7,6 +6,10 @@ namespace Server.Mobiles
     [TypeAlias("Server.Mobiles.Lavalizard")]
     public class LavaLizard : BaseCreature
     {
+        public override int Hides => 12;
+
+        public override HideType HideType => HideType.Spined;
+
         [Constructable]
         public LavaLizard()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -53,16 +56,6 @@ namespace Server.Mobiles
         public LavaLizard(Serial serial)
             : base(serial)
         {
-        }
-
-        public override int Hides
-        {
-            get { return 12; }
-        }
-
-        public override HideType HideType
-        {
-            get { return HideType.Spined; }
         }
 
         public override void GenerateLoot()

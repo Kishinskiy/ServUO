@@ -5,173 +5,114 @@ namespace Server.Engines.BulkOrders
 {
     public class BOBSmallEntry
     {
-        private readonly Type m_ItemType;
-        private readonly bool m_RequireExceptional;
-        private readonly BODType m_DeedType;
-        private readonly BulkMaterialType m_Material;
-        private readonly int m_AmountCur;
-        private readonly int m_AmountMax;
-        private readonly int m_Number;
-        private readonly int m_Graphic;
-        private readonly int m_Hue;
-        private readonly GemType m_GemType;
+        public Type ItemType { get; }
 
-        private int m_Price;
+        public bool RequireExceptional { get; }
+
+        public BODType DeedType { get; }
+
+        public BulkMaterialType Material { get; }
+
+        public int AmountCur { get; }
+
+        public int AmountMax { get; }
+
+        public int Number { get; }
+
+        public int Graphic { get; }
+
+        public int Hue { get; }
+
+        public GemType GemType { get; }
+
+        public int Price { get; set; }
 
         public BOBSmallEntry(SmallBOD bod)
         {
-            m_ItemType = bod.Type;
-            m_RequireExceptional = bod.RequireExceptional;
+            ItemType = bod.Type;
+            RequireExceptional = bod.RequireExceptional;
 
-            m_DeedType = bod.BODType;
+            DeedType = bod.BODType;
 
-            m_Material = bod.Material;
-            m_AmountCur = bod.AmountCur;
-            m_AmountMax = bod.AmountMax;
-            m_Number = bod.Number;
-            m_Graphic = bod.Graphic;
-            m_Hue = bod.GraphicHue;
+            Material = bod.Material;
+            AmountCur = bod.AmountCur;
+            AmountMax = bod.AmountMax;
+            Number = bod.Number;
+            Graphic = bod.Graphic;
+            Hue = bod.GraphicHue;
 
-            if (bod is SmallTinkerBOD)
-            {
-                m_GemType = ((SmallTinkerBOD)bod).GemType;
-            }
+            if (bod is SmallTinkerBOD) GemType = ((SmallTinkerBOD)bod).GemType;
         }
 
         public BOBSmallEntry(GenericReader reader)
         {
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
 
-            switch ( version )
+            switch (version)
             {
                 case 2:
-                    {
-                        m_GemType = (GemType)reader.ReadInt();
-                        goto case 1;
-                    }
+                {
+                    GemType = (GemType)reader.ReadInt();
+                    goto case 1;
+                }
                 case 1:
-                    {
-                        m_Hue = reader.ReadInt();
-                        goto case 0;
-                    }
+                {
+                    Hue = reader.ReadInt();
+                    goto case 0;
+                }
                 case 0:
-                    {
-                        string type = reader.ReadString();
+                {
+                    var type = reader.ReadString();
 
-                        if (type != null)
-                            m_ItemType = ScriptCompiler.FindTypeByFullName(type);
+                    if (type != null)
+                        ItemType = ScriptCompiler.FindTypeByFullName(type);
 
-                        m_RequireExceptional = reader.ReadBool();
+                    RequireExceptional = reader.ReadBool();
 
-                        m_DeedType = (BODType)reader.ReadEncodedInt();
+                    DeedType = (BODType)reader.ReadEncodedInt();
 
-                        m_Material = (BulkMaterialType)reader.ReadEncodedInt();
-                        m_AmountCur = reader.ReadEncodedInt();
-                        m_AmountMax = reader.ReadEncodedInt();
-                        m_Number = reader.ReadEncodedInt();
-                        m_Graphic = reader.ReadEncodedInt();
-                        m_Price = reader.ReadEncodedInt();
+                    Material = (BulkMaterialType)reader.ReadEncodedInt();
+                    AmountCur = reader.ReadEncodedInt();
+                    AmountMax = reader.ReadEncodedInt();
+                    Number = reader.ReadEncodedInt();
+                    Graphic = reader.ReadEncodedInt();
+                    Price = reader.ReadEncodedInt();
 
-                        break;
-                    }
+                    break;
+                }
             }
         }
 
-        public Type ItemType
-        {
-            get
-            {
-                return m_ItemType;
-            }
-        }
-        public bool RequireExceptional
-        {
-            get
-            {
-                return m_RequireExceptional;
-            }
-        }
-        public BODType DeedType
-        {
-            get
-            {
-                return m_DeedType;
-            }
-        }
-        public BulkMaterialType Material
-        {
-            get
-            {
-                return m_Material;
-            }
-        }
-        public int AmountCur
-        {
-            get
-            {
-                return m_AmountCur;
-            }
-        }
-        public int AmountMax
-        {
-            get
-            {
-                return m_AmountMax;
-            }
-        }
-        public int Number
-        {
-            get
-            {
-                return m_Number;
-            }
-        }
-        public int Graphic
-        {
-            get
-            {
-                return m_Graphic;
-            }
-        }
-        public int Hue
-        {
-            get
-            {
-                return m_Hue;
-            }
-        }
-        public GemType GemType
-        {
-            get
-            {
-                return m_GemType;
-            }
-        }
-        public int Price
-        {
-            get
-            {
-                return m_Price;
-            }
-            set
-            {
-                m_Price = value;
-            }
-        }
         public Item Reconstruct()
         {
             SmallBOD bod = null;
 
-            switch (m_DeedType)
+            switch (DeedType)
             {
-                case BODType.Smith: bod = new SmallSmithBOD(m_AmountCur, m_AmountMax, m_ItemType, m_Number, m_Graphic, m_RequireExceptional, m_Material, m_Hue); break;
-                case BODType.Tailor: bod = new SmallTailorBOD(m_AmountCur, m_AmountMax, m_ItemType, m_Number, m_Graphic, m_RequireExceptional, m_Material, m_Hue); break;
-                case BODType.Inscription: bod = new SmallInscriptionBOD(m_AmountCur, m_AmountMax, m_ItemType, m_Number, m_Graphic, m_RequireExceptional, m_Material, m_Hue); break;
-                case BODType.Alchemy: bod = new SmallAlchemyBOD(m_AmountCur, m_AmountMax, m_ItemType, m_Number, m_Graphic, m_RequireExceptional, m_Material, m_Hue); break;
-                case BODType.Carpentry: bod = new SmallCarpentryBOD(m_AmountCur, m_AmountMax, m_ItemType, m_Number, m_Graphic, m_RequireExceptional, m_Material, m_Hue); break;
-                case BODType.Fletching: bod = new SmallFletchingBOD(m_AmountCur, m_AmountMax, m_ItemType, m_Number, m_Graphic, m_RequireExceptional, m_Material, m_Hue); break;
-                case BODType.Tinkering: bod = new SmallTinkerBOD(m_AmountCur, m_AmountMax, m_ItemType, m_Number, m_Graphic, m_RequireExceptional, m_Material, m_Hue, m_GemType); break;
-                case BODType.Cooking: bod = new SmallCookingBOD(m_AmountCur, m_AmountMax, m_ItemType, m_Number, m_Graphic, m_RequireExceptional, m_Material, m_Hue); break;
+                case BODType.Smith:
+                    bod = new SmallSmithBOD(AmountCur, AmountMax, ItemType, Number, Graphic, RequireExceptional,
+                        Material, Hue); break;
+                case BODType.Tailor:
+                    bod = new SmallTailorBOD(AmountCur, AmountMax, ItemType, Number, Graphic, RequireExceptional,
+                        Material, Hue); break;
+                case BODType.Inscription:
+                    bod = new SmallInscriptionBOD(AmountCur, AmountMax, ItemType, Number, Graphic, RequireExceptional,
+                        Material, Hue); break;
+                case BODType.Alchemy:
+                    bod = new SmallAlchemyBOD(AmountCur, AmountMax, ItemType, Number, Graphic, RequireExceptional,
+                        Material, Hue); break;
+                case BODType.Carpentry:
+                    bod = new SmallCarpentryBOD(AmountCur, AmountMax, ItemType, Number, Graphic, RequireExceptional,
+                        Material, Hue); break;
+                case BODType.Fletching:
+                    bod = new SmallFletchingBOD(AmountCur, AmountMax, ItemType, Number, Graphic, RequireExceptional,
+                        Material, Hue); break;
+                case BODType.Tinkering:
+                    bod = new SmallTinkerBOD(AmountCur, AmountMax, ItemType, Number, Graphic, RequireExceptional,
+                        Material, Hue, GemType); break;
+                case BODType.Cooking:
+                    bod = new SmallCookingBOD(AmountCur, AmountMax, ItemType, Number, Graphic, RequireExceptional,
+                        Material, Hue); break;
             }
 
             return bod;
@@ -181,21 +122,21 @@ namespace Server.Engines.BulkOrders
         {
             writer.WriteEncodedInt(2); // version
 
-            writer.Write((int)m_GemType);
+            writer.Write((int)GemType);
 
-            writer.Write(m_Hue);
+            writer.Write(Hue);
 
-            writer.Write(m_ItemType == null ? null : m_ItemType.FullName);
+            writer.Write(ItemType == null ? null : ItemType.FullName);
 
-            writer.Write((bool)m_RequireExceptional);
+            writer.Write(RequireExceptional);
 
-            writer.WriteEncodedInt((int)m_DeedType);
-            writer.WriteEncodedInt((int)m_Material);
-            writer.WriteEncodedInt((int)m_AmountCur);
-            writer.WriteEncodedInt((int)m_AmountMax);
-            writer.WriteEncodedInt((int)m_Number);
-            writer.WriteEncodedInt((int)m_Graphic);
-            writer.WriteEncodedInt((int)m_Price);
+            writer.WriteEncodedInt((int)DeedType);
+            writer.WriteEncodedInt((int)Material);
+            writer.WriteEncodedInt(AmountCur);
+            writer.WriteEncodedInt(AmountMax);
+            writer.WriteEncodedInt(Number);
+            writer.WriteEncodedInt(Graphic);
+            writer.WriteEncodedInt(Price);
         }
     }
 }

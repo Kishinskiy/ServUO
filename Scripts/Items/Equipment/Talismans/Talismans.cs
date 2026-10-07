@@ -14,6 +14,8 @@ namespace Server.Items
 
     public class BaseFormTalisman : Item
     {
+        public virtual TalismanForm Form => TalismanForm.Squirrel;
+
         public BaseFormTalisman()
             : base(0x2F59)
         {
@@ -27,17 +29,15 @@ namespace Server.Items
         {
         }
 
-        public virtual TalismanForm Form { get { return TalismanForm.Squirrel; } }
-		
         public static bool EntryEnabled(Mobile m, Type type)
         {
             if (type == typeof(Squirrel))
                 return m.Talisman is SquirrelFormTalisman;
-            else if (type == typeof(Ferret))
+            if (type == typeof(Ferret))
                 return m.Talisman is FerretFormTalisman;
-            else if (type == typeof(CuSidhe))
+            if (type == typeof(CuSidhe))
                 return m.Talisman is CuSidheFormTalisman;
-            else if (type == typeof(Reptalon))
+            if (type == typeof(Reptalon))
                 return m.Talisman is ReptalonFormTalisman;
 
             return true;
@@ -45,7 +45,7 @@ namespace Server.Items
 
         public override void AddNameProperty(ObjectPropertyList list)
         {
-            list.Add(1075200, String.Format("#{0}", (int)this.Form));
+            list.Add(1075200, string.Format("#{0}", (int)Form));
         }
 
         public override void Serialize(GenericWriter writer)
@@ -57,7 +57,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
 
         public override void OnRemoved(object parent)
@@ -66,7 +66,7 @@ namespace Server.Items
 
             if (parent is Mobile)
             {
-                Mobile m = (Mobile)parent;
+                var m = (Mobile)parent;
 
                 AnimalForm.RemoveContext(m, true);
             }
@@ -75,11 +75,10 @@ namespace Server.Items
 
     public class FerretFormTalisman : BaseFormTalisman
     {
-		public override TalismanForm Form { get { return TalismanForm.Ferret; } }
-		
+        public override TalismanForm Form => TalismanForm.Ferret;
+
         [Constructable]
         public FerretFormTalisman()
-            : base()
         {
         }
 
@@ -97,17 +96,16 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class SquirrelFormTalisman : BaseFormTalisman
     {
-		public override TalismanForm Form { get { return TalismanForm.Squirrel; } }
-		
+        public override TalismanForm Form => TalismanForm.Squirrel;
+
         [Constructable]
         public SquirrelFormTalisman()
-            : base()
         {
         }
 
@@ -115,7 +113,7 @@ namespace Server.Items
             : base(serial)
         {
         }
-        
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -125,17 +123,16 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class CuSidheFormTalisman : BaseFormTalisman
     {
-		public override TalismanForm Form { get { return TalismanForm.CuSidhe; } }
-		
+        public override TalismanForm Form => TalismanForm.CuSidhe;
+
         [Constructable]
         public CuSidheFormTalisman()
-            : base()
         {
         }
 
@@ -153,17 +150,16 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class ReptalonFormTalisman : BaseFormTalisman
     {
-		public override TalismanForm Form { get { return TalismanForm.Reptalon; } }
-		
+        public override TalismanForm Form => TalismanForm.Reptalon;
+
         [Constructable]
         public ReptalonFormTalisman()
-            : base()
         {
         }
 
@@ -181,7 +177,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

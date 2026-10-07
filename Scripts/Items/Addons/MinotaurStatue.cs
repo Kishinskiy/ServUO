@@ -1,4 +1,3 @@
-using System;
 using Server.Engines.VeteranRewards;
 using Server.Gumps;
 
@@ -15,30 +14,41 @@ namespace Server.Items
     public class MinotaurStatue : BaseAddon, IRewardItem
     {
         private bool m_IsRewardItem;
+
+        public override BaseAddonDeed Deed
+        {
+            get
+            {
+                var deed = new MinotaurStatueDeed();
+                deed.IsRewardItem = m_IsRewardItem;
+
+                return deed;
+            }
+        }
+
         [Constructable]
         public MinotaurStatue(MinotaurStatueType type)
-            : base()
         {
-            switch ( type )
+            switch (type)
             {
                 case MinotaurStatueType.AttackSouth:
-                    this.AddComponent(new AddonComponent(0x306C), 0, 0, 0);
-                    this.AddComponent(new AddonComponent(0x306D), -1, 0, 0);
-                    this.AddComponent(new AddonComponent(0x306E), 0, -1, 0);
+                    AddComponent(new AddonComponent(0x306C), 0, 0, 0);
+                    AddComponent(new AddonComponent(0x306D), -1, 0, 0);
+                    AddComponent(new AddonComponent(0x306E), 0, -1, 0);
                     break;
                 case MinotaurStatueType.AttackEast:
-                    this.AddComponent(new AddonComponent(0x3074), 0, 0, 0);
-                    this.AddComponent(new AddonComponent(0x3075), -1, 0, 0);
-                    this.AddComponent(new AddonComponent(0x3076), 0, -1, 0);
+                    AddComponent(new AddonComponent(0x3074), 0, 0, 0);
+                    AddComponent(new AddonComponent(0x3075), -1, 0, 0);
+                    AddComponent(new AddonComponent(0x3076), 0, -1, 0);
                     break;
                 case MinotaurStatueType.DefendSouth:
-                    this.AddComponent(new AddonComponent(0x3072), 0, 0, 0);
-                    this.AddComponent(new AddonComponent(0x3073), 0, -1, 0);
+                    AddComponent(new AddonComponent(0x3072), 0, 0, 0);
+                    AddComponent(new AddonComponent(0x3073), 0, -1, 0);
                     break;
                 case MinotaurStatueType.DefendEast:
-                    this.AddComponent(new AddonComponent(0x306F), 0, 0, 0);
-                    this.AddComponent(new AddonComponent(0x3070), -1, 0, 0);
-                    this.AddComponent(new AddonComponent(0x3071), 0, -1, 0);
+                    AddComponent(new AddonComponent(0x306F), 0, 0, 0);
+                    AddComponent(new AddonComponent(0x3070), -1, 0, 0);
+                    AddComponent(new AddonComponent(0x3071), 0, -1, 0);
                     break;
             }
         }
@@ -48,57 +58,58 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonDeed Deed
-        {
-            get
-            {
-                MinotaurStatueDeed deed = new MinotaurStatueDeed();
-                deed.IsRewardItem = this.m_IsRewardItem;
-
-                return deed; 
-            }
-        }
         [CommandProperty(AccessLevel.GameMaster)]
         public bool IsRewardItem
         {
-            get
-            {
-                return this.m_IsRewardItem;
-            }
+            get => m_IsRewardItem;
             set
             {
-                this.m_IsRewardItem = value;
-                this.InvalidateProperties();
+                m_IsRewardItem = value;
+                InvalidateProperties();
             }
         }
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
             writer.WriteEncodedInt(0); // version
-			
-            writer.Write((bool)this.m_IsRewardItem);
+
+            writer.Write(m_IsRewardItem);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
-			
-            this.m_IsRewardItem = reader.ReadBool();
+            var version = reader.ReadEncodedInt();
+
+            m_IsRewardItem = reader.ReadBool();
         }
     }
 
     public class MinotaurStatueDeed : BaseAddonDeed, IRewardItem, IRewardOption
     {
-        private MinotaurStatueType m_StatueType;
         private bool m_IsRewardItem;
+        private MinotaurStatueType m_StatueType;
+
+        public override int LabelNumber => 1080409; // Minotaur Statue Deed
+
+        public override BaseAddon Addon
+        {
+            get
+            {
+                var addon = new MinotaurStatue(m_StatueType);
+                addon.IsRewardItem = m_IsRewardItem;
+
+                return addon;
+            }
+        }
+
         [Constructable]
         public MinotaurStatueDeed()
-            : base()
         {
-            this.LootType = LootType.Blessed;
+            LootType = LootType.Blessed;
         }
 
         public MinotaurStatueDeed(Serial serial)
@@ -106,74 +117,15 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1080409;
-            }
-        }// Minotaur Statue Deed
-        public override BaseAddon Addon
-        { 
-            get
-            { 
-                MinotaurStatue addon = new MinotaurStatue(this.m_StatueType);
-                addon.IsRewardItem = this.m_IsRewardItem;
-
-                return addon; 
-            }
-        }
         [CommandProperty(AccessLevel.GameMaster)]
         public bool IsRewardItem
         {
-            get
-            {
-                return this.m_IsRewardItem;
-            }
+            get => m_IsRewardItem;
             set
             {
-                this.m_IsRewardItem = value;
-                this.InvalidateProperties();
+                m_IsRewardItem = value;
+                InvalidateProperties();
             }
-        }
-        public override void OnDoubleClick(Mobile from)
-        {
-            if (this.m_IsRewardItem && !RewardSystem.CheckIsUsableBy(from, this, null))
-                return;
-			
-            if (this.IsChildOf(from.Backpack))
-            {
-                from.CloseGump(typeof(RewardOptionGump));
-                from.SendGump(new RewardOptionGump(this));
-            }
-            else
-                from.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.    
-        }
-
-        public override void GetProperties(ObjectPropertyList list)
-        {
-            base.GetProperties(list);
-			
-            if (this.m_IsRewardItem)
-                list.Add(1076218); // 2nd Year Veteran Reward
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-
-            writer.WriteEncodedInt(0); // version
-
-            writer.Write((bool)this.m_IsRewardItem);
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadEncodedInt();
-			
-            this.m_IsRewardItem = reader.ReadBool();
         }
 
         public void GetOptions(RewardOptionList list)
@@ -186,10 +138,52 @@ namespace Server.Items
 
         public void OnOptionSelected(Mobile from, int option)
         {
-            this.m_StatueType = (MinotaurStatueType)option;
+            m_StatueType = (MinotaurStatueType)option;
 
-            if (!this.Deleted)
+            if (!Deleted)
                 base.OnDoubleClick(from);
+        }
+
+        public override void OnDoubleClick(Mobile from)
+        {
+            if (m_IsRewardItem && !RewardSystem.CheckIsUsableBy(from, this, null))
+                return;
+
+            if (IsChildOf(from.Backpack))
+            {
+                from.CloseGump(typeof(RewardOptionGump));
+                from.SendGump(new RewardOptionGump(this));
+            }
+            else
+            {
+                from.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.    
+            }
+        }
+
+        public override void GetProperties(ObjectPropertyList list)
+        {
+            base.GetProperties(list);
+
+            if (m_IsRewardItem)
+                list.Add(1076218); // 2nd Year Veteran Reward
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+
+            writer.WriteEncodedInt(0); // version
+
+            writer.Write(m_IsRewardItem);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+
+            var version = reader.ReadEncodedInt();
+
+            m_IsRewardItem = reader.ReadBool();
         }
     }
 }

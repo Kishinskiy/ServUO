@@ -1,4 +1,4 @@
-using System;
+using Server.Engines.Plants;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -7,6 +7,8 @@ namespace Server.Mobiles
     [TypeAlias("Server.Mobiles.DeathWatchBeetle")]
     public class DeathwatchBeetle : BaseCreature
     {
+        public override int Hides => 8;
+
         [Constructable]
         public DeathwatchBeetle()
             : base(AIType.AI_Melee, Core.ML ? FightMode.Aggressor : FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -39,7 +41,7 @@ namespace Server.Mobiles
             Fame = 1400;
             Karma = -1400;
 
-            switch ( Utility.Random(12) )
+            switch (Utility.Random(12))
             {
                 case 0:
                     PackItem(new LeatherGorget());
@@ -62,7 +64,7 @@ namespace Server.Mobiles
             }
 
             if (Utility.RandomDouble() < .5)
-                PackItem(Engines.Plants.Seed.RandomBonsaiSeed());
+                PackItem(Seed.RandomBonsaiSeed());
 
             Tamable = true;
             MinTameSkill = 41.1;
@@ -75,14 +77,6 @@ namespace Server.Mobiles
         public DeathwatchBeetle(Serial serial)
             : base(serial)
         {
-        }
-
-        public override int Hides
-        {
-            get
-            {
-                return 8;
-            }
         }
 
         public override int GetAngerSound()
@@ -119,18 +113,15 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1);
+            writer.Write(1);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            if (version == 0)
-            {
-                SetWeaponAbility(WeaponAbility.CrushingBlow);
-            }
+            if (version == 0) SetWeaponAbility(WeaponAbility.CrushingBlow);
         }
     }
 }

@@ -1,16 +1,15 @@
-using Server;
 using System;
-using Server.Mobiles;
 using Server.Engines.CityLoyalty;
 using Server.Gumps;
+using Server.Mobiles;
 
 namespace Server.Services.TownCryer
 {
     public class CreateCityEntryGump : BaseTownCryerGump
     {
         public TownCryerCityEntry Entry { get; set; }
-        public bool Edit { get; private set; }
-        public City City { get; private set; }
+        public bool Edit { get; }
+        public City City { get; }
 
         public CreateCityEntryGump(PlayerMobile pm, TownCrier cryer, City city, TownCryerCityEntry entry = null)
             : base(pm, cryer)
@@ -18,10 +17,7 @@ namespace Server.Services.TownCryer
             Entry = entry;
             City = city;
 
-            if (Entry != null)
-            {
-                Edit = true;
-            }
+            if (Entry != null) Edit = true;
         }
 
         public override void AddGumpLayout()
@@ -56,11 +52,11 @@ namespace Server.Services.TownCryer
         {
             if (info.ButtonID == 1)
             {
-                string headline = info.GetTextEntry(1).Text;
-                string body = info.GetTextEntry(2).Text;
-                string exp = info.GetTextEntry(3).Text;
+                var headline = info.GetTextEntry(1).Text;
+                var body = info.GetTextEntry(2).Text;
+                var exp = info.GetTextEntry(3).Text;
 
-                int expires = Utility.ToInt32(exp);
+                var expires = Utility.ToInt32(exp);
 
                 if (Entry == null)
                 {
@@ -71,30 +67,27 @@ namespace Server.Services.TownCryer
                     Entry.Title = headline;
                     Entry.Body = body;
 
-                    if (expires >= 1 && expires <= 14)
-                    {
-                        Entry.Expires = DateTime.Now + TimeSpan.FromDays(expires);
-                    }
+                    if (expires >= 1 && expires <= 14) Entry.Expires = DateTime.Now + TimeSpan.FromDays(expires);
                 }
 
                 if (expires < 1 || expires > 14)
                 {
-                    User.SendLocalizedMessage(1158042); // The expiry can be between 1 and 14 days. Please check your entry and try again.
+                    User.SendLocalizedMessage(
+                        1158042); // The expiry can be between 1 and 14 days. Please check your entry and try again.
                 }
-                else if (string.IsNullOrEmpty(headline) || string.IsNullOrEmpty(body) || headline.Length < 3 || body.Length < 5)
+                else if (string.IsNullOrEmpty(headline) || string.IsNullOrEmpty(body) || headline.Length < 3 ||
+                         body.Length < 5)
                 {
-                    User.SendLocalizedMessage(1158032); // The expiry can be between 1 and 30 days. Please check your entry and try again.
+                    User.SendLocalizedMessage(
+                        1158032); // The expiry can be between 1 and 30 days. Please check your entry and try again.
                 }
                 else
                 {
-                    if (!Edit)
-                    {
-                        TownCryerSystem.AddEntry(Entry);
-                    }
+                    if (!Edit) TownCryerSystem.AddEntry(Entry);
 
                     User.SendLocalizedMessage(1158039); // Your entry has been submitted.
 
-                    BaseGump.SendGump(new TownCryerGump(User, Cryer, 0, TownCryerGump.GumpCategory.City));
+                    SendGump(new TownCryerGump(User, Cryer, 0, TownCryerGump.GumpCategory.City));
                     return;
                 }
 

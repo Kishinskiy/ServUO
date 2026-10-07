@@ -1,13 +1,13 @@
-using System;
 using Server.Items;
 using Server.Multis;
 using Server.Network;
 
 namespace Server.Gumps
-{ 
+{
     public class RewardDemolitionGump : Gump
     {
         private readonly IAddon m_Addon;
+
         public RewardDemolitionGump(IAddon addon, int question)
             : base(150, 50)
         {
@@ -20,9 +20,9 @@ namespace Server.Gumps
 
             AddBackground(0, 0, 220, 170, 0x13BE);
             AddBackground(10, 10, 200, 150, 0xBB8);
-			
+
             AddHtmlLocalized(20, 30, 180, 60, question, false, false); // Do you wish to re-deed this decoration?
-			
+
             AddHtmlLocalized(55, 100, 150, 25, 1011011, false, false); // CONTINUE
             AddButton(20, 100, 0xFA5, 0xFA7, (int)Buttons.Confirm, GumpButtonType.Reply, 0);
 
@@ -30,42 +30,48 @@ namespace Server.Gumps
             AddButton(20, 125, 0xFA5, 0xFA7, (int)Buttons.Cancel, GumpButtonType.Reply, 0);
         }
 
-        private enum Buttons
-        {
-            Cancel,
-            Confirm,
-        }
         public override void OnResponse(NetState sender, RelayInfo info)
         {
-            Item item = m_Addon as Item;
-			
+            var item = m_Addon as Item;
+
             if (item == null || item.Deleted)
-                return;                
+                return;
 
             if (info.ButtonID == (int)Buttons.Confirm)
             {
-                Mobile m = sender.Mobile;
-                BaseHouse house = BaseHouse.FindHouseAt(m);  
-				
+                var m = sender.Mobile;
+                var house = BaseHouse.FindHouseAt(m);
+
                 if (house != null && (house.IsOwner(m) || (house.Addons.ContainsKey(item) && house.Addons[item] == m)))
                 {
                     if (m.InRange(item.Location, 2))
                     {
-                        Item deed = m_Addon.Deed;
-     
+                        var deed = m_Addon.Deed;
+
                         if (deed != null)
                         {
-                            m.AddToBackpack(deed);           	
+                            m.AddToBackpack(deed);
                             house.Addons.Remove(item);
-                            item.Delete();      
+                            item.Delete();
                         }
                     }
                     else
+                    {
                         m.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1019045); // I can't reach that.
+                    }
                 }
                 else
-                    m.SendLocalizedMessage(1049784); // You can only re-deed this decoration if you are the house owner or originally placed the decoration.
+                {
+                    m.SendLocalizedMessage(
+                        1049784); // You can only re-deed this decoration if you are the house owner or originally placed the decoration.
+                }
             }
+        }
+
+        private enum Buttons
+        {
+            Cancel,
+            Confirm
         }
     }
 }

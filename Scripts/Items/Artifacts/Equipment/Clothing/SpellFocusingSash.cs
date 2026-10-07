@@ -2,12 +2,12 @@ namespace Server.Items
 {
     public class SpellFocusingSash : BodySash
     {
-        public override int LabelNumber { get { return 1150059; } } // Spell Focusing Sash
+        public override int LabelNumber => 1150059; // Spell Focusing Sash
 
-        public override int InitMinHits { get { return 255; } }
-        public override int InitMaxHits { get { return 255; } }
+        public override int InitMinHits => 255;
+        public override int InitMaxHits => 255;
 
-        public override double DefaultWeight { get { return 1; } }
+        public override double DefaultWeight => 1;
 
         [CommandProperty(AccessLevel.Counselor, AccessLevel.GameMaster)]
         public Mobile SpellCastTarget { get; set; }
@@ -20,10 +20,7 @@ namespace Server.Items
         {
             get
             {
-                if (SpellCastCount <= 5)
-                {
-                    return -(SpellCastCount * 6);
-                }
+                if (SpellCastCount <= 5) return -(SpellCastCount * 6);
 
                 return (SpellCastCount - 6) * 2;
             }
@@ -67,22 +64,22 @@ namespace Server.Items
                 BuffInfo.RemoveBuff(caster, BuffIcon.SpellFocusingBuff);
 
                 if (caster == Parent)
-                {
                     // Spell Focusing
                     // Target: ~1_val~<br>Damage Modifier: ~2_val~%
-                    BuffInfo.AddBuff(caster, new BuffInfo(BuffIcon.SpellFocusingDebuff, 1151391, 1151392, $"{SpellCastTarget?.Name ?? "None"}\t{offset}"));
-                }
+                    BuffInfo.AddBuff(caster,
+                        new BuffInfo(BuffIcon.SpellFocusingDebuff, 1151391, 1151392,
+                            $"{SpellCastTarget?.Name ?? "None"}\t{offset}"));
             }
             else
             {
                 BuffInfo.RemoveBuff(caster, BuffIcon.SpellFocusingDebuff);
 
                 if (caster == Parent)
-                {
                     // Spell Focusing
                     // Target: ~1_val~<br>Damage Modifier: ~2_val~%
-                    BuffInfo.AddBuff(caster, new BuffInfo(BuffIcon.SpellFocusingBuff, 1151391, 1151392, $"{SpellCastTarget?.Name ?? "None"}\t{offset}"));
-                }
+                    BuffInfo.AddBuff(caster,
+                        new BuffInfo(BuffIcon.SpellFocusingBuff, 1151391, 1151392,
+                            $"{SpellCastTarget?.Name ?? "None"}\t{offset}"));
             }
         }
 
@@ -136,9 +133,8 @@ namespace Server.Items
                     sdiOffset = SpellDamageOffset;
 
                     if (sdiOffset == 0)
-                    {
-                        caster.SendLocalizedMessage(1150118); // Spell focusing damage has now been tuned to your opponent.
-                    }
+                        caster.SendLocalizedMessage(
+                            1150118); // Spell focusing damage has now been tuned to your opponent.
                 }
 
                 if (SpellCastCount >= 21)

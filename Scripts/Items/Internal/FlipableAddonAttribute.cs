@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Reflection;
 using Server.Multis;
 
 namespace Server.Items
@@ -8,53 +7,46 @@ namespace Server.Items
     public class FlipableAddonAttribute : Attribute
     {
         private static readonly string m_MethodName = "Flip";
-        private static readonly Type[] m_Params = new Type[]
+
+        private static readonly Type[] m_Params =
         {
             typeof(Mobile), typeof(Direction)
         };
-        private readonly Direction[] m_Directions;
+
+        public Direction[] Directions { get; }
+
         public FlipableAddonAttribute(params Direction[] directions)
         {
-            this.m_Directions = directions;
+            Directions = directions;
         }
 
-        public Direction[] Directions
-        {
-            get
-            {
-                return this.m_Directions;
-            }
-        }
         public virtual void Flip(Mobile from, Item addon)
         {
-            if (this.m_Directions != null && this.m_Directions.Length > 1)
-            {
+            if (Directions != null && Directions.Length > 1)
                 try
                 {
-                    MethodInfo flipMethod = addon.GetType().GetMethod(m_MethodName, m_Params);
+                    var flipMethod = addon.GetType().GetMethod(m_MethodName, m_Params);
 
                     if (flipMethod != null)
                     {
-                        int index = 0;
+                        var index = 0;
 
-                        for (int i = 0; i < this.m_Directions.Length; i++)
-                        {
-                            if (addon.Direction == this.m_Directions[i])
+                        for (var i = 0; i < Directions.Length; i++)
+                            if (addon.Direction == Directions[i])
                             {
                                 index = i + 1;
                                 break;
                             }
-                        }
 
-                        if (index >= this.m_Directions.Length)
+                        if (index >= Directions.Length)
                             index = 0;
 
-                        this.ClearComponents(addon);
+                        ClearComponents(addon);
 
-                        flipMethod.Invoke(addon, new object[2] { from, this.m_Directions[index] });
+                        flipMethod.Invoke(addon, new object[2] { from, Directions[index] });
 
                         BaseHouse house = null;
-                        AddonFitResult result = AddonFitResult.Valid;
+                        var result = AddonFitResult.Valid;
 
                         addon.Map = Map.Internal;
 
@@ -68,13 +60,13 @@ namespace Server.Items
                         if (result != AddonFitResult.Valid)
                         {
                             if (index == 0)
-                                index = this.m_Directions.Length - 1;
+                                index = Directions.Length - 1;
                             else
                                 index -= 1;
 
-                            this.ClearComponents(addon);
+                            ClearComponents(addon);
 
-                            flipMethod.Invoke(addon, new object[2] { from, this.m_Directions[index] });
+                            flipMethod.Invoke(addon, new object[2] { from, Directions[index] });
 
                             if (result == AddonFitResult.Blocked)
                                 from.SendLocalizedMessage(500269); // You cannot build that there.
@@ -88,22 +80,21 @@ namespace Server.Items
                                 from.SendLocalizedMessage(500268); // This object needs to be mounted on something.
                         }
 
-                        addon.Direction = this.m_Directions[index];
+                        addon.Direction = Directions[index];
                     }
                 }
                 catch
                 {
                 }
-            }
         }
 
         private void ClearComponents(Item item)
         {
             if (item is BaseAddon)
             {
-                BaseAddon addon = (BaseAddon)item;
+                var addon = (BaseAddon)item;
 
-                foreach (AddonComponent c in addon.Components)
+                foreach (var c in addon.Components)
                 {
                     c.Addon = null;
                     c.Delete();
@@ -113,9 +104,9 @@ namespace Server.Items
             }
             else if (item is BaseAddonContainer)
             {
-                BaseAddonContainer addon = (BaseAddonContainer)item;
+                var addon = (BaseAddonContainer)item;
 
-                foreach (AddonContainerComponent c in addon.Components)
+                foreach (var c in addon.Components)
                 {
                     c.Addon = null;
                     c.Delete();

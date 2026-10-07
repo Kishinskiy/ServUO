@@ -1,4 +1,3 @@
-using System;
 using Server.Network;
 
 namespace Server.Engines.Mahjong
@@ -8,6 +7,7 @@ namespace Server.Engines.Mahjong
     public sealed class MahjongPacketHandlers
     {
         private static readonly OnMahjongPacketReceive[] m_SubCommandDelegates = new OnMahjongPacketReceive[0x100];
+
         public static void RegisterSubCommand(int subCmd, OnMahjongPacketReceive onReceive)
         {
             m_SubCommandDelegates[subCmd] = onReceive;
@@ -15,37 +15,32 @@ namespace Server.Engines.Mahjong
 
         public static OnMahjongPacketReceive GetSubCommandDelegate(int cmd)
         {
-            if (cmd >= 0 && cmd < 0x100)
-            {
-                return m_SubCommandDelegates[cmd];
-            }
-            else
-            {
-                return null;
-            }
+            if (cmd >= 0 && cmd < 0x100) return m_SubCommandDelegates[cmd];
+
+            return null;
         }
 
         public static void Initialize()
         {
-            PacketHandlers.Register(0xDA, 0, true, new OnPacketReceive(OnPacket));
+            PacketHandlers.Register(0xDA, 0, true, OnPacket);
 
-            RegisterSubCommand(0x6, new OnMahjongPacketReceive(ExitGame));
-            RegisterSubCommand(0xA, new OnMahjongPacketReceive(GivePoints));
-            RegisterSubCommand(0xB, new OnMahjongPacketReceive(RollDice));
-            RegisterSubCommand(0xC, new OnMahjongPacketReceive(BuildWalls));
-            RegisterSubCommand(0xD, new OnMahjongPacketReceive(ResetScores));
-            RegisterSubCommand(0xF, new OnMahjongPacketReceive(AssignDealer));
-            RegisterSubCommand(0x10, new OnMahjongPacketReceive(OpenSeat));
-            RegisterSubCommand(0x11, new OnMahjongPacketReceive(ChangeOption));
-            RegisterSubCommand(0x15, new OnMahjongPacketReceive(MoveWallBreakIndicator));
-            RegisterSubCommand(0x16, new OnMahjongPacketReceive(TogglePublicHand));
-            RegisterSubCommand(0x17, new OnMahjongPacketReceive(MoveTile));
-            RegisterSubCommand(0x18, new OnMahjongPacketReceive(MoveDealerIndicator));
+            RegisterSubCommand(0x6, ExitGame);
+            RegisterSubCommand(0xA, GivePoints);
+            RegisterSubCommand(0xB, RollDice);
+            RegisterSubCommand(0xC, BuildWalls);
+            RegisterSubCommand(0xD, ResetScores);
+            RegisterSubCommand(0xF, AssignDealer);
+            RegisterSubCommand(0x10, OpenSeat);
+            RegisterSubCommand(0x11, ChangeOption);
+            RegisterSubCommand(0x15, MoveWallBreakIndicator);
+            RegisterSubCommand(0x16, TogglePublicHand);
+            RegisterSubCommand(0x17, MoveTile);
+            RegisterSubCommand(0x18, MoveDealerIndicator);
         }
 
         public static void OnPacket(NetState state, PacketReader pvSrc)
         {
-            MahjongGame game = World.FindItem(pvSrc.ReadInt32()) as MahjongGame;
+            var game = World.FindItem(pvSrc.ReadInt32()) as MahjongGame;
 
             if (game != null)
                 game.Players.CheckPlayers();
@@ -54,16 +49,12 @@ namespace Server.Engines.Mahjong
 
             int cmd = pvSrc.ReadByte();
 
-            OnMahjongPacketReceive onReceive = GetSubCommandDelegate(cmd);
+            var onReceive = GetSubCommandDelegate(cmd);
 
             if (onReceive != null)
-            {
                 onReceive(game, state, pvSrc);
-            }
             else
-            {
                 pvSrc.Trace(state);
-            }
         }
 
         public static void ExitGame(MahjongGame game, NetState state, PacketReader pvSrc)
@@ -71,7 +62,7 @@ namespace Server.Engines.Mahjong
             if (game == null)
                 return;
 
-            Mobile from = state.Mobile;
+            var from = state.Mobile;
 
             game.Players.LeaveGame(from);
         }
@@ -82,7 +73,7 @@ namespace Server.Engines.Mahjong
                 return;
 
             int to = pvSrc.ReadByte();
-            int amount = pvSrc.ReadInt32();
+            var amount = pvSrc.ReadInt32();
 
             game.Players.TransferScore(state.Mobile, to, amount);
         }
@@ -167,7 +158,7 @@ namespace Server.Engines.Mahjong
             pvSrc.ReadInt16();
             pvSrc.ReadByte();
 
-            bool publicHand = pvSrc.ReadBoolean();
+            var publicHand = pvSrc.ReadBoolean();
 
             game.Players.SetPublic(game.Players.GetPlayerIndex(state.Mobile), publicHand);
         }
@@ -184,11 +175,11 @@ namespace Server.Engines.Mahjong
 
             pvSrc.ReadByte(); // Current direction
 
-            MahjongPieceDirection direction = GetDirection(pvSrc.ReadByte());
+            var direction = GetDirection(pvSrc.ReadByte());
 
             pvSrc.ReadByte();
 
-            bool flip = pvSrc.ReadBoolean();
+            var flip = pvSrc.ReadBoolean();
 
             pvSrc.ReadInt16(); // Current Y
             pvSrc.ReadInt16(); // Current X
@@ -208,9 +199,9 @@ namespace Server.Engines.Mahjong
             if (game == null || !game.Players.IsInGameDealer(state.Mobile))
                 return;
 
-            MahjongPieceDirection direction = GetDirection(pvSrc.ReadByte());
+            var direction = GetDirection(pvSrc.ReadByte());
 
-            MahjongWind wind = GetWind(pvSrc.ReadByte());
+            var wind = GetWind(pvSrc.ReadByte());
 
             int y = pvSrc.ReadInt16();
             int x = pvSrc.ReadInt16();
@@ -220,7 +211,7 @@ namespace Server.Engines.Mahjong
 
         private static MahjongPieceDirection GetDirection(int value)
         {
-            switch ( value )
+            switch (value)
             {
                 case 0:
                     return MahjongPieceDirection.Up;
@@ -235,7 +226,7 @@ namespace Server.Engines.Mahjong
 
         private static MahjongWind GetWind(int value)
         {
-            switch ( value )
+            switch (value)
             {
                 case 0:
                     return MahjongWind.North;

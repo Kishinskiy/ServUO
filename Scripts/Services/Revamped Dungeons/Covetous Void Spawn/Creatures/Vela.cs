@@ -1,14 +1,11 @@
-using Server;
-using System;
-using System.Collections.Generic;
-using Server.Mobiles;
 using Server.Items;
+using Server.Mobiles;
 
 namespace Server.Engines.VoidPool
 {
     public class VelaTheSorceress : BaseCreature
     {
-        public override bool IsInvulnerable { get { return true; } }
+        public override bool IsInvulnerable => true;
 
         [Constructable]
         public VelaTheSorceress()
@@ -52,18 +49,18 @@ namespace Server.Engines.VoidPool
             PackItem(item);
         }
 
-        public override void OnDoubleClick(Mobile from)
-        {
-            if (from is PlayerMobile && from.InRange(this.Location, 5))
-                from.SendGump(new VoidPoolRewardGump(this, from as PlayerMobile));
-        }
-
         public VelaTheSorceress(Serial serial)
             : base(serial)
         {
         }
-		
-		public override void GetProperties(ObjectPropertyList list)
+
+        public override void OnDoubleClick(Mobile from)
+        {
+            if (from is PlayerMobile && from.InRange(Location, 5))
+                from.SendGump(new VoidPoolRewardGump(this, from as PlayerMobile));
+        }
+
+        public override void GetProperties(ObjectPropertyList list)
         {
             base.GetProperties(list);
 
@@ -79,13 +76,13 @@ namespace Server.Engines.VoidPool
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (version == 0)
             {
                 Blessed = true;
 
-                Item item = FindItemOnLayer(Layer.Shirt);
+                var item = FindItemOnLayer(Layer.Shirt);
                 if (item != null)
                     item.Delete();
 

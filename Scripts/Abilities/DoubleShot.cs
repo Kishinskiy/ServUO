@@ -1,27 +1,15 @@
-using System;
-
 namespace Server.Items
 {
     /// <summary>
-    /// Send two arrows flying at your opponent if you're mounted. Requires Bushido or Ninjitsu skill.
+    ///     Send two arrows flying at your opponent if you're mounted. Requires Bushido or Ninjitsu skill.
     /// </summary>
     public class DoubleShot : WeaponAbility
     {
-        public DoubleShot()
-        {
-        }
-
-        public override int BaseMana
-        {
-            get
-            {
-                return Core.TOL ? 30 : 35;
-            }
-        }
+        public override int BaseMana => Core.TOL ? 30 : 35;
 
         public override bool OnBeforeDamage(Mobile attacker, Mobile defender)
         {
-            BaseWeapon wep = attacker.Weapon as BaseWeapon;
+            var wep = attacker.Weapon as BaseWeapon;
 
             if (wep != null)
                 wep.ProcessingMultipleHits = true;
@@ -31,7 +19,9 @@ namespace Server.Items
 
         public override SkillName GetSecondarySkill(Mobile from)
         {
-            return from.Skills[SkillName.Ninjitsu].Base > from.Skills[SkillName.Bushido].Base ? SkillName.Ninjitsu : SkillName.Bushido;
+            return from.Skills[SkillName.Ninjitsu].Base > from.Skills[SkillName.Bushido].Base
+                ? SkillName.Ninjitsu
+                : SkillName.Bushido;
         }
 
         public override void OnHit(Mobile attacker, Mobile defender, int damage)
@@ -50,11 +40,8 @@ namespace Server.Items
             {
                 if (from.Mounted)
                     return true;
-                else
-                {
-                    from.SendLocalizedMessage(1070770); // You can only execute this attack while mounted!
-                    ClearCurrentAbility(from);
-                }
+                from.SendLocalizedMessage(1070770); // You can only execute this attack while mounted!
+                ClearCurrentAbility(from);
             }
 
             return false;
@@ -62,7 +49,7 @@ namespace Server.Items
 
         public void Use(Mobile attacker, Mobile defender)
         {
-            if (!Validate(attacker) || !CheckMana(attacker, true) || attacker.Weapon == null)	//sanity
+            if (!Validate(attacker) || !CheckMana(attacker, true) || attacker.Weapon == null) //sanity
                 return;
 
             ClearCurrentAbility(attacker);

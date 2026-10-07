@@ -1,9 +1,11 @@
-using System;
-
 namespace Server.Items
 {
     public class ExplosionPotion : BaseExplosionPotion
     {
+        public override int MinDamage => 10;
+
+        public override int MaxDamage => 20;
+
         [Constructable]
         public ExplosionPotion()
             : base(PotionEffect.Explosion)
@@ -15,32 +17,18 @@ namespace Server.Items
         {
         }
 
-        public override int MinDamage
-        {
-            get
-            {
-                return 10;
-            }
-        }
-        public override int MaxDamage
-        {
-            get
-            {
-                return 20;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

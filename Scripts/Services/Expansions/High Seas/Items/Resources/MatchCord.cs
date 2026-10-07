@@ -1,17 +1,13 @@
-﻿using System;
-using Server;
-
-namespace Server.Items
+﻿namespace Server.Items
 {
     public class Matchcord : Item, ICommodity
     {
-        public override int LabelNumber { get { return 1095184; } }
-
-        TextDefinition ICommodity.Description { get { return LabelNumber; } }
-        bool ICommodity.IsDeedable { get { return true; } }
+        public override int LabelNumber => 1095184;
 
         [Constructable]
-        public Matchcord() : this(1) { }
+        public Matchcord() : this(1)
+        {
+        }
 
         [Constructable]
         public Matchcord(int amount)
@@ -22,18 +18,23 @@ namespace Server.Items
             Amount = amount;
         }
 
-        public Matchcord(Serial serial) : base(serial) { }
+        public Matchcord(Serial serial) : base(serial)
+        {
+        }
+
+        TextDefinition ICommodity.Description => LabelNumber;
+        bool ICommodity.IsDeedable => true;
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

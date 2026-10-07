@@ -1,17 +1,16 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using Server;
-using Server.Gumps;
 using Server.Multis;
-using Server.Network;
 
 namespace Server.Items
 {
     [Flipable(0x1173, 0x1174)]
     public class AncestralGravestone : Item
     {
-        public override int LabelNumber { get { return 1071096; } } // Ancestral Gravestone
+        private static Dictionary<Mobile, SkillMod> _Table;
+        private static Dictionary<Mobile, DateTime> _Cooldown;
+        private static Timer _Timer;
+        public override int LabelNumber => 1071096; // Ancestral Gravestone
 
         [Constructable]
         public AncestralGravestone()
@@ -20,18 +19,25 @@ namespace Server.Items
             LootType = LootType.Blessed;
         }
 
+        public AncestralGravestone(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void OnDoubleClick(Mobile m)
         {
             //TODO: Clilocs?
-            BaseHouse house = BaseHouse.FindHouseAt(this);
+            var house = BaseHouse.FindHouseAt(this);
 
             if (house != null && house.IsFriend(m) && (IsLockedDown || IsSecure))
             {
                 if (IsInCooldown(m))
                 {
-                    TimeSpan tsRem = _Cooldown[m] - DateTime.UtcNow;
+                    var tsRem = _Cooldown[m] - DateTime.UtcNow;
 
-                    m.SendLocalizedMessage(1071505, ((int)tsRem.TotalMinutes).ToString()); // In order to get a buff again, you have to wait for at least ~1_VAL~ minutes.
+                    m.SendLocalizedMessage(1071505,
+                        ((int)tsRem.TotalMinutes)
+                        .ToString()); // In order to get a buff again, you have to wait for at least ~1_VAL~ minutes.
                 }
                 else
                 {
@@ -40,10 +46,6 @@ namespace Server.Items
                 }
             }
         }
-
-        private static Dictionary<Mobile, SkillMod> _Table;
-        private static Dictionary<Mobile, DateTime> _Cooldown;
-        private static Timer _Timer;
 
         public static bool UnderEffects(Mobile m)
         {
@@ -60,25 +62,22 @@ namespace Server.Items
 
             m.AddSkillMod(mod);
             AddToCooldown(m);
-            
+
             Timer.DelayCall(TimeSpan.FromMinutes(Utility.RandomMinMax(5, 40)), ExpireBonus, new object[] { m, mod });
         }
 
         public static void ExpireBonus(object o)
         {
-            object[] objects = (object[])o;
-            Mobile mob = objects[0] as Mobile;
-            SkillMod sm = objects[1] as SkillMod;
+            var objects = (object[])o;
+            var mob = objects[0] as Mobile;
+            var sm = objects[1] as SkillMod;
 
             mob.RemoveSkillMod(sm);
         }
 
         public static bool IsInCooldown(Mobile m)
         {
-            if (UnderEffects(m))
-            {
-                return true;
-            }
+            if (UnderEffects(m)) return true;
 
             CheckCooldown();
 
@@ -104,15 +103,11 @@ namespace Server.Items
             if (_Cooldown == null)
                 return;
 
-            List<Mobile> list = new List<Mobile>(_Cooldown.Keys);
+            var list = new List<Mobile>(_Cooldown.Keys);
 
             foreach (var m in list)
-            {
                 if (_Cooldown[m] < DateTime.UtcNow)
-                {
                     _Cooldown.Remove(m);
-                }
-            }
 
             if (_Cooldown.Count == 0)
             {
@@ -128,11 +123,6 @@ namespace Server.Items
             ColUtility.Free(list);
         }
 
-        public AncestralGravestone(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -144,7 +134,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

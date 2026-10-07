@@ -1,16 +1,13 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Collections.Generic;
-
-using Server;
-using Server.Items;
-using Server.Mobiles;
-using Server.Engines.CityLoyalty;
-using Server.Engines.VvV;
 using Server.Engines.ArenaSystem;
+using Server.Engines.CityLoyalty;
 using Server.Engines.SorcerersDungeon;
+using Server.Engines.VvV;
 using Server.Misc;
+using Server.Mobiles;
 
 namespace Server.Engines.Points
 {
@@ -31,7 +28,7 @@ namespace Server.Engines.Points
         Moonglow,
         Britain,
         Jhelom,
-        Yew, 
+        Yew,
         Minoc,
         Trinsic,
         SkaraBrae,
@@ -53,7 +50,7 @@ namespace Server.Engines.Points
         GauntletPoints,
         TOT,
         VAS,
-        FellowshipData,
+        FellowshipData
     }
 
     public abstract class PointsSystem
@@ -67,7 +64,9 @@ namespace Server.Engines.Points
         public abstract bool AutoAdd { get; }
         public abstract double MaxPoints { get; }
 
-        public virtual bool ShowOnLoyaltyGump { get { return true; } }
+        public virtual bool ShowOnLoyaltyGump => true;
+
+        public int Version { get; set; }
 
         public PointsSystem()
         {
@@ -78,7 +77,7 @@ namespace Server.Engines.Points
 
         private static void AddSystem(PointsSystem system)
         {
-            if(Systems.FirstOrDefault(s => s.Loyalty == system.Loyalty) != null)
+            if (Systems.FirstOrDefault(s => s.Loyalty == system.Loyalty) != null)
                 return;
 
             Systems.Add(system);
@@ -94,7 +93,7 @@ namespace Server.Engines.Points
 
         public virtual void ConvertFromOldSystem(PlayerMobile from, double points)
         {
-            PointsEntry entry = GetEntry(from, false);
+            var entry = GetEntry(from);
 
             if (entry == null)
             {
@@ -105,7 +104,7 @@ namespace Server.Engines.Points
                 GetEntry(from).Points = points;
 
                 Utility.PushColor(ConsoleColor.Green);
-                Console.WriteLine("Converted {0} points for {1} to {2}!", (int)points, from.Name, this.GetType().Name);
+                Console.WriteLine("Converted {0} points for {1} to {2}!", (int)points, from.Name, GetType().Name);
                 Utility.PopColor();
             }
         }
@@ -115,11 +114,11 @@ namespace Server.Engines.Points
             if (!(from is PlayerMobile) || points <= 0)
                 return;
 
-            PointsEntry entry = GetEntry(from);
+            var entry = GetEntry(from);
 
             if (entry != null)
             {
-                double old = entry.Points;
+                var old = entry.Points;
 
                 SetPoints((PlayerMobile)from, Math.Min(MaxPoints, entry.Points + points));
                 SendMessage((PlayerMobile)from, old, points, quest);
@@ -128,35 +127,35 @@ namespace Server.Engines.Points
 
         public void SetPoints(PlayerMobile pm, double points)
         {
-            PointsEntry entry = GetEntry(pm);
+            var entry = GetEntry(pm);
 
-            if(entry != null)
+            if (entry != null)
                 entry.Points = points;
         }
 
         public virtual void SendMessage(PlayerMobile from, double old, double points, bool quest)
         {
             if (quest)
-                from.SendLocalizedMessage(1113719, ((int)points).ToString(), 0x26); //You have received ~1_val~ loyalty points as a reward for completing the quest. 
+                from.SendLocalizedMessage(1113719, ((int)points).ToString(),
+                    0x26); //You have received ~1_val~ loyalty points as a reward for completing the quest. 
             else
-                from.SendLocalizedMessage(1115920, String.Format("{0}\t{1}", Name.ToString(), ((int)points).ToString()));  // Your loyalty to ~1_GROUP~ has increased by ~2_AMOUNT~;Original
+                from.SendLocalizedMessage(1115920,
+                    string.Format("{0}\t{1}", Name,
+                        ((int)points).ToString())); // Your loyalty to ~1_GROUP~ has increased by ~2_AMOUNT~;Original
         }
 
         public virtual bool DeductPoints(Mobile from, double points, bool message = false)
         {
-            PointsEntry entry = GetEntry(from);
+            var entry = GetEntry(from);
 
-            if (entry == null || entry.Points < points)
-            {
-                return false;
-            }
-            else
-            {
-                entry.Points -= points;
+            if (entry == null || entry.Points < points) return false;
 
-                if (message)
-                    from.SendLocalizedMessage(1115921, String.Format("{0}\t{1}", Name.ToString(), ((int)points).ToString()));  // Your loyalty to ~1_GROUP~ has decreased by ~2_AMOUNT~;Original
-            }
+            entry.Points -= points;
+
+            if (message)
+                from.SendLocalizedMessage(1115921,
+                    string.Format("{0}\t{1}", Name,
+                        ((int)points).ToString())); // Your loyalty to ~1_GROUP~ has decreased by ~2_AMOUNT~;Original
 
             return true;
         }
@@ -167,13 +166,13 @@ namespace Server.Engines.Points
 
         public virtual PointsEntry AddEntry(PlayerMobile pm, bool existed = false)
         {
-            PointsEntry entry = GetSystemEntry(pm);
+            var entry = GetSystemEntry(pm);
 
             if (!PlayerTable.Contains(entry))
             {
                 PlayerTable.Add(entry);
 
-                if(!existed)
+                if (!existed)
                     OnPlayerAdded(pm);
             }
 
@@ -182,7 +181,7 @@ namespace Server.Engines.Points
 
         public double GetPoints(Mobile from)
         {
-            PointsEntry entry = GetEntry(from);
+            var entry = GetEntry(from);
 
             if (entry != null)
                 return entry.Points;
@@ -196,28 +195,28 @@ namespace Server.Engines.Points
         }
 
         public PointsEntry GetEntry(Mobile from, bool create = false)
-		{
-            PlayerMobile pm = from as PlayerMobile;
+        {
+            var pm = from as PlayerMobile;
 
             if (pm == null)
                 return null;
 
-            PointsEntry entry = PlayerTable.FirstOrDefault(e => e.Player == pm);
+            var entry = PlayerTable.FirstOrDefault(e => e.Player == pm);
 
             if (entry == null && (create || AutoAdd))
                 entry = AddEntry(pm);
-				
-			return entry;
-		}
+
+            return entry;
+        }
 
         public TEntry GetPlayerEntry<TEntry>(Mobile mobile, bool create = false) where TEntry : PointsEntry
         {
-            PlayerMobile pm = mobile as PlayerMobile;
+            var pm = mobile as PlayerMobile;
 
             if (pm == null)
                 return null;
 
-            TEntry e = PlayerTable.FirstOrDefault(p => p.Player == pm) as TEntry;
+            var e = PlayerTable.FirstOrDefault(p => p.Player == pm) as TEntry;
 
             if (e == null && (AutoAdd || create))
                 e = AddEntry(pm) as TEntry;
@@ -226,7 +225,7 @@ namespace Server.Engines.Points
         }
 
         /// <summary>
-        /// Override this if you are going to derive Points Entry into a bigger and badder class!
+        ///     Override this if you are going to derive Points Entry into a bigger and badder class!
         /// </summary>
         /// <param name="pm"></param>
         /// <returns></returns>
@@ -234,20 +233,18 @@ namespace Server.Engines.Points
         {
             return new PointsEntry(pm);
         }
-        
-        public int Version { get; set; }
 
         public virtual void Serialize(GenericWriter writer)
         {
-            writer.Write((int)2);
+            writer.Write(2);
 
             writer.Write(PlayerTable.Count);
 
             PlayerTable.ForEach(entry =>
-                {
-                    writer.Write(entry.Player);
-                    entry.Serialize(writer);
-                });
+            {
+                writer.Write(entry.Player);
+                entry.Serialize(writer);
+            });
         }
 
         public virtual void Deserialize(GenericReader reader)
@@ -256,36 +253,34 @@ namespace Server.Engines.Points
 
             switch (Version)
             {
-                case 2: // added serialize/deserialize in all base classes. Poor implementation on my part, should have had from the get-go
+                case 2
+                    : // added serialize/deserialize in all base classes. Poor implementation on my part, should have had from the get-go
                 case 1:
                 case 0:
-					{
-	                    int count = reader.ReadInt();
+                {
+                    var count = reader.ReadInt();
 
-	                    for (int i = 0; i < count; i++)
-	                    {
-	                        PlayerMobile player = reader.ReadMobile() as PlayerMobile;
-	                        PointsEntry entry = GetSystemEntry(player);
-	
-	                        if (Version > 0)
-	                            entry.Deserialize(reader);
-	                        else
-	                            entry.Points = reader.ReadDouble();
-	
-	                        if (player != null)
-	                        {
-	                            if (!PlayerTable.Contains(entry))
-	                            {
-	                                PlayerTable.Add(entry);
-	                            }
-	                        }
-	                    }
-					}
+                    for (var i = 0; i < count; i++)
+                    {
+                        var player = reader.ReadMobile() as PlayerMobile;
+                        var entry = GetSystemEntry(player);
+
+                        if (Version > 0)
+                            entry.Deserialize(reader);
+                        else
+                            entry.Points = reader.ReadDouble();
+
+                        if (player != null)
+                            if (!PlayerTable.Contains(entry))
+                                PlayerTable.Add(entry);
+                    }
+                }
                     break;
             }
         }
 
         #region Static Methods and Accessors
+
         public static PointsSystem GetSystemInstance(PointsType t)
         {
             return Systems.FirstOrDefault(s => s.Loyalty == t);
@@ -297,7 +292,7 @@ namespace Server.Engines.Points
                 FilePath,
                 writer =>
                 {
-                    writer.Write((int)2);
+                    writer.Write(2);
 
                     writer.Write(Systems.Count);
                     Systems.ForEach(s =>
@@ -314,29 +309,28 @@ namespace Server.Engines.Points
                 FilePath,
                 reader =>
                 {
-                    int version = reader.ReadInt();
+                    var version = reader.ReadInt();
 
                     if (version < 2)
                         reader.ReadBool();
 
-                    PointsType loaded = PointsType.None;
+                    var loaded = PointsType.None;
 
-                    int count = reader.ReadInt();
-                    for (int i = 0; i < count; i++)
-                    {
+                    var count = reader.ReadInt();
+                    for (var i = 0; i < count; i++)
                         try
                         {
-                            PointsType type = (PointsType)reader.ReadInt();
+                            var type = (PointsType)reader.ReadInt();
                             loaded = type;
-                            PointsSystem s = GetSystemInstance(type);
+                            var s = GetSystemInstance(type);
 
                             s.Deserialize(reader);
                         }
                         catch
                         {
-                            throw new Exception(String.Format("Points System Failed Load: {0} Last Loaded...", loaded.ToString()));
+                            throw new Exception(string.Format("Points System Failed Load: {0} Last Loaded...",
+                                loaded.ToString()));
                         }
-                    }
                 });
         }
 
@@ -406,13 +400,14 @@ namespace Server.Engines.Points
         {
             Systems.ForEach(s => s.ProcessQuest(e.Mobile, e.QuestType));
         }
+
         #endregion
     }
 
     public class PointsEntry
-	{
+    {
         [CommandProperty(AccessLevel.GameMaster)]
-		public PlayerMobile Player { get; private set; }
+        public PlayerMobile Player { get; private set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public double Points { get; set; }
@@ -422,18 +417,15 @@ namespace Server.Engines.Points
             Player = pm;
         }
 
-		public PointsEntry(PlayerMobile pm, double points)
-		{
-			Player = pm;
-			Points = points;
-		}
+        public PointsEntry(PlayerMobile pm, double points)
+        {
+            Player = pm;
+            Points = points;
+        }
 
         public override bool Equals(object o)
         {
-            if (o == null || !(o is PointsEntry))
-            {
-                return false;
-            }
+            if (o == null || !(o is PointsEntry)) return false;
 
             return ((PointsEntry)o).Player == Player;
         }
@@ -445,19 +437,19 @@ namespace Server.Engines.Points
 
             return base.GetHashCode();
         }
-		
-		public virtual void Serialize(GenericWriter writer)
-		{
-			writer.Write(0);
-			writer.Write(Player);
-			writer.Write(Points);
-		}
-		
-		public virtual void Deserialize(GenericReader reader)
-		{
-			int version = reader.ReadInt();
-			Player = reader.ReadMobile() as PlayerMobile;
-			Points = reader.ReadDouble();
-		}
-	}
+
+        public virtual void Serialize(GenericWriter writer)
+        {
+            writer.Write(0);
+            writer.Write(Player);
+            writer.Write(Points);
+        }
+
+        public virtual void Deserialize(GenericReader reader)
+        {
+            var version = reader.ReadInt();
+            Player = reader.ReadMobile() as PlayerMobile;
+            Points = reader.ReadDouble();
+        }
+    }
 }

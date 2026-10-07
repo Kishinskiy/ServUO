@@ -1,22 +1,23 @@
-using System;
 using Server.Items;
 
-namespace Server.Mobiles 
+namespace Server.Mobiles
 {
-    public class HireFighter : BaseHire 
+    public class HireFighter : BaseHire
     {
-        [Constructable] 
+        public override bool ClickTitle => false;
+
+        [Constructable]
         public HireFighter()
         {
             SpeechHue = Utility.RandomDyedHue();
             Hue = Utility.RandomSkinHue();
 
-            if (Female = Utility.RandomBool()) 
+            if (Female = Utility.RandomBool())
             {
                 Body = 0x191;
                 Name = NameList.RandomName("female");
             }
-            else 
+            else
             {
                 Body = 0x190;
                 Name = NameList.RandomName("male");
@@ -44,7 +45,7 @@ namespace Server.Mobiles
             Fame = 100;
             Karma = 100;
 
-            switch ( Utility.Random(2)) 
+            switch (Utility.Random(2))
             {
                 case 0:
                     AddItem(new Shoes(Utility.RandomNeutralHue()));
@@ -53,11 +54,11 @@ namespace Server.Mobiles
                     AddItem(new Boots(Utility.RandomNeutralHue()));
                     break;
             }
-			
+
             AddItem(new Shirt());
 
             // Pick a random sword
-            switch ( Utility.Random(5)) 
+            switch (Utility.Random(5))
             {
                 case 0:
                     AddItem(new Longsword());
@@ -78,7 +79,6 @@ namespace Server.Mobiles
 
             // Pick a random shield
             if (FindItemOnLayer(Layer.TwoHanded) == null)
-            {
                 switch (Utility.Random(8))
                 {
                     case 0:
@@ -106,9 +106,8 @@ namespace Server.Mobiles
                         AddItem(new ChaosShield());
                         break;
                 }
-            }
-		  
-            switch( Utility.Random(5) )
+
+            switch (Utility.Random(5))
             {
                 case 0:
                     break;
@@ -125,8 +124,9 @@ namespace Server.Mobiles
                     AddItem(new Helmet());
                     break;
             }
+
             // Pick some armour
-            switch( Utility.Random(4) )
+            switch (Utility.Random(4))
             {
                 case 0: // Leather
                     AddItem(new LeatherChest());
@@ -163,25 +163,18 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool ClickTitle
-        {
-            get
-            {
-                return false;
-            }
-        }
-        public override void Serialize(GenericWriter writer) 
+        public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);// version 
+            writer.Write(0); // version 
         }
 
-        public override void Deserialize(GenericReader reader) 
+        public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

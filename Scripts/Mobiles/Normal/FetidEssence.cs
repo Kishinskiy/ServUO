@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +5,10 @@ namespace Server.Mobiles
     [CorpseName("a fetid essence corpse")]
     public class FetidEssence : BaseCreature
     {
+        public override Poison HitPoison => Poison.Deadly;
+
+        public override Poison PoisonImmune => Poison.Deadly;
+
         [Constructable]
         public FetidEssence()
             : base(AIType.AI_Spellweaving, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -39,13 +42,11 @@ namespace Server.Mobiles
             SetSkill(SkillName.Tactics, 81.0, 84.6);
             SetSkill(SkillName.Wrestling, 81.3, 83.9);
 
-            Fame = 3700;  // Guessed
-            Karma = -3700;  // Guessed
+            Fame = 3700; // Guessed
+            Karma = -3700; // Guessed
 
-            for (int i = 0; i < Utility.RandomMinMax(0, 1); i++)
-            {
+            for (var i = 0; i < Utility.RandomMinMax(0, 1); i++)
                 PackItem(Loot.RandomScroll(0, Loot.ArcanistScrollTypes.Length, SpellbookType.Arcanist));
-            }
 
             SetAreaEffect(AreaEffect.EssenceOfDisease);
         }
@@ -55,20 +56,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override Poison HitPoison
-        {
-            get
-            {
-                return Poison.Deadly;
-            }
-        }
-        public override Poison PoisonImmune
-        {
-            get
-            {
-                return Poison.Deadly;
-            }
-        }
         public override void GenerateLoot() // Need to verify
         {
             AddLoot(LootPack.FilthyRich);
@@ -102,13 +89,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

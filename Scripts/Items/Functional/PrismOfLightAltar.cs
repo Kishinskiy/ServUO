@@ -1,22 +1,26 @@
 using System;
-using Server;
-using Server.Mobiles;
 using System.Collections.Generic;
+using Server.Mobiles;
 
 namespace Server.Items
 {
     public class PrismOfLightAltar : PeerlessAltar
     {
-        private int m_ID;
-        public override int KeyCount { get { return 3; } }
-        public override MasterKey MasterKey { get { return new PrismOfLightKey(); } }
+        private readonly Rectangle2D[] m_Bounds =
+        {
+            new Rectangle2D(6500, 111, 45, 35)
+        };
+
         public List<Item> Pedestals = new List<Item>();
+        private int m_ID;
+        public override int KeyCount => 3;
+        public override MasterKey MasterKey => new PrismOfLightKey();
 
         public override Type[] Keys
         {
             get
             {
-                return new Type[]
+                return new[]
                 {
                     typeof(JaggedCrystals), typeof(BrokenCrystals), typeof(PiecesOfCrystal),
                     typeof(CrushedCrystals), typeof(ScatteredCrystals), typeof(ShatteredCrystals)
@@ -24,7 +28,9 @@ namespace Server.Items
             }
         }
 
-        public override BasePeerless Boss { get { return new ShimmeringEffusion(); } }
+        public override BasePeerless Boss => new ShimmeringEffusion();
+
+        public override Rectangle2D[] BossBounds => m_Bounds;
 
         [Constructable]
         public PrismOfLightAltar() : base(0x2206)
@@ -38,6 +44,10 @@ namespace Server.Items
             m_ID = 0;
         }
 
+        public PrismOfLightAltar(Serial serial) : base(serial)
+        {
+        }
+
         public override void ClearContainer()
         {
             base.ClearContainer();
@@ -45,53 +55,39 @@ namespace Server.Items
             Pedestals.ForEach(x => x.Hue = ((PrismOfLightPillar)x).OrgHue);
         }
 
-        public override Rectangle2D[] BossBounds
-        {
-            get { return m_Bounds; }
-        }
-
-        private Rectangle2D[] m_Bounds = new Rectangle2D[]
-        {
-            new Rectangle2D(6500, 111, 45, 35),
-        };
-
-        public PrismOfLightAltar(Serial serial) : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1); // version
+            writer.Write(1); // version
 
             writer.Write(Pedestals, true);
 
-            writer.Write((int)m_ID);
+            writer.Write(m_ID);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             switch (version)
             {
                 case 1:
-                    {
-                        Pedestals = reader.ReadStrongItemList();
-                        goto case 0;
-                    }
+                {
+                    Pedestals = reader.ReadStrongItemList();
+                    goto case 0;
+                }
                 case 0:
-                    {
-                        m_ID = reader.ReadInt();
-                        break;
-                    }
+                {
+                    m_ID = reader.ReadInt();
+                    break;
+                }
             }
         }
 
         public int GetID()
         {
-            int id = m_ID;
+            var id = m_ID;
             m_ID += 1;
             return id;
         }
@@ -99,15 +95,14 @@ namespace Server.Items
 
     public class PrismOfLightPillar : Container
     {
-        public override int LabelNumber { get { return 1024643; } } // pedestal
-
         private PrismOfLightAltar m_Altar;
         private int m_OrgHue;
+        public override int LabelNumber => 1024643; // pedestal
 
         [CommandProperty(AccessLevel.GameMaster)]
         public PrismOfLightAltar Altar
         {
-            get { return m_Altar; }
+            get => m_Altar;
             set
             {
                 m_Altar = value;
@@ -123,7 +118,7 @@ namespace Server.Items
         [CommandProperty(AccessLevel.GameMaster)]
         public int OrgHue
         {
-            get { return m_OrgHue; }
+            get => m_OrgHue;
             set
             {
                 m_OrgHue = value;
@@ -175,33 +170,33 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1); // version
+            writer.Write(1); // version
 
-            writer.Write((int)m_OrgHue);
+            writer.Write(m_OrgHue);
 
-            writer.Write((int)ID);
-            writer.Write((Item)m_Altar);
+            writer.Write(ID);
+            writer.Write(m_Altar);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             switch (version)
             {
                 case 1:
-                    {
-                        m_OrgHue = reader.ReadInt();
-                        goto case 0;
-                    }
+                {
+                    m_OrgHue = reader.ReadInt();
+                    goto case 0;
+                }
                 case 0:
-                    {
-                        ID = reader.ReadInt();
-                        m_Altar = reader.ReadItem() as PrismOfLightAltar;
+                {
+                    ID = reader.ReadInt();
+                    m_Altar = reader.ReadItem() as PrismOfLightAltar;
 
-                        break;
-                    }
+                    break;
+                }
             }
 
             if (version < 1)

@@ -1,12 +1,10 @@
-using System;
-using Server;
 using Server.Gumps;
 
 namespace Server.Items
 {
     public class DungeonBullAddon : BaseAddon
     {
-        public override BaseAddonDeed Deed { get { return new DungeonBullDeed(); } }
+        public override BaseAddonDeed Deed => new DungeonBullDeed();
 
         [Constructable]
         public DungeonBullAddon()
@@ -16,7 +14,6 @@ namespace Server.Items
 
         [Constructable]
         public DungeonBullAddon(bool east)
-            : base()
         {
             if (east)
             {
@@ -44,26 +41,24 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class DungeonBullDeed : BaseAddonDeed, IRewardOption
     {
-        public override int LabelNumber { get { return 1159467; } } // Dungeon Bull
-        public override BaseAddon Addon { get { return new DungeonBullAddon(m_East); } }
-
         private bool m_East;
+        public override int LabelNumber => 1159467; // Dungeon Bull
+        public override BaseAddon Addon => new DungeonBullAddon(m_East);
 
         [Constructable]
         public DungeonBullDeed()
-            : base()
         {
             LootType = LootType.Blessed;
         }
@@ -95,19 +90,21 @@ namespace Server.Items
                 from.SendGump(new RewardOptionGump(this));
             }
             else
+            {
                 from.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.       	
+            }
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

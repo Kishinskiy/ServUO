@@ -6,13 +6,13 @@ namespace Server.Custom.UOBuilder
 {
     internal class UOBuilderTarget : Target
     {
-        private readonly UOBuilderPermit Permit;
-
         private readonly bool AddStatic;
 
         private readonly bool GetStatic;
+        private readonly UOBuilderPermit Permit;
 
-        public UOBuilderTarget(UOBuilderPermit permit, bool addStatic, bool getStatic = false) : base(40, true, TargetFlags.None)
+        public UOBuilderTarget(UOBuilderPermit permit, bool addStatic, bool getStatic = false) : base(40, true,
+            TargetFlags.None)
         {
             Permit = permit;
 
@@ -29,20 +29,13 @@ namespace Server.Custom.UOBuilder
             {
                 if (GetStatic)
                 {
-                    int id = 0;
+                    var id = 0;
 
                     if (targeted is Item item)
-                    {
                         id = item.ItemID;
-                    }
                     else if (targeted is StaticTarget statix)
-                    {
                         id = statix.ItemID;
-                    }
-                    else if (targeted is UOBuilderStatic uobs)
-                    {
-                        id = uobs.ItemID;
-                    }
+                    else if (targeted is UOBuilderStatic uobs) id = uobs.ItemID;
 
                     if (id > 0 && id < ArtMetrics.ArtMaxID)
                     {
@@ -57,24 +50,17 @@ namespace Server.Custom.UOBuilder
                 {
                     if (AddStatic)
                     {
-                        Point3D loc = Point3D.Zero;
+                        var loc = Point3D.Zero;
 
                         if (targeted is Item item)
-                        {
                             loc = item.Location;
-                        }
                         else if (targeted is StaticTarget statix)
-                        {
                             loc = statix.Location;
-                        }
-                        else if (targeted is LandTarget land)
-                        {
-                            loc = land.Location;
-                        }
+                        else if (targeted is LandTarget land) loc = land.Location;
 
                         if (loc != Point3D.Zero && from.Map == Permit.BlessedFor.Map && Permit.InPermitArea(loc))
                         {
-                            int top = from.Map.GetAverageZ(loc.X, loc.Y);
+                            var top = from.Map.GetAverageZ(loc.X, loc.Y);
 
                             if (!UOBuilderCore.ConsumePlacementCharge(Permit))
                             {
@@ -82,7 +68,7 @@ namespace Server.Custom.UOBuilder
                                 return;
                             }
 
-                            UOBuilderStatic uob_Static = new UOBuilderStatic(Permit.LastID);
+                            var uob_Static = new UOBuilderStatic(Permit.LastID);
 
                             uob_Static.DropToWorld(new Point3D(loc.X, loc.Y, top), from.Map);
 
@@ -108,9 +94,8 @@ namespace Server.Custom.UOBuilder
 
     internal class UOBuilderHeightTarget : Target
     {
-        private readonly UOBuilderPermit _permit;
-
         private readonly int _offset;
+        private readonly UOBuilderPermit _permit;
 
         public UOBuilderHeightTarget(UOBuilderPermit permit, int offset) : base(40, true, TargetFlags.None)
         {
@@ -120,10 +105,7 @@ namespace Server.Custom.UOBuilder
 
         protected override void OnTarget(Mobile from, object targeted)
         {
-            if (from != _permit.BlessedFor || _permit.RootParent != from)
-            {
-                return;
-            }
+            if (from != _permit.BlessedFor || _permit.RootParent != from) return;
 
             if (!(targeted is UOBuilderStatic buildStatic) || buildStatic.Permit != _permit)
             {
@@ -141,10 +123,7 @@ namespace Server.Custom.UOBuilder
 
             from.SendMessage(53, "The static height has been adjusted.");
 
-            if (from is PlayerMobile player)
-            {
-                UOBuilderGump.RefreshResources(player);
-            }
+            if (from is PlayerMobile player) UOBuilderGump.RefreshResources(player);
         }
     }
 }

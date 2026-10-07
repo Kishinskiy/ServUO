@@ -1,7 +1,3 @@
-using Server;
-using System;
-using System.Collections.Generic;
-using Server.Mobiles;
 using Server.Engines.Craft;
 
 namespace Server.Items
@@ -9,17 +5,17 @@ namespace Server.Items
     [Alterable(typeof(DefTinkering), typeof(GargishPrismaticLenses))]
     public class PrismaticLenses : Glasses
     {
-        public override int LabelNumber { get { return 1152716; } } // Prismatic Lenses
-        public override int InitMinHits { get { return 255; } }
-        public override int InitMaxHits { get { return 255; } }
+        public override int LabelNumber => 1152716; // Prismatic Lenses
+        public override int InitMinHits => 255;
+        public override int InitMaxHits => 255;
 
-        public override int BasePhysicalResistance { get { return 18; } }
-        public override int BaseFireResistance { get { return 4; } }
-        public override int BaseColdResistance { get { return 7; } }
-        public override int BasePoisonResistance { get { return 17; } }
-        public override int BaseEnergyResistance { get { return 6; } }
-		
-		public override bool IsArtifact { get { return true; } }
+        public override int BasePhysicalResistance => 18;
+        public override int BaseFireResistance => 4;
+        public override int BaseColdResistance => 7;
+        public override int BasePoisonResistance => 17;
+        public override int BaseEnergyResistance => 6;
+
+        public override bool IsArtifact => true;
 
         [Constructable]
         public PrismaticLenses()
@@ -45,24 +41,24 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class GargishPrismaticLenses : GargishGlasses
     {
-        public override int LabelNumber { get { return 1152716; } } // Prismatic Lenses
+        public override int LabelNumber => 1152716; // Prismatic Lenses
 
-        public override int InitMinHits { get { return 255; } }
-        public override int InitMaxHits { get { return 255; } }
+        public override int InitMinHits => 255;
+        public override int InitMaxHits => 255;
 
-        public override int BasePhysicalResistance { get { return 18; } }
-        public override int BaseFireResistance { get { return 4; } }
-        public override int BaseColdResistance { get { return 7; } }
-        public override int BasePoisonResistance { get { return 17; } }
-        public override int BaseEnergyResistance { get { return 6; } }
-		
-		public override bool IsArtifact { get { return true; } }
+        public override int BasePhysicalResistance => 18;
+        public override int BaseFireResistance => 4;
+        public override int BaseColdResistance => 7;
+        public override int BasePoisonResistance => 17;
+        public override int BaseEnergyResistance => 6;
+
+        public override bool IsArtifact => true;
 
         [Constructable]
         public GargishPrismaticLenses()
@@ -88,7 +84,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

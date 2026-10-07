@@ -1,29 +1,24 @@
 using System;
 using System.Linq;
-using System.Collections.Generic;
-
-using Server;
-using Server.Spells;
-using Server.Network;
-using Server.Mobiles;
 using Server.Items;
+using Server.Network;
 
 namespace Server.Spells.SkillMasteries
 {
     public class FlamingShotSpell : SkillMasterySpell
     {
-        private static SpellInfo m_Info = new SpellInfo(
-                "Flameing Shot", "",
-                -1,
-                9002
-            );
+        private static readonly SpellInfo m_Info = new SpellInfo(
+            "Flameing Shot", "",
+            -1,
+            9002
+        );
 
-        public override int RequiredMana { get { return 30; } }
+        public override int RequiredMana => 30;
 
-        public override DamageType SpellDamageType { get { return DamageType.SpellAOE; } }
-        public override SkillName CastSkill { get { return SkillName.Archery; } }
-        public override SkillName DamageSkill { get { return SkillName.Tactics; } }
-        public override bool DelayedDamage { get { return true; } }
+        public override DamageType SpellDamageType => DamageType.SpellAOE;
+        public override SkillName CastSkill => SkillName.Archery;
+        public override SkillName DamageSkill => SkillName.Tactics;
+        public override bool DelayedDamage => true;
 
         public FlamingShotSpell(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
@@ -43,7 +38,8 @@ namespace Server.Spells.SkillMasteries
 
         public override void SendCastEffect()
         {
-            Caster.PrivateOverheadMessage(MessageType.Regular, 1150, 1155999, Caster.NetState); // You ready a volley of flaming arrows!
+            Caster.PrivateOverheadMessage(MessageType.Regular, 1150, 1155999,
+                Caster.NetState); // You ready a volley of flaming arrows!
             Effects.SendTargetParticles(Caster, 0x3709, 10, 30, 2724, 0, 9907, EffectLayer.LeftFoot, 0);
             Caster.PlaySound(0x5CF);
         }
@@ -55,16 +51,16 @@ namespace Server.Spells.SkillMasteries
 
         protected override void OnTarget(object o)
         {
-            BaseWeapon weapon = GetWeapon();
+            var weapon = GetWeapon();
 
             if (weapon is BaseRanged && !(weapon is BaseThrown))
             {
-                IPoint3D p = o as IPoint3D;
+                var p = o as IPoint3D;
 
                 if (p != null && SpellHelper.CheckTown(p, Caster) && CheckSequence())
                 {
                     var targets = AcquireIndirectTargets(p, 5).OfType<Mobile>().ToList();
-                    int count = targets.Count;
+                    var count = targets.Count;
 
                     foreach (var mob in targets)
                     {
@@ -83,7 +79,7 @@ namespace Server.Spells.SkillMasteries
 
                             Server.Timer.DelayCall(TimeSpan.FromMilliseconds(800), obj =>
                             {
-                                Mobile mobile = obj as Mobile;
+                                var mobile = obj;
 
                                 if (mobile != null)
                                     mobile.FixedParticles(0x36BD, 20, 10, 5044, EffectLayer.Head);

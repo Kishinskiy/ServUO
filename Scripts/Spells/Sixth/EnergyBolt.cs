@@ -11,25 +11,16 @@ namespace Server.Spells.Sixth
             9022,
             Reagent.BlackPearl,
             Reagent.Nightshade);
+
+        public override SpellCircle Circle => SpellCircle.Sixth;
+
+        public override bool DelayedDamage => true;
+
         public EnergyBoltSpell(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
         {
         }
 
-        public override SpellCircle Circle
-        {
-            get
-            {
-                return SpellCircle.Sixth;
-            }
-        }
-        public override bool DelayedDamage
-        {
-            get
-            {
-                return true;
-            }
-        }
         public override void OnCast()
         {
             Caster.Target = new InternalTarget(this);
@@ -44,18 +35,16 @@ namespace Server.Spells.Sixth
             else if (CheckHSequence(m))
             {
                 IDamageable source = Caster;
-                IDamageable target = m;
+                var target = m;
 
                 SpellHelper.Turn(Caster, m);
 
                 if (SpellHelper.CheckReflect((int)Circle, ref source, ref target))
-                {
                     Timer.DelayCall(TimeSpan.FromSeconds(.5), () =>
                     {
                         source.MovingParticles(target, 0x379F, 7, 0, false, true, 3043, 4043, 0x211);
                         source.PlaySound(0x20A);
                     });
-                }
 
                 double damage = 0;
 
@@ -65,7 +54,7 @@ namespace Server.Spells.Sixth
                 }
                 else if (m is Mobile)
                 {
-                    Mobile mob = m as Mobile;
+                    var mob = m as Mobile;
                     damage = Utility.Random(24, 18);
 
                     if (CheckResisted(mob))
@@ -84,10 +73,8 @@ namespace Server.Spells.Sixth
                 Caster.PlaySound(0x20A);
 
                 if (damage > 0)
-                {
                     // Deal the damage
                     SpellHelper.Damage(this, target, damage, 0, 0, 0, 0, 100);
-                }
             }
 
             FinishSequence();
@@ -96,6 +83,7 @@ namespace Server.Spells.Sixth
         private class InternalTarget : Target
         {
             private readonly EnergyBoltSpell m_Owner;
+
             public InternalTarget(EnergyBoltSpell owner)
                 : base(Core.ML ? 10 : 12, false, TargetFlags.Harmful)
             {

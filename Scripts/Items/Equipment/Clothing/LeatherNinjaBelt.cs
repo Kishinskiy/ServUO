@@ -8,9 +8,12 @@ namespace Server.Items
     [FlipableAttribute(0x2790, 0x27DB)]
     public class LeatherNinjaBelt : BaseWaist, IDyable, INinjaWeapon
     {
-        private int m_UsesRemaining;
         private Poison m_Poison;
         private int m_PoisonCharges;
+        private int m_UsesRemaining;
+
+        public override CraftResource DefaultResource => CraftResource.RegularLeather;
+
         [Constructable]
         public LeatherNinjaBelt()
             : base(0x2790)
@@ -25,137 +28,66 @@ namespace Server.Items
         {
         }
 
-        public override CraftResource DefaultResource
-        {
-            get
-            {
-                return CraftResource.RegularLeather;
-            }
-        }
-        public virtual int WrongAmmoMessage
-        {
-            get
-            {
-                return 1063301;
-            }
-        }//You can only place shuriken in a ninja belt.
-        public virtual int NoFreeHandMessage
-        {
-            get
-            {
-                return 1063299;
-            }
-        }//You must have a free hand to throw shuriken.
-        public virtual int EmptyWeaponMessage
-        {
-            get
-            {
-                return 1063297;
-            }
-        }//You have no shuriken in your ninja belt!
-        public virtual int RecentlyUsedMessage
-        {
-            get
-            {
-                return 1063298;
-            }
-        }//You cannot throw another shuriken yet.
-        public virtual int FullWeaponMessage
-        {
-            get
-            {
-                return 1063302;
-            }
-        }//You cannot add any more shuriken.
-        public virtual int WeaponMinRange
-        {
-            get
-            {
-                return 2;
-            }
-        }
-        public virtual int WeaponMaxRange
-        {
-            get
-            {
-                return 10;
-            }
-        }
-        public virtual int WeaponDamage
-        {
-            get
-            {
-                return Utility.RandomMinMax(3, 5);
-            }
-        }
-        public virtual Type AmmoType
-        {
-            get
-            {
-                return typeof(Shuriken);
-            }
-        }
+        public virtual int WrongAmmoMessage => 1063301; //You can only place shuriken in a ninja belt.
+        public virtual int NoFreeHandMessage => 1063299; //You must have a free hand to throw shuriken.
+        public virtual int EmptyWeaponMessage => 1063297; //You have no shuriken in your ninja belt!
+        public virtual int RecentlyUsedMessage => 1063298; //You cannot throw another shuriken yet.
+        public virtual int FullWeaponMessage => 1063302; //You cannot add any more shuriken.
+        public virtual int WeaponMinRange => 2;
+
+        public virtual int WeaponMaxRange => 10;
+
+        public virtual int WeaponDamage => Utility.RandomMinMax(3, 5);
+
+        public virtual Type AmmoType => typeof(Shuriken);
+
         [CommandProperty(AccessLevel.GameMaster)]
         public int UsesRemaining
         {
-            get
-            {
-                return m_UsesRemaining;
-            }
+            get => m_UsesRemaining;
             set
             {
                 m_UsesRemaining = value;
                 InvalidateProperties();
             }
         }
+
         [CommandProperty(AccessLevel.GameMaster)]
         public Poison Poison
         {
-            get
-            {
-                return m_Poison;
-            }
+            get => m_Poison;
             set
             {
                 m_Poison = value;
                 InvalidateProperties();
             }
         }
+
         [CommandProperty(AccessLevel.GameMaster)]
         public int PoisonCharges
         {
-            get
-            {
-                return m_PoisonCharges;
-            }
+            get => m_PoisonCharges;
             set
             {
                 m_PoisonCharges = value;
                 InvalidateProperties();
             }
         }
+
         public bool ShowUsesRemaining
         {
-            get
-            {
-                return true;
-            }
-            set
-            {
-            }
+            get => true;
+            set { }
         }
+
         public void AttackAnimation(Mobile from, Mobile to)
         {
             if (from.Body.IsHuman)
             {
                 if (Core.SA)
-                {
                     from.Animate(AnimationType.Attack, 4);
-                }
                 else
-                {
                     from.Animate(from.Mounted ? 26 : 9, 7, 1, true, false, 0);
-                }                
             }
 
             from.PlaySound(0x23A);
@@ -179,6 +111,7 @@ namespace Server.Items
                 from.SendLocalizedMessage(1070785); // Double click this item each time you wish to throw a shuriken.
                 return true;
             }
+
             return false;
         }
 
@@ -202,31 +135,31 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
 
-            writer.Write((int)m_UsesRemaining);
+            writer.Write(m_UsesRemaining);
 
             Poison.Serialize(m_Poison, writer);
-            writer.Write((int)m_PoisonCharges);
+            writer.Write(m_PoisonCharges);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            switch ( version )
+            switch (version)
             {
                 case 0:
-                    {
-                        m_UsesRemaining = reader.ReadInt();
+                {
+                    m_UsesRemaining = reader.ReadInt();
 
-                        m_Poison = Poison.Deserialize(reader);
-                        m_PoisonCharges = reader.ReadInt();
+                    m_Poison = Poison.Deserialize(reader);
+                    m_PoisonCharges = reader.ReadInt();
 
-                        break;
-                    }
+                    break;
+                }
             }
         }
     }

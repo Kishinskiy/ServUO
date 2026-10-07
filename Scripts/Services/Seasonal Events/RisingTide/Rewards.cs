@@ -1,7 +1,5 @@
 using System;
 using System.Linq;
-
-using Server;
 using Server.Gumps;
 using Server.Multis;
 
@@ -9,7 +7,7 @@ namespace Server.Items
 {
     public class DragonCannon : BaseAddon
     {
-        public override BaseAddonDeed Deed { get { return new DragonCannonDeed(); } }
+        public override BaseAddonDeed Deed => new DragonCannonDeed();
 
         [Constructable]
         public DragonCannon()
@@ -65,13 +63,17 @@ namespace Server.Items
 
     public class DragonCannonDeed : BaseAddonDeed, IRewardOption
     {
-        public override int LabelNumber { get { return 1158926; } } // Decorative Dragon Cannon
-        public override BaseAddon Addon { get { return new DragonCannon(_Direction); } }
-
         private DirectionType _Direction;
+        public override int LabelNumber => 1158926; // Decorative Dragon Cannon
+        public override BaseAddon Addon => new DragonCannon(_Direction);
 
         [Constructable]
         public DragonCannonDeed()
+        {
+        }
+
+        public DragonCannonDeed(Serial serial)
+            : base(serial)
         {
         }
 
@@ -104,11 +106,6 @@ namespace Server.Items
             }
         }
 
-        public DragonCannonDeed(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -125,15 +122,23 @@ namespace Server.Items
     [Flipable(0xA2CA, 0xA2CB)]
     public class ShoulderParrot : BaseOuterTorso
     {
-        private DateTime _NextFly;
         private DateTime _FlyEnd;
-        private Timer _Timer;
         private Mobile _LastShoulder;
 
         private string _MasterName;
+        private DateTime _NextFly;
+        private Timer _Timer;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public string MasterName { get { return _MasterName; } set { _MasterName = value; InvalidateProperties(); } }
+        public string MasterName
+        {
+            get => _MasterName;
+            set
+            {
+                _MasterName = value;
+                InvalidateProperties();
+            }
+        }
 
         [Constructable]
         public ShoulderParrot()
@@ -142,16 +147,18 @@ namespace Server.Items
             LootType = LootType.Blessed;
         }
 
+        public ShoulderParrot(Serial serial) : base(serial)
+        {
+        }
+
         public override void AddNameProperty(ObjectPropertyList list)
         {
             if (_MasterName != null)
-            {
-                list.Add(1158958, String.Format("{0}{1}", _MasterName, _MasterName.ToLower().EndsWith("s") || _MasterName.ToLower().EndsWith("z") ? "'" : "'s"));
-            }
+                list.Add(1158958,
+                    string.Format("{0}{1}", _MasterName,
+                        _MasterName.ToLower().EndsWith("s") || _MasterName.ToLower().EndsWith("z") ? "'" : "'s"));
             else
-            {
                 list.Add(1158928); // Shoulder Parrot
-            }
         }
 
         public override void OnDoubleClick(Mobile m)
@@ -189,22 +196,14 @@ namespace Server.Items
                 ItemID = 0xA2CA;
 
                 if (_LastShoulder.FindItemOnLayer(Layer.OuterTorso) != null)
-                {
                     _LastShoulder.Backpack.DropItem(this);
-                }
                 else
-                {
                     _LastShoulder.AddItem(this);
-                }
 
                 _LastShoulder = null;
                 _Timer.Stop();
                 _NextFly = DateTime.UtcNow + TimeSpan.FromMinutes(2);
             }
-        }
-
-        public ShoulderParrot(Serial serial) : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -222,7 +221,7 @@ namespace Server.Items
             reader.ReadInt();
 
             _MasterName = reader.ReadString();
-            Mobile m = reader.ReadMobile();
+            var m = reader.ReadMobile();
 
             if (m != null)
             {
@@ -231,13 +230,9 @@ namespace Server.Items
                 Timer.DelayCall(() =>
                 {
                     if (m.FindItemOnLayer(Layer.OuterTorso) != null)
-                    {
                         m.Backpack.DropItem(this);
-                    }
                     else
-                    {
                         m.AddItem(this);
-                    }
                 });
             }
         }
@@ -246,11 +241,15 @@ namespace Server.Items
     [Flipable(0xA2C8, 0xA2C9)]
     public class PirateWallMap : Item
     {
-        public override int LabelNumber { get { return 1158938; } } // Pirate Wall Map
+        public override int LabelNumber => 1158938; // Pirate Wall Map
 
         [Constructable]
         public PirateWallMap()
             : base(0xA2C8)
+        {
+        }
+
+        public PirateWallMap(Serial serial) : base(serial)
         {
         }
 
@@ -263,10 +262,6 @@ namespace Server.Items
 
                 m.SendGump(gump);
             }
-        }
-
-        public PirateWallMap(Serial serial) : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -285,24 +280,12 @@ namespace Server.Items
     [Flipable(0xA2C6, 0xA2C7)]
     public class MysteriousStatue : Item
     {
-        public override int LabelNumber { get { return 1158935; } } // Mysterious Statue
+        public override int LabelNumber => 1158935; // Mysterious Statue
 
         [Constructable]
         public MysteriousStatue()
             : base(0xA2C6)
         {
-        }
-
-        public override void OnDoubleClick(Mobile m)
-        {
-            if (m.InRange(GetWorldLocation(), 2))
-            {
-                m.SendGump(new BasicInfoGump(1158937));
-                /*This mysterious statue towers above you. Even as skilled a mason as you are, the craftsmanship is uncanny, and unlike anything you have encountered before.
-                 * The stone appears to be smooth and special attention was taken to sculpt the statue as a perfect likeness. According to the pirate you purchased the statue
-                 * from, it was recovered somewhere at sea. The amount of marine growth seems to reinforce this claim, yet you cannot discern how long it may have been
-                 * submerged and are thus unsure of its age. Whatever its origins, one thing is clear - the figure is one you hope you do not encounter anytime soon...*/
-            }
         }
 
         /*public override void GetProperties(ObjectPropertyList list)
@@ -313,6 +296,15 @@ namespace Server.Items
 
         public MysteriousStatue(Serial serial) : base(serial)
         {
+        }
+
+        public override void OnDoubleClick(Mobile m)
+        {
+            if (m.InRange(GetWorldLocation(), 2)) m.SendGump(new BasicInfoGump(1158937));
+            /*This mysterious statue towers above you. Even as skilled a mason as you are, the craftsmanship is uncanny, and unlike anything you have encountered before.
+             * The stone appears to be smooth and special attention was taken to sculpt the statue as a perfect likeness. According to the pirate you purchased the statue
+             * from, it was recovered somewhere at sea. The amount of marine growth seems to reinforce this claim, yet you cannot discern how long it may have been
+             * submerged and are thus unsure of its age. Whatever its origins, one thing is clear - the figure is one you hope you do not encounter anytime soon...*/
         }
 
         public override void Serialize(GenericWriter writer)
@@ -331,36 +323,7 @@ namespace Server.Items
     [Flipable(0x4C26, 0x4C27)]
     public class DecorativeWoodCarving : Item
     {
-        public string _ShipName;
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public string ShipName { get { return _ShipName; } set { _ShipName = value; InvalidateProperties(); } }
-
-        [Constructable]
-        public DecorativeWoodCarving()
-            : base(0x4C26)
-        {
-            Hue = 2968;
-        }
-
-        public void AssignRandomName()
-        {
-            var list = BaseBoat.Boats.Where(b => !String.IsNullOrEmpty(b.ShipName)).Select(x => x.ShipName).ToList();
-
-            if (list.Count > 0)
-            {
-                _ShipName = list[Utility.Random(list.Count)];
-            }
-            else
-            {
-                _ShipName = _ShipNames[Utility.Random(_ShipNames.Length)];
-            }
-
-            InvalidateProperties();
-            ColUtility.Free(list);
-        }
-
-        private static string[] _ShipNames =
+        private static readonly string[] _ShipNames =
         {
             "Adventure Galley",
             "Queen Anne's Revenge",
@@ -387,30 +350,57 @@ namespace Server.Items
             "The Salty Bastard"
         };
 
+        public string _ShipName;
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public string ShipName
+        {
+            get => _ShipName;
+            set
+            {
+                _ShipName = value;
+                InvalidateProperties();
+            }
+        }
+
+        [Constructable]
+        public DecorativeWoodCarving()
+            : base(0x4C26)
+        {
+            Hue = 2968;
+        }
+
+        public DecorativeWoodCarving(Serial serial) : base(serial)
+        {
+        }
+
+        public void AssignRandomName()
+        {
+            var list = BaseBoat.Boats.Where(b => !string.IsNullOrEmpty(b.ShipName)).Select(x => x.ShipName).ToList();
+
+            if (list.Count > 0)
+                _ShipName = list[Utility.Random(list.Count)];
+            else
+                _ShipName = _ShipNames[Utility.Random(_ShipNames.Length)];
+
+            InvalidateProperties();
+            ColUtility.Free(list);
+        }
+
         public override void AddNameProperty(ObjectPropertyList list)
         {
-            if (String.IsNullOrEmpty(_ShipName))
-            {
+            if (string.IsNullOrEmpty(_ShipName))
                 list.Add(1158943); // Wood Carving of [Ship's Name]
-            }
             else
-            {
                 list.Add(1158921, _ShipName); // Wood Carving of ~1_name~
-            }
         }
 
         public override void GetProperties(ObjectPropertyList list)
         {
             base.GetProperties(list);
 
-            if (String.IsNullOrEmpty(_ShipName))
-            {
+            if (string.IsNullOrEmpty(_ShipName))
                 list.Add(1158953); // Named with a random famous ship, or if yer lucky - named after you!
-            }
-        }
-
-        public DecorativeWoodCarving(Serial serial) : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -432,7 +422,7 @@ namespace Server.Items
 
     public class QuartermasterRewardDeed : BaseRewardTitleDeed
     {
-        public override TextDefinition Title { get { return 1158951; } } // Quartermaster
+        public override TextDefinition Title => 1158951; // Quartermaster
 
         [Constructable]
         public QuartermasterRewardDeed()
@@ -453,13 +443,13 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class SailingMasterRewardDeed : BaseRewardTitleDeed
     {
-        public override TextDefinition Title { get { return 1158950; } } // Sailing Master
+        public override TextDefinition Title => 1158950; // Sailing Master
 
         [Constructable]
         public SailingMasterRewardDeed()
@@ -480,13 +470,13 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class BotswainRewardDeed : BaseRewardTitleDeed
     {
-        public override TextDefinition Title { get { return 1158949; } } // Botswain
+        public override TextDefinition Title => 1158949; // Botswain
 
         [Constructable]
         public BotswainRewardDeed()
@@ -507,13 +497,13 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class PowderMonkeyRewardDeed : BaseRewardTitleDeed
     {
-        public override TextDefinition Title { get { return 1158948; } } // Powder Monkey
+        public override TextDefinition Title => 1158948; // Powder Monkey
 
         [Constructable]
         public PowderMonkeyRewardDeed()
@@ -534,13 +524,13 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class SpikedWhipOfPlundering : SpikedWhip
     {
-        public override int LabelNumber { get { return 1158925; } } // Spiked Whip of Plundering
+        public override int LabelNumber => 1158925; // Spiked Whip of Plundering
 
         [Constructable]
         public SpikedWhipOfPlundering()
@@ -566,13 +556,13 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class BladedWhipOfPlundering : BladedWhip
     {
-        public override int LabelNumber { get { return 1158924; } } // Bladed Whip of Plundering
+        public override int LabelNumber => 1158924; // Bladed Whip of Plundering
 
         [Constructable]
         public BladedWhipOfPlundering()
@@ -598,13 +588,13 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class BarbedWhipOfPlundering : BarbedWhip
     {
-        public override int LabelNumber { get { return 1158923; } } // Barbed Whip of Plundering
+        public override int LabelNumber => 1158923; // Barbed Whip of Plundering
 
         [Constructable]
         public BarbedWhipOfPlundering()
@@ -630,7 +620,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

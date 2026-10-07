@@ -1,5 +1,3 @@
-using System;
-
 namespace Server.Items
 {
     public class FarmableWheat : FarmableCrop
@@ -41,7 +39,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

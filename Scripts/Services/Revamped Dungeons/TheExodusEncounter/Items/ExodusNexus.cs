@@ -1,32 +1,50 @@
 using System;
 using System.Collections.Generic;
+using Server.Commands;
 using Server.Gumps;
 using Server.Network;
-using Server.Commands;
 
 namespace Server.Items
 {
     public class ExodusNexus : NexusAddon
     {
-        public static void Initialize()
+        public enum PathDirection
         {
-            CommandSystem.Register("GenExodusNexus", AccessLevel.Administrator, Generate_ExodusNexus);
+            Left,
+            Up,
+            Right,
+            Down
         }
 
-        public static void Generate_ExodusNexus(CommandEventArgs e)
-        {
-            Decorate.Generate("exodus", "Data/Decoration/Exodus", Map.Ilshenar);
-        }
-        
         private static readonly TimeSpan m_UseTimeout = TimeSpan.FromMinutes(2.0);
-        private Dictionary<Mobile, DamageTimer> DamageTable = new Dictionary<Mobile, DamageTimer>();
+        private readonly Dictionary<Mobile, DamageTimer> DamageTable = new Dictionary<Mobile, DamageTimer>();
         private int m_SideLength;
-        private Node[] m_Path;
         private Mobile User { get; set; }
         private DateTime LastUse { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public bool Active { get { return this.Hue == 0; } }
+        public bool Active => Hue == 0;
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int SideLength
+        {
+            get => m_SideLength;
+            set
+            {
+                if (value < 3)
+                    value = 3;
+                else if (value > 6)
+                    value = 6;
+
+                if (m_SideLength != value)
+                {
+                    m_SideLength = value;
+                    ExodusInitPath();
+                }
+            }
+        }
+
+        public Node[] Path { get; private set; }
 
         [Constructable]
         public ExodusNexus()
@@ -37,81 +55,40 @@ namespace Server.Items
         [Constructable]
         public ExodusNexus(int sideLength)
         {
-            this.Hue = 1987;
-            this.SideLength = sideLength;
+            Hue = 1987;
+            SideLength = sideLength;
         }
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int SideLength
+        public ExodusNexus(Serial serial) : base(serial)
         {
-            get
-            {
-                return this.m_SideLength;
-            }
-            set
-            {
-                if (value < 3)
-                    value = 3;
-                else if (value > 6)
-                    value = 6;
-
-                if (this.m_SideLength != value)
-                {
-                    this.m_SideLength = value;
-                    this.ExodusInitPath();
-                }
-            }
-        }
-        public Node[] Path { get { return this.m_Path; } }
-
-        public struct Node
-        {
-            private int m_X;
-            private int m_Y;
-
-            public Node(int x, int y)
-            {
-                this.m_X = x;
-                this.m_Y = y;
-            }
-
-            public int X
-            {
-                get { return this.m_X; }
-                set { this.m_X = value; }
-            }
-
-            public int Y
-            {
-                get { return this.m_Y; }
-                set { this.m_Y = value; }
-            }
         }
 
-        public enum PathDirection
+        public static void Initialize()
         {
-            Left,
-            Up,
-            Right,
-            Down
+            CommandSystem.Register("GenExodusNexus", AccessLevel.Administrator, Generate_ExodusNexus);
+        }
+
+        public static void Generate_ExodusNexus(CommandEventArgs e)
+        {
+            Decorate.Generate("exodus", "Data/Decoration/Exodus", Map.Ilshenar);
         }
 
         public void ExodusInitPath()
         {
             // Depth-First Search algorithm
-            int totalNodes = this.SideLength * this.SideLength;
+            var totalNodes = SideLength * SideLength;
 
-            Node[] stack = new Node[totalNodes];
-            Node current = stack[0] = new Node(0, 0);
-            int stackSize = 1;
+            var stack = new Node[totalNodes];
+            var current = stack[0] = new Node(0, 0);
+            var stackSize = 1;
 
-            bool[,] visited = new bool[this.SideLength, this.SideLength];
+            var visited = new bool[SideLength, SideLength];
             visited[0, 0] = true;
 
             while (true)
             {
-                PathDirection[] choices = new PathDirection[4];
-                int count = 0;
+                var choices = new PathDirection[4];
+                var count = 0;
 
                 if (current.X > 0 && !visited[current.X - 1, current.Y])
                     choices[count++] = PathDirection.Left;
@@ -119,15 +96,15 @@ namespace Server.Items
                 if (current.Y > 0 && !visited[current.X, current.Y - 1])
                     choices[count++] = PathDirection.Up;
 
-                if (current.X < this.SideLength - 1 && !visited[current.X + 1, current.Y])
+                if (current.X < SideLength - 1 && !visited[current.X + 1, current.Y])
                     choices[count++] = PathDirection.Right;
 
-                if (current.Y < this.SideLength - 1 && !visited[current.X, current.Y + 1])
+                if (current.Y < SideLength - 1 && !visited[current.X, current.Y + 1])
                     choices[count++] = PathDirection.Down;
 
                 if (count > 0)
                 {
-                    PathDirection dir = choices[Utility.Random(count)];
+                    var dir = choices[Utility.Random(count)];
 
                     switch (dir)
                     {
@@ -147,7 +124,7 @@ namespace Server.Items
 
                     stack[stackSize++] = current;
 
-                    if (current.X == this.SideLength - 1 && current.Y == this.SideLength - 1)
+                    if (current.X == SideLength - 1 && current.Y == SideLength - 1)
                         break;
 
                     visited[current.X, current.Y] = true;
@@ -158,22 +135,15 @@ namespace Server.Items
                 }
             }
 
-            this.m_Path = new Node[stackSize];
+            Path = new Node[stackSize];
 
-            for (int i = 0; i < stackSize; i++)
+            for (var i = 0; i < stackSize; i++) Path[i] = stack[i];
+
+            if (User != null)
             {
-                this.m_Path[i] = stack[i];
+                User.CloseGump(typeof(NexusGameGump));
+                User = null;
             }
-
-            if (this.User != null)
-            {
-                this.User.CloseGump(typeof(NexusGameGump));
-                this.User = null;
-            }
-        }
-
-        public ExodusNexus(Serial serial) : base(serial)
-        {
         }
 
         public void OpenGump(Mobile from)
@@ -184,15 +154,15 @@ namespace Server.Items
                 return;
             }
 
-            if (this.User != null)
+            if (User != null)
             {
-                if (this.User == from)
+                if (User == from)
                     return;
 
-                if (this.User.Deleted || this.User.Map != this.Map || !this.User.InRange(this, 3) ||
-                    this.User.NetState == null || DateTime.UtcNow - this.LastUse >= m_UseTimeout)
+                if (User.Deleted || User.Map != Map || !User.InRange(this, 3) ||
+                    User.NetState == null || DateTime.UtcNow - LastUse >= m_UseTimeout)
                 {
-                    this.User.CloseGump(typeof(NexusGameGump));
+                    User.CloseGump(typeof(NexusGameGump));
                 }
                 else
                 {
@@ -201,8 +171,8 @@ namespace Server.Items
                 }
             }
 
-            this.User = from;
-            this.LastUse = DateTime.UtcNow;
+            User = from;
+            LastUse = DateTime.UtcNow;
 
             from.SendGump(new NexusGameGump(this, from, 0, false));
         }
@@ -211,8 +181,9 @@ namespace Server.Items
         {
             to.SendLocalizedMessage(1152372); // The Nexus shoots an arc of energy at you! 
             to.BoltEffect(0);
-            to.LocalOverheadMessage(Server.Network.MessageType.Regular, 0x21, 1114443); // * Your body convulses from electric shock *
-            to.NonlocalOverheadMessage(Server.Network.MessageType.Regular, 0x21, 1114443, to.Name); //  * ~1_NAME~ spasms from electric shock *
+            to.LocalOverheadMessage(MessageType.Regular, 0x21, 1114443); // * Your body convulses from electric shock *
+            to.NonlocalOverheadMessage(MessageType.Regular, 0x21, 1114443,
+                to.Name); //  * ~1_NAME~ spasms from electric shock *
 
             AOS.Damage(to, to, 60, 0, 0, 0, 0, 100);
 
@@ -221,7 +192,7 @@ namespace Server.Items
 
             if (!DamageTable.ContainsKey(to))
             {
-                DamageTimer timer = new DamageTimer(this, to);
+                var timer = new DamageTimer(this, to);
 
                 to.Frozen = true;
                 DamageTable[to] = timer;
@@ -231,18 +202,63 @@ namespace Server.Items
 
         public void Solve(Mobile from)
         {
-            Effects.PlaySound(this.Location, this.Map, 0x211);
-            Effects.PlaySound(this.Location, this.Map, 0x1F3);
+            Effects.PlaySound(Location, Map, 0x211);
+            Effects.PlaySound(Location, Map, 0x1F3);
 
-            Effects.SendLocationEffect(this.Location, this.Map, 0x36B0, 4, 4);
-            Effects.SendLocationEffect(new Point3D(this.X - 1, this.Y - 1, this.Z + 2), this.Map, 0x36B0, 4, 4);
-            Effects.SendLocationEffect(new Point3D(this.X - 2, this.Y - 1, this.Z + 2), this.Map, 0x36B0, 4, 4);
+            Effects.SendLocationEffect(Location, Map, 0x36B0, 4, 4);
+            Effects.SendLocationEffect(new Point3D(X - 1, Y - 1, Z + 2), Map, 0x36B0, 4, 4);
+            Effects.SendLocationEffect(new Point3D(X - 2, Y - 1, Z + 2), Map, 0x36B0, 4, 4);
 
-            from.SendLocalizedMessage(1152371); // You repair the mysterious Nexus! As it whirs to life it spits out a punch card! 
+            from.SendLocalizedMessage(
+                1152371); // You repair the mysterious Nexus! As it whirs to life it spits out a punch card! 
             from.AddToBackpack(new PunchCard());
 
-            this.Hue = 0;
-            Timer.DelayCall(TimeSpan.FromMinutes(10), new TimerCallback(delegate { this.Hue = 1987; }));
+            Hue = 0;
+            Timer.DelayCall(TimeSpan.FromMinutes(10), delegate { Hue = 1987; });
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0); // Version
+
+            writer.Write(m_SideLength);
+            writer.Write(Path.Length);
+
+            for (var i = 0; i < Path.Length; i++)
+            {
+                var cur = Path[i];
+
+                writer.Write(cur.X);
+                writer.Write(cur.Y);
+            }
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
+
+            m_SideLength = reader.ReadInt();
+            Path = new Node[reader.ReadInt()];
+
+            for (var i = 0; i < Path.Length; i++) Path[i] = new Node(reader.ReadInt(), reader.ReadInt());
+
+            if (Hue == 0)
+                Timer.DelayCall(TimeSpan.FromMinutes(10), delegate { Hue = 1987; });
+        }
+
+        public struct Node
+        {
+            public Node(int x, int y)
+            {
+                X = x;
+                Y = y;
+            }
+
+            public int X { get; set; }
+
+            public int Y { get; set; }
         }
 
         public class DamageTimer : Timer
@@ -254,221 +270,169 @@ namespace Server.Items
             public DamageTimer(ExodusNexus nexus, Mobile to)
                 : base(TimeSpan.FromSeconds(5.0), TimeSpan.FromSeconds(5.0))
             {
-                this.m_Nexus = nexus;
-                this.m_To = to;
-                this.m_Step = 0;
+                m_Nexus = nexus;
+                m_To = to;
+                m_Step = 0;
 
-                this.Priority = TimerPriority.TwoFiftyMS;
+                Priority = TimerPriority.TwoFiftyMS;
             }
 
             protected override void OnTick()
             {
-                if (this.m_Nexus.Deleted || this.m_To.Deleted || !this.m_To.Alive)
+                if (m_Nexus.Deleted || m_To.Deleted || !m_To.Alive)
                 {
-                    this.End();
+                    End();
                     return;
                 }
 
-                this.m_To.PlaySound(0x28);
+                m_To.PlaySound(0x28);
 
-                this.m_To.LocalOverheadMessage(MessageType.Regular, 0xC9, true, "* Your body convulses from electric shock *");
-                this.m_To.NonlocalOverheadMessage(MessageType.Regular, 0xC9, true, string.Format("* {0} spasms from electric shock *", this.m_To.Name));
+                m_To.LocalOverheadMessage(MessageType.Regular, 0xC9, true,
+                    "* Your body convulses from electric shock *");
+                m_To.NonlocalOverheadMessage(MessageType.Regular, 0xC9, true,
+                    string.Format("* {0} spasms from electric shock *", m_To.Name));
 
-                AOS.Damage(this.m_To, this.m_To, 20, 0, 0, 0, 0, 100);
+                AOS.Damage(m_To, m_To, 20, 0, 0, 0, 0, 100);
 
-                if (++this.m_Step >= 3 || !this.m_To.Alive)
-                {
-                    this.End();
-                }
+                if (++m_Step >= 3 || !m_To.Alive) End();
             }
 
             private void End()
             {
                 m_Nexus.DamageTable.Remove(m_To);
-                this.m_To.Frozen = false;
+                m_To.Frozen = false;
 
-                this.Stop();
+                Stop();
             }
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.Write(0); // Version
-
-            writer.Write((int)this.m_SideLength);
-            writer.Write((int)this.m_Path.Length);
-
-            for (int i = 0; i < this.m_Path.Length; i++)
-            {
-                Node cur = this.m_Path[i];
-
-                writer.Write(cur.X);
-                writer.Write(cur.Y);
-            }
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            int version = reader.ReadInt();
-
-            this.m_SideLength = reader.ReadInt();
-            this.m_Path = new Node[reader.ReadInt()];
-
-            for (int i = 0; i < this.m_Path.Length; i++)
-            {
-                this.m_Path[i] = new Node(reader.ReadInt(), reader.ReadInt());
-            }
-
-            if (this.Hue == 0)
-                Timer.DelayCall(TimeSpan.FromMinutes(10), new TimerCallback(delegate { this.Hue = 1987; }));
         }
 
         public class NexusGameGump : Gump
         {
-            private readonly ExodusNexus m_Nexus;
             private readonly Mobile m_From;
+            private readonly ExodusNexus m_Nexus;
             private readonly int m_Step;
+
             public NexusGameGump(ExodusNexus nexus, Mobile from, int step, bool hint)
                 : base(5, 30)
             {
-                this.m_Nexus = nexus;
-                this.m_From = from;
-                this.m_Step = step;
+                m_Nexus = nexus;
+                m_From = from;
+                m_Step = step;
 
-                int sideLength = nexus.SideLength;
+                var sideLength = nexus.SideLength;
 
-                this.AddBackground(50, 0, 530, 410, 0xA28);
+                AddBackground(50, 0, 530, 410, 0xA28);
 
-                this.AddImage(0, 0, 0x28C8);
-                this.AddImage(547, 0, 0x28C9);
+                AddImage(0, 0, 0x28C8);
+                AddImage(547, 0, 0x28C9);
 
-                this.AddBackground(95, 20, 442, 90, 0xA28);
-                
-                this.AddHtmlLocalized(165, 35, 300, 45, 1153747, false, false); // <center>GENERATOR CONTROL nexus</center>
-                this.AddHtmlLocalized(165, 60, 300, 70, 1153748, false, false); // <center>Use the Directional Controls to</center>
-                this.AddHtmlLocalized(165, 75, 300, 85, 1153749, false, false); // <center>Close the Grid Circuit</center>
+                AddBackground(95, 20, 442, 90, 0xA28);
 
-                this.AddImage(140, 40, 0x28D3);
-                this.AddImage(420, 40, 0x28D3);
+                AddHtmlLocalized(165, 35, 300, 45, 1153747, false, false); // <center>GENERATOR CONTROL nexus</center>
+                AddHtmlLocalized(165, 60, 300, 70, 1153748, false,
+                    false); // <center>Use the Directional Controls to</center>
+                AddHtmlLocalized(165, 75, 300, 85, 1153749, false, false); // <center>Close the Grid Circuit</center>
 
-                this.AddBackground(365, 120, 178, 210, 0x1400);
+                AddImage(140, 40, 0x28D3);
+                AddImage(420, 40, 0x28D3);
 
-                this.AddImage(365, 115, 0x28D4);
-                this.AddImage(365, 288, 0x28D4);
+                AddBackground(365, 120, 178, 210, 0x1400);
 
-                this.AddImage(414, 189, 0x589);
-                this.AddImage(435, 210, 0xA52);
+                AddImage(365, 115, 0x28D4);
+                AddImage(365, 288, 0x28D4);
 
-                this.AddButton(408, 222, 0x29EA, 0x29EC, 1, GumpButtonType.Reply, 0); // Left
-                this.AddButton(448, 185, 0x29CC, 0x29CE, 2, GumpButtonType.Reply, 0); // Up
-                this.AddButton(473, 222, 0x29D6, 0x29D8, 3, GumpButtonType.Reply, 0); // Right
-                this.AddButton(448, 243, 0x29E0, 0x29E2, 4, GumpButtonType.Reply, 0); // Down
+                AddImage(414, 189, 0x589);
+                AddImage(435, 210, 0xA52);
 
-                this.AddBackground(90, 115, 30 + 40 * sideLength, 30 + 40 * sideLength, 0xA28);
-                this.AddBackground(100, 125, 10 + 40 * sideLength, 10 + 40 * sideLength, 0x1400);
+                AddButton(408, 222, 0x29EA, 0x29EC, 1, GumpButtonType.Reply, 0); // Left
+                AddButton(448, 185, 0x29CC, 0x29CE, 2, GumpButtonType.Reply, 0); // Up
+                AddButton(473, 222, 0x29D6, 0x29D8, 3, GumpButtonType.Reply, 0); // Right
+                AddButton(448, 243, 0x29E0, 0x29E2, 4, GumpButtonType.Reply, 0); // Down
 
-                for (int i = 0; i < sideLength; i++)
+                AddBackground(90, 115, 30 + 40 * sideLength, 30 + 40 * sideLength, 0xA28);
+                AddBackground(100, 125, 10 + 40 * sideLength, 10 + 40 * sideLength, 0x1400);
+
+                for (var i = 0; i < sideLength; i++)
+                for (var j = 0; j < sideLength - 1; j++)
+                    AddImage(120 + 40 * i, 162 + 40 * j, 0x13F9);
+
+                for (var i = 0; i < sideLength - 1; i++)
+                for (var j = 0; j < sideLength; j++)
+                    AddImage(138 + 40 * i, 147 + 40 * j, 0x13FD);
+
+                var path = nexus.Path;
+
+                var hues = new NodeHue[sideLength, sideLength];
+
+                for (var i = 0; i <= step; i++)
                 {
-                    for (int j = 0; j < sideLength - 1; j++)
-                    {
-                        this.AddImage(120 + 40 * i, 162 + 40 * j, 0x13F9);
-                    }
-                }
-
-                for (int i = 0; i < sideLength - 1; i++)
-                {
-                    for (int j = 0; j < sideLength; j++)
-                    {
-                        this.AddImage(138 + 40 * i, 147 + 40 * j, 0x13FD);
-                    }
-                }
-
-                Node[] path = nexus.Path;
-
-                NodeHue[,] hues = new NodeHue[sideLength, sideLength];
-
-                for (int i = 0; i <= step; i++)
-                {
-                    Node n = path[i];
+                    var n = path[i];
                     hues[n.X, n.Y] = NodeHue.Blue;
                 }
 
-                Node lastNode = path[path.Length - 1];
+                var lastNode = path[path.Length - 1];
                 hues[lastNode.X, lastNode.Y] = NodeHue.Red;
 
-                for (int i = 0; i < sideLength; i++)
-                {
-                    for (int j = 0; j < sideLength; j++)
-                    {
-                        this.AddNode(110 + 40 * i, 135 + 40 * j, hues[i, j]);
-                    }
-                }
+                for (var i = 0; i < sideLength; i++)
+                for (var j = 0; j < sideLength; j++)
+                    AddNode(110 + 40 * i, 135 + 40 * j, hues[i, j]);
 
-                Node curNode = path[step];
-                this.AddImage(118 + 40 * curNode.X, 143 + 40 * curNode.Y, 0x13A8);
+                var curNode = path[step];
+                AddImage(118 + 40 * curNode.X, 143 + 40 * curNode.Y, 0x13A8);
 
                 if (hint)
                 {
-                    Node nextNode = path[step + 1];
-                    this.AddImage(119 + 40 * nextNode.X, 143 + 40 * nextNode.Y, 0x939);
+                    var nextNode = path[step + 1];
+                    AddImage(119 + 40 * nextNode.X, 143 + 40 * nextNode.Y, 0x939);
                 }
 
                 if (from.Skills.Lockpicking.Value >= 65.0)
                 {
-                    this.AddButton(365, 350, 0xFA6, 0xFA7, 5, GumpButtonType.Reply, 0);
-                    this.AddHtmlLocalized(405, 345, 140, 40, 1153750, false, false); // Attempt to Decipher the Circuit Path
+                    AddButton(365, 350, 0xFA6, 0xFA7, 5, GumpButtonType.Reply, 0);
+                    AddHtmlLocalized(405, 345, 140, 40, 1153750, false, false); // Attempt to Decipher the Circuit Path
                 }
-            }
-
-            private enum NodeHue
-            {
-                Gray,
-                Blue,
-                Red
             }
 
             public override void OnResponse(NetState sender, RelayInfo info)
             {
-                if (this.m_Nexus.Deleted || info.ButtonID == 0 || !this.m_From.CheckAlive())
+                if (m_Nexus.Deleted || info.ButtonID == 0 || !m_From.CheckAlive())
                 {
-                    this.m_Nexus.User = null;
+                    m_Nexus.User = null;
                     return;
                 }
 
-                if (this.m_From.Map != this.m_Nexus.Map || !this.m_From.InRange(this.m_Nexus, 3))
+                if (m_From.Map != m_Nexus.Map || !m_From.InRange(m_Nexus, 3))
                 {
-                    this.m_From.SendLocalizedMessage(500446); // That is too far away.
-                    this.m_Nexus.User = null;
+                    m_From.SendLocalizedMessage(500446); // That is too far away.
+                    m_Nexus.User = null;
                     return;
                 }
 
-                Node nextNode = this.m_Nexus.Path[this.m_Step + 1];
+                var nextNode = m_Nexus.Path[m_Step + 1];
 
                 if (info.ButtonID == 5) // Attempt to Decipher
                 {
-                    double lockpicking = this.m_From.Skills.Lockpicking.Value;
+                    var lockpicking = m_From.Skills.Lockpicking.Value;
 
                     if (lockpicking < 65.0)
                         return;
 
-                    this.m_From.PlaySound(0x241);
+                    m_From.PlaySound(0x241);
 
                     if (40.0 + Utility.RandomDouble() * 80.0 < lockpicking)
                     {
-                        this.m_From.SendGump(new NexusGameGump(this.m_Nexus, this.m_From, this.m_Step, true));
-                        this.m_Nexus.LastUse = DateTime.UtcNow;
+                        m_From.SendGump(new NexusGameGump(m_Nexus, m_From, m_Step, true));
+                        m_Nexus.LastUse = DateTime.UtcNow;
                     }
                     else
                     {
-                        this.m_Nexus.DoDamage(this.m_From);
-                        this.m_Nexus.User = null;
+                        m_Nexus.DoDamage(m_From);
+                        m_Nexus.User = null;
                     }
                 }
                 else
                 {
-                    Node curNode = this.m_Nexus.Path[this.m_Step];
+                    var curNode = m_Nexus.Path[m_Step];
 
                     int newX, newY;
                     switch (info.ButtonID)
@@ -495,22 +459,22 @@ namespace Server.Items
 
                     if (nextNode.X == newX && nextNode.Y == newY)
                     {
-                        if (this.m_Step + 1 == this.m_Nexus.Path.Length - 1)
+                        if (m_Step + 1 == m_Nexus.Path.Length - 1)
                         {
-                            this.m_Nexus.Solve(this.m_From);
-                            this.m_Nexus.User = null;
+                            m_Nexus.Solve(m_From);
+                            m_Nexus.User = null;
                         }
                         else
                         {
-                            this.m_From.PlaySound(0x1F4);
-                            this.m_From.SendGump(new NexusGameGump(this.m_Nexus, this.m_From, this.m_Step + 1, false));
-                            this.m_Nexus.LastUse = DateTime.UtcNow;
+                            m_From.PlaySound(0x1F4);
+                            m_From.SendGump(new NexusGameGump(m_Nexus, m_From, m_Step + 1, false));
+                            m_Nexus.LastUse = DateTime.UtcNow;
                         }
                     }
                     else
                     {
-                        this.m_Nexus.DoDamage(this.m_From);
-                        this.m_Nexus.User = null;
+                        m_Nexus.DoDamage(m_From);
+                        m_Nexus.User = null;
                     }
                 }
             }
@@ -531,7 +495,14 @@ namespace Server.Items
                         break;
                 }
 
-                this.AddImage(x, y, id);
+                AddImage(x, y, id);
+            }
+
+            private enum NodeHue
+            {
+                Gray,
+                Blue,
+                Red
             }
         }
     }

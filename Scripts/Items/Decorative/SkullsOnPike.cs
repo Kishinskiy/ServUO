@@ -1,13 +1,13 @@
-﻿using System;
-
-namespace Server.Items
+﻿namespace Server.Items
 {
-    /* 
-    first seen halloween 2009.  subsequently in 2010, 
+    /*
+    first seen halloween 2009.  subsequently in 2010,
     2011 and 2012. GM Beggar-only Semi-Rare Treats
     */
     public class SkullsOnPike : Item
     {
+        public override double DefaultWeight => 1;
+
         [Constructable]
         public SkullsOnPike()
             : base(0x42B5)
@@ -19,25 +19,18 @@ namespace Server.Items
         {
         }
 
-        public override double DefaultWeight
-        {
-            get
-            {
-                return 1;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -1,23 +1,19 @@
 using System;
-using Server;
 
 namespace Server.Items
 {
     public class GobletOfCelebration : Item
     {
-        public override int LabelNumber { get { return 1075430; } } // Goblet of Celebration
+        private Timer m_FillTimer;
 
         private bool m_Full;
         private DateTime m_NextFill;
-        private Timer m_FillTimer;
+        public override int LabelNumber => 1075430; // Goblet of Celebration
 
         [CommandProperty(AccessLevel.GameMaster)]
         public bool Full
         {
-            get
-            {
-                return m_Full;
-            }
+            get => m_Full;
             set
             {
                 if (m_Full != value)
@@ -32,7 +28,7 @@ namespace Server.Items
                     {
                         m_NextFill = DateTime.Now + TimeSpan.FromDays(1.0);
 
-                        m_FillTimer = Timer.DelayCall(TimeSpan.FromDays(1.0), new TimerCallback(delegate { Full = true; }));
+                        m_FillTimer = Timer.DelayCall(TimeSpan.FromDays(1.0), delegate { Full = true; });
                     }
                 }
             }
@@ -49,13 +45,19 @@ namespace Server.Items
             m_Full = true;
         }
 
+        public GobletOfCelebration(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void OnDoubleClick(Mobile from)
         {
             base.OnDoubleClick(from);
 
             if (!IsChildOf(from.Backpack))
             {
-                from.SendLocalizedMessage(1075438); // You can only drink from the goblet of celebration when its in your inventory.
+                from.SendLocalizedMessage(
+                    1075438); // You can only drink from the goblet of celebration when its in your inventory.
             }
             else
             {
@@ -70,7 +72,8 @@ namespace Server.Items
                 }
                 else
                 {
-                    from.SendLocalizedMessage(1075439); // You need to wait a day for the goblet of celebration to be replenished.
+                    from.SendLocalizedMessage(
+                        1075439); // You need to wait a day for the goblet of celebration to be replenished.
                 }
             }
         }
@@ -85,28 +88,20 @@ namespace Server.Items
                 list.Add(1042975); // It's empty.
         }
 
-        public GobletOfCelebration(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
             writer.Write(m_Full);
 
-            if (!m_Full)
-            {
-                writer.Write(m_NextFill);
-            }
+            if (!m_Full) writer.Write(m_NextFill);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             m_Full = reader.ReadBool();
 
@@ -114,7 +109,7 @@ namespace Server.Items
             {
                 m_NextFill = reader.ReadDateTime();
 
-                m_FillTimer = Timer.DelayCall(m_NextFill - DateTime.Now, new TimerCallback(delegate { Full = true; }));
+                m_FillTimer = Timer.DelayCall(m_NextFill - DateTime.Now, delegate { Full = true; });
             }
         }
     }

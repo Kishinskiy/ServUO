@@ -3,34 +3,53 @@ using System.Collections;
 using System.Collections.Generic;
 using Server.ContextMenus;
 using Server.Items;
+using Server.Misc;
+using Server.Regions;
 using Server.Services.Virtues;
-
 using EDI = Server.Mobiles.EscortDestinationInfo;
 
 namespace Server.Mobiles
 {
     public class BaseEscortable : BaseCreature
     {
-        private static readonly string[] m_TownNames = new string[]
+        private static readonly string[] m_TownNames =
         {
             "Cove", "Britain", "Jhelom",
             "Minoc", "Ocllo", "Trinsic",
             "Vesper", "Yew", "Skara Brae", //Original List, will need to add it back for Pre-ML shards
             "Nujel'm", "Moonglow", "Magincia"
         };
-        private static readonly string[] m_MLTownNames = new string[]
+
+        private static readonly string[] m_MLTownNames =
         {
             "Cove", "Serpent's Hold", "Jhelom", //ML List
             "Nujel'm"
         };
 
-        private static readonly Hashtable m_EscortTable = new Hashtable();
         private static readonly TimeSpan m_EscortDelay = TimeSpan.FromMinutes(5.0);
-        private EDI m_Destination;
-        private string m_DestinationString;
         private DateTime m_DeleteTime;
         private Timer m_DeleteTimer;
+        private EDI m_Destination;
+        private string m_DestinationString;
         private DateTime m_LastSeenEscorter;
+
+        public static Hashtable EscortTable { get; } = new Hashtable();
+
+        public override bool UseSmartAI => true;
+        public override bool CanAutoStable => false;
+
+        public override bool Commandable => false; // Our master cannot boss us around!
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public string Destination
+        {
+            get => m_Destination == null ? null : m_Destination.Name;
+            set
+            {
+                m_DestinationString = value;
+                m_Destination = EDI.Find(value);
+            }
+        }
 
         [Constructable]
         public BaseEscortable()
@@ -45,37 +64,6 @@ namespace Server.Mobiles
         {
         }
 
-        public static Hashtable EscortTable
-        {
-            get
-            {
-                return m_EscortTable;
-            }
-        }
-
-        public override bool UseSmartAI { get { return true; } }
-        public override bool CanAutoStable { get { return false; } }
-
-        public override bool Commandable
-        {
-            get
-            {
-                return false;
-            }
-        }// Our master cannot boss us around!
-        [CommandProperty(AccessLevel.GameMaster)]
-        public string Destination
-        {
-            get
-            {
-                return m_Destination == null ? null : m_Destination.Name;
-            }
-            set
-            {
-                m_DestinationString = value;
-                m_Destination = EDI.Find(value);
-            }
-        }
         public virtual void InitBody()
         {
             SetStr(90, 100);
@@ -109,21 +97,24 @@ namespace Server.Mobiles
 
         public virtual bool SayDestinationTo(Mobile m)
         {
-            EDI dest = GetDestination();
+            var dest = GetDestination();
 
             if (dest == null || !m.Alive)
                 return false;
 
-            Mobile escorter = GetEscorter();
+            var escorter = GetEscorter();
 
             if (escorter == null)
             {
-                Say("I am looking to go to {0}, will you take me?", (dest.Name == "Ocllo" && m.Map == Map.Trammel) ? "Haven" : dest.Name);
+                Say("I am looking to go to {0}, will you take me?",
+                    dest.Name == "Ocllo" && m.Map == Map.Trammel ? "Haven" : dest.Name);
                 return true;
             }
-            else if (escorter == m)
+
+            if (escorter == m)
             {
-                Say("Lead on! Payment will be made when we arrive in {0}.", (dest.Name == "Ocllo" && m.Map == Map.Trammel) ? "Haven" : dest.Name);
+                Say("Lead on! Payment will be made when we arrive in {0}.",
+                    dest.Name == "Ocllo" && m.Map == Map.Trammel ? "Haven" : dest.Name);
                 return true;
             }
 
@@ -132,39 +123,43 @@ namespace Server.Mobiles
 
         public virtual bool AcceptEscorter(Mobile m)
         {
-            EDI dest = GetDestination();
+            var dest = GetDestination();
 
             if (dest == null)
                 return false;
 
-            Mobile escorter = GetEscorter();
+            var escorter = GetEscorter();
 
             if (escorter != null || !m.Alive)
                 return false;
 
-            BaseEscortable escortable = (BaseEscortable)m_EscortTable[m];
+            var escortable = (BaseEscortable)EscortTable[m];
 
             if (escortable != null && !escortable.Deleted && escortable.GetEscorter() == m)
             {
                 Say("I see you already have an escort.");
                 return false;
             }
-            else if (m is PlayerMobile && (((PlayerMobile)m).LastEscortTime + m_EscortDelay) >= DateTime.UtcNow)
+
+            if (m is PlayerMobile && ((PlayerMobile)m).LastEscortTime + m_EscortDelay >= DateTime.UtcNow)
             {
-                int minutes = (int)Math.Ceiling(((((PlayerMobile)m).LastEscortTime + m_EscortDelay) - DateTime.UtcNow).TotalMinutes);
+                var minutes = (int)Math.Ceiling((((PlayerMobile)m).LastEscortTime + m_EscortDelay - DateTime.UtcNow)
+                    .TotalMinutes);
 
                 Say("You must rest {0} minute{1} before we set out on this journey.", minutes, minutes == 1 ? "" : "s");
                 return false;
             }
-            else if (SetControlMaster(m))
+
+            if (SetControlMaster(m))
             {
                 m_LastSeenEscorter = DateTime.UtcNow;
 
                 if (m is PlayerMobile)
                     ((PlayerMobile)m).LastEscortTime = DateTime.UtcNow;
 
-                Say("Lead on! Payment will be made when we arrive in {0}.", (dest.Name == "Ocllo" && m.Map == Map.Trammel) ? "Haven" : dest.Name);
-                m_EscortTable[m] = this;
+                Say("Lead on! Payment will be made when we arrive in {0}.",
+                    dest.Name == "Ocllo" && m.Map == Map.Trammel ? "Haven" : dest.Name);
+                EscortTable[m] = this;
                 StartFollow();
                 return true;
             }
@@ -184,7 +179,7 @@ namespace Server.Mobiles
         {
             base.OnSpeech(e);
 
-            EDI dest = GetDestination();
+            var dest = GetDestination();
 
             if (dest != null && !e.Handled && e.Mobile.InRange(Location, 3))
             {
@@ -227,10 +222,7 @@ namespace Server.Mobiles
             ControlOrder = OrderType.Follow;
             ControlTarget = escorter;
 
-            if (IsPrisoner && CantWalk)
-            {
-                CantWalk = false;
-            }
+            if (IsPrisoner && CantWalk) CantWalk = false;
 
             CurrentSpeed = 0.1;
         }
@@ -251,7 +243,7 @@ namespace Server.Mobiles
             if (!Controlled)
                 return null;
 
-            Mobile master = ControlMaster;
+            var master = ControlMaster;
 
             if (master == null)
                 return null;
@@ -260,7 +252,7 @@ namespace Server.Mobiles
             {
                 StopFollow();
 
-                TimeSpan lastSeenDelay = DateTime.UtcNow - m_LastSeenEscorter;
+                var lastSeenDelay = DateTime.UtcNow - m_LastSeenEscorter;
 
                 if (lastSeenDelay >= TimeSpan.FromMinutes(2.0))
                 {
@@ -268,16 +260,14 @@ namespace Server.Mobiles
                     Say(1005653); // Hmmm. I seem to have lost my master.
 
                     SetControlMaster(null);
-                    m_EscortTable.Remove(master);
+                    EscortTable.Remove(master);
 
-                    Timer.DelayCall(TimeSpan.FromSeconds(5.0), new TimerCallback(Delete));
+                    Timer.DelayCall(TimeSpan.FromSeconds(5.0), Delete);
                     return null;
                 }
-                else
-                {
-                    ControlOrder = OrderType.Stay;
-                    return master;
-                }
+
+                ControlOrder = OrderType.Stay;
+                return master;
             }
 
             if (ControlOrder != OrderType.Follow)
@@ -300,53 +290,50 @@ namespace Server.Mobiles
 
         public virtual bool CheckAtDestination()
         {
-            EDI dest = GetDestination();
+            var dest = GetDestination();
 
             if (dest == null)
                 return false;
 
-            Mobile escorter = GetEscorter();
+            var escorter = GetEscorter();
 
             if (escorter == null)
                 return false;
 
             if (dest.Contains(Location))
             {
-                Say(1042809, escorter.Name); // We have arrived! I thank thee, ~1_PLAYER_NAME~! I have no further need of thy services. Here is thy pay.
+                Say(1042809,
+                    escorter.Name); // We have arrived! I thank thee, ~1_PLAYER_NAME~! I have no further need of thy services. Here is thy pay.
 
                 // not going anywhere
                 m_Destination = null;
                 m_DestinationString = null;
 
-                Container cont = escorter.Backpack;
+                var cont = escorter.Backpack;
 
                 if (cont == null)
                     cont = escorter.BankBox;
 
-                Gold gold = new Gold(500, 1000);
+                var gold = new Gold(500, 1000);
 
                 if (!cont.TryDropItem(escorter, gold, false))
                 {
                     if (escorter.Map != null && escorter.Map != Map.Internal)
-                    {
                         gold.MoveToWorld(escorter.Location, escorter.Map);
-                    }
                     else
-                    {
                         gold.Delete();
-                    }
                 }
 
                 StopFollow();
                 SetControlMaster(null);
-                m_EscortTable.Remove(escorter);
+                EscortTable.Remove(escorter);
                 BeginDelete();
 
-                Misc.Titles.AwardFame(escorter, 10, true);
+                Titles.AwardFame(escorter, 10, true);
 
-                bool gainedPath = false;
+                var gainedPath = false;
 
-                PlayerMobile pm = escorter as PlayerMobile;
+                var pm = escorter as PlayerMobile;
 
                 if (pm != null)
                 {
@@ -358,7 +345,8 @@ namespace Server.Mobiles
 
                     if (pm.CompassionGains >= 5) // have already gained 5 times in one day, can gain no more
                     {
-                        pm.SendLocalizedMessage(1053004); // You must wait about a day before you can gain in compassion again.
+                        pm.SendLocalizedMessage(
+                            1053004); // You must wait about a day before you can gain in compassion again.
                     }
                     else if (VirtueHelper.Award(pm, VirtueName.Compassion, IsPrisoner ? 400 : 200, ref gainedPath))
                     {
@@ -367,12 +355,14 @@ namespace Server.Mobiles
                         else
                             pm.SendLocalizedMessage(1053002); // You have gained in compassion.
 
-                        pm.NextCompassionDay = DateTime.UtcNow + TimeSpan.FromDays(1.0); // in one day CompassionGains gets reset to 0
+                        pm.NextCompassionDay =
+                            DateTime.UtcNow + TimeSpan.FromDays(1.0); // in one day CompassionGains gets reset to 0
                         ++pm.CompassionGains;
                     }
                     else
                     {
-                        pm.SendLocalizedMessage(1053003); // You have achieved the highest path of compassion and can no longer gain any further.
+                        pm.SendLocalizedMessage(
+                            1053003); // You have achieved the highest path of compassion and can no longer gain any further.
                     }
                 }
 
@@ -386,9 +376,9 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
-            EDI dest = GetDestination();
+            var dest = GetDestination();
 
             writer.Write(dest != null);
 
@@ -405,10 +395,11 @@ namespace Server.Mobiles
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (reader.ReadBool())
-                m_DestinationString = reader.ReadString(); // NOTE: We cannot EDI.Find here, regions have not yet been loaded :-(
+                m_DestinationString =
+                    reader.ReadString(); // NOTE: We cannot EDI.Find here, regions have not yet been loaded :-(
 
             if (reader.ReadBool())
             {
@@ -420,16 +411,16 @@ namespace Server.Mobiles
 
         public override bool CanBeRenamedBy(Mobile from)
         {
-            return (from.AccessLevel >= AccessLevel.GameMaster);
+            return from.AccessLevel >= AccessLevel.GameMaster;
         }
 
         public override void AddCustomContextEntries(Mobile from, List<ContextMenuEntry> list)
         {
-            EDI dest = GetDestination();
+            var dest = GetDestination();
 
             if (dest != null && from.Alive)
             {
-                Mobile escorter = GetEscorter();
+                var escorter = GetEscorter();
 
                 if (escorter == null || escorter == from)
                     list.Add(new AskDestinationEntry(this, from));
@@ -447,8 +438,7 @@ namespace Server.Mobiles
         {
             if (!Core.ML)
                 return m_TownNames;
-            else
-                return m_MLTownNames;
+            return m_MLTownNames;
         }
 
         public virtual string PickRandomDestination()
@@ -456,13 +446,13 @@ namespace Server.Mobiles
             if (Map.Felucca.Regions.Count == 0 || Map == null || Map == Map.Internal || Location == Point3D.Zero)
                 return null; // Not yet fully initialized
 
-            string[] possible = GetPossibleDestinations();
+            var possible = GetPossibleDestinations();
             string picked = null;
 
             while (picked == null)
             {
                 picked = possible[Utility.Random(possible.Length)];
-                EDI test = EDI.Find(picked);
+                var test = EDI.Find(picked);
 
                 if (test != null && test.Contains(Location))
                     picked = null;
@@ -480,9 +470,9 @@ namespace Server.Mobiles
                 return m_Destination;
 
             if (Map.Felucca.Regions.Count > 0)
-                return (m_Destination = EDI.Find(m_DestinationString));
+                return m_Destination = EDI.Find(m_DestinationString);
 
-            return (m_Destination = null);
+            return m_Destination = null;
         }
 
         protected override bool OnMove(Direction d)
@@ -498,6 +488,7 @@ namespace Server.Mobiles
         private class DeleteTimer : Timer
         {
             private readonly Mobile m_Mobile;
+
             public DeleteTimer(Mobile m, TimeSpan delay)
                 : base(delay)
             {
@@ -516,29 +507,18 @@ namespace Server.Mobiles
     public class EscortDestinationInfo
     {
         private static Hashtable m_Table;
-        private readonly string m_Name;
-        private readonly Region m_Region;
+
+        public string Name { get; }
+
+        public Region Region { get; }
+
         //private Rectangle2D[] m_Bounds;
         public EscortDestinationInfo(string name, Region region)
         {
-            m_Name = name;
-            m_Region = region;
+            Name = name;
+            Region = region;
         }
 
-        public string Name
-        {
-            get
-            {
-                return m_Name;
-            }
-        }
-        public Region Region
-        {
-            get
-            {
-                return m_Region;
-            }
-        }
         public static void LoadTable()
         {
             ICollection list = Map.Felucca.Regions.Values;
@@ -553,7 +533,7 @@ namespace Server.Mobiles
                 if (r.Name == null)
                     continue;
 
-                if (r is Regions.DungeonRegion || r is Regions.TownRegion)
+                if (r is DungeonRegion || r is TownRegion)
                     m_Table[r.Name] = new EscortDestinationInfo(r.Name, r);
             }
         }
@@ -575,14 +555,15 @@ namespace Server.Mobiles
         }*/
         public bool Contains(Point3D p)
         {
-            return m_Region.Contains(p);
+            return Region.Contains(p);
         }
     }
 
     public class AskDestinationEntry : ContextMenuEntry
     {
-        private readonly BaseEscortable m_Mobile;
         private readonly Mobile m_From;
+        private readonly BaseEscortable m_Mobile;
+
         public AskDestinationEntry(BaseEscortable m, Mobile from)
             : base(6100, 3)
         {
@@ -598,8 +579,9 @@ namespace Server.Mobiles
 
     public class AcceptEscortEntry : ContextMenuEntry
     {
-        private readonly BaseEscortable m_Mobile;
         private readonly Mobile m_From;
+        private readonly BaseEscortable m_Mobile;
+
         public AcceptEscortEntry(BaseEscortable m, Mobile from)
             : base(6101, 3)
         {
@@ -615,8 +597,9 @@ namespace Server.Mobiles
 
     public class AbandonEscortEntry : ContextMenuEntry
     {
-        private readonly BaseEscortable m_Mobile;
         private readonly Mobile m_From;
+        private readonly BaseEscortable m_Mobile;
+
         public AbandonEscortEntry(BaseEscortable m, Mobile from)
             : base(6102, 3)
         {

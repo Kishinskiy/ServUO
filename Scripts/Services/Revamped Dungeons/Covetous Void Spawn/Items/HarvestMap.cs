@@ -1,7 +1,5 @@
-using Server;
 using System;
 using System.Collections.Generic;
-using Server.Mobiles;
 using System.IO;
 using Server.Engines.Harvest;
 
@@ -11,6 +9,9 @@ namespace Server.Items
     {
         public const int DecayPeriod = 24;
 
+        public static Dictionary<Map, List<Point2D>> MinerTable;
+        public static Dictionary<Map, List<Point2D>> LumberTable;
+
         private CraftResource _Resource;
         private int _UsesRemaining;
         private Timer m_Timer;
@@ -18,7 +19,7 @@ namespace Server.Items
         [CommandProperty(AccessLevel.GameMaster)]
         public CraftResource Resource
         {
-            get { return _Resource; }
+            get => _Resource;
             set
             {
                 if (_Resource != value)
@@ -31,24 +32,6 @@ namespace Server.Items
         }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int UsesRemaining
-        {
-            get { return _UsesRemaining; }
-            set
-            {
-                _UsesRemaining = value;
-
-                if (_UsesRemaining <= 0 && this.RootParent is Mobile)
-                    ((Mobile)RootParent).SendMessage("Your map's magic is exhausted.");
-
-                InvalidateProperties();
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public bool ShowUsesRemaining { get; set; }
-
-        [CommandProperty(AccessLevel.GameMaster)]
         public DateTime Expires { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
@@ -58,7 +41,7 @@ namespace Server.Items
         public Map TargetMap { get; private set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public bool IsMinerMap { get { return _Resource >= CraftResource.Iron && _Resource <= CraftResource.Valorite; } }
+        public bool IsMinerMap => _Resource >= CraftResource.Iron && _Resource <= CraftResource.Valorite;
 
         [Constructable]
         public HarvestMap(CraftResource resource)
@@ -74,6 +57,29 @@ namespace Server.Items
             m_Timer = Timer.DelayCall(TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10), CheckDecay);
         }
 
+        public HarvestMap(Serial serial)
+            : base(serial)
+        {
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int UsesRemaining
+        {
+            get => _UsesRemaining;
+            set
+            {
+                _UsesRemaining = value;
+
+                if (_UsesRemaining <= 0 && RootParent is Mobile)
+                    ((Mobile)RootParent).SendMessage("Your map's magic is exhausted.");
+
+                InvalidateProperties();
+            }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public bool ShowUsesRemaining { get; set; }
+
         public void CheckDecay()
         {
             if (Expires < DateTime.UtcNow)
@@ -86,20 +92,22 @@ namespace Server.Items
         {
             if (RootParent is Mobile)
             {
-                Mobile parent = (Mobile)RootParent;
+                var parent = (Mobile)RootParent;
 
                 if (Name == null)
                     parent.SendLocalizedMessage(1072515, "#" + LabelNumber); // The ~1_name~ expired...
                 else
                     parent.SendLocalizedMessage(1072515, Name); // The ~1_name~ expired...
 
-                Effects.SendLocationParticles(EffectItem.Create(parent.Location, parent.Map, EffectItem.DefaultDuration), 0x3728, 8, 20, 5042);
+                Effects.SendLocationParticles(
+                    EffectItem.Create(parent.Location, parent.Map, EffectItem.DefaultDuration), 0x3728, 8, 20, 5042);
                 Effects.PlaySound(parent.Location, parent.Map, 0x201);
             }
             else
             {
-                Effects.SendLocationParticles(EffectItem.Create(this.Location, this.Map, EffectItem.DefaultDuration), 0x3728, 8, 20, 5042);
-                Effects.PlaySound(this.Location, this.Map, 0x201);
+                Effects.SendLocationParticles(EffectItem.Create(Location, Map, EffectItem.DefaultDuration), 0x3728, 8,
+                    20, 5042);
+                Effects.PlaySound(Location, Map, 0x201);
             }
 
             Delete();
@@ -118,7 +126,9 @@ namespace Server.Items
 
         public override void AddNameProperty(ObjectPropertyList list)
         {
-            list.Add(1152598, String.Format("#{0}\t#{1}", CraftResources.GetLocalizationNumber(Resource), IsMinerMap ? "1152604" : "1152605")); // ~1_RES~ ~2_TYPE~ Map
+            list.Add(1152598,
+                string.Format("#{0}\t#{1}", CraftResources.GetLocalizationNumber(Resource),
+                    IsMinerMap ? "1152604" : "1152605")); // ~1_RES~ ~2_TYPE~ Map
         }
 
         public override void AddUsesRemainingProperties(ObjectPropertyList list)
@@ -130,7 +140,7 @@ namespace Server.Items
         {
             base.GetProperties(list);
 
-            int left = 0;
+            var left = 0;
             if (DateTime.UtcNow < Expires)
                 left = (int)(Expires - DateTime.UtcNow).TotalSeconds;
 
@@ -148,17 +158,17 @@ namespace Server.Items
             if (TargetMap == null)
                 return "Unknown";
 
-            int x = Target.X;
-            int y = Target.Y;
+            var x = Target.X;
+            var y = Target.Y;
 
             int xLong = 0, yLat = 0;
             int xMins = 0, yMins = 0;
             bool xEast = false, ySouth = false;
 
-            if (Sextant.Format(new Point3D(x, y, TargetMap.GetAverageZ(x, y)), TargetMap, ref xLong, ref yLat, ref xMins, ref yMins, ref xEast, ref ySouth))
-            {
-                return String.Format("{0}° {1}'{2}, {3}° {4}'{5}", yLat, yMins, ySouth ? "S" : "N", xLong, xMins, xEast ? "E" : "W");
-            }
+            if (Sextant.Format(new Point3D(x, y, TargetMap.GetAverageZ(x, y)), TargetMap, ref xLong, ref yLat,
+                    ref xMins, ref yMins, ref xEast, ref ySouth))
+                return string.Format("{0}° {1}'{2}, {3}° {4}'{5}", yLat, yMins, ySouth ? "S" : "N", xLong, xMins,
+                    xEast ? "E" : "W");
 
             return "Unknown";
         }
@@ -196,31 +206,27 @@ namespace Server.Items
 
         public static HarvestMap CheckMapOnHarvest(Mobile from, object harvested, HarvestDefinition def)
         {
-            Map map = from.Map;
+            var map = from.Map;
 
             if (harvested is IPoint3D && from.Backpack != null)
             {
-                IPoint3D p = harvested as IPoint3D;
+                var p = harvested as IPoint3D;
 
-                Item[] items = from.Backpack.FindItemsByType(typeof(HarvestMap));
+                var items = from.Backpack.FindItemsByType(typeof(HarvestMap));
 
-                foreach (Item item in items)
+                foreach (var item in items)
                 {
-                    HarvestMap harvestmap = item as HarvestMap;
+                    var harvestmap = item as HarvestMap;
 
-                    if (harvestmap != null && harvestmap.TargetMap == map && harvestmap.UsesRemaining > 0 
-                        && def.GetBank(map, p.X, p.Y) == def.GetBank(harvestmap.TargetMap, harvestmap.Target.X, harvestmap.Target.Y))
-                    {
+                    if (harvestmap != null && harvestmap.TargetMap == map && harvestmap.UsesRemaining > 0
+                        && def.GetBank(map, p.X, p.Y) == def.GetBank(harvestmap.TargetMap, harvestmap.Target.X,
+                            harvestmap.Target.Y))
                         return harvestmap;
-                    }
                 }
             }
 
             return null;
         }
-
-        public static Dictionary<Map, List<Point2D>> MinerTable;
-        public static Dictionary<Map, List<Point2D>> LumberTable;
 
         public static void Initialize()
         {
@@ -230,7 +236,7 @@ namespace Server.Items
 
         public static List<Point2D> LoadLocsFor(Map map, HarvestMap hMap)
         {
-            string path = String.Format("Data/HarvestLocs/{0}_{1}.cfg", hMap.IsMinerMap ? "MinerLocs" : "LumberLocs", map.ToString());
+            var path = string.Format("Data/HarvestLocs/{0}_{1}.cfg", hMap.IsMinerMap ? "MinerLocs" : "LumberLocs", map);
 
             if (!File.Exists(path))
             {
@@ -238,9 +244,9 @@ namespace Server.Items
                 return null;
             }
 
-            List<Point2D> list = new List<Point2D>();
+            var list = new List<Point2D>();
 
-            using (StreamReader ip = new StreamReader(path))
+            using (var ip = new StreamReader(path))
             {
                 string line;
 
@@ -254,18 +260,11 @@ namespace Server.Items
                     int x, y = 0;
 
                     if (int.TryParse(split[0], out x) && int.TryParse(split[1], out y) && (x > 0 || y > 0))
-                    {
                         list.Add(new Point2D(x, y));
-                    }
                 }
             }
 
             return list;
-        }
-
-        public HarvestMap(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -284,7 +283,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             Resource = (CraftResource)reader.ReadInt();
             Expires = reader.ReadDateTime();

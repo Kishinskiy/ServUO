@@ -1,4 +1,3 @@
-using System;
 using Server.Targeting;
 
 namespace Server.Spells.First
@@ -11,17 +10,12 @@ namespace Server.Spells.First
             9031,
             Reagent.SulfurousAsh,
             Reagent.SpidersSilk);
+
+        public override SpellCircle Circle => SpellCircle.First;
+
         public NightSightSpell(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
         {
-        }
-
-        public override SpellCircle Circle
-        {
-            get
-            {
-                return SpellCircle.First;
-            }
         }
 
         public override void OnCast()
@@ -36,7 +30,10 @@ namespace Server.Spells.First
             if (targ.BeginAction(typeof(LightCycle)))
             {
                 new LightCycle.NightSightTimer(targ).Start();
-                int level = (int)(LightCycle.DungeonLevel * ((Core.AOS ? targ.Skills[SkillName.Magery].Value : Caster.Skills[SkillName.Magery].Value) / 100));
+                var level = (int)(LightCycle.DungeonLevel *
+                                  ((Core.AOS
+                                      ? targ.Skills[SkillName.Magery].Value
+                                      : Caster.Skills[SkillName.Magery].Value) / 100));
 
                 if (level < 0)
                     level = 0;
@@ -46,7 +43,8 @@ namespace Server.Spells.First
                 targ.FixedParticles(0x376A, 9, 32, 5007, EffectLayer.Waist);
                 targ.PlaySound(0x1E3);
 
-                BuffInfo.AddBuff(targ, new BuffInfo(BuffIcon.NightSight, 1075643));	//Night Sight/You ignore lighting effects
+                BuffInfo.AddBuff(targ,
+                    new BuffInfo(BuffIcon.NightSight, 1075643)); //Night Sight/You ignore lighting effects
             }
             else
             {
@@ -66,10 +64,7 @@ namespace Server.Spells.First
 
             protected override void OnTarget(Mobile from, object targeted)
             {
-                if (targeted is Mobile && m_Spell.CheckBSequence((Mobile)targeted))
-                {
-                    m_Spell.Target((Mobile)targeted);
-                }
+                if (targeted is Mobile && m_Spell.CheckBSequence((Mobile)targeted)) m_Spell.Target((Mobile)targeted);
 
                 m_Spell.FinishSequence();
             }

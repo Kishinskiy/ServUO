@@ -1,17 +1,41 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-
-using Server.Mobiles;
-using Server.Spells;
 using Server.Items;
+using Server.Mobiles;
 using Server.Network;
 
 namespace Server.Engines.Quests.RitualQuest
 {
     public class CrystalLotusPuzzle : Item
     {
+        public const int White = 1150; // hue of white tile
+        public const double WhiteLength = 1.2; // length tile stays white
+        public const double SequenceLength = 17.0;
         public static CrystalLotusPuzzle Instance { get; set; }
+
+        public List<PuzzleTile> Tiles { get; set; } = new List<PuzzleTile>();
+        public PuzzleTile[] Order { get; set; }
+        public bool Sequencing { get; set; }
+        public Region Region { get; set; }
+
+        public Dictionary<Mobile, PuzzleTile[]> PlayerOrder { get; set; }
+
+        public override bool HandlesOnSpeech => true;
+
+        public CrystalLotusPuzzle()
+            : base(0x1223)
+        {
+            Movable = false;
+            Visible = false;
+            LoadTiles();
+
+            RegisterRegion();
+            DoSequence();
+        }
+
+        public CrystalLotusPuzzle(Serial serial) : base(serial)
+        {
+        }
 
         public static void Initialize()
         {
@@ -25,28 +49,6 @@ namespace Server.Engines.Quests.RitualQuest
                 s.Name = "Pristine Crystal Lotus";
                 s.MoveToWorld(new Point3D(978, 2876, 47), Map.TerMur);
             }
-        }
-
-        public List<PuzzleTile> Tiles { get; set; } = new List<PuzzleTile>();
-        public PuzzleTile[] Order { get; set; }
-        public bool Sequencing { get; set; }
-        public Region Region { get; set; }
-
-        public Dictionary<Mobile, PuzzleTile[]> PlayerOrder { get; set; }
-
-        public const int White = 1150;              // hue of white tile
-        public const double WhiteLength = 1.2;      // length tile stays white
-        public const double SequenceLength = 17.0;
-
-        public CrystalLotusPuzzle()
-            : base(0x1223)
-        {
-            Movable = false;
-            Visible = false;
-            LoadTiles();
-
-            RegisterRegion();
-            DoSequence();
         }
 
         private void DoSequence()
@@ -64,18 +66,15 @@ namespace Server.Engines.Quests.RitualQuest
 
             PlayerOrder = new Dictionary<Mobile, PuzzleTile[]>();
 
-            for (int i = 0; i < seqCount; i++)
+            for (var i = 0; i < seqCount; i++)
             {
                 Order[i] = Tiles[Utility.Random(Tiles.Count)];
 
-                Timer.DelayCall<PuzzleTile, int>(TimeSpan.FromSeconds(i * WhiteLength), (tile, index) =>
+                Timer.DelayCall(TimeSpan.FromSeconds(i * WhiteLength), (tile, index) =>
                 {
                     tile.Hue = White;
 
-                    Timer.DelayCall(TimeSpan.FromSeconds(WhiteLength), t =>
-                    {
-                        t.Hue = tile.OriginalHue;
-                    }, tile);
+                    Timer.DelayCall(TimeSpan.FromSeconds(WhiteLength), t => { t.Hue = tile.OriginalHue; }, tile);
 
                     if (index == seqCount - 1)
                     {
@@ -84,12 +83,10 @@ namespace Server.Engines.Quests.RitualQuest
                         IPooledEnumerable eable = Map.TerMur.GetClientsInRange(Location, 20);
 
                         foreach (NetState ns in eable)
-                        {
-                            if (ns.Mobile != null && ns.Mobile is PlayerMobile && QuestHelper.HasQuest<PristineCrystalLotusQuest>((PlayerMobile)ns.Mobile))
-                            {
-                                ns.Mobile.SendLocalizedMessage(1151300, "", White); // Complete the puzzle to obtain a Pristine Crystal Lotus.
-                            }
-                        }
+                            if (ns.Mobile != null && ns.Mobile is PlayerMobile &&
+                                QuestHelper.HasQuest<PristineCrystalLotusQuest>((PlayerMobile)ns.Mobile))
+                                ns.Mobile.SendLocalizedMessage(1151300, "",
+                                    White); // Complete the puzzle to obtain a Pristine Crystal Lotus.
 
                         eable.Free();
 
@@ -101,10 +98,7 @@ namespace Server.Engines.Quests.RitualQuest
 
         public void OnTileClicked(Mobile from, PuzzleTile tile)
         {
-            if (Sequencing)
-            {
-                return;
-            }
+            if (Sequencing) return;
 
             if (from is PlayerMobile)
             {
@@ -112,14 +106,11 @@ namespace Server.Engines.Quests.RitualQuest
 
                 if (quest != null)
                 {
-                    if (!PlayerOrder.ContainsKey(from))
-                    {
-                        PlayerOrder[from] = new PuzzleTile[Order.Length];
-                    }
+                    if (!PlayerOrder.ContainsKey(from)) PlayerOrder[from] = new PuzzleTile[Order.Length];
 
                     var list = PlayerOrder[from];
 
-                    for (int i = 0; i < Order.Length; i++)
+                    for (var i = 0; i < Order.Length; i++)
                     {
                         var actual = Order[i];
 
@@ -136,9 +127,8 @@ namespace Server.Engines.Quests.RitualQuest
                                     quest.PuzzlesComplete++;
 
                                     if (quest.PuzzlesComplete >= 5)
-                                    {
-                                        from.SendLocalizedMessage(1151306); // You may now retrieve a Pristine Crystal Lotus.
-                                    }
+                                        from.SendLocalizedMessage(
+                                            1151306); // You may now retrieve a Pristine Crystal Lotus.
                                 }
                                 else
                                 {
@@ -155,18 +145,12 @@ namespace Server.Engines.Quests.RitualQuest
 
         private bool CheckMatch(PuzzleTile[] list)
         {
-            for (int i = 0; i < Order.Length; i++)
-            {
+            for (var i = 0; i < Order.Length; i++)
                 if (Order[i] != list[i])
-                {
                     return false;
-                }
-            }
 
             return true;
         }
-
-        public override bool HandlesOnSpeech { get { return true; } }
 
         public override void OnSpeech(SpeechEventArgs e)
         {
@@ -180,13 +164,9 @@ namespace Server.Engines.Quests.RitualQuest
                 var quest = QuestHelper.GetQuest<PristineCrystalLotusQuest>(pm);
 
                 if (quest != null)
-                {
                     pm.SendLocalizedMessage(1151300); // Complete the puzzle to obtain a Pristine Crystal Lotus.
-                }
                 else
-                {
                     pm.SendLocalizedMessage(1151301); // You marvel at the flashing tiles.
-                }
 
                 e.Handled = true;
             }
@@ -214,7 +194,6 @@ namespace Server.Engines.Quests.RitualQuest
 
                 e.Handled = true;
             }
-
         }
 
         private void LoadTiles()
@@ -222,7 +201,7 @@ namespace Server.Engines.Quests.RitualQuest
             var map = Map.TerMur;
 
             //West
-            PuzzleTile tile = new PuzzleTile(this, 33, 0);
+            var tile = new PuzzleTile(this, 33, 0);
             tile.MoveToWorld(new Point3D(971, 2876, 37), map);
             Tiles.Add(tile);
 
@@ -323,9 +302,9 @@ namespace Server.Engines.Quests.RitualQuest
             tile.MoveToWorld(new Point3D(976, 2885, 37), map);
             Tiles.Add(tile);
 
-            Teleporter tele = new Teleporter(new Point3D(1050, 2940, 38), map, false);
+            var tele = new Teleporter(new Point3D(1050, 2940, 38), map, false);
             tele.MoveToWorld(new Point3D(1018, 2915, 38), map);
-            Static sparkles = new Static(0x373A);
+            var sparkles = new Static(0x373A);
             sparkles.MoveToWorld(new Point3D(1018, 2915, 38), map);
 
             tele = new Teleporter(new Point3D(1018, 2915, 38), map, false);
@@ -343,12 +322,9 @@ namespace Server.Engines.Quests.RitualQuest
 
         private void RegisterRegion()
         {
-            Region = new Region("Crystal Lotus Puzzle Region", Map.TerMur, Region.DefaultPriority, new Rectangle2D(945, 2858, 66, 62));
+            Region = new Region("Crystal Lotus Puzzle Region", Map.TerMur, Region.DefaultPriority,
+                new Rectangle2D(945, 2858, 66, 62));
             Region.Register();
-        }
-
-        public CrystalLotusPuzzle(Serial serial) : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -370,10 +346,7 @@ namespace Server.Engines.Quests.RitualQuest
             {
                 Instance = this;
 
-                foreach (var tile in Tiles)
-                {
-                    tile.Puzzle = this;
-                }
+                foreach (var tile in Tiles) tile.Puzzle = this;
 
                 RegisterRegion();
                 DoSequence();
@@ -399,7 +372,7 @@ namespace Server.Engines.Quests.RitualQuest
         [CommandProperty(AccessLevel.GameMaster)]
         public int Group { get; private set; }
 
-        public override bool ForceShowProperties { get { return true; } }
+        public override bool ForceShowProperties => true;
 
         public PuzzleTile(CrystalLotusPuzzle puzzle, int hue, int group)
             : base(0x519)
@@ -411,23 +384,19 @@ namespace Server.Engines.Quests.RitualQuest
             OriginalHue = hue;
         }
 
+        public PuzzleTile(Serial serial) : base(serial)
+        {
+        }
+
         public override void OnDoubleClick(Mobile m)
         {
             if (Puzzle == null)
                 return;
 
             if (m.InRange(GetWorldLocation(), 3))
-            {
                 Puzzle.OnTileClicked(m, this);
-            }
             else
-            {
-                m.LocalOverheadMessage(Server.Network.MessageType.Regular, 0x3B2, 1019045); // I can't reach that.
-            }
-        }
-
-        public PuzzleTile(Serial serial) : base(serial)
-        {
+                m.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1019045); // I can't reach that.
         }
 
         public override void Serialize(GenericWriter writer)
@@ -447,10 +416,7 @@ namespace Server.Engines.Quests.RitualQuest
             OriginalHue = reader.ReadInt();
             Group = reader.ReadInt();
 
-            if (Hue != OriginalHue)
-            {
-                Hue = OriginalHue;
-            }
+            if (Hue != OriginalHue) Hue = OriginalHue;
         }
     }
 }

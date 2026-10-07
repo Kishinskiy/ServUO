@@ -1,15 +1,18 @@
 using System;
-using Server;
 using System.Collections.Generic;
-using System.Linq;
 using System.IO;
-using Server.Mobiles;
 
 namespace Server.Items
 {
     public static class EnchantedHotItem
     {
         public static string FilePath = Path.Combine("Saves/Misc", "EnchantedHotItem.bin");
+
+        public static Point3D[] ChestLocs =
+        {
+            new Point3D(5703, 664, 0), new Point3D(5703, 663, 0), new Point3D(5703, 662, 0), new Point3D(5703, 661, 0),
+            new Point3D(5707, 659, 0), new Point3D(5708, 659, 0), new Point3D(5709, 659, 0)
+        };
 
         public static void Configure()
         {
@@ -21,10 +24,7 @@ namespace Server.Items
         {
             Persistence.Serialize(
                 FilePath,
-                writer =>
-                {
-                    writer.Write(1);
-                });
+                writer => { writer.Write(1); });
         }
 
         public static void OnLoad()
@@ -33,47 +33,34 @@ namespace Server.Items
                 FilePath,
                 reader =>
                 {
-                    int version = reader.ReadInt();
+                    var version = reader.ReadInt();
 
                     if (version == 0)
                     {
-                        int count = reader.ReadInt();
+                        var count = reader.ReadInt();
 
-                        for (int i = 0; i < count; i++)
+                        for (var i = 0; i < count; i++)
                         {
-                            Item item = reader.ReadItem();
-                            Container c = reader.ReadItem() as Container;
+                            var item = reader.ReadItem();
+                            var c = reader.ReadItem() as Container;
 
-                            if (item != null && c != null)
-                            {
-                                item.AttachSocket(new EnchantedHotItemSocket(c));
-                            }
+                            if (item != null && c != null) item.AttachSocket(new EnchantedHotItemSocket(c));
                         }
                     }
                 });
         }
-
-        public static Point3D[] ChestLocs = 
-        {
-            new Point3D(5703, 664, 0), new Point3D(5703, 663, 0), new Point3D(5703, 662, 0), new Point3D(5703, 661, 0),
-            new Point3D(5707, 659, 0), new Point3D(5708, 659, 0), new Point3D(5709, 659, 0)
-        };
 
         public static void SpawnChests(Map map)
         {
             IPooledEnumerable eable = map.GetItemsInRange(new Point3D(5707, 662, 0), 15);
 
             foreach (Item item in eable)
-            {
                 if (item is MetalGoldenChest)
-                {
                     item.Delete();
-                }
-            }
 
             eable.Free();
 
-            for (int i = 0; i < ChestLocs.Length; i++)
+            for (var i = 0; i < ChestLocs.Length; i++)
             {
                 var chest = new HotItemChest(i <= 3 ? 3648 : 3649);
 
@@ -85,7 +72,7 @@ namespace Server.Items
 
     public class HotItemChest : LockableContainer
     {
-        public HotItemChest(int itemID) 
+        public HotItemChest(int itemID)
             : base(itemID)
         {
             Movable = false;
@@ -97,18 +84,23 @@ namespace Server.Items
             Locked = true;
         }
 
+        public HotItemChest(Serial serial)
+            : base(serial)
+        {
+        }
+
         public void SpawnLoot()
         {
-            List<Item> list = new List<Item>(Items);
+            var list = new List<Item>(Items);
 
             foreach (var item in list)
                 item.Delete();
 
             ColUtility.Free(list);
 
-            int toSpawn = Utility.RandomMinMax(2, 4);
+            var toSpawn = Utility.RandomMinMax(2, 4);
 
-            for (int i = 0; i < toSpawn; i++)
+            for (var i = 0; i < toSpawn; i++)
             {
                 Item item;
 
@@ -121,14 +113,12 @@ namespace Server.Items
                     item = Loot.RandomArmorOrShieldOrWeaponOrJewelry(false, false, true);
 
                     if (item is BaseWeapon && 0.01 > Utility.RandomDouble())
-                    {
                         ((BaseWeapon)item).ExtendedWeaponAttributes.AssassinHoned = 1;
-                    }
 
-                    int min = 400;
-                    int max = 1400;
+                    var min = 400;
+                    var max = 1400;
 
-                    RunicReforging.GenerateRandomItem(item, 0, min, max, this.Map);
+                    RunicReforging.GenerateRandomItem(item, 0, min, max, Map);
 
                     item.Hue = 1258;
                     item.AttachSocket(new EnchantedHotItemSocket(this));
@@ -144,41 +134,31 @@ namespace Server.Items
             base.LockPick(from);
 
             Timer.DelayCall(TimeSpan.FromMinutes(10), () =>
-                {
-                    Visible = false;
-                    Visible = true;
+            {
+                Visible = false;
+                Visible = true;
 
-                    Locked = true;
+                Locked = true;
 
-                    SpawnLoot();
-                });
-        }
-
-        public HotItemChest(Serial serial)
-            : base(serial)
-        {
+                SpawnLoot();
+            });
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version 
+            writer.Write(0); // version 
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (!Locked)
-            {
-                Timer.DelayCall(TimeSpan.FromMinutes(5), () =>
-                {
-                    Locked = true;
-                });
-            }
+                Timer.DelayCall(TimeSpan.FromMinutes(5), () => { Locked = true; });
         }
     }
 }

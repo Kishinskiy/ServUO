@@ -1,5 +1,3 @@
-using System;
-
 namespace Server.Items
 {
     public class FarmableOnion : FarmableCrop
@@ -22,7 +20,7 @@ namespace Server.Items
 
         public override Item GetCropObject()
         {
-            Onion onion = new Onion();
+            var onion = new Onion();
 
             onion.ItemID = Utility.Random(3181, 2);
 
@@ -45,7 +43,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

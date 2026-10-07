@@ -8,6 +8,64 @@ namespace Server.Mobiles
     {
         private Mobile m_Queen;
         private bool m_SpawnedQueen;
+
+        public override ChampionSkullType SkullType => ChampionSkullType.Enlightenment;
+
+        public override Type[] UniqueList
+        {
+            get { return new[] { typeof(OrcChieftainHelm) }; }
+        }
+
+        public override Type[] SharedList
+        {
+            get
+            {
+                return new[]
+                {
+                    typeof(RoyalGuardSurvivalKnife),
+                    typeof(DjinnisRing),
+                    typeof(LieutenantOfTheBritannianRoyalGuard),
+                    typeof(SamaritanRobe),
+                    typeof(DetectiveBoots),
+                    typeof(TheMostKnowledgePerson)
+                };
+            }
+        }
+
+        public override Type[] DecorativeList
+        {
+            get
+            {
+                return new[]
+                {
+                    typeof(WaterTile),
+                    typeof(WindSpirit),
+                    typeof(Pier)
+                };
+            }
+        }
+
+        public override MonsterStatuetteType[] StatueTypes
+        {
+            get { return new MonsterStatuetteType[] { }; }
+        }
+
+        public override bool AutoDispel => true;
+
+        public override bool CanFly => true;
+
+        public override bool BardImmune => !Core.SE;
+
+        public override bool Unprovokable => Core.SE;
+
+        public override bool Uncalmable => Core.SE;
+
+        public override TribeType Tribe => TribeType.Fey;
+
+        public override OppositionGroup OppositionGroup => OppositionGroup.FeyAndUndead;
+
+        public override Poison PoisonImmune => Poison.Deadly;
+
         [Constructable]
         public LordOaks()
             : base(AIType.AI_Paladin, FightMode.Evil)
@@ -53,106 +111,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override ChampionSkullType SkullType
-        {
-            get
-            {
-                return ChampionSkullType.Enlightenment;
-            }
-        }
-        public override Type[] UniqueList
-        {
-            get
-            {
-                return new Type[] { typeof(OrcChieftainHelm) };
-            }
-        }
-        public override Type[] SharedList
-        {
-            get
-            {
-                return new Type[]
-                {
-                    typeof(RoyalGuardSurvivalKnife),
-                    typeof(DjinnisRing),
-                    typeof(LieutenantOfTheBritannianRoyalGuard),
-                    typeof(SamaritanRobe),
-                    typeof(DetectiveBoots),
-                    typeof(TheMostKnowledgePerson)
-                };
-            }
-        }
-        public override Type[] DecorativeList
-        {
-            get
-            {
-                return new Type[]
-                {
-                    typeof(WaterTile),
-                    typeof(WindSpirit),
-                    typeof(Pier),
-                };
-            }
-        }
-        public override MonsterStatuetteType[] StatueTypes
-        {
-            get
-            {
-                return new MonsterStatuetteType[] { };
-            }
-        }
-        public override bool AutoDispel
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool CanFly
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool BardImmune
-        {
-            get
-            {
-                return !Core.SE;
-            }
-        }
-        public override bool Unprovokable
-        {
-            get
-            {
-                return Core.SE;
-            }
-        }
-        public override bool Uncalmable
-        {
-            get
-            {
-                return Core.SE;
-            }
-        }
-
-        public override TribeType Tribe { get { return TribeType.Fey; } }
-
-        public override OppositionGroup OppositionGroup
-        {
-            get
-            {
-                return OppositionGroup.FeyAndUndead;
-            }
-        }
-        public override Poison PoisonImmune
-        {
-            get
-            {
-                return Poison.Deadly;
-            }
-        }
         public override void GenerateLoot()
         {
             AddLoot(LootPack.UltraRich, 5);
@@ -160,30 +118,30 @@ namespace Server.Mobiles
 
         public void SpawnPixies(Mobile target)
         {
-            Map map = Map;
+            var map = Map;
 
             if (map == null)
                 return;
 
             Say(1042154); // You shall never defeat me as long as I have my queen!
 
-            int newPixies = Utility.RandomMinMax(3, 6);
+            var newPixies = Utility.RandomMinMax(3, 6);
 
-            for (int i = 0; i < newPixies; ++i)
+            for (var i = 0; i < newPixies; ++i)
             {
-                Pixie pixie = new Pixie();
+                var pixie = new Pixie();
 
                 pixie.Team = Team;
                 pixie.FightMode = FightMode.Closest;
 
-                bool validLocation = false;
-                Point3D loc = Location;
+                var validLocation = false;
+                var loc = Location;
 
-                for (int j = 0; !validLocation && j < 10; ++j)
+                for (var j = 0; !validLocation && j < 10; ++j)
                 {
-                    int x = X + Utility.Random(3) - 1;
-                    int y = Y + Utility.Random(3) - 1;
-                    int z = map.GetAverageZ(x, y);
+                    var x = X + Utility.Random(3) - 1;
+                    var y = Y + Utility.Random(3) - 1;
+                    var z = map.GetAverageZ(x, y);
 
                     if (validLocation = map.CanFit(x, y, Z, 16, false, false))
                         loc = new Point3D(x, y, Z);
@@ -263,7 +221,7 @@ namespace Server.Mobiles
 
             if (0.25 > Utility.RandomDouble())
             {
-                int toSap = Utility.RandomMinMax(20, 30);
+                var toSap = Utility.RandomMinMax(20, 30);
 
                 switch (Utility.Random(3))
                 {
@@ -305,7 +263,7 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
             writer.Write(m_Queen);
             writer.Write(m_SpawnedQueen);
@@ -315,17 +273,17 @@ namespace Server.Mobiles
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            switch ( version )
+            switch (version)
             {
                 case 0:
-                    {
-                        m_Queen = reader.ReadMobile();
-                        m_SpawnedQueen = reader.ReadBool();
+                {
+                    m_Queen = reader.ReadMobile();
+                    m_SpawnedQueen = reader.ReadBool();
 
-                        break;
-                    }
+                    break;
+                }
             }
         }
     }

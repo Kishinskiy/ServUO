@@ -1,7 +1,7 @@
 using System;
+using Server.Engines.Quests;
 using Server.Items;
 using Server.Network;
-using Server.Engines.Quests;
 
 namespace Server.Mobiles
 {
@@ -9,6 +9,26 @@ namespace Server.Mobiles
     public class Sheep : BaseCreature, ICarvable
     {
         private DateTime m_NextWoolTime;
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public DateTime NextWoolTime
+        {
+            get => m_NextWoolTime;
+            set
+            {
+                m_NextWoolTime = value;
+                Body = DateTime.UtcNow >= m_NextWoolTime ? 0xCF : 0xDF;
+            }
+        }
+
+        public override int Meat => 3;
+
+        public override MeatType MeatType => MeatType.LambLeg;
+
+        public override FoodType FavoriteFood => FoodType.FruitsAndVegies | FoodType.GrainsAndHay;
+
+        public override int Wool => Body == 0xCF ? 3 : 0;
+
         [Constructable]
         public Sheep()
             : base(AIType.AI_Animal, FightMode.Aggressor, 10, 1, 0.2, 0.4)
@@ -49,47 +69,6 @@ namespace Server.Mobiles
         {
         }
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public DateTime NextWoolTime
-        {
-            get
-            {
-                return m_NextWoolTime;
-            }
-            set
-            {
-                m_NextWoolTime = value;
-                Body = (DateTime.UtcNow >= m_NextWoolTime) ? 0xCF : 0xDF;
-            }
-        }
-        public override int Meat
-        {
-            get
-            {
-                return 3;
-            }
-        }
-        public override MeatType MeatType
-        {
-            get
-            {
-                return MeatType.LambLeg;
-            }
-        }
-        public override FoodType FavoriteFood
-        {
-            get
-            {
-                return FoodType.FruitsAndVegies | FoodType.GrainsAndHay;
-            }
-        }
-        public override int Wool
-        {
-            get
-            {
-                return (Body == 0xCF ? 3 : 0);
-            }
-        }
         public bool Carve(Mobile from, Item item)
         {
             if (DateTime.UtcNow < m_NextWoolTime)
@@ -104,19 +83,15 @@ namespace Server.Mobiles
 
             if (from is PlayerMobile)
             {
-                PlayerMobile player = (PlayerMobile)from;
-                foreach(BaseQuest quest in player.Quests)
-                {
-                    if(quest is ShearingKnowledgeQuest)
+                var player = (PlayerMobile)from;
+                foreach (var quest in player.Quests)
+                    if (quest is ShearingKnowledgeQuest)
                     {
-                        if(!quest.Completed && 
+                        if (!quest.Completed &&
                             (from.Map == Map.Trammel || from.Map == Map.Felucca))
-                        {
                             from.AddToBackpack(new BritannianWool(1));
-                        }
                         break;
                     }
-                }
             }
 
             NextWoolTime = DateTime.UtcNow + TimeSpan.FromHours(2.0); // TODO: Proper time delay
@@ -127,14 +102,14 @@ namespace Server.Mobiles
         public override void OnThink()
         {
             base.OnThink();
-            Body = (DateTime.UtcNow >= m_NextWoolTime) ? 0xCF : 0xDF;
+            Body = DateTime.UtcNow >= m_NextWoolTime ? 0xCF : 0xDF;
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)1);
+            writer.Write(1);
 
             writer.WriteDeltaTime(m_NextWoolTime);
         }
@@ -143,15 +118,15 @@ namespace Server.Mobiles
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            switch ( version )
+            switch (version)
             {
                 case 1:
-                    {
-                        NextWoolTime = reader.ReadDeltaTime();
-                        break;
-                    }
+                {
+                    NextWoolTime = reader.ReadDeltaTime();
+                    break;
+                }
             }
         }
     }

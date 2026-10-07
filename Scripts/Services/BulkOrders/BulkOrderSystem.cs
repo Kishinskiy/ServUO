@@ -1,11 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Collections.Generic;
-
-using Server;
-using Server.Mobiles;
 using Server.Items;
+using Server.Mobiles;
 
 namespace Server.Engines.BulkOrders
 {
@@ -32,18 +30,32 @@ namespace Server.Engines.BulkOrders
         public static readonly int Delay = 6;
 
         public static bool NewSystemEnabled = Core.TOL;
+
+        private static readonly Type[] _ExceptionalExcluded =
+        {
+            typeof(Arrow), typeof(Bolt), typeof(Kindling), typeof(Shaft),
+
+            typeof(EnchantedApple), typeof(TribalPaint), typeof(GrapesOfWrath),
+            typeof(EggBomb), typeof(CookedBird), typeof(FishSteak), typeof(FriedEggs),
+            typeof(LambLeg), typeof(Ribs),
+
+            typeof(Gears), typeof(Axle), typeof(Springs), typeof(AxleGears), typeof(ClockParts),
+            typeof(Clock), typeof(PotionKeg), typeof(ClockFrame), typeof(MetalContainerEngraver)
+        };
+
+        public static string FilePath = Path.Combine("Saves/CraftContext", "BODs.bin");
         public static BulkOrderSystem Instance { get; set; }
 
         public Dictionary<PlayerMobile, BODContext> BODPlayerData { get; set; }
 
-        public BulkOrderSystem()
-        {
-            BODPlayerData = new Dictionary<PlayerMobile, BODContext>();
-        }
-
         static BulkOrderSystem()
         {
             Instance = new BulkOrderSystem();
+        }
+
+        public BulkOrderSystem()
+        {
+            BODPlayerData = new Dictionary<PlayerMobile, BODContext>();
         }
 
         public void Serialize(GenericWriter writer)
@@ -51,7 +63,7 @@ namespace Server.Engines.BulkOrders
             writer.Write(0);
 
             writer.Write(BODPlayerData.Count);
-            foreach (KeyValuePair<PlayerMobile, BODContext> kvp in BODPlayerData)
+            foreach (var kvp in BODPlayerData)
             {
                 writer.Write(kvp.Key);
                 kvp.Value.Serialize(writer);
@@ -60,13 +72,13 @@ namespace Server.Engines.BulkOrders
 
         public void Deserialize(GenericReader reader)
         {
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            int count = reader.ReadInt();
-            for (int i = 0; i < count; i++)
+            var count = reader.ReadInt();
+            for (var i = 0; i < count; i++)
             {
-                PlayerMobile player = reader.ReadMobile() as PlayerMobile;
-                BODContext context = new BODContext(reader);
+                var player = reader.ReadMobile() as PlayerMobile;
+                var context = new BODContext(reader);
 
                 if (player != null)
                     BODPlayerData[player] = context;
@@ -79,16 +91,11 @@ namespace Server.Engines.BulkOrders
 
             if (m is PlayerMobile)
             {
-                PlayerMobile pm = m as PlayerMobile;
+                var pm = m as PlayerMobile;
 
                 if (Instance.BODPlayerData.ContainsKey(pm))
-                {
                     context = Instance.BODPlayerData[pm];
-                }
-                else if (create)
-                {
-                    Instance.BODPlayerData[pm] = context = new BODContext();
-                }
+                else if (create) Instance.BODPlayerData[pm] = context = new BODContext();
             }
 
             return context;
@@ -96,15 +103,11 @@ namespace Server.Engines.BulkOrders
 
         public static double GetPoints(Mobile m, BODType type)
         {
-            BODContext context = GetContext(m);
+            var context = GetContext(m);
 
             if (context != null)
-            {
                 if (context.Entries.ContainsKey(type))
-                {
                     return context.Entries[type].BankedPoints;
-                }
-            }
 
             return 0;
         }
@@ -114,15 +117,11 @@ namespace Server.Engines.BulkOrders
             if (points < 0)
                 points = 0.0;
 
-            BODContext context = GetContext(m);
+            var context = GetContext(m);
 
             if (context != null)
-            {
                 if (context.Entries.ContainsKey(type))
-                {
                     context.Entries[type].BankedPoints += points;
-                }
-            }
         }
 
         public static void DeductPoints(Mobile m, BODType type, double points)
@@ -130,10 +129,9 @@ namespace Server.Engines.BulkOrders
             if (points < 0)
                 points = 0.0;
 
-            BODContext context = GetContext(m);
+            var context = GetContext(m);
 
             if (context != null)
-            {
                 if (context.Entries.ContainsKey(type))
                 {
                     context.Entries[type].BankedPoints -= points;
@@ -141,7 +139,6 @@ namespace Server.Engines.BulkOrders
                     if (context.Entries[type].BankedPoints < 0.0)
                         context.Entries[type].BankedPoints = 0.0;
                 }
-            }
         }
 
         public static double GetBODSkill(Mobile m, SkillName skill)
@@ -167,7 +164,7 @@ namespace Server.Engines.BulkOrders
 
         public static bool CanGetBulkOrder(Mobile m, BODType type)
         {
-            BODContext context = GetContext(m);
+            var context = GetContext(m);
 
             if (context != null && context.Entries.ContainsKey(type))
             {
@@ -183,7 +180,8 @@ namespace Server.Engines.BulkOrders
 
                         return true;
                     }
-                    else if (entry.CachedDeeds > 0)
+
+                    if (entry.CachedDeeds > 0)
                     {
                         entry.CachedDeeds--;
 
@@ -197,19 +195,20 @@ namespace Server.Engines.BulkOrders
 
         public static TimeSpan GetNextBulkOrder(BODType type, PlayerMobile pm)
         {
-            BODContext context = GetContext(pm);
+            var context = GetContext(pm);
 
             if (context != null)
             {
                 if (NewSystemEnabled)
                 {
-                    DateTime last = context.Entries[type].LastBulkOrder;
+                    var last = context.Entries[type].LastBulkOrder;
 
-                    return (last + TimeSpan.FromHours(Delay)) - DateTime.UtcNow;
+                    return last + TimeSpan.FromHours(Delay) - DateTime.UtcNow;
                 }
-                else if (context.Entries.ContainsKey(type))
+
+                if (context.Entries.ContainsKey(type))
                 {
-                    DateTime dt = context.Entries[type].NextBulkOrder;
+                    var dt = context.Entries[type].NextBulkOrder;
 
                     if (dt < DateTime.UtcNow)
                         return TimeSpan.Zero;
@@ -223,7 +222,7 @@ namespace Server.Engines.BulkOrders
 
         public static void SetNextBulkOrder(BODType type, PlayerMobile pm, TimeSpan ts)
         {
-            BODContext context = GetContext(pm);
+            var context = GetContext(pm);
 
             if (context != null)
             {
@@ -231,10 +230,13 @@ namespace Server.Engines.BulkOrders
                 {
                     if (context.Entries.ContainsKey(type))
                     {
-                        if (context.Entries[type].LastBulkOrder < DateTime.UtcNow - TimeSpan.FromHours(Delay * MaxCachedDeeds))
-                            context.Entries[type].LastBulkOrder = DateTime.UtcNow - TimeSpan.FromHours(Delay * MaxCachedDeeds);
+                        if (context.Entries[type].LastBulkOrder <
+                            DateTime.UtcNow - TimeSpan.FromHours(Delay * MaxCachedDeeds))
+                            context.Entries[type].LastBulkOrder =
+                                DateTime.UtcNow - TimeSpan.FromHours(Delay * MaxCachedDeeds);
                         else
-                            context.Entries[type].LastBulkOrder = (context.Entries[type].LastBulkOrder + ts) - TimeSpan.FromHours(Delay);
+                            context.Entries[type].LastBulkOrder =
+                                context.Entries[type].LastBulkOrder + ts - TimeSpan.FromHours(Delay);
                     }
                 }
                 else if (context.Entries.ContainsKey(type))
@@ -246,42 +248,43 @@ namespace Server.Engines.BulkOrders
 
         public static Item CreateBulkOrder(Mobile m, BODType type, bool fromContextMenu)
         {
-            PlayerMobile pm = m as PlayerMobile;
+            var pm = m as PlayerMobile;
 
             if (pm == null)
                 return null;
 
             if (pm.AccessLevel > AccessLevel.Player || fromContextMenu || 0.2 > Utility.RandomDouble())
             {
-                SkillName sk = GetSkillForBOD(type);
-                double theirSkill = pm.Skills[sk].Base;
-                bool doLarge = theirSkill >= 70.1 && ((theirSkill - 40.0) / 300.0) > Utility.RandomDouble();
+                var sk = GetSkillForBOD(type);
+                var theirSkill = pm.Skills[sk].Base;
+                var doLarge = theirSkill >= 70.1 && (theirSkill - 40.0) / 300.0 > Utility.RandomDouble();
 
                 switch (type)
                 {
                     case BODType.Smith:
                         if (doLarge) return new LargeSmithBOD();
-                        else return SmallSmithBOD.CreateRandomFor(pm);
-                    case BODType.Tailor: if (doLarge) return new LargeTailorBOD();
-                        else return SmallTailorBOD.CreateRandomFor(pm);
+                        return SmallSmithBOD.CreateRandomFor(pm);
+                    case BODType.Tailor:
+                        if (doLarge) return new LargeTailorBOD();
+                        return SmallTailorBOD.CreateRandomFor(pm);
                     case BODType.Alchemy:
                         if (doLarge) return new LargeAlchemyBOD();
-                        else return SmallAlchemyBOD.CreateRandomFor(pm);
+                        return SmallAlchemyBOD.CreateRandomFor(pm);
                     case BODType.Inscription:
                         if (doLarge) return new LargeInscriptionBOD();
-                        else return SmallInscriptionBOD.CreateRandomFor(pm);
+                        return SmallInscriptionBOD.CreateRandomFor(pm);
                     case BODType.Tinkering:
                         if (doLarge) return new LargeTinkerBOD();
-                        else return SmallTinkerBOD.CreateRandomFor(pm);
+                        return SmallTinkerBOD.CreateRandomFor(pm);
                     case BODType.Cooking:
                         if (doLarge) return new LargeCookingBOD();
-                        else return SmallCookingBOD.CreateRandomFor(pm);
+                        return SmallCookingBOD.CreateRandomFor(pm);
                     case BODType.Fletching:
                         if (doLarge) return new LargeFletchingBOD();
-                        else return SmallFletchingBOD.CreateRandomFor(pm);
+                        return SmallFletchingBOD.CreateRandomFor(pm);
                     case BODType.Carpentry:
                         if (doLarge) return new LargeCarpentryBOD();
-                        else return SmallCarpentryBOD.CreateRandomFor(pm);
+                        return SmallCarpentryBOD.CreateRandomFor(pm);
                 }
             }
 
@@ -327,7 +330,7 @@ namespace Server.Engines.BulkOrders
 
         public static void SetBOBFilter(PlayerMobile pm, BOBFilter filter)
         {
-            BODContext context = GetContext(pm);
+            var context = GetContext(pm);
             context.BOBFilter = filter;
         }
 
@@ -367,7 +370,7 @@ namespace Server.Engines.BulkOrders
         {
             if (GenericBuyInfo.BuyPrices.ContainsKey(type))
             {
-                gold = (quantity * GenericBuyInfo.BuyPrices[type]) / 2;
+                gold = quantity * GenericBuyInfo.BuyPrices[type] / 2;
                 return true;
             }
 
@@ -393,7 +396,7 @@ namespace Server.Engines.BulkOrders
                 case BODType.Carpentry: points = CarpentryRewardCalculator.Instance.ComputePoints(bod); break;
             }
 
-            banked = (double)points * 0.02;
+            banked = points * 0.02;
         }
 
         public static void ComputePoints(LargeBOD bod, out int points, out double banked)
@@ -414,37 +417,28 @@ namespace Server.Engines.BulkOrders
                 case BODType.Carpentry: points = CarpentryRewardCalculator.Instance.ComputePoints(bod); break;
             }
 
-            banked = (double)points * .2;
+            banked = points * .2;
         }
 
         public static void AddToPending(Mobile m, BODType type, int points)
         {
-            BODContext context = GetContext(m);
+            var context = GetContext(m);
 
-            if (context != null)
-            {
-                context.AddPending(type, points);
-            }
+            if (context != null) context.AddPending(type, points);
         }
 
         public static void RemovePending(Mobile m, BODType type)
         {
-            BODContext context = GetContext(m);
+            var context = GetContext(m);
 
-            if (context != null)
-            {
-                context.RemovePending(type);
-            }
+            if (context != null) context.RemovePending(type);
         }
 
         public static bool CanClaimRewards(Mobile m)
         {
-            BODContext context = GetContext(m);
+            var context = GetContext(m);
 
-            if (context != null)
-            {
-                return context.CanClaimRewards();
-            }
+            if (context != null) return context.CanClaimRewards();
 
             return true;
         }
@@ -458,18 +452,19 @@ namespace Server.Engines.BulkOrders
             }
 
             if ((bod is SmallBOD && ((SmallBOD)bod).AmountCur > 0) ||
-                     (bod is LargeBOD && ((LargeBOD)bod).Entries != null &&
-                     ((LargeBOD)bod).Entries.FirstOrDefault(e => e.Amount > 0) != null))
+                (bod is LargeBOD && ((LargeBOD)bod).Entries != null &&
+                 ((LargeBOD)bod).Entries.FirstOrDefault(e => e.Amount > 0) != null))
             {
-                vendor.SayTo(from, 1152299, 0x3B2); // I am sorry to say I cannot work with a deed that is even partially filled.
+                vendor.SayTo(from, 1152299,
+                    0x3B2); // I am sorry to say I cannot work with a deed that is even partially filled.
                 return false;
             }
 
             if (bod.AmountMax == 20 && (!CanBeExceptional(bod) || bod.RequireExceptional) &&
-                     (!CanUseMaterial(bod) ||
-                     (bod.Material == BulkMaterialType.Valorite ||
-                      bod.Material == BulkMaterialType.Frostwood ||
-                      bod.Material == BulkMaterialType.Barbed)))
+                (!CanUseMaterial(bod) ||
+                 bod.Material == BulkMaterialType.Valorite ||
+                 bod.Material == BulkMaterialType.Frostwood ||
+                 bod.Material == BulkMaterialType.Barbed))
             {
                 vendor.SayTo(from, 1152291, 0x3B2); // I won't be able to replace that bulk order with a better one.
                 return false;
@@ -477,7 +472,8 @@ namespace Server.Engines.BulkOrders
 
             if (cost > -1 && !Banker.Withdraw(from, cost, true))
             {
-                vendor.SayTo(from, 1152302, 0x3B2); // I am afraid your bank box does not contain the funds needed to complete this transaction.
+                vendor.SayTo(from, 1152302,
+                    0x3B2); // I am afraid your bank box does not contain the funds needed to complete this transaction.
                 return false;
             }
 
@@ -489,13 +485,9 @@ namespace Server.Engines.BulkOrders
             Type t = null;
 
             if (bod is SmallBOD)
-            {
                 t = ((SmallBOD)bod).Type;
-            }
             else if (bod is LargeBOD && ((LargeBOD)bod).Entries != null && ((LargeBOD)bod).Entries.Length > 0)
-            {
                 t = ((LargeBOD)bod).Entries[0].Details.Type;
-            }
 
             return t;
         }
@@ -507,7 +499,7 @@ namespace Server.Engines.BulkOrders
                 default: return true;
                 case BODType.Alchemy:
                 case BODType.Inscription: return false;
-                case BODType.Tinkering: 
+                case BODType.Tinkering:
                 case BODType.Cooking:
                 case BODType.Fletching:
                     return !IsInExceptionalExcludeList(bod);
@@ -516,7 +508,7 @@ namespace Server.Engines.BulkOrders
 
         private static bool IsInExceptionalExcludeList(IBOD bod)
         {
-            Type t = GetTypeFromBOD(bod);
+            var t = GetTypeFromBOD(bod);
 
             if (t == null)
                 return false;
@@ -534,40 +526,21 @@ namespace Server.Engines.BulkOrders
                 case BODType.Cooking: return false;
                 case BODType.Tinkering:
                 case BODType.Fletching: return !IsInExceptionalExcludeList(bod);
-                case BODType.Tailor: return BGTClassifier.Classify(BODType.Tailor, GetTypeFromBOD(bod)) == BulkGenericType.Leather;
+                case BODType.Tailor:
+                    return BGTClassifier.Classify(BODType.Tailor, GetTypeFromBOD(bod)) == BulkGenericType.Leather;
             }
         }
 
-        private static Type[] _ExceptionalExcluded =
-        {
-            typeof(Arrow), typeof(Bolt), typeof(Kindling), typeof(Shaft),
-
-            typeof(EnchantedApple), typeof(TribalPaint), typeof(GrapesOfWrath), 
-            typeof(EggBomb), typeof(CookedBird), typeof(FishSteak), typeof(FriedEggs),
-            typeof(LambLeg), typeof(Ribs), 
-
-            typeof(Gears), typeof(Axle), typeof(Springs), typeof(AxleGears), typeof(ClockParts),
-            typeof(Clock), typeof(PotionKeg), typeof(ClockFrame), typeof(MetalContainerEngraver)
-        };
-
         public static void MutateBOD(IBOD bod)
         {
-            List<int> picker = new List<int>();
+            var picker = new List<int>();
 
-            if (!bod.RequireExceptional && CanBeExceptional(bod))
-            {
-                picker.Add(0);
-            }
+            if (!bod.RequireExceptional && CanBeExceptional(bod)) picker.Add(0);
 
-            if (bod.AmountMax < 20)
-            {
-                picker.Add(1);
-            }
+            if (bod.AmountMax < 20) picker.Add(1);
 
-            if (CanUseMaterial(bod) && bod.Material != BulkMaterialType.Frostwood && bod.Material != BulkMaterialType.Barbed && bod.Material != BulkMaterialType.Valorite)
-            {
-                picker.Add(2);
-            }
+            if (CanUseMaterial(bod) && bod.Material != BulkMaterialType.Frostwood &&
+                bod.Material != BulkMaterialType.Barbed && bod.Material != BulkMaterialType.Valorite) picker.Add(2);
 
             if (picker.Count == 0)
                 return;
@@ -579,7 +552,7 @@ namespace Server.Engines.BulkOrders
                 case 2:
                     if (bod.Material == BulkMaterialType.None)
                     {
-                        BulkGenericType type = BGTClassifier.Classify(bod.BODType, null);
+                        var type = BGTClassifier.Classify(bod.BODType, null);
 
                         switch (type)
                         {
@@ -593,6 +566,7 @@ namespace Server.Engines.BulkOrders
                     {
                         bod.Material++;
                     }
+
                     break;
             }
 
@@ -601,12 +575,9 @@ namespace Server.Engines.BulkOrders
 
         public static int GetBribe(IBOD bod)
         {
-            int worth = 0;
+            var worth = 0;
 
-            if (bod.RequireExceptional)
-            {
-                worth += 400;
-            }
+            if (bod.RequireExceptional) worth += 400;
 
             switch (bod.Material)
             {
@@ -638,26 +609,19 @@ namespace Server.Engines.BulkOrders
             }
 
             if (bod is LargeBOD && ((LargeBOD)bod).Entries != null)
-            {
                 worth *= Math.Min(4, ((LargeBOD)bod).Entries.Length);
-            }
 
             return worth;
         }
 
         public static void OnTick()
         {
-            foreach (var kvp in Instance.BODPlayerData)
-            {
-                kvp.Value.CheckCache();
-            }
+            foreach (var kvp in Instance.BODPlayerData) kvp.Value.CheckCache();
         }
 
         public static void OnLogin(LoginEventArgs e)
         {
         }
-
-        public static string FilePath = Path.Combine("Saves/CraftContext", "BODs.bin");
 
         public static void Configure()
         {
@@ -667,10 +631,7 @@ namespace Server.Engines.BulkOrders
 
         public static void Initialize()
         {
-            if (NewSystemEnabled)
-            {
-                Timer.DelayCall(TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1), OnTick);
-            }
+            if (NewSystemEnabled) Timer.DelayCall(TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1), OnTick);
         }
 
         public static void OnSave(WorldSaveEventArgs e)
@@ -691,7 +652,7 @@ namespace Server.Engines.BulkOrders
                 FilePath,
                 reader =>
                 {
-                    int version = reader.ReadInt();
+                    var version = reader.ReadInt();
 
                     Instance.Deserialize(reader);
                 });
@@ -714,28 +675,39 @@ namespace Server.Engines.BulkOrders
             ConfigEntries();
         }
 
+        public BODContext(GenericReader reader)
+        {
+            var version = reader.ReadInt();
+            ConfigEntries();
+
+            PointsMode = (PointsMode)reader.ReadInt();
+            BOBFilter = new BOBFilter(reader);
+
+            var count = reader.ReadInt();
+
+            for (var i = 0; i < count; i++)
+            {
+                var type = (BODType)reader.ReadInt();
+                var entry = new BODEntry(reader);
+
+                if (Entries.ContainsKey(type))
+                    Entries[type] = entry;
+            }
+        }
+
         public void AddPending(BODType type, int points)
         {
-            if (Entries.ContainsKey(type))
-            {
-                Entries[type].PendingRewardPoints = points;
-            }
+            if (Entries.ContainsKey(type)) Entries[type].PendingRewardPoints = points;
         }
 
         public void RemovePending(BODType type)
         {
-            if (Entries.ContainsKey(type))
-            {
-                Entries[type].PendingRewardPoints = 0;
-            }
+            if (Entries.ContainsKey(type)) Entries[type].PendingRewardPoints = 0;
         }
 
         public int GetPendingRewardFor(BODType type)
         {
-            if (Entries.ContainsKey(type))
-            {
-                return Entries[type].PendingRewardPoints;
-            }
+            if (Entries.ContainsKey(type)) return Entries[type].PendingRewardPoints;
 
             return 0;
         }
@@ -743,46 +715,22 @@ namespace Server.Engines.BulkOrders
         public bool CanClaimRewards()
         {
             foreach (var kvp in Entries)
-            {
                 if (kvp.Value.PendingRewardPoints > 0)
-                {
                     return false;
-                }
-            }
 
             return true;
-        }
-
-        public BODContext(GenericReader reader)
-        {
-            int version = reader.ReadInt();
-            ConfigEntries();
-
-            this.PointsMode = (PointsMode)reader.ReadInt();
-            BOBFilter = new BOBFilter(reader);
-
-            int count = reader.ReadInt();
-
-            for (int i = 0; i < count; i++)
-            {
-                BODType type = (BODType)reader.ReadInt();
-                BODEntry entry = new BODEntry(reader);
-
-                if (Entries.ContainsKey(type))
-                    Entries[type] = entry;
-            }
         }
 
         public void Serialize(GenericWriter writer)
         {
             writer.Write(0);
 
-            writer.Write((int)this.PointsMode);
+            writer.Write((int)PointsMode);
             BOBFilter.Serialize(writer);
 
             // Lets do this dynamically incase we add new bods in the future
             writer.Write(Entries.Count);
-            foreach (KeyValuePair<BODType, BODEntry> kvp in Entries)
+            foreach (var kvp in Entries)
             {
                 writer.Write((int)kvp.Key);
                 kvp.Value.Serialize(writer);
@@ -805,10 +753,7 @@ namespace Server.Engines.BulkOrders
 
         public void CheckCache()
         {
-            foreach (var kvp in Entries)
-            {
-                kvp.Value.CheckCache();
-            }
+            foreach (var kvp in Entries) kvp.Value.CheckCache();
         }
     }
 
@@ -817,13 +762,15 @@ namespace Server.Engines.BulkOrders
     {
         private int _CachedDeeds;
 
+        // Legacy System
+
         [CommandProperty(AccessLevel.GameMaster)]
         public int CachedDeeds
         {
-            get { return _CachedDeeds; }
+            get => _CachedDeeds;
             set
             {
-                int old = _CachedDeeds;
+                var old = _CachedDeeds;
 
                 _CachedDeeds = Math.Max(0, Math.Min(BulkOrderSystem.MaxCachedDeeds, value));
             }
@@ -838,56 +785,18 @@ namespace Server.Engines.BulkOrders
         [CommandProperty(AccessLevel.GameMaster)]
         public int PendingRewardPoints { get; set; }
 
-        // Legacy System
-        private DateTime _NextBulkOrder;
-
-        public DateTime NextBulkOrder
-        {
-            get
-            {
-                return _NextBulkOrder;
-            }
-            set
-            {
-                _NextBulkOrder = value;
-            }
-        }
-
-        public override string ToString()
-        {
-            return "...";
-        }
+        public DateTime NextBulkOrder { get; set; }
 
         public BODEntry()
         {
             _CachedDeeds = BulkOrderSystem.MaxCachedDeeds;
         }
 
-        public void CheckCache()
-        {
-            if (_CachedDeeds >= BulkOrderSystem.MaxCachedDeeds)
-            {
-                return;
-            }
-
-            if (LastBulkOrder == DateTime.MinValue)
-            {
-                CachedDeeds = BulkOrderSystem.MaxCachedDeeds;
-                LastBulkOrder = DateTime.UtcNow - TimeSpan.FromHours(BulkOrderSystem.Delay);
-            }
-            else if (LastBulkOrder + TimeSpan.FromHours(BulkOrderSystem.Delay) < DateTime.UtcNow)
-            {
-                CachedDeeds++;
-                LastBulkOrder = LastBulkOrder + TimeSpan.FromHours(BulkOrderSystem.Delay);
-            }
-        }
-
         public BODEntry(GenericReader reader)
         {
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (reader.ReadInt() == 0)
-            {
                 switch (version)
                 {
                     case 1:
@@ -898,15 +807,31 @@ namespace Server.Engines.BulkOrders
                         PendingRewardPoints = reader.ReadInt();
                         break;
                 }
-            }
             else
-            {
-                _NextBulkOrder = reader.ReadDateTime();
-            }
+                NextBulkOrder = reader.ReadDateTime();
 
             if (version == 0 && _CachedDeeds > BulkOrderSystem.MaxCachedDeeds)
-            {
                 _CachedDeeds = BulkOrderSystem.MaxCachedDeeds;
+        }
+
+        public override string ToString()
+        {
+            return "...";
+        }
+
+        public void CheckCache()
+        {
+            if (_CachedDeeds >= BulkOrderSystem.MaxCachedDeeds) return;
+
+            if (LastBulkOrder == DateTime.MinValue)
+            {
+                CachedDeeds = BulkOrderSystem.MaxCachedDeeds;
+                LastBulkOrder = DateTime.UtcNow - TimeSpan.FromHours(BulkOrderSystem.Delay);
+            }
+            else if (LastBulkOrder + TimeSpan.FromHours(BulkOrderSystem.Delay) < DateTime.UtcNow)
+            {
+                CachedDeeds++;
+                LastBulkOrder = LastBulkOrder + TimeSpan.FromHours(BulkOrderSystem.Delay);
             }
         }
 
@@ -925,7 +850,7 @@ namespace Server.Engines.BulkOrders
             else
             {
                 writer.Write(1);
-                writer.Write(_NextBulkOrder);
+                writer.Write(NextBulkOrder);
             }
         }
     }

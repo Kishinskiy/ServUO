@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using Server;
 using Server.Commands;
 using Server.Gumps;
 using Server.Items;
@@ -19,9 +18,9 @@ namespace Server.Custom.ServUOBuilder
     // Commands:
     //   [SBuild
     //   [VBuild
-	// Coded by Kamras 
-	// Everyone may use, please this this header in place. 
-	// https://www.servuo.dev/members/kamras.776/
+    // Coded by Kamras 
+    // Everyone may use, please this this header in place. 
+    // https://www.servuo.dev/members/kamras.776/
 
     public enum ServUOBuilderMode
     {
@@ -35,35 +34,18 @@ namespace Server.Custom.ServUOBuilder
 
     public sealed class ServUOBuilderState
     {
+        public readonly Mobile Owner;
         private readonly List<Item> m_SessionItems;
         private readonly Stack<List<Item>> m_UndoActions;
 
-        public readonly Mobile Owner;
-
         public int Category;
-        public int Page;
         public ServUOBuilderMode Mode;
-        public int SelectedItemID;
-        public int SelectedHue;
-        public int ZOffset;
-        public string SearchFilter;
+        public int Page;
         public bool ProtectedMode;
-
-        public ServUOBuilderState(Mobile owner)
-        {
-            Owner = owner;
-            Category = 1; // Defined Art
-            Page = 0;
-            Mode = ServUOBuilderMode.Paint;
-            SelectedItemID = 0;
-            SelectedHue = 0;
-            ZOffset = 0;
-            SearchFilter = String.Empty;
-            ProtectedMode = true;
-
-            m_SessionItems = new List<Item>();
-            m_UndoActions = new Stack<List<Item>>();
-        }
+        public string SearchFilter;
+        public int SelectedHue;
+        public int SelectedItemID;
+        public int ZOffset;
 
         public int SessionItemCount
         {
@@ -74,10 +56,7 @@ namespace Server.Custom.ServUOBuilder
             }
         }
 
-        public int UndoCount
-        {
-            get { return m_UndoActions.Count; }
-        }
+        public int UndoCount => m_UndoActions.Count;
 
         public IList<Item> SessionItems
         {
@@ -86,6 +65,22 @@ namespace Server.Custom.ServUOBuilder
                 Prune();
                 return m_SessionItems.AsReadOnly();
             }
+        }
+
+        public ServUOBuilderState(Mobile owner)
+        {
+            Owner = owner;
+            Category = 1; // Defined Art
+            Page = 0;
+            Mode = ServUOBuilderMode.Paint;
+            SelectedItemID = 0;
+            SelectedHue = 0;
+            ZOffset = 0;
+            SearchFilter = string.Empty;
+            ProtectedMode = true;
+
+            m_SessionItems = new List<Item>();
+            m_UndoActions = new Stack<List<Item>>();
         }
 
         public bool Contains(Item item)
@@ -102,11 +97,11 @@ namespace Server.Custom.ServUOBuilder
             if (items == null || items.Count == 0)
                 return;
 
-            List<Item> action = new List<Item>();
+            var action = new List<Item>();
 
-            for (int i = 0; i < items.Count; i++)
+            for (var i = 0; i < items.Count; i++)
             {
-                Item item = items[i];
+                var item = items[i];
 
                 if (item == null || item.Deleted)
                     continue;
@@ -135,12 +130,12 @@ namespace Server.Custom.ServUOBuilder
 
             while (m_UndoActions.Count > 0)
             {
-                List<Item> action = m_UndoActions.Pop();
-                int deleted = 0;
+                var action = m_UndoActions.Pop();
+                var deleted = 0;
 
-                for (int i = 0; i < action.Count; i++)
+                for (var i = 0; i < action.Count; i++)
                 {
-                    Item item = action[i];
+                    var item = action[i];
 
                     if (item != null && !item.Deleted)
                     {
@@ -162,11 +157,11 @@ namespace Server.Custom.ServUOBuilder
         {
             Prune();
 
-            int deleted = 0;
+            var deleted = 0;
 
-            for (int i = m_SessionItems.Count - 1; i >= 0; i--)
+            for (var i = m_SessionItems.Count - 1; i >= 0; i--)
             {
-                Item item = m_SessionItems[i];
+                var item = m_SessionItems[i];
 
                 if (item != null && !item.Deleted)
                 {
@@ -188,9 +183,9 @@ namespace Server.Custom.ServUOBuilder
 
         private void Prune()
         {
-            for (int i = m_SessionItems.Count - 1; i >= 0; i--)
+            for (var i = m_SessionItems.Count - 1; i >= 0; i--)
             {
-                Item item = m_SessionItems[i];
+                var item = m_SessionItems[i];
 
                 if (item == null || item.Deleted)
                     m_SessionItems.RemoveAt(i);
@@ -200,7 +195,7 @@ namespace Server.Custom.ServUOBuilder
 
     public static class ServUOBuilderCatalog
     {
-        public static readonly string[] CategoryNames = new string[]
+        public static readonly string[] CategoryNames =
         {
             "All IDs",
             "Defined Art",
@@ -221,6 +216,7 @@ namespace Server.Custom.ServUOBuilder
         };
 
         private static readonly object m_SyncRoot = new object();
+
         private static readonly Dictionary<string, int[]> m_SearchCache =
             new Dictionary<string, int[]>();
 
@@ -271,9 +267,9 @@ namespace Server.Custom.ServUOBuilder
 
         private static List<int>[] CreateEmptyCategories()
         {
-            List<int>[] categories = new List<int>[CategoryNames.Length];
+            var categories = new List<int>[CategoryNames.Length];
 
-            for (int i = 0; i < categories.Length; i++)
+            for (var i = 0; i < categories.Length; i++)
                 categories[i] = new List<int>();
 
             return categories;
@@ -281,17 +277,17 @@ namespace Server.Custom.ServUOBuilder
 
         private static void BuildCatalog()
         {
-            ItemData[] table = TileData.ItemTable;
+            var table = TileData.ItemTable;
 
             if (table == null || table.Length == 0)
                 throw new InvalidOperationException("TileData.ItemTable is unavailable.");
 
             m_MaxItemID = Math.Min(TileData.MaxItemValue, table.Length - 1);
-            List<int>[] categories = CreateEmptyCategories();
+            var categories = CreateEmptyCategories();
 
-            for (int itemID = 2; itemID <= m_MaxItemID; itemID++)
+            for (var itemID = 2; itemID <= m_MaxItemID; itemID++)
             {
-                ItemData data = table[itemID];
+                var data = table[itemID];
                 categories[0].Add(itemID);
 
                 if (!IsDefined(data))
@@ -307,7 +303,7 @@ namespace Server.Custom.ServUOBuilder
 
         private static bool IsDefined(ItemData data)
         {
-            if (!String.IsNullOrEmpty(data.Name) && data.Name.Trim().Length > 0)
+            if (!string.IsNullOrEmpty(data.Name) && data.Name.Trim().Length > 0)
                 return true;
 
             return data.Flags != TileFlag.None ||
@@ -320,22 +316,22 @@ namespace Server.Custom.ServUOBuilder
 
         private static void Classify(List<int>[] categories, int itemID, ItemData data)
         {
-            string name = Normalize(data.Name);
+            var name = Normalize(data.Name);
 
-            bool floor = IsFloor(data, name);
-            bool wall = IsWall(data, name);
-            bool roof = IsRoof(data, name);
-            bool stair = IsStair(data, name);
-            bool door = IsDoorOrWindow(data, name);
-            bool fence = IsFenceOrGate(name);
-            bool furniture = IsFurniture(name);
-            bool container = IsContainer(data, name);
-            bool nature = IsNature(data, name);
-            bool lighting = IsLighting(data, name);
-            bool food = IsFood(name);
-            bool sign = IsSign(name);
-            bool structural = floor || wall || roof || stair || door || fence;
-            bool decor = IsDecor(data, structural, furniture, container, nature, lighting, food, sign);
+            var floor = IsFloor(data, name);
+            var wall = IsWall(data, name);
+            var roof = IsRoof(data, name);
+            var stair = IsStair(data, name);
+            var door = IsDoorOrWindow(data, name);
+            var fence = IsFenceOrGate(name);
+            var furniture = IsFurniture(name);
+            var container = IsContainer(data, name);
+            var nature = IsNature(data, name);
+            var lighting = IsLighting(data, name);
+            var food = IsFood(name);
+            var sign = IsSign(name);
+            var structural = floor || wall || roof || stair || door || fence;
+            var decor = IsDecor(data, structural, furniture, container, nature, lighting, food, sign);
 
             if (structural) categories[2].Add(itemID);
             if (floor) categories[3].Add(itemID);
@@ -360,21 +356,19 @@ namespace Server.Custom.ServUOBuilder
 
         private static string Normalize(string value)
         {
-            return String.IsNullOrEmpty(value)
-                ? String.Empty
+            return string.IsNullOrEmpty(value)
+                ? string.Empty
                 : value.Trim().ToLowerInvariant();
         }
 
         private static bool ContainsAny(string value, params string[] terms)
         {
-            if (String.IsNullOrEmpty(value))
+            if (string.IsNullOrEmpty(value))
                 return false;
 
-            for (int i = 0; i < terms.Length; i++)
-            {
+            for (var i = 0; i < terms.Length; i++)
                 if (value.IndexOf(terms[i], StringComparison.OrdinalIgnoreCase) >= 0)
                     return true;
-            }
 
             return false;
         }
@@ -382,8 +376,8 @@ namespace Server.Custom.ServUOBuilder
         private static bool IsFloor(ItemData data, string name)
         {
             if (ContainsAny(name, "floor", "flooring", "tile", "paver", "paving",
-                "pavement", "cobblestone", "carpet", "rug", "mat", "flagstone",
-                "wooden boards", "wood planks", "foundation"))
+                    "pavement", "cobblestone", "carpet", "rug", "mat", "flagstone",
+                    "wooden boards", "wood planks", "foundation"))
                 return true;
 
             return Has(data, TileFlag.Surface) && data.Height <= 2 &&
@@ -495,27 +489,27 @@ namespace Server.Custom.ServUOBuilder
             if (category < 0 || category >= m_Categories.Length)
                 category = 1;
 
-            string normalized = String.IsNullOrEmpty(filter)
-                ? String.Empty
+            var normalized = string.IsNullOrEmpty(filter)
+                ? string.Empty
                 : filter.Trim();
 
             if (normalized.Length == 0)
                 return m_Categories[category];
 
-            string key = category.ToString(CultureInfo.InvariantCulture) + "|" +
-                         normalized.ToLowerInvariant();
+            var key = category.ToString(CultureInfo.InvariantCulture) + "|" +
+                      normalized.ToLowerInvariant();
 
             int[] cached;
 
             if (m_SearchCache.TryGetValue(key, out cached))
                 return cached;
 
-            List<int> source = m_Categories[category];
-            List<int> results = new List<int>();
+            var source = m_Categories[category];
+            var results = new List<int>();
 
-            for (int i = 0; i < source.Count; i++)
+            for (var i = 0; i < source.Count; i++)
             {
-                int itemID = source[i];
+                var itemID = source[i];
 
                 if (MatchesSearch(itemID, normalized))
                     results.Add(itemID);
@@ -537,17 +531,17 @@ namespace Server.Custom.ServUOBuilder
             if (TryParseItemID(filter, out exactID) && exactID == itemID)
                 return true;
 
-            string description = GetDescription(itemID);
+            var description = GetDescription(itemID);
 
             if (description.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0)
                 return true;
 
-            string hexFilter = filter;
+            var hexFilter = filter;
 
             if (hexFilter.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
                 hexFilter = hexFilter.Substring(2);
 
-            string hex = itemID.ToString("X4", CultureInfo.InvariantCulture);
+            var hex = itemID.ToString("X4", CultureInfo.InvariantCulture);
 
             if (hex.IndexOf(hexFilter, StringComparison.OrdinalIgnoreCase) >= 0)
                 return true;
@@ -560,30 +554,26 @@ namespace Server.Custom.ServUOBuilder
         {
             itemID = 0;
 
-            if (String.IsNullOrEmpty(text))
+            if (string.IsNullOrEmpty(text))
                 return false;
 
-            string value = text.Trim();
+            var value = text.Trim();
 
             if (value.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
-            {
-                return Int32.TryParse(value.Substring(2), NumberStyles.HexNumber,
+                return int.TryParse(value.Substring(2), NumberStyles.HexNumber,
                     CultureInfo.InvariantCulture, out itemID);
-            }
 
-            bool hasHexLetter = value.IndexOfAny(new char[]
+            var hasHexLetter = value.IndexOfAny(new[]
             {
                 'A', 'B', 'C', 'D', 'E', 'F',
                 'a', 'b', 'c', 'd', 'e', 'f'
             }) >= 0;
 
             if (hasHexLetter)
-            {
-                return Int32.TryParse(value, NumberStyles.HexNumber,
+                return int.TryParse(value, NumberStyles.HexNumber,
                     CultureInfo.InvariantCulture, out itemID);
-            }
 
-            return Int32.TryParse(value, NumberStyles.Integer,
+            return int.TryParse(value, NumberStyles.Integer,
                 CultureInfo.InvariantCulture, out itemID);
         }
 
@@ -595,7 +585,7 @@ namespace Server.Custom.ServUOBuilder
 
         public static bool TryGetItemData(int itemID, out ItemData data)
         {
-            ItemData[] table = TileData.ItemTable;
+            var table = TileData.ItemTable;
 
             if (table != null && itemID >= 0 && itemID < table.Length)
             {
@@ -612,10 +602,8 @@ namespace Server.Custom.ServUOBuilder
             ItemData data;
 
             if (TryGetItemData(itemID, out data))
-            {
-                if (!String.IsNullOrEmpty(data.Name) && data.Name.Trim().Length > 0)
+                if (!string.IsNullOrEmpty(data.Name) && data.Name.Trim().Length > 0)
                     return data.Name.Trim();
-            }
 
             return "Unnamed artwork";
         }
@@ -629,9 +617,9 @@ namespace Server.Custom.ServUOBuilder
         public static void Initialize()
         {
             CommandSystem.Register("SBuild", AccessLevel.GameMaster,
-                new CommandEventHandler(OnBuildCommand));
+                OnBuildCommand);
             CommandSystem.Register("VBuild", AccessLevel.GameMaster,
-                new CommandEventHandler(OnBuildCommand));
+                OnBuildCommand);
         }
 
         [Usage("SBuild")]
@@ -659,7 +647,7 @@ namespace Server.Custom.ServUOBuilder
             if (from == null || from.Deleted)
                 return;
 
-            ServUOBuilderState state = GetState(from);
+            var state = GetState(from);
             from.CloseGump(typeof(ServUOBuilderGump));
             from.SendGump(new ServUOBuilderGump(from, state));
         }
@@ -686,7 +674,7 @@ namespace Server.Custom.ServUOBuilder
             out Point3D location)
         {
             location = Point3D.Zero;
-            IPoint3D point = targeted as IPoint3D;
+            var point = targeted as IPoint3D;
 
             if (point == null)
                 return false;
@@ -695,7 +683,7 @@ namespace Server.Custom.ServUOBuilder
 
             // ServUO StaticTarget.Location is already adjusted by CalcHeight.
             // Dynamic Items expose their base Z, so place on top of those manually.
-            Item item = targeted as Item;
+            var item = targeted as Item;
 
             if (item != null)
                 location.Z = item.Z + item.ItemData.CalcHeight;
@@ -706,7 +694,7 @@ namespace Server.Custom.ServUOBuilder
 
         public static Static CreateStatic(int itemID, int hue, Point3D location, Map map)
         {
-            Static piece = new Static(itemID);
+            var piece = new Static(itemID);
             piece.Hue = Math.Max(0, hue);
             piece.MoveToWorld(location, map);
             return piece;
@@ -825,13 +813,13 @@ namespace Server.Custom.ServUOBuilder
 
         private void DrawCategories()
         {
-            for (int i = 0; i < ServUOBuilderCatalog.CategoryNames.Length; i++)
+            for (var i = 0; i < ServUOBuilderCatalog.CategoryNames.Length; i++)
             {
-                int row = i / 8;
-                int col = i % 8;
-                int x = 20 + (col * 88);
-                int y = 42 + (row * 30);
-                bool selected = m_State.Category == i;
+                var row = i / 8;
+                var col = i % 8;
+                var x = 20 + col * 88;
+                var y = 42 + row * 30;
+                var selected = m_State.Category == i;
 
                 AddButton(x, y, selected ? 4006 : 4005, 4007,
                     CategoryButtonBase + i, GumpButtonType.Reply, 0);
@@ -846,7 +834,7 @@ namespace Server.Custom.ServUOBuilder
             AddLabel(22, 105, 1152, "Search:");
             AddBackground(82, 101, 365, 27, 3000);
             AddTextEntry(88, 105, 352, 20, 0, 1,
-                m_State.SearchFilter == null ? String.Empty : m_State.SearchFilter);
+                m_State.SearchFilter == null ? string.Empty : m_State.SearchFilter);
 
             AddButton(455, 102, 4005, 4007, ButtonSearch,
                 GumpButtonType.Reply, 0);
@@ -858,7 +846,7 @@ namespace Server.Custom.ServUOBuilder
 
             AddLabel(625, 105, 1152, "Direct ID:");
             AddBackground(695, 101, 78, 27, 3000);
-            AddTextEntry(701, 105, 66, 20, 0, 2, String.Empty);
+            AddTextEntry(701, 105, 66, 20, 0, 2, string.Empty);
             AddButton(780, 102, 4005, 4007, ButtonDirectID,
                 GumpButtonType.Reply, 0);
             AddLabel(812, 105, 1152, "Select");
@@ -866,10 +854,10 @@ namespace Server.Custom.ServUOBuilder
 
         private void DrawPalette()
         {
-            IList<int> items = ServUOBuilderCatalog.GetItems(
+            var items = ServUOBuilderCatalog.GetItems(
                 m_State.Category, m_State.SearchFilter);
 
-            int totalPages = Math.Max(1,
+            var totalPages = Math.Max(1,
                 (int)Math.Ceiling((double)items.Count / ItemsPerPage));
 
             if (m_State.Page < 0)
@@ -877,18 +865,18 @@ namespace Server.Custom.ServUOBuilder
             if (m_State.Page >= totalPages)
                 m_State.Page = totalPages - 1;
 
-            int start = m_State.Page * ItemsPerPage;
-            int end = Math.Min(start + ItemsPerPage, items.Count);
+            var start = m_State.Page * ItemsPerPage;
+            var end = Math.Min(start + ItemsPerPage, items.Count);
 
-            for (int index = start; index < end; index++)
+            for (var index = start; index < end; index++)
             {
-                int slot = index - start;
-                int row = slot / 5;
-                int col = slot % 5;
-                int x = 20 + (col * 137);
-                int y = 140 + (row * 100);
-                int itemID = items[index];
-                string description = ServUOBuilderCatalog.GetDescription(itemID);
+                var slot = index - start;
+                var row = slot / 5;
+                var col = slot % 5;
+                var x = 20 + col * 137;
+                var y = 140 + row * 100;
+                var itemID = items[index];
+                var description = ServUOBuilderCatalog.GetDescription(itemID);
 
                 AddBackground(x, y, 128, 92, 9270);
                 AddItem(x + 42, y + 7, itemID);
@@ -900,7 +888,7 @@ namespace Server.Custom.ServUOBuilder
             }
 
             AddLabel(22, 548, 1152,
-                String.Format(CultureInfo.InvariantCulture,
+                string.Format(CultureInfo.InvariantCulture,
                     "Category: {0}   Results: {1}   Page {2} of {3}",
                     ServUOBuilderCatalog.CategoryNames[m_State.Category],
                     items.Count, m_State.Page + 1, totalPages));
@@ -919,11 +907,9 @@ namespace Server.Custom.ServUOBuilder
                 AddLabel(632, 572, 1152, "Next");
             }
 
-            if (!String.IsNullOrEmpty(ServUOBuilderCatalog.LoadError))
-            {
+            if (!string.IsNullOrEmpty(ServUOBuilderCatalog.LoadError))
                 AddLabelCropped(22, 598, 665, 20, 33,
                     "Catalog error: " + ServUOBuilderCatalog.LoadError);
-            }
         }
 
         private void DrawToolPanel()
@@ -984,7 +970,7 @@ namespace Server.Custom.ServUOBuilder
 
         private void AddToolButton(ServUOBuilderMode mode, int x, int y, string label)
         {
-            bool selected = m_State.Mode == mode;
+            var selected = m_State.Mode == mode;
             AddButton(x, y, selected ? 2151 : 2152, 2154,
                 ToolButtonBase + (int)mode, GumpButtonType.Reply, 0);
             AddLabel(x + 35, y + 4, selected ? 0x35 : 0x480, label);
@@ -1009,7 +995,7 @@ namespace Server.Custom.ServUOBuilder
 
         public override void OnResponse(NetState sender, RelayInfo info)
         {
-            Mobile from = sender.Mobile;
+            var from = sender.Mobile;
 
             if (from == null || m_State == null || m_State.Owner != from)
                 return;
@@ -1018,7 +1004,7 @@ namespace Server.Custom.ServUOBuilder
             m_State.SelectedHue = Clamp(GetInt(info, 3, m_State.SelectedHue), 0, 0xFFFF);
             m_State.ZOffset = Clamp(GetInt(info, 4, m_State.ZOffset), -128, 127);
 
-            int buttonID = info.ButtonID;
+            var buttonID = info.ButtonID;
 
             if (buttonID == 0)
                 return;
@@ -1055,7 +1041,7 @@ namespace Server.Custom.ServUOBuilder
 
             if (buttonID == ButtonClearSearch)
             {
-                m_State.SearchFilter = String.Empty;
+                m_State.SearchFilter = string.Empty;
                 m_State.Page = 0;
                 ServUOVisualBuilder.Open(from);
                 return;
@@ -1063,7 +1049,7 @@ namespace Server.Custom.ServUOBuilder
 
             if (buttonID == ButtonDirectID)
             {
-                string direct = GetText(info, 2, String.Empty);
+                var direct = GetText(info, 2, string.Empty);
                 int itemID;
 
                 if (ServUOBuilderCatalog.TryParseItemID(direct, out itemID) &&
@@ -1113,7 +1099,7 @@ namespace Server.Custom.ServUOBuilder
 
             if (buttonID == ButtonUndo)
             {
-                int deleted = m_State.UndoLast();
+                var deleted = m_State.UndoLast();
                 from.SendMessage(deleted > 0 ? 0x43 : 0x22,
                     "Undo removed {0} item(s).", deleted);
                 ServUOVisualBuilder.Open(from);
@@ -1122,7 +1108,7 @@ namespace Server.Custom.ServUOBuilder
 
             if (buttonID == ButtonRelease)
             {
-                int count = m_State.SessionItemCount;
+                var count = m_State.SessionItemCount;
                 m_State.ReleaseTracking();
                 from.SendMessage(0x43,
                     "Released tracking for {0} item(s). The world items were kept.", count);
@@ -1138,7 +1124,7 @@ namespace Server.Custom.ServUOBuilder
 
             if (buttonID >= ItemButtonBase)
             {
-                int itemID = buttonID - ItemButtonBase;
+                var itemID = buttonID - ItemButtonBase;
 
                 if (ServUOBuilderCatalog.IsSelectable(itemID))
                 {
@@ -1157,22 +1143,22 @@ namespace Server.Custom.ServUOBuilder
 
         private static string GetText(RelayInfo info, int entryID, string fallback)
         {
-            TextRelay relay = info.GetTextEntry(entryID);
+            var relay = info.GetTextEntry(entryID);
 
             if (relay == null || relay.Text == null)
-                return fallback == null ? String.Empty : fallback;
+                return fallback == null ? string.Empty : fallback;
 
             return relay.Text.Trim();
         }
 
         private static int GetInt(RelayInfo info, int entryID, int fallback)
         {
-            string text = GetText(info, entryID,
+            var text = GetText(info, entryID,
                 fallback.ToString(CultureInfo.InvariantCulture));
             int value;
 
-            if (Int32.TryParse(text, NumberStyles.Integer,
-                CultureInfo.InvariantCulture, out value))
+            if (int.TryParse(text, NumberStyles.Integer,
+                    CultureInfo.InvariantCulture, out value))
                 return value;
 
             return fallback;
@@ -1226,14 +1212,14 @@ namespace Server.Custom.ServUOBuilder
 
         public override void OnResponse(NetState sender, RelayInfo info)
         {
-            Mobile from = sender.Mobile;
+            var from = sender.Mobile;
 
             if (from == null || m_State == null || m_State.Owner != from)
                 return;
 
             if (info.ButtonID == 1)
             {
-                int deleted = m_State.DeleteSessionItems();
+                var deleted = m_State.DeleteSessionItems();
                 from.SendMessage(0x43,
                     "Deleted {0} builder-session item(s).", deleted);
             }
@@ -1245,8 +1231,8 @@ namespace Server.Custom.ServUOBuilder
     public class ServUOBuilderEditGump : Gump
     {
         private readonly Mobile m_From;
-        private readonly ServUOBuilderState m_State;
         private readonly Item m_Item;
+        private readonly ServUOBuilderState m_State;
 
         public ServUOBuilderEditGump(Mobile from, ServUOBuilderState state, Item item)
             : base(145, 120)
@@ -1337,7 +1323,7 @@ namespace Server.Custom.ServUOBuilder
 
         public override void OnResponse(NetState sender, RelayInfo info)
         {
-            Mobile from = sender.Mobile;
+            var from = sender.Mobile;
 
             if (from == null || m_State == null || m_State.Owner != from)
                 return;
@@ -1357,22 +1343,40 @@ namespace Server.Custom.ServUOBuilder
                 return;
             }
 
-            Point3D location = m_Item.Location;
+            var location = m_Item.Location;
 
-            if (info.ButtonID == 1) location.Y--;
-            else if (info.ButtonID == 2) location.Y++;
-            else if (info.ButtonID == 3) location.X--;
-            else if (info.ButtonID == 4) location.X++;
-            else if (info.ButtonID == 5) location.Z++;
-            else if (info.ButtonID == 6) location.Z--;
+            if (info.ButtonID == 1)
+            {
+                location.Y--;
+            }
+            else if (info.ButtonID == 2)
+            {
+                location.Y++;
+            }
+            else if (info.ButtonID == 3)
+            {
+                location.X--;
+            }
+            else if (info.ButtonID == 4)
+            {
+                location.X++;
+            }
+            else if (info.ButtonID == 5)
+            {
+                location.Z++;
+            }
+            else if (info.ButtonID == 6)
+            {
+                location.Z--;
+            }
             else if (info.ButtonID == 10)
             {
-                int x = GetInt(info, 1, m_Item.X);
-                int y = GetInt(info, 2, m_Item.Y);
-                int z = GetInt(info, 3, m_Item.Z);
-                int hue = Math.Max(0, GetInt(info, 5, m_Item.Hue));
+                var x = GetInt(info, 1, m_Item.X);
+                var y = GetInt(info, 2, m_Item.Y);
+                var z = GetInt(info, 3, m_Item.Z);
+                var hue = Math.Max(0, GetInt(info, 5, m_Item.Hue));
                 int itemID;
-                string itemText = GetText(info, 4,
+                var itemText = GetText(info, 4,
                     "0x" + m_Item.ItemID.ToString("X4", CultureInfo.InvariantCulture));
 
                 if (!ServUOBuilderCatalog.TryParseItemID(itemText, out itemID) ||
@@ -1389,11 +1393,11 @@ namespace Server.Custom.ServUOBuilder
             }
             else if (info.ButtonID == 11)
             {
-                Static copy = ServUOVisualBuilder.CreateStatic(
+                var copy = ServUOVisualBuilder.CreateStatic(
                     m_Item.ItemID, m_Item.Hue,
                     new Point3D(m_Item.X + 1, m_Item.Y, m_Item.Z),
                     m_Item.Map);
-                m_State.TrackAction(new List<Item>() { copy });
+                m_State.TrackAction(new List<Item> { copy });
                 from.SendMessage(0x43, "Item duplicated one tile east.");
                 Reopen(from);
                 return;
@@ -1436,7 +1440,7 @@ namespace Server.Custom.ServUOBuilder
 
         private static string GetText(RelayInfo info, int entryID, string fallback)
         {
-            TextRelay relay = info.GetTextEntry(entryID);
+            var relay = info.GetTextEntry(entryID);
 
             if (relay == null || relay.Text == null)
                 return fallback;
@@ -1446,12 +1450,12 @@ namespace Server.Custom.ServUOBuilder
 
         private static int GetInt(RelayInfo info, int entryID, int fallback)
         {
-            string text = GetText(info, entryID,
+            var text = GetText(info, entryID,
                 fallback.ToString(CultureInfo.InvariantCulture));
             int value;
 
-            if (Int32.TryParse(text, NumberStyles.Integer,
-                CultureInfo.InvariantCulture, out value))
+            if (int.TryParse(text, NumberStyles.Integer,
+                    CultureInfo.InvariantCulture, out value))
                 return value;
 
             return fallback;
@@ -1480,7 +1484,7 @@ namespace Server.Custom.ServUOBuilder
                 Point3D location;
 
                 if (!ServUOVisualBuilder.TryGetPlacementLocation(
-                    targeted, m_State.ZOffset, out location))
+                        targeted, m_State.ZOffset, out location))
                 {
                     from.SendMessage(0x22, "Invalid placement target.");
                     from.Target = new ServUOBuilderTarget(m_State);
@@ -1494,10 +1498,10 @@ namespace Server.Custom.ServUOBuilder
                     return;
                 }
 
-                Static piece = ServUOVisualBuilder.CreateStatic(
+                var piece = ServUOVisualBuilder.CreateStatic(
                     m_State.SelectedItemID, m_State.SelectedHue,
                     location, from.Map);
-                m_State.TrackAction(new List<Item>() { piece });
+                m_State.TrackAction(new List<Item> { piece });
                 from.PlaySound(0x23D);
                 from.Target = new ServUOBuilderTarget(m_State);
                 return;
@@ -1505,7 +1509,7 @@ namespace Server.Custom.ServUOBuilder
 
             if (m_State.Mode == ServUOBuilderMode.Erase)
             {
-                Item item = targeted as Item;
+                var item = targeted as Item;
 
                 if (item == null)
                 {
@@ -1530,7 +1534,7 @@ namespace Server.Custom.ServUOBuilder
 
             if (m_State.Mode == ServUOBuilderMode.Edit)
             {
-                Item item = targeted as Item;
+                var item = targeted as Item;
 
                 if (item == null)
                 {
@@ -1555,10 +1559,10 @@ namespace Server.Custom.ServUOBuilder
 
             if (m_State.Mode == ServUOBuilderMode.Clone)
             {
-                int itemID = 0;
-                int hue = 0;
+                var itemID = 0;
+                var hue = 0;
 
-                Item item = targeted as Item;
+                var item = targeted as Item;
 
                 if (item != null)
                 {
@@ -1567,7 +1571,7 @@ namespace Server.Custom.ServUOBuilder
                 }
                 else
                 {
-                    StaticTarget staticTarget = targeted as StaticTarget;
+                    var staticTarget = targeted as StaticTarget;
 
                     if (staticTarget != null)
                         itemID = staticTarget.ItemID;
@@ -1601,8 +1605,8 @@ namespace Server.Custom.ServUOBuilder
 
     public class ServUOBuilderBoxStartTarget : Target
     {
-        private readonly ServUOBuilderState m_State;
         private readonly bool m_Delete;
+        private readonly ServUOBuilderState m_State;
 
         public ServUOBuilderBoxStartTarget(ServUOBuilderState state, bool delete)
             : base(-1, true, TargetFlags.None)
@@ -1622,7 +1626,7 @@ namespace Server.Custom.ServUOBuilder
 
             if (m_Delete)
             {
-                IPoint3D point = targeted as IPoint3D;
+                var point = targeted as IPoint3D;
 
                 if (point == null)
                 {
@@ -1633,7 +1637,7 @@ namespace Server.Custom.ServUOBuilder
                 location = new Point3D(point);
             }
             else if (!ServUOVisualBuilder.TryGetPlacementLocation(
-                targeted, m_State.ZOffset, out location))
+                         targeted, m_State.ZOffset, out location))
             {
                 from.SendMessage(0x22, "Invalid first corner.");
                 return;
@@ -1652,9 +1656,9 @@ namespace Server.Custom.ServUOBuilder
 
     public class ServUOBuilderBoxEndTarget : Target
     {
-        private readonly ServUOBuilderState m_State;
         private readonly bool m_Delete;
         private readonly Point3D m_Start;
+        private readonly ServUOBuilderState m_State;
 
         public ServUOBuilderBoxEndTarget(ServUOBuilderState state,
             bool delete, Point3D start)
@@ -1676,7 +1680,7 @@ namespace Server.Custom.ServUOBuilder
 
             if (m_Delete)
             {
-                IPoint3D point = targeted as IPoint3D;
+                var point = targeted as IPoint3D;
 
                 if (point == null)
                 {
@@ -1687,18 +1691,18 @@ namespace Server.Custom.ServUOBuilder
                 end = new Point3D(point);
             }
             else if (!ServUOVisualBuilder.TryGetPlacementLocation(
-                targeted, m_State.ZOffset, out end))
+                         targeted, m_State.ZOffset, out end))
             {
                 from.SendMessage(0x22, "Invalid opposite corner.");
                 return;
             }
 
-            int minX = Math.Min(m_Start.X, end.X);
-            int maxX = Math.Max(m_Start.X, end.X);
-            int minY = Math.Min(m_Start.Y, end.Y);
-            int maxY = Math.Max(m_Start.Y, end.Y);
+            var minX = Math.Min(m_Start.X, end.X);
+            var maxX = Math.Max(m_Start.X, end.X);
+            var minY = Math.Min(m_Start.Y, end.Y);
+            var maxY = Math.Max(m_Start.Y, end.Y);
 
-            if ((maxX - minX) > 49 || (maxY - minY) > 49)
+            if (maxX - minX > 49 || maxY - minY > 49)
             {
                 from.SendMessage(0x22,
                     "Area too large. Maximum Fill/Wipe size is 50 by 50 tiles.");
@@ -1717,17 +1721,15 @@ namespace Server.Custom.ServUOBuilder
         private void FillBox(Mobile from, int minX, int maxX,
             int minY, int maxY)
         {
-            List<Item> placed = new List<Item>();
+            var placed = new List<Item>();
 
-            for (int x = minX; x <= maxX; x++)
+            for (var x = minX; x <= maxX; x++)
+            for (var y = minY; y <= maxY; y++)
             {
-                for (int y = minY; y <= maxY; y++)
-                {
-                    Static piece = ServUOVisualBuilder.CreateStatic(
-                        m_State.SelectedItemID, m_State.SelectedHue,
-                        new Point3D(x, y, m_Start.Z), from.Map);
-                    placed.Add(piece);
-                }
+                var piece = ServUOVisualBuilder.CreateStatic(
+                    m_State.SelectedItemID, m_State.SelectedHue,
+                    new Point3D(x, y, m_Start.Z), from.Map);
+                placed.Add(piece);
             }
 
             m_State.TrackAction(placed);
@@ -1739,46 +1741,40 @@ namespace Server.Custom.ServUOBuilder
         private void WipeBox(Mobile from, int minX, int maxX,
             int minY, int maxY, Point3D end)
         {
-            int minZ = Math.Min(m_Start.Z, end.Z) - 2;
-            int maxZ = Math.Max(m_Start.Z, end.Z) + 20;
-            List<Item> toDelete = new List<Item>();
+            var minZ = Math.Min(m_Start.Z, end.Z) - 2;
+            var maxZ = Math.Max(m_Start.Z, end.Z) + 20;
+            var toDelete = new List<Item>();
 
             if (m_State.ProtectedMode)
             {
-                IList<Item> items = m_State.SessionItems;
+                var items = m_State.SessionItems;
 
-                for (int i = 0; i < items.Count; i++)
+                for (var i = 0; i < items.Count; i++)
                 {
-                    Item item = items[i];
+                    var item = items[i];
 
                     if (item != null && !item.Deleted &&
                         item.X >= minX && item.X <= maxX &&
                         item.Y >= minY && item.Y <= maxY &&
                         item.Z >= minZ && item.Z <= maxZ)
-                    {
                         toDelete.Add(item);
-                    }
                 }
             }
             else
             {
-                Rectangle2D bounds = new Rectangle2D(
+                var bounds = new Rectangle2D(
                     minX, minY,
-                    (maxX - minX) + 1,
-                    (maxY - minY) + 1);
+                    maxX - minX + 1,
+                    maxY - minY + 1);
 
-                IPooledEnumerable<Item> enumerable = from.Map.GetItemsInBounds(bounds);
+                var enumerable = from.Map.GetItemsInBounds(bounds);
 
                 try
                 {
-                    foreach (Item item in enumerable)
-                    {
+                    foreach (var item in enumerable)
                         if (ServUOVisualBuilder.CanWorldWipe(item) &&
                             item.Z >= minZ && item.Z <= maxZ)
-                        {
                             toDelete.Add(item);
-                        }
-                    }
                 }
                 finally
                 {
@@ -1786,9 +1782,9 @@ namespace Server.Custom.ServUOBuilder
                 }
             }
 
-            for (int i = 0; i < toDelete.Count; i++)
+            for (var i = 0; i < toDelete.Count; i++)
             {
-                Item item = toDelete[i];
+                var item = toDelete[i];
 
                 if (item != null && !item.Deleted)
                 {

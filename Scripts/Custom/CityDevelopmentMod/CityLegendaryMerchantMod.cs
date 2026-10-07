@@ -2,102 +2,108 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
-using Server;
-using Server.Mobiles;
-using Server.Items;
-using Server.Factions;
+using Server.Commands;
+using Server.Custom.DiabloLoot;
 using Server.Engines.CityLoyalty;
 using Server.Engines.Plants;
-using Server.Custom.DiabloLoot;
+using Server.Factions;
+using Server.Items;
+using Server.Mobiles;
+using Server.Network;
 
 namespace Server.Custom.CityDevelopment
 {
     public class LegendaryMerchant : PlayerVendor
     {
-        private int _ProfessionIndex;
-        public int ProfessionIndex { get { return _ProfessionIndex; } }
+        public int ProfessionIndex { get; private set; }
 
         [Constructable]
         public LegendaryMerchant(string title, int professionIndex) : base(null, null)
         {
-            _ProfessionIndex = professionIndex;
+            ProfessionIndex = professionIndex;
             Name = NameList.RandomName("male");
             Title = $"[{title}]";
             CantWalk = true;
             Blessed = true;
-            this.HoldGold = 1000000;
+            HoldGold = 1000000;
 
             DressUp();
             GenerateLegendaryStock();
 
             // Таймер самоликвидации (проверка склада каждые 10 секунд)
-            Timer.DelayCall(TimeSpan.FromSeconds(10.0), TimeSpan.FromSeconds(10.0), new TimerCallback(CheckStockAndCleanup));
+            Timer.DelayCall(TimeSpan.FromSeconds(10.0), TimeSpan.FromSeconds(10.0), CheckStockAndCleanup);
 
             // ДОБАВЛЕНО: Купец стоит в городе максимум 4 часа. Если не раскупили — он уходит, уступая место новому каравану!
-            Timer.DelayCall(TimeSpan.FromHours(4.0), new TimerCallback(LeaveTownDueToNoSales));
+            Timer.DelayCall(TimeSpan.FromHours(4.0), LeaveTownDueToNoSales);
+        }
+
+        public LegendaryMerchant(Serial serial) : base(serial)
+        {
         }
 
         // Метод ухода по истечении времени
         private void LeaveTownDueToNoSales()
         {
-            if (this.Deleted) return;
+            if (Deleted) return;
 
-            PublicOverheadMessage(Network.MessageType.Regular, 0x35, false, "Торговля в этом городе идет вяло... Я отправляюсь в другой регион. До встречи, честные господа!");
-            
+            PublicOverheadMessage(MessageType.Regular, 0x35, false,
+                "Торговля в этом городе идет вяло... Я отправляюсь в другой регион. До встречи, честные господа!");
+
             // Чисто удаляем предметы из его сумки, чтобы они не забивали память сервера
-            if (this.Backpack != null)
+            if (Backpack != null)
             {
-                List<Item> toDelete = new List<Item>();
-                foreach (Item item in this.Backpack.Items) toDelete.Add(item);
-                foreach (Item item in toDelete) item.Delete();
+                var toDelete = new List<Item>();
+                foreach (var item in Backpack.Items) toDelete.Add(item);
+                foreach (var item in toDelete) item.Delete();
             }
 
-            Timer.DelayCall(TimeSpan.FromSeconds(2.0), () => this.Delete());
+            Timer.DelayCall(TimeSpan.FromSeconds(2.0), () => Delete());
         }
 
         private void DressUp()
         {
-            int randomHue = Utility.RandomList(1150, 1153, 1284, 2123);
-            this.AddItem(new FancyShirt(randomHue));
-            this.AddItem(new LongPants(1157));
-            this.AddItem(new ThighBoots(1175));
+            var randomHue = Utility.RandomList(1150, 1153, 1284, 2123);
+            AddItem(new FancyShirt(randomHue));
+            AddItem(new LongPants(1157));
+            AddItem(new ThighBoots(1175));
         }
 
         private int CountProps(object attributesObject)
         {
             if (attributesObject == null) return 0;
-            int count = 0;
+            var count = 0;
             try
             {
-                PropertyInfo[] props = attributesObject.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
-                foreach (PropertyInfo prop in props)
-                {
+                var props = attributesObject.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
+                foreach (var prop in props)
                     if (prop.PropertyType == typeof(int))
                     {
-                        int value = (int)prop.GetValue(attributesObject, null);
+                        var value = (int)prop.GetValue(attributesObject, null);
                         if (value > 0) count++;
                     }
-                }
             }
-            catch { }
+            catch
+            {
+            }
+
             return count;
         }
 
         private void GenerateLegendaryStock()
         {
-            if (this.Backpack == null || this.Deleted) return;
+            if (Backpack == null || Deleted) return;
 
-            FieldInfo field = typeof(PlayerVendor).GetField("m_SellItems", BindingFlags.Instance | BindingFlags.NonPublic);
+            var field = typeof(PlayerVendor).GetField("m_SellItems", BindingFlags.Instance | BindingFlags.NonPublic);
             if (field == null) return;
 
-            Hashtable sellItems = field.GetValue(this) as Hashtable;
+            var sellItems = field.GetValue(this) as Hashtable;
             if (sellItems == null) return;
 
-            for (int i = 0; i < 15; i++)
+            for (var i = 0; i < 15; i++)
             {
                 Item spawnedItem = null;
 
-                switch (_ProfessionIndex)
+                switch (ProfessionIndex)
                 {
                     case 0:
                     case 5: // Оружейник / Лучник
@@ -118,12 +124,16 @@ namespace Server.Custom.CityDevelopment
                     case 7: // Семена Натуралиста
                         try
                         {
-                            Seed rareSeed = new Seed();
+                            var rareSeed = new Seed();
                             rareSeed.PlantType = (PlantType)Utility.RandomMinMax(0, 16);
                             rareSeed.PlantHue = (PlantHue)Utility.RandomMinMax(0, 16);
                             spawnedItem = rareSeed;
                         }
-                        catch { spawnedItem = new Candle(); }
+                        catch
+                        {
+                            spawnedItem = new Candle();
+                        }
+
                         break;
                     default:
                         spawnedItem = Loot.RandomArmorOrShieldOrWeaponOrJewelry(true, true, true);
@@ -134,7 +144,7 @@ namespace Server.Custom.CityDevelopment
 
                 if (spawnedItem != null)
                 {
-                    int propertyCount = 0;
+                    var propertyCount = 0;
 
                     if (spawnedItem is BaseWeapon weapon)
                     {
@@ -154,11 +164,15 @@ namespace Server.Custom.CityDevelopment
 
                     var powerProp = spawnedItem.GetType().GetProperty("ItemPower");
                     if (powerProp != null && powerProp.CanWrite)
-                    {
-                        try { powerProp.SetValue(spawnedItem, Enum.ToObject(powerProp.PropertyType, 5), null); } catch { }
-                    }
+                        try
+                        {
+                            powerProp.SetValue(spawnedItem, Enum.ToObject(powerProp.PropertyType, 5), null);
+                        }
+                        catch
+                        {
+                        }
 
-                    string originalName = spawnedItem.Name;
+                    var originalName = spawnedItem.Name;
                     if (string.IsNullOrEmpty(originalName))
                     {
                         if (!string.IsNullOrEmpty(spawnedItem.ItemData.Name))
@@ -166,15 +180,16 @@ namespace Server.Custom.CityDevelopment
                         else
                             originalName = spawnedItem.GetType().Name;
                     }
+
                     spawnedItem.Name = DiabloLootColors.FormatName(spawnedItem, originalName);
 
                     spawnedItem.Weight = 0;
 
                     // Укладываем в сумку
-                    this.Backpack.DropItem(spawnedItem);
+                    Backpack.DropItem(spawnedItem);
 
                     // Рассчитываем динамическую цену
-                    int finalPrice = 150000;
+                    var finalPrice = 150000;
 
                     if (spawnedItem is Seed)
                     {
@@ -182,7 +197,7 @@ namespace Server.Custom.CityDevelopment
                     }
                     else
                     {
-                        int goldValue = (int)(spawnedItem.Weight * 200) + (propertyCount * 35000);
+                        var goldValue = (int)(spawnedItem.Weight * 200) + propertyCount * 35000;
                         goldValue = (int)(goldValue * Utility.RandomMinMax(0.85, 1.15));
 
                         if (goldValue < 45000) goldValue = 45000;
@@ -193,43 +208,56 @@ namespace Server.Custom.CityDevelopment
 
                     // УЛЬТИМАТИВНЫЙ ФИКС ЦЕНЫ: Используем штатный метод PlayerVendor.System,
                     // либо принудительно подменяем свойства внутри Hashtable, переписывая структуру
-                    VendorItem vi = sellItems[spawnedItem] as VendorItem;
+                    var vi = sellItems[spawnedItem] as VendorItem;
                     if (vi == null)
                     {
-                        vi = new VendorItem(spawnedItem, finalPrice, "[Легендарный Артефакт 5 Уровня Мощности]", DateTime.UtcNow);
+                        vi = new VendorItem(spawnedItem, finalPrice, "[Легендарный Артефакт 5 Уровня Мощности]",
+                            DateTime.UtcNow);
                         sellItems[spawnedItem] = vi;
                     }
                     else
                     {
                         // Since VendorItem.Price is read‑only, recreate the entry with the new price
-                        var updatedVi = new VendorItem(spawnedItem, finalPrice, "[Легендарный Артефакт 5 Уровня Мощности]", DateTime.UtcNow);
+                        var updatedVi = new VendorItem(spawnedItem, finalPrice,
+                            "[Легендарный Артефакт 5 Уровня Мощности]", DateTime.UtcNow);
                         sellItems[spawnedItem] = updatedVi;
                     }
 
                     // Насильно заставляем ядро комиссионки обновить прайс-лист в пакетах для клиента
-                    this.InvalidateProperties();
+                    InvalidateProperties();
                 }
             }
         }
 
         private void CheckStockAndCleanup()
         {
-            if (this.Deleted || this.Backpack == null) return;
+            if (Deleted || Backpack == null) return;
 
-            FieldInfo field = typeof(PlayerVendor).GetField("m_SellItems", BindingFlags.Instance | BindingFlags.NonPublic);
+            var field = typeof(PlayerVendor).GetField("m_SellItems", BindingFlags.Instance | BindingFlags.NonPublic);
             if (field == null) return;
 
-            Hashtable sellItems = field.GetValue(this) as Hashtable;
+            var sellItems = field.GetValue(this) as Hashtable;
             if (sellItems != null && sellItems.Count == 0)
             {
-                PublicOverheadMessage(Network.MessageType.Regular, 0x35, false, "Весь мой эксклюзивный товар распродан! Мне пора отправляться в путь. До встречи!");
-                Timer.DelayCall(TimeSpan.FromSeconds(2.0), () => this.Delete());
+                PublicOverheadMessage(MessageType.Regular, 0x35, false,
+                    "Весь мой эксклюзивный товар распродан! Мне пора отправляться в путь. До встречи!");
+                Timer.DelayCall(TimeSpan.FromSeconds(2.0), () => Delete());
             }
         }
 
-        public LegendaryMerchant(Serial serial) : base(serial) { }
-        public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write((int)1); writer.Write((int)_ProfessionIndex); }
-        public override void Deserialize(GenericReader reader) { base.Deserialize(reader); int version = reader.ReadInt(); _ProfessionIndex = reader.ReadInt(); }
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(1);
+            writer.Write(ProfessionIndex);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
+            ProfessionIndex = reader.ReadInt();
+        }
     }
 
     public static class CityLegendaryMerchantMod
@@ -238,18 +266,15 @@ namespace Server.Custom.CityDevelopment
         public static bool IsMerchantExists(Town town)
         {
             if (town == null) return false;
-            foreach (Mobile m in World.Mobiles.Values)
-            {
+            foreach (var m in World.Mobiles.Values)
                 if (m != null && !m.Deleted && m is LegendaryMerchant)
                 {
-                    Region mobRegion = Region.Find(m.Location, m.Map);
+                    var mobRegion = Region.Find(m.Location, m.Map);
                     if (mobRegion != null && mobRegion.Name != null &&
                         mobRegion.Name.IndexOf(town.ToString(), StringComparison.OrdinalIgnoreCase) >= 0)
-                    {
                         return true;
-                    }
                 }
-            }
+
             return false;
         }
 
@@ -270,22 +295,23 @@ namespace Server.Custom.CityDevelopment
             if (Utility.RandomDouble() > 0.80) return;
             try
             {
-                Map map = Map.Trammel;
-                Point3D spawnLoc = Point3D.Zero;
+                var map = Map.Trammel;
+                var spawnLoc = Point3D.Zero;
                 if (Enum.TryParse(town.ToString(), true, out City coreCity))
                 {
-                    CityLoyaltySystem sys = CityLoyaltySystem.GetCityInstance(coreCity);
+                    var sys = CityLoyaltySystem.GetCityInstance(coreCity);
                     if (sys != null && sys.Definition != null)
                     {
                         spawnLoc = sys.Definition.StoneLocation;
                         if (sys.Stone != null && sys.Stone.Map != null) map = sys.Stone.Map;
                     }
                 }
+
                 if (spawnLoc == Point3D.Zero) return;
                 spawnLoc.X += 2;
                 spawnLoc.Z = map.GetAverageZ(spawnLoc.X, spawnLoc.Y);
-                string merchantTitle = "Странствующий Купец";
-                int professionType = Utility.Random(8);
+                var merchantTitle = "Странствующий Купец";
+                var professionType = Utility.Random(8);
                 switch (professionType)
                 {
                     case 0: merchantTitle = "Легендарный Оружейник"; break;
@@ -297,37 +323,35 @@ namespace Server.Custom.CityDevelopment
                     case 6: merchantTitle = "Главный Инженер Гильдии"; break;
                     case 7: merchantTitle = "Великий Натуралист Земель"; break;
                 }
-                LegendaryMerchant merchant = new LegendaryMerchant(merchantTitle, professionType);
+
+                var merchant = new LegendaryMerchant(merchantTitle, professionType);
                 merchant.MoveToWorld(spawnLoc, map);
-                merchant.PublicOverheadMessage(Network.MessageType.Regular, 0x35, false, $"Приветствую жителей! Я, [{merchantTitle}], прибыл в ваш великий megapolis.");
-                Server.Commands.CommandHandlers.BroadcastMessage(AccessLevel.Player, 0x35, $"[Торговля] В развитый мегаполис {town} прибыл [{merchantTitle}] с эксклюзивными артефактами!");
+                merchant.PublicOverheadMessage(MessageType.Regular, 0x35, false,
+                    $"Приветствую жителей! Я, [{merchantTitle}], прибыл в ваш великий megapolis.");
+                CommandHandlers.BroadcastMessage(AccessLevel.Player, 0x35,
+                    $"[Торговля] В развитый мегаполис {town} прибыл [{merchantTitle}] с эксклюзивными артефактами!");
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[CityDevelopment] Критическая ошибка спавна купца: {ex.Message}\n{ex.StackTrace}");
             }
         }
+
         public static void RemoveMerchant(Town town)
         {
             if (town == null) return;
-            List<Mobile> toDelete = new List<Mobile>();
-            foreach (Mobile m in World.Mobiles.Values)
-            {
+            var toDelete = new List<Mobile>();
+            foreach (var m in World.Mobiles.Values)
                 if (m != null && !m.Deleted && m is LegendaryMerchant)
                 {
-                    Region mobRegion = Region.Find(m.Location, m.Map);
+                    var mobRegion = Region.Find(m.Location, m.Map);
                     if (mobRegion != null && mobRegion.Name != null &&
-                    mobRegion.Name.IndexOf(town.ToString(), StringComparison.OrdinalIgnoreCase) >= 0)
-                    {
+                        mobRegion.Name.IndexOf(town.ToString(), StringComparison.OrdinalIgnoreCase) >= 0)
                         toDelete.Add(m);
-                    }
-                    else if (town.ToString().Contains("Moonglow") && m.X >= 4400 && m.X <= 4560)
-                    {
-                        toDelete.Add(m);
-                    }
+                    else if (town.ToString().Contains("Moonglow") && m.X >= 4400 && m.X <= 4560) toDelete.Add(m);
                 }
-            }
-            foreach (Mobile m in toDelete) { m.Delete(); }
+
+            foreach (var m in toDelete) m.Delete();
         }
     }
 }

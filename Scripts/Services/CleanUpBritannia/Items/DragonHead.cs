@@ -2,19 +2,18 @@
 using Server.Gumps;
 using Server.Multis;
 using Server.Network;
-using Server.Targeting;
 
 namespace Server.Items
 {
     public enum AddonFacing
     {
         South = 0,
-        East = 1,
+        East = 1
     }
 
     public class DragonHeadAddon : BaseAddon
     {
-        public override BaseAddonDeed Deed { get { return new DragonHeadAddonDeed(); } }
+        public override BaseAddonDeed Deed => new DragonHeadAddonDeed();
 
         public AddonFacing Facing { get; set; }
 
@@ -37,13 +36,32 @@ namespace Server.Items
                 case AddonFacing.East:
                     AddComponent(new DragonHeadComponent(0x2235), 0, 0, 10);
                     break;
-
             }
+        }
+
+        public DragonHeadAddon(Serial serial)
+            : base(serial)
+        {
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+
+            writer.WriteEncodedInt(0); // version
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+
+            var version = reader.ReadEncodedInt();
         }
 
         private class DragonHeadComponent : AddonComponent
         {
-            public override bool NeedsWall { get { return true; } }
+            public override bool NeedsWall => true;
+
             public override Point3D WallPosition
             {
                 get
@@ -78,37 +96,18 @@ namespace Server.Items
             {
                 base.Deserialize(reader);
 
-                int version = reader.ReadEncodedInt();
+                var version = reader.ReadEncodedInt();
             }
-        }
-
-        public DragonHeadAddon(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-
-            writer.WriteEncodedInt(0); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadEncodedInt();
         }
     }
 
     public class DragonHeadAddonDeed : BaseAddonDeed, IRewardOption
     {
-        public override BaseAddon Addon { get { return new DragonHeadAddon(Facing); } }
+        public override BaseAddon Addon => new DragonHeadAddon(Facing);
 
         private AddonFacing Facing { get; set; }
 
-        public override int LabelNumber { get { return 1080209; } } // Dragon Head
+        public override int LabelNumber => 1080209; // Dragon Head
 
         [Constructable]
         public DragonHeadAddonDeed()
@@ -116,34 +115,9 @@ namespace Server.Items
             LootType = LootType.Blessed;
         }
 
-        public override void OnDoubleClick(Mobile from)
-        {
-            if (IsChildOf(from.Backpack))
-            {
-                from.CloseGump(typeof(RewardOptionGump));
-                from.SendGump(new RewardOptionGump(this));
-            }
-            else
-                from.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.       	
-        }
-
         public DragonHeadAddonDeed(Serial serial)
             : base(serial)
         {
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-
-            writer.Write((int)0); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
         }
 
         public void GetOptions(RewardOptionList list)
@@ -160,13 +134,44 @@ namespace Server.Items
             if (!Deleted)
                 base.OnDoubleClick(from);
         }
+
+        public override void OnDoubleClick(Mobile from)
+        {
+            if (IsChildOf(from.Backpack))
+            {
+                from.CloseGump(typeof(RewardOptionGump));
+                from.SendGump(new RewardOptionGump(this));
+            }
+            else
+            {
+                from.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.       	
+            }
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+
+            writer.Write(0); // version
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+
+            var version = reader.ReadInt();
+        }
     }
 
     // old classes
     [TypeAlias("Server.Items.DragonHead")]
     public class DragonHeadOld : Item, IAddon
     {
-        public override bool IsArtifact { get { return true; } }
+        public override bool IsArtifact => true;
+
+        public override bool ForceShowProperties => ObjectPropertyList.Enabled;
+
+        public bool FacingEast => ItemID == 0x2235;
 
         [Constructable]
         public DragonHeadOld()
@@ -186,38 +191,28 @@ namespace Server.Items
         {
         }
 
-        public override bool ForceShowProperties
-        {
-            get
-            {
-                return ObjectPropertyList.Enabled;
-            }
-        }
-        public Item Deed
-        {
-            get
-            {
-                return new DragonHeadAddonDeed();
-            }
-        }
-        public bool FacingEast
-        {
-            get
-            {
-                return ItemID == 0x2235;
-            }
-        }
+        public Item Deed => new DragonHeadAddonDeed();
 
         void IChopable.OnChop(Mobile user)
         {
             OnDoubleClick(user);
         }
 
+        public bool CouldFit(IPoint3D p, Map map)
+        {
+            if (map == null || !map.CanFit(p.X, p.Y, p.Z, ItemData.Height))
+                return false;
+
+            if (FacingEast)
+                return BaseAddon.IsWall(p.X - 1, p.Y, p.Z, map); // west wall                
+            return BaseAddon.IsWall(p.X, p.Y - 1, p.Z, map); // north wall
+        }
+
         public override void OnDoubleClick(Mobile from)
         {
             if (from.InRange(Location, 2))
             {
-                BaseHouse house = BaseHouse.FindHouseAt(this);
+                var house = BaseHouse.FindHouseAt(this);
 
                 if (house != null && house.IsOwner(from))
                 {
@@ -225,10 +220,15 @@ namespace Server.Items
                     from.SendGump(new RewardDemolitionGump(this, 1049783)); // Do you wish to re-deed this decoration?
                 }
                 else
-                    from.SendLocalizedMessage(1049784); // You can only re-deed this decoration if you are the house owner or originally placed the decoration.
+                {
+                    from.SendLocalizedMessage(
+                        1049784); // You can only re-deed this decoration if you are the house owner or originally placed the decoration.
+                }
             }
             else
+            {
                 from.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1019045); // I can't reach that.
+            }
         }
 
         public override void Serialize(GenericWriter writer)
@@ -242,25 +242,14 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
-        }
-
-        public bool CouldFit(IPoint3D p, Map map)
-        {
-            if (map == null || !map.CanFit(p.X, p.Y, p.Z, ItemData.Height))
-                return false;
-
-            if (FacingEast)
-                return BaseAddon.IsWall(p.X - 1, p.Y, p.Z, map); // west wall                
-            else
-                return BaseAddon.IsWall(p.X, p.Y - 1, p.Z, map); // north wall
+            var version = reader.ReadEncodedInt();
         }
     }
 
     [TypeAlias("Server.Items.DragonHeadDeed")]
     public class DragonHeadDeedOld : Item
     {
-        public override int LabelNumber { get { return 1028756; } } // dragon head
+        public override int LabelNumber => 1028756; // dragon head
 
         [Constructable]
         public DragonHeadDeedOld()
@@ -286,14 +275,14 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
 
             Timer.DelayCall(TimeSpan.FromSeconds(10), Replace);
         }
 
         private void Replace()
         {
-            Container c = Parent as Container;
+            var c = Parent as Container;
 
             if (c != null)
             {
@@ -302,7 +291,7 @@ namespace Server.Items
             }
             else if (Parent == null)
             {
-                Server.Multis.BaseHouse house = Server.Multis.BaseHouse.FindHouseAt(this);
+                var house = BaseHouse.FindHouseAt(this);
 
                 var deed = new DragonHeadAddonDeed();
                 deed.MoveToWorld(Location, Map);

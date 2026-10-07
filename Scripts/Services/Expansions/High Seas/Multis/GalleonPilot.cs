@@ -1,12 +1,11 @@
-using Server;
 using System;
-using Server.Multis;
-using Server.ContextMenus;
 using System.Collections.Generic;
-using Server.Gumps;
-using Server.Targeting;
-using Server.Items;
 using System.Linq;
+using Server.ContextMenus;
+using Server.Gumps;
+using Server.Items;
+using Server.Multis;
+using Server.Targeting;
 
 namespace Server.Mobiles
 {
@@ -30,10 +29,15 @@ namespace Server.Mobiles
 
             OriginalItems = new List<Item>();
 
-            foreach (Item item in Items)
+            foreach (var item in Items)
                 OriginalItems.Add(item);
 
             SetSkill(SkillName.Cartography, 100.0);
+        }
+
+        public GalleonPilot(Serial serial)
+            : base(serial)
+        {
         }
 
         public virtual void InitBody()
@@ -78,9 +82,8 @@ namespace Server.Mobiles
 
         public virtual void InitOutfit()
         {
-            if (Core.SE && this.Map == Map.Tokuno)
+            if (Core.SE && Map == Map.Tokuno)
             {
-
                 if (Utility.Random(2) == 0)
                     SetWearable(new Kasa(GetRandomHue()));
                 if (Utility.Random(2) == 0)
@@ -88,7 +91,9 @@ namespace Server.Mobiles
                 if (Utility.RandomDouble() < 0.25)
                 {
                     if (Female)
+                    {
                         SetWearable(new FemaleKimono(GetRandomHue()));
+                    }
                     else
                     {
                         if (Utility.Random(2) == 0)
@@ -102,25 +107,25 @@ namespace Server.Mobiles
                     switch (Utility.Random(2))
                     {
                         case 0:
-                            {
-                                SetWearable(new FancyShirt(GetRandomHue()));
-                                SetWearable(new JinBaori(GetRandomHue())); break;
-                            }
+                        {
+                            SetWearable(new FancyShirt(GetRandomHue()));
+                            SetWearable(new JinBaori(GetRandomHue()));
+                            break;
+                        }
                         case 1: SetWearable(new HakamaShita(GetRandomHue())); break;
-
                     }
+
                     switch (Utility.Random(2))
                     {
                         case 0: SetWearable(new Hakama(GetRandomHue())); break;
                         case 1: SetWearable(new TattsukeHakama(GetRandomHue())); break;
-
                     }
                 }
+
                 switch (Utility.Random(2))
                 {
                     case 0: SetWearable(new Sandals(GetShoeHue())); break;
                     case 1: SetWearable(new Waraji(GetShoeHue())); break;
-
                 }
             }
             else
@@ -133,7 +138,6 @@ namespace Server.Mobiles
                 }
 
 
-
                 switch (Utility.Random(4))
                 {
                     case 0: SetWearable(new Shoes(GetShoeHue())); break;
@@ -143,9 +147,7 @@ namespace Server.Mobiles
                 }
 
 
-
                 if (Female)
-                {
                     switch (Utility.Random(6))
                     {
                         case 0: SetWearable(new ShortPants(GetRandomHue())); break;
@@ -155,17 +157,15 @@ namespace Server.Mobiles
                         case 4:
                         case 5: SetWearable(new Skirt(GetRandomHue())); break;
                     }
-                }
                 else
-                {
                     switch (Utility.Random(2))
                     {
                         case 0: SetWearable(new LongPants(GetRandomHue())); break;
                         case 1: SetWearable(new ShortPants(GetRandomHue())); break;
                     }
-                }
             }
-            int hairHue = GetHairHue();
+
+            var hairHue = GetHairHue();
 
             Utility.AssignRandomHair(this, hairHue);
             Utility.AssignRandomFacialHair(this, hairHue);
@@ -213,9 +213,7 @@ namespace Server.Mobiles
         public override bool OnDragDrop(Mobile from, Item dropped)
         {
             if (dropped is MapItem && Galleon != null && Galleon.CanCommand(from) && Galleon.Contains(from))
-            {
                 Galleon.AssociateMap((MapItem)dropped);
-            }
 
             return false;
         }
@@ -250,7 +248,7 @@ namespace Server.Mobiles
             {
                 if (Galleon.Contains(from))
                 {
-                    SecurityLevel level = Galleon.GetSecurityLevel(from);
+                    var level = Galleon.GetSecurityLevel(from);
 
                     if (level >= SecurityLevel.Crewman)
                     {
@@ -269,194 +267,6 @@ namespace Server.Mobiles
                 else
                 {
                     list.Add(new DryDockEntry(Galleon, from));
-                }
-            }
-        }
-
-        private class EmergencyRepairEntry : ContextMenuEntry
-        {
-            private GalleonPilot m_Pilot;
-            private Mobile m_From;
-
-            public EmergencyRepairEntry(GalleonPilot pilot, Mobile from)
-                : base(1116589, 5) // Emergency Repairs
-            {
-                m_Pilot = pilot;
-                m_From = from;
-            }
-
-            public override void OnClick()
-            {
-                if (m_Pilot != null && m_Pilot.Galleon != null)
-                {
-                    BaseGalleon g = m_Pilot.Galleon;
-
-                    if (!g.Scuttled)
-                        m_From.SendLocalizedMessage(1116595); // Your ship is not in need of emergency repairs in order to sail.
-                    else if (g.IsUnderEmergencyRepairs())
-                    {
-                        TimeSpan left = g.GetEndEmergencyRepairs();
-                        m_From.SendLocalizedMessage(1116592, left != TimeSpan.Zero ? left.TotalMinutes.ToString() : "0"); // Your ship is underway with emergency repairs holding for an estimated ~1_TIME~ more minutes.
-                    }
-                    else if (!g.TryEmergencyRepair(m_From))
-                        m_From.SendLocalizedMessage(1116591, string.Format("{0}\t{1}", BaseBoat.EmergencyRepairClothCost.ToString(), BaseBoat.EmergencyRepairWoodCost)); //You need a minimum of ~1_CLOTH~ yards of cloth and ~2_WOOD~ pieces of lumber to effect emergency repairs.
-                }
-            }
-        }
-
-        private class ShipRepairEntry : ContextMenuEntry
-        {
-            private GalleonPilot m_Pilot;
-            private Mobile m_From;
-
-            public ShipRepairEntry(GalleonPilot pilot, Mobile from)
-                : base(1116590, 5) // Permanent Repairs
-            {
-                m_Pilot = pilot;
-                m_From = from;
-            }
-
-            public override void OnClick()
-            {
-                if (m_Pilot != null && m_Pilot.Galleon != null)
-                {
-                    if (!BaseGalleon.IsNearLandOrDocks(m_Pilot.Galleon))
-                        m_From.SendLocalizedMessage(1116594); // Your ship must be near shore or a sea market in order to effect permanent repairs.
-                    else if (m_Pilot.Galleon.DamageTaken == DamageLevel.Pristine)
-                        m_From.SendLocalizedMessage(1116596); // Your ship is in pristine condition and does not need repairs.
-                    else
-                        m_Pilot.Galleon.TryRepairs(m_From);
-                }
-            }
-        }
-
-        private class MoveTillermanEntry : ContextMenuEntry
-        {
-            private GalleonPilot m_Pilot;
-            private Mobile m_From;
-
-            public MoveTillermanEntry(GalleonPilot pilot, Mobile from)
-                : base(1116729, 5) // Move Tillerman
-            {
-                m_Pilot = pilot;
-                m_From = from;
-            }
-
-            public override void OnClick()
-            {
-                m_From.Target = new RelocateTarget(m_Pilot, m_Pilot.Galleon);
-                m_From.SendLocalizedMessage(1116736); // Where do you wish to station the pilot?
-            }
-        }
-
-        private class RelocateTarget : Target
-        {
-            private GalleonPilot m_Pilot;
-            private BaseGalleon m_Galleon;
-
-            public RelocateTarget(GalleonPilot pilot, BaseGalleon galleon)
-                : base(12, false, TargetFlags.None)
-            {
-                m_Pilot = pilot;
-                m_Galleon = galleon;
-            }
-
-            protected override void OnTarget(Mobile from, object targeted)
-            {
-                if (targeted is IPoint3D && from.Map != null)
-                {
-                    IPoint3D pnt = (IPoint3D)targeted;
-
-                    BaseBoat boat = BaseBoat.FindBoatAt(pnt, from.Map);
-
-                    if (boat != null && boat == m_Galleon && IsSurface(pnt))
-                    {
-                        IPooledEnumerable eable = m_Pilot.Map.GetObjectsInRange(new Point3D(pnt), 0);
-
-                        foreach (object o in eable)
-                        {
-                            if (o is Mobile || o is Item)
-                            {
-                                from.SendLocalizedMessage(1011577); // This is an invalid location. 
-                                from.Target = new RelocateTarget(m_Pilot, m_Galleon);
-                                eable.Free();
-                                return;
-                            }
-                        }
-                        eable.Free();
-
-                        StaticTarget st = (StaticTarget)pnt;
-                        int z = m_Galleon.ZSurface;
-
-                        if (st != null)
-                            z = st.Z;
-
-                        m_Pilot.MoveToWorld(new Point3D(pnt.X, pnt.Y, z), from.Map);
-                    }
-                    else
-                    {
-                        from.SendLocalizedMessage(1011577); // This is an invalid location. 
-                        from.Target = new RelocateTarget(m_Pilot, m_Galleon);
-                    }
-                }
-            }
-
-            public bool IsSurface(IPoint3D pnt)
-            {
-                if (pnt is StaticTarget)
-                {
-                    StaticTarget st = (StaticTarget)pnt;
-
-                    if ((st.Flags & TileFlag.Surface) > 0)
-                        return true;
-                }
-                return false;
-            }
-        }
-
-        private class SecuritySettingsEntry : ContextMenuEntry
-        {
-            private GalleonPilot m_Pilot;
-            private Mobile m_From;
-
-            public SecuritySettingsEntry(GalleonPilot pilot, Mobile from)
-                : base(1149786, 5) // Security Settings
-            {
-                m_Pilot = pilot;
-                m_From = from;
-            }
-
-            public override void OnClick()
-            {
-                if (m_Pilot != null && m_Pilot.Galleon != null && !m_From.HasGump(typeof(ShipSecurityGump)))
-                    m_From.SendGump(new ShipSecurityGump(m_From, m_Pilot.Galleon));
-            }
-        }
-
-        private class ResetSecuritySettings : ContextMenuEntry
-        {
-            private GalleonPilot m_Pilot;
-            private Mobile m_From;
-
-            public ResetSecuritySettings(GalleonPilot pilot, Mobile from)
-                : base(1060700, 5) // Reset Security
-            {
-                m_Pilot = pilot;
-                m_From = from;
-            }
-
-            public override void OnClick()
-            {
-                if (m_Pilot != null && m_Pilot.Galleon != null)
-                {
-                    m_From.SendGump(new BasicConfirmGump<BaseGalleon>(new TextDefinition(1116618), (m, boat) => // Are you sure you wish to clear your ship's access list?
-                    {
-                        boat.SecurityEntry.Manifest.Keys.Where(x => !boat.IsOwner(x)).ToList().ForEach(y =>
-                        {
-                            boat.SecurityEntry.RemoveFromAccessList(y);
-                        });
-
-                    }, m_Pilot.Galleon));
                 }
             }
         }
@@ -481,21 +291,18 @@ namespace Server.Mobiles
                 list.Add(string.Format("{0} the Pilot of {1}", Name, nameStr));
             }
             else
+            {
                 base.AddNameProperties(list);
-        }
-
-        public GalleonPilot(Serial serial)
-            : base(serial)
-        {
+            }
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1);
+            writer.Write(1);
 
             writer.Write(OriginalItems.Count);
-            foreach (Item item in OriginalItems)
+            foreach (var item in OriginalItems)
                 writer.Write(item);
 
             writer.Write(Galleon);
@@ -504,20 +311,21 @@ namespace Server.Mobiles
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             OriginalItems = new List<Item>();
 
             switch (version)
             {
                 case 1:
-                    int count = reader.ReadInt();
-                    for (int i = 0; i < count; i++)
+                    var count = reader.ReadInt();
+                    for (var i = 0; i < count; i++)
                     {
-                        Item item = reader.ReadItem();
+                        var item = reader.ReadItem();
                         if (item != null && !item.Deleted)
                             OriginalItems.Add(item);
                     }
+
                     goto case 0;
                 case 0:
                     Galleon = (BaseGalleon)reader.ReadItem();
@@ -526,6 +334,205 @@ namespace Server.Mobiles
 
             if (Galleon == null)
                 Delete();
+        }
+
+        private class EmergencyRepairEntry : ContextMenuEntry
+        {
+            private readonly Mobile m_From;
+            private readonly GalleonPilot m_Pilot;
+
+            public EmergencyRepairEntry(GalleonPilot pilot, Mobile from)
+                : base(1116589, 5) // Emergency Repairs
+            {
+                m_Pilot = pilot;
+                m_From = from;
+            }
+
+            public override void OnClick()
+            {
+                if (m_Pilot != null && m_Pilot.Galleon != null)
+                {
+                    var g = m_Pilot.Galleon;
+
+                    if (!g.Scuttled)
+                    {
+                        m_From.SendLocalizedMessage(
+                            1116595); // Your ship is not in need of emergency repairs in order to sail.
+                    }
+                    else if (g.IsUnderEmergencyRepairs())
+                    {
+                        var left = g.GetEndEmergencyRepairs();
+                        m_From.SendLocalizedMessage(1116592,
+                            left != TimeSpan.Zero
+                                ? left.TotalMinutes.ToString()
+                                : "0"); // Your ship is underway with emergency repairs holding for an estimated ~1_TIME~ more minutes.
+                    }
+                    else if (!g.TryEmergencyRepair(m_From))
+                    {
+                        m_From.SendLocalizedMessage(1116591,
+                            string.Format("{0}\t{1}", BaseBoat.EmergencyRepairClothCost.ToString(),
+                                BaseBoat
+                                    .EmergencyRepairWoodCost)); //You need a minimum of ~1_CLOTH~ yards of cloth and ~2_WOOD~ pieces of lumber to effect emergency repairs.
+                    }
+                }
+            }
+        }
+
+        private class ShipRepairEntry : ContextMenuEntry
+        {
+            private readonly Mobile m_From;
+            private readonly GalleonPilot m_Pilot;
+
+            public ShipRepairEntry(GalleonPilot pilot, Mobile from)
+                : base(1116590, 5) // Permanent Repairs
+            {
+                m_Pilot = pilot;
+                m_From = from;
+            }
+
+            public override void OnClick()
+            {
+                if (m_Pilot != null && m_Pilot.Galleon != null)
+                {
+                    if (!BaseGalleon.IsNearLandOrDocks(m_Pilot.Galleon))
+                        m_From.SendLocalizedMessage(
+                            1116594); // Your ship must be near shore or a sea market in order to effect permanent repairs.
+                    else if (m_Pilot.Galleon.DamageTaken == DamageLevel.Pristine)
+                        m_From.SendLocalizedMessage(
+                            1116596); // Your ship is in pristine condition and does not need repairs.
+                    else
+                        m_Pilot.Galleon.TryRepairs(m_From);
+                }
+            }
+        }
+
+        private class MoveTillermanEntry : ContextMenuEntry
+        {
+            private readonly Mobile m_From;
+            private readonly GalleonPilot m_Pilot;
+
+            public MoveTillermanEntry(GalleonPilot pilot, Mobile from)
+                : base(1116729, 5) // Move Tillerman
+            {
+                m_Pilot = pilot;
+                m_From = from;
+            }
+
+            public override void OnClick()
+            {
+                m_From.Target = new RelocateTarget(m_Pilot, m_Pilot.Galleon);
+                m_From.SendLocalizedMessage(1116736); // Where do you wish to station the pilot?
+            }
+        }
+
+        private class RelocateTarget : Target
+        {
+            private readonly BaseGalleon m_Galleon;
+            private readonly GalleonPilot m_Pilot;
+
+            public RelocateTarget(GalleonPilot pilot, BaseGalleon galleon)
+                : base(12, false, TargetFlags.None)
+            {
+                m_Pilot = pilot;
+                m_Galleon = galleon;
+            }
+
+            protected override void OnTarget(Mobile from, object targeted)
+            {
+                if (targeted is IPoint3D && from.Map != null)
+                {
+                    var pnt = (IPoint3D)targeted;
+
+                    var boat = BaseBoat.FindBoatAt(pnt, from.Map);
+
+                    if (boat != null && boat == m_Galleon && IsSurface(pnt))
+                    {
+                        IPooledEnumerable eable = m_Pilot.Map.GetObjectsInRange(new Point3D(pnt), 0);
+
+                        foreach (var o in eable)
+                            if (o is Mobile || o is Item)
+                            {
+                                from.SendLocalizedMessage(1011577); // This is an invalid location. 
+                                from.Target = new RelocateTarget(m_Pilot, m_Galleon);
+                                eable.Free();
+                                return;
+                            }
+
+                        eable.Free();
+
+                        var st = (StaticTarget)pnt;
+                        var z = m_Galleon.ZSurface;
+
+                        if (st != null)
+                            z = st.Z;
+
+                        m_Pilot.MoveToWorld(new Point3D(pnt.X, pnt.Y, z), from.Map);
+                    }
+                    else
+                    {
+                        from.SendLocalizedMessage(1011577); // This is an invalid location. 
+                        from.Target = new RelocateTarget(m_Pilot, m_Galleon);
+                    }
+                }
+            }
+
+            public bool IsSurface(IPoint3D pnt)
+            {
+                if (pnt is StaticTarget)
+                {
+                    var st = (StaticTarget)pnt;
+
+                    if ((st.Flags & TileFlag.Surface) > 0)
+                        return true;
+                }
+
+                return false;
+            }
+        }
+
+        private class SecuritySettingsEntry : ContextMenuEntry
+        {
+            private readonly Mobile m_From;
+            private readonly GalleonPilot m_Pilot;
+
+            public SecuritySettingsEntry(GalleonPilot pilot, Mobile from)
+                : base(1149786, 5) // Security Settings
+            {
+                m_Pilot = pilot;
+                m_From = from;
+            }
+
+            public override void OnClick()
+            {
+                if (m_Pilot != null && m_Pilot.Galleon != null && !m_From.HasGump(typeof(ShipSecurityGump)))
+                    m_From.SendGump(new ShipSecurityGump(m_From, m_Pilot.Galleon));
+            }
+        }
+
+        private class ResetSecuritySettings : ContextMenuEntry
+        {
+            private readonly Mobile m_From;
+            private readonly GalleonPilot m_Pilot;
+
+            public ResetSecuritySettings(GalleonPilot pilot, Mobile from)
+                : base(1060700, 5) // Reset Security
+            {
+                m_Pilot = pilot;
+                m_From = from;
+            }
+
+            public override void OnClick()
+            {
+                if (m_Pilot != null && m_Pilot.Galleon != null)
+                    m_From.SendGump(new BasicConfirmGump<BaseGalleon>(new TextDefinition(1116618),
+                        (m, boat) => // Are you sure you wish to clear your ship's access list?
+                        {
+                            boat.SecurityEntry.Manifest.Keys.Where(x => !boat.IsOwner(x)).ToList().ForEach(y =>
+                            {
+                                boat.SecurityEntry.RemoveFromAccessList(y);
+                            });
+                        }, m_Pilot.Galleon));
+            }
         }
     }
 }

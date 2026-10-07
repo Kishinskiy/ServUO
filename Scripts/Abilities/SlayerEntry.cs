@@ -4,7 +4,7 @@ namespace Server.Items
 {
     public class SlayerEntry
     {
-        private static readonly int[] m_AosTitles = new int[]
+        private static readonly int[] m_AosTitles =
         {
             1060479, // undead slayer
             1060470, // orc slayer
@@ -36,9 +36,10 @@ namespace Server.Items
             1156240, // dinosaur slayer
             1156241, // myrmidex slayer
             1156126, // Eodon Slayer
-            1156347  // Eodon Tribe Slayer
+            1156347 // Eodon Tribe Slayer
         };
-        private static readonly int[] m_OldTitles = new int[]
+
+        private static readonly int[] m_OldTitles =
         {
             1017384, // Silver
             1017385, // Orc Slaying
@@ -66,69 +67,45 @@ namespace Server.Items
             1017407, // Blood Drinking
             1017408, // Summer Wind
             1017409, // Elemental Ban
-            1070855  // fey slayer
+            1070855 // fey slayer
         };
-        private readonly SlayerName m_Name;
-        private readonly Type[] m_Types;
-        private SlayerGroup m_Group;
-        public SlayerEntry(SlayerName name, params Type[] types)
-        {
-            this.m_Name = name;
-            this.m_Types = types;
-        }
 
-        public SlayerGroup Group
-        {
-            get
-            {
-                return this.m_Group;
-            }
-            set
-            {
-                this.m_Group = value;
-            }
-        }
-        public SlayerName Name
-        {
-            get
-            {
-                return this.m_Name;
-            }
-        }
-        public Type[] Types
-        {
-            get
-            {
-                return this.m_Types;
-            }
-        }
+        public SlayerGroup Group { get; set; }
+
+        public SlayerName Name { get; }
+
+        public Type[] Types { get; }
+
         public int Title
         {
             get
             {
-                int[] titles = (Core.AOS ? m_AosTitles : m_OldTitles);
+                var titles = Core.AOS ? m_AosTitles : m_OldTitles;
 
-                return titles[(int)this.m_Name - 1];
+                return titles[(int)Name - 1];
             }
         }
+
+        public SlayerEntry(SlayerName name, params Type[] types)
+        {
+            Name = name;
+            Types = types;
+        }
+
         public bool Slays(Mobile m)
         {
-
             if (m.SpecialSlayerMechanics)
             {
-                if (m.SlayerVulnerabilities.Contains(m_Name.ToString()))
+                if (m.SlayerVulnerabilities.Contains(Name.ToString()))
                     return true;
-                else
-                    return false;
+                return false;
             }
 
-            Type t = m.GetType();
+            var t = m.GetType();
 
-            for (int i = 0; i < this.m_Types.Length; ++i)
-            {
-                if (this.m_Types[i].IsAssignableFrom(t))
+            for (var i = 0; i < Types.Length; ++i)
+                if (Types[i].IsAssignableFrom(t))
                     return true;
-            }
 
             return false;
         }

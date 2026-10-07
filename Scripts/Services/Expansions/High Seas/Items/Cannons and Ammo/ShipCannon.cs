@@ -1,11 +1,9 @@
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
 using System.Linq;
-
-using Server;
-using Server.Mobiles;
 using Server.ContextMenus;
 using Server.Gumps;
+using Server.Mobiles;
 using Server.Multis;
 using Server.Network;
 
@@ -21,10 +19,12 @@ namespace Server.Items
 
     public abstract class BaseShipCannon : Container, IShipCannon
     {
-        private int m_Hits;
+        private readonly Type[] _Types =
+        {
+            typeof(Cannonball), typeof(Grapeshot), typeof(PowderCharge), typeof(FuseCord)
+        };
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int Hits { get { return m_Hits; } set { m_Hits = value; InvalidateDamageState(); } }
+        private int m_Hits;
 
         [CommandProperty(AccessLevel.GameMaster)]
         public bool Processing { get; set; }
@@ -41,6 +41,55 @@ namespace Server.Items
         [CommandProperty(AccessLevel.GameMaster)]
         public CannonAction Primed { get; set; }
 
+        public virtual bool HitMultipleMobs => false;
+        public abstract CannonPower Power { get; }
+
+        public virtual int MaxHits => 100;
+        public virtual TimeSpan ActionTime => TimeSpan.FromSeconds(1.5);
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public bool Empty => !CanLight && Items.Count == 0;
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public double Durability => m_Hits / (double)MaxHits * 100.0;
+
+        public override bool ForceShowProperties => true;
+        public override int DefaultGumpID => 0x9CE7;
+        public override bool DisplaysContent => false;
+        public override int DefaultMaxWeight => 300;
+
+        public List<Mobile> Viewing { get; set; } = new List<Mobile>();
+
+        public Dictionary<Mobile, List<int>> Actions { get; } = new Dictionary<Mobile, List<int>>();
+
+        public BaseShipCannon(BaseGalleon galleon)
+            : base(0x2198)
+        {
+            Movable = false;
+            Galleon = galleon;
+            AmmoType = AmmunitionType.Empty;
+            m_Hits = MaxHits;
+            DamageState = DamageLevel.Pristine;
+
+            LiftOverride = true;
+            MaxItems = 3;
+        }
+
+        public BaseShipCannon(Serial serial) : base(serial)
+        {
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int Hits
+        {
+            get => m_Hits;
+            set
+            {
+                m_Hits = value;
+                InvalidateDamageState();
+            }
+        }
+
         [CommandProperty(AccessLevel.GameMaster)]
         public AmmunitionType AmmoType { get; set; }
 
@@ -54,44 +103,246 @@ namespace Server.Items
         public DamageLevel DamageState { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public Direction Facing { get { return GetFacing(); } }
-
-        public virtual bool HitMultipleMobs { get { return false; } }
+        public Direction Facing => GetFacing();
 
         public abstract ShipCannonDeed GetDeed { get; }
         public abstract int Range { get; }
-        public abstract CannonPower Power { get; }
-
-        public virtual int MaxHits { get { return 100; } }
-        public virtual TimeSpan ActionTime { get { return TimeSpan.FromSeconds(1.5); } }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public bool CanLight => Prepered == CannonAction.Finish && Loaded == CannonAction.Finish && Charged == CannonAction.Finish && Primed == CannonAction.Finish;
+        public bool CanLight => Prepered == CannonAction.Finish && Loaded == CannonAction.Finish &&
+                                Charged == CannonAction.Finish && Primed == CannonAction.Finish;
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public bool Empty { get { return !CanLight && Items.Count == 0; } }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public double Durability { get { return ((double)m_Hits / (double)MaxHits) * 100.0; } }
-
-        public override bool ForceShowProperties { get { return true; } }
-        public override int DefaultGumpID { get { return 0x9CE7; } }
-        public override bool DisplaysContent { get { return false; } }
-        public override int DefaultMaxWeight { get { return 300; } }
-
-        public List<Mobile> Viewing { get; set; } = new List<Mobile>();
-
-        public BaseShipCannon(BaseGalleon galleon)
-            : base(0x2198)
+        public Direction GetFacing()
         {
-            Movable = false;
-            Galleon = galleon;
-            AmmoType = AmmunitionType.Empty;
-            m_Hits = MaxHits;
-            DamageState = DamageLevel.Pristine;
+            if (BaseGalleon.CannonIDs[0].Any(id => id == ItemID)) return Direction.South;
+            if (BaseGalleon.CannonIDs[1].Any(id => id == ItemID)) return Direction.West;
+            if (BaseGalleon.CannonIDs[2].Any(id => id == ItemID)) return Direction.North;
 
-            LiftOverride = true;
-            MaxItems = 3;
+            return Direction.East;
+        }
+
+        public void DoAreaMessage(int cliloc, int range, Mobile from)
+        {
+            if (from == null)
+                return;
+
+            Galleon.GetEntitiesOnBoard().OfType<PlayerMobile>()
+                .Where(x => x != from && Galleon.GetSecurityLevel(x) > SecurityLevel.Denied)
+                .ToList().ForEach(y =>
+                {
+                    if (from != null)
+                        y.SendLocalizedMessage(cliloc, from.Name);
+                    else
+                        y.SendLocalizedMessage(cliloc);
+                });
+        }
+
+        public void LightFuse(Mobile from)
+        {
+            AddAction(from, 1149683); // The fuse is lit!
+            Timer.DelayCall(TimeSpan.FromSeconds(1.5), Shoot, from);
+        }
+
+        public virtual void Shoot(object cannoneer)
+        {
+            var ammo = AmmoInfo.GetAmmoInfo(AmmoType);
+
+            if (ammo == null)
+                return;
+
+            Mobile shooter = null;
+
+            if (cannoneer is Mobile)
+                shooter = (Mobile)cannoneer;
+
+            if (shooter != null && shooter.Player)
+                m_Hits -= Utility.RandomMinMax(0, 4);
+
+            DoShootEffects();
+            AddAction(shooter, 1149691); // Fired successfully.
+
+            var xOffset = 0;
+            var yOffset = 0;
+            var currentRange = 0;
+            var pnt = Location;
+            var map = Map;
+            var d = GetFacing();
+
+            switch (d)
+            {
+                case Direction.North:
+                    xOffset = 0;
+                    yOffset = -1;
+                    break;
+                case Direction.South:
+                    xOffset = 0;
+                    yOffset = 1;
+                    break;
+                case Direction.West:
+                    xOffset = -1;
+                    yOffset = 0;
+                    break;
+                case Direction.East:
+                    xOffset = 1;
+                    yOffset = 0;
+                    break;
+            }
+
+            var xo = xOffset;
+            var yo = yOffset;
+            var lateralOffset = 1;
+
+            var latDist = ammo.LateralOffset;
+
+            var range = Range;
+            var hit = false;
+
+            while (currentRange++ <= range)
+            {
+                xOffset = xo;
+                yOffset = yo;
+
+                if (currentRange % latDist == 0)
+                    lateralOffset++;
+
+                var delay = TimeSpan.FromSeconds(currentRange / 10.0);
+
+                switch (AmmoType)
+                {
+                    case AmmunitionType.Empty: break;
+                    case AmmunitionType.Cannonball:
+                    case AmmunitionType.FrostCannonball:
+                    case AmmunitionType.FlameCannonball:
+                    {
+                        var newPoint = pnt;
+                        var list = new List<IEntity>();
+                        var damageables = new List<IDamageable>();
+
+                        for (var i = -lateralOffset; i <= lateralOffset; i++)
+                        {
+                            if (xOffset == 0)
+                                newPoint = new Point3D(pnt.X + xOffset + i, pnt.Y + yOffset * currentRange, pnt.Z);
+                            else
+                                newPoint = new Point3D(pnt.X + xOffset * currentRange, pnt.Y + yOffset + i, pnt.Z);
+
+                            var b = FindValidBoatTarget(newPoint, map, ammo);
+
+                            if (b != null && b != Galleon && b.IsEnemy(Galleon))
+                                list.Add(b);
+
+                            damageables.AddRange(FindDamageables(shooter, newPoint, map, false, false, false, true,
+                                true));
+                        }
+
+                        foreach (var m in damageables) list.Add(m);
+
+                        if (list.Count > 0)
+                        {
+                            var toHit = list[Utility.Random(list.Count)];
+
+                            if (toHit is Mobile)
+                            {
+                                Timer.DelayCall(delay, new TimerStateCallback(OnMobileHit),
+                                    new object[] { (Mobile)toHit, newPoint, ammo, shooter });
+                                hit = true;
+                            }
+                            else if (toHit is BaseBoat)
+                            {
+                                Timer.DelayCall(delay, new TimerStateCallback(OnShipHit),
+                                    new object[] { (BaseBoat)toHit, newPoint, ammo, shooter });
+                                hit = true;
+                            }
+                            else if (toHit is DamageableItem)
+                            {
+                                Timer.DelayCall(delay, new TimerStateCallback(OnDamageableItemHit),
+                                    new object[] { (DamageableItem)toHit, newPoint, ammo, shooter });
+                                hit = true;
+                            }
+                        }
+                    }
+                        break;
+                    case AmmunitionType.Grapeshot:
+                    {
+                        var newPoint = pnt;
+                        var list = new List<IEntity>();
+                        var damageables = new List<IDamageable>();
+
+                        for (var i = -lateralOffset; i <= lateralOffset; i++)
+                        {
+                            if (xOffset == 0)
+                                newPoint = new Point3D(pnt.X + xOffset + i, pnt.Y + yOffset * currentRange, pnt.Z);
+                            else
+                                newPoint = new Point3D(pnt.X + xOffset * currentRange, pnt.Y + yOffset + i, pnt.Z);
+
+                            var b = FindValidBoatTarget(newPoint, map, ammo);
+
+                            if (b != null && b != Galleon && b.IsEnemy(Galleon))
+                                list.Add(b);
+
+                            damageables.AddRange(FindDamageables(shooter, newPoint, map, true, true, false, true,
+                                true));
+                        }
+
+                        foreach (var m in damageables) list.Add(m);
+
+                        if (list.Count > 0)
+                        {
+                            var toHit = list[Utility.Random(list.Count)];
+
+                            if (toHit is Mobile)
+                            {
+                                Timer.DelayCall(delay, new TimerStateCallback(OnMobileHit),
+                                    new object[] { (Mobile)toHit, newPoint, ammo, shooter });
+                                hit = true;
+                            }
+                            else if (toHit is BaseBoat)
+                            {
+                                Timer.DelayCall(delay, new TimerStateCallback(OnShipHit),
+                                    new object[] { (BaseBoat)toHit, newPoint, ammo, shooter });
+                                hit = true;
+                            }
+                            else if (toHit is DamageableItem)
+                            {
+                                Timer.DelayCall(delay, new TimerStateCallback(OnDamageableItemHit),
+                                    new object[] { (DamageableItem)toHit, newPoint, ammo, shooter });
+                                hit = true;
+                            }
+                        }
+                    }
+                        break;
+                }
+
+                if (hit && ammo.SingleTarget)
+                    break;
+            }
+
+            ClearCannon();
+            InvalidateDamageState();
+
+            if (shooter != null) ResendGump(shooter);
+        }
+
+        public void OnDamage(int damage, Mobile from)
+        {
+            m_Hits -= damage;
+            InvalidateDamageState(from);
+        }
+
+        public override void Delete()
+        {
+            if (Galleon != null) Galleon.RemoveCannon(this);
+
+            var list = new List<PlayerMobile>(Viewing.OfType<PlayerMobile>());
+
+            foreach (var pm in list)
+            {
+                var gump = BaseGump.GetGump<ShipCannonGump>(pm, g => g.Cannon == this);
+
+                if (gump != null) gump.Close();
+            }
+
+            ColUtility.Free(list);
+            base.Delete();
         }
 
         public void TryPrep(Mobile m)
@@ -107,7 +358,7 @@ namespace Server.Items
 
             Timer.DelayCall(TimeSpan.FromSeconds(4.0), () =>
             {
-                bool ramrod = m.Backpack.GetAmount(typeof(Ramrod)) >= 1;
+                var ramrod = m.Backpack.GetAmount(typeof(Ramrod)) >= 1;
 
                 if (ramrod)
                 {
@@ -174,7 +425,8 @@ namespace Server.Items
                 else
                 {
                     Processing = false;
-                    m.SendLocalizedMessage(1116014); // The magazine does not have a powder charge to charge this cannon with.
+                    m.SendLocalizedMessage(
+                        1116014); // The magazine does not have a powder charge to charge this cannon with.
 
                     AddAction(m, 1149665); // Need powder charge.
                     ResendGump(m);
@@ -216,13 +468,8 @@ namespace Server.Items
                     grapeshot = m.Backpack.FindItemByType<Grapeshot>();
 
                     if (cannon != null)
-                    {
                         ammo = cannon;
-                    }
-                    else if (grapeshot != null)
-                    {
-                        ammo = grapeshot;
-                    }
+                    else if (grapeshot != null) ammo = grapeshot;
                 }
 
                 if (ammo != null && ammo is Item)
@@ -312,10 +559,7 @@ namespace Server.Items
             {
                 item = new FuseCord();
 
-                if (!TryDropItem(m, item, false))
-                {
-                    m.AddToBackpack(item);
-                }
+                if (!TryDropItem(m, item, false)) m.AddToBackpack(item);
 
                 AddAction(m, 1149686); // Fuse removed.
                 Primed = CannonAction.None;
@@ -336,10 +580,7 @@ namespace Server.Items
                 {
                     AddAction(m, 1149685); // Ammunition removed.
 
-                    if (!TryDropItem(m, item, false))
-                    {
-                        m.AddToBackpack(item);
-                    }
+                    if (!TryDropItem(m, item, false)) m.AddToBackpack(item);
                 }
 
                 AmmoType = AmmunitionType.Empty;
@@ -350,33 +591,26 @@ namespace Server.Items
             {
                 item = new PowderCharge();
 
-                if (!TryDropItem(m, item, false))
-                {
-                    m.AddToBackpack(item);
-                }
+                if (!TryDropItem(m, item, false)) m.AddToBackpack(item);
 
                 AddAction(m, 1149684); // Powder charge removed.
                 Charged = CannonAction.None;
             }
         }
 
-        public override bool CheckHold(Mobile m, Item item, bool message, bool checkItems, int plusItems, int plusWeight)
+        public override bool CheckHold(Mobile m, Item item, bool message, bool checkItems, int plusItems,
+            int plusWeight)
         {
             if (!CheckType(item))
             {
-                if (message)
-                {
-                    m.SendLocalizedMessage(1074836); // The container can not hold that type of object.
-                }
+                if (message) m.SendLocalizedMessage(1074836); // The container can not hold that type of object.
 
                 return false;
             }
-            else if (Items.Count == 3)
+
+            if (Items.Count == 3)
             {
-                if (message)
-                {
-                    m.SendLocalizedMessage(1080017); // That container cannot hold more items.
-                }
+                if (message) m.SendLocalizedMessage(1080017); // That container cannot hold more items.
 
                 return false;
             }
@@ -389,11 +623,6 @@ namespace Server.Items
             return _Types.Any(t => t == item.GetType() || item.GetType().IsSubclassOf(t));
         }
 
-        private Type[] _Types =
-        {
-            typeof(Cannonball), typeof(Grapeshot), typeof(PowderCharge), typeof(FuseCord)
-        };
-
         public override void OnDoubleClickDead(Mobile m)
         {
             OnDoubleClick(m);
@@ -405,12 +634,12 @@ namespace Server.Items
             {
                 base.OnDoubleClick(from);
 
-                if (!Viewing.Contains(from))
-                {
-                    Viewing.Add(from);
-                }
+                if (!Viewing.Contains(from)) Viewing.Add(from);
 
-                AddAction(from, from.Alive && Galleon.Contains(from) && from.InRange(Location, 2) ? 1149653 : 1149654); // You are now operating the cannon. : You are too far away.
+                AddAction(from,
+                    from.Alive && Galleon.Contains(from) && from.InRange(Location, 2)
+                        ? 1149653
+                        : 1149654); // You are now operating the cannon. : You are too far away.
                 ResendGump(from, TimeSpan.FromMilliseconds(500));
             }
             else
@@ -419,85 +648,45 @@ namespace Server.Items
             }
         }
 
-        public Direction GetFacing()
-        {
-            if (BaseGalleon.CannonIDs[0].Any(id => id == ItemID))
-            {
-                return Direction.South;
-            }
-            if (BaseGalleon.CannonIDs[1].Any(id => id == ItemID))
-            {
-                return Direction.West;
-            }
-            if (BaseGalleon.CannonIDs[2].Any(id => id == ItemID))
-            {
-                return Direction.North;
-            }
-
-            return Direction.East;
-        }
-
-        public void DoAreaMessage(int cliloc, int range, Mobile from)
-        {
-            if (from == null)
-                return;
-
-            Galleon.GetEntitiesOnBoard().OfType<PlayerMobile>().Where(x => x != from && Galleon.GetSecurityLevel(x) > SecurityLevel.Denied)
-                .ToList().ForEach(y =>
-                {
-                    if (from != null)
-                        y.SendLocalizedMessage(cliloc, from.Name);
-                    else
-                        y.SendLocalizedMessage(cliloc);
-                });
-        }
-
         public void TryLightFuse(Mobile from)
         {
             if (from == null)
                 return;
 
-            Container pack = from.Backpack;
+            var pack = from.Backpack;
 
             if (pack != null)
             {
-                Item[] items = pack.FindItemsByType(typeof(Matches));
+                var items = pack.FindItemsByType(typeof(Matches));
 
                 if (items != null)
-                {
-                    foreach (Item item in items)
-                    {
+                    foreach (var item in items)
                         if (item is Matches && ((Matches)item).IsLight)
                         {
                             LightFuse(from);
                             return;
                         }
-                    }
-                }
 
                 items = pack.FindItemsByType(typeof(Torch));
 
                 if (items != null)
-                {
-                    foreach (Item item in items)
-                    {
+                    foreach (var item in items)
                         if (item is Torch && ((Torch)item).Burning)
                         {
                             LightFuse(from);
                             return;
                         }
-                    }
-                }
             }
 
-            Item i = from.FindItemOnLayer(Layer.TwoHanded);
+            var i = from.FindItemOnLayer(Layer.TwoHanded);
 
             if (i != null && i is Matches && ((Matches)i).IsLight)
             {
                 LightFuse(from);
                 return;
             }
-            else if (i != null && i is Torch && ((Torch)i).Burning)
+
+            if (i != null && i is Torch && ((Torch)i).Burning)
             {
                 LightFuse(from);
                 return;
@@ -507,190 +696,13 @@ namespace Server.Items
             from.SendLocalizedMessage(1149669); // Need a lighted fire source.
         }
 
-        public void LightFuse(Mobile from)
-        {
-            AddAction(from, 1149683); // The fuse is lit!
-            Timer.DelayCall(TimeSpan.FromSeconds(1.5), Shoot, from);
-        }
-
-        public virtual void Shoot(object cannoneer)
-        {
-            AmmoInfo ammo = AmmoInfo.GetAmmoInfo(AmmoType);
-
-            if (ammo == null)
-                return;
-
-            Mobile shooter = null;
-
-            if (cannoneer is Mobile)
-                shooter = (Mobile)cannoneer;
-
-            if (shooter != null && shooter.Player)
-                m_Hits -= Utility.RandomMinMax(0, 4);
-
-            DoShootEffects();
-            AddAction(shooter, 1149691); // Fired successfully.
-
-            int xOffset = 0; int yOffset = 0;
-            int currentRange = 0;
-            Point3D pnt = Location;
-            Map map = Map;
-            Direction d = GetFacing();
-
-            switch (d)
-            {
-                case Direction.North:
-                    xOffset = 0; yOffset = -1; break;
-                case Direction.South:
-                    xOffset = 0; yOffset = 1; break;
-                case Direction.West:
-                    xOffset = -1; yOffset = 0; break;
-                case Direction.East:
-                    xOffset = 1; yOffset = 0; break;
-            }
-
-            int xo = xOffset;
-            int yo = yOffset;
-            int lateralOffset = 1;
-
-            int latDist = ammo.LateralOffset;
-
-            int range = Range;
-            bool hit = false;
-
-            while (currentRange++ <= range)
-            {
-                xOffset = xo;
-                yOffset = yo;
-
-                if (currentRange % latDist == 0)
-                    lateralOffset++;
-
-                TimeSpan delay = TimeSpan.FromSeconds((double)currentRange / 10.0);
-
-                switch (AmmoType)
-                {
-                    case AmmunitionType.Empty: break;
-                    case AmmunitionType.Cannonball:
-                    case AmmunitionType.FrostCannonball:
-                    case AmmunitionType.FlameCannonball:
-                        {
-                            Point3D newPoint = pnt;
-                            List<IEntity> list = new List<IEntity>();
-                            List<IDamageable> damageables = new List<IDamageable>();
-
-                            for (int i = -lateralOffset; i <= lateralOffset; i++)
-                            {
-                                if (xOffset == 0)
-                                    newPoint = new Point3D(pnt.X + (xOffset + i), pnt.Y + (yOffset * currentRange), pnt.Z);
-                                else
-                                    newPoint = new Point3D(pnt.X + (xOffset * currentRange), pnt.Y + (yOffset + i), pnt.Z);
-
-                                BaseBoat b = FindValidBoatTarget(newPoint, map, ammo);
-
-                                if (b != null && b != Galleon && b.IsEnemy(Galleon))
-                                    list.Add(b);
-
-                                damageables.AddRange(FindDamageables(shooter, newPoint, map, false, false, false, true, true));
-                            }
-
-                            foreach (var m in damageables)
-                            {
-                                list.Add(m);
-                            }
-
-                            if (list.Count > 0)
-                            {
-                                IEntity toHit = list[Utility.Random(list.Count)];
-
-                                if (toHit is Mobile)
-                                {
-                                    Timer.DelayCall(delay, new TimerStateCallback(OnMobileHit), new object[] { (Mobile)toHit, newPoint, ammo, shooter });
-                                    hit = true;
-                                }
-                                else if (toHit is BaseBoat)
-                                {
-                                    Timer.DelayCall(delay, new TimerStateCallback(OnShipHit), new object[] { (BaseBoat)toHit, newPoint, ammo, shooter });
-                                    hit = true;
-                                }
-                                else if (toHit is DamageableItem)
-                                {
-                                    Timer.DelayCall(delay, new TimerStateCallback(OnDamageableItemHit), new object[] { (DamageableItem)toHit, newPoint, ammo, shooter });
-                                    hit = true;
-                                }
-                            }
-                        }
-                        break;
-                    case AmmunitionType.Grapeshot:
-                        {
-                            Point3D newPoint = pnt;
-                            List<IEntity> list = new List<IEntity>();
-                            List<IDamageable> damageables = new List<IDamageable>();
-
-                            for (int i = -lateralOffset; i <= lateralOffset; i++)
-                            {
-                                if (xOffset == 0)
-                                    newPoint = new Point3D(pnt.X + (xOffset + i), pnt.Y + (yOffset * currentRange), pnt.Z);
-                                else
-                                    newPoint = new Point3D(pnt.X + (xOffset * currentRange), pnt.Y + (yOffset + i), pnt.Z);
-
-                                BaseBoat b = FindValidBoatTarget(newPoint, map, ammo);
-
-                                if (b != null && b != Galleon && b.IsEnemy(Galleon))
-                                    list.Add(b);
-
-                                damageables.AddRange(FindDamageables(shooter, newPoint, map, true, true, false, true, true));
-                            }
-
-                            foreach (var m in damageables)
-                            {
-                                list.Add(m);
-                            }
-
-                            if (list.Count > 0)
-                            {
-                                IEntity toHit = list[Utility.Random(list.Count)];
-
-                                if (toHit is Mobile)
-                                {
-                                    Timer.DelayCall(delay, new TimerStateCallback(OnMobileHit), new object[] { (Mobile)toHit, newPoint, ammo, shooter });
-                                    hit = true;
-                                }
-                                else if (toHit is BaseBoat)
-                                {
-                                    Timer.DelayCall(delay, new TimerStateCallback(OnShipHit), new object[] { (BaseBoat)toHit, newPoint, ammo, shooter });
-                                    hit = true;
-                                }
-                                else if (toHit is DamageableItem)
-                                {
-                                    Timer.DelayCall(delay, new TimerStateCallback(OnDamageableItemHit), new object[] { (DamageableItem)toHit, newPoint, ammo, shooter });
-                                    hit = true;
-                                }
-                            }
-                        }
-                        break;
-                }
-
-                if (hit && ammo.SingleTarget)
-                    break;
-            }
-
-            ClearCannon();
-            InvalidateDamageState();
-
-            if (shooter != null)
-            {
-                ResendGump(shooter);
-            }
-        }
-
         private BaseBoat FindValidBoatTarget(Point3D newPoint, Map map, AmmoInfo info)
         {
-            BaseBoat boat = BaseBoat.FindBoatAt(newPoint, map);
+            var boat = BaseBoat.FindBoatAt(newPoint, map);
 
             if (boat != null && info.RequiresSurface)
             {
-                int d = boat is BritannianShip ? 3 : 2;
+                var d = boat is BritannianShip ? 3 : 2;
                 switch (boat.Facing)
                 {
                     case Direction.North:
@@ -705,17 +717,14 @@ namespace Server.Items
                         break;
                 }
 
-                StaticTile[] tiles = map.Tiles.GetStaticTiles(newPoint.X, newPoint.Y, true);
+                var tiles = map.Tiles.GetStaticTiles(newPoint.X, newPoint.Y, true);
 
-                foreach (StaticTile tile in tiles)
+                foreach (var tile in tiles)
                 {
-                    ItemData id = TileData.ItemTable[tile.ID & TileData.MaxItemValue];
-                    bool isWater = (tile.ID >= 0x1796 && tile.ID <= 0x17B2);
+                    var id = TileData.ItemTable[tile.ID & TileData.MaxItemValue];
+                    var isWater = tile.ID >= 0x1796 && tile.ID <= 0x17B2;
 
-                    if (!isWater && id.Surface && !id.Impassable)
-                    {
-                        return boat;
-                    }
+                    if (!isWater && id.Surface && !id.Impassable) return boat;
                 }
 
                 return null;
@@ -726,8 +735,8 @@ namespace Server.Items
 
         public void DoShootEffects()
         {
-            Point3D p = Location;
-            Map map = Map;
+            var p = Location;
+            var map = Map;
 
             p.Z -= 3;
 
@@ -739,7 +748,8 @@ namespace Server.Items
                 case Direction.West: p.X--; break;
             }
 
-            Effects.SendPacket(p, map, new GraphicalEffect(EffectType.FixedXYZ, Serial.Zero, Serial.Zero, 0x3728, p, p, 14, 14, true, true));
+            Effects.SendPacket(p, map,
+                new GraphicalEffect(EffectType.FixedXYZ, Serial.Zero, Serial.Zero, 0x3728, p, p, 14, 14, true, true));
             Effects.PlaySound(Location, map, 0x11C);
         }
 
@@ -786,28 +796,24 @@ namespace Server.Items
 
         public virtual void OnShipHit(object obj)
         {
-            object[] list = (object[])obj;
-            BaseBoat target = list[0] as BaseBoat;
-            Point3D pnt = (Point3D)list[1];
-            AmmoInfo ammoInfo = list[2] as AmmoInfo;
-            Mobile shooter = list[3] as Mobile;
+            var list = (object[])obj;
+            var target = list[0] as BaseBoat;
+            var pnt = (Point3D)list[1];
+            var ammoInfo = list[2] as AmmoInfo;
+            var shooter = list[3] as Mobile;
 
             if (target != null && Galleon != null)
             {
-                int z = target.ZSurface;
+                var z = target.ZSurface;
 
-                if (target.TillerMan != null && target.TillerMan is IEntity)
-                {
-                    z = ((IEntity)target.TillerMan).Z;
-                }
+                if (target.TillerMan != null && target.TillerMan is IEntity) z = ((IEntity)target.TillerMan).Z;
 
-                Direction d = Utility.GetDirection(this, pnt);
-                int xOffset = 0;
-                int yOffset = 0;
-                Point3D hit = pnt;
+                var d = Utility.GetDirection(this, pnt);
+                var xOffset = 0;
+                var yOffset = 0;
+                var hit = pnt;
 
                 if (!ammoInfo.RequiresSurface)
-                {
                     switch (d)
                     {
                         default:
@@ -832,17 +838,19 @@ namespace Server.Items
                             hit = new Point3D(pnt.X + xOffset, pnt.Y + yOffset, z);
                             break;
                     }
-                }
 
-                int damage = 0;
+                var damage = 0;
 
                 if (ammoInfo.AmmoType == AmmunitionType.Grapeshot)
                 {
-                    for (int count = 15; count > 0; count--)
+                    for (var count = 15; count > 0; count--)
                     {
                         damage = (int)(ammoInfo.GetDamage(this) * Galleon.CannonDamageMod);
-                        Point3D loc = new Point3D(hit.X + Utility.RandomMinMax(0, 4), hit.Y + Utility.RandomMinMax(0, 4), hit.Z);
-                        Effects.SendPacket(loc, target.Map, new GraphicalEffect(EffectType.FixedXYZ, Serial.Zero, Serial.Zero, 0x36CB, loc, loc, 15, 15, true, true));
+                        var loc = new Point3D(hit.X + Utility.RandomMinMax(0, 4), hit.Y + Utility.RandomMinMax(0, 4),
+                            hit.Z);
+                        Effects.SendPacket(loc, target.Map,
+                            new GraphicalEffect(EffectType.FixedXYZ, Serial.Zero, Serial.Zero, 0x36CB, loc, loc, 15, 15,
+                                true, true));
                         target.OnTakenDamage(shooter, damage);
                         MobileOnBoardDamage(shooter, loc, ammoInfo);
                     }
@@ -850,7 +858,9 @@ namespace Server.Items
                 else
                 {
                     damage = (int)(ammoInfo.GetDamage(this) * Galleon.CannonDamageMod);
-                    Effects.SendPacket(hit, target.Map, new GraphicalEffect(EffectType.FixedXYZ, Serial.Zero, Serial.Zero, 0x36CB, hit, hit, 15, 15, true, true));
+                    Effects.SendPacket(hit, target.Map,
+                        new GraphicalEffect(EffectType.FixedXYZ, Serial.Zero, Serial.Zero, 0x36CB, hit, hit, 15, 15,
+                            true, true));
                     target.OnTakenDamage(shooter, damage);
                 }
 
@@ -859,12 +869,8 @@ namespace Server.Items
                     IPooledEnumerable eable = Galleon.Map.GetItemsInRange(hit, 1);
 
                     foreach (Item item in eable)
-                    {
                         if (item is IShipCannon && !Galleon.Contains(item))
-                        {
                             ((IShipCannon)item).OnDamage(damage, shooter);
-                        }
-                    }
 
                     eable.Free();
                 }
@@ -873,16 +879,16 @@ namespace Server.Items
 
         public void MobileOnBoardDamage(Mobile shooter, Point3D pnt, AmmoInfo info)
         {
-            List<IDamageable> list = new List<IDamageable>();
+            var list = new List<IDamageable>();
 
             if (Map == null || Map == Map.Internal || Galleon == null)
                 return;
 
             IPooledEnumerable eable = Map.GetObjectsInRange(pnt, 0);
 
-            foreach (IDamageable dam in eable.OfType<IDamageable>())
+            foreach (var dam in eable.OfType<IDamageable>())
             {
-                Mobile mob = dam as Mobile;
+                var mob = dam as Mobile;
 
                 if (mob != null && (!shooter.CanBeHarmful(mob, false) || Galleon.Contains(mob)))
                     continue;
@@ -890,7 +896,8 @@ namespace Server.Items
                 if (mob is PlayerMobile || mob is BaseCreature)
                 {
                     shooter.DoHarmful(mob);
-                    AOS.Damage(mob, shooter, 35, info.PhysicalDamage, info.FireDamage, info.ColdDamage, info.PoisonDamage, info.EnergyDamage);
+                    AOS.Damage(mob, shooter, 35, info.PhysicalDamage, info.FireDamage, info.ColdDamage,
+                        info.PoisonDamage, info.EnergyDamage);
                 }
             }
 
@@ -899,28 +906,31 @@ namespace Server.Items
 
         public virtual void OnMobileHit(object obj)
         {
-            object[] objects = (object[])obj;
+            var objects = (object[])obj;
             var toHit = objects[0] as Mobile;
             var pnt = (Point3D)objects[1];
             var info = objects[2] as AmmoInfo;
             var shooter = objects[3] as Mobile;
 
-            int damage = (int)(Utility.RandomMinMax(info.MinDamage, info.MaxDamage) * Galleon.CannonDamageMod);
+            var damage = (int)(Utility.RandomMinMax(info.MinDamage, info.MaxDamage) * Galleon.CannonDamageMod);
 
             if (info == null)
                 return;
 
             if (toHit != null)
             {
-                Effects.SendPacket(toHit.Location, toHit.Map, new GraphicalEffect(EffectType.FixedXYZ, Serial.Zero, Serial.Zero, 0x36CB, toHit.Location, toHit.Location, 15, 15, true, true));
+                Effects.SendPacket(toHit.Location, toHit.Map,
+                    new GraphicalEffect(EffectType.FixedXYZ, Serial.Zero, Serial.Zero, 0x36CB, toHit.Location,
+                        toHit.Location, 15, 15, true, true));
                 shooter.DoHarmful(toHit);
-                AOS.Damage(toHit, shooter, damage, info.PhysicalDamage, info.FireDamage, info.ColdDamage, info.PoisonDamage, info.EnergyDamage);
+                AOS.Damage(toHit, shooter, damage, info.PhysicalDamage, info.FireDamage, info.ColdDamage,
+                    info.PoisonDamage, info.EnergyDamage);
             }
         }
 
         public virtual void OnDamageableItemHit(object obj)
         {
-            object[] objects = (object[])obj;
+            var objects = (object[])obj;
             var toHit = objects[0] as DamageableItem;
             var pnt = (Point3D)objects[1];
             var info = objects[2] as AmmoInfo;
@@ -929,26 +939,29 @@ namespace Server.Items
             if (info == null || toHit == null || toHit.Map == null)
                 return;
 
-            int damage = (int)(Utility.RandomMinMax(info.MinDamage, info.MaxDamage) * Galleon.CannonDamageMod);
+            var damage = (int)(Utility.RandomMinMax(info.MinDamage, info.MaxDamage) * Galleon.CannonDamageMod);
 
             shooter.DoHarmful(toHit);
-            AOS.Damage(toHit, shooter, damage, info.PhysicalDamage, info.FireDamage, info.ColdDamage, info.PoisonDamage, info.EnergyDamage);
-            Effects.SendLocationEffect(new Point3D(toHit.X, toHit.Y, toHit.Z + 5), toHit.Map, Utility.RandomBool() ? 14000 : 14013, 15, 10);
+            AOS.Damage(toHit, shooter, damage, info.PhysicalDamage, info.FireDamage, info.ColdDamage, info.PoisonDamage,
+                info.EnergyDamage);
+            Effects.SendLocationEffect(new Point3D(toHit.X, toHit.Y, toHit.Z + 5), toHit.Map,
+                Utility.RandomBool() ? 14000 : 14013, 15, 10);
             Effects.PlaySound(toHit.Location, toHit.Map, 0x207);
         }
 
-        public List<IDamageable> FindDamageables(Mobile shooter, Point3D pnt, Map map, bool player, bool pet, bool monsters, bool seacreature, bool items)
+        public List<IDamageable> FindDamageables(Mobile shooter, Point3D pnt, Map map, bool player, bool pet,
+            bool monsters, bool seacreature, bool items)
         {
-            List<IDamageable> list = new List<IDamageable>();
+            var list = new List<IDamageable>();
 
             if (map == null || map == Map.Internal || Galleon == null)
                 return list;
 
             IPooledEnumerable eable = map.GetObjectsInRange(pnt, 0);
 
-            foreach (IDamageable dam in eable.OfType<IDamageable>())
+            foreach (var dam in eable.OfType<IDamageable>())
             {
-                Mobile mob = dam as Mobile;
+                var mob = dam as Mobile;
 
                 if (mob != null && (!shooter.CanBeHarmful(mob, false) || Galleon.Contains(mob)))
                     continue;
@@ -978,7 +991,7 @@ namespace Server.Items
 
         public void TryRepairCannon(Mobile from)
         {
-            Container pack = from.Backpack;
+            var pack = from.Backpack;
             Container hold = Galleon.GalleonHold;
 
             if (pack == null)
@@ -986,17 +999,18 @@ namespace Server.Items
 
             double ingotsNeeded = 36 * (int)DamageState;
 
-            ingotsNeeded -= ((double)from.Skills[SkillName.Blacksmith].Value / 200.0) * ingotsNeeded;
+            ingotsNeeded -= from.Skills[SkillName.Blacksmith].Value / 200.0 * ingotsNeeded;
 
-            double min = ingotsNeeded / 10;
+            var min = ingotsNeeded / 10;
             double ingots1 = pack.GetAmount(typeof(IronIngot));
             double ingots2 = hold != null ? hold.GetAmount(typeof(IronIngot)) : 0;
-            double ingots = ingots1 + ingots2;
+            var ingots = ingots1 + ingots2;
             double ingotsUsed, percRepaired;
 
             if (ingots < min)
             {
-                from.SendLocalizedMessage(1116603, ((int)min).ToString()); //You need a minimum of ~1_METAL~ iron ingots to repair this cannon.
+                from.SendLocalizedMessage(1116603,
+                    ((int)min).ToString()); //You need a minimum of ~1_METAL~ iron ingots to repair this cannon.
                 return;
             }
 
@@ -1008,11 +1022,11 @@ namespace Server.Items
             else
             {
                 ingotsUsed = ingots;
-                percRepaired = (ingots / ingotsNeeded) * 100;
+                percRepaired = ingots / ingotsNeeded * 100;
             }
 
             double toConsume = 0;
-            double temp = ingotsUsed;
+            var temp = ingotsUsed;
 
             if (ingotsUsed > 0 && ingots1 > 0)
             {
@@ -1034,7 +1048,10 @@ namespace Server.Items
             percRepaired += Durability;
             if (percRepaired > 100) percRepaired = 100;
 
-            from.SendLocalizedMessage(1116605, string.Format("{0}\t{1}", ((int)temp).ToString(), ((int)percRepaired).ToString())); //You make repairs to the cannon using ~1_METAL~ ingots. The cannon is now ~2_DMGPCT~% repaired.
+            from.SendLocalizedMessage(1116605,
+                string.Format("{0}\t{1}", ((int)temp).ToString(),
+                    ((int)percRepaired)
+                    .ToString())); //You make repairs to the cannon using ~1_METAL~ ingots. The cannon is now ~2_DMGPCT~% repaired.
         }
 
         public void ResendGump(Mobile from)
@@ -1044,15 +1061,9 @@ namespace Server.Items
 
         public void ResendGump(Mobile from, TimeSpan delay)
         {
-            if (!Galleon.Contains(from))
-            {
-                Viewing.Remove(from);
-            }
+            if (!Galleon.Contains(from)) Viewing.Remove(from);
 
-            if (!Viewing.Contains(from))
-            {
-                Viewing.Add(from);
-            }
+            if (!Viewing.Contains(from)) Viewing.Add(from);
 
             foreach (var pm in Viewing.OfType<PlayerMobile>())
             {
@@ -1061,53 +1072,33 @@ namespace Server.Items
                 if (gump != null)
                 {
                     if (delay != TimeSpan.Zero)
-                    {
                         Timer.DelayCall(delay, () => gump.Refresh());
-                    }
                     else
-                    {
                         gump.Refresh();
-                    }
                 }
                 else
                 {
                     if (delay != TimeSpan.Zero)
-                    {
                         Timer.DelayCall(delay, () => BaseGump.SendGump(new ShipCannonGump(pm, this)));
-                    }
                     else
-                    {
                         BaseGump.SendGump(new ShipCannonGump(pm, this));
-                    }
                 }
             }
         }
-
-        public void OnDamage(int damage, Mobile from)
-        {
-            m_Hits -= damage;
-            InvalidateDamageState(from);
-        }
-
-        public Dictionary<Mobile, List<int>> Actions { get { return m_Actions; } }
-        private Dictionary<Mobile, List<int>> m_Actions = new Dictionary<Mobile, List<int>>();
 
         public void AddAction(Mobile from, int action)
         {
             if (from == null)
                 return;
 
-            if (!m_Actions.ContainsKey(from))
-                m_Actions[from] = new List<int>();
+            if (!Actions.ContainsKey(from))
+                Actions[from] = new List<int>();
 
-            var list = m_Actions[from];
+            var list = Actions[from];
 
             list.Insert(0, action);
 
-            while (list.Count > 3)
-            {
-                list.RemoveAt(list.Count - 1);
-            }
+            while (list.Count > 3) list.RemoveAt(list.Count - 1);
         }
 
         public override void GetProperties(ObjectPropertyList list)
@@ -1115,7 +1106,7 @@ namespace Server.Items
             base.GetProperties(list);
 
             list.Add(1116026, Charged == CannonAction.Finish ? "#1116031" : "#1116032"); // Charged: ~1_VALUE~
-            list.Add(1116027, string.Format("{0}", AmmoInfo.GetAmmoName(this).ToString())); // Ammo: ~1_VALUE~
+            list.Add(1116027, string.Format("{0}", AmmoInfo.GetAmmoName(this))); // Ammo: ~1_VALUE~
             list.Add(1116028, Primed == CannonAction.Finish ? "#1116031" : "#1116032"); //Primed: ~1_VALUE~
             list.Add(1116580 + (int)DamageState);
             list.Add(1072241, "{0}\t{1}\t{2}\t{3}", TotalItems, MaxItems, TotalWeight, MaxWeight);
@@ -1132,123 +1123,6 @@ namespace Server.Items
                 list.Add(new RepairContext(this, from));
             }
         }
-
-        private class UnloadContext : ContextMenuEntry
-        {
-            public Mobile From { get; set; }
-            public BaseShipCannon Cannon { get; set; }
-
-            public UnloadContext(BaseShipCannon cannon, Mobile from)
-                : base(1116072, 2) // Unload
-            {
-                From = from;
-                Cannon = cannon;
-
-                Enabled = cannon.CanLight;
-            }
-
-            public override void OnClick()
-            {
-                Cannon.Unload(From);
-                Cannon.ResendGump(From);
-            }
-        }
-
-        private class DismantleContext : ContextMenuEntry
-        {
-            public Mobile From { get; set; }
-            public BaseShipCannon Cannon { get; set; }
-
-            public DismantleContext(BaseShipCannon cannon, Mobile from)
-                : base(1116069, 2)
-            {
-                From = from;
-                Cannon = cannon;
-
-                Enabled = cannon.Empty && Cannon.DamageState == DamageLevel.Pristine;
-            }
-
-            public override void OnClick()
-            {
-                ShipCannonDeed deed = Cannon.GetDeed;
-
-                Cannon.DoAreaMessage(1116073, 10, From); //~1_NAME~ dismantles the ship cannon.
-                Cannon.Delete();
-
-                Container pack = From.Backpack;
-
-                if (pack == null || !pack.TryDropItem(From, deed, false))
-                {
-                    deed.MoveToWorld(From.Location, From.Map);
-                }
-            }
-
-            public override void OnClickDisabled()
-            {
-                if (Cannon.Galleon.GetSecurityLevel(From) != SecurityLevel.Captain)
-                {
-                    From.SendLocalizedMessage(1149693); // You must own the ship to do that.
-                }
-                else if (!Cannon.Empty)
-                {
-                    From.SendLocalizedMessage(1116321); // The ship cannon and magazine must be fully unloaded before it can be dismantled.
-                }
-                else if (Cannon.DamageState != DamageLevel.Pristine)
-                {
-                    From.SendLocalizedMessage(1116322); // The ship cannon must be fully repaired before it can be dismantled.
-                }
-            }
-        }
-
-        private class RepairContext : ContextMenuEntry
-        {
-            public Mobile From { get; set; }
-            public BaseShipCannon Cannon { get; set; }
-
-            public RepairContext(BaseShipCannon cannon, Mobile from)
-                : base(1116602, 2)
-            {
-                From = from;
-                Cannon = cannon;
-
-                Enabled = Cannon.DamageState != DamageLevel.Pristine;
-            }
-
-            public override void OnClick()
-            {
-                Cannon.TryRepairCannon(From);
-            }
-
-            public override void OnClickDisabled()
-            {
-                From.SendLocalizedMessage(1116604); //The cannon is in pristine condition and does not need repairs.
-            }
-        }
-
-        public override void Delete()
-        {
-            if (Galleon != null)
-            {
-                Galleon.RemoveCannon(this);
-            }
-
-            var list = new List<PlayerMobile>(Viewing.OfType<PlayerMobile>());
-
-            foreach (var pm in list)
-            {
-                var gump = BaseGump.GetGump<ShipCannonGump>(pm, g => g.Cannon == this);
-
-                if (gump != null)
-                {
-                    gump.Close();
-                }
-            }
-
-            ColUtility.Free(list);
-            base.Delete();
-        }
-
-        public BaseShipCannon(Serial serial) : base(serial) { }
 
         public override void Serialize(GenericWriter writer)
         {
@@ -1269,46 +1143,132 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             switch (version)
             {
                 case 1:
-                    {
-                        Prepered = (CannonAction)reader.ReadInt();
-                        Galleon = reader.ReadItem() as BaseGalleon;
-                        Charged = (CannonAction)reader.ReadInt();
-                        Loaded = (CannonAction)reader.ReadInt();
-                        Primed = (CannonAction)reader.ReadInt();
-                        AmmoType = (AmmunitionType)reader.ReadInt();
-                        Position = (ShipPosition)reader.ReadInt();
-                        m_Hits = reader.ReadInt();
+                {
+                    Prepered = (CannonAction)reader.ReadInt();
+                    Galleon = reader.ReadItem() as BaseGalleon;
+                    Charged = (CannonAction)reader.ReadInt();
+                    Loaded = (CannonAction)reader.ReadInt();
+                    Primed = (CannonAction)reader.ReadInt();
+                    AmmoType = (AmmunitionType)reader.ReadInt();
+                    Position = (ShipPosition)reader.ReadInt();
+                    m_Hits = reader.ReadInt();
 
-                        return;
-                    }
+                    return;
+                }
                 case 0:
-                    {
-                        Galleon = reader.ReadItem() as BaseGalleon;
+                {
+                    Galleon = reader.ReadItem() as BaseGalleon;
 
-                        if (reader.ReadBool())
-                            Charged = CannonAction.Finish;
+                    if (reader.ReadBool())
+                        Charged = CannonAction.Finish;
 
-                        if (reader.ReadBool())
-                            Loaded = CannonAction.Finish;
+                    if (reader.ReadBool())
+                        Loaded = CannonAction.Finish;
 
-                        if (reader.ReadBool())
-                            Primed = CannonAction.Finish;
+                    if (reader.ReadBool())
+                        Primed = CannonAction.Finish;
 
-                        AmmoType = (AmmunitionType)reader.ReadInt();
-                        Position = (ShipPosition)reader.ReadInt();
+                    AmmoType = (AmmunitionType)reader.ReadInt();
+                    Position = (ShipPosition)reader.ReadInt();
 
-                        m_Hits = reader.ReadInt();
+                    m_Hits = reader.ReadInt();
 
-                        break;
-                    }
+                    break;
+                }
             }
 
             InvalidateDamageState();
+        }
+
+        private class UnloadContext : ContextMenuEntry
+        {
+            public Mobile From { get; }
+            public BaseShipCannon Cannon { get; }
+
+            public UnloadContext(BaseShipCannon cannon, Mobile from)
+                : base(1116072, 2) // Unload
+            {
+                From = from;
+                Cannon = cannon;
+
+                Enabled = cannon.CanLight;
+            }
+
+            public override void OnClick()
+            {
+                Cannon.Unload(From);
+                Cannon.ResendGump(From);
+            }
+        }
+
+        private class DismantleContext : ContextMenuEntry
+        {
+            public Mobile From { get; }
+            public BaseShipCannon Cannon { get; }
+
+            public DismantleContext(BaseShipCannon cannon, Mobile from)
+                : base(1116069, 2)
+            {
+                From = from;
+                Cannon = cannon;
+
+                Enabled = cannon.Empty && Cannon.DamageState == DamageLevel.Pristine;
+            }
+
+            public override void OnClick()
+            {
+                var deed = Cannon.GetDeed;
+
+                Cannon.DoAreaMessage(1116073, 10, From); //~1_NAME~ dismantles the ship cannon.
+                Cannon.Delete();
+
+                var pack = From.Backpack;
+
+                if (pack == null || !pack.TryDropItem(From, deed, false)) deed.MoveToWorld(From.Location, From.Map);
+            }
+
+            public override void OnClickDisabled()
+            {
+                if (Cannon.Galleon.GetSecurityLevel(From) != SecurityLevel.Captain)
+                    From.SendLocalizedMessage(1149693); // You must own the ship to do that.
+                else if (!Cannon.Empty)
+                    From.SendLocalizedMessage(
+                        1116321); // The ship cannon and magazine must be fully unloaded before it can be dismantled.
+                else if
+                    (Cannon.DamageState != DamageLevel.Pristine)
+                    From.SendLocalizedMessage(
+                        1116322); // The ship cannon must be fully repaired before it can be dismantled.
+            }
+        }
+
+        private class RepairContext : ContextMenuEntry
+        {
+            public Mobile From { get; }
+            public BaseShipCannon Cannon { get; }
+
+            public RepairContext(BaseShipCannon cannon, Mobile from)
+                : base(1116602, 2)
+            {
+                From = from;
+                Cannon = cannon;
+
+                Enabled = Cannon.DamageState != DamageLevel.Pristine;
+            }
+
+            public override void OnClick()
+            {
+                Cannon.TryRepairCannon(From);
+            }
+
+            public override void OnClickDisabled()
+            {
+                From.SendLocalizedMessage(1116604); //The cannon is in pristine condition and does not need repairs.
+            }
         }
 
         public class ShipCannonGump : BaseGump
@@ -1342,18 +1302,23 @@ namespace Server.Items
                     AddHtmlLocalized(45, 35, 70, 18, 1158890, 0x7FFF, false, false); // PREP
                 }
 
-                AddHtmlLocalized(115, 53, 115, 18, Cannon.Charged == CannonAction.Finish ? 1149631 : 1149632, Cannon.Charged == CannonAction.Finish ? 0x1FE7 : 0x7CE7, false, false); // Charged / Not Charged
-                AddHtmlLocalized(115, 71, 115, 18, 1114057, Cannon.Loaded == CannonAction.Finish ? AmmoInfo.GetAmmoName(Cannon).ToString() : "#1149636", Cannon.Loaded == CannonAction.Finish ? 0x1FE7 : 0x7CE7, false, false); // Cannonball / Not Loaded
-                AddHtmlLocalized(115, 89, 115, 18, Cannon.Primed == CannonAction.Finish ? 1149640 : 1149639, Cannon.Primed == CannonAction.Finish ? 0x1FE7 : 0x7CE7, false, false); // Primed / No Fuse
+                AddHtmlLocalized(115, 53, 115, 18, Cannon.Charged == CannonAction.Finish ? 1149631 : 1149632,
+                    Cannon.Charged == CannonAction.Finish ? 0x1FE7 : 0x7CE7, false, false); // Charged / Not Charged
+                AddHtmlLocalized(115, 71, 115, 18, 1114057,
+                    Cannon.Loaded == CannonAction.Finish ? AmmoInfo.GetAmmoName(Cannon).ToString() : "#1149636",
+                    Cannon.Loaded == CannonAction.Finish ? 0x1FE7 : 0x7CE7, false, false); // Cannonball / Not Loaded
+                AddHtmlLocalized(115, 89, 115, 18, Cannon.Primed == CannonAction.Finish ? 1149640 : 1149639,
+                    Cannon.Primed == CannonAction.Finish ? 0x1FE7 : 0x7CE7, false, false); // Primed / No Fuse
 
                 if (Cannon.Actions.ContainsKey(User))
                 {
                     var actual = 0;
                     var list = Cannon.Actions[User];
 
-                    for (int i = list.Count - 1; i >= 0; i--)
+                    for (var i = list.Count - 1; i >= 0; i--)
                     {
-                        AddHtmlLocalized(10, 112 + (actual * 18), 230, 18, Cannon.Actions[User][i], actual == list.Count - 1 ? 0x7FE7 : 0x3DEF, false, false);
+                        AddHtmlLocalized(10, 112 + actual * 18, 230, 18, Cannon.Actions[User][i],
+                            actual == list.Count - 1 ? 0x7FE7 : 0x3DEF, false, false);
                         actual++;
                     }
                 }
@@ -1363,56 +1328,38 @@ namespace Server.Items
             {
                 if (info.ButtonID == 0 || !Cannon.Galleon.Contains(User))
                 {
-                    if (Cannon.Viewing.Contains(User))
-                    {
-                        Cannon.Viewing.Remove(User);
-                    }
+                    if (Cannon.Viewing.Contains(User)) Cannon.Viewing.Remove(User);
 
                     return;
                 }
 
                 if (User.InRange(Cannon.Location, 2) && User.Alive)
-                {
                     switch (info.ButtonID)
                     {
                         case 1:
+                        {
+                            if (!Cannon.Processing)
                             {
-                                if (!Cannon.Processing)
-                                {
-                                    if (Cannon.Prepered != CannonAction.Finish)
-                                    {
-                                        Cannon.TryPrep(User);
-                                    }
-                                    else if (Cannon.Charged != CannonAction.Finish)
-                                    {
-                                        Cannon.TryCharge(User);
-                                    }
-                                    else if (Cannon.Loaded != CannonAction.Finish)
-                                    {
-                                        Cannon.TryLoad(User);
-                                    }
-                                    else if (Cannon.Primed != CannonAction.Finish)
-                                    {
-                                        Cannon.TryPrime(User);
-                                    }
-                                }
-                                break;
+                                if (Cannon.Prepered != CannonAction.Finish)
+                                    Cannon.TryPrep(User);
+                                else if (Cannon.Charged != CannonAction.Finish)
+                                    Cannon.TryCharge(User);
+                                else if (Cannon.Loaded != CannonAction.Finish)
+                                    Cannon.TryLoad(User);
+                                else if (Cannon.Primed != CannonAction.Finish) Cannon.TryPrime(User);
                             }
+
+                            break;
+                        }
                         case 6:
-                            if (Cannon.CanLight)
-                            {
-                                Cannon.TryLightFuse(User);
-                            }
+                            if (Cannon.CanLight) Cannon.TryLightFuse(User);
                             break;
                         case 8:
                             Cannon.Unload(User);
                             break;
                     }
-                }
                 else
-                {
                     Cannon.AddAction(User, 1149654); // You are too far away.
-                }
 
                 Refresh();
             }
@@ -1422,91 +1369,95 @@ namespace Server.Items
                 base.OnServerClose(owner);
 
                 if (owner.Mobile != null && Cannon != null && Cannon.Viewing.Contains(owner.Mobile))
-                {
                     Cannon.Viewing.Remove(owner.Mobile);
-                }
             }
         }
     }
 
     public class Culverin : BaseShipCannon
     {
-        public override int Range { get { return 10; } }
-        public override ShipCannonDeed GetDeed { get { return new CulverinDeed(); } }
-        public override CannonPower Power { get { return CannonPower.Light; } }
+        public override int Range => 10;
+        public override ShipCannonDeed GetDeed => new CulverinDeed();
+        public override CannonPower Power => CannonPower.Light;
 
         public Culverin(BaseGalleon g) : base(g)
         {
         }
 
-        public Culverin(Serial serial) : base(serial) { }
+        public Culverin(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class Carronade : BaseShipCannon
     {
-        public override int Range { get { return 10; } }
-        public override ShipCannonDeed GetDeed { get { return new CarronadeDeed(); } }
-        public override CannonPower Power { get { return CannonPower.Heavy; } }
+        public override int Range => 10;
+        public override ShipCannonDeed GetDeed => new CarronadeDeed();
+        public override CannonPower Power => CannonPower.Heavy;
 
-        public override TimeSpan ActionTime { get { return TimeSpan.FromSeconds(2.0); } }
+        public override TimeSpan ActionTime => TimeSpan.FromSeconds(2.0);
 
         public Carronade(BaseGalleon g) : base(g)
         {
         }
 
-        public Carronade(Serial serial) : base(serial) { }
+        public Carronade(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class Blundercannon : BaseShipCannon
     {
-        public override int LabelNumber { get { return 1158942; } } // Blundercannon
+        public override int LabelNumber => 1158942; // Blundercannon
 
-        public override int Range { get { return 12; } }
-        public override ShipCannonDeed GetDeed { get { return new BlundercannonDeed(); } }
-        public override CannonPower Power { get { return CannonPower.Massive; } }
+        public override int Range => 12;
+        public override ShipCannonDeed GetDeed => new BlundercannonDeed();
+        public override CannonPower Power => CannonPower.Massive;
 
-        public override TimeSpan ActionTime { get { return TimeSpan.FromSeconds(2.0); } }
+        public override TimeSpan ActionTime => TimeSpan.FromSeconds(2.0);
 
         public Blundercannon(BaseGalleon g) : base(g)
         {
         }
 
-        public Blundercannon(Serial serial) : base(serial) { }
+        public Blundercannon(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

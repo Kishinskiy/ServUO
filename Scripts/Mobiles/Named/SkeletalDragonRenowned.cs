@@ -3,9 +3,39 @@ using Server.Items;
 
 namespace Server.Mobiles
 {
-    [CorpseName("Skeletal Dragon [Renowned] corpse")]  
+    [CorpseName("Skeletal Dragon [Renowned] corpse")]
     public class SkeletalDragonRenowned : BaseRenowned
     {
+        public override Type[] UniqueSAList
+        {
+            get { return new Type[] { }; }
+        }
+
+        public override Type[] SharedSAList
+        {
+            get
+            {
+                return new[]
+                    { typeof(AxeOfAbandon), typeof(DemonBridleRing), typeof(VoidInfusedKilt), typeof(BladeOfBattle) };
+            }
+        }
+
+        public override bool ReacquireOnMovement => true;
+
+        public override double BonusPetDamageScalar => Core.SE ? 3.0 : 1.0;
+
+        // TODO: Undead summoning?
+        public override bool AutoDispel => true;
+
+        public override Poison PoisonImmune => Poison.Lethal;
+
+        public override bool BleedImmune => true;
+
+        public override int Meat => 19; // where's it hiding these? :)
+        public override int Hides => 20;
+
+        public override HideType HideType => HideType.Barbed;
+
         [Constructable]
         public SkeletalDragonRenowned()
             : base(AIType.AI_Mage)
@@ -53,77 +83,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override Type[] UniqueSAList
-        {
-            get
-            {
-                return new Type[] { };
-            }
-        }
-        public override Type[] SharedSAList
-        {
-            get
-            {
-                return new Type[] { typeof(AxeOfAbandon), typeof(DemonBridleRing), typeof(VoidInfusedKilt), typeof(BladeOfBattle) };
-            }
-        }
-        public override bool ReacquireOnMovement
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override double BonusPetDamageScalar
-        {
-            get
-            {
-                return (Core.SE) ? 3.0 : 1.0;
-            }
-        }
-        // TODO: Undead summoning?
-        public override bool AutoDispel
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override Poison PoisonImmune
-        {
-            get
-            {
-                return Poison.Lethal;
-            }
-        }
-        public override bool BleedImmune
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override int Meat
-        {
-            get
-            {
-                return 19;
-            }
-        }// where's it hiding these? :)
-        public override int Hides
-        {
-            get
-            {
-                return 20;
-            }
-        }
-        public override HideType HideType
-        {
-            get
-            {
-                return HideType.Barbed;
-            }
-        }
         public override void GenerateLoot()
         {
             AddLoot(LootPack.Rich, 3);
@@ -132,13 +91,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

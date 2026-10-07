@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -7,6 +6,11 @@ namespace Server.Mobiles
     [CorpseName("a dread spider corpse")]
     public class DreadSpider : BaseCreature
     {
+        public override bool CanAngerOnTame => true;
+        public override Poison PoisonImmune => Poison.Lethal;
+        public override Poison HitPoison => Poison.Lethal;
+        public override int TreasureMapLevel => 3;
+
         [Constructable]
         public DreadSpider()
             : base(AIType.AI_Mage, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -59,11 +63,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool CanAngerOnTame { get { return true; } }
-        public override Poison PoisonImmune { get { return Poison.Lethal; } }
-        public override Poison HitPoison { get { return Poison.Lethal; } }
-        public override int TreasureMapLevel { get { return 3; } }
-
         public override void GenerateLoot()
         {
             AddLoot(LootPack.FilthyRich);
@@ -72,18 +71,16 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1);
+            writer.Write(1);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (version == 0 && (AbilityProfile == null || AbilityProfile.MagicalAbility == MagicalAbility.None))
-            {
                 SetMagicalAbility(MagicalAbility.Poisoning);
-            }
         }
     }
 }

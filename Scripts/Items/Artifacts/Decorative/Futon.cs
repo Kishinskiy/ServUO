@@ -1,11 +1,10 @@
-using System;
-
 namespace Server.Items
 {
     [Flipable]
     public class Futon : Item
     {
-		public override bool IsArtifact { get { return true; } }
+        public override bool IsArtifact => true;
+
         [Constructable]
         public Futon()
             : base(Utility.RandomDouble() > 0.5 ? 0x295C : 0x295E)
@@ -19,19 +18,19 @@ namespace Server.Items
 
         public void Flip()
         {
-            switch ( this.ItemID )
+            switch (ItemID)
             {
                 case 0x295C:
-                    this.ItemID = 0x295D;
+                    ItemID = 0x295D;
                     break;
                 case 0x295E:
-                    this.ItemID = 0x295F;
+                    ItemID = 0x295F;
                     break;
                 case 0x295D:
-                    this.ItemID = 0x295C;
+                    ItemID = 0x295C;
                     break;
                 case 0x295F:
-                    this.ItemID = 0x295E;
+                    ItemID = 0x295E;
                     break;
             }
         }
@@ -39,13 +38,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

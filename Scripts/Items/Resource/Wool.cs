@@ -1,4 +1,3 @@
-using System;
 using Server.Targeting;
 
 namespace Server.Items
@@ -15,9 +14,9 @@ namespace Server.Items
         public Wool(int amount)
             : base(0xDF8)
         {
-            this.Stackable = true;
-            this.Weight = 4.0;
-            this.Amount = amount;
+            Stackable = true;
+            Weight = 4.0;
+            Amount = amount;
         }
 
         public Wool(Serial serial)
@@ -25,8 +24,18 @@ namespace Server.Items
         {
         }
 
-        TextDefinition ICommodity.Description { get { return LabelNumber; } }
-        bool ICommodity.IsDeedable { get { return true; } }
+        TextDefinition ICommodity.Description => LabelNumber;
+        bool ICommodity.IsDeedable => true;
+
+        public bool Dye(Mobile from, DyeTub sender)
+        {
+            if (Deleted)
+                return false;
+
+            Hue = sender.DyedHue;
+
+            return true;
+        }
 
         public static void OnSpun(ISpinningWheel wheel, Mobile from, int hue)
         {
@@ -41,29 +50,19 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
-        }
-
-        public bool Dye(Mobile from, DyeTub sender)
-        {
-            if (this.Deleted)
-                return false;
-
-            this.Hue = sender.DyedHue;
-
-            return true;
+            var version = reader.ReadInt();
         }
 
         public override void OnDoubleClick(Mobile from)
         {
-            if (this.IsChildOf(from.Backpack))
+            if (IsChildOf(from.Backpack))
             {
                 from.SendLocalizedMessage(502655); // What spinning wheel do you wish to spin this on?
                 from.Target = new PickWheelTarget(this);
@@ -77,27 +76,28 @@ namespace Server.Items
         private class PickWheelTarget : Target
         {
             private readonly Wool m_Wool;
+
             public PickWheelTarget(Wool wool)
                 : base(3, false, TargetFlags.None)
             {
-                this.m_Wool = wool;
+                m_Wool = wool;
             }
 
             protected override void OnTarget(Mobile from, object targeted)
             {
-                if (this.m_Wool.Deleted)
+                if (m_Wool.Deleted)
                     return;
 
-                ISpinningWheel wheel = targeted as ISpinningWheel;
+                var wheel = targeted as ISpinningWheel;
 
                 if (wheel == null && targeted is AddonComponent)
                     wheel = ((AddonComponent)targeted).Addon as ISpinningWheel;
 
                 if (wheel is Item)
                 {
-                    Item item = (Item)wheel;
+                    var item = (Item)wheel;
 
-                    if (!this.m_Wool.IsChildOf(from.Backpack))
+                    if (!m_Wool.IsChildOf(from.Backpack))
                     {
                         from.SendLocalizedMessage(1042001); // That must be in your pack for you to use it.
                     }
@@ -107,11 +107,11 @@ namespace Server.Items
                     }
                     else
                     {
-                        this.m_Wool.Consume();
-                        if (this.m_Wool is TaintedWool)
-                            wheel.BeginSpin(new SpinCallback(TaintedWool.OnSpun), from, this.m_Wool.Hue);
+                        m_Wool.Consume();
+                        if (m_Wool is TaintedWool)
+                            wheel.BeginSpin(TaintedWool.OnSpun, from, m_Wool.Hue);
                         else
-                            wheel.BeginSpin(new SpinCallback(Wool.OnSpun), from, this.m_Wool.Hue);
+                            wheel.BeginSpin(OnSpun, from, m_Wool.Hue);
                     }
                 }
                 else
@@ -134,9 +134,9 @@ namespace Server.Items
         public TaintedWool(int amount)
             : base(0x101F)
         {
-            this.Stackable = true;
-            this.Weight = 4.0;
-            this.Amount = amount;
+            Stackable = true;
+            Weight = 4.0;
+            Amount = amount;
         }
 
         public TaintedWool(Serial serial)
@@ -144,7 +144,7 @@ namespace Server.Items
         {
         }
 
-        new public static void OnSpun(ISpinningWheel wheel, Mobile from, int hue)
+        public new static void OnSpun(ISpinningWheel wheel, Mobile from, int hue)
         {
             Item item = new DarkYarn(1);
             item.Hue = hue;
@@ -157,14 +157,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

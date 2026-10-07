@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +5,17 @@ namespace Server.Mobiles
     [CorpseName("a Master Theophilus corpse")]
     public class MasterTheophilus : EvilMageLord
     {
+        public override bool CanBeParagon => false;
+
+        /*public override bool GivesMLMinorArtifact
+        {
+            get
+            {
+                return true;
+            }
+        }*/
+        public override bool AllureImmune => true;
+
         [Constructable]
         public MasterTheophilus()
         {
@@ -48,10 +58,8 @@ namespace Server.Mobiles
             PackReg(7);
             PackReg(8);
 
-            for (int i = 0; i < Utility.RandomMinMax(0, 1); i++)
-            {
+            for (var i = 0; i < Utility.RandomMinMax(0, 1); i++)
                 PackItem(Loot.RandomScroll(0, Loot.ArcanistScrollTypes.Length, SpellbookType.Arcanist));
-            }
 
             SetWeaponAbility(WeaponAbility.ParalyzingBlow);
         }
@@ -60,32 +68,18 @@ namespace Server.Mobiles
             : base(serial)
         {
         }
-        public override bool CanBeParagon { get { return false; } }
-        public override void OnDeath( Container c )
+
+        public override void OnDeath(Container c)
         {
-            base.OnDeath( c );
+            base.OnDeath(c);
 
-            if ( Utility.RandomDouble() < 0.15 )
-            c.DropItem( new DisintegratingThesisNotes() );
+            if (Utility.RandomDouble() < 0.15)
+                c.DropItem(new DisintegratingThesisNotes());
 
-            if ( Paragon.ChestChance > Utility.RandomDouble() )
-            c.DropItem( new ParagonChest( Name, 5 ) );
+            if (Paragon.ChestChance > Utility.RandomDouble())
+                c.DropItem(new ParagonChest(Name, 5));
         }
 
-        /*public override bool GivesMLMinorArtifact
-        {
-            get
-            {
-                return true;
-            }
-        }*/
-        public override bool AllureImmune
-        {
-            get
-            {
-                return true;
-            }
-        }       
         public override void GenerateLoot()
         {
             AddLoot(LootPack.UltraRich, 3);
@@ -97,14 +91,14 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

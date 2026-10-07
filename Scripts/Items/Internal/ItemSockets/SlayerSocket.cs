@@ -24,34 +24,26 @@ namespace Server.Items
         public override void OnRemoved()
         {
             if (Owner != null && !Owner.Deleted && Owner.RootParent is Mobile)
-            {
-                ((Mobile)Owner.RootParent).SendLocalizedMessage(1155618, String.IsNullOrEmpty(Owner.Name) ? String.Format("#{0}", Owner.LabelNumber) : Owner.Name); // Your ~1_name~'s Tincture of Silver has worn off.
-            }
+                ((Mobile)Owner.RootParent).SendLocalizedMessage(1155618,
+                    string.IsNullOrEmpty(Owner.Name)
+                        ? string.Format("#{0}", Owner.LabelNumber)
+                        : Owner.Name); // Your ~1_name~'s Tincture of Silver has worn off.
         }
 
         public static SlayerName GetSlayer(Item item)
         {
-            if (item == null)
-            {
-                return SlayerName.None;
-            }
+            if (item == null) return SlayerName.None;
 
             var socket = item.GetSocket<SlayerSocket>();
 
-            if (socket != null)
-            {
-                return socket.Slayer;
-            }
+            if (socket != null) return socket.Slayer;
 
             return SlayerName.None;
         }
 
         public override void OnAfterDuped(ItemSocket oldSocket)
         {
-            if (oldSocket is SlayerSocket)
-            {
-                Slayer = ((SlayerSocket)oldSocket).Slayer;
-            }
+            if (oldSocket is SlayerSocket) Slayer = ((SlayerSocket)oldSocket).Slayer;
         }
 
         public override void Serialize(GenericWriter writer)

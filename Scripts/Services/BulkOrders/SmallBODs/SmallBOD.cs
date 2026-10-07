@@ -8,18 +8,52 @@ namespace Server.Engines.BulkOrders
     [TypeAlias("Scripts.Engines.BulkOrders.SmallBOD")]
     public abstract class SmallBOD : Item, IBOD
     {
-        public abstract BODType BODType { get; }
-
         private int m_AmountCur, m_AmountMax;
-        private Type m_Type;
-        private int m_Number;
-        private int m_Graphic;
-        private int m_GraphicHue;
-        private bool m_RequireExceptional;
         private BulkMaterialType m_Material;
+        private int m_Number;
+        private bool m_RequireExceptional;
+        private Type m_Type;
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int AmountCur
+        {
+            get => m_AmountCur;
+            set
+            {
+                m_AmountCur = value;
+                InvalidateProperties();
+            }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public virtual Type Type
+        {
+            get => m_Type;
+            set => m_Type = value;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int Number
+        {
+            get => m_Number;
+            set
+            {
+                m_Number = value;
+                InvalidateProperties();
+            }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int Graphic { get; set; }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int GraphicHue { get; set; }
+
+        public override int LabelNumber => 1045151; // a bulk order deed
 
         [Constructable]
-        public SmallBOD(int hue, int amountMax, Type type, int number, int graphic, bool requireExeptional, BulkMaterialType material, int graphichue = 0)
+        public SmallBOD(int hue, int amountMax, Type type, int number, int graphic, bool requireExeptional,
+            BulkMaterialType material, int graphichue = 0)
             : base(Core.AOS ? 0x2258 : 0x14EF)
         {
             Weight = 1.0;
@@ -29,8 +63,8 @@ namespace Server.Engines.BulkOrders
             m_AmountMax = amountMax;
             m_Type = type;
             m_Number = number;
-            m_Graphic = graphic;
-            m_GraphicHue = graphichue;
+            Graphic = graphic;
+            GraphicHue = graphichue;
             m_RequireExceptional = requireExeptional;
             m_Material = material;
         }
@@ -47,130 +81,52 @@ namespace Server.Engines.BulkOrders
         {
         }
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int AmountCur
-        {
-            get
-            {
-                return m_AmountCur;
-            }
-            set
-            {
-                m_AmountCur = value;
-                InvalidateProperties();
-            }
-        }
+        public abstract BODType BODType { get; }
+
         [CommandProperty(AccessLevel.GameMaster)]
         public int AmountMax
         {
-            get
-            {
-                return m_AmountMax;
-            }
+            get => m_AmountMax;
             set
             {
                 m_AmountMax = value;
                 InvalidateProperties();
             }
         }
-        [CommandProperty(AccessLevel.GameMaster)]
-        public virtual Type Type
-        {
-            get
-            {
-                return m_Type;
-            }
-            set
-            {
-                m_Type = value;
-            }
-        }
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int Number
-        {
-            get
-            {
-                return m_Number;
-            }
-            set
-            {
-                m_Number = value;
-                InvalidateProperties();
-            }
-        }
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int Graphic
-        {
-            get
-            {
-                return m_Graphic;
-            }
-            set
-            {
-                m_Graphic = value;
-            }
-        }
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int GraphicHue
-        {
-            get
-            {
-                return m_GraphicHue;
-            }
-            set
-            {
-                m_GraphicHue = value;
-            }
-        }
+
         [CommandProperty(AccessLevel.GameMaster)]
         public bool RequireExceptional
         {
-            get
-            {
-                return m_RequireExceptional;
-            }
+            get => m_RequireExceptional;
             set
             {
                 m_RequireExceptional = value;
                 InvalidateProperties();
             }
         }
+
         [CommandProperty(AccessLevel.GameMaster)]
         public BulkMaterialType Material
         {
-            get
-            {
-                return m_Material;
-            }
+            get => m_Material;
             set
             {
                 m_Material = value;
                 InvalidateProperties();
             }
         }
+
         [CommandProperty(AccessLevel.GameMaster)]
-        public bool Complete
-        {
-            get
-            {
-                return (m_AmountCur == m_AmountMax);
-            }
-        }
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1045151;
-            }
-        }// a bulk order deed
+        public bool Complete => m_AmountCur == m_AmountMax;
+
         public static BulkMaterialType GetRandomMaterial(BulkMaterialType start, double[] chances)
         {
-            double random = Utility.RandomDouble();
+            var random = Utility.RandomDouble();
 
-            for (int i = 0; i < chances.Length; ++i)
+            for (var i = 0; i < chances.Length; ++i)
             {
                 if (random < chances[i])
-                    return (i == 0 ? BulkMaterialType.None : start + (i - 1));
+                    return i == 0 ? BulkMaterialType.None : start + (i - 1);
 
                 random -= chances[i];
             }
@@ -180,7 +136,7 @@ namespace Server.Engines.BulkOrders
 
         public static BulkMaterialType GetMaterial(CraftResource resource)
         {
-            switch ( resource )
+            switch (resource)
             {
                 case CraftResource.DullCopper:
                     return BulkMaterialType.DullCopper;
@@ -240,15 +196,15 @@ namespace Server.Engines.BulkOrders
         public override void OnDoubleClick(Mobile from)
         {
             if (IsChildOf(from.Backpack) || InSecureTrade || RootParent is PlayerVendor)
-			{
-				EventSink.InvokeBODUsed(new BODUsedEventArgs(from, this));
-				from.SendGump(new SmallBODGump(from, this));
-			}
+            {
+                EventSink.InvokeBODUsed(new BODUsedEventArgs(from, this));
+                from.SendGump(new SmallBODGump(from, this));
+            }
             else
-			{
-				from.SendLocalizedMessage(1045156); // You must have the deed in your backpack to use it.
-			}
-		}
+            {
+                from.SendLocalizedMessage(1045156); // You must have the deed in your backpack to use it.
+            }
+        }
 
         public override void OnDoubleClickNotAccessible(Mobile from)
         {
@@ -265,7 +221,8 @@ namespace Server.Engines.BulkOrders
             if (m_AmountCur < m_AmountMax)
                 from.Target = new SmallBODTarget(this);
             else
-                from.SendLocalizedMessage(1045166); // The maximum amount of requested items have already been combined to this deed.
+                from.SendLocalizedMessage(
+                    1045166); // The maximum amount of requested items have already been combined to this deed.
         }
 
         public abstract List<Item> ComputeRewards(bool full);
@@ -282,17 +239,15 @@ namespace Server.Engines.BulkOrders
 
             if (!BulkOrderSystem.NewSystemEnabled)
             {
-                List<Item> rewards = ComputeRewards(false);
+                var rewards = ComputeRewards(false);
 
                 if (rewards.Count > 0)
                 {
                     reward = rewards[Utility.Random(rewards.Count)];
 
-                    for (int i = 0; i < rewards.Count; ++i)
-                    {
+                    for (var i = 0; i < rewards.Count; ++i)
                         if (rewards[i] != reward)
                             rewards[i].Delete();
-                    }
                 }
             }
         }
@@ -311,12 +266,13 @@ namespace Server.Engines.BulkOrders
         {
             if (o is Item && ((Item)o).IsChildOf(from.Backpack))
             {
-                Type objectType = o.GetType();
-                Item item = o as Item;
+                var objectType = o.GetType();
+                var item = o as Item;
 
                 if (m_AmountCur >= m_AmountMax)
                 {
-                    from.SendLocalizedMessage(1045166); // The maximum amount of requested items have already been combined to this deed.
+                    from.SendLocalizedMessage(
+                        1045166); // The maximum amount of requested items have already been combined to this deed.
                 }
                 else if (!CheckType((Item)o))
                 {
@@ -324,7 +280,7 @@ namespace Server.Engines.BulkOrders
                 }
                 else
                 {
-                    BulkMaterialType material = BulkMaterialType.None;
+                    var material = BulkMaterialType.None;
 
                     if (o is IResource)
                         material = GetMaterial(((IResource)o).Resource);
@@ -335,10 +291,10 @@ namespace Server.Engines.BulkOrders
                     }
                     else
                     {
-                        bool isExceptional = false;
+                        var isExceptional = false;
 
                         if (o is IQuality)
-                            isExceptional = (((IQuality)o).Quality == ItemQuality.Exceptional);
+                            isExceptional = ((IQuality)o).Quality == ItemQuality.Exceptional;
 
                         if (m_RequireExceptional && !isExceptional)
                         {
@@ -350,14 +306,13 @@ namespace Server.Engines.BulkOrders
                             {
                                 if (AmountCur + item.Amount > AmountMax)
                                 {
-                                    from.SendLocalizedMessage(1157222); // You have provided more than which has been requested by this deed.
+                                    from.SendLocalizedMessage(
+                                        1157222); // You have provided more than which has been requested by this deed.
                                     return;
                                 }
-                                else
-                                {
-                                    AmountCur += item.Amount;
-                                    item.Delete();
-                                }
+
+                                AmountCur += item.Amount;
+                                item.Delete();
                             }
                             else
                             {
@@ -383,7 +338,7 @@ namespace Server.Engines.BulkOrders
 
         public static double GetRequiredSkill(BulkMaterialType type)
         {
-            double skillReq = 0.0;
+            var skillReq = 0.0;
 
             switch (type)
             {
@@ -443,15 +398,15 @@ namespace Server.Engines.BulkOrders
         {
             base.Serialize(writer);
 
-            writer.Write((int)1); // version
+            writer.Write(1); // version
 
-            writer.Write(m_GraphicHue);
+            writer.Write(GraphicHue);
 
             writer.Write(m_AmountCur);
             writer.Write(m_AmountMax);
             writer.Write(m_Type == null ? null : m_Type.FullName);
             writer.Write(m_Number);
-            writer.Write(m_Graphic);
+            writer.Write(Graphic);
             writer.Write(m_RequireExceptional);
             writer.Write((int)m_Material);
         }
@@ -460,32 +415,32 @@ namespace Server.Engines.BulkOrders
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            switch ( version )
+            switch (version)
             {
                 case 1:
-                    {
-                        m_GraphicHue = reader.ReadInt();
-                        goto case 0;
-                    }
+                {
+                    GraphicHue = reader.ReadInt();
+                    goto case 0;
+                }
                 case 0:
-                    {
-                        m_AmountCur = reader.ReadInt();
-                        m_AmountMax = reader.ReadInt();
+                {
+                    m_AmountCur = reader.ReadInt();
+                    m_AmountMax = reader.ReadInt();
 
-                        string type = reader.ReadString();
+                    var type = reader.ReadString();
 
-                        if (type != null)
-                            m_Type = ScriptCompiler.FindTypeByFullName(type);
+                    if (type != null)
+                        m_Type = ScriptCompiler.FindTypeByFullName(type);
 
-                        m_Number = reader.ReadInt();
-                        m_Graphic = reader.ReadInt();
-                        m_RequireExceptional = reader.ReadBool();
-                        m_Material = (BulkMaterialType)reader.ReadInt();
+                    m_Number = reader.ReadInt();
+                    Graphic = reader.ReadInt();
+                    m_RequireExceptional = reader.ReadBool();
+                    m_Material = (BulkMaterialType)reader.ReadInt();
 
-                        break;
-                    }
+                    break;
+                }
             }
 
             if (Weight == 0.0)

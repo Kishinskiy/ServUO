@@ -1,13 +1,11 @@
-﻿using System;
-using Server;
-using Server.Mobiles;
+﻿using Server.Mobiles;
 
 namespace Server.Items
 {
     [TypeAlias("drNO.ThieveItems.BalmOfWisdom")]
     public class BalmOfWisdom : BaseBalmOrLotion
     {
-        public override int LabelNumber { get { return 1094941; } }  // Balm of Wisdom
+        public override int LabelNumber => 1094941; // Balm of Wisdom
 
         [Constructable]
         public BalmOfWisdom()
@@ -16,16 +14,16 @@ namespace Server.Items
             m_EffectType = ThieveConsumableEffect.BalmOfWisdomEffect;
         }
 
-        protected override void ApplyEffect(PlayerMobile pm)
-        {
-            pm.AddStatMod(new StatMod(StatType.Int, "Balm", 10, m_EffectDuration));
-            pm.SendLocalizedMessage(1095137);//You apply the balm and suddenly feel wiser!
-            base.ApplyEffect(pm);
-        }
-
         public BalmOfWisdom(Serial serial)
             : base(serial)
         {
+        }
+
+        protected override void ApplyEffect(PlayerMobile pm)
+        {
+            pm.AddStatMod(new StatMod(StatType.Int, "Balm", 10, m_EffectDuration));
+            pm.SendLocalizedMessage(1095137); //You apply the balm and suddenly feel wiser!
+            base.ApplyEffect(pm);
         }
 
 
@@ -33,14 +31,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

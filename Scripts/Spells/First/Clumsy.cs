@@ -1,6 +1,6 @@
-using System;
-using Server.Targeting;
 using System.Collections.Generic;
+using Server.Spells.Mysticism;
+using Server.Targeting;
 
 namespace Server.Spells.First
 {
@@ -12,12 +12,15 @@ namespace Server.Spells.First
             9031,
             Reagent.Bloodmoss,
             Reagent.Nightshade);
+
+        public static Dictionary<Mobile, Timer> m_Table = new Dictionary<Mobile, Timer>();
+
+        public override SpellCircle Circle => SpellCircle.First;
+
         public ClumsySpell(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
         {
         }
-
-        public static Dictionary<Mobile, Timer> m_Table = new Dictionary<Mobile, Timer>();
 
         public static bool IsUnderEffects(Mobile m)
         {
@@ -28,12 +31,9 @@ namespace Server.Spells.First
         {
             if (m_Table.ContainsKey(m))
             {
-                Timer t = m_Table[m];
+                var t = m_Table[m];
 
-                if (t != null && t.Running)
-                {
-                    t.Stop();
-                }
+                if (t != null && t.Running) t.Stop();
 
                 BuffInfo.RemoveBuff(m, BuffIcon.Clumsy);
 
@@ -44,37 +44,30 @@ namespace Server.Spells.First
             }
         }
 
-        public override SpellCircle Circle
-        {
-            get
-            {
-                return SpellCircle.First;
-            }
-        }
         public override void OnCast()
         {
-            this.Caster.Target = new InternalTarget(this);
+            Caster.Target = new InternalTarget(this);
         }
 
         public void Target(Mobile m)
         {
-            if (!this.Caster.CanSee(m))
+            if (!Caster.CanSee(m))
             {
-                this.Caster.SendLocalizedMessage(500237); // Target can not be seen.
+                Caster.SendLocalizedMessage(500237); // Target can not be seen.
             }
-            else if (this.CheckHSequence(m))
+            else if (CheckHSequence(m))
             {
-                SpellHelper.Turn(this.Caster, m);
-                SpellHelper.CheckReflect((int)this.Circle, this.Caster, ref m);
+                SpellHelper.Turn(Caster, m);
+                SpellHelper.CheckReflect((int)Circle, Caster, ref m);
 
-                if (Mysticism.StoneFormSpell.CheckImmunity(m))
+                if (StoneFormSpell.CheckImmunity(m))
                 {
                     Caster.SendLocalizedMessage(1080192); // Your target resists your ability reduction magic.
                     return;
                 }
 
-                int oldOffset = SpellHelper.GetCurseOffset(m, StatType.Dex);
-                int newOffset = SpellHelper.GetOffset(Caster, m, StatType.Dex, true, false);
+                var oldOffset = SpellHelper.GetCurseOffset(m, StatType.Dex);
+                var newOffset = SpellHelper.GetOffset(Caster, m, StatType.Dex, true, false);
 
                 if (-newOffset > oldOffset || newOffset == 0)
                 {
@@ -94,46 +87,41 @@ namespace Server.Spells.First
 
                     if (-newOffset < oldOffset)
                     {
-                        SpellHelper.AddStatCurse(this.Caster, m, StatType.Dex, false, newOffset);
+                        SpellHelper.AddStatCurse(Caster, m, StatType.Dex, false, newOffset);
 
-                        int percentage = (int)(SpellHelper.GetOffsetScalar(this.Caster, m, true) * 100);
-                        TimeSpan length = SpellHelper.GetDuration(this.Caster, m);
+                        var percentage = (int)(SpellHelper.GetOffsetScalar(Caster, m, true) * 100);
+                        var length = SpellHelper.GetDuration(Caster, m);
                         BuffInfo.AddBuff(m, new BuffInfo(BuffIcon.Clumsy, 1075831, length, m, percentage.ToString()));
 
                         if (m_Table.ContainsKey(m))
                             m_Table[m].Stop();
 
-                        m_Table[m] = Timer.DelayCall(length, () =>
-                            {
-                                RemoveEffects(m);
-                            });
+                        m_Table[m] = Timer.DelayCall(length, () => { RemoveEffects(m); });
                     }
                 }
             }
 
-            this.FinishSequence();
+            FinishSequence();
         }
 
         private class InternalTarget : Target
         {
             private readonly ClumsySpell m_Owner;
+
             public InternalTarget(ClumsySpell owner)
                 : base(Core.ML ? 10 : 12, false, TargetFlags.Harmful)
             {
-                this.m_Owner = owner;
+                m_Owner = owner;
             }
 
             protected override void OnTarget(Mobile from, object o)
             {
-                if (o is Mobile)
-                {
-                    this.m_Owner.Target((Mobile)o);
-                }
+                if (o is Mobile) m_Owner.Target((Mobile)o);
             }
 
             protected override void OnTargetFinish(Mobile from)
             {
-                this.m_Owner.FinishSequence();
+                m_Owner.FinishSequence();
             }
         }
     }

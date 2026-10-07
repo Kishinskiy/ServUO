@@ -1,14 +1,15 @@
 using System;
+using Server.Multis;
 
 namespace Server.Items
 {
     public class ElvenDresserAddonSouth : BaseAddonContainer
     {
-        public override BaseAddonContainerDeed Deed { get { return new ElvenDresserDeedSouth(); } }
+        public override BaseAddonContainerDeed Deed => new ElvenDresserDeedSouth();
 
-        public override int DefaultGumpID { get { return 0x51; } }
-        public override int DefaultDropSound { get { return 0x42; } }
-        public override bool RetainDeedHue { get { return true; } }
+        public override int DefaultGumpID => 0x51;
+        public override int DefaultDropSound => 0x42;
+        public override bool RetainDeedHue => true;
 
         [Constructable]
         public ElvenDresserAddonSouth()
@@ -33,14 +34,14 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class ElvenDresserDeedSouth : BaseAddonContainerDeed
     {
-        public override BaseAddonContainer Addon { get { return new ElvenDresserAddonSouth(); } }
-        public override int LabelNumber { get { return 1072864; } }
+        public override BaseAddonContainer Addon => new ElvenDresserAddonSouth();
+        public override int LabelNumber => 1072864;
 
         [Constructable]
         public ElvenDresserDeedSouth()
@@ -63,17 +64,19 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class ElvenDresserSouthAddon : BaseAddon
     {
+        public override BaseAddonDeed Deed => new ElvenDresserSouthDeed();
+
         [Constructable]
         public ElvenDresserSouthAddon()
         {
-            this.AddComponent(new AddonComponent(0x30E5), 0, 0, 0);
-            this.AddComponent(new AddonComponent(0x30E6), 1, 0, 0);
+            AddComponent(new AddonComponent(0x30E5), 0, 0, 0);
+            AddComponent(new AddonComponent(0x30E6), 1, 0, 0);
         }
 
         public ElvenDresserSouthAddon(Serial serial)
@@ -81,13 +84,6 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonDeed Deed
-        {
-            get
-            {
-                return new ElvenDresserSouthDeed();
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -99,19 +95,19 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
 
             Timer.DelayCall(TimeSpan.FromSeconds(10), Replace);
         }
 
         private void Replace()
         {
-            Server.Multis.BaseHouse house = Server.Multis.BaseHouse.FindHouseAt(this);
+            var house = BaseHouse.FindHouseAt(this);
 
             if (house != null)
             {
-                Point3D p = this.Location;
-                Map map = this.Map;
+                var p = Location;
+                var map = Map;
 
                 house.Addons.Remove(this);
                 Delete();
@@ -125,6 +121,10 @@ namespace Server.Items
 
     public class ElvenDresserSouthDeed : BaseAddonDeed
     {
+        public override BaseAddon Addon => new ElvenDresserSouthAddon();
+
+        public override int LabelNumber => 1072864; // elven dresser (south)
+
         [Constructable]
         public ElvenDresserSouthDeed()
         {
@@ -135,20 +135,6 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddon Addon
-        {
-            get
-            {
-                return new ElvenDresserSouthAddon();
-            }
-        }
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1072864;
-            }
-        }// elven dresser (south)
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -160,26 +146,26 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
 
             Timer.DelayCall(TimeSpan.FromSeconds(10), Replace);
         }
 
         private void Replace()
         {
-            Container c = this.Parent as Container;
+            var c = Parent as Container;
 
             if (c != null)
             {
                 var deed = new ElvenDresserDeedSouth();
                 c.DropItem(deed);
             }
-            else if (this.Parent == null)
+            else if (Parent == null)
             {
-                Server.Multis.BaseHouse house = Server.Multis.BaseHouse.FindHouseAt(this);
+                var house = BaseHouse.FindHouseAt(this);
 
                 var deed = new ElvenDresserDeedSouth();
-                deed.MoveToWorld(this.Location, this.Map);
+                deed.MoveToWorld(Location, Map);
 
                 deed.IsLockedDown = IsLockedDown;
                 deed.IsSecure = IsSecure;

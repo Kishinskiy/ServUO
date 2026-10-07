@@ -1,14 +1,8 @@
-using System;
-using Server;
-
 namespace Server.Items
 {
     public class PowderCharge : Item, ICommodity
     {
-        public override int LabelNumber { get { return 1116160; } } // powder charge
-
-        TextDefinition ICommodity.Description { get { return LabelNumber; } }
-        bool ICommodity.IsDeedable { get { return true; } }
+        public override int LabelNumber => 1116160; // powder charge
 
         [Constructable]
         public PowderCharge()
@@ -29,25 +23,25 @@ namespace Server.Items
         {
         }
 
+        TextDefinition ICommodity.Description => LabelNumber;
+        bool ICommodity.IsDeedable => true;
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class LightPowderCharge : Item, ICommodity
     {
-        public override int LabelNumber { get { return 1116159; } }
-
-        TextDefinition ICommodity.Description { get { return LabelNumber; } }
-        bool ICommodity.IsDeedable { get { return true; } }
+        public override int LabelNumber => 1116159;
 
         [Constructable]
         public LightPowderCharge() : this(1)
@@ -63,32 +57,31 @@ namespace Server.Items
         }
 
 
-        public LightPowderCharge(Serial serial) : base(serial) { }
+        public LightPowderCharge(Serial serial) : base(serial)
+        {
+        }
+
+        TextDefinition ICommodity.Description => LabelNumber;
+        bool ICommodity.IsDeedable => true;
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            if (Core.EJ)
-            {
-                Replacer.Replace(this, new PowderCharge());
-            }
+            if (Core.EJ) Replacer.Replace(this, new PowderCharge());
         }
     }
 
     public class HeavyPowderCharge : Item, ICommodity
     {
-        public override int LabelNumber { get { return 1116160; } }
-
-        TextDefinition ICommodity.Description { get { return LabelNumber; } }
-        bool ICommodity.IsDeedable { get { return true; } }
+        public override int LabelNumber => 1116160;
 
         [Constructable]
         public HeavyPowderCharge() : this(1)
@@ -104,23 +97,25 @@ namespace Server.Items
             Amount = amount;
         }
 
-        public HeavyPowderCharge(Serial serial) : base(serial) { }
+        public HeavyPowderCharge(Serial serial) : base(serial)
+        {
+        }
+
+        TextDefinition ICommodity.Description => LabelNumber;
+        bool ICommodity.IsDeedable => true;
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            if (Core.EJ)
-            {
-                Replacer.Replace(this, new PowderCharge());
-            }
+            if (Core.EJ) Replacer.Replace(this, new PowderCharge());
         }
     }
 }

@@ -1,14 +1,7 @@
-using System;
-using System.Collections.Generic;
-
-using Server;
-using Server.Prompts;
-using Server.Mobiles;
-using Server.Items;
-using Server.SkillHandlers;
-using Server.Gumps;
-using Server.Network;
 using Server.Engines.Quests;
+using Server.Mobiles;
+using Server.Network;
+using Server.SkillHandlers;
 
 namespace Server.Engines.Khaldun
 {
@@ -26,6 +19,11 @@ namespace Server.Engines.Khaldun
             Door = door;
         }
 
+        public DustPile(Serial serial)
+            : base(serial)
+        {
+        }
+
         public void OnForensicEval(Mobile m)
         {
             if (!m.Player)
@@ -41,8 +39,10 @@ namespace Server.Engines.Khaldun
                 }
                 else
                 {
-                    m.PrivateOverheadMessage(MessageType.Regular, 0x47E, 1157722, "Forensics", m.NetState); // *Your proficiency in ~1_SKILL~ reveals more about the item*
-                    m.SendLocalizedMessage(1158612, null, 0x23); // You have identified a clue! This item seems pertinent to the investigation!
+                    m.PrivateOverheadMessage(MessageType.Regular, 0x47E, 1157722, "Forensics",
+                        m.NetState); // *Your proficiency in ~1_SKILL~ reveals more about the item*
+                    m.SendLocalizedMessage(1158612, null,
+                        0x23); // You have identified a clue! This item seems pertinent to the investigation!
 
                     m.SendSound(quest.UpdateSound);
                     m.SendSound(m.Female ? 0x30B : 0x41A);
@@ -60,10 +60,7 @@ namespace Server.Engines.Khaldun
 
         private void SetFoundClue(GoingGumshoeQuest2 quest)
         {
-            if (Door == null)
-            {
-                return;
-            }
+            if (Door == null) return;
 
             switch (Door.Keyword.ToLower())
             {
@@ -76,10 +73,7 @@ namespace Server.Engines.Khaldun
 
         private bool HasFoundClue(GoingGumshoeQuest2 quest)
         {
-            if (Door == null)
-            {
-                return false;
-            }
+            if (Door == null) return false;
 
             switch (Door.Keyword.ToLower())
             {
@@ -92,16 +86,11 @@ namespace Server.Engines.Khaldun
             return false;
         }
 
-        public DustPile(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
             writer.Write(Door);
         }
 
@@ -109,7 +98,7 @@ namespace Server.Engines.Khaldun
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
             Door = reader.ReadItem() as TrapDoor;
         }
     }

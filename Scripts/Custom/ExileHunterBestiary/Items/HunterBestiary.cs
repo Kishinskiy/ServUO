@@ -1,6 +1,4 @@
-using System;
 using Server.Custom.ExileHunterBestiary.Gumps;
-using Server.Network;
 
 namespace Server.Custom.ExileHunterBestiary.Items
 {
@@ -38,7 +36,8 @@ namespace Server.Custom.ExileHunterBestiary.Items
             base.GetProperties(list);
 
             list.Add(1070722, "<BASEFONT COLOR=#D1C4E9>Grand Grimoire of Monster Lore<BASEFONT COLOR=#FFFFFF>");
-            list.Add(1070722, "<BASEFONT COLOR=#ECEFF1>Tracks mastered treatises and combat bonuses<BASEFONT COLOR=#FFFFFF>");
+            list.Add(1070722,
+                "<BASEFONT COLOR=#ECEFF1>Tracks mastered treatises and combat bonuses<BASEFONT COLOR=#FFFFFF>");
             list.Add(1070722, "<BASEFONT COLOR=#FFE082>Double-click to open Bestiary<BASEFONT COLOR=#FFFFFF>");
         }
 
@@ -48,10 +47,12 @@ namespace Server.Custom.ExileHunterBestiary.Items
             GetProperties(list);
 
             var profile = HunterBestiaryEngine.GetProfile(from);
-            int mastered = profile != null ? profile.TotalMastered : 0;
-            int total = HunterBestiaryEngine.RegistryById.Count;
+            var mastered = profile != null ? profile.TotalMastered : 0;
+            var total = HunterBestiaryEngine.RegistryById.Count;
 
-            list.Add(1070722, string.Format("<BASEFONT COLOR=#00FFCC>Mastery Progress: {0} / {1} Creatures<BASEFONT COLOR=#FFFFFF>", mastered, total));
+            list.Add(1070722,
+                string.Format("<BASEFONT COLOR=#00FFCC>Mastery Progress: {0} / {1} Creatures<BASEFONT COLOR=#FFFFFF>",
+                    mastered, total));
 
             // if (OnGetProperties != null)
             // {
@@ -66,14 +67,14 @@ namespace Server.Custom.ExileHunterBestiary.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

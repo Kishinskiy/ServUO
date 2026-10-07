@@ -1,36 +1,21 @@
-using System;
 using System.Collections.Generic;
 using Server.Items;
 
-namespace Server.Mobiles 
-{ 
-    public class SBWeaponSmith : SBInfo 
-    { 
+namespace Server.Mobiles
+{
+    public class SBWeaponSmith : SBInfo
+    {
         private readonly List<GenericBuyInfo> m_BuyInfo = new InternalBuyInfo();
         private readonly IShopSellInfo m_SellInfo = new InternalSellInfo();
-        public SBWeaponSmith() 
-        { 
-        }
 
-        public override IShopSellInfo SellInfo
-        {
-            get
-            {
-                return m_SellInfo;
-            }
-        }
-        public override List<GenericBuyInfo> BuyInfo
-        {
-            get
-            {
-                return m_BuyInfo;
-            }
-        }
+        public override IShopSellInfo SellInfo => m_SellInfo;
 
-        public class InternalBuyInfo : List<GenericBuyInfo> 
-        { 
-            public InternalBuyInfo() 
-            { 
+        public override List<GenericBuyInfo> BuyInfo => m_BuyInfo;
+
+        public class InternalBuyInfo : List<GenericBuyInfo>
+        {
+            public InternalBuyInfo()
+            {
                 Add(new GenericBuyInfo(typeof(BlackStaff), 22, 20, 0xDF1, 0));
                 Add(new GenericBuyInfo(typeof(Club), 16, 20, 0x13B4, 0));
                 Add(new GenericBuyInfo(typeof(GnarledStaff), 16, 20, 0x13F8, 0));
@@ -54,71 +39,71 @@ namespace Server.Mobiles
                 Add(new GenericBuyInfo(typeof(Hatchet), 27, 20, 0xF43, 0));
                 Add(new GenericBuyInfo(typeof(WarFork), 32, 20, 0x1405, 0));
 
-                switch ( Utility.Random(3)) 
-                { 
+                switch (Utility.Random(3))
+                {
                     case 0:
+                    {
+                        Add(new GenericBuyInfo(typeof(ExecutionersAxe), 30, 20, 0xF45, 0));
+                        Add(new GenericBuyInfo(typeof(Bardiche), 60, 20, 0xF4D, 0));
+                        Add(new GenericBuyInfo(typeof(BattleAxe), 26, 20, 0xF47, 0));
+                        Add(new GenericBuyInfo(typeof(TwoHandedAxe), 32, 20, 0x1443, 0));
+
+                        Add(new GenericBuyInfo(typeof(Bow), 35, 20, 0x13B2, 0));
+
+                        Add(new GenericBuyInfo(typeof(ButcherKnife), 14, 20, 0x13F6, 0));
+
+                        Add(new GenericBuyInfo(typeof(Crossbow), 46, 20, 0xF50, 0));
+                        Add(new GenericBuyInfo(typeof(HeavyCrossbow), 55, 20, 0x13FD, 0));
+
+                        Add(new GenericBuyInfo(typeof(Cutlass), 24, 20, 0x1441, 0));
+                        Add(new GenericBuyInfo(typeof(Dagger), 21, 20, 0xF52, 0));
+                        Add(new GenericBuyInfo(typeof(Halberd), 42, 20, 0x143E, 0));
+
+                        Add(new GenericBuyInfo(typeof(HammerPick), 26, 20, 0x143D, 0));
+
+                        Add(new GenericBuyInfo(typeof(Katana), 33, 20, 0x13FF, 0));
+                        Add(new GenericBuyInfo(typeof(Kryss), 32, 20, 0x1401, 0));
+                        Add(new GenericBuyInfo(typeof(Broadsword), 35, 20, 0xF5E, 0));
+                        Add(new GenericBuyInfo(typeof(Longsword), 55, 20, 0xF61, 0));
+                        Add(new GenericBuyInfo(typeof(ThinLongsword), 27, 20, 0x13B8, 0));
+                        Add(new GenericBuyInfo(typeof(VikingSword), 55, 20, 0x13B9, 0));
+
+                        Add(new GenericBuyInfo(typeof(Cleaver), 15, 20, 0xEC3, 0));
+                        Add(new GenericBuyInfo(typeof(Axe), 40, 20, 0xF49, 0));
+                        Add(new GenericBuyInfo(typeof(DoubleAxe), 52, 20, 0xF4B, 0));
+                        Add(new GenericBuyInfo(typeof(Pickaxe), 22, 20, 0xE86, 0));
+
+                        Add(new GenericBuyInfo(typeof(Pitchfork), 19, 20, 0xE87, 0));
+
+                        Add(new GenericBuyInfo(typeof(Scimitar), 36, 20, 0x13B6, 0));
+
+                        Add(new GenericBuyInfo(typeof(SkinningKnife), 14, 20, 0xEC4, 0));
+
+                        Add(new GenericBuyInfo(typeof(LargeBattleAxe), 33, 20, 0x13FB, 0));
+                        Add(new GenericBuyInfo(typeof(WarAxe), 29, 20, 0x13B0, 0));
+
+                        if (Core.AOS)
                         {
-                            Add(new GenericBuyInfo(typeof(ExecutionersAxe), 30, 20, 0xF45, 0));
-                            Add(new GenericBuyInfo(typeof(Bardiche), 60, 20, 0xF4D, 0));
-                            Add(new GenericBuyInfo(typeof(BattleAxe), 26, 20, 0xF47, 0));
-                            Add(new GenericBuyInfo(typeof(TwoHandedAxe), 32, 20, 0x1443, 0));
-
-                            Add(new GenericBuyInfo(typeof(Bow), 35, 20, 0x13B2, 0));
-
-                            Add(new GenericBuyInfo(typeof(ButcherKnife), 14, 20, 0x13F6, 0));
-
-                            Add(new GenericBuyInfo(typeof(Crossbow), 46, 20, 0xF50, 0));
-                            Add(new GenericBuyInfo(typeof(HeavyCrossbow), 55, 20, 0x13FD, 0));
-
-                            Add(new GenericBuyInfo(typeof(Cutlass), 24, 20, 0x1441, 0));
-                            Add(new GenericBuyInfo(typeof(Dagger), 21, 20, 0xF52, 0));
-                            Add(new GenericBuyInfo(typeof(Halberd), 42, 20, 0x143E, 0));
-
-                            Add(new GenericBuyInfo(typeof(HammerPick), 26, 20, 0x143D, 0));
-
-                            Add(new GenericBuyInfo(typeof(Katana), 33, 20, 0x13FF, 0));
-                            Add(new GenericBuyInfo(typeof(Kryss), 32, 20, 0x1401, 0));
-                            Add(new GenericBuyInfo(typeof(Broadsword), 35, 20, 0xF5E, 0));
-                            Add(new GenericBuyInfo(typeof(Longsword), 55, 20, 0xF61, 0));
-                            Add(new GenericBuyInfo(typeof(ThinLongsword), 27, 20, 0x13B8, 0));
-                            Add(new GenericBuyInfo(typeof(VikingSword), 55, 20, 0x13B9, 0));
-
-                            Add(new GenericBuyInfo(typeof(Cleaver), 15, 20, 0xEC3, 0));
-                            Add(new GenericBuyInfo(typeof(Axe), 40, 20, 0xF49, 0));
-                            Add(new GenericBuyInfo(typeof(DoubleAxe), 52, 20, 0xF4B, 0));
-                            Add(new GenericBuyInfo(typeof(Pickaxe), 22, 20, 0xE86, 0));
-
-                            Add(new GenericBuyInfo(typeof(Pitchfork), 19, 20, 0xE87, 0));
-
-                            Add(new GenericBuyInfo(typeof(Scimitar), 36, 20, 0x13B6, 0));
-
-                            Add(new GenericBuyInfo(typeof(SkinningKnife), 14, 20, 0xEC4, 0));
-
-                            Add(new GenericBuyInfo(typeof(LargeBattleAxe), 33, 20, 0x13FB, 0));
-                            Add(new GenericBuyInfo(typeof(WarAxe), 29, 20, 0x13B0, 0));
-
-                            if (Core.AOS)
-                            {
-                                Add(new GenericBuyInfo(typeof(BoneHarvester), 35, 20, 0x26BB, 0));
-                                Add(new GenericBuyInfo(typeof(CrescentBlade), 37, 20, 0x26C1, 0));
-                                Add(new GenericBuyInfo(typeof(DoubleBladedStaff), 35, 20, 0x26BF, 0));
-                                Add(new GenericBuyInfo(typeof(Lance), 34, 20, 0x26C0, 0));
-                                Add(new GenericBuyInfo(typeof(Pike), 39, 20, 0x26BE, 0));
-                                Add(new GenericBuyInfo(typeof(Scythe), 39, 20, 0x26BA, 0));
-                                Add(new GenericBuyInfo(typeof(CompositeBow), 50, 20, 0x26C2, 0));
-                                Add(new GenericBuyInfo(typeof(RepeatingCrossbow), 57, 20, 0x26C3, 0));
-                            }
-
-                            break;
+                            Add(new GenericBuyInfo(typeof(BoneHarvester), 35, 20, 0x26BB, 0));
+                            Add(new GenericBuyInfo(typeof(CrescentBlade), 37, 20, 0x26C1, 0));
+                            Add(new GenericBuyInfo(typeof(DoubleBladedStaff), 35, 20, 0x26BF, 0));
+                            Add(new GenericBuyInfo(typeof(Lance), 34, 20, 0x26C0, 0));
+                            Add(new GenericBuyInfo(typeof(Pike), 39, 20, 0x26BE, 0));
+                            Add(new GenericBuyInfo(typeof(Scythe), 39, 20, 0x26BA, 0));
+                            Add(new GenericBuyInfo(typeof(CompositeBow), 50, 20, 0x26C2, 0));
+                            Add(new GenericBuyInfo(typeof(RepeatingCrossbow), 57, 20, 0x26C3, 0));
                         }
+
+                        break;
+                    }
                 }
             }
         }
 
-        public class InternalSellInfo : GenericSellInfo 
-        { 
-            public InternalSellInfo() 
-            { 
+        public class InternalSellInfo : GenericSellInfo
+        {
+            public InternalSellInfo()
+            {
                 Add(typeof(BattleAxe), 13);
                 Add(typeof(DoubleAxe), 26);
                 Add(typeof(ExecutionersAxe), 15);
@@ -145,7 +130,7 @@ namespace Server.Mobiles
 
                 Add(typeof(HeavyCrossbow), 27);
                 Add(typeof(Bow), 17);
-                Add(typeof(Crossbow), 23); 
+                Add(typeof(Crossbow), 23);
 
                 if (Core.AOS)
                 {

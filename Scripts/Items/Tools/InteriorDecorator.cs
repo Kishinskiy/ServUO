@@ -18,7 +18,10 @@ namespace Server.Items
 
     public class InteriorDecorator : Item
     {
-        public override int LabelNumber { get { return 1041280; } } // an interior decorator
+        public override int LabelNumber => 1041280; // an interior decorator
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public DecorateCommand Command { get; set; }
 
         [Constructable]
         public InteriorDecorator()
@@ -33,14 +36,11 @@ namespace Server.Items
         {
         }
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public DecorateCommand Command { get; set; }
-
         public static bool InHouse(Mobile from)
         {
-            BaseHouse house = BaseHouse.FindHouseAt(from);
+            var house = BaseHouse.FindHouseAt(from);
 
-            return (house != null && house.IsCoOwner(from));
+            return house != null && house.IsCoOwner(from);
         }
 
         public static bool CheckUse(InteriorDecorator tool, Mobile from)
@@ -56,13 +56,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         public override void OnDoubleClick(Mobile from)
@@ -92,21 +92,26 @@ namespace Server.Items
 
                 if (!InHouse(from))
                 {
-                    AddButton(40, 36, (decorator.Command == DecorateCommand.GetHue ? 2154 : 2152), 2154, 4, GumpButtonType.Reply, 0);
+                    AddButton(40, 36, decorator.Command == DecorateCommand.GetHue ? 2154 : 2152, 2154, 4,
+                        GumpButtonType.Reply, 0);
                     AddHtmlLocalized(80, 41, 100, 20, 1158863, false, false); // Get Hue   
                 }
                 else
                 {
-                    AddButton(40, 36, (decorator.Command == DecorateCommand.Turn ? 2154 : 2152), 2154, 1, GumpButtonType.Reply, 0);
+                    AddButton(40, 36, decorator.Command == DecorateCommand.Turn ? 2154 : 2152, 2154, 1,
+                        GumpButtonType.Reply, 0);
                     AddHtmlLocalized(80, 41, 100, 20, 1018323, false, false); // Turn
 
-                    AddButton(40, 86, (decorator.Command == DecorateCommand.Up ? 2154 : 2152), 2154, 2, GumpButtonType.Reply, 0);
+                    AddButton(40, 86, decorator.Command == DecorateCommand.Up ? 2154 : 2152, 2154, 2,
+                        GumpButtonType.Reply, 0);
                     AddHtmlLocalized(80, 91, 100, 20, 1018324, false, false); // Up
 
-                    AddButton(40, 136, (decorator.Command == DecorateCommand.Down ? 2154 : 2152), 2154, 3, GumpButtonType.Reply, 0);
+                    AddButton(40, 136, decorator.Command == DecorateCommand.Down ? 2154 : 2152, 2154, 3,
+                        GumpButtonType.Reply, 0);
                     AddHtmlLocalized(80, 141, 100, 20, 1018325, false, false); // Down
 
-                    AddButton(40, 186, (decorator.Command == DecorateCommand.GetHue ? 2154 : 2152), 2154, 4, GumpButtonType.Reply, 0);
+                    AddButton(40, 186, decorator.Command == DecorateCommand.GetHue ? 2154 : 2152, 2154, 4,
+                        GumpButtonType.Reply, 0);
                     AddHtmlLocalized(80, 191, 100, 20, 1158863, false, false); // Get Hue                    
                 }
 
@@ -115,10 +120,10 @@ namespace Server.Items
 
             public override void OnResponse(NetState sender, RelayInfo info)
             {
-                DecorateCommand command = DecorateCommand.None;
-                Mobile m = sender.Mobile;
+                var command = DecorateCommand.None;
+                var m = sender.Mobile;
 
-                int cliloc = 0;
+                var cliloc = 0;
 
                 switch (info.ButtonID)
                 {
@@ -159,6 +164,12 @@ namespace Server.Items
 
         private class InternalTarget : Target
         {
+            private static readonly Type[] m_KingsCollectionTypes =
+            {
+                typeof(BirdLamp), typeof(DragonLantern),
+                typeof(KoiLamp), typeof(TallLamp)
+            };
+
             private readonly InteriorDecorator m_Decorator;
 
             public InternalTarget(InteriorDecorator decorator)
@@ -174,12 +185,6 @@ namespace Server.Items
                 OnTarget(from, targeted);
             }
 
-            private static Type[] m_KingsCollectionTypes = new Type[]
-            {
-                typeof(BirdLamp),    typeof(DragonLantern),
-                typeof(KoiLamp),   typeof(TallLamp)
-            };
-
             private static bool IsKingsCollection(Item item)
             {
                 return m_KingsCollectionTypes.Any(t => t == item.GetType());
@@ -189,26 +194,30 @@ namespace Server.Items
             {
                 if (m_Decorator.Command == DecorateCommand.GetHue)
                 {
-                    int hue = 0;
+                    var hue = 0;
 
                     if (targeted is Item)
+                    {
                         hue = ((Item)targeted).Hue;
+                    }
                     else if (targeted is Mobile)
+                    {
                         hue = ((Mobile)targeted).Hue;
+                    }
                     else
                     {
                         from.Target = new InternalTarget(m_Decorator);
                         return;
                     }
 
-                    from.SendLocalizedMessage(1158862, String.Format("{0}", hue)); // That object is hue ~1_HUE~
+                    from.SendLocalizedMessage(1158862, string.Format("{0}", hue)); // That object is hue ~1_HUE~
                 }
                 else if (targeted is Item && CheckUse(m_Decorator, from))
                 {
-                    BaseHouse house = BaseHouse.FindHouseAt(from);
-                    Item item = (Item)targeted;
+                    var house = BaseHouse.FindHouseAt(from);
+                    var item = (Item)targeted;
 
-                    bool isDecorableComponent = false;
+                    var isDecorableComponent = false;
 
                     if (m_Decorator.Command == DecorateCommand.Turn && IsKingsCollection(item))
                     {
@@ -217,23 +226,23 @@ namespace Server.Items
                     else if (item is AddonComponent || item is AddonContainerComponent || item is BaseAddonContainer)
                     {
                         object addon = null;
-                        int count = 0;
+                        var count = 0;
 
                         if (item is AddonComponent)
                         {
-                            AddonComponent component = (AddonComponent)item;
+                            var component = (AddonComponent)item;
                             count = component.Addon.Components.Count;
                             addon = component.Addon;
                         }
                         else if (item is AddonContainerComponent)
                         {
-                            AddonContainerComponent component = (AddonContainerComponent)item;
+                            var component = (AddonContainerComponent)item;
                             count = component.Addon.Components.Count;
                             addon = component.Addon;
                         }
                         else if (item is BaseAddonContainer)
                         {
-                            BaseAddonContainer container = (BaseAddonContainer)item;
+                            var container = (BaseAddonContainer)item;
                             count = container.Components.Count;
                             addon = container;
                         }
@@ -246,7 +255,8 @@ namespace Server.Items
 
                         if (m_Decorator.Command == DecorateCommand.Turn)
                         {
-                            FlipableAddonAttribute[] attributes = (FlipableAddonAttribute[])addon.GetType().GetCustomAttributes(typeof(FlipableAddonAttribute), false);
+                            var attributes = (FlipableAddonAttribute[])addon.GetType()
+                                .GetCustomAttributes(typeof(FlipableAddonAttribute), false);
 
                             if (attributes.Length > 0)
                                 isDecorableComponent = true;
@@ -307,7 +317,7 @@ namespace Server.Items
             protected override void OnTargetCancel(Mobile from, TargetCancelType cancelType)
             {
                 if (cancelType == TargetCancelType.Canceled)
-                    from.CloseGump(typeof(InteriorDecorator.InternalGump));
+                    from.CloseGump(typeof(InternalGump));
             }
 
             private static void Turn(Item item, Mobile from)
@@ -329,7 +339,9 @@ namespace Server.Items
                     else if (item is BaseAddonContainer)
                         addon = (BaseAddonContainer)item;
 
-                    FlipableAddonAttribute[] aAttributes = (FlipableAddonAttribute[])addon.GetType().GetCustomAttributes(typeof(FlipableAddonAttribute), false);
+                    var aAttributes =
+                        (FlipableAddonAttribute[])addon.GetType()
+                            .GetCustomAttributes(typeof(FlipableAddonAttribute), false);
 
                     if (aAttributes.Length > 0)
                     {
@@ -338,7 +350,8 @@ namespace Server.Items
                     }
                 }
 
-                FlipableAttribute[] attributes = (FlipableAttribute[])item.GetType().GetCustomAttributes(typeof(FlipableAttribute), false);
+                var attributes =
+                    (FlipableAttribute[])item.GetType().GetCustomAttributes(typeof(FlipableAttribute), false);
 
                 if (attributes.Length > 0)
                     attributes[0].Flip(item);
@@ -348,9 +361,9 @@ namespace Server.Items
 
             private static void Up(Item item, Mobile from)
             {
-                int floorZ = GetFloorZ(item);
+                var floorZ = GetFloorZ(item);
 
-                if (floorZ > int.MinValue && item.Z < (floorZ + 15)) // Confirmed : no height checks here
+                if (floorZ > int.MinValue && item.Z < floorZ + 15) // Confirmed : no height checks here
                     item.Location = new Point3D(item.Location, item.Z + 1);
                 else
                     from.SendLocalizedMessage(1042274); // You cannot raise it up any higher.
@@ -358,7 +371,7 @@ namespace Server.Items
 
             private static void Down(Item item, Mobile from)
             {
-                int floorZ = GetFloorZ(item);
+                var floorZ = GetFloorZ(item);
 
                 if (floorZ > int.MinValue && item.Z > GetFloorZ(item))
                     item.Location = new Point3D(item.Location, item.Z - 1);
@@ -368,21 +381,21 @@ namespace Server.Items
 
             private static int GetFloorZ(Item item)
             {
-                Map map = item.Map;
+                var map = item.Map;
 
                 if (map == null)
                     return int.MinValue;
 
-                StaticTile[] tiles = map.Tiles.GetStaticTiles(item.X, item.Y, true);
+                var tiles = map.Tiles.GetStaticTiles(item.X, item.Y, true);
 
-                int z = int.MinValue;
+                var z = int.MinValue;
 
-                for (int i = 0; i < tiles.Length; ++i)
+                for (var i = 0; i < tiles.Length; ++i)
                 {
-                    StaticTile tile = tiles[i];
-                    ItemData id = TileData.ItemTable[tile.ID & TileData.MaxItemValue];
+                    var tile = tiles[i];
+                    var id = TileData.ItemTable[tile.ID & TileData.MaxItemValue];
 
-                    int top = tile.Z; // Confirmed : no height checks here
+                    var top = tile.Z; // Confirmed : no height checks here
 
                     if (id.Surface && !id.Impassable && top > z && top <= item.Z)
                         z = top;

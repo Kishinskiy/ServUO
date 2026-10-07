@@ -1,34 +1,50 @@
 using System;
-using Server;
+using Server.Commands;
+using Server.Gumps;
 using Server.Items;
 using Server.Mobiles;
-using Server.Gumps;
+using Server.Network;
 using Server.Spells.SkillMasteries;
 
 namespace Server.Engines.Quests.TimeLord
 {
     public class TimeForLegendsQuest : QuestSystem
     {
-        private Type[] _TypeReferenceTable = new Type[]
-		{
-			typeof(TimeForLegendsObjective)
-		};
+        private readonly Type[] _TypeReferenceTable =
+        {
+            typeof(TimeForLegendsObjective)
+        };
 
-        public override Type[] TypeReferenceTable { get { return _TypeReferenceTable; } }
+        public override Type[] TypeReferenceTable => _TypeReferenceTable;
 
-        public override object Name { get { return 1156338; } } 		// A Time For Legends
-        public override object OfferMessage { get { return 1156339; } }	/*Greetings Brave Traveler!<br><br>Throughout my travels in time I have forever 
-																		  encountered those who've reached the pinnacle of their profession.  These Legends 
-																		  are told of in our most cherished tales and are the fabric by which heroes are born.
-																		  I offer you now a chance to walk the path of these Legends.  Complete my task and 
-																		  you too shall know the secrets of the Master.*/
+        public override object Name => 1156338; // A Time For Legends
 
-        public override TimeSpan RestartDelay { get { return TimeSpan.Zero; } }
-        public override bool IsTutorial { get { return false; } }
-        public override int Picture { get { return 0x1581; } }
+        public override object OfferMessage =>
+            1156339; /*Greetings Brave Traveler!<br><br>Throughout my travels in time I have forever
+                                                                          encountered those who've reached the pinnacle of their profession.  These Legends
+                                                                          are told of in our most cherished tales and are the fabric by which heroes are born.
+                                                                          I offer you now a chance to walk the path of these Legends.  Complete my task and
+                                                                          you too shall know the secrets of the Master.*/
+
+        public override TimeSpan RestartDelay => TimeSpan.Zero;
+        public override bool IsTutorial => false;
+        public override int Picture => 0x1581;
 
         public SkillName Mastery { get; set; }
         public Type ToSlay { get; set; }
+
+        public static Type[] Targets { get; } =
+        {
+            typeof(Semidar), typeof(Mephitis), typeof(Rikktor), typeof(LordOaks), typeof(Neira), typeof(Barracoon),
+            typeof(Serado), typeof(Meraktus), typeof(Ilhenir),
+            typeof(Twaulo), typeof(AbyssalInfernal), typeof(PrimevalLich), typeof(CorgulTheSoulBinder),
+            typeof(CorgulTheSoulBinder) /*dragon turtle*/,
+            typeof(DreadHorn), typeof(Travesty), typeof(ChiefParoxysmus), typeof(LadyMelisande),
+            typeof(MonstrousInterredGrizzle), typeof(ShimmeringEffusion)
+        };
+
+        public static Type TargetOfTheDay { get; set; }
+        public static DateTime NextTarget { get; set; }
 
         public TimeForLegendsQuest(PlayerMobile from)
             : base(from)
@@ -50,7 +66,8 @@ namespace Server.Engines.Quests.TimeLord
         {
             base.Complete();
 
-            From.SendLocalizedMessage(1156342); // You have proven your prowess on the battlefield and have completed the first step on the path of the Master!
+            From.SendLocalizedMessage(
+                1156342); // You have proven your prowess on the battlefield and have completed the first step on the path of the Master!
             From.SendLocalizedMessage(1156209); // You have received a mastery primer!
             From.SendLocalizedMessage(1152339, "#1028794"); // A reward of ~1_ITEM~ has been placed in your backpack.
 
@@ -58,20 +75,9 @@ namespace Server.Engines.Quests.TimeLord
 
             var primer = new SkillMasteryPrimer(Mastery, 1);
 
-            if(primer != null)
+            if (primer != null)
                 From.AddToBackpack(primer);
         }
-
-        public static Type[] Targets { get { return _Targets; } }
-        private static Type[] _Targets = new Type[]
-		{	
-			typeof(Semidar), typeof(Mephitis), typeof(Rikktor), typeof(LordOaks), typeof(Neira), typeof(Barracoon), typeof(Serado), typeof(Meraktus), typeof(Ilhenir),
-			typeof(Twaulo), typeof(AbyssalInfernal), typeof(PrimevalLich), typeof(CorgulTheSoulBinder), typeof(CorgulTheSoulBinder) /*dragon turtle*/,
-            typeof(DreadHorn), typeof(Travesty), typeof(ChiefParoxysmus), typeof(LadyMelisande), typeof(MonstrousInterredGrizzle), typeof(ShimmeringEffusion)
-		};
-
-        public static Type TargetOfTheDay { get; set; }
-        public static DateTime NextTarget { get; set; }
 
         public static void OnSave(WorldSaveEventArgs e)
         {
@@ -80,7 +86,7 @@ namespace Server.Engines.Quests.TimeLord
                 if (DateTime.UtcNow > NextTarget)
                 {
                     NextTarget = DateTime.UtcNow + TimeSpan.FromHours(24);
-                    TargetOfTheDay = _Targets[Utility.Random(_Targets.Length)];
+                    TargetOfTheDay = Targets[Utility.Random(Targets.Length)];
                 }
             });
         }
@@ -89,19 +95,19 @@ namespace Server.Engines.Quests.TimeLord
         {
             EventSink.WorldSave += OnSave;
 
-            TargetOfTheDay = _Targets[Utility.Random(_Targets.Length)];
+            TargetOfTheDay = Targets[Utility.Random(Targets.Length)];
 
-            Server.Commands.CommandSystem.Register("NewTargetOfTheDay", AccessLevel.GameMaster, e =>
-                {
-                    TargetOfTheDay = _Targets[Utility.Random(_Targets.Length)];
+            CommandSystem.Register("NewTargetOfTheDay", AccessLevel.GameMaster, e =>
+            {
+                TargetOfTheDay = Targets[Utility.Random(Targets.Length)];
 
-                    e.Mobile.SendMessage("New Target of the Day: {0}", TargetOfTheDay.Name);
-                });
+                e.Mobile.SendMessage("New Target of the Day: {0}", TargetOfTheDay.Name);
+            });
         }
 
         public override void ChildSerialize(GenericWriter writer)
         {
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
 
             writer.Write((int)Mastery);
 
@@ -111,21 +117,23 @@ namespace Server.Engines.Quests.TimeLord
                 writer.Write(ToSlay.Name);
             }
             else
+            {
                 writer.Write(1);
+            }
         }
 
         public override void ChildDeserialize(GenericReader reader)
         {
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
 
             Mastery = (SkillName)reader.ReadInt();
 
             string name = null;
-            
-            if(reader.ReadInt() == 0)
+
+            if (reader.ReadInt() == 0)
                 name = reader.ReadString();
 
-            if(name != null)
+            if (name != null)
                 ToSlay = ScriptCompiler.FindTypeByName(name);
         }
     }
@@ -152,13 +160,14 @@ namespace Server.Engines.Quests.TimeLord
 
             AddHtmlLocalized(125, 40, 345, 16, 1156340, false, false); // Choose Your Path
 
-            int y = 60;
+            var y = 60;
 
-            foreach (SkillName skName in MasteryInfo.Skills)
+            foreach (var skName in MasteryInfo.Skills)
             {
-                Skill sk = User.Skills[skName];
+                var sk = User.Skills[skName];
 
-                if (sk == null || skName == SkillName.Discordance || skName == SkillName.Provocation || skName == SkillName.Peacemaking)
+                if (sk == null || skName == SkillName.Discordance || skName == SkillName.Provocation ||
+                    skName == SkillName.Peacemaking)
                     continue;
 
                 if (sk.IsMastery && sk.VolumeLearned == 0)
@@ -172,12 +181,12 @@ namespace Server.Engines.Quests.TimeLord
             }
         }
 
-        public override void OnResponse(Network.NetState state, RelayInfo info)
+        public override void OnResponse(NetState state, RelayInfo info)
         {
             if (info.ButtonID == 0 && User.Quest != null && User.Quest is TimeForLegendsQuest)
                 User.Quest.Cancel();
 
-            int id = info.ButtonID - 1;
+            var id = info.ButtonID - 1;
 
             if (id >= 0 && id < SkillInfo.Table.Length)
             {

@@ -1,12 +1,12 @@
-using System;
-using Server;
-using Server.Mobiles;
-using Server.Multis;
 using System.Collections.Generic;
 using System.Globalization;
-using Server.Gumps;
 using Server.Accounting;
 using Server.ContextMenus;
+using Server.Gumps;
+using Server.Mobiles;
+using Server.Multis;
+using Server.Network;
+using Server.Targeting;
 
 namespace Server.Items
 {
@@ -22,17 +22,8 @@ namespace Server.Items
         [CommandProperty(AccessLevel.GameMaster)]
         public int HoldAmount { get; set; }
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public SecureLevel Level
-        {
-            get;
-            set;
-        }
-
-        public Item Deed { get { return new WallSafeDeed(); } }
-
-        public override int LabelNumber { get { return 1119751; } } // Wall Safe
-        public override bool ForceShowProperties { get { return true; } }
+        public override int LabelNumber => 1119751; // Wall Safe
+        public override bool ForceShowProperties => true;
 
         public List<string> History { get; set; }
 
@@ -45,21 +36,25 @@ namespace Server.Items
             Level = SecureLevel.CoOwners;
         }
 
-        public override void GetContextMenuEntries(Mobile from, List<ContextMenuEntry> list)
+        public WallSafe(Serial serial)
+            : base(serial)
         {
-            base.GetContextMenuEntries(from, list);
-            SetSecureLevelEntry.AddTo(from, this, list);
         }
+
+        public Item Deed => new WallSafeDeed();
 
         public void OnChop(Mobile from)
         {
             if (HoldAmount > 0)
+            {
                 from.SendLocalizedMessage(1155841); // You can't use a bladed item on a wall safe with a balance.
+            }
             else
             {
-                BaseHouse house = BaseHouse.FindHouseAt(this);
+                var house = BaseHouse.FindHouseAt(this);
 
-                if (house != null && (house.IsOwner(from) || (house.Addons.ContainsKey(this) && house.Addons[this] == from)))
+                if (house != null &&
+                    (house.IsOwner(from) || (house.Addons.ContainsKey(this) && house.Addons[this] == from)))
                 {
                     Effects.PlaySound(GetWorldLocation(), Map, 0x3B3);
                     from.SendLocalizedMessage(500461); // You destroy the item.
@@ -68,7 +63,7 @@ namespace Server.Items
 
                     house.Addons.Remove(this);
 
-                    Item deed = Deed;
+                    var deed = Deed;
 
                     if (deed != null)
                         from.AddToBackpack(deed);
@@ -78,25 +73,31 @@ namespace Server.Items
 
         public bool CouldFit(IPoint3D p, Map map)
         {
-            if (!map.CanFit(p.X, p.Y, p.Z, this.ItemData.Height))
+            if (!map.CanFit(p.X, p.Y, p.Z, ItemData.Height))
                 return false;
 
-            if (this.ItemID == 0x2375)
+            if (ItemID == 0x2375)
                 return BaseAddon.IsWall(p.X, p.Y - 1, p.Z, map); // North wall
-            else
-                return BaseAddon.IsWall(p.X - 1, p.Y, p.Z, map); // West wall
+            return BaseAddon.IsWall(p.X - 1, p.Y, p.Z, map); // West wall
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public SecureLevel Level { get; set; }
+
+        public override void GetContextMenuEntries(Mobile from, List<ContextMenuEntry> list)
+        {
+            base.GetContextMenuEntries(from, list);
+            SetSecureLevelEntry.AddTo(from, this, list);
         }
 
         public override void OnDoubleClick(Mobile m)
         {
-            if (m is PlayerMobile && m.InRange(this.Location, 3))
+            if (m is PlayerMobile && m.InRange(Location, 3))
             {
-                BaseHouse house = BaseHouse.FindHouseAt(m);
+                var house = BaseHouse.FindHouseAt(m);
 
                 if (house != null && house.HasSecureAccess(m, Level))
-                {
                     m.SendGump(new WallSafeGump((PlayerMobile)m, this));
-                }
                 else
                     m.SendLocalizedMessage(1061637); // You are not allowed to access this.
             }
@@ -113,16 +114,11 @@ namespace Server.Items
                 History.RemoveAt(0);
         }
 
-        public WallSafe(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
             writer.Write(Owner);
             writer.Write(HoldAmount);
@@ -138,21 +134,21 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             Owner = reader.ReadMobile();
             HoldAmount = reader.ReadInt();
             Level = (SecureLevel)reader.ReadInt();
 
-            int count = reader.ReadInt();
+            var count = reader.ReadInt();
 
             if (count > 0)
             {
                 History = new List<string>();
 
-                for (int i = 0; i < count; i++)
+                for (var i = 0; i < count; i++)
                 {
-                    string str = reader.ReadString();
+                    var str = reader.ReadString();
                     History.Add(str);
                 }
             }
@@ -161,91 +157,98 @@ namespace Server.Items
 
     public class WallSafeDeed : Item
     {
-        public override int LabelNumber { get { return 1155857; } } // Currency Wall Safe
+        public override int LabelNumber => 1155857; // Currency Wall Safe
 
         [Constructable]
         public WallSafeDeed() : base(0x14F0)
         {
         }
 
+        public WallSafeDeed(Serial serial) : base(serial)
+        {
+        }
+
         public override void OnDoubleClick(Mobile m)
         {
             if (IsChildOf(m.Backpack))
-            {
-                m.BeginTarget(8, false, Server.Targeting.TargetFlags.None, (from, targeted) =>
+                m.BeginTarget(8, false, TargetFlags.None, (from, targeted) =>
+                {
+                    if (targeted is IPoint3D)
                     {
-                        if (targeted is IPoint3D)
+                        var p = targeted as IPoint3D;
+                        var house = BaseHouse.FindHouseAt(new Point3D(p), m.Map, 16);
+
+                        if (house != null && BaseHouse.FindHouseAt(m) == house && house.IsCoOwner(m))
                         {
-                            IPoint3D p = targeted as IPoint3D;
-                            BaseHouse house = BaseHouse.FindHouseAt(new Point3D(p), m.Map, 16);
+                            var pnt = new Point3D(p.X, p.Y, m.Z);
 
-                            if (house != null && BaseHouse.FindHouseAt(m) == house && house.IsCoOwner(m))
-                            {
-                                Point3D pnt = new Point3D(p.X, p.Y, m.Z);
+                            var northWall = BaseAddon.IsWall(pnt.X, pnt.Y - 1, pnt.Z, m.Map);
+                            var westWall = BaseAddon.IsWall(pnt.X - 1, pnt.Y, pnt.Z, m.Map);
 
-                                bool northWall = BaseAddon.IsWall(pnt.X, pnt.Y - 1, pnt.Z, m.Map);
-                                bool westWall = BaseAddon.IsWall(pnt.X - 1, pnt.Y, pnt.Z, m.Map);
-
-                                if (northWall && westWall)
+                            if (northWall && westWall)
+                                switch (from.Direction & Direction.Mask)
                                 {
-                                    switch (from.Direction & Direction.Mask)
-                                    {
-                                        case Direction.North:
-                                        case Direction.South: northWall = true; westWall = false; break;
+                                    case Direction.North:
+                                    case Direction.South:
+                                        northWall = true;
+                                        westWall = false;
+                                        break;
 
-                                        case Direction.East:
-                                        case Direction.West: northWall = false; westWall = true; break;
+                                    case Direction.East:
+                                    case Direction.West:
+                                        northWall = false;
+                                        westWall = true;
+                                        break;
 
-                                        default: from.SendMessage("Turn to face the wall on which to place the safe."); return;
-                                    }
+                                    default:
+                                        from.SendMessage("Turn to face the wall on which to place the safe.");
+                                        return;
                                 }
 
-                                int itemID = 0;
+                            var itemID = 0;
 
-                                if (northWall)
-                                    itemID = 0x8B8F;
-                                else if(westWall)
-                                    itemID = 0x8B90;
-                                else
-                                    m.SendLocalizedMessage(500268); // This object needs to be mounted on something.
-
-                                if (itemID != 0)
-                                {
-                                    Item safe = new WallSafe(m);
-                                    safe.MoveToWorld(pnt, m.Map);
-
-                                    safe.ItemID = itemID;
-
-                                    house.Addons[safe] = m;
-
-                                    Delete();
-                                }
-                            }
+                            if (northWall)
+                                itemID = 0x8B8F;
+                            else if (westWall)
+                                itemID = 0x8B90;
                             else
-                                m.SendLocalizedMessage(500274); // You can only place this in a house that you own!
+                                m.SendLocalizedMessage(500268); // This object needs to be mounted on something.
+
+                            if (itemID != 0)
+                            {
+                                Item safe = new WallSafe(m);
+                                safe.MoveToWorld(pnt, m.Map);
+
+                                safe.ItemID = itemID;
+
+                                house.Addons[safe] = m;
+
+                                Delete();
+                            }
                         }
-                    });
-            }
+                        else
+                        {
+                            m.SendLocalizedMessage(500274);
+                        }
+                        // You can only place this in a house that you own!
+                    }
+                });
             else
                 m.SendLocalizedMessage(1080058); // This must be in your backpack to use it.
-        }
-
-        public WallSafeDeed(Serial serial) : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -269,14 +272,18 @@ namespace Server.Items
 
             AddHtmlLocalized(0, 10, 400, 16, 1113302, "#1155860", 0xFFFF, false, false);
 
-            int secureAmount = 0;
-            Account acct = User.Account as Account;
+            var secureAmount = 0;
+            var acct = User.Account as Account;
 
             if (acct != null)
                 secureAmount = acct.GetSecureAccountAmount(User);
 
-            AddHtmlLocalized(20, 35, 380, 16, 1155859, Safe.HoldAmount.ToString("N0", CultureInfo.GetCultureInfo("en-US")), 0xFFFF, false, false); // Gold Deposited: ~1_AMOUNT~
-            AddHtmlLocalized(20, 65, 380, 16, 1155864, String.Format("{0}\t{1}", User.Name, secureAmount.ToString("N0", CultureInfo.GetCultureInfo("en-US"))), 0xFFFF, false, false); // ~1_NAME~'s Secure Account: ~2_AMOUNT~
+            AddHtmlLocalized(20, 35, 380, 16, 1155859,
+                Safe.HoldAmount.ToString("N0", CultureInfo.GetCultureInfo("en-US")), 0xFFFF, false,
+                false); // Gold Deposited: ~1_AMOUNT~
+            AddHtmlLocalized(20, 65, 380, 16, 1155864,
+                string.Format("{0}\t{1}", User.Name, secureAmount.ToString("N0", CultureInfo.GetCultureInfo("en-US"))),
+                0xFFFF, false, false); // ~1_NAME~'s Secure Account: ~2_AMOUNT~
 
             AddHtmlLocalized(20, 125, 100, 16, 1155861, 0xFFFF, false, false); // Deposit
             AddButton(75, 125, 4005, 4006, 1, GumpButtonType.Reply, 0);
@@ -288,8 +295,8 @@ namespace Server.Items
 
             if (Safe.History != null && Safe.History.Count > 0)
             {
-                int y = 195;
-                for (int i = Safe.History.Count - 1; i >= 0 && i < WallSafe.HistoryMax; i--)
+                var y = 195;
+                for (var i = Safe.History.Count - 1; i >= 0 && i < WallSafe.HistoryMax; i--)
                 {
                     AddHtml(20, y, 380, 16, Safe.History[i], false, false);
                     y += 20;
@@ -297,10 +304,10 @@ namespace Server.Items
             }
         }
 
-        public override void OnResponse(Server.Network.NetState state, RelayInfo info)
+        public override void OnResponse(NetState state, RelayInfo info)
         {
-            Account account = User.Account as Account;
-            int secureAmount = 0;
+            var account = User.Account as Account;
+            var secureAmount = 0;
 
             if (account != null)
                 secureAmount = account.GetSecureAccountAmount(User);
@@ -309,85 +316,95 @@ namespace Server.Items
             {
                 case 1:
                     User.SendLocalizedMessage(1155865); // Enter amount to deposit:
-                    User.BeginPrompt<Account>(
-                    (from, text, acct) =>
-                    {
-                        int v = 0;
-
-                        if (text != null && !String.IsNullOrEmpty(text))
+                    User.BeginPrompt(
+                        (from, text, acct) =>
                         {
-                            v = Utility.ToInt32(text);
+                            var v = 0;
 
-                            if (v <= 0 || v > secureAmount)
-                                from.SendLocalizedMessage(1155867); // The amount entered is invalid. Verify that there are sufficient funds to complete this transaction.
-                            else if (acct != null)
+                            if (text != null && !string.IsNullOrEmpty(text))
                             {
-                                int left = WallSafe.MaxGold - Safe.HoldAmount;
+                                v = Utility.ToInt32(text);
 
-                                if (v > left)
+                                if (v <= 0 || v > secureAmount)
                                 {
-                                    Safe.HoldAmount = WallSafe.MaxGold;
-                                    acct.WithdrawFromSecure(User, left);
-                                    Safe.AddHistory(String.Format("<basefont color=green>{0} +{1}", User.Name, left.ToString("N0", CultureInfo.GetCultureInfo("en-US"))));
+                                    from.SendLocalizedMessage(
+                                        1155867); // The amount entered is invalid. Verify that there are sufficient funds to complete this transaction.
                                 }
-                                else
+                                else if (acct != null)
                                 {
-                                    Safe.HoldAmount += v;
-                                    acct.WithdrawFromSecure(User, v);
-                                    Safe.AddHistory(String.Format("<basefont color=green>{0} +{1}", User.Name, v.ToString("N0", CultureInfo.GetCultureInfo("en-US"))));
-                                }
+                                    var left = WallSafe.MaxGold - Safe.HoldAmount;
 
-                                from.SendGump(new WallSafeGump(User, Safe));
+                                    if (v > left)
+                                    {
+                                        Safe.HoldAmount = WallSafe.MaxGold;
+                                        acct.WithdrawFromSecure(User, left);
+                                        Safe.AddHistory(string.Format("<basefont color=green>{0} +{1}", User.Name,
+                                            left.ToString("N0", CultureInfo.GetCultureInfo("en-US"))));
+                                    }
+                                    else
+                                    {
+                                        Safe.HoldAmount += v;
+                                        acct.WithdrawFromSecure(User, v);
+                                        Safe.AddHistory(string.Format("<basefont color=green>{0} +{1}", User.Name,
+                                            v.ToString("N0", CultureInfo.GetCultureInfo("en-US"))));
+                                    }
+
+                                    from.SendGump(new WallSafeGump(User, Safe));
+                                }
                             }
-                        }
-                        else
-                            from.SendLocalizedMessage(1155867); // The amount entered is invalid. Verify that there are sufficient funds to complete this transaction.
-                    },
-                    (from, text, acct) =>
-                    {
-                        from.SendGump(new WallSafeGump(User, Safe));
-                    }, account);
+                            else
+                            {
+                                from.SendLocalizedMessage(
+                                    1155867); // The amount entered is invalid. Verify that there are sufficient funds to complete this transaction.
+                            }
+                        },
+                        (from, text, acct) => { from.SendGump(new WallSafeGump(User, Safe)); }, account);
                     break;
                 case 2:
                     User.SendLocalizedMessage(1155866); // Enter amount to withdraw:
-                    User.BeginPrompt<Account>(
-                    (from, text, acct) =>
-                    {
-                        int v = 0;
-
-                        if (text != null && !String.IsNullOrEmpty(text))
+                    User.BeginPrompt(
+                        (from, text, acct) =>
                         {
-                            v = Utility.ToInt32(text);
+                            var v = 0;
 
-                            if (v <= 0 || v > Safe.HoldAmount)
-                                from.SendLocalizedMessage(1155867); // The amount entered is invalid. Verify that there are sufficient funds to complete this transaction.
-                            else if (acct != null)
+                            if (text != null && !string.IsNullOrEmpty(text))
                             {
-                                int left = Account.MaxSecureAmount - secureAmount;
+                                v = Utility.ToInt32(text);
 
-                                if (v > left)
+                                if (v <= 0 || v > Safe.HoldAmount)
                                 {
-                                    acct.DepositToSecure(User, left);
-                                    Safe.HoldAmount -= left;
-                                    Safe.AddHistory(String.Format("<basefont color=red>{0} -{1}", User.Name, left.ToString("N0", CultureInfo.GetCultureInfo("en-US"))));
+                                    from.SendLocalizedMessage(
+                                        1155867); // The amount entered is invalid. Verify that there are sufficient funds to complete this transaction.
                                 }
-                                else
+                                else if (acct != null)
                                 {
-                                    acct.DepositToSecure(User, v);
-                                    Safe.HoldAmount -= v;
-                                    Safe.AddHistory(String.Format("<basefont color=red>{0} -{1}", User.Name, v.ToString("N0", CultureInfo.GetCultureInfo("en-US"))));
-                                }
+                                    var left = Account.MaxSecureAmount - secureAmount;
 
-                                from.SendGump(new WallSafeGump(User, Safe));
+                                    if (v > left)
+                                    {
+                                        acct.DepositToSecure(User, left);
+                                        Safe.HoldAmount -= left;
+                                        Safe.AddHistory(string.Format("<basefont color=red>{0} -{1}", User.Name,
+                                            left.ToString("N0", CultureInfo.GetCultureInfo("en-US"))));
+                                    }
+                                    else
+                                    {
+                                        acct.DepositToSecure(User, v);
+                                        Safe.HoldAmount -= v;
+                                        Safe.AddHistory(string.Format("<basefont color=red>{0} -{1}", User.Name,
+                                            v.ToString("N0", CultureInfo.GetCultureInfo("en-US"))));
+                                    }
+
+                                    from.SendGump(new WallSafeGump(User, Safe));
+                                }
                             }
-                        }
-                        else
-                            from.SendLocalizedMessage(1155867); // The amount entered is invalid. Verify that there are sufficient funds to complete this transaction.
-                    },
-                    (from, text, acct) =>
-                    {
-                        from.SendGump(new WallSafeGump(User, Safe));
-                    }, account);
+                            else
+                            {
+                                from.SendLocalizedMessage(
+                                    1155867); // The amount entered is invalid. Verify that there are sufficient funds to complete this transaction.
+                            }
+                        },
+                        (from, text, acct) => { from.SendGump(new WallSafeGump(User, Safe)); }, account);
                     break;
             }
         }

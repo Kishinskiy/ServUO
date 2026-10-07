@@ -11,15 +11,13 @@ namespace Server.Items
         [CommandProperty(AccessLevel.GameMaster)]
         public string OwnerName
         {
-            get { return m_OwnerName; }
+            get => m_OwnerName;
             set
             {
                 m_OwnerName = value;
                 InvalidateProperties();
             }
         }
-
-        public string[] Lines { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public DateTime EditEnd { get; set; }
@@ -36,6 +34,13 @@ namespace Server.Items
             EditEnd = DateTime.MaxValue;
         }
 
+        public ValentineBear(Serial serial)
+            : base(serial)
+        {
+        }
+
+        public string[] Lines { get; set; }
+
         public void OnFlip(Mobile from)
         {
             if (ItemID == 0x48E0 || ItemID == 0x48E2)
@@ -49,9 +54,7 @@ namespace Server.Items
             if (IsChildOf(from.Backpack))
             {
                 if (from is PlayerMobile && EditEnd > DateTime.UtcNow)
-                {
                     BaseGump.SendGump(new AddCustomizableMessageGump((PlayerMobile)from, this, 1150294, 1150293));
-                }
             }
             else
             {
@@ -69,47 +72,36 @@ namespace Server.Items
             base.GetProperties(list);
 
             if (Lines != null)
-            {
-                for (int i = 0; i < Lines.Length; i++)
-                {
+                for (var i = 0; i < Lines.Length; i++)
                     if (!string.IsNullOrEmpty(Lines[i]))
-                    {
                         list.Add(1150301 + i, Lines[i]); // [ ~1_LINE0~ ]
-                    }
-                }
-            }
-        }
-
-        public ValentineBear(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
             writer.Write(m_OwnerName);
             writer.Write(EditEnd);
 
-            writer.Write((int)Lines.Length);
+            writer.Write(Lines.Length);
 
-            for (int i = 0; i < Lines.Length; i++)
-                writer.Write((string)Lines[i]);          
+            for (var i = 0; i < Lines.Length; i++)
+                writer.Write(Lines[i]);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             m_OwnerName = reader.ReadString();
             EditEnd = reader.ReadDateTime();
 
             Lines = new string[reader.ReadInt()];
 
-            for (int i = 0; i < Lines.Length; i++)
+            for (var i = 0; i < Lines.Length; i++)
                 Lines[i] = reader.ReadString();
         }
     }

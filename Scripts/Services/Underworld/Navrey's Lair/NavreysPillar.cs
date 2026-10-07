@@ -18,21 +18,21 @@ namespace Server.Items
 
     public class NavreysPillar : Item
     {
+        private NavreysController m_Controller;
         private NavreysPillarState m_State;
         private InternalTimer m_Timer;
-        private NavreysController m_Controller;
         public PillarType m_Type;
 
         [CommandProperty(AccessLevel.GameMaster)]
         public PillarType Type
         {
-            get { return m_Type; }
-            set { m_Type = value; }
+            get => m_Type;
+            set => m_Type = value;
         }
 
         public NavreysPillarState State
         {
-            get { return m_State; }
+            get => m_State;
             set
             {
                 m_State = value;
@@ -69,6 +69,11 @@ namespace Server.Items
             Movable = false;
         }
 
+        public NavreysPillar(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void OnDoubleClick(Mobile from)
         {
             if (from.InRange(this, 3) && m_State == NavreysPillarState.On)
@@ -78,19 +83,14 @@ namespace Server.Items
             }
         }
 
-        public NavreysPillar(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
             writer.Write((int)m_State);
-            writer.Write((Item)m_Controller);
+            writer.Write(m_Controller);
             writer.Write((int)m_Type);
         }
 
@@ -98,7 +98,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             State = (NavreysPillarState)reader.ReadInt();
             m_Controller = (NavreysController)reader.ReadItem();
@@ -107,13 +107,12 @@ namespace Server.Items
 
         private class InternalTimer : Timer
         {
-            private NavreysPillar m_Pillar;
+            private readonly NavreysPillar m_Pillar;
             private int m_Ticks;
 
             public InternalTimer(NavreysPillar pillar)
                 : base(TimeSpan.Zero, TimeSpan.FromSeconds(0.5))
             {
-
                 m_Pillar = pillar;
                 m_Ticks = 6 * (int)pillar.Type; // 3, 6, 9 seconds
             }
@@ -122,7 +121,7 @@ namespace Server.Items
             {
                 m_Ticks--;
 
-                m_Pillar.Hue = 0x461 + (m_Ticks % 2);
+                m_Pillar.Hue = 0x461 + m_Ticks % 2;
 
                 if (m_Ticks == 0)
                 {

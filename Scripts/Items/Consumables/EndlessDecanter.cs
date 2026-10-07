@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
+﻿using System.Collections.Generic;
 using Server.ContextMenus;
 using Server.Mobiles;
 using Server.Targeting;
@@ -9,25 +7,36 @@ namespace Server.Items
 {
     public class EndlessDecanter : Pitcher
     {
-        private Boolean m_Linked = false;
-        private Point3D m_LinkLocation;
-        private Map m_LinkMap;
+        private bool m_Linked;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public Boolean Linked { get { return m_Linked; } set { m_Linked = value; InvalidateProperties(); } }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public Point3D LinkLocation { get { return m_LinkLocation; } set { m_LinkLocation = value; } }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public Map LinkMap { get { return m_LinkMap; } set { m_LinkMap = value; } }
-
-        public override int LabelNumber
+        public bool Linked
         {
-            get
+            get => m_Linked;
+            set
             {
-                return 1115929; // Endless Decanter of Water
+                m_Linked = value;
+                InvalidateProperties();
             }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public Point3D LinkLocation { get; set; }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public Map LinkMap { get; set; }
+
+        public override int LabelNumber => 1115929; // Endless Decanter of Water
+
+        [Constructable]
+        public EndlessDecanter() : base(BeverageType.Water)
+        {
+            Weight = 2.0;
+            Hue = 0x399;
+        }
+
+        public EndlessDecanter(Serial serial) : base(serial)
+        {
         }
 
         public override int ComputeItemID()
@@ -35,30 +44,20 @@ namespace Server.Items
             return 0x0FF6;
         }
 
-        [Constructable]
-        public EndlessDecanter() : base(BeverageType.Water)
-        {
-            this.Weight = 2.0;
-            this.Hue = 0x399;
-        }
-
-        public EndlessDecanter(Serial serial) : base(serial)
-        {
-        }
-
         public static void HandleThrow(BaseBeverage beverage, WaterElemental elemental, Mobile thrower)
         {
             if (!beverage.IsFull)
             {
-                thrower.SendLocalizedMessage(1113038);  // It is not full. 
+                thrower.SendLocalizedMessage(1113038); // It is not full. 
             }
             else if (!thrower.InRange(elemental.Location, 5))
             {
-                thrower.SendLocalizedMessage(500295);   // You are too far away to do that.
+                thrower.SendLocalizedMessage(500295); // You are too far away to do that.
             }
             else if (!elemental.HasDecanter)
             {
-                thrower.SendLocalizedMessage(1115895);  // It seems that this water elemental no longer has a magical decanter...
+                thrower.SendLocalizedMessage(
+                    1115895); // It seems that this water elemental no longer has a magical decanter...
             }
             else if (0.1 > Utility.RandomDouble())
             {
@@ -68,7 +67,7 @@ namespace Server.Items
                 elemental.HasDecanter = false;
                 beverage.Delete();
                 thrower.AddToBackpack(new EndlessDecanter());
-                thrower.SendLocalizedMessage(1115897);  // The water elemental has thrown a magical decanter back to you!
+                thrower.SendLocalizedMessage(1115897); // The water elemental has thrown a magical decanter back to you!
             }
             else
             {
@@ -77,7 +76,7 @@ namespace Server.Items
 
                 beverage.Delete();
                 thrower.PlaySound(0x040);
-                thrower.SendLocalizedMessage(1115896);  // The water pitcher has shattered.
+                thrower.SendLocalizedMessage(1115896); // The water pitcher has shattered.
             }
         }
 
@@ -85,16 +84,20 @@ namespace Server.Items
         {
             if (Content == BeverageType.Water && Quantity == 0 && m_Linked && RootParent is Mobile)
             {
-                if (((Mobile)RootParent).InRange(m_LinkLocation, 10) && ((Mobile)RootParent).Map == m_LinkMap)
+                if (((Mobile)RootParent).InRange(LinkLocation, 10) && ((Mobile)RootParent).Map == LinkMap)
                 {
                     Quantity = MaxQuantity;
 
-                    ((Mobile)RootParent).SendLocalizedMessage(1115901);  // The decanter has automatically been filled from the linked water trough.
+                    ((Mobile)RootParent)
+                        .SendLocalizedMessage(
+                            1115901); // The decanter has automatically been filled from the linked water trough.
                     ((Mobile)RootParent).PlaySound(0x4E);
                 }
                 else
                 {
-                    ((Mobile)RootParent).SendLocalizedMessage(1115972);  // The decanter’s refill attempt failed because the linked water trough is not in the area.
+                    ((Mobile)RootParent)
+                        .SendLocalizedMessage(
+                            1115972); // The decanter’s refill attempt failed because the linked water trough is not in the area.
                 }
             }
         }
@@ -103,12 +106,12 @@ namespace Server.Items
         {
             base.AddNameProperties(list);
 
-            list.Add(1115889);  // Auto Water Refill
+            list.Add(1115889); // Auto Water Refill
 
             if (m_Linked)
-                list.Add(1115893);  // Linked
+                list.Add(1115893); // Linked
             else
-                list.Add(1115894);  // Unlinked
+                list.Add(1115894); // Unlinked
         }
 
         public override void GetContextMenuEntries(Mobile from, List<ContextMenuEntry> list)
@@ -128,25 +131,25 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
-            writer.Write((Boolean)m_Linked);
-            writer.Write((Point3D)m_LinkLocation);
-            writer.Write((Map)m_LinkMap);
+            writer.Write(m_Linked);
+            writer.Write(LinkLocation);
+            writer.Write(LinkMap);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            Int32 version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             switch (version)
             {
                 case 0:
                     m_Linked = reader.ReadBool();
-                    m_LinkLocation = reader.ReadPoint3D();
-                    m_LinkMap = reader.ReadMap();
+                    LinkLocation = reader.ReadPoint3D();
+                    LinkMap = reader.ReadMap();
 
                     break;
             }
@@ -154,8 +157,8 @@ namespace Server.Items
 
         private class LinkEntry : ContextMenuEntry
         {
-            private Mobile m_From;
-            private EndlessDecanter m_Decanter;
+            private readonly EndlessDecanter m_Decanter;
+            private readonly Mobile m_From;
 
             public LinkEntry(Mobile from, EndlessDecanter decanter) : base(1115891, 0) // Link
             {
@@ -165,19 +168,20 @@ namespace Server.Items
 
             public override void OnClick()
             {
-                if (this.m_Decanter.Deleted || !this.m_Decanter.Movable || !this.m_From.CheckAlive() || !this.m_Decanter.CheckItemUse(this.m_From))
+                if (m_Decanter.Deleted || !m_Decanter.Movable || !m_From.CheckAlive() ||
+                    !m_Decanter.CheckItemUse(m_From))
                     return;
 
-                m_From.SendLocalizedMessage(1115892);   // Target a water trough you wish to link.
+                m_From.SendLocalizedMessage(1115892); // Target a water trough you wish to link.
 
-                m_From.BeginTarget(10, false, TargetFlags.None, new TargetCallback(Link_OnTarget));
+                m_From.BeginTarget(10, false, TargetFlags.None, Link_OnTarget);
             }
 
             private void Link_OnTarget(Mobile from, object targ)
             {
-                Int32 itemID = 0;
-                Point3D location = new Point3D();
-                Map map = Map.Felucca;
+                var itemID = 0;
+                var location = new Point3D();
+                var map = Map.Felucca;
 
                 if (targ is StaticTarget)
                 {
@@ -215,8 +219,8 @@ namespace Server.Items
 
         private class UnlinkEntry : ContextMenuEntry
         {
-            private Mobile m_From;
-            private EndlessDecanter m_Decanter;
+            private readonly EndlessDecanter m_Decanter;
+            private readonly Mobile m_From;
 
             public UnlinkEntry(Mobile from, EndlessDecanter decanter) : base(1115930, 0) // Unlink
             {
@@ -226,10 +230,12 @@ namespace Server.Items
 
             public override void OnClick()
             {
-                if (this.m_Decanter.Deleted || !this.m_Decanter.Movable || !this.m_From.CheckAlive() || !this.m_Decanter.CheckItemUse(this.m_From))
+                if (m_Decanter.Deleted || !m_Decanter.Movable || !m_From.CheckAlive() ||
+                    !m_Decanter.CheckItemUse(m_From))
                     return;
 
-                m_From.SendLocalizedMessage(1115898);   // The link between this decanter and the water trough has been removed.
+                m_From.SendLocalizedMessage(
+                    1115898); // The link between this decanter and the water trough has been removed.
                 m_Decanter.Linked = false;
             }
         }

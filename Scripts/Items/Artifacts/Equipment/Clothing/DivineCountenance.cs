@@ -1,10 +1,24 @@
-using System;
-
 namespace Server.Items
 {
     public class DivineCountenance : HornedTribalMask
-	{
-		public override bool IsArtifact { get { return true; } }
+    {
+        public override bool IsArtifact => true;
+
+        public override int LabelNumber => 1061289; // Divine Countenance
+        public override int ArtifactRarity => 11;
+
+        public override int BasePhysicalResistance => 8;
+
+        public override int BaseFireResistance => 6;
+
+        public override int BaseColdResistance => 9;
+
+        public override int BaseEnergyResistance => 25;
+
+        public override int InitMinHits => 255;
+
+        public override int InitMaxHits => 255;
+
         [Constructable]
         public DivineCountenance()
         {
@@ -20,85 +34,29 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1061289;
-            }
-        }// Divine Countenance
-        public override int ArtifactRarity
-        {
-            get
-            {
-                return 11;
-            }
-        }
-        public override int BasePhysicalResistance
-        {
-            get
-            {
-                return 8;
-            }
-        }
-        public override int BaseFireResistance
-        {
-            get
-            {
-                return 6;
-            }
-        }
-        public override int BaseColdResistance
-        {
-            get
-            {
-                return 9;
-            }
-        }
-        public override int BaseEnergyResistance
-        {
-            get
-            {
-                return 25;
-            }
-        }
-        public override int InitMinHits
-        {
-            get
-            {
-                return 255;
-            }
-        }
-        public override int InitMaxHits
-        {
-            get
-            {
-                return 255;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)1);
+            writer.Write(1);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            switch ( version )
+            switch (version)
             {
                 case 0:
-                    {
-                        this.Resistances.Physical = 0;
-                        this.Resistances.Fire = 0;
-                        this.Resistances.Cold = 0;
-                        this.Resistances.Energy = 0;
-                        break;
-                    }
+                {
+                    Resistances.Physical = 0;
+                    Resistances.Fire = 0;
+                    Resistances.Cold = 0;
+                    Resistances.Energy = 0;
+                    break;
+                }
             }
         }
     }

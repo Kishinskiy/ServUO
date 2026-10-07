@@ -1,632 +1,675 @@
-﻿using Server;
-using System;
-using Server.Targeting;
-using Server.Misc;
+﻿using System;
 
 namespace Server.Items
 {
     public class BaseCrabAndLobster : BaseHighseasFish
     {
-        public override Item GetCarved { get { return null; } }
-        public override int GetCarvedAmount { get { return 1; } }
-        public override double DefaultWeight { get { return 2.0; } }
+        public override Item GetCarved => null;
+        public override int GetCarvedAmount => 1;
+        public override double DefaultWeight => 2.0;
 
         public BaseCrabAndLobster(int itemID) : base(itemID)
         {
         }
 
-        public BaseCrabAndLobster(Serial serial) : base(serial) { }
+        public BaseCrabAndLobster(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class RareCrabAndLobster : BaseCrabAndLobster
     {
-        private Mobile m_CaughtBy;
-        private DateTime m_DateCaught;
+        [CommandProperty(AccessLevel.GameMaster)]
+        public Mobile Fisher { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public Mobile Fisher { get { return m_CaughtBy; } set { m_CaughtBy = value; } }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public DateTime DateCaught { get { return m_DateCaught; } set { m_DateCaught = value; } }
+        public DateTime DateCaught { get; set; }
 
         public RareCrabAndLobster(int itemID)
             : base(itemID)
         {
         }
 
-        public RareCrabAndLobster(Serial serial) : base(serial) { }
+        public RareCrabAndLobster(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
-            writer.Write(m_CaughtBy);
-            writer.Write(m_DateCaught);
+            writer.Write(0);
+            writer.Write(Fisher);
+            writer.Write(DateCaught);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
-            m_CaughtBy = reader.ReadMobile();
-            m_DateCaught = reader.ReadDateTime();
+            var version = reader.ReadInt();
+            Fisher = reader.ReadMobile();
+            DateCaught = reader.ReadDateTime();
         }
     }
 
     public class Crab : BaseCrabAndLobster
     {
-        public override int LabelNumber { get { return 1096489; } }
+        public override int LabelNumber => 1096489;
 
         [Constructable]
         public Crab()
-            : base(BaseHighseasFish.GetCrabID())
+            : base(GetCrabID())
         {
         }
 
-        public Crab(Serial serial) : base(serial) { }
+        public Crab(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class Lobster : BaseCrabAndLobster
     {
-        public override int LabelNumber { get { return 1096491; } }
+        public override int LabelNumber => 1096491;
 
         [Constructable]
         public Lobster()
-            : base(BaseHighseasFish.GetLobsterID())
+            : base(GetLobsterID())
         {
         }
 
-        public Lobster(Serial serial) : base(serial) { }
+        public Lobster(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class AppleCrab : BaseCrabAndLobster
     {
-        public override int LabelNumber { get { return 1116378; } }
+        public override int LabelNumber => 1116378;
 
         [Constructable]
-        public AppleCrab() : base (BaseHighseasFish.GetCrabID())
+        public AppleCrab() : base(GetCrabID())
         {
         }
 
-        public AppleCrab(Serial serial) : base(serial) { }
+        public AppleCrab(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class BlueCrab : BaseCrabAndLobster
     {
-        public override int LabelNumber { get { return 1116374; } }
+        public override int LabelNumber => 1116374;
 
         [Constructable]
         public BlueCrab()
-            : base(BaseHighseasFish.GetCrabID())
+            : base(GetCrabID())
         {
         }
 
-        public BlueCrab(Serial serial) : base(serial) { }
+        public BlueCrab(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class DungeonessCrab : BaseCrabAndLobster
     {
-        public override int LabelNumber { get { return 1116373; } }
+        public override int LabelNumber => 1116373;
 
         [Constructable]
         public DungeonessCrab()
-            : base(BaseHighseasFish.GetCrabID())
+            : base(GetCrabID())
         {
         }
 
-        public DungeonessCrab(Serial serial) : base(serial) { }
+        public DungeonessCrab(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class KingCrab : BaseCrabAndLobster
     {
-        public override int LabelNumber { get { return 1116375; } }
+        public override int LabelNumber => 1116375;
 
         [Constructable]
         public KingCrab()
-            : base(BaseHighseasFish.GetCrabID())
+            : base(GetCrabID())
         {
         }
 
-        public KingCrab(Serial serial) : base(serial) { }
+        public KingCrab(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class RockCrab : BaseCrabAndLobster
     {
-        public override int LabelNumber { get { return 1116376; } }
+        public override int LabelNumber => 1116376;
 
         [Constructable]
         public RockCrab()
-            : base(BaseHighseasFish.GetCrabID())
+            : base(GetCrabID())
         {
         }
 
-        public RockCrab(Serial serial) : base(serial) { }
+        public RockCrab(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class SnowCrab : BaseCrabAndLobster
     {
-        public override int LabelNumber { get { return 1116377; } }
+        public override int LabelNumber => 1116377;
 
         [Constructable]
         public SnowCrab()
-            : base(BaseHighseasFish.GetCrabID())
+            : base(GetCrabID())
         {
         }
 
-        public SnowCrab(Serial serial) : base(serial) { }
+        public SnowCrab(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class StoneCrab : RareCrabAndLobster
     {
-        public override int LabelNumber { get { return 1116334; } }
-        public override Item GetCarved { get { return new StoneCrabMeat(); } }
+        public override int LabelNumber => 1116334;
+        public override Item GetCarved => new StoneCrabMeat();
 
         [Constructable]
         public StoneCrab()
-            : base(BaseHighseasFish.GetCrabID())
+            : base(GetCrabID())
         {
             Hue = FishInfo.GetFishHue(typeof(StoneCrab));
         }
 
-        public StoneCrab(Serial serial) : base(serial) { }
+        public StoneCrab(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class SpiderCrab : RareCrabAndLobster
     {
-        public override int LabelNumber { get { return 1116336; } }
-        public override Item GetCarved { get { return new SpiderCrabMeat(); } }
+        public override int LabelNumber => 1116336;
+        public override Item GetCarved => new SpiderCrabMeat();
 
         [Constructable]
         public SpiderCrab()
-            : base(BaseHighseasFish.GetCrabID())
+            : base(GetCrabID())
         {
             Hue = FishInfo.GetFishHue(typeof(SpiderCrab));
         }
 
-        public SpiderCrab(Serial serial) : base(serial) { }
+        public SpiderCrab(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class TunnelCrab : RareCrabAndLobster
     {
-        public override int LabelNumber { get { return 1116372; } }
+        public override int LabelNumber => 1116372;
 
         [Constructable]
         public TunnelCrab()
-            : base(BaseHighseasFish.GetCrabID())
+            : base(GetCrabID())
         {
             Hue = FishInfo.GetFishHue(typeof(TunnelCrab));
         }
 
-        public TunnelCrab(Serial serial) : base(serial) { }
+        public TunnelCrab(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class VoidCrab : RareCrabAndLobster
     {
-        public override int LabelNumber { get { return 1116368; } }
+        public override int LabelNumber => 1116368;
 
         [Constructable]
         public VoidCrab()
-            : base(BaseHighseasFish.GetCrabID())
+            : base(GetCrabID())
         {
             Hue = FishInfo.GetFishHue(typeof(VoidCrab));
         }
-        public VoidCrab(Serial serial) : base(serial) { }
+
+        public VoidCrab(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class CrustyLobster : BaseCrabAndLobster
     {
-        public override int LabelNumber { get { return 1116383; } }
+        public override int LabelNumber => 1116383;
 
         [Constructable]
         public CrustyLobster()
-            : base(BaseHighseasFish.GetLobsterID())
+            : base(GetLobsterID())
         {
         }
 
-        public CrustyLobster(Serial serial) : base(serial) { }
+        public CrustyLobster(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class FredLobster : BaseCrabAndLobster
     {
-        public override int LabelNumber { get { return 1116382; } }
+        public override int LabelNumber => 1116382;
 
         [Constructable]
         public FredLobster()
-            : base(BaseHighseasFish.GetLobsterID())
+            : base(GetLobsterID())
         {
         }
 
-        public FredLobster(Serial serial) : base(serial) { }
+        public FredLobster(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class HummerLobster : BaseCrabAndLobster
     {
-        public override int LabelNumber { get { return 1116381; } }
+        public override int LabelNumber => 1116381;
 
         [Constructable]
         public HummerLobster()
-            : base(BaseHighseasFish.GetLobsterID())
+            : base(GetLobsterID())
         {
         }
 
-        public HummerLobster(Serial serial) : base(serial) { }
+        public HummerLobster(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class RockLobster : BaseCrabAndLobster
     {
-        public override int LabelNumber { get { return 1116380; } }
+        public override int LabelNumber => 1116380;
 
         [Constructable]
         public RockLobster()
-            : base(BaseHighseasFish.GetLobsterID())
+            : base(GetLobsterID())
         {
         }
 
-        public RockLobster(Serial serial) : base(serial) { }
+        public RockLobster(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class ShovelNoseLobster : BaseCrabAndLobster
     {
-        public override int LabelNumber { get { return 1116384; } }
+        public override int LabelNumber => 1116384;
 
         [Constructable]
         public ShovelNoseLobster()
-            : base(BaseHighseasFish.GetLobsterID())
+            : base(GetLobsterID())
         {
         }
 
-        public ShovelNoseLobster(Serial serial) : base(serial) { }
+        public ShovelNoseLobster(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class SpineyLobster : BaseCrabAndLobster
     {
-        public override int LabelNumber { get { return 1116379; } }
+        public override int LabelNumber => 1116379;
 
         [Constructable]
         public SpineyLobster()
-            : base(BaseHighseasFish.GetLobsterID())
+            : base(GetLobsterID())
         {
         }
 
-        public SpineyLobster(Serial serial) : base(serial) { }
+        public SpineyLobster(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class BlueLobster : RareCrabAndLobster
     {
-        public override int LabelNumber { get { return 1116366; } }
-        public override Item GetCarved { get { return new BlueLobsterMeat(); } }
+        public override int LabelNumber => 1116366;
+        public override Item GetCarved => new BlueLobsterMeat();
 
         [Constructable]
         public BlueLobster()
-            : base(BaseHighseasFish.GetLobsterID())
+            : base(GetLobsterID())
         {
             Hue = FishInfo.GetFishHue(typeof(BlueLobster));
         }
 
-        public BlueLobster(Serial serial) : base(serial) { }
+        public BlueLobster(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class BloodLobster : RareCrabAndLobster
     {
-        public override int LabelNumber { get { return 1116370; } }
+        public override int LabelNumber => 1116370;
 
         [Constructable]
         public BloodLobster()
-            : base(BaseHighseasFish.GetLobsterID())
+            : base(GetLobsterID())
         {
             Hue = FishInfo.GetFishHue(typeof(BloodLobster));
         }
 
-        public BloodLobster(Serial serial) : base(serial) { }
+        public BloodLobster(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class DreadLobster : RareCrabAndLobster
     {
-        public override int LabelNumber { get { return 1116371; } }
+        public override int LabelNumber => 1116371;
 
         [Constructable]
         public DreadLobster()
-            : base(BaseHighseasFish.GetLobsterID())
+            : base(GetLobsterID())
         {
             Hue = FishInfo.GetFishHue(typeof(DreadLobster));
         }
 
-        public DreadLobster(Serial serial) : base(serial) { }
+        public DreadLobster(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class VoidLobster : RareCrabAndLobster
     {
-        public override int LabelNumber { get { return 1116369; } }
+        public override int LabelNumber => 1116369;
 
         [Constructable]
         public VoidLobster()
-            : base(BaseHighseasFish.GetLobsterID())
+            : base(GetLobsterID())
         {
             Hue = FishInfo.GetFishHue(typeof(VoidLobster));
         }
 
-        public VoidLobster(Serial serial) : base(serial) { }
+        public VoidLobster(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class StoneCrabMeat : Item
     {
-        public override int LabelNumber { get { return 1116317; } }
+        public override int LabelNumber => 1116317;
 
         [Constructable]
         public StoneCrabMeat() : base(4159)
@@ -634,24 +677,26 @@ namespace Server.Items
             Hue = FishInfo.GetFishHue(typeof(StoneCrab));
         }
 
-        public StoneCrabMeat(Serial serial) : base(serial) { }
+        public StoneCrabMeat(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class SpiderCrabMeat : Item
     {
-        public override int LabelNumber { get { return 1116320; } }
+        public override int LabelNumber => 1116320;
 
         [Constructable]
         public SpiderCrabMeat()
@@ -660,24 +705,26 @@ namespace Server.Items
             Hue = FishInfo.GetFishHue(typeof(SpiderCrab));
         }
 
-        public SpiderCrabMeat(Serial serial) : base(serial) { }
+        public SpiderCrabMeat(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class BlueLobsterMeat : Item
     {
-        public override int LabelNumber { get { return 1116318; } }
+        public override int LabelNumber => 1116318;
 
         [Constructable]
         public BlueLobsterMeat()
@@ -686,18 +733,20 @@ namespace Server.Items
             Hue = FishInfo.GetFishHue(typeof(BlueLobster));
         }
 
-        public BlueLobsterMeat(Serial serial) : base(serial) { }
+        public BlueLobsterMeat(Serial serial) : base(serial)
+        {
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

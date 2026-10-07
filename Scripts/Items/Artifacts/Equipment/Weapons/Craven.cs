@@ -1,11 +1,12 @@
-using System;
-
 namespace Server.Items
 {
     public class Craven : DualPointedSpear
-	{
-		public override bool IsArtifact { get { return true; } }
-        public override int LabelNumber { get { return 1154474; } } // Craven
+    {
+        public override bool IsArtifact => true;
+        public override int LabelNumber => 1154474; // Craven
+
+        public override int InitMinHits => 255;
+        public override int InitMaxHits => 255;
 
         [Constructable]
         public Craven()
@@ -19,30 +20,29 @@ namespace Server.Items
             Hue = 1365;
         }
 
-        public override void GetDamageTypes(Mobile wielder, out int phys, out int fire, out int cold, out int pois, out int nrgy, out int chaos, out int direct)
-        {
-            phys = 70; cold = 30;
-            nrgy = pois = chaos = direct = fire = 0;
-        }
-
-        public override int InitMinHits { get { return 255; } }
-        public override int InitMaxHits { get { return 255; } }
-
         public Craven(Serial serial)
             : base(serial)
         {
         }
 
+        public override void GetDamageTypes(Mobile wielder, out int phys, out int fire, out int cold, out int pois,
+            out int nrgy, out int chaos, out int direct)
+        {
+            phys = 70;
+            cold = 30;
+            nrgy = pois = chaos = direct = fire = 0;
+        }
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

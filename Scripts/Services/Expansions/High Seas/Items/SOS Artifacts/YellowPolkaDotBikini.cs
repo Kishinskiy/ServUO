@@ -1,17 +1,19 @@
-﻿using Server;
-using System;
-
-namespace Server.Items
+﻿namespace Server.Items
 {
     public class YellowPolkaDotBikini : LeatherBustierArms
-	{
-        public override int LabelNumber { get { return 1149962; } }
+    {
+        public override int LabelNumber => 1149962;
 
-		[Constructable]
-		public YellowPolkaDotBikini() 
-		{
+        [Constructable]
+        public YellowPolkaDotBikini()
+        {
             Hue = 1169;
-		}
+        }
+
+        public YellowPolkaDotBikini(Serial serial)
+            : base(serial)
+        {
+        }
 
         public override void AddNameProperties(ObjectPropertyList list)
         {
@@ -19,24 +21,19 @@ namespace Server.Items
             list.Add(1041645); // recovered from a shipwrecklist
         }
 
-        public YellowPolkaDotBikini(Serial serial)
-            : base(serial)
-		{
-		}
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(1);
+        }
 
-		public override void Serialize(GenericWriter writer)
-		{	
-			base.Serialize(writer);
-            writer.Write((int)1);	
-		}
-	
-		public override void Deserialize(GenericReader reader)
-		{
-		 	base.Deserialize(reader);
-			int version = reader.ReadInt();
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
 
             if (version == 0)
                 Hue = 1169;
-		}
-	}
+        }
+    }
 }

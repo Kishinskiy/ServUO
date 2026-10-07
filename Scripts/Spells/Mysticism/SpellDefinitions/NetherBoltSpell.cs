@@ -1,27 +1,32 @@
 using System;
+using Server.Spells.First;
 using Server.Targeting;
 
 namespace Server.Spells.Mysticism
 {
     public class NetherBoltSpell : MysticSpell
     {
-        public override SpellCircle Circle { get { return SpellCircle.First; } }
+        private static readonly SpellInfo m_Info = new SpellInfo(
+            "Nether Bolt", "In Corp Ylem",
+            230,
+            9022,
+            Reagent.BlackPearl,
+            Reagent.SulfurousAsh
+        );
 
-        private static SpellInfo m_Info = new SpellInfo(
-                "Nether Bolt", "In Corp Ylem",
-                230,
-                9022,
-                Reagent.BlackPearl,
-                Reagent.SulfurousAsh
-            );
+        public override SpellCircle Circle => SpellCircle.First;
+
+        public override bool DelayedDamage => true;
+        public override bool DelayedDamageStacking => false;
+
+        public override Type[] DelayDamageFamily
+        {
+            get { return new[] { typeof(MagicArrowSpell) }; }
+        }
 
         public NetherBoltSpell(Mobile caster, Item scroll) : base(caster, scroll, m_Info)
         {
         }
-
-        public override bool DelayedDamage { get { return true; } }
-        public override bool DelayedDamageStacking { get { return false; } }
-        public override Type[] DelayDamageFamily { get { return new Type[] { typeof(Server.Spells.First.MagicArrowSpell) }; } }
 
         public override void OnCast()
         {
@@ -30,13 +35,11 @@ namespace Server.Spells.Mysticism
 
         public void OnTarget(IDamageable d)
         {
-            if (d == null)
+            if (d == null) return;
+
+            if (CheckHSequence(d))
             {
-                return;
-            }
-            else if (CheckHSequence(d))
-            {
-                IDamageable target = d;
+                var target = d;
                 IDamageable source = Caster;
 
                 SpellHelper.Turn(Caster, target);
@@ -48,13 +51,11 @@ namespace Server.Spells.Mysticism
                 }
 
                 if (SpellHelper.CheckReflect((int)Circle, ref source, ref target))
-                {
                     Timer.DelayCall(TimeSpan.FromSeconds(.5), () =>
                     {
                         source.MovingParticles(target, 0x36D4, 7, 0, false, true, 0x49A, 0, 0, 9502, 4019, 0x160);
                         source.PlaySound(0x211);
                     });
-                }
 
                 double damage = GetNewAosDamage(10, 1, 4, target);
 
@@ -88,7 +89,9 @@ namespace Server.Spells.Mysticism
                     return;
 
                 if (!from.CanSee(o))
+                {
                     from.SendLocalizedMessage(500237); // Target can not be seen.
+                }
                 else if (o is IDamageable)
                 {
                     SpellHelper.Turn(from, o);

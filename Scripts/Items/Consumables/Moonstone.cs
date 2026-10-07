@@ -1,4 +1,5 @@
 using System;
+using Server.Factions;
 using Server.Mobiles;
 using Server.Network;
 using Server.Spells;
@@ -14,6 +15,20 @@ namespace Server.Items
     public class Moonstone : Item
     {
         private MoonstoneType m_Type;
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public MoonstoneType Type
+        {
+            get => m_Type;
+            set
+            {
+                m_Type = value;
+                InvalidateProperties();
+            }
+        }
+
+        public override int LabelNumber => 1041490 + (int)m_Type;
+
         [Constructable]
         public Moonstone(MoonstoneType type)
             : base(0xF8B)
@@ -27,26 +42,6 @@ namespace Server.Items
         {
         }
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public MoonstoneType Type
-        {
-            get
-            {
-                return m_Type;
-            }
-            set
-            {
-                m_Type = value;
-                InvalidateProperties();
-            }
-        }
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1041490 + (int)m_Type;
-            }
-        }
         public override void OnSingleClick(Mobile from)
         {
             if (IsChildOf(from.Backpack))
@@ -73,7 +68,7 @@ namespace Server.Items
             {
                 from.SendLocalizedMessage(1005400); // You can not bury a stone in this form.
             }
-            else if (Factions.Sigil.ExistsOn(from))
+            else if (Sigil.ExistsOn(from))
             {
                 from.SendLocalizedMessage(1061632); // You can't do that while carrying the sigil.
             }
@@ -83,17 +78,20 @@ namespace Server.Items
             }
             else if (from is PlayerMobile && ((PlayerMobile)from).Young)
             {
-                from.SendLocalizedMessage(1049543); // You decide against traveling to Felucca while you are still young.
+                from.SendLocalizedMessage(
+                    1049543); // You decide against traveling to Felucca while you are still young.
             }
             else if (SpellHelper.RestrictRedTravel && from.Murderer)
             {
-                from.SendLocalizedMessage(1005402); // The magic of the stone cannot be evoked by someone with blood on their hands.
+                from.SendLocalizedMessage(
+                    1005402); // The magic of the stone cannot be evoked by someone with blood on their hands.
             }
             else if (from.Criminal)
             {
                 from.SendLocalizedMessage(1005403); // The magic of the stone cannot be evoked by the lawless.
             }
-            else if (!Region.Find(from.Location, from.Map).IsDefault || !Region.Find(from.Location, GetTargetMap()).IsDefault)
+            else if (!Region.Find(from.Location, from.Map).IsDefault ||
+                     !Region.Find(from.Location, GetTargetMap()).IsDefault)
             {
                 from.SendLocalizedMessage(1005401); // You cannot bury the stone here.
             }
@@ -114,14 +112,14 @@ namespace Server.Items
 
         public Map GetTargetMap()
         {
-            return (m_Type == MoonstoneType.Felucca) ? Map.Felucca : Map.Trammel;
+            return m_Type == MoonstoneType.Felucca ? Map.Felucca : Map.Trammel;
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
             writer.Write((int)m_Type);
         }
@@ -130,27 +128,28 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            switch ( version )
+            switch (version)
             {
                 case 0:
-                    {
-                        m_Type = (MoonstoneType)reader.ReadInt();
+                {
+                    m_Type = (MoonstoneType)reader.ReadInt();
 
-                        break;
-                    }
+                    break;
+                }
             }
         }
 
         private class SettleTimer : Timer
         {
-            private readonly Item m_Stone;
+            private readonly Mobile m_Caster;
             private readonly Point3D m_Location;
             private readonly Map m_Map;
+            private readonly Item m_Stone;
             private readonly Map m_TargetMap;
-            private readonly Mobile m_Caster;
             private int m_Count;
+
             public SettleTimer(Item stone, Point3D loc, Map map, Map targetMap, Mobile caster)
                 : base(TimeSpan.FromSeconds(2.5), TimeSpan.FromSeconds(1.0))
             {
@@ -169,7 +168,8 @@ namespace Server.Items
 
                 if (m_Count == 1)
                 {
-                    m_Stone.PublicOverheadMessage(MessageType.Regular, 0x3B2, 1005414); // The stone settles into the ground.
+                    m_Stone.PublicOverheadMessage(MessageType.Regular, 0x3B2,
+                        1005414); // The stone settles into the ground.
                 }
                 else if (m_Count >= 10)
                 {
@@ -177,14 +177,8 @@ namespace Server.Items
 
                     if (m_Count == 16)
                     {
-                        if (!Region.Find(m_Location, m_Map).IsDefault || !Region.Find(m_Location, m_TargetMap).IsDefault)
-                        {
-                            m_Stone.Movable = true;
-                            m_Caster.AddToBackpack(m_Stone);
-                            Stop();
-                            return;
-                        }
-                        else if (!m_TargetMap.CanFit(m_Location, 16))
+                        if (!Region.Find(m_Location, m_Map).IsDefault ||
+                            !Region.Find(m_Location, m_TargetMap).IsDefault)
                         {
                             m_Stone.Movable = true;
                             m_Caster.AddToBackpack(m_Stone);
@@ -192,7 +186,15 @@ namespace Server.Items
                             return;
                         }
 
-                        int hue = m_Stone.Hue;
+                        if (!m_TargetMap.CanFit(m_Location, 16))
+                        {
+                            m_Stone.Movable = true;
+                            m_Caster.AddToBackpack(m_Stone);
+                            Stop();
+                            return;
+                        }
+
+                        var hue = m_Stone.Hue;
 
                         if (hue == 0)
                             hue = Utility.RandomBirdHue();

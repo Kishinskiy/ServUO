@@ -1,5 +1,4 @@
 ﻿using System;
-using Server;
 
 namespace Server.Items
 {
@@ -8,20 +7,33 @@ namespace Server.Items
         private int _UsesRemaining;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int UsesRemaining { get { return _UsesRemaining; } set { _UsesRemaining = value; InvalidateProperties(); } }
+        public int UsesRemaining
+        {
+            get => _UsesRemaining;
+            set
+            {
+                _UsesRemaining = value;
+                InvalidateProperties();
+            }
+        }
 
         public DateTime NextRecharge { get; set; }
 
-        public override int LabelNumber { get { return 1071520; } } // Smuggler's Tool Box
+        public override int LabelNumber => 1071520; // Smuggler's Tool Box
 
-        [Constructable] 
+        [Constructable]
         public SmugglersToolBox()
-           : base(0x1EB6)
+            : base(0x1EB6)
         {
             Hue = 953;
             UsesRemaining = 10;
 
             NextRecharge = DateTime.UtcNow;
+        }
+
+        public SmugglersToolBox(Serial serial)
+            : base(serial)
+        {
         }
 
         public override void OnDoubleClick(Mobile m)
@@ -49,16 +61,11 @@ namespace Server.Items
             list.Add(1060584, _UsesRemaining.ToString());
         }
 
-        public SmugglersToolBox(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
             writer.Write(_UsesRemaining);
             writer.Write(NextRecharge);
 
@@ -73,7 +80,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
             _UsesRemaining = reader.ReadInt();
             NextRecharge = reader.ReadDateTime();
         }

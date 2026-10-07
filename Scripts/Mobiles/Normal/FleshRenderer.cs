@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,7 +5,23 @@ namespace Server.Mobiles
     [CorpseName("a fleshrenderer corpse")]
     public class FleshRenderer : BaseCreature
     {
-        public override bool SupportsRunAnimation { get { return false; } }
+        public override bool SupportsRunAnimation => false;
+
+        public override bool CanFlee => false;
+
+        public override bool IgnoreYoungProtection => Core.ML;
+
+        public override bool AutoDispel => true;
+
+        public override bool BardImmune => !Core.SE;
+
+        public override bool Unprovokable => Core.SE;
+
+        public override bool AreaPeaceImmune => Core.SE;
+
+        public override Poison PoisonImmune => Poison.Lethal;
+
+        public override int TreasureMapLevel => 1;
 
         [Constructable]
         public FleshRenderer()
@@ -56,62 +71,10 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool CanFlee { get { return false; } }
-
-        public override bool IgnoreYoungProtection
-        {
-            get
-            {
-                return Core.ML;
-            }
-        }
-        public override bool AutoDispel
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool BardImmune
-        {
-            get
-            {
-                return !Core.SE;
-            }
-        }
-        public override bool Unprovokable
-        {
-            get
-            {
-                return Core.SE;
-            }
-        }
-        public override bool AreaPeaceImmune
-        {
-            get
-            {
-                return Core.SE;
-            }
-        }
-        public override Poison PoisonImmune
-        {
-            get
-            {
-                return Poison.Lethal;
-            }
-        }
-        public override int TreasureMapLevel
-        {
-            get
-            {
-                return 1;
-            }
-        }
-
         public override void GenerateLoot()
         {
             AddLoot(LootPack.UltraRich, 2);
-        }        
+        }
 
         public override int GetAttackSound()
         {
@@ -141,13 +104,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

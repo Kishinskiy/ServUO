@@ -1,11 +1,8 @@
 using System;
 using System.Collections.Generic;
-
-using Server;
-using Server.Mobiles;
+using Server.Engines.Points;
 using Server.Gumps;
 using Server.Network;
-using Server.Engines.Points;
 
 namespace Server.Items
 {
@@ -14,14 +11,47 @@ namespace Server.Items
         public List<Mobile> Revealed { get; set; }
         public Dictionary<Mobile, DateTime> NextMessage { get; set; }
 
-        public override bool ForceShowProperties { get { return true; } }
-        public bool CheckWhenHidden { get { return false; } }
+        public override bool ForceShowProperties => true;
+
+        public override bool HandlesOnMovement => PointsSystem.TreasuresOfDoom.InSeason;
 
         [Constructable]
         public DoomSign()
             : base(0xBD0)
         {
             Movable = false;
+        }
+
+        public DoomSign(Serial serial)
+            : base(serial)
+        {
+        }
+
+        public bool CheckWhenHidden => false;
+
+        public bool CheckReveal(Mobile m)
+        {
+            return Utility.Random((int)m.Skills[SkillName.DetectHidden].Value) < 100;
+        }
+
+        public void OnRevealed(Mobile m)
+        {
+            if (Revealed == null) Revealed = new List<Mobile>();
+
+            if (!Revealed.Contains(m))
+            {
+                Revealed.Add(m);
+
+                m.PrivateOverheadMessage(MessageType.Regular, 0x3B2, 1155658,
+                    m.NetState); // *You reveal something hidden about the object...*
+            }
+
+            OnDoubleClick(m);
+        }
+
+        public bool CheckPassiveDetect(Mobile m)
+        {
+            return false;
         }
 
         public override void OnDoubleClick(Mobile m)
@@ -36,24 +66,19 @@ namespace Server.Items
             }
         }
 
-        public override bool HandlesOnMovement { get { return PointsSystem.TreasuresOfDoom.InSeason; } }
-
         public override void OnMovement(Mobile m, Point3D oldLocation)
         {
             if (m.Player && m.InRange(Location, 3) && m.InLOS(this))
             {
                 if (NextMessage == null)
-                {
                     NextMessage = new Dictionary<Mobile, DateTime>();
-                }
                 else
-                {
                     CheckList();
-                }
 
                 if (!NextMessage.ContainsKey(m))
                 {
-                    m.PrivateOverheadMessage(MessageType.Regular, 0x3B2, 1155659, m.NetState); // *The wooden sign seems in oddly good condition for how old the sarcophagus is. Most of the inscription is worn away...*
+                    m.PrivateOverheadMessage(MessageType.Regular, 0x3B2, 1155659,
+                        m.NetState); // *The wooden sign seems in oddly good condition for how old the sarcophagus is. Most of the inscription is worn away...*
 
                     NextMessage[m] = DateTime.UtcNow + TimeSpan.FromMinutes(10);
                 }
@@ -65,56 +90,17 @@ namespace Server.Items
             return Revealed != null && Revealed.Contains(m);
         }
 
-        public bool CheckReveal(Mobile m)
-        {
-            return Utility.Random((int)m.Skills[SkillName.DetectHidden].Value) < 100;
-        }
-
-        public void OnRevealed(Mobile m)
-        {
-            if (Revealed == null)
-            {
-                Revealed = new List<Mobile>();
-            }
-
-            if (!Revealed.Contains(m))
-            {
-                Revealed.Add(m);
-
-                m.PrivateOverheadMessage(MessageType.Regular, 0x3B2, 1155658, m.NetState); // *You reveal something hidden about the object...*
-            }
-
-            OnDoubleClick(m);
-        }
-
-        public bool CheckPassiveDetect(Mobile m)
-        {
-            return false;
-        }
-
         private void CheckList()
         {
-            if (NextMessage == null)
-            {
-                return;
-            }
+            if (NextMessage == null) return;
 
             var list = new List<Mobile>(NextMessage.Keys);
 
             foreach (var m in list)
-            {
                 if (NextMessage[m] < DateTime.UtcNow)
-                {
                     NextMessage.Remove(m);
-                }
-            }
 
             ColUtility.Free(list);
-        }
-
-        public DoomSign(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)

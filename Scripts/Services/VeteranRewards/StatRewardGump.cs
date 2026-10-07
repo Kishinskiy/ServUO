@@ -1,4 +1,3 @@
-using System;
 using Server.Gumps;
 using Server.Mobiles;
 
@@ -17,7 +16,8 @@ namespace Server.Engines.VeteranRewards
         {
             AddHtmlLocalized(0, 0, 0, 0, 1015313, false, false); // <center></center>
             AddHtmlLocalized(0, 0, 0, 0, 1015313, false, false); // <center></center>
-            AddHtmlLocalized(0, 0, 0, 0, 1076664, false, false); // <B>Ultima Online Rewards Program</B><BR>Thank you for being part of the Ultima Online community for over 6 months. As a token of our appreciation, your stat cap will be increased. 
+            AddHtmlLocalized(0, 0, 0, 0, 1076664, false,
+                false); // <B>Ultima Online Rewards Program</B><BR>Thank you for being part of the Ultima Online community for over 6 months. As a token of our appreciation, your stat cap will be increased. 
             AddHtmlLocalized(0, 0, 0, 0, 1011036, false, false); // OKAY
             AddHtmlLocalized(0, 0, 0, 0, 1011012, false, false); // CANCEL
 
@@ -25,7 +25,8 @@ namespace Server.Engines.VeteranRewards
 
             AddBackground(0, 0, 291, 173, 0x13BE);
             AddImageTiled(5, 5, 280, 140, 0xA40);
-            AddHtmlLocalized(9, 9, 272, 140, 1076664, 0x7FFF, false, false); // <B>Ultima Online Rewards Program</B><BR>Thank you for being part of the Ultima Online community for over 6 months. As a token of our appreciation, your stat cap will be increased. 
+            AddHtmlLocalized(9, 9, 272, 140, 1076664, 0x7FFF, false,
+                false); // <B>Ultima Online Rewards Program</B><BR>Thank you for being part of the Ultima Online community for over 6 months. As a token of our appreciation, your stat cap will be increased. 
             AddButton(160, 147, 0xFB7, 0xFB8, 1, GumpButtonType.Reply, 0);
             AddHtmlLocalized(195, 149, 120, 20, 1006044, 0x7FFF, false, false); // OK
             AddButton(5, 147, 0xFB1, 0xFB2, 0, GumpButtonType.Reply, 0);

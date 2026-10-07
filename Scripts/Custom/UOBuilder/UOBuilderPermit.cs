@@ -17,6 +17,8 @@ namespace Server.Custom.UOBuilder
         [CommandProperty(AccessLevel.GameMaster)]
         public Point3D Center { get; set; } = Point3D.Zero;
 
+        public int LastID { get; set; } = 2;
+
         [Constructable]
         public UOBuilderPermit() : base(0x14F0)
         {
@@ -29,59 +31,45 @@ namespace Server.Custom.UOBuilder
             Hue = 2734;
         }
 
+        public UOBuilderPermit(Serial serial) : base(serial)
+        {
+        }
+
         internal bool InPermitArea(Point3D point)
         {
             if (ValidateMapEdge(point))
             {
-                if (Center == Point3D.Zero)
-                {
-                    return true;
-                }
+                if (Center == Point3D.Zero) return true;
 
-                Point3D start = new Point3D(Center.X - PermitArea, Center.Y - PermitArea, Map.GetAverageZ(Center.X - PermitArea, Center.Y - PermitArea));
+                var start = new Point3D(Center.X - PermitArea, Center.Y - PermitArea,
+                    Map.GetAverageZ(Center.X - PermitArea, Center.Y - PermitArea));
 
-                Point3D end = new Point3D(Center.X + PermitArea, Center.Y + PermitArea, 100);
+                var end = new Point3D(Center.X + PermitArea, Center.Y + PermitArea, 100);
 
-                Rectangle3D permitBox = new Rectangle3D(start, end);
+                var permitBox = new Rectangle3D(start, end);
 
                 return permitBox.Contains(point);
-            }
-            else
-            {
-                return false;
-            }
-        }
-
-        private bool ValidateMapEdge(Point3D point)
-        {
-            if (BlessedFor != null && point.X > PermitArea && point.Y > PermitArea)
-            {
-                if (point.X < BlessedFor.Map.Width - PermitArea && point.Y < BlessedFor.Map.Height - PermitArea)
-                {
-                    return true;
-                }
             }
 
             return false;
         }
 
-        public int LastID { get; set; } = 2;
+        private bool ValidateMapEdge(Point3D point)
+        {
+            if (BlessedFor != null && point.X > PermitArea && point.Y > PermitArea)
+                if (point.X < BlessedFor.Map.Width - PermitArea && point.Y < BlessedFor.Map.Height - PermitArea)
+                    return true;
+
+            return false;
+        }
 
         internal bool TryAddResources(Mobile from, int resources)
         {
-            if (from == null || resources <= 0 || RootParent != from)
-            {
-                return false;
-            }
+            if (from == null || resources <= 0 || RootParent != from) return false;
 
             if (BlessedFor == null)
-            {
                 BlessedFor = from;
-            }
-            else if (BlessedFor != from)
-            {
-                return false;
-            }
+            else if (BlessedFor != from) return false;
 
             BuildResources += resources;
 
@@ -92,19 +80,11 @@ namespace Server.Custom.UOBuilder
 
         internal bool TryAddBooster(Mobile from, int boost)
         {
-            if (from == null || boost <= 0 || RootParent != from)
-            {
-                return false;
-            }
+            if (from == null || boost <= 0 || RootParent != from) return false;
 
             if (BlessedFor == null)
-            {
                 BlessedFor = from;
-            }
-            else if (BlessedFor != from)
-            {
-                return false;
-            }
+            else if (BlessedFor != from) return false;
 
             BuildLimit += boost;
 
@@ -115,10 +95,7 @@ namespace Server.Custom.UOBuilder
 
         internal bool ConsumePlacementCharge()
         {
-            if (BuildResources <= 0)
-            {
-                return false;
-            }
+            if (BuildResources <= 0) return false;
 
             BuildResources--;
 
@@ -136,10 +113,7 @@ namespace Server.Custom.UOBuilder
 
         internal void RefundPlacementCharges(int resources)
         {
-            if (resources <= 0)
-            {
-                return;
-            }
+            if (resources <= 0) return;
 
             BuildResources += resources;
 
@@ -164,10 +138,7 @@ namespace Server.Custom.UOBuilder
 
             if (BlessedFor == null)
             {
-                if (!(from is PlayerMobile))
-                {
-                    return;
-                }
+                if (!(from is PlayerMobile)) return;
 
                 BlessedFor = from;
             }
@@ -189,17 +160,10 @@ namespace Server.Custom.UOBuilder
             {
                 UOBuilderCore.RestorePermitState(this);
 
-                if (Center == Point3D.Zero)
-                {
-                    UOBuilderCore.PlaceBuild(this);
-                }
+                if (Center == Point3D.Zero) UOBuilderCore.PlaceBuild(this);
 
                 BaseGump.SendGump(new UOBuilderGump(player, this));
             }
-        }
-
-        public UOBuilderPermit(Serial serial) : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)

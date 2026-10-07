@@ -1,8 +1,8 @@
 using System;
+using Server.Engines.Craft;
 using Server.Network;
 using Server.Prompts;
 using Server.Targeting;
-using Server.Engines.Craft;
 
 namespace Server.Items
 {
@@ -22,25 +22,52 @@ namespace Server.Items
 
     public class Key : Item, IResource, IQuality
     {
-        private string m_Description;
-        private uint m_KeyVal;
-        private Item m_Link;
-        private int m_MaxRange;
-
-        private CraftResource _Resource;
         private Mobile _Crafter;
         private ItemQuality _Quality;
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public CraftResource Resource { get { return _Resource; } set { _Resource = value; _Resource = value; Hue = CraftResources.GetHue(_Resource); InvalidateProperties(); } }
+        private CraftResource _Resource;
+        private string m_Description;
+        private uint m_KeyVal;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public Mobile Crafter { get { return _Crafter; } set { _Crafter = value; InvalidateProperties(); } }
+        public Mobile Crafter
+        {
+            get => _Crafter;
+            set
+            {
+                _Crafter = value;
+                InvalidateProperties();
+            }
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public ItemQuality Quality { get { return _Quality; } set { _Quality = value; InvalidateProperties(); } }
+        public string Description
+        {
+            get => m_Description;
+            set
+            {
+                m_Description = value;
+                InvalidateProperties();
+            }
+        }
 
-        public bool PlayerConstructed { get { return true; } }
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int MaxRange { get; set; }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public uint KeyValue
+        {
+            get => m_KeyVal;
+
+            set
+            {
+                m_KeyVal = value;
+                InvalidateProperties();
+            }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public Item Link { get; set; }
 
         [Constructable]
         public Key()
@@ -72,9 +99,9 @@ namespace Server.Items
         {
             Weight = 1.0;
 
-            m_MaxRange = 3;
+            MaxRange = 3;
             m_KeyVal = LockVal;
-            m_Link = link;
+            Link = link;
         }
 
         public Key(Serial serial)
@@ -83,58 +110,50 @@ namespace Server.Items
         }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public string Description
+        public ItemQuality Quality
         {
-            get
-            {
-                return m_Description;
-            }
+            get => _Quality;
             set
             {
-                m_Description = value;
+                _Quality = value;
                 InvalidateProperties();
             }
         }
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int MaxRange
+
+        public bool PlayerConstructed => true;
+
+        public virtual int OnCraft(int quality, bool makersMark, Mobile from, CraftSystem craftSystem, Type typeRes,
+            ITool tool, CraftItem craftItem, int resHue)
         {
-            get
+            Quality = (ItemQuality)quality;
+
+            if (makersMark)
+                Crafter = from;
+
+            if (!craftItem.ForceNonExceptional)
             {
-                return m_MaxRange;
+                if (typeRes == null)
+                    typeRes = craftItem.Resources.GetAt(0).ItemType;
+
+                Resource = CraftResources.GetFromType(typeRes);
             }
 
-            set
-            {
-                m_MaxRange = value;
-            }
+            return quality;
         }
-        [CommandProperty(AccessLevel.GameMaster)]
-        public uint KeyValue
-        {
-            get
-            {
-                return m_KeyVal;
-            }
 
+        [CommandProperty(AccessLevel.GameMaster)]
+        public CraftResource Resource
+        {
+            get => _Resource;
             set
             {
-                m_KeyVal = value;
+                _Resource = value;
+                _Resource = value;
+                Hue = CraftResources.GetHue(_Resource);
                 InvalidateProperties();
             }
         }
-        [CommandProperty(AccessLevel.GameMaster)]
-        public Item Link
-        {
-            get
-            {
-                return m_Link;
-            }
 
-            set
-            {
-                m_Link = value;
-            }
-        }
         public static uint RandomValue()
         {
             return (uint)(0xFFFFFFFE * Utility.RandomDouble()) + 1;
@@ -154,24 +173,22 @@ namespace Server.Items
             if (cont == null || keyValue == 0)
                 return;
 
-            Item[] items = cont.FindItemsByType(new Type[] { typeof(Key), typeof(KeyRing) });
+            var items = cont.FindItemsByType(new[] { typeof(Key), typeof(KeyRing) });
 
-            foreach (Item item in items)
-            {
+            foreach (var item in items)
                 if (item is Key)
                 {
-                    Key key = (Key)item;
+                    var key = (Key)item;
 
                     if (key.KeyValue == keyValue)
                         key.Delete();
                 }
                 else
                 {
-                    KeyRing keyRing = (KeyRing)item;
+                    var keyRing = (KeyRing)item;
 
                     keyRing.RemoveKeys(keyValue);
                 }
-            }
         }
 
         public static bool ContainsKey(Container cont, uint keyValue)
@@ -179,25 +196,23 @@ namespace Server.Items
             if (cont == null)
                 return false;
 
-            Item[] items = cont.FindItemsByType(new Type[] { typeof(Key), typeof(KeyRing) });
+            var items = cont.FindItemsByType(new[] { typeof(Key), typeof(KeyRing) });
 
-            foreach (Item item in items)
-            {
+            foreach (var item in items)
                 if (item is Key)
                 {
-                    Key key = (Key)item;
+                    var key = (Key)item;
 
                     if (key.KeyValue == keyValue)
                         return true;
                 }
                 else
                 {
-                    KeyRing keyRing = (KeyRing)item;
+                    var keyRing = (KeyRing)item;
 
                     if (keyRing.ContainsKey(keyValue))
                         return true;
                 }
-            }
 
             return false;
         }
@@ -206,59 +221,59 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)3); // version
+            writer.Write(3); // version
 
             writer.Write((int)_Resource);
             writer.Write(_Crafter);
             writer.Write((int)_Quality);
 
-            writer.Write((int)m_MaxRange);
+            writer.Write(MaxRange);
 
-            writer.Write((Item)m_Link);
+            writer.Write(Link);
 
-            writer.Write((string)m_Description);
-            writer.Write((uint)m_KeyVal);
+            writer.Write(m_Description);
+            writer.Write(m_KeyVal);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            switch ( version )
+            switch (version)
             {
                 case 3:
-                    {
-                        _Resource = (CraftResource)reader.ReadInt();
-                        _Crafter = reader.ReadMobile();
-                        _Quality = (ItemQuality)reader.ReadInt();
+                {
+                    _Resource = (CraftResource)reader.ReadInt();
+                    _Crafter = reader.ReadMobile();
+                    _Quality = (ItemQuality)reader.ReadInt();
 
-                        goto case 2;
-                    }
+                    goto case 2;
+                }
                 case 2:
-                    {
-                        m_MaxRange = reader.ReadInt();
+                {
+                    MaxRange = reader.ReadInt();
 
-                        goto case 1;
-                    }
+                    goto case 1;
+                }
                 case 1:
-                    {
-                        m_Link = reader.ReadItem();
+                {
+                    Link = reader.ReadItem();
 
-                        goto case 0;
-                    }
+                    goto case 0;
+                }
                 case 0:
-                    {
-                        if (version < 2 || m_MaxRange == 0)
-                            m_MaxRange = 3;
+                {
+                    if (version < 2 || MaxRange == 0)
+                        MaxRange = 3;
 
-                        m_Description = reader.ReadString();
+                    m_Description = reader.ReadString();
 
-                        m_KeyVal = reader.ReadUInt();
+                    m_KeyVal = reader.ReadUInt();
 
-                        break;
-                    }
+                    break;
+                }
             }
         }
 
@@ -300,45 +315,18 @@ namespace Server.Items
             if (desc != null)
                 list.Add(desc);
 
-            if (_Crafter != null)
-            {
-                list.Add(1050043, _Crafter.TitleName); // crafted by ~1_NAME~
-            }
+            if (_Crafter != null) list.Add(1050043, _Crafter.TitleName); // crafted by ~1_NAME~
 
-            if (_Quality == ItemQuality.Exceptional)
-            {
-                list.Add(1060636); // Exceptional
-            }
+            if (_Quality == ItemQuality.Exceptional) list.Add(1060636); // Exceptional
         }
 
         public override void AddNameProperty(ObjectPropertyList list)
         {
             if (_Resource > CraftResource.Iron)
-            {
-                list.Add(1053099, "#{0}\t{1}", CraftResources.GetLocalizationNumber(_Resource), String.Format("#{0}", LabelNumber.ToString())); // ~1_oretype~ ~2_armortype~
-            }
+                list.Add(1053099, "#{0}\t{1}", CraftResources.GetLocalizationNumber(_Resource),
+                    string.Format("#{0}", LabelNumber.ToString())); // ~1_oretype~ ~2_armortype~
             else
-            {
                 base.AddNameProperty(list);
-            }
-        }
-
-        public virtual int OnCraft(int quality, bool makersMark, Mobile from, CraftSystem craftSystem, Type typeRes, ITool tool, CraftItem craftItem, int resHue)
-        {
-            Quality = (ItemQuality)quality;
-
-            if (makersMark)
-                Crafter = from;
-
-            if (!craftItem.ForceNonExceptional)
-            {
-                if (typeRes == null)
-                    typeRes = craftItem.Resources.GetAt(0).ItemType;
-
-                Resource = CraftResources.GetFromType(typeRes);
-            }
-
-            return quality;
         }
 
         public override void OnSingleClick(Mobile from)
@@ -360,58 +348,53 @@ namespace Server.Items
         {
             if (o.KeyValue == KeyValue)
             {
-                if (o is BaseDoor && !((BaseDoor)o).UseLocks())
+                if (o is BaseDoor && !((BaseDoor)o).UseLocks()) return false;
+
+                o.Locked = !o.Locked;
+
+                if (o is LockableContainer)
                 {
-                    return false;
+                    var cont = (LockableContainer)o;
+
+                    if (cont.LockLevel == -255)
+                        cont.LockLevel = cont.RequiredSkill - 10;
                 }
-                else
+
+                if (o is Item)
                 {
-                    o.Locked = !o.Locked;
+                    var item = (Item)o;
 
-                    if (o is LockableContainer)
+                    if (o.Locked)
+                        item.SendLocalizedMessageTo(from, 1048000); // You lock it.
+                    else
+                        item.SendLocalizedMessageTo(from, 1048001); // You unlock it.
+
+                    if (item is LockableContainer)
                     {
-                        LockableContainer cont = (LockableContainer)o;
+                        var cont = (LockableContainer)item;
 
-                        if (cont.LockLevel == -255)
-                            cont.LockLevel = cont.RequiredSkill - 10;
-                    }
-
-                    if (o is Item)
-                    {
-                        Item item = (Item)o;
-
-                        if (o.Locked)
-                            item.SendLocalizedMessageTo(from, 1048000); // You lock it.
-                        else
-                            item.SendLocalizedMessageTo(from, 1048001); // You unlock it.
-
-                        if (item is LockableContainer)
+                        if (cont.TrapType != TrapType.None && cont.TrapOnLockpick)
                         {
-                            LockableContainer cont = (LockableContainer)item;
-
-                            if (cont.TrapType != TrapType.None && cont.TrapOnLockpick)
-                            {
-                                if (o.Locked)
-                                    item.SendLocalizedMessageTo(from, 501673); // You re-enable the trap.
-                                else
-                                    item.SendLocalizedMessageTo(from, 501672); // You disable the trap temporarily.  Lock it again to re-enable it.
-                            }
+                            if (o.Locked)
+                                item.SendLocalizedMessageTo(from, 501673); // You re-enable the trap.
+                            else
+                                item.SendLocalizedMessageTo(from,
+                                    501672); // You disable the trap temporarily.  Lock it again to re-enable it.
                         }
                     }
-
-                    return true;
                 }
+
+                return true;
             }
-            else
-            {
-                return false;
-            }
+
+            return false;
         }
 
         private class RenamePrompt : Prompt
         {
-            public override int MessageCliloc { get { return 501665; } }
             private readonly Key m_Key;
+            public override int MessageCliloc => 501665;
+
             public RenamePrompt(Key key)
             {
                 m_Key = key;
@@ -432,6 +415,7 @@ namespace Server.Items
         private class UnlockTarget : Target
         {
             private readonly Key m_Key;
+
             public UnlockTarget(Key key)
                 : base(key.MaxRange, false, TargetFlags.None)
             {
@@ -473,16 +457,14 @@ namespace Server.Items
                     number = 501666; // You can't unlock that!
                 }
 
-                if (number != -1)
-                {
-                    from.SendLocalizedMessage(number);
-                }
+                if (number != -1) from.SendLocalizedMessage(number);
             }
         }
 
         private class CopyTarget : Target
         {
             private readonly Key m_Key;
+
             public CopyTarget(Key key)
                 : base(3, false, TargetFlags.None)
             {
@@ -501,7 +483,7 @@ namespace Server.Items
 
                 if (targeted is Key)
                 {
-                    Key k = (Key)targeted;
+                    var k = (Key)targeted;
 
                     if (k.m_KeyVal == 0)
                     {

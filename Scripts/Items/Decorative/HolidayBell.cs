@@ -1,10 +1,8 @@
-﻿using System;
-
-namespace Server.Items
+﻿namespace Server.Items
 {
     public class HolidayBell : Item
     {
-        private static readonly string[] m_StaffNames = new string[]
+        private static readonly string[] m_StaffNames =
         {
             "Adrick",
             "Alai",
@@ -29,12 +27,35 @@ namespace Server.Items
             "Tyrant",
             "Vex"
         };
-        private static readonly int[] m_Hues = new int[]
+
+        private static readonly int[] m_Hues =
         {
             0xA, 0x24, 0x42, 0x56, 0x1A, 0x4C, 0x3C, 0x60, 0x2E, 0x55, 0x23, 0x38, 0x482, 0x6, 0x10
         };
+
         private string m_Maker;
         private int m_SoundID;
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int SoundID
+        {
+            get => m_SoundID;
+            set
+            {
+                m_SoundID = value;
+                InvalidateProperties();
+            }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public string Giver
+        {
+            get => m_Maker;
+            set => m_Maker = value;
+        }
+
+        public override string DefaultName => string.Format("A Holiday Bell From {0}", Giver);
+
         [Constructable]
         public HolidayBell()
             : this(m_StaffNames[Utility.Random(m_StaffNames.Length)])
@@ -45,11 +66,11 @@ namespace Server.Items
         public HolidayBell(string maker)
             : base(0x1C12)
         {
-            this.m_Maker = maker;
+            m_Maker = maker;
 
-            this.LootType = LootType.Blessed;
-            this.Hue = m_Hues[Utility.Random(m_Hues.Length)];
-            this.SoundID = 0x0F5 + Utility.Random(14);
+            LootType = LootType.Blessed;
+            Hue = m_Hues[Utility.Random(m_Hues.Length)];
+            SoundID = 0x0F5 + Utility.Random(14);
         }
 
         public HolidayBell(Serial serial)
@@ -57,69 +78,35 @@ namespace Server.Items
         {
         }
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int SoundID
-        {
-            get
-            {
-                return this.m_SoundID;
-            }
-            set
-            {
-                this.m_SoundID = value;
-                this.InvalidateProperties();
-            }
-        }
-        [CommandProperty(AccessLevel.GameMaster)]
-        public string Giver
-        {
-            get
-            {
-                return this.m_Maker;
-            }
-            set
-            {
-                this.m_Maker = value;
-            }
-        }
-        public override string DefaultName
-        {
-            get
-            {
-                return String.Format("A Holiday Bell From {0}", this.Giver);
-            }
-        }
         public override void OnDoubleClick(Mobile from)
         {
-            if (!from.InRange(this.GetWorldLocation(), 2))
-            {
+            if (!from.InRange(GetWorldLocation(), 2))
                 from.SendLocalizedMessage(500446); // That is too far away.
-            }
             else
-                from.PlaySound(this.m_SoundID);
+                from.PlaySound(m_SoundID);
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
-            writer.Write((string)this.m_Maker);
+            writer.Write(m_Maker);
 
-            writer.WriteEncodedInt((int)this.m_SoundID);
+            writer.WriteEncodedInt(m_SoundID);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            this.m_Maker = reader.ReadString();
-            this.m_SoundID = reader.ReadEncodedInt();
+            m_Maker = reader.ReadString();
+            m_SoundID = reader.ReadEncodedInt();
 
-            Utility.Intern(ref this.m_Maker);
+            Utility.Intern(ref m_Maker);
         }
     }
 }

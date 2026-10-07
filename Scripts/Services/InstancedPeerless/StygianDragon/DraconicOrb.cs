@@ -16,14 +16,13 @@
 //  License along with this program.
 //
 
-using System;
-using Server;
-
 namespace Server.Items
 {
     public class DraconicOrb : PeerlessKey
     {
-        public override int LabelNumber { get { return 1113515; } } // Draconic Orb (Lesser)
+        public override int LabelNumber => 1113515; // Draconic Orb (Lesser)
+
+        public override int Lifespan => 43200;
 
         [Constructable]
         public DraconicOrb()
@@ -34,8 +33,6 @@ namespace Server.Items
             Hue = 0x80F;
         }
 
-        public override int Lifespan { get { return 43200; } }
-
         public DraconicOrb(Serial serial)
             : base(serial)
         {
@@ -45,7 +42,7 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)

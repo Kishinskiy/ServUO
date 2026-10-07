@@ -1,19 +1,14 @@
-using System;
-using System.Collections.Generic;
-using Server.ContextMenus;
-using Server.Engines.VeteranRewards;
 using Server.Gumps;
-using Server.Mobiles;
-using Server.Network;
 
 namespace Server.Items
-{ 
+{
     public class SkullTiledFloorAddon : BaseAddon
     {
+        public override BaseAddonDeed Deed => new SkullTiledFloorAddonDeed();
+
         [Constructable]
         public SkullTiledFloorAddon(bool east)
-            : base()
-        { 
+        {
             if (!east)
             {
                 AddComponent(new LocalizedAddonComponent(0xA34F, 1125827), 0, 0, 0);
@@ -45,14 +40,6 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonDeed Deed
-        { 
-            get
-            { 
-                return new SkullTiledFloorAddonDeed();
-            }
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -64,13 +51,17 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class SkullTiledFloorAddonDeed : BaseAddonDeed, IRewardOption
     {
         private bool m_East;
+
+        public override int LabelNumber => 1159020; // Skull Tiled Floor
+
+        public override BaseAddon Addon => new SkullTiledFloorAddon(m_East);
 
         [Constructable]
         public SkullTiledFloorAddonDeed()
@@ -82,14 +73,26 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber { get { return 1159020; } } // Skull Tiled Floor
+        public void GetOptions(RewardOptionList list)
+        {
+            list.Add(1, 1150124); // South
+            list.Add(2, 1150123); // East
+        }
 
-        public override BaseAddon Addon
-        { 
-            get
+        public void OnOptionSelected(Mobile from, int option)
+        {
+            switch (option)
             {
-                return new SkullTiledFloorAddon(m_East);
+                case 1:
+                    m_East = false;
+                    break;
+                case 2:
+                    m_East = true;
+                    break;
             }
+
+            if (!Deleted)
+                base.OnDoubleClick(from);
         }
 
         public override void OnDoubleClick(Mobile from)
@@ -100,7 +103,9 @@ namespace Server.Items
                 from.SendGump(new RewardOptionGump(this));
             }
             else
+            {
                 from.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.   
+            }
         }
 
         public override void Serialize(GenericWriter writer)
@@ -114,29 +119,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
-        }
-
-        public void GetOptions(RewardOptionList list)
-        {
-            list.Add(1, 1150124); // South
-            list.Add(2, 1150123); // East
-        }
-
-        public void OnOptionSelected(Mobile from, int option)
-        {
-            switch ( option )
-            {
-                case 1:
-                    m_East = false;
-                    break;
-                case 2:
-                    m_East = true;
-                    break;
-            }
-
-            if (!Deleted)
-                base.OnDoubleClick(from);
+            var version = reader.ReadEncodedInt();
         }
     }
 }

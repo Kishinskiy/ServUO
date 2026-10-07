@@ -1,9 +1,6 @@
-using Server;
 using System;
-using Server.Mobiles;
-using Server.Items;
-using Server.ContextMenus;
 using System.Collections.Generic;
+using Server.ContextMenus;
 
 namespace Server.Engines.NewMagincia
 {
@@ -16,11 +13,15 @@ namespace Server.Engines.NewMagincia
         [CommandProperty(AccessLevel.GameMaster)]
         public MaginciaBazaarPlot Plot
         {
-            get { return m_Plot; }
-            set { m_Plot = value; InvalidateProperties(); }
+            get => m_Plot;
+            set
+            {
+                m_Plot = value;
+                InvalidateProperties();
+            }
         }
 
-        public override bool DisplayWeight { get { return false; } }
+        public override bool DisplayWeight => false;
 
         public PlotSign(MaginciaBazaarPlot plot)
             : base(3025)
@@ -29,13 +30,18 @@ namespace Server.Engines.NewMagincia
             m_Plot = plot;
         }
 
+        public PlotSign(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void OnDoubleClick(Mobile from)
         {
             if (m_Plot == null || !m_Plot.Active)
             {
                 from.SendMessage("New Magincia Bazaar Plot {0} is inactive at this time.", m_Plot.PlotDef.ID);
             }
-            else if (from.InRange(this.Location, 3))
+            else if (from.InRange(Location, 3))
             {
                 from.CloseGump(typeof(BaseBazaarGump));
                 from.SendGump(new StallLeasingGump(from, m_Plot));
@@ -57,10 +63,10 @@ namespace Server.Engines.NewMagincia
 
             if (m_Plot.Auction != null)
             {
-                int left = 1;
+                var left = 1;
                 if (m_Plot.Auction.AuctionEnd > DateTime.UtcNow)
                 {
-                    TimeSpan ts = m_Plot.Auction.AuctionEnd - DateTime.UtcNow;
+                    var ts = m_Plot.Auction.AuctionEnd - DateTime.UtcNow;
                     left = (int)(ts.TotalHours + 1);
                 }
 
@@ -83,14 +89,26 @@ namespace Server.Engines.NewMagincia
         {
             base.GetContextMenuEntries(from, list);
 
-            if(m_Plot != null && m_Plot.Active)
+            if (m_Plot != null && m_Plot.Active)
                 list.Add(new RecallRuneEntry(from, this));
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0); // version
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
         }
 
         private class RecallRuneEntry : ContextMenuEntry
         {
-            private PlotSign m_Sign;
-            private Mobile m_From;
+            private readonly Mobile m_From;
+            private readonly PlotSign m_Sign;
 
             public RecallRuneEntry(Mobile from, PlotSign sign)
                 : base(1151508, -1)
@@ -105,23 +123,6 @@ namespace Server.Engines.NewMagincia
             {
                 m_From.SendGump(new ShopRecallRuneGump(m_From, m_Sign));
             }
-        }
-
-        public PlotSign(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.Write((int)0); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            int version = reader.ReadInt();
         }
     }
 }

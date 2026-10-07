@@ -4,27 +4,33 @@ namespace Server.Items
 {
     public class BigFish : Item, ICarvable
     {
-        #region Old Item Serialization Vars used for RedHerring and MudPuppy
-        /* DO NOT USE! Only used in serialization of special scrolls that originally derived from Item */
-        private bool m_InheritsItem;
-
-        protected bool InheritsItem
-        {
-            get
-            {
-                return this.m_InheritsItem;
-            }
-        }
-        #endregion
-
-        private Mobile m_Fisher;
         private DateTime m_DateCaught;
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public Mobile Fisher { get { return m_Fisher; } set { m_Fisher = value; InvalidateProperties(); } }
+        private Mobile m_Fisher;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public DateTime DateCaught { get { return m_DateCaught; } set { m_DateCaught = value; InvalidateProperties(); } }
+        public Mobile Fisher
+        {
+            get => m_Fisher;
+            set
+            {
+                m_Fisher = value;
+                InvalidateProperties();
+            }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public DateTime DateCaught
+        {
+            get => m_DateCaught;
+            set
+            {
+                m_DateCaught = value;
+                InvalidateProperties();
+            }
+        }
+
+        public override int LabelNumber => 1041112; // a big fish
 
         [Constructable]
         public BigFish()
@@ -35,26 +41,24 @@ namespace Server.Items
             Hue = Utility.RandomBool() ? 0x847 : 0x58C;
         }
 
-        private int GetWeight()
-        {
-            int v = Utility.RandomMinMax(0, 10000);
-            v = (int)Math.Sqrt(v);
-            v = 100 - v;
-
-            return (int)(225.0 * ((double)v / 100));
-        }
-
         public BigFish(Serial serial)
             : base(serial)
         {
         }
 
-        public override int LabelNumber { get { return 1041112; } }// a big fish
-
         public bool Carve(Mobile from, Item item)
         {
             base.ScissorHelper(from, new RawFishSteak(), Math.Max(16, (int)Weight) / 4, false);
             return true;
+        }
+
+        private int GetWeight()
+        {
+            var v = Utility.RandomMinMax(0, 10000);
+            v = (int)Math.Sqrt(v);
+            v = 100 - v;
+
+            return (int)(225.0 * ((double)v / 100));
         }
 
         public override void GetProperties(ObjectPropertyList list)
@@ -77,40 +81,48 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)3); // version
+            writer.Write(3); // version
 
             writer.Write(m_DateCaught);
-            writer.Write((Mobile)m_Fisher);
+            writer.Write(m_Fisher);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (version < 3)
-                m_InheritsItem = true;
+                InheritsItem = true;
 
-            switch ( version )
+            switch (version)
             {
                 case 3: // RedHerring/MudPuppy Conversion
                 case 2:
-                    {
-                        m_DateCaught = reader.ReadDateTime();
-                        goto case 1;
-                    }
+                {
+                    m_DateCaught = reader.ReadDateTime();
+                    goto case 1;
+                }
                 case 1:
-                    {
-                        m_Fisher = reader.ReadMobile();
-                        break;
-                    }
+                {
+                    m_Fisher = reader.ReadMobile();
+                    break;
+                }
                 case 0:
-                    {
-                        Weight = Utility.RandomMinMax(3, 200);
-                        break;
-                    }
+                {
+                    Weight = Utility.RandomMinMax(3, 200);
+                    break;
+                }
             }
         }
+
+        #region Old Item Serialization Vars used for RedHerring and MudPuppy
+
+        /* DO NOT USE! Only used in serialization of special scrolls that originally derived from Item */
+
+        protected bool InheritsItem { get; private set; }
+
+        #endregion
     }
 }

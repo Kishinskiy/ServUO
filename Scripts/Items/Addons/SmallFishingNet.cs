@@ -1,10 +1,10 @@
-using System;
-
 namespace Server.Items
 {
     [Flipable(0x1EA3, 0x1EA4)]
     public class SmallFishingNetComponent : AddonComponent
     {
+        public override int LabelNumber => 1076286; // Small Fish Net
+
         public SmallFishingNetComponent()
             : base(0x1EA3)
         {
@@ -15,13 +15,6 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1076286;
-            }
-        }// Small Fish Net
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -33,17 +26,18 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class SmallFishingNetAddon : BaseAddon
     {
+        public override BaseAddonDeed Deed => new SmallFishingNetDeed();
+
         [Constructable]
         public SmallFishingNetAddon()
-            : base()
         {
-            this.AddComponent(new SmallFishingNetComponent(), 0, 0, 0);
+            AddComponent(new SmallFishingNetComponent(), 0, 0, 0);
         }
 
         public SmallFishingNetAddon(Serial serial)
@@ -51,13 +45,6 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonDeed Deed
-        {
-            get
-            {
-                return new SmallFishingNetDeed();
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -69,17 +56,20 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class SmallFishingNetDeed : BaseAddonDeed
     {
+        public override BaseAddon Addon => new SmallFishingNetAddon();
+
+        public override int LabelNumber => 1076286; // Small Fish Net
+
         [Constructable]
         public SmallFishingNetDeed()
-            : base()
         {
-            this.LootType = LootType.Blessed;
+            LootType = LootType.Blessed;
         }
 
         public SmallFishingNetDeed(Serial serial)
@@ -87,20 +77,6 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddon Addon
-        {
-            get
-            {
-                return new SmallFishingNetAddon();
-            }
-        }
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1076286;
-            }
-        }// Small Fish Net
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -112,7 +88,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

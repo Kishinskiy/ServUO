@@ -1,8 +1,7 @@
 using System;
-using Server;
+using Server.Accounting;
 using Server.Items;
 using Server.Mobiles;
-using Server.Accounting;
 
 namespace Server.Custom.PremiumCurrency
 {
@@ -14,12 +13,12 @@ namespace Server.Custom.PremiumCurrency
         public static void Initialize()
         {
             // Подписываемся на системное событие речи в мире
-            EventSink.Speech += new SpeechEventHandler(EventSink_Speech);
+            EventSink.Speech += EventSink_Speech;
         }
 
         private static void EventSink_Speech(SpeechEventArgs e)
         {
-            Mobile from = e.Mobile;
+            var from = e.Mobile;
 
             if (from == null || from.Backpack == null || e.Handled)
                 return;
@@ -29,14 +28,12 @@ namespace Server.Custom.PremiumCurrency
             {
                 // Ищем банкира в радиусе 3 клеток от игрока
                 Banker banker = null;
-                foreach (Mobile m in from.GetMobilesInRange(3))
-                {
+                foreach (var m in from.GetMobilesInRange(3))
                     if (m is Banker)
                     {
                         banker = (Banker)m;
                         break;
                     }
-                }
 
                 // Если банкира рядом нет — игрок просто говорит в пустоту, игнорируем
                 if (banker == null)
@@ -45,7 +42,7 @@ namespace Server.Custom.PremiumCurrency
                 // Перехватываем речь, чтобы она не дублировалась в стандартные команды банка
                 e.Handled = true;
 
-                Account acct = from.Account as Account;
+                var acct = from.Account as Account;
                 if (acct == null)
                 {
                     banker.Say("У вас отсутствует учетная запись для зачисления суверенов.");
@@ -63,11 +60,8 @@ namespace Server.Custom.PremiumCurrency
                 }
 
                 // Считаем суммарное количество физических монет в рюкзаке
-                int totalCoinsFound = 0;
-                foreach (PremiumCoin coin in coins)
-                {
-                    totalCoinsFound += coin.Amount;
-                }
+                var totalCoinsFound = 0;
+                foreach (var coin in coins) totalCoinsFound += coin.Amount;
 
                 if (totalCoinsFound <= 0)
                 {
@@ -78,13 +72,10 @@ namespace Server.Custom.PremiumCurrency
                 // КОНВЕРТАЦИЯ В СУВЕРЕНЫ
                 // Здесь вы можете настроить курс обмена. Сейчас курс 1 к 1.
                 // Если хотите, чтобы 1 монета давала, например, 10 суверенов: int sovereignsToDeposit = totalCoinsFound * 10;
-                int sovereignsToDeposit = totalCoinsFound;
+                var sovereignsToDeposit = totalCoinsFound;
 
                 // Жесткое удаление физических монет из рюкзака игрока (Server-Side)
-                for (int i = coins.Count - 1; i >= 0; i--)
-                {
-                    coins[i].Delete();
-                }
+                for (var i = coins.Count - 1; i >= 0; i--) coins[i].Delete();
 
                 // Аппаратно зачисляем суверены на баланс аккаунта в ядре ServUO
                 acct.DepositSovereigns(sovereignsToDeposit);
@@ -92,7 +83,8 @@ namespace Server.Custom.PremiumCurrency
                 // Оповещаем игрока через банкира и системное сообщение
                 banker.PlaySound(0x35); // Звук пересыпания золотых монет
                 banker.Say($"Отлично! Я принял ваши {totalCoinsFound} шт. Монет Удачи.");
-                from.SendMessage(88, $"На ваш аккаунт успешно зачислено {sovereignsToDeposit} Суверенов для Ultima Store! Текущий баланс: {acct.Sovereigns}");
+                from.SendMessage(88,
+                    $"На ваш аккаунт успешно зачислено {sovereignsToDeposit} Суверенов для Ultima Store! Текущий баланс: {acct.Sovereigns}");
             }
         }
     }

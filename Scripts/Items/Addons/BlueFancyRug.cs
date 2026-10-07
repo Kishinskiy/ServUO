@@ -1,22 +1,21 @@
-using System;
-
 namespace Server.Items
 {
     public class BlueFancyRugAddon : BaseAddon
     {
+        public override BaseAddonDeed Deed => new BlueFancyRugDeed();
+
         [Constructable]
         public BlueFancyRugAddon()
-            : base()
         {
-            this.AddComponent(new LocalizedAddonComponent(0xAC2, 1076273), 1, 1, 0);
-            this.AddComponent(new LocalizedAddonComponent(0xAC3, 1076273), -1, -1, 0);
-            this.AddComponent(new LocalizedAddonComponent(0xAC4, 1076273), -1, 1, 0);
-            this.AddComponent(new LocalizedAddonComponent(0xAC5, 1076273), 1, -1, 0);
-            this.AddComponent(new LocalizedAddonComponent(0xAF6, 1076273), -1, 0, 0);
-            this.AddComponent(new LocalizedAddonComponent(0xAF7, 1076273), 0, -1, 0);
-            this.AddComponent(new LocalizedAddonComponent(0xAF8, 1076273), 1, 0, 0);
-            this.AddComponent(new LocalizedAddonComponent(0xAF9, 1076273), 0, 1, 0);
-            this.AddComponent(new LocalizedAddonComponent(0xAFA, 1076273), 0, 0, 0);
+            AddComponent(new LocalizedAddonComponent(0xAC2, 1076273), 1, 1, 0);
+            AddComponent(new LocalizedAddonComponent(0xAC3, 1076273), -1, -1, 0);
+            AddComponent(new LocalizedAddonComponent(0xAC4, 1076273), -1, 1, 0);
+            AddComponent(new LocalizedAddonComponent(0xAC5, 1076273), 1, -1, 0);
+            AddComponent(new LocalizedAddonComponent(0xAF6, 1076273), -1, 0, 0);
+            AddComponent(new LocalizedAddonComponent(0xAF7, 1076273), 0, -1, 0);
+            AddComponent(new LocalizedAddonComponent(0xAF8, 1076273), 1, 0, 0);
+            AddComponent(new LocalizedAddonComponent(0xAF9, 1076273), 0, 1, 0);
+            AddComponent(new LocalizedAddonComponent(0xAFA, 1076273), 0, 0, 0);
         }
 
         public BlueFancyRugAddon(Serial serial)
@@ -24,13 +23,6 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonDeed Deed
-        {
-            get
-            {
-                return new BlueFancyRugDeed();
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -42,17 +34,20 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class BlueFancyRugDeed : BaseAddonDeed
     {
+        public override BaseAddon Addon => new BlueFancyRugAddon();
+
+        public override int LabelNumber => 1076273; // Blue fancy rug
+
         [Constructable]
         public BlueFancyRugDeed()
-            : base()
         {
-            this.LootType = LootType.Blessed;
+            LootType = LootType.Blessed;
         }
 
         public BlueFancyRugDeed(Serial serial)
@@ -60,20 +55,6 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddon Addon
-        {
-            get
-            {
-                return new BlueFancyRugAddon();
-            }
-        }
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1076273;
-            }
-        }// Blue fancy rug
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -85,7 +66,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

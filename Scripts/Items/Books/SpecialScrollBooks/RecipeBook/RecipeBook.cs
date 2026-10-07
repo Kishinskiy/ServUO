@@ -1,12 +1,11 @@
-using System;
 using System.Collections.Generic;
-using Server.Gumps;
-using Server.Multis;
-using Server.Prompts;
-using Server.Mobiles;
-using Server.ContextMenus;
 using System.Linq;
+using Server.ContextMenus;
+using Server.Gumps;
+using Server.Mobiles;
+using Server.Multis;
 using Server.Network;
+using Server.Prompts;
 
 namespace Server.Items
 {
@@ -21,7 +20,7 @@ namespace Server.Items
         Inscription = 6,
         Masonry = 7,
         Tailoring = 8,
-        Tinkering = 9,
+        Tinkering = 9
     }
 
     public class RecipeScrollDefinition
@@ -51,22 +50,7 @@ namespace Server.Items
 
     public class RecipeBook : Item, ISecurable
     {
-		public override int LabelNumber { get { return 1125598; } } // recipe book
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public string BookName { get; set; }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public SecureLevel Level { get; set; }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public bool Using { get; set; }
-
-        public List<RecipeScrollDefinition> Recipes;
-
-        public RecipeScrollFilter Filter { get; set; }
-
-        public static RecipeScrollDefinition[] Definitions = new RecipeScrollDefinition[]
+        public static RecipeScrollDefinition[] Definitions =
         {
             new RecipeScrollDefinition(1, 501, Expansion.ML, RecipeSkillName.Tailoring),
             new RecipeScrollDefinition(2, 502, Expansion.ML, RecipeSkillName.Tailoring),
@@ -222,6 +206,17 @@ namespace Server.Items
             new RecipeScrollDefinition(152, 463, Expansion.SA, RecipeSkillName.Tinkering)
         };
 
+        public List<RecipeScrollDefinition> Recipes;
+        public override int LabelNumber => 1125598; // recipe book
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public string BookName { get; set; }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public bool Using { get; set; }
+
+        public RecipeScrollFilter Filter { get; set; }
+
         [Constructable]
         public RecipeBook()
             : base(0xA266)
@@ -230,17 +225,22 @@ namespace Server.Items
             LootType = LootType.Blessed;
             LoadDefinitions();
             Filter = new RecipeScrollFilter();
-            Level = SecureLevel.CoOwners;            
+            Level = SecureLevel.CoOwners;
         }
+
+        public RecipeBook(Serial serial)
+            : base(serial)
+        {
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public SecureLevel Level { get; set; }
 
         public void LoadDefinitions()
         {
             Recipes = new List<RecipeScrollDefinition>();
 
-            Definitions.ToList().ForEach(x =>
-            {
-                Recipes.Add(x);
-            });            
+            Definitions.ToList().ForEach(x => { Recipes.Add(x); });
         }
 
         public void ReLoadDefinitions()
@@ -256,7 +256,7 @@ namespace Server.Items
             if (from.AccessLevel >= AccessLevel.GameMaster)
                 return true; // Staff can access anything
 
-            BaseHouse house = BaseHouse.FindHouseAt(item);
+            var house = BaseHouse.FindHouseAt(item);
 
             if (house == null)
                 return false;
@@ -278,7 +278,7 @@ namespace Server.Items
         {
             if (!from.InRange(GetWorldLocation(), 2))
             {
-                from.LocalOverheadMessage(Network.MessageType.Regular, 0x3B2, 1019045);
+                from.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1019045);
             }
             else
             {
@@ -296,8 +296,8 @@ namespace Server.Items
                 }
             }
         }
-		
-		public override void OnDoubleClickSecureTrade(Mobile from)
+
+        public override void OnDoubleClickSecureTrade(Mobile from)
         {
             if (!from.InRange(GetWorldLocation(), 2))
             {
@@ -307,11 +307,11 @@ namespace Server.Items
             {
                 from.SendGump(new RecipeBookGump(from, this));
 
-                SecureTradeContainer cont = GetSecureTradeCont();
+                var cont = GetSecureTradeCont();
 
                 if (cont != null)
                 {
-                    SecureTrade trade = cont.Trade;
+                    var trade = cont.Trade;
 
                     if (trade != null && trade.From.Mobile == from)
                         trade.To.Mobile.SendGump(new RecipeBookGump(trade.To.Mobile, this));
@@ -328,13 +328,13 @@ namespace Server.Items
                 from.SendLocalizedMessage(1158823); // You must have the book in your backpack to add recipes to it.
                 return false;
             }
-            else if (dropped is RecipeScroll)
+
+            if (dropped is RecipeScroll)
             {
-                RecipeScroll recipe = dropped as RecipeScroll;
+                var recipe = dropped as RecipeScroll;
 
                 if (Recipes.Any(x => x.RecipeID == recipe.RecipeID))
                 {
-
                     Recipes.ForEach(x =>
                     {
                         if (x.RecipeID == recipe.RecipeID)
@@ -351,28 +351,19 @@ namespace Server.Items
                     dropped.Delete();
                     return true;
                 }
-                else
-                {
-                    from.SendLocalizedMessage(1158825); // That is not a recipe.
-                    return false;
-                }
-            }
-            else
-            {
+
                 from.SendLocalizedMessage(1158825); // That is not a recipe.
                 return false;
             }
-        }
 
-        public RecipeBook(Serial serial)
-            : base(serial)
-        {
+            from.SendLocalizedMessage(1158825); // That is not a recipe.
+            return false;
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1);
+            writer.Write(1);
 
             writer.Write((int)Level);
             writer.Write(BookName);
@@ -389,13 +380,12 @@ namespace Server.Items
                 writer.Write(s.Amount);
                 writer.Write(s.Price);
             });
-
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             switch (version)
             {
@@ -405,18 +395,18 @@ namespace Server.Items
                     BookName = reader.ReadString();
                     Filter = new RecipeScrollFilter(reader);
 
-                    int count = reader.ReadInt();
+                    var count = reader.ReadInt();
 
                     Recipes = new List<RecipeScrollDefinition>();
 
-                    for (int i = count; i > 0; i--)
+                    for (var i = count; i > 0; i--)
                     {
-                        int id = reader.ReadInt();
-                        int rid = reader.ReadInt();
-                        Expansion ex = (Expansion)reader.ReadInt();
-                        RecipeSkillName skill = (RecipeSkillName)reader.ReadInt();
-                        int amount = reader.ReadInt();
-                        int price = reader.ReadInt();
+                        var id = reader.ReadInt();
+                        var rid = reader.ReadInt();
+                        var ex = (Expansion)reader.ReadInt();
+                        var skill = (RecipeSkillName)reader.ReadInt();
+                        var amount = reader.ReadInt();
+                        var price = reader.ReadInt();
 
                         Recipes.Add(new RecipeScrollDefinition(id, rid, ex, skill, amount, price));
                     }
@@ -425,16 +415,16 @@ namespace Server.Items
 
                     break;
             }
-            
-            if(version == 0)
+
+            if (version == 0)
                 LootType = LootType.Blessed;
         }
 
         public override void GetProperties(ObjectPropertyList list)
         {
             base.GetProperties(list);
-			
-			list.Add(1158849, String.Format("{0}", Recipes.Sum(x => x.Amount))); // Recipes in book: ~1_val~
+
+            list.Add(1158849, string.Format("{0}", Recipes.Sum(x => x.Amount))); // Recipes in book: ~1_val~
 
             if (BookName != null && BookName.Length > 0)
                 list.Add(1062481, BookName);
@@ -444,18 +434,15 @@ namespace Server.Items
         {
             base.GetContextMenuEntries(from, list);
 
-            if (from.CheckAlive() && IsChildOf(from.Backpack))
-            {
-                list.Add(new NameBookEntry(from, this));
-            }
+            if (from.CheckAlive() && IsChildOf(from.Backpack)) list.Add(new NameBookEntry(from, this));
 
             SetSecureLevelEntry.AddTo(from, this, list);
         }
 
         private class NameBookEntry : ContextMenuEntry
         {
-            private Mobile m_From;
-            private RecipeBook m_Book;
+            private readonly RecipeBook m_Book;
+            private readonly Mobile m_From;
 
             public NameBookEntry(Mobile from, RecipeBook book)
                 : base(6216)
@@ -476,8 +463,8 @@ namespace Server.Items
 
         private class NameBookPrompt : Prompt
         {
-            public override int MessageCliloc { get { return 1062479; } }
-            private RecipeBook m_Book;
+            private readonly RecipeBook m_Book;
+            public override int MessageCliloc => 1062479;
 
             public NameBookPrompt(RecipeBook book)
             {

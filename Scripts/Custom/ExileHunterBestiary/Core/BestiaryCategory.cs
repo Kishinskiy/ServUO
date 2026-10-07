@@ -1,5 +1,3 @@
-using System;
-
 namespace Server.Custom.ExileHunterBestiary
 {
     public enum BestiaryCategory

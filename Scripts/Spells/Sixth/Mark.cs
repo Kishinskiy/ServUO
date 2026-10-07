@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 using Server.Multis;
 using Server.Network;
@@ -15,18 +14,14 @@ namespace Server.Spells.Sixth
             Reagent.BlackPearl,
             Reagent.Bloodmoss,
             Reagent.MandrakeRoot);
+
+        public override SpellCircle Circle => SpellCircle.Sixth;
+
         public MarkSpell(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
         {
         }
 
-        public override SpellCircle Circle
-        {
-            get
-            {
-                return SpellCircle.Sixth;
-            }
-        }
         public override void OnCast()
         {
             Caster.Target = new InternalTarget(this);
@@ -42,7 +37,7 @@ namespace Server.Spells.Sixth
 
         public void Target(RecallRune rune)
         {
-            BaseBoat boat = BaseBoat.FindBoatAt(Caster.Location, Caster.Map);
+            var boat = BaseBoat.FindBoatAt(Caster.Location, Caster.Map);
 
             if (!Caster.CanSee(rune))
             {
@@ -57,11 +52,13 @@ namespace Server.Spells.Sixth
             }
             else if (boat != null && !(boat is BaseGalleon))
             {
-                Caster.LocalOverheadMessage(MessageType.Regular, 0x3B2, 501800); // You cannot mark an object at that location.
+                Caster.LocalOverheadMessage(MessageType.Regular, 0x3B2,
+                    501800); // You cannot mark an object at that location.
             }
             else if (!rune.IsChildOf(Caster.Backpack))
             {
-                Caster.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1062422); // You must have this rune in your backpack in order to mark it.
+                Caster.LocalOverheadMessage(MessageType.Regular, 0x3B2,
+                    1062422); // You must have this rune in your backpack in order to mark it.
             }
             else if (CheckSequence())
             {
@@ -77,6 +74,7 @@ namespace Server.Spells.Sixth
         private class InternalTarget : Target
         {
             private readonly MarkSpell m_Owner;
+
             public InternalTarget(MarkSpell owner)
                 : base(Core.ML ? 10 : 12, false, TargetFlags.None)
             {
@@ -86,13 +84,10 @@ namespace Server.Spells.Sixth
             protected override void OnTarget(Mobile from, object o)
             {
                 if (o is RecallRune)
-                {
                     m_Owner.Target((RecallRune)o);
-                }
                 else
-                {
-                    from.Send(new MessageLocalized(from.Serial, from.Body, MessageType.Regular, 0x3B2, 3, 501797, from.Name, "")); // I cannot mark that object.
-                }
+                    from.Send(new MessageLocalized(from.Serial, from.Body, MessageType.Regular, 0x3B2, 3, 501797,
+                        from.Name, "")); // I cannot mark that object.
             }
 
             protected override void OnTargetFinish(Mobile from)

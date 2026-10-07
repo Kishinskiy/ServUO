@@ -1,10 +1,18 @@
-using System;
-
 namespace Server.Mobiles
 {
     [CorpseName("a giant ice worm corpse")]
     public class GiantIceWorm : BaseCreature
     {
+        public override bool SubdueBeforeTame => true;
+
+        public override Poison PoisonImmune => Poison.Greater;
+
+        public override Poison HitPoison => Poison.Greater;
+
+        public override FoodType FavoriteFood => FoodType.Meat;
+
+        public override bool StatLossAfterTame => true;
+
         [Constructable]
         public GiantIceWorm()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -50,49 +58,18 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool SubdueBeforeTame
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override Poison PoisonImmune
-        {
-            get
-            {
-                return Poison.Greater;
-            }
-        }
-        public override Poison HitPoison
-        {
-            get
-            {
-                return Poison.Greater;
-            }
-        }
-        public override FoodType FavoriteFood
-        {
-            get
-            {
-                return FoodType.Meat;
-            }
-        }
-
-        public override bool StatLossAfterTame { get { return true; } }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

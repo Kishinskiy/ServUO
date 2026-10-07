@@ -1,11 +1,8 @@
-﻿using System;
-using Server;
-
-namespace Server.Items
+﻿namespace Server.Items
 {
     public class NocturneEarrings : SilverEarrings
     {
-        public override int LabelNumber { get { return 1080189; } } // Nocturne Earrings
+        public override int LabelNumber => 1080189; // Nocturne Earrings
 
         [Constructable]
         public NocturneEarrings()
@@ -23,15 +20,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
-
+            var version = reader.ReadInt();
         }
     }
 }

@@ -7,57 +7,67 @@ namespace Server.Items
     {
         private int m_Lifespan;
         private Timer m_Timer;
-        public override int LabelNumber { get { return 1154236; } } // Willem Harte's Hat
-        
-        [Constructable]
-        public WillemHartesHat()
-            : base(0x171A)
-        {
-            this.Hue = 72;
-            this.StrRequirement = 10;
+        public override int LabelNumber => 1154236; // Willem Harte's Hat
 
-            if (this.Lifespan > 0)
-            {
-                this.m_Lifespan = this.Lifespan;
-                this.StartTimer();
-            }
-        }
-		
-		public override void OnDoubleClick(Mobile from)
-        {
-			base.OnDoubleClick(from);			
-			
-			from.PublicOverheadMessage(MessageType.Regular, 0x3B2, 1154237); // *The hat emits a sour smelling odor indicative of spending a significant period of time in the belly of a dragon.*
-        }
-
-        public virtual int Lifespan { get { return 3600; } }
+        public virtual int Lifespan => 3600;
 
         [CommandProperty(AccessLevel.GameMaster)]
         public int TimeLeft
         {
-            get
-            {
-                return this.m_Lifespan;
-            }
+            get => m_Lifespan;
             set
             {
-                this.m_Lifespan = value;
-                this.InvalidateProperties();
+                m_Lifespan = value;
+                InvalidateProperties();
             }
+        }
+
+        public override int BaseFireResistance => 5;
+        public override int BaseColdResistance => 9;
+        public override int BasePoisonResistance => 5;
+        public override int BaseEnergyResistance => 5;
+        public override int InitMinHits => 20;
+        public override int InitMaxHits => 30;
+
+        [Constructable]
+        public WillemHartesHat()
+            : base(0x171A)
+        {
+            Hue = 72;
+            StrRequirement = 10;
+
+            if (Lifespan > 0)
+            {
+                m_Lifespan = Lifespan;
+                StartTimer();
+            }
+        }
+
+        public WillemHartesHat(Serial serial)
+            : base(serial)
+        {
+        }
+
+        public override void OnDoubleClick(Mobile from)
+        {
+            base.OnDoubleClick(from);
+
+            from.PublicOverheadMessage(MessageType.Regular, 0x3B2,
+                1154237); // *The hat emits a sour smelling odor indicative of spending a significant period of time in the belly of a dragon.*
         }
 
         public override void GetProperties(ObjectPropertyList list)
         {
             base.GetProperties(list);
 
-            if (this.Lifespan > 0)
+            if (Lifespan > 0)
             {
-                TimeSpan t = TimeSpan.FromSeconds(this.m_Lifespan);
+                var t = TimeSpan.FromSeconds(m_Lifespan);
 
-                int weeks = (int)t.Days / 7;
-                int days = t.Days;
-                int hours = t.Hours;
-                int minutes = t.Minutes;
+                var weeks = t.Days / 7;
+                var days = t.Days;
+                var hours = t.Hours;
+                var minutes = t.Minutes;
 
                 if (weeks > 1)
                     list.Add(1153092, weeks.ToString()); // Lifespan: ~1_val~ weeks
@@ -68,91 +78,81 @@ namespace Server.Items
                 else if (minutes > 1)
                     list.Add(1153089, minutes.ToString()); // Lifespan: ~1_val~ minutes
                 else
-                    list.Add(1072517, this.m_Lifespan.ToString()); // Lifespan: ~1_val~ seconds
+                    list.Add(1072517, m_Lifespan.ToString()); // Lifespan: ~1_val~ seconds
             }
-			
-			list.Add(1072351); // Quest Item
+
+            list.Add(1072351); // Quest Item
         }
 
         public virtual void StartTimer()
         {
-            if (this.m_Timer != null)
+            if (m_Timer != null)
                 return;
 
-            this.m_Timer = Timer.DelayCall(TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10), new TimerCallback(Slice));
-            this.m_Timer.Priority = TimerPriority.OneSecond;
+            m_Timer = Timer.DelayCall(TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10), Slice);
+            m_Timer.Priority = TimerPriority.OneSecond;
         }
 
         public virtual void StopTimer()
         {
-            if (this.m_Timer != null)
-                this.m_Timer.Stop();
+            if (m_Timer != null)
+                m_Timer.Stop();
 
-            this.m_Timer = null;
+            m_Timer = null;
         }
 
         public virtual void Slice()
         {
-            this.m_Lifespan -= 10;
+            m_Lifespan -= 10;
 
-            this.InvalidateProperties();
+            InvalidateProperties();
 
-            if (this.m_Lifespan <= 0)
-                this.Decay();
+            if (m_Lifespan <= 0)
+                Decay();
         }
 
         public virtual void Decay()
         {
-            if (this.RootParent is Mobile)
+            if (RootParent is Mobile)
             {
-                Mobile parent = (Mobile)this.RootParent;
+                var parent = (Mobile)RootParent;
 
-                if (this.Name == null)
-                    parent.SendLocalizedMessage(1072515, "#" + this.LabelNumber); // The ~1_name~ expired...
+                if (Name == null)
+                    parent.SendLocalizedMessage(1072515, "#" + LabelNumber); // The ~1_name~ expired...
                 else
-                    parent.SendLocalizedMessage(1072515, this.Name); // The ~1_name~ expired...
+                    parent.SendLocalizedMessage(1072515, Name); // The ~1_name~ expired...
 
-                Effects.SendLocationParticles(EffectItem.Create(parent.Location, parent.Map, EffectItem.DefaultDuration), 0x3728, 8, 20, 5042);
+                Effects.SendLocationParticles(
+                    EffectItem.Create(parent.Location, parent.Map, EffectItem.DefaultDuration), 0x3728, 8, 20, 5042);
                 Effects.PlaySound(parent.Location, parent.Map, 0x201);
             }
             else
             {
-                Effects.SendLocationParticles(EffectItem.Create(this.Location, this.Map, EffectItem.DefaultDuration), 0x3728, 8, 20, 5042);
-                Effects.PlaySound(this.Location, this.Map, 0x201);
+                Effects.SendLocationParticles(EffectItem.Create(Location, Map, EffectItem.DefaultDuration), 0x3728, 8,
+                    20, 5042);
+                Effects.PlaySound(Location, Map, 0x201);
             }
 
-            this.StopTimer();
-            this.Delete();
-        }
-
-        public override int BaseFireResistance { get { return 5; } }
-        public override int BaseColdResistance { get { return 9; } }
-        public override int BasePoisonResistance { get { return 5; } }
-        public override int BaseEnergyResistance { get { return 5; } }
-        public override int InitMinHits { get { return 20; } }
-        public override int InitMaxHits { get { return 30; } }
-
-        public WillemHartesHat(Serial serial)
-            : base(serial)
-        {
+            StopTimer();
+            Delete();
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
-            writer.Write((int)this.m_Lifespan);
+            writer.Write(0); // version
+            writer.Write(m_Lifespan);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
-            this.m_Lifespan = reader.ReadInt();
+            var version = reader.ReadInt();
+            m_Lifespan = reader.ReadInt();
 
-            this.StartTimer();
+            StartTimer();
         }
     }
 }

@@ -1,15 +1,11 @@
-using Server;
-using System;
-
 namespace Server.Items
 {
     public class FemaleKimonoBearingTheCrestOfBlackthorn6 : FemaleKimono
     {
-        public override bool IsArtifact { get { return true; } }
+        public override bool IsArtifact => true;
 
         [Constructable]
         public FemaleKimonoBearingTheCrestOfBlackthorn6()
-            : base()
         {
             ReforgedSuffix = ReforgedSuffix.Blackthorn;
             Attributes.AttackChance = 3;
@@ -32,9 +28,9 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
-			
-			if (version == 0)
+            var version = reader.ReadInt();
+
+            if (version == 0)
             {
                 MaxHitPoints = 0;
                 HitPoints = 0;

@@ -1,30 +1,30 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
-
-using Server;
+using Server.Engines.SeasonalEvents;
 using Server.Items;
 using Server.Mobiles;
-using Server.Engines.SeasonalEvents;
 
 namespace Server.Engines.Points
 {
     public class RisingTide : PointsSystem
     {
-        public override PointsType Loyalty { get { return PointsType.RisingTide; } }
-        public override TextDefinition Name { get { return m_Name; } }
-        public override bool AutoAdd { get { return true; } }
-        public override double MaxPoints { get { return double.MaxValue; } }
-        public override bool ShowOnLoyaltyGump { get { return false; } }
-
-        public bool InSeason { get { return SeasonalEventSystem.IsActive(EventType.RisingTide); } }
-        private TextDefinition m_Name = null;
-
         public static readonly double CargoChance = 0.1;
 
-        public RisingTide()
+        private readonly Type[] CargoDropsTypes =
         {
-        }
+            typeof(PirateCaptain), typeof(MerchantCaptain), typeof(PirateCrew), typeof(MerchantCrew)
+        };
+
+        private readonly TextDefinition m_Name = null;
+        public override PointsType Loyalty => PointsType.RisingTide;
+        public override TextDefinition Name => m_Name;
+        public override bool AutoAdd => true;
+        public override double MaxPoints => double.MaxValue;
+        public override bool ShowOnLoyaltyGump => false;
+
+        public bool InSeason => SeasonalEventSystem.IsActive(EventType.RisingTide);
+
+        public bool Enabled { get; set; }
 
         public override void SendMessage(PlayerMobile from, double old, double points, bool quest)
         {
@@ -48,50 +48,33 @@ namespace Server.Engines.Points
                 }
                 else if (CargoDropsTypes.Any(type => type == bc.GetType()))
                 {
-                    double chance = CargoChance;
+                    var chance = CargoChance;
 
-                    if (bc is BaseShipCaptain)
-                    {
-                        chance = 0.33;
-                    }
+                    if (bc is BaseShipCaptain) chance = 0.33;
 
                     if (chance > Utility.RandomDouble())
                     {
                         var corpse = victim.Corpse;
 
-                        if (corpse != null)
-                        {
-                            corpse.DropItem(new MaritimeCargo());
-                        }
+                        if (corpse != null) corpse.DropItem(new MaritimeCargo());
                     }
                 }
             }
         }
-
-        private Type[] CargoDropsTypes =
-        {
-            typeof(PirateCaptain), typeof(MerchantCaptain), typeof(PirateCrew), typeof(MerchantCrew)
-        };
 
         public static PlunderBeaconAddon GetPlunderBeacon(BaseCreature bc)
         {
             if (PlunderBeaconSpawner.Spawner != null)
-            {
                 foreach (var list in PlunderBeaconSpawner.Spawner.PlunderBeacons.Values)
                 {
-                    var addon = list.FirstOrDefault(beacon => beacon.Crew.Contains(bc) || (beacon.Spawn.ContainsKey(bc) && beacon.Spawn[bc]));
+                    var addon = list.FirstOrDefault(beacon =>
+                        beacon.Crew.Contains(bc) || (beacon.Spawn.ContainsKey(bc) && beacon.Spawn[bc]));
 
-                    if (addon != null)
-                    {
-                        return addon;
-                    }
+                    if (addon != null) return addon;
                 }
-            }
 
             return null;
         }
-
-        public bool Enabled { get; set; }
 
         public override void Serialize(GenericWriter writer)
         {
@@ -115,7 +98,7 @@ namespace Server.Engines.Points
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             Enabled = reader.ReadBool();
 

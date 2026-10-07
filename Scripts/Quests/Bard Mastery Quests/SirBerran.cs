@@ -1,34 +1,36 @@
 using System;
+using System.Collections.Generic;
 using Server.Items;
 using Server.Mobiles;
 using Server.Spells.SkillMasteries;
-using System.Collections.Generic;
 
 namespace Server.Engines.Quests
-{ 
+{
     public class WieldingTheSonicBladeQuest : BaseQuest
     {
-        public WieldingTheSonicBladeQuest() : base()
-        { 
+        public override object Title => 1115696; //Wielding the Sonic Blade
+
+        public override object Description =>
+            1115697; /*This quest is the single quest required for a player to unlock the discordance mastery
+                      * abilities for bards. This quest can be completed multiple times to reinstate the discordance
+                      * mastery. To prove yourself worthy, you must first be a master of discordance and musicianship.
+                      * You must be willing to distort your notes to bring pain to even the most indifferent ears.*/
+
+        public override object Refuse => 1115700; //You must strive to spread discord.
+
+        public override object Uncomplete => 1115700; //You must strive to spread discord.
+
+        public override object Complete =>
+            1115701; /* You have proven yourself worthy of wielding your music as a weapon. Rend the ears of your
+                      * foes with your wails of discord. Let your song be feared as much as any sword.*/
+
+        public WieldingTheSonicBladeQuest()
+        {
             AddObjective(new DiscordObjective());
 
             AddReward(new BaseReward(1115699)); // Recognition for mastery of song wielding.
             AddReward(new BaseReward(typeof(BookOfMasteries), 1028794));
         }
-
-        public override object Title { get { return 1115696; } }       //Wielding the Sonic Blade
-
-        public override object Description { get { return 1115697; } } /*This quest is the single quest required for a player to unlock the discordance mastery 
-                                                                        * abilities for bards. This quest can be completed multiple times to reinstate the discordance 
-                                                                        * mastery. To prove yourself worthy, you must first be a master of discordance and musicianship. 
-                                                                        * You must be willing to distort your notes to bring pain to even the most indifferent ears.*/
-
-        public override object Refuse { get { return 1115700; } }       //You must strive to spread discord.
-
-        public override object Uncomplete { get { return 1115700; } }   //You must strive to spread discord.
-
-        public override object Complete { get { return 1115701; } }     /* You have proven yourself worthy of wielding your music as a weapon. Rend the ears of your 
-                                                                         * foes with your wails of discord. Let your song be feared as much as any sword.*/
 
         public override bool CanOffer()
         {
@@ -37,18 +39,18 @@ namespace Server.Engines.Quests
 
             if (Owner.Skills[SkillName.Musicianship].Base < 90 || Owner.Skills[SkillName.Discordance].Base < 90)
             {
-                Owner.SendLocalizedMessage(1115703); // Your skills in this focus area are less than the required master level. (90 minimum)
+                Owner.SendLocalizedMessage(
+                    1115703); // Your skills in this focus area are less than the required master level. (90 minimum)
                 return false;
             }
 
-            foreach (BaseQuest q in Owner.Quests)
-            {
+            foreach (var q in Owner.Quests)
                 if (q is TheBeaconOfHarmonyQuest || q is IndoctrinationOfABattleRouserQuest)
                 {
-                    Owner.SendLocalizedMessage(1115702); //You must quit your other mastery quests before engaging on a new one.
+                    Owner.SendLocalizedMessage(
+                        1115702); //You must quit your other mastery quests before engaging on a new one.
                     return false;
                 }
-            }
 
             return true;
         }
@@ -66,14 +68,14 @@ namespace Server.Engines.Quests
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -81,8 +83,8 @@ namespace Server.Engines.Quests
     {
         private static readonly Type m_Type = typeof(Goat);
 
-        private List<string> m_Descr = new List<string>();
-        public override List<string> Descriptions { get { return m_Descr; } }
+        private readonly List<string> m_Descr = new List<string>();
+        public override List<string> Descriptions => m_Descr;
 
         public DiscordObjective()
             : base(5, -1)
@@ -97,10 +99,13 @@ namespace Server.Engines.Quests
                 CurProgress++;
 
                 if (Completed)
+                {
                     Quest.OnCompleted();
+                }
                 else
                 {
-                    Quest.Owner.SendLocalizedMessage(1115749, true, (this.MaxProgress - this.CurProgress).ToString()); // Creatures remaining to be discorded: 
+                    Quest.Owner.SendLocalizedMessage(1115749, true,
+                        (MaxProgress - CurProgress).ToString()); // Creatures remaining to be discorded: 
                     Quest.Owner.PlaySound(Quest.UpdateSound);
                 }
 
@@ -114,19 +119,30 @@ namespace Server.Engines.Quests
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class SirBerran : MondainQuester
     {
+        public override Type[] Quests
+        {
+            get
+            {
+                return new[]
+                {
+                    typeof(WieldingTheSonicBladeQuest)
+                };
+            }
+        }
+
         [Constructable]
         public SirBerran()
         {
@@ -137,17 +153,6 @@ namespace Server.Engines.Quests
         public SirBerran(Serial serial)
             : base(serial)
         {
-        }
-
-        public override Type[] Quests
-        {
-            get
-            {
-                return new Type[] 
-                {
-                    typeof(WieldingTheSonicBladeQuest),
-                };
-            }
         }
 
         public override void InitBody()
@@ -174,14 +179,14 @@ namespace Server.Engines.Quests
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

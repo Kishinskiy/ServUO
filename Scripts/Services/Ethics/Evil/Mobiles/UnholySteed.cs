@@ -1,4 +1,3 @@
-using System;
 using Server.Ethics;
 
 namespace Server.Mobiles
@@ -6,6 +5,12 @@ namespace Server.Mobiles
     [CorpseName("an unholy corpse")]
     public class UnholySteed : BaseMount
     {
+        public override bool IsDispellable => false;
+
+        public override bool IsBondable => false;
+
+        public override FoodType FavoriteFood => FoodType.FruitsAndVegies | FoodType.GrainsAndHay;
+
         [Constructable]
         public UnholySteed()
             : base("a dark steed", 0x74, 0x3EA7, AIType.AI_Melee, FightMode.Aggressor, 10, 1, 0.2, 0.4)
@@ -48,33 +53,12 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool IsDispellable
-        {
-            get
-            {
-                return false;
-            }
-        }
-        public override bool IsBondable
-        {
-            get
-            {
-                return false;
-            }
-        }
-        public override FoodType FavoriteFood
-        {
-            get
-            {
-                return FoodType.FruitsAndVegies | FoodType.GrainsAndHay;
-            }
-        }
         public override string ApplyNameSuffix(string suffix)
         {
             if (suffix.Length == 0)
                 suffix = Ethic.Evil.Definition.Adjunct.String;
             else
-                suffix = String.Concat(suffix, " ", Ethic.Evil.Definition.Adjunct.String);
+                suffix = string.Concat(suffix, " ", Ethic.Evil.Definition.Adjunct.String);
 
             return base.ApplyNameSuffix(suffix);
         }
@@ -91,14 +75,14 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

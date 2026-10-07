@@ -1,32 +1,33 @@
 using System;
-using Server.Mobiles;
 using System.Collections.Generic;
 using Server.Accounting;
 using Server.Engines.VeteranRewards;
 
 namespace Server.Items
 {
-	[Flipable( 0x3BB3, 0x3BB4 )]
-	public class TenthAnniversarySculpture : Item
-	{
-        public override bool IsArtifact { get { return true; } }
-        public override int LabelNumber { get { return 1079532; } } // 10th Anniversary Sculpture
-
-        private static Dictionary<Mobile, DateTime> m_LuckTable = new Dictionary<Mobile, DateTime>();
-        private Dictionary<Mobile, DateTime> m_RewardCooldown;
-        public Dictionary<Mobile, DateTime> RewardCooldown { get { return m_RewardCooldown; } }
-        private static List<TenthAnniversarySculpture> m_sculptures = new List<TenthAnniversarySculpture>();
+    [Flipable(0x3BB3, 0x3BB4)]
+    public class TenthAnniversarySculpture : Item
+    {
+        private static readonly Dictionary<Mobile, DateTime> m_LuckTable = new Dictionary<Mobile, DateTime>();
+        private static readonly List<TenthAnniversarySculpture> m_sculptures = new List<TenthAnniversarySculpture>();
 
         private static Timer m_Timer;
-        
+
         private static readonly int MaxLuckBonus = 1000;
+        public override bool IsArtifact => true;
+        public override int LabelNumber => 1079532; // 10th Anniversary Sculpture
+        public Dictionary<Mobile, DateTime> RewardCooldown { get; private set; }
 
         [Constructable]
-		public TenthAnniversarySculpture() : base( 15283 )
-		{
-			Weight = 1.0;
-            m_RewardCooldown = new Dictionary<Mobile, DateTime>();
+        public TenthAnniversarySculpture() : base(15283)
+        {
+            Weight = 1.0;
+            RewardCooldown = new Dictionary<Mobile, DateTime>();
             AddSculpture(this);
+        }
+
+        public TenthAnniversarySculpture(Serial serial) : base(serial)
+        {
         }
 
         public override void OnDoubleClick(Mobile from)
@@ -43,7 +44,7 @@ namespace Server.Items
             {
                 m_LuckTable[from] = DateTime.UtcNow + TimeSpan.FromMinutes(60);
                 from.SendLocalizedMessage(1079551); // Your luck just improved!
-                m_RewardCooldown[from] = DateTime.UtcNow + TimeSpan.FromHours(24);
+                RewardCooldown[from] = DateTime.UtcNow + TimeSpan.FromHours(24);
 
                 from.Delta(MobileDelta.Armor);
             }
@@ -51,58 +52,57 @@ namespace Server.Items
 
         public bool IsCoolingDown(Mobile from)
         {
-            bool donemessage = false;
+            var donemessage = false;
 
             if (m_LuckTable.ContainsKey(from))
             {
-                from.SendLocalizedMessage(1079534); // You're still feeling lucky from the last time you touched the sculpture.
+                from.SendLocalizedMessage(
+                    1079534); // You're still feeling lucky from the last time you touched the sculpture.
                 donemessage = true;
             }
 
-            foreach (TenthAnniversarySculpture sculpture in m_sculptures)
-            {
+            foreach (var sculpture in m_sculptures)
                 if (sculpture.RewardCooldown != null && sculpture.RewardCooldown.ContainsKey(from))
                 {
                     if (!donemessage)
                     {
-                        TimeSpan left = sculpture.RewardCooldown[from] - DateTime.UtcNow;
+                        var left = sculpture.RewardCooldown[from] - DateTime.UtcNow;
 
                         if (left.TotalHours > 1)
-                            from.SendLocalizedMessage(1079550, ((int)left.TotalHours).ToString()); // You can improve your fortunes again in about ~1_TIME~ hours.
+                            from.SendLocalizedMessage(1079550,
+                                ((int)left.TotalHours)
+                                .ToString()); // You can improve your fortunes again in about ~1_TIME~ hours.
                         else if (left.TotalMinutes > 1)
-                            from.SendLocalizedMessage(1079548, ((int)left.TotalMinutes).ToString()); // You can improve your fortunes in about ~1_TIME~ minutes.
+                            from.SendLocalizedMessage(1079548,
+                                ((int)left.TotalMinutes)
+                                .ToString()); // You can improve your fortunes in about ~1_TIME~ minutes.
                         else
                             from.SendLocalizedMessage(1079547); // Your fortunes are about to improve.
                     }
 
                     return true;
                 }
-            }
 
             return false;
         }
 
         public static void DefragTables()
         {
-            foreach (TenthAnniversarySculpture sculpture in m_sculptures)
+            foreach (var sculpture in m_sculptures)
             {
-                List<Mobile> list = new List<Mobile>(sculpture.RewardCooldown.Keys);
-                
-                foreach (Mobile m in list)
-                {
+                var list = new List<Mobile>(sculpture.RewardCooldown.Keys);
+
+                foreach (var m in list)
                     if (sculpture.RewardCooldown.ContainsKey(m) && sculpture.RewardCooldown[m] < DateTime.UtcNow)
                         sculpture.RewardCooldown.Remove(m);
-                }
 
                 list.Clear();
             }
 
-            List<Mobile> remove = new List<Mobile>();
-            foreach (KeyValuePair<Mobile, DateTime> kvp in m_LuckTable)
-            {
+            var remove = new List<Mobile>();
+            foreach (var kvp in m_LuckTable)
                 if (kvp.Value < DateTime.UtcNow)
                     remove.Add(kvp.Key);
-            }
 
             remove.ForEach(m =>
             {
@@ -119,12 +119,9 @@ namespace Server.Items
         {
             if (m_LuckTable.ContainsKey(from))
             {
-                Account account = from.Account as Account;
+                var account = from.Account as Account;
 
-                if(account != null)
-                {
-                    return (int)Math.Min(MaxLuckBonus, 200 + (RewardSystem.GetRewardLevel(account)) * 50);
-                }
+                if (account != null) return Math.Min(MaxLuckBonus, 200 + RewardSystem.GetRewardLevel(account) * 50);
             }
 
             return 0;
@@ -136,8 +133,8 @@ namespace Server.Items
 
             RemoveSculpture(this);
 
-            if (m_RewardCooldown != null)
-                m_RewardCooldown.Clear();
+            if (RewardCooldown != null)
+                RewardCooldown.Clear();
         }
 
         public static void AddSculpture(TenthAnniversarySculpture sculpture)
@@ -166,28 +163,23 @@ namespace Server.Items
             if (m_Timer != null && m_Timer.Running)
                 return;
 
-            m_Timer = Timer.DelayCall(TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1), new TimerCallback(DefragTables));
+            m_Timer = Timer.DelayCall(TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1), DefragTables);
             m_Timer.Start();
         }
 
-        public TenthAnniversarySculpture(Serial serial) : base(serial)
-		{
-		}
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
+        }
 
-		public override void Serialize(GenericWriter writer)
-		{
-			base.Serialize(writer);
-			writer.Write((int) 0);
-		}
-
-		public override void Deserialize(GenericReader reader)
-		{
+        public override void Deserialize(GenericReader reader)
+        {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
-            m_RewardCooldown = new Dictionary<Mobile, DateTime>();
+            var version = reader.ReadInt();
+            RewardCooldown = new Dictionary<Mobile, DateTime>();
 
             AddSculpture(this);
-
         }
-	}
+    }
 }

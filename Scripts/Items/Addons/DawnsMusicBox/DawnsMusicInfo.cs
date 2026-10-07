@@ -1,37 +1,22 @@
-﻿using System;
-
-namespace Server.Items
+﻿namespace Server.Items
 {
     public enum DawnsMusicRarity
     {
         Common,
         Uncommon,
-        Rare,
+        Rare
     }
 
     public class DawnsMusicInfo
     {
-        private readonly int m_Name;
-        private readonly DawnsMusicRarity m_Rarity;
+        public int Name { get; }
+
+        public DawnsMusicRarity Rarity { get; }
+
         public DawnsMusicInfo(int name, DawnsMusicRarity rarity)
         {
-            this.m_Name = name;
-            this.m_Rarity = rarity;
-        }
-
-        public int Name
-        {
-            get
-            {
-                return this.m_Name;
-            }
-        }
-        public DawnsMusicRarity Rarity
-        {
-            get
-            {
-                return this.m_Rarity;
-            }
+            Name = name;
+            Rarity = rarity;
         }
     }
 }

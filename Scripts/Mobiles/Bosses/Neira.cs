@@ -8,6 +8,53 @@ namespace Server.Mobiles
     {
         private const double SpeedBoostScalar = 1.2;
         private bool m_SpeedBoost;
+
+        public override ChampionSkullType SkullType => ChampionSkullType.Death;
+
+        public override Type[] UniqueList
+        {
+            get { return new[] { typeof(ShroudOfDeceit) }; }
+        }
+
+        public override Type[] SharedList
+        {
+            get
+            {
+                return new[]
+                {
+                    typeof(ANecromancerShroud),
+                    typeof(CaptainJohnsHat),
+                    typeof(DetectiveBoots)
+                };
+            }
+        }
+
+        public override Type[] DecorativeList
+        {
+            get { return new[] { typeof(WallBlood), typeof(TatteredAncientMummyWrapping) }; }
+        }
+
+        public override MonsterStatuetteType[] StatueTypes
+        {
+            get { return new MonsterStatuetteType[] { }; }
+        }
+
+        public override bool AlwaysMurderer => true;
+
+        public override bool BardImmune => !Core.SE;
+
+        public override bool Unprovokable => Core.SE;
+
+        public override bool Uncalmable => Core.SE;
+
+        public override Poison PoisonImmune => Poison.Deadly;
+
+        public override bool ShowFameTitle => false;
+
+        public override bool ClickTitle => false;
+
+        public override bool ForceStayHome => true;
+
         [Constructable]
         public Neira()
             : base(AIType.AI_Mage)
@@ -53,7 +100,7 @@ namespace Server.Mobiles
 
             AddItem(shroud);
 
-            Scimitar weapon = new Scimitar();
+            var weapon = new Scimitar();
 
             weapon.Skill = SkillName.Wrestling;
             weapon.Hue = 38;
@@ -70,98 +117,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override ChampionSkullType SkullType
-        {
-            get
-            {
-                return ChampionSkullType.Death;
-            }
-        }
-        public override Type[] UniqueList
-        {
-            get
-            {
-                return new Type[] { typeof(ShroudOfDeceit) };
-            }
-        }
-        public override Type[] SharedList
-        {
-            get
-            {
-                return new Type[]
-                {
-                    typeof(ANecromancerShroud),
-                    typeof(CaptainJohnsHat),
-                    typeof(DetectiveBoots)
-                };
-            }
-        }
-        public override Type[] DecorativeList
-        {
-            get
-            {
-                return new Type[] { typeof(WallBlood), typeof(TatteredAncientMummyWrapping) };
-            }
-        }
-        public override MonsterStatuetteType[] StatueTypes
-        {
-            get
-            {
-                return new MonsterStatuetteType[] { };
-            }
-        }
-        public override bool AlwaysMurderer
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool BardImmune
-        {
-            get
-            {
-                return !Core.SE;
-            }
-        }
-        public override bool Unprovokable
-        {
-            get
-            {
-                return Core.SE;
-            }
-        }
-        public override bool Uncalmable
-        {
-            get
-            {
-                return Core.SE;
-            }
-        }
-        public override Poison PoisonImmune
-        {
-            get
-            {
-                return Poison.Deadly;
-            }
-        }
-        public override bool ShowFameTitle
-        {
-            get
-            {
-                return false;
-            }
-        }
-        public override bool ClickTitle
-        {
-            get
-            {
-                return false;
-            }
-        }
-
-        public override bool ForceStayHome { get { return true; } }
-
         public override void GenerateLoot()
         {
             AddLoot(LootPack.UltraRich, 3);
@@ -170,7 +125,7 @@ namespace Server.Mobiles
 
         public override bool OnBeforeDeath()
         {
-            IMount mount = Mount;
+            var mount = Mount;
 
             if (mount != null)
                 mount.Rider = null;
@@ -185,7 +140,7 @@ namespace Server.Mobiles
         {
             base.OnDeath(c);
 
-            NecromancerSpellbook book = new NecromancerSpellbook();
+            var book = new NecromancerSpellbook();
             book.Content = (1ul << book.BookCount) - 1;
             c.DropItem(book);
         }
@@ -202,7 +157,7 @@ namespace Server.Mobiles
 
             if (0.1 >= Utility.RandomDouble()) // 10% chance to drop or throw an unholy bone
                 AddUnholyBone(defender, 0.25);
-				
+
             CheckSpeedBoost();
         }
 
@@ -243,7 +198,7 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)1); // version
+            writer.Write(1); // version
             writer.Write(m_SpeedBoost);
         }
 
@@ -251,21 +206,21 @@ namespace Server.Mobiles
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
-			
-            switch( version )
+            var version = reader.ReadInt();
+
+            switch (version)
             {
                 case 1:
-                    {
-                        m_SpeedBoost = reader.ReadBool();
-                        break;
-                    }
+                {
+                    m_SpeedBoost = reader.ReadBool();
+                    break;
+                }
             }
         }
 
         private void CheckSpeedBoost()
         {
-            if (Hits < (HitsMax / 4))
+            if (Hits < HitsMax / 4)
             {
                 if (!m_SpeedBoost)
                 {
@@ -285,6 +240,7 @@ namespace Server.Mobiles
         private class VirtualMount : IMount
         {
             private readonly VirtualMountItem m_Item;
+
             public VirtualMount(VirtualMountItem item)
             {
                 m_Item = item;
@@ -292,14 +248,10 @@ namespace Server.Mobiles
 
             public Mobile Rider
             {
-                get
-                {
-                    return m_Item.Rider;
-                }
-                set
-                {
-                }
+                get => m_Item.Rider;
+                set { }
             }
+
             public virtual void OnRiderDamaged(Mobile from, ref int amount, bool willKill)
             {
             }
@@ -308,7 +260,9 @@ namespace Server.Mobiles
         private class VirtualMountItem : Item, IMountItem
         {
             private readonly VirtualMount m_Mount;
-            private Mobile m_Rider;
+
+            public Mobile Rider { get; private set; }
+
             public VirtualMountItem(Mobile mob)
                 : base(0x3EBB)
             {
@@ -316,7 +270,7 @@ namespace Server.Mobiles
 
                 Movable = false;
 
-                m_Rider = mob;
+                Rider = mob;
                 m_Mount = new VirtualMount(this);
             }
 
@@ -326,38 +280,26 @@ namespace Server.Mobiles
                 m_Mount = new VirtualMount(this);
             }
 
-            public Mobile Rider
-            {
-                get
-                {
-                    return m_Rider;
-                }
-            }
-            public IMount Mount
-            {
-                get
-                {
-                    return m_Mount;
-                }
-            }
+            public IMount Mount => m_Mount;
+
             public override void Serialize(GenericWriter writer)
             {
                 base.Serialize(writer);
 
-                writer.Write((int)0); // version
+                writer.Write(0); // version
 
-                writer.Write((Mobile)m_Rider);
+                writer.Write(Rider);
             }
 
             public override void Deserialize(GenericReader reader)
             {
                 base.Deserialize(reader);
 
-                int version = reader.ReadInt();
+                var version = reader.ReadInt();
 
-                m_Rider = reader.ReadMobile();
+                Rider = reader.ReadMobile();
 
-                if (m_Rider == null)
+                if (Rider == null)
                     Delete();
             }
         }
@@ -366,6 +308,7 @@ namespace Server.Mobiles
         {
             private readonly Mobile m_Mobile;
             private readonly Mobile m_Target;
+
             public DelayTimer(Mobile m, Mobile target)
                 : base(TimeSpan.FromSeconds(1.0))
             {

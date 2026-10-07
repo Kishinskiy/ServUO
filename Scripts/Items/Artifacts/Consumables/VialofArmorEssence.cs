@@ -1,7 +1,7 @@
 using System;
+using System.Collections.Generic;
 using Server.Mobiles;
 using Server.Targeting;
-using System.Collections.Generic;
 
 namespace Server.Items
 {
@@ -9,9 +9,11 @@ namespace Server.Items
     {
         public static Dictionary<BaseCreature, DateTime> m_Table = new Dictionary<BaseCreature, DateTime>();
 
-        public virtual int Bonus { get { return 10; } }
-        public virtual TimeSpan Duration { get { return TimeSpan.FromMinutes(10); } }
-        public virtual TimeSpan CoolDown { get { return TimeSpan.FromMinutes(120); } }
+        public virtual int Bonus => 10;
+        public virtual TimeSpan Duration => TimeSpan.FromMinutes(10);
+        public virtual TimeSpan CoolDown => TimeSpan.FromMinutes(120);
+
+        public override int LabelNumber => 1113018;
 
         [Constructable]
         public VialofArmorEssence()
@@ -24,14 +26,6 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1113018;
-            }
-        }
-
         public override bool DropToMobile(Mobile from, Mobile target, Point3D p)
         {
             TryFeed(from, target);
@@ -42,33 +36,25 @@ namespace Server.Items
         public override void OnDoubleClick(Mobile m)
         {
             if (IsChildOf(m.Backpack))
-            {
                 m.BeginTarget(2, false, TargetFlags.Beneficial, (from, targeted) =>
                 {
-                    if (targeted is Mobile)
-                    {
-                        TryFeed(from, (Mobile)targeted);
-                    }
+                    if (targeted is Mobile) TryFeed(from, (Mobile)targeted);
                 });
-            }
         }
 
         private void TryFeed(Mobile from, Mobile target)
         {
             if (target is BaseCreature && !((BaseCreature)target).IsDeadBondedPet)
             {
-                BaseCreature bc = (BaseCreature)target;
+                var bc = (BaseCreature)target;
 
                 if (UnderInfluence(bc))
                 {
                     if (m_Table[bc] + (CoolDown + Duration) < DateTime.Now)
-                    {
-                        from.SendLocalizedMessage(1113076); //Your pet is still recovering from the last armor essence it consumed.
-                    }
+                        from.SendLocalizedMessage(
+                            1113076); //Your pet is still recovering from the last armor essence it consumed.
                     else
-                    {
                         from.SendLocalizedMessage(1113075); //Your pet is still under the effect of armor essence.
-                    }
                 }
                 else if (bc.ControlMaster == from)
                 {
@@ -111,7 +97,7 @@ namespace Server.Items
 
         public static void RemoveInfluence(object obj)
         {
-            BaseCreature bc = (BaseCreature)obj;
+            var bc = (BaseCreature)obj;
 
             if (m_Table.ContainsKey(bc))
                 m_Table.Remove(bc);
@@ -123,14 +109,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)1); // version
+            writer.Write(1); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (version == 0)
                 reader.ReadBool();

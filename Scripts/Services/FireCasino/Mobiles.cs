@@ -1,19 +1,22 @@
 using System;
-using Server;
 using System.Collections.Generic;
 using Server.Items;
 using Server.Mobiles;
-using Server.Gumps;
 
 namespace Server.Engines.ResortAndCasino
 {
-	public class CasinoCashier : Banker
-	{
+    public class CasinoCashier : Banker
+    {
         [Constructable]
         public CasinoCashier()
         {
             Title = "the casino cashier";
             CantWalk = true;
+        }
+
+        public CasinoCashier(Serial serial)
+            : base(serial)
+        {
         }
 
         public override void InitOutfit()
@@ -29,48 +32,44 @@ namespace Server.Engines.ResortAndCasino
 
         public override void OnDoubleClick(Mobile m)
         {
-            if (m is PlayerMobile && m.InRange(this.Location, 3))
-            {
-                m.SendGump(new PurchaseCasinoChipGump(m as PlayerMobile));
-            }
+            if (m is PlayerMobile && m.InRange(Location, 3)) m.SendGump(new PurchaseCasinoChipGump(m as PlayerMobile));
         }
 
-        public CasinoCashier(Serial serial)
-            : base(serial)
-		{
-		}
-		
-		public override void Serialize(GenericWriter writer)
-		{
-			base.Serialize(writer);
-			writer.Write(0);
-		}
-		
-		public override void Deserialize(GenericReader reader)
-		{
-			base.Deserialize(reader);
-			int v = reader.ReadInt();
-		}
-	}
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var v = reader.ReadInt();
+        }
+    }
 
     public class CasinoDealer : BaseVendor
     {
+        private readonly List<SBInfo> m_SBInfos = new List<SBInfo>();
         public Dictionary<PlayerMobile, BaseDiceGame> Players { get; set; }
 
-        public override bool IsInvulnerable { get { return true; } }
-        public override bool IsActiveVendor { get { return false; } }
-
-        private List<SBInfo> m_SBInfos = new List<SBInfo>();
-        protected override List<SBInfo> SBInfos { get { return m_SBInfos; } }
-
-        public override void InitSBInfo()
-        {
-        }
+        public override bool IsInvulnerable => true;
+        public override bool IsActiveVendor => false;
+        protected override List<SBInfo> SBInfos => m_SBInfos;
 
         public CasinoDealer(string title)
             : base(title)
         {
             CantWalk = true;
+        }
+
+        public CasinoDealer(Serial serial)
+            : base(serial)
+        {
+        }
+
+        public override void InitSBInfo()
+        {
         }
 
         public override void InitBody()
@@ -110,10 +109,7 @@ namespace Server.Engines.ResortAndCasino
 
         public override void OnDoubleClick(Mobile m)
         {
-            if (m is PlayerMobile && InRange(m.Location, 3))
-            {
-                SendGump((PlayerMobile)m);
-            }
+            if (m is PlayerMobile && InRange(m.Location, 3)) SendGump((PlayerMobile)m);
         }
 
         public void AddGame(PlayerMobile pm, BaseDiceGame game)
@@ -142,7 +138,7 @@ namespace Server.Engines.ResortAndCasino
             if (Players == null || !Players.ContainsKey(pm) || Players[pm] == null)
                 return null;
 
-            return Players[pm]; 
+            return Players[pm];
         }
 
         public virtual void SendGump(PlayerMobile pm)
@@ -154,11 +150,6 @@ namespace Server.Engines.ResortAndCasino
             return false;
         }
 
-        public CasinoDealer(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -168,7 +159,7 @@ namespace Server.Engines.ResortAndCasino
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int v = reader.ReadInt();
+            var v = reader.ReadInt();
         }
     }
 
@@ -180,9 +171,14 @@ namespace Server.Engines.ResortAndCasino
         {
         }
 
+        public ChucklesLuckDealer(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void SendGump(PlayerMobile pm)
         {
-            ChucklesLuck game = GetGame(pm) as ChucklesLuck;
+            var game = GetGame(pm) as ChucklesLuck;
 
             if (game == null)
             {
@@ -190,19 +186,12 @@ namespace Server.Engines.ResortAndCasino
                 AddGame(pm, game);
             }
 
-            ChucklesLuckGump g = pm.FindGump(typeof(ChucklesLuckGump)) as ChucklesLuckGump;
+            var g = pm.FindGump(typeof(ChucklesLuckGump)) as ChucklesLuckGump;
 
-            if(g != null)
+            if (g != null)
                 g.Refresh();
             else
-            {
                 pm.SendGump(new ChucklesLuckGump(pm, game));
-            }
-        }
-
-        public ChucklesLuckDealer(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -214,7 +203,7 @@ namespace Server.Engines.ResortAndCasino
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int v = reader.ReadInt();
+            var v = reader.ReadInt();
         }
     }
 
@@ -226,9 +215,14 @@ namespace Server.Engines.ResortAndCasino
         {
         }
 
+        public HiMiddleLowDealer(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void SendGump(PlayerMobile pm)
         {
-            HiMiddleLow game = GetGame(pm) as HiMiddleLow;
+            var game = GetGame(pm) as HiMiddleLow;
 
             if (game == null)
             {
@@ -236,19 +230,12 @@ namespace Server.Engines.ResortAndCasino
                 AddGame(pm, game);
             }
 
-            HiMiddleLowGump g = pm.FindGump(typeof(HiMiddleLowGump)) as HiMiddleLowGump;
+            var g = pm.FindGump(typeof(HiMiddleLowGump)) as HiMiddleLowGump;
 
             if (g != null)
                 g.Refresh();
             else
-            {
                 pm.SendGump(new HiMiddleLowGump(pm, game));
-            }
-        }
-
-        public HiMiddleLowDealer(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -260,7 +247,7 @@ namespace Server.Engines.ResortAndCasino
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int v = reader.ReadInt();
+            var v = reader.ReadInt();
         }
     }
 
@@ -272,9 +259,14 @@ namespace Server.Engines.ResortAndCasino
         {
         }
 
+        public DiceRiderDealer(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void SendGump(PlayerMobile pm)
         {
-            DiceRider game = GetGame(pm) as DiceRider;
+            var game = GetGame(pm) as DiceRider;
 
             if (game == null)
             {
@@ -282,19 +274,12 @@ namespace Server.Engines.ResortAndCasino
                 AddGame(pm, game);
             }
 
-            DiceRiderGump g = pm.FindGump(typeof(DiceRiderGump)) as DiceRiderGump;
+            var g = pm.FindGump(typeof(DiceRiderGump)) as DiceRiderGump;
 
             if (g != null)
                 g.Refresh();
             else
-            {
                 pm.SendGump(new DiceRiderGump(pm, game));
-            }
-        }
-
-        public DiceRiderDealer(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -306,29 +291,33 @@ namespace Server.Engines.ResortAndCasino
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int v = reader.ReadInt();
+            var v = reader.ReadInt();
         }
     }
 
     public class CasinoWaitress : BaseVendor
     {
-        public override bool IsActiveVendor { get { return false; } }
-        public override double GetMoveDelay { get { return (double)Utility.RandomMinMax(2, 6); } }
-
-        private List<SBInfo> m_SBInfos = new List<SBInfo>();
-        protected override List<SBInfo> SBInfos { get { return m_SBInfos; } }
-
-        public Dictionary<Mobile, int> _Drinks { get; set; }
+        private readonly List<SBInfo> m_SBInfos = new List<SBInfo>();
 
         private DateTime _NextAdvertise;
+        public override bool IsActiveVendor => false;
+        public override double GetMoveDelay => Utility.RandomMinMax(2, 6);
+        protected override List<SBInfo> SBInfos => m_SBInfos;
 
-        public override void InitSBInfo()
-        {
-        }
+        public Dictionary<Mobile, int> _Drinks { get; set; }
 
         [Constructable]
         public CasinoWaitress()
             : base("The drinks girl")
+        {
+        }
+
+        public CasinoWaitress(Serial serial)
+            : base(serial)
+        {
+        }
+
+        public override void InitSBInfo()
         {
         }
 
@@ -362,7 +351,7 @@ namespace Server.Engines.ResortAndCasino
 
         public override void OnDoubleClick(Mobile m)
         {
-            if(!m.InRange(this.Location, 3))
+            if (!m.InRange(Location, 3))
                 return;
 
             if (_Drinks == null)
@@ -381,10 +370,10 @@ namespace Server.Engines.ResortAndCasino
 
         public void GiveDrink(Mobile m)
         {
-            FortunesFireGrog grog = new FortunesFireGrog();
+            var grog = new FortunesFireGrog();
             m.AddToBackpack(grog);
 
-            int cliloc = 1153416 + Utility.RandomMinMax(0, 2);
+            var cliloc = 1153416 + Utility.RandomMinMax(0, 2);
 
             SayTo(m, cliloc); // Here you are, hun. - Drink up! - Enjoy the drink. Tips are appreciated!
         }
@@ -393,21 +382,19 @@ namespace Server.Engines.ResortAndCasino
         {
             base.OnThink();
 
-            IPooledEnumerable eable = this.Map.GetMobilesInRange(this.Location, 8);
-            bool canspeak = _NextAdvertise < DateTime.UtcNow;
+            IPooledEnumerable eable = Map.GetMobilesInRange(Location, 8);
+            var canspeak = _NextAdvertise < DateTime.UtcNow;
 
             if (!canspeak)
                 return;
 
             canspeak = false;
             foreach (Mobile m in eable)
-            {
                 if (m is PlayerMobile)
                 {
                     canspeak = true;
                     break;
                 }
-            }
 
             if (canspeak)
                 Say(1153419);
@@ -423,24 +410,19 @@ namespace Server.Engines.ResortAndCasino
             return true;
         }
 
-        public CasinoWaitress(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
             writer.Write(0);
 
-            if(_Drinks != null)
+            if (_Drinks != null)
                 _Drinks.Clear();
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int v = reader.ReadInt();
+            var v = reader.ReadInt();
         }
     }
 }

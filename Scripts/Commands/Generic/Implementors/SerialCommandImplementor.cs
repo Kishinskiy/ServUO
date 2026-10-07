@@ -1,16 +1,14 @@
-using System;
-
 namespace Server.Commands.Generic
 {
     public class SerialCommandImplementor : BaseCommandImplementor
     {
         public SerialCommandImplementor()
         {
-            this.Accessors = new string[] { "Serial" };
-            this.SupportRequirement = CommandSupport.Single;
-            this.AccessLevel = AccessLevel.Counselor;
-            this.Usage = "Serial <serial> <command>";
-            this.Description = "Invokes the command on a single object by serial.";
+            Accessors = new[] { "Serial" };
+            SupportRequirement = CommandSupport.Single;
+            AccessLevel = AccessLevel.Counselor;
+            Usage = "Serial <serial> <command>";
+            Description = "Invokes the command on a single object by serial.";
         }
 
         public override void Execute(CommandEventArgs e)
@@ -33,11 +31,12 @@ namespace Server.Commands.Generic
                 else
                 {
                     BaseCommand command = null;
-                    this.Commands.TryGetValue(e.GetString(1), out command);
+                    Commands.TryGetValue(e.GetString(1), out command);
 
                     if (command == null)
                     {
-                        e.Mobile.SendMessage("That is either an invalid command name or one that does not support this modifier.");
+                        e.Mobile.SendMessage(
+                            "That is either an invalid command name or one that does not support this modifier.");
                     }
                     else if (e.Mobile.AccessLevel < command.AccessLevel)
                     {
@@ -45,47 +44,47 @@ namespace Server.Commands.Generic
                     }
                     else
                     {
-                        switch ( command.ObjectTypes )
+                        switch (command.ObjectTypes)
                         {
                             case ObjectTypes.Both:
+                            {
+                                if (!(obj is Item) && !(obj is Mobile))
                                 {
-                                    if (!(obj is Item) && !(obj is Mobile))
-                                    {
-                                        e.Mobile.SendMessage("This command does not work on that.");
-                                        return;
-                                    }
-
-                                    break;
+                                    e.Mobile.SendMessage("This command does not work on that.");
+                                    return;
                                 }
+
+                                break;
+                            }
                             case ObjectTypes.Items:
+                            {
+                                if (!(obj is Item))
                                 {
-                                    if (!(obj is Item))
-                                    {
-                                        e.Mobile.SendMessage("This command only works on items.");
-                                        return;
-                                    }
-
-                                    break;
+                                    e.Mobile.SendMessage("This command only works on items.");
+                                    return;
                                 }
+
+                                break;
+                            }
                             case ObjectTypes.Mobiles:
+                            {
+                                if (!(obj is Mobile))
                                 {
-                                    if (!(obj is Mobile))
-                                    {
-                                        e.Mobile.SendMessage("This command only works on mobiles.");
-                                        return;
-                                    }
-
-                                    break;
+                                    e.Mobile.SendMessage("This command only works on mobiles.");
+                                    return;
                                 }
+
+                                break;
+                            }
                         }
 
-                        string[] oldArgs = e.Arguments;
-                        string[] args = new string[oldArgs.Length - 2];
+                        var oldArgs = e.Arguments;
+                        var args = new string[oldArgs.Length - 2];
 
-                        for (int i = 0; i < args.Length; ++i)
+                        for (var i = 0; i < args.Length; ++i)
                             args[i] = oldArgs[i + 2];
 
-                        this.RunCommand(e.Mobile, obj, command, args);
+                        RunCommand(e.Mobile, obj, command, args);
                     }
                 }
             }

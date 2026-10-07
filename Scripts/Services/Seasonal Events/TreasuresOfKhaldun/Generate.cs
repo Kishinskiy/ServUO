@@ -1,29 +1,21 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
-
-using Server;
 using Server.Engines.CannedEvil;
+using Server.Engines.Points;
 using Server.Items;
 using Server.Mobiles;
-using Server.Gumps;
-using Server.Engines.Points;
-using Server.Engines.Quests;
 
 namespace Server.Engines.Khaldun
 {
-	public static class TreasuresOfKhaldunGeneration
-	{
+    public static class TreasuresOfKhaldunGeneration
+    {
         public static void Initialize()
         {
             if (Core.EJ)
             {
                 EventSink.WorldSave += OnWorldSave;
 
-                if (!Siege.SiegeShard)
-                {
-                    KhaldunCampRegion.InstanceTram = new KhaldunCampRegion(Map.Trammel);
-                }
+                if (!Siege.SiegeShard) KhaldunCampRegion.InstanceTram = new KhaldunCampRegion(Map.Trammel);
 
                 KhaldunCampRegion.InstanceFel = new KhaldunCampRegion(Map.Felucca);
             }
@@ -78,7 +70,7 @@ namespace Server.Engines.Khaldun
                     khaldun.Enabled = true;
                 }
 
-                if(!khaldun.QuestContentGenerated)
+                if (!khaldun.QuestContentGenerated)
                 {
                     GenerateQuestContent();
                     khaldun.QuestContentGenerated = true;
@@ -142,10 +134,9 @@ namespace Server.Engines.Khaldun
 
         public static void Remove()
         {
-            ChampionSystem.AllSpawns.Where(s => s.Type == ChampionSpawnType.Khaldun && Region.Find(s.Location, s.Map).IsPartOf("Khaldun")).IterateReverse(s =>
-            {
-                s.Delete();
-            });
+            ChampionSystem.AllSpawns
+                .Where(s => s.Type == ChampionSpawnType.Khaldun && Region.Find(s.Location, s.Map).IsPartOf("Khaldun"))
+                .IterateReverse(s => { s.Delete(); });
         }
 
         public static void GenerateQuestContent()

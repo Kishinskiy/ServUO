@@ -1,5 +1,4 @@
 using System;
-using Server;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -7,6 +6,9 @@ namespace Server.Mobiles
     [CorpseName("a dragon turtle hatchling corpse")]
     public class DragonTurtleHatchling : BaseCreature
     {
+        public override int Meat => 4;
+        public override FoodType FavoriteFood => FoodType.Fish;
+
         [Constructable]
         public DragonTurtleHatchling()
             : base(AIType.AI_Mage, FightMode.Aggressor, 10, 1, 0.2, 0.4)
@@ -48,30 +50,30 @@ namespace Server.Mobiles
             SetSpecialAbility(SpecialAbility.DragonBreath);
         }
 
+        public DragonTurtleHatchling(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void GenerateLoot()
         {
-            this.AddLoot(LootPack.Average, 3);
+            AddLoot(LootPack.Average, 3);
         }
 
         public override void OnAfterTame(Mobile tamer)
         {
             if (Owners.Count == 0)
             {
-                SkillsCap = this.Skills.Total;
+                SkillsCap = Skills.Total;
 
-                foreach (Skill sk in this.Skills)
-                {
+                foreach (var sk in Skills)
                     if (sk.Base > 0)
                     {
-                        sk.Cap = Math.Max(100, sk.Base - (sk.Base * 10));
-                        sk.Base = sk.Base - (sk.Base * .55);
+                        sk.Cap = Math.Max(100, sk.Base - sk.Base * 10);
+                        sk.Base = sk.Base - sk.Base * .55;
                     }
-                }
             }
         }
-
-        public override int Meat { get { return 4; } }
-        public override FoodType FavoriteFood { get { return FoodType.Fish; } }
 
         public override void OnCarve(Mobile from, Corpse corpse, Item with)
         {
@@ -84,28 +86,20 @@ namespace Server.Mobiles
             base.OnCarve(from, corpse, with);
         }
 
-        public DragonTurtleHatchling(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)1); // version
+            writer.Write(1); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            if(version == 0)
-            {
-                SetWeaponAbility(WeaponAbility.BleedAttack);
-            }
+            if (version == 0) SetWeaponAbility(WeaponAbility.BleedAttack);
         }
     }
 }

@@ -1,21 +1,26 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using Server.ContextMenus;
+using Server.Gumps;
+using Server.Items;
+using Server.Mobiles;
 using Server.Multis;
 using Server.Network;
-using Server.Items;
-using Server.Gumps;
-using Server.ContextMenus;
-using System.Collections.Generic;
-using Server.Mobiles;
-using System.Linq;
 
 namespace Server.Engines.VeteranRewards
 {
     public class GadgetryTableComponent : LocalizedAddonComponent
     {
-        public override bool ForceShowProperties { get { return true; } }
+        public override bool ForceShowProperties => true;
 
         public GadgetryTableComponent(int id)
             : base(id, 1098558) // gadgetry table
+        {
+        }
+
+        public GadgetryTableComponent(Serial serial)
+            : base(serial)
         {
         }
 
@@ -24,11 +29,6 @@ namespace Server.Engines.VeteranRewards
             base.GetContextMenuEntries(from, list);
 
             SetSecureLevelEntry.AddTo(from, Addon, list);
-        }
-
-        public GadgetryTableComponent(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -40,7 +40,7 @@ namespace Server.Engines.VeteranRewards
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -53,7 +53,7 @@ namespace Server.Engines.VeteranRewards
         {
             get
             {
-                GadgetryTableAddonDeed deed = new GadgetryTableAddonDeed();
+                var deed = new GadgetryTableAddonDeed();
                 deed.IsRewardItem = IsRewardItem;
 
                 return deed;
@@ -63,9 +63,6 @@ namespace Server.Engines.VeteranRewards
         [CommandProperty(AccessLevel.GameMaster)]
         public DateTime NextGolemTime { get; set; }
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public SecureLevel Level { get; set; }
-
         [Constructable]
         public GadgetryTableAddon(DirectionType type)
         {
@@ -74,7 +71,7 @@ namespace Server.Engines.VeteranRewards
             switch (type)
             {
                 case DirectionType.South:
-                    AddComponent(new GadgetryTableComponent(20372), 1, 0, 0);  
+                    AddComponent(new GadgetryTableComponent(20372), 1, 0, 0);
                     AddComponent(new GadgetryTableComponent(20362), 0, 0, 0);
                     AddComponent(new GadgetryTableComponent(20352), -1, 0, 0);
                     AddComponent(new GadgetryTableComponent(19687), -1, 1, 0);
@@ -88,12 +85,21 @@ namespace Server.Engines.VeteranRewards
             }
         }
 
+
+        public GadgetryTableAddon(Serial serial)
+            : base(serial)
+        {
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public SecureLevel Level { get; set; }
+
         public bool CheckAccessible(Mobile from, Item item)
         {
             if (from.AccessLevel >= AccessLevel.GameMaster)
                 return true; // Staff can access anything
 
-            BaseHouse house = BaseHouse.FindHouseAt(item);
+            var house = BaseHouse.FindHouseAt(item);
 
             if (house == null)
                 return false;
@@ -114,7 +120,7 @@ namespace Server.Engines.VeteranRewards
         {
             double scalar;
 
-            double skill = m.Skills[SkillName.Tinkering].Value;
+            var skill = m.Skills[SkillName.Tinkering].Value;
 
             if (skill >= 100.0)
                 scalar = 1.0;
@@ -134,23 +140,25 @@ namespace Server.Engines.VeteranRewards
         {
             if (from.InRange(c.Location, 3))
             {
-                BaseHouse house = BaseHouse.FindHouseAt(from);
+                var house = BaseHouse.FindHouseAt(from);
 
                 if (house != null)
                 {
                     if (CheckAccessible(from, this))
                     {
-                        if ((from.Followers + 4) > from.FollowersMax)
+                        if (from.Followers + 4 > from.FollowersMax)
                         {
                             from.SendLocalizedMessage(1049607); // You have too many followers to control that creature.
                         }
                         else if (((PlayerMobile)from).AllFollowers.Any(x => x is GadgetryTableGolem))
                         {
-                            from.SendLocalizedMessage(1154576); // You cannot build another golem at this time because you are currently in control of one.
+                            from.SendLocalizedMessage(
+                                1154576); // You cannot build another golem at this time because you are currently in control of one.
                         }
                         else if (from.Stabled.Any(x => x is GadgetryTableGolem))
                         {
-                            from.SendLocalizedMessage(1154577); // You cannot build another golem at this time because you have one in the stables.
+                            from.SendLocalizedMessage(
+                                1154577); // You cannot build another golem at this time because you have one in the stables.
                         }
                         else if (DateTime.UtcNow > NextGolemTime)
                         {
@@ -184,12 +192,6 @@ namespace Server.Engines.VeteranRewards
             }
         }
 
-
-        public GadgetryTableAddon(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -197,55 +199,65 @@ namespace Server.Engines.VeteranRewards
 
             writer.Write(NextGolemTime);
             writer.Write((int)Level);
-            writer.Write((bool)IsRewardItem);
+            writer.Write(IsRewardItem);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             switch (version)
             {
                 case 1:
-                    {
-                        NextGolemTime = reader.ReadDateTime();
-                        Level = (SecureLevel)reader.ReadInt();
-                        IsRewardItem = reader.ReadBool();
-                        break;
-                    }
+                {
+                    NextGolemTime = reader.ReadDateTime();
+                    Level = (SecureLevel)reader.ReadInt();
+                    IsRewardItem = reader.ReadBool();
+                    break;
+                }
                 case 0:
-                    {
-                        IsRewardItem = reader.ReadBool();
-                        break;
-                    }
+                {
+                    IsRewardItem = reader.ReadBool();
+                    break;
+                }
             }
         }
     }
 
     public class GadgetryTableAddonDeed : BaseAddonDeed, IRewardItem, IRewardOption
     {
-        public override int LabelNumber { get { return 1154583; } } // Deed for a Gadgetry Table
+        private DirectionType _Direction;
+
+        private bool m_IsRewardItem;
+        public override int LabelNumber => 1154583; // Deed for a Gadgetry Table
 
         public override BaseAddon Addon
         {
             get
             {
-                GadgetryTableAddon addon = new GadgetryTableAddon(_Direction);
+                var addon = new GadgetryTableAddon(_Direction);
                 addon.IsRewardItem = m_IsRewardItem;
 
                 return addon;
             }
         }
 
-        private DirectionType _Direction;
+        [Constructable]
+        public GadgetryTableAddonDeed()
+        {
+            LootType = LootType.Blessed;
+        }
 
-        private bool m_IsRewardItem;
+        public GadgetryTableAddonDeed(Serial serial)
+            : base(serial)
+        {
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public bool IsRewardItem
         {
-            get { return m_IsRewardItem; }
+            get => m_IsRewardItem;
             set
             {
                 m_IsRewardItem = value;
@@ -253,11 +265,18 @@ namespace Server.Engines.VeteranRewards
             }
         }
 
-        [Constructable]
-        public GadgetryTableAddonDeed()
-            : base()
+        public void GetOptions(RewardOptionList list)
         {
-            LootType = LootType.Blessed;
+            list.Add((int)DirectionType.South, 1075386); // South
+            list.Add((int)DirectionType.East, 1075387); // East
+        }
+
+        public void OnOptionSelected(Mobile from, int choice)
+        {
+            _Direction = (DirectionType)choice;
+
+            if (!Deleted)
+                base.OnDoubleClick(from);
         }
 
         public override void GetProperties(ObjectPropertyList list)
@@ -281,37 +300,18 @@ namespace Server.Engines.VeteranRewards
             }
         }
 
-        public void GetOptions(RewardOptionList list)
-        {
-            list.Add((int)DirectionType.South, 1075386); // South
-            list.Add((int)DirectionType.East, 1075387); // East
-        }
-
-        public void OnOptionSelected(Mobile from, int choice)
-        {
-            _Direction = (DirectionType)choice;
-
-            if (!Deleted)
-                base.OnDoubleClick(from);
-        }        
-
-        public GadgetryTableAddonDeed(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
             writer.Write(0); // Version
 
-            writer.Write((bool)m_IsRewardItem);
+            writer.Write(m_IsRewardItem);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             m_IsRewardItem = reader.ReadBool();
         }
@@ -354,6 +354,11 @@ namespace Server.Engines.VeteranRewards
             ControlSlots = 3;
         }
 
+        public GadgetryTableGolem(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override bool CanTransfer(Mobile m)
         {
             PrivateOverheadMessage(MessageType.Regular, 0x3B2, 502036, m.NetState); // I cannot be transferred
@@ -361,21 +366,16 @@ namespace Server.Engines.VeteranRewards
             return false;
         }
 
-        public GadgetryTableGolem(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

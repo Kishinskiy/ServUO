@@ -1,10 +1,11 @@
-using System;
-
 namespace Server.Items
 {
     public class LuminousRuneBlade : RuneBlade
-	{
-		public override bool IsArtifact { get { return true; } }
+    {
+        public override bool IsArtifact => true;
+
+        public override int LabelNumber => 1072922; // Luminous Rune Blade
+
         [Constructable]
         public LuminousRuneBlade()
         {
@@ -13,7 +14,7 @@ namespace Server.Items
             Attributes.NightSight = 1;
             Attributes.WeaponSpeed = 25;
             Attributes.WeaponDamage = 55;
-            Hue = this.GetElementalDamageHue();
+            Hue = GetElementalDamageHue();
         }
 
         public LuminousRuneBlade(Serial serial)
@@ -21,14 +22,8 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1072922;
-            }
-        }// Luminous Rune Blade
-        public override void GetDamageTypes(Mobile wielder, out int phys, out int fire, out int cold, out int pois, out int nrgy, out int chaos, out int direct)
+        public override void GetDamageTypes(Mobile wielder, out int phys, out int fire, out int cold, out int pois,
+            out int nrgy, out int chaos, out int direct)
         {
             phys = fire = cold = pois = chaos = direct = 0;
             nrgy = 100;
@@ -45,7 +40,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

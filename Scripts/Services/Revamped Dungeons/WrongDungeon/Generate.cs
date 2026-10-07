@@ -1,8 +1,6 @@
-using Server;
 using Server.Commands;
 using Server.Items;
 using Server.Mobiles;
-using System.Linq;
 
 namespace Server.Engines
 {
@@ -11,13 +9,13 @@ namespace Server.Engines
         public static void Initialize()
         {
             CommandSystem.Register("GenWrongRevamp", AccessLevel.Administrator, Generate_NewWrong);
-        }        
+        }
 
         public static void Generate_NewWrong(CommandEventArgs e)
         {
             DeleteOldWrong(e.Mobile);
 
-            CommandSystem.Handle(e.Mobile, Server.Commands.CommandSystem.Prefix + "XmlLoad RevampedSpawns/WrongRevamped.xml");
+            CommandSystem.Handle(e.Mobile, CommandSystem.Prefix + "XmlLoad RevampedSpawns/WrongRevamped.xml");
 
             Decorate.Generate("wrong", "Data/Decoration/Wrong", Map.Trammel, Map.Felucca);
 
@@ -30,7 +28,7 @@ namespace Server.Engines
             EnchantedHotItem.SpawnChests(Map.Trammel);
             EnchantedHotItem.SpawnChests(Map.Felucca);
 
-            Teleporter teleporter = new Teleporter(new Point3D(5690, 569, 25), Map.Felucca);
+            var teleporter = new Teleporter(new Point3D(5690, 569, 25), Map.Felucca);
             teleporter.MoveToWorld(new Point3D(5827, 590, 1), Map.Felucca);
 
             teleporter = new Teleporter(new Point3D(5829, 595, 0), Map.Felucca);
@@ -83,31 +81,29 @@ namespace Server.Engines
 
         public static void DeleteOldWrong(Mobile m)
         {
-            int count = 0;
+            var count = 0;
 
             IPooledEnumerable eable = Map.Felucca.GetItemsInBounds(new Rectangle2D(5633, 511, 253, 510));
 
             foreach (Item item in eable)
-            {
-                if (item is XmlSpawner || item is Teleporter || item.ItemID == 0x375A || item is BarredMetalDoor || item is SecretDungeonDoor)
+                if (item is XmlSpawner || item is Teleporter || item.ItemID == 0x375A || item is BarredMetalDoor ||
+                    item is SecretDungeonDoor)
                 {
                     count++;
                     item.Delete();
                 }
-            }
 
             eable.Free();
 
             eable = Map.Trammel.GetItemsInBounds(new Rectangle2D(5633, 511, 253, 510));
 
             foreach (Item item in eable)
-            {
-                if (item is XmlSpawner || item is Teleporter || item.ItemID == 0x375A || item is BarredMetalDoor || item is SecretDungeonDoor)
+                if (item is XmlSpawner || item is Teleporter || item.ItemID == 0x375A || item is BarredMetalDoor ||
+                    item is SecretDungeonDoor)
                 {
                     count++;
                     item.Delete();
                 }
-            }
 
             eable.Free();
 

@@ -1,11 +1,10 @@
 using System;
-
+using System.Collections.Generic;
+using System.Linq;
+using Server.ContextMenus;
 using Server.Gumps;
 using Server.Mobiles;
-using Server.ContextMenus;
-using System.Collections.Generic;
 using Server.Multis;
-using System.Linq;
 
 namespace Server.Items
 {
@@ -19,7 +18,7 @@ namespace Server.Items
         [CommandProperty(AccessLevel.GameMaster)]
         public int Capacity
         {
-            get { return _Capacity <= 0 ? MaxScrolls : _Capacity; }
+            get => _Capacity <= 0 ? MaxScrolls : _Capacity;
             set
             {
                 _Capacity = value;
@@ -28,11 +27,8 @@ namespace Server.Items
             }
         }
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public SecureLevel Level { get; set; }
-
-        public override bool DisplaysContent { get { return false; } }
-        public override double DefaultWeight { get { return 1.0; } }
+        public override bool DisplaysContent => false;
+        public override double DefaultWeight => 1.0;
 
         public abstract Type ScrollType { get; }
 
@@ -41,11 +37,22 @@ namespace Server.Items
         public abstract int RemoveMessage { get; }
         public abstract int GumpTitle { get; }
 
+        public virtual Dictionary<SkillCat, List<SkillName>> SkillInfo => null;
+        public virtual Dictionary<int, double> ValueInfo => null;
+
         public BaseSpecialScrollBook(int id)
             : base(id)
         {
             LootType = LootType.Blessed;
         }
+
+        public BaseSpecialScrollBook(Serial serial)
+            : base(serial)
+        {
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public SecureLevel Level { get; set; }
 
         public override int GetTotal(TotalType type)
         {
@@ -54,23 +61,19 @@ namespace Server.Items
 
         public override void OnDoubleClick(Mobile m)
         {
-            BaseHouse house = BaseHouse.FindHouseAt(this);
+            var house = BaseHouse.FindHouseAt(this);
 
-            if (m is PlayerMobile && m.InRange(GetWorldLocation(), 2) /*&& (house == null || house.HasSecureAccess(m, this))*/)
-            {
+            if (m is PlayerMobile &&
+                m.InRange(GetWorldLocation(), 2) /*&& (house == null || house.HasSecureAccess(m, this))*/)
                 BaseGump.SendGump(new SpecialScrollBookGump((PlayerMobile)m, this));
-            }
-            else if (m.AccessLevel > AccessLevel.Player)
-            {
-                base.OnDoubleClick(m);
-            }
+            else if (m.AccessLevel > AccessLevel.Player) base.OnDoubleClick(m);
         }
 
         public override void GetProperties(ObjectPropertyList list)
         {
             base.GetProperties(list);
 
-            list.Add(1151797, String.Format("{0}\t{1}", Items.Count, Capacity)); // Scrolls in book: ~1_val~/~2_val~
+            list.Add(1151797, string.Format("{0}\t{1}", Items.Count, Capacity)); // Scrolls in book: ~1_val~/~2_val~
         }
 
         public override void GetContextMenuEntries(Mobile from, List<ContextMenuEntry> list)
@@ -84,7 +87,7 @@ namespace Server.Items
         {
             if (m.InRange(GetWorldLocation(), 2))
             {
-                BaseHouse house = BaseHouse.FindHouseAt(this);
+                var house = BaseHouse.FindHouseAt(this);
 
                 if (dropped.GetType() != ScrollType)
                 {
@@ -127,31 +130,17 @@ namespace Server.Items
                 }
                 else
                 {
-                    BaseHouse house = BaseHouse.FindHouseAt(this);
+                    var house = BaseHouse.FindHouseAt(this);
 
-                    if (house != null && house.LockDowns.ContainsKey(scroll))
-                    {
-                        house.LockDowns.Remove(scroll);
-                    }
+                    if (house != null && house.LockDowns.ContainsKey(scroll)) house.LockDowns.Remove(scroll);
 
-                    if (!scroll.Movable)
-                    {
-                        scroll.Movable = true;
-                    }
+                    if (!scroll.Movable) scroll.Movable = true;
 
-                    if (scroll.IsLockedDown)
-                    {
-                        scroll.IsLockedDown = false;
-                    }
+                    if (scroll.IsLockedDown) scroll.IsLockedDown = false;
 
                     m.SendLocalizedMessage(RemoveMessage);
                 }
             }
-        }
-
-        public BaseSpecialScrollBook(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -168,7 +157,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (version > 2)
             {
@@ -176,16 +165,12 @@ namespace Server.Items
                 _Capacity = reader.ReadInt();
             }
 
-            Timer.DelayCall(
-                () =>
-                {
-                    foreach (var item in Items.Where(i => i.Movable))
-                        item.Movable = false;
-                });
+            Timer.DelayCall(() =>
+            {
+                foreach (var item in Items.Where(i => i.Movable))
+                    item.Movable = false;
+            });
         }
-
-        public virtual Dictionary<SkillCat, List<SkillName>> SkillInfo { get { return null; } }
-        public virtual Dictionary<int, double> ValueInfo { get { return null; } }
 
         public static int GetCategoryLocalization(SkillCat category)
         {

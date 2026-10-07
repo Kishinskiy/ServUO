@@ -1,16 +1,19 @@
 using System;
-using System.Collections.Generic;
-using Server.Mobiles;
-using Server.ContextMenus;
+using System.Linq;
 using Server.Engines.PartySystem;
 using Server.Items;
-using System.Linq;
+using Server.Mobiles;
 
 namespace Server.Engines.Shadowguard
 {
     [PropertyObject]
     public class ShadowguardInstance
     {
+        private readonly Type[] DeleteList =
+        {
+            typeof(ShadowguardCanal)
+        };
+
         [CommandProperty(AccessLevel.GameMaster)]
         public Point3D Center { get; private set; }
 
@@ -26,15 +29,10 @@ namespace Server.Engines.Shadowguard
         public ShadowguardController Controller { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public bool InUse { get { return Encounter != null; } }
+        public bool InUse => Encounter != null;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public bool IsRoof { get { return Index >= 13; } }
-
-        public override string ToString()
-        {
-            return "...";
-        }
+        public bool IsRoof => Index >= 13;
 
         public ShadowguardInstance(ShadowguardController controller, Point3D center, Rectangle2D bounds, int index)
         {
@@ -42,27 +40,30 @@ namespace Server.Engines.Shadowguard
             Center = center;
             Index = index;
 
-            Region = new ShadowguardRegion(bounds, index >= 13 ? String.Format("Roof {0}", (index - 12).ToString()) : index.ToString(), this);
+            Region = new ShadowguardRegion(bounds,
+                index >= 13 ? string.Format("Roof {0}", (index - 12).ToString()) : index.ToString(), this);
             Region.Register();
+        }
+
+        public override string ToString()
+        {
+            return "...";
         }
 
         public bool TryBeginEncounter(Mobile m, bool fromQueue, EncounterType type)
         {
-            Party p = Party.Get(m);
+            var p = Party.Get(m);
 
             if (!fromQueue && p != null)
-            {
-                foreach (PartyMemberInfo info in p.Members)
-                {
+                foreach (var info in p.Members)
                     if (!Controller.Lobby.Contains(new Point2D(info.Mobile.X, info.Mobile.Y)))
                     {
-                        m.SendLocalizedMessage(1156186); // All members of your party must remain in the lobby of Shadowguard 
+                        m.SendLocalizedMessage(
+                            1156186); // All members of your party must remain in the lobby of Shadowguard 
                         // while your encounter is prepared. Make sure all members of your party 
                         // are in the lobby and try again. 
                         return false;
                     }
-                }
-            }
 
             Encounter = ConstructEncounter(type);
             Controller.AddEncounter(Encounter);
@@ -87,17 +88,14 @@ namespace Server.Engines.Shadowguard
 
         public void CompleteEncounter()
         {
-            if (InUse)
-            {
-                Encounter = null;
-            }
+            if (InUse) Encounter = null;
         }
 
         public void ClearRegion()
         {
-            foreach (Item item in this.Region.GetEnumeratedItems())
+            foreach (var item in Region.GetEnumeratedItems())
             {
-                Corpse corpse = item as Corpse;
+                var corpse = item as Corpse;
 
                 if (corpse != null)
                 {
@@ -111,14 +109,14 @@ namespace Server.Engines.Shadowguard
                     ((BaseAddon)item).Internalize();
                 }
                 else if (item.Movable || IsInDeleteList(item))
+                {
                     item.Delete();
+                }
             }
 
-            foreach (Mobile m in this.Region.GetEnumeratedMobiles())
-            {
+            foreach (var m in Region.GetEnumeratedMobiles())
                 if (m is BaseCreature && !(((BaseCreature)m).GetMaster() is PlayerMobile))
                     m.Delete();
-            }
         }
 
         private bool IsInDeleteList(Item item)
@@ -126,19 +124,12 @@ namespace Server.Engines.Shadowguard
             if (item == null)
                 return false;
 
-            foreach (Type t in DeleteList)
-            {
+            foreach (var t in DeleteList)
                 if (item.GetType() == t)
                     return true;
-            }
 
             return false;
         }
-
-        private Type[] DeleteList =
-        {
-            typeof(ShadowguardCanal)
-        };
 
         public static void Initialize()
         {
@@ -146,12 +137,12 @@ namespace Server.Engines.Shadowguard
                 return;
 
             ColUtility.ForEach(ShadowguardController.Instance.Addons.Where(addon => addon.Map != Map.Internal), addon =>
-                {
-                    ShadowguardInstance instance = ShadowguardController.GetInstance(addon.Location, addon.Map);
+            {
+                var instance = ShadowguardController.GetInstance(addon.Location, addon.Map);
 
-                    if (instance != null && !instance.InUse)
-                        instance.ClearRegion();
-                });
+                if (instance != null && !instance.InUse)
+                    instance.ClearRegion();
+            });
         }
     }
 }

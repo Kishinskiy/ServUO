@@ -1,88 +1,63 @@
 #region References
+
 using System;
 using System.Collections.Generic;
-
+using Server.Engines.Khaldun;
 using Server.Items;
-using Server.Network;
-using Server.Spells;
 using Server.Mobiles;
+using Server.Network;
+
 #endregion
 
 namespace Server.SkillHandlers
 {
-	internal class SpiritSpeak
-	{
-		public static void Initialize()
-		{
-			SkillInfo.Table[32].Callback = OnUse;
-		}
-
+    internal class SpiritSpeak
+    {
         public static Dictionary<Mobile, Timer> _Table;
 
-		public static TimeSpan OnUse(Mobile m)
-		{
-			if (Core.AOS)
-			{
+        public static void Initialize()
+        {
+            SkillInfo.Table[32].Callback = OnUse;
+        }
+
+        public static TimeSpan OnUse(Mobile m)
+        {
+            if (Core.AOS)
+            {
                 if (m.Spell != null && m.Spell.IsCasting)
-                {
                     m.SendLocalizedMessage(502642); // You are already casting a spell.
-                }
-                else if (BeginSpiritSpeak(m))
+                else if (BeginSpiritSpeak(m)) return TimeSpan.FromSeconds(5.0);
+
+                return TimeSpan.Zero;
+            }
+
+            m.RevealingAction();
+
+            if (m.CheckSkill(SkillName.SpiritSpeak, 0, 100))
+            {
+                if (!m.CanHearGhosts)
                 {
-                    return TimeSpan.FromSeconds(5.0);
+                    Timer t = new SpiritSpeakTimer(m);
+                    var secs = m.Skills[SkillName.SpiritSpeak].Base / 50;
+                    secs *= 90;
+                    if (secs < 15) secs = 15;
+
+                    t.Delay = TimeSpan.FromSeconds(secs); //15seconds to 3 minutes
+                    t.Start();
+                    m.CanHearGhosts = true;
                 }
 
-				return TimeSpan.Zero;
-			}
+                m.PlaySound(0x24A);
+                m.SendLocalizedMessage(502444); //You contact the neitherworld.
+            }
+            else
+            {
+                m.SendLocalizedMessage(502443); //You fail to contact the neitherworld.
+                m.CanHearGhosts = false;
+            }
 
-			m.RevealingAction();
-
-			if (m.CheckSkill(SkillName.SpiritSpeak, 0, 100))
-			{
-				if (!m.CanHearGhosts)
-				{
-					Timer t = new SpiritSpeakTimer(m);
-					double secs = m.Skills[SkillName.SpiritSpeak].Base / 50;
-					secs *= 90;
-					if (secs < 15)
-					{
-						secs = 15;
-					}
-
-					t.Delay = TimeSpan.FromSeconds(secs); //15seconds to 3 minutes
-					t.Start();
-					m.CanHearGhosts = true;
-				}
-
-				m.PlaySound(0x24A);
-				m.SendLocalizedMessage(502444); //You contact the neitherworld.
-			}
-			else
-			{
-				m.SendLocalizedMessage(502443); //You fail to contact the neitherworld.
-				m.CanHearGhosts = false;
-			}
-
-			return TimeSpan.FromSeconds(1.0);
-		}
-
-		private class SpiritSpeakTimer : Timer
-		{
-			private readonly Mobile m_Owner;
-
-			public SpiritSpeakTimer(Mobile m)
-				: base(TimeSpan.FromMinutes(2.0))
-			{
-				m_Owner = m;
-				Priority = TimerPriority.FiveSeconds;
-			}
-
-			protected override void OnTick()
-			{
-				m_Owner.CanHearGhosts = false;
-				m_Owner.SendLocalizedMessage(502445); //You feel your contact with the neitherworld fading.
-			}
-		}
+            return TimeSpan.FromSeconds(1.0);
+        }
 
         public static bool BeginSpiritSpeak(Mobile m)
         {
@@ -113,7 +88,7 @@ namespace Server.SkillHandlers
         {
             if (_Table != null && _Table.ContainsKey(m))
             {
-                if(_Table[m] != null)
+                if (_Table[m] != null)
                     _Table[m].Stop();
 
                 m.SendSpeedControl(SpeedControlType.Disable);
@@ -132,9 +107,7 @@ namespace Server.SkillHandlers
             if (_Table != null && _Table.ContainsKey(m))
             {
                 if (m is PlayerMobile)
-                {
                     m.SendLocalizedMessage(500641); // Your concentration is disturbed, thus ruining thy spell.
-                }
 
                 m.FixedEffect(0x3735, 6, 30);
                 m.PlaySound(0x5C);
@@ -145,9 +118,27 @@ namespace Server.SkillHandlers
             }
         }
 
+        private class SpiritSpeakTimer : Timer
+        {
+            private readonly Mobile m_Owner;
+
+            public SpiritSpeakTimer(Mobile m)
+                : base(TimeSpan.FromMinutes(2.0))
+            {
+                m_Owner = m;
+                Priority = TimerPriority.FiveSeconds;
+            }
+
+            protected override void OnTick()
+            {
+                m_Owner.CanHearGhosts = false;
+                m_Owner.SendLocalizedMessage(502445); //You feel your contact with the neitherworld fading.
+            }
+        }
+
         private class SpiritSpeakTimerNew : Timer
         {
-            public Mobile Caster { get; set; }
+            public Mobile Caster { get; }
 
             public SpiritSpeakTimerNew(Mobile m)
                 : base(TimeSpan.FromSeconds(1))
@@ -162,23 +153,22 @@ namespace Server.SkillHandlers
 
                 IPooledEnumerable eable = Caster.GetObjectsInRange(3);
 
-                foreach (object objs in eable)
+                foreach (var objs in eable)
                 {
                     if (objs is Corpse && !((Corpse)objs).Channeled && !((Corpse)objs).Animated)
                     {
                         toChannel = (Corpse)objs;
                         break;
                     }
-                    else if (objs is Server.Engines.Khaldun.SageHumbolt)
-                    {
-                        if (((Server.Engines.Khaldun.SageHumbolt)objs).OnSpiritSpeak(Caster))
+
+                    if (objs is SageHumbolt)
+                        if (((SageHumbolt)objs).OnSpiritSpeak(Caster))
                         {
                             eable.Free();
-                            SpiritSpeak.Remove(Caster);
+                            Remove(Caster);
                             Stop();
                             return;
                         }
-                    }
                 }
 
                 eable.Free();
@@ -208,7 +198,7 @@ namespace Server.SkillHandlers
                 {
                     Caster.CheckSkill(SkillName.SpiritSpeak, 0.0, 120.0);
 
-                    if (Utility.RandomDouble() > (Caster.Skills[SkillName.SpiritSpeak].Value / 100.0))
+                    if (Utility.RandomDouble() > Caster.Skills[SkillName.SpiritSpeak].Value / 100.0)
                     {
                         Caster.SendLocalizedMessage(502443); // You fail your attempt at contacting the netherworld.
                     }
@@ -223,10 +213,7 @@ namespace Server.SkillHandlers
                         Caster.Mana -= mana;
                         Caster.SendLocalizedMessage(number);
 
-                        if (min > max)
-                        {
-                            min = max;
-                        }
+                        if (min > max) min = max;
 
                         Caster.Hits += Utility.RandomMinMax(min, max);
 
@@ -234,9 +221,9 @@ namespace Server.SkillHandlers
                     }
                 }
 
-                SpiritSpeak.Remove(Caster);
+                Remove(Caster);
                 Stop();
             }
         }
-	}
+    }
 }

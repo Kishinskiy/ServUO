@@ -1,16 +1,14 @@
 using System;
-using Server;
 using System.Collections.Generic;
 
 namespace Server.Items
 {
     public class ForceOfNature : WeaponAbility
     {
-        public ForceOfNature()
-        {
-        }
+        private static readonly Dictionary<Mobile, ForceOfNatureTimer> m_Table =
+            new Dictionary<Mobile, ForceOfNatureTimer>();
 
-        public override int BaseMana { get { return 35; } }
+        public override int BaseMana => 35;
 
         public override void OnHit(Mobile attacker, Mobile defender, int damage)
         {
@@ -29,13 +27,11 @@ namespace Server.Items
             if (m_Table.ContainsKey(attacker))
                 Remove(attacker);
 
-            ForceOfNatureTimer t = new ForceOfNatureTimer(attacker, defender);
+            var t = new ForceOfNatureTimer(attacker, defender);
             t.Start();
 
             m_Table[attacker] = t;
         }
-
-        private static Dictionary<Mobile, ForceOfNatureTimer> m_Table = new Dictionary<Mobile, ForceOfNatureTimer>();
 
         public static bool Remove(Mobile m)
         {
@@ -55,14 +51,14 @@ namespace Server.Items
         {
             if (m_Table.ContainsKey(from))
             {
-                ForceOfNatureTimer t = m_Table[from];
+                var t = m_Table[from];
 
                 t.Hits++;
                 t.LastHit = DateTime.Now;
 
                 if (t.Hits % 12 == 0)
                 {
-                    int duration = target.Skills[SkillName.MagicResist].Value >= 90.0 ? 1 : 2;
+                    var duration = target.Skills[SkillName.MagicResist].Value >= 90.0 ? 1 : 2;
                     target.Paralyze(TimeSpan.FromSeconds(duration));
                     t.Hits = 0;
 
@@ -76,11 +72,11 @@ namespace Server.Items
         {
             if (m_Table.ContainsKey(from))
             {
-                ForceOfNatureTimer t = m_Table[from];
+                var t = m_Table[from];
 
                 if (t.Target == target)
                 {
-                    int bonus = Math.Max(50, from.Str - 50);
+                    var bonus = Math.Max(50, from.Str - 50);
                     if (bonus > 100) bonus = 100;
                     return bonus;
                 }
@@ -91,41 +87,43 @@ namespace Server.Items
 
         private class ForceOfNatureTimer : Timer
         {
-            private Mobile m_Target, m_From;
+            private int m_Tick;
 
-            private DateTime m_LastHit;
-            private int m_Tick, m_Hits;
+            public Mobile Target { get; }
 
-            public Mobile Target { get { return m_Target; } }
-            public Mobile From { get { return m_From; } }
-            public int Hits { get { return m_Hits; } set { m_Hits = value; } }
-            public DateTime LastHit { get { return m_LastHit; } set { m_LastHit = value; } }
+            public Mobile From { get; }
+
+            public int Hits { get; set; }
+
+            public DateTime LastHit { get; set; }
 
             public ForceOfNatureTimer(Mobile from, Mobile target)
                 : base(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1))
             {
-                m_Target = target;
-                m_From = from;
+                Target = target;
+                From = from;
                 m_Tick = 0;
-                m_Hits = 1;
-                m_LastHit = DateTime.Now;
+                Hits = 1;
+                LastHit = DateTime.Now;
             }
 
             protected override void OnTick()
             {
                 m_Tick++;
 
-                if (!m_From.Alive || !m_Target.Alive || m_Target.Map != m_From.Map || m_Target.GetDistanceToSqrt(m_From.Location) > 10 || m_LastHit + TimeSpan.FromSeconds(20) < DateTime.Now || m_Tick > 36)
+                if (!From.Alive || !Target.Alive || Target.Map != From.Map ||
+                    Target.GetDistanceToSqrt(From.Location) > 10 || LastHit + TimeSpan.FromSeconds(20) < DateTime.Now ||
+                    m_Tick > 36)
                 {
-                    Server.Items.ForceOfNature.Remove(m_From);
+                    Remove(From);
                     return;
                 }
 
                 if (m_Tick == 1)
                 {
-                    int damage = Utility.RandomMinMax(15, 35);
+                    var damage = Utility.RandomMinMax(15, 35);
 
-                    AOS.Damage(m_Target, m_From, damage, false, 0, 0, 0, 0, 0, 0, 100, false, false, false);
+                    AOS.Damage(Target, From, damage, false, 0, 0, 0, 0, 0, 0, 100, false, false, false);
                 }
             }
         }

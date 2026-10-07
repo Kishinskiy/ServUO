@@ -1,18 +1,24 @@
-using System;
-
 namespace Server.Mobiles
 {
     [CorpseName("a horse corpse")]
-    [TypeAlias("Server.Mobiles.BrownHorse", "Server.Mobiles.DirtyHorse", "Server.Mobiles.GrayHorse", "Server.Mobiles.TanHorse")]
+    [TypeAlias("Server.Mobiles.BrownHorse", "Server.Mobiles.DirtyHorse", "Server.Mobiles.GrayHorse",
+        "Server.Mobiles.TanHorse")]
     public class Horse : BaseMount
     {
-        private static readonly int[] m_IDs = new int[]
+        private static readonly int[] m_IDs =
         {
             0xC8, 0x3E9F,
             0xE2, 0x3EA0,
             0xE4, 0x3EA1,
             0xCC, 0x3EA2
         };
+
+        public override int Meat => 3;
+
+        public override int Hides => 10;
+
+        public override FoodType FavoriteFood => FoodType.FruitsAndVegies | FoodType.GrainsAndHay;
+
         [Constructable]
         public Horse()
             : this("a horse")
@@ -23,7 +29,7 @@ namespace Server.Mobiles
         public Horse(string name)
             : base(name, 0xE2, 0x3EA0, AIType.AI_Animal, FightMode.Aggressor, 10, 1, 0.2, 0.4)
         {
-            int random = Utility.Random(4);
+            var random = Utility.Random(4);
 
             Body = m_IDs[random * 2];
             ItemID = m_IDs[random * 2 + 1];
@@ -59,39 +65,18 @@ namespace Server.Mobiles
         {
         }
 
-        public override int Meat
-        {
-            get
-            {
-                return 3;
-            }
-        }
-        public override int Hides
-        {
-            get
-            {
-                return 10;
-            }
-        }
-        public override FoodType FavoriteFood
-        {
-            get
-            {
-                return FoodType.FruitsAndVegies | FoodType.GrainsAndHay;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

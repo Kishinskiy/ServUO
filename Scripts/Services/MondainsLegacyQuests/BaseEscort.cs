@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Server.ContextMenus;
+using Server.Misc;
 using Server.Mobiles;
 using Server.Services.Virtues;
 
@@ -11,14 +12,22 @@ namespace Server.Engines.Quests
     {
         private static readonly TimeSpan m_EscortDelay = TimeSpan.FromMinutes(5.0);
         private static readonly Dictionary<Mobile, Mobile> m_EscortTable = new Dictionary<Mobile, Mobile>();
-        private Timer m_DeleteTimer;
         private bool m_Checked;
+        private Timer m_DeleteTimer;
 
         public BaseQuest Quest { get; set; }
         public DateTime LastSeenEscorter { get; set; }
 
+        public override bool InitialInnocent => true;
+        public override bool IsInvulnerable => false;
+        public override bool Commandable => false;
+
+        public override Type[] Quests => null;
+
+        public override bool CanAutoStable => false;
+        public override bool CanDetectHidden => false;
+
         public BaseEscort()
-            : base()
         {
             AI = AIType.AI_Melee;
             FightMode = FightMode.Aggressor;
@@ -35,15 +44,6 @@ namespace Server.Engines.Quests
         {
         }
 
-        public override bool InitialInnocent { get { return true; } }
-        public override bool IsInvulnerable { get { return false; } }
-        public override bool Commandable { get { return false; } }
-
-        public override Type[] Quests { get { return null; } }
-
-        public override bool CanAutoStable { get { return false; } }
-        public override bool CanDetectHidden { get { return false; } }
-
         public override void OnTalk(PlayerMobile player)
         {
             if (AcceptEscorter(player))
@@ -52,7 +52,7 @@ namespace Server.Engines.Quests
 
         public override bool CanBeRenamedBy(Mobile from)
         {
-            return (from.AccessLevel >= AccessLevel.GameMaster);
+            return from.AccessLevel >= AccessLevel.GameMaster;
         }
 
         public override void AddCustomContextEntries(Mobile from, List<ContextMenuEntry> list)
@@ -107,7 +107,7 @@ namespace Server.Engines.Quests
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
             writer.Write(m_DeleteTimer != null);
 
@@ -119,12 +119,12 @@ namespace Server.Engines.Quests
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (reader.ReadBool())
             {
-                DateTime deleteTime = reader.ReadDeltaTime();
-                m_DeleteTimer = Timer.DelayCall(deleteTime - DateTime.UtcNow, new TimerCallback(Delete));
+                var deleteTime = reader.ReadDeltaTime();
+                m_DeleteTimer = Timer.DelayCall(deleteTime - DateTime.UtcNow, Delete);
             }
         }
 
@@ -169,21 +169,20 @@ namespace Server.Engines.Quests
             if (m != null)
                 m_EscortTable.Remove(m);
 
-            m_DeleteTimer = Timer.DelayCall(TimeSpan.FromSeconds(45.0), new TimerCallback(Delete));
-        }        
+            m_DeleteTimer = Timer.DelayCall(TimeSpan.FromSeconds(45.0), Delete);
+        }
 
         public virtual bool AcceptEscorter(Mobile m)
         {
-            if (!m.Alive)
-            {
-                return false;
-            }
-            else if (m_DeleteTimer != null)
+            if (!m.Alive) return false;
+
+            if (m_DeleteTimer != null)
             {
                 Say(500898); // I am sorry, but I do not wish to go anywhere.
                 return false;
             }
-            else if (Controlled)
+
+            if (Controlled)
             {
                 if (m == ControlMaster)
                     m.SendGump(new MondainQuestGump(Quest, MondainQuestGump.Section.InProgress, false));
@@ -192,19 +191,23 @@ namespace Server.Engines.Quests
 
                 return false;
             }
-            else if (!m.InRange(Location, 5))
+
+            if (!m.InRange(Location, 5))
             {
                 Say(500348); // I am too far away to do that.
                 return false;
             }
-            else if (m_EscortTable.ContainsKey(m))
+
+            if (m_EscortTable.ContainsKey(m))
             {
                 Say(500896); // I see you already have an escort.
                 return false;
             }
-            else if (m is PlayerMobile && (((PlayerMobile)m).LastEscortTime + m_EscortDelay) >= DateTime.UtcNow)
+
+            if (m is PlayerMobile && ((PlayerMobile)m).LastEscortTime + m_EscortDelay >= DateTime.UtcNow)
             {
-                int minutes = (int)Math.Ceiling(((((PlayerMobile)m).LastEscortTime + m_EscortDelay) - DateTime.UtcNow).TotalMinutes);
+                var minutes = (int)Math.Ceiling((((PlayerMobile)m).LastEscortTime + m_EscortDelay - DateTime.UtcNow)
+                    .TotalMinutes);
 
                 Say("You must rest {0} minute{1} before we set out on this journey.", minutes, minutes == 1 ? "" : "s");
                 return false;
@@ -216,34 +219,30 @@ namespace Server.Engines.Quests
         public virtual EscortObjective GetObjective()
         {
             if (Quest != null)
-            {
-                for (int i = 0; i < Quest.Objectives.Count; i++)
+                for (var i = 0; i < Quest.Objectives.Count; i++)
                 {
-                    EscortObjective escort = Quest.Objectives[i] as EscortObjective;
+                    var escort = Quest.Objectives[i] as EscortObjective;
 
                     if (escort != null && !escort.Completed && !escort.Failed)
                         return escort;
                 }
-            }
 
             return null;
         }
 
         public virtual Mobile GetEscorter()
         {
-            Mobile master = ControlMaster;
+            var master = ControlMaster;
 
-            if (master == null || !Controlled)
+            if (master == null || !Controlled) return master;
+
+            if (master.Map != Map || !master.InRange(Location, 30) || !master.Alive)
             {
-                return master;
-            }
-            else if (master.Map != Map || !master.InRange(Location, 30) || !master.Alive)
-            {
-                TimeSpan lastSeenDelay = DateTime.UtcNow - LastSeenEscorter;
+                var lastSeenDelay = DateTime.UtcNow - LastSeenEscorter;
 
                 if (lastSeenDelay >= TimeSpan.FromMinutes(2.0))
                 {
-                    EscortObjective escort = GetObjective();
+                    var escort = GetObjective();
 
                     if (escort != null)
                     {
@@ -257,14 +256,12 @@ namespace Server.Engines.Quests
 
                     StopFollow();
                     m_EscortTable.Remove(master);
-                    m_DeleteTimer = Timer.DelayCall(TimeSpan.FromSeconds(5.0), new TimerCallback(Delete));
+                    m_DeleteTimer = Timer.DelayCall(TimeSpan.FromSeconds(5.0), Delete);
 
                     return null;
                 }
-                else
-                {
-                    ControlOrder = OrderType.Stay;
-                }
+
+                ControlOrder = OrderType.Stay;
             }
             else
             {
@@ -286,19 +283,20 @@ namespace Server.Engines.Quests
         {
             if (Quest != null)
             {
-                EscortObjective escort = GetObjective();
+                var escort = GetObjective();
 
                 if (escort == null)
                     return false;
 
-                Mobile escorter = GetEscorter();
+                var escorter = GetEscorter();
 
                 if (escorter == null)
                     return false;
 
                 if (escort.Region != null && escort.Region.Contains(Location))
                 {
-                    Say(1042809, escorter.Name); // We have arrived! I thank thee, ~1_PLAYER_NAME~! I have no further need of thy services. Here is thy pay.
+                    Say(1042809,
+                        escorter.Name); // We have arrived! I thank thee, ~1_PLAYER_NAME~! I have no further need of thy services. Here is thy pay.
 
                     escort.Complete();
 
@@ -307,7 +305,8 @@ namespace Server.Engines.Quests
                         escorter.SendLocalizedMessage(1046258, null, 0x23); // Your quest is complete.		
 
                         if (QuestHelper.AnyRewards(Quest))
-                            escorter.SendGump(new MondainQuestGump(Quest, MondainQuestGump.Section.Rewards, false, true));
+                            escorter.SendGump(
+                                new MondainQuestGump(Quest, MondainQuestGump.Section.Rewards, false, true));
                         else
                             Quest.GiveRewards();
 
@@ -315,15 +314,15 @@ namespace Server.Engines.Quests
 
                         StopFollow();
                         m_EscortTable.Remove(escorter);
-                        m_DeleteTimer = Timer.DelayCall(TimeSpan.FromSeconds(5.0), new TimerCallback(Delete));
+                        m_DeleteTimer = Timer.DelayCall(TimeSpan.FromSeconds(5.0), Delete);
 
                         // fame
-                        Misc.Titles.AwardFame(escorter, escort.Fame, true);
+                        Titles.AwardFame(escorter, escort.Fame, true);
 
                         // compassion
-                        bool gainedPath = false;
+                        var gainedPath = false;
 
-                        PlayerMobile pm = escorter as PlayerMobile;
+                        var pm = escorter as PlayerMobile;
 
                         if (pm != null)
                         {
@@ -335,23 +334,28 @@ namespace Server.Engines.Quests
 
                             if (pm.CompassionGains >= 5) // have already gained 5 times in one day, can gain no more
                             {
-                                pm.SendLocalizedMessage(1053004); // You must wait about a day before you can gain in compassion again.
+                                pm.SendLocalizedMessage(
+                                    1053004); // You must wait about a day before you can gain in compassion again.
                             }
                             else if (VirtueHelper.Award(pm, VirtueName.Compassion, escort.Compassion, ref gainedPath))
                             {
-                                pm.SendLocalizedMessage(1074949, null, 0x2A);  // You have demonstrated your compassion!  Your kind actions have been noted.
+                                pm.SendLocalizedMessage(1074949, null,
+                                    0x2A); // You have demonstrated your compassion!  Your kind actions have been noted.
 
                                 if (gainedPath)
                                     pm.SendLocalizedMessage(1053005); // You have achieved a path in compassion!
                                 else
                                     pm.SendLocalizedMessage(1053002); // You have gained in compassion.
 
-                                pm.NextCompassionDay = DateTime.UtcNow + TimeSpan.FromDays(1.0); // in one day CompassionGains gets reset to 0
+                                pm.NextCompassionDay =
+                                    DateTime.UtcNow +
+                                    TimeSpan.FromDays(1.0); // in one day CompassionGains gets reset to 0
                                 ++pm.CompassionGains;
                             }
                             else
                             {
-                                pm.SendLocalizedMessage(1053003); // You have achieved the highest path of compassion and can no longer gain any further.
+                                pm.SendLocalizedMessage(
+                                    1053003); // You have achieved the highest path of compassion and can no longer gain any further.
                             }
                         }
                     }
@@ -365,16 +369,34 @@ namespace Server.Engines.Quests
             }
             else if (!m_Checked)
             {
-                Region region = GetDestination();
+                var region = GetDestination();
 
                 if (region != null && region.Contains(Location))
                 {
-                    m_DeleteTimer = Timer.DelayCall(TimeSpan.FromSeconds(5.0), new TimerCallback(Delete));
+                    m_DeleteTimer = Timer.DelayCall(TimeSpan.FromSeconds(5.0), Delete);
                     m_Checked = true;
                 }
             }
 
             return false;
+        }
+
+        public static void DeleteEscort(Mobile owner)
+        {
+            var pm = owner as PlayerMobile;
+
+            foreach (var escortquest in pm.Quests.Where(x => x.Quester is BaseEscort))
+            {
+                var escort = (BaseEscort)escortquest.Quester;
+
+                Timer.DelayCall(TimeSpan.FromSeconds(3), delegate
+                {
+                    escort.Say(500901); // Ack!  My escort has come to haunt me!
+                    owner.SendLocalizedMessage(1071194); // You have failed your escort quest…
+                    owner.PlaySound(0x5B3);
+                    escort.Delete();
+                });
+            }
         }
 
         private class AbandonEscortEntry : ContextMenuEntry
@@ -393,25 +415,6 @@ namespace Server.Engines.Quests
                 Owner.From.PlaySound(0x5B3);
                 m_Mobile.Delete();
             }
-        }
-
-        public static void DeleteEscort(Mobile owner)
-        {
-            PlayerMobile pm = owner as PlayerMobile;
-
-            foreach (var escortquest in pm.Quests.Where(x => x.Quester is BaseEscort))
-            {
-                BaseEscort escort = (BaseEscort)escortquest.Quester;
-
-                Timer.DelayCall(TimeSpan.FromSeconds(3), new TimerCallback(
-                delegate
-                {
-                    escort.Say(500901); // Ack!  My escort has come to haunt me!
-                    owner.SendLocalizedMessage(1071194); // You have failed your escort quest…
-                    owner.PlaySound(0x5B3);
-                    escort.Delete();
-                }));
-            }            
         }
     }
 }

@@ -9,6 +9,34 @@ namespace Server.Items
     [FlipableAttribute(0xE81, 0xE82)]
     public class ShepherdsCrook : BaseStaff
     {
+        public override WeaponAbility PrimaryAbility => WeaponAbility.CrushingBlow;
+
+        public override WeaponAbility SecondaryAbility => WeaponAbility.Disarm;
+
+        public override int AosStrengthReq => 20;
+
+        public override int AosMinDamage => 13;
+
+        public override int AosMaxDamage => 16;
+
+        public override int AosSpeed => 40;
+
+        public override float MlSpeed => 2.75f;
+
+        public override int OldStrengthReq => 10;
+
+        public override int OldMinDamage => 3;
+
+        public override int OldMaxDamage => 12;
+
+        public override int OldSpeed => 30;
+
+        public override int InitMinHits => 31;
+
+        public override int InitMaxHits => 50;
+
+        public override bool CanBeWornByGargoyles => true;
+
         [Constructable]
         public ShepherdsCrook()
             : base(0xE81)
@@ -21,110 +49,16 @@ namespace Server.Items
         {
         }
 
-        public override WeaponAbility PrimaryAbility
-        {
-            get
-            {
-                return WeaponAbility.CrushingBlow;
-            }
-        }
-        public override WeaponAbility SecondaryAbility
-        {
-            get
-            {
-                return WeaponAbility.Disarm;
-            }
-        }
-        public override int AosStrengthReq
-        {
-            get
-            {
-                return 20;
-            }
-        }
-        public override int AosMinDamage
-        {
-            get
-            {
-                return 13;
-            }
-        }
-        public override int AosMaxDamage
-        {
-            get
-            {
-                return 16;
-            }
-        }
-        public override int AosSpeed
-        {
-            get
-            {
-                return 40;
-            }
-        }
-        public override float MlSpeed
-        {
-            get
-            {
-                return 2.75f;
-            }
-        }
-        public override int OldStrengthReq
-        {
-            get
-            {
-                return 10;
-            }
-        }
-        public override int OldMinDamage
-        {
-            get
-            {
-                return 3;
-            }
-        }
-        public override int OldMaxDamage
-        {
-            get
-            {
-                return 12;
-            }
-        }
-        public override int OldSpeed
-        {
-            get
-            {
-                return 30;
-            }
-        }
-        public override int InitMinHits
-        {
-            get
-            {
-                return 31;
-            }
-        }
-        public override int InitMaxHits
-        {
-            get
-            {
-                return 50;
-            }
-        }
-
-        public override bool CanBeWornByGargoyles { get { return true; } }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         public override void OnDoubleClick(Mobile from)
@@ -135,7 +69,7 @@ namespace Server.Items
 
         private class HerdingTarget : Target
         {
-            private static readonly Type[] m_ChampTamables = new Type[]
+            private static readonly Type[] m_ChampTamables =
             {
                 typeof(StrongMongbat), typeof(Imp), typeof(Scorpion), typeof(GiantSpider),
                 typeof(Snake), typeof(LavaLizard), typeof(Drake), typeof(Dragon),
@@ -144,7 +78,7 @@ namespace Server.Items
                 typeof(LesserHiryu), typeof(Hiryu)
             };
 
-            private ShepherdsCrook m_Crook;
+            private readonly ShepherdsCrook m_Crook;
 
             public HerdingTarget(ShepherdsCrook crook)
                 : base(10, false, TargetFlags.None)
@@ -156,15 +90,16 @@ namespace Server.Items
             {
                 if (targ is BaseCreature)
                 {
-                    BaseCreature bc = (BaseCreature)targ;
+                    var bc = (BaseCreature)targ;
 
                     if (IsHerdable(bc))
                     {
                         if (bc.Controlled)
                         {
-                            bc.PrivateOverheadMessage(MessageType.Regular, 0x3B2, 502467, from.NetState); // That animal looks tame already.
+                            bc.PrivateOverheadMessage(MessageType.Regular, 0x3B2, 502467,
+                                from.NetState); // That animal looks tame already.
                         }
-                        else 
+                        else
                         {
                             from.SendLocalizedMessage(502475); // Click where you wish the animal to go.
                             from.Target = new InternalTarget(bc, m_Crook);
@@ -189,19 +124,19 @@ namespace Server.Items
                 if (bc.Tamable)
                     return true;
 
-                Map map = bc.Map;
+                var map = bc.Map;
 
-                ChampionSpawnRegion region = Region.Find(bc.Home, map) as ChampionSpawnRegion;
+                var region = Region.Find(bc.Home, map) as ChampionSpawnRegion;
 
                 if (region != null)
                 {
-                    ChampionSpawn spawn = region.ChampionSpawn;
+                    var spawn = region.ChampionSpawn;
 
                     if (spawn != null && spawn.IsChampionSpawn(bc))
                     {
-                        Type t = bc.GetType();
+                        var t = bc.GetType();
 
-                        foreach (Type type in m_ChampTamables)
+                        foreach (var type in m_ChampTamables)
                             if (type == t)
                                 return true;
                     }
@@ -212,8 +147,8 @@ namespace Server.Items
 
             private class InternalTarget : Target
             {
-                private BaseCreature m_Creature;
-                private ShepherdsCrook m_Crook;
+                private readonly BaseCreature m_Creature;
+                private readonly ShepherdsCrook m_Crook;
 
                 public InternalTarget(BaseCreature c, ShepherdsCrook crook)
                     : base(10, true, TargetFlags.None)
@@ -226,15 +161,16 @@ namespace Server.Items
                 {
                     if (targ is IPoint2D)
                     {
-                        double min = m_Creature.CurrentTameSkill - 30;
-                        double max = m_Creature.CurrentTameSkill + 30 + Utility.Random(10);
+                        var min = m_Creature.CurrentTameSkill - 30;
+                        var max = m_Creature.CurrentTameSkill + 30 + Utility.Random(10);
 
                         if (max <= from.Skills[SkillName.Herding].Value)
-                            m_Creature.PrivateOverheadMessage(MessageType.Regular, 0x3B2, 502471, from.NetState); // That wasn't even challenging.
+                            m_Creature.PrivateOverheadMessage(MessageType.Regular, 0x3B2, 502471,
+                                from.NetState); // That wasn't even challenging.
 
                         if (from.CheckTargetSkill(SkillName.Herding, m_Creature, min, max))
                         {
-                            IPoint2D p = (IPoint2D)targ;
+                            var p = (IPoint2D)targ;
 
                             if (targ != from)
                                 p = new Point2D(p.X, p.Y);
@@ -242,10 +178,7 @@ namespace Server.Items
                             m_Creature.TargetLocation = p;
                             from.SendLocalizedMessage(502479); // The animal walks where it was instructed to.
 
-                            if (Siege.SiegeShard && m_Crook is IUsesRemaining)
-                            {
-                                Siege.CheckUsesRemaining(from, m_Crook);
-                            }
+                            if (Siege.SiegeShard && m_Crook is IUsesRemaining) Siege.CheckUsesRemaining(from, m_Crook);
                         }
                         else
                         {

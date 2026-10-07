@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using Server.Commands;
 using Server.Gumps;
@@ -13,27 +14,29 @@ namespace Server.Customs.Invasion_System
 
         public static List<TownInvasion> Invasions = new List<TownInvasion>();
 
-        static Mobile _caller;
+        private static Mobile _caller;
         private static Timer _AutoInvasionTimer;
 
         public static void Initialize()
         {
             CommandSystem.Register("ListInvasions", AccessLevel.Administrator, ListInvasions_OnCommand);
-            
+
             // Запускаем таймер проверки каждую минуту (60 секунд). First старт через 10 секунд после запуска сервера.
-            _AutoInvasionTimer = Timer.DelayCall(TimeSpan.FromSeconds(10.0), TimeSpan.FromSeconds(60.0), CheckAndLaunchRandomInvasion);
+            _AutoInvasionTimer = Timer.DelayCall(TimeSpan.FromSeconds(10.0), TimeSpan.FromSeconds(60.0),
+                CheckAndLaunchRandomInvasion);
         }
 
         private static void CheckAndLaunchRandomInvasion()
         {
-            DateTime now = DateTime.Now; // Время вашего сервера (или DateTime.UtcNow для Гринвича)
+            var now = DateTime.Now; // Время вашего сервера (или DateTime.UtcNow для Гринвича)
 
             // НАСТРОЙКА: Запуск каждую Субботу (Saturday) в 18:00
             if (now.DayOfWeek == DayOfWeek.Saturday && now.Hour == 18 && now.Minute == 0)
             {
                 // Вычисляем номер текущей недели в году
-                int currentWeek = System.Globalization.CultureInfo.CurrentCulture.Calendar.GetWeekOfYear(
-                    now, System.Globalization.DateTimeFormatInfo.CurrentInfo.CalendarWeekRule, System.Globalization.DateTimeFormatInfo.CurrentInfo.FirstDayOfWeek);
+                var currentWeek = CultureInfo.CurrentCulture.Calendar.GetWeekOfYear(
+                    now, DateTimeFormatInfo.CurrentInfo.CalendarWeekRule,
+                    DateTimeFormatInfo.CurrentInfo.FirstDayOfWeek);
 
                 // Если на этой неделе авто-вторжение еще НЕ запускалось
                 if (_LastInvadedWeekOfYear != currentWeek)
@@ -42,25 +45,23 @@ namespace Server.Customs.Invasion_System
 
                     // Если уже есть хоть одно активное вторжение — отменяем запуск нового
                     foreach (var inv in Invasions)
-                    {
                         if (inv.IsRunning)
                             return;
-                    }
 
                     // Выбираем случайные параметры для еженедельного ивента
-                    Array towns = Enum.GetValues(typeof(InvasionTowns));
-                    InvasionTowns randomTown = (InvasionTowns)towns.GetValue(Utility.Random(towns.Length));
+                    var towns = Enum.GetValues(typeof(InvasionTowns));
+                    var randomTown = (InvasionTowns)towns.GetValue(Utility.Random(towns.Length));
 
-                    Array monsters = Enum.GetValues(typeof(TownMonsterType));
-                    TownMonsterType randomMonster = (TownMonsterType)monsters.GetValue(Utility.Random(monsters.Length));
+                    var monsters = Enum.GetValues(typeof(TownMonsterType));
+                    var randomMonster = (TownMonsterType)monsters.GetValue(Utility.Random(monsters.Length));
 
-                    Array champions = Enum.GetValues(typeof(TownChampionType));
-                    TownChampionType randomChamp = (TownChampionType)champions.GetValue(Utility.Random(champions.Length));
+                    var champions = Enum.GetValues(typeof(TownChampionType));
+                    var randomChamp = (TownChampionType)champions.GetValue(Utility.Random(champions.Length));
 
-                    DateTime immediateStart = DateTime.UtcNow.AddMinutes(-1.0);
+                    var immediateStart = DateTime.UtcNow.AddMinutes(-1.0);
 
                     // Создаем и принудительно запускаем ивент
-                    TownInvasion newInvasion = new TownInvasion(randomTown, randomMonster, randomChamp, immediateStart);
+                    var newInvasion = new TownInvasion(randomTown, randomMonster, randomChamp, immediateStart);
                     newInvasion.OnStart();
                 }
             }
@@ -78,6 +79,7 @@ namespace Server.Customs.Invasion_System
                 _caller.SendMessage("There are no invasions!");
                 return;
             }
+
             _caller.SendGump(new InvasionGump(Invasions));
         }
     }
@@ -94,47 +96,47 @@ namespace Server.Customs.Invasion_System
             AddBackground(100, 100, 620, 500, 5054);
             AddAlphaRegion(100, 100, 620, 500);
 
-            int y = 110;
-            int x = 110;
-            int id = 0;
+            var y = 110;
+            var x = 110;
+            var id = 0;
 
             AddHtml(x, y, 120, 20, "<BASEFONT COLOR=#ff33cc><BIG>Town", false, false);
-            AddHtml(x+120, y, 120, 20, "<BASEFONT COLOR=#ff33cc><BIG>Monster Type", false, false);
-            AddHtml(x+240, y, 120, 20, "<BASEFONT COLOR=#ff33cc><BIG>Champion", false, false);
-            AddHtml(x+360, y, 140, 20, "<BASEFONT COLOR=#ff33cc><BIG>Time Scheduled", false, false);
-            AddHtml(x+520, y, 50, 20, "<BASEFONT COLOR=#ff33cc><BIG>Stop", false, false);
-            AddHtml(x+565, y, 50, 20, "<BASEFONT COLOR=#ff33cc><BIG>Props", false, false);
+            AddHtml(x + 120, y, 120, 20, "<BASEFONT COLOR=#ff33cc><BIG>Monster Type", false, false);
+            AddHtml(x + 240, y, 120, 20, "<BASEFONT COLOR=#ff33cc><BIG>Champion", false, false);
+            AddHtml(x + 360, y, 140, 20, "<BASEFONT COLOR=#ff33cc><BIG>Time Scheduled", false, false);
+            AddHtml(x + 520, y, 50, 20, "<BASEFONT COLOR=#ff33cc><BIG>Stop", false, false);
+            AddHtml(x + 565, y, 50, 20, "<BASEFONT COLOR=#ff33cc><BIG>Props", false, false);
 
-            foreach ( var invasion in invasions)
+            foreach (var invasion in invasions)
             {
                 y += 30;
                 id += 1;
                 AddLabel(x, y, 2100, invasion.InvasionTown.ToString());
-                AddLabel(x+120, y, 2100, invasion.TownMonsterType.ToString());
-                AddLabel(x+240, y, 2100, invasion.TownChampionType.ToString());
-                AddLabel(x+360, y, 2100, invasion.IsRunning ? "Active" : invasion.StartTime.ToString());
-                AddButton(x+525, y, 210, 211, id, GumpButtonType.Reply, 0);
-                AddButton(x+570, y, 210, 211, id+100, GumpButtonType.Reply, 0);
+                AddLabel(x + 120, y, 2100, invasion.TownMonsterType.ToString());
+                AddLabel(x + 240, y, 2100, invasion.TownChampionType.ToString());
+                AddLabel(x + 360, y, 2100, invasion.IsRunning ? "Active" : invasion.StartTime.ToString());
+                AddButton(x + 525, y, 210, 211, id, GumpButtonType.Reply, 0);
+                AddButton(x + 570, y, 210, 211, id + 100, GumpButtonType.Reply, 0);
             }
         }
 
         public override void OnResponse(NetState sender, RelayInfo info)
         {
-            Mobile from = sender.Mobile;
+            var from = sender.Mobile;
 
             if (info.ButtonID == 0)
                 return;
 
             if (info.ButtonID > 100)
             {
-                int i = info.ButtonID - 101;
+                var i = info.ButtonID - 101;
                 var prop = InvasionControl.Invasions[i];
                 from.SendGump(new PropertiesGump(from, prop));
             }
             else if (info.ButtonID >= 0 && info.ButtonID < 100)
             {
-                int i = info.ButtonID - 1;
-                TownInvasion invasion = InvasionControl.Invasions[i];
+                var i = info.ButtonID - 1;
+                var invasion = InvasionControl.Invasions[i];
 
                 invasion.OnStop();
                 from.SendMessage("You have deleted the selected invasion!");
@@ -144,7 +146,7 @@ namespace Server.Customs.Invasion_System
 
     public static class InvasionPersistence
     {
-        private static string FilePath = Path.Combine("Saves", "Invasions", "Persistence.bin");
+        private static readonly string FilePath = Path.Combine("Saves", "Invasions", "Persistence.bin");
 
         public static void Configure()
         {
@@ -162,10 +164,7 @@ namespace Server.Customs.Invasion_System
 
                     writer.Write(InvasionControl.Invasions.Count);
 
-                    foreach (var m in InvasionControl.Invasions)
-                    {
-                        m.Serialize(writer);
-                    }
+                    foreach (var m in InvasionControl.Invasions) m.Serialize(writer);
                 });
         }
 

@@ -1,19 +1,14 @@
 using System;
-using Server.Mobiles;
 using System.Collections.Generic;
+using Server.Mobiles;
+using Server.Targeting;
 
 namespace Server.Items
 {
     public class ScouringToxin : Item, IUsesRemaining, ICommodity
     {
-        public override int LabelNumber { get { return 1112292; } } // scouring toxin
-
         private int m_UsesRemaining;
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int UsesRemaining { get { return m_UsesRemaining; } set { m_UsesRemaining = value; if (m_UsesRemaining <= 0) Delete(); else InvalidateProperties(); } }
-
-        public bool ShowUsesRemaining { get { return false; } set { { } } }
+        public override int LabelNumber => 1112292; // scouring toxin
 
         [Constructable]
         public ScouringToxin()
@@ -26,6 +21,36 @@ namespace Server.Items
             : base(0x1848)
         {
             m_UsesRemaining = amount;
+        }
+
+        public ScouringToxin(Serial serial)
+            : base(serial)
+        {
+        }
+
+        TextDefinition ICommodity.Description => LabelNumber;
+        bool ICommodity.IsDeedable => true;
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int UsesRemaining
+        {
+            get => m_UsesRemaining;
+            set
+            {
+                m_UsesRemaining = value;
+                if (m_UsesRemaining <= 0) Delete();
+                else InvalidateProperties();
+            }
+        }
+
+        public bool ShowUsesRemaining
+        {
+            get => false;
+            set
+            {
+                {
+                }
+            }
         }
 
         public override void AddNameProperty(ObjectPropertyList list)
@@ -41,7 +66,7 @@ namespace Server.Items
             if (IsChildOf(from.Backpack))
             {
                 from.SendLocalizedMessage(1112348); // Which item do you wish to scour?
-                from.BeginTarget(-1, false, Server.Targeting.TargetFlags.None, new TargetCallback(OnTarget));
+                from.BeginTarget(-1, false, TargetFlags.None, OnTarget);
             }
         }
 
@@ -67,28 +92,30 @@ namespace Server.Items
                 {
                     if (!(from is PlayerMobile) || !((PlayerMobile)from).BasketWeaving)
                     {
-                        from.SendLocalizedMessage(1112253); //You haven't learned basket weaving. Perhaps studying a book would help!
+                        from.SendLocalizedMessage(
+                            1112253); //You haven't learned basket weaving. Perhaps studying a book would help!
                     }
                     else
                     {
-                        DryReeds reed1 = (DryReeds)targeted;
-                        Container cont = from.Backpack;
+                        var reed1 = (DryReeds)targeted;
+                        var cont = from.Backpack;
 
-                        Server.Engines.Plants.PlantHue hue = reed1.PlantHue;
+                        var hue = reed1.PlantHue;
 
                         if (!reed1.IsChildOf(from.Backpack))
+                        {
                             from.SendLocalizedMessage(1116249); //That must be in your backpack for you to use it.
+                        }
                         else if (cont != null)
                         {
-                            Item[] items = cont.FindItemsByType(typeof(DryReeds));
-                            List<Item> list = new List<Item>();
-                            int total = 0;
+                            var items = cont.FindItemsByType(typeof(DryReeds));
+                            var list = new List<Item>();
+                            var total = 0;
 
-                            foreach (Item it in items)
-                            {
+                            foreach (var it in items)
                                 if (it is DryReeds)
                                 {
-                                    DryReeds check = (DryReeds)it;
+                                    var check = (DryReeds)it;
 
                                     if (reed1.PlantHue == check.PlantHue)
                                     {
@@ -96,13 +123,12 @@ namespace Server.Items
                                         list.Add(it);
                                     }
                                 }
-                            }
 
-                            int toConsume = 2;
+                            var toConsume = 2;
 
                             if (list.Count > 0 && total > 1)
                             {
-                                foreach (Item it in list)
+                                foreach (var it in list)
                                 {
                                     if (it.Amount >= toConsume)
                                     {
@@ -119,7 +145,7 @@ namespace Server.Items
                                         break;
                                 }
 
-                                SoftenedReeds sReed = new SoftenedReeds(hue);
+                                var sReed = new SoftenedReeds(hue);
 
                                 if (!from.Backpack.TryDropItem(from, sReed, false))
                                     sReed.MoveToWorld(from.Location, from.Map);
@@ -134,7 +160,10 @@ namespace Server.Items
                                 from.PlaySound(0x23E);
                             }
                             else
-                                from.SendLocalizedMessage(1112250); //You don't have enough of this type of dry reeds to make that.
+                            {
+                                from.SendLocalizedMessage(
+                                    1112250); //You don't have enough of this type of dry reeds to make that.
+                            }
                         }
                     }
                 }
@@ -164,27 +193,18 @@ namespace Server.Items
 
         private static bool IsInTypeList(Type t, Type[] list)
         {
-            for (int i = 0; i < list.Length; i++)
-            {
-                if (list[i] == t) return true;
-            }
+            for (var i = 0; i < list.Length; i++)
+                if (list[i] == t)
+                    return true;
 
             return false;
         }
-
-        public ScouringToxin(Serial serial)
-            : base(serial)
-        {
-        }
-
-        TextDefinition ICommodity.Description { get { return LabelNumber; } }
-        bool ICommodity.IsDeedable { get { return true; } }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)2); // version
+            writer.Write(2); // version
             writer.Write(m_UsesRemaining);
         }
 
@@ -192,7 +212,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (version > 0)
                 m_UsesRemaining = reader.ReadInt();

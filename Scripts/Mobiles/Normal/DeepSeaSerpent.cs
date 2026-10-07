@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +5,13 @@ namespace Server.Mobiles
     [CorpseName("a deep sea serpents corpse")]
     public class DeepSeaSerpent : BaseCreature
     {
+        public override int TreasureMapLevel => 2;
+        public override int Meat => 10;
+        public override int Hides => 10;
+        public override HideType HideType => HideType.Horned;
+        public override int Scales => 8;
+        public override ScaleType ScaleType => ScaleType.Blue;
+
         [Constructable]
         public DeepSeaSerpent()
             : base(AIType.AI_Mage, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -56,13 +62,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override int TreasureMapLevel { get { return 2; } }
-        public override int Meat { get { return 10; } }
-		public override int Hides { get { return 10; } }
-        public override HideType HideType { get { return HideType.Horned; } }
-        public override int Scales { get { return 8; } }
-        public override ScaleType ScaleType { get { return ScaleType.Blue; } }
-
         public override void GenerateLoot()
         {
             AddLoot(LootPack.Meager);
@@ -71,13 +70,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

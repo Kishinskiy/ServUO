@@ -1,5 +1,6 @@
 using System;
 using Server.Mobiles;
+using Server.Network;
 
 namespace Server.Ethics.Evil
 {
@@ -7,7 +8,7 @@ namespace Server.Ethics.Evil
     {
         public SummonFamiliar()
         {
-            this.m_Definition = new PowerDefinition(
+            m_Definition = new PowerDefinition(
                 5,
                 "Summon Familiar",
                 "Trubechs Vingir",
@@ -21,23 +22,24 @@ namespace Server.Ethics.Evil
 
             if (from.Familiar != null)
             {
-                from.Mobile.LocalOverheadMessage(Server.Network.MessageType.Regular, 0x3B2, false, "You already have an unholy familiar.");
+                from.Mobile.LocalOverheadMessage(MessageType.Regular, 0x3B2, false,
+                    "You already have an unholy familiar.");
                 return;
             }
 
-            if ((from.Mobile.Followers + 1) > from.Mobile.FollowersMax)
+            if (from.Mobile.Followers + 1 > from.Mobile.FollowersMax)
             {
                 from.Mobile.SendLocalizedMessage(1049645); // You have too many followers to summon that creature.
                 return;
             }
 
-            UnholyFamiliar familiar = new UnholyFamiliar();
+            var familiar = new UnholyFamiliar();
 
-            if (Mobiles.BaseCreature.Summon(familiar, from.Mobile, from.Mobile.Location, 0x217, TimeSpan.FromHours(1.0)))
+            if (BaseCreature.Summon(familiar, from.Mobile, from.Mobile.Location, 0x217, TimeSpan.FromHours(1.0)))
             {
                 from.Familiar = familiar;
 
-                this.FinishInvoke(from);
+                FinishInvoke(from);
             }
         }
     }

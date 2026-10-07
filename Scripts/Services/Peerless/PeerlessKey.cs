@@ -5,17 +5,31 @@ namespace Server.Items
     public class PeerlessKey : Item
     {
         private int m_Lifespan;
-        private Timer m_Timer;
 
         private Map m_Map;
+        private Timer m_Timer;
 
         [CommandProperty(AccessLevel.GameMaster)]
         public Map _Map
         {
-            get { return m_Map; }
+            get => m_Map;
             set
             {
                 m_Map = value;
+                InvalidateProperties();
+            }
+        }
+
+        public virtual int Lifespan => 604800;
+        public virtual bool UseSeconds => false;
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int TimeLeft
+        {
+            get => m_Lifespan;
+            set
+            {
+                m_Lifespan = value;
                 InvalidateProperties();
             }
         }
@@ -36,20 +50,6 @@ namespace Server.Items
         public PeerlessKey(Serial serial)
             : base(serial)
         {
-        }
-
-        public virtual int Lifespan { get { return 604800; } }
-        public virtual bool UseSeconds { get { return false; } }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int TimeLeft
-        {
-            get { return m_Lifespan; }
-            set
-            {
-                m_Lifespan = value;
-                InvalidateProperties();
-            }
         }
 
         public override void GetProperties(ObjectPropertyList list)
@@ -73,15 +73,17 @@ namespace Server.Items
             if (Lifespan > 0)
             {
                 if (UseSeconds)
+                {
                     list.Add(1072517, m_Lifespan.ToString()); // Lifespan: ~1_val~ seconds
+                }
                 else
                 {
-                    TimeSpan t = TimeSpan.FromSeconds(TimeLeft);
+                    var t = TimeSpan.FromSeconds(TimeLeft);
 
-                    int weeks = (int)t.Days / 7;
-                    int days = t.Days;
-                    int hours = t.Hours;
-                    int minutes = t.Minutes;
+                    var weeks = t.Days / 7;
+                    var days = t.Days;
+                    var hours = t.Hours;
+                    var minutes = t.Minutes;
 
                     if (weeks > 1)
                         list.Add(1153092, (t.Days / 7).ToString()); // Lifespan: ~1_val~ weeks
@@ -102,7 +104,7 @@ namespace Server.Items
             if (m_Timer != null)
                 return;
 
-            m_Timer = Timer.DelayCall(TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10), new TimerCallback(Slice));
+            m_Timer = Timer.DelayCall(TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10), Slice);
             m_Timer.Priority = TimerPriority.OneSecond;
         }
 
@@ -128,19 +130,21 @@ namespace Server.Items
         {
             if (RootParent is Mobile)
             {
-                Mobile parent = (Mobile)RootParent;
+                var parent = (Mobile)RootParent;
 
                 if (Name == null)
                     parent.SendLocalizedMessage(1072515, "#" + LabelNumber); // The ~1_name~ expired...
                 else
                     parent.SendLocalizedMessage(1072515, Name); // The ~1_name~ expired...
 
-                Effects.SendLocationParticles(EffectItem.Create(parent.Location, parent.Map, EffectItem.DefaultDuration), 0x3728, 8, 20, 5042);
+                Effects.SendLocationParticles(
+                    EffectItem.Create(parent.Location, parent.Map, EffectItem.DefaultDuration), 0x3728, 8, 20, 5042);
                 Effects.PlaySound(parent.Location, parent.Map, 0x201);
             }
             else
             {
-                Effects.SendLocationParticles(EffectItem.Create(Location, Map, EffectItem.DefaultDuration), 0x3728, 8, 20, 5042);
+                Effects.SendLocationParticles(EffectItem.Create(Location, Map, EffectItem.DefaultDuration), 0x3728, 8,
+                    20, 5042);
                 Effects.PlaySound(Location, Map, 0x201);
             }
 
@@ -151,31 +155,31 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1); // version
+            writer.Write(1); // version
 
             writer.Write(m_Map);
-            writer.Write((int)m_Lifespan);
+            writer.Write(m_Lifespan);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             switch (version)
             {
                 case 1:
-                    {
-                        m_Map = reader.ReadMap();
+                {
+                    m_Map = reader.ReadMap();
 
-                        goto case 0;
-                    }
+                    goto case 0;
+                }
                 case 0:
-                    {
-                        m_Lifespan = reader.ReadInt();
+                {
+                    m_Lifespan = reader.ReadInt();
 
-                        break;
-                    }
+                    break;
+                }
             }
 
             StartTimer();

@@ -1,8 +1,5 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
-
-using Server;
 using Server.Mobiles;
 
 namespace Server.Engines.Quests
@@ -16,20 +13,14 @@ namespace Server.Engines.Quests
 
         public static List<BaseQuest> GetQuests(PlayerMobile pm)
         {
-            if (!QuestData.ContainsKey(pm))
-            {
-                QuestData[pm] = new List<BaseQuest>(); 
-            }
+            if (!QuestData.ContainsKey(pm)) QuestData[pm] = new List<BaseQuest>();
 
             return QuestData[pm];
         }
 
         public static Dictionary<QuestChain, BaseChain> GetChains(PlayerMobile pm)
         {
-            if (!ChainData.ContainsKey(pm))
-            {
-                ChainData[pm] = new Dictionary<QuestChain, BaseChain>();
-            }
+            if (!ChainData.ContainsKey(pm)) ChainData[pm] = new Dictionary<QuestChain, BaseChain>();
 
             return ChainData[pm];
         }
@@ -70,7 +61,7 @@ namespace Server.Engines.Quests
             {
                 ChainData[pm].Remove(chain);
 
-                if(ChainData[pm].Count == 0)
+                if (ChainData[pm].Count == 0)
                     ChainData.Remove(pm);
             }
         }
@@ -116,25 +107,25 @@ namespace Server.Engines.Quests
                 FilePath,
                 reader =>
                 {
-                    int version = reader.ReadInt();
+                    var version = reader.ReadInt();
 
-                    int count = reader.ReadInt();
-                    for (int i = 0; i < count; i++)
+                    var count = reader.ReadInt();
+                    for (var i = 0; i < count; i++)
                     {
-                        PlayerMobile pm = reader.ReadMobile() as PlayerMobile;
+                        var pm = reader.ReadMobile() as PlayerMobile;
 
-                        List<BaseQuest> quests = QuestReader.Quests(reader, pm);
+                        var quests = QuestReader.Quests(reader, pm);
 
                         if (pm != null)
                             QuestData[pm] = quests;
                     }
 
                     count = reader.ReadInt();
-                    for (int i = 0; i < count; i++)
+                    for (var i = 0; i < count; i++)
                     {
-                        PlayerMobile pm = reader.ReadMobile() as PlayerMobile;
+                        var pm = reader.ReadMobile() as PlayerMobile;
 
-                        Dictionary<QuestChain, BaseChain> dic = QuestReader.Chains(reader);
+                        var dic = QuestReader.Chains(reader);
 
                         if (pm != null)
                             ChainData[pm] = dic;

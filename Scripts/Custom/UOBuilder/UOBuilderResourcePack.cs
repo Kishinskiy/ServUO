@@ -5,7 +5,7 @@ namespace Server.Custom.UOBuilder
     public class UOBuilderResourcePack : Item
     {
         [CommandProperty(AccessLevel.GameMaster)]
-        public int ResourceAmount { get; private set; } = UOBuilderConfig.ResourceAmount;
+        public int ResourceAmount { get; } = UOBuilderConfig.ResourceAmount;
 
         [Constructable]
         public UOBuilderResourcePack() : base(0xAF9E)
@@ -16,15 +16,15 @@ namespace Server.Custom.UOBuilder
             LootType = LootType.Blessed;
         }
 
+        public UOBuilderResourcePack(Serial serial) : base(serial)
+        {
+        }
+
         public override void GetProperties(ObjectPropertyList list)
         {
             base.GetProperties(list);
 
             list.Add($"Adds {ResourceAmount} resources to a building permit.");
-        }
-
-        public UOBuilderResourcePack(Serial serial) : base(serial)
-        {
         }
 
         public override void OnDoubleClick(Mobile from)
@@ -52,7 +52,7 @@ namespace Server.Custom.UOBuilder
         {
             base.Deserialize(reader);
 
-            _= reader.ReadInt();
+            _ = reader.ReadInt();
         }
 
         internal void ConsumeRes(Mobile from)

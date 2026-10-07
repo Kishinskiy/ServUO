@@ -1,4 +1,3 @@
-using System;
 using Server.Engines.Craft;
 using Server.Engines.VeteranRewards;
 using Server.Gumps;
@@ -7,7 +6,7 @@ namespace Server.Items
 {
     public class GlassKilnAddon : CraftAddon
     {
-        public override CraftSystem CraftSystem { get { return DefGlassblowing.CraftSystem; } }
+        public override CraftSystem CraftSystem => DefGlassblowing.CraftSystem;
 
         [CommandProperty(AccessLevel.GameMaster)]
         public bool IsRewardItem { get; set; }
@@ -16,7 +15,7 @@ namespace Server.Items
         {
             get
             {
-                GlassKilnDeed deed = new GlassKilnDeed(Tools.Count > 0 ? Tools[0].UsesRemaining : 0)
+                var deed = new GlassKilnDeed(Tools.Count > 0 ? Tools[0].UsesRemaining : 0)
                 {
                     IsRewardItem = IsRewardItem
                 };
@@ -31,11 +30,15 @@ namespace Server.Items
             switch (type)
             {
                 case DirectionType.South:
-                    AddCraftComponent(new AddonToolComponent(CraftSystem, 0xA530, 0xA531, 1157072, 1157073, 1126312, uses, this), 0, 0, 0);
+                    AddCraftComponent(
+                        new AddonToolComponent(CraftSystem, 0xA530, 0xA531, 1157072, 1157073, 1126312, uses, this), 0,
+                        0, 0);
                     AddComponent(new ToolDropComponent(0xA52E, 1015081), 0, 1, 0);
                     break;
                 case DirectionType.East:
-                    AddCraftComponent(new AddonToolComponent(CraftSystem, 0xA534, 0xA535, 1157072, 1157073, 1126312, uses, this), 0, 0, 0);
+                    AddCraftComponent(
+                        new AddonToolComponent(CraftSystem, 0xA534, 0xA535, 1157072, 1157073, 1126312, uses, this), 0,
+                        0, 0);
                     AddComponent(new ToolDropComponent(0xA52F, 1015081), 1, 0, 0);
                     break;
             }
@@ -49,15 +52,15 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
 
-            writer.Write((bool)IsRewardItem);
+            writer.Write(IsRewardItem);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             IsRewardItem = reader.ReadBool();
         }
@@ -65,33 +68,21 @@ namespace Server.Items
 
     public class GlassKilnDeed : CraftAddonDeed, IRewardItem, IRewardOption
     {
-        public override int LabelNumber { get { return 1159420; } } // Glass Kiln
+        private DirectionType _Direction;
+
+        private bool m_IsRewardItem;
+        public override int LabelNumber => 1159420; // Glass Kiln
 
         public override BaseAddon Addon
         {
             get
             {
-                GlassKilnAddon addon = new GlassKilnAddon(_Direction, UsesRemaining)
+                var addon = new GlassKilnAddon(_Direction, UsesRemaining)
                 {
                     IsRewardItem = m_IsRewardItem
                 };
 
                 return addon;
-            }
-        }
-
-        private DirectionType _Direction;
-
-        private bool m_IsRewardItem;
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public bool IsRewardItem
-        {
-            get { return m_IsRewardItem; }
-            set
-            {
-                m_IsRewardItem = value;
-                InvalidateProperties();
             }
         }
 
@@ -113,12 +104,15 @@ namespace Server.Items
         {
         }
 
-        public override void GetProperties(ObjectPropertyList list)
+        [CommandProperty(AccessLevel.GameMaster)]
+        public bool IsRewardItem
         {
-            base.GetProperties(list);
-
-            if (m_IsRewardItem)
-                list.Add(1076223); // 7th Year Veteran Reward
+            get => m_IsRewardItem;
+            set
+            {
+                m_IsRewardItem = value;
+                InvalidateProperties();
+            }
         }
 
         public void GetOptions(RewardOptionList list)
@@ -133,6 +127,14 @@ namespace Server.Items
 
             if (!Deleted)
                 base.OnDoubleClick(from);
+        }
+
+        public override void GetProperties(ObjectPropertyList list)
+        {
+            base.GetProperties(list);
+
+            if (m_IsRewardItem)
+                list.Add(1076223); // 7th Year Veteran Reward
         }
 
         public override void OnDoubleClick(Mobile from)
@@ -151,15 +153,15 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
 
-            writer.Write((bool)m_IsRewardItem);
+            writer.Write(m_IsRewardItem);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             m_IsRewardItem = reader.ReadBool();
         }

@@ -1,4 +1,3 @@
-using System;
 using Server.Gumps;
 using Server.Multis;
 using Server.Network;
@@ -7,6 +6,8 @@ namespace Server.Items
 {
     public class ClawFootTubAddon : BaseAddon
     {
+        public override BaseAddonDeed Deed => new ClawFootTubDeed();
+
         [Constructable]
         public ClawFootTubAddon(DirectionType type)
         {
@@ -25,45 +26,47 @@ namespace Server.Items
             }
         }
 
+        public ClawFootTubAddon(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void OnComponentUsed(AddonComponent c, Mobile from)
         {
-            if ((from.InRange(c.Location, 3)))
+            if (from.InRange(c.Location, 3))
             {
-                BaseHouse house = BaseHouse.FindHouseAt(from);
+                var house = BaseHouse.FindHouseAt(from);
 
-                if (house != null && (house.IsOwner(from) || (house.LockDowns.ContainsKey(this) && house.LockDowns[this] == from)))
-                {
+                if (house != null && (house.IsOwner(from) ||
+                                      (house.LockDowns.ContainsKey(this) && house.LockDowns[this] == from)))
                     Components.ForEach(x =>
                     {
-                        switch(x.ItemID)
+                        switch (x.ItemID)
                         {
                             case 0x996D:
-                                {
-                                    x.ItemID = 0x9972;
-                                    break;
-                                }
+                            {
+                                x.ItemID = 0x9972;
+                                break;
+                            }
                             case 0x9972:
-                                {
-                                    x.ItemID = 0x996D;
-                                    break;
-                                }
+                            {
+                                x.ItemID = 0x996D;
+                                break;
+                            }
                             case 0x9978:
-                                {
-                                    x.ItemID = 0x997D;
-                                    break;
-                                }
+                            {
+                                x.ItemID = 0x997D;
+                                break;
+                            }
                             case 0x997D:
-                                {
-                                    x.ItemID = 0x9978;
-                                    break;
-                                }
+                            {
+                                x.ItemID = 0x9978;
+                                break;
+                            }
                         }
                     });
-                }
                 else
-                {
                     from.SendLocalizedMessage(502092); // You must be in your house to do this.
-                }
             }
             else
             {
@@ -71,37 +74,28 @@ namespace Server.Items
             }
         }
 
-        public ClawFootTubAddon(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override BaseAddonDeed Deed { get { return new ClawFootTubDeed(); } }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class ClawFootTubDeed : BaseAddonDeed, IRewardOption
     {
-        public override int LabelNumber { get { return 1154632; } } // Claw Foot Tub
-
-        public override BaseAddon Addon { get { return new ClawFootTubAddon(_Direction); } }
-
         private DirectionType _Direction;
+        public override int LabelNumber => 1154632; // Claw Foot Tub
+
+        public override BaseAddon Addon => new ClawFootTubAddon(_Direction);
 
         [Constructable]
         public ClawFootTubDeed()
-            : base()
         {
             LootType = LootType.Blessed;
         }
@@ -141,13 +135,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

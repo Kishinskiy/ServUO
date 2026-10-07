@@ -1,10 +1,9 @@
-using System;
-
 namespace Server.Items
 {
     public class ArtifactVase : Item
     {
-		public override bool IsArtifact { get { return true; } }
+        public override bool IsArtifact => true;
+
         [Constructable]
         public ArtifactVase()
             : base(0x0B48)
@@ -20,14 +19,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -1,14 +1,15 @@
-using System;
 using Server.Engines.Craft;
 
 namespace Server.Items
 {
-    [Anvil, Flipable(0xFAF, 0xFB0)]
+    [Anvil]
+    [Flipable(0xFAF, 0xFB0)]
     public class ColoredAnvil : Item
     {
         [Constructable]
         public ColoredAnvil()
-            : this(CraftResources.GetHue((CraftResource)Utility.RandomMinMax((int)CraftResource.DullCopper, (int)CraftResource.Valorite)))
+            : this(CraftResources.GetHue(
+                (CraftResource)Utility.RandomMinMax((int)CraftResource.DullCopper, (int)CraftResource.Valorite)))
         {
         }
 
@@ -16,8 +17,8 @@ namespace Server.Items
         public ColoredAnvil(int hue)
             : base(0xFAF)
         {
-            this.Hue = hue;
-            this.Weight = 20;
+            Hue = hue;
+            Weight = 20;
         }
 
         public ColoredAnvil(Serial serial)
@@ -28,13 +29,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

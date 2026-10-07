@@ -1,5 +1,4 @@
-﻿using System;
-using Server.Engines.Quests;
+﻿using Server.Engines.Quests;
 using Server.Mobiles;
 using Server.Network;
 
@@ -20,12 +19,14 @@ namespace Server.Items
         {
             if (from is PlayerMobile)
             {
-                PlayerMobile m = from as PlayerMobile;
+                var m = from as PlayerMobile;
 
-                if (m.ExploringTheDeepQuest == ExploringTheDeepQuestChain.HeplerPaulsonComplete || from.Region.Name == "Custeau Perron House")
+                if (m.ExploringTheDeepQuest == ExploringTheDeepQuestChain.HeplerPaulsonComplete ||
+                    from.Region.Name == "Custeau Perron House")
                 {
                     base.OnDoubleClick(from);
-                    from.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1154223); // *You knock on the door but there is no answer.  You decide to let yourself in...*
+                    from.LocalOverheadMessage(MessageType.Regular, 0x3B2,
+                        1154223); // *You knock on the door but there is no answer.  You decide to let yourself in...*
                 }
                 else
                 {
@@ -37,13 +38,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer) // Default Serialize method
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader) // Default Deserialize method
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

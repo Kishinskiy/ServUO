@@ -1,6 +1,3 @@
-using System;
-using Server;
-using Server.Mobiles;
 using System.Collections.Generic;
 using Server.Engines.HuntsmasterChallenge;
 
@@ -8,13 +5,14 @@ namespace Server.Items
 {
     public class HuntingDisplayTrophy : Item
     {
+        private static readonly List<HuntingDisplayTrophy> m_DisplayTrophies = new List<HuntingDisplayTrophy>();
         private HuntType m_HuntType;
 
         public override int LabelNumber
         {
             get
             {
-                HuntingTrophyInfo info = HuntingTrophyInfo.GetInfo(m_HuntType);
+                var info = HuntingTrophyInfo.GetInfo(m_HuntType);
 
                 if (info != null && info.Species.Number > 0)
                     return info.Species.Number;
@@ -26,22 +24,12 @@ namespace Server.Items
         [CommandProperty(AccessLevel.GameMaster)]
         public HuntType HuntType
         {
-            get { return m_HuntType; }
+            get => m_HuntType;
             set
             {
                 m_HuntType = value;
                 InvalidateType();
             }
-        }
-
-        public void InvalidateType()
-        {
-            HuntingTrophyInfo info = HuntingTrophyInfo.GetInfo(m_HuntType);
-
-            if (info != null)
-                ItemID = info.SouthID;
-
-            InvalidateProperties();
         }
 
         [Constructable]
@@ -58,6 +46,21 @@ namespace Server.Items
             m_DisplayTrophies.Add(this);
         }
 
+        public HuntingDisplayTrophy(Serial serial)
+            : base(serial)
+        {
+        }
+
+        public void InvalidateType()
+        {
+            var info = HuntingTrophyInfo.GetInfo(m_HuntType);
+
+            if (info != null)
+                ItemID = info.SouthID;
+
+            InvalidateProperties();
+        }
+
         public override void GetProperties(ObjectPropertyList list)
         {
             base.GetProperties(list);
@@ -68,7 +71,7 @@ namespace Server.Items
             if (!HuntingSystem.Instance.Leaders.ContainsKey(m_HuntType))
                 HuntingSystem.Instance.Leaders[m_HuntType] = new List<HuntingKillEntry>();
 
-            List<HuntingKillEntry> entries = HuntingSystem.Instance.Leaders[m_HuntType];
+            var entries = HuntingSystem.Instance.Leaders[m_HuntType];
             HuntingKillEntry entry = null;
 
             if (entries.Count > 0)
@@ -76,7 +79,7 @@ namespace Server.Items
 
             if (entry != null)
             {
-                HuntingTrophyInfo info = HuntingTrophyInfo.GetInfo(m_HuntType);
+                var info = HuntingTrophyInfo.GetInfo(m_HuntType);
 
                 if (info != null)
                 {
@@ -91,7 +94,7 @@ namespace Server.Items
                     if (info.MeasuredBy == MeasuredBy.Length)
                         list.Add(1155711, entry.Measurement.ToString()); // Length: ~1_VAL~
                     else if (info.MeasuredBy == MeasuredBy.Wingspan)
-                        list.Add(1155710, entry.Measurement.ToString());	// Wingspan: ~1_VAL~
+                        list.Add(1155710, entry.Measurement.ToString()); // Wingspan: ~1_VAL~
                     else
                         list.Add(1072789, entry.Measurement.ToString()); // Weight: ~1_WEIGHT~
                 }
@@ -101,15 +104,11 @@ namespace Server.Items
                 list.Add("Season Ends: {0}", HuntingSystem.Instance.SeasonEnds.ToShortDateString());
         }
 
-        private static List<HuntingDisplayTrophy> m_DisplayTrophies = new List<HuntingDisplayTrophy>();
-
         public static void InvalidateDisplayTrophies()
         {
-            foreach (HuntingDisplayTrophy trophy in m_DisplayTrophies)
-            {
-                if(trophy != null && !trophy.Deleted)
+            foreach (var trophy in m_DisplayTrophies)
+                if (trophy != null && !trophy.Deleted)
                     trophy.InvalidateProperties();
-            }
         }
 
         public override void Delete()
@@ -120,15 +119,10 @@ namespace Server.Items
             base.Delete();
         }
 
-        public HuntingDisplayTrophy(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
 
             writer.Write((int)m_HuntType);
         }
@@ -136,7 +130,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int v = reader.ReadInt();
+            var v = reader.ReadInt();
 
             m_HuntType = (HuntType)reader.ReadInt();
 

@@ -1,10 +1,6 @@
 using System;
-using Server;
-using Server.Mobiles;
 using Server.Engines.Points;
-using Server.Items;
-using System.Collections.Generic;
-using System.Linq;
+using Server.Mobiles;
 
 namespace Server.Engines.ShameRevamped
 {
@@ -48,8 +44,8 @@ namespace Server.Engines.ShameRevamped
 
         public Timer DeadLineTimer { get; set; }
 
-        public override int LabelNumber { get { return 1151636; } } // Guardian's Altar
-        public override bool ForceShowProperties { get { return true; } }
+        public override int LabelNumber => 1151636; // Guardian's Altar
+        public override bool ForceShowProperties => true;
 
         public ShameAltar(Type type, Point3D teleLoc, Point3D teleDest, Point3D spawnLoc, int cost, bool active = true)
             : base(13801)
@@ -70,28 +66,40 @@ namespace Server.Engines.ShameRevamped
             NextSummon = DateTime.UtcNow;
         }
 
+        public ShameAltar(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void OnMapChange()
         {
             base.OnMapChange();
 
             if (Teleporter != null)
-                Teleporter.Map = this.Map;
+                Teleporter.Map = Map;
         }
 
         public override void OnDoubleClick(Mobile from)
         {
-            if (Active && from.InRange(this.Location, 3))
+            if (Active && from.InRange(Location, 3))
                 CheckSummon(from);
         }
 
         public void CheckSummon(Mobile from)
         {
             if (PointsSystem.ShameCrystals.GetPoints(from) < SummonCost)
+            {
                 from.SendLocalizedMessage(1151623); // You are not yet worthy of challenging the champion.
+            }
             else if (Guardian != null)
+            {
                 from.SendLocalizedMessage(1151621); // The champion for this dungeon level has already been summoned.
+            }
             else if (NextSummon > DateTime.UtcNow)
-                from.SendLocalizedMessage(1151622); // The champion has recently been defeated, and cannot be summoned again for a few minutes.
+            {
+                from.SendLocalizedMessage(
+                    1151622); // The champion has recently been defeated, and cannot be summoned again for a few minutes.
+            }
             else
             {
                 SpawnGuardian();
@@ -102,8 +110,11 @@ namespace Server.Engines.ShameRevamped
                 if (Teleporter == null || Teleporter.Deleted)
                     SpawnTeleporter();
 
-                from.SendLocalizedMessage(1151620); // The champion accepts your challenge. You have one hour to find and defeat him!
-                from.SendLocalizedMessage(1151625, SummonCost.ToString()); // Summoning the dungeon level's champion costs you ~1_COST~ Crystals of Shame.
+                from.SendLocalizedMessage(
+                    1151620); // The champion accepts your challenge. You have one hour to find and defeat him!
+                from.SendLocalizedMessage(1151625,
+                    SummonCost
+                        .ToString()); // Summoning the dungeon level's champion costs you ~1_COST~ Crystals of Shame.
                 StartDeadlineTimer();
             }
         }
@@ -112,7 +123,7 @@ namespace Server.Engines.ShameRevamped
         {
             Guardian = Activator.CreateInstance(GuardianType) as ShameGuardian;
             Guardian.Altar = this;
-            Guardian.MoveToWorld(SpawnLocation, this.Map);
+            Guardian.MoveToWorld(SpawnLocation, Map);
 
             Guardian.Home = SpawnLocation;
             Guardian.RangeHome = 8;
@@ -136,13 +147,13 @@ namespace Server.Engines.ShameRevamped
         }
 
         public void StartDeadlineTimer()
-		{
-			if(DeadLineTimer != null)
-				DeadLineTimer.Stop();
-		
-			DeadLineTimer = Timer.DelayCall(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1), CheckDeadLine);
-			DeadLineTimer.Start();
-		}
+        {
+            if (DeadLineTimer != null)
+                DeadLineTimer.Stop();
+
+            DeadLineTimer = Timer.DelayCall(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1), CheckDeadLine);
+            DeadLineTimer.Start();
+        }
 
         public void EndDeadLineTimer()
         {
@@ -168,30 +179,23 @@ namespace Server.Engines.ShameRevamped
             if (Teleporter != null)
                 Teleporter.Delete();
 
-            if (this.Map == null || this.Map == Map.Internal)
+            if (Map == null || Map == Map.Internal)
                 return;
 
-            IPooledEnumerable eable = this.Map.GetItemsInRange(TeleporterLocation, 0);
+            IPooledEnumerable eable = Map.GetItemsInRange(TeleporterLocation, 0);
             foreach (Item item in eable)
-            {
                 if (item is ShameTeleporter)
                     item.Delete();
-            }
             eable.Free();
 
-            Teleporter = new ShameTeleporter(TeleporterDestination, this.Map);
-            Teleporter.MoveToWorld(TeleporterLocation, this.Map);
-        }
-
-        public ShameAltar(Serial serial)
-            : base(serial)
-        {
+            Teleporter = new ShameTeleporter(TeleporterDestination, Map);
+            Teleporter.MoveToWorld(TeleporterLocation, Map);
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
 
             writer.Write(Teleporter);
             writer.Write(TeleporterLocation);
@@ -208,7 +212,7 @@ namespace Server.Engines.ShameRevamped
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             Teleporter = reader.ReadItem() as ShameTeleporter;
             TeleporterLocation = reader.ReadPoint3D();
@@ -229,7 +233,9 @@ namespace Server.Engines.ShameRevamped
                     StartDeadlineTimer();
                 }
                 else
+                {
                     DeadLine = DateTime.MinValue;
+                }
             }
             else if (Guardian != null)
             {

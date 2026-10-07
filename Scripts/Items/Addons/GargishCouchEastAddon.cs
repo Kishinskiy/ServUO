@@ -1,32 +1,20 @@
-using System;
-
 namespace Server.Items
 {
     public class GargishCouchEastAddon : BaseAddon
     {
-        public override BaseAddonDeed Deed
-        {
-            get
-            {
-                return new GargishCouchEastDeed();
-            }
-        }
+        public override BaseAddonDeed Deed => new GargishCouchEastDeed();
 
         #region Mondain's Legacy
-        public override bool RetainDeedHue
-        {
-            get
-            {
-                return true;
-            }
-        }
+
+        public override bool RetainDeedHue => true;
+
         #endregion
 
         [Constructable]
         public GargishCouchEastAddon()
         {
-            this.AddComponent(new AddonComponent(0x402A), 0, 0, 0);
-            this.AddComponent(new AddonComponent(0x4029), 0, -1, 0);
+            AddComponent(new AddonComponent(0x402A), 0, 0, 0);
+            AddComponent(new AddonComponent(0x4029), 0, -1, 0);
         }
 
         public GargishCouchEastAddon(Serial serial)
@@ -45,26 +33,15 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class GargishCouchEastDeed : BaseAddonDeed
     {
-        public override BaseAddon Addon
-        {
-            get
-            {
-                return new GargishCouchEastAddon();
-            }
-        }
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1111776;
-            }
-        }// gargish couch (East)
+        public override BaseAddon Addon => new GargishCouchEastAddon();
+
+        public override int LabelNumber => 1111776; // gargish couch (East)
 
         [Constructable]
         public GargishCouchEastDeed()
@@ -87,7 +64,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

@@ -1,15 +1,14 @@
-using System;
-using Server.Items;
 using Server.Engines.Quests;
+using Server.Items;
 
 namespace Server.Mobiles
 {
     public class Kevin : HumilityQuestMobile
     {
-        public override int Greeting { get { return 1075759; } }
+        public override int Greeting => 1075759;
 
-        public override bool IsActiveVendor { get { return true; } }
-        public override bool CanTeach { get { return true; } }
+        public override bool IsActiveVendor => true;
+        public override bool CanTeach => true;
 
         [Constructable]
         public Kevin()
@@ -18,49 +17,49 @@ namespace Server.Mobiles
             SetSkill(SkillName.Anatomy, 45.0, 68.0);
         }
 
-        public override void InitSBInfo()
-        {
-            SBInfos.Add(new SBButcher());
-        }
-
         public Kevin(Serial serial)
             : base(serial)
         {
         }
 
+        public override void InitSBInfo()
+        {
+            SBInfos.Add(new SBButcher());
+        }
+
         public override void InitBody()
         {
-            this.InitStats(100, 100, 25);
+            InitStats(100, 100, 25);
 
-            this.Female = false;
-            this.Race = Race.Human;
-            this.Body = 0x190;
+            Female = false;
+            Race = Race.Human;
+            Body = 0x190;
 
-            this.Hue = Race.RandomSkinHue();
-            this.HairItemID = Race.RandomHair(false);
-            this.HairHue = Race.RandomHairHue();
+            Hue = Race.RandomSkinHue();
+            HairItemID = Race.RandomHair(false);
+            HairHue = Race.RandomHairHue();
         }
 
         public override void InitOutfit()
         {
             base.InitOutfit();
 
-            AddItem(new Server.Items.HalfApron());
-            AddItem(new Server.Items.Cleaver());
+            AddItem(new HalfApron());
+            AddItem(new Cleaver());
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

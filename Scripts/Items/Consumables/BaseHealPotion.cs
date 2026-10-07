@@ -5,6 +5,10 @@ namespace Server.Items
 {
     public abstract class BaseHealPotion : BasePotion
     {
+        public abstract int MinHeal { get; }
+        public abstract int MaxHeal { get; }
+        public abstract double Delay { get; }
+
         public BaseHealPotion(PotionEffect effect)
             : base(0xF0C, effect)
         {
@@ -15,27 +19,24 @@ namespace Server.Items
         {
         }
 
-        public abstract int MinHeal { get; }
-        public abstract int MaxHeal { get; }
-        public abstract double Delay { get; }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         public void DoHeal(Mobile from)
         {
-            int min = Scale(from, this.MinHeal);
-            int max = Scale(from, this.MaxHeal);
+            var min = Scale(from, MinHeal);
+            var max = Scale(from, MaxHeal);
 
             from.Heal(Utility.RandomMinMax(min, max));
         }
@@ -46,7 +47,8 @@ namespace Server.Items
             {
                 if (from.Poisoned || MortalStrike.IsWounded(from))
                 {
-                    from.LocalOverheadMessage(MessageType.Regular, 0x22, 1005000); // You can not heal yourself in your current state.
+                    from.LocalOverheadMessage(MessageType.Regular, 0x22,
+                        1005000); // You can not heal yourself in your current state.
                 }
                 else
                 {
@@ -56,17 +58,19 @@ namespace Server.Items
                         PlayDrinkEffect(from);
                         Consume();
 
-                        Timer.DelayCall(TimeSpan.FromSeconds(this.Delay), new TimerStateCallback(ReleaseHealLock), from);
+                        Timer.DelayCall(TimeSpan.FromSeconds(Delay), new TimerStateCallback(ReleaseHealLock), from);
                     }
                     else
                     {
-                        from.LocalOverheadMessage(MessageType.Regular, 0x22, 500235); // You must wait 10 seconds before using another healing potion.
+                        from.LocalOverheadMessage(MessageType.Regular, 0x22,
+                            500235); // You must wait 10 seconds before using another healing potion.
                     }
                 }
             }
             else
             {
-                from.SendLocalizedMessage(1049547); // You decide against drinking this potion, as you are already at full health.
+                from.SendLocalizedMessage(
+                    1049547); // You decide against drinking this potion, as you are already at full health.
             }
         }
 

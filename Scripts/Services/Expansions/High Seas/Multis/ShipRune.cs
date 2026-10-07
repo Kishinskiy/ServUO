@@ -1,5 +1,3 @@
-using Server;
-using System;
 using Server.Multis;
 
 namespace Server.Items
@@ -8,23 +6,21 @@ namespace Server.Items
     [FlipableAttribute(0x1f14, 0x1f15, 0x1f16, 0x1f17)]
     public class ShipRune : Item
     {
-        private BaseGalleon m_Galleon;
-
         [CommandProperty(AccessLevel.GameMaster)]
-        public BaseGalleon Galleon { get { return m_Galleon; } set { m_Galleon = value; } }
+        public BaseGalleon Galleon { get; set; }
 
         public BaseDockedBoat DockedBoat
         {
             get
             {
-                if (m_Galleon != null)
-                    return m_Galleon.BoatItem;
+                if (Galleon != null)
+                    return Galleon.BoatItem;
 
                 return null;
             }
         }
 
-        public override int LabelNumber { get { return 1149570; } } //A Ship Rune
+        public override int LabelNumber => 1149570; //A Ship Rune
 
         [Constructable]
         public ShipRune() : this(null)
@@ -34,8 +30,12 @@ namespace Server.Items
         [Constructable]
         public ShipRune(BaseGalleon galleon) : base(0x1F14)
         {
-            m_Galleon = galleon;
+            Galleon = galleon;
             Hue = 0x47F;
+        }
+
+        public ShipRune(Serial serial) : base(serial)
+        {
         }
 
         public override void OnDoubleClick(Mobile from)
@@ -48,7 +48,7 @@ namespace Server.Items
             {
                 if (Galleon != null)
                 {
-                    RecallRune rune = new RecallRune();
+                    var rune = new RecallRune();
                     rune.SetGalleon(Galleon);
                     from.AddToBackpack(rune);
                 }
@@ -61,39 +61,38 @@ namespace Server.Items
         {
             base.GetProperties(list);
 
-            if (m_Galleon != null)
+            if (Galleon != null)
             {
-                list.Add(1149571, m_Galleon.Owner != null ? m_Galleon.Owner.Name : "Nobody"); //Owner: ~1_NAME~
+                list.Add(1149571, Galleon.Owner != null ? Galleon.Owner.Name : "Nobody"); //Owner: ~1_NAME~
 
-                if (m_Galleon.ShipName != null)
-                    list.Add(1149572, m_Galleon.ShipName); //Name: the ~1_NAME~
-                else list.Add(1149573);                    //Name: the Unnamed Ship
+                if (Galleon.ShipName != null)
+                    list.Add(1149572, Galleon.ShipName); //Name: the ~1_NAME~
+                else list.Add(1149573); //Name: the Unnamed Ship
 
-                if (m_Galleon.Map != Map.Internal)
-                    list.Add(1149574, m_Galleon.Map != null ? m_Galleon.Map.ToString() : "Unknown"); //Location: ~1_FACET~
+                if (Galleon.Map != Map.Internal)
+                {
+                    list.Add(1149574, Galleon.Map != null ? Galleon.Map.ToString() : "Unknown"); //Location: ~1_FACET~
+                }
                 else
                 {
-                    string name = m_Galleon.ShipName != null && m_Galleon.ShipName != "" ? m_Galleon.ShipName : "Unnamed Ship";
+                    var name = Galleon.ShipName != null && Galleon.ShipName != "" ? Galleon.ShipName : "Unnamed Ship";
                     list.Add(1041644, name); //The ~1_VAL~ (Dry Docked)
                 }
-
             }
         }
-
-        public ShipRune(Serial serial) : base(serial) { }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1);
-            writer.Write(m_Galleon);
+            writer.Write(1);
+            writer.Write(Galleon);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
-            m_Galleon = reader.ReadItem() as BaseGalleon;
+            var version = reader.ReadInt();
+            Galleon = reader.ReadItem() as BaseGalleon;
             if (version == 0)
                 reader.ReadItem();
         }

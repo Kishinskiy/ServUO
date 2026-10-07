@@ -1,9 +1,9 @@
-using System;
-
 namespace Server.Items
 {
     public class DecorativeVines : Item
     {
+        public override bool ForceShowProperties => ObjectPropertyList.Enabled;
+
         [Constructable]
         public DecorativeVines()
             : this(Utility.Random(4))
@@ -17,8 +17,8 @@ namespace Server.Items
             if (v < 0 || v > 3)
                 v = 0;
 
-            this.ItemID += v;
-            this.Weight = 1.0;
+            ItemID += v;
+            Weight = 1.0;
         }
 
         public DecorativeVines(Serial serial)
@@ -26,25 +26,18 @@ namespace Server.Items
         {
         }
 
-        public override bool ForceShowProperties
-        {
-            get
-            {
-                return ObjectPropertyList.Enabled;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

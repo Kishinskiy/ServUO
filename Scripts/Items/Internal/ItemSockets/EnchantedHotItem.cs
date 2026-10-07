@@ -6,7 +6,7 @@ namespace Server.Items
     {
         public Container Container { get; set; }
 
-        public override TimeSpan TickDuration { get { return TimeSpan.FromSeconds(3); } }
+        public override TimeSpan TickDuration => TimeSpan.FromSeconds(3);
 
         public EnchantedHotItemSocket()
         {
@@ -22,21 +22,15 @@ namespace Server.Items
         protected override void OnTick()
         {
             if (Owner == null || Owner.Deleted)
-            {
                 EndTimer();
-            }
             else if (Owner.RootParent is Mobile)
-            {
                 if (((Mobile)Owner.RootParent).Region.IsPartOf("Wrong"))
                 {
                     AOS.Damage((Mobile)Owner.RootParent, Utility.RandomMinMax(10, 13), 0, 100, 0, 0, 0);
 
                     if (0.2 > Utility.RandomDouble())
-                    {
                         ((Mobile)Owner.RootParent).SendLocalizedMessage(1152086); // Ouch! These stolen items are hot!
-                    }
                 }
-            }
         }
 
         public override void GetProperties(ObjectPropertyList list)
@@ -48,33 +42,26 @@ namespace Server.Items
         public override void OnRemoved()
         {
             if (Owner is BaseWeapon)
-            {
                 Owner.Hue = ((BaseWeapon)Owner).GetElementalDamageHue();
-            }
             else
-            {
                 Owner.Hue = 0;
-            }
         }
 
         public override void OnAfterDuped(ItemSocket oldSocket)
         {
-            if (oldSocket is EnchantedHotItemSocket)
-            {
-                Container = ((EnchantedHotItemSocket)oldSocket).Container;
-            }
+            if (oldSocket is EnchantedHotItemSocket) Container = ((EnchantedHotItemSocket)oldSocket).Container;
         }
 
         public static void OnEnterRegion(OnEnterRegionEventArgs e)
         {
-            Mobile m = e.From;
+            var m = e.From;
 
             if (!m.Player || e.OldRegion == null || e.NewRegion == null || m.Backpack == null)
                 return;
 
             if (e.OldRegion.IsPartOf("Wrong") && !e.NewRegion.IsPartOf("Wrong"))
             {
-                bool found = false;
+                var found = false;
 
                 m.Backpack.Items.IterateReverse(i =>
                 {
@@ -87,10 +74,7 @@ namespace Server.Items
                     }
                 });
 
-                if (found)
-                {
-                    m.SendLocalizedMessage(1152085); // The curse is removed from the item you stole!
-                }
+                if (found) m.SendLocalizedMessage(1152085); // The curse is removed from the item you stole!
             }
         }
 
@@ -100,20 +84,17 @@ namespace Server.Items
 
             if (socket != null)
             {
-                Container c = socket.Container;
+                var c = socket.Container;
 
                 if (droppedTo != c && droppedTo != from.Backpack)
                 {
-                    from.SendLocalizedMessage(1152083); // The stolen item magically returns to the trunk where you found it.
+                    from.SendLocalizedMessage(
+                        1152083); // The stolen item magically returns to the trunk where you found it.
 
                     if (c != null)
-                    {
                         c.DropItem(dropped);
-                    }
                     else
-                    {
                         dropped.Delete();
-                    }
 
                     return false;
                 }
@@ -128,18 +109,15 @@ namespace Server.Items
 
             if (socket != null)
             {
-                Container c = socket.Container;
+                var c = socket.Container;
 
-                from.SendLocalizedMessage(1152083); // The stolen item magically returns to the trunk where you found it.
+                from.SendLocalizedMessage(
+                    1152083); // The stolen item magically returns to the trunk where you found it.
 
                 if (c != null)
-                {
                     c.DropItem(dropped);
-                }
                 else
-                {
                     dropped.Delete();
-                }
 
                 return false;
             }

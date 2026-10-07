@@ -1,17 +1,9 @@
-using System;
-using Server;
-
 namespace Server.Items
 {
     public class Cannonball : Item, ICommodity, ICannonAmmo
     {
-        public override int LabelNumber { get { return 1116266; } }
-        public override double DefaultWeight { get { return 1.0; } }
-
-        TextDefinition ICommodity.Description { get { return LabelNumber; } }
-        bool ICommodity.IsDeedable { get { return true; } }
-
-        public virtual AmmunitionType AmmoType { get { return AmmunitionType.Cannonball; } }
+        public override int LabelNumber => 1116266;
+        public override double DefaultWeight => 1.0;
 
         [Constructable]
         public Cannonball() : this(1)
@@ -31,29 +23,33 @@ namespace Server.Items
             Amount = amount;
         }
 
-        public Cannonball(Serial serial) : base(serial) { }
+        public Cannonball(Serial serial) : base(serial)
+        {
+        }
+
+        public virtual AmmunitionType AmmoType => AmmunitionType.Cannonball;
+
+        TextDefinition ICommodity.Description => LabelNumber;
+        bool ICommodity.IsDeedable => true;
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class FrostCannonball : Cannonball, ICommodity
     {
-        public override int LabelNumber { get { return 1116267; } }
+        public override int LabelNumber => 1116267;
 
-        TextDefinition ICommodity.Description { get { return LabelNumber; } }
-        bool ICommodity.IsDeedable { get { return true; } }
-
-        public override AmmunitionType AmmoType { get { return AmmunitionType.FrostCannonball; } }
+        public override AmmunitionType AmmoType => AmmunitionType.FrostCannonball;
 
         [Constructable]
         public FrostCannonball() : this(1)
@@ -73,29 +69,31 @@ namespace Server.Items
             Amount = amount;
         }
 
-        public FrostCannonball(Serial serial) : base(serial) { }
+        public FrostCannonball(Serial serial) : base(serial)
+        {
+        }
+
+        TextDefinition ICommodity.Description => LabelNumber;
+        bool ICommodity.IsDeedable => true;
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class FlameCannonball : Cannonball, ICommodity
     {
-        public override int LabelNumber { get { return 1116759; } }
+        public override int LabelNumber => 1116759;
 
-        TextDefinition ICommodity.Description { get { return LabelNumber; } }
-        bool ICommodity.IsDeedable { get { return true; } }
-
-        public override AmmunitionType AmmoType { get { return AmmunitionType.FlameCannonball; } }
+        public override AmmunitionType AmmoType => AmmunitionType.FlameCannonball;
 
         [Constructable]
         public FlameCannonball() : this(1)
@@ -115,30 +113,30 @@ namespace Server.Items
             Amount = amount;
         }
 
-        public FlameCannonball(Serial serial) : base(serial) { }
+        public FlameCannonball(Serial serial) : base(serial)
+        {
+        }
+
+        TextDefinition ICommodity.Description => LabelNumber;
+        bool ICommodity.IsDeedable => true;
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class LightCannonball : Item, ICommodity, ICannonAmmo
     {
-        public override int LabelNumber { get { return 1116266; } }
-        public override double DefaultWeight { get { return 1.0; } }
-
-        TextDefinition ICommodity.Description { get { return LabelNumber; } }
-        bool ICommodity.IsDeedable { get { return true; } }
-
-        public virtual AmmunitionType AmmoType { get { return AmmunitionType.Cannonball; } }
+        public override int LabelNumber => 1116266;
+        public override double DefaultWeight => 1.0;
 
         [Constructable]
         public LightCannonball() : this(1)
@@ -158,35 +156,34 @@ namespace Server.Items
             Amount = amount;
         }
 
-        public LightCannonball(Serial serial) : base(serial) { }
+        public LightCannonball(Serial serial) : base(serial)
+        {
+        }
+
+        public virtual AmmunitionType AmmoType => AmmunitionType.Cannonball;
+
+        TextDefinition ICommodity.Description => LabelNumber;
+        bool ICommodity.IsDeedable => true;
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            if (Core.EJ)
-            {
-                Replacer.Replace(this, new Cannonball());
-            }
+            if (Core.EJ) Replacer.Replace(this, new Cannonball());
         }
     }
 
     public class HeavyCannonball : Item, ICommodity, ICannonAmmo
     {
-        public override int LabelNumber { get { return 1116267; } }
-        public override double DefaultWeight { get { return 1.0; } }
-
-        TextDefinition ICommodity.Description { get { return LabelNumber; } }
-        bool ICommodity.IsDeedable { get { return true; } }
-
-        public virtual AmmunitionType AmmoType { get { return AmmunitionType.Cannonball; } }
+        public override int LabelNumber => 1116267;
+        public override double DefaultWeight => 1.0;
 
         [Constructable]
         public HeavyCannonball() : this(1)
@@ -204,34 +201,35 @@ namespace Server.Items
             Amount = amount;
         }
 
-        public HeavyCannonball(Serial serial) : base(serial) { }
+        public HeavyCannonball(Serial serial) : base(serial)
+        {
+        }
+
+        public virtual AmmunitionType AmmoType => AmmunitionType.Cannonball;
+
+        TextDefinition ICommodity.Description => LabelNumber;
+        bool ICommodity.IsDeedable => true;
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            if (Core.EJ)
-            {
-                Replacer.Replace(this, new Cannonball());
-            }
+            if (Core.EJ) Replacer.Replace(this, new Cannonball());
         }
     }
 
     public class LightFlameCannonball : Cannonball, ICommodity
     {
-        public override int LabelNumber { get { return 1116759; } }
+        public override int LabelNumber => 1116759;
 
-        TextDefinition ICommodity.Description { get { return LabelNumber; } }
-        bool ICommodity.IsDeedable { get { return true; } }
-
-        public override AmmunitionType AmmoType { get { return AmmunitionType.FlameCannonball; } }
+        public override AmmunitionType AmmoType => AmmunitionType.FlameCannonball;
 
         [Constructable]
         public LightFlameCannonball() : this(1)
@@ -243,34 +241,33 @@ namespace Server.Items
         {
         }
 
-        public LightFlameCannonball(Serial serial) : base(serial) { }
+        public LightFlameCannonball(Serial serial) : base(serial)
+        {
+        }
+
+        TextDefinition ICommodity.Description => LabelNumber;
+        bool ICommodity.IsDeedable => true;
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            if (Core.EJ)
-            {
-                Replacer.Replace(this, new FlameCannonball());
-            }
+            if (Core.EJ) Replacer.Replace(this, new FlameCannonball());
         }
     }
 
     public class HeavyFlameCannonball : Cannonball, ICommodity
     {
-        public override int LabelNumber { get { return 1116267; } }
+        public override int LabelNumber => 1116267;
 
-        TextDefinition ICommodity.Description { get { return LabelNumber; } }
-        bool ICommodity.IsDeedable { get { return true; } }
-
-        public override AmmunitionType AmmoType { get { return AmmunitionType.FlameCannonball; } }
+        public override AmmunitionType AmmoType => AmmunitionType.FlameCannonball;
 
         [Constructable]
         public HeavyFlameCannonball()
@@ -284,34 +281,33 @@ namespace Server.Items
         {
         }
 
-        public HeavyFlameCannonball(Serial serial) : base(serial) { }
+        public HeavyFlameCannonball(Serial serial) : base(serial)
+        {
+        }
+
+        TextDefinition ICommodity.Description => LabelNumber;
+        bool ICommodity.IsDeedable => true;
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            if (Core.EJ)
-            {
-                Replacer.Replace(this, new FlameCannonball());
-            }
+            if (Core.EJ) Replacer.Replace(this, new FlameCannonball());
         }
     }
 
     public class LightFrostCannonball : Cannonball, ICommodity
     {
-        public override int LabelNumber { get { return 1116759; } }
+        public override int LabelNumber => 1116759;
 
-        TextDefinition ICommodity.Description { get { return LabelNumber; } }
-        bool ICommodity.IsDeedable { get { return true; } }
-
-        public override AmmunitionType AmmoType { get { return AmmunitionType.FrostCannonball; } }
+        public override AmmunitionType AmmoType => AmmunitionType.FrostCannonball;
 
         [Constructable]
         public LightFrostCannonball()
@@ -325,34 +321,33 @@ namespace Server.Items
         {
         }
 
-        public LightFrostCannonball(Serial serial) : base(serial) { }
+        public LightFrostCannonball(Serial serial) : base(serial)
+        {
+        }
+
+        TextDefinition ICommodity.Description => LabelNumber;
+        bool ICommodity.IsDeedable => true;
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            if (Core.EJ)
-            {
-                Replacer.Replace(this, new FrostCannonball());
-            }
+            if (Core.EJ) Replacer.Replace(this, new FrostCannonball());
         }
     }
 
     public class HeavyFrostCannonball : Cannonball, ICommodity
     {
-        public override int LabelNumber { get { return 1116267; } }
+        public override int LabelNumber => 1116267;
 
-        TextDefinition ICommodity.Description { get { return LabelNumber; } }
-        bool ICommodity.IsDeedable { get { return true; } }
-
-        public override AmmunitionType AmmoType { get { return AmmunitionType.FrostCannonball; } }
+        public override AmmunitionType AmmoType => AmmunitionType.FrostCannonball;
 
         [Constructable]
         public HeavyFrostCannonball()
@@ -366,23 +361,25 @@ namespace Server.Items
         {
         }
 
-        public HeavyFrostCannonball(Serial serial) : base(serial) { }
+        public HeavyFrostCannonball(Serial serial) : base(serial)
+        {
+        }
+
+        TextDefinition ICommodity.Description => LabelNumber;
+        bool ICommodity.IsDeedable => true;
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            if (Core.EJ)
-            {
-                Replacer.Replace(this, new FrostCannonball());
-            }
+            if (Core.EJ) Replacer.Replace(this, new FrostCannonball());
         }
     }
 }

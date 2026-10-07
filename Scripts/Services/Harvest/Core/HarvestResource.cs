@@ -4,6 +4,12 @@ namespace Server.Engines.Harvest
 {
     public class HarvestResource
     {
+        public Type[] Types { get; set; }
+        public double ReqSkill { get; set; }
+        public double MinSkill { get; set; }
+        public double MaxSkill { get; set; }
+        public object SuccessMessage { get; }
+
         public HarvestResource(double reqSkill, double minSkill, double maxSkill, object message, params Type[] types)
         {
             ReqSkill = reqSkill;
@@ -12,12 +18,6 @@ namespace Server.Engines.Harvest
             Types = types;
             SuccessMessage = message;
         }
-
-        public Type[] Types { get; set; }
-        public double ReqSkill { get; set; }
-        public double MinSkill { get; set; }
-        public double MaxSkill { get; set; }
-        public object SuccessMessage { get; }
 
         public void SendSuccessTo(Mobile m)
         {

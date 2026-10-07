@@ -52,5 +52,5 @@ sudo pacman -S make mono dotnet-sdk dotnet-runtime
 5. ???
 6. Profit!
 
-    [ServUO]: <https://www.servuo.dev>
+   [ServUO]: <https://www.servuo.dev>
 

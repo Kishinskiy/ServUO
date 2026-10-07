@@ -1,12 +1,24 @@
-using System;
+using Server.Engines.Craft;
 using Server.Items;
+using Server.SkillHandlers;
 
 namespace Server.Mobiles
 {
     [CorpseName("a fire beetle corpse")]
-    [Server.Engines.Craft.Forge]
+    [Forge]
     public class FireBeetle : BaseMount
     {
+        public override bool SubdueBeforeTame => true; // Must be beaten into submission
+        public override bool StatLossAfterTame => true;
+
+        public virtual double BoostedSpeed => 0.1;
+
+        public override bool ReduceSpeedWithDamage => false;
+
+        public override int Meat => 16;
+
+        public override FoodType FavoriteFood => FoodType.Meat;
+
         [Constructable]
         public FireBeetle()
             : base("a fire beetle", 0xA9, 0x3E95, AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -50,48 +62,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool SubdueBeforeTame
-        {
-            get
-            {
-                return true;
-            }
-        }// Must be beaten into submission
-        public override bool StatLossAfterTame
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public virtual double BoostedSpeed
-        {
-            get
-            {
-                return 0.1;
-            }
-        }
-        public override bool ReduceSpeedWithDamage
-        {
-            get
-            {
-                return false;
-            }
-        }
-        public override int Meat
-        {
-            get
-            {
-                return 16;
-            }
-        }
-        public override FoodType FavoriteFood
-        {
-            get
-            {
-                return FoodType.Meat;
-            }
-        }
         public override void OnHarmfulSpell(Mobile from)
         {
             if (!Controlled && ControlMaster == null)
@@ -140,10 +110,7 @@ namespace Server.Mobiles
             {
                 var profile = PetTrainingHelper.GetAbilityProfile(this);
 
-                if (profile != null && profile.HasCustomized())
-                {
-                    return base.GetControlChance(m, useBaseSkill);
-                }
+                if (profile != null && profile.HasCustomized()) return base.GetControlChance(m, useBaseSkill);
             }
 
             return 1.0;
@@ -153,32 +120,26 @@ namespace Server.Mobiles
         {
             base.OnAfterTame(tamer);
 
-            if (Owners.Count == 0 && PetTrainingHelper.Enabled)
-            {
-                SetInt(500);
-            }
+            if (Owners.Count == 0 && PetTrainingHelper.Enabled) SetInt(500);
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)3); // version
+            writer.Write(3); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (version < 2 && Controlled && RawStr >= 300 && ControlSlots == ControlSlotsMin)
-            {
-                Server.SkillHandlers.AnimalTaming.ScaleStats(this, 0.5);
-            }
+                AnimalTaming.ScaleStats(this, 0.5);
 
             if (PetTrainingHelper.Enabled && version == 2)
-            {
                 if (version < 1 && PetTrainingHelper.Enabled && ControlSlots <= 3)
                 {
                     var profile = PetTrainingHelper.GetAbilityProfile(this);
@@ -190,12 +151,8 @@ namespace Server.Mobiles
                         ControlSlots = 1;
                     }
 
-                    if ((ControlMaster != null || IsStabled) && Int < 500)
-                    {
-                        SetInt(500);
-                    }
+                    if ((ControlMaster != null || IsStabled) && Int < 500) SetInt(500);
                 }
-            }
 
             if (version == 0)
                 Hue = 0x489;

@@ -1,16 +1,15 @@
-using System;
-using Server;
-using Server.Targeting;
-using Server.Network;
+using Server.Engines.CannedEvil;
 using Server.Multis;
+using Server.Network;
 using Server.Regions;
+using Server.Targeting;
 
 namespace Server.Gumps
 {
     public class BoatPlacementGump : Gump
     {
-        private Item m_Item;
-        private Mobile m_From;
+        private readonly Mobile m_From;
+        private readonly Item m_Item;
 
         public BoatPlacementGump(Item item, Mobile from)
             : base(0, 0)
@@ -40,11 +39,11 @@ namespace Server.Gumps
 
         public override void OnResponse(NetState sender, RelayInfo info)
         {
-            int id = 0;
-            Point3D offset = Point3D.Zero;
+            var id = 0;
+            var offset = Point3D.Zero;
             Direction direction;
 
-            if(info.ButtonID == 0)
+            if (info.ButtonID == 0)
                 return;
 
             switch (info.ButtonID)
@@ -76,9 +75,9 @@ namespace Server.Gumps
 
         private class InternalTarget : MultiTarget
         {
-            private Item m_Item;
-            private Direction m_Facing;
-            private int m_ItemID;
+            private readonly Direction m_Facing;
+            private readonly Item m_Item;
+            private readonly int m_ItemID;
 
             public InternalTarget(int itemID, Point3D offset, Item item, Direction facing)
                 : base(itemID, offset)
@@ -90,21 +89,25 @@ namespace Server.Gumps
 
             protected override void OnTarget(Mobile from, object o)
             {
-                IPoint3D ip = o as IPoint3D;
+                var ip = o as IPoint3D;
 
                 if (ip != null)
                 {
                     if (ip is Item)
                         ip = ((Item)ip).GetWorldTop();
 
-                    Point3D p = new Point3D(ip);
+                    var p = new Point3D(ip);
 
-                    Region region = Region.Find(p, from.Map);
+                    var region = Region.Find(p, from.Map);
 
                     if (region.IsPartOf<DungeonRegion>())
+                    {
                         from.SendLocalizedMessage(502488); // You can not place a ship inside a dungeon.
-                    else if (region.IsPartOf<HouseRegion>() || region.IsPartOf<Engines.CannedEvil.ChampionSpawnRegion>())
+                    }
+                    else if (region.IsPartOf<HouseRegion>() || region.IsPartOf<ChampionSpawnRegion>())
+                    {
                         from.SendLocalizedMessage(1042549); // A boat may not be placed in this area.
+                    }
                     else
                     {
                         if (m_Item is BaseBoatDeed)
@@ -114,7 +117,6 @@ namespace Server.Gumps
                     }
                 }
             }
-
         }
     }
 }

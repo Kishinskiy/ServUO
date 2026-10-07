@@ -1,21 +1,17 @@
-using System;
-using Server;
-using System.Collections.Generic;
-using Server.Mobiles;
 using Server.Items;
 
 namespace Server.Engines.VvV
 {
     public class VvVGargishStoneChest : GargishStoneChest
     {
-        public override int BasePhysicalResistance { get { return 17; } }
-        public override int BaseFireResistance { get { return 19; } }
-        public override int BaseColdResistance { get { return 18; } }
-        public override int BasePoisonResistance { get { return 3; } }
-        public override int BaseEnergyResistance { get { return 6; } }
+        public override int BasePhysicalResistance => 17;
+        public override int BaseFireResistance => 19;
+        public override int BaseColdResistance => 18;
+        public override int BasePoisonResistance => 3;
+        public override int BaseEnergyResistance => 6;
 
-        public override int InitMinHits { get { return 255; } }
-        public override int InitMaxHits { get { return 255; } }
+        public override int InitMinHits => 255;
+        public override int InitMaxHits => 255;
 
         public VvVGargishStoneChest()
         {
@@ -39,7 +35,7 @@ namespace Server.Engines.VvV
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
 
             if (version == 0)
@@ -49,14 +45,14 @@ namespace Server.Engines.VvV
 
     public class VvVStuddedChest : StuddedChest
     {
-        public override int BasePhysicalResistance { get { return 17; } }
-        public override int BaseFireResistance { get { return 19; } }
-        public override int BaseColdResistance { get { return 18; } }
-        public override int BasePoisonResistance { get { return 3; } }
-        public override int BaseEnergyResistance { get { return 6; } }
+        public override int BasePhysicalResistance => 17;
+        public override int BaseFireResistance => 19;
+        public override int BaseColdResistance => 18;
+        public override int BasePoisonResistance => 3;
+        public override int BaseEnergyResistance => 6;
 
-        public override int InitMinHits { get { return 255; } }
-        public override int InitMaxHits { get { return 255; } }
+        public override int InitMinHits => 255;
+        public override int InitMaxHits => 255;
 
         public VvVStuddedChest()
         {
@@ -80,7 +76,7 @@ namespace Server.Engines.VvV
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
 
             if (version == 0)

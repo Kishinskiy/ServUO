@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -11,7 +10,7 @@ namespace Server.Mobiles
             : base(AIType.AI_Mage, FightMode.Closest, 10, 1, 0.2, 0.4)
         {
             Name = "a lava elemental";
-            Body = 720; 
+            Body = 720;
 
             SetStr(446, 510);
             SetDex(160, 190);
@@ -56,21 +55,36 @@ namespace Server.Mobiles
             AddLoot(LootPack.MedScrolls);
         }
 
-        public override int GetAttackSound() { return 0x60A; }
-        public override int GetDeathSound() { return 0x60B; }
-        public override int GetHurtSound() { return 0x60C; }
-        public override int GetIdleSound() { return 0x60D; }
+        public override int GetAttackSound()
+        {
+            return 0x60A;
+        }
+
+        public override int GetDeathSound()
+        {
+            return 0x60B;
+        }
+
+        public override int GetHurtSound()
+        {
+            return 0x60C;
+        }
+
+        public override int GetIdleSound()
+        {
+            return 0x60D;
+        }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

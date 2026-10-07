@@ -1,7 +1,4 @@
-﻿using Server;
-using System;
-using Server.Items;
-using Server.Mobiles;
+﻿using System.IO;
 using Server.Multis;
 
 namespace Server.Network
@@ -14,12 +11,12 @@ namespace Server.Network
             EnsureCapacity(length);
 
             length = (short)(((length & 0xff) << 8) | ((length >> 8) & 0xff));
-            m_Stream.Seek(1, System.IO.SeekOrigin.Begin);
+            m_Stream.Seek(1, SeekOrigin.Begin);
             m_Stream.Write(length);
 
             m_Stream.Write((short)0x19);
             m_Stream.Write((byte)0x05);
-            m_Stream.Write((int)m.Serial);
+            m_Stream.Write(m.Serial);
             m_Stream.Write((byte)0x00);
 
             m_Stream.Write((byte)0xFF);
@@ -36,15 +33,15 @@ namespace Server.Network
         public BoatEquipPacket(Mobile to, BaseBoat boat)
             : base(0x2E, 15)
         {
-            Serial parentSerial = to.Serial;
+            var parentSerial = to.Serial;
 
-            int hue = boat.Hue;
+            var hue = boat.Hue;
 
-            m_Stream.Write((int)boat.Serial);
+            m_Stream.Write(boat.Serial);
             m_Stream.Write((short)boat.ItemID);
             m_Stream.Write((byte)0);
             m_Stream.Write((byte)boat.Layer);
-            m_Stream.Write((int)parentSerial);
+            m_Stream.Write(parentSerial);
             m_Stream.Write((short)hue);
         }
     }

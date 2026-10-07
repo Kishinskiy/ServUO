@@ -4,7 +4,7 @@ namespace Server.Factions
 {
     public class VendorDefinition
     {
-        private static readonly VendorDefinition[] m_Definitions = new VendorDefinition[]
+        public static VendorDefinition[] Definitions { get; } =
         {
             new VendorDefinition(typeof(FactionBottleVendor), 0xF0E,
                 5000,
@@ -37,81 +37,33 @@ namespace Server.Factions
                 new TextDefinition(1011556, "HORSE BREEDER"),
                 new TextDefinition(1011555, "Buy Horse Breeder"))
         };
-        private readonly Type m_Type;
-        private readonly int m_Price;
-        private readonly int m_Upkeep;
-        private readonly int m_Maximum;
-        private readonly int m_ItemID;
-        private readonly TextDefinition m_Header;
-        private readonly TextDefinition m_Label;
-        public VendorDefinition(Type type, int itemID, int price, int upkeep, int maximum, TextDefinition header, TextDefinition label)
-        {
-            this.m_Type = type;
 
-            this.m_Price = price;
-            this.m_Upkeep = upkeep;
-            this.m_Maximum = maximum;
-            this.m_ItemID = itemID;
+        public Type Type { get; }
 
-            this.m_Header = header;
-            this.m_Label = label;
-        }
+        public int Price { get; }
 
-        public static VendorDefinition[] Definitions
+        public int Upkeep { get; }
+
+        public int Maximum { get; }
+
+        public int ItemID { get; }
+
+        public TextDefinition Header { get; }
+
+        public TextDefinition Label { get; }
+
+        public VendorDefinition(Type type, int itemID, int price, int upkeep, int maximum, TextDefinition header,
+            TextDefinition label)
         {
-            get
-            {
-                return m_Definitions;
-            }
-        }
-        public Type Type
-        {
-            get
-            {
-                return this.m_Type;
-            }
-        }
-        public int Price
-        {
-            get
-            {
-                return this.m_Price;
-            }
-        }
-        public int Upkeep
-        {
-            get
-            {
-                return this.m_Upkeep;
-            }
-        }
-        public int Maximum
-        {
-            get
-            {
-                return this.m_Maximum;
-            }
-        }
-        public int ItemID
-        {
-            get
-            {
-                return this.m_ItemID;
-            }
-        }
-        public TextDefinition Header
-        {
-            get
-            {
-                return this.m_Header;
-            }
-        }
-        public TextDefinition Label
-        {
-            get
-            {
-                return this.m_Label;
-            }
+            Type = type;
+
+            Price = price;
+            Upkeep = upkeep;
+            Maximum = maximum;
+            ItemID = itemID;
+
+            Header = header;
+            Label = label;
         }
     }
 }

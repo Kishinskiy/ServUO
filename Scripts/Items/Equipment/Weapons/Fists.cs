@@ -4,131 +4,37 @@ namespace Server.Items
 {
     public class Fists : BaseMeleeWeapon
     {
-        public static void Initialize()
-        {
-            if (Mobile.DefaultWeapon == null)
-                Mobile.DefaultWeapon = new Fists();
+        public override WeaponAbility PrimaryAbility => WeaponAbility.Disarm;
 
-            EventSink.DisarmRequest += new DisarmRequestEventHandler(EventSink_DisarmRequest);
-            EventSink.StunRequest += new StunRequestEventHandler(EventSink_StunRequest);
-        }
+        public override WeaponAbility SecondaryAbility => WeaponAbility.ParalyzingBlow;
 
-        public override WeaponAbility PrimaryAbility
-        {
-            get
-            {
-                return WeaponAbility.Disarm;
-            }
-        }
-        public override WeaponAbility SecondaryAbility
-        {
-            get
-            {
-                return WeaponAbility.ParalyzingBlow;
-            }
-        }
+        public override int AosStrengthReq => 0;
 
-        public override int AosStrengthReq
-        {
-            get
-            {
-                return 0;
-            }
-        }
-        public override int AosMinDamage
-        {
-            get
-            {
-                return 1;
-            }
-        }
-        public override int AosMaxDamage
-        {
-            get
-            {
-                return 6;
-            }
-        }
-        public override int AosSpeed
-        {
-            get
-            {
-                return 50;
-            }
-        }
-        public override float MlSpeed
-        {
-            get
-            {
-                return 2.50f;
-            }
-        }
+        public override int AosMinDamage => 1;
 
-        public override int OldStrengthReq
-        {
-            get
-            {
-                return 0;
-            }
-        }
-        public override int OldMinDamage
-        {
-            get
-            {
-                return 1;
-            }
-        }
-        public override int OldMaxDamage
-        {
-            get
-            {
-                return 8;
-            }
-        }
-        public override int OldSpeed
-        {
-            get
-            {
-                return 30;
-            }
-        }
+        public override int AosMaxDamage => 6;
 
-        public override int DefHitSound
-        {
-            get
-            {
-                return -1;
-            }
-        }
-        public override int DefMissSound
-        {
-            get
-            {
-                return -1;
-            }
-        }
+        public override int AosSpeed => 50;
 
-        public override SkillName DefSkill
-        {
-            get
-            {
-                return SkillName.Wrestling;
-            }
-        }
-        public override WeaponType DefType
-        {
-            get
-            {
-                return WeaponType.Fists;
-            }
-        }
-        public override WeaponAnimation DefAnimation
-        {
-            get
-            {
-                return WeaponAnimation.Wrestle;
-            }
-        }
+        public override float MlSpeed => 2.50f;
+
+        public override int OldStrengthReq => 0;
+
+        public override int OldMinDamage => 1;
+
+        public override int OldMaxDamage => 8;
+
+        public override int OldSpeed => 30;
+
+        public override int DefHitSound => -1;
+
+        public override int DefMissSound => -1;
+
+        public override SkillName DefSkill => SkillName.Wrestling;
+
+        public override WeaponType DefType => WeaponType.Fists;
+
+        public override WeaponAnimation DefAnimation => WeaponAnimation.Wrestle;
 
         public Fists()
             : base(0)
@@ -143,20 +49,28 @@ namespace Server.Items
         {
         }
 
+        public static void Initialize()
+        {
+            if (Mobile.DefaultWeapon == null)
+                Mobile.DefaultWeapon = new Fists();
+
+            EventSink.DisarmRequest += EventSink_DisarmRequest;
+            EventSink.StunRequest += EventSink_StunRequest;
+        }
+
         public override double GetDefendSkillValue(Mobile attacker, Mobile defender)
         {
-            double wresValue = defender.Skills[SkillName.Wrestling].Value;
-            double anatValue = defender.Skills[SkillName.Anatomy].Value;
-            double evalValue = defender.Skills[SkillName.EvalInt].Value;
-            double incrValue = (anatValue + evalValue + 20.0) * 0.5;
+            var wresValue = defender.Skills[SkillName.Wrestling].Value;
+            var anatValue = defender.Skills[SkillName.Anatomy].Value;
+            var evalValue = defender.Skills[SkillName.EvalInt].Value;
+            var incrValue = (anatValue + evalValue + 20.0) * 0.5;
 
             if (incrValue > 120.0)
                 incrValue = 120.0;
 
             if (wresValue > incrValue)
                 return wresValue;
-            else
-                return incrValue;
+            return incrValue;
         }
 
         private void CheckPreAOSMoves(Mobile attacker, Mobile defender)
@@ -165,7 +79,8 @@ namespace Server.Items
             {
                 if (attacker.CanBeginAction(typeof(Fists)))
                 {
-                    if (attacker.Skills[SkillName.Anatomy].Value >= 80.0 && attacker.Skills[SkillName.Wrestling].Value >= 80.0)
+                    if (attacker.Skills[SkillName.Anatomy].Value >= 80.0 &&
+                        attacker.Skills[SkillName.Wrestling].Value >= 80.0)
                     {
                         if (attacker.Stam >= 15)
                         {
@@ -206,16 +121,17 @@ namespace Server.Items
                 {
                     if (defender.Player || defender.Body.IsHuman)
                     {
-                        if (attacker.Skills[SkillName.ArmsLore].Value >= 80.0 && attacker.Skills[SkillName.Wrestling].Value >= 80.0)
+                        if (attacker.Skills[SkillName.ArmsLore].Value >= 80.0 &&
+                            attacker.Skills[SkillName.Wrestling].Value >= 80.0)
                         {
                             if (attacker.Stam >= 15)
                             {
-                                Item toDisarm = defender.FindItemOnLayer(Layer.OneHanded);
+                                var toDisarm = defender.FindItemOnLayer(Layer.OneHanded);
 
                                 if (toDisarm == null || !toDisarm.Movable)
                                     toDisarm = defender.FindItemOnLayer(Layer.TwoHanded);
 
-                                Container pack = defender.Backpack;
+                                var pack = defender.Backpack;
 
                                 if (pack == null || toDisarm == null || !toDisarm.Movable)
                                 {
@@ -238,7 +154,8 @@ namespace Server.Items
                                     attacker.Stam -= 15;
 
                                     attacker.SendLocalizedMessage(1004004); // You failed in your attempt to disarm.
-                                    defender.SendLocalizedMessage(1004005); // Your opponent tried to disarm you but failed.
+                                    defender.SendLocalizedMessage(
+                                        1004005); // Your opponent tried to disarm you but failed.
                                 }
                             }
                             else
@@ -248,7 +165,8 @@ namespace Server.Items
                         }
                         else
                         {
-                            attacker.SendLocalizedMessage(1004002); // You are not skilled enough to disarm your opponent.
+                            attacker.SendLocalizedMessage(
+                                1004002); // You are not skilled enough to disarm your opponent.
                             attacker.DisarmReady = false;
                         }
                     }
@@ -263,7 +181,7 @@ namespace Server.Items
         public override TimeSpan OnSwing(Mobile attacker, IDamageable defender)
         {
             if (!Core.AOS && defender is Mobile)
-                this.CheckPreAOSMoves(attacker, (Mobile)defender);
+                CheckPreAOSMoves(attacker, (Mobile)defender);
 
             return base.OnSwing(attacker, defender);
         }
@@ -277,14 +195,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (Mobile.DefaultWeapon == null)
                 Mobile.DefaultWeapon = this;
@@ -296,22 +214,22 @@ namespace Server.Items
 
         private static bool CheckMove(Mobile m, SkillName other)
         {
-            double wresValue = m.Skills[SkillName.Wrestling].Value;
-            double scndValue = m.Skills[other].Value;
+            var wresValue = m.Skills[SkillName.Wrestling].Value;
+            var scndValue = m.Skills[other].Value;
 
             /* 40% chance at 80, 80
-            * 50% chance at 100, 100
-            * 60% chance at 120, 120
-            */
+             * 50% chance at 100, 100
+             * 60% chance at 120, 120
+             */
 
-            double chance = (wresValue + scndValue) / 400.0;
+            var chance = (wresValue + scndValue) / 400.0;
 
-            return (chance >= Utility.RandomDouble());
+            return chance >= Utility.RandomDouble();
         }
 
         private static bool HasFreeHands(Mobile m)
         {
-            Item item = m.FindItemOnLayer(Layer.OneHanded);
+            var item = m.FindItemOnLayer(Layer.OneHanded);
 
             if (item != null && !(item is Spellbook))
                 return false;
@@ -324,10 +242,10 @@ namespace Server.Items
             if (Core.AOS)
                 return;
 
-            Mobile m = e.Mobile;
+            var m = e.Mobile;
 
-            double armsValue = m.Skills[SkillName.ArmsLore].Value;
-            double wresValue = m.Skills[SkillName.Wrestling].Value;
+            var armsValue = m.Skills[SkillName.ArmsLore].Value;
+            var wresValue = m.Skills[SkillName.Wrestling].Value;
 
             if (!HasFreeHands(m))
             {
@@ -352,10 +270,10 @@ namespace Server.Items
             if (Core.AOS)
                 return;
 
-            Mobile m = e.Mobile;
+            var m = e.Mobile;
 
-            double anatValue = m.Skills[SkillName.Anatomy].Value;
-            double wresValue = m.Skills[SkillName.Wrestling].Value;
+            var anatValue = m.Skills[SkillName.Anatomy].Value;
+            var wresValue = m.Skills[SkillName.Wrestling].Value;
 
             if (!HasFreeHands(m))
             {
@@ -375,6 +293,11 @@ namespace Server.Items
             }
         }
 
+        private static void StartMoveDelay(Mobile m)
+        {
+            new MoveDelayTimer(m).Start();
+        }
+
         private class MoveDelayTimer : Timer
         {
             private readonly Mobile m_Mobile;
@@ -382,22 +305,17 @@ namespace Server.Items
             public MoveDelayTimer(Mobile m)
                 : base(TimeSpan.FromSeconds(10.0))
             {
-                this.m_Mobile = m;
+                m_Mobile = m;
 
-                this.Priority = TimerPriority.TwoFiftyMS;
+                Priority = TimerPriority.TwoFiftyMS;
 
-                this.m_Mobile.BeginAction(typeof(Fists));
+                m_Mobile.BeginAction(typeof(Fists));
             }
 
             protected override void OnTick()
             {
-                this.m_Mobile.EndAction(typeof(Fists));
+                m_Mobile.EndAction(typeof(Fists));
             }
-        }
-
-        private static void StartMoveDelay(Mobile m)
-        {
-            new MoveDelayTimer(m).Start();
         }
     }
 }

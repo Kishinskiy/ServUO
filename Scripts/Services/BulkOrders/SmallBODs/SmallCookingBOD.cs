@@ -6,13 +6,13 @@ namespace Server.Engines.BulkOrders
 {
     public class SmallCookingBOD : SmallBOD
     {
-        public override BODType BODType { get { return BODType.Cooking; } }
+        public override BODType BODType => BODType.Cooking;
 
         [Constructable]
         public SmallCookingBOD()
         {
             SmallBulkEntry[] entries;
-            bool nonexceptional = false;
+            var nonexceptional = false;
 
             if (0.20 > Utility.RandomDouble())
             {
@@ -26,12 +26,12 @@ namespace Server.Engines.BulkOrders
 
             if (entries.Length > 0)
             {
-                int amountMax = Utility.RandomList(10, 15, 20);
+                var amountMax = Utility.RandomList(10, 15, 20);
 
                 BulkMaterialType material;
                 material = BulkMaterialType.None;
 
-                SmallBulkEntry entry = entries[Utility.Random(entries.Length)];
+                var entry = entries[Utility.Random(entries.Length)];
 
                 Hue = 1169;
                 AmountMax = amountMax;
@@ -44,7 +44,8 @@ namespace Server.Engines.BulkOrders
             }
         }
 
-        public SmallCookingBOD(int amountCur, int amountMax, Type type, int number, int graphic, bool reqExceptional, BulkMaterialType mat, int hue)
+        public SmallCookingBOD(int amountCur, int amountMax, Type type, int number, int graphic, bool reqExceptional,
+            BulkMaterialType mat, int hue)
         {
             Hue = 1169;
             AmountMax = amountMax;
@@ -87,8 +88,8 @@ namespace Server.Engines.BulkOrders
         {
             SmallBulkEntry[] entries;
 
-            double theirSkill = BulkOrderSystem.GetBODSkill(m, SkillName.Cooking);
-            bool nonexceptional = false;
+            var theirSkill = BulkOrderSystem.GetBODSkill(m, SkillName.Cooking);
+            var nonexceptional = false;
 
             if (0.20 > Utility.RandomDouble())
             {
@@ -111,37 +112,35 @@ namespace Server.Engines.BulkOrders
                 else
                     amountMax = Utility.RandomList(10, 10, 15, 20);
 
-                double excChance = 0.0;
+                var excChance = 0.0;
 
                 if (theirSkill >= 70.1)
                     excChance = (theirSkill + 80.0) / 200.0;
 
-                bool reqExceptional = !nonexceptional  && excChance > Utility.RandomDouble();
+                var reqExceptional = !nonexceptional && excChance > Utility.RandomDouble();
 
-                CraftSystem system = DefCooking.CraftSystem;
+                var system = DefCooking.CraftSystem;
 
-                List<SmallBulkEntry> validEntries = new List<SmallBulkEntry>();
+                var validEntries = new List<SmallBulkEntry>();
 
-                for (int i = 0; i < entries.Length; ++i)
+                for (var i = 0; i < entries.Length; ++i)
                 {
-                    CraftItem item = system.CraftItems.SearchFor(entries[i].Type);
+                    var item = system.CraftItems.SearchFor(entries[i].Type);
 
                     if (item != null)
                     {
-                        bool allRequiredSkills = true;
-                        double chance = item.GetSuccessChance(m, null, system, false, ref allRequiredSkills);
+                        var allRequiredSkills = true;
+                        var chance = item.GetSuccessChance(m, null, system, false, ref allRequiredSkills);
 
                         if (allRequiredSkills && chance >= 0.0)
-                        {
                             if (chance > 0.0)
                                 validEntries.Add(entries[i]);
-                        }
                     }
                 }
 
                 if (validEntries.Count > 0)
                 {
-                    SmallBulkEntry entry = validEntries[Utility.Random(validEntries.Count)];
+                    var entry = validEntries[Utility.Random(validEntries.Count)];
                     return new SmallCookingBOD(entry, amountMax, reqExceptional);
                 }
             }
@@ -161,17 +160,18 @@ namespace Server.Engines.BulkOrders
 
         public override List<Item> ComputeRewards(bool full)
         {
-            List<Item> list = new List<Item>();
+            var list = new List<Item>();
 
-            RewardGroup rewardGroup = CookingRewardCalculator.Instance.LookupRewards(CookingRewardCalculator.Instance.ComputePoints(this));
+            var rewardGroup =
+                CookingRewardCalculator.Instance.LookupRewards(CookingRewardCalculator.Instance.ComputePoints(this));
 
             if (rewardGroup != null)
             {
                 if (full)
                 {
-                    for (int i = 0; i < rewardGroup.Items.Length; ++i)
+                    for (var i = 0; i < rewardGroup.Items.Length; ++i)
                     {
-                        Item item = rewardGroup.Items[i].Construct();
+                        var item = rewardGroup.Items[i].Construct();
 
                         if (item != null)
                             list.Add(item);
@@ -179,11 +179,11 @@ namespace Server.Engines.BulkOrders
                 }
                 else
                 {
-                    RewardItem rewardItem = rewardGroup.AcquireItem();
+                    var rewardItem = rewardGroup.AcquireItem();
 
                     if (rewardItem != null)
                     {
-                        Item item = rewardItem.Construct();
+                        var item = rewardItem.Construct();
 
                         if (item != null)
                             list.Add(item);
@@ -198,14 +198,14 @@ namespace Server.Engines.BulkOrders
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

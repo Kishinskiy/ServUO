@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-
 using Server.Spells.Necromancy;
 
 namespace Server.Mobiles
@@ -8,7 +7,13 @@ namespace Server.Mobiles
     [CorpseName("a dark wolf corpse")]
     public class DarkWolfFamiliar : BaseFamiliar
     {
+        public static readonly Type[] ControlTypes =
+        {
+            typeof(DireWolf), typeof(GreyWolf), typeof(TimberWolf), typeof(WhiteWolf), typeof(BakeKitsune)
+        };
+
         private DateTime m_NextRestore;
+
         public DarkWolfFamiliar()
         {
             Name = "a dark wolf";
@@ -45,19 +50,12 @@ namespace Server.Mobiles
         {
         }
 
-        public static readonly Type[] ControlTypes =
-        {
-            typeof(DireWolf), typeof(GreyWolf), typeof(TimberWolf), typeof(WhiteWolf), typeof(BakeKitsune)
-        };
-
         public static bool CheckMastery(Mobile tamer, BaseCreature creature)
         {
             var familiar = (BaseCreature)SummonFamiliarSpell.Table[tamer];
 
-            if (familiar != null && !familiar.Deleted && familiar is DarkWolfFamiliar && ControlTypes.Any(t => t == creature.GetType()))
-            {
-                return true;
-            }
+            if (familiar != null && !familiar.Deleted && familiar is DarkWolfFamiliar &&
+                ControlTypes.Any(t => t == creature.GetType())) return true;
 
             return false;
         }
@@ -71,7 +69,7 @@ namespace Server.Mobiles
 
             m_NextRestore = DateTime.UtcNow + TimeSpan.FromSeconds(2.0);
 
-            Mobile caster = ControlMaster;
+            var caster = ControlMaster;
 
             if (caster == null)
                 caster = SummonMaster;
@@ -84,14 +82,14 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

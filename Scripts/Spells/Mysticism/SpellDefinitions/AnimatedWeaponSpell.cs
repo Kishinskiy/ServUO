@@ -6,17 +6,17 @@ namespace Server.Spells.Mysticism
 {
     public class AnimatedWeaponSpell : MysticSpell
     {
-        public override SpellCircle Circle { get { return SpellCircle.Fourth; } }
+        private static readonly SpellInfo m_Info = new SpellInfo(
+            "Animated Weapon", "In Jux Por Ylem",
+            230,
+            9022,
+            Reagent.BlackPearl,
+            Reagent.MandrakeRoot,
+            Reagent.Nightshade,
+            Reagent.Bone
+        );
 
-        private static SpellInfo m_Info = new SpellInfo(
-                "Animated Weapon", "In Jux Por Ylem",
-                230,
-                9022,
-                Reagent.BlackPearl,
-                Reagent.MandrakeRoot,
-                Reagent.Nightshade,
-                Reagent.Bone
-            );
+        public override SpellCircle Circle => SpellCircle.Fourth;
 
         public AnimatedWeaponSpell(Mobile caster, Item scroll) : base(caster, scroll, m_Info)
         {
@@ -29,13 +29,13 @@ namespace Server.Spells.Mysticism
 
         public void Target(IPoint3D p)
         {
-            if ((Caster.Followers + 4) > Caster.FollowersMax)
+            if (Caster.Followers + 4 > Caster.FollowersMax)
             {
                 Caster.SendLocalizedMessage(1049645); // You have too many followers to summon that creature.
                 return;
             }
 
-            Map map = Caster.Map;
+            var map = Caster.Map;
 
             SpellHelper.GetSurfaceTop(ref p);
 
@@ -45,9 +45,9 @@ namespace Server.Spells.Mysticism
             }
             else if (SpellHelper.CheckTown(p, Caster) && CheckSequence())
             {
-                int level = (int)((GetBaseSkill(Caster) + GetBoostSkill(Caster)) / 2.0);
+                var level = (int)((GetBaseSkill(Caster) + GetBoostSkill(Caster)) / 2.0);
 
-                TimeSpan duration = TimeSpan.FromSeconds(10 + level);
+                var duration = TimeSpan.FromSeconds(10 + level);
 
                 BaseCreature summon = new AnimatedWeapon(Caster, level);
                 BaseCreature.Summon(summon, false, Caster, new Point3D(p), 0x212, duration);
@@ -62,7 +62,7 @@ namespace Server.Spells.Mysticism
 
         public class InternalTarget : Target
         {
-            private AnimatedWeaponSpell m_Owner;
+            private readonly AnimatedWeaponSpell m_Owner;
 
             public InternalTarget(AnimatedWeaponSpell owner)
                 : base(12, true, TargetFlags.None)

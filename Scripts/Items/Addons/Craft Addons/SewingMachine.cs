@@ -1,14 +1,11 @@
-using System;
-using Server;
 using Server.Engines.Craft;
-using System.Collections.Generic;
 
 namespace Server.Items
 {
     public class SewingMachine : CraftAddon
     {
-        public override BaseAddonDeed Deed { get { return new SewingMachineDeed(Tools.Count > 0 ? Tools[0].UsesRemaining : 0); } }
-        public override CraftSystem CraftSystem { get { return DefTailoring.CraftSystem; } }
+        public override BaseAddonDeed Deed => new SewingMachineDeed(Tools.Count > 0 ? Tools[0].UsesRemaining : 0);
+        public override CraftSystem CraftSystem => DefTailoring.CraftSystem;
 
         [Constructable]
         public SewingMachine(bool south, int uses)
@@ -34,23 +31,22 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class SewingMachineDeed : CraftAddonDeed
     {
-        public override int LabelNumber { get { return 1123504; } } // Sewing Machine
-        public override BaseAddon Addon { get { return new SewingMachine(_South, UsesRemaining); } }
-
         private bool _South;
+        public override int LabelNumber => 1123504; // Sewing Machine
+        public override BaseAddon Addon => new SewingMachine(_South, UsesRemaining);
 
         [Constructable]
         public SewingMachineDeed() : this(0)
@@ -62,35 +58,33 @@ namespace Server.Items
         {
         }
 
+        public SewingMachineDeed(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void OnDoubleClick(Mobile from)
         {
             if (IsChildOf(from.Backpack))
-            {
                 from.SendGump(new SouthEastGump(s =>
                 {
                     _South = s;
                     base.OnDoubleClick(from);
                 }));
-            }
-        }
-
-        public SewingMachineDeed(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

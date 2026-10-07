@@ -1,7 +1,3 @@
-using System;
-using Server;
-using Server.Mobiles;
-using Server.Engines.CityLoyalty;
 using Server.Gumps;
 
 namespace Server.Items
@@ -15,11 +11,16 @@ namespace Server.Items
         {
         }
 
+        public CityBook(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void GetProperties(ObjectPropertyList list)
         {
             base.GetProperties(list);
 
-            if(Title > 0)
+            if (Title > 0)
                 list.Add(Title);
 
             list.Add(1154760, "Adamu Edom"); // By: ~1_NAME~
@@ -29,7 +30,7 @@ namespace Server.Items
         {
             if (IsChildOf(m.Backpack))
             {
-                Gump g = new Gump(150, 150);
+                var g = new Gump(150, 150);
                 g.AddImage(0, 0, 30236);
                 g.AddHtmlLocalized(110, 30, 350, 630, Content, false, false);
 
@@ -54,11 +55,6 @@ namespace Server.Items
             }
         }
 
-        public CityBook(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -68,14 +64,14 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class LoyaltyBookYew : CityBook
     {
-        public override int Title { get { return 1153933; } }
-        public override int Content { get { return 1152698; } }
+        public override int Title => 1153933;
+        public override int Content => 1152698;
 
         [Constructable]
         public LoyaltyBookYew()
@@ -96,14 +92,14 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class LoyaltyBookJhelom : CityBook
     {
-        public override int Title { get { return 1153934; } }
-        public override int Content { get { return 1153436; } }
+        public override int Title => 1153934;
+        public override int Content => 1153436;
 
         [Constructable]
         public LoyaltyBookJhelom()
@@ -124,14 +120,14 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class LoyaltyBookMoonglow : CityBook
     {
-        public override int Title { get { return 1153935; } }
-        public override int Content { get { return 1153437; } }
+        public override int Title => 1153935;
+        public override int Content => 1153437;
 
         [Constructable]
         public LoyaltyBookMoonglow()
@@ -152,14 +148,14 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class LoyaltyBookTrinsic : CityBook
     {
-        public override int Title { get { return 1153727; } }
-        public override int Content { get { return 1151755; } }
+        public override int Title => 1153727;
+        public override int Content => 1151755;
 
         [Constructable]
         public LoyaltyBookTrinsic()
@@ -180,14 +176,14 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class LoyaltyBookMinoc : CityBook
     {
-        public override int Title { get { return 1153728; } }
-        public override int Content { get { return 1152317; } }
+        public override int Title => 1153728;
+        public override int Content => 1152317;
 
         [Constructable]
         public LoyaltyBookMinoc()
@@ -208,14 +204,14 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class LoyaltyBookNewMagincia : CityBook
     {
-        public override int Title { get { return 1153008; } }
-        public override int Content { get { return 1153723; } }
+        public override int Title => 1153008;
+        public override int Content => 1153723;
 
         [Constructable]
         public LoyaltyBookNewMagincia()
@@ -236,14 +232,14 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class LoyaltyBookVesper : CityBook
     {
-        public override int Title { get { return 1153012; } }
-        public override int Content { get { return 1153724; } }
+        public override int Title => 1153012;
+        public override int Content => 1153724;
 
         [Constructable]
         public LoyaltyBookVesper()
@@ -264,14 +260,14 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class LoyaltyBookSkaraBrae : CityBook
     {
-        public override int Title { get { return 0; } }
-        public override int Content { get { return 1153725; } }
+        public override int Title => 0;
+        public override int Content => 1153725;
 
         [Constructable]
         public LoyaltyBookSkaraBrae()
@@ -292,14 +288,14 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class LoyaltyBookBritain : CityBook
     {
-        public override int Title { get { return 1153726; } }
-        public override int Content { get { return 1151754; } }
+        public override int Title => 1153726;
+        public override int Content => 1151754;
 
         [Constructable]
         public LoyaltyBookBritain()
@@ -320,7 +316,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

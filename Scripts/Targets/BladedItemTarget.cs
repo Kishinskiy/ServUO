@@ -1,6 +1,4 @@
-using System;
 using Server.Engines.Harvest;
-using Server.Engines.Quests;
 using Server.Engines.Quests.Hag;
 using Server.Items;
 using Server.Mobiles;
@@ -12,6 +10,7 @@ namespace Server.Targets
     public class BladedItemTarget : Target
     {
         private readonly Item m_Item;
+
         public BladedItemTarget(Item item)
             : base(2, false, TargetFlags.None)
         {
@@ -20,15 +19,15 @@ namespace Server.Targets
 
         protected override void OnTargetOutOfRange(Mobile from, object targeted)
         {
-            if (targeted is UnholyBone && from.InRange(((UnholyBone)targeted), 12))
+            if (targeted is UnholyBone && from.InRange((UnholyBone)targeted, 12))
             {
                 if (((UnholyBone)targeted).Carve(from, m_Item) && Siege.SiegeShard)
-                {
                     Siege.CheckUsesRemaining(from, m_Item);
-                }
             }
             else
+            {
                 base.OnTargetOutOfRange(from, targeted);
+            }
         }
 
         protected override void OnTarget(Mobile from, object targeted)
@@ -40,9 +39,10 @@ namespace Server.Targets
             {
                 if (targeted is Item)
                 {
-                    Item item = targeted as Item;
+                    var item = targeted as Item;
 
-                    if (item.IsLockedDown || (item.RootParent is Container && (!item.Movable || !((Container)item.RootParent).LiftOverride)))
+                    if (item.IsLockedDown || (item.RootParent is Container &&
+                                              (!item.Movable || !((Container)item.RootParent).LiftOverride)))
                     {
                         from.SendLocalizedMessage(500494); // You can't use a bladed item on that!
                         return;
@@ -50,48 +50,47 @@ namespace Server.Targets
                 }
 
                 if (((ICarvable)targeted).Carve(from, m_Item) && Siege.SiegeShard)
-                {
                     Siege.CheckUsesRemaining(from, m_Item);
-                }
             }
             else if (targeted is SwampDragon && ((SwampDragon)targeted).HasBarding)
             {
-                SwampDragon pet = (SwampDragon)targeted;
+                var pet = (SwampDragon)targeted;
 
                 if (!pet.Controlled || pet.ControlMaster != from)
+                {
                     from.SendLocalizedMessage(1053022); // You cannot remove barding from a swamp dragon you do not own.
+                }
                 else
                 {
                     pet.HasBarding = false;
 
-                    if (Siege.SiegeShard && m_Item is IUsesRemaining)
-                    {
-                        Siege.CheckUsesRemaining(from, m_Item);
-                    }
+                    if (Siege.SiegeShard && m_Item is IUsesRemaining) Siege.CheckUsesRemaining(from, m_Item);
                 }
             }
             else
             {
                 if (targeted is Mobile)
                 {
-                    ((Mobile)targeted).PrivateOverheadMessage(MessageType.Regular, 0x3B2, 500450, from.NetState); // You can only skin dead creatures.
+                    ((Mobile)targeted).PrivateOverheadMessage(MessageType.Regular, 0x3B2, 500450,
+                        from.NetState); // You can only skin dead creatures.
                     return;
                 }
-                else if (targeted is StaticTarget)
+
+                if (targeted is StaticTarget)
                 {
-                    int itemID = ((StaticTarget)targeted).ItemID;
+                    var itemID = ((StaticTarget)targeted).ItemID;
 
                     if (itemID == 0xD15 || itemID == 0xD16) // red mushroom
                     {
-                        PlayerMobile player = from as PlayerMobile;
+                        var player = from as PlayerMobile;
 
                         if (player != null)
                         {
-                            QuestSystem qs = player.Quest;
+                            var qs = player.Quest;
 
                             if (qs is WitchApprenticeQuest)
                             {
-                                FindIngredientObjective obj = qs.FindObjective(typeof(FindIngredientObjective)) as FindIngredientObjective;
+                                var obj = qs.FindObjective(typeof(FindIngredientObjective)) as FindIngredientObjective;
 
                                 if (obj != null && !obj.Completed && obj.Ingredient == Ingredient.RedMushrooms)
                                 {
@@ -99,9 +98,7 @@ namespace Server.Targets
                                     obj.Complete();
 
                                     if (Siege.SiegeShard && m_Item is IUsesRemaining)
-                                    {
                                         Siege.CheckUsesRemaining(from, m_Item);
-                                    }
 
                                     return;
                                 }
@@ -111,7 +108,7 @@ namespace Server.Targets
                 }
 
                 HarvestSystem system = Lumberjacking.System;
-                HarvestDefinition def = Lumberjacking.System.Definition;
+                var def = Lumberjacking.System.Definition;
 
                 int tileID;
                 Map map;
@@ -127,7 +124,7 @@ namespace Server.Targets
                 }
                 else
                 {
-                    HarvestBank bank = def.GetBank(map, loc.X, loc.Y);
+                    var bank = def.GetBank(map, loc.X, loc.Y);
 
                     if (bank == null)
                         return;
@@ -154,10 +151,7 @@ namespace Server.Targets
                             item.Delete();
                         }
 
-                        if (Siege.SiegeShard && m_Item is IUsesRemaining)
-                        {
-                            Siege.CheckUsesRemaining(from, m_Item);
-                        }
+                        if (Siege.SiegeShard && m_Item is IUsesRemaining) Siege.CheckUsesRemaining(from, m_Item);
                     }
                 }
             }

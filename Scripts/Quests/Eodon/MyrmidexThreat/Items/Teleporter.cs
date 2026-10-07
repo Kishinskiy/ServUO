@@ -1,8 +1,6 @@
-using System;
-using Server;
-using Server.Mobiles;
 using Server.Engines.MyrmidexInvasion;
 using Server.Engines.Quests;
+using Server.Mobiles;
 
 namespace Server.Items
 {
@@ -17,19 +15,21 @@ namespace Server.Items
             Allegiance = allegiance;
         }
 
+        public MyrmidexPitTeleporter(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override bool OnMoveOver(Mobile m)
         {
             if (MyrmidexInvasionSystem.IsAlliedWith(m, Allegiance) || m.AccessLevel > AccessLevel.Player)
                 return base.OnMoveOver(m);
 
-            m.SendLocalizedMessage(Allegiance == Allegiance.Myrmidex ? 1156838 : 1156839); // You must ally yourself to the Eodonians to enter.
+            m.SendLocalizedMessage(Allegiance == Allegiance.Myrmidex
+                ? 1156838
+                : 1156839); // You must ally yourself to the Eodonians to enter.
 
             return false;
-        }
-
-        public MyrmidexPitTeleporter(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -43,7 +43,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int v = reader.ReadInt();
+            var v = reader.ReadInt();
 
             Allegiance = (Allegiance)reader.ReadInt();
         }
@@ -57,19 +57,22 @@ namespace Server.Items
         {
         }
 
-        public override bool OnMoveOver(Mobile from)
-        {
-            if ((from is PlayerMobile && QuestHelper.GetQuest((PlayerMobile)from, typeof(InsecticideAndRegicideQuest)) != null) || from.AccessLevel > AccessLevel.Player)
-                return base.OnMoveOver(from);
-
-            from.SendLocalizedMessage(1156840); // You must be on the "Insecticide & Regicide" quest to enter.  Visit Professor Rafkin in Sir Geoffrey's camp to the East.
-
-            return false;
-        }
-
         public MyrmidexQueenTeleporter(Serial serial)
             : base(serial)
         {
+        }
+
+        public override bool OnMoveOver(Mobile from)
+        {
+            if ((from is PlayerMobile &&
+                 QuestHelper.GetQuest((PlayerMobile)from, typeof(InsecticideAndRegicideQuest)) != null) ||
+                from.AccessLevel > AccessLevel.Player)
+                return base.OnMoveOver(from);
+
+            from.SendLocalizedMessage(
+                1156840); // You must be on the "Insecticide & Regicide" quest to enter.  Visit Professor Rafkin in Sir Geoffrey's camp to the East.
+
+            return false;
         }
 
         public override void Serialize(GenericWriter writer)
@@ -81,7 +84,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int v = reader.ReadInt();
+            var v = reader.ReadInt();
         }
     }
 }

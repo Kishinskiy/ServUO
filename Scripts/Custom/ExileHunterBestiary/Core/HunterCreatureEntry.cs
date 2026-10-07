@@ -12,7 +12,8 @@ namespace Server.Custom.ExileHunterBestiary
         public double DropChance { get; set; }
         public int IconItemID { get; set; }
 
-        public HunterCreatureEntry(string id, string displayName, Type creatureType, BestiaryCategory category, int bookHue = 0, double dropChance = 0.02, int iconItemId = 0x1F5F)
+        public HunterCreatureEntry(string id, string displayName, Type creatureType, BestiaryCategory category,
+            int bookHue = 0, double dropChance = 0.02, int iconItemId = 0x1F5F)
         {
             Id = id;
             DisplayName = displayName;

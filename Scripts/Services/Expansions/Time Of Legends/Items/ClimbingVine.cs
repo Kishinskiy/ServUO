@@ -1,16 +1,14 @@
-using System;
-using Server.Items;
-using Server.Mobiles;
-using Server.Gumps;
-
 namespace Server.Items
 {
     public class ClimbingVine : Item
     {
-        public override int LabelNumber { get { return 1023307; } } // vines
+        public override int LabelNumber => 1023307; // vines
 
         [CommandProperty(AccessLevel.GameMaster)]
         public Point3D ClimbLocation { get; set; }
+
+        public static ClimbingVine Vine1 { get; set; }
+        public static ClimbingVine Vine2 { get; set; }
 
         [Constructable]
         public ClimbingVine()
@@ -25,26 +23,25 @@ namespace Server.Items
             ClimbLocation = p;
         }
 
-        public override void OnDoubleClick(Mobile from)
-        {
-            from.SayTo(from, 1156290, 1153); // *The vines looks as though they may be strong enough to support climbing...*
-
-            if (ClimbLocation != Point3D.Zero && from.InRange(this.GetWorldLocation(), 2) && Z >= from.Z)
-            {
-                from.MoveToWorld(ClimbLocation, Map);
-            }
-        }
-
         public ClimbingVine(Serial serial)
             : base(serial)
         {
+        }
+
+        public override void OnDoubleClick(Mobile from)
+        {
+            from.SayTo(from, 1156290,
+                1153); // *The vines looks as though they may be strong enough to support climbing...*
+
+            if (ClimbLocation != Point3D.Zero && from.InRange(GetWorldLocation(), 2) && Z >= from.Z)
+                from.MoveToWorld(ClimbLocation, Map);
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
             writer.Write(ClimbLocation);
         }
 
@@ -52,12 +49,9 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
             ClimbLocation = reader.ReadPoint3D();
         }
-
-        public static ClimbingVine Vine1 { get; set; }
-        public static ClimbingVine Vine2 { get; set; }
 
         public static void Initialize()
         {

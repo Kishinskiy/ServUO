@@ -1,17 +1,17 @@
-using System;
 using System.Collections.Generic;
+using Server.ContextMenus;
+using Server.Engines.Auction;
 using Server.Gumps;
 using Server.Mobiles;
-using Server.ContextMenus;
 using Server.Multis;
-using Server.Engines.Auction;
+using Server.Spells.Fourth;
 
 namespace Server.Items
 {
     public class AuctionMap : MapItem
     {
-        public readonly int TeleportCost = 1000;
         public readonly int DeleteDelayMinutes = 30;
+        public readonly int TeleportCost = 1000;
 
         [CommandProperty(AccessLevel.GameMaster)]
         public AuctionSafe AuctionSafe { get; set; }
@@ -27,13 +27,13 @@ namespace Server.Items
 
         [CommandProperty(AccessLevel.GameMaster)]
         public string HouseName { get; set; }
-        
+
         [CommandProperty(AccessLevel.GameMaster)]
         public Point3D SetLocation { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public Map SetMap { get; set; }
-        
+
         public AuctionMap(AuctionSafe auctionsafe)
             : base(auctionsafe.Map)
         {
@@ -42,16 +42,12 @@ namespace Server.Items
             SafeLocation = auctionsafe.Location;
             SafeMap = auctionsafe.Map;
 
-            BaseHouse house = GetHouse();
+            var house = GetHouse();
 
             if (house != null)
-            {
                 HouseName = house.Sign.GetName();
-            }
             else
-            {
                 HouseName = "Unknown";
-            }
 
             Hue = RecallRune.CalculateHue(auctionsafe.Map, null, true);
             LootType = LootType.Blessed;
@@ -60,7 +56,12 @@ namespace Server.Items
             Height = 400;
 
             Bounds = new Rectangle2D(auctionsafe.X - 100, auctionsafe.Y - 100, 200, 200);
-            AddWorldPin(auctionsafe.X, auctionsafe.Y);            
+            AddWorldPin(auctionsafe.X, auctionsafe.Y);
+        }
+
+        public AuctionMap(Serial serial)
+            : base(serial)
+        {
         }
 
         public override bool DropToWorld(Mobile from, Point3D p)
@@ -79,41 +80,36 @@ namespace Server.Items
         public override void AddNameProperty(ObjectPropertyList list)
         {
             if (AuctionItem == null)
-            {
-                list.Add(1156474, string.Format("{0}\t{1}", HouseName, "Unknown")); // Map to Auction ~1_ITEMNAME~: ~2_HOUSE~
-            }
+                list.Add(1156474,
+                    string.Format("{0}\t{1}", HouseName, "Unknown")); // Map to Auction ~1_ITEMNAME~: ~2_HOUSE~
             else if (AuctionItem.LabelNumber != 0)
-            {
-                list.Add(1156474, string.Format("{0}\t#{1}", HouseName, AuctionItem.LabelNumber)); // Map to Auction ~1_ITEMNAME~: ~2_HOUSE~
-            }
+                list.Add(1156474,
+                    string.Format("{0}\t#{1}", HouseName,
+                        AuctionItem.LabelNumber)); // Map to Auction ~1_ITEMNAME~: ~2_HOUSE~
             else
-            {
-                list.Add(1156474, string.Format("{0}\t{1}", HouseName, AuctionItem.Name)); // Map to Auction ~1_ITEMNAME~: ~2_HOUSE~
-            }
+                list.Add(1156474,
+                    string.Format("{0}\t{1}", HouseName, AuctionItem.Name)); // Map to Auction ~1_ITEMNAME~: ~2_HOUSE~
         }
 
         public override void GetProperties(ObjectPropertyList list)
         {
             base.GetProperties(list);
 
-            string[] coord = GetCoords();
+            var coord = GetCoords();
 
             list.Add(1154639, string.Format("{0}\t{1}", coord[0], coord[1])); //  Vendor Located at ~1_loc~ (~2_facet~)
-            
-            if (!CheckItem())
-            {
-                list.Add(1154700); // Item no longer for sale.
-            }
+
+            if (!CheckItem()) list.Add(1154700); // Item no longer for sale.
 
             list.Add(1075269); // Destroyed when dropped
         }
 
         public string[] GetCoords()
         {
-            string[] array = new string[2];
+            var array = new string[2];
 
-            Point3D loc = Point3D.Zero;
-            Map locmap = Map.Internal;
+            var loc = Point3D.Zero;
+            var locmap = Map.Internal;
 
             if (SetLocation != Point3D.Zero && SetMap != Map.Internal)
             {
@@ -128,22 +124,26 @@ namespace Server.Items
 
             if (loc != Point3D.Zero && locmap != Map.Internal)
             {
-                int x = loc.X;
-                int y = loc.Y;
-                int z = loc.Z;
-                Map map = locmap;
+                var x = loc.X;
+                var y = loc.Y;
+                var z = loc.Z;
+                var map = locmap;
 
                 int xLong = 0, yLat = 0;
                 int xMins = 0, yMins = 0;
                 bool xEast = false, ySouth = false;
 
-                if (Sextant.Format(new Point3D(x, y, z), map, ref xLong, ref yLat, ref xMins, ref yMins, ref xEast, ref ySouth))
-                {
-                    return new string[] { string.Format("{0}° {1}'{2}, {3}° {4}'{5}", yLat, yMins, ySouth ? "S" : "N", xLong, xMins, xEast ? "E" : "W"), map.ToString() };
-                }
+                if (Sextant.Format(new Point3D(x, y, z), map, ref xLong, ref yLat, ref xMins, ref yMins, ref xEast,
+                        ref ySouth))
+                    return new[]
+                    {
+                        string.Format("{0}° {1}'{2}, {3}° {4}'{5}", yLat, yMins, ySouth ? "S" : "N", xLong, xMins,
+                            xEast ? "E" : "W"),
+                        map.ToString()
+                    };
             }
 
-            return new string[] { "an unknown location", "Unknown" };
+            return new[] { "an unknown location", "Unknown" };
         }
 
         public BaseHouse GetHouse()
@@ -157,12 +157,13 @@ namespace Server.Items
         public void OnBeforeTravel(Mobile from)
         {
             Banker.Withdraw(from, TeleportCost);
-            from.SendLocalizedMessage(1060398, TeleportCost.ToString()); // ~1_AMOUNT~ gold has been withdrawn from your bank box.
+            from.SendLocalizedMessage(1060398,
+                TeleportCost.ToString()); // ~1_AMOUNT~ gold has been withdrawn from your bank box.
 
             if (SetLocation != Point3D.Zero)
             {
                 SetLocation = Point3D.Zero;
-                SetMap = null;                
+                SetMap = null;
             }
             else
             {
@@ -191,13 +192,8 @@ namespace Server.Items
             BaseHouse h = null;
 
             if (SetLocation != Point3D.Zero)
-            {
                 h = BaseHouse.FindHouseAt(SetLocation, SetMap, 16);
-            }
-            else if (AuctionSafe != null)
-            {
-                h = BaseHouse.FindHouseAt(AuctionSafe);
-            }
+            else if (AuctionSafe != null) h = BaseHouse.FindHouseAt(AuctionSafe);
 
             if (h != null)
             {
@@ -213,12 +209,37 @@ namespace Server.Items
             if (SetLocation != Point3D.Zero)
                 return SetMap;
 
-            if (AuctionSafe != null)
-            {
-                return AuctionSafe.Map;
-            }
+            if (AuctionSafe != null) return AuctionSafe.Map;
 
             return null;
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
+
+            writer.Write(AuctionSafe);
+            writer.Write(AuctionItem);
+            writer.Write(SafeLocation);
+            writer.Write(SafeMap);
+            writer.Write(HouseName);
+            writer.Write(SetLocation);
+            writer.Write(SetMap);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
+
+            AuctionSafe = (AuctionSafe)reader.ReadItem();
+            AuctionItem = reader.ReadItem();
+            SafeLocation = reader.ReadPoint3D();
+            SafeMap = reader.ReadMap();
+            HouseName = reader.ReadString();
+            SetLocation = reader.ReadPoint3D();
+            SetMap = reader.ReadMap();
         }
 
         public class OpenMapEntry : ContextMenuEntry
@@ -256,43 +277,8 @@ namespace Server.Items
             public override void OnClick()
             {
                 if (Clicker is PlayerMobile)
-                {
                     BaseGump.SendGump(new ConfirmTeleportGump(VendorMap, (PlayerMobile)Clicker));
-                }
             }
-        }
-
-        public AuctionMap(Serial serial)
-            : base(serial)
-		{
-		}
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.Write((int)0);
-
-            writer.Write(AuctionSafe);
-            writer.Write(AuctionItem);
-            writer.Write(SafeLocation);
-            writer.Write(SafeMap);
-            writer.Write(HouseName);
-            writer.Write(SetLocation);
-            writer.Write(SetMap);
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            int version = reader.ReadInt();
-
-            AuctionSafe = (AuctionSafe)reader.ReadItem();
-            AuctionItem = reader.ReadItem();
-            SafeLocation = reader.ReadPoint3D();
-            SafeMap = reader.ReadMap();
-            HouseName = reader.ReadString();
-            SetLocation = reader.ReadPoint3D();
-            SetMap = reader.ReadMap();
         }
 
         public class ConfirmTeleportGump : BaseGump
@@ -302,7 +288,7 @@ namespace Server.Items
             public ConfirmTeleportGump(AuctionMap map, PlayerMobile pm)
                 : base(pm, 10, 10)
             {
-                AuctionMap = map;                
+                AuctionMap = map;
             }
 
             public override void AddGumpLayout()
@@ -311,41 +297,38 @@ namespace Server.Items
 
                 AddBackground(0, 0, 414, 214, 0x7752);
 
-                AddHtmlLocalized(27, 47, 380, 80, 1156475, String.Format("@{0}@{1}@{2}", AuctionMap.TeleportCost.ToString(), AuctionMap.HouseName, AuctionMap.DeleteDelayMinutes.ToString()), 0xFFFF, false, false); // Please select 'Accept' if you would like to pay ~1_cost~ gold to teleport to auction house ~2_name~. For this price you will also be able to teleport back to this location within the next ~3_minutes~ minutes.
+                AddHtmlLocalized(27, 47, 380, 80, 1156475,
+                    string.Format("@{0}@{1}@{2}", AuctionMap.TeleportCost.ToString(), AuctionMap.HouseName,
+                        AuctionMap.DeleteDelayMinutes.ToString()), 0xFFFF, false,
+                    false); // Please select 'Accept' if you would like to pay ~1_cost~ gold to teleport to auction house ~2_name~. For this price you will also be able to teleport back to this location within the next ~3_minutes~ minutes.
 
                 AddButton(7, 167, 0x7747, 0x7747, 0, GumpButtonType.Reply, 0);
                 AddHtmlLocalized(47, 167, 100, 40, 1150300, 0x4E73, false, false); // CANCEL
 
                 AddButton(377, 167, 0x7746, 0x7746, 1, GumpButtonType.Reply, 0);
-                AddHtmlLocalized(267, 167, 100, 40, 1114514, "#1150299", 0xFFFF, false, false); // // <DIV ALIGN=RIGHT>~1_TOKEN~</DIV>
+                AddHtmlLocalized(267, 167, 100, 40, 1114514, "#1150299", 0xFFFF, false,
+                    false); // // <DIV ALIGN=RIGHT>~1_TOKEN~</DIV>
             }
 
             public override void OnResponse(RelayInfo info)
             {
                 switch (info.ButtonID)
                 {
-                    default: break;
                     case 1:
-                        {
-                            if (Banker.GetBalance(User) < AuctionMap.TeleportCost)
-                            {
-                                User.SendLocalizedMessage(1154672); // You cannot afford to teleport to the vendor.
-                            }
-                            else if (!AuctionMap.CheckItem())
-                            {
-                                User.SendLocalizedMessage(1154643); // That item is no longer for sale.
-                            }
-                            else if (AuctionMap.SetLocation != Point3D.Zero && (!Utility.InRange(AuctionMap.SetLocation, User.Location, 100) || AuctionMap.SetMap != User.Map))
-                            {
-                                User.SendLocalizedMessage(501035); // You cannot teleport from here to the destination.
-                            }
-                            else
-                            {
-                                new Spells.Fourth.RecallSpell(User, AuctionMap, AuctionMap).Cast();
-                            }
+                    {
+                        if (Banker.GetBalance(User) < AuctionMap.TeleportCost)
+                            User.SendLocalizedMessage(1154672); // You cannot afford to teleport to the vendor.
+                        else if (!AuctionMap.CheckItem())
+                            User.SendLocalizedMessage(1154643); // That item is no longer for sale.
+                        else if (AuctionMap.SetLocation != Point3D.Zero &&
+                                 (!Utility.InRange(AuctionMap.SetLocation, User.Location, 100) ||
+                                  AuctionMap.SetMap != User.Map))
+                            User.SendLocalizedMessage(501035); // You cannot teleport from here to the destination.
+                        else
+                            new RecallSpell(User, AuctionMap, AuctionMap).Cast();
 
-                            break;
-                        }
+                        break;
+                    }
                 }
             }
         }

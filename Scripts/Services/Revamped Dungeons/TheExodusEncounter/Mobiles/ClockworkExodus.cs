@@ -1,6 +1,6 @@
 using System;
-using Server.Items;
 using System.Collections.Generic;
+using Server.Items;
 
 namespace Server.Mobiles
 {
@@ -9,16 +9,7 @@ namespace Server.Mobiles
     {
         public static int m_MinHits;
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int MinHits
-        {
-            get { return m_MinHits; }
-            set { m_MinHits = value; }
-        }
-
-        public static List<ClockworkExodus> Instances { get; set; }
-
-        private static readonly Type[] m_Artifact = new Type[]
+        private static readonly Type[] m_Artifact =
         {
             typeof(ScrollofValiantCommendation),
             typeof(BracersofAlchemicalDevastation),
@@ -33,6 +24,22 @@ namespace Server.Mobiles
         };
 
         private Point3D m_LastTarget;
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int MinHits
+        {
+            get => m_MinHits;
+            set => m_MinHits = value;
+        }
+
+        public static List<ClockworkExodus> Instances { get; set; }
+
+        public override bool CanBeParagon => false;
+        public override bool Unprovokable => true;
+        public virtual double ChangeCombatant => 0.3;
+        public override bool AlwaysMurderer => true;
+        public override Poison PoisonImmune => Poison.Greater;
+        public override int TreasureMapLevel => 5;
 
         [Constructable]
         public ClockworkExodus() : base(AIType.AI_Mystic, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -88,12 +95,17 @@ namespace Server.Mobiles
 
             SetWeaponAbility(WeaponAbility.BleedAttack);
             SetAreaEffect(AreaEffect.AuraOfEnergy);
-        }        
+        }
+
+        public ClockworkExodus(Serial serial)
+            : base(serial)
+        {
+        }
 
         public static void DistributeRandomArtifact(BaseCreature bc, Type[] typelist)
         {
-            int random = Utility.Random(typelist.Length);
-            Item item = Loot.Construct(typelist[random]);
+            var random = Utility.Random(typelist.Length);
+            var item = Loot.Construct(typelist[random]);
             DistributeArtifact(DemonKnight.FindRandomPlayer(bc), item);
         }
 
@@ -102,47 +114,36 @@ namespace Server.Mobiles
             if (to == null || artifact == null)
                 return;
 
-            Container pack = to.Backpack;
+            var pack = to.Backpack;
 
             if (pack == null || !pack.TryDropItem(to, artifact, false))
                 to.BankBox.DropItem(artifact);
 
             to.SendLocalizedMessage(502088); // A special gift has been placed in your backpack.
-		}
+        }
 
         public override bool OnBeforeDeath()
         {
             if (Utility.RandomDouble() < 0.2)
                 DistributeRandomArtifact(this, m_Artifact);
 
-            Map map = Map;
+            var map = Map;
 
             if (map != null)
-            {
-                for (int x = -8; x <= 8; ++x)
+                for (var x = -8; x <= 8; ++x)
+                for (var y = -8; y <= 8; ++y)
                 {
-                    for (int y = -8; y <= 8; ++y)
-                    {
-                        double dist = Math.Sqrt(x * x + y * y);
+                    var dist = Math.Sqrt(x * x + y * y);
 
-                        if (dist <= 8)
-                            new GoldTimer(map, X + x, Y + y).Start();
-                    }
+                    if (dist <= 8)
+                        new GoldTimer(map, X + x, Y + y).Start();
                 }
-            }
 
             if (Instances != null && Instances.Contains(this))
                 Instances.Remove(this);
 
             return base.OnBeforeDeath();
         }
-
-        public override bool CanBeParagon { get { return false; } }
-        public override bool Unprovokable { get { return true; } }
-        public virtual double ChangeCombatant { get { return 0.3; } }
-        public override bool AlwaysMurderer { get { return true; } }
-        public override Poison PoisonImmune { get { return Poison.Greater; } }
-        public override int TreasureMapLevel { get { return 5; } }
 
         public override void GenerateLoot()
         {
@@ -151,16 +152,16 @@ namespace Server.Mobiles
 
         public void SpawnVortices(Mobile target)
         {
-            Map map = Map;
+            var map = Map;
 
             if (map == null)
                 return;
-            
+
             MovingParticles(target, 0x1AF6, 5, 0, false, false, 0x816, 0, 3006, 0, 0, 0);
 
             DeathVortexTrap dv;
 
-            for (int i = 0; i < 3; ++i)
+            for (var i = 0; i < 3; ++i)
             {
                 dv = new DeathVortexTrap();
                 dv.MoveToWorld(GetSpawnPosition(target.Location, map, 3), map);
@@ -174,13 +175,12 @@ namespace Server.Mobiles
         public void DoSpecialAbility(Mobile target)
         {
             if (target != null)
-            {
                 if (m_LastTarget != target.Location)
                 {
-                    target.SendLocalizedMessage(1152692, Name); // ~1_CREATURE~ casts a deadly vortex at you!                    
+                    target.SendLocalizedMessage(1152692,
+                        Name); // ~1_CREATURE~ casts a deadly vortex at you!                    
                     SpawnVortices(target);
-                }                
-            }
+                }
         }
 
         public override void OnDamagedBySpell(Mobile attacker)
@@ -192,7 +192,7 @@ namespace Server.Mobiles
 
         public override void OnGaveMeleeAttack(Mobile defender)
         {
-            base.OnGaveMeleeAttack(defender);  //if it hits you it spawns vortices
+            base.OnGaveMeleeAttack(defender); //if it hits you it spawns vortices
 
             DoSpecialAbility(defender);
         }
@@ -212,26 +212,21 @@ namespace Server.Mobiles
                 m_MinHits = Hits;
 
             if (Hits >= HitsMax * 0.75)
-                m_MinHits = HitsMax;            
-        }
-
-        public ClockworkExodus(Serial serial)
-            : base(serial)
-        {
+                m_MinHits = HitsMax;
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
-            writer.Write((int)m_MinHits);
+            writer.Write(0);
+            writer.Write(m_MinHits);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             m_MinHits = reader.ReadInt();
 
@@ -243,8 +238,9 @@ namespace Server.Mobiles
 
         private class GoldTimer : Timer
         {
-            private Map m_Map;
-            private int m_X, m_Y;
+            private readonly Map m_Map;
+            private readonly int m_X;
+            private readonly int m_Y;
 
             public GoldTimer(Map map, int x, int y) : base(TimeSpan.FromSeconds(Utility.RandomDouble() * 10.0))
             {
@@ -255,10 +251,10 @@ namespace Server.Mobiles
 
             protected override void OnTick()
             {
-                int z = m_Map.GetAverageZ(m_X, m_Y);
-                bool canFit = m_Map.CanFit(m_X, m_Y, z, 6, false, false);
+                var z = m_Map.GetAverageZ(m_X, m_Y);
+                var canFit = m_Map.CanFit(m_X, m_Y, z, 6, false, false);
 
-                for (int i = -3; !canFit && i <= 3; ++i)
+                for (var i = -3; !canFit && i <= 3; ++i)
                 {
                     canFit = m_Map.CanFit(m_X, m_Y, z + i, 6, false, false);
 
@@ -269,12 +265,13 @@ namespace Server.Mobiles
                 if (!canFit)
                     return;
 
-                Gold g = new Gold(500, 1000);
+                var g = new Gold(500, 1000);
                 g.MoveToWorld(new Point3D(m_X, m_Y, z), m_Map);
 
                 if (0.3 >= Utility.RandomDouble())
-                {                    
-                    Effects.SendLocationParticles(EffectItem.Create(g.Location, g.Map, EffectItem.DefaultDuration), 0x3709, 10, 30, 5052);
+                {
+                    Effects.SendLocationParticles(EffectItem.Create(g.Location, g.Map, EffectItem.DefaultDuration),
+                        0x3709, 10, 30, 5052);
                     Effects.PlaySound(g, g.Map, 0x208);
                 }
             }

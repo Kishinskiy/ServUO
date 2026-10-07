@@ -1,11 +1,8 @@
-﻿using System;
-using Server;
-
-namespace Server.Engines.TombOfKings
+﻿namespace Server.Engines.TombOfKings
 {
     public class ChamberSwitch : Item
     {
-        private Chamber m_Chamber;
+        private readonly Chamber m_Chamber;
 
         public ChamberSwitch(Chamber chamber, Point3D loc, int itemId)
             : base(itemId)
@@ -14,6 +11,11 @@ namespace Server.Engines.TombOfKings
 
             Movable = false;
             MoveToWorld(loc, Map.TerMur);
+        }
+
+        public ChamberSwitch(Serial serial)
+            : base(serial)
+        {
         }
 
         public override void OnDoubleClick(Mobile from)
@@ -34,21 +36,16 @@ namespace Server.Engines.TombOfKings
             }
         }
 
-        public ChamberSwitch(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             Delete();
         }

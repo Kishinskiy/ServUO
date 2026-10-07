@@ -1,9 +1,9 @@
-using System;
-
 namespace Server.Factions
 {
     public class TownMonolith : BaseMonolith
     {
+        public override int DefaultLabelNumber => 1041403; // A Faction Town Sigil Monolith
+
         public TownMonolith()
             : this(null)
         {
@@ -19,30 +19,23 @@ namespace Server.Factions
         {
         }
 
-        public override int DefaultLabelNumber
-        {
-            get
-            {
-                return 1041403;
-            }
-        }// A Faction Town Sigil Monolith
         public override void OnTownChanged()
         {
-            this.AssignName(this.Town == null ? null : this.Town.Definition.TownMonolithName);
+            AssignName(Town == null ? null : Town.Definition.TownMonolithName);
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

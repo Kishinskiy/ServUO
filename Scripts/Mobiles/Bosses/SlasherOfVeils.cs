@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using Server.Items;
 using Server.Spells;
 
@@ -8,18 +7,49 @@ namespace Server.Mobiles
     [CorpseName("a slasher of veils corpse")]
     public class SlasherOfVeils : BaseSABoss
     {
-        private static readonly int[] m_North = new int[]
+        private static readonly int[] m_North =
         {
             -1, -1,
             1, -1,
             -1, 2,
             1, 2
         };
-        private static readonly int[] m_East = new int[]
+
+        private static readonly int[] m_East =
         {
             -1, 0,
             2, 0
         };
+
+        public override Type[] UniqueSAList
+        {
+            get
+            {
+                return new[]
+                {
+                    typeof(ClawsOfTheBerserker), typeof(Lavaliere), typeof(Mangler), typeof(HumanSignOfChaos),
+                    typeof(GargishSignOfChaos), typeof(StandardOfChaosG), typeof(StandardOfChaos)
+                };
+            }
+        }
+
+        public override Type[] SharedSAList
+        {
+            get
+            {
+                return new[]
+                {
+                    typeof(AxesOfFury), typeof(BladeOfBattle), typeof(DemonBridleRing), typeof(PetrifiedSnake),
+                    typeof(PillarOfStrength), typeof(SwordOfShatteredHopes), typeof(SummonersKilt)
+                };
+            }
+        }
+
+        public override bool Unprovokable => false;
+
+        public override bool BardImmune => false;
+
+        public override bool AlwaysMurderer => true;
 
         [Constructable]
         public SlasherOfVeils()
@@ -73,35 +103,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override Type[] UniqueSAList
-        {
-            get
-            {
-                return new Type[] { typeof(ClawsOfTheBerserker), typeof(Lavaliere), typeof(Mangler), typeof(HumanSignOfChaos), typeof(GargishSignOfChaos), typeof(StandardOfChaosG), typeof(StandardOfChaos) };
-            }
-        }
-        public override Type[] SharedSAList
-        {
-            get
-            {
-                return new Type[] { typeof(AxesOfFury), typeof(BladeOfBattle), typeof(DemonBridleRing), typeof(PetrifiedSnake), typeof(PillarOfStrength), typeof(SwordOfShatteredHopes), typeof(SummonersKilt) };
-            }
-        }
-
-        public override bool Unprovokable
-        {
-            get
-            {
-                return false;
-            }
-        }
-        public override bool BardImmune
-        {
-            get
-            {
-                return false;
-            }
-        }
         public override int GetIdleSound()
         {
             return 1589;
@@ -121,8 +122,6 @@ namespace Server.Mobiles
         {
             return 1587;
         }
-
-		public override bool AlwaysMurderer { get { return true; } }
 
         public override void GenerateLoot()
         {
@@ -144,28 +143,28 @@ namespace Server.Mobiles
 
         public override void FireRing()
         {
-            for (int i = 0; i < m_North.Length; i += 2)
+            for (var i = 0; i < m_North.Length; i += 2)
             {
-                Point3D p = Location;
+                var p = Location;
 
                 p.X += m_North[i];
                 p.Y += m_North[i + 1];
 
-                IPoint3D po = p as IPoint3D;
+                var po = p as IPoint3D;
 
                 SpellHelper.GetSurfaceTop(ref po);
 
                 Effects.SendLocationEffect(po, Map, 0x3E27, 50);
             }
 
-            for (int i = 0; i < m_East.Length; i += 2)
+            for (var i = 0; i < m_East.Length; i += 2)
             {
-                Point3D p = Location;
+                var p = Location;
 
                 p.X += m_East[i];
                 p.Y += m_East[i + 1];
 
-                IPoint3D po = p as IPoint3D;
+                var po = p as IPoint3D;
 
                 SpellHelper.GetSurfaceTop(ref po);
 
@@ -175,14 +174,12 @@ namespace Server.Mobiles
 
         public override void OnDamagedBySpell(Mobile caster)
         {
-            if (0.5 > Utility.RandomDouble() && caster.InRange(Location, 10) && Map != null && caster.Alive && caster != this && caster.Map == Map)
+            if (0.5 > Utility.RandomDouble() && caster.InRange(Location, 10) && Map != null && caster.Alive &&
+                caster != this && caster.Map == Map)
             {
                 MoveToWorld(caster.Location, Map);
 
-                Timer.DelayCall(() =>
-                {
-                    Combatant = caster;
-                });
+                Timer.DelayCall(() => { Combatant = caster; });
 
                 Effects.PlaySound(Location, Map, 0x1FE);
             }
@@ -193,13 +190,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

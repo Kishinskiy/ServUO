@@ -1,32 +1,11 @@
-using Server;
-using System;
 using Server.Items;
-using Server.Multis;
-using System.Collections.Generic;
-using Server.Engines.Quests;
 
 namespace Server.Mobiles
 {
     public class MerchantCrew : BaseCreature
     {
-        public override bool InitialInnocent { get { return true; } }
-        public override WeaponAbility GetWeaponAbility()
-        {
-            Item weapon = FindItemOnLayer(Layer.TwoHanded);
+        public override bool InitialInnocent => true;
 
-            if (weapon == null)
-                return null;
-
-            if (weapon is BaseWeapon)
-            {
-                if (Utility.RandomBool())
-                    return ((BaseWeapon)weapon).PrimaryAbility;
-                else
-                    return ((BaseWeapon)weapon).SecondaryAbility;
-            }
-            return null;
-        }
-        
         [Constructable]
         public MerchantCrew()
             : base(AIType.AI_Paladin, FightMode.Aggressor, 10, 1, .2, .4)
@@ -34,7 +13,7 @@ namespace Server.Mobiles
             Title = "the merchant";
             Hue = Race.RandomSkinHue();
 
-            if (this.Female = Utility.RandomBool())
+            if (Female = Utility.RandomBool())
             {
                 Body = 0x191;
                 Name = NameList.RandomName("female");
@@ -47,7 +26,7 @@ namespace Server.Mobiles
                 AddItem(new ShortPants(Utility.RandomNeutralHue()));
             }
 
-            bool magery = 0.33 > Utility.RandomDouble();
+            var magery = 0.33 > Utility.RandomDouble();
 
             SetStr(100, 125);
             SetDex(125, 150);
@@ -83,10 +62,22 @@ namespace Server.Mobiles
             switch (Utility.Random(4))
             {
                 default:
-                case 0: bow = new CompositeBow(); PackItem(new Arrow(25)); break;
-                case 1: bow = new Crossbow(); PackItem(new Bolt(25)); break;
-                case 2: bow = new Bow(); PackItem(new Arrow(25)); break;
-                case 3: bow = new HeavyCrossbow(); PackItem(new Bolt(25)); break;
+                case 0:
+                    bow = new CompositeBow();
+                    PackItem(new Arrow(25));
+                    break;
+                case 1:
+                    bow = new Crossbow();
+                    PackItem(new Bolt(25));
+                    break;
+                case 2:
+                    bow = new Bow();
+                    PackItem(new Arrow(25));
+                    break;
+                case 3:
+                    bow = new HeavyCrossbow();
+                    PackItem(new Bolt(25));
+                    break;
             }
 
             AddItem(bow);
@@ -103,26 +94,43 @@ namespace Server.Mobiles
                 IsSoulbound = true;
         }
 
-        public override void GenerateLoot()
-        {
-            AddLoot(LootPack.UltraRich, 2);
-        }
-
         public MerchantCrew(Serial serial)
             : base(serial)
         {
         }
 
+        public override WeaponAbility GetWeaponAbility()
+        {
+            var weapon = FindItemOnLayer(Layer.TwoHanded);
+
+            if (weapon == null)
+                return null;
+
+            if (weapon is BaseWeapon)
+            {
+                if (Utility.RandomBool())
+                    return ((BaseWeapon)weapon).PrimaryAbility;
+                return ((BaseWeapon)weapon).SecondaryAbility;
+            }
+
+            return null;
+        }
+
+        public override void GenerateLoot()
+        {
+            AddLoot(LootPack.UltraRich, 2);
+        }
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

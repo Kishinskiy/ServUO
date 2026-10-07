@@ -1,4 +1,3 @@
-using System;
 using Server.Gumps;
 using Server.Network;
 
@@ -8,6 +7,7 @@ namespace Server.Engines.BulkOrders
     {
         private readonly SmallBOD m_Deed;
         private readonly Mobile m_From;
+
         public SmallBODAcceptGump(Mobile from, SmallBOD deed)
             : base(50, 50)
         {
@@ -30,7 +30,8 @@ namespace Server.Engines.BulkOrders
             AddImage(430, 249, 10460);
 
             AddHtmlLocalized(190, 25, 120, 20, 1045133, 0x7FFF, false, false); // A bulk order
-            AddHtmlLocalized(40, 48, 350, 20, 1045135, 0x7FFF, false, false); // Ah!  Thanks for the goods!  Would you help me out?
+            AddHtmlLocalized(40, 48, 350, 20, 1045135, 0x7FFF, false,
+                false); // Ah!  Thanks for the goods!  Would you help me out?
 
             AddHtmlLocalized(40, 72, 210, 20, 1045138, 0x7FFF, false, false); // Amount to make:
             AddLabel(250, 72, 1152, deed.AmountMax.ToString());
@@ -47,7 +48,9 @@ namespace Server.Engines.BulkOrders
                     AddHtmlLocalized(40, 168, 350, 20, 1045141, 0x7FFF, false, false); // All items must be exceptional.
 
                 if (deed.Material != BulkMaterialType.None)
-                    AddHtmlLocalized(40, deed.RequireExceptional ? 192 : 168, 350, 20, SmallBODGump.GetMaterialNumberFor(deed.Material), 0x7FFF, false, false); // All items must be made with x material.
+                    AddHtmlLocalized(40, deed.RequireExceptional ? 192 : 168, 350, 20,
+                        SmallBODGump.GetMaterialNumberFor(deed.Material), 0x7FFF, false,
+                        false); // All items must be made with x material.
             }
 
             AddHtmlLocalized(40, 216, 350, 20, 1045139, 0x7FFF, false, false); // Do you want to accept this order?
@@ -63,10 +66,7 @@ namespace Server.Engines.BulkOrders
         {
             Timer.DelayCall(() =>
             {
-                if (m_Deed.Map == null || m_Deed.Map == Map.Internal)
-                {
-                    m_Deed.Delete();
-                }
+                if (m_Deed.Map == null || m_Deed.Map == Map.Internal) m_Deed.Delete();
             });
         }
 

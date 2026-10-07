@@ -13,10 +13,10 @@ namespace Server.Items
 
     public class StoreSingingBall : SingingBall
     {
-        public override int LabelNumber { get { return 1152323 + (int)Type; } }
+        public override int LabelNumber => 1152323 + (int)Type;
 
         public SBType Type { get; set; }
-        
+
         [Constructable]
         public StoreSingingBall()
             : base(0x468A)
@@ -24,9 +24,14 @@ namespace Server.Items
             var values = Enum.GetValues(typeof(SBType));
             Type = (SBType)values.GetValue(Utility.Random(values.Length));
 
-            Weight = 1.0;            
+            Weight = 1.0;
             LootType = LootType.Regular;
             SetHue();
+        }
+
+        public StoreSingingBall(Serial serial)
+            : base(serial)
+        {
         }
 
         private void SetHue()
@@ -45,7 +50,7 @@ namespace Server.Items
 
         public override int SoundList()
         {
-            int sound = 0;
+            var sound = 0;
 
             if (Type == SBType.Bedlam)
                 sound = Utility.RandomList(897, 1005, 889, 1001, 1002, 1004, 1005, 894, 893, 889, 1003);
@@ -61,15 +66,10 @@ namespace Server.Items
             return sound;
         }
 
-        public StoreSingingBall(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
             writer.Write((int)Type);
         }
@@ -77,7 +77,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             Type = (SBType)reader.ReadInt();
         }

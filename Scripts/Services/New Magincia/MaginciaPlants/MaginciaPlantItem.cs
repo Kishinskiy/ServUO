@@ -1,4 +1,3 @@
-using Server;
 using System;
 using Server.Network;
 
@@ -6,48 +5,64 @@ namespace Server.Engines.Plants
 {
     public class MaginciaPlantItem : PlantItem
     {
-        public override bool MaginciaPlant { get { return true; } }
-        public override int BowlOfDirtID { get { return 2323; } }
+        private DateTime m_Contract;
+
+        private DateTime m_Planted;
+        private Timer m_Timer;
+        public override bool MaginciaPlant => true;
+        public override int BowlOfDirtID => 2323;
+
         public override int GreenBowlID
         {
             get
             {
                 if (PlantStatus <= PlantStatus.Stage3)
                     return 0xC7E;
-                else
-                    return 0xC62;
+                return 0xC62;
             }
         }
 
-        public override int ContainerLocalization { get { return 1150436; } } // mound of dirt
-        public override int OnPlantLocalization { get { return 1150442; } } // You plant the seed in the mound of dirt.
-        public override int CantUseLocalization { get { return 501648; } } // You cannot use this unless you are the owner.
+        public override int ContainerLocalization => 1150436; // mound of dirt
+        public override int OnPlantLocalization => 1150442; // You plant the seed in the mound of dirt.
+        public override int CantUseLocalization => 501648; // You cannot use this unless you are the owner.
 
         public override int LabelNumber
         {
             get
             {
-                int label = base.LabelNumber;
+                var label = base.LabelNumber;
 
                 if (label == 1029913)
-                    label = 1022321;    // patch of dirt
+                    label = 1022321; // patch of dirt
 
                 return label;
             }
         }
 
-        private DateTime m_Planted;
-        private DateTime m_Contract;
-        private Timer m_Timer;
-
         [CommandProperty(AccessLevel.GameMaster)]
         public Mobile Owner { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public DateTime Planted { get { return m_Planted; } set { m_Planted = value; InvalidateProperties(); } }
+        public DateTime Planted
+        {
+            get => m_Planted;
+            set
+            {
+                m_Planted = value;
+                InvalidateProperties();
+            }
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public DateTime ContractTime { get { return m_Contract; } set { m_Contract = value; InvalidateProperties(); } }
+        public DateTime ContractTime
+        {
+            get => m_Contract;
+            set
+            {
+                m_Contract = value;
+                InvalidateProperties();
+            }
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public DateTime ContractEndTime => ContractTime + TimeSpan.FromDays(14);
@@ -59,13 +74,7 @@ namespace Server.Engines.Plants
         public DateTime SetToDecorative { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public override bool ValidGrowthLocation
-        {
-            get
-            {
-                return RootParent == null && !Movable;
-            }
-        }
+        public override bool ValidGrowthLocation => RootParent == null && !Movable;
 
         [Constructable]
         public MaginciaPlantItem()
@@ -82,12 +91,17 @@ namespace Server.Engines.Plants
             Planted = DateTime.UtcNow;
         }
 
+        public MaginciaPlantItem(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void OnDoubleClick(Mobile from)
         {
             if (PlantStatus >= PlantStatus.DecorativePlant)
                 return;
 
-            Point3D loc = GetWorldLocation();
+            var loc = GetWorldLocation();
 
             if (!from.InLOS(loc) || !from.InRange(loc, 2))
             {
@@ -114,7 +128,7 @@ namespace Server.Engines.Plants
         {
             base.Die();
 
-            Timer.DelayCall(TimeSpan.FromMinutes(Utility.RandomMinMax(2, 5)), new TimerCallback(Delete));
+            Timer.DelayCall(TimeSpan.FromMinutes(Utility.RandomMinMax(2, 5)), Delete);
         }
 
         public override void Delete()
@@ -136,8 +150,10 @@ namespace Server.Engines.Plants
 
                 if (IsContract)
                 {
-                    DateTime easternTime = TimeZoneInfo.ConvertTimeFromUtc(ContractEndTime, TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time"));
-                    list.Add(1155763, easternTime.ToString("MM-dd-yyyy HH:mm 'ET'")); // Gardening Contract Expires: ~1_TIME~
+                    var easternTime = TimeZoneInfo.ConvertTimeFromUtc(ContractEndTime,
+                        TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time"));
+                    list.Add(1155763,
+                        easternTime.ToString("MM-dd-yyyy HH:mm 'ET'")); // Gardening Contract Expires: ~1_TIME~
                 }
 
                 if (PlantStatus == PlantStatus.DecorativePlant)
@@ -147,7 +163,7 @@ namespace Server.Engines.Plants
 
         public void StartTimer()
         {
-            m_Timer = Timer.DelayCall(TimeSpan.FromMinutes(2), new TimerCallback(Delete));
+            m_Timer = Timer.DelayCall(TimeSpan.FromMinutes(2), Delete);
         }
 
         public override bool PlantSeed(Mobile from, Seed seed)
@@ -172,17 +188,14 @@ namespace Server.Engines.Plants
             IPooledEnumerable eable = Map.GetItemsInRange(Location, 1);
 
             foreach (Item item in eable)
-            {
                 if (item != this && item is MaginciaPlantItem)
-                {
                     if (((MaginciaPlantItem)item).BlocksMovement())
                     {
                         eable.Free();
-                        from.SendLocalizedMessage(1150434); // Plants that block movement cannot be planted next to other plants that block movement.
+                        from.SendLocalizedMessage(
+                            1150434); // Plants that block movement cannot be planted next to other plants that block movement.
                         return false;
                     }
-                }
-            }
 
             eable.Free();
             return true;
@@ -193,33 +206,28 @@ namespace Server.Engines.Plants
             if (PlantStatus == PlantStatus.BowlOfDirt || PlantStatus == PlantStatus.DeadTwigs)
                 return false;
 
-            PlantTypeInfo info = PlantTypeInfo.GetInfo(PlantType);
-            ItemData data = TileData.ItemTable[info.ItemID & TileData.MaxItemValue];
+            var info = PlantTypeInfo.GetInfo(PlantType);
+            var data = TileData.ItemTable[info.ItemID & TileData.MaxItemValue];
 
-            TileFlag flags = data.Flags;
+            var flags = data.Flags;
 
             return (flags & TileFlag.Impassable) > 0;
         }
 
         public static bool BlocksMovement(Seed seed)
         {
-            PlantTypeInfo info = PlantTypeInfo.GetInfo(seed.PlantType);
-            ItemData data = TileData.ItemTable[info.ItemID & TileData.MaxItemValue];
+            var info = PlantTypeInfo.GetInfo(seed.PlantType);
+            var data = TileData.ItemTable[info.ItemID & TileData.MaxItemValue];
 
-            TileFlag flags = data.Flags;
+            var flags = data.Flags;
 
             return (flags & TileFlag.Impassable) > 0;
-        }
-
-        public MaginciaPlantItem(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1); // version
+            writer.Write(1); // version
 
             writer.Write(ContractTime);
             writer.Write(Owner);
@@ -230,25 +238,25 @@ namespace Server.Engines.Plants
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             switch (version)
             {
                 case 1:
-                    {
-                        ContractTime = reader.ReadDateTime();
-                        Owner = reader.ReadMobile();
-                        m_Planted = reader.ReadDateTime();
-                        SetToDecorative = reader.ReadDateTime();
-                        break;
-                    }
+                {
+                    ContractTime = reader.ReadDateTime();
+                    Owner = reader.ReadMobile();
+                    m_Planted = reader.ReadDateTime();
+                    SetToDecorative = reader.ReadDateTime();
+                    break;
+                }
                 case 0:
-                    {
-                        Owner = reader.ReadMobile();
-                        m_Planted = reader.ReadDateTime();
-                        SetToDecorative = reader.ReadDateTime();
-                        break;
-                    }
+                {
+                    Owner = reader.ReadMobile();
+                    m_Planted = reader.ReadDateTime();
+                    SetToDecorative = reader.ReadDateTime();
+                    break;
+                }
             }
 
             if (PlantStatus == PlantStatus.BowlOfDirt)

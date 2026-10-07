@@ -1,5 +1,5 @@
 using System;
-using Server.Gumps; 
+using Server.Gumps;
 using Server.Mobiles;
 using Server.Network;
 
@@ -8,7 +8,7 @@ namespace Server.Items
     [TypeAlias("drNO.ThieveItems.GemOfSalvation")]
     public class GemOfSalvation : Item
     {
-        public override int LabelNumber { get { return 1094939; } } // Gem of Salvation
+        public override int LabelNumber => 1094939; // Gem of Salvation
 
         [Constructable]
         public GemOfSalvation()
@@ -18,64 +18,66 @@ namespace Server.Items
             LootType = LootType.Blessed;
         }
 
+        public GemOfSalvation(Serial serial)
+            : base(serial)
+        {
+        }
+
         public static void Initialize()
         {
-            EventSink.PlayerDeath += new PlayerDeathEventHandler(PlayerDeath);
+            EventSink.PlayerDeath += PlayerDeath;
         }
 
         public static void PlayerDeath(PlayerDeathEventArgs args)
         {
-            PlayerMobile pm = (PlayerMobile)args.Mobile;           
+            var pm = (PlayerMobile)args.Mobile;
 
             if (pm != null && pm.Backpack != null)
             {
-                GemOfSalvation gem = pm.Backpack.FindItemByType<GemOfSalvation>();
+                var gem = pm.Backpack.FindItemByType<GemOfSalvation>();
 
                 if (gem != null)
-                {
                     Timer.DelayCall(TimeSpan.FromSeconds(2), () =>
                     {
                         if (DateTime.UtcNow < pm.NextGemOfSalvationUse)
                         {
-                            TimeSpan left = pm.NextGemOfSalvationUse - DateTime.UtcNow;
+                            var left = pm.NextGemOfSalvationUse - DateTime.UtcNow;
 
                             if (left >= TimeSpan.FromMinutes(1.0))
-                                pm.SendLocalizedMessage(1095131, ((left.Hours * 60) + left.Minutes).ToString()); // Your spirit lacks cohesion. You must wait ~1_minutes~ minutes before invoking the power of a Gem of Salvation.
+                                pm.SendLocalizedMessage(1095131,
+                                    (left.Hours * 60 + left.Minutes)
+                                    .ToString()); // Your spirit lacks cohesion. You must wait ~1_minutes~ minutes before invoking the power of a Gem of Salvation.
                             else
-                                pm.SendLocalizedMessage(1095130, left.Seconds.ToString()); // Your spirit lacks cohesion. You must wait ~1_seconds~ seconds before invoking the power of a Gem of Salvation.
+                                pm.SendLocalizedMessage(1095130,
+                                    left.Seconds
+                                        .ToString()); // Your spirit lacks cohesion. You must wait ~1_seconds~ seconds before invoking the power of a Gem of Salvation.
                         }
                         else
                         {
                             pm.CloseGump(typeof(ResurrectGump));
                             pm.SendGump(new GemResurrectGump(pm, gem));
                         }
-                    });                    
-                }
+                    });
             }
-        }
-
-        public GemOfSalvation(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class GemResurrectGump : ResurrectGump
     {
-        private GemOfSalvation m_Gem;
-        private PlayerMobile m_Mobile;
+        private readonly GemOfSalvation m_Gem;
+        private readonly PlayerMobile m_Mobile;
 
         public GemResurrectGump(PlayerMobile pm, GemOfSalvation gem)
             : base(pm, ResurrectMessage.GemOfSalvation)
@@ -99,7 +101,8 @@ namespace Server.Items
                 m_Mobile.PlaySound(0x214);
                 m_Mobile.Resurrect();
 
-                m_Mobile.SendLocalizedMessage(1095132); // The gem infuses you with its power and is destroyed in the process.
+                m_Mobile.SendLocalizedMessage(
+                    1095132); // The gem infuses you with its power and is destroyed in the process.
 
                 m_Gem.Delete();
 
@@ -108,4 +111,3 @@ namespace Server.Items
         }
     }
 }
-

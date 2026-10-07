@@ -1,5 +1,7 @@
 using System;
+using Server.Engines.Plants;
 using Server.Items;
+using Server.Network;
 
 namespace Server.Mobiles
 {
@@ -7,8 +9,8 @@ namespace Server.Mobiles
     public class AntLion : BaseCreature
     {
         private DateTime _NextTunnel;
-        private Map _StartTunnelMap;
         private Point3D _StartTunnelLoc;
+        private Map _StartTunnelMap;
         private bool _Tunneling;
 
         [Constructable]
@@ -49,7 +51,7 @@ namespace Server.Mobiles
             PackItem(new FertileDirt(Utility.RandomMinMax(1, 5)));
 
             if (Core.ML && Utility.RandomDouble() < .33)
-                PackItem(Engines.Plants.Seed.RandomPeculiarSeed(3));
+                PackItem(Seed.RandomPeculiarSeed(3));
 
             Item orepile = null; /* no trust, no love :( */
 
@@ -74,18 +76,21 @@ namespace Server.Mobiles
             PackItem(orepile);
 
             PackBones();
-			
-			if ( 0.07 >= Utility.RandomDouble() )
-			{
-				switch ( Utility.Random( 3 ) )
-				{
-					case 0: PackItem( new UnknownBardSkeleton() ); break;
-					case 1: PackItem( new UnknownMageSkeleton() ); break;
-					case 2: PackItem( new UnknownRogueSkeleton() ); break;
-				}
-			}
+
+            if (0.07 >= Utility.RandomDouble())
+                switch (Utility.Random(3))
+                {
+                    case 0: PackItem(new UnknownBardSkeleton()); break;
+                    case 1: PackItem(new UnknownMageSkeleton()); break;
+                    case 2: PackItem(new UnknownRogueSkeleton()); break;
+                }
 
             SetSpecialAbility(SpecialAbility.DragonBreath);
+        }
+
+        public AntLion(Serial serial)
+            : base(serial)
+        {
         }
 
         public override void OnThink()
@@ -94,8 +99,8 @@ namespace Server.Mobiles
 
             if (!(Combatant is Mobile))
                 return;
-            
-            Mobile combatant = Combatant as Mobile;
+
+            var combatant = Combatant as Mobile;
 
             if (_NextTunnel < DateTime.UtcNow && combatant.InRange(Location, 10))
             {
@@ -106,7 +111,8 @@ namespace Server.Mobiles
 
         private void DoTunnel(Mobile combatant)
         {
-            PublicOverheadMessage(Server.Network.MessageType.Regular, 0x3B3, false, "* The ant lion begins tunneling into the ground *");
+            PublicOverheadMessage(MessageType.Regular, 0x3B3, false,
+                "* The ant lion begins tunneling into the ground *");
             Effects.SendTargetParticles(this, 0x36B0, 20, 10, 1734, 0, 5044, EffectLayer.Head, 0);
 
             Frozen = true;
@@ -115,53 +121,54 @@ namespace Server.Mobiles
             _StartTunnelMap = Map;
 
             Timer.DelayCall(TimeSpan.FromSeconds(3), () =>
+            {
+                if (_Tunneling)
                 {
-                    if (_Tunneling)
+                    Hidden = true;
+                    Blessed = true;
+
+                    Item item = new InternalItem(3892);
+                    item.MoveToWorld(Location, Map);
+
+                    item = new InternalItem(4967);
+                    item.MoveToWorld(Location, Map);
+
+                    Timer.DelayCall(TimeSpan.FromSeconds(3), () =>
                     {
-                        Hidden = true;
-                        Blessed = true;
+                        Hidden = false;
+                        Blessed = false;
 
-                        Item item = new InternalItem(3892);
-                        item.MoveToWorld(Location, Map);
+                        if (!combatant.Alive || !combatant.InRange(_StartTunnelLoc, 20) ||
+                            combatant.Map != _StartTunnelMap)
+                        {
+                            MoveToWorld(_StartTunnelLoc, _StartTunnelMap);
+                        }
+                        else
+                        {
+                            MoveToWorld(combatant.Location, combatant.Map);
+                            AOS.Damage(combatant, this, 25, 70, 0, 0, 30, 0);
 
-                        item = new InternalItem(4967);
-                        item.MoveToWorld(Location, Map);
+                            Item item2 = new InternalItem(3892);
+                            item2.MoveToWorld(Location, Map);
 
-                        Timer.DelayCall(TimeSpan.FromSeconds(3), () =>
-                            {
-                                Hidden = false;
-                                Blessed = false;
+                            item2 = new InternalItem(4967);
+                            item2.MoveToWorld(Location, Map);
+                        }
 
-                                if (!combatant.Alive || !combatant.InRange(_StartTunnelLoc, 20) || combatant.Map != _StartTunnelMap)
-                                {
-                                    MoveToWorld(_StartTunnelLoc, _StartTunnelMap);
-                                }
-                                else
-                                {
-                                    MoveToWorld(combatant.Location, combatant.Map);
-                                    AOS.Damage(combatant, this, 25, 70, 0, 0, 30, 0);
-
-                                    Item item2 = new InternalItem(3892);
-                                    item2.MoveToWorld(Location, Map);
-
-                                    item2 = new InternalItem(4967);
-                                    item2.MoveToWorld(Location, Map);
-                                }
-
-                                _StartTunnelLoc = Point3D.Zero;
-                                _StartTunnelMap = null;
-                                _Tunneling = false;
-                                Frozen = false;
-                            });
-                    }
-                });
+                        _StartTunnelLoc = Point3D.Zero;
+                        _StartTunnelMap = null;
+                        _Tunneling = false;
+                        Frozen = false;
+                    });
+                }
+            });
         }
 
         public override int Damage(int amount, Mobile from, bool informMount, bool checkDisrupt)
         {
             if (_Tunneling && !Hidden && 0.25 > Utility.RandomDouble())
             {
-                PublicOverheadMessage(Server.Network.MessageType.Regular, 0x3B3, false, "* You interrupt the ant lion's digging! *");
+                PublicOverheadMessage(MessageType.Regular, 0x3B3, false, "* You interrupt the ant lion's digging! *");
 
                 Frozen = false;
                 Hidden = false;
@@ -174,12 +181,7 @@ namespace Server.Mobiles
             return base.Damage(amount, from, informMount, checkDisrupt);
         }
 
-        public AntLion(Serial serial)
-            : base(serial)
-        {
-        }
-		
-		public override void OnGotMeleeAttack(Mobile attacker)
+        public override void OnGotMeleeAttack(Mobile attacker)
         {
             if (attacker.Weapon is BaseRanged)
                 BeginAcidBreath();
@@ -194,44 +196,31 @@ namespace Server.Mobiles
             BeginAcidBreath();
         }
 
-        #region Acid Breath
-        private DateTime m_NextAcidBreath;
-
-        public void BeginAcidBreath()
+        public override int GetAngerSound()
         {
-            PlayerMobile m = Combatant as PlayerMobile;
-            // Mobile m = Combatant;
-
-            if (m == null || m.Deleted || !m.Alive || !Alive || m_NextAcidBreath > DateTime.Now || !CanBeHarmful(m))
-                return;
-
-            PlaySound(0x118);
-            MovingEffect(m, 0x36D4, 1, 0, false, false, 0x3F, 0);
-
-            TimeSpan delay = TimeSpan.FromSeconds(GetDistanceToSqrt(m) / 5.0);
-            Timer.DelayCall<Mobile>(delay, new TimerStateCallback<Mobile>(EndAcidBreath), m);
-
-            m_NextAcidBreath = DateTime.Now + TimeSpan.FromSeconds(5);
+            return 0x5A;
         }
 
-        public void EndAcidBreath(Mobile m)
+        public override int GetIdleSound()
         {
-            if (m == null || m.Deleted || !m.Alive || !Alive)
-                return;
-
-            if (0.2 >= Utility.RandomDouble())
-                m.ApplyPoison(this, Poison.Greater);
-
-            AOS.Damage(m, Utility.RandomMinMax(100, 120), 0, 0, 0, 100, 0);
+            return 0x5A;
         }
-        #endregion
 
-        public override int GetAngerSound() { return 0x5A; }
-        public override int GetIdleSound() { return 0x5A; }
-        public override int GetAttackSound() { return 0x164; }
-        public override int GetHurtSound() { return 0x187; }
-        public override int GetDeathSound() { return 0x1BA; }
-        
+        public override int GetAttackSound()
+        {
+            return 0x164;
+        }
+
+        public override int GetHurtSound()
+        {
+            return 0x187;
+        }
+
+        public override int GetDeathSound()
+        {
+            return 0x1BA;
+        }
+
         public override void GenerateLoot()
         {
             AddLoot(LootPack.Average, 2);
@@ -240,13 +229,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             Hidden = false;
             Blessed = false;
@@ -254,7 +243,7 @@ namespace Server.Mobiles
 
         private class InternalItem : Item
         {
-            public override int LabelNumber { get { return 1027025; } }
+            public override int LabelNumber => 1027025;
 
             public InternalItem(int id)
                 : base(id)
@@ -271,16 +260,50 @@ namespace Server.Mobiles
             public override void Serialize(GenericWriter writer)
             {
                 base.Serialize(writer);
-                writer.Write((int)0);
+                writer.Write(0);
             }
 
             public override void Deserialize(GenericReader reader)
             {
                 base.Deserialize(reader);
-                int version = reader.ReadInt();
+                var version = reader.ReadInt();
 
                 Delete();
             }
         }
+
+        #region Acid Breath
+
+        private DateTime m_NextAcidBreath;
+
+        public void BeginAcidBreath()
+        {
+            var m = Combatant as PlayerMobile;
+            // Mobile m = Combatant;
+
+            if (m == null || m.Deleted || !m.Alive || !Alive || m_NextAcidBreath > DateTime.Now || !CanBeHarmful(m))
+                return;
+
+            PlaySound(0x118);
+            MovingEffect(m, 0x36D4, 1, 0, false, false, 0x3F, 0);
+
+            var delay = TimeSpan.FromSeconds(GetDistanceToSqrt(m) / 5.0);
+            Timer.DelayCall(delay, new TimerStateCallback<Mobile>(EndAcidBreath), m);
+
+            m_NextAcidBreath = DateTime.Now + TimeSpan.FromSeconds(5);
+        }
+
+        public void EndAcidBreath(Mobile m)
+        {
+            if (m == null || m.Deleted || !m.Alive || !Alive)
+                return;
+
+            if (0.2 >= Utility.RandomDouble())
+                m.ApplyPoison(this, Poison.Greater);
+
+            AOS.Damage(m, Utility.RandomMinMax(100, 120), 0, 0, 0, 100, 0);
+        }
+
+        #endregion
     }
 }

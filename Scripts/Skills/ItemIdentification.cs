@@ -1,9 +1,10 @@
 using System;
-using Server.Mobiles;
-using Server.Targeting;
 using System.Collections.Generic;
+using Server.Engines.XmlSpawner2;
+using Server.Mobiles;
 using Server.Network;
 using Server.SkillHandlers;
+using Server.Targeting;
 
 namespace Server.Items
 {
@@ -11,7 +12,7 @@ namespace Server.Items
     {
         public static void Initialize()
         {
-            SkillInfo.Table[(int)SkillName.ItemID].Callback = new SkillUseCallback(OnUse);
+            SkillInfo.Table[(int)SkillName.ItemID].Callback = OnUse;
         }
 
         public static TimeSpan OnUse(Mobile from)
@@ -25,35 +26,39 @@ namespace Server.Items
         [PlayerVendorTarget]
         private class InternalTarget : Target
         {
+            public static Dictionary<Type, int> TypeCostCache { get; set; }
+
             public InternalTarget()
                 : base(8, false, TargetFlags.None)
             {
-                this.AllowNonlocal = true;
+                AllowNonlocal = true;
             }
 
             protected override void OnTarget(Mobile from, object o)
             {
-                Item item = o as Item;
-                Mobile m = o as Mobile;
+                var item = o as Item;
+                var m = o as Mobile;
 
                 if (item == null && m == null)
                 {
                     from.SendLocalizedMessage(500353); // You are not certain...
                     return;
                 }
-                
+
                 if (!from.CheckTargetSkill(SkillName.ItemID, o, 0, 100))
                 {
-                    from.PrivateOverheadMessage(MessageType.Emote, 0x3B2, 1041352, from.NetState); // You have no idea how much it might be worth.
+                    from.PrivateOverheadMessage(MessageType.Emote, 0x3B2, 1041352,
+                        from.NetState); // You have no idea how much it might be worth.
                     return;
                 }
 
                 if (m != null)
                 {
-                    from.PrivateOverheadMessage(MessageType.Emote, 0x3B2, 1041349, AffixType.Append, "  " + m.Name, "", from.NetState); // It appears to be:
+                    from.PrivateOverheadMessage(MessageType.Emote, 0x3B2, 1041349, AffixType.Append, "  " + m.Name, "",
+                        from.NetState); // It appears to be:
                     return;
                 }
-                
+
                 if (item.Name != null)
                 {
                     from.PrivateOverheadMessage(MessageType.Emote, 0x3B2, false, item.Name, from.NetState);
@@ -70,36 +75,33 @@ namespace Server.Items
                     if (item is Meteorite)
                     {
                         if (((Meteorite)item).Polished)
-                        {
-                            from.SendLocalizedMessage(1158697); // The brilliance of the meteorite shimmers in the light as you rotate it in your hands! Brightly hued veins of exotic minerals reflect against the polished surface. You think to yourself you have never seen anything so full of splendor!
-                        }
+                            from.SendLocalizedMessage(
+                                1158697); // The brilliance of the meteorite shimmers in the light as you rotate it in your hands! Brightly hued veins of exotic minerals reflect against the polished surface. You think to yourself you have never seen anything so full of splendor!
                         else
-                        {
-                            from.SendLocalizedMessage(1158696); // The rock seems to be otherwordly. Judging by the pitting and charring, it appears to have crash landed here from the sky! The rock feels surprisingly dense given its size. Perhaps if you polished it with an oil cloth you may discover what is inside...
-                        }
+                            from.SendLocalizedMessage(
+                                1158696); // The rock seems to be otherwordly. Judging by the pitting and charring, it appears to have crash landed here from the sky! The rock feels surprisingly dense given its size. Perhaps if you polished it with an oil cloth you may discover what is inside...
 
                         return;
                     }
 
-                    from.PrivateOverheadMessage(MessageType.Emote, 0x3B2, 1041351, AffixType.Append, "  " + GetPriceFor(item).ToString(), "", from.NetState); // You guess the value of that item at:
+                    from.PrivateOverheadMessage(MessageType.Emote, 0x3B2, 1041351, AffixType.Append,
+                        "  " + GetPriceFor(item), "", from.NetState); // You guess the value of that item at:
 
                     if (item is BaseWeapon || item is BaseArmor || item is BaseJewel || item is BaseHat)
                     {
                         if (Imbuing.TimesImbued(item) > 0)
                         {
-                            from.PrivateOverheadMessage(MessageType.Emote, 0x3B2, 1111877, from.NetState); // You conclude that item cannot be magically unraveled. The magic in that item has been weakened due to either low durability or the imbuing process.
+                            from.PrivateOverheadMessage(MessageType.Emote, 0x3B2, 1111877,
+                                from.NetState); // You conclude that item cannot be magically unraveled. The magic in that item has been weakened due to either low durability or the imbuing process.
                         }
                         else
                         {
-                            int weight = Imbuing.GetTotalWeight(item, -1, false, true);
+                            var weight = Imbuing.GetTotalWeight(item, -1, false, true);
                             string imbIngred = null;
-                            double skill = from.Skills[SkillName.Imbuing].Base;
-                            bool badSkill = false;
+                            var skill = from.Skills[SkillName.Imbuing].Base;
+                            var badSkill = false;
 
-                            if (!Imbuing.CanUnravelItem(from, item, false))
-                            {
-                                weight = 0;
-                            }
+                            if (!Imbuing.CanUnravelItem(from, item, false)) weight = 0;
 
                             if (weight > 0 && weight <= 200)
                             {
@@ -123,23 +125,23 @@ namespace Server.Items
                             if (imbIngred != null)
                             {
                                 if (badSkill)
-                                {
-                                    from.PrivateOverheadMessage(MessageType.Emote, 0x3B2, 1111875, from.NetState); // Your Imbuing skill is not high enough to identify the imbuing ingredient.
-                                }
+                                    from.PrivateOverheadMessage(MessageType.Emote, 0x3B2, 1111875,
+                                        from.NetState); // Your Imbuing skill is not high enough to identify the imbuing ingredient.
                                 else
-                                {
-                                    from.PrivateOverheadMessage(MessageType.Emote, 0x3B2, 1111874, imbIngred, from.NetState); //You conclude that item will magically unravel into: ~1_ingredient~
-                                }
+                                    from.PrivateOverheadMessage(MessageType.Emote, 0x3B2, 1111874, imbIngred,
+                                        from.NetState); //You conclude that item will magically unravel into: ~1_ingredient~
                             }
-                            else  // Cannot be Unravelled
+                            else // Cannot be Unravelled
                             {
-                                from.PrivateOverheadMessage(MessageType.Emote, 0x3B2, 1111876, from.NetState); //You conclude that item cannot be magically unraveled. It appears to possess little to no magic.
+                                from.PrivateOverheadMessage(MessageType.Emote, 0x3B2, 1111876,
+                                    from.NetState); //You conclude that item cannot be magically unraveled. It appears to possess little to no magic.
                             }
                         }
                     }
                     else
                     {
-                        from.LocalOverheadMessage(MessageType.Emote, 0x3B2, 1111878); //You conclude that item cannot be magically unraveled.
+                        from.LocalOverheadMessage(MessageType.Emote, 0x3B2,
+                            1111878); //You conclude that item cannot be magically unraveled.
                     }
                 }
                 else if (o is Item)
@@ -168,17 +170,15 @@ namespace Server.Items
                     from.SendLocalizedMessage(500353); // You are not certain...
                 }
 
-                Server.Engines.XmlSpawner2.XmlAttach.RevealAttachments(from, o);
+                XmlAttach.RevealAttachments(from, o);
             }
 
             public static int GetPriceFor(Item item)
             {
-                Type type = item.GetType();
+                var type = item.GetType();
 
                 if (GenericBuyInfo.BuyPrices.ContainsKey(type))
-                {
                     return GenericBuyInfo.BuyPrices[item.GetType()] * item.Amount;
-                }
 
                 if (TypeCostCache == null)
                     TypeCostCache = new Dictionary<Type, int>();
@@ -188,8 +188,6 @@ namespace Server.Items
 
                 return TypeCostCache[type];
             }
-
-            public static Dictionary<Type, int> TypeCostCache { get; set; }
         }
     }
 }

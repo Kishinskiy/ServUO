@@ -1,14 +1,14 @@
-using System;
-
 namespace Server.Items
 {
     public class Bleach : PigmentsOfTokuno
     {
+        public override int LabelNumber => 1075375; // Bleach
+
         [Constructable]
         public Bleach()
             : base(PigmentType.None)
         {
-            this.LootType = LootType.Blessed;
+            LootType = LootType.Blessed;
         }
 
         public Bleach(Serial serial)
@@ -16,25 +16,18 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1075375;
-            }
-        }// Bleach
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

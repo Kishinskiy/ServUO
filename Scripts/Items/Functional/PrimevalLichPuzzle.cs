@@ -23,8 +23,10 @@ namespace Server.Engines.CannedEvil
 {
     public class PrimevalLichPuzzleLever : Item
     {
-        private PrimevalLichPuzzle m_Controller;
         private byte m_Code;
+
+        private PrimevalLichPuzzle m_Controller;
+
         // Constructor
         public PrimevalLichPuzzleLever(byte code, PrimevalLichPuzzle controller)
             : base(0x108C)
@@ -52,7 +54,9 @@ namespace Server.Engines.CannedEvil
             }
 
             if (null != m_Controller.Successful)
-                m.SendLocalizedMessage(1112374);  // The puzzle has already been completed.
+            {
+                m.SendLocalizedMessage(1112374); // The puzzle has already been completed.
+            }
             else
             {
                 ItemID ^= 2;
@@ -64,16 +68,16 @@ namespace Server.Engines.CannedEvil
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1); // version
+            writer.Write(1); // version
 
-            writer.Write((byte)m_Code);
+            writer.Write(m_Code);
             writer.Write(m_Controller);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             m_Code = reader.ReadByte();
             m_Controller = reader.ReadItem() as PrimevalLichPuzzle;
@@ -93,35 +97,47 @@ namespace Server.Engines.CannedEvil
         private static readonly Point3D controlLoc = new Point3D(6999, 977, -15);
 
         // puzzle lever data
-        private static readonly int[][] leverdata = 
-        { // 3D coord, hue for levers
-            new int[] { 6981, 977, -15, 1204 }, // red
-            new int[] { 6984, 977, -15, 1150 }, // white
-            new int[] { 6987, 977, -15, 1175 }, // black
-            new int[] { 6990, 977, -15, 1264 }, // blue
-            new int[] { 7009, 977, -15, 1275 }, // purple
-            new int[] { 7012, 977, -15, 1272 }, // green
-            new int[] { 7015, 977, -15, 1260 }, // gold
-            new int[] { 7018, 977, -15, 1166 }, // pink 
+        private static readonly int[][] leverdata =
+        {
+            // 3D coord, hue for levers
+            new[] { 6981, 977, -15, 1204 }, // red
+            new[] { 6984, 977, -15, 1150 }, // white
+            new[] { 6987, 977, -15, 1175 }, // black
+            new[] { 6990, 977, -15, 1264 }, // blue
+            new[] { 7009, 977, -15, 1275 }, // purple
+            new[] { 7012, 977, -15, 1272 }, // green
+            new[] { 7015, 977, -15, 1260 }, // gold
+            new[] { 7018, 977, -15, 1166 } // pink 
         };
 
         // these are serialized
         private static PrimevalLichPuzzle m_Instance;
-        private ChampionSpawn m_Altar;
-        private long m_Key;
-        private Mobile m_Successful;
+        private Timer l_Timer;
+        private int m_Correct;
         private List<PrimevalLichPuzzleLever> m_Levers;
 
         // these are not serialized
         private byte m_NextKey;
-        private int m_Correct;
-        private Timer l_Timer;
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public Mobile Successful { get; private set; }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public long Key { get; private set; }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public bool Active => !Deleted && null != ChampionAltar && ChampionAltar.Active;
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public ChampionSpawn ChampionAltar { get; set; }
+
+        public override string DefaultName => "puzzle control";
 
         // Constructor
         public PrimevalLichPuzzle(Mobile m)
             : base(0x1BC3)
         {
-            if(null == m || null != m_Instance)
+            if (null == m || null != m_Instance)
             {
                 Delete();
                 //Probably not needed, OnAfterDelete sets it null anyway
@@ -137,16 +153,16 @@ namespace Server.Engines.CannedEvil
 
             m_Levers = new List<PrimevalLichPuzzleLever>();
 
-            m_Altar = FindAltar();
+            ChampionAltar = FindAltar();
 
-            if (null == m_Altar)
+            if (null == ChampionAltar)
             {
                 m.SendMessage(33, "Primeval Lich champion spawn not found.");
                 Delete();
             }
             else
             {
-                UpdatePuzzleState(m_Altar);
+                UpdatePuzzleState(ChampionAltar);
             }
         }
 
@@ -156,63 +172,20 @@ namespace Server.Engines.CannedEvil
         {
         }
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public Mobile Successful
-        {
-            get
-            {
-                return m_Successful;
-            }
-        }
-        [CommandProperty(AccessLevel.GameMaster)]
-        public long Key
-        {
-            get
-            {
-                return m_Key;
-            }
-        }
-        [CommandProperty(AccessLevel.GameMaster)]
-        public bool Active
-        {
-            get
-            {
-                return(!Deleted && null != m_Altar && m_Altar.Active);
-            }
-        }
-        [CommandProperty(AccessLevel.GameMaster)]
-        public ChampionSpawn ChampionAltar
-        {
-            get
-            {
-                return m_Altar;
-            }
-            set
-            {
-                m_Altar = value;
-            }
-        }
-        public override string DefaultName
-        {
-            get
-            {
-                return "puzzle control";
-            }
-        }
         public static void Initialize()
         {
-			CommandSystem.Register("GenLichPuzzle", AccessLevel.Administrator, new CommandEventHandler(GenLichPuzzle_OnCommand));
-			CommandSystem.Register("DeleteLichPuzzle", AccessLevel.Administrator, new CommandEventHandler(DeleteLichPuzzle_OnCommand));
-		}
+            CommandSystem.Register("GenLichPuzzle", AccessLevel.Administrator, GenLichPuzzle_OnCommand);
+            CommandSystem.Register("DeleteLichPuzzle", AccessLevel.Administrator, DeleteLichPuzzle_OnCommand);
+        }
 
-		[Usage("DeleteLichPuzzle")]
+        [Usage("DeleteLichPuzzle")]
         [Description("Deletes the Primeval Lich lever puzzle.")]
-		public static void DeleteLichPuzzle_OnCommand(CommandEventArgs e)
-		{
-			WeakEntityCollection.Delete("primevallich");
-		}
+        public static void DeleteLichPuzzle_OnCommand(CommandEventArgs e)
+        {
+            WeakEntityCollection.Delete("primevallich");
+        }
 
-		[Usage("GenLichPuzzle")]
+        [Usage("GenLichPuzzle")]
         [Description("Generates the Primeval Lich lever puzzle.")]
         public static void GenLichPuzzle_OnCommand(CommandEventArgs e)
         {
@@ -224,38 +197,29 @@ namespace Server.Engines.CannedEvil
             if (null != m_Instance)
             {
                 if (m != null)
-                {
-                    m.SendMessage("Primeval Lich lever puzzle already exists: please delete the existing one first ...");
-                }
+                    m.SendMessage(
+                        "Primeval Lich lever puzzle already exists: please delete the existing one first ...");
 
-                Utility.WriteConsoleColor(ConsoleColor.Green, "Primeval Lich lever puzzle already exists: please delete the existing one first ...");
+                Utility.WriteConsoleColor(ConsoleColor.Green,
+                    "Primeval Lich lever puzzle already exists: please delete the existing one first ...");
 
                 return;
             }
 
-            if (m != null)
-            {
-                m.SendMessage("Generating Primeval Lich lever puzzle...");
-            }
+            if (m != null) m.SendMessage("Generating Primeval Lich lever puzzle...");
 
             Utility.WriteConsoleColor(ConsoleColor.Green, "Generating Primeval Lich lever puzzle...");
 
-            PrimevalLichPuzzle control = new PrimevalLichPuzzle(m);
+            var control = new PrimevalLichPuzzle(m);
             if (null == control || control.Deleted)
             {
-                if (m != null)
-                {
-                    m.SendMessage(33, "There was a problem generating the puzzle.");
-                }
+                if (m != null) m.SendMessage(33, "There was a problem generating the puzzle.");
 
                 Utility.WriteConsoleColor(ConsoleColor.Green, "There was a problem generating the puzzle.");
             }
             else
             {
-                if (m != null)
-                {
-                    m.SendMessage("The puzzle was successfully generated.");
-                }
+                if (m != null) m.SendMessage("The puzzle was successfully generated.");
 
                 Utility.WriteConsoleColor(ConsoleColor.Green, "The puzzle was successfully generated.");
                 WeakEntityCollection.Add("primevallich", control);
@@ -292,20 +256,21 @@ namespace Server.Engines.CannedEvil
             // teleport if this is a dummy key
             if (0 == key)
             {
-                Point3D loc = m_Altar.GetSpawnLocation();
+                var loc = ChampionAltar.GetSpawnLocation();
                 m.MoveToWorld(loc, Map);
 
                 ResetLevers();
                 return;
             }
             // if the lever is correct, increment the count of correct levers pulled
-            else if (key == m_NextKey)
+
+            if (key == m_NextKey)
                 m_Correct++;
 
             // stop and restart the lever reset timer
             if (null != l_Timer)
                 l_Timer.Stop();
-            l_Timer = Timer.DelayCall(TimeSpan.FromSeconds(30.0), new TimerCallback(ResetLevers));
+            l_Timer = Timer.DelayCall(TimeSpan.FromSeconds(30.0), ResetLevers);
 
             // if this is the last key, check for correct solution and give messages/rewards
             if (6 == m_NextKey++)
@@ -313,7 +278,7 @@ namespace Server.Engines.CannedEvil
                 // all 6 were correct, so set successful and give a reward
                 if (6 == m_Correct)
                 {
-                    m_Successful = m;
+                    Successful = m;
                     GiveReward(m);
                 }
 
@@ -326,12 +291,12 @@ namespace Server.Engines.CannedEvil
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1); // version
+            writer.Write(1); // version
 
-            writer.Write((PrimevalLichPuzzle)m_Instance);
-            writer.Write((ChampionSpawn)m_Altar);
-            writer.Write((long)m_Key);
-            writer.Write((Mobile)m_Successful);
+            writer.Write(m_Instance);
+            writer.Write(ChampionAltar);
+            writer.Write(Key);
+            writer.Write(Successful);
             writer.WriteItemList(m_Levers, true);
         }
 
@@ -339,15 +304,15 @@ namespace Server.Engines.CannedEvil
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            switch ( version )
+            switch (version)
             {
                 case 1:
                     m_Instance = reader.ReadItem() as PrimevalLichPuzzle;
-                    m_Altar = reader.ReadItem() as ChampionSpawn;
-                    m_Key = reader.ReadLong();
-                    m_Successful = reader.ReadMobile();
+                    ChampionAltar = reader.ReadItem() as ChampionSpawn;
+                    Key = reader.ReadLong();
+                    Successful = reader.ReadMobile();
                     m_Levers = reader.ReadStrongItemList<PrimevalLichPuzzleLever>();
                     break;
             }
@@ -368,24 +333,23 @@ namespace Server.Engines.CannedEvil
         // search for Primeval Lich altar within 10 spaces of the expected location
         private ChampionSpawn FindAltar()
         {
-            foreach (Item item in Map.Felucca.GetItemsInRange(altarLoc, 10))
-            {
+            foreach (var item in Map.Felucca.GetItemsInRange(altarLoc, 10))
                 if (item is ChampionSpawn)
                 {
-                    ChampionSpawn champ = (ChampionSpawn)item;
+                    var champ = (ChampionSpawn)item;
                     if (ChampionSpawnType.Infuse == champ.Type)
                         return champ;
                 }
-            }
+
             return null;
         }
 
         // internal code to update the puzzle state
         private void UpdatePuzzleState(ChampionSpawn altar)
         {
-            if (!Deleted && null != altar && altar == m_Altar)
+            if (!Deleted && null != altar && altar == ChampionAltar)
             {
-                if (ChampionSpawnType.Infuse != m_Altar.Type || !Active)
+                if (ChampionSpawnType.Infuse != ChampionAltar.Type || !Active)
                     RemovePuzzleLevers();
                 else if (0 == m_Levers.Count)
                     CreatePuzzleLevers();
@@ -398,15 +362,15 @@ namespace Server.Engines.CannedEvil
             RemovePuzzleLevers();
 
             // generate a new key for the puzzle
-            int len = leverdata.Length;
+            var len = leverdata.Length;
 
             if (8 == len)
             {
                 // initialize new keymap
-                byte[] keymap = new byte[len];
+                var keymap = new byte[len];
                 int ndx;
                 byte code = 1;
-                int newkey = 0;
+                var newkey = 0;
                 while (code <= 6)
                 {
                     ndx = Utility.Random(len);
@@ -416,7 +380,8 @@ namespace Server.Engines.CannedEvil
                         newkey = newkey * 10 + ndx + 1;
                     }
                 }
-                m_Key = newkey;
+
+                Key = newkey;
 
                 // create the puzzle levers
                 PrimevalLichPuzzleLever lever;
@@ -425,7 +390,7 @@ namespace Server.Engines.CannedEvil
                 if (null == m_Levers)
                     m_Levers = new List<PrimevalLichPuzzleLever>();
 
-                for (int i = 0; i < len; i++)
+                for (var i = 0; i < len; i++)
                 {
                     lever = new PrimevalLichPuzzleLever(keymap[i], this);
                     if (null != lever)
@@ -451,15 +416,13 @@ namespace Server.Engines.CannedEvil
             if (null != m_Levers)
             {
                 foreach (Item item in m_Levers)
-                {
                     if (item != null && !item.Deleted)
                         item.Delete();
-                }
                 m_Levers.Clear();
             }
 
-            m_Successful = null;
-            m_Key = 0;
+            Successful = null;
+            Key = 0;
         }
 
         // reset puzzle levers to default position
@@ -472,16 +435,12 @@ namespace Server.Engines.CannedEvil
             }
 
             if (null != m_Levers)
-            {
-                foreach (PrimevalLichPuzzleLever l in m_Levers)
-                {
+                foreach (var l in m_Levers)
                     if (null != l && !l.Deleted)
                     {
                         l.ItemID = 0x108C;
                         Effects.PlaySound(l.Location, Map, 0x3E8);
                     }
-                }
-            }
 
             m_Correct = 0;
             m_NextKey = 1;
@@ -495,7 +454,7 @@ namespace Server.Engines.CannedEvil
 
             Item item = null;
 
-            switch ( Utility.Random(1) )
+            switch (Utility.Random(1))
             {
                 case 0:
                     item = ScrollOfTranscendence.CreateRandom(10, 10);
@@ -520,7 +479,7 @@ namespace Server.Engines.CannedEvil
             // drop the item in backpack or bankbox
             if (null != item)
             {
-                Container pack = m.Backpack;
+                var pack = m.Backpack;
                 if (null == pack || !pack.TryDropItem(m, item, false))
                     m.BankBox.DropItem(item);
             }

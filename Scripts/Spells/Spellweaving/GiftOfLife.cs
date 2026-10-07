@@ -14,39 +14,19 @@ namespace Server.Spells.Spellweaving
 
         private static readonly Dictionary<Mobile, ExpireTimer> m_Table = new Dictionary<Mobile, ExpireTimer>();
 
+        public override TimeSpan CastDelayBase => TimeSpan.FromSeconds(4.0);
+
+        public override double RequiredSkill => 38.0;
+
+        public override int RequiredMana => 70;
+
+        public double HitsScalar => (Caster.Skills.Spellweaving.Value / 2.4 + FocusLevel) / 100;
+
         public GiftOfLifeSpell(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
         {
         }
 
-        public override TimeSpan CastDelayBase
-        {
-            get
-            {
-                return TimeSpan.FromSeconds(4.0);
-            }
-        }
-        public override double RequiredSkill
-        {
-            get
-            {
-                return 38.0;
-            }
-        }
-        public override int RequiredMana
-        {
-            get
-            {
-                return 70;
-            }
-        }
-        public double HitsScalar
-        {
-            get
-            {
-                return ((Caster.Skills.Spellweaving.Value / 2.4) + FocusLevel) / 100;
-            }
-        }
         public static void Initialize()
         {
             EventSink.PlayerDeath += HandleDeath;
@@ -61,27 +41,27 @@ namespace Server.Spells.Spellweaving
         public static void HandleDeath(Mobile m)
         {
             if (m_Table.ContainsKey(m))
-                Timer.DelayCall<Mobile>(TimeSpan.FromSeconds(Utility.RandomMinMax(2, 4)), new TimerStateCallback<Mobile>(HandleDeath_OnCallback), m);
+                Timer.DelayCall(TimeSpan.FromSeconds(Utility.RandomMinMax(2, 4)), HandleDeath_OnCallback, m);
         }
 
         public static void Login(LoginEventArgs e)
         {
-            Mobile m = e.Mobile;
+            var m = e.Mobile;
 
             if (m_Table.ContainsKey(m))
             {
                 var timer = m_Table[m];
 
                 if (timer.EndTime > DateTime.UtcNow)
-                {
-                    BuffInfo.AddBuff(m, new BuffInfo(BuffIcon.GiftOfLife, 1031615, 1075807, timer.EndTime - DateTime.UtcNow, m, null, true));
-                }
+                    BuffInfo.AddBuff(m,
+                        new BuffInfo(BuffIcon.GiftOfLife, 1031615, 1075807, timer.EndTime - DateTime.UtcNow, m, null,
+                            true));
             }
         }
 
         public static void OnLogin(LoginEventArgs e)
         {
-            Mobile m = e.Mobile;
+            var m = e.Mobile;
 
             if (m == null || m.Alive || m_Table[m] == null)
                 return;
@@ -96,7 +76,7 @@ namespace Server.Spells.Spellweaving
 
         public void Target(Mobile m)
         {
-            BaseCreature bc = m as BaseCreature;
+            var bc = m as BaseCreature;
 
             if (!Caster.CanSee(m))
             {
@@ -130,11 +110,11 @@ namespace Server.Spells.Spellweaving
                 m.FixedParticles(0x3709, 1, 30, 0x26ED, 5, 2, EffectLayer.Waist);
                 m.FixedParticles(0x376A, 1, 30, 0x251E, 5, 3, EffectLayer.Waist);
 
-                double skill = Caster.Skills[SkillName.Spellweaving].Value;
+                var skill = Caster.Skills[SkillName.Spellweaving].Value;
 
-                TimeSpan duration = TimeSpan.FromMinutes(((int)(skill / 24)) * 2 + FocusLevel);
+                var duration = TimeSpan.FromMinutes((int)(skill / 24) * 2 + FocusLevel);
 
-                ExpireTimer t = new ExpireTimer(m, duration, this);
+                var t = new ExpireTimer(m, duration, this);
                 t.Start();
 
                 m_Table[m] = t;
@@ -151,12 +131,12 @@ namespace Server.Spells.Spellweaving
 
             if (m_Table.TryGetValue(m, out timer))
             {
-                double hitsScalar = timer.Spell.HitsScalar;
+                var hitsScalar = timer.Spell.HitsScalar;
 
                 if (m is BaseCreature && m.IsDeadBondedPet)
                 {
-                    BaseCreature pet = (BaseCreature)m;
-                    Mobile master = pet.GetMaster();
+                    var pet = (BaseCreature)m;
+                    var master = pet.GetMaster();
 
                     if (master != null && master.NetState != null && Utility.InUpdateRange(pet, master))
                     {
@@ -165,11 +145,11 @@ namespace Server.Spells.Spellweaving
                     }
                     else
                     {
-                        List<Mobile> friends = pet.Friends;
+                        var friends = pet.Friends;
 
-                        for (int i = 0; friends != null && i < friends.Count; i++)
+                        for (var i = 0; friends != null && i < friends.Count; i++)
                         {
-                            Mobile friend = friends[i];
+                            var friend = friends[i];
 
                             if (friend.NetState != null && Utility.InUpdateRange(pet, friend))
                             {
@@ -204,13 +184,9 @@ namespace Server.Spells.Spellweaving
             protected override void OnTarget(Mobile m, object o)
             {
                 if (o is Mobile)
-                {
                     m_Owner.Target((Mobile)o);
-                }
                 else
-                {
                     m.SendLocalizedMessage(1072077); // You may only cast this spell on yourself or a bonded pet.
-                }
             }
 
             protected override void OnTargetFinish(Mobile m)
@@ -222,26 +198,20 @@ namespace Server.Spells.Spellweaving
         private class ExpireTimer : Timer
         {
             private readonly Mobile m_Mobile;
-            private readonly GiftOfLifeSpell m_Spell;
 
-            public DateTime EndTime { get; private set; }
+            public DateTime EndTime { get; }
+
+            public GiftOfLifeSpell Spell { get; }
 
             public ExpireTimer(Mobile m, TimeSpan delay, GiftOfLifeSpell spell)
                 : base(delay)
             {
                 m_Mobile = m;
-                m_Spell = spell;
+                Spell = spell;
 
                 EndTime = DateTime.UtcNow + delay;
             }
 
-            public GiftOfLifeSpell Spell
-            {
-                get
-                {
-                    return m_Spell;
-                }
-            }
             public void DoExpire()
             {
                 Stop();

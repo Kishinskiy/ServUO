@@ -6,11 +6,118 @@ namespace Server.Mobiles
     [CorpseName("a swamp dragon corpse")]
     public class SwampDragon : BaseMount
     {
-        private bool m_BardingExceptional;
         private Mobile m_BardingCrafter;
+        private bool m_BardingExceptional;
         private int m_BardingHP;
-        private bool m_HasBarding;
         private CraftResource m_BardingResource;
+        private bool m_HasBarding;
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public Mobile BardingCrafter
+        {
+            get => m_BardingCrafter;
+            set
+            {
+                m_BardingCrafter = value;
+                InvalidateProperties();
+            }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public bool BardingExceptional
+        {
+            get => m_BardingExceptional;
+            set
+            {
+                m_BardingExceptional = value;
+                InvalidateProperties();
+            }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int BardingHP
+        {
+            get => m_BardingHP;
+            set
+            {
+                m_BardingHP = value;
+                InvalidateProperties();
+            }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public bool HasBarding
+        {
+            get => m_HasBarding;
+            set
+            {
+                m_HasBarding = value;
+
+                if (m_HasBarding)
+                {
+                    Hue = CraftResources.GetHue(m_BardingResource);
+                    BodyValue = 0x31F;
+                    ItemID = 0x3EBE;
+                }
+                else
+                {
+                    Hue = 0x851;
+                    BodyValue = 0x31A;
+                    ItemID = 0x3EBD;
+                }
+
+                InvalidateProperties();
+            }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public CraftResource BardingResource
+        {
+            get => m_BardingResource;
+            set
+            {
+                m_BardingResource = value;
+
+                if (m_HasBarding)
+                    Hue = CraftResources.GetHue(value);
+
+                InvalidateProperties();
+            }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int BardingMaxHP
+        {
+            get
+            {
+                switch (m_BardingResource)
+                {
+                    default:
+                        return BardingExceptional ? 12000 : 10000;
+                    case CraftResource.DullCopper:
+                    case CraftResource.Valorite:
+                        return BardingExceptional ? 14500 : 12500;
+                    case CraftResource.ShadowIron:
+                        return BardingExceptional ? 17000 : 15000;
+                }
+            }
+        }
+
+        public override bool ReacquireOnMovement => true;
+
+        public override bool AutoDispel => !Controlled;
+
+        public override FoodType FavoriteFood => FoodType.Meat;
+
+        public override int Meat => 19;
+
+        public override int Hides => 20;
+
+        public override int Scales => 5;
+
+        public override ScaleType ScaleType => ScaleType.Green;
+
+        public override bool CanAngerOnTame => true;
 
         [Constructable]
         public SwampDragon()
@@ -61,125 +168,24 @@ namespace Server.Mobiles
         {
         }
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public Mobile BardingCrafter
-        {
-            get
-            {
-                return m_BardingCrafter;
-            }
-            set
-            {
-                m_BardingCrafter = value;
-                InvalidateProperties();
-            }
-        }
-        [CommandProperty(AccessLevel.GameMaster)]
-        public bool BardingExceptional
-        {
-            get
-            {
-                return m_BardingExceptional;
-            }
-            set
-            {
-                m_BardingExceptional = value;
-                InvalidateProperties();
-            }
-        }
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int BardingHP
-        {
-            get
-            {
-                return m_BardingHP;
-            }
-            set
-            {
-                m_BardingHP = value;
-                InvalidateProperties();
-            }
-        }
-        [CommandProperty(AccessLevel.GameMaster)]
-        public bool HasBarding
-        {
-            get
-            {
-                return m_HasBarding;
-            }
-            set
-            {
-                m_HasBarding = value;
-
-                if (m_HasBarding)
-                {
-                    Hue = CraftResources.GetHue(m_BardingResource);
-                    BodyValue = 0x31F;
-                    ItemID = 0x3EBE;
-                }
-                else
-                {
-                    Hue = 0x851;
-                    BodyValue = 0x31A;
-                    ItemID = 0x3EBD;
-                }
-
-                InvalidateProperties();
-            }
-        }
-        [CommandProperty(AccessLevel.GameMaster)]
-        public CraftResource BardingResource
-        {
-            get
-            {
-                return m_BardingResource;
-            }
-            set
-            {
-                m_BardingResource = value;
-
-                if (m_HasBarding)
-                    Hue = CraftResources.GetHue(value);
-
-                InvalidateProperties();
-            }
-        }
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int BardingMaxHP
-        {
-            get
-            {
-                switch (m_BardingResource)
-                {
-                    default:
-                        return BardingExceptional ? 12000 : 10000;
-                    case CraftResource.DullCopper:
-                    case CraftResource.Valorite:
-                        return BardingExceptional ? 14500 : 12500;
-                    case CraftResource.ShadowIron:
-                        return BardingExceptional ? 17000 : 15000;
-                }
-            }
-        }
-
         private int CalculateBardingResistance(ResistanceType type)
         {
             if (m_BardingResource == CraftResource.None || !m_HasBarding)
                 return 0;
 
-            CraftResourceInfo resInfo = CraftResources.GetInfo(m_BardingResource);
+            var resInfo = CraftResources.GetInfo(m_BardingResource);
 
             if (resInfo == null)
                 return 0;
 
-            CraftAttributeInfo attrs = resInfo.AttributeInfo;
+            var attrs = resInfo.AttributeInfo;
 
             if (attrs == null)
                 return 0;
 
-            int expBonus = BardingExceptional ? 1 : 0;
-            int resBonus = 0;
-            
+            var expBonus = BardingExceptional ? 1 : 0;
+            var resBonus = 0;
+
             switch (type)
             {
                 default:
@@ -198,62 +204,6 @@ namespace Server.Mobiles
             return base.GetResistance(type) + CalculateBardingResistance(type);
         }
 
-        public override bool ReacquireOnMovement
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool AutoDispel
-        {
-            get
-            {
-                return !Controlled;
-            }
-        }
-        public override FoodType FavoriteFood
-        {
-            get
-            {
-                return FoodType.Meat;
-            }
-        }
-        public override int Meat
-        {
-            get
-            {
-                return 19;
-            }
-        }
-        public override int Hides
-        {
-            get
-            {
-                return 20;
-            }
-        }
-        public override int Scales
-        {
-            get
-            {
-                return 5;
-            }
-        }
-        public override ScaleType ScaleType
-        {
-            get
-            {
-                return ScaleType.Green;
-            }
-        }
-        public override bool CanAngerOnTame
-        {
-            get
-            {
-                return true;
-            }
-        }
         public override bool OverrideBondingReqs()
         {
             return true;
@@ -285,10 +235,7 @@ namespace Server.Mobiles
             {
                 var profile = PetTrainingHelper.GetAbilityProfile(this);
 
-                if (profile != null && profile.HasCustomized())
-                {
-                    return base.GetControlChance(m, useBaseSkill);
-                }
+                if (profile != null && profile.HasCustomized()) return base.GetControlChance(m, useBaseSkill);
             }
 
             return 1.0;
@@ -299,14 +246,9 @@ namespace Server.Mobiles
             base.GetProperties(list);
 
             if (m_HasBarding && m_BardingExceptional && m_BardingCrafter != null)
-            {
                 list.Add(1060853, m_BardingCrafter.Name); // armor exceptionally crafted by ~1_val~
-            }
 
-            if (m_HasBarding)
-            {
-                list.Add(1115719, m_BardingHP.ToString()); // armor points: ~1_val~
-            }
+            if (m_HasBarding) list.Add(1115719, m_BardingHP.ToString()); // armor points: ~1_val~
         }
 
         public override void OnRiderDamaged(Mobile from, ref int amount, bool willKill)
@@ -317,11 +259,10 @@ namespace Server.Mobiles
                 return;
 
             if ((from == null || !from.Player) && Rider.Player && Rider.Mount == this)
-            {
                 if (HasBarding)
                 {
-                    int percent = (BardingExceptional ? 20 : 10);
-                    int absorbed = AOS.Scale(amount, percent);
+                    var percent = BardingExceptional ? 20 : 10;
+                    var absorbed = AOS.Scale(amount, percent);
 
                     amount -= absorbed;
 
@@ -337,19 +278,18 @@ namespace Server.Mobiles
                         Rider.SendLocalizedMessage(1053031); // Your dragon's barding has been destroyed!
                     }
                 }
-            }
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)1); // version
+            writer.Write(1); // version
 
-            writer.Write((bool)m_BardingExceptional);
-            writer.Write((Mobile)m_BardingCrafter);
-            writer.Write((bool)m_HasBarding);
-            writer.Write((int)m_BardingHP);
+            writer.Write(m_BardingExceptional);
+            writer.Write(m_BardingCrafter);
+            writer.Write(m_HasBarding);
+            writer.Write(m_BardingHP);
             writer.Write((int)m_BardingResource);
         }
 
@@ -357,19 +297,19 @@ namespace Server.Mobiles
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             switch (version)
             {
                 case 1:
-                    {
-                        m_BardingExceptional = reader.ReadBool();
-                        m_BardingCrafter = reader.ReadMobile();
-                        m_HasBarding = reader.ReadBool();
-                        m_BardingHP = reader.ReadInt();
-                        m_BardingResource = (CraftResource)reader.ReadInt();
-                        break;
-                    }
+                {
+                    m_BardingExceptional = reader.ReadBool();
+                    m_BardingCrafter = reader.ReadMobile();
+                    m_HasBarding = reader.ReadBool();
+                    m_BardingHP = reader.ReadInt();
+                    m_BardingResource = (CraftResource)reader.ReadInt();
+                    break;
+                }
             }
 
             if (Hue == 0 && !m_HasBarding)

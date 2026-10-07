@@ -1,5 +1,3 @@
-using System;
-
 namespace Server.Items
 {
     public enum ArmorDurabilityLevel
@@ -19,7 +17,7 @@ namespace Server.Items
         Guarding,
         Hardening,
         Fortification,
-        Invulnerability,
+        Invulnerability
     }
 
     public enum ArmorBodyType
@@ -28,7 +26,7 @@ namespace Server.Items
         Gloves,
         Helmet,
         Arms,
-        Legs, 
+        Legs,
         Chest,
         Shield
     }
@@ -47,7 +45,7 @@ namespace Server.Items
         Plate,
         Dragon,
         Wood,
-        Stone,
+        Stone
     }
 
     public enum ArmorMeditationAllowance

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using Server.Items;
 using System.Linq;
+using Server.Items;
 
 namespace Server.Mobiles
 {
@@ -9,9 +9,6 @@ namespace Server.Mobiles
     {
         private readonly Dictionary<Type, int> m_Table = new Dictionary<Type, int>();
         private Type[] m_Types;
-        public GenericSellInfo()
-        {
-        }
 
         public Type[] Types
         {
@@ -26,11 +23,6 @@ namespace Server.Mobiles
                 return m_Types;
             }
         }
-        public void Add(Type type, int price)
-        {
-            m_Table[type] = price;
-            m_Types = null;
-        }
 
         public int GetSellPriceFor(Item item)
         {
@@ -39,17 +31,18 @@ namespace Server.Mobiles
 
         public int GetSellPriceFor(Item item, BaseVendor vendor)
         {
-            int price = 0;
+            var price = 0;
             m_Table.TryGetValue(item.GetType(), out price);
 
             if (vendor != null && BaseVendor.UseVendorEconomy)
             {
-                IBuyItemInfo buyInfo = vendor.GetBuyInfo().OfType<GenericBuyInfo>().FirstOrDefault(info => info.EconomyItem && info.Type == item.GetType());
+                IBuyItemInfo buyInfo = vendor.GetBuyInfo().OfType<GenericBuyInfo>()
+                    .FirstOrDefault(info => info.EconomyItem && info.Type == item.GetType());
 
                 if (buyInfo != null)
                 {
-                    int sold = buyInfo.TotalSold;
-                    price = (int)((double)buyInfo.Price * .75);
+                    var sold = buyInfo.TotalSold;
+                    price = (int)(buyInfo.Price * .75);
 
                     return Math.Max(1, price);
                 }
@@ -57,7 +50,7 @@ namespace Server.Mobiles
 
             if (item is BaseArmor)
             {
-                BaseArmor armor = (BaseArmor)item;
+                var armor = (BaseArmor)item;
 
                 if (armor.Quality == ItemQuality.Low)
                     price = (int)(price * 0.60);
@@ -73,7 +66,7 @@ namespace Server.Mobiles
             }
             else if (item is BaseWeapon)
             {
-                BaseWeapon weapon = (BaseWeapon)item;
+                var weapon = (BaseWeapon)item;
 
                 if (weapon.Quality == ItemQuality.Low)
                     price = (int)(price * 0.60);
@@ -107,7 +100,7 @@ namespace Server.Mobiles
                     price2 = 6;
                 }
 
-                BaseBeverage bev = (BaseBeverage)item;
+                var bev = (BaseBeverage)item;
 
                 if (bev.IsEmpty || bev.Content == BeverageType.Milk)
                     price = price1;
@@ -132,8 +125,7 @@ namespace Server.Mobiles
         {
             if (item.Name != null)
                 return item.Name;
-            else
-                return item.LabelNumber.ToString();
+            return item.LabelNumber.ToString();
         }
 
         public bool IsSellable(Item item)
@@ -156,6 +148,12 @@ namespace Server.Mobiles
             //return false;
 
             return IsInList(item.GetType());
+        }
+
+        public void Add(Type type, int price)
+        {
+            m_Table[type] = price;
+            m_Types = null;
         }
 
         public bool IsInList(Type type)

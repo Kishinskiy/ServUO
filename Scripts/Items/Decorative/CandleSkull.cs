@@ -4,18 +4,40 @@ namespace Server.Items
 {
     public class CandleSkull : BaseLight
     {
+        public override int LitItemID
+        {
+            get
+            {
+                if (ItemID == 0x1583 || ItemID == 0x1854)
+                    return 0x1854;
+
+                return 0x1858;
+            }
+        }
+
+        public override int UnlitItemID
+        {
+            get
+            {
+                if (ItemID == 0x1853 || ItemID == 0x1584)
+                    return 0x1853;
+
+                return 0x1857;
+            }
+        }
+
         [Constructable]
         public CandleSkull()
             : base(0x1853)
         {
             if (Burnout)
-                this.Duration = TimeSpan.FromMinutes(25);
+                Duration = TimeSpan.FromMinutes(25);
             else
-                this.Duration = TimeSpan.Zero;
+                Duration = TimeSpan.Zero;
 
-            this.Burning = false;
-            this.Light = LightType.Circle150;
-            this.Weight = 5.0;
+            Burning = false;
+            Light = LightType.Circle150;
+            Weight = 5.0;
         }
 
         public CandleSkull(Serial serial)
@@ -23,36 +45,16 @@ namespace Server.Items
         {
         }
 
-        public override int LitItemID
-        {
-            get
-            {
-                if (this.ItemID == 0x1583 || this.ItemID == 0x1854)
-                    return 0x1854;
-
-                return 0x1858;
-            }
-        }
-        public override int UnlitItemID
-        {
-            get
-            {
-                if (this.ItemID == 0x1853 || this.ItemID == 0x1584)
-                    return 0x1853;
-
-                return 0x1857;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

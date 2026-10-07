@@ -1,10 +1,12 @@
-using System;
 using Server.Mobiles;
 
 namespace Server.Engines.Quests
 {
     public abstract class DynamicTeleporter : Item
     {
+        public override int LabelNumber => 1049382; // a magical teleporter
+        public virtual int NotWorkingMessage => 500309; // Nothing Happens.
+
         public DynamicTeleporter()
             : this(0x1822, 0x482)
         {
@@ -13,8 +15,8 @@ namespace Server.Engines.Quests
         public DynamicTeleporter(int itemID, int hue)
             : base(itemID)
         {
-            this.Movable = false;
-            this.Hue = hue;
+            Movable = false;
+            Hue = hue;
         }
 
         public DynamicTeleporter(Serial serial)
@@ -22,32 +24,18 @@ namespace Server.Engines.Quests
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1049382;
-            }
-        }// a magical teleporter
-        public virtual int NotWorkingMessage
-        {
-            get
-            {
-                return 500309;
-            }
-        }// Nothing Happens.
         public abstract bool GetDestination(PlayerMobile player, ref Point3D loc, ref Map map);
 
         public override bool OnMoveOver(Mobile m)
         {
-            PlayerMobile pm = m as PlayerMobile;
+            var pm = m as PlayerMobile;
 
             if (pm != null)
             {
-                Point3D loc = Point3D.Zero;
+                var loc = Point3D.Zero;
                 Map map = null;
 
-                if (this.GetDestination(pm, ref loc, ref map))
+                if (GetDestination(pm, ref loc, ref map))
                 {
                     BaseCreature.TeleportPets(pm, loc, map);
 
@@ -56,10 +44,8 @@ namespace Server.Engines.Quests
 
                     return false;
                 }
-                else
-                {
-                    pm.SendLocalizedMessage(this.NotWorkingMessage);
-                }
+
+                pm.SendLocalizedMessage(NotWorkingMessage);
             }
 
             return base.OnMoveOver(m);
@@ -69,14 +55,14 @@ namespace Server.Engines.Quests
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -3,9 +3,19 @@ using Server.Items;
 
 namespace Server.Mobiles
 {
-    [CorpseName("Fire Daemon [Renowned] corpse")]  
+    [CorpseName("Fire Daemon [Renowned] corpse")]
     public class FireDaemonRenowned : BaseRenowned
     {
+        public override Type[] UniqueSAList
+        {
+            get { return new[] { typeof(ResonantStaffofEnlightenment), typeof(MantleOfTheFallen) }; }
+        }
+
+        public override Type[] SharedSAList
+        {
+            get { return new Type[] { }; }
+        }
+
         [Constructable]
         public FireDaemonRenowned()
             : base(AIType.AI_Mage)
@@ -56,21 +66,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override Type[] UniqueSAList
-        {
-            get
-            {
-                return new Type[] { typeof(ResonantStaffofEnlightenment), typeof(MantleOfTheFallen) };
-            }
-        }
-        public override Type[] SharedSAList
-        {
-            get
-            {
-                return new Type[] { };
-            }
-        }
-
         public override void GenerateLoot()
         {
             AddLoot(LootPack.FilthyRich, 2);
@@ -79,13 +74,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -1,5 +1,4 @@
 using System;
-using Server.Network;
 
 namespace Server.Custom.ExileHunterBestiary.Items
 {
@@ -51,13 +50,9 @@ namespace Server.Custom.ExileHunterBestiary.Items
         public HunterTreatise(Type creatureType) : base(0x1F5F)
         {
             if (creatureType != null && HunterBestiaryEngine.RegistryByType.TryGetValue(creatureType, out var entry))
-            {
                 m_CreatureId = entry.Id;
-            }
             else
-            {
                 m_CreatureId = "Lich";
-            }
 
             Weight = 1.0;
             LootType = LootType.Regular;
@@ -95,7 +90,7 @@ namespace Server.Custom.ExileHunterBestiary.Items
             }
 
             var entry = Entry;
-            string displayName = entry != null ? entry.DisplayName : m_CreatureId;
+            var displayName = entry != null ? entry.DisplayName : m_CreatureId;
 
             var profile = HunterBestiaryEngine.GetProfile(from);
             if (profile == null)
@@ -103,14 +98,16 @@ namespace Server.Custom.ExileHunterBestiary.Items
 
             if (profile.HasLearned(m_CreatureId))
             {
-                from.SendMessage(0x22, $"You have already mastered the study of {displayName}. Keep this treatise to trade with other hunters!");
+                from.SendMessage(0x22,
+                    $"You have already mastered the study of {displayName}. Keep this treatise to trade with other hunters!");
                 from.PlaySound(0x5C);
                 return;
             }
 
             if (profile.Learn(m_CreatureId))
             {
-                from.SendMessage(0x3F, $"You thoroughly study the treatise and permanently unlock +20% damage against {displayName}!");
+                from.SendMessage(0x3F,
+                    $"You thoroughly study the treatise and permanently unlock +20% damage against {displayName}!");
                 from.FixedParticles(0x373A, 10, 15, 5012, EffectLayer.Waist);
                 from.PlaySound(0x249);
 
@@ -123,10 +120,12 @@ namespace Server.Custom.ExileHunterBestiary.Items
             base.GetProperties(list);
 
             var entry = Entry;
-            string creatureName = entry != null ? entry.DisplayName : m_CreatureId;
-            string category = entry != null ? entry.Category.ToString() : "Unknown";
+            var creatureName = entry != null ? entry.DisplayName : m_CreatureId;
+            var category = entry != null ? entry.Category.ToString() : "Unknown";
 
-            list.Add(1070722, string.Format("<BASEFONT COLOR=#D1C4E9>Hunter's Study: +20% Damage vs {0}<BASEFONT COLOR=#FFFFFF>", creatureName));
+            list.Add(1070722,
+                string.Format("<BASEFONT COLOR=#D1C4E9>Hunter's Study: +20% Damage vs {0}<BASEFONT COLOR=#FFFFFF>",
+                    creatureName));
             list.Add(1070722, string.Format("<BASEFONT COLOR=#ECEFF1>Category: {0}<BASEFONT COLOR=#FFFFFF>", category));
             list.Add(1070722, "<BASEFONT COLOR=#FFE082>Double-click to permanently master<BASEFONT COLOR=#FFFFFF>");
         }
@@ -137,16 +136,12 @@ namespace Server.Custom.ExileHunterBestiary.Items
             GetProperties(list);
 
             var profile = HunterBestiaryEngine.GetProfile(from);
-            bool learned = profile != null && profile.HasLearned(m_CreatureId);
+            var learned = profile != null && profile.HasLearned(m_CreatureId);
 
             if (learned)
-            {
                 list.Add(1070722, "<BASEFONT COLOR=#00E676>[Already Learned]<BASEFONT COLOR=#FFFFFF>");
-            }
             else
-            {
                 list.Add(1070722, "<BASEFONT COLOR=#00E5FF>[Not Learned Yet]<BASEFONT COLOR=#FFFFFF>");
-            }
 
             // if (OnGetProperties != null)
             // {
@@ -161,7 +156,7 @@ namespace Server.Custom.ExileHunterBestiary.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
             writer.Write(m_CreatureId);
         }
 
@@ -169,7 +164,7 @@ namespace Server.Custom.ExileHunterBestiary.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
             m_CreatureId = reader.ReadString();
 
             if (ItemID == 0x1F14)

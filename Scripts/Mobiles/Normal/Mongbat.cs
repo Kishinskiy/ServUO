@@ -1,10 +1,14 @@
-using System;
-
 namespace Server.Mobiles
 {
     [CorpseName("a mongbat corpse")]
     public class Mongbat : BaseCreature
     {
+        public override int Meat => 1;
+
+        public override FoodType FavoriteFood => FoodType.Meat;
+
+        public override bool CanFly => true;
+
         [Constructable]
         public Mongbat()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -45,29 +49,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override int Meat
-        {
-            get
-            {
-                return 1;
-            }
-        }
-        public override FoodType FavoriteFood
-        {
-            get
-            {
-                return FoodType.Meat;
-            }
-        }
-
-        public override bool CanFly
-        {
-            get
-            {
-                return true;
-            }
-        }
-
         public override void GenerateLoot()
         {
             AddLoot(LootPack.Poor);
@@ -76,13 +57,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

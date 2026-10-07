@@ -1,9 +1,9 @@
-using System;
-
 namespace Server.Items
 {
     public class WaterloggedBoots : BaseShoes
     {
+        public override int LabelNumber => 1074364; // Waterlogged boots
+
         [Constructable]
         public WaterloggedBoots()
             : base(0x1711)
@@ -11,14 +11,14 @@ namespace Server.Items
             if (Utility.RandomBool())
             {
                 // thigh boots
-                this.ItemID = 0x1711;
-                this.Weight = 4.0;
+                ItemID = 0x1711;
+                Weight = 4.0;
             }
             else
             {
                 // boots
-                this.ItemID = 0x170B;
-                this.Weight = 3.0;
+                ItemID = 0x170B;
+                Weight = 3.0;
             }
         }
 
@@ -27,13 +27,6 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1074364;
-            }
-        }// Waterlogged boots
         public override void AddNameProperties(ObjectPropertyList list)
         {
             base.AddNameProperties(list);
@@ -45,14 +38,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

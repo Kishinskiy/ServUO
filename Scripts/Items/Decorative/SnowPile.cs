@@ -5,13 +5,15 @@ namespace Server.Items
 {
     public class SnowPile : Item
     {
+        public override int LabelNumber => 1005578; // a pile of snow
+
         [Constructable]
         public SnowPile()
             : base(0x913)
         {
-            this.Hue = 0x481;
-            this.Weight = 1.0;
-            this.LootType = LootType.Blessed;
+            Hue = 0x481;
+            Weight = 1.0;
+            LootType = LootType.Blessed;
         }
 
         public SnowPile(Serial serial)
@@ -19,41 +21,36 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1005578;
-            }
-        }// a pile of snow
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)1); // version
+            writer.Write(1); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (version == 0)
             {
-                this.Weight = 1.0;
-                this.LootType = LootType.Blessed;
+                Weight = 1.0;
+                LootType = LootType.Blessed;
             }
         }
 
         public override void OnDoubleClick(Mobile from)
         {
-            if (!this.IsChildOf(from.Backpack))
+            if (!IsChildOf(from.Backpack))
             {
                 from.SendLocalizedMessage(1042010); // You must have the object in your backpack to use it.
             }
             else if (from.Mounted)
+            {
                 from.SendLocalizedMessage(1010097); // You cannot use this while mounted.
+            }
 
             else if (from.CanBeginAction(typeof(SnowPile)))
             {
@@ -69,27 +66,29 @@ namespace Server.Items
         private class InternalTimer : Timer
         {
             private readonly Mobile m_From;
+
             public InternalTimer(Mobile from)
                 : base(TimeSpan.FromSeconds(5.0))
             {
-                this.m_From = from;
+                m_From = from;
             }
 
             protected override void OnTick()
             {
-                this.m_From.EndAction(typeof(SnowPile));
+                m_From.EndAction(typeof(SnowPile));
             }
         }
 
         private class SnowTarget : Target
         {
-            private readonly Mobile m_Thrower;
             private readonly Item m_Snow;
+            private readonly Mobile m_Thrower;
+
             public SnowTarget(Mobile thrower, Item snow)
                 : base(10, false, TargetFlags.None)
             {
-                this.m_Thrower = thrower;
-                this.m_Snow = snow;
+                m_Thrower = thrower;
+                m_Snow = snow;
             }
 
             protected override void OnTarget(Mobile from, object target)
@@ -100,10 +99,11 @@ namespace Server.Items
                 }
                 else if (target is Mobile)
                 {
-                    Mobile targ = (Mobile)target;
-                    Container pack = targ.Backpack;
+                    var targ = (Mobile)target;
+                    var pack = targ.Backpack;
 
-                    if (pack != null && pack.FindItemByType(new Type[] { typeof(SnowPile), typeof(PileOfGlacialSnow) }) != null)
+                    if (pack != null && pack.FindItemByType(new[] { typeof(SnowPile), typeof(PileOfGlacialSnow) }) !=
+                        null)
                     {
                         if (from.BeginAction(typeof(SnowPile)))
                         {
@@ -125,12 +125,14 @@ namespace Server.Items
                     }
                     else
                     {
-                        from.SendLocalizedMessage(1005577); // You can only throw a snowball at something that can throw one back.
+                        from.SendLocalizedMessage(
+                            1005577); // You can only throw a snowball at something that can throw one back.
                     }
                 }
                 else
                 {
-                    from.SendLocalizedMessage(1005577); // You can only throw a snowball at something that can throw one back.
+                    from.SendLocalizedMessage(
+                        1005577); // You can only throw a snowball at something that can throw one back.
                 }
             }
         }

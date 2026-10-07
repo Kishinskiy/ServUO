@@ -7,7 +7,7 @@ namespace Server.Engines.UOStore
         public const StoreCategory DefaultCategory = StoreCategory.Featured;
         public const SortBy DefaultSortBy = SortBy.Newest;
 
-        public Dictionary<StoreEntry, int> Cart { get; private set; }
+        public Dictionary<StoreEntry, int> Cart { get; }
 
         public Mobile Player { get; private set; }
 
@@ -33,10 +33,7 @@ namespace Server.Engines.UOStore
 
         public void AddToCart(StoreEntry entry, int amount)
         {
-            if (Cart.Count < Configuration.CartCapacity)
-            {
-                Cart[entry] = amount;
-            }
+            if (Cart.Count < Configuration.CartCapacity) Cart[entry] = amount;
         }
 
         public void RemoveFromCart(StoreEntry entry)
@@ -47,13 +44,9 @@ namespace Server.Engines.UOStore
         public void SetCartAmount(StoreEntry entry, int amount)
         {
             if (amount > 0)
-            {
                 AddToCart(entry, amount);
-            }
             else
-            {
                 RemoveFromCart(entry);
-            }
         }
 
         public void Serialize(GenericWriter writer)

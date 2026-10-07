@@ -1,22 +1,49 @@
 using System;
 using System.Collections.Generic;
 using Server.ContextMenus;
+using Server.Factions;
+using Server.Misc;
 using Server.Mobiles;
+using Server.Multis;
 using Server.Network;
 using Server.Prompts;
+using Server.Regions;
 using Server.Spells;
 using Server.Targeting;
-using Server.Multis;
 
 namespace Server.Items
 {
     public class BraceletOfBinding : BaseBracelet, TranslocationItem
     {
-        private int m_Charges;
-        private int m_Recharges;
-        private string m_Inscription;
         private BraceletOfBinding m_Bound;
+        private int m_Charges;
+        private string m_Inscription;
+        private int m_Recharges;
         private TransportTimer m_Timer;
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public string Inscription
+        {
+            get => m_Inscription;
+            set
+            {
+                m_Inscription = value;
+                InvalidateProperties();
+            }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public BraceletOfBinding Bound
+        {
+            get
+            {
+                if (m_Bound != null && m_Bound.Deleted)
+                    m_Bound = null;
+
+                return m_Bound;
+            }
+            set => m_Bound = value;
+        }
 
         [Constructable]
         public BraceletOfBinding()
@@ -33,14 +60,10 @@ namespace Server.Items
         {
         }
 
-        private delegate void BraceletCallback(Mobile from);
         [CommandProperty(AccessLevel.GameMaster)]
         public int Charges
         {
-            get
-            {
-                return m_Charges;
-            }
+            get => m_Charges;
             set
             {
                 if (value > MaxCharges)
@@ -53,13 +76,11 @@ namespace Server.Items
                 InvalidateProperties();
             }
         }
+
         [CommandProperty(AccessLevel.GameMaster)]
         public int Recharges
         {
-            get
-            {
-                return m_Recharges;
-            }
+            get => m_Recharges;
             set
             {
                 if (value > MaxRecharges)
@@ -74,67 +95,27 @@ namespace Server.Items
         }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int MaxCharges
-        {
-            get
-            {
-                return 999;
-            }
-        }
+        public int MaxCharges => 999;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public virtual int MaxRecharges
-        {
-            get
-            {
-                return -1;
-            }
-        }
+        public virtual int MaxRecharges => -1;
 
-        public virtual string TranslocationItemName
-        {
-            get
-            {
-                return "bracelet of binding";
-            }
-        }
+        public virtual string TranslocationItemName => "bracelet of binding";
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public string Inscription
-        {
-            get
-            {
-                return m_Inscription;
-            }
-            set
-            {
-                m_Inscription = value;
-                InvalidateProperties();
-            }
-        }
-        [CommandProperty(AccessLevel.GameMaster)]
-        public BraceletOfBinding Bound
-        {
-            get
-            {
-                if (m_Bound != null && m_Bound.Deleted)
-                    m_Bound = null;
-
-                return m_Bound;
-            }
-            set
-            {
-                m_Bound = value;
-            }
-        }
         public override void AddNameProperty(ObjectPropertyList list)
         {
-            list.Add(1054000, m_Charges.ToString() + (m_Inscription.Length == 0 ? "\t " : " :\t" + m_Inscription)); // a bracelet of binding : ~1_val~ ~2_val~
+            list.Add(1054000,
+                m_Charges + (m_Inscription.Length == 0
+                    ? "\t "
+                    : " :\t" + m_Inscription)); // a bracelet of binding : ~1_val~ ~2_val~
         }
 
         public override void OnSingleClick(Mobile from)
         {
-            LabelTo(from, 1054000, m_Charges.ToString() + (m_Inscription.Length == 0 ? "\t " : " :\t" + m_Inscription)); // a bracelet of binding : ~1_val~ ~2_val~
+            LabelTo(from, 1054000,
+                m_Charges + (m_Inscription.Length == 0
+                    ? "\t "
+                    : " :\t" + m_Inscription)); // a bracelet of binding : ~1_val~ ~2_val~
         }
 
         public override void GetContextMenuEntries(Mobile from, List<ContextMenuEntry> list)
@@ -143,32 +124,28 @@ namespace Server.Items
 
             if (from.Alive && IsChildOf(from))
             {
-                BraceletOfBinding bound = Bound;
+                var bound = Bound;
 
-                list.Add(new BraceletEntry(new BraceletCallback(Activate), 6170, bound != null));
-                list.Add(new BraceletEntry(new BraceletCallback(Search), 6171, bound != null));
-                list.Add(new BraceletEntry(new BraceletCallback(Bind), bound == null ? 6173 : 6174, true));
-                list.Add(new BraceletEntry(new BraceletCallback(Inscribe), 6175, true));
+                list.Add(new BraceletEntry(Activate, 6170, bound != null));
+                list.Add(new BraceletEntry(Search, 6171, bound != null));
+                list.Add(new BraceletEntry(Bind, bound == null ? 6173 : 6174, true));
+                list.Add(new BraceletEntry(Inscribe, 6175, true));
             }
         }
 
         public override void OnDoubleClick(Mobile from)
         {
-            BraceletOfBinding bound = Bound;
+            var bound = Bound;
 
             if (Bound == null)
-            {
                 Bind(from);
-            }
             else
-            {
                 Activate(from);
-            }
         }
 
         public void Activate(Mobile from)
         {
-            BraceletOfBinding bound = Bound;
+            var bound = Bound;
 
             if (Deleted || bound == null)
                 return;
@@ -179,7 +156,8 @@ namespace Server.Items
             }
             else if (m_Timer != null)
             {
-                from.SendLocalizedMessage(1054013); // The bracelet is already attempting contact. You decide to wait a moment.
+                from.SendLocalizedMessage(
+                    1054013); // The bracelet is already attempting contact. You decide to wait a moment.
             }
             else
             {
@@ -195,19 +173,15 @@ namespace Server.Items
 
         public void Search(Mobile from)
         {
-            BraceletOfBinding bound = Bound;
+            var bound = Bound;
 
             if (Deleted || bound == null)
                 return;
 
             if (!IsChildOf(from))
-            {
                 from.SendLocalizedMessage(1042664); // You must have the object in your backpack to use it.
-            }
             else
-            {
                 CheckUse(from, true);
-            }
         }
 
         public void Bind(Mobile from)
@@ -246,127 +220,140 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)1); // version
+            writer.WriteEncodedInt(1); // version
 
-            writer.WriteEncodedInt((int)m_Recharges);
+            writer.WriteEncodedInt(m_Recharges);
 
-            writer.WriteEncodedInt((int)m_Charges);
-            writer.Write((string)m_Inscription);
-            writer.Write((Item)Bound);
+            writer.WriteEncodedInt(m_Charges);
+            writer.Write(m_Inscription);
+            writer.Write(Bound);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
 
-            switch ( version )
+            switch (version)
             {
                 case 1:
-                    {
-                        m_Recharges = reader.ReadEncodedInt();
-                        goto case 0;
-                    }
+                {
+                    m_Recharges = reader.ReadEncodedInt();
+                    goto case 0;
+                }
                 case 0:
-                    {
-                        m_Charges = Math.Min(reader.ReadEncodedInt(), MaxCharges);
-                        m_Inscription = reader.ReadString();
-                        Bound = (BraceletOfBinding)reader.ReadItem();
-                        break;
-                    }
+                {
+                    m_Charges = Math.Min(reader.ReadEncodedInt(), MaxCharges);
+                    m_Inscription = reader.ReadString();
+                    Bound = (BraceletOfBinding)reader.ReadItem();
+                    break;
+                }
             }
         }
 
         private bool CheckUse(Mobile from, bool successMessage)
         {
-            BraceletOfBinding bound = Bound;
+            var bound = Bound;
 
             if (bound == null)
                 return false;
 
-            Mobile boundRoot = bound.RootParent as Mobile;
+            var boundRoot = bound.RootParent as Mobile;
 
             if (Charges == 0)
             {
-                from.SendLocalizedMessage(1054005); // The bracelet glows black. It must be charged before it can be used again.
+                from.SendLocalizedMessage(
+                    1054005); // The bracelet glows black. It must be charged before it can be used again.
                 return false;
             }
-            else if (from.FindItemOnLayer(Layer.Bracelet) != this)
+
+            if (from.FindItemOnLayer(Layer.Bracelet) != this)
             {
                 from.SendLocalizedMessage(1054004); // You must equip the bracelet in order to use its power.
                 return false;
             }
-            else if (boundRoot == null || boundRoot.NetState == null || boundRoot.FindItemOnLayer(Layer.Bracelet) != bound)
+
+            if (boundRoot == null || boundRoot.NetState == null || boundRoot.FindItemOnLayer(Layer.Bracelet) != bound)
             {
-                from.SendLocalizedMessage(1054006); // The bracelet emits a red glow. The bracelet's twin is not available for transport.
+                from.SendLocalizedMessage(
+                    1054006); // The bracelet emits a red glow. The bracelet's twin is not available for transport.
                 return false;
             }
-            else if (!Core.AOS && from.Map != boundRoot.Map)
+
+            if (!Core.AOS && from.Map != boundRoot.Map)
             {
-                from.SendLocalizedMessage(1054014); // The bracelet glows black. The bracelet's target is on another facet.
+                from.SendLocalizedMessage(
+                    1054014); // The bracelet glows black. The bracelet's target is on another facet.
                 return false;
             }
-            else if (Factions.Sigil.ExistsOn(from))
+
+            if (Sigil.ExistsOn(from))
             {
                 from.SendLocalizedMessage(1061632); // You can't do that while carrying the sigil.
                 return false;
             }
-            else if (!SpellHelper.CheckTravel(from, TravelCheckType.RecallFrom))
+
+            if (!SpellHelper.CheckTravel(from, TravelCheckType.RecallFrom)) return false;
+
+            if (!SpellHelper.CheckTravel(from, boundRoot.Map, boundRoot.Location, TravelCheckType.RecallTo))
+                return false;
+
+            if (boundRoot.Map == Map.Felucca && from is PlayerMobile && ((PlayerMobile)from).Young)
             {
+                from.SendLocalizedMessage(
+                    1049543); // You decide against traveling to Felucca while you are still young.
                 return false;
             }
-            else if (!SpellHelper.CheckTravel(from, boundRoot.Map, boundRoot.Location, TravelCheckType.RecallTo))
-            {
-                return false;
-            }
-            else if (boundRoot.Map == Map.Felucca && from is PlayerMobile && ((PlayerMobile)from).Young)
-            {
-                from.SendLocalizedMessage(1049543); // You decide against traveling to Felucca while you are still young.
-                return false;
-            }
-            else if (SpellHelper.RestrictRedTravel && from.Murderer && boundRoot.Map != Map.Felucca)
+
+            if (SpellHelper.RestrictRedTravel && from.Murderer && boundRoot.Map != Map.Felucca)
             {
                 from.SendLocalizedMessage(1019004); // You are not allowed to travel there.
                 return false;
             }
-            else if (from.Criminal)
+
+            if (from.Criminal)
             {
                 from.SendLocalizedMessage(1005561, "", 0x22); // Thou'rt a criminal and cannot escape so easily.
                 return false;
             }
-            else if (SpellHelper.CheckCombat(from))
+
+            if (SpellHelper.CheckCombat(from))
             {
                 from.SendLocalizedMessage(1005564, "", 0x22); // Wouldst thou flee during the heat of battle??
                 return false;
             }
-            else if (Server.Misc.WeightOverloading.IsOverloaded(from))
+
+            if (WeightOverloading.IsOverloaded(from))
             {
                 from.SendLocalizedMessage(502359, "", 0x22); // Thou art too encumbered to move.
                 return false;
             }
-            else if (from.Region.IsPartOf<Server.Regions.Jail>())
+
+            if (from.Region.IsPartOf<Jail>())
             {
                 from.SendLocalizedMessage(1114345, "", 0x35); // You'll need a better jailbreak plan than that!
                 return false;
             }
-            else if (boundRoot.Region.IsPartOf<Server.Regions.Jail>())
+
+            if (boundRoot.Region.IsPartOf<Jail>())
             {
                 from.SendLocalizedMessage(1019004); // You are not allowed to travel there.
                 return false;
             }
-            else
-            {
-                if (successMessage)
-                    from.SendLocalizedMessage(1054015); // The bracelet's twin is available for transport.
 
-                return true;
-            }
+            if (successMessage)
+                from.SendLocalizedMessage(1054015); // The bracelet's twin is available for transport.
+
+            return true;
         }
+
+        private delegate void BraceletCallback(Mobile from);
 
         private class BraceletEntry : ContextMenuEntry
         {
             private readonly BraceletCallback m_Callback;
+
             public BraceletEntry(BraceletCallback callback, int number, bool enabled)
                 : base(number)
             {
@@ -378,7 +365,7 @@ namespace Server.Items
 
             public override void OnClick()
             {
-                Mobile from = Owner.From;
+                var from = Owner.From;
 
                 if (from.CheckAlive())
                     m_Callback(from);
@@ -407,19 +394,16 @@ namespace Server.Items
 
                 if (m_Bracelet.CheckUse(m_From, false))
                 {
-                    Mobile boundRoot = m_Bracelet.Bound.RootParent as Mobile;
+                    var boundRoot = m_Bracelet.Bound.RootParent as Mobile;
 
                     if (boundRoot != null)
                     {
                         m_Bracelet.Charges--;
-                        Point3D loc = boundRoot.Location;
+                        var loc = boundRoot.Location;
 
-                        BaseHouse house = BaseHouse.FindHouseAt(boundRoot);
+                        var house = BaseHouse.FindHouseAt(boundRoot);
 
-                        if (house != null)
-                        {
-                            loc = house.BanLocation;
-                        }
+                        if (house != null) loc = house.BanLocation;
 
                         BaseCreature.TeleportPets(m_From, boundRoot.Location, boundRoot.Map, true);
 
@@ -428,9 +412,8 @@ namespace Server.Items
                         m_From.PlaySound(0x1FC);
 
                         if (house != null)
-                        {
-                            m_From.SendLocalizedMessage(1070905); // Strong magics have redirected you to a safer location!
-                        }
+                            m_From.SendLocalizedMessage(
+                                1070905); // Strong magics have redirected you to a safer location!
                     }
                 }
             }
@@ -439,6 +422,7 @@ namespace Server.Items
         private class BindTarget : Target
         {
             private readonly BraceletOfBinding m_Bracelet;
+
             public BindTarget(BraceletOfBinding bracelet)
                 : base(-1, false, TargetFlags.None)
             {
@@ -456,7 +440,7 @@ namespace Server.Items
                 }
                 else if (targeted.GetType() == typeof(BraceletOfBinding))
                 {
-                    BraceletOfBinding bindBracelet = targeted as BraceletOfBinding;
+                    var bindBracelet = targeted as BraceletOfBinding;
 
                     if (bindBracelet == m_Bracelet)
                     {
@@ -468,7 +452,8 @@ namespace Server.Items
                     }
                     else
                     {
-                        from.SendLocalizedMessage(1054003); // You bind the bracelet to its counterpart. The bracelets glow with power.
+                        from.SendLocalizedMessage(
+                            1054003); // You bind the bracelet to its counterpart. The bracelets glow with power.
                         from.PlaySound(0xF9);
 
                         m_Bracelet.Bound = bindBracelet;
@@ -476,7 +461,8 @@ namespace Server.Items
                 }
                 else
                 {
-                    from.SendLocalizedMessage(1054002); // You can only bind this bracelet to another bracelet of binding!
+                    from.SendLocalizedMessage(
+                        1054002); // You can only bind this bracelet to another bracelet of binding!
                 }
             }
         }
@@ -484,6 +470,7 @@ namespace Server.Items
         private class InscribePrompt : Prompt
         {
             private readonly BraceletOfBinding m_Bracelet;
+
             public InscribePrompt(BraceletOfBinding bracelet)
             {
                 m_Bracelet = bracelet;

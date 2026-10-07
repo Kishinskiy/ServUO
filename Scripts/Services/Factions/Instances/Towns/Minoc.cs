@@ -1,12 +1,10 @@
-using System;
-
 namespace Server.Factions
 {
     public class Minoc : Town
     {
         public Minoc()
         {
-            this.Definition =
+            Definition =
                 new TownDefinition(
                     2,
                     0x186B,

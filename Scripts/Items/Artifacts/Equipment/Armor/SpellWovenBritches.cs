@@ -1,10 +1,14 @@
-using System;
-
 namespace Server.Items
 {
     public class SpellWovenBritches : LeafLegs
-	{
-		public override bool IsArtifact { get { return true; } }
+    {
+        public override bool IsArtifact => true;
+
+        public override int LabelNumber => 1072929; // Spell Woven Britches
+        public override int BaseFireResistance => 15;
+
+        public override int BasePoisonResistance => 16;
+
         [Constructable]
         public SpellWovenBritches()
         {
@@ -20,27 +24,6 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1072929;
-            }
-        }// Spell Woven Britches
-        public override int BaseFireResistance
-        {
-            get
-            {
-                return 15;
-            }
-        }
-        public override int BasePoisonResistance
-        {
-            get
-            {
-                return 16;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -52,7 +35,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

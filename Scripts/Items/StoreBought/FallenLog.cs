@@ -1,14 +1,10 @@
-using System;
-using Server;
 using Server.Gumps;
-using Server.Multis;
-using Server.Network;
 
 namespace Server.Items
 {
     public class FallenLogAddon : BaseAddon
     {
-        public override BaseAddonDeed Deed { get { return new FallenLogDeed(); } }
+        public override BaseAddonDeed Deed => new FallenLogDeed();
 
         [Constructable]
         public FallenLogAddon()
@@ -18,7 +14,6 @@ namespace Server.Items
 
         [Constructable]
         public FallenLogAddon(bool east)
-            : base()
         {
             if (east)
             {
@@ -49,20 +44,18 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class FallenLogDeed : BaseAddonDeed, IRewardOption
     {
-        public override int LabelNumber { get { return 1071088; } } // Fallen Log
-        public override BaseAddon Addon { get { return new FallenLogAddon(m_East); } }
-
         private bool m_East;
+        public override int LabelNumber => 1071088; // Fallen Log
+        public override BaseAddon Addon => new FallenLogAddon(m_East);
 
         [Constructable]
         public FallenLogDeed()
-            : base()
         {
             LootType = LootType.Blessed;
         }
@@ -94,7 +87,9 @@ namespace Server.Items
                 from.SendGump(new RewardOptionGump(this));
             }
             else
+            {
                 from.SendLocalizedMessage(1062334); // This item must be in your backpack to be used.       	
+            }
         }
 
         public override void Serialize(GenericWriter writer)
@@ -108,7 +103,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

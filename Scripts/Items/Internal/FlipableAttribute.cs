@@ -1,5 +1,4 @@
 using System;
-using System.Reflection;
 using Server.Commands;
 using Server.Targeting;
 
@@ -9,7 +8,7 @@ namespace Server.Items
     {
         public static void Initialize()
         {
-            CommandSystem.Register("Flip", AccessLevel.GameMaster, new CommandEventHandler(Flip_OnCommand));
+            CommandSystem.Register("Flip", AccessLevel.GameMaster, Flip_OnCommand);
         }
 
         [Usage("Flip")]
@@ -30,21 +29,19 @@ namespace Server.Items
             {
                 if (targeted is Item)
                 {
-                    Item item = (Item)targeted;
+                    var item = (Item)targeted;
 
-                    if (item.Movable == false && from.IsPlayer())
+                    if (!item.Movable && from.IsPlayer())
                         return;
 
-                    Type type = targeted.GetType();
+                    var type = targeted.GetType();
 
-                    FlipableAttribute[] AttributeArray = (FlipableAttribute[])type.GetCustomAttributes(typeof(FlipableAttribute), false);
+                    var AttributeArray =
+                        (FlipableAttribute[])type.GetCustomAttributes(typeof(FlipableAttribute), false);
 
-                    if (AttributeArray.Length == 0)
-                    {
-                        return;
-                    }
+                    if (AttributeArray.Length == 0) return;
 
-                    FlipableAttribute fa = AttributeArray[0];
+                    var fa = AttributeArray[0];
 
                     fa.Flip((Item)targeted);
                 }
@@ -55,15 +52,13 @@ namespace Server.Items
     [AttributeUsage(AttributeTargets.Class)]
     public class DynamicFlipingAttribute : Attribute
     {
-        public DynamicFlipingAttribute()
-        {
-        }
     }
 
     [AttributeUsage(AttributeTargets.Class)]
     public class FlipableAttribute : Attribute
     {
-        private readonly int[] m_ItemIDs;
+        public int[] ItemIDs { get; }
+
         public FlipableAttribute()
             : this(null)
         {
@@ -71,23 +66,16 @@ namespace Server.Items
 
         public FlipableAttribute(params int[] itemIDs)
         {
-            this.m_ItemIDs = itemIDs;
+            ItemIDs = itemIDs;
         }
 
-        public int[] ItemIDs
-        {
-            get
-            {
-                return this.m_ItemIDs;
-            }
-        }
         public virtual void Flip(Item item)
         {
-            if (this.m_ItemIDs == null)
+            if (ItemIDs == null)
             {
                 try
                 {
-                    MethodInfo flipMethod = item.GetType().GetMethod("Flip", Type.EmptyTypes);
+                    var flipMethod = item.GetType().GetMethod("Flip", Type.EmptyTypes);
                     if (flipMethod != null)
                         flipMethod.Invoke(item, new object[0]);
                 }
@@ -97,20 +85,18 @@ namespace Server.Items
             }
             else
             {
-                int index = 0;
-                for (int i = 0; i < this.m_ItemIDs.Length; i++)
-                {
-                    if (item.ItemID == this.m_ItemIDs[i])
+                var index = 0;
+                for (var i = 0; i < ItemIDs.Length; i++)
+                    if (item.ItemID == ItemIDs[i])
                     {
                         index = i + 1;
                         break;
                     }
-                }
 
-                if (index > this.m_ItemIDs.Length - 1)
+                if (index > ItemIDs.Length - 1)
                     index = 0;
 
-                item.ItemID = this.m_ItemIDs[index];
+                item.ItemID = ItemIDs[index];
             }
         }
     }

@@ -1,7 +1,6 @@
-using Server;
-using Server.Mobiles;
-using Server.Items;
 using Server.Commands;
+using Server.Items;
+using Server.Mobiles;
 
 namespace Server.Engines.ExploringTheDeep
 {
@@ -17,7 +16,7 @@ namespace Server.Engines.ExploringTheDeep
 
         public static void Generate(CommandEventArgs e)
         {
-            Mobile m = e.Mobile;
+            var m = e.Mobile;
 
             Delete(e);
             Generate(m);
@@ -38,13 +37,13 @@ namespace Server.Engines.ExploringTheDeep
         {
             #region Gravewater Lake Finish
 
-            CommandSystem.Handle(m, Server.Commands.CommandSystem.Prefix + "XmlLoad Spawns/GravewaterLake.xml");
+            CommandSystem.Handle(m, CommandSystem.Prefix + "XmlLoad Spawns/GravewaterLake.xml");
 
-            CommandSystem.Handle(m, Server.Commands.CommandSystem.Prefix + "GenWinchAssembly");
+            CommandSystem.Handle(m, CommandSystem.Prefix + "GenWinchAssembly");
 
             // StorageLocker
 
-            StorageLocker storagelocker = new StorageLocker(Parts.Flywheel);
+            var storagelocker = new StorageLocker(Parts.Flywheel);
             WeakEntityCollection.Add(EntityName, storagelocker);
             storagelocker.MoveToWorld(new Point3D(6421, 1753, 0), Map.Trammel);
             storagelocker.Active = true;
@@ -94,7 +93,7 @@ namespace Server.Engines.ExploringTheDeep
             door.Hue = 2952;
             door.MoveToWorld(new Point3D(6432, 1727, 0), Map.Trammel);
 
-            Static decor = new Static(0x1EAF);
+            var decor = new Static(0x1EAF);
             WeakEntityCollection.Add(EntityName, decor);
             decor.MoveToWorld(new Point3D(6310, 1704, 11), Map.Trammel);
 
@@ -150,7 +149,8 @@ namespace Server.Engines.ExploringTheDeep
             sign.MoveToWorld(new Point3D(6278, 1773, 0), Map.Trammel);
             WeakEntityCollection.Add(EntityName, sign);
 
-            sign = new ShipSign(0xBD1, 1154463); // Warning! Only those with proper gear may enter the lake for salvage operations! Enter at your own risk! No Pets!
+            sign = new ShipSign(0xBD1,
+                1154463); // Warning! Only those with proper gear may enter the lake for salvage operations! Enter at your own risk! No Pets!
             sign.MoveToWorld(new Point3D(1698, 1566, -110), Map.Malas);
             WeakEntityCollection.Add(EntityName, sign);
 
@@ -248,8 +248,9 @@ namespace Server.Engines.ExploringTheDeep
             sp.Respawn();
 
             #endregion
-             
+
             #region Custeau Perron House
+
             door = new CusteauPerronHouseDoor();
             WeakEntityCollection.Add(EntityName, door);
             door.MoveToWorld(new Point3D(1651, 1551, 25), Map.Trammel);
@@ -273,9 +274,11 @@ namespace Server.Engines.ExploringTheDeep
             item = new MasterThinkerContoller();
             item.MoveToWorld(new Point3D(1652, 1547, 45), Map.Trammel);
             WeakEntityCollection.Add(EntityName, item);
+
             #endregion
 
             #region Ice Dungeon
+
             Item addon = new CousteauPerronAddon();
             addon.MoveToWorld(new Point3D(5211, 2312, 28), Map.Trammel);
             WeakEntityCollection.Add(EntityName, addon);
@@ -319,6 +322,7 @@ namespace Server.Engines.ExploringTheDeep
             item = new IceCrystals();
             item.MoveToWorld(new Point3D(5808, 237, -3), Map.Trammel);
             WeakEntityCollection.Add(EntityName, item);
+
             #endregion
 
             #region Sorcerers Dungeon
@@ -328,11 +332,12 @@ namespace Server.Engines.ExploringTheDeep
             sp.MoveToWorld(new Point3D(122, 10, -28), Map.Ilshenar);
             sp.Respawn();
 
-            CommandSystem.Handle(m, Server.Commands.CommandSystem.Prefix + "GenSorcerersPlate");
+            CommandSystem.Handle(m, CommandSystem.Prefix + "GenSorcerersPlate");
 
             #endregion
 
             #region Scroll
+
             scroll = new WillemHarteScroll();
             WeakEntityCollection.Add(EntityName, scroll);
             scroll.MoveToWorld(new Point3D(1359, 3779, 7), Map.Trammel);
@@ -380,6 +385,7 @@ namespace Server.Engines.ExploringTheDeep
             scroll = new SorcerersScroll();
             scroll.MoveToWorld(new Point3D(101, 42, -22), Map.Ilshenar);
             WeakEntityCollection.Add(EntityName, scroll);
+
             #endregion
         }
     }

@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 using Server.Misc;
 
@@ -7,6 +6,16 @@ namespace Server.Mobiles
     [CorpseName("an orcish corpse")]
     public class OrcChopper : BaseCreature
     {
+        public override InhumanSpeech SpeechType => InhumanSpeech.Orc;
+
+        public override bool CanRummageCorpses => true;
+
+        public override int Meat => 1;
+
+        public override TribeType Tribe => TribeType.Orc;
+
+        public override OppositionGroup OppositionGroup => OppositionGroup.SavagesAndOrcs;
+
         [Constructable]
         public OrcChopper()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -86,38 +95,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override InhumanSpeech SpeechType
-        {
-            get
-            {
-                return InhumanSpeech.Orc;
-            }
-        }
-        public override bool CanRummageCorpses
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override int Meat
-        {
-            get
-            {
-                return 1;
-            }
-        }
-
-        public override TribeType Tribe { get { return TribeType.Orc; } }
-
-        public override OppositionGroup OppositionGroup
-        {
-            get
-            {
-                return OppositionGroup.SavagesAndOrcs;
-            }
-        }
-
         public override void OnDeath(Container c)
         {
             base.OnDeath(c);
@@ -145,7 +122,7 @@ namespace Server.Mobiles
         {
             base.AggressiveAction(aggressor, criminal);
 
-            Item item = aggressor.FindItemOnLayer(Layer.Helm);
+            var item = aggressor.FindItemOnLayer(Layer.Helm);
 
             if (item is OrcishKinMask)
             {
@@ -159,13 +136,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

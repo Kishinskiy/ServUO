@@ -1,7 +1,7 @@
 using System;
-using Server;
 using Server.Engines.Craft;
 using Server.Gumps;
+using Server.Targeting;
 
 namespace Server.Items
 {
@@ -9,21 +9,30 @@ namespace Server.Items
     {
         None,
         Enhanced, //From blue medusa scales
-        Regular,  //From grey medusa scales
-        Limited   //From anyother type of scales
+        Regular, //From grey medusa scales
+        Limited //From anyother type of scales
     }
 
     public class GorgonLense : Item, ICraftable
     {
-        public override int LabelNumber { get { return 1112625; } } //  Gorgon Lense
-
         private LenseType m_LenseType;
+        public override int LabelNumber => 1112625; //  Gorgon Lense
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public LenseType LenseType { get { return m_LenseType; } set { m_LenseType = value; InvalidateProperties(); } }
+        public LenseType LenseType
+        {
+            get => m_LenseType;
+            set
+            {
+                m_LenseType = value;
+                InvalidateProperties();
+            }
+        }
 
         [Constructable]
-        public GorgonLense() : this(1) { }
+        public GorgonLense() : this(1)
+        {
+        }
 
         [Constructable]
         public GorgonLense(int amount)
@@ -33,15 +42,38 @@ namespace Server.Items
             Amount = amount;
         }
 
+        public GorgonLense(Serial serial)
+            : base(serial)
+        {
+        }
+
+        public int OnCraft(int quality, bool markersMark, Mobile from, CraftSystem system, Type typeRes, ITool tool,
+            CraftItem craftItem, int resHue)
+        {
+            switch (resHue)
+            {
+                default:
+                    m_LenseType = LenseType.Limited; break;
+                case 2223:
+                    m_LenseType = LenseType.Regular; break;
+                case 1266:
+                    m_LenseType = LenseType.Enhanced; break;
+            }
+
+            Hue = resHue;
+            return quality;
+        }
+
         public override bool WillStack(Mobile from, Item dropped)
         {
-            return dropped is GorgonLense && ((GorgonLense)dropped).LenseType == m_LenseType && base.WillStack(from, dropped);
+            return dropped is GorgonLense && ((GorgonLense)dropped).LenseType == m_LenseType &&
+                   base.WillStack(from, dropped);
         }
 
         public override void OnAfterDuped(Item newItem)
         {
             if (newItem is GorgonLense)
-                ((GorgonLense)newItem).LenseType = this.LenseType;
+                ((GorgonLense)newItem).LenseType = LenseType;
 
             base.OnAfterDuped(newItem);
         }
@@ -65,11 +97,14 @@ namespace Server.Items
                 }
                 else if (targeted is BaseArmor)
                 {
-                    BaseArmor armor = (BaseArmor)targeted;
-                    if (armor.Layer == Layer.Neck || armor.Layer == Layer.Helm || armor is BaseShield || (armor.RequiredRace == Race.Gargoyle && armor.Layer== Layer.Earrings))
+                    var armor = (BaseArmor)targeted;
+                    if (armor.Layer == Layer.Neck || armor.Layer == Layer.Helm || armor is BaseShield ||
+                        (armor.RequiredRace == Race.Gargoyle && armor.Layer == Layer.Earrings))
                     {
                         if (armor.GorgonLenseCharges > 0 && armor.GorgonLenseType != LenseType)
+                        {
                             from.SendGump(new GorgonLenseWarningGump(this, armor));
+                        }
                         else
                         {
                             armor.GorgonLenseCharges += Utility.RandomMinMax(28, 40);
@@ -79,15 +114,19 @@ namespace Server.Items
                         }
                     }
                     else
+                    {
                         from.SendLocalizedMessage(1112594); //You cannot place gorgon lenses on this.
+                    }
                 }
                 else if (targeted is BaseJewel)
                 {
-                    BaseJewel j = (BaseJewel)targeted;
+                    var j = (BaseJewel)targeted;
                     if (j.Layer == Layer.Neck || j.Layer == Layer.Earrings)
                     {
                         if (j.GorgonLenseCharges > 0 && j.GorgonLenseType != LenseType)
+                        {
                             from.SendGump(new GorgonLenseWarningGump(this, j));
+                        }
                         else
                         {
                             j.GorgonLenseCharges += Utility.RandomMinMax(28, 40);
@@ -97,15 +136,19 @@ namespace Server.Items
                         }
                     }
                     else
+                    {
                         from.SendLocalizedMessage(1112594); //You cannot place gorgon lenses on this.
+                    }
                 }
                 else if (targeted is BaseClothing)
                 {
-                    BaseClothing c = (BaseClothing)targeted;
+                    var c = (BaseClothing)targeted;
                     if (c.Layer == Layer.Neck || c.Layer == Layer.Helm)
                     {
                         if (c.GorgonLenseCharges > 0 && c.GorgonLenseType != LenseType)
+                        {
                             from.SendGump(new GorgonLenseWarningGump(this, c));
+                        }
                         else
                         {
                             c.GorgonLenseCharges += Utility.RandomMinMax(28, 40);
@@ -115,49 +158,24 @@ namespace Server.Items
                         }
                     }
                     else
+                    {
                         from.SendLocalizedMessage(1112594); //You cannot place gorgon lenses on this.
+                    }
                 }
                 else
+                {
                     from.SendLocalizedMessage(1112594); //You cannot place gorgon lenses on this.
+                }
             }
             else
+            {
                 from.SendLocalizedMessage(1112594); //You cannot place gorgon lenses on this.
-        }
-
-        private class InternalTarget : Server.Targeting.Target
-        {
-            private GorgonLense m_Lense;
-
-            public InternalTarget(GorgonLense lense) : base(-1, false, Server.Targeting.TargetFlags.None)
-            {
-                m_Lense = lense;
             }
-
-            protected override void OnTarget(Mobile from, object targeted)
-            {
-                m_Lense.OnTarget(from, targeted);
-            }
-        }
-
-        public int OnCraft(int quality, bool markersMark, Mobile from, CraftSystem system, Type typeRes, ITool tool, CraftItem craftItem, int resHue)
-        {
-            switch (resHue)
-            {
-                default:
-                    m_LenseType = LenseType.Limited; break;
-                case 2223:
-                    m_LenseType = LenseType.Regular; break;
-                case 1266:
-                    m_LenseType = LenseType.Enhanced; break;
-            }
-
-            Hue = resHue;
-            return quality;
         }
 
         public static int TotalCharges(Mobile m)
         {
-            int charges = 0;
+            var charges = 0;
             m.Items.ForEach(i =>
             {
                 if (i is BaseArmor)
@@ -171,16 +189,11 @@ namespace Server.Items
             return charges;
         }
 
-        public GorgonLense(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)2); // version
+            writer.Write(2); // version
             writer.Write((int)m_LenseType);
         }
 
@@ -188,7 +201,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             if (version >= 2)
                 m_LenseType = (LenseType)reader.ReadInt();
@@ -196,15 +209,32 @@ namespace Server.Items
             if (version == 0)
                 reader.ReadInt();
         }
+
+        private class InternalTarget : Target
+        {
+            private readonly GorgonLense m_Lense;
+
+            public InternalTarget(GorgonLense lense) : base(-1, false, TargetFlags.None)
+            {
+                m_Lense = lense;
+            }
+
+            protected override void OnTarget(Mobile from, object targeted)
+            {
+                m_Lense.OnTarget(from, targeted);
+            }
+        }
     }
 
     public class GorgonLenseWarningGump : BaseConfirmGump
     {
-        public override int TitleNumber { get { return 1112597; } } // Replace active Gorgon Lenses
-        public override int LabelNumber { get { return 1112598; } } // The remaining charges of the active lenses will be lost. Do you wish to proceed?
+        private readonly Item m_Item;
 
-        private GorgonLense m_Lense;
-        private Item m_Item;
+        private readonly GorgonLense m_Lense;
+        public override int TitleNumber => 1112597; // Replace active Gorgon Lenses
+
+        public override int LabelNumber =>
+            1112598; // The remaining charges of the active lenses will be lost. Do you wish to proceed?
 
         public GorgonLenseWarningGump(GorgonLense lense, Item item)
         {
@@ -218,7 +248,8 @@ namespace Server.Items
             {
                 from.SendLocalizedMessage(1054107); // This item must be in your backpack.
             }
-            else if (m_Item is BaseShield || m_Item.Layer == Layer.Neck || m_Item.Layer == Layer.Earrings || m_Item.Layer == Layer.Helm)
+            else if (m_Item is BaseShield || m_Item.Layer == Layer.Neck || m_Item.Layer == Layer.Earrings ||
+                     m_Item.Layer == Layer.Helm)
             {
                 if (m_Item is BaseArmor)
                 {
@@ -243,7 +274,9 @@ namespace Server.Items
                 }
             }
             else
+            {
                 from.SendLocalizedMessage(1112594); //You cannot place gorgon lenses on this.
+            }
         }
     }
 }

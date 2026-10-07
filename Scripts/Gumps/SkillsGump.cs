@@ -34,84 +34,84 @@ namespace Server.Gumps
         public static readonly int BorderSize = PropsConfig.BorderSize;
         private static readonly int EntryWidth = 160;
         private static readonly int TotalWidth = OffsetSize + EntryWidth + OffsetSize + SetWidth + OffsetSize;
-        private static readonly int TotalHeight = OffsetSize + (2 * (EntryHeight + OffsetSize));
+        private static readonly int TotalHeight = OffsetSize + 2 * (EntryHeight + OffsetSize);
         private static readonly int BackWidth = BorderSize + TotalWidth + BorderSize;
         private static readonly int BackHeight = BorderSize + TotalHeight + BorderSize;
         private readonly Mobile m_From;
-        private readonly Mobile m_Target;
-        private readonly Skill m_Skill;
         private readonly SkillsGumpGroup m_Selected;
+        private readonly Skill m_Skill;
+        private readonly Mobile m_Target;
+
         public EditSkillGump(Mobile from, Mobile target, Skill skill, SkillsGumpGroup selected)
             : base(GumpOffsetX, GumpOffsetY)
         {
-            this.m_From = from;
-            this.m_Target = target;
-            this.m_Skill = skill;
-            this.m_Selected = selected;
+            m_From = from;
+            m_Target = target;
+            m_Skill = skill;
+            m_Selected = selected;
 
-            string initialText = this.m_Skill.Base.ToString("F1");
+            var initialText = m_Skill.Base.ToString("F1");
 
-            this.AddPage(0);
+            AddPage(0);
 
-            this.AddBackground(0, 0, BackWidth, BackHeight, BackGumpID);
-            this.AddImageTiled(BorderSize, BorderSize, TotalWidth - (OldStyle ? SetWidth + OffsetSize : 0), TotalHeight, OffsetGumpID);
+            AddBackground(0, 0, BackWidth, BackHeight, BackGumpID);
+            AddImageTiled(BorderSize, BorderSize, TotalWidth - (OldStyle ? SetWidth + OffsetSize : 0), TotalHeight,
+                OffsetGumpID);
 
-            int x = BorderSize + OffsetSize;
-            int y = BorderSize + OffsetSize;
+            var x = BorderSize + OffsetSize;
+            var y = BorderSize + OffsetSize;
 
-            this.AddImageTiled(x, y, EntryWidth, EntryHeight, EntryGumpID);
-            this.AddLabelCropped(x + TextOffsetX, y, EntryWidth - TextOffsetX, EntryHeight, TextHue, String.Format("{0}  [{1}]", skill.Name, skill.Cap));
+            AddImageTiled(x, y, EntryWidth, EntryHeight, EntryGumpID);
+            AddLabelCropped(x + TextOffsetX, y, EntryWidth - TextOffsetX, EntryHeight, TextHue,
+                string.Format("{0}  [{1}]", skill.Name, skill.Cap));
             x += EntryWidth + OffsetSize;
 
             if (SetGumpID != 0)
-                this.AddImageTiled(x, y, SetWidth, EntryHeight, SetGumpID);
+                AddImageTiled(x, y, SetWidth, EntryHeight, SetGumpID);
 
             x = BorderSize + OffsetSize;
             y += EntryHeight + OffsetSize;
 
-            this.AddImageTiled(x, y, EntryWidth, EntryHeight, EntryGumpID);
-            this.AddTextEntry(x + TextOffsetX, y, EntryWidth - TextOffsetX, EntryHeight, TextHue, 0, initialText);
+            AddImageTiled(x, y, EntryWidth, EntryHeight, EntryGumpID);
+            AddTextEntry(x + TextOffsetX, y, EntryWidth - TextOffsetX, EntryHeight, TextHue, 0, initialText);
             x += EntryWidth + OffsetSize;
 
             if (SetGumpID != 0)
-                this.AddImageTiled(x, y, SetWidth, EntryHeight, SetGumpID);
+                AddImageTiled(x, y, SetWidth, EntryHeight, SetGumpID);
 
-            this.AddButton(x + SetOffsetX, y + SetOffsetY, SetButtonID1, SetButtonID2, 1, GumpButtonType.Reply, 0);
+            AddButton(x + SetOffsetX, y + SetOffsetY, SetButtonID1, SetButtonID2, 1, GumpButtonType.Reply, 0);
         }
 
         public override void OnResponse(NetState sender, RelayInfo info)
         {
             if (info.ButtonID == 1)
-            {
                 try
                 {
-                    if (this.m_From.AccessLevel >= AccessLevel.GameMaster)
+                    if (m_From.AccessLevel >= AccessLevel.GameMaster)
                     {
-                        TextRelay text = info.GetTextEntry(0);
+                        var text = info.GetTextEntry(0);
 
                         if (text != null)
                         {
-                            this.m_Skill.Base = Convert.ToDouble(text.Text);
-                            CommandLogging.LogChangeProperty(this.m_From, this.m_Target, String.Format("{0}.Base", this.m_Skill), this.m_Skill.Base.ToString());
+                            m_Skill.Base = Convert.ToDouble(text.Text);
+                            CommandLogging.LogChangeProperty(m_From, m_Target, string.Format("{0}.Base", m_Skill),
+                                m_Skill.Base.ToString());
                         }
                     }
                     else
                     {
-                        this.m_From.SendMessage("You may not change that.");
+                        m_From.SendMessage("You may not change that.");
                     }
 
-                    this.m_From.SendGump(new SkillsGump(this.m_From, this.m_Target, this.m_Selected));
+                    m_From.SendGump(new SkillsGump(m_From, m_Target, m_Selected));
                 }
                 catch
                 {
-                    this.m_From.SendMessage("Bad format. ###.# expected.");
-                    this.m_From.SendGump(new EditSkillGump(this.m_From, this.m_Target, this.m_Skill, this.m_Selected));
+                    m_From.SendMessage("Bad format. ###.# expected.");
+                    m_From.SendGump(new EditSkillGump(m_From, m_Target, m_Skill, m_Selected));
                 }
-            }
             else
-            {
-                this.m_From.SendGump(new SkillsGump(this.m_From, this.m_Target, this.m_Selected));
-            }
+                m_From.SendGump(new SkillsGump(m_From, m_Target, m_Selected));
         }
     }
 
@@ -141,12 +141,14 @@ namespace Server.Gumps
         public static readonly int OffsetSize = PropsConfig.OffsetSize;
         public static readonly int EntryHeight = PropsConfig.EntryHeight;
         public static readonly int BorderSize = PropsConfig.BorderSize;
+
         public static bool OldStyle = PropsConfig.OldStyle;
+
         /*
         private static bool PrevLabel = OldStyle, NextLabel = OldStyle;
 
         private static readonly int PrevLabelOffsetX = PrevWidth + 1;
-		
+
         private static readonly int PrevLabelOffsetY = 0;
 
         private static readonly int NextLabelOffsetX = -29;
@@ -156,15 +158,19 @@ namespace Server.Gumps
         private static readonly int ValueWidth = 128;
         private static readonly int EntryCount = 15;
         private static readonly int TypeWidth = NameWidth + OffsetSize + ValueWidth;
-        private static readonly int TotalWidth = OffsetSize + NameWidth + OffsetSize + ValueWidth + OffsetSize + SetWidth + OffsetSize;
-        private static readonly int TotalHeight = OffsetSize + ((EntryHeight + OffsetSize) * (EntryCount + 1));
+
+        private static readonly int TotalWidth =
+            OffsetSize + NameWidth + OffsetSize + ValueWidth + OffsetSize + SetWidth + OffsetSize;
+
+        private static readonly int TotalHeight = OffsetSize + (EntryHeight + OffsetSize) * (EntryCount + 1);
         private static readonly int BackWidth = BorderSize + TotalWidth + BorderSize;
         private static readonly int BackHeight = BorderSize + TotalHeight + BorderSize;
         private static readonly int IndentWidth = 12;
         private readonly Mobile m_From;
-        private readonly Mobile m_Target;
         private readonly SkillsGumpGroup[] m_Groups;
         private readonly SkillsGumpGroup m_Selected;
+        private readonly Mobile m_Target;
+
         public SkillsGump(Mobile from, Mobile target)
             : this(from, target, null)
         {
@@ -173,79 +179,84 @@ namespace Server.Gumps
         public SkillsGump(Mobile from, Mobile target, SkillsGumpGroup selected)
             : base(GumpOffsetX, GumpOffsetY)
         {
-            this.m_From = from;
-            this.m_Target = target;
+            m_From = from;
+            m_Target = target;
 
-            this.m_Groups = SkillsGumpGroup.Groups;
-            this.m_Selected = selected;
+            m_Groups = SkillsGumpGroup.Groups;
+            m_Selected = selected;
 
-            int count = this.m_Groups.Length;
+            var count = m_Groups.Length;
 
             if (selected != null)
                 count += selected.Skills.Length;
 
-            int totalHeight = OffsetSize + ((EntryHeight + OffsetSize) * (count + 1));
+            var totalHeight = OffsetSize + (EntryHeight + OffsetSize) * (count + 1);
 
-            this.AddPage(0);
+            AddPage(0);
 
-            this.AddBackground(0, 0, BackWidth, BorderSize + totalHeight + BorderSize, BackGumpID);
-            this.AddImageTiled(BorderSize, BorderSize, TotalWidth - (OldStyle ? SetWidth + OffsetSize : 0), totalHeight, OffsetGumpID);
+            AddBackground(0, 0, BackWidth, BorderSize + totalHeight + BorderSize, BackGumpID);
+            AddImageTiled(BorderSize, BorderSize, TotalWidth - (OldStyle ? SetWidth + OffsetSize : 0), totalHeight,
+                OffsetGumpID);
 
-            int x = BorderSize + OffsetSize;
-            int y = BorderSize + OffsetSize;
+            var x = BorderSize + OffsetSize;
+            var y = BorderSize + OffsetSize;
 
-            int emptyWidth = TotalWidth - PrevWidth - NextWidth - (OffsetSize * 4) - (OldStyle ? SetWidth + OffsetSize : 0);
+            var emptyWidth = TotalWidth - PrevWidth - NextWidth - OffsetSize * 4 -
+                             (OldStyle ? SetWidth + OffsetSize : 0);
 
             if (OldStyle)
-                this.AddImageTiled(x, y, TotalWidth - (OffsetSize * 3) - SetWidth, EntryHeight, HeaderGumpID);
+                AddImageTiled(x, y, TotalWidth - OffsetSize * 3 - SetWidth, EntryHeight, HeaderGumpID);
             else
-                this.AddImageTiled(x, y, PrevWidth, EntryHeight, HeaderGumpID);
+                AddImageTiled(x, y, PrevWidth, EntryHeight, HeaderGumpID);
 
             x += PrevWidth + OffsetSize;
 
             if (!OldStyle)
-                this.AddImageTiled(x - (OldStyle ? OffsetSize : 0), y, emptyWidth + (OldStyle ? OffsetSize * 2 : 0), EntryHeight, HeaderGumpID);
+                AddImageTiled(x - (OldStyle ? OffsetSize : 0), y, emptyWidth + (OldStyle ? OffsetSize * 2 : 0),
+                    EntryHeight, HeaderGumpID);
 
             x += emptyWidth + OffsetSize;
 
             if (!OldStyle)
-                this.AddImageTiled(x, y, NextWidth, EntryHeight, HeaderGumpID);
+                AddImageTiled(x, y, NextWidth, EntryHeight, HeaderGumpID);
 
-            for (int i = 0; i < this.m_Groups.Length; ++i)
+            for (var i = 0; i < m_Groups.Length; ++i)
             {
                 x = BorderSize + OffsetSize;
                 y += EntryHeight + OffsetSize;
 
-                SkillsGumpGroup group = this.m_Groups[i];
+                var group = m_Groups[i];
 
-                this.AddImageTiled(x, y, PrevWidth, EntryHeight, HeaderGumpID);
+                AddImageTiled(x, y, PrevWidth, EntryHeight, HeaderGumpID);
 
                 if (group == selected)
-                    this.AddButton(x + PrevOffsetX, y + PrevOffsetY, 0x15E2, 0x15E6, this.GetButtonID(0, i), GumpButtonType.Reply, 0);
+                    AddButton(x + PrevOffsetX, y + PrevOffsetY, 0x15E2, 0x15E6, GetButtonID(0, i), GumpButtonType.Reply,
+                        0);
                 else
-                    this.AddButton(x + PrevOffsetX, y + PrevOffsetY, 0x15E1, 0x15E5, this.GetButtonID(0, i), GumpButtonType.Reply, 0);
+                    AddButton(x + PrevOffsetX, y + PrevOffsetY, 0x15E1, 0x15E5, GetButtonID(0, i), GumpButtonType.Reply,
+                        0);
 
                 x += PrevWidth + OffsetSize;
 
-                x -= (OldStyle ? OffsetSize : 0);
+                x -= OldStyle ? OffsetSize : 0;
 
-                this.AddImageTiled(x, y, emptyWidth + (OldStyle ? OffsetSize * 2 : 0), EntryHeight, EntryGumpID);
-                this.AddLabel(x + TextOffsetX, y, TextHue, group.Name);
+                AddImageTiled(x, y, emptyWidth + (OldStyle ? OffsetSize * 2 : 0), EntryHeight, EntryGumpID);
+                AddLabel(x + TextOffsetX, y, TextHue, group.Name);
 
                 x += emptyWidth + (OldStyle ? OffsetSize * 2 : 0);
                 x += OffsetSize;
 
                 if (SetGumpID != 0)
-                    this.AddImageTiled(x, y, SetWidth, EntryHeight, SetGumpID);
+                    AddImageTiled(x, y, SetWidth, EntryHeight, SetGumpID);
 
                 if (group == selected)
                 {
-                    int indentMaskX = BorderSize;
-                    int indentMaskY = y + EntryHeight + OffsetSize;
+                    var indentMaskX = BorderSize;
+                    var indentMaskY = y + EntryHeight + OffsetSize;
 
-                    for (int j = 0; j < group.Skills.Length; ++j)
+                    for (var j = 0; j < group.Skills.Length; ++j)
                     {
-                        Skill sk = target.Skills[group.Skills[j]];
+                        var sk = target.Skills[group.Skills[j]];
 
                         x = BorderSize + OffsetSize;
                         y += EntryHeight + OffsetSize;
@@ -253,29 +264,31 @@ namespace Server.Gumps
                         x += OffsetSize;
                         x += IndentWidth;
 
-                        this.AddImageTiled(x, y, PrevWidth, EntryHeight, HeaderGumpID);
+                        AddImageTiled(x, y, PrevWidth, EntryHeight, HeaderGumpID);
 
-                        this.AddButton(x + PrevOffsetX, y + PrevOffsetY, 0x15E1, 0x15E5, this.GetButtonID(1, j), GumpButtonType.Reply, 0);
+                        AddButton(x + PrevOffsetX, y + PrevOffsetY, 0x15E1, 0x15E5, GetButtonID(1, j),
+                            GumpButtonType.Reply, 0);
 
                         x += PrevWidth + OffsetSize;
 
-                        x -= (OldStyle ? OffsetSize : 0);
+                        x -= OldStyle ? OffsetSize : 0;
 
-                        this.AddImageTiled(x, y, emptyWidth + (OldStyle ? OffsetSize * 2 : 0) - OffsetSize - IndentWidth, EntryHeight, EntryGumpID);
-                        this.AddLabel(x + TextOffsetX, y, TextHue, sk == null ? "(null)" : sk.Name);
+                        AddImageTiled(x, y, emptyWidth + (OldStyle ? OffsetSize * 2 : 0) - OffsetSize - IndentWidth,
+                            EntryHeight, EntryGumpID);
+                        AddLabel(x + TextOffsetX, y, TextHue, sk == null ? "(null)" : sk.Name);
 
                         x += emptyWidth + (OldStyle ? OffsetSize * 2 : 0) - OffsetSize - IndentWidth;
                         x += OffsetSize;
 
                         if (SetGumpID != 0)
-                            this.AddImageTiled(x, y, SetWidth, EntryHeight, SetGumpID);
+                            AddImageTiled(x, y, SetWidth, EntryHeight, SetGumpID);
 
                         if (sk != null)
                         {
                             int buttonID1, buttonID2;
                             int xOffset, yOffset;
 
-                            switch ( sk.Lock )
+                            switch (sk.Lock)
                             {
                                 default:
                                 case SkillLock.Up:
@@ -298,131 +311,131 @@ namespace Server.Gumps
                                     break;
                             }
 
-                            this.AddButton(x + xOffset, y + yOffset, buttonID1, buttonID2, this.GetButtonID(2, j), GumpButtonType.Reply, 0);
+                            AddButton(x + xOffset, y + yOffset, buttonID1, buttonID2, GetButtonID(2, j),
+                                GumpButtonType.Reply, 0);
 
                             y += 1;
                             x -= OffsetSize;
                             x -= 1;
                             x -= 50;
 
-                            this.AddImageTiled(x, y, 50, EntryHeight - 2, OffsetGumpID);
+                            AddImageTiled(x, y, 50, EntryHeight - 2, OffsetGumpID);
 
                             x += 1;
                             y += 1;
 
-                            this.AddImageTiled(x, y, 48, EntryHeight - 4, EntryGumpID);
+                            AddImageTiled(x, y, 48, EntryHeight - 4, EntryGumpID);
 
-                            this.AddLabelCropped(x + TextOffsetX, y - 1, 48 - TextOffsetX, EntryHeight - 3, TextHue, sk.Base.ToString("F1"));
+                            AddLabelCropped(x + TextOffsetX, y - 1, 48 - TextOffsetX, EntryHeight - 3, TextHue,
+                                sk.Base.ToString("F1"));
 
                             y -= 2;
                         }
                     }
 
-                    this.AddImageTiled(indentMaskX, indentMaskY, IndentWidth + OffsetSize, (group.Skills.Length * (EntryHeight + OffsetSize)) - (i < (this.m_Groups.Length - 1) ? OffsetSize : 0), BackGumpID + 4);
+                    AddImageTiled(indentMaskX, indentMaskY, IndentWidth + OffsetSize,
+                        group.Skills.Length * (EntryHeight + OffsetSize) - (i < m_Groups.Length - 1 ? OffsetSize : 0),
+                        BackGumpID + 4);
                 }
             }
         }
 
         public override void OnResponse(NetState sender, RelayInfo info)
         {
-            int buttonID = info.ButtonID - 1;
+            var buttonID = info.ButtonID - 1;
 
-            int index = buttonID / 3;
-            int type = buttonID % 3;
+            var index = buttonID / 3;
+            var type = buttonID % 3;
 
-            switch ( type )
+            switch (type)
             {
                 case 0:
+                {
+                    if (index >= 0 && index < m_Groups.Length)
                     {
-                        if (index >= 0 && index < this.m_Groups.Length)
-                        {
-                            SkillsGumpGroup newSelection = this.m_Groups[index];
+                        var newSelection = m_Groups[index];
 
-                            if (this.m_Selected != newSelection)
-                                this.m_From.SendGump(new SkillsGump(this.m_From, this.m_Target, newSelection));
-                            else
-                                this.m_From.SendGump(new SkillsGump(this.m_From, this.m_Target, null));
-                        }
-
-                        break;
+                        if (m_Selected != newSelection)
+                            m_From.SendGump(new SkillsGump(m_From, m_Target, newSelection));
+                        else
+                            m_From.SendGump(new SkillsGump(m_From, m_Target, null));
                     }
+
+                    break;
+                }
                 case 1:
+                {
+                    if (m_Selected != null && index >= 0 && index < m_Selected.Skills.Length)
                     {
-                        if (this.m_Selected != null && index >= 0 && index < this.m_Selected.Skills.Length)
-                        {
-                            Skill sk = this.m_Target.Skills[this.m_Selected.Skills[index]];
+                        var sk = m_Target.Skills[m_Selected.Skills[index]];
 
-                            if (sk != null)
+                        if (sk != null)
+                        {
+                            if (m_From.AccessLevel >= AccessLevel.GameMaster)
                             {
-                                if (this.m_From.AccessLevel >= AccessLevel.GameMaster)
-                                {
-                                    this.m_From.SendGump(new EditSkillGump(this.m_From, this.m_Target, sk, this.m_Selected));
-                                }
-                                else
-                                {
-                                    this.m_From.SendMessage("You may not change that.");
-                                    this.m_From.SendGump(new SkillsGump(this.m_From, this.m_Target, this.m_Selected));
-                                }
+                                m_From.SendGump(new EditSkillGump(m_From, m_Target, sk, m_Selected));
                             }
                             else
                             {
-                                this.m_From.SendGump(new SkillsGump(this.m_From, this.m_Target, this.m_Selected));
+                                m_From.SendMessage("You may not change that.");
+                                m_From.SendGump(new SkillsGump(m_From, m_Target, m_Selected));
                             }
                         }
-
-                        break;
-                    }
-                case 2:
-                    {
-                        if (this.m_Selected != null && index >= 0 && index < this.m_Selected.Skills.Length)
+                        else
                         {
-                            Skill sk = this.m_Target.Skills[this.m_Selected.Skills[index]];
-
-                            if (sk != null)
-                            {
-                                if (this.m_From.AccessLevel >= AccessLevel.GameMaster)
-                                {
-                                    switch ( sk.Lock )
-                                    {
-                                        case SkillLock.Up:
-                                            sk.SetLockNoRelay(SkillLock.Down);
-                                            sk.Update();
-                                            break;
-                                        case SkillLock.Down:
-                                            sk.SetLockNoRelay(SkillLock.Locked);
-                                            sk.Update();
-                                            break;
-                                        case SkillLock.Locked:
-                                            sk.SetLockNoRelay(SkillLock.Up);
-                                            sk.Update();
-                                            break;
-                                    }
-                                }
-                                else
-                                {
-                                    this.m_From.SendMessage("You may not change that.");
-                                }
-
-                                this.m_From.SendGump(new SkillsGump(this.m_From, this.m_Target, this.m_Selected));
-                            }
+                            m_From.SendGump(new SkillsGump(m_From, m_Target, m_Selected));
                         }
-
-                        break;
                     }
+
+                    break;
+                }
+                case 2:
+                {
+                    if (m_Selected != null && index >= 0 && index < m_Selected.Skills.Length)
+                    {
+                        var sk = m_Target.Skills[m_Selected.Skills[index]];
+
+                        if (sk != null)
+                        {
+                            if (m_From.AccessLevel >= AccessLevel.GameMaster)
+                                switch (sk.Lock)
+                                {
+                                    case SkillLock.Up:
+                                        sk.SetLockNoRelay(SkillLock.Down);
+                                        sk.Update();
+                                        break;
+                                    case SkillLock.Down:
+                                        sk.SetLockNoRelay(SkillLock.Locked);
+                                        sk.Update();
+                                        break;
+                                    case SkillLock.Locked:
+                                        sk.SetLockNoRelay(SkillLock.Up);
+                                        sk.Update();
+                                        break;
+                                }
+                            else
+                                m_From.SendMessage("You may not change that.");
+
+                            m_From.SendGump(new SkillsGump(m_From, m_Target, m_Selected));
+                        }
+                    }
+
+                    break;
+                }
             }
         }
 
         public int GetButtonID(int type, int index)
         {
-            return 1 + (index * 3) + type;
+            return 1 + index * 3 + type;
         }
     }
 
     public class SkillsGumpGroup
     {
-        private static readonly SkillsGumpGroup[] m_Groups = new SkillsGumpGroup[]
+        public static SkillsGumpGroup[] Groups { get; } =
         {
-            new SkillsGumpGroup("Crafting", new SkillName[]
+            new SkillsGumpGroup("Crafting", new[]
             {
                 SkillName.Alchemy,
                 SkillName.Blacksmith,
@@ -435,14 +448,14 @@ namespace Server.Gumps
                 SkillName.Tinkering,
                 SkillName.Imbuing
             }),
-            new SkillsGumpGroup("Bardic", new SkillName[]
+            new SkillsGumpGroup("Bardic", new[]
             {
                 SkillName.Discordance,
                 SkillName.Musicianship,
                 SkillName.Peacemaking,
                 SkillName.Provocation
             }),
-            new SkillsGumpGroup("Magical", new SkillName[]
+            new SkillsGumpGroup("Magical", new[]
             {
                 SkillName.Chivalry,
                 SkillName.EvalInt,
@@ -456,7 +469,7 @@ namespace Server.Gumps
                 SkillName.Spellweaving,
                 SkillName.Mysticism
             }),
-            new SkillsGumpGroup("Miscellaneous", new SkillName[]
+            new SkillsGumpGroup("Miscellaneous", new[]
             {
                 SkillName.Camping,
                 SkillName.Fishing,
@@ -469,7 +482,7 @@ namespace Server.Gumps
                 SkillName.Snooping,
                 SkillName.Veterinary
             }),
-            new SkillsGumpGroup("Combat Ratings", new SkillName[]
+            new SkillsGumpGroup("Combat Ratings", new[]
             {
                 SkillName.Archery,
                 SkillName.Fencing,
@@ -480,7 +493,7 @@ namespace Server.Gumps
                 SkillName.Wrestling,
                 SkillName.Throwing
             }),
-            new SkillsGumpGroup("Actions", new SkillName[]
+            new SkillsGumpGroup("Actions", new[]
             {
                 SkillName.AnimalTaming,
                 SkillName.Begging,
@@ -492,7 +505,7 @@ namespace Server.Gumps
                 SkillName.Stealth,
                 SkillName.Tracking
             }),
-            new SkillsGumpGroup("Lore & Knowledge", new SkillName[]
+            new SkillsGumpGroup("Lore & Knowledge", new[]
             {
                 SkillName.Anatomy,
                 SkillName.AnimalLore,
@@ -502,51 +515,28 @@ namespace Server.Gumps
                 SkillName.TasteID
             })
         };
-        private readonly string m_Name;
-        private readonly SkillName[] m_Skills;
+
+        public string Name { get; }
+
+        public SkillName[] Skills { get; }
+
         public SkillsGumpGroup(string name, SkillName[] skills)
         {
-            this.m_Name = name;
-            this.m_Skills = skills;
+            Name = name;
+            Skills = skills;
 
-            Array.Sort(this.m_Skills, new SkillNameComparer());
-        }
-
-        public static SkillsGumpGroup[] Groups
-        {
-            get
-            {
-                return m_Groups;
-            }
-        }
-        public string Name
-        {
-            get
-            {
-                return this.m_Name;
-            }
-        }
-        public SkillName[] Skills
-        {
-            get
-            {
-                return this.m_Skills;
-            }
+            Array.Sort(Skills, new SkillNameComparer());
         }
 
         private class SkillNameComparer : IComparer
         {
-            public SkillNameComparer()
-            {
-            }
-
             public int Compare(object x, object y)
             {
-                SkillName a = (SkillName)x;
-                SkillName b = (SkillName)y;
+                var a = (SkillName)x;
+                var b = (SkillName)y;
 
-                string aName = SkillInfo.Table[(int)a].Name;
-                string bName = SkillInfo.Table[(int)b].Name;
+                var aName = SkillInfo.Table[(int)a].Name;
+                var bName = SkillInfo.Table[(int)b].Name;
 
                 return aName.CompareTo(bName);
             }

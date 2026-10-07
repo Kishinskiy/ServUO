@@ -1,5 +1,4 @@
 using System;
-using Server.Mobiles;
 
 namespace Server.Items
 {
@@ -8,42 +7,50 @@ namespace Server.Items
     {
         public static int RepairAmount = 75;
 
-        private KotlAutomaton _Automaton;
-
         [CommandProperty(AccessLevel.GameMaster)]
-        public KotlAutomaton Automaton { get { return _Automaton; } set { _Automaton = value; } }
+        public KotlAutomaton Automaton { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public virtual Type RepairResource
         {
             get
             {
-                if(_Automaton == null)
+                if (Automaton == null)
                     return typeof(IronIngot);
 
-                return _Automaton.RepairResource;
+                return Automaton.RepairResource;
             }
         }
 
-        public override bool Nontransferable { get { return true; } }
+        public override bool Nontransferable => true;
 
         public BrokenAutomatonHead(KotlAutomaton automaton)
             : base(0x9DB1)
         {
-            _Automaton = automaton;
+            Automaton = automaton;
 
             Weight = 1.0;
             LootType = LootType.Blessed;
         }
 
+        public BrokenAutomatonHead(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void AddNameProperty(ObjectPropertyList list)
         {
-            if (_Automaton != null)
+            if (Automaton != null)
             {
-                if(_Automaton is BlackrockAutomaton)
-                    list.Add(1157046, String.Format("{0}\t#{1}", _Automaton.Name, "1157178")); // ~1_NAME~'s Broken ~2_TYPE~ Automaton Head
+                if (Automaton is BlackrockAutomaton)
+                    list.Add(1157046,
+                        string.Format("{0}\t#{1}", Automaton.Name,
+                            "1157178")); // ~1_NAME~'s Broken ~2_TYPE~ Automaton Head
                 else
-                    list.Add(1157046, String.Format("{0}\t#{1}", _Automaton.Name, CraftResources.GetLocalizationNumber(_Automaton.Resource).ToString())); // ~1_NAME~'s Broken ~2_TYPE~ Automaton Head
+                    list.Add(1157046,
+                        string.Format("{0}\t#{1}", Automaton.Name,
+                            CraftResources.GetLocalizationNumber(Automaton.Resource)
+                                .ToString())); // ~1_NAME~'s Broken ~2_TYPE~ Automaton Head
             }
             else
             {
@@ -55,18 +62,21 @@ namespace Server.Items
         {
             if (from.Backpack != null && IsChildOf(from.Backpack))
             {
-                Type res = RepairResource;
+                var res = RepairResource;
 
-                if (_Automaton == null || _Automaton.ControlMaster != from)
+                if (Automaton == null || Automaton.ControlMaster != from)
                 {
                     from.SendLocalizedMessage(1157051); // You must be the owner of that pet to have it repair.
                 }
                 else if (from.Backpack.GetAmount(res) < RepairAmount)
                 {
                     if (res == typeof(CrystallineBlackrock))
-                        from.SendLocalizedMessage(1157179, String.Format("\t{0}", _Automaton.Name));
+                        from.SendLocalizedMessage(1157179, string.Format("\t{0}", Automaton.Name));
                     else
-                        from.SendLocalizedMessage(1157050, String.Format("#{0}\t{1}", CraftResources.GetLocalizationNumber(_Automaton.Resource).ToString(), _Automaton.Name)); // You need 75 ~1_MATERIAL~ ingots to repair the ~2_CREATURE~.
+                        from.SendLocalizedMessage(1157050,
+                            string.Format("#{0}\t{1}",
+                                CraftResources.GetLocalizationNumber(Automaton.Resource).ToString(),
+                                Automaton.Name)); // You need 75 ~1_MATERIAL~ ingots to repair the ~2_CREATURE~.
                 }
                 else
                 {
@@ -81,7 +91,7 @@ namespace Server.Items
 
         public virtual bool RetrieveAutomaton(Mobile from)
         {
-            KotlAutomaton automaton = _Automaton;
+            var automaton = Automaton;
 
             Delete();
 
@@ -123,27 +133,22 @@ namespace Server.Items
             return false;
         }
 
-        public BrokenAutomatonHead(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
-            writer.Write(_Automaton);
+            writer.Write(Automaton);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            _Automaton = reader.ReadMobile() as KotlAutomaton;
+            Automaton = reader.ReadMobile() as KotlAutomaton;
         }
     }
 }

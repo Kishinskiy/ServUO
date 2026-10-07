@@ -6,31 +6,26 @@ namespace Server.Items
 {
     public abstract class SpecialScroll : Item
     {
-        private SkillName m_Skill;
         private double m_Value;
 
-        #region Old Item Serialization Vars
-        /* DO NOT USE! Only used in serialization of special scrolls that originally derived from Item */
-        private bool m_InheritsItem;
-
-        protected bool InheritsItem
-        {
-            get
-            {
-                return m_InheritsItem;
-            }
-        }
-        #endregion
-
         public abstract int Message { get; }
-        public virtual int Title
+        public virtual int Title => 0;
+        public abstract string DefaultTitle { get; }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public SkillName Skill { get; set; }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public double Value
         {
-            get
+            get => m_Value;
+            set
             {
-                return 0;
+                m_Value = value;
+
+                m_Value = Math.Floor(m_Value * 10) / 10.0;
             }
         }
-        public abstract string DefaultTitle { get; }
 
         public SpecialScroll(SkillName skill, double value)
             : base(0x14F0)
@@ -38,7 +33,7 @@ namespace Server.Items
             LootType = LootType.Cursed;
             Weight = 1.0;
 
-            m_Skill = skill;
+            Skill = skill;
             Value = value;
         }
 
@@ -47,48 +42,19 @@ namespace Server.Items
         {
         }
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public SkillName Skill
-        {
-            get
-            {
-                return m_Skill;
-            }
-            set
-            {
-                m_Skill = value;
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public double Value
-        {
-            get
-            {
-                return m_Value;
-            }
-            set
-            {
-                m_Value = value;
-
-                m_Value = (double)Math.Floor(m_Value * 10) / 10.0;
-            }
-        }
-
         public virtual string GetNameLocalized()
         {
-            return String.Concat("#", AosSkillBonuses.GetLabel(m_Skill).ToString());
+            return string.Concat("#", AosSkillBonuses.GetLabel(Skill).ToString());
         }
 
         public virtual string GetName()
         {
-            int index = (int)m_Skill;
-            SkillInfo[] table = SkillInfo.Table;
+            var index = (int)Skill;
+            var table = SkillInfo.Table;
 
             if (index >= 0 && index < table.Length)
                 return table[index].Name.ToLower();
-            else
-                return "???";
+            return "???";
         }
 
         public virtual bool CanUse(Mobile from)
@@ -114,7 +80,7 @@ namespace Server.Items
             if (!CanUse(from))
                 return;
 
-            from.CloseGump(typeof(SpecialScroll.InternalGump));
+            from.CloseGump(typeof(InternalGump));
             from.SendGump(new InternalGump(from, this));
         }
 
@@ -122,51 +88,48 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)2); // version
+            writer.Write(2); // version
 
-            writer.Write((int)m_Skill);
-            writer.Write((double)m_Value);
+            writer.Write((int)Skill);
+            writer.Write(m_Value);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            switch ( version )
+            switch (version)
             {
                 case 2:
                 case 1:
-                    {
-                        m_Skill = (SkillName)reader.ReadInt();
-                        m_Value = reader.ReadDouble();
-                        break;
-                    }
+                {
+                    Skill = (SkillName)reader.ReadInt();
+                    m_Value = reader.ReadDouble();
+                    break;
+                }
                 case 0:
-                    {
-                        m_InheritsItem = true;
+                {
+                    InheritsItem = true;
 
-                        if (!(this is StatCapScroll))
-                            m_Skill = (SkillName)reader.ReadInt();
-                        else
-                            m_Skill = SkillName.Alchemy;
+                    if (!(this is StatCapScroll))
+                        Skill = (SkillName)reader.ReadInt();
+                    else
+                        Skill = SkillName.Alchemy;
 
-                        if (this is ScrollOfAlacrity)
-                            m_Value = 0.0;
-                        else if (this is StatCapScroll)
-                            m_Value = (double)reader.ReadInt();
-                        else
-                            m_Value = reader.ReadDouble();
+                    if (this is ScrollOfAlacrity)
+                        m_Value = 0.0;
+                    else if (this is StatCapScroll)
+                        m_Value = reader.ReadInt();
+                    else
+                        m_Value = reader.ReadDouble();
 
-                        break;
-                    }
+                    break;
+                }
             }
 
-            if (version == 1)
-            {
-                m_Value = (double)Math.Floor(m_Value * 10) / 10.0;
-            }
+            if (version == 1) m_Value = Math.Floor(m_Value * 10) / 10.0;
         }
 
         public class InternalGump : Gump
@@ -205,7 +168,8 @@ namespace Server.Items
                 if (m_Scroll is StatCapScroll)
                     AddHtmlLocalized(310, 20, 120, 20, 1038019, 0xFFFFFF, false, false); // Power
                 else
-                    AddHtmlLocalized(310, 20, 120, 20, AosSkillBonuses.GetLabel(m_Scroll.Skill), 0xFFFFFF, false, false);
+                    AddHtmlLocalized(310, 20, 120, 20, AosSkillBonuses.GetLabel(m_Scroll.Skill), 0xFFFFFF, false,
+                        false);
             }
 
             public override void OnResponse(NetState state, RelayInfo info)
@@ -214,5 +178,13 @@ namespace Server.Items
                     m_Scroll.Use(m_Mobile);
             }
         }
+
+        #region Old Item Serialization Vars
+
+        /* DO NOT USE! Only used in serialization of special scrolls that originally derived from Item */
+
+        protected bool InheritsItem { get; private set; }
+
+        #endregion
     }
 }

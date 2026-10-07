@@ -1,4 +1,7 @@
 using System;
+using Server.Ethics.Evil;
+using Server.Ethics.Hero;
+using Server.Items;
 using Server.Mobiles;
 
 namespace Server.Ethics
@@ -6,34 +9,27 @@ namespace Server.Ethics
     public abstract class Ethic
     {
         public static readonly bool Enabled = false;
-        public static readonly Ethic Hero = new Hero.HeroEthic();
-        public static readonly Ethic Evil = new Evil.EvilEthic();
-        public static readonly Ethic[] Ethics = new Ethic[]
+        public static readonly Ethic Hero = new HeroEthic();
+        public static readonly Ethic Evil = new EvilEthic();
+
+        public static readonly Ethic[] Ethics =
         {
             Hero,
             Evil
         };
+
         protected EthicDefinition m_Definition;
         protected PlayerCollection m_Players;
+
+        public EthicDefinition Definition => m_Definition;
+
+        public PlayerCollection Players => m_Players;
+
         public Ethic()
         {
-            this.m_Players = new PlayerCollection();
+            m_Players = new PlayerCollection();
         }
 
-        public EthicDefinition Definition
-        {
-            get
-            {
-                return this.m_Definition;
-            }
-        }
-        public PlayerCollection Players
-        {
-            get
-            {
-                return this.m_Players;
-            }
-        }
         public static Ethic Find(Item item)
         {
             if ((item.SavedFlags & 0x100) != 0)
@@ -57,7 +53,7 @@ namespace Server.Ethics
 
         public static bool CheckTrade(Mobile from, Mobile to, Mobile newOwner, Item item)
         {
-            Ethic itemEthic = Find(item);
+            var itemEthic = Find(item);
 
             if (itemEthic == null || Find(newOwner) == itemEthic)
                 return true;
@@ -72,7 +68,7 @@ namespace Server.Ethics
 
         public static bool CheckEquip(Mobile from, Item item)
         {
-            Ethic itemEthic = Find(item);
+            var itemEthic = Find(item);
 
             if (itemEthic == null || Find(from) == itemEthic)
                 return true;
@@ -96,13 +92,9 @@ namespace Server.Ethics
                 return true;
 
             if (recurse)
-            {
-                foreach (Item child in item.Items)
-                {
+                foreach (var child in item.Items)
                     if (IsImbued(child, true))
                         return true;
-                }
-            }
 
             return false;
         }
@@ -110,7 +102,7 @@ namespace Server.Ethics
         public static void Initialize()
         {
             if (Enabled)
-                EventSink.Speech += new SpeechEventHandler(EventSink_Speech);
+                EventSink.Speech += EventSink_Speech;
         }
 
         public static void EventSink_Speech(SpeechEventArgs e)
@@ -118,13 +110,13 @@ namespace Server.Ethics
             if (e.Blocked || e.Handled)
                 return;
 
-            Player pl = Player.Find(e.Mobile);
+            var pl = Player.Find(e.Mobile);
 
             if (pl == null)
             {
-                for (int i = 0; i < Ethics.Length; ++i)
+                for (var i = 0; i < Ethics.Length; ++i)
                 {
-                    Ethic ethic = Ethics[i];
+                    var ethic = Ethics[i];
 
                     if (!ethic.IsEligible(e.Mobile))
                         continue;
@@ -132,16 +124,14 @@ namespace Server.Ethics
                     if (!Insensitive.Equals(ethic.Definition.JoinPhrase.String, e.Speech))
                         continue;
 
-                    bool isNearAnkh = false;
+                    var isNearAnkh = false;
 
-                    foreach (Item item in e.Mobile.GetItemsInRange(2))
-                    {
-                        if (item is Items.AnkhNorth || item is Items.AnkhWest)
+                    foreach (var item in e.Mobile.GetItemsInRange(2))
+                        if (item is AnkhNorth || item is AnkhWest)
                         {
                             isNearAnkh = true;
                             break;
                         }
-                    }
 
                     if (!isNearAnkh)
                         continue;
@@ -159,11 +149,11 @@ namespace Server.Ethics
             }
             else
             {
-                Ethic ethic = pl.Ethic;
+                var ethic = pl.Ethic;
 
-                for (int i = 0; i < ethic.Definition.Powers.Length; ++i)
+                for (var i = 0; i < ethic.Definition.Powers.Length; ++i)
                 {
-                    Power power = ethic.Definition.Powers[i];
+                    var power = ethic.Definition.Powers[i];
 
                     if (!Insensitive.Equals(power.Definition.Phrase.String, e.Speech))
                         continue;
@@ -191,20 +181,20 @@ namespace Server.Ethics
 
         public static Ethic Find(Mobile mob, bool inherit, bool allegiance)
         {
-            Player pl = Player.Find(mob);
+            var pl = Player.Find(mob);
 
             if (pl != null)
                 return pl.Ethic;
 
             if (inherit && mob is BaseCreature)
             {
-                BaseCreature bc = (BaseCreature)mob;
+                var bc = (BaseCreature)mob;
 
                 if (bc.Controlled)
                     return Find(bc.ControlMaster, false);
-                else if (bc.Summoned)
+                if (bc.Summoned)
                     return Find(bc.SummonMaster, false);
-                else if (allegiance)
+                if (allegiance)
                     return bc.EthicAllegiance;
             }
 
@@ -215,24 +205,24 @@ namespace Server.Ethics
 
         public virtual void Deserialize(GenericReader reader)
         {
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
 
-            switch ( version )
+            switch (version)
             {
                 case 0:
+                {
+                    var playerCount = reader.ReadEncodedInt();
+
+                    for (var i = 0; i < playerCount; ++i)
                     {
-                        int playerCount = reader.ReadEncodedInt();
+                        var pl = new Player(this, reader);
 
-                        for (int i = 0; i < playerCount; ++i)
-                        {
-                            Player pl = new Player(this, reader);
-
-                            if (pl.Mobile != null)
-                                Timer.DelayCall(TimeSpan.Zero, new TimerCallback(pl.CheckAttach));
-                        }
-
-                        break;
+                        if (pl.Mobile != null)
+                            Timer.DelayCall(TimeSpan.Zero, pl.CheckAttach);
                     }
+
+                    break;
+                }
             }
         }
 
@@ -240,10 +230,10 @@ namespace Server.Ethics
         {
             writer.WriteEncodedInt(0); // version
 
-            writer.WriteEncodedInt(this.m_Players.Count);
+            writer.WriteEncodedInt(m_Players.Count);
 
-            for (int i = 0; i < this.m_Players.Count; ++i)
-                this.m_Players[i].Serialize(writer);
+            for (var i = 0; i < m_Players.Count; ++i)
+                m_Players[i].Serialize(writer);
         }
     }
 }

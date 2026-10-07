@@ -8,28 +8,22 @@ namespace Server.Items
     public class MysticArc : WeaponAbility
     {
         private readonly int m_Damage = 15;
-        private Mobile m_Target;
         private Mobile m_Mobile;
+        private Mobile m_Target;
 
-        public override int BaseMana
-        {
-            get
-            {
-                return 20;
-            }
-        }
+        public override int BaseMana => 20;
 
         public override void OnHit(Mobile attacker, Mobile defender, int damage)
         {
-            if (!this.CheckMana(attacker, true) && defender != null)
+            if (!CheckMana(attacker, true) && defender != null)
                 return;
 
-            BaseThrown weapon = attacker.Weapon as BaseThrown;
+            var weapon = attacker.Weapon as BaseThrown;
 
             if (weapon == null)
                 return;
 
-            List<Mobile> targets = new List<Mobile>();
+            var targets = new List<Mobile>();
             IPooledEnumerable eable = attacker.GetMobilesInRange(weapon.MaxRange);
 
             foreach (Mobile m in eable)
@@ -46,15 +40,15 @@ namespace Server.Items
             eable.Free();
 
             if (targets.Count > 0)
-                this.m_Target = targets[Utility.Random(targets.Count)];
+                m_Target = targets[Utility.Random(targets.Count)];
 
-            AOS.Damage(defender, attacker, this.m_Damage, 0, 0, 0, 0, 0, 100);
+            AOS.Damage(defender, attacker, m_Damage, 0, 0, 0, 0, 0, 100);
 
-            if (this.m_Target != null)
+            if (m_Target != null)
             {
-                defender.MovingEffect(this.m_Target, weapon.ItemID, 18, 1, false, false);
-                Timer.DelayCall(TimeSpan.FromMilliseconds(333.0), new TimerCallback(ThrowAgain));
-                this.m_Mobile = attacker;
+                defender.MovingEffect(m_Target, weapon.ItemID, 18, 1, false, false);
+                Timer.DelayCall(TimeSpan.FromMilliseconds(333.0), ThrowAgain);
+                m_Mobile = attacker;
             }
 
             ClearCurrentAbility(attacker);
@@ -62,20 +56,20 @@ namespace Server.Items
 
         public void ThrowAgain()
         {
-            if (this.m_Target != null && this.m_Mobile != null)
+            if (m_Target != null && m_Mobile != null)
             {
-                BaseThrown weapon = this.m_Mobile.Weapon as BaseThrown;
+                var weapon = m_Mobile.Weapon as BaseThrown;
 
                 if (weapon == null)
                     return;
 
-                if (WeaponAbility.GetCurrentAbility(this.m_Mobile) is MysticArc)
-                    ClearCurrentAbility(this.m_Mobile);
+                if (GetCurrentAbility(m_Mobile) is MysticArc)
+                    ClearCurrentAbility(m_Mobile);
 
-                if (weapon.CheckHit(this.m_Mobile, this.m_Target))
+                if (weapon.CheckHit(m_Mobile, m_Target))
                 {
-                    weapon.OnHit(this.m_Mobile, this.m_Target, 0.0);
-                    AOS.Damage(this.m_Target, this.m_Mobile, this.m_Damage, 0, 0, 0, 0, 100);
+                    weapon.OnHit(m_Mobile, m_Target, 0.0);
+                    AOS.Damage(m_Target, m_Mobile, m_Damage, 0, 0, 0, 0, 100);
                 }
             }
         }

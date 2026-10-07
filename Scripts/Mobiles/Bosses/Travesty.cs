@@ -1,34 +1,38 @@
 using System;
 using System.Collections.Generic;
 using Server.Items;
+using Server.Spells.Ninjitsu;
 
 namespace Server.Mobiles
 {
     [CorpseName("a travesty's corpse")]
     public class Travesty : BasePeerless
     {
-        public override WeaponAbility GetWeaponAbility()
+        private readonly Point3D[] _WarpLocs =
         {
-            if (Weapon == null)
-                return null;
+            new Point3D(71, 1939, 0),
+            new Point3D(71, 1955, 0),
+            new Point3D(69, 1972, 0),
+            new Point3D(86, 1971, 0),
+            new Point3D(103, 1972, 0),
+            new Point3D(86, 1939, 0),
+            new Point3D(102, 1938, 0)
+        };
 
-            BaseWeapon weapon = Weapon as BaseWeapon;
-
-            return Utility.RandomBool() ? weapon.PrimaryAbility : weapon.SecondaryAbility;
-        }
+        private bool _CanDiscord;
+        private bool _CanPeace;
+        private bool _CanProvoke;
 
         private DateTime m_NextBodyChange;
         private DateTime m_NextMirrorImage;
         private bool m_SpawnedHelpers;
         private Timer m_Timer;
 
-        private bool _CanDiscord;
-        private bool _CanPeace;
-        private bool _CanProvoke;
+        public override bool CanDiscord => _CanDiscord;
+        public override bool CanPeace => _CanPeace;
+        public override bool CanProvoke => _CanProvoke;
 
-        public override bool CanDiscord { get { return _CanDiscord; } }
-        public override bool CanPeace { get { return _CanPeace; } }
-        public override bool CanProvoke { get { return _CanProvoke; } }
+        public override bool ShowFameTitle => false;
 
         [Constructable]
         public Travesty()
@@ -88,17 +92,23 @@ namespace Server.Mobiles
             PackTalismans(5);
             PackResources(8);
 
-            for (int i = 0; i < Utility.RandomMinMax(1, 6); i++)
-            {
+            for (var i = 0; i < Utility.RandomMinMax(1, 6); i++)
                 PackItem(Loot.RandomScroll(0, Loot.ArcanistScrollTypes.Length, SpellbookType.Arcanist));
-            }
         }
-
-        public override bool ShowFameTitle { get { return false; } }
 
         public Travesty(Serial serial)
             : base(serial)
         {
+        }
+
+        public override WeaponAbility GetWeaponAbility()
+        {
+            if (Weapon == null)
+                return null;
+
+            var weapon = Weapon as BaseWeapon;
+
+            return Utility.RandomBool() ? weapon.PrimaryAbility : weapon.SecondaryAbility;
         }
 
         public override void OnDeath(Container c)
@@ -133,25 +143,19 @@ namespace Server.Mobiles
             if (Utility.RandomDouble() < 0.05)
                 c.DropItem(new MarkOfTravesty());
 
-            if (Utility.RandomDouble() < 0.025)
-            {
-                c.DropItem(new MalekisHonor());
-            }
+            if (Utility.RandomDouble() < 0.025) c.DropItem(new MalekisHonor());
         }
 
         public override void OnDamage(int amount, Mobile from, bool willKill)
         {
             if (0.1 > Utility.RandomDouble() && m_NextMirrorImage < DateTime.UtcNow)
             {
-                new Server.Spells.Ninjitsu.MirrorImage(this, null).Cast();
+                new MirrorImage(this, null).Cast();
 
                 m_NextMirrorImage = DateTime.UtcNow + TimeSpan.FromSeconds(Utility.RandomMinMax(20, 45));
             }
 
-            if (0.25 > Utility.RandomDouble() && DateTime.UtcNow > m_NextBodyChange)
-            {
-                ChangeBody();
-            }
+            if (0.25 > Utility.RandomDouble() && DateTime.UtcNow > m_NextBodyChange) ChangeBody();
 
             base.OnDamage(amount, from, willKill);
         }
@@ -164,35 +168,30 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         public void ChangeBody()
         {
-            List<Mobile> list = new List<Mobile>();
+            var list = new List<Mobile>();
 
             IPooledEnumerable eable = Map.GetMobilesInRange(Location, 5);
 
             foreach (Mobile m in eable)
-            {
                 if (m.Player && m.AccessLevel == AccessLevel.Player && m.Alive)
                     list.Add(m);
-            }
 
             eable.Free();
 
-            if (list.Count == 0 || IsBodyMod)
-            {
-                return;
-            }
+            if (list.Count == 0 || IsBodyMod) return;
 
-            Mobile attacker = list[Utility.Random(list.Count)];
+            var attacker = list[Utility.Random(list.Count)];
 
             BodyMod = attacker.Body;
             HueMod = attacker.Hue;
@@ -204,8 +203,7 @@ namespace Server.Mobiles
             FacialHairItemID = attacker.FacialHairItemID;
             FacialHairHue = attacker.FacialHairHue;
 
-            foreach (Item item in attacker.Items)
-            {
+            foreach (var item in attacker.Items)
                 if (item.Layer < Layer.Mount &&
                     item.Layer != Layer.Backpack &&
                     item.Layer != Layer.Mount &&
@@ -213,12 +211,11 @@ namespace Server.Mobiles
                     item.Layer != Layer.Hair &&
                     item.Layer != Layer.Face &&
                     item.Layer != Layer.FacialHair)
-                {
                     if (FindItemOnLayer(item.Layer) == null)
                     {
                         if (item is BaseRanged)
                         {
-                            Item i = FindItemOnLayer(Layer.TwoHanded);
+                            var i = FindItemOnLayer(Layer.TwoHanded);
 
                             if (i != null)
                                 i.Delete();
@@ -235,10 +232,9 @@ namespace Server.Mobiles
                             AddItem(new ClonedItem(item));
                         }
                     }
-                }
-            }
 
-            if (attacker.Skills[SkillName.Swords].Value >= 50.0 || attacker.Skills[SkillName.Fencing].Value >= 50.0 || attacker.Skills[SkillName.Macing].Value >= 50.0)
+            if (attacker.Skills[SkillName.Swords].Value >= 50.0 || attacker.Skills[SkillName.Fencing].Value >= 50.0 ||
+                attacker.Skills[SkillName.Macing].Value >= 50.0)
                 ChangeAIType(AIType.AI_Melee);
 
             if (attacker.Skills[SkillName.Archery].Value >= 50.0)
@@ -270,30 +266,18 @@ namespace Server.Mobiles
 
             m_NextBodyChange = DateTime.UtcNow + TimeSpan.FromSeconds(10.0);
 
-            if (attacker.Skills[SkillName.Healing].Base > 20)
-            {
-                SetSpecialAbility(SpecialAbility.Heal);
-            }
+            if (attacker.Skills[SkillName.Healing].Base > 20) SetSpecialAbility(SpecialAbility.Heal);
 
-            if (attacker.Skills[SkillName.Discordance].Base > 50)
-            {
-                _CanDiscord = true;
-            }
+            if (attacker.Skills[SkillName.Discordance].Base > 50) _CanDiscord = true;
 
-            if (attacker.Skills[SkillName.Peacemaking].Base > 50)
-            {
-                _CanPeace = true;
-            }
+            if (attacker.Skills[SkillName.Peacemaking].Base > 50) _CanPeace = true;
 
-            if (attacker.Skills[SkillName.Provocation].Base > 50)
-            {
-                _CanProvoke = true;
-            }
+            if (attacker.Skills[SkillName.Provocation].Base > 50) _CanProvoke = true;
 
             if (m_Timer != null)
                 m_Timer.Stop();
 
-            m_Timer = Timer.DelayCall(TimeSpan.FromMinutes(1.0), new TimerCallback(RestoreBody));
+            m_Timer = Timer.DelayCall(TimeSpan.FromMinutes(1.0), RestoreBody);
         }
 
         public void DeleteItems()
@@ -301,9 +285,7 @@ namespace Server.Mobiles
             ColUtility.SafeDelete(Items, item => item is ClonedItem || item is BaseRanged);
 
             if (Backpack != null)
-            {
                 ColUtility.SafeDelete(Backpack.Items, item => item is ClonedItem || item is BaseRanged);
-            }
         }
 
         public virtual void RestoreBody()
@@ -318,10 +300,7 @@ namespace Server.Mobiles
             _CanPeace = false;
             _CanProvoke = false;
 
-            if (HasAbility(SpecialAbility.Heal))
-            {
-                RemoveSpecialAbility(SpecialAbility.Heal);
-            }
+            if (HasAbility(SpecialAbility.Heal)) RemoveSpecialAbility(SpecialAbility.Heal);
 
             DeleteItems();
 
@@ -349,9 +328,50 @@ namespace Server.Mobiles
             base.OnAfterDelete();
         }
 
+        private class ClonedItem : Item
+        {
+            public ClonedItem(Item oItem)
+                : base(oItem.ItemID)
+            {
+                Name = oItem.Name;
+                Weight = oItem.Weight;
+                Hue = oItem.Hue;
+                Layer = oItem.Layer;
+            }
+
+            public ClonedItem(Serial serial)
+                : base(serial)
+            {
+            }
+
+            public override DeathMoveResult OnParentDeath(Mobile parent)
+            {
+                return DeathMoveResult.RemainEquiped;
+            }
+
+            public override DeathMoveResult OnInventoryDeath(Mobile parent)
+            {
+                Delete();
+                return base.OnInventoryDeath(parent);
+            }
+
+            public override void Serialize(GenericWriter writer)
+            {
+                base.Serialize(writer);
+                writer.Write(0); // version
+            }
+
+            public override void Deserialize(GenericReader reader)
+            {
+                base.Deserialize(reader);
+                var version = reader.ReadInt();
+            }
+        }
+
         #region Spawn Helpers
-        public override bool CanSpawnHelpers { get { return true; } }
-        public override int MaxHelpersWaves { get { return 1; } }
+
+        public override bool CanSpawnHelpers => true;
+        public override int MaxHelpersWaves => 1;
 
         public override bool CanSpawnWave()
         {
@@ -385,56 +405,5 @@ namespace Server.Mobiles
         }
 
         #endregion
-
-        private Point3D[] _WarpLocs =
-        {
-            new Point3D(71, 1939, 0),
-            new Point3D(71, 1955, 0),
-            new Point3D(69, 1972, 0),
-            new Point3D(86, 1971, 0),
-            new Point3D(103, 1972, 0),
-            new Point3D(86, 1939, 0),
-            new Point3D(102, 1938, 0),
-        };
-
-        private class ClonedItem : Item
-        {
-            public ClonedItem(Item oItem)
-                : base(oItem.ItemID)
-            {
-                Name = oItem.Name;
-                Weight = oItem.Weight;
-                Hue = oItem.Hue;
-                Layer = oItem.Layer;
-            }
-
-            public override DeathMoveResult OnParentDeath(Mobile parent)
-            {
-                return DeathMoveResult.RemainEquiped;
-            }
-
-            public override DeathMoveResult OnInventoryDeath(Mobile parent)
-            {
-                Delete();
-                return base.OnInventoryDeath(parent);
-            }
-
-            public ClonedItem(Serial serial)
-                : base(serial)
-            {
-            }
-
-            public override void Serialize(GenericWriter writer)
-            {
-                base.Serialize(writer);
-                writer.Write((int)0); // version
-            }
-
-            public override void Deserialize(GenericReader reader)
-            {
-                base.Deserialize(reader);
-                int version = reader.ReadInt();
-            }
-        }
     }
 }

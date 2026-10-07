@@ -2,6 +2,7 @@ using System.Xml;
 using Server.Network;
 using Server.Spells;
 using Server.Spells.Ninjitsu;
+using Server.Spells.Spellweaving;
 
 namespace Server.Regions
 {
@@ -9,12 +10,12 @@ namespace Server.Regions
     {
         public TwistedWealdDesert(XmlElement xml, Map map, Region parent)
             : base(xml, map, parent)
-        { 
+        {
         }
 
-        public static void Initialize() 
-        { 
-            EventSink.Login += new LoginEventHandler(Desert_OnLogin);
+        public static void Initialize()
+        {
+            EventSink.Login += Desert_OnLogin;
         }
 
         public override void OnEnter(Mobile m)
@@ -29,13 +30,13 @@ namespace Server.Regions
         {
             if (m.NetState != null &&
                 !TransformationSpellHelper.UnderTransformation(m, typeof(AnimalForm)) &&
-                (Core.SA || !TransformationSpellHelper.UnderTransformation(m, typeof(Server.Spells.Spellweaving.ReaperFormSpell))))
+                (Core.SA || !TransformationSpellHelper.UnderTransformation(m, typeof(ReaperFormSpell))))
                 m.SendSpeedControl(SpeedControlType.Disable);
         }
 
-        private static void Desert_OnLogin(LoginEventArgs e) 
+        private static void Desert_OnLogin(LoginEventArgs e)
         {
-            Mobile m = e.Mobile;
+            var m = e.Mobile;
 
             if (m.Region.IsPartOf<TwistedWealdDesert>() && m.AccessLevel < AccessLevel.GameMaster)
                 m.SendSpeedControl(SpeedControlType.WalkSpeed);

@@ -1,6 +1,4 @@
-﻿using Server;
-using System;
-using Server.Mobiles;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Server.Items
@@ -13,21 +11,28 @@ namespace Server.Items
         Stam
     }
 
-	public class SurgeShield : BronzeShield
-	{
-		public override bool IsArtifact { get { return true; } }
-        public override int LabelNumber { get { return 1116232; } }
-
+    public class SurgeShield : BronzeShield
+    {
         private int m_Charges;
         private SurgeType m_Surge;
+        public override bool IsArtifact => true;
+        public override int LabelNumber => 1116232;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int Charges { get { return m_Charges; } set { m_Charges = value; InvalidateProperties(); } }
+        public int Charges
+        {
+            get => m_Charges;
+            set
+            {
+                m_Charges = value;
+                InvalidateProperties();
+            }
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public SurgeType Surge
         {
-            get { return m_Surge; }
+            get => m_Surge;
             set
             {
                 m_Surge = value;
@@ -39,9 +44,11 @@ namespace Server.Items
             }
         }
 
-		[Constructable]
-		public SurgeShield()
-		{
+        public static Dictionary<Mobile, SurgeType> Table { get; } = new Dictionary<Mobile, SurgeType>();
+
+        [Constructable]
+        public SurgeShield()
+        {
             if (0.90 > Utility.RandomDouble())
                 Hue = 2125;
             else
@@ -49,47 +56,52 @@ namespace Server.Items
 
             Attributes.Brittle = 1;
 
-			switch(Utility.Random(5))
-			{
-				case 0: PhysicalBonus = 5; break;
-				case 1: FireBonus = 5; break;
-				case 2: ColdBonus = 5; break;
-				case 3: PoisonBonus = 5; break;
-				case 4: EnergyBonus = 5; break;
-			}
+            switch (Utility.Random(5))
+            {
+                case 0: PhysicalBonus = 5; break;
+                case 1: FireBonus = 5; break;
+                case 2: ColdBonus = 5; break;
+                case 3: PoisonBonus = 5; break;
+                case 4: EnergyBonus = 5; break;
+            }
 
-			switch(Utility.Random(3))
-			{
-				case 0: Surge = SurgeType.Hits; break;
-				case 1: Surge = SurgeType.Stam; break;
-				case 2: Surge = SurgeType.Mana; break;
-			}
+            switch (Utility.Random(3))
+            {
+                case 0: Surge = SurgeType.Hits; break;
+                case 1: Surge = SurgeType.Stam; break;
+                case 2: Surge = SurgeType.Mana; break;
+            }
 
-			if(Utility.RandomBool())
-				Attributes.AttackChance = 5;
-			else
-				Attributes.LowerManaCost = 4;
+            if (Utility.RandomBool())
+                Attributes.AttackChance = 5;
+            else
+                Attributes.LowerManaCost = 4;
 
-			if(Utility.RandomBool())
-				Attributes.SpellChanneling = 1;			
-			else
-				Attributes.CastSpeed = 1;
-		}
+            if (Utility.RandomBool())
+                Attributes.SpellChanneling = 1;
+            else
+                Attributes.CastSpeed = 1;
+        }
 
-        public static Dictionary<Mobile, SurgeType> Table { get { return m_Table; } }
-        private static Dictionary<Mobile, SurgeType> m_Table = new Dictionary<Mobile, SurgeType>();
+        public SurgeShield(Serial serial) : base(serial)
+        {
+        }
 
         public override void OnDoubleClick(Mobile from)
         {
             if (Surge == SurgeType.None || Charges <= 0)
+            {
                 base.OnDoubleClick(from);
+            }
             else if (from.FindItemOnLayer(Layer.TwoHanded) != this)
+            {
                 from.SendLocalizedMessage(1116250); //That must be equipped before you can use it.
+            }
             else if (!IsUnderEffects(from, m_Surge))
             {
                 Charges--;
 
-                m_Table[from] = m_Surge;
+                Table[from] = m_Surge;
                 Timer.DelayCall(TimeSpan.FromSeconds(20.0), new TimerStateCallback(RemoveEffects), from);
 
                 from.PlaySound(0x0F5);
@@ -103,16 +115,17 @@ namespace Server.Items
             }
             else
             {
-                from.SendLocalizedMessage(1116174); //You must wait for the energy to recharge before using the surge effect again.
+                from.SendLocalizedMessage(
+                    1116174); //You must wait for the energy to recharge before using the surge effect again.
             }
         }
 
         public static void RemoveEffects(object obj)
         {
-            Mobile from = (Mobile)obj;
+            var from = (Mobile)obj;
 
-            if (m_Table.ContainsKey(from))
-                m_Table.Remove(from);
+            if (Table.ContainsKey(from))
+                Table.Remove(from);
 
             BuffInfo.RemoveBuff(from, BuffIcon.Surge);
             //TODO: Message?
@@ -120,29 +133,25 @@ namespace Server.Items
 
         public static bool IsUnderEffects(Mobile from, SurgeType type)
         {
-            return m_Table.ContainsKey(from) && m_Table[from] == type;
+            return Table.ContainsKey(from) && Table[from] == type;
         }
-				
-		public SurgeShield(Serial serial) : base(serial)
-		{
-		}
 
-		public override void Serialize(GenericWriter writer)
-		{	
-			base.Serialize(writer);
-			writer.Write((int)0);
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
 
             writer.Write(m_Charges);
             writer.Write((int)m_Surge);
-		}
-	
-		public override void Deserialize(GenericReader reader)
-		{
-		 	base.Deserialize(reader);
-			int version = reader.ReadInt();
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
 
             m_Charges = reader.ReadInt();
             m_Surge = (SurgeType)reader.ReadInt();
-		}
-	}
+        }
+    }
 }

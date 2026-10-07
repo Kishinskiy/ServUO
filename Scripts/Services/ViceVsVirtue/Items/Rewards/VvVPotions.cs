@@ -1,9 +1,9 @@
-using Server;
 using System;
-using Server.Items;
-using Server.Mobiles;
 using System.Collections.Generic;
 using Server.Factions;
+using Server.Items;
+using Server.Misc;
+using Server.Spells;
 
 namespace Server.Engines.VvV
 {
@@ -13,27 +13,38 @@ namespace Server.Engines.VvV
         AntiParalysis = 0x1,
         Supernova = 0x2,
         StatLossRemoval = 0x4,
-        GreaterStamina = 0x8,
+        GreaterStamina = 0x8
     }
 
     public class VvVPotionKeg : Item
     {
-        private PotionType _PotionType;
         private int _Charges;
+        private PotionType _PotionType;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public PotionType PotionType { get { return _PotionType; } set { _PotionType = value; InvalidateProperties(); } }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int Charges { get { return _Charges; } set { _Charges = value; if (_Charges <= 0) Delete(); else InvalidateProperties(); } }
-
-        public override double DefaultWeight
+        public PotionType PotionType
         {
-            get
+            get => _PotionType;
+            set
             {
-                return 10 + _Charges * 1.8;
+                _PotionType = value;
+                InvalidateProperties();
             }
         }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int Charges
+        {
+            get => _Charges;
+            set
+            {
+                _Charges = value;
+                if (_Charges <= 0) Delete();
+                else InvalidateProperties();
+            }
+        }
+
+        public override double DefaultWeight => 10 + _Charges * 1.8;
 
         [Constructable]
         public VvVPotionKeg(PotionType type)
@@ -50,6 +61,11 @@ namespace Server.Engines.VvV
                 case PotionType.StatLossRemoval: Hue = 2500; break;
                 case PotionType.GreaterStamina: Hue = 437; break;
             }
+        }
+
+        public VvVPotionKeg(Serial serial)
+            : base(serial)
+        {
         }
 
         public override void AddNameProperty(ObjectPropertyList list)
@@ -94,7 +110,8 @@ namespace Server.Engines.VvV
 
                         if (m.Backpack == null || !m.Backpack.TryDropItem(m, potion, false))
                         {
-                            m.SendLocalizedMessage(1155570); // Your backpack could not hold the item.  Free up some space and try again.
+                            m.SendLocalizedMessage(
+                                1155570); // Your backpack could not hold the item.  Free up some space and try again.
                             potion.Delete();
                         }
                         else
@@ -116,14 +133,9 @@ namespace Server.Engines.VvV
         public override void GetProperties(ObjectPropertyList list)
         {
             base.GetProperties(list);
-            
+
             list.Add(1155569, Charges.ToString()); // Potions: ~1_val~
             list.Add(1154937); // VvV Item
-        }
-
-        public VvVPotionKeg(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -138,7 +150,7 @@ namespace Server.Engines.VvV
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             PotionType = (PotionType)reader.ReadInt();
             Charges = reader.ReadInt();
@@ -147,65 +159,11 @@ namespace Server.Engines.VvV
 
     public abstract class VvVPotion : Item, IFactionItem
     {
-        #region Factions
-        private FactionItem m_FactionState;
+        public static Dictionary<Mobile, Dictionary<PotionType, DateTime>> _Cooldown =
+            new Dictionary<Mobile, Dictionary<PotionType, DateTime>>();
 
-        public FactionItem FactionItemState
-        {
-            get { return m_FactionState; }
-            set
-            {
-                m_FactionState = value;
-            }
-        }
-        #endregion
-
-        public virtual TimeSpan CooldownDuration { get { return TimeSpan.MinValue; } }
-        public virtual PotionType CooldownType { get { return PotionType.None; } }
-
-        public static Dictionary<Mobile, Dictionary<PotionType, DateTime>> _Cooldown = new Dictionary<Mobile, Dictionary<PotionType, DateTime>>();
-
-        public static void RemoveFromCooldown(Mobile m, PotionType type)
-        {
-            if (_Cooldown.ContainsKey(m) && _Cooldown[m].ContainsKey(type))
-            {
-                _Cooldown[m].Remove(type);
-
-                if (_Cooldown[m].Count == 0)
-                    _Cooldown.Remove(m);
-            }
-        }
-
-        public static void CheckCooldown()
-        {
-            List<Mobile> toRemove = new List<Mobile>();
-
-            foreach (KeyValuePair<Mobile, Dictionary<PotionType, DateTime>> kvp in _Cooldown)
-            {
-                List<PotionType> removeTypes = new List<PotionType>();
-
-                foreach (KeyValuePair<PotionType, DateTime> values in kvp.Value)
-                {
-                    if (values.Value < DateTime.UtcNow)
-                        removeTypes.Add(values.Key);
-                }
-
-                foreach (PotionType t in removeTypes)
-                    kvp.Value.Remove(t);
-
-                if (kvp.Value.Count == 0)
-                    toRemove.Add(kvp.Key);
-
-                removeTypes.Clear();
-                removeTypes.TrimExcess();
-            }
-
-            foreach (Mobile mob in toRemove)
-                _Cooldown.Remove(mob);
-
-            toRemove.Clear();
-            toRemove.TrimExcess();
-        }
+        public virtual TimeSpan CooldownDuration => TimeSpan.MinValue;
+        public virtual PotionType CooldownType => PotionType.None;
 
         public override int LabelNumber
         {
@@ -229,14 +187,56 @@ namespace Server.Engines.VvV
             Stackable = true;
         }
 
+        public VvVPotion(Serial serial)
+            : base(serial)
+        {
+        }
+
+        public static void RemoveFromCooldown(Mobile m, PotionType type)
+        {
+            if (_Cooldown.ContainsKey(m) && _Cooldown[m].ContainsKey(type))
+            {
+                _Cooldown[m].Remove(type);
+
+                if (_Cooldown[m].Count == 0)
+                    _Cooldown.Remove(m);
+            }
+        }
+
+        public static void CheckCooldown()
+        {
+            var toRemove = new List<Mobile>();
+
+            foreach (var kvp in _Cooldown)
+            {
+                var removeTypes = new List<PotionType>();
+
+                foreach (var values in kvp.Value)
+                    if (values.Value < DateTime.UtcNow)
+                        removeTypes.Add(values.Key);
+
+                foreach (var t in removeTypes)
+                    kvp.Value.Remove(t);
+
+                if (kvp.Value.Count == 0)
+                    toRemove.Add(kvp.Key);
+
+                removeTypes.Clear();
+                removeTypes.TrimExcess();
+            }
+
+            foreach (var mob in toRemove)
+                _Cooldown.Remove(mob);
+
+            toRemove.Clear();
+            toRemove.TrimExcess();
+        }
+
         public override void GetProperties(ObjectPropertyList list)
         {
             base.GetProperties(list);
 
-            if (!FactionEquipment.AddFactionProperties(this, list))
-            {
-                list.Add(1154937); // VvV Item
-            }
+            if (!FactionEquipment.AddFactionProperties(this, list)) list.Add(1154937); // VvV Item
         }
 
         public bool IsInCooldown(Mobile m, ref DateTime dt)
@@ -288,13 +288,13 @@ namespace Server.Engines.VvV
 
             if (IsChildOf(m.Backpack))
             {
-                DateTime dt = DateTime.UtcNow;
+                var dt = DateTime.UtcNow;
 
                 if (ViceVsVirtueSystem.Enabled && !ViceVsVirtueSystem.IsVvV(m))
                 {
                     m.SendLocalizedMessage(1155496); // This item can only be used by VvV participants!
                 }
-                else if (Server.Factions.Settings.Enabled && !FactionEquipment.CanUse(this, m))
+                else if (Settings.Enabled && !FactionEquipment.CanUse(this, m))
                 {
                 }
                 else if (!BasePotion.HasFreeHand(m))
@@ -303,16 +303,16 @@ namespace Server.Engines.VvV
                 }
                 else if (IsInCooldown(m, ref dt))
                 {
-                    TimeSpan left = dt - DateTime.UtcNow;
+                    var left = dt - DateTime.UtcNow;
 
                     if (left.TotalMinutes > 2)
-                    {
-                        m.SendLocalizedMessage(1114110, ((int)left.TotalMinutes).ToString()); // You must wait ~1_minutes~ minutes before using another one of these.
-                    }
+                        m.SendLocalizedMessage(1114110,
+                            ((int)left.TotalMinutes)
+                            .ToString()); // You must wait ~1_minutes~ minutes before using another one of these.
                     else
-                    {
-                        m.SendLocalizedMessage(1114109, ((int)left.TotalSeconds).ToString()); // You must wait ~1_seconds~ seconds before using another one of these.
-                    }
+                        m.SendLocalizedMessage(1114109,
+                            ((int)left.TotalSeconds)
+                            .ToString()); // You must wait ~1_seconds~ seconds before using another one of these.
                 }
                 else if (CheckUse(m))
                 {
@@ -341,20 +341,12 @@ namespace Server.Engines.VvV
             if (m.Body.IsHuman && !m.Mounted)
                 m.Animate(34, 5, 1, true, false, 0);
 
-            if (CooldownDuration != TimeSpan.MinValue)
-            {
-                AddToCooldown(m);
-            }
+            if (CooldownDuration != TimeSpan.MinValue) AddToCooldown(m);
 
-            Timer.DelayCall<Mobile>(TimeSpan.FromMilliseconds(500), DrinkEffects, m);
+            Timer.DelayCall(TimeSpan.FromMilliseconds(500), DrinkEffects, m);
         }
 
         public virtual void DrinkEffects(Mobile m)
-        {
-        }
-
-        public VvVPotion(Serial serial)
-            : base(serial)
         {
         }
 
@@ -367,18 +359,29 @@ namespace Server.Engines.VvV
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
+
+        #region Factions
+
+        public FactionItem FactionItemState { get; set; }
+
+        #endregion
     }
 
     public class AntiParalysisPotion : VvVPotion
     {
-        public override PotionType CooldownType { get { return PotionType.AntiParalysis; } }
+        public override PotionType CooldownType => PotionType.AntiParalysis;
 
         [Constructable]
         public AntiParalysisPotion()
         {
             Hue = 2543;
+        }
+
+        public AntiParalysisPotion(Serial serial)
+            : base(serial)
+        {
         }
 
         public override bool CheckUse(Mobile m)
@@ -406,11 +409,6 @@ namespace Server.Engines.VvV
             m.PlaySound(0x1E7);
         }
 
-        public AntiParalysisPotion(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -420,14 +418,14 @@ namespace Server.Engines.VvV
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class SupernovaPotion : VvVPotion
     {
-        public override TimeSpan CooldownDuration { get { return TimeSpan.FromMinutes(2); } }
-        public override PotionType CooldownType { get { return PotionType.Supernova; } }
+        public override TimeSpan CooldownDuration => TimeSpan.FromMinutes(2);
+        public override PotionType CooldownType => PotionType.Supernova;
 
         [Constructable]
         public SupernovaPotion()
@@ -435,43 +433,44 @@ namespace Server.Engines.VvV
             Hue = 13;
         }
 
+        public SupernovaPotion(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void Use(Mobile m)
         {
-            Effects.SendMovingEffect(m, new Entity(Serial.Zero, new Point3D(m.X, m.Y, m.Z + 25), m.Map), this.ItemID, 3, 0, false, false, this.Hue, 0);
-            
-            int count = 5;
+            Effects.SendMovingEffect(m, new Entity(Serial.Zero, new Point3D(m.X, m.Y, m.Z + 25), m.Map), ItemID, 3, 0,
+                false, false, Hue, 0);
+
+            var count = 5;
 
             Timer.DelayCall(TimeSpan.FromSeconds(1), () =>
-                {
-                    m.PlaySound(0x1DD);
+            {
+                m.PlaySound(0x1DD);
 
-                    for (int i = 0; i < count; i++)
-                    {
-                        Timer.DelayCall(TimeSpan.FromMilliseconds(i * 170), index =>
-                            {
-                                Server.Misc.Geometry.Circle2D(m.Location, m.Map, index, (pnt, map) =>
-                                {
-                                    Effects.SendLocationEffect(pnt, map, 0x3709, 30, 10, 0, 5);
-                                });
-                            }, i);
-                    }
-                });
+                for (var i = 0; i < count; i++)
+                    Timer.DelayCall(TimeSpan.FromMilliseconds(i * 170),
+                        index =>
+                        {
+                            Geometry.Circle2D(m.Location, m.Map, index,
+                                (pnt, map) => { Effects.SendLocationEffect(pnt, map, 0x3709, 30, 10, 0, 5); });
+                        }, i);
+            });
 
             Timer.DelayCall(TimeSpan.FromMilliseconds(170 * count), () =>
-                {
-                    IPooledEnumerable eable = m.Map.GetMobilesInRange(m.Location, count);
+            {
+                IPooledEnumerable eable = m.Map.GetMobilesInRange(m.Location, count);
 
-                    foreach (Mobile mob in eable)
+                foreach (Mobile mob in eable)
+                    if (mob != m && SpellHelper.ValidIndirectTarget(m, mob) && m.CanBeHarmful(mob, false))
                     {
-                        if (mob != m && Server.Spells.SpellHelper.ValidIndirectTarget(m, mob) && m.CanBeHarmful(mob, false))
-                        {
-                            m.DoHarmful(mob);
-                            AOS.Damage(mob, m, Utility.RandomMinMax(40, 60), 0, 100, 0, 0, 0);
-                        }
+                        m.DoHarmful(mob);
+                        AOS.Damage(mob, m, Utility.RandomMinMax(40, 60), 0, 100, 0, 0, 0);
                     }
 
-                    eable.Free();
-                });
+                eable.Free();
+            });
 
             if (m.AccessLevel == AccessLevel.Player)
                 Consume();
@@ -482,11 +481,6 @@ namespace Server.Engines.VvV
             AddToCooldown(m);
         }
 
-        public SupernovaPotion(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -496,14 +490,14 @@ namespace Server.Engines.VvV
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class StatLossRemovalPotion : VvVPotion
     {
-        public override TimeSpan CooldownDuration { get { return TimeSpan.FromMinutes(20); } }
-        public override PotionType CooldownType { get { return PotionType.StatLossRemoval; } }
+        public override TimeSpan CooldownDuration => TimeSpan.FromMinutes(20);
+        public override PotionType CooldownType => PotionType.StatLossRemoval;
 
         [Constructable]
         public StatLossRemovalPotion()
@@ -511,9 +505,14 @@ namespace Server.Engines.VvV
             Hue = 2500;
         }
 
+        public StatLossRemovalPotion(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override bool CheckUse(Mobile m)
         {
-            if (!Server.Factions.Faction.InSkillLoss(m))
+            if (!Faction.InSkillLoss(m))
             {
                 m.SendLocalizedMessage(1155542); // You are not currently under the effects of stat loss.
                 return false;
@@ -525,7 +524,7 @@ namespace Server.Engines.VvV
         public override void Use(Mobile m)
         {
             m.SendLocalizedMessage(1155540); // You feel the effects of your stat loss fade.
-            Server.Factions.Faction.ClearSkillLoss(m);
+            Faction.ClearSkillLoss(m);
 
             Consume();
         }
@@ -537,11 +536,6 @@ namespace Server.Engines.VvV
             m.FixedParticles(0x3709, 1, 30, 9963, 13, 3, EffectLayer.Head);
         }
 
-        public StatLossRemovalPotion(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -551,19 +545,24 @@ namespace Server.Engines.VvV
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class GreaterStaminaPotion : VvVPotion
     {
-        public override TimeSpan CooldownDuration { get { return TimeSpan.FromSeconds(10); } }
-        public override PotionType CooldownType { get { return PotionType.GreaterStamina; } }
+        public override TimeSpan CooldownDuration => TimeSpan.FromSeconds(10);
+        public override PotionType CooldownType => PotionType.GreaterStamina;
 
         [Constructable]
         public GreaterStaminaPotion()
         {
             Hue = 437;
+        }
+
+        public GreaterStaminaPotion(Serial serial)
+            : base(serial)
+        {
         }
 
         public override bool CheckUse(Mobile m)
@@ -576,7 +575,7 @@ namespace Server.Engines.VvV
         {
             Timer.DelayCall(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1), 10, () =>
             {
-                int gain = Utility.RandomMinMax(10, 13);
+                var gain = Utility.RandomMinMax(10, 13);
 
                 if (m.Stam + gain > m.StamMax)
                     gain = m.StamMax - m.Stam;
@@ -594,11 +593,6 @@ namespace Server.Engines.VvV
             m.PlaySound(0x1E7);
         }
 
-        public GreaterStaminaPotion(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -608,7 +602,7 @@ namespace Server.Engines.VvV
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

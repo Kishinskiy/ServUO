@@ -1,14 +1,19 @@
-using Server;
 using System;
+using System.Collections.Generic;
 using Server.Items;
 using Server.Mobiles;
-using System.Collections.Generic;
+using Server.SkillHandlers;
 using Server.Spells;
 
 namespace Server.Engines.Despise
 {
     public class Silenii : DespiseCreature
     {
+        protected override BaseAI ForcedAI => new DespiseMeleeAI(this);
+        public override int StrStart => Utility.RandomMinMax(65, 75);
+        public override int DexStart => Utility.RandomMinMax(100, 110);
+        public override int IntStart => Utility.RandomMinMax(100, 110);
+
         [Constructable]
         public Silenii() : this(1)
         {
@@ -28,23 +33,21 @@ namespace Server.Engines.Despise
             SetMagicalAbility(MagicalAbility.Discordance);
         }
 
-        protected override BaseAI ForcedAI { get { return new DespiseMeleeAI(this); } }
-        public override int StrStart { get { return Utility.RandomMinMax(65, 75); } }
-        public override int DexStart { get { return Utility.RandomMinMax(100, 110); } }
-        public override int IntStart { get { return Utility.RandomMinMax(100, 110); } }
+        public Silenii(Serial serial) : base(serial)
+        {
+        }
 
         public override Mobile GetBardTarget(bool creaturesOnly = false)
         {
-            IPooledEnumerable eable = this.Map.GetMobilesInRange(this.Location, RangePerception);
+            IPooledEnumerable eable = Map.GetMobilesInRange(Location, RangePerception);
 
             Mobile closest = null;
-            int range = 0;
+            var range = 0;
 
             foreach (Mobile m in eable)
-            {
                 if (CanDoTarget(m))
                 {
-                    int dist = (int)GetDistanceToSqrt(m);
+                    var dist = (int)GetDistanceToSqrt(m);
 
                     if (closest == null || dist < range)
                     {
@@ -52,7 +55,7 @@ namespace Server.Engines.Despise
                         range = dist;
                     }
                 }
-            }
+
             eable.Free();
 
             return closest;
@@ -60,36 +63,39 @@ namespace Server.Engines.Despise
 
         private bool CanDoTarget(Mobile m)
         {
-            int discordanceEffect = 0;
+            var discordanceEffect = 0;
 
-            if (!CanBeHarmful(m, false) || Server.SkillHandlers.Discordance.GetEffect(m, ref discordanceEffect))
+            if (!CanBeHarmful(m, false) || Discordance.GetEffect(m, ref discordanceEffect))
                 return false;
 
-            if ((m is DespiseCreature && ((DespiseCreature)m).Alignment != Alignment.Neutral && ((DespiseCreature)m).Alignment != this.Alignment) || m is DespiseBoss)
+            if ((m is DespiseCreature && ((DespiseCreature)m).Alignment != Alignment.Neutral &&
+                 ((DespiseCreature)m).Alignment != Alignment) || m is DespiseBoss)
                 return true;
 
-            return m is PlayerMobile && !this.Controlled && ((m.Karma < 0 && this.Alignment == Alignment.Good) || (m.Karma > 0 && this.Alignment == Alignment.Evil));
-        }
-
-        public Silenii(Serial serial) : base(serial)
-        {
+            return m is PlayerMobile && !Controlled && ((m.Karma < 0 && Alignment == Alignment.Good) ||
+                                                        (m.Karma > 0 && Alignment == Alignment.Evil));
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int v = reader.ReadInt();
+            var v = reader.ReadInt();
         }
     }
 
     public class ForestNymph : DespiseCreature
     {
+        protected override BaseAI ForcedAI => new DespiseMageAI(this);
+        public override int StrStart => Utility.RandomMinMax(65, 80);
+        public override int DexStart => Utility.RandomMinMax(70, 80);
+        public override int IntStart => Utility.RandomMinMax(110, 150);
+
         [Constructable]
         public ForestNymph() : this(1)
         {
@@ -107,11 +113,6 @@ namespace Server.Engines.Despise
             Power = powerLevel;
         }
 
-        protected override BaseAI ForcedAI { get { return new DespiseMageAI(this); } }
-        public override int StrStart { get { return Utility.RandomMinMax(65, 80); } }
-        public override int DexStart { get { return Utility.RandomMinMax(70, 80); } }
-        public override int IntStart { get { return Utility.RandomMinMax(110, 150); } }
-
         public ForestNymph(Serial serial) : base(serial)
         {
         }
@@ -119,18 +120,27 @@ namespace Server.Engines.Despise
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int v = reader.ReadInt();
+            var v = reader.ReadInt();
         }
     }
 
     public class DespiseUnicorn : DespiseCreature
     {
+        protected override BaseAI ForcedAI => new DespiseMeleeAI(this);
+        public override int StrStart => Utility.RandomMinMax(80, 100);
+        public override int DexStart => Utility.RandomMinMax(110, 115);
+        public override int IntStart => Utility.RandomMinMax(100, 115);
+
+        public override bool RaiseDamage => true;
+
+        public override double WeaponAbilityChance => 0.5;
+
         [Constructable]
         public DespiseUnicorn() : this(1)
         {
@@ -150,15 +160,6 @@ namespace Server.Engines.Despise
             SetWeaponAbility(WeaponAbility.ArmorIgnore);
         }
 
-        protected override BaseAI ForcedAI { get { return new DespiseMeleeAI(this); } }
-        public override int StrStart { get { return Utility.RandomMinMax(80, 100); } }
-        public override int DexStart { get { return Utility.RandomMinMax(110, 115); } }
-        public override int IntStart { get { return Utility.RandomMinMax(100, 115); } }
-
-        public override bool RaiseDamage { get { return true; } }
-
-        public override double WeaponAbilityChance { get { return 0.5; } }
-
         public DespiseUnicorn(Serial serial) : base(serial)
         {
         }
@@ -166,24 +167,28 @@ namespace Server.Engines.Despise
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1);
+            writer.Write(1);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int v = reader.ReadInt();
+            var v = reader.ReadInt();
 
-            if (v == 0)
-            {
-                SetWeaponAbility(WeaponAbility.ArmorIgnore);
-            }
+            if (v == 0) SetWeaponAbility(WeaponAbility.ArmorIgnore);
         }
     }
 
     [TypeAlias("Server.Engines.Despise.Sagittari")]
     public class Sagittarri : DespiseCreature
     {
+        protected override BaseAI ForcedAI => new DespiseMeleeAI(this);
+        public override int StrStart => Utility.RandomMinMax(40, 55);
+        public override int DexStart => Utility.RandomMinMax(160, 180);
+        public override int IntStart => Utility.RandomMinMax(110, 120);
+
+        public override bool RaiseDamage => true;
+
         [Constructable]
         public Sagittarri() : this(1)
         {
@@ -208,13 +213,6 @@ namespace Server.Engines.Despise
             RangeFight = 8;
         }
 
-        protected override BaseAI ForcedAI { get { return new DespiseMeleeAI(this); } }
-        public override int StrStart { get { return Utility.RandomMinMax(40, 55); } }
-        public override int DexStart { get { return Utility.RandomMinMax(160, 180); } }
-        public override int IntStart { get { return Utility.RandomMinMax(110, 120); } }
-        
-        public override bool RaiseDamage { get { return true; } }
-
         public Sagittarri(Serial serial)
             : base(serial)
         {
@@ -223,18 +221,29 @@ namespace Server.Engines.Despise
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int v = reader.ReadInt();
+            var v = reader.ReadInt();
         }
     }
 
     public class Ursadane : DespiseCreature
     {
+        protected override BaseAI ForcedAI => new DespiseMeleeAI(this);
+        public override PackInstinct PackInstinct => PackInstinct.Bear;
+
+        public override bool RaiseDamage => true;
+
+        public override int StrStart => Utility.RandomMinMax(150, 175);
+        public override int DexStart => Utility.RandomMinMax(90, 105);
+        public override int IntStart => Utility.RandomMinMax(30, 40);
+
+        public override double WeaponAbilityChance => 0.5;
+
         [Constructable]
         public Ursadane() : this(1)
         {
@@ -254,17 +263,6 @@ namespace Server.Engines.Despise
             SetWeaponAbility(WeaponAbility.CrushingBlow);
         }
 
-        protected override BaseAI ForcedAI { get { return new DespiseMeleeAI(this); } }
-        public override PackInstinct PackInstinct { get { return PackInstinct.Bear; } }
-
-        public override bool RaiseDamage { get { return true; } }
-
-        public override int StrStart { get { return Utility.RandomMinMax(150, 175); } }
-        public override int DexStart { get { return Utility.RandomMinMax(90, 105); } }
-        public override int IntStart { get { return Utility.RandomMinMax(30, 40); } }
-
-        public override double WeaponAbilityChance { get { return 0.5; } }
-
         public Ursadane(Serial serial) : base(serial)
         {
         }
@@ -272,23 +270,30 @@ namespace Server.Engines.Despise
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1);
+            writer.Write(1);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int v = reader.ReadInt();
+            var v = reader.ReadInt();
 
-            if (v == 0)
-            {
-                SetWeaponAbility(WeaponAbility.CrushingBlow);
-            }
+            if (v == 0) SetWeaponAbility(WeaponAbility.CrushingBlow);
         }
     }
 
     public class DivineGuardian : DespiseCreature
     {
+        protected override BaseAI ForcedAI => new DespiseMeleeAI(this);
+
+        public override bool RaiseDamage => true;
+
+        public override int StrStart => Utility.RandomMinMax(150, 175);
+        public override int DexStart => Utility.RandomMinMax(120, 130);
+        public override int IntStart => Utility.RandomMinMax(50, 60);
+
+        public override double WeaponAbilityChance => 0.5;
+
         [Constructable]
         public DivineGuardian() : this(1)
         {
@@ -308,16 +313,6 @@ namespace Server.Engines.Despise
             SetWeaponAbility(WeaponAbility.ConcussionBlow);
         }
 
-        protected override BaseAI ForcedAI { get { return new DespiseMeleeAI(this); } }
-
-        public override bool RaiseDamage { get { return true; } }
-
-        public override int StrStart { get { return Utility.RandomMinMax(150, 175); } }
-        public override int DexStart { get { return Utility.RandomMinMax(120, 130); } }
-        public override int IntStart { get { return Utility.RandomMinMax(50, 60); } }
-
-        public override double WeaponAbilityChance { get { return 0.5; } }
-
         public DivineGuardian(Serial serial) : base(serial)
         {
         }
@@ -325,23 +320,30 @@ namespace Server.Engines.Despise
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1);
+            writer.Write(1);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int v = reader.ReadInt();
+            var v = reader.ReadInt();
 
-            if (v == 0)
-            {
-                SetWeaponAbility(WeaponAbility.ConcussionBlow);
-            }
+            if (v == 0) SetWeaponAbility(WeaponAbility.ConcussionBlow);
         }
     }
 
     public class Dendrite : DespiseCreature
     {
+        protected override BaseAI ForcedAI => new DespiseMeleeAI(this);
+
+        public override bool RaiseDamage => true;
+
+        public override int StrStart => Utility.RandomMinMax(100, 120);
+        public override int DexStart => Utility.RandomMinMax(140, 155);
+        public override int IntStart => Utility.RandomMinMax(30, 50);
+
+        public override double WeaponAbilityChance => 0.5;
+
         [Constructable]
         public Dendrite() : this(1)
         {
@@ -360,6 +362,10 @@ namespace Server.Engines.Despise
             SetWeaponAbility(WeaponAbility.DoubleStrike);
         }
 
+        public Dendrite(Serial serial) : base(serial)
+        {
+        }
+
         public override int GetIdleSound()
         {
             return 443;
@@ -375,45 +381,34 @@ namespace Server.Engines.Despise
             return 672;
         }
 
-        protected override BaseAI ForcedAI { get { return new DespiseMeleeAI(this); } }
-
-        public override bool RaiseDamage { get { return true; } }
-
-        public override int StrStart { get { return Utility.RandomMinMax(100, 120); } }
-        public override int DexStart { get { return Utility.RandomMinMax(140, 155); } }
-        public override int IntStart { get { return Utility.RandomMinMax(30, 50); } }
-
-        public override double WeaponAbilityChance { get { return 0.5; } }
-
-        public Dendrite(Serial serial) : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1);
+            writer.Write(1);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int v = reader.ReadInt();
+            var v = reader.ReadInt();
 
-            if (v == 0)
-            {
-                SetWeaponAbility(WeaponAbility.DoubleStrike);
-            }
+            if (v == 0) SetWeaponAbility(WeaponAbility.DoubleStrike);
         }
     }
 
     public class Fairy : DespiseCreature
     {
-        private DateTime m_NextHeal;
         private readonly double HealThreshold = 0.60;
+        private DateTime m_NextHeal;
 
-        public virtual int MinHeal { get { return Math.Max(10, Power * 3); } }
-        public virtual int MaxHeal { get { return Math.Max(25, Power * 5); } }
+        public virtual int MinHeal => Math.Max(10, Power * 3);
+        public virtual int MaxHeal => Math.Max(25, Power * 5);
+
+        protected override BaseAI ForcedAI => new DespiseMeleeAI(this);
+
+        public override int StrStart => Utility.RandomMinMax(85, 100);
+        public override int DexStart => Utility.RandomMinMax(110, 125);
+        public override int IntStart => Utility.RandomMinMax(130, 150);
 
         [Constructable]
         public Fairy() : this(1)
@@ -434,30 +429,26 @@ namespace Server.Engines.Despise
             Power = powerLevel;
         }
 
-        protected override BaseAI ForcedAI { get { return new DespiseMeleeAI(this); } }
-
-        public override int StrStart { get { return Utility.RandomMinMax(85, 100); } }
-        public override int DexStart { get { return Utility.RandomMinMax(110, 125); } }
-        public override int IntStart { get { return Utility.RandomMinMax(130, 150); } }
+        public Fairy(Serial serial) : base(serial)
+        {
+        }
 
         public override void OnThink()
         {
             base.OnThink();
 
-            if (m_NextHeal < DateTime.UtcNow && this.Map != null && this.Map != Map.Internal)
+            if (m_NextHeal < DateTime.UtcNow && Map != null && Map != Map.Internal)
             {
-                List<Mobile> eligables = new List<Mobile>();
-                IPooledEnumerable eable = this.Map.GetMobilesInRange(this.Location, 8);
+                var eligables = new List<Mobile>();
+                IPooledEnumerable eable = Map.GetMobilesInRange(Location, 8);
 
                 foreach (Mobile m in eable)
-                {
-                    if (m.Alive && m.Hits <= (int)((double)m.HitsMax * HealThreshold) && CanDoHeal(m))
+                    if (m.Alive && m.Hits <= (int)(m.HitsMax * HealThreshold) && CanDoHeal(m))
                         eligables.Add(m);
-                }
 
                 if (eligables.Count > 0)
                 {
-                    Mobile m = eligables[Utility.Random(eligables.Count)];
+                    var m = eligables[Utility.Random(eligables.Count)];
 
                     Direction = GetDirectionTo(m);
 
@@ -465,7 +456,7 @@ namespace Server.Engines.Despise
                     m.FixedParticles(0x376A, 9, 32, 5030, EffectLayer.Waist);
                     m.PlaySound(0x202);
 
-                    int nextHeal = Utility.RandomMinMax(20 - Power, 30 - Power);
+                    var nextHeal = Utility.RandomMinMax(20 - Power, 30 - Power);
                     m_NextHeal = DateTime.UtcNow + TimeSpan.FromSeconds(nextHeal);
                     return;
                 }
@@ -479,23 +470,20 @@ namespace Server.Engines.Despise
             if (toHeal is DespiseCreature && ((DespiseCreature)toHeal).Alignment == Alignment)
                 return true;
 
-            return toHeal is PlayerMobile && ((toHeal.Karma < 0 && Alignment == Alignment.Evil) || (toHeal.Karma > 0 && Alignment == Alignment.Good));
-        }
-
-        public Fairy(Serial serial) : base(serial)
-        {
+            return toHeal is PlayerMobile && ((toHeal.Karma < 0 && Alignment == Alignment.Evil) ||
+                                              (toHeal.Karma > 0 && Alignment == Alignment.Good));
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int v = reader.ReadInt();
+            var v = reader.ReadInt();
 
             m_NextHeal = DateTime.UtcNow;
         }

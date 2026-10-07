@@ -1,6 +1,4 @@
-﻿using System;
-using Server;
-using Server.Mobiles;
+﻿using Server.Mobiles;
 
 namespace Server.Items
 {
@@ -26,35 +24,33 @@ namespace Server.Items
             if (!base.OnMoveOver(m))
                 return false;
 
-            PlayerMobile pm = m as PlayerMobile;
+            var pm = m as PlayerMobile;
 
             if (m is BaseCreature)
                 pm = ((BaseCreature)m).ControlMaster as PlayerMobile;
 
             if (pm != null && pm.AbyssEntry)
-            {                
+            {
                 m.SendLocalizedMessage(1112227); // May the Virtues guide thine quest.
 
                 return true;
             }
-            else
-            {                
-                m.SendLocalizedMessage(1112226); // Thou must be on a Sacred Quest to pass through.
 
-                return false;
-            }
+            m.SendLocalizedMessage(1112226); // Thou must be on a Sacred Quest to pass through.
+
+            return false;
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

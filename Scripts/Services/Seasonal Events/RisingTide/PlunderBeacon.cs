@@ -1,10 +1,4 @@
-using System;
 using System.Linq;
-using System.Collections.Generic;
-
-using Server;
-using Server.Items;
-using Server.Mobiles;
 
 namespace Server.Items
 {
@@ -16,7 +10,7 @@ namespace Server.Items
         [CommandProperty(AccessLevel.GameMaster)]
         public Mobile LastDamager { get; set; }
 
-        public override bool CanDamage { get { return Controller == null || Controller.BeaconVulnerable; } }
+        public override bool CanDamage => Controller == null || Controller.BeaconVulnerable;
 
         public PlunderBeacon(PlunderBeaconAddon controller)
         {
@@ -31,6 +25,11 @@ namespace Server.Items
 
             HitsMax = 70000;
             Hits = HitsMax;
+        }
+
+        public PlunderBeacon(Serial serial)
+            : base(serial)
+        {
         }
 
         public override void OnHalfDamage()
@@ -51,10 +50,7 @@ namespace Server.Items
 
         public override bool CheckAreaDamage(Mobile from, int amount)
         {
-            if (amount >= 5000)
-            {
-                return false;
-            }
+            if (amount >= 5000) return false;
 
             return base.CheckAreaDamage(from, amount);
         }
@@ -94,15 +90,7 @@ namespace Server.Items
         {
             base.Delete();
 
-            if (Controller != null && !Controller.Deleted)
-            {
-                Controller.Delete();
-            }
-        }
-
-        public PlunderBeacon(Serial serial)
-            : base(serial)
-        {
+            if (Controller != null && !Controller.Deleted) Controller.Delete();
         }
 
         public override void Serialize(GenericWriter writer)
@@ -110,7 +98,7 @@ namespace Server.Items
             base.Serialize(writer);
             writer.Write(0);
 
-            writer.WriteItem<PlunderBeaconAddon>(Controller);
+            writer.WriteItem(Controller);
         }
 
         public override void Deserialize(GenericReader reader)

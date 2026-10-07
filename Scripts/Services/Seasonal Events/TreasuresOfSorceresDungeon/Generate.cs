@@ -1,10 +1,6 @@
-using System.Linq;
 using System;
-using System.Collections.Generic;
-
-using Server;
-using Server.Items;
 using Server.Engines.Points;
+using Server.Items;
 
 namespace Server.Engines.SorcerersDungeon
 {
@@ -63,7 +59,7 @@ namespace Server.Engines.SorcerersDungeon
 
         public static void Generate()
         {
-            Map map = Map.Ilshenar;
+            var map = Map.Ilshenar;
 
             if (SorcerersDungeonResearcher.Instance == null)
             {
@@ -73,7 +69,7 @@ namespace Server.Engines.SorcerersDungeon
 
             if (map.FindItem<Static>(new Point3D(546, 460, 6)) == null)
             {
-                Static st = new Static(0x9D2B);
+                var st = new Static(0x9D2B);
                 st.MoveToWorld(new Point3D(546, 460, 6), map);
 
                 st = new Static(0x9D2C);
@@ -116,10 +112,7 @@ namespace Server.Engines.SorcerersDungeon
 
         public static void Remove()
         {
-            if (TOSDSpawner.Instance != null)
-            {
-                TOSDSpawner.Instance.Deactivate();
-            }
+            if (TOSDSpawner.Instance != null) TOSDSpawner.Instance.Deactivate();
         }
     }
 }

@@ -1,22 +1,21 @@
 using System.Collections.Generic;
-using Server.Mobiles;
 using Server.Gumps;
+using Server.Mobiles;
 
 namespace Server.Custom.UOBuilder
 {
     internal class UOBuilderAdminGump : BaseGump
     {
-        private List<Serial> _playerSerials = new List<Serial>();
-
-        private Serial _viewedBuild = 0;
-
         private const int ToggleButton = 1;
         private const int CommitButton = 2;
         private const int DeleteButton = 3;
         private const int BackToListButton = 4;
         private const int ViewButtonOffset = 100;
+        private List<Serial> _playerSerials = new List<Serial>();
 
-        public UOBuilderAdminGump(PlayerMobile user) : base(user, 50, 50, null)
+        private Serial _viewedBuild = 0;
+
+        public UOBuilderAdminGump(PlayerMobile user) : base(user)
         {
         }
 
@@ -26,7 +25,7 @@ namespace Server.Custom.UOBuilder
             Dragable = true;
             Resizable = false;
 
-            int height = _viewedBuild == 0 ? 40 + (35 * UOBuilderCore.GetBuildList().Count) : 100;
+            var height = _viewedBuild == 0 ? 40 + 35 * UOBuilderCore.GetBuildList().Count : 100;
 
             AddBackground(X, Y, 250, height, 40000);
             AddLabel(X + 75, Y + 13, 53, "UO Builder Admin");
@@ -61,19 +60,15 @@ namespace Server.Custom.UOBuilder
                 _playerSerials = UOBuilderCore.GetBuildList();
 
                 if (_playerSerials.Count == 0)
-                {
                     AddLabel(X + 20, Y + 78, 1153, "There are no active builds.");
-                }
                 else
-                {
-                    for (int i = 0; i < _playerSerials.Count; i++)
+                    for (var i = 0; i < _playerSerials.Count; i++)
                     {
-                        int y = Y + 40 + (i * 35);
+                        var y = Y + 40 + i * 35;
                         AddLabel(X + 20, y, 1153, $"{i + 1}. {UOBuilderCore.GetBuilder(_playerSerials[i])}'s Build");
                         AddButton(X + 215, y, 22400, 22401, ViewButtonOffset + i, GumpButtonType.Reply, 0);
                         AddTooltip(1158006);
                     }
-                }
             }
         }
 
@@ -135,20 +130,16 @@ namespace Server.Custom.UOBuilder
                 return;
             }
 
-            int position = info.ButtonID - ViewButtonOffset;
+            var position = info.ButtonID - ViewButtonOffset;
 
             if (_viewedBuild == 0 && position >= 0 && position < _playerSerials.Count)
             {
-                Serial serial = _playerSerials[position];
+                var serial = _playerSerials[position];
 
                 if (UOBuilderCore.PreviewBuild(User, serial))
-                {
                     _viewedBuild = serial;
-                }
                 else
-                {
                     User.SendMessage(33, "The selected build could not be previewed.");
-                }
 
                 Refresh(true, false);
             }

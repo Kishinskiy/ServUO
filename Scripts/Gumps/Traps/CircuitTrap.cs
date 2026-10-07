@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
 using Server.Mobiles;
 
 namespace Server.Gumps
@@ -33,11 +32,82 @@ namespace Server.Gumps
 
     public class CircuitTrapGump : BaseGump
     {
-        public ICircuitTrap Trap { get; set; }
-        public List<int> Path { get { return Trap != null ? Trap.Path : null; } }
-        public List<int> Progress { get { return Trap != null ? Trap.Progress : null; } }
+        private readonly int[][] Paths16 =
+        {
+            new[] { 0, 1, 2, 3, 7, 11, 15 },
+            new[] { 0, 1, 2, 6, 7, 11, 15 },
+            new[] { 0, 1, 2, 3, 7, 6, 5, 4, 8, 9, 10, 11, 15 },
+            new[] { 0, 1, 5, 6, 7, 11, 15 },
+            new[] { 0, 1, 5, 4, 8, 12, 13, 14, 15 },
+            new[] { 0, 1, 5, 4, 8, 9, 10, 14, 15 },
+            new[] { 0, 4, 8, 12, 13, 14, 15 },
+            new[] { 0, 4, 8, 9, 10, 6, 2, 3, 7, 11, 15 },
+            new[] { 0, 4, 8, 9, 5, 6, 7, 11, 15 },
+            new[] { 0, 4, 5, 6, 2, 3, 7, 11, 15 },
+            new[] { 0, 4, 5, 6, 7, 11, 10, 9, 8, 12, 13, 14, 15 },
+            new[] { 0, 4, 5, 9, 10, 11, 15 }
+        };
 
-        public CircuitCount Count { get { return Trap != null ? Trap.Count : CircuitCount.Nine; } }
+        private readonly int[][] Paths25 =
+        {
+            new[] { 0, 1, 2, 3, 4, 9, 14, 19, 24 },
+            new[] { 0, 1, 2, 7, 8, 9, 14, 13, 12, 11, 10, 15, 20, 21, 22, 23, 24 },
+            new[] { 0, 1, 2, 3, 4, 9, 14, 13, 12, 17, 22, 23, 24 },
+            new[] { 0, 1, 6, 7, 8, 13, 12, 17, 18, 19, 24 },
+            new[] { 0, 1, 6, 5, 10, 11, 12, 17, 18, 19, 24 },
+            new[] { 0, 1, 6, 5, 10, 15, 16, 17, 12, 7, 8, 9, 14, 19, 24 },
+            new[] { 0, 5, 6, 7, 2, 3, 4, 9, 14, 19, 24 },
+            new[] { 0, 5, 6, 11, 12, 13, 18, 19, 24 },
+            new[] { 0, 5, 6, 11, 16, 21, 22, 17, 12, 7, 8, 9, 14, 19, 24 },
+            new[] { 0, 5, 10, 15, 20, 21, 22, 23, 24 },
+            new[] { 0, 5, 10, 11, 12, 13, 8, 7, 6, 1, 2, 3, 4, 9, 14, 19, 24 },
+            new[] { 0, 5, 10, 11, 16, 17, 18, 23, 24 }
+        };
+
+        private readonly int[][] Paths36 =
+        {
+            new[] { 0, 1, 2, 3, 4, 5, 11, 17, 23, 29, 35 },
+            new[] { 0, 6, 12, 18, 24, 30, 31, 32, 33, 34, 35 },
+            new[] { 0, 1, 2, 8, 14, 15, 16, 22, 28, 29, 35 },
+            new[] { 0, 1, 7, 13, 19, 20, 21, 27, 33, 34, 35 },
+            new[] { 0, 1, 7, 8, 14, 20, 26, 27, 33, 34, 35 },
+            new[] { 0, 1, 2, 3, 9, 10, 16, 15, 21, 27, 28, 34, 35 },
+            new[] { 0, 6, 12, 13, 19, 20, 26, 27, 28, 29, 35 },
+            new[] { 0, 6, 12, 18, 19, 25, 26, 20, 21, 22, 28, 34, 35 },
+            new[] { 0, 6, 7, 8, 14, 20, 21, 27, 28, 29, 35 },
+            new[] { 0, 6, 7, 13, 12, 18, 19, 20, 21, 27, 28, 34, 35 },
+            new[] { 0, 6, 12, 13, 19, 18, 24, 30, 31, 32, 33, 34, 35 },
+            new[] { 0, 1, 2, 8, 9, 15, 16, 10, 11, 17, 23, 29, 35 }
+        };
+
+        private readonly int[][] Paths9 =
+        {
+            new[] { 0, 1, 2, 5, 8 },
+            new[] { 0, 1, 4, 5, 8 },
+            new[] { 0, 1, 4, 3, 6, 7, 8 },
+            new[] { 0, 1, 4, 7, 8 },
+            new[] { 0, 3, 6, 7, 8 },
+            new[] { 0, 3, 4, 5, 8 },
+            new[] { 0, 3, 4, 7, 8 },
+            new[] { 0, 3, 6, 7, 4, 5, 8 },
+            new[] { 0, 3, 6, 7, 4, 1, 2, 5, 8 }
+        };
+
+        private int[] m_Possibles =
+        {
+            0, 1, 2, 3, 4, 5,
+            6, 7, 8, 9, 10, 11,
+            12, 13, 14, 15, 16, 17,
+            18, 19, 20, 21, 22, 23,
+            24, 25, 26, 27, 28, 29,
+            30, 31, 32, 33, 34, 35
+        };
+
+        public ICircuitTrap Trap { get; set; }
+        public List<int> Path => Trap != null ? Trap.Path : null;
+        public List<int> Progress => Trap != null ? Trap.Progress : null;
+
+        public CircuitCount Count => Trap != null ? Trap.Count : CircuitCount.Nine;
         public bool ShowNext { get; set; }
 
         public CircuitTrapGump(PlayerMobile from, ICircuitTrap item)
@@ -75,10 +145,7 @@ namespace Server.Gumps
             AddImage(414, 189, 0x589);
             AddImage(435, 210, 0xA52);
 
-            if (Path == null || Path.Count == 0)
-            {
-                Trap.Path = GetRandomPath();
-            }
+            if (Path == null || Path.Count == 0) Trap.Path = GetRandomPath();
 
             if (Progress == null || Progress.Count == 0)
             {
@@ -91,44 +158,30 @@ namespace Server.Gumps
             var count = (int)Count;
             var sq = Math.Sqrt(count);
 
-            for (int i = 0; i < count; i++)
+            for (var i = 0; i < count; i++)
             {
-                int line = (int)(i / sq);
-                int col = (int)(i % sq);
+                var line = (int)(i / sq);
+                var col = (int)(i % sq);
 
-                var x = sx + (col * 40);
-                var y = sy + (line * 40);
+                var x = sx + col * 40;
+                var y = sy + line * 40;
 
                 AddImage(x, y, i == count - 1 ? 0x9A8 : Progress.Contains(i) ? 0x868 : 0x25F8);
 
-                if (line + 1  < sq)
-                {
-                    AddImage(x + 10, y + 27, 0x13F9);
-                }
+                if (line + 1 < sq) AddImage(x + 10, y + 27, 0x13F9);
 
-                if (col + 1 < sq)
-                {
-                    AddImage(x + 18, y + 12, 0x13FD);
-                }
+                if (col + 1 < sq) AddImage(x + 18, y + 12, 0x13FD);
 
-                if (i == Progress[Progress.Count - 1])
-                {
-                    AddImage(x + 8, y + 8, 0x13A8);
-                }
+                if (i == Progress[Progress.Count - 1]) AddImage(x + 8, y + 8, 0x13A8);
 
-                if (ShowNext && Progress.Count <= Path.Count && i == Path[Progress.Count])
-                {
-                    AddImage(x + 8, y + 8, 2361);
-                }
+                if (ShowNext && Progress.Count <= Path.Count && i == Path[Progress.Count]) AddImage(x + 8, y + 8, 2361);
             }
 
-            if (ShowNext)
-            {
-                ShowNext = false;
-            }
+            if (ShowNext) ShowNext = false;
 
             AddHtmlLocalized(210, 35, 212, 45, Trap.GumpTitle, false, false);
-            AddHtmlLocalized(210, 60, 212, 70, 1153748, false, false); // <center>Use the Directional Controls to</center>
+            AddHtmlLocalized(210, 60, 212, 70, 1153748, false,
+                false); // <center>Use the Directional Controls to</center>
             AddHtmlLocalized(210, 75, 212, 85, Trap.GumpDescription, false, false);
 
             if (Trap.CanDecipher && User.Skills[SkillName.Lockpicking].Base >= 100)
@@ -141,7 +194,6 @@ namespace Server.Gumps
             AddButton(473, 222, 10710, 10711, 2, GumpButtonType.Reply, 0); // right
             AddButton(448, 243, 10720, 10721, 3, GumpButtonType.Reply, 0); // down 
             AddButton(408, 222, 10730, 10731, 4, GumpButtonType.Reply, 0); // left
-
         }
 
         public override void OnResponse(RelayInfo info)
@@ -173,12 +225,12 @@ namespace Server.Gumps
                     case 4: pick = current - 1; break;
                 }
 
-                if (pick < 0 || pick > count - 1)      //Off board or already chosen spot
+                if (pick < 0 || pick > count - 1) //Off board or already chosen spot
                 {
                     User.PlaySound(0x5B6);
                     Refresh();
                 }
-                else if ((current == count - 2 || current == (count - 1) - perRow) && pick == count - 1)
+                else if ((current == count - 2 || current == count - 1 - perRow) && pick == count - 1)
                 {
                     Trap.Path.Clear();
                     Trap.Progress.Clear();
@@ -205,77 +257,6 @@ namespace Server.Gumps
                 Refresh();
             }
         }
-
-        private int[] m_Possibles = new int[]
-        {
-            0,  1,  2,  3,  4,  5,
-            6,  7,  8,  9,  10, 11,
-            12, 13, 14, 15, 16, 17,
-            18, 19, 20, 21, 22, 23,
-            24, 25, 26, 27, 28, 29,
-            30, 31, 32, 33, 34, 35
-        };
-
-        private int[][] Paths9 = new int[][]
-        {
-            new int[] { 0, 1, 2, 5, 8 },
-            new int[] { 0, 1, 4, 5, 8 },
-            new int[] { 0, 1, 4, 3, 6, 7, 8 },
-            new int[] { 0, 1, 4, 7, 8},
-            new int[] { 0, 3, 6, 7, 8 },
-            new int[] { 0, 3, 4, 5, 8 },
-            new int[] { 0, 3, 4, 7, 8 },
-            new int[] { 0, 3, 6, 7, 4, 5, 8 },
-            new int[] { 0, 3, 6, 7, 4, 1, 2, 5, 8 }
-        };
-
-        private int[][] Paths16 = new int[][]
-        {
-            new int[] { 0, 1, 2, 3, 7, 11, 15 },
-            new int[] { 0, 1, 2, 6, 7, 11, 15 },
-            new int[] { 0, 1, 2, 3, 7, 6, 5, 4, 8, 9, 10, 11, 15 },
-            new int[] { 0, 1, 5, 6, 7, 11, 15 },
-            new int[] { 0, 1, 5, 4, 8, 12, 13, 14, 15 },
-            new int[] { 0, 1, 5, 4, 8, 9, 10, 14, 15 },
-            new int[] { 0, 4, 8, 12, 13, 14, 15 },
-            new int[] { 0, 4, 8, 9, 10, 6, 2, 3, 7, 11, 15 },
-            new int[] { 0, 4, 8, 9, 5, 6, 7, 11, 15 },
-            new int[] { 0, 4, 5, 6, 2, 3, 7, 11, 15 },
-            new int[] { 0, 4, 5, 6, 7, 11, 10, 9, 8, 12, 13, 14, 15 },
-            new int[] { 0, 4, 5, 9, 10, 11, 15 },
-        };
-
-        private int[][] Paths25 = new int[][]
-        {
-            new int[] { 0, 1, 2, 3, 4, 9, 14, 19, 24 },
-            new int[] { 0, 1, 2, 7, 8, 9, 14, 13, 12, 11, 10, 15, 20, 21, 22, 23, 24 },
-            new int[] { 0, 1, 2, 3, 4, 9, 14, 13, 12, 17, 22, 23, 24 },
-            new int[] { 0, 1, 6, 7, 8, 13, 12, 17, 18, 19, 24 },
-            new int[] { 0, 1, 6, 5, 10, 11, 12, 17, 18, 19, 24 },
-            new int[] { 0, 1, 6, 5, 10, 15, 16, 17, 12, 7, 8, 9, 14, 19, 24},
-            new int[] { 0, 5, 6, 7, 2, 3, 4, 9, 14, 19, 24 },
-            new int[] { 0, 5, 6, 11, 12, 13, 18, 19, 24 },
-            new int[] { 0, 5, 6, 11, 16, 21, 22, 17, 12, 7, 8, 9, 14, 19, 24 },
-            new int[] { 0, 5, 10, 15, 20, 21, 22, 23, 24 },
-            new int[] { 0, 5, 10, 11, 12, 13, 8, 7, 6, 1, 2, 3, 4, 9, 14, 19, 24 },
-            new int[] { 0, 5, 10, 11, 16, 17, 18, 23, 24 },
-        };
-
-        private int[][] Paths36 = new int[][]
-        {
-            new int[] { 0, 1, 2, 3, 4, 5, 11, 17, 23, 29, 35 },
-            new int[] { 0, 6, 12, 18, 24, 30, 31, 32, 33, 34, 35 },
-            new int[] { 0, 1, 2, 8, 14, 15, 16, 22, 28, 29, 35 },
-            new int[] { 0, 1, 7, 13, 19, 20, 21, 27, 33, 34, 35 },
-            new int[] { 0, 1, 7, 8, 14, 20, 26, 27, 33, 34, 35 },
-            new int[] { 0, 1, 2, 3, 9, 10, 16, 15, 21, 27, 28, 34, 35 },
-            new int[] { 0, 6, 12, 13, 19, 20, 26, 27, 28, 29, 35 },
-            new int[] { 0, 6, 12, 18, 19, 25, 26, 20, 21, 22, 28, 34, 35 },
-            new int[] { 0, 6, 7, 8, 14, 20, 21, 27, 28, 29, 35 },
-            new int[] { 0, 6, 7, 13, 12, 18, 19, 20, 21, 27, 28, 34, 35 },
-            new int[] { 0, 6, 12, 13, 19, 18, 24, 30, 31, 32, 33, 34, 35 },
-            new int[] { 0, 1, 2, 8, 9, 15, 16, 10, 11, 17, 23, 29, 35 },
-        };
 
         public List<int> GetRandomPath()
         {

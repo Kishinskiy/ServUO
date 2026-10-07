@@ -9,7 +9,15 @@ namespace Server.Items
         private int _WeightReduction;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int WeightReduction { get { return _WeightReduction; } set { _WeightReduction = value; InvalidateProperties(); } }
+        public int WeightReduction
+        {
+            get => _WeightReduction;
+            set
+            {
+                _WeightReduction = value;
+                InvalidateProperties();
+            }
+        }
 
         public abstract Type[] HoldTypes { get; }
 
@@ -17,6 +25,11 @@ namespace Server.Items
             : base(id)
         {
             _WeightReduction = DefaultWeightReduction;
+        }
+
+        public BaseResourceSatchel(Serial serial)
+            : base(serial)
+        {
         }
 
         public override void GetProperties(ObjectPropertyList list)
@@ -29,15 +42,16 @@ namespace Server.Items
 
         public override int GetTotal(TotalType type)
         {
-            int total = base.GetTotal(type);
+            var total = base.GetTotal(type);
 
             if (type == TotalType.Weight)
-                total -= total * (int)((double)_WeightReduction / 100.0);
+                total -= total * (int)(_WeightReduction / 100.0);
 
             return total;
         }
 
-        public override bool CheckHold(Mobile m, Item item, bool message, bool checkItems, int plusItems, int plusWeight)
+        public override bool CheckHold(Mobile m, Item item, bool message, bool checkItems, int plusItems,
+            int plusWeight)
         {
             if (!CheckType(item))
             {
@@ -52,15 +66,11 @@ namespace Server.Items
 
         public bool CheckType(Item item)
         {
-            Type type = item.GetType();
+            var type = item.GetType();
 
             foreach (var t in HoldTypes)
-            {
                 if (type == t || type.IsSubclassOf(t))
-                {
                     return true;
-                }
-            }
 
             return false;
         }
@@ -69,7 +79,7 @@ namespace Server.Items
         {
             if (RootParent is Mobile)
             {
-                Mobile m = (Mobile)RootParent;
+                var m = (Mobile)RootParent;
 
                 m.UpdateTotals();
             }
@@ -89,11 +99,6 @@ namespace Server.Items
             InvalidateWeight();
         }
 
-        public BaseResourceSatchel(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -105,7 +110,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             _WeightReduction = reader.ReadInt();
         }
@@ -114,9 +119,12 @@ namespace Server.Items
     [Flipable(0xA272, 0xA273)]
     public class MinersSatchel : BaseResourceSatchel
     {
-        public override int LabelNumber { get { return 1158773; } } // Miner's Satchel
+        public override int LabelNumber => 1158773; // Miner's Satchel
 
-        public override Type[] HoldTypes { get { return new Type[] { typeof(BaseOre), typeof(BaseIngot), typeof(Granite), typeof(Saltpeter) }; } }
+        public override Type[] HoldTypes
+        {
+            get { return new[] { typeof(BaseOre), typeof(BaseIngot), typeof(Granite), typeof(Saltpeter) }; }
+        }
 
         [Constructable]
         public MinersSatchel()
@@ -138,16 +146,19 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     [Flipable(0xA274, 0xA275)]
     public class LumbjacksSatchel : BaseResourceSatchel
     {
-        public override int LabelNumber { get { return 1158772; } } // Lumberjack's Satchel
+        public override int LabelNumber => 1158772; // Lumberjack's Satchel
 
-        public override Type[] HoldTypes { get { return new Type[] { typeof(BaseLog), typeof(Board) }; } }
+        public override Type[] HoldTypes
+        {
+            get { return new[] { typeof(BaseLog), typeof(Board) }; }
+        }
 
         [Constructable]
         public LumbjacksSatchel()
@@ -169,7 +180,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

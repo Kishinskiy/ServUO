@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +5,8 @@ namespace Server.Mobiles
     [CorpseName("a Lady Sabrix corpse")]
     public class LadySabrix : GiantBlackWidow
     {
+        public override bool CanBeParagon => false;
+
         [Constructable]
         public LadySabrix()
         {
@@ -39,10 +40,8 @@ namespace Server.Mobiles
             Fame = 18900;
             Karma = -18900;
 
-            for (int i = 0; i < Utility.RandomMinMax(0, 1); i++)
-            {
+            for (var i = 0; i < Utility.RandomMinMax(0, 1); i++)
                 PackItem(Loot.RandomScroll(0, Loot.ArcanistScrollTypes.Length, SpellbookType.Arcanist));
-            }
 
             SetWeaponAbility(WeaponAbility.ArmorIgnore);
         }
@@ -51,25 +50,23 @@ namespace Server.Mobiles
             : base(serial)
         {
         }
-		public override bool CanBeParagon { get { return false; } }
-        public override void OnDeath( Container c )
+
+        public override void OnDeath(Container c)
         {
-            base.OnDeath( c );
+            base.OnDeath(c);
 
-            if ( Utility.RandomDouble() < 0.2 )
-            c.DropItem( new SabrixsEye() );
+            if (Utility.RandomDouble() < 0.2)
+                c.DropItem(new SabrixsEye());
 
-            if ( Utility.RandomDouble() < 0.25 )
-            {
-                switch ( Utility.Random( 2 ) )
+            if (Utility.RandomDouble() < 0.25)
+                switch (Utility.Random(2))
                 {
-                    case 0: AddToBackpack( new PaladinArms() ); break;
-                    case 1: AddToBackpack( new HunterLegs() ); break;
+                    case 0: AddToBackpack(new PaladinArms()); break;
+                    case 1: AddToBackpack(new HunterLegs()); break;
                 }
-            }
 
-            if ( Utility.RandomDouble() < 0.1 )
-            c.DropItem( new ParrotItem() );
+            if (Utility.RandomDouble() < 0.1)
+                c.DropItem(new ParrotItem());
         }
 
         public override void GenerateLoot()
@@ -81,14 +78,14 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

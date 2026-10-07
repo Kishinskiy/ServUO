@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 using Server.Misc;
 using Server.Mobiles;
@@ -11,12 +10,12 @@ namespace Server.SkillHandlers
     {
         public static void Configure()
         {
-            Container.SnoopHandler = new ContainerSnoopHandler(Container_Snoop);
+            Container.SnoopHandler = Container_Snoop;
         }
 
         public static bool CheckSnoopAllowed(Mobile from, Mobile to)
         {
-            Map map = from.Map;
+            var map = from.Map;
 
             if (to.Player)
                 return from.CanBeHarmful(to, false, true); // normal restrictions
@@ -24,12 +23,12 @@ namespace Server.SkillHandlers
             if (map != null && (map.Rules & MapRules.HarmfulRestrictions) == 0)
                 return true; // felucca you can snoop anybody
 
-            GuardedRegion reg = (GuardedRegion)to.Region.GetRegion(typeof(GuardedRegion));
+            var reg = (GuardedRegion)to.Region.GetRegion(typeof(GuardedRegion));
 
             if (reg == null || reg.IsDisabled())
                 return true; // not in town? we can snoop any npc
 
-            BaseCreature cret = to as BaseCreature;
+            var cret = to as BaseCreature;
 
             if (to.Body.IsHuman && (cret == null || (!cret.AlwaysAttackable && !cret.AlwaysMurderer)))
                 return false; // in town we cannot snoop blue human npcs
@@ -41,7 +40,7 @@ namespace Server.SkillHandlers
         {
             if (from.IsStaff() || from.InRange(cont.GetWorldLocation(), 1))
             {
-                Mobile root = cont.RootParent as Mobile;
+                var root = cont.RootParent as Mobile;
 
                 if (root != null && !root.Alive)
                     return;
@@ -63,13 +62,13 @@ namespace Server.SkillHandlers
 
                 if (root != null && from.IsPlayer() && from.Skills[SkillName.Snooping].Value < Utility.Random(100))
                 {
-                    Map map = from.Map;
+                    var map = from.Map;
 
                     if (map != null)
                     {
-                        string message = String.Format("You notice {0} peeking into your belongings!", from.Name);
+                        var message = string.Format("You notice {0} peeking into your belongings!", from.Name);
 
-                        root.Send(new AsciiMessage(-1, -1, MessageType.Label, 946, 3, "", message));                        
+                        root.Send(new AsciiMessage(-1, -1, MessageType.Label, 946, 3, "", message));
                     }
                 }
 
@@ -86,7 +85,7 @@ namespace Server.SkillHandlers
                 else
                 {
                     from.SendLocalizedMessage(500210); // You failed to peek into the container.
-					
+
                     if (from.Skills[SkillName.Hiding].Value / 2 < Utility.Random(100))
                         from.RevealingAction();
                 }

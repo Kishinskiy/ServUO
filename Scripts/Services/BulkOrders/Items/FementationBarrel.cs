@@ -1,8 +1,10 @@
 using System;
-using Server.Mobiles;
-using Server.ContextMenus;
 using System.Collections.Generic;
+using Server.ContextMenus;
+using Server.Guilds;
 using Server.Gumps;
+using Server.Mobiles;
+using Server.Network;
 
 namespace Server.Items
 {
@@ -22,53 +24,130 @@ namespace Server.Items
         private static readonly int MinFruit = 20;
         private static readonly int MaxFruit = 80;
 
-        private FruitType _FruitType;
-        private int _Fruit;
+        private readonly Type[][] _FruitTypes =
+        {
+            new[] { typeof(GrapeBunch), typeof(Grapes) },
+            new[] { typeof(Apple) },
+            new[] { typeof(Peach) },
+            new[] { typeof(Pear) },
+            new[] { typeof(Plum) }
+        };
+
         private int _BacterialResistance;
+        private int _BottlesRemaining;
+
+        private bool _Fermented;
 
         private bool _Fermenting;
         private DateTime _FermentingEnds;
+        private int _Fruit;
 
-        private bool _Fermented;
-        private bool _BadBatch;
-        private int _BottlesRemaining;
-        public string _Vintage;
+        private FruitType _FruitType;
 
         public Mobile _Maker;
+        public string _Vintage;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public FruitType FruitType { get { return _FruitType; } set { _FruitType = value; InvalidateProperties(); } }
+        public FruitType FruitType
+        {
+            get => _FruitType;
+            set
+            {
+                _FruitType = value;
+                InvalidateProperties();
+            }
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int Fruit { get { return _Fruit; } set { _Fruit = value; InvalidateProperties(); } }
+        public int Fruit
+        {
+            get => _Fruit;
+            set
+            {
+                _Fruit = value;
+                InvalidateProperties();
+            }
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int BacterialResistance { get { return _BacterialResistance; } set { _BacterialResistance = value; InvalidateProperties(); } }
+        public int BacterialResistance
+        {
+            get => _BacterialResistance;
+            set
+            {
+                _BacterialResistance = value;
+                InvalidateProperties();
+            }
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public bool Fermenting { get { return _Fermenting; } set { _Fermenting = value; InvalidateProperties(); } }
+        public bool Fermenting
+        {
+            get => _Fermenting;
+            set
+            {
+                _Fermenting = value;
+                InvalidateProperties();
+            }
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public DateTime FermentingEnds { get { return _FermentingEnds; } set { _FermentingEnds = value; InvalidateProperties(); } }
+        public DateTime FermentingEnds
+        {
+            get => _FermentingEnds;
+            set
+            {
+                _FermentingEnds = value;
+                InvalidateProperties();
+            }
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public bool Fermented { get { return _Fermented; } set { _Fermented = value; InvalidateProperties(); } }
+        public bool Fermented
+        {
+            get => _Fermented;
+            set
+            {
+                _Fermented = value;
+                InvalidateProperties();
+            }
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public bool BadBatch { get { return _BadBatch; } }
+        public bool BadBatch { get; private set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int BottlesRemaining { get { return _BottlesRemaining; } set { _BottlesRemaining = value; InvalidateProperties(); } }
+        public int BottlesRemaining
+        {
+            get => _BottlesRemaining;
+            set
+            {
+                _BottlesRemaining = value;
+                InvalidateProperties();
+            }
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public string Vintage { get { return _Vintage; } set { _Vintage = value; InvalidateProperties(); } }
+        public string Vintage
+        {
+            get => _Vintage;
+            set
+            {
+                _Vintage = value;
+                InvalidateProperties();
+            }
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public Mobile Maker { get { return _Maker; } set { _Maker = value; } }
+        public Mobile Maker
+        {
+            get => _Maker;
+            set => _Maker = value;
+        }
 
-        public bool HasYeast { get { return _BacterialResistance > 0; } }
+        public bool HasYeast => _BacterialResistance > 0;
 
-        public override int LabelNumber { get { return 1124526; } } // Fermentation Barrel
+        public override int LabelNumber => 1124526; // Fermentation Barrel
 
         public override double DefaultWeight
         {
@@ -77,7 +156,7 @@ namespace Server.Items
                 if (BottlesRemaining <= 0)
                     return 1.0;
 
-                return (double)BottlesRemaining;
+                return BottlesRemaining;
             }
         }
 
@@ -87,35 +166,39 @@ namespace Server.Items
         {
         }
 
+        public FermentationBarrel(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void OnDoubleClick(Mobile from)
         {
-            if (from.InRange(this.GetWorldLocation(), 2))
+            if (from.InRange(GetWorldLocation(), 2))
             {
                 if (_Fermenting && _FermentingEnds < DateTime.UtcNow)
                 {
                     _Fermented = true;
 
-                    int skill = (int)((from.Skills[SkillName.Cooking].Value + from.Skills[SkillName.Alchemy].Value) / 2);
+                    var skill = (int)((from.Skills[SkillName.Cooking].Value + from.Skills[SkillName.Alchemy].Value) /
+                                      2);
 
                     skill *= _BacterialResistance / 4;
 
-                    _BadBatch = skill < Utility.Random(225);
+                    BadBatch = skill < Utility.Random(225);
 
-                    if (!_BadBatch)
-                    {
-                        BottlesRemaining = _Fruit / 4;
-                    }
+                    if (!BadBatch) BottlesRemaining = _Fruit / 4;
                 }
-                
+
                 if (_Fermented)
                 {
-                    if (_BadBatch)
+                    if (BadBatch)
                     {
-                        from.PrivateOverheadMessage(Server.Network.MessageType.Regular, 1154, 1157258, from.NetState); // *You gently taste the fermentation...it's spoiled! You should probably empty the barrel*
+                        from.PrivateOverheadMessage(MessageType.Regular, 1154, 1157258,
+                            from.NetState); // *You gently taste the fermentation...it's spoiled! You should probably empty the barrel*
                     }
                     else if (_BottlesRemaining > 0)
                     {
-                        BottleOfWine bottle = new BottleOfWine(_FruitType, _Vintage, _Maker);
+                        var bottle = new BottleOfWine(_FruitType, _Vintage, _Maker);
 
                         if (from.Backpack != null && from.Backpack.TryDropItem(from, bottle, false))
                         {
@@ -138,11 +221,13 @@ namespace Server.Items
         {
             if (_Fermented)
             {
-                from.SendLocalizedMessage(1157245); // The fermentation barrel is not empty. Empty it first to add fruit and yeast.
+                from.SendLocalizedMessage(
+                    1157245); // The fermentation barrel is not empty. Empty it first to add fruit and yeast.
             }
             else if (_Fermenting)
             {
-                from.SendLocalizedMessage(1157244); // You may not add anything to the fermentation barrel after fermentation has begun.
+                from.SendLocalizedMessage(
+                    1157244); // You may not add anything to the fermentation barrel after fermentation has begun.
             }
             else if (dropped is Yeast)
             {
@@ -158,11 +243,12 @@ namespace Server.Items
             }
             else
             {
-                FruitType type = GetFruitType(dropped.GetType());
+                var type = GetFruitType(dropped.GetType());
 
                 if (_FruitType != FruitType.None && _FruitType != type)
                 {
-                    from.SendLocalizedMessage(1157243); // You may only put one type of fruit in the fermentation barrel at one time. Empty the barrel first.
+                    from.SendLocalizedMessage(
+                        1157243); // You may only put one type of fruit in the fermentation barrel at one time. Empty the barrel first.
                 }
                 else if (type != FruitType.None)
                 {
@@ -194,19 +280,11 @@ namespace Server.Items
             base.GetProperties(list);
 
             if (_Vintage != null)
-            {
                 list.Add(1157254, _Vintage); // <BASEFONT COLOR=#0099cc>~1_VAL~<BASEFONT COLOR=#FFFFFF>
-            }
 
-            if (_FruitType != FruitType.None)
-            {
-                list.Add(1157248 + (int)_FruitType);
-            }
+            if (_FruitType != FruitType.None) list.Add(1157248 + (int)_FruitType);
 
-            if (_Fermented)
-            {
-                list.Add(1157259, _BottlesRemaining.ToString()); // Bottles Remaining: ~1_VAL~
-            }
+            if (_Fermented) list.Add(1157259, _BottlesRemaining.ToString()); // Bottles Remaining: ~1_VAL~
         }
 
         public override void GetContextMenuEntries(Mobile from, List<ContextMenuEntry> entries)
@@ -214,52 +292,46 @@ namespace Server.Items
             base.GetContextMenuEntries(from, entries);
 
             entries.Add(new SimpleContextMenuEntry(from, 1157231, m => // Begin Fermentation
-                {
-                    if (_Fermenting)
-                    {
-                        m.SendLocalizedMessage(1157237); // The fermentation process has already begun.
-                    }
-                    else if (!HasYeast || _Fruit < MinFruit)
-                    {
-                        m.SendLocalizedMessage(1157255); // You do not have enough fruit or yeast to begin fermentation.
-                    }
-                    else
-                    {
-                        m.SendGump(new ConfirmCallbackGump(m as PlayerMobile, 1157234, 1157240, null, confirm: StartFermentation, close: CancelFermentation)); // Are you sure you wish to start the fermentation process? 
-                    }
-                }, 3, !_Fermented && (HasYeast || _Fruit > 0)));
+            {
+                if (_Fermenting)
+                    m.SendLocalizedMessage(1157237); // The fermentation process has already begun.
+                else if (!HasYeast || _Fruit < MinFruit)
+                    m.SendLocalizedMessage(1157255); // You do not have enough fruit or yeast to begin fermentation.
+                else
+                    m.SendGump(new ConfirmCallbackGump(m as PlayerMobile, 1157234, 1157240, null,
+                        confirm: StartFermentation,
+                        close: CancelFermentation)); // Are you sure you wish to start the fermentation process? 
+            }, 3, !_Fermented && (HasYeast || _Fruit > 0)));
 
             entries.Add(new SimpleContextMenuEntry(from, 1157232, m => // Empty Barrel
             {
-                m.SendGump(new ConfirmCallbackGump(m as PlayerMobile, 1157234, 1157235, null, confirm: DoEmpty)); // Are you sure you wish to end the fermentation process? All progress and materials will be lost!
+                m.SendGump(new ConfirmCallbackGump(m as PlayerMobile, 1157234, 1157235, null,
+                    confirm: DoEmpty)); // Are you sure you wish to end the fermentation process? All progress and materials will be lost!
             }, 3, HasYeast || _Fruit > 0));
 
             entries.Add(new SimpleContextMenuEntry(from, 1157233, m => // Rename Vintage
             {
                 if (_Fermenting)
                 {
-                    m.SendLocalizedMessage(1157238); // You may not rename the vintage once the fermentation process has begun.
+                    m.SendLocalizedMessage(
+                        1157238); // You may not rename the vintage once the fermentation process has begun.
                 }
                 else
                 {
                     m.SendLocalizedMessage(1157242); // What do you wish to call this vintage?
                     m.BeginPrompt((mob, text) =>
+                    {
+                        if (text != null)
                         {
-                            if (text != null)
-                            {
-                                text = text.Trim();
-                                text = Utility.FixHtml(text);
+                            text = text.Trim();
+                            text = Utility.FixHtml(text);
 
-                                if (text.Length > 15 || !Server.Guilds.BaseGuildGump.CheckProfanity(text))
-                                {
-                                    mob.SendMessage("That label is unacceptable. Please try again.");
-                                }
-                                else
-                                {
-                                    Vintage = text;
-                                }
-                            }
-                        }, null);
+                            if (text.Length > 15 || !BaseGuildGump.CheckProfanity(text))
+                                mob.SendMessage("That label is unacceptable. Please try again.");
+                            else
+                                Vintage = text;
+                        }
+                    }, null);
                 }
             }, 3, !_Fermented));
         }
@@ -305,37 +377,19 @@ namespace Server.Items
 
         private FruitType GetFruitType(Type t)
         {
-            for(int i = 0; i < _FruitTypes.Length; i++)
-            {
+            for (var i = 0; i < _FruitTypes.Length; i++)
                 foreach (var type in _FruitTypes[i])
-                {
                     if (type == t)
                         return (FruitType)i + 1;
-                }
-            }
 
             return FruitType.None;
-        }
-
-        private Type[][] _FruitTypes =
-        {
-            new Type[] { typeof(GrapeBunch), typeof(Grapes) },
-            new Type[] { typeof(Apple) },
-            new Type[] { typeof(Peach) },
-            new Type[] { typeof(Pear) },
-            new Type[] { typeof(Plum) }
-        };
-
-        public FermentationBarrel(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
             writer.Write((int)_FruitType);
             writer.Write(_Fruit);
@@ -345,7 +399,7 @@ namespace Server.Items
             writer.Write(_FermentingEnds);
 
             writer.Write(_Fermented);
-            writer.Write(_BadBatch);
+            writer.Write(BadBatch);
             writer.Write(_BottlesRemaining);
             writer.Write(_Vintage);
 
@@ -356,7 +410,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             _FruitType = (FruitType)reader.ReadInt();
             _Fruit = reader.ReadInt();
@@ -366,7 +420,7 @@ namespace Server.Items
             _FermentingEnds = reader.ReadDateTime();
 
             _Fermented = reader.ReadBool();
-            _BadBatch = reader.ReadBool();
+            BadBatch = reader.ReadBool();
             _BottlesRemaining = reader.ReadInt();
             _Vintage = reader.ReadString();
 
@@ -377,17 +431,41 @@ namespace Server.Items
     public class BottleOfWine : BeverageBottle
     {
         private FruitType _FruitType;
-        private string _Vintage;
         private Mobile _Maker;
+        private string _Vintage;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public FruitType FruitType { get { return _FruitType; } set { _FruitType = value; InvalidateProperties(); } }
+        public FruitType FruitType
+        {
+            get => _FruitType;
+            set
+            {
+                _FruitType = value;
+                InvalidateProperties();
+            }
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public string Vintage { get { return _Vintage; } set { _Vintage = value; InvalidateProperties(); } }
+        public string Vintage
+        {
+            get => _Vintage;
+            set
+            {
+                _Vintage = value;
+                InvalidateProperties();
+            }
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public Mobile Maker { get { return _Maker; } set { _Maker = value; InvalidateProperties(); } }
+        public Mobile Maker
+        {
+            get => _Maker;
+            set
+            {
+                _Maker = value;
+                InvalidateProperties();
+            }
+        }
 
         [Constructable]
         public BottleOfWine()
@@ -400,32 +478,10 @@ namespace Server.Items
             : base(BeverageType.Wine)
         {
             Quantity = MaxQuantity;
-            
+
             _FruitType = type;
             _Vintage = vintage;
             _Maker = maker;
-        }
-
-        public override void AddNameProperty(ObjectPropertyList list)
-        {
-            list.Add(1049519, String.Format("#{0}", (1157248 + (int)_FruitType).ToString())); // a bottle of ~1_DRINK_NAME~
-        }
-
-        public override void GetProperties(ObjectPropertyList list)
-        {
-            base.GetProperties(list);
-
-            if (_Vintage != null)
-            {
-                list.Add(1157254, _Vintage); // <BASEFONT COLOR=#0099cc>~1_VAL~<BASEFONT COLOR=#FFFFFF>
-            }
-
-            if (_Maker != null)
-            {
-                list.Add(1150679, _Maker.Name); // Distiller: ~1_NAME~
-            }
-
-            list.Add(GetQuantityDescription());
         }
 
         public BottleOfWine(Serial serial)
@@ -433,10 +489,28 @@ namespace Server.Items
         {
         }
 
+        public override void AddNameProperty(ObjectPropertyList list)
+        {
+            list.Add(1049519,
+                string.Format("#{0}", (1157248 + (int)_FruitType).ToString())); // a bottle of ~1_DRINK_NAME~
+        }
+
+        public override void GetProperties(ObjectPropertyList list)
+        {
+            base.GetProperties(list);
+
+            if (_Vintage != null)
+                list.Add(1157254, _Vintage); // <BASEFONT COLOR=#0099cc>~1_VAL~<BASEFONT COLOR=#FFFFFF>
+
+            if (_Maker != null) list.Add(1150679, _Maker.Name); // Distiller: ~1_NAME~
+
+            list.Add(GetQuantityDescription());
+        }
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
 
             writer.Write((int)_FruitType);
             writer.Write(_Vintage);
@@ -446,7 +520,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             _FruitType = (FruitType)reader.ReadInt();
             _Vintage = reader.ReadString();

@@ -1,15 +1,18 @@
-using System;
-using Server;
 using Server.Mobiles;
 
 namespace Server.Items
 {
     public class DragonTurtleEgg : ChickenLizardEgg
     {
-        public override bool CanMutate { get { return false; } }
+        public override bool CanMutate => false;
 
         [Constructable]
         public DragonTurtleEgg()
+        {
+        }
+
+        public DragonTurtleEgg(Serial serial)
+            : base(serial)
         {
         }
 
@@ -29,21 +32,16 @@ namespace Server.Items
             Delete();
         }
 
-        public DragonTurtleEgg(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

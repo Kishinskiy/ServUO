@@ -1,6 +1,3 @@
-using System;
-using Server.Gumps;
-
 namespace Server.Items
 {
     public class GreenGoblinStatuette : MonsterStatuette
@@ -11,6 +8,11 @@ namespace Server.Items
         [Constructable]
         public GreenGoblinStatuette()
             : base(MonsterStatuetteType.GreenGoblin)
+        {
+        }
+
+        public GreenGoblinStatuette(Serial serial)
+            : base(serial)
         {
         }
 
@@ -25,21 +27,13 @@ namespace Server.Items
                 else
                 {
                     if (from.Mounted)
-                    {
                         from.SendLocalizedMessage(1010097); // You cannot use this while mounted.
-                    }
                     else if (from.Flying)
-                    {
                         from.SendLocalizedMessage(1113414); // You can't use this while flying!
-                    }
                     else if (from.IsBodyMod)
-                    {
                         from.SendLocalizedMessage(1111896); // You may only change forms while in your original body.
-                    }
                     else
-                    {
                         TurnOn(from);
-                    }
                 }
             }
         }
@@ -74,54 +68,37 @@ namespace Server.Items
 
         public override bool OnDragLift(Mobile from)
         {
-            if (TurnedOn)
-            {
-                TurnOff();
-            }
+            if (TurnedOn) TurnOff();
 
             return base.OnDragLift(from);
         }
 
         public override void OnDelete()
         {
-            if (TurnedOn)
-            {
-                TurnOff();
-            }
+            if (TurnedOn) TurnOff();
 
             base.OnDelete();
         }
 
         public override void OnItemRemoved(Item item)
         {
-            if (TurnedOn)
-            {
-                TurnOff();
-            }
+            if (TurnedOn) TurnOff();
 
             base.OnItemRemoved(item);
         }
 
         public override void OnRemoved(object parent)
         {
-            if (TurnedOn)
-            {
-                TurnOff();
-            }
+            if (TurnedOn) TurnOff();
 
             base.OnRemoved(parent);
-        }
-
-        public GreenGoblinStatuette(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)1);
+            writer.Write(1);
             writer.Write(User);
         }
 
@@ -129,19 +106,16 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            switch(version)
+            switch (version)
             {
                 case 1:
                     User = reader.ReadMobile();
                     break;
             }
 
-            if(User != null)
-            {
-                TurnOn(User);
-            }
+            if (User != null) TurnOn(User);
         }
     }
 }

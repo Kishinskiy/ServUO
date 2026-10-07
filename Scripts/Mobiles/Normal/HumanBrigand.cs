@@ -75,7 +75,7 @@ namespace Server.Mobiles
             else
                 this.AddItem(new ShortPants(Utility.RandomNeutralHue()));
 
-            // hair, facial hair			
+            // hair, facial hair
             this.HairItemID = this.Race.RandomHair(this.Female);
             this.HairHue = this.Race.RandomHairHue();
             this.FacialHairItemID = this.Race.RandomFacialHair(this.Female);
@@ -133,3 +133,5 @@ namespace Server.Mobiles
         }
     }
 }*/
+
+

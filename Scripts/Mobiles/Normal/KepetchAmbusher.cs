@@ -1,14 +1,25 @@
-using System;
 using Server.Items;
-using Server.Network;
 
 namespace Server.Mobiles
 {
     [CorpseName("a kepetch corpse")]
     public class KepetchAmbusher : BaseCreature, ICarvable
     {
-        public override bool CanStealth { get { return true; } } //Stays Hidden until Combatant in range.
+        public override bool CanStealth => true; //Stays Hidden until Combatant in range.
         public bool GatheredFur { get; set; }
+
+        public override int Meat => 7;
+
+        public override int Hides => 12;
+
+        public override HideType HideType => HideType.Horned;
+
+        public override FoodType FavoriteFood => FoodType.FruitsAndVegies | FoodType.GrainsAndHay;
+
+        public override int DragonBlood => 8;
+
+        public override int Fur => GatheredFur ? 0 : 15;
+        public override FurType FurType => FurType.Brown;
 
         [Constructable]
         public KepetchAmbusher()
@@ -49,6 +60,11 @@ namespace Server.Mobiles
             //	VirtualArmor = 16;
         }
 
+        public KepetchAmbusher(Serial serial)
+            : base(serial)
+        {
+        }
+
         public bool Carve(Mobile from, Item item)
         {
             if (!GatheredFur)
@@ -57,7 +73,8 @@ namespace Server.Mobiles
 
                 if (from.Backpack == null || !from.Backpack.TryDropItem(from, fur, false))
                 {
-                    from.SendLocalizedMessage(1112359); // You would not be able to place the gathered kepetch fur in your backpack!
+                    from.SendLocalizedMessage(
+                        1112359); // You would not be able to place the gathered kepetch fur in your backpack!
                     fur.Delete();
                 }
                 else
@@ -68,14 +85,11 @@ namespace Server.Mobiles
                 }
             }
             else
+            {
                 from.SendLocalizedMessage(1112358); // The Kepetch nimbly escapes your attempts to shear its mane.
+            }
 
             return false;
-        }
-
-        public KepetchAmbusher(Serial serial)
-            : base(serial)
-        {
         }
 
         //Can Flush them out of Hiding
@@ -90,31 +104,6 @@ namespace Server.Mobiles
             RevealingAction();
             base.OnDamagedBySpell(from);
         }
-
-        public override int Meat
-        {
-            get { return 7; }
-        }
-
-        public override int Hides
-        {
-            get { return 12; }
-        }
-
-        public override HideType HideType
-        {
-            get { return HideType.Horned; }
-        }
-
-        public override FoodType FavoriteFood
-        {
-            get { return FoodType.FruitsAndVegies | FoodType.GrainsAndHay; }
-        }
-
-        public override int DragonBlood { get { return 8; } }
-
-        public override int Fur { get { return GatheredFur ? 0 : 15; } }
-        public override FurType FurType { get { return FurType.Brown; } }
 
         public override void GenerateLoot()
         {
@@ -145,53 +134,37 @@ namespace Server.Mobiles
         {
             base.OnDeath(c);
 
-            if (Utility.RandomDouble() < 0.1)
-            {
-                c.DropItem(new KepetchWax());
-            }
+            if (Utility.RandomDouble() < 0.1) c.DropItem(new KepetchWax());
         }
 
         public override void OnThink()
         {
+            if (!Alive || Deleted) return;
 
-            if (!this.Alive || this.Deleted)
+            if (!Hidden)
             {
-                return;
-            }
+                var chance = 0.05;
 
-            if (!this.Hidden)
-            {
-                double chance = 0.05;
+                if (Hits < 20) chance = 0.1;
 
-                if (this.Hits < 20)
-                {
-                    chance = 0.1;
-                }
+                if (Poisoned) chance = 0.01;
 
-                if (this.Poisoned)
-                {
-                    chance = 0.01;
-                }
-
-                if (Utility.RandomDouble() < chance)
-                {
-                    HideSelf();
-                }
+                if (Utility.RandomDouble() < chance) HideSelf();
                 base.OnThink();
             }
         }
 
         private void HideSelf()
         {
-            if (Core.TickCount >= this.NextSkillTime)
+            if (Core.TickCount >= NextSkillTime)
             {
                 Effects.SendLocationParticles(
-                    EffectItem.Create(this.Location, this.Map, EffectItem.DefaultDuration), 0x3728, 10, 10, 2023);
+                    EffectItem.Create(Location, Map, EffectItem.DefaultDuration), 0x3728, 10, 10, 2023);
 
-                this.PlaySound(0x22F);
-                this.Hidden = true;
+                PlaySound(0x22F);
+                Hidden = true;
 
-                this.UseSkill(SkillName.Stealth);
+                UseSkill(SkillName.Stealth);
             }
         }
 

@@ -1,5 +1,6 @@
 using System;
 using Server.Network;
+using Server.Spells;
 
 namespace Server.Items
 {
@@ -13,29 +14,12 @@ namespace Server.Items
 
     public class SpikeTrap : BaseTrap
     {
-        [Constructable]
-        public SpikeTrap()
-            : this(SpikeTrapType.WestFloor)
-        {
-        }
-
-        [Constructable]
-        public SpikeTrap(SpikeTrapType type)
-            : base(GetBaseID(type))
-        {
-        }
-
-        public SpikeTrap(Serial serial)
-            : base(serial)
-        {
-        }
-
         [CommandProperty(AccessLevel.GameMaster)]
         public SpikeTrapType Type
         {
             get
             {
-                switch ( this.ItemID )
+                switch (ItemID)
                 {
                     case 4360:
                     case 4361:
@@ -59,56 +43,52 @@ namespace Server.Items
             }
             set
             {
-                bool extended = this.Extended;
+                var extended = Extended;
 
-                this.ItemID = (extended ? GetExtendedID(value) : GetBaseID(value));
+                ItemID = extended ? GetExtendedID(value) : GetBaseID(value);
             }
         }
+
         public bool Extended
         {
-            get
-            {
-                return (this.ItemID == GetExtendedID(this.Type));
-            }
+            get => ItemID == GetExtendedID(Type);
             set
             {
                 if (value)
-                    this.ItemID = GetExtendedID(this.Type);
+                    ItemID = GetExtendedID(Type);
                 else
-                    this.ItemID = GetBaseID(this.Type);
+                    ItemID = GetBaseID(Type);
             }
         }
-        public override bool PassivelyTriggered
+
+        public override bool PassivelyTriggered => false;
+
+        public override TimeSpan PassiveTriggerDelay => TimeSpan.Zero;
+
+        public override int PassiveTriggerRange => 0;
+
+        public override TimeSpan ResetDelay => TimeSpan.FromSeconds(6.0);
+
+        [Constructable]
+        public SpikeTrap()
+            : this(SpikeTrapType.WestFloor)
         {
-            get
-            {
-                return false;
-            }
         }
-        public override TimeSpan PassiveTriggerDelay
+
+        [Constructable]
+        public SpikeTrap(SpikeTrapType type)
+            : base(GetBaseID(type))
         {
-            get
-            {
-                return TimeSpan.Zero;
-            }
         }
-        public override int PassiveTriggerRange
+
+        public SpikeTrap(Serial serial)
+            : base(serial)
         {
-            get
-            {
-                return 0;
-            }
         }
-        public override TimeSpan ResetDelay
-        {
-            get
-            {
-                return TimeSpan.FromSeconds(6.0);
-            }
-        }
+
         public static int GetBaseID(SpikeTrapType type)
         {
-            switch ( type )
+            switch (type)
             {
                 case SpikeTrapType.WestWall:
                     return 4360;
@@ -130,7 +110,7 @@ namespace Server.Items
 
         public static int GetExtendedOffset(SpikeTrapType type)
         {
-            switch ( type )
+            switch (type)
             {
                 case SpikeTrapType.WestWall:
                     return 6;
@@ -151,48 +131,46 @@ namespace Server.Items
             if (!from.Alive || from.IsStaff())
                 return;
 
-            Effects.SendLocationEffect(this.Location, this.Map, GetBaseID(this.Type) + 1, 18, 3, this.GetEffectHue(), 0);
-            Effects.PlaySound(this.Location, this.Map, 0x22C);
+            Effects.SendLocationEffect(Location, Map, GetBaseID(Type) + 1, 18, 3, GetEffectHue(), 0);
+            Effects.PlaySound(Location, Map, 0x22C);
             IPooledEnumerable eable = GetMobilesInRange(0);
 
             foreach (Mobile mob in eable)
-            {
                 if (mob.Alive && !mob.IsDeadBondedPet)
-                    Spells.SpellHelper.Damage(TimeSpan.FromTicks(1), mob, mob, Utility.RandomMinMax(1, 6) * 6);
-            }
+                    SpellHelper.Damage(TimeSpan.FromTicks(1), mob, mob, Utility.RandomMinMax(1, 6) * 6);
             eable.Free();
 
-            Timer.DelayCall(TimeSpan.FromSeconds(1.0), new TimerCallback(OnSpikeExtended));
+            Timer.DelayCall(TimeSpan.FromSeconds(1.0), OnSpikeExtended);
 
             from.LocalOverheadMessage(MessageType.Regular, 0x22, 500852); // You stepped onto a spike trap!
         }
 
         public virtual void OnSpikeExtended()
         {
-            this.Extended = true;
-            Timer.DelayCall(TimeSpan.FromSeconds(5.0), new TimerCallback(OnSpikeRetracted));
+            Extended = true;
+            Timer.DelayCall(TimeSpan.FromSeconds(5.0), OnSpikeRetracted);
         }
 
         public virtual void OnSpikeRetracted()
         {
-            this.Extended = false;
-            Effects.SendLocationEffect(this.Location, this.Map, GetExtendedID(this.Type) - 1, 6, 3, this.GetEffectHue(), 0);
+            Extended = false;
+            Effects.SendLocationEffect(Location, Map, GetExtendedID(Type) - 1, 6, 3, GetEffectHue(), 0);
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            this.Extended = false;
+            Extended = false;
         }
     }
 }

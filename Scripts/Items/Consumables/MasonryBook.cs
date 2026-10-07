@@ -1,11 +1,10 @@
-using System;
 using Server.Mobiles;
 
 namespace Server.Items
 {
     public class MasonryBook : Item
     {
-        public override int LabelNumber { get { return 1153527; } } // Making valuables with Stonecrafting
+        public override int LabelNumber => 1153527; // Making valuables with Stonecrafting
 
         [Constructable]
         public MasonryBook()
@@ -21,12 +20,9 @@ namespace Server.Items
 
         public override void OnDoubleClick(Mobile from)
         {
-            PlayerMobile pm = from as PlayerMobile;
+            var pm = from as PlayerMobile;
 
-            if (pm == null)
-            {
-                return;
-            }
+            if (pm == null) return;
 
             if (!IsChildOf(pm.Backpack))
             {
@@ -43,7 +39,8 @@ namespace Server.Items
             else
             {
                 pm.Masonry = true;
-                pm.SendLocalizedMessage(1080044); // You have learned to make items from stone. You will need miners to gather stones for you to make these items.
+                pm.SendLocalizedMessage(
+                    1080044); // You have learned to make items from stone. You will need miners to gather stones for you to make these items.
 
                 Delete();
             }
@@ -53,14 +50,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

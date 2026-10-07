@@ -1,12 +1,12 @@
-using System;
-using Server;
-using Server.Spells;
-
 namespace Server.Items
 {
     public class GargishDupresSword : StoneWarSword
     {
-        public override bool IsArtifact { get { return true; } }
+        public override bool IsArtifact => true;
+
+        public override bool CanFortify => false;
+
+        public override int LabelNumber => 1153551;
 
         [Constructable]
         public GargishDupresSword()
@@ -19,27 +19,23 @@ namespace Server.Items
             Attributes.WeaponDamage = 100;
             WeaponAttributes.HitManaDrain = 50;
         }
-        
+
         public GargishDupresSword(Serial serial) : base(serial)
         {
         }
 
-        public override bool CanFortify { get { return false; } }
-
-        public override int LabelNumber { get { return 1153551; } }
-
-        public override void Serialize( GenericWriter writer )
+        public override void Serialize(GenericWriter writer)
         {
-            base.Serialize( writer );
+            base.Serialize(writer);
 
-            writer.Write( (int) 0 );
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
-            base.Deserialize( reader );
+            base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

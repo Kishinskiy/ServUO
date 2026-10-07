@@ -1,4 +1,5 @@
 using System;
+using Server.Engines.Plants;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +7,14 @@ namespace Server.Mobiles
     [CorpseName("a glowing yomotsu corpse")]
     public class YomotsuPriest : BaseCreature
     {
+        public override int TreasureMapLevel => 4;
+
+        public override FoodType FavoriteFood => FoodType.Fish;
+
+        public override int Meat => 1;
+
+        public override bool CanRummageCorpses => true;
+
         [Constructable]
         public YomotsuPriest()
             : base(AIType.AI_Mage, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -43,7 +52,7 @@ namespace Server.Mobiles
             PackItem(new GreenGourd());
             PackItem(new ExecutionersAxe());
 
-            switch ( Utility.Random(3) )
+            switch (Utility.Random(3))
             {
                 case 0:
                     PackItem(new LongPants());
@@ -53,7 +62,7 @@ namespace Server.Mobiles
                     break;
             }
 
-            switch ( Utility.Random(6) )
+            switch (Utility.Random(6))
             {
                 case 0:
                     PackItem(new Shoes());
@@ -70,7 +79,7 @@ namespace Server.Mobiles
             }
 
             if (Utility.RandomDouble() < .25)
-                PackItem(Engines.Plants.Seed.RandomBonsaiSeed());
+                PackItem(Seed.RandomBonsaiSeed());
 
             SetWeaponAbility(WeaponAbility.DoubleStrike);
         }
@@ -78,30 +87,6 @@ namespace Server.Mobiles
         public YomotsuPriest(Serial serial)
             : base(serial)
         {
-        }
-		
-		public override int TreasureMapLevel { get { return 4; } }
-
-        public override FoodType FavoriteFood
-        {
-            get
-            {
-                return FoodType.Fish;
-            }
-        }
-        public override int Meat
-        {
-            get
-            {
-                return 1;
-            }
-        }
-        public override bool CanRummageCorpses
-        {
-            get
-            {
-                return true;
-            }
         }
 
         public override void GenerateLoot()
@@ -119,10 +104,10 @@ namespace Server.Mobiles
             if (0.1 > Utility.RandomDouble())
             {
                 /* Maniacal laugh
-                * Cliloc: 1070840
-                * Effect: Type: "3" From: "0x57D4F5B" To: "0x0" ItemId: "0x37B9" ItemIdName: "glow" FromLocation: "(884 715, 10)" ToLocation: "(884 715, 10)" Speed: "10" Duration: "5" FixedDirection: "True" Explode: "False"
-                * Paralyzes for 4 seconds, or until hit
-                */
+                 * Cliloc: 1070840
+                 * Effect: Type: "3" From: "0x57D4F5B" To: "0x0" ItemId: "0x37B9" ItemIdName: "glow" FromLocation: "(884 715, 10)" ToLocation: "(884 715, 10)" Speed: "10" Duration: "5" FixedDirection: "True" Explode: "False"
+                 * Paralyzes for 4 seconds, or until hit
+                 */
                 defender.FixedEffect(0x37B9, 10, 5);
                 defender.SendLocalizedMessage(1070840); // You are frozen as the creature laughs maniacally.
 
@@ -133,13 +118,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         public override int GetIdleSound()

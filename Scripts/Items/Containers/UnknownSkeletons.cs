@@ -1,11 +1,8 @@
-﻿using System;
-using Server;
-
-namespace Server.Items
+﻿namespace Server.Items
 {
     public class UnknownBardSkeleton : BaseContainer
     {
-        public override int DefaultGumpID { get { return 0x9; } }
+        public override int DefaultGumpID => 0x9;
 
         [Constructable]
         public UnknownBardSkeleton()
@@ -51,13 +48,13 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class UnknownRogueSkeleton : BaseContainer
     {
-        public override int DefaultGumpID { get { return 0x9; } }
+        public override int DefaultGumpID => 0x9;
 
         [Constructable]
         public UnknownRogueSkeleton()
@@ -102,13 +99,13 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class UnknownMageSkeleton : BaseContainer
     {
-        public override int DefaultGumpID { get { return 0x9; } }
+        public override int DefaultGumpID => 0x9;
 
         [Constructable]
         public UnknownMageSkeleton()
@@ -128,14 +125,14 @@ namespace Server.Items
 
             Item item;
 
-            for (int i = 0; i < 3; i++)
+            for (var i = 0; i < 3; i++)
             {
                 item = Loot.RandomReagent();
                 item.Amount = Utility.RandomMinMax(15, 20);
                 DropItem(item);
             }
 
-            for (int i = 0; i < 3; i++)
+            for (var i = 0; i < 3; i++)
             {
                 if (0.25 >= Utility.RandomDouble())
                     item = Loot.RandomScroll(0, Loot.NecromancyScrollTypes.Length, SpellbookType.Necromancer);
@@ -163,7 +160,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

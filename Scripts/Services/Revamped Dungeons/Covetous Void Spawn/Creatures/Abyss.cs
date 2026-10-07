@@ -1,6 +1,3 @@
-using Server;
-using System;
-
 namespace Server.Mobiles
 {
     [CorpseName("a mongbat corpse")]
@@ -38,7 +35,7 @@ namespace Server.Mobiles
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -77,7 +74,7 @@ namespace Server.Mobiles
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -116,7 +113,7 @@ namespace Server.Mobiles
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -141,15 +138,34 @@ namespace Server.Mobiles
             Body = 241;
         }
 
-        public override int GetAngerSound() { return 0x4E3; }
-        public override int GetIdleSound() { return 0x4E2; }
-        public override int GetAttackSound() { return 0x4E1; }
-        public override int GetHurtSound() { return 0x4E4; }
-        public override int GetDeathSound() { return 0x4E0; }
-
         public LesserOni(Serial serial)
             : base(serial)
         {
+        }
+
+        public override int GetAngerSound()
+        {
+            return 0x4E3;
+        }
+
+        public override int GetIdleSound()
+        {
+            return 0x4E2;
+        }
+
+        public override int GetAttackSound()
+        {
+            return 0x4E1;
+        }
+
+        public override int GetHurtSound()
+        {
+            return 0x4E4;
+        }
+
+        public override int GetDeathSound()
+        {
+            return 0x4E0;
         }
 
         public override void Serialize(GenericWriter writer)
@@ -161,7 +177,7 @@ namespace Server.Mobiles
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
@@ -200,7 +216,7 @@ namespace Server.Mobiles
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

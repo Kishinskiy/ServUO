@@ -1,5 +1,5 @@
 using System;
-using System.Collections;
+using Server.Engines.Plants;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -7,6 +7,8 @@ namespace Server.Mobiles
     [CorpseName("a kappa corpse")]
     public class Kappa : BaseCreature
     {
+        public override int TreasureMapLevel => 2;
+
         [Constructable]
         public Kappa()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -40,9 +42,8 @@ namespace Server.Mobiles
             Karma = -1700;
 
             PackItem(new RawFishSteak(3));
-            for (int i = 0; i < 2; i++)
-            {
-                switch ( Utility.Random(6) )
+            for (var i = 0; i < 2; i++)
+                switch (Utility.Random(6))
                 {
                     case 0:
                         PackItem(new Gears());
@@ -54,10 +55,9 @@ namespace Server.Mobiles
                         PackItem(new Axle());
                         break;
                 }
-            }
 
             if (Core.ML && Utility.RandomDouble() < .33)
-                PackItem(Engines.Plants.Seed.RandomPeculiarSeed(2));
+                PackItem(Seed.RandomPeculiarSeed(2));
 
             SetSpecialAbility(SpecialAbility.LifeLeech);
         }
@@ -65,14 +65,6 @@ namespace Server.Mobiles
         public Kappa(Serial serial)
             : base(serial)
         {
-        }
-		
-		public override int TreasureMapLevel
-        {
-            get
-            {
-                return 2;
-            }
         }
 
         public override void GenerateLoot()
@@ -110,27 +102,26 @@ namespace Server.Mobiles
         {
             if (from != null && from.Map != null)
             {
-                int amt = 0;
-                Mobile target = this; 
-                int rand = Utility.Random(1, 100);
-                if (willKill)
+                var amt = 0;
+                Mobile target = this;
+                var rand = Utility.Random(1, 100);
+                if (willKill) amt = ((rand % 5) >> 2) + 3;
+                if (Hits < 100 && rand < 21)
                 {
-                    amt = (((rand % 5) >> 2) + 3);
-                }
-                if ((Hits < 100) && (rand < 21)) 
-                {
-                    target = (rand % 2) < 1 ? this : from;
+                    target = rand % 2 < 1 ? this : from;
                     amt++;
                 }
+
                 if (amt > 0)
                 {
                     SpillAcid(target, amt);
-                    from.SendLocalizedMessage(1070820); 
+                    from.SendLocalizedMessage(1070820);
                     if (Mana > 14)
                         Mana -= 15;
                     amt ^= amt;
                 }
             }
+
             base.OnDamage(amount, from, willKill);
         }
 
@@ -142,13 +133,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

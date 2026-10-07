@@ -1,5 +1,5 @@
 /* Based on Wailing Banshee, still no infos on Wight, including correct body ID */
-using System;
+
 using Server.Items;
 
 namespace Server.Mobiles
@@ -7,6 +7,8 @@ namespace Server.Mobiles
     [CorpseName("a wight corpse")]
     public class Wight : BaseCreature
     {
+        public override bool BleedImmune => true;
+
         [Constructable]
         public Wight()
             : base(AIType.AI_NecroMage, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -26,7 +28,7 @@ namespace Server.Mobiles
 
             SetDamageType(ResistanceType.Physical, 20);
             SetDamageType(ResistanceType.Cold, 80);
-			
+
             SetResistance(ResistanceType.Physical, 35, 45);
             SetResistance(ResistanceType.Fire, 30, 40);
             SetResistance(ResistanceType.Cold, 50, 60);
@@ -55,14 +57,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool BleedImmune
-        {
-            get
-            {
-                return true;
-            }
-        }
-
         public override void GenerateLoot()
         {
             AddLoot(LootPack.Meager);
@@ -71,13 +65,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

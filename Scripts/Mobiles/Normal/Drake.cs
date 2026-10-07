@@ -1,10 +1,28 @@
-using System;
-
 namespace Server.Mobiles
 {
     [CorpseName("a drake corpse")]
     public class Drake : BaseCreature
     {
+        public override bool ReacquireOnMovement => true;
+
+        public override int TreasureMapLevel => 2;
+
+        public override int Meat => 10;
+
+        public override int DragonBlood => 8;
+
+        public override int Hides => 20;
+
+        public override HideType HideType => HideType.Horned;
+
+        public override int Scales => 2;
+
+        public override ScaleType ScaleType => Body == 60 ? ScaleType.Yellow : ScaleType.Red;
+
+        public override FoodType FavoriteFood => FoodType.Meat | FoodType.Fish;
+
+        public override bool CanFly => true;
+
         [Constructable]
         public Drake()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -53,76 +71,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool ReacquireOnMovement
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override int TreasureMapLevel
-        {
-            get
-            {
-                return 2;
-            }
-        }
-        public override int Meat
-        {
-            get
-            {
-                return 10;
-            }
-        }
-        public override int DragonBlood
-        {
-            get
-            {
-                return 8;
-            }
-        }
-        public override int Hides
-        {
-            get
-            {
-                return 20;
-            }
-        }
-        public override HideType HideType
-        {
-            get
-            {
-                return HideType.Horned;
-            }
-        }
-        public override int Scales
-        {
-            get
-            {
-                return 2;
-            }
-        }
-        public override ScaleType ScaleType
-        {
-            get
-            {
-                return (Body == 60 ? ScaleType.Yellow : ScaleType.Red);
-            }
-        }
-        public override FoodType FavoriteFood
-        {
-            get
-            {
-                return FoodType.Meat | FoodType.Fish;
-            }
-        }
-        public override bool CanFly
-        {
-            get
-            {
-                return true;
-            }
-        }
         public override void GenerateLoot()
         {
             AddLoot(LootPack.Rich);
@@ -132,13 +80,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

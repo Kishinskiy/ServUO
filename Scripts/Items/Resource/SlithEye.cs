@@ -1,9 +1,9 @@
-using System;
-
 namespace Server.Items
 {
     public class SlithEye : Item
     {
+        public override int LabelNumber => 1112396; // slith's eye
+
         [Constructable]
         public SlithEye()
             : this(1)
@@ -12,10 +12,10 @@ namespace Server.Items
 
         [Constructable]
         public SlithEye(int amount)
-			: base(0x5749)
+            : base(0x5749)
         {
-            this.Stackable = true;
-            this.Amount = amount;
+            Stackable = true;
+            Amount = amount;
         }
 
         public SlithEye(Serial serial)
@@ -23,25 +23,18 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1112396;
-            }
-        }// slith's eye
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

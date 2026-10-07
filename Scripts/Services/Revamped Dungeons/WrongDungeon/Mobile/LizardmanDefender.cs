@@ -1,4 +1,3 @@
-using System;
 using Server.Misc;
 
 namespace Server.Mobiles
@@ -6,15 +5,22 @@ namespace Server.Mobiles
     [CorpseName("a lizardman corpse")]
     public class LizardmanDefender : BaseCreature
     {
+        public override InhumanSpeech SpeechType => InhumanSpeech.Lizardman;
+        public override bool CanRummageCorpses => true;
+        public override int TreasureMapLevel => 3;
+        public override int Meat => 1;
+        public override int Hides => 12;
+        public override HideType HideType => HideType.Spined;
+
         [Constructable]
         public LizardmanDefender()
             : base(AIType.AI_Archer, FightMode.Closest, 10, 1, 0.2, 0.4)
         {
-            this.Name = NameList.RandomName("lizardman");
-            this.Title = "the defender";
-            this.Body = Utility.RandomList(35, 36);
-            this.BaseSoundID = 417;
-            this.Hue = 1949;
+            Name = NameList.RandomName("lizardman");
+            Title = "the defender";
+            Body = Utility.RandomList(35, 36);
+            BaseSoundID = 417;
+            Hue = 1949;
 
             SetStr(157, 180);
             SetDex(105, 108);
@@ -46,13 +52,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override InhumanSpeech SpeechType { get { return InhumanSpeech.Lizardman; } }
-        public override bool CanRummageCorpses { get { return true; } }
-		public override int TreasureMapLevel { get { return 3; } }
-        public override int Meat { get { return 1; } }
-        public override int Hides { get { return 12; } }
-        public override HideType HideType { get { return HideType.Spined; } }
-
         public override void GenerateLoot()
         {
             AddLoot(LootPack.Meager);
@@ -61,13 +60,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

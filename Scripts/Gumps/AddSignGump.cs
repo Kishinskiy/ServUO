@@ -1,13 +1,11 @@
-using System;
 using Server.Commands;
-using Server.Items;
 using Server.Network;
 
 namespace Server.Gumps
 {
     public class AddSignGump : Gump
     {
-        public static SignInfo[] m_Types = new SignInfo[]
+        public static SignInfo[] m_Types =
         {
             new SignInfo(0xB95),
             new SignInfo(0xB96),
@@ -142,6 +140,7 @@ namespace Server.Gumps
         };
 
         private readonly int m_Type;
+
         public AddSignGump()
             : this(-1)
         {
@@ -156,17 +155,17 @@ namespace Server.Gumps
 
             AddBlueBack(570, 175);
 
-            int pages = m_Types.Length / 20 + 1;
-            for (int i = 0; i < m_Types.Length; ++i)
+            var pages = m_Types.Length / 20 + 1;
+            for (var i = 0; i < m_Types.Length; ++i)
             {
-                int page = i / 20 + 1;
-                int xpos = (i / 2) % 10 ;
-                int ypos = i % 2;
+                var page = i / 20 + 1;
+                var xpos = i / 2 % 10;
+                var ypos = i % 2;
 
                 if (xpos == 0 && ypos == 0)
                 {
                     AddPage(page);
-                    AddHtmlLocalized(30, 20, 60, 20, 1042971, String.Format("{0}",page), 0x7FFF, false, false); // #
+                    AddHtmlLocalized(30, 20, 60, 20, 1042971, string.Format("{0}", page), 0x7FFF, false, false); // #
 
                     AddHtmlLocalized(30, 45, 60, 20, 1043353, 0x7FFF, false, false); // Next
                     if (page < pages)
@@ -184,8 +183,8 @@ namespace Server.Gumps
                 if (m_Types[i].m_BaseID == 0)
                     continue;
 
-                int x = (xpos + 1) * 50;
-                int y = (ypos * 75);
+                var x = (xpos + 1) * 50;
+                var y = ypos * 75;
                 AddButton(30 + x, 20 + y, 0x2624, 0x2625, i + 1, GumpButtonType.Reply, m_Types[i].m_BaseID);
                 AddItem(15 + x, 40 + y, m_Types[i].m_BaseID);
             }
@@ -193,7 +192,7 @@ namespace Server.Gumps
 
         public static void Initialize()
         {
-            CommandSystem.Register("AddSign", AccessLevel.GameMaster, new CommandEventHandler(AddSign_OnCommand));
+            CommandSystem.Register("AddSign", AccessLevel.GameMaster, AddSign_OnCommand);
         }
 
         [Usage("AddSign")]
@@ -213,13 +212,14 @@ namespace Server.Gumps
 
         public override void OnResponse(NetState sender, RelayInfo info)
         {
-            Mobile from = sender.Mobile;
-            int button = info.ButtonID - 1;
+            var from = sender.Mobile;
+            var button = info.ButtonID - 1;
 
             if (button < 0)
                 return;
 
-            CommandSystem.Handle(from, String.Format("{0}Add {1} {2}", CommandSystem.Prefix, " Sign ", m_Types[button].m_BaseID));
+            CommandSystem.Handle(from,
+                string.Format("{0}Add {1} {2}", CommandSystem.Prefix, " Sign ", m_Types[button].m_BaseID));
             from.SendGump(new AddSignGump());
         }
     }
@@ -227,6 +227,7 @@ namespace Server.Gumps
     public class SignInfo
     {
         public int m_BaseID;
+
         public SignInfo(int baseID)
         {
             m_BaseID = baseID;

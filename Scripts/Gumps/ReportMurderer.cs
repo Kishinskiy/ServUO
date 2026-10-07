@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using Server.Items;
 using Server.Misc;
 using Server.Mobiles;
 using Server.Network;
+using Server.SkillHandlers;
 using Server.Spells;
 
 namespace Server.Gumps
@@ -12,6 +14,7 @@ namespace Server.Gumps
         private readonly List<Mobile> m_Killers;
         private readonly Mobile m_Victum;
         private int m_Idx;
+
         public ReportMurdererGump(Mobile victum, List<Mobile> killers)
             : this(victum, killers, 0)
         {
@@ -28,65 +31,59 @@ namespace Server.Gumps
 
         public static void Initialize()
         {
-            EventSink.PlayerDeath += new PlayerDeathEventHandler(EventSink_PlayerDeath);
+            EventSink.PlayerDeath += EventSink_PlayerDeath;
         }
 
         public static void EventSink_PlayerDeath(PlayerDeathEventArgs e)
         {
-            Mobile m = e.Mobile;
+            var m = e.Mobile;
 
-            List<Mobile> killers = new List<Mobile>();
-            List<Mobile> toGive = new List<Mobile>();
+            var killers = new List<Mobile>();
+            var toGive = new List<Mobile>();
 
-            foreach (AggressorInfo ai in m.Aggressors)
+            foreach (var ai in m.Aggressors)
             {
                 if (ai.Attacker.Player && ai.CanReportMurder && !ai.Reported)
-                {
                     if (!Core.SE || !((PlayerMobile)m).RecentlyReported.Contains(ai.Attacker))
-                    {
                         if (!killers.Contains(ai.Attacker))
                         {
                             killers.Add(ai.Attacker);
                             ai.Reported = true;
                             ai.CanReportMurder = false;
                         }
-                    }
-                }
-                if (ai.Attacker.Player && (DateTime.UtcNow - ai.LastCombatTime) < TimeSpan.FromSeconds(30.0) && !toGive.Contains(ai.Attacker))
+
+                if (ai.Attacker.Player && DateTime.UtcNow - ai.LastCombatTime < TimeSpan.FromSeconds(30.0) &&
+                    !toGive.Contains(ai.Attacker))
                     toGive.Add(ai.Attacker);
             }
 
-            foreach (AggressorInfo ai in m.Aggressed)
-            {
-                if (ai.Defender.Player && (DateTime.UtcNow - ai.LastCombatTime) < TimeSpan.FromSeconds(30.0) && !toGive.Contains(ai.Defender))
+            foreach (var ai in m.Aggressed)
+                if (ai.Defender.Player && DateTime.UtcNow - ai.LastCombatTime < TimeSpan.FromSeconds(30.0) &&
+                    !toGive.Contains(ai.Defender))
                     toGive.Add(ai.Defender);
-            }
 
-            foreach (Mobile g in toGive)
+            foreach (var g in toGive)
             {
-                int n = Notoriety.Compute(g, m);
+                var n = Notoriety.Compute(g, m);
 
                 int theirKarma = m.Karma, ourKarma = g.Karma;
-                bool innocent = (n == Notoriety.Innocent);
-                bool criminal = (n == Notoriety.Criminal || n == Notoriety.Murderer);
+                var innocent = n == Notoriety.Innocent;
+                var criminal = n == Notoriety.Criminal || n == Notoriety.Murderer;
 
-                int fameAward = m.Fame / 200;
-                int karmaAward = 0;
+                var fameAward = m.Fame / 200;
+                var karmaAward = 0;
 
                 if (innocent)
-                    karmaAward = (ourKarma > -2500 ? -850 : -110 - (m.Karma / 100));
+                    karmaAward = ourKarma > -2500 ? -850 : -110 - m.Karma / 100;
                 else if (criminal)
                     karmaAward = 50;
 
                 Titles.AwardFame(g, fameAward, false);
                 Titles.AwardKarma(g, karmaAward, true);
 
-                Server.Items.XmlQuest.RegisterKill(m, g);
+                XmlQuest.RegisterKill(m, g);
 
-                if (killers.Contains(g))
-                {
-                    EventSink.InvokePlayerMurdered(new PlayerMurderedEventArgs(g, m));
-                }
+                if (killers.Contains(g)) EventSink.InvokePlayerMurdered(new PlayerMurderedEventArgs(g, m));
             }
 
             if (m is PlayerMobile && ((PlayerMobile)m).NpcGuild == NpcGuild.ThievesGuild)
@@ -98,61 +95,60 @@ namespace Server.Gumps
 
         public static void ReportedListExpiry_Callback(object state)
         {
-            object[] states = (object[])state;
+            var states = (object[])state;
 
-            PlayerMobile from = (PlayerMobile)states[0];
-            Mobile killer = (Mobile)states[1];
+            var from = (PlayerMobile)states[0];
+            var killer = (Mobile)states[1];
 
-            if (from.RecentlyReported.Contains(killer))
-            {
-                from.RecentlyReported.Remove(killer);
-            }
+            if (from.RecentlyReported.Contains(killer)) from.RecentlyReported.Remove(killer);
         }
 
         public override void OnResponse(NetState state, RelayInfo info)
         {
-            Mobile from = state.Mobile;
+            var from = state.Mobile;
 
-            switch ( info.ButtonID )
+            switch (info.ButtonID)
             {
                 case 1:
+                {
+                    var killer = m_Killers[m_Idx];
+                    if (killer != null && !killer.Deleted)
                     {
-                        Mobile killer = m_Killers[m_Idx];
-                        if (killer != null && !killer.Deleted)
+                        killer.Kills++;
+                        killer.ShortTermMurders++;
+
+                        if (Core.SE)
                         {
-                            killer.Kills++;
-                            killer.ShortTermMurders++;
+                            ((PlayerMobile)from).RecentlyReported.Add(killer);
+                            Timer.DelayCall(TimeSpan.FromMinutes(10),
+                                new TimerStateCallback(ReportedListExpiry_Callback), new object[] { from, killer });
+                        }
 
-                            if (Core.SE)
+                        if (killer is PlayerMobile)
+                        {
+                            var pk = (PlayerMobile)killer;
+                            pk.ResetKillTime();
+                            pk.SendLocalizedMessage(1049067); //You have been reported for murder!
+
+                            if (pk.Kills == 5)
                             {
-                                ((PlayerMobile)from).RecentlyReported.Add(killer);
-                                Timer.DelayCall(TimeSpan.FromMinutes(10), new TimerStateCallback(ReportedListExpiry_Callback), new object[] { from, killer });
+                                pk.SendLocalizedMessage(502134); //You are now known as a murderer!
+
+                                CheckMurderer(pk);
                             }
-
-                            if (killer is PlayerMobile)
+                            else if (Stealing.SuspendOnMurder && pk.Kills == 1 && pk.NpcGuild == NpcGuild.ThievesGuild)
                             {
-                                PlayerMobile pk = (PlayerMobile)killer;
-                                pk.ResetKillTime();
-                                pk.SendLocalizedMessage(1049067);//You have been reported for murder!
-
-                                if (pk.Kills == 5)
-                                {
-                                    pk.SendLocalizedMessage(502134);//You are now known as a murderer!
-
-                                    CheckMurderer(pk);
-                                }
-                                else if (SkillHandlers.Stealing.SuspendOnMurder && pk.Kills == 1 && pk.NpcGuild == NpcGuild.ThievesGuild)
-                                {
-                                    pk.SendLocalizedMessage(501562); // You have been suspended by the Thieves Guild.
-                                }
+                                pk.SendLocalizedMessage(501562); // You have been suspended by the Thieves Guild.
                             }
                         }
-                        break;
                     }
+
+                    break;
+                }
                 case 2:
-                    {
-                        break;
-                    }
+                {
+                    break;
+                }
             }
 
             m_Idx++;
@@ -162,8 +158,8 @@ namespace Server.Gumps
 
         public static void CheckMurderer(Mobile m)
         {
-            if (m.AccessLevel == AccessLevel.Player && m.Murderer && SpellHelper.RestrictRedTravel && m.Map != null && m.Map.Rules != MapRules.FeluccaRules)
-            {
+            if (m.AccessLevel == AccessLevel.Player && m.Murderer && SpellHelper.RestrictRedTravel && m.Map != null &&
+                m.Map.Rules != MapRules.FeluccaRules)
                 Timer.DelayCall(TimeSpan.FromSeconds(1), () =>
                 {
                     if (m.NetState != null)
@@ -172,7 +168,6 @@ namespace Server.Gumps
                         m.SendLocalizedMessage(1005524, "", 0x22); // Murderers aren't allowed here, you are banished!
                     }
                 });
-            }
         }
 
         private void BuildGump()
@@ -183,18 +178,18 @@ namespace Server.Gumps
 
             AddPage(0);
 
-            AddImageTiled(225, 175, 50, 45, 0xCE);   //Top left corner
-            AddImageTiled(267, 175, 315, 44, 0xC9);  //Top bar
-            AddImageTiled(582, 175, 43, 45, 0xCF);   //Top right corner
-            AddImageTiled(225, 219, 44, 270, 0xCA);  //Left side
-            AddImageTiled(582, 219, 44, 270, 0xCB);  //Right side
-            AddImageTiled(225, 489, 44, 43, 0xCC);   //Lower left corner
-            AddImageTiled(267, 489, 315, 43, 0xE9);  //Lower Bar
-            AddImageTiled(582, 489, 43, 43, 0xCD);   //Lower right corner
+            AddImageTiled(225, 175, 50, 45, 0xCE); //Top left corner
+            AddImageTiled(267, 175, 315, 44, 0xC9); //Top bar
+            AddImageTiled(582, 175, 43, 45, 0xCF); //Top right corner
+            AddImageTiled(225, 219, 44, 270, 0xCA); //Left side
+            AddImageTiled(582, 219, 44, 270, 0xCB); //Right side
+            AddImageTiled(225, 489, 44, 43, 0xCC); //Lower left corner
+            AddImageTiled(267, 489, 315, 43, 0xE9); //Lower Bar
+            AddImageTiled(582, 489, 43, 43, 0xCD); //Lower right corner
 
             AddPage(1);
 
-            AddHtml(260, 234, 300, 140, ((Mobile)m_Killers[m_Idx]).Name, false, false); // Player's Name
+            AddHtml(260, 234, 300, 140, m_Killers[m_Idx].Name, false, false); // Player's Name
             AddHtmlLocalized(260, 254, 300, 140, 1049066, false, false); // Would you like to report...
 
             AddButton(260, 300, 0xFA5, 0xFA7, 1, GumpButtonType.Reply, 0);
@@ -206,8 +201,9 @@ namespace Server.Gumps
 
         private class GumpTimer : Timer
         {
-            private readonly Mobile m_Victim;
             private readonly List<Mobile> m_Killers;
+            private readonly Mobile m_Victim;
+
             public GumpTimer(Mobile victim, List<Mobile> killers)
                 : base(TimeSpan.FromSeconds(4.0))
             {

@@ -1,15 +1,13 @@
 using System;
-using Server.Multis;
 using Server.Gumps;
-using Server.ContextMenus;
-using System.Collections.Generic;
+using Server.Network;
 
 namespace Server.Items
 {
     public abstract class BaseLocalizedBook : Item
     {
-        public virtual object Title { get { return "a book"; } }
-        public virtual object Author { get { return "unknown"; } }
+        public virtual object Title => "a book";
+        public virtual object Author => "unknown";
 
         public abstract int[] Contents { get; }
 
@@ -17,10 +15,17 @@ namespace Server.Items
         {
         }
 
+        public BaseLocalizedBook(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void OnDoubleClick(Mobile from)
         {
             if (!from.InRange(GetWorldLocation(), 2))
-                from.LocalOverheadMessage(Network.MessageType.Regular, 0x3B2, 1019045); // I can't reach that.
+            {
+                from.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1019045); // I can't reach that.
+            }
             else
             {
                 from.CloseGump(typeof(InternalGump));
@@ -29,29 +34,41 @@ namespace Server.Items
             }
         }
 
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var v = reader.ReadInt();
+        }
+
         private class InternalGump : Gump
         {
+            public readonly int Height = 175;
             public readonly int Page1X = 40;
             public readonly int Page2X = 230;
             public readonly int StartY = 30;
             public readonly int Width = 140;
-            public readonly int Height = 175;
 
-            private BaseLocalizedBook m_Book;
+            private readonly BaseLocalizedBook m_Book;
 
             public InternalGump(BaseLocalizedBook book)
                 : base(50, 50)
             {
                 m_Book = book;
-                int page = 0;
-                int pages = (int)Math.Ceiling(m_Book.Contents.Length / 2.0);
+                var page = 0;
+                var pages = (int)Math.Ceiling(m_Book.Contents.Length / 2.0);
 
                 AddPage(page);
                 AddImage(0, 0, 500);
 
                 page++;
                 AddPage(page);
-                
+
                 if (book.Title is int)
                     AddHtmlLocalized(Page1X, 60, Width, 48, (int)book.Title, false, false);
                 else if (book.Title is string)
@@ -68,11 +85,11 @@ namespace Server.Items
                 else
                     AddLabel(Page1X, 155, 0, "unknown");
 
-                for (int i = 0; i < m_Book.Contents.Length; i++)
+                for (var i = 0; i < m_Book.Contents.Length; i++)
                 {
-                    int cliloc = m_Book.Contents[i];
-                    bool endPage = false;
-                    int x = Page1X;
+                    var cliloc = m_Book.Contents[i];
+                    var endPage = false;
+                    var x = Page1X;
 
                     if (cliloc <= 0)
                         continue;
@@ -85,7 +102,9 @@ namespace Server.Items
                     else
                     {
                         if ((i + 1) % 2 == 0)
+                        {
                             x = Page1X;
+                        }
                         else if (page <= pages)
                         {
                             endPage = true;
@@ -108,23 +127,6 @@ namespace Server.Items
                     }
                 }
             }
-        }
-
-        public BaseLocalizedBook(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.Write((int)0);
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            int v = reader.ReadInt();
         }
     }
 }

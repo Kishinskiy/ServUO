@@ -1,8 +1,3 @@
-using System;
-using Server.Mobiles;
-using Server.Items;
-using Server.Engines.Harvest;
-
 namespace Server.Items
 {
     public class PowderOfFortKeg : Item
@@ -10,9 +5,17 @@ namespace Server.Items
         private int _Charges;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int Charges { get { return _Charges; } set { _Charges = value; InvalidateProperties(); } }
+        public int Charges
+        {
+            get => _Charges;
+            set
+            {
+                _Charges = value;
+                InvalidateProperties();
+            }
+        }
 
-        public override int LabelNumber { get { return 1157221; } } // A specially lined keg for powder of fortification.
+        public override int LabelNumber => 1157221; // A specially lined keg for powder of fortification.
 
         [Constructable]
         public PowderOfFortKeg()
@@ -27,7 +30,12 @@ namespace Server.Items
             _Charges = uses;
 
             Hue = 2419;
-            this.Weight = 15.0;
+            Weight = 15.0;
+        }
+
+        public PowderOfFortKeg(Serial serial)
+            : base(serial)
+        {
         }
 
         public override bool OnDragDrop(Mobile m, Item dropped)
@@ -40,7 +48,7 @@ namespace Server.Items
                 {
                     if (powder.UsesRemaining + _Charges > 250)
                     {
-                        int add = 250 - _Charges;
+                        var add = 250 - _Charges;
 
                         powder.UsesRemaining -= add;
 
@@ -63,7 +71,7 @@ namespace Server.Items
         {
             if (from.Backpack != null && IsChildOf(from.Backpack) && Charges > 0)
             {
-                PowderOfTemperament powder = from.Backpack.FindItemByType(typeof(PowderOfTemperament)) as PowderOfTemperament;
+                var powder = from.Backpack.FindItemByType(typeof(PowderOfTemperament)) as PowderOfTemperament;
 
                 if (powder != null)
                 {
@@ -95,8 +103,8 @@ namespace Server.Items
 
             list.Add(1060584, _Charges.ToString());
 
-            int perc = (int)(((double)_Charges / 250) * 100);
-            int number = 0;
+            var perc = (int)((double)_Charges / 250 * 100);
+            var number = 0;
 
             if (perc <= 0)
                 number = 502246; // The keg is empty.
@@ -126,16 +134,11 @@ namespace Server.Items
             list.Add(number);
         }
 
-        public PowderOfFortKeg(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)1); // version
+            writer.Write(1); // version
 
             writer.Write(_Charges);
         }
@@ -144,7 +147,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             _Charges = reader.ReadInt();
 

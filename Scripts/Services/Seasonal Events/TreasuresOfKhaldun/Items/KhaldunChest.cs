@@ -7,8 +7,7 @@ namespace Server.Items
     {
         private Timer m_Timer;
 
-        public override int DefaultGumpID { get { return 0x49; } }
-        public bool CheckWhenHidden { get { return true; } }
+        public override int DefaultGumpID => 0x49;
 
         [Constructable]
         public KhaldunChest()
@@ -25,26 +24,52 @@ namespace Server.Items
             LockLevel = 90;
             RequiredSkill = 90;
             MaxLockLevel = 100;
-            
+
             TrapType = TrapType.PoisonTrap;
             TrapPower = 100;
             Timer.DelayCall(TimeSpan.FromSeconds(1), Fill);
+        }
+
+        public KhaldunChest(Serial serial) : base(serial)
+        {
+        }
+
+        public bool CheckWhenHidden => true;
+
+        public virtual bool CheckReveal(Mobile m)
+        {
+            return m.CheckTargetSkill(SkillName.DetectHidden, this, 80.0, 100.0);
+        }
+
+        public virtual void OnRevealed(Mobile m)
+        {
+            Visible = true;
+        }
+
+        public virtual bool CheckPassiveDetect(Mobile m)
+        {
+            if (m.InRange(Location, 4))
+            {
+                var skill = (int)m.Skills[SkillName.DetectHidden].Value;
+
+                if (skill >= 80 && Utility.Random(300) < skill)
+                    return true;
+            }
+
+            return false;
         }
 
         public virtual void Fill()
         {
             Reset();
 
-            List<Item> contains = new List<Item>(Items);
+            var contains = new List<Item>(Items);
 
-            foreach (var i in contains)
-            {
-                i.Delete();
-            }
+            foreach (var i in contains) i.Delete();
 
             ColUtility.Free(contains);
 
-            for (int i = 0; i < Utility.RandomMinMax(6, 12); i++)
+            for (var i = 0; i < Utility.RandomMinMax(6, 12); i++)
                 DropItem(Loot.RandomGem());
 
             DropItem(new Gold(Utility.RandomMinMax(800, 1100)));
@@ -78,10 +103,7 @@ namespace Server.Items
                 DropItem(item);
             }
 
-            if (0.25 > Utility.RandomDouble())
-            {
-                DropItem(new CounterfeitPlatinum());
-            }
+            if (0.25 > Utility.RandomDouble()) DropItem(new CounterfeitPlatinum());
 
             if (0.2 > Utility.RandomDouble())
             {
@@ -100,15 +122,17 @@ namespace Server.Items
 
             if (0.1 > Utility.RandomDouble())
             {
-                item = Loot.RandomArmorOrShieldOrWeaponOrJewelry(LootPackEntry.IsInTokuno(this), LootPackEntry.IsMondain(this), LootPackEntry.IsStygian(this));
+                item = Loot.RandomArmorOrShieldOrWeaponOrJewelry(LootPackEntry.IsInTokuno(this),
+                    LootPackEntry.IsMondain(this), LootPackEntry.IsStygian(this));
 
                 if (item != null)
                 {
                     int min, max;
 
-                    TreasureMapChest.GetRandomItemStat(out min, out max, 1.0);
+                    TreasureMapChest.GetRandomItemStat(out min, out max);
 
-                    RunicReforging.GenerateRandomItem(item, null, Utility.RandomMinMax(min, max), 0, ReforgedPrefix.None, ReforgedSuffix.Khaldun, Map);
+                    RunicReforging.GenerateRandomItem(item, null, Utility.RandomMinMax(min, max), 0,
+                        ReforgedPrefix.None, ReforgedSuffix.Khaldun, Map);
 
                     DropItem(item);
                 }
@@ -130,39 +154,12 @@ namespace Server.Items
             TrapPower = 100;
         }
 
-        public virtual bool CheckReveal(Mobile m)
-        {
-            return m.CheckTargetSkill(SkillName.DetectHidden, this, 80.0, 100.0);
-        }
-
-        public virtual void OnRevealed(Mobile m)
-        {
-            Visible = true;
-        }
-
-        public virtual bool CheckPassiveDetect(Mobile m)
-        {
-            if (m.InRange(Location, 4))
-            {
-                int skill = (int)m.Skills[SkillName.DetectHidden].Value;
-
-                if (skill >= 80 && Utility.Random(300) < skill)
-                    return true;
-            }
-
-            return false;
-        }
-
         public override void LockPick(Mobile from)
         {
             TryDelayedLock();
 
             base.LockPick(from);
         }
-
-        public KhaldunChest(Serial serial) : base(serial)
-        {
-        }        
 
         public void TryDelayedLock()
         {
@@ -186,7 +183,7 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
             TryDelayedLock();
         }
@@ -194,7 +191,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             TryDelayedLock();
         }

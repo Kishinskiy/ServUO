@@ -9,7 +9,26 @@ namespace Server.Items
         private AosElementAttributes m_AosElementDamages;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public AosElementAttributes AosElementDamages { get { return m_AosElementDamages; } set { } }
+        public AosElementAttributes AosElementDamages
+        {
+            get => m_AosElementDamages;
+            set { }
+        }
+
+        public override int PhysicalResistance => 0;
+        public override int FireResistance => 0;
+        public override int ColdResistance => 0;
+        public override int PoisonResistance => 0;
+        public override int EnergyResistance => 0;
+
+        public override int AosStrReq => 10;
+        public override int OldStrReq => 10;
+        public override int ArmorBase => 13;
+        public override ArmorMaterialType MaterialType => ArmorMaterialType.Leather;
+        public override CraftResource DefaultResource => CraftResource.RegularLeather;
+        public override ArmorMeditationAllowance DefMedAllowance => ArmorMeditationAllowance.All;
+        public override Race RequiredRace => Race.Gargoyle;
+        public override bool CanBeWornByGargoyles => true;
 
         [Constructable]
         public GargishLeatherWingArmor()
@@ -26,47 +45,8 @@ namespace Server.Items
         {
         }
 
-        public override int PhysicalResistance { get { return 0; } }
-        public override int FireResistance { get { return 0; } }
-        public override int ColdResistance { get { return 0; } }
-        public override int PoisonResistance { get { return 0; } }
-        public override int EnergyResistance { get { return 0; } }
-
-        public override int AosStrReq { get { return 10; } }
-        public override int OldStrReq { get { return 10; } }
-        public override int ArmorBase { get { return 13; } }
-        public override ArmorMaterialType MaterialType { get { return ArmorMaterialType.Leather; } }
-        public override CraftResource DefaultResource { get { return CraftResource.RegularLeather; } }
-        public override ArmorMeditationAllowance DefMedAllowance { get { return ArmorMeditationAllowance.All; } }
-        public override Race RequiredRace { get { return Race.Gargoyle; } }
-        public override bool CanBeWornByGargoyles { get { return true; } }
-
-        public override int GetLuckBonus() { return 0; }
-
-        public override int OnCraft(int quality, bool makersMark, Mobile from, CraftSystem craftSystem, Type typeRes, ITool tool, CraftItem craftItem, int resHue)
-        {
-            Quality = (ItemQuality)quality;
-
-            if (makersMark)
-                Crafter = from;
-
-            Type resourceType = typeRes;
-
-            if (resourceType == null)
-                resourceType = craftItem.Resources.GetAt(0).ItemType;
-
-            Resource = CraftResources.GetFromType(resourceType);
-
-            PlayerConstructed = true;
-
-            CraftContext context = craftSystem.GetContext(from);
-
-            Hue = CraftResources.GetHue(Resource);
-
-            return quality;
-        }
-
-        public virtual void AlterRangedDamage(ref int phys, ref int fire, ref int cold, ref int pois, ref int nrgy, ref int chaos, ref int direct)
+        public virtual void AlterRangedDamage(ref int phys, ref int fire, ref int cold, ref int pois, ref int nrgy,
+            ref int chaos, ref int direct)
         {
             fire = m_AosElementDamages.Fire;
             cold = m_AosElementDamages.Cold;
@@ -76,6 +56,35 @@ namespace Server.Items
             direct = m_AosElementDamages.Direct;
 
             phys = 100 - fire - cold - pois - nrgy - chaos - direct;
+        }
+
+        public override int GetLuckBonus()
+        {
+            return 0;
+        }
+
+        public override int OnCraft(int quality, bool makersMark, Mobile from, CraftSystem craftSystem, Type typeRes,
+            ITool tool, CraftItem craftItem, int resHue)
+        {
+            Quality = (ItemQuality)quality;
+
+            if (makersMark)
+                Crafter = from;
+
+            var resourceType = typeRes;
+
+            if (resourceType == null)
+                resourceType = craftItem.Resources.GetAt(0).ItemType;
+
+            Resource = CraftResources.GetFromType(resourceType);
+
+            PlayerConstructed = true;
+
+            var context = craftSystem.GetContext(from);
+
+            Hue = CraftResources.GetHue(Resource);
+
+            return quality;
         }
 
         public override void AddDamageTypeProperty(ObjectPropertyList list)
@@ -110,7 +119,7 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1);
+            writer.Write(1);
 
             if (m_AosElementDamages.IsEmpty)
             {
@@ -126,26 +135,22 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             switch (version)
             {
                 case 1:
-                    {
-                        if (reader.ReadInt() == 1)
-                        {
-                            m_AosElementDamages = new AosElementAttributes(this, reader);
-                        }
-                        else
-                        {
-                            m_AosElementDamages = new AosElementAttributes(this);
-                        }
-                    }
+                {
+                    if (reader.ReadInt() == 1)
+                        m_AosElementDamages = new AosElementAttributes(this, reader);
+                    else
+                        m_AosElementDamages = new AosElementAttributes(this);
+                }
                     break;
                 case 0:
-                    {
-                        m_AosElementDamages = new AosElementAttributes(this);
-                    }
+                {
+                    m_AosElementDamages = new AosElementAttributes(this);
+                }
                     break;
             }
         }

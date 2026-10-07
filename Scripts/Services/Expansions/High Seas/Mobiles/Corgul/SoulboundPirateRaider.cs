@@ -1,30 +1,11 @@
-﻿using Server;
-using System;
-using Server.Items;
+﻿using Server.Items;
 
 namespace Server.Mobiles
 {
     public class SoulboundPirateRaider : BaseCreature
     {
-        public override bool ClickTitle { get { return false; } }
-        public override bool AlwaysMurderer { get { return true; } }
-
-        public override WeaponAbility GetWeaponAbility()
-        {
-            Item weapon = FindItemOnLayer(Layer.TwoHanded);
-
-            if (weapon == null)
-                return null;
-
-            if (weapon is BaseWeapon)
-            {
-                if (Utility.RandomBool())
-                    return ((BaseWeapon)weapon).PrimaryAbility;
-                else
-                    return ((BaseWeapon)weapon).SecondaryAbility;
-            }
-            return null;
-        }
+        public override bool ClickTitle => false;
+        public override bool AlwaysMurderer => true;
 
         [Constructable]
         public SoulboundPirateRaider()
@@ -72,13 +53,47 @@ namespace Server.Mobiles
             switch (Utility.Random(4))
             {
                 default:
-                case 0: bow = new CompositeBow(); PackItem(new Arrow(25)); break;
-                case 1: bow = new Crossbow(); PackItem(new Bolt(25)); break;
-                case 2: bow = new Bow(); PackItem(new Arrow(25)); break;
-                case 3: bow = new HeavyCrossbow(); PackItem(new Bolt(25)); break;
+                case 0:
+                    bow = new CompositeBow();
+                    PackItem(new Arrow(25));
+                    break;
+                case 1:
+                    bow = new Crossbow();
+                    PackItem(new Bolt(25));
+                    break;
+                case 2:
+                    bow = new Bow();
+                    PackItem(new Arrow(25));
+                    break;
+                case 3:
+                    bow = new HeavyCrossbow();
+                    PackItem(new Bolt(25));
+                    break;
             }
 
             AddItem(bow);
+        }
+
+        public SoulboundPirateRaider(Serial serial)
+            : base(serial)
+        {
+        }
+
+        public override WeaponAbility GetWeaponAbility()
+        {
+            var weapon = FindItemOnLayer(Layer.TwoHanded);
+
+            if (weapon == null)
+                return null;
+
+            if (weapon is BaseWeapon)
+            {
+                if (Utility.RandomBool())
+                    return ((BaseWeapon)weapon).PrimaryAbility;
+                return ((BaseWeapon)weapon).SecondaryAbility;
+            }
+
+            return null;
         }
 
 
@@ -87,21 +102,16 @@ namespace Server.Mobiles
             AddLoot(LootPack.FilthyRich, 2);
         }
 
-        public SoulboundPirateRaider(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

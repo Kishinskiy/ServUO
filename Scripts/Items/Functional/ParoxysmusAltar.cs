@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using Server;
 using Server.Mobiles;
+using Server.Network;
 
 namespace Server.Items
 {
@@ -9,22 +9,29 @@ namespace Server.Items
     {
         public static Dictionary<Mobile, Timer> ProtectionTable = new Dictionary<Mobile, Timer>();
 
-        public override int KeyCount { get { return 16; } }
-        public override MasterKey MasterKey { get { return new ParoxysmusKey(); } }
+        private readonly Rectangle2D[] m_Bounds =
+        {
+            new Rectangle2D(6501, 351, 35, 48)
+        };
+
+        public override int KeyCount => 16;
+        public override MasterKey MasterKey => new ParoxysmusKey();
 
         public override Type[] Keys
         {
             get
             {
-                return new Type[]
+                return new[]
                 {
-                    typeof( CoagulatedLegs ), typeof( PartiallyDigestedTorso ),
-                    typeof( GelatanousSkull ), typeof( SpleenOfThePutrefier )
+                    typeof(CoagulatedLegs), typeof(PartiallyDigestedTorso),
+                    typeof(GelatanousSkull), typeof(SpleenOfThePutrefier)
                 };
             }
         }
 
-        public override BasePeerless Boss { get { return new ChiefParoxysmus(); } }
+        public override BasePeerless Boss => new ChiefParoxysmus();
+
+        public override Rectangle2D[] BossBounds => m_Bounds;
 
         [Constructable]
         public ParoxysmusAltar() : base(0x207A)
@@ -36,22 +43,14 @@ namespace Server.Items
             ExitDest = new Point3D(5623, 3038, 15);
         }
 
-        public override Rectangle2D[] BossBounds
+        public ParoxysmusAltar(Serial serial) : base(serial)
         {
-            get { return m_Bounds; }
         }
-
-        private Rectangle2D[] m_Bounds = new Rectangle2D[]
-        {
-            new Rectangle2D(6501, 351, 35, 48),
-        };
 
         public static void AddProtection(Mobile m)
         {
             if (ProtectionTable != null && !ProtectionTable.ContainsKey(m))
-            {
                 ProtectionTable[m] = Timer.DelayCall(TimeSpan.FromMinutes(5), () => Damage(m));
-            }
         }
 
         public static bool IsUnderEffects(Mobile m)
@@ -65,23 +64,16 @@ namespace Server.Items
 
             if (ProtectionTable.TryGetValue(m, out t))
             {
-                if (t != null)
-                {
-                    t.Stop();
-                }
+                if (t != null) t.Stop();
 
                 ProtectionTable.Remove(m);
             }
         }
 
-        public ParoxysmusAltar(Serial serial) : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1); // version
+            writer.Write(1); // version
 
             writer.Write(ProtectionTable.Count);
 
@@ -95,27 +87,28 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             switch (version)
             {
                 case 1:
+                {
+                    var count = reader.ReadInt();
+
+                    for (var i = 0; i < count; ++i)
                     {
-                        int count = reader.ReadInt();
+                        var m = reader.ReadMobile();
+                        var end = reader.ReadDateTime();
 
-                        for (int i = 0; i < count; ++i)
-                        {
-                            Mobile m = reader.ReadMobile();
-                            DateTime end = reader.ReadDateTime();
-
-                            ProtectionTable[m] = Timer.DelayCall(end - DateTime.UtcNow, () => Damage(m));
-                        }
-                        break;
+                        ProtectionTable[m] = Timer.DelayCall(end - DateTime.UtcNow, () => Damage(m));
                     }
+
+                    break;
+                }
                 case 0:
-                    {
-                        break;
-                    }
+                {
+                    break;
+                }
             }
 
             if (version < 1)
@@ -123,10 +116,8 @@ namespace Server.Items
                 IPooledEnumerable eable = Map.GetItemsInBounds(new Rectangle2D(6516, 492, 5, 1));
 
                 foreach (Item item in eable)
-                {
                     if (item.Movable)
                         item.Delete();
-                }
 
                 eable.Free();
 
@@ -172,7 +163,7 @@ namespace Server.Items
 
             if (!from.InRange(GetWorldLocation(), 2))
             {
-                from.LocalOverheadMessage(Network.MessageType.Regular, 0x3B2, 1019045); // I can't reach that.
+                from.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1019045); // I can't reach that.
             }
             else if (Altar != null && Altar.Fighters.Contains(from))
             {
@@ -184,15 +175,15 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
-            writer.Write((Item)Altar);
+            writer.Write(Altar);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             Altar = reader.ReadItem() as PeerlessAltar;
         }

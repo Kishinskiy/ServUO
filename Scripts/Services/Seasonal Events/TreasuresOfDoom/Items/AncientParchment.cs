@@ -1,11 +1,10 @@
-using System;
-using Server;
+using Server.Network;
 
 namespace Server.Items
 {
     public class AncientParchment : Item
     {
-        public override int LabelNumber { get { return 1155627; } } // Ancient Parchment
+        public override int LabelNumber => 1155627; // Ancient Parchment
 
         [Constructable]
         public AncientParchment()
@@ -22,17 +21,16 @@ namespace Server.Items
             Amount = amount;
         }
 
-        public override void OnDoubleClick(Mobile m)
-        {
-            if (IsChildOf(m.Backpack))
-            {
-                m.PrivateOverheadMessage(Server.Network.MessageType.Regular, 0x3B2, 1155628, m.NetState); // *The parchment appears heavily worn and in need of restoration by a skilled Scribe...*
-            }
-        }
-
         public AncientParchment(Serial serial)
             : base(serial)
         {
+        }
+
+        public override void OnDoubleClick(Mobile m)
+        {
+            if (IsChildOf(m.Backpack))
+                m.PrivateOverheadMessage(MessageType.Regular, 0x3B2, 1155628,
+                    m.NetState); // *The parchment appears heavily worn and in need of restoration by a skilled Scribe...*
         }
 
         public override void Serialize(GenericWriter writer)

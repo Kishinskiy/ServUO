@@ -1,5 +1,3 @@
-using System;
-
 namespace Server.Items
 {
     public class BagOfSmokeBombs : Bag
@@ -13,8 +11,8 @@ namespace Server.Items
         [Constructable]
         public BagOfSmokeBombs(int amount)
         {
-            for (int i = 0; i < amount; ++i)
-                this.DropItem(new SmokeBomb());
+            for (var i = 0; i < amount; ++i)
+                DropItem(new SmokeBomb());
         }
 
         public BagOfSmokeBombs(Serial serial)
@@ -33,7 +31,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

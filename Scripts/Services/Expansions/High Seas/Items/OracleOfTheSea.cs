@@ -1,6 +1,4 @@
-﻿using Server;
-using System;
-using Server.Mobiles;
+﻿using Server.Mobiles;
 
 namespace Server.Items
 {
@@ -8,12 +6,20 @@ namespace Server.Items
     {
         public static readonly int MaxUses = 5;
 
-        public override int LabelNumber { get { return 1150184; } }
-
         private int m_UsesRemaining;
 
+        public override int LabelNumber => 1150184;
+
         [CommandProperty(AccessLevel.GameMaster)]
-        public int UsesRemaining { get { return m_UsesRemaining; } set { m_UsesRemaining = value; InvalidateProperties(); } }
+        public int UsesRemaining
+        {
+            get => m_UsesRemaining;
+            set
+            {
+                m_UsesRemaining = value;
+                InvalidateProperties();
+            }
+        }
 
         [Constructable]
         public OracleOfTheSea()
@@ -21,6 +27,10 @@ namespace Server.Items
             Hue = 1265;
             Weight = 3.0;
             m_UsesRemaining = 5;
+        }
+
+        public OracleOfTheSea(Serial serial) : base(serial)
+        {
         }
 
         public override void GetProperties(ObjectPropertyList list)
@@ -39,19 +49,17 @@ namespace Server.Items
                 UsesRemaining--;
         }
 
-        public OracleOfTheSea(Serial serial) : base(serial) { }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
             writer.Write(m_UsesRemaining);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
             m_UsesRemaining = reader.ReadInt();
         }
     }

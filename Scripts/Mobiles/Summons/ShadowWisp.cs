@@ -7,35 +7,36 @@ namespace Server.Mobiles
     public class ShadowWispFamiliar : BaseFamiliar
     {
         private DateTime m_NextFlare;
+
         public ShadowWispFamiliar()
         {
-            this.Name = "a shadow wisp";
-            this.Body = 165;
-            this.Hue = 0x901;
-            this.BaseSoundID = 466;
+            Name = "a shadow wisp";
+            Body = 165;
+            Hue = 0x901;
+            BaseSoundID = 466;
 
-            this.SetStr(50);
-            this.SetDex(60);
-            this.SetInt(100);
+            SetStr(50);
+            SetDex(60);
+            SetInt(100);
 
-            this.SetHits(50);
-            this.SetStam(60);
-            this.SetMana(0);
+            SetHits(50);
+            SetStam(60);
+            SetMana(0);
 
-            this.SetDamage(5, 10);
+            SetDamage(5, 10);
 
-            this.SetDamageType(ResistanceType.Energy, 100);
+            SetDamageType(ResistanceType.Energy, 100);
 
-            this.SetResistance(ResistanceType.Physical, 10, 15);
-            this.SetResistance(ResistanceType.Fire, 10, 15);
-            this.SetResistance(ResistanceType.Cold, 10, 15);
-            this.SetResistance(ResistanceType.Poison, 10, 15);
-            this.SetResistance(ResistanceType.Energy, 99);
+            SetResistance(ResistanceType.Physical, 10, 15);
+            SetResistance(ResistanceType.Fire, 10, 15);
+            SetResistance(ResistanceType.Cold, 10, 15);
+            SetResistance(ResistanceType.Poison, 10, 15);
+            SetResistance(ResistanceType.Energy, 99);
 
-            this.SetSkill(SkillName.Wrestling, 40.0);
-            this.SetSkill(SkillName.Tactics, 40.0);
+            SetSkill(SkillName.Wrestling, 40.0);
+            SetSkill(SkillName.Tactics, 40.0);
 
-            this.ControlSlots = 1;
+            ControlSlots = 1;
         }
 
         public ShadowWispFamiliar(Serial serial)
@@ -47,66 +48,64 @@ namespace Server.Mobiles
         {
             base.OnThink();
 
-            if (DateTime.UtcNow < this.m_NextFlare)
+            if (DateTime.UtcNow < m_NextFlare)
                 return;
 
-            this.m_NextFlare = DateTime.UtcNow + TimeSpan.FromSeconds(5.0 + (25.0 * Utility.RandomDouble()));
+            m_NextFlare = DateTime.UtcNow + TimeSpan.FromSeconds(5.0 + 25.0 * Utility.RandomDouble());
 
-            this.FixedEffect(0x37C4, 1, 12, 1109, 6);
-            this.PlaySound(0x1D3);
+            FixedEffect(0x37C4, 1, 12, 1109, 6);
+            PlaySound(0x1D3);
 
-            Timer.DelayCall(TimeSpan.FromSeconds(0.5), new TimerCallback(Flare));
+            Timer.DelayCall(TimeSpan.FromSeconds(0.5), Flare);
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         private void Flare()
         {
-            Mobile caster = this.ControlMaster;
+            var caster = ControlMaster;
 
             if (caster == null)
-                caster = this.SummonMaster;
+                caster = SummonMaster;
 
             if (caster == null)
                 return;
 
-            ArrayList list = new ArrayList();
+            var list = new ArrayList();
             IPooledEnumerable eable = GetMobilesInRange(5);
 
             foreach (Mobile m in eable)
-            {
                 if (m.Player && m.Alive && !m.IsDeadBondedPet && m.Karma <= 0 && m.IsPlayer())
                     list.Add(m);
-            }
             eable.Free();
 
-            for (int i = 0; i < list.Count; ++i)
+            for (var i = 0; i < list.Count; ++i)
             {
-                Mobile m = (Mobile)list[i];
-                bool friendly = true;
+                var m = (Mobile)list[i];
+                var friendly = true;
 
-                for (int j = 0; friendly && j < caster.Aggressors.Count; ++j)
-                    friendly = (caster.Aggressors[j].Attacker != m);
+                for (var j = 0; friendly && j < caster.Aggressors.Count; ++j)
+                    friendly = caster.Aggressors[j].Attacker != m;
 
-                for (int j = 0; friendly && j < caster.Aggressed.Count; ++j)
-                    friendly = (caster.Aggressed[j].Defender != m);
+                for (var j = 0; friendly && j < caster.Aggressed.Count; ++j)
+                    friendly = caster.Aggressed[j].Defender != m;
 
                 if (friendly)
                 {
                     m.FixedEffect(0x37C4, 1, 12, 1109, 3); // At player
-                    m.Mana += 1 - (m.Karma / 1000);
+                    m.Mana += 1 - m.Karma / 1000;
                 }
             }
         }

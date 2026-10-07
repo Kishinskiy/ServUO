@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using Server.Items;
 
@@ -8,24 +7,10 @@ namespace Server.Mobiles
     {
         private readonly List<GenericBuyInfo> m_BuyInfo = new InternalBuyInfo();
         private readonly IShopSellInfo m_SellInfo = new InternalSellInfo();
-        public SBSAWeapons()
-        {
-        }
 
-        public override IShopSellInfo SellInfo
-        {
-            get
-            {
-                return m_SellInfo;
-            }
-        }
-        public override List<GenericBuyInfo> BuyInfo
-        {
-            get
-            {
-                return m_BuyInfo;
-            }
-        }
+        public override IShopSellInfo SellInfo => m_SellInfo;
+
+        public override List<GenericBuyInfo> BuyInfo => m_BuyInfo;
 
         public class InternalBuyInfo : List<GenericBuyInfo>
         {
@@ -61,7 +46,6 @@ namespace Server.Mobiles
                 Add(new GenericBuyInfo(typeof(GargishTekagi), 18, 20, 0x48CE, 0));
                 Add(new GenericBuyInfo(typeof(GargishDaisho), 23, 20, 0x48D0, 0));
                 Add(new GenericBuyInfo(typeof(GlassSword), 28, 20, 0x90C, 0));
-
             }
         }
 

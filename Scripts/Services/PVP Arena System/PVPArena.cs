@@ -1,9 +1,8 @@
-using Server;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Server.Items;
 using Server.Mobiles;
-using System.Linq;
 using Server.Regions;
 
 namespace Server.Engines.ArenaSystem
@@ -14,6 +13,8 @@ namespace Server.Engines.ArenaSystem
         public static TimeSpan PendingDuelExpirationTime = TimeSpan.FromMinutes(10);
         public static TimeSpan BookedDuelBegin = TimeSpan.FromSeconds(10);
         public static int StartRank = 10000;
+
+        private readonly List<ArenaDuel> _Remove = new List<ArenaDuel>();
 
         [CommandProperty(AccessLevel.GameMaster)]
         public ArenaManager Manager { get; set; }
@@ -31,7 +32,7 @@ namespace Server.Engines.ArenaSystem
         public ArenaDefinition Definition { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public bool InUse { get { return CurrentDuel != null; } }
+        public bool InUse => CurrentDuel != null;
 
         [CommandProperty(AccessLevel.GameMaster)]
         public ArenaDuel CurrentDuel { get; set; }
@@ -97,7 +98,8 @@ namespace Server.Engines.ArenaSystem
 
             if (GuardRegion == null)
             {
-                GuardRegion = new GuardedArenaRegion(String.Format("{0}_Guarded", Definition.Name), Definition.Map, Definition.GuardBounds);
+                GuardRegion = new GuardedArenaRegion(string.Format("{0}_Guarded", Definition.Name), Definition.Map,
+                    Definition.GuardBounds);
                 GuardRegion.Register();
             }
         }
@@ -116,51 +118,28 @@ namespace Server.Engines.ArenaSystem
                 GuardRegion = null;
             }
 
-            if (Manager != null)
-            {
-                Manager.Delete();
-            }
+            if (Manager != null) Manager.Delete();
 
-            if (Stone != null && !Stone.Deleted)
-            {
-                Stone.Delete();
-            }
+            if (Stone != null && !Stone.Deleted) Stone.Delete();
 
-            if (Banner1 != null)
-            {
-                Banner1.Delete();
-            }
+            if (Banner1 != null) Banner1.Delete();
 
-            if (Banner2 != null)
-            {
-                Banner2.Delete();
-            }
+            if (Banner2 != null) Banner2.Delete();
         }
-
-        private List<ArenaDuel> _Remove = new List<ArenaDuel>();
 
         public void OnTick()
         {
-            if (CurrentDuel != null)
-            {
-                CurrentDuel.OnTick();
-            }
+            if (CurrentDuel != null) CurrentDuel.OnTick();
 
             foreach (var kvp in PendingDuels)
-            {
                 if (kvp.Value < DateTime.UtcNow)
-                {
                     _Remove.Add(kvp.Key);
-                }
-            }
 
             if (_Remove.Count > 0)
             {
                 foreach (var duel in _Remove)
-                {
                     if (PendingDuels.ContainsKey(duel))
                         PendingDuels.Remove(duel);
-                }
 
                 _Remove.Clear();
             }
@@ -168,22 +147,17 @@ namespace Server.Engines.ArenaSystem
 
         public void AddPendingDuel(ArenaDuel duel)
         {
-            if (!PendingDuels.ContainsKey(duel))
-            {
-                PendingDuels[duel] = DateTime.UtcNow + PendingDuelExpirationTime;
-            }
+            if (!PendingDuels.ContainsKey(duel)) PendingDuels[duel] = DateTime.UtcNow + PendingDuelExpirationTime;
         }
 
         public void RemovePendingDuel(ArenaDuel duel, bool cancel = false)
         {
-            if(PendingDuels.ContainsKey(duel))
+            if (PendingDuels.ContainsKey(duel))
             {
                 PendingDuels.Remove(duel);
 
                 if (cancel)
-                {
                     PVPArenaSystem.SendParticipantMessage(duel, 1115947); // The session owner has canceled the duel.
-                }
             }
         }
 
@@ -194,15 +168,13 @@ namespace Server.Engines.ArenaSystem
 
         public List<ArenaDuel> GetPendingPublic()
         {
-            return PendingDuels.Keys.Where(d => d.RoomType == RoomType.Public && d.ParticipantCount < d.Entries).ToList();
+            return PendingDuels.Keys.Where(d => d.RoomType == RoomType.Public && d.ParticipantCount < d.Entries)
+                .ToList();
         }
 
         public void TryBeginDuel(ArenaDuel duel)
         {
-            if (PendingDuels.ContainsKey(duel))
-            {
-                PendingDuels.Remove(duel);
-            }
+            if (PendingDuels.ContainsKey(duel)) PendingDuels.Remove(duel);
 
             if (CurrentDuel == null && BookedDuels.Count == 0)
             {
@@ -212,7 +184,8 @@ namespace Server.Engines.ArenaSystem
             else
             {
                 BookedDuels.Add(duel);
-                PVPArenaSystem.SendParticipantMessage(duel, 1115960); // There are currently no open arenas. Your duel session has been added to the booking queue.
+                PVPArenaSystem.SendParticipantMessage(duel,
+                    1115960); // There are currently no open arenas. Your duel session has been added to the booking queue.
             }
         }
 
@@ -221,28 +194,20 @@ namespace Server.Engines.ArenaSystem
             CurrentDuel = null;
 
             foreach (var corpse in Region.GetEnumeratedItems().OfType<Corpse>())
-            {
                 if (corpse.Owner != null && corpse.Owner.InRange(corpse.Location, 30))
-                {
                     corpse.MoveToWorld(corpse.Owner.Location, corpse.Owner.Map);
-                }
                 else
-                {
                     corpse.MoveToWorld(GetRandomRemovalLocation(), Definition.Map);
-                }
-            }
 
             if (BookedDuels.Count > 0)
             {
                 var newDuel = BookedDuels[0];
                 CurrentDuel = newDuel;
 
-                PVPArenaSystem.SendParticipantMessage(newDuel, 1153141); // Your session has been booked. Please wait a few moments to start the fight.
+                PVPArenaSystem.SendParticipantMessage(newDuel,
+                    1153141); // Your session has been booked. Please wait a few moments to start the fight.
 
-                Timer.DelayCall(BookedDuelBegin, () =>
-                    {
-                        newDuel.DoPreDuel();
-                    });
+                Timer.DelayCall(BookedDuelBegin, () => { newDuel.DoPreDuel(); });
 
                 BookedDuels.Remove(newDuel);
             }
@@ -250,45 +215,35 @@ namespace Server.Engines.ArenaSystem
 
         public void RemovePlayer(Mobile m, bool winner = false)
         {
-            Map map = Definition.Map;
-            Point3D p = GetRandomRemovalLocation(m);
+            var map = Definition.Map;
+            var p = GetRandomRemovalLocation(m);
 
             m.MoveToWorld(p, map);
             m.Delta(MobileDelta.Noto);
 
             // lets remove pets, too
             if (m is PlayerMobile && ((PlayerMobile)m).AllFollowers.Count > 0)
-            {
                 foreach (var mob in ((PlayerMobile)m).AllFollowers.Where(pet => pet.Region.IsPartOf<ArenaRegion>()))
                 {
                     mob.MoveToWorld(p, map);
                     mob.Delta(MobileDelta.Noto);
                 }
-            }
 
-            if(winner)
-            {
-                for (int i = 0; i < 5; i++)
-                {
-                    Timer.DelayCall(TimeSpan.FromMilliseconds(i * 1000), () =>
-                        {
-                            m.FixedParticles(0x373A, 10, 15, 5018, 0x36, 0, EffectLayer.Waist);
-                        });
-                }
-            }
+            if (winner)
+                for (var i = 0; i < 5; i++)
+                    Timer.DelayCall(TimeSpan.FromMilliseconds(i * 1000),
+                        () => { m.FixedParticles(0x373A, 10, 15, 5018, 0x36, 0, EffectLayer.Waist); });
 
             if (!m.Alive)
             {
                 IPooledEnumerable eable = map.GetMobilesInRange(m.Location, 5);
 
-                foreach(Mobile mob in eable)
-                {
+                foreach (Mobile mob in eable)
                     if (mob is ArenaManager)
                     {
                         ((ArenaManager)mob).OfferResurrection(m);
                         break;
                     }
-                }
 
                 eable.Free();
             }
@@ -296,11 +251,11 @@ namespace Server.Engines.ArenaSystem
 
         private Point3D GetRandomRemovalLocation(Mobile m = null)
         {
-            Rectangle2D rec = (m == null || m.Alive) ? Definition.EjectLocation : Definition.DeadEjectLocation;
-            Point3D loc = (m == null || m.Alive) ? Definition.StoneLocation : Definition.ManagerLocation;
-            Point3D p = loc;
+            var rec = m == null || m.Alive ? Definition.EjectLocation : Definition.DeadEjectLocation;
+            var loc = m == null || m.Alive ? Definition.StoneLocation : Definition.ManagerLocation;
+            var p = loc;
 
-            Map map = Definition.Map;
+            var map = Definition.Map;
 
             while (p == loc || !map.CanSpawnMobile(p.X, p.Y, p.Z))
             {
@@ -327,7 +282,7 @@ namespace Server.Engines.ArenaSystem
             foreach (var part in duel.GetParticipants())
             {
                 var pm = part.Key;
-                ArenaStats stats = rankings.FirstOrDefault(r => r.Owner == pm);
+                var stats = rankings.FirstOrDefault(r => r.Owner == pm);
 
                 if (stats == null)
                 {
@@ -338,13 +293,9 @@ namespace Server.Engines.ArenaSystem
                 var team = duel.GetTeam(pm);
 
                 if (team != winners)
-                {
                     stats.Ranking -= 33;
-                }
                 else
-                {
                     stats.Ranking += 33;
-                }
             }
 
             rankings.Sort();
@@ -355,22 +306,13 @@ namespace Server.Engines.ArenaSystem
             writer.Write(0);
 
             writer.Write(SurvivalRankings.Count);
-            foreach (var ranking in SurvivalRankings)
-            {
-                ranking.Serialize(writer);
-            }
+            foreach (var ranking in SurvivalRankings) ranking.Serialize(writer);
 
             writer.Write(TeamRankings.Count);
-            foreach (var ranking in TeamRankings)
-            {
-                ranking.Serialize(writer);
-            }
+            foreach (var ranking in TeamRankings) ranking.Serialize(writer);
 
             writer.Write(Blockers.Count);
-            foreach (var blocker in Blockers)
-            {
-                writer.Write(blocker);
-            }
+            foreach (var blocker in Blockers) writer.Write(blocker);
 
             writer.Write(Stone);
             writer.Write(Manager);
@@ -385,10 +327,7 @@ namespace Server.Engines.ArenaSystem
             }
 
             writer.Write(BookedDuels.Count);
-            foreach (var duel in BookedDuels)
-            {
-                duel.Serialize(writer);
-            }
+            foreach (var duel in BookedDuels) duel.Serialize(writer);
 
             if (CurrentDuel != null)
             {
@@ -403,30 +342,30 @@ namespace Server.Engines.ArenaSystem
 
         public void Deserialize(GenericReader reader)
         {
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            int count = reader.ReadInt();
-            for (int i = 0; i < count; i++)
+            var count = reader.ReadInt();
+            for (var i = 0; i < count; i++)
             {
-                ArenaStats stats = new ArenaStats(reader);
+                var stats = new ArenaStats(reader);
 
                 if (stats.Owner != null)
                     SurvivalRankings.Add(stats);
             }
 
             count = reader.ReadInt();
-            for (int i = 0; i < count; i++)
+            for (var i = 0; i < count; i++)
             {
-                ArenaStats stats = new ArenaStats(reader);
+                var stats = new ArenaStats(reader);
 
                 if (stats.Owner != null)
                     TeamRankings.Add(stats);
             }
 
             count = reader.ReadInt();
-            for (int i = 0; i < count; i++)
+            for (var i = 0; i < count; i++)
             {
-                Item blocker = reader.ReadItem();
+                var blocker = reader.ReadItem();
 
                 if (blocker != null)
                     Blockers.Add(blocker);
@@ -438,28 +377,22 @@ namespace Server.Engines.ArenaSystem
             Banner2 = reader.ReadItem() as ArenaExitBanner;
 
             count = reader.ReadInt();
-            for (int i = 0; i < count; i++)
+            for (var i = 0; i < count; i++)
             {
-                ArenaDuel duel = new ArenaDuel(reader, this);
-                DateTime dt = reader.ReadDeltaTime();
+                var duel = new ArenaDuel(reader, this);
+                var dt = reader.ReadDeltaTime();
 
                 PendingDuels[duel] = dt;
             }
 
             count = reader.ReadInt();
-            for (int i = 0; i < count; i++)
-            {
-                BookedDuels.Add(new ArenaDuel(reader, this));
-            }
+            for (var i = 0; i < count; i++) BookedDuels.Add(new ArenaDuel(reader, this));
 
-            if (reader.ReadInt() == 1)
-            {
-                CurrentDuel = new ArenaDuel(reader, this);
-            }
+            if (reader.ReadInt() == 1) CurrentDuel = new ArenaDuel(reader, this);
 
             if (Stone != null)
                 Stone.Arena = this;
-            
+
             if (Manager != null)
                 Manager.Arena = this;
 
@@ -482,23 +415,23 @@ namespace Server.Engines.ArenaSystem
             Ranking = 10000;
         }
 
-        public int CompareTo(ArenaStats stats)
-        {
-            if(Ranking > stats.Ranking)
-                return -1;
-
-            if(Ranking < stats.Ranking)
-                return 1;
-
-            return 0;
-        }
-
         public ArenaStats(GenericReader reader)
         {
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             Owner = reader.ReadMobile() as PlayerMobile;
             Ranking = reader.ReadInt();
+        }
+
+        public int CompareTo(ArenaStats stats)
+        {
+            if (Ranking > stats.Ranking)
+                return -1;
+
+            if (Ranking < stats.Ranking)
+                return 1;
+
+            return 0;
         }
 
         public void Serialize(GenericWriter writer)

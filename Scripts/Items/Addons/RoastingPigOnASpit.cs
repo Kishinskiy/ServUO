@@ -10,6 +10,8 @@ namespace Server.Items
         [CommandProperty(AccessLevel.GameMaster)]
         public DateTime NextEatTime { get; set; }
 
+        public override BaseAddonDeed Deed => new RoastingPigOnASpitDeed();
+
         [Constructable]
         public RoastingPigOnASpitAddon(DirectionType type)
         {
@@ -28,16 +30,22 @@ namespace Server.Items
             }
         }
 
+        public RoastingPigOnASpitAddon(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void OnComponentUsed(AddonComponent c, Mobile from)
         {
             if (c.LabelNumber != 1123329)
                 return;
 
-            if ((from.InRange(c.Location, 3)))
+            if (from.InRange(c.Location, 3))
             {
-                BaseHouse house = BaseHouse.FindHouseAt(from);
+                var house = BaseHouse.FindHouseAt(from);
 
-                if (house != null && (house.IsOwner(from) || (house.LockDowns.ContainsKey(this) && house.LockDowns[this] == from)))
+                if (house != null && (house.IsOwner(from) ||
+                                      (house.LockDowns.ContainsKey(this) && house.LockDowns[this] == from)))
                 {
                     if (DateTime.UtcNow > NextEatTime)
                     {
@@ -46,7 +54,8 @@ namespace Server.Items
                         else
                             from.AddToBackpack(new PulledPorkSandwich());
 
-                        from.LocalOverheadMessage(MessageType.Regular, 0x35, 1154556); // *You cut some meat from the roasting pig. It smells delicious!*
+                        from.LocalOverheadMessage(MessageType.Regular, 0x35,
+                            1154556); // *You cut some meat from the roasting pig. It smells delicious!*
 
                         NextEatTime = DateTime.UtcNow + TimeSpan.FromDays(7);
                     }
@@ -66,17 +75,10 @@ namespace Server.Items
             }
         }
 
-        public RoastingPigOnASpitAddon(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override BaseAddonDeed Deed { get { return new RoastingPigOnASpitDeed(); } }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
 
             writer.Write(NextEatTime);
         }
@@ -84,7 +86,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             NextEatTime = reader.ReadDateTime();
         }
@@ -92,7 +94,7 @@ namespace Server.Items
 
     public class RoastingPigOnASpitComponent : LocalizedAddonComponent
     {
-        public override bool ForceShowProperties { get { return true; } }
+        public override bool ForceShowProperties => true;
 
         public RoastingPigOnASpitComponent(int id)
             : base(id, 1123329) // Roasting Pig on a Spit
@@ -113,21 +115,19 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class RoastingPigOnASpitDeed : BaseAddonDeed, IRewardOption
     {
-        public override int LabelNumber { get { return 1154557; } } // Deed for a Roasting Pig on a Spit
-
-        public override BaseAddon Addon { get { return new RoastingPigOnASpitAddon(_Direction); } }
-
         private DirectionType _Direction;
+        public override int LabelNumber => 1154557; // Deed for a Roasting Pig on a Spit
+
+        public override BaseAddon Addon => new RoastingPigOnASpitAddon(_Direction);
 
         [Constructable]
         public RoastingPigOnASpitDeed()
-            : base()
         {
         }
 
@@ -166,13 +166,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

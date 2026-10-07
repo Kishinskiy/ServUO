@@ -1,35 +1,36 @@
 using System;
-
-using Server;
+using Server.Engines.Quests;
 using Server.Gumps;
 using Server.Items;
 using Server.Mobiles;
-using Server.Engines.Quests;
 
 namespace Server.Engines.Khaldun
 {
     public class InspectorJasper : MondainQuester
     {
-        public override Type[] Quests { get { return null; } }
+        public override Type[] Quests => null;
 
         public static InspectorJasper TramInstance { get; set; }
+
+        public InspectorJasper()
+            : base("Jasper", "the Inspector")
+        {
+        }
+
+        public InspectorJasper(Serial serial)
+            : base(serial)
+        {
+        }
 
         public static void Initialize()
         {
             if (Core.TOL)
-            {
                 if (TramInstance == null)
                 {
                     TramInstance = new InspectorJasper();
                     TramInstance.MoveToWorld(new Point3D(1675, 1584, 7), Map.Trammel);
                     TramInstance.Direction = Direction.South;
                 }
-            }
-        }
-
-        public InspectorJasper()
-            : base("Jasper", "the Inspector")
-        {
         }
 
         public override void InitBody()
@@ -61,20 +62,20 @@ namespace Server.Engines.Khaldun
         {
             if (m is PlayerMobile && m.InRange(Location, 5))
             {
-                GoingGumshoeQuest quest = QuestHelper.GetQuest<GoingGumshoeQuest>((PlayerMobile)m);
+                var quest = QuestHelper.GetQuest<GoingGumshoeQuest>((PlayerMobile)m);
 
                 if (quest != null && quest.Completed)
                 {
                     quest.GiveRewards();
 
-                    BaseQuest newquest = QuestHelper.RandomQuest((PlayerMobile)m, new Type[] { typeof(GoingGumshoeQuest2) }, this);
+                    var newquest = QuestHelper.RandomQuest((PlayerMobile)m, new[] { typeof(GoingGumshoeQuest2) }, this);
 
                     if (newquest != null)
                         m.SendGump(new MondainQuestGump(newquest));
                 }
                 else
                 {
-                    GoingGumshoeQuest2 quest2 = QuestHelper.GetQuest<GoingGumshoeQuest2>((PlayerMobile)m);
+                    var quest2 = QuestHelper.GetQuest<GoingGumshoeQuest2>((PlayerMobile)m);
 
                     if (quest2 != null)
                     {
@@ -83,7 +84,8 @@ namespace Server.Engines.Khaldun
                             quest2.Objectives[0].CurProgress++;
                             quest2.GiveRewards(); // TODO: Does this quest end here?
 
-                            BaseQuest newquest = QuestHelper.RandomQuest((PlayerMobile)m, new Type[] { typeof(GoingGumshoeQuest3) }, this);
+                            var newquest = QuestHelper.RandomQuest((PlayerMobile)m,
+                                new[] { typeof(GoingGumshoeQuest3) }, this);
 
                             if (newquest != null)
                                 m.SendGump(new MondainQuestGump(newquest));
@@ -96,7 +98,7 @@ namespace Server.Engines.Khaldun
                     }
                     else
                     {
-                        GoingGumshoeQuest3 quest3 = QuestHelper.GetQuest<GoingGumshoeQuest3>((PlayerMobile)m);
+                        var quest3 = QuestHelper.GetQuest<GoingGumshoeQuest3>((PlayerMobile)m);
 
                         if (quest3 != null)
                         {
@@ -105,7 +107,8 @@ namespace Server.Engines.Khaldun
                                 quest3.Objectives[0].CurProgress++;
                                 quest3.GiveRewards(); // TODO: Does this quest end here?
 
-                                BaseQuest newquest = QuestHelper.RandomQuest((PlayerMobile)m, new Type[] { typeof(GoingGumshoeQuest4) }, this);
+                                var newquest = QuestHelper.RandomQuest((PlayerMobile)m,
+                                    new[] { typeof(GoingGumshoeQuest4) }, this);
 
                                 if (newquest != null)
                                     m.SendGump(new MondainQuestGump(newquest));
@@ -118,7 +121,7 @@ namespace Server.Engines.Khaldun
                         }
                         else
                         {
-                            GoingGumshoeQuest4 quest4 = QuestHelper.GetQuest<GoingGumshoeQuest4>((PlayerMobile)m);
+                            var quest4 = QuestHelper.GetQuest<GoingGumshoeQuest4>((PlayerMobile)m);
 
                             if (quest4 != null && !quest4.IsComplete)
                             {
@@ -162,6 +165,25 @@ namespace Server.Engines.Khaldun
             }
         }
 
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+
+            writer.Write(0); // version
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+
+            var version = reader.ReadInt();
+
+            if (Map == Map.Trammel) TramInstance = this;
+
+            if (!Core.TOL)
+                Delete();
+        }
+
         private class InternalGump : Gump
         {
             public InternalGump()
@@ -174,40 +196,13 @@ namespace Server.Engines.Khaldun
                 AddHtmlLocalized(5, 365, 390, 200, 1158626, BaseGump.C32216(0x0D0D0D), false, true);
 
                 /**You approach Inspector Jasper and relay to him what Sage Humbolt told you...he remains expressionless*
-                 * This is much more sinister than any of us could have ever imagined. I had little doubt your investigatory 
+                 * This is much more sinister than any of us could have ever imagined. I had little doubt your investigatory
                  * skills would yield anything but a major revelation - but this? Who could have thought. I have dispatched
                  * a team to the location Sage Humbolt spoke of. It is up to everyone now to prevent this coming evil. Here
-                 * you go, you've earned this. Wear this title proudly. This official credential identifies you as a member 
+                 * you go, you've earned this. Wear this title proudly. This official credential identifies you as a member
                  * of the RBG Detective Branch and will allow you past the guards at the site Sage Humbolt spoke of near
                  * 57o 7'S, 5o 20'E in the Lost Lands.*/
             }
-        }
-
-        public InspectorJasper(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-
-            writer.Write((int)0); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
-
-            if (Map == Map.Trammel)
-            {
-                TramInstance = this;
-            }
-
-            if (!Core.TOL)
-                Delete();
         }
     }
 }

@@ -1,13 +1,13 @@
-using System;
-
 namespace Server.Items
-{ 
+{
     public class LibraryFriendLantern : Lantern
     {
-		public override bool IsArtifact { get { return true; } }
+        public override bool IsArtifact => true;
+
+        public override int LabelNumber => 1073339; // Friends of the Library Reading Lantern
+
         [Constructable]
         public LibraryFriendLantern()
-            : base()
         {
         }
 
@@ -16,34 +16,29 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1073339;
-            }
-        }// Friends of the Library Reading Lantern
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class LibraryFriendReadingChair : BigElvenChair
     {
-		public override bool IsArtifact { get { return true; } }
+        public override bool IsArtifact => true;
+
+        public override int LabelNumber => 1073340; // Friends of the Library Reading Chair
+
         [Constructable]
         public LibraryFriendReadingChair()
-            : base()
         {
         }
 
@@ -52,25 +47,18 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1073340;
-            }
-        }// Friends of the Library Reading Chair
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

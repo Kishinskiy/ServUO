@@ -1,14 +1,21 @@
-using System;
-
 namespace Server.Items
 {
     public class OrnateElvenChestEastAddon : BaseAddonContainer
     {
+        public override BaseAddonContainerDeed Deed => new OrnateElvenChestEastDeed();
+
+        public override int LabelNumber => 1073383; // ornate elven chest (east)
+        public override bool RetainDeedHue => true;
+
+        public override int DefaultGumpID => 0x10C;
+
+        public override int DefaultDropSound => 0x42;
+
         [Constructable]
         public OrnateElvenChestEastAddon()
             : base(0x309A)
         {
-            this.AddComponent(new LocalizedContainerComponent(0x309B, 1073383), 0, -1, 0);
+            AddComponent(new LocalizedContainerComponent(0x309B, 1073383), 0, -1, 0);
         }
 
         public OrnateElvenChestEastAddon(Serial serial)
@@ -16,41 +23,6 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonContainerDeed Deed
-        {
-            get
-            {
-                return new OrnateElvenChestEastDeed();
-            }
-        }
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1073383;
-            }
-        }// ornate elven chest (east)
-        public override bool RetainDeedHue
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override int DefaultGumpID
-        {
-            get
-            {
-                return 0x10C;
-            }
-        }
-        public override int DefaultDropSound
-        {
-            get
-            {
-                return 0x42;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -62,15 +34,18 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class OrnateElvenChestEastDeed : BaseAddonContainerDeed
     {
+        public override BaseAddonContainer Addon => new OrnateElvenChestEastAddon();
+
+        public override int LabelNumber => 1073383; // ornate elven chest (east)
+
         [Constructable]
         public OrnateElvenChestEastDeed()
-            : base()
         {
         }
 
@@ -79,20 +54,6 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonContainer Addon
-        {
-            get
-            {
-                return new OrnateElvenChestEastAddon();
-            }
-        }
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1073383;
-            }
-        }// ornate elven chest (east)
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -104,7 +65,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

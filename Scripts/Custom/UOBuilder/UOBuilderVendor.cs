@@ -8,13 +8,14 @@ namespace Server.Custom.UOBuilder
     {
         private readonly List<SBInfo> _sbInfos = new List<SBInfo>();
 
-        protected override List<SBInfo> SBInfos
-        {
-            get { return _sbInfos; }
-        }
+        protected override List<SBInfo> SBInfos => _sbInfos;
 
         [Constructable]
         public UOBuilderVendor() : base("the building supplier")
+        {
+        }
+
+        public UOBuilderVendor(Serial serial) : base(serial)
         {
         }
 
@@ -31,10 +32,6 @@ namespace Server.Custom.UOBuilder
             AddItem(new Kilt(Utility.RandomMetalHue()));
             AddItem(new Sandals(Utility.RandomMetalHue()));
             EquipItem(new SmithyHammer());
-        }
-
-        public UOBuilderVendor(Serial serial) : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
@@ -55,22 +52,17 @@ namespace Server.Custom.UOBuilder
         private readonly List<GenericBuyInfo> _buyInfo = new InternalBuyInfo();
         private readonly IShopSellInfo _sellInfo = new InternalSellInfo();
 
-        public override IShopSellInfo SellInfo
-        {
-            get { return _sellInfo; }
-        }
+        public override IShopSellInfo SellInfo => _sellInfo;
 
-        public override List<GenericBuyInfo> BuyInfo
-        {
-            get { return _buyInfo; }
-        }
+        public override List<GenericBuyInfo> BuyInfo => _buyInfo;
 
         private class InternalBuyInfo : List<GenericBuyInfo>
         {
             public InternalBuyInfo()
             {
                 Add(new GenericBuyInfo(typeof(UOBuilderPermit), UOBuilderConfig.PermitPrice, 20, 0x14F0, 2734));
-                Add(new GenericBuyInfo(typeof(UOBuilderResourcePack), UOBuilderConfig.ResourcePrice, 100, 0xAF9E, 0x59));
+                Add(new GenericBuyInfo(typeof(UOBuilderResourcePack), UOBuilderConfig.ResourcePrice, 100, 0xAF9E,
+                    0x59));
                 Add(new GenericBuyInfo(typeof(UOBuilderBoosterPack), UOBuilderConfig.BoostPrice, 100, 0x14F0, 1153));
             }
         }

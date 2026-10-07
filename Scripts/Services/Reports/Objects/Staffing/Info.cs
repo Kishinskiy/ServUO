@@ -5,106 +5,80 @@ namespace Server.Engines.Reports
 {
     public abstract class BaseInfo : IComparable
     {
-        private static TimeSpan m_SortRange;
-        private string m_Account;
         private string m_Display;
-        private PageInfoCollection m_Pages;
-        public BaseInfo(string account)
-        {
-            this.m_Account = account;
-            this.m_Pages = new PageInfoCollection();
-        }
 
-        public static TimeSpan SortRange
-        {
-            get
-            {
-                return m_SortRange;
-            }
-            set
-            {
-                m_SortRange = value;
-            }
-        }
-        public string Account
-        {
-            get
-            {
-                return this.m_Account;
-            }
-            set
-            {
-                this.m_Account = value;
-            }
-        }
-        public PageInfoCollection Pages
-        {
-            get
-            {
-                return this.m_Pages;
-            }
-            set
-            {
-                this.m_Pages = value;
-            }
-        }
+        public static TimeSpan SortRange { get; set; }
+
+        public string Account { get; set; }
+
+        public PageInfoCollection Pages { get; set; }
+
         public string Display
         {
             get
             {
-                if (this.m_Display != null)
-                    return this.m_Display;
+                if (m_Display != null)
+                    return m_Display;
 
-                if (this.m_Account != null)
+                if (Account != null)
                 {
-                    IAccount acct = Accounts.GetAccount(this.m_Account);
+                    var acct = Accounts.GetAccount(Account);
 
                     if (acct != null)
                     {
                         Mobile mob = null;
 
-                        for (int i = 0; i < acct.Length; ++i)
+                        for (var i = 0; i < acct.Length; ++i)
                         {
-                            Mobile check = acct[i];
+                            var check = acct[i];
 
                             if (check != null && (mob == null || check.AccessLevel > mob.AccessLevel))
                                 mob = check;
                         }
 
                         if (mob != null && mob.Name != null && mob.Name.Length > 0)
-                            return (this.m_Display = mob.Name);
+                            return m_Display = mob.Name;
                     }
                 }
 
-                return (this.m_Display = this.m_Account);
+                return m_Display = Account;
             }
         }
-        public int GetPageCount(PageResolution res, DateTime min, DateTime max)
-        {
-            return StaffHistory.GetPageCount(this.m_Pages, res, min, max);
-        }
 
-        public void Register(PageInfo page)
+        public BaseInfo(string account)
         {
-            this.m_Pages.Add(page);
-        }
-
-        public void Unregister(PageInfo page)
-        {
-            this.m_Pages.Remove(page);
+            Account = account;
+            Pages = new PageInfoCollection();
         }
 
         public int CompareTo(object obj)
         {
-            BaseInfo cmp = obj as BaseInfo;
+            var cmp = obj as BaseInfo;
 
-            int v = cmp.GetPageCount(cmp is StaffInfo ? PageResolution.Handled : PageResolution.None, DateTime.UtcNow - m_SortRange, DateTime.UtcNow) -
-                    this.GetPageCount(this is StaffInfo ? PageResolution.Handled : PageResolution.None, DateTime.UtcNow - m_SortRange, DateTime.UtcNow);
+            var v = cmp.GetPageCount(cmp is StaffInfo ? PageResolution.Handled : PageResolution.None,
+                        DateTime.UtcNow - SortRange, DateTime.UtcNow) -
+                    GetPageCount(this is StaffInfo ? PageResolution.Handled : PageResolution.None,
+                        DateTime.UtcNow - SortRange, DateTime.UtcNow);
 
             if (v == 0)
-                v = String.Compare(this.Display, cmp.Display);
+                v = string.Compare(Display, cmp.Display);
 
             return v;
+        }
+
+        public int GetPageCount(PageResolution res, DateTime min, DateTime max)
+        {
+            return StaffHistory.GetPageCount(Pages, res, min, max);
+        }
+
+        public void Register(PageInfo page)
+        {
+            Pages.Add(page);
+        }
+
+        public void Unregister(PageInfo page)
+        {
+            Pages.Remove(page);
         }
     }
 

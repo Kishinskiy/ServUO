@@ -1,20 +1,21 @@
 using System;
-using System.Collections.Generic;
 
 namespace Server.Factions
 {
     [TypeAlias("Server.Factions.FactionPersistance")]
     public class FactionPersistence : Item
     {
-        private static FactionPersistence m_Instance;
+        public static FactionPersistence Instance { get; private set; }
+
+        public override string DefaultName => "Faction Persistance - Internal";
 
         public FactionPersistence()
             : base(1)
         {
-            this.Movable = false;
+            Movable = false;
 
-            if (m_Instance == null || m_Instance.Deleted)
-                m_Instance = this;
+            if (Instance == null || Instance.Deleted)
+                Instance = this;
             else
                 base.Delete();
         }
@@ -22,47 +23,27 @@ namespace Server.Factions
         public FactionPersistence(Serial serial)
             : base(serial)
         {
-            m_Instance = this;
+            Instance = this;
         }
 
-        private enum PersistedType
-        {
-            Terminator,
-            Faction,
-            Town
-        }
-        public static FactionPersistence Instance
-        {
-            get
-            {
-                return m_Instance;
-            }
-        }
-        public override string DefaultName
-        {
-            get
-            {
-                return "Faction Persistance - Internal";
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
             // Version 0 removes faction items, ie monoliths, stones, etc
-            writer.Write((int)1); // version
+            writer.Write(1); // version
 
-            List<Faction> factions = Faction.Factions;
+            var factions = Faction.Factions;
 
-            for (int i = 0; i < factions.Count; ++i)
+            for (var i = 0; i < factions.Count; ++i)
             {
                 writer.WriteEncodedInt((int)PersistedType.Faction);
                 factions[i].State.Serialize(writer);
             }
 
-            List<Town> towns = Town.Towns;
+            var towns = Town.Towns;
 
-            for (int i = 0; i < towns.Count; ++i)
+            for (var i = 0; i < towns.Count; ++i)
             {
                 writer.WriteEncodedInt((int)PersistedType.Town);
                 towns[i].State.Serialize(writer);
@@ -75,30 +56,28 @@ namespace Server.Factions
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            switch ( version )
+            switch (version)
             {
                 case 1:
                 case 0:
-                    {
-                        PersistedType type;
+                {
+                    PersistedType type;
 
-                        while ((type = (PersistedType)reader.ReadEncodedInt()) != PersistedType.Terminator)
+                    while ((type = (PersistedType)reader.ReadEncodedInt()) != PersistedType.Terminator)
+                        switch (type)
                         {
-                            switch ( type )
-                            {
-                                case PersistedType.Faction:
-                                    new FactionState(reader);
-                                    break;
-                                case PersistedType.Town:
-                                    new TownState(reader);
-                                    break;
-                            }
+                            case PersistedType.Faction:
+                                new FactionState(reader);
+                                break;
+                            case PersistedType.Town:
+                                new TownState(reader);
+                                break;
                         }
 
-                        break;
-                    }
+                    break;
+                }
             }
 
             if (!Settings.Enabled && version == 0)
@@ -107,6 +86,13 @@ namespace Server.Factions
 
         public override void Delete()
         {
+        }
+
+        private enum PersistedType
+        {
+            Terminator,
+            Faction,
+            Town
         }
     }
 }

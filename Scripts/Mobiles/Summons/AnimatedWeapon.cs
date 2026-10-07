@@ -5,11 +5,15 @@ namespace Server.Mobiles
     [CorpseName("an animated weapon corpse")]
     public class AnimatedWeapon : BaseCreature
     {
-        public override bool DeleteCorpseOnDeath { get { return true; } }
-        public override bool IsHouseSummonable { get { return true; } }
+        public override bool DeleteCorpseOnDeath => true;
+        public override bool IsHouseSummonable => true;
 
-        public override double DispelDifficulty { get { return 0.0; } }
-        public override double DispelFocus { get { return 20.0; } }
+        public override double DispelDifficulty => 0.0;
+        public override double DispelFocus => 20.0;
+
+        public override bool AlwaysMurderer => true;
+        public override bool BleedImmune => true;
+        public override Poison PoisonImmune => Poison.Lethal;
 
         [Constructable]
         public AnimatedWeapon(Mobile caster, int level)
@@ -22,7 +26,7 @@ namespace Server.Mobiles
             SetDex(10 + level);
             SetInt(10);
 
-            SetHits(20 + (level * 3 / 2));
+            SetHits(20 + level * 3 / 2);
             SetStam(10 + level);
             SetMana(0);
 
@@ -65,6 +69,10 @@ namespace Server.Mobiles
             ControlSlots = 4;
         }
 
+        public AnimatedWeapon(Serial serial) : base(serial)
+        {
+        }
+
         public override int GetAngerSound()
         {
             return 0x23A;
@@ -80,29 +88,21 @@ namespace Server.Mobiles
             return 0x23A;
         }
 
-        public AnimatedWeapon(Serial serial) : base(serial)
-        {
-        }
-
         public override double GetFightModeRanking(Mobile m, FightMode acqType, bool bPlayerOnly)
         {
             return (m.Str + m.Skills[SkillName.Tactics].Value) / Math.Max(GetDistanceToSqrt(m), 1.0);
         }
 
-        public override bool AlwaysMurderer { get { return true; } }
-        public override bool BleedImmune { get { return true; } }
-        public override Poison PoisonImmune { get { return Poison.Lethal; } }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

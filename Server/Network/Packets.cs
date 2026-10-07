@@ -569,6 +569,12 @@ namespace Server.Network
     {
         private static readonly ChangeUpdateRange[] m_Cache = new ChangeUpdateRange[0x100];
 
+        public ChangeUpdateRange(int range)
+            : base(0xC8, 2)
+        {
+            m_Stream.Write((byte)range);
+        }
+
         public static ChangeUpdateRange Instantiate(int range)
         {
             var idx = (byte)range;
@@ -581,12 +587,6 @@ namespace Server.Network
             }
 
             return p;
-        }
-
-        public ChangeUpdateRange(int range)
-            : base(0xC8, 2)
-        {
-            m_Stream.Write((byte)range);
         }
     }
 
@@ -687,15 +687,15 @@ namespace Server.Network
         public static readonly Packet Dead = SetStatic(new DeathStatus(true));
         public static readonly Packet Alive = SetStatic(new DeathStatus(false));
 
-        public static Packet Instantiate(bool dead)
-        {
-            return dead ? Dead : Alive;
-        }
-
         public DeathStatus(bool dead)
             : base(0x2C, 2)
         {
             m_Stream.Write((byte)(dead ? 0 : 2));
+        }
+
+        public static Packet Instantiate(bool dead)
+        {
+            return dead ? Dead : Alive;
         }
     }
 
@@ -867,6 +867,12 @@ namespace Server.Network
     {
         private static readonly GlobalLightLevel[] m_Cache = new GlobalLightLevel[0x100];
 
+        public GlobalLightLevel(int level)
+            : base(0x4F, 2)
+        {
+            m_Stream.Write((byte)level);
+        }
+
         public static GlobalLightLevel Instantiate(int level)
         {
             var lvl = (byte)level;
@@ -879,12 +885,6 @@ namespace Server.Network
             }
 
             return p;
-        }
-
-        public GlobalLightLevel(int level)
-            : base(0x4F, 2)
-        {
-            m_Stream.Write((byte)level);
         }
     }
 
@@ -2323,11 +2323,6 @@ m_Stream.Write( (int) renderMode );
         public static readonly Packet InWarMode = SetStatic(new SetWarMode(true));
         public static readonly Packet InPeaceMode = SetStatic(new SetWarMode(false));
 
-        public static Packet Instantiate(bool mode)
-        {
-            return mode ? InWarMode : InPeaceMode;
-        }
-
         public SetWarMode(bool mode)
             : base(0x72, 5)
         {
@@ -2335,6 +2330,11 @@ m_Stream.Write( (int) renderMode );
             m_Stream.Write((byte)0x00);
             m_Stream.Write((byte)0x32);
             m_Stream.Write((byte)0x00);
+        }
+
+        public static Packet Instantiate(bool mode)
+        {
+            return mode ? InWarMode : InPeaceMode;
         }
     }
 
@@ -2486,6 +2486,27 @@ m_Stream.Write( (int) renderMode );
         private static readonly MessageLocalized[] m_Cache_CliLoc = new MessageLocalized[100000];
         private static readonly MessageLocalized[] m_Cache_CliLocCmp = new MessageLocalized[5000];
 
+        public MessageLocalized(
+            Serial serial, int graphic, MessageType type, int hue, int font, int number, string name, string args)
+            : base(0xC1)
+        {
+            if (name == null) name = "";
+            if (args == null) args = "";
+
+            if (hue == 0) hue = 0x3B2;
+
+            EnsureCapacity(50 + args.Length * 2);
+
+            m_Stream.Write(serial);
+            m_Stream.Write((short)graphic);
+            m_Stream.Write((byte)type);
+            m_Stream.Write((short)hue);
+            m_Stream.Write((short)font);
+            m_Stream.Write(number);
+            m_Stream.WriteAsciiFixed(name, 30);
+            m_Stream.WriteLittleUniNull(args);
+        }
+
         public static MessageLocalized InstantiateGeneric(int number)
         {
             MessageLocalized[] cache = null;
@@ -2526,27 +2547,6 @@ m_Stream.Write( (int) renderMode );
             }
 
             return p;
-        }
-
-        public MessageLocalized(
-            Serial serial, int graphic, MessageType type, int hue, int font, int number, string name, string args)
-            : base(0xC1)
-        {
-            if (name == null) name = "";
-            if (args == null) args = "";
-
-            if (hue == 0) hue = 0x3B2;
-
-            EnsureCapacity(50 + args.Length * 2);
-
-            m_Stream.Write(serial);
-            m_Stream.Write((short)graphic);
-            m_Stream.Write((byte)type);
-            m_Stream.Write((short)hue);
-            m_Stream.Write((short)font);
-            m_Stream.Write(number);
-            m_Stream.WriteAsciiFixed(name, 30);
-            m_Stream.WriteLittleUniNull(args);
         }
     }
 
@@ -2697,8 +2697,16 @@ m_Stream.Write( (int) renderMode );
 
     public sealed class DisplayGumpPacked : Packet, IGumpWriter
     {
-        public int TextEntries { get; set; }
-        public int Switches { get; set; }
+        private const int GumpBufferSize = 0x10000;
+
+        private static readonly byte[] m_True = Gump.StringToBuffer(" 1");
+        private static readonly byte[] m_False = Gump.StringToBuffer(" 0");
+
+        private static readonly byte[] m_BeginTextSeparator = Gump.StringToBuffer(" @");
+        private static readonly byte[] m_EndTextSeparator = Gump.StringToBuffer("@");
+
+        private static readonly byte[] m_Buffer = new byte[48];
+        private static readonly BufferPool m_PackBuffers = new BufferPool("Gump", 4, GumpBufferSize);
 
         private readonly Gump m_Gump;
 
@@ -2706,6 +2714,11 @@ m_Stream.Write( (int) renderMode );
         private readonly PacketWriter m_Strings;
 
         private int m_StringCount;
+
+        static DisplayGumpPacked()
+        {
+            m_Buffer[0] = (byte)' ';
+        }
 
         public DisplayGumpPacked(Gump gump)
             : base(0xDD)
@@ -2716,18 +2729,8 @@ m_Stream.Write( (int) renderMode );
             m_Strings = PacketWriter.CreateInstance(8192);
         }
 
-        private static readonly byte[] m_True = Gump.StringToBuffer(" 1");
-        private static readonly byte[] m_False = Gump.StringToBuffer(" 0");
-
-        private static readonly byte[] m_BeginTextSeparator = Gump.StringToBuffer(" @");
-        private static readonly byte[] m_EndTextSeparator = Gump.StringToBuffer("@");
-
-        private static readonly byte[] m_Buffer = new byte[48];
-
-        static DisplayGumpPacked()
-        {
-            m_Buffer[0] = (byte)' ';
-        }
+        public int TextEntries { get; set; }
+        public int Switches { get; set; }
 
         public void AppendLayout(bool val)
         {
@@ -2800,9 +2803,6 @@ m_Stream.Write( (int) renderMode );
             PacketWriter.ReleaseInstance(m_Strings);
         }
 
-        private const int GumpBufferSize = 0x10000;
-        private static readonly BufferPool m_PackBuffers = new BufferPool("Gump", 4, GumpBufferSize);
-
         private void WritePacked(PacketWriter src)
         {
             var buffer = src.UnderlyingStream.GetBuffer();
@@ -2846,10 +2846,14 @@ m_Stream.Write( (int) renderMode );
 
     public sealed class DisplayGumpFast : Packet, IGumpWriter
     {
-        private int m_LayoutLength;
+        private static readonly byte[] m_True = Gump.StringToBuffer(" 1");
+        private static readonly byte[] m_False = Gump.StringToBuffer(" 0");
 
-        public int TextEntries { get; set; }
-        public int Switches { get; set; }
+        private static readonly byte[] m_BeginTextSeparator = Gump.StringToBuffer(" @");
+        private static readonly byte[] m_EndTextSeparator = Gump.StringToBuffer("@");
+
+        private readonly byte[] m_Buffer = new byte[48];
+        private int m_LayoutLength;
 
         public DisplayGumpFast(Gump g)
             : base(0xB0)
@@ -2865,13 +2869,8 @@ m_Stream.Write( (int) renderMode );
             m_Stream.Write((ushort)0xFFFF);
         }
 
-        private static readonly byte[] m_True = Gump.StringToBuffer(" 1");
-        private static readonly byte[] m_False = Gump.StringToBuffer(" 0");
-
-        private static readonly byte[] m_BeginTextSeparator = Gump.StringToBuffer(" @");
-        private static readonly byte[] m_EndTextSeparator = Gump.StringToBuffer("@");
-
-        private readonly byte[] m_Buffer = new byte[48];
+        public int TextEntries { get; set; }
+        public int Switches { get; set; }
 
         public void AppendLayout(bool val)
         {
@@ -3018,6 +3017,12 @@ m_Stream.Write( (int) renderMode );
 
         private static readonly Packet[] m_Instances = new Packet[60];
 
+        public PlayMusic(MusicName name)
+            : base(0x6D, 3)
+        {
+            m_Stream.Write((short)name);
+        }
+
         public static Packet GetInstance(MusicName name)
         {
             if (name == MusicName.Invalid) return InvalidInstance;
@@ -3037,12 +3042,6 @@ m_Stream.Write( (int) renderMode );
             }
 
             return p;
-        }
-
-        public PlayMusic(MusicName name)
-            : base(0x6D, 3)
-        {
-            m_Stream.Write((short)name);
         }
     }
 
@@ -3092,6 +3091,18 @@ m_Stream.Write( (int) renderMode );
         private static readonly SeasonChange[][] m_Cache = new SeasonChange[5][]
             { new SeasonChange[2], new SeasonChange[2], new SeasonChange[2], new SeasonChange[2], new SeasonChange[2] };
 
+        public SeasonChange(int season)
+            : this(season, true)
+        {
+        }
+
+        public SeasonChange(int season, bool playSound)
+            : base(0xBC, 3)
+        {
+            m_Stream.Write((byte)season);
+            m_Stream.Write(playSound);
+        }
+
         public static SeasonChange Instantiate(int season)
         {
             return Instantiate(season, true);
@@ -3116,28 +3127,11 @@ m_Stream.Write( (int) renderMode );
 
             return new SeasonChange(season, playSound);
         }
-
-        public SeasonChange(int season)
-            : this(season, true)
-        {
-        }
-
-        public SeasonChange(int season, bool playSound)
-            : base(0xBC, 3)
-        {
-            m_Stream.Write((byte)season);
-            m_Stream.Write(playSound);
-        }
     }
 
     public sealed class SupportedFeatures : Packet
     {
         public static FeatureFlags Value { get; set; }
-
-        public static SupportedFeatures Instantiate(NetState ns)
-        {
-            return new SupportedFeatures(ns);
-        }
 
         public SupportedFeatures(NetState ns)
             : base(0xB9, ns.ExtendedSupportedFeatures ? 5 : 3)
@@ -3163,6 +3157,11 @@ m_Stream.Write( (int) renderMode );
                 m_Stream.Write((uint)flags);
             else
                 m_Stream.Write((ushort)flags);
+        }
+
+        public static SupportedFeatures Instantiate(NetState ns)
+        {
+            return new SupportedFeatures(ns);
         }
     }
 
@@ -3713,15 +3712,6 @@ m_Stream.Write( (int) renderMode );
 
     public sealed class MobileIncoming : Packet
     {
-        public static Packet Create(NetState ns, Mobile beholder, Mobile beheld)
-        {
-            if (ns.NewMobileIncoming) return new MobileIncoming(beholder, beheld);
-
-            if (ns.StygianAbyss) return new MobileIncomingSA(beholder, beheld);
-
-            return new MobileIncomingOld(beholder, beheld);
-        }
-
         private static readonly ThreadLocal<int[]> m_DupedLayersTL =
             new ThreadLocal<int[]>(() => { return new int[256]; });
 
@@ -3838,6 +3828,15 @@ m_Stream.Write( (int) renderMode );
                 }
 
             m_Stream.Write(0); // terminate
+        }
+
+        public static Packet Create(NetState ns, Mobile beholder, Mobile beheld)
+        {
+            if (ns.NewMobileIncoming) return new MobileIncoming(beholder, beheld);
+
+            if (ns.StygianAbyss) return new MobileIncomingSA(beholder, beheld);
+
+            return new MobileIncomingOld(beholder, beheld);
         }
     }
 
@@ -4118,6 +4117,12 @@ m_Stream.Write( (int) renderMode );
     {
         private static readonly PingAck[] m_Cache = new PingAck[0x100];
 
+        public PingAck(byte ping)
+            : base(0x73, 2)
+        {
+            m_Stream.Write(ping);
+        }
+
         public static PingAck Instantiate(byte ping)
         {
             var p = m_Cache[ping];
@@ -4129,12 +4134,6 @@ m_Stream.Write( (int) renderMode );
             }
 
             return p;
-        }
-
-        public PingAck(byte ping)
-            : base(0x73, 2)
-        {
-            m_Stream.Write(ping);
         }
     }
 
@@ -4160,6 +4159,13 @@ m_Stream.Write( (int) renderMode );
             new MovementAck[256], new MovementAck[256], new MovementAck[256]
         };
 
+        private MovementAck(int seq, int noto)
+            : base(0x22, 3)
+        {
+            m_Stream.Write((byte)seq);
+            m_Stream.Write((byte)noto);
+        }
+
         public static MovementAck Instantiate(int seq, Mobile m)
         {
             var noto = Notoriety.Compute(m, m);
@@ -4173,13 +4179,6 @@ m_Stream.Write( (int) renderMode );
             }
 
             return p;
-        }
-
-        private MovementAck(int seq, int noto)
-            : base(0x22, 3)
-        {
-            m_Stream.Write((byte)seq);
-            m_Stream.Write((byte)noto);
         }
     }
 
@@ -4225,30 +4224,6 @@ m_Stream.Write( (int) renderMode );
     {
         private Point3D m_Location;
 
-        public CityInfo(string city, string building, int description, int x, int y, int z, Map m)
-        {
-            City = city;
-            Building = building;
-            Description = description;
-            m_Location = new Point3D(x, y, z);
-            Map = m;
-        }
-
-        public CityInfo(string city, string building, int x, int y, int z, Map m)
-            : this(city, building, 0, x, y, z, m)
-        {
-        }
-
-        public CityInfo(string city, string building, int description, int x, int y, int z)
-            : this(city, building, description, x, y, z, Map.Trammel)
-        {
-        }
-
-        public CityInfo(string city, string building, int x, int y, int z)
-            : this(city, building, 0, x, y, z, Map.Trammel)
-        {
-        }
-
         public string City { get; set; }
         public string Building { get; set; }
         public int Description { get; set; }
@@ -4278,6 +4253,30 @@ m_Stream.Write( (int) renderMode );
         }
 
         public Map Map { get; set; }
+
+        public CityInfo(string city, string building, int description, int x, int y, int z, Map m)
+        {
+            City = city;
+            Building = building;
+            Description = description;
+            m_Location = new Point3D(x, y, z);
+            Map = m;
+        }
+
+        public CityInfo(string city, string building, int x, int y, int z, Map m)
+            : this(city, building, 0, x, y, z, m)
+        {
+        }
+
+        public CityInfo(string city, string building, int description, int x, int y, int z)
+            : this(city, building, description, x, y, z, Map.Trammel)
+        {
+        }
+
+        public CityInfo(string city, string building, int x, int y, int z)
+            : this(city, building, 0, x, y, z, Map.Trammel)
+        {
+        }
     }
 
     public sealed class CharacterListUpdate : Packet
@@ -4380,6 +4379,10 @@ m_Stream.Write( (int) renderMode );
 
     public sealed class CharacterList : Packet
     {
+        private static MD5CryptoServiceProvider m_MD5Provider;
+
+        public static CharacterListFlags AdditionalFlags { get; set; }
+
         public CharacterList(IAccount a, CityInfo[] info, bool IsEnhancedClient)
             : base(0xA9)
         {
@@ -4473,14 +4476,12 @@ m_Stream.Write( (int) renderMode );
                 m_Stream.Write(hashCode, 0, hashCode.Length);
             }
         }
-
-        private static MD5CryptoServiceProvider m_MD5Provider;
-
-        public static CharacterListFlags AdditionalFlags { get; set; }
     }
 
     public sealed class CharacterListOld : Packet
     {
+        private static MD5CryptoServiceProvider m_MD5Provider;
+
         public CharacterListOld(IAccount a, CityInfo[] info)
             : base(0xA9)
         {
@@ -4559,8 +4560,6 @@ m_Stream.Write( (int) renderMode );
                 m_Stream.Write(hashCode, 0, hashCode.Length);
             }
         }
-
-        private static MD5CryptoServiceProvider m_MD5Provider;
     }
 
     public sealed class ClearWeaponAbility : Packet
@@ -4781,13 +4780,23 @@ m_Stream.Write( (int) renderMode );
 
     public abstract class Packet
     {
-        protected PacketWriter m_Stream;
+        private const int CompressorBufferSize = 0x10000;
+
+        private const int BufferSize = 4096;
+        private static readonly BufferPool m_CompressorBuffers = new BufferPool("Compressor", 4, CompressorBufferSize);
+        private static readonly BufferPool m_Buffers = new BufferPool("Compressed", 16, BufferSize);
 
         private readonly int m_Length;
+
+        private byte[] m_CompiledBuffer;
+        private int m_CompiledLength;
+        protected PacketWriter m_Stream;
 
         public int PacketID { get; }
 
         public PacketState State { get; private set; }
+
+        public PacketWriter UnderlyingStream => m_Stream;
 
         protected Packet(int packetID)
         {
@@ -4826,14 +4835,6 @@ m_Stream.Write( (int) renderMode );
             m_Stream.Write((byte)PacketID);
             m_Stream.Write((short)0);
         }
-
-        public PacketWriter UnderlyingStream => m_Stream;
-
-        private const int CompressorBufferSize = 0x10000;
-        private static readonly BufferPool m_CompressorBuffers = new BufferPool("Compressor", 4, CompressorBufferSize);
-
-        private const int BufferSize = 4096;
-        private static readonly BufferPool m_Buffers = new BufferPool("Compressed", 16, BufferSize);
 
         public static Packet SetStatic(Packet p)
         {
@@ -4922,9 +4923,6 @@ m_Stream.Write( (int) renderMode );
         {
             if ((State & PacketState.Acquired) != 0) Free();
         }
-
-        private byte[] m_CompiledBuffer;
-        private int m_CompiledLength;
 
         public byte[] Compile(bool compress, out int length)
         {

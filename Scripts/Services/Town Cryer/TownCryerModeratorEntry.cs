@@ -1,4 +1,3 @@
-using Server;
 using System;
 
 namespace Server.Services.TownCryer
@@ -12,9 +11,10 @@ namespace Server.Services.TownCryer
         public DateTime Expires { get; set; }
         public string ModeratorName { get; set; }
 
-        public bool Expired { get { return Expires < DateTime.Now; } }
+        public bool Expired => Expires < DateTime.Now;
 
-        public TownCryerModeratorEntry(Mobile m, int duration, string title, string body1, string body2 = null, string body3 = null)
+        public TownCryerModeratorEntry(Mobile m, int duration, string title, string body1, string body2 = null,
+            string body3 = null)
         {
             Title = title;
             Body1 = body1;
@@ -22,6 +22,18 @@ namespace Server.Services.TownCryer
             Body3 = body3;
             ModeratorName = "EM " + m.Name;
             Expires = DateTime.Now + TimeSpan.FromDays(duration);
+        }
+
+        public TownCryerModeratorEntry(GenericReader reader)
+        {
+            var version = reader.ReadInt();
+
+            Title = reader.ReadString();
+            Body1 = reader.ReadString();
+            Body2 = reader.ReadString();
+            Body3 = reader.ReadString();
+            Expires = reader.ReadDateTime();
+            ModeratorName = reader.ReadString();
         }
 
         public void Serialize(GenericWriter writer)
@@ -33,18 +45,6 @@ namespace Server.Services.TownCryer
             writer.Write(Body3);
             writer.Write(Expires);
             writer.Write(ModeratorName);
-        }
-
-        public TownCryerModeratorEntry(GenericReader reader)
-        {
-            int version = reader.ReadInt();
-
-            Title = reader.ReadString();
-            Body1 = reader.ReadString();
-            Body2 = reader.ReadString();
-            Body3 = reader.ReadString();
-            Expires = reader.ReadDateTime();
-            ModeratorName = reader.ReadString();
         }
     }
 }

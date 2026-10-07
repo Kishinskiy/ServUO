@@ -1,11 +1,26 @@
-using System;
-using Server.Items;
-
 namespace Server.Mobiles
 {
     [CorpseName("a darknight creeper corpse")]
     public class DarknightCreeper : BaseCreature
     {
+        public override bool CanFlee => false;
+
+        public override bool IgnoreYoungProtection => Core.ML;
+
+        public override bool BardImmune => !Core.SE;
+
+        public override bool Unprovokable => Core.SE;
+
+        public override bool AreaPeaceImmune => Core.SE;
+
+        public override bool BleedImmune => true;
+
+        public override Poison PoisonImmune => Poison.Lethal;
+
+        public override Poison HitPoison => Poison.Lethal;
+
+        public override int TreasureMapLevel => 1;
+
         [Constructable]
         public DarknightCreeper()
             : base(AIType.AI_Mage, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -51,81 +66,22 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool CanFlee { get { return false; } }
-
-        public override bool IgnoreYoungProtection
-        {
-            get
-            {
-                return Core.ML;
-            }
-        }
-        public override bool BardImmune
-        {
-            get
-            {
-                return !Core.SE;
-            }
-        }
-        public override bool Unprovokable
-        {
-            get
-            {
-                return Core.SE;
-            }
-        }
-        public override bool AreaPeaceImmune
-        {
-            get
-            {
-                return Core.SE;
-            }
-        }
-        public override bool BleedImmune
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override Poison PoisonImmune
-        {
-            get
-            {
-                return Poison.Lethal;
-            }
-        }
-        public override Poison HitPoison
-        {
-            get
-            {
-                return Poison.Lethal;
-            }
-        }
-        public override int TreasureMapLevel
-        {
-            get
-            {
-                return 1;
-            }
-        }
         public override void GenerateLoot()
         {
             AddLoot(LootPack.UltraRich, 2);
         }
 
-       
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -1,8 +1,6 @@
-using System;
 using System.Collections.Generic;
-using Server.Items;
 using Server.Custom.ExileHunterBestiary.Items;
-
+using Server.Items;
 
 namespace Server.Mobiles
 {
@@ -10,24 +8,10 @@ namespace Server.Mobiles
     {
         private readonly List<GenericBuyInfo> m_BuyInfo = new InternalBuyInfo();
         private readonly IShopSellInfo m_SellInfo = new InternalSellInfo();
-        public SBMage()
-        {
-        }
 
-        public override IShopSellInfo SellInfo
-        {
-            get
-            {
-                return m_SellInfo;
-            }
-        }
-        public override List<GenericBuyInfo> BuyInfo
-        {
-            get
-            {
-                return m_BuyInfo;
-            }
-        }
+        public override IShopSellInfo SellInfo => m_SellInfo;
+
+        public override List<GenericBuyInfo> BuyInfo => m_BuyInfo;
 
         public class InternalBuyInfo : List<GenericBuyInfo>
         {
@@ -46,10 +30,9 @@ namespace Server.Mobiles
                 Add(new GenericBuyInfo(typeof(Nightshade), 3, 20, 0xF88, 0));
                 Add(new GenericBuyInfo(typeof(SpidersSilk), 3, 20, 0xF8D, 0));
                 Add(new GenericBuyInfo(typeof(SulfurousAsh), 3, 20, 0xF8C, 0));
-				
+
                 if (Core.AOS)
                     Add(new GenericBuyInfo(typeof(NecromancerSpellbook), 115, 10, 0x2253, 0));
-				
 
 
                 Add(new GenericBuyInfo("1041072", typeof(MagicWizardsHat), 11, 10, 0x1718, Utility.RandomDyedHue()));
@@ -66,7 +49,6 @@ namespace Server.Mobiles
                 Add(new GenericBuyInfo(typeof(LesserExplosionPotion), 21, 10, 0xF0D, 0, true));
 
 
-
                 if (Core.AOS)
                 {
                     Add(new GenericBuyInfo(typeof(BatWing), 3, 999, 0xF78, 0));
@@ -76,20 +58,20 @@ namespace Server.Mobiles
                     Add(new GenericBuyInfo(typeof(GraveDust), 3, 999, 0xF8F, 0));
                 }
 
-                Type[] types = Loot.RegularScrollTypes;
+                var types = Loot.RegularScrollTypes;
 
-                int circles = 3;
+                var circles = 3;
 
-                for (int i = 0; i < circles * 8 && i < types.Length; ++i)
+                for (var i = 0; i < circles * 8 && i < types.Length; ++i)
                 {
-                    int itemID = 0x1F2E + i;
+                    var itemID = 0x1F2E + i;
 
                     if (i == 6)
                         itemID = 0x1F2D;
                     else if (i > 6)
                         --itemID;
 
-                    Add(new GenericBuyInfo(types[i], 12 + ((i / 8) * 10), 20, itemID, 0, true));
+                    Add(new GenericBuyInfo(types[i], 12 + i / 8 * 10, 20, itemID, 0, true));
                 }
             }
         }
@@ -99,14 +81,14 @@ namespace Server.Mobiles
             public InternalSellInfo()
             {
                 Add(typeof(WizardsHat), 15);
-                Add(typeof(BlackPearl), 3); 
-                Add(typeof(Bloodmoss), 4); 
-                Add(typeof(MandrakeRoot), 2); 
-                Add(typeof(Garlic), 2); 
-                Add(typeof(Ginseng), 2); 
-                Add(typeof(Nightshade), 2); 
-                Add(typeof(SpidersSilk), 2); 
-                Add(typeof(SulfurousAsh), 2); 
+                Add(typeof(BlackPearl), 3);
+                Add(typeof(Bloodmoss), 4);
+                Add(typeof(MandrakeRoot), 2);
+                Add(typeof(Garlic), 2);
+                Add(typeof(Ginseng), 2);
+                Add(typeof(Nightshade), 2);
+                Add(typeof(SpidersSilk), 2);
+                Add(typeof(SulfurousAsh), 2);
 
                 if (Core.AOS)
                 {
@@ -120,13 +102,13 @@ namespace Server.Mobiles
                 Add(typeof(RecallRune), 13);
                 Add(typeof(Spellbook), 25);
 
-                Type[] types = Loot.RegularScrollTypes;
+                var types = Loot.RegularScrollTypes;
 
-                for (int i = 0; i < types.Length; ++i)
-                    Add(types[i], ((i / 8) + 2) * 2);
+                for (var i = 0; i < types.Length; ++i)
+                    Add(types[i], (i / 8 + 2) * 2);
 
                 if (Core.SE)
-                { 
+                {
                     Add(typeof(ExorcismScroll), 3);
                     Add(typeof(AnimateDeadScroll), 8);
                     Add(typeof(BloodOathScroll), 8);

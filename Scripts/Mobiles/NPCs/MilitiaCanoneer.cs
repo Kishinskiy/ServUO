@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 using Server.Mobiles;
 
@@ -6,12 +5,14 @@ namespace Server.Engines.Quests.Haven
 {
     public class MilitiaCanoneer : BaseQuester
     {
-        private bool m_Active;
+        [CommandProperty(AccessLevel.GameMaster)]
+        public bool Active { get; set; }
+
         [Constructable]
         public MilitiaCanoneer()
             : base("the Militia Cannoneer")
         {
-            m_Active = true;
+            Active = true;
         }
 
         public MilitiaCanoneer(Serial serial)
@@ -19,18 +20,6 @@ namespace Server.Engines.Quests.Haven
         {
         }
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public bool Active
-        {
-            get
-            {
-                return m_Active;
-            }
-            set
-            {
-                m_Active = value;
-            }
-        }
         public override void InitBody()
         {
             InitStats(100, 125, 25);
@@ -52,7 +41,7 @@ namespace Server.Engines.Quests.Haven
             AddItem(new PlateGloves());
             AddItem(new PlateLegs());
 
-            Torch torch = new Torch();
+            var torch = new Torch();
             torch.Movable = false;
             AddItem(torch);
             torch.Ignite();
@@ -74,9 +63,9 @@ namespace Server.Engines.Quests.Haven
 
             if (m is BaseCreature)
             {
-                BaseCreature bc = (BaseCreature)m;
+                var bc = (BaseCreature)m;
 
-                Mobile master = bc.GetMaster();
+                var master = bc.GetMaster();
                 if (master != null)
                     return IsEnemy(master);
             }
@@ -86,7 +75,7 @@ namespace Server.Engines.Quests.Haven
 
         public bool WillFire(Cannon cannon, Mobile target)
         {
-            if (m_Active && IsEnemy(target))
+            if (Active && IsEnemy(target))
             {
                 Direction = GetDirectionTo(target);
                 Say(Utility.RandomList(500651, 1049098, 1049320, 1043149));
@@ -100,18 +89,18 @@ namespace Server.Engines.Quests.Haven
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
-            writer.Write((bool)m_Active);
+            writer.Write(Active);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            m_Active = reader.ReadBool();
+            Active = reader.ReadBool();
         }
     }
 }

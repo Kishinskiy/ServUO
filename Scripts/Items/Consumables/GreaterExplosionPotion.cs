@@ -1,9 +1,11 @@
-using System;
-
 namespace Server.Items
 {
     public class GreaterExplosionPotion : BaseExplosionPotion
     {
+        public override int MinDamage => Core.AOS ? 20 : 15;
+
+        public override int MaxDamage => Core.AOS ? 40 : 30;
+
         [Constructable]
         public GreaterExplosionPotion()
             : base(PotionEffect.ExplosionGreater)
@@ -15,32 +17,18 @@ namespace Server.Items
         {
         }
 
-        public override int MinDamage
-        {
-            get
-            {
-                return Core.AOS ? 20 : 15;
-            }
-        }
-        public override int MaxDamage
-        {
-            get
-            {
-                return Core.AOS ? 40 : 30;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

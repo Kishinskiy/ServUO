@@ -1,13 +1,75 @@
 ﻿using System;
-using Server.Mobiles;
 using Server.Commands;
-using System.Collections.Generic;
+using Server.Mobiles;
 
 namespace Server.Items
 {
     public class WinchAssembly : Item
     {
         public static readonly string EntityName = "winchassemply";
+        private bool m_bearingassembly;
+
+        private bool m_flywheel;
+        private bool m_powercore;
+        private bool m_wirespool;
+
+        public override int LabelNumber => 1154433; // Winch Assembly
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public bool FlyWheel
+        {
+            get => m_flywheel;
+            set
+            {
+                m_flywheel = value;
+                InvalidateProperties();
+            }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public bool WireSpool
+        {
+            get => m_wirespool;
+            set
+            {
+                m_wirespool = value;
+                InvalidateProperties();
+            }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public bool BearingAssembly
+        {
+            get => m_bearingassembly;
+            set
+            {
+                m_bearingassembly = value;
+                InvalidateProperties();
+            }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public bool PowerCore
+        {
+            get => m_powercore;
+            set
+            {
+                m_powercore = value;
+                InvalidateProperties();
+            }
+        }
+
+        [Constructable]
+        public WinchAssembly() : base(0x280E)
+        {
+            Movable = false;
+            Hue = 2101;
+        }
+
+        public WinchAssembly(Serial serial)
+            : base(serial)
+        {
+        }
 
         public static void Initialize()
         {
@@ -29,16 +91,16 @@ namespace Server.Items
 
         public static void GenWinchAssembly(Mobile m)
         {
-            DeleteWinchAssembly(m);            
+            DeleteWinchAssembly(m);
 
             // Winch 
-            WinchAssembly winch = new WinchAssembly();
+            var winch = new WinchAssembly();
             WeakEntityCollection.Add(EntityName, winch);
 
-            Hatch hatch = new Hatch();
+            var hatch = new Hatch();
             WeakEntityCollection.Add(EntityName, hatch);
 
-            WinchAssemblyLever lever = new WinchAssemblyLever(winch, hatch);
+            var lever = new WinchAssemblyLever(winch, hatch);
             WeakEntityCollection.Add(EntityName, lever);
 
             lever.MoveToWorld(new Point3D(6310, 1705, 0), Map.Trammel);
@@ -51,69 +113,6 @@ namespace Server.Items
         private static void DeleteWinchAssembly(Mobile from)
         {
             WeakEntityCollection.Delete(EntityName);
-        }
-
-        public override int LabelNumber { get { return 1154433; } } // Winch Assembly
-
-        private bool m_flywheel;
-        private bool m_wirespool;
-        private bool m_bearingassembly;
-        private bool m_powercore;
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public bool FlyWheel
-        {
-            get { return m_flywheel; }
-            set
-            {
-                m_flywheel = value;
-                InvalidateProperties();
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public bool WireSpool
-        {
-            get { return m_wirespool; }
-            set
-            {
-                m_wirespool = value;
-                InvalidateProperties();
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public bool BearingAssembly
-        {
-            get { return m_bearingassembly; }
-            set
-            {
-                m_bearingassembly = value;
-                InvalidateProperties();
-            }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public bool PowerCore
-        {
-            get { return m_powercore; }
-            set
-            {
-                m_powercore = value;
-                InvalidateProperties();
-            }
-        }
-
-        [Constructable]
-        public WinchAssembly() : base(0x280E)
-        {
-            this.Movable = false;
-            this.Hue = 2101;
-        }
-
-        public WinchAssembly(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void GetProperties(ObjectPropertyList list)
@@ -155,7 +154,7 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
             writer.Write(m_flywheel);
             writer.Write(m_wirespool);
@@ -166,7 +165,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             m_flywheel = reader.ReadBool();
             m_wirespool = reader.ReadBool();
@@ -177,30 +176,19 @@ namespace Server.Items
 
     public class WinchAssemblyLever : Item
     {
-        private WinchAssembly m_WinchAssembly;
-        private Hatch m_hatch;
+        [CommandProperty(AccessLevel.GameMaster)]
+        public WinchAssembly Winch { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public WinchAssembly Winch
-        {
-            get { return m_WinchAssembly; }
-            set { m_WinchAssembly = value; }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public Hatch Hatch
-        {
-            get { return m_hatch; }
-            set { m_hatch = value; }
-        }
+        public Hatch Hatch { get; set; }
 
         [Constructable]
         public WinchAssemblyLever(WinchAssembly winch, Hatch hatch)
             : base(0x108E)
         {
-            this.Movable = false;
-            this.m_WinchAssembly = winch;
-            this.m_hatch = hatch;
+            Movable = false;
+            Winch = winch;
+            Hatch = hatch;
         }
 
         public WinchAssemblyLever(Serial serial)
@@ -210,38 +198,39 @@ namespace Server.Items
 
         public override void OnDoubleClick(Mobile from)
         {
-            if (m_WinchAssembly == null || m_hatch == null)
+            if (Winch == null || Hatch == null)
                 return;
 
-            if (m_WinchAssembly.BearingAssembly && m_WinchAssembly.FlyWheel && m_WinchAssembly.WireSpool && m_WinchAssembly.PowerCore)
+            if (Winch.BearingAssembly && Winch.FlyWheel && Winch.WireSpool && Winch.PowerCore)
             {
-                Timer.DelayCall(TimeSpan.FromSeconds(1.0), TimeSpan.FromSeconds(1.0), 3, new TimerStateCallback(m_hatch.DoDownEffect), new object[] { m_hatch.Location, 0, from });
+                Timer.DelayCall(TimeSpan.FromSeconds(1.0), TimeSpan.FromSeconds(1.0), 3,
+                    new TimerStateCallback(Hatch.DoDownEffect), new object[] { Hatch.Location, 0, from });
 
                 Mobile creature = Shadowlord.Spawn(new Point3D(6417, 1649, 0), Map.Trammel);
-              
-                m_WinchAssembly.BearingAssembly = false;
-                m_WinchAssembly.FlyWheel = false;
-                m_WinchAssembly.WireSpool = false;
-                m_WinchAssembly.PowerCore = false;
+
+                Winch.BearingAssembly = false;
+                Winch.FlyWheel = false;
+                Winch.WireSpool = false;
+                Winch.PowerCore = false;
             }
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
-            writer.Write(m_WinchAssembly);
-            writer.Write(m_hatch);
+            writer.Write(Winch);
+            writer.Write(Hatch);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            m_WinchAssembly = reader.ReadItem() as WinchAssembly;
-            m_hatch = reader.ReadItem() as Hatch;
+            Winch = reader.ReadItem() as WinchAssembly;
+            Hatch = reader.ReadItem() as Hatch;
         }
     }
 
@@ -251,104 +240,103 @@ namespace Server.Items
 
         [Constructable]
         public Hatch()
-            : base()
         {
-            this.AddComponent(new HatchTile(this), 2, 7, 0);
-            this.AddComponent(new HatchTile(this), 2, 6, 0);
-            this.AddComponent(new HatchTile(this), 2, 5, 0);
-            this.AddComponent(new HatchTile(this), 2, 4, 0);
-            this.AddComponent(new HatchTile(this), 2, 3, 0);
-            this.AddComponent(new HatchTile(this), 2, 2, 0);
-            this.AddComponent(new HatchTile(this), 3, 7, 0);
-            this.AddComponent(new HatchTile(this), 3, 6, 0);
-            this.AddComponent(new HatchTile(this), 3, 5, 0);
-            this.AddComponent(new HatchTile(this), 3, 4, 0);
-            this.AddComponent(new HatchTile(this), 3, 3, 0);
-            this.AddComponent(new HatchTile(this), 3, 2, 0);
-            this.AddComponent(new HatchTile(this), 4, 7, 0);
-            this.AddComponent(new HatchTile(this), 4, 6, 0);
-            this.AddComponent(new HatchTile(this), 4, 5, 0);
-            this.AddComponent(new HatchTile(this), 4, 4, 0);
-            this.AddComponent(new HatchTile(this), 4, 3, 0);
-            this.AddComponent(new HatchTile(this), 4, 2, 0);
-            this.AddComponent(new HatchTile(this), 5, 7, 0);
-            this.AddComponent(new HatchTile(this), 5, 6, 0);
-            this.AddComponent(new HatchTile(this), 5, 5, 0);
-            this.AddComponent(new HatchTile(this), 5, 4, 0);
-            this.AddComponent(new HatchTile(this), 5, 3, 0);
-            this.AddComponent(new HatchTile(this), 5, 2, 0);
-            this.AddComponent(new HatchTile(this), 2, -1, 0);
-            this.AddComponent(new HatchTile(this), 2, -2, 0);
-            this.AddComponent(new HatchTile(this), 2, -3, 0);
-            this.AddComponent(new HatchTile(this), 2, -4, 0);
-            this.AddComponent(new HatchTile(this), 2, -5, 0);
-            this.AddComponent(new HatchTile(this), 2, -6, 0);
-            this.AddComponent(new HatchTile(this), 3, -1, 0);
-            this.AddComponent(new HatchTile(this), 3, -2, 0);
-            this.AddComponent(new HatchTile(this), 3, -3, 0);
-            this.AddComponent(new HatchTile(this), 3, -4, 0);
-            this.AddComponent(new HatchTile(this), 3, -5, 0);
-            this.AddComponent(new HatchTile(this), 3, -6, 0);
-            this.AddComponent(new HatchTile(this), 4, -1, 0);
-            this.AddComponent(new HatchTile(this), 4, -2, 0);
-            this.AddComponent(new HatchTile(this), 4, -3, 0);
-            this.AddComponent(new HatchTile(this), 4, -4, 0);
-            this.AddComponent(new HatchTile(this), 4, -5, 0);
-            this.AddComponent(new HatchTile(this), 4, -6, 0);
-            this.AddComponent(new HatchTile(this), 5, -1, 0);
-            this.AddComponent(new HatchTile(this), 5, -2, 0);
-            this.AddComponent(new HatchTile(this), 5, -3, 0);
-            this.AddComponent(new HatchTile(this), 5, -4, 0);
-            this.AddComponent(new HatchTile(this), 5, -5, 0);
-            this.AddComponent(new HatchTile(this), 5, -6, 0);
-            this.AddComponent(new HatchTile(this), -4, 7, 0);
-            this.AddComponent(new HatchTile(this), -4, 6, 0);
-            this.AddComponent(new HatchTile(this), -4, 5, 0);
-            this.AddComponent(new HatchTile(this), -4, 4, 0);
-            this.AddComponent(new HatchTile(this), -4, 3, 0);
-            this.AddComponent(new HatchTile(this), -4, 2, 0);
-            this.AddComponent(new HatchTile(this), -3, 7, 0);
-            this.AddComponent(new HatchTile(this), -3, 6, 0);
-            this.AddComponent(new HatchTile(this), -3, 5, 0);
-            this.AddComponent(new HatchTile(this), -3, 4, 0);
-            this.AddComponent(new HatchTile(this), -3, 3, 0);
-            this.AddComponent(new HatchTile(this), -3, 2, 0);
-            this.AddComponent(new HatchTile(this), -2, 7, 0);
-            this.AddComponent(new HatchTile(this), -2, 6, 0);
-            this.AddComponent(new HatchTile(this), -2, 5, 0);
-            this.AddComponent(new HatchTile(this), -2, 4, 0);
-            this.AddComponent(new HatchTile(this), -2, 3, 0);
-            this.AddComponent(new HatchTile(this), -2, 2, 0);
-            this.AddComponent(new HatchTile(this), -1, 7, 0);
-            this.AddComponent(new HatchTile(this), -1, 6, 0);
-            this.AddComponent(new HatchTile(this), -1, 5, 0);
-            this.AddComponent(new HatchTile(this), -1, 4, 0);
-            this.AddComponent(new HatchTile(this), -1, 3, 0);
-            this.AddComponent(new HatchTile(this), -1, 2, 0);
-            this.AddComponent(new HatchTile(this), -4, -1, 0);
-            this.AddComponent(new HatchTile(this), -4, -2, 0);
-            this.AddComponent(new HatchTile(this), -4, -3, 0);
-            this.AddComponent(new HatchTile(this), -4, -4, 0);
-            this.AddComponent(new HatchTile(this), -4, -5, 0);
-            this.AddComponent(new HatchTile(this), -4, -6, 0);
-            this.AddComponent(new HatchTile(this), -3, -1, 0);
-            this.AddComponent(new HatchTile(this), -3, -2, 0);
-            this.AddComponent(new HatchTile(this), -3, -3, 0);
-            this.AddComponent(new HatchTile(this), -3, -4, 0);
-            this.AddComponent(new HatchTile(this), -3, -5, 0);
-            this.AddComponent(new HatchTile(this), -3, -6, 0);
-            this.AddComponent(new HatchTile(this), -2, -1, 0);
-            this.AddComponent(new HatchTile(this), -2, -2, 0);
-            this.AddComponent(new HatchTile(this), -2, -3, 0);
-            this.AddComponent(new HatchTile(this), -2, -4, 0);
-            this.AddComponent(new HatchTile(this), -2, -5, 0);
-            this.AddComponent(new HatchTile(this), -2, -6, 0);
-            this.AddComponent(new HatchTile(this), -1, -1, 0);
-            this.AddComponent(new HatchTile(this), -1, -2, 0);
-            this.AddComponent(new HatchTile(this), -1, -3, 0);
-            this.AddComponent(new HatchTile(this), -1, -4, 0);
-            this.AddComponent(new HatchTile(this), -1, -5, 0);
-            this.AddComponent(new HatchTile(this), -1, -6, 0);
+            AddComponent(new HatchTile(this), 2, 7, 0);
+            AddComponent(new HatchTile(this), 2, 6, 0);
+            AddComponent(new HatchTile(this), 2, 5, 0);
+            AddComponent(new HatchTile(this), 2, 4, 0);
+            AddComponent(new HatchTile(this), 2, 3, 0);
+            AddComponent(new HatchTile(this), 2, 2, 0);
+            AddComponent(new HatchTile(this), 3, 7, 0);
+            AddComponent(new HatchTile(this), 3, 6, 0);
+            AddComponent(new HatchTile(this), 3, 5, 0);
+            AddComponent(new HatchTile(this), 3, 4, 0);
+            AddComponent(new HatchTile(this), 3, 3, 0);
+            AddComponent(new HatchTile(this), 3, 2, 0);
+            AddComponent(new HatchTile(this), 4, 7, 0);
+            AddComponent(new HatchTile(this), 4, 6, 0);
+            AddComponent(new HatchTile(this), 4, 5, 0);
+            AddComponent(new HatchTile(this), 4, 4, 0);
+            AddComponent(new HatchTile(this), 4, 3, 0);
+            AddComponent(new HatchTile(this), 4, 2, 0);
+            AddComponent(new HatchTile(this), 5, 7, 0);
+            AddComponent(new HatchTile(this), 5, 6, 0);
+            AddComponent(new HatchTile(this), 5, 5, 0);
+            AddComponent(new HatchTile(this), 5, 4, 0);
+            AddComponent(new HatchTile(this), 5, 3, 0);
+            AddComponent(new HatchTile(this), 5, 2, 0);
+            AddComponent(new HatchTile(this), 2, -1, 0);
+            AddComponent(new HatchTile(this), 2, -2, 0);
+            AddComponent(new HatchTile(this), 2, -3, 0);
+            AddComponent(new HatchTile(this), 2, -4, 0);
+            AddComponent(new HatchTile(this), 2, -5, 0);
+            AddComponent(new HatchTile(this), 2, -6, 0);
+            AddComponent(new HatchTile(this), 3, -1, 0);
+            AddComponent(new HatchTile(this), 3, -2, 0);
+            AddComponent(new HatchTile(this), 3, -3, 0);
+            AddComponent(new HatchTile(this), 3, -4, 0);
+            AddComponent(new HatchTile(this), 3, -5, 0);
+            AddComponent(new HatchTile(this), 3, -6, 0);
+            AddComponent(new HatchTile(this), 4, -1, 0);
+            AddComponent(new HatchTile(this), 4, -2, 0);
+            AddComponent(new HatchTile(this), 4, -3, 0);
+            AddComponent(new HatchTile(this), 4, -4, 0);
+            AddComponent(new HatchTile(this), 4, -5, 0);
+            AddComponent(new HatchTile(this), 4, -6, 0);
+            AddComponent(new HatchTile(this), 5, -1, 0);
+            AddComponent(new HatchTile(this), 5, -2, 0);
+            AddComponent(new HatchTile(this), 5, -3, 0);
+            AddComponent(new HatchTile(this), 5, -4, 0);
+            AddComponent(new HatchTile(this), 5, -5, 0);
+            AddComponent(new HatchTile(this), 5, -6, 0);
+            AddComponent(new HatchTile(this), -4, 7, 0);
+            AddComponent(new HatchTile(this), -4, 6, 0);
+            AddComponent(new HatchTile(this), -4, 5, 0);
+            AddComponent(new HatchTile(this), -4, 4, 0);
+            AddComponent(new HatchTile(this), -4, 3, 0);
+            AddComponent(new HatchTile(this), -4, 2, 0);
+            AddComponent(new HatchTile(this), -3, 7, 0);
+            AddComponent(new HatchTile(this), -3, 6, 0);
+            AddComponent(new HatchTile(this), -3, 5, 0);
+            AddComponent(new HatchTile(this), -3, 4, 0);
+            AddComponent(new HatchTile(this), -3, 3, 0);
+            AddComponent(new HatchTile(this), -3, 2, 0);
+            AddComponent(new HatchTile(this), -2, 7, 0);
+            AddComponent(new HatchTile(this), -2, 6, 0);
+            AddComponent(new HatchTile(this), -2, 5, 0);
+            AddComponent(new HatchTile(this), -2, 4, 0);
+            AddComponent(new HatchTile(this), -2, 3, 0);
+            AddComponent(new HatchTile(this), -2, 2, 0);
+            AddComponent(new HatchTile(this), -1, 7, 0);
+            AddComponent(new HatchTile(this), -1, 6, 0);
+            AddComponent(new HatchTile(this), -1, 5, 0);
+            AddComponent(new HatchTile(this), -1, 4, 0);
+            AddComponent(new HatchTile(this), -1, 3, 0);
+            AddComponent(new HatchTile(this), -1, 2, 0);
+            AddComponent(new HatchTile(this), -4, -1, 0);
+            AddComponent(new HatchTile(this), -4, -2, 0);
+            AddComponent(new HatchTile(this), -4, -3, 0);
+            AddComponent(new HatchTile(this), -4, -4, 0);
+            AddComponent(new HatchTile(this), -4, -5, 0);
+            AddComponent(new HatchTile(this), -4, -6, 0);
+            AddComponent(new HatchTile(this), -3, -1, 0);
+            AddComponent(new HatchTile(this), -3, -2, 0);
+            AddComponent(new HatchTile(this), -3, -3, 0);
+            AddComponent(new HatchTile(this), -3, -4, 0);
+            AddComponent(new HatchTile(this), -3, -5, 0);
+            AddComponent(new HatchTile(this), -3, -6, 0);
+            AddComponent(new HatchTile(this), -2, -1, 0);
+            AddComponent(new HatchTile(this), -2, -2, 0);
+            AddComponent(new HatchTile(this), -2, -3, 0);
+            AddComponent(new HatchTile(this), -2, -4, 0);
+            AddComponent(new HatchTile(this), -2, -5, 0);
+            AddComponent(new HatchTile(this), -2, -6, 0);
+            AddComponent(new HatchTile(this), -1, -1, 0);
+            AddComponent(new HatchTile(this), -1, -2, 0);
+            AddComponent(new HatchTile(this), -1, -3, 0);
+            AddComponent(new HatchTile(this), -1, -4, 0);
+            AddComponent(new HatchTile(this), -1, -5, 0);
+            AddComponent(new HatchTile(this), -1, -6, 0);
         }
 
         public Hatch(Serial serial) : base(serial)
@@ -357,14 +345,14 @@ namespace Server.Items
 
         public void DoDownEffect(object state)
         {
-            if (this.Deleted)
+            if (Deleted)
                 return;
 
-            object[] states = (object[])state;
+            var states = (object[])state;
 
-            Point3D p = (Point3D)states[0];
-                        
-            for (int i = 0; i < 3; ++i)
+            var p = (Point3D)states[0];
+
+            for (var i = 0; i < 3; ++i)
             {
                 int x, y;
 
@@ -405,28 +393,43 @@ namespace Server.Items
                         break;
                 }
 
-                Effects.SendLocationEffect(new Point3D(p.X + x, p.Y + y, p.Z), this.Map, 0x36CB, 16, 4, 1362, 0);
+                Effects.SendLocationEffect(new Point3D(p.X + x, p.Y + y, p.Z), Map, 0x36CB, 16, 4, 1362, 0);
 
-                
-                this.Z -= 1;
 
-                if (this.Z == 1)
+                Z -= 1;
+
+                if (Z == 1)
                 {
-                    this.Hue = 1;
-                    this.m_Timer = new InternalTimer(this);
-                    this.m_Timer.Start();
+                    Hue = 1;
+                    m_Timer = new InternalTimer(this);
+                    m_Timer.Start();
                 }
             }
         }
 
         public override void OnAfterDelete()
         {
-            if (this.m_Timer != null)
-                this.m_Timer.Stop();
+            if (m_Timer != null)
+                m_Timer.Stop();
 
-            this.m_Timer = null;
+            m_Timer = null;
 
             base.OnAfterDelete();
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0); // Version
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
+
+            m_Timer = new InternalTimer(this);
+            m_Timer.Start();
         }
 
         public class InternalTimer : Timer
@@ -441,36 +444,23 @@ namespace Server.Items
 
             protected override void OnTick()
             {
-                this.m_hatch.Z = 10;
-                this.m_hatch.Hue = 2969;
+                m_hatch.Z = 10;
+                m_hatch.Hue = 2969;
             }
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.Write(0); // Version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            int version = reader.ReadInt();
-
-            this.m_Timer = new InternalTimer(this);
-            this.m_Timer.Start();
         }
     }
 
     public class HatchTile : AddonComponent
     {
         [CommandProperty(AccessLevel.GameMaster)]
-        public bool Active { get { return (this.Z == 1); } }
+        public bool Active => Z == 1;
+
+        public override bool HandlesOnMovement => true;
 
         public HatchTile(Hatch hatch)
             : base(0x07CD)
         {
-            this.Hue = 2969;
+            Hue = 2969;
         }
 
         public HatchTile(Serial serial)
@@ -478,16 +468,12 @@ namespace Server.Items
         {
         }
 
-        public override bool HandlesOnMovement { get { return true; } }
-
         public override void OnMovement(Mobile m, Point3D oldLocation)
         {
             base.OnMovement(m, oldLocation);
 
-            if (Active && m.Player && Utility.InRange(this.Location, m.Location, 0) && !Utility.InRange(this.Location, oldLocation, 0))
-            {
-                m.MoveToWorld(new Point3D(6415, 1647, 0), Map.Trammel);
-            }
+            if (Active && m.Player && Utility.InRange(Location, m.Location, 0) &&
+                !Utility.InRange(Location, oldLocation, 0)) m.MoveToWorld(new Point3D(6415, 1647, 0), Map.Trammel);
         }
 
         public override void Serialize(GenericWriter writer)
@@ -499,7 +485,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

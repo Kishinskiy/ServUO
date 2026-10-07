@@ -1,10 +1,11 @@
-using System;
-
 namespace Server.Mobiles
 {
     [CorpseName("a Visceral corpse")]
     public class Viscera : BaseCreature
     {
+        public override Poison PoisonImmune => Poison.Lethal;
+        public override Poison HitPoison => Poison.Lethal;
+
         [Constructable]
         public Viscera()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -58,9 +59,6 @@ namespace Server.Mobiles
             AddLoot(LootPack.Gems, Utility.Random(1, 3));
         }
 
-        public override Poison PoisonImmune { get { return Poison.Lethal; } }
-        public override Poison HitPoison { get { return Poison.Lethal; } }
-
         public override int GetIdleSound()
         {
             return 0x1BF;
@@ -84,13 +82,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1);
+            writer.Write(1);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

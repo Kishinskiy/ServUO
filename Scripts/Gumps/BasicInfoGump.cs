@@ -1,5 +1,5 @@
-﻿using Server;
-using System;
+﻿using System;
+using Server.Network;
 
 namespace Server.Gumps
 {
@@ -28,12 +28,14 @@ namespace Server.Gumps
                 if (title.Number > 0)
                     AddHtmlLocalized(12, 10, 275, 20, title.Number, 0xFFFFFF, false, false);
                 else if (title.String != null)
-                    AddHtml(12, 10, 275, 20, String.Format("<BASEFONT COLOR=WHITE>{0}</BASEFONT>", title.String), false, false);
+                    AddHtml(12, 10, 275, 20, string.Format("<BASEFONT COLOR=WHITE>{0}</BASEFONT>", title.String), false,
+                        false);
 
                 if (body.Number > 0)
                     AddHtmlLocalized(12, 40, 275, height - 60, body.Number, 0xFFFFFF, false, false);
                 else if (body.String != null)
-                    AddHtml(12, 40, 275, height - 60, String.Format("<BASEFONT COLOR=WHITE>{0}</BASEFONT>", body.String), false, false);
+                    AddHtml(12, 40, 275, height - 60,
+                        string.Format("<BASEFONT COLOR=WHITE>{0}</BASEFONT>", body.String), false, false);
             }
             else
             {
@@ -42,18 +44,20 @@ namespace Server.Gumps
                 if (body.Number > 0)
                     AddHtmlLocalized(12, 10, 275, height - 25, (int)body, 0xFFFFFF, false, false);
                 else if (body.String != null)
-                    AddHtml(12, 10, 275, height - 25, String.Format("<BASEFONT COLOR=WHITE>{0}</BASEFONT>", body.String), false, false);
+                    AddHtml(12, 10, 275, height - 25,
+                        string.Format("<BASEFONT COLOR=WHITE>{0}</BASEFONT>", body.String), false, false);
             }
         }
     }
 
     public class BasicConfirmGump<T> : Gump
     {
-        private readonly Action<Mobile, T> m_ConfirmCallback;
         private readonly Action<Mobile, T> m_CancelCallback;
+        private readonly Action<Mobile, T> m_ConfirmCallback;
         private readonly T m_State;
 
-        public BasicConfirmGump(TextDefinition warning, Action<Mobile, T> confirmcallback, T state, Action<Mobile, T> cancelcallback = null, int width = 290, int height = 95)
+        public BasicConfirmGump(TextDefinition warning, Action<Mobile, T> confirmcallback, T state,
+            Action<Mobile, T> cancelcallback = null, int width = 290, int height = 95)
             : base(100, 100)
         {
             m_ConfirmCallback = confirmcallback;
@@ -72,21 +76,17 @@ namespace Server.Gumps
             if (warning.Number > 0)
                 AddHtmlLocalized(10, 10, width - 20, height - 50, warning.Number, 0xFFFF, false, false);
             else
-                AddHtml(10, 10, width - 20, height - 50, String.Format("<BASEFONT COLOR=#FFFFFF>{0}</BASEFONT>", warning.String), false, true);
+                AddHtml(10, 10, width - 20, height - 50,
+                    string.Format("<BASEFONT COLOR=#FFFFFF>{0}</BASEFONT>", warning.String), false, true);
         }
 
-        public override void OnResponse(Server.Network.NetState sender, RelayInfo info)
+        public override void OnResponse(NetState sender, RelayInfo info)
         {
-            Mobile m = sender.Mobile;
+            var m = sender.Mobile;
 
             if (info.ButtonID == 1 && m_CancelCallback != null)
-            {
                 m_CancelCallback(m, m_State);
-            }
-            else if (info.ButtonID == 2 && m_ConfirmCallback != null)
-            {
-                m_ConfirmCallback(m, m_State);
-            }
+            else if (info.ButtonID == 2 && m_ConfirmCallback != null) m_ConfirmCallback(m, m_State);
         }
     }
 }

@@ -1,9 +1,9 @@
-using System;
-
 namespace Server.Items
 {
     public class Emerald : Item, IGem
     {
+        public override double DefaultWeight => 0.1;
+
         [Constructable]
         public Emerald()
             : this(1)
@@ -14,8 +14,8 @@ namespace Server.Items
         public Emerald(int amount)
             : base(0xF10)
         {
-            this.Stackable = true;
-            this.Amount = amount;
+            Stackable = true;
+            Amount = amount;
         }
 
         public Emerald(Serial serial)
@@ -23,25 +23,18 @@ namespace Server.Items
         {
         }
 
-        public override double DefaultWeight
-        {
-            get
-            {
-                return 0.1;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -1,22 +1,18 @@
 using System;
 using System.Collections.Generic;
-
+using Server.ContextMenus;
 using Server.Gumps;
 using Server.Multis;
-using Server.ContextMenus;
 
 namespace Server.Items
 {
     [Flipable(0xA513, 0xA514)]
     public class ChickenStatue : Item, ISecurable
     {
-        public override int LabelNumber { get { return 1126283; } } // chicken
+        public override int LabelNumber => 1126283; // chicken
 
         [CommandProperty(AccessLevel.GameMaster)]
         public DateTime NextResourceCount { get; set; }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public SecureLevel Level { get; set; }
 
         [Constructable]
         public ChickenStatue()
@@ -26,6 +22,14 @@ namespace Server.Items
             Weight = 1;
             NextResourceCount = DateTime.UtcNow + TimeSpan.FromDays(1);
         }
+
+        public ChickenStatue(Serial serial)
+            : base(serial)
+        {
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public SecureLevel Level { get; set; }
 
         public override void GetContextMenuEntries(Mobile from, List<ContextMenuEntry> list)
         {
@@ -39,7 +43,7 @@ namespace Server.Items
             if (from.AccessLevel >= AccessLevel.GameMaster)
                 return true; // Staff can access anything
 
-            BaseHouse house = BaseHouse.FindHouseAt(item);
+            var house = BaseHouse.FindHouseAt(item);
 
             if (house == null)
                 return false;
@@ -54,11 +58,6 @@ namespace Server.Items
             }
 
             return false;
-        }
-
-        public ChickenStatue(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void OnDoubleClick(Mobile from)
@@ -86,7 +85,7 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
             writer.Write((int)Level);
             writer.Write(NextResourceCount);
@@ -95,7 +94,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             Level = (SecureLevel)reader.ReadInt();
             NextResourceCount = reader.ReadDateTime();

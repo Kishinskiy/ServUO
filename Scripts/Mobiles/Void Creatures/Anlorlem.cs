@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,8 +5,18 @@ namespace Server.Mobiles
     [CorpseName("an Anlorlem corpse")]
     public class Anlorlem : BaseVoidCreature
     {
-        public override VoidEvolution Evolution { get { return VoidEvolution.Grouping; } }
-        public override int Stage { get { return 2; } }
+        public override VoidEvolution Evolution => VoidEvolution.Grouping;
+        public override int Stage => 2;
+
+        public override int TreasureMapLevel => 3;
+
+        public override bool BardImmune => !Core.AOS;
+
+        public override bool Unprovokable => true;
+
+        public override bool ReacquireOnMovement => true;
+
+        public override Poison PoisonImmune => Poison.Greater;
 
         [Constructable]
         public Anlorlem()
@@ -52,58 +61,23 @@ namespace Server.Mobiles
         {
         }
 
-		public override int TreasureMapLevel
-        {
-            get
-            {
-                return 3;
-            }
-        }
-        public override bool BardImmune
-        {
-            get
-            {
-                return !Core.AOS;
-            }
-        }
-        public override bool Unprovokable
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool ReacquireOnMovement
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override Poison PoisonImmune
-        {
-            get
-            {
-                return Poison.Greater;
-            }
-        }
         public override void GenerateLoot()
         {
-            this.AddLoot(LootPack.FilthyRich);
-            this.AddLoot(LootPack.Average, 2);
-            this.AddLoot(LootPack.MedScrolls, 2);
+            AddLoot(LootPack.FilthyRich);
+            AddLoot(LootPack.Average, 2);
+            AddLoot(LootPack.MedScrolls, 2);
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

@@ -1,13 +1,11 @@
-using System;
-using Reward = Server.Engines.Quests.BaseReward;
-
 namespace Server.Items
 {
     public class JaacarBox : WoodenBox
     {
+        public override string DefaultName => "Jaacar Reward Box";
+
         [Constructable]
         public JaacarBox()
-            : base()
         {
             Movable = true;
             Hue = 1266;
@@ -20,25 +18,18 @@ namespace Server.Items
         {
         }
 
-        public override string DefaultName
-        {
-            get
-            {
-                return "Jaacar Reward Box";
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

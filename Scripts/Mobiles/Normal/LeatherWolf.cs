@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Server;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -8,12 +7,20 @@ namespace Server.Mobiles
     [CorpseName("a wolf corpse")]
     public class LeatherWolf : BaseCreature, IRepairableMobile
     {
-        public Type RepairResource { get { return typeof(IronIngot); } }
-
         private const int MaxFellows = 3;
 
-        private List<Mobile> m_Fellows = new List<Mobile>();
+        private readonly List<Mobile> m_Fellows = new List<Mobile>();
         private Timer m_FellowsTimer;
+
+        public override bool AlwaysMurderer => true;
+
+        public override int Meat => 1;
+
+        public override PackInstinct PackInstinct => PackInstinct.Canine;
+
+        public override int Hides => 7;
+
+        public override FoodType FavoriteFood => FoodType.Meat;
 
         [Constructable]
         public LeatherWolf()
@@ -55,12 +62,14 @@ namespace Server.Mobiles
         {
         }
 
+        public Type RepairResource => typeof(IronIngot);
+
         public override void OnDeath(Container c)
         {
             base.OnDeath(c);
 
             if (!Controlled && 0.2 > Utility.RandomDouble())
-                c.DropItem(new LeatherWolfSkin());         
+                c.DropItem(new LeatherWolfSkin());
         }
 
         public override void OnCombatantChange()
@@ -84,17 +93,17 @@ namespace Server.Mobiles
             }
             else
             {
-                for (int i = 0; i < m_Fellows.Count; i++)
+                for (var i = 0; i < m_Fellows.Count; i++)
                 {
-                    Mobile friend = m_Fellows[i];
+                    var friend = m_Fellows[i];
 
                     if (friend.Deleted)
                         m_Fellows.Remove(friend);
                 }
 
-                bool spawned = false;
+                var spawned = false;
 
-                for (int i = m_Fellows.Count; i < MaxFellows; i++)
+                for (var i = m_Fellows.Count; i < MaxFellows; i++)
                 {
                     BaseCreature friend = new LeatherWolfFellow();
 
@@ -117,52 +126,6 @@ namespace Server.Mobiles
             }
         }
 
-        private class InternalTimer : Timer
-        {
-            private LeatherWolf m_Owner;
-
-            public InternalTimer(LeatherWolf owner)
-                : base(TimeSpan.Zero, TimeSpan.FromSeconds(30.0))
-            {
-                m_Owner = owner;
-            }
-
-            protected override void OnTick()
-            {
-                m_Owner.CheckFellows();
-            }
-        }
-
-        public override bool AlwaysMurderer { get { return true; } }
-
-        public override int Meat
-        {
-            get
-            {
-                return 1;
-            }
-        }
-        public override PackInstinct PackInstinct
-        {
-            get
-            {
-                return PackInstinct.Canine;
-            }
-        }
-        public override int Hides
-        {
-            get
-            {
-                return 7;
-            }
-        }
-        public override FoodType FavoriteFood
-        {
-            get
-            {
-                return FoodType.Meat;
-            }
-        }
         public override void GenerateLoot()
         {
             AddLoot(LootPack.Meager, 2);
@@ -192,19 +155,37 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
+        }
+
+        private class InternalTimer : Timer
+        {
+            private readonly LeatherWolf m_Owner;
+
+            public InternalTimer(LeatherWolf owner)
+                : base(TimeSpan.Zero, TimeSpan.FromSeconds(30.0))
+            {
+                m_Owner = owner;
+            }
+
+            protected override void OnTick()
+            {
+                m_Owner.CheckFellows();
+            }
         }
     }
 
     public class LeatherWolfFellow : BaseCreature
     {
+        public override PackInstinct PackInstinct => PackInstinct.Canine;
+
         [Constructable]
         public LeatherWolfFellow()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -237,8 +218,6 @@ namespace Server.Mobiles
             Karma = -2500;
         }
 
-        public override PackInstinct PackInstinct { get { return PackInstinct.Canine; } }
-
         public LeatherWolfFellow(Serial serial)
             : base(serial)
         {
@@ -248,7 +227,7 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)

@@ -1,5 +1,6 @@
 using System;
 using Server.Mobiles;
+using Server.Spells.Ninjitsu;
 
 namespace Server.Items
 {
@@ -9,7 +10,7 @@ namespace Server.Items
     // The target will be hit with chaos damage regardless of whether they were dismounted or paralyzed.
     public class InfusedThrow : WeaponAbility
     {
-        public override int BaseMana { get { return 25; } }
+        public override int BaseMana => 25;
 
         public override void OnHit(Mobile attacker, Mobile defender, int damage)
         {
@@ -23,21 +24,23 @@ namespace Server.Items
 
             AOS.Damage(defender, attacker, 15, false, 0, 0, 0, 0, 0, 100, 0, false);
 
-            IMount mount = defender.Mount;
+            var mount = defender.Mount;
 
-            if ((defender.Mounted || defender.Flying || Server.Spells.Ninjitsu.AnimalForm.UnderTransformation(defender)) && !attacker.Mounted && !attacker.Flying && !(defender is ChaosDragoon) && !(defender is ChaosDragoonElite))
+            if ((defender.Mounted || defender.Flying || AnimalForm.UnderTransformation(defender)) &&
+                !attacker.Mounted && !attacker.Flying && !(defender is ChaosDragoon) &&
+                !(defender is ChaosDragoonElite))
             {
                 defender.PlaySound(0x140);
                 defender.FixedParticles(0x3728, 10, 15, 9955, EffectLayer.Waist);
 
-                Server.Items.Dismount.DoDismount(attacker, defender, mount, 10);
+                Items.Dismount.DoDismount(attacker, defender, mount, 10);
             }
             else
             {
                 defender.FixedEffect(0x376A, 9, 32);
                 defender.PlaySound(0x204);
 
-                TimeSpan duration = defender.Player ? TimeSpan.FromSeconds(3.0) : TimeSpan.FromSeconds(6.0);
+                var duration = defender.Player ? TimeSpan.FromSeconds(3.0) : TimeSpan.FromSeconds(6.0);
                 defender.Paralyze(duration);
             }
         }

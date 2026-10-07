@@ -1,10 +1,28 @@
-using System;
-
 namespace Server.Items
 {
     public class DupresShield : BaseShield
-	{
-		public override bool IsArtifact { get { return true; } }
+    {
+        public override bool IsArtifact => true;
+
+        public override int LabelNumber => 1075196; // Dupreï¿½s Shield
+        public override int BasePhysicalResistance => 1;
+
+        public override int BaseFireResistance => 0;
+
+        public override int BaseColdResistance => 0;
+
+        public override int BasePoisonResistance => 0;
+
+        public override int BaseEnergyResistance => 1;
+
+        public override int InitMinHits => 255;
+
+        public override int InitMaxHits => 255;
+
+        public override int AosStrReq => 50;
+
+        public override int ArmorBase => 15;
+
         [Constructable]
         public DupresShield()
             : base(0x2B01)
@@ -21,76 +39,6 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1075196;
-            }
-        }// Dupre’s Shield
-        public override int BasePhysicalResistance
-        {
-            get
-            {
-                return 1;
-            }
-        }
-        public override int BaseFireResistance
-        {
-            get
-            {
-                return 0;
-            }
-        }
-        public override int BaseColdResistance
-        {
-            get
-            {
-                return 0;
-            }
-        }
-        public override int BasePoisonResistance
-        {
-            get
-            {
-                return 0;
-            }
-        }
-        public override int BaseEnergyResistance
-        {
-            get
-            {
-                return 1;
-            }
-        }
-        public override int InitMinHits
-        {
-            get
-            {
-                return 255;
-            }
-        }
-        public override int InitMaxHits
-        {
-            get
-            {
-                return 255;
-            }
-        }
-        public override int AosStrReq
-        {
-            get
-            {
-                return 50;
-            }
-        }
-        public override int ArmorBase
-        {
-            get
-            {
-                return 15;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -102,7 +50,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

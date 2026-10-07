@@ -1,5 +1,3 @@
-using System;
-
 namespace Server.Items
 {
     public class FarmableLettuce : FarmableCrop
@@ -22,7 +20,7 @@ namespace Server.Items
 
         public override Item GetCropObject()
         {
-            Lettuce lettuce = new Lettuce();
+            var lettuce = new Lettuce();
 
             lettuce.ItemID = Utility.Random(3184, 2);
 
@@ -45,7 +43,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

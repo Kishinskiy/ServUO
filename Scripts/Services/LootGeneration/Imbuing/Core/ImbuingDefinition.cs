@@ -1,38 +1,34 @@
 using System;
-using Server;
-using Server.Items;
-using Server.Mobiles;
 using System.Collections.Generic;
+using Server.Items;
 
 namespace Server.SkillHandlers
 {
     public class ImbuingDefinition
     {
-        private object m_Attribute;
-        private int m_AttributeName;
-        private int m_Weight;
-        private Type m_PrimaryRes;
-        private Type m_GemRes;
-        private Type m_SpecialRes;
-        private int m_PrimaryName;
-        private int m_GemName;
-        private int m_SpecialName;
-        private int m_MaxIntensity;
-        private int m_IncAmount;
-        private int m_Description;
+        public object Attribute { get; }
 
-        public object Attribute { get { return m_Attribute; } }
-        public int AttributeName { get { return m_AttributeName; } }
-        public int Weight { get { return m_Weight; } }
-        public Type PrimaryRes { get { return m_PrimaryRes; } }
-        public Type GemRes { get { return m_GemRes; } }
-        public Type SpecialRes { get { return m_SpecialRes; } }
-        public int PrimaryName { get { return m_PrimaryName; } }
-        public int GemName { get { return m_GemName; } }
-        public int SpecialName { get { return m_SpecialName; } }
-        public int MaxIntensity { get { return m_MaxIntensity; } }
-        public int IncAmount { get { return m_IncAmount; } }
-        public int Description { get { return m_Description; } }
+        public int AttributeName { get; }
+
+        public int Weight { get; }
+
+        public Type PrimaryRes { get; }
+
+        public Type GemRes { get; }
+
+        public Type SpecialRes { get; }
+
+        public int PrimaryName { get; }
+
+        public int GemName { get; }
+
+        public int SpecialName { get; }
+
+        public int MaxIntensity { get; }
+
+        public int IncAmount { get; }
+
+        public int Description { get; }
 
         public bool Melee { get; set; }
         public bool Ranged { get; set; }
@@ -40,22 +36,26 @@ namespace Server.SkillHandlers
         public bool Shield { get; set; }
         public bool Jewels { get; set; }
 
-        public ImbuingDefinition(object attribute, int attributeName, int weight, Type pRes, Type gRes, Type spRes, int mInt, int inc, int desc, bool melee = false, bool ranged = false, bool armor = false, bool shield = false, bool jewels = false)
+        public Dictionary<Type, int> LocBuffer { get; set; }
+
+        public ImbuingDefinition(object attribute, int attributeName, int weight, Type pRes, Type gRes, Type spRes,
+            int mInt, int inc, int desc, bool melee = false, bool ranged = false, bool armor = false,
+            bool shield = false, bool jewels = false)
         {
-            m_Attribute = attribute;
-            m_AttributeName = attributeName;
-            m_Weight = weight;
-            m_PrimaryRes = pRes;
-            m_GemRes = gRes;
-            m_SpecialRes = spRes;
+            Attribute = attribute;
+            AttributeName = attributeName;
+            Weight = weight;
+            PrimaryRes = pRes;
+            GemRes = gRes;
+            SpecialRes = spRes;
 
-            m_PrimaryName = GetLocalization(pRes);
-            m_GemName = GetLocalization(gRes);
-            m_SpecialName = GetLocalization(spRes);
+            PrimaryName = GetLocalization(pRes);
+            GemName = GetLocalization(gRes);
+            SpecialName = GetLocalization(spRes);
 
-            m_MaxIntensity = mInt;
-            m_IncAmount = inc;
-            m_Description = desc;
+            MaxIntensity = mInt;
+            IncAmount = inc;
+            Description = desc;
 
             Melee = melee;
             Ranged = ranged;
@@ -99,22 +99,21 @@ namespace Server.SkillHandlers
 
             if (LocBuffer.ContainsKey(type))
                 return LocBuffer[type];
- 
-            Item item = Loot.Construct(type);
+
+            var item = Loot.Construct(type);
 
             if (item != null)
             {
                 LocBuffer[type] = item.LabelNumber;
                 item.Delete();
 
-                return LocBuffer[type]; ;
+                return LocBuffer[type];
+                ;
             }
 
-            if(type != null)
+            if (type != null)
                 Console.WriteLine("Warning, missing name cliloc for type {0}.", type.Name);
             return -1;
         }
-
-        public Dictionary<Type, int> LocBuffer { get; set; }
     }
 }

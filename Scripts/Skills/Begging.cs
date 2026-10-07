@@ -1,10 +1,11 @@
 #region References
-using System;
 
+using System;
 using Server.Items;
 using Server.Misc;
 using Server.Network;
 using Server.Targeting;
+
 #endregion
 
 namespace Server.SkillHandlers
@@ -33,25 +34,23 @@ namespace Server.SkillHandlers
 
             public InternalTarget()
                 : base(12, false, TargetFlags.None)
-            { }
+            {
+            }
 
             protected override void OnTargetFinish(Mobile from)
             {
-                if (m_SetSkillTime)
-                {
-                    from.NextSkillTime = Core.TickCount;
-                }
+                if (m_SetSkillTime) from.NextSkillTime = Core.TickCount;
             }
 
             protected override void OnTarget(Mobile from, object targeted)
             {
                 from.RevealingAction();
 
-                int number = -1;
+                var number = -1;
 
                 if (targeted is Mobile)
                 {
-                    Mobile targ = (Mobile)targeted;
+                    var targ = (Mobile)targeted;
 
                     if (targ.Player) // We can't beg from players
                     {
@@ -64,15 +63,13 @@ namespace Server.SkillHandlers
                     else if (!from.InRange(targ, 2))
                     {
                         if (!targ.Female)
-                        {
                             number = 500401; // You are too far away to beg from him.
-                        }
                         else
-                        {
                             number = 500402; // You are too far away to beg from her.
-                        }
                     }
-                    else if (!Core.ML && from.Mounted) // If we're on a mount, who would give us money? TODO: guessed it's removed since ML
+                    else if
+                        (!Core.ML &&
+                         from.Mounted) // If we're on a mount, who would give us money? TODO: guessed it's removed since ML
                     {
                         number = 500404; // They seem unwilling to give you any money.
                     }
@@ -94,10 +91,7 @@ namespace Server.SkillHandlers
                     number = 500399; // There is little chance of getting money from that!
                 }
 
-                if (number != -1)
-                {
-                    from.SendLocalizedMessage(number);
-                }
+                if (number != -1) from.SendLocalizedMessage(number);
             }
 
             private class InternalTimer : Timer
@@ -115,9 +109,9 @@ namespace Server.SkillHandlers
 
                 protected override void OnTick()
                 {
-                    Container theirPack = m_Target.Backpack;
+                    var theirPack = m_Target.Backpack;
 
-                    double badKarmaChance = 0.5 - ((double)m_From.Karma / 8570);
+                    var badKarmaChance = 0.5 - (double)m_From.Karma / 8570;
 
                     if (theirPack == null && m_Target.Race != Race.Elf)
                     {
@@ -132,45 +126,34 @@ namespace Server.SkillHandlers
                     {
                         if (m_Target.Race != Race.Elf)
                         {
-                            int toConsume = theirPack.GetAmount(typeof(Gold)) / 10;
-                            int max = 10 + (m_From.Fame / 2500);
+                            var toConsume = theirPack.GetAmount(typeof(Gold)) / 10;
+                            var max = 10 + m_From.Fame / 2500;
 
                             if (max > 14)
-                            {
                                 max = 14;
-                            }
-                            else if (max < 10)
-                            {
-                                max = 10;
-                            }
+                            else if (max < 10) max = 10;
 
-                            if (toConsume > max)
-                            {
-                                toConsume = max;
-                            }
+                            if (toConsume > max) toConsume = max;
 
                             if (toConsume > 0)
                             {
-                                int consumed = theirPack.ConsumeUpTo(typeof(Gold), toConsume);
+                                var consumed = theirPack.ConsumeUpTo(typeof(Gold), toConsume);
 
                                 if (consumed > 0)
                                 {
                                     m_Target.PublicOverheadMessage(MessageType.Regular, m_Target.SpeechHue, 500405);
                                     // I feel sorry for thee...
 
-                                    Gold gold = new Gold(consumed);
+                                    var gold = new Gold(consumed);
 
                                     m_From.AddToBackpack(gold);
                                     m_From.PlaySound(gold.GetDropSound());
 
                                     if (m_From.Karma > -3000)
                                     {
-                                        int toLose = m_From.Karma + 3000;
+                                        var toLose = m_From.Karma + 3000;
 
-                                        if (toLose > 40)
-                                        {
-                                            toLose = 40;
-                                        }
+                                        if (toLose > 40) toLose = 40;
 
                                         Titles.AwardKarma(m_From, -toLose, true);
                                     }
@@ -189,12 +172,12 @@ namespace Server.SkillHandlers
                         }
                         else
                         {
-                            double chance = Utility.RandomDouble();
+                            var chance = Utility.RandomDouble();
                             Item reward = null;
-                            string rewardName = "";
+                            var rewardName = "";
                             if (chance >= .99)
                             {
-                                int rand = Utility.Random(8);
+                                var rand = Utility.Random(8);
 
                                 if (rand == 0)
                                 {
@@ -244,7 +227,7 @@ namespace Server.SkillHandlers
                             }
                             else if (chance >= .76)
                             {
-                                int rand = Utility.Random(6);
+                                var rand = Utility.Random(6);
 
                                 if (rand == 0)
                                 {
@@ -284,7 +267,7 @@ namespace Server.SkillHandlers
                             }
                             else if (chance >= .25)
                             {
-                                int rand = Utility.Random(1);
+                                var rand = Utility.Random(1);
 
                                 if (rand == 0)
                                 {
@@ -298,10 +281,7 @@ namespace Server.SkillHandlers
                                 }
                             }
 
-                            if (reward == null)
-                            {
-                                reward = new Gold(1);
-                            }
+                            if (reward == null) reward = new Gold(1);
 
                             m_Target.Say(1074854); // Here, take this...
                             m_From.AddToBackpack(reward);
@@ -309,16 +289,12 @@ namespace Server.SkillHandlers
 
                             if (m_From.Karma > -3000)
                             {
-                                int toLose = m_From.Karma + 3000;
+                                var toLose = m_From.Karma + 3000;
 
-                                if (toLose > 40)
-                                {
-                                    toLose = 40;
-                                }
+                                if (toLose > 40) toLose = 40;
 
                                 Titles.AwardKarma(m_From, -toLose, true);
                             }
-
                         }
                     }
 

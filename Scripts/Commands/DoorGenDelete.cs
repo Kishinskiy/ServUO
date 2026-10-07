@@ -1,13 +1,13 @@
-using System;
 using System.Collections.Generic;
 using Server.Commands;
 using Server.Items;
+using Server.Network;
 
 namespace Server
 {
     public class DoorGeneratorDelete
     {
-        private static readonly Rectangle2D[] m_BritRegions = new Rectangle2D[]
+        private static readonly Rectangle2D[] m_BritRegions =
         {
             new Rectangle2D(new Point2D(250, 750), new Point2D(775, 1330)),
             new Rectangle2D(new Point2D(525, 2095), new Point2D(925, 2430)),
@@ -26,15 +26,18 @@ namespace Server
             new Rectangle2D(new Point2D(1410, 1500), new Point2D(1745, 1795)),
             new Rectangle2D(new Point2D(5120, 2300), new Point2D(6143, 4095))
         };
-        private static readonly Rectangle2D[] m_IlshRegions = new Rectangle2D[]
+
+        private static readonly Rectangle2D[] m_IlshRegions =
         {
             new Rectangle2D(new Point2D(0, 0), new Point2D(288 * 8, 200 * 8))
         };
-        private static readonly Rectangle2D[] m_MalasRegions = new Rectangle2D[]
+
+        private static readonly Rectangle2D[] m_MalasRegions =
         {
             new Rectangle2D(new Point2D(0, 0), new Point2D(320 * 8, 256 * 8))
         };
-        private static readonly int[] m_SouthFrames = new int[]
+
+        private static readonly int[] m_SouthFrames =
         {
             0x0006,
             0x0008,
@@ -107,7 +110,8 @@ namespace Server
             0x0208,
             0x020A
         };
-        private static readonly int[] m_NorthFrames = new int[]
+
+        private static readonly int[] m_NorthFrames =
         {
             0x0006,
             0x0008,
@@ -179,7 +183,8 @@ namespace Server
             0x0208,
             0x020A
         };
-        private static readonly int[] m_EastFrames = new int[]
+
+        private static readonly int[] m_EastFrames =
         {
             0x0007,
             0x000A,
@@ -252,7 +257,8 @@ namespace Server
             0x0207,
             0x0209
         };
-        private static readonly int[] m_WestFrames = new int[]
+
+        private static readonly int[] m_WestFrames =
         {
             0x0007,
             0x000C,
@@ -324,19 +330,21 @@ namespace Server
             0x0207,
             0x0209
         };
+
         private static Map m_Map;
         private static int m_Count;
+
         public static void Initialize()
         {
-            CommandSystem.Register("DoorGenDelete", AccessLevel.Administrator, new CommandEventHandler(DoorGenDelete_OnCommand));
+            CommandSystem.Register("DoorGenDelete", AccessLevel.Administrator, DoorGenDelete_OnCommand);
         }
 
         [Usage("DoorGenDelete")]
         [Description("Deletes doors by analyzing the map.")]
         public static void DoorGenDelete_OnCommand(CommandEventArgs e)
         {
-			WeakEntityCollection.Delete("door");
-			// Retained for backward compatibility
+            WeakEntityCollection.Delete("door");
+            // Retained for backward compatibility
             Delete();
         }
 
@@ -344,107 +352,86 @@ namespace Server
         {
             World.Broadcast(0x35, true, "Deleting doors, please wait.");
 
-            Network.NetState.FlushAll();
-            Network.NetState.Pause();
+            NetState.FlushAll();
+            NetState.Pause();
 
             m_Map = Map.Trammel;
             m_Count = 0;
 
-            for (int i = 0; i < m_BritRegions.Length; ++i)
+            for (var i = 0; i < m_BritRegions.Length; ++i)
                 Delete(m_BritRegions[i]);
 
-            int trammelCount = m_Count;
+            var trammelCount = m_Count;
 
             m_Map = Map.Felucca;
             m_Count = 0;
 
-            for (int i = 0; i < m_BritRegions.Length; ++i)
+            for (var i = 0; i < m_BritRegions.Length; ++i)
                 Delete(m_BritRegions[i]);
 
-            int feluccaCount = m_Count;
+            var feluccaCount = m_Count;
 
             m_Map = Map.Ilshenar;
             m_Count = 0;
 
-            for (int i = 0; i < m_IlshRegions.Length; ++i)
+            for (var i = 0; i < m_IlshRegions.Length; ++i)
                 Delete(m_IlshRegions[i]);
 
-            int ilshenarCount = m_Count;
+            var ilshenarCount = m_Count;
 
             m_Map = Map.Malas;
             m_Count = 0;
 
-            for (int i = 0; i < m_MalasRegions.Length; ++i)
+            for (var i = 0; i < m_MalasRegions.Length; ++i)
                 Delete(m_MalasRegions[i]);
 
-            int malasCount = m_Count;
+            var malasCount = m_Count;
 
-            Network.NetState.Resume();
+            NetState.Resume();
 
-            World.Broadcast(0x35, true, "Door deletion complete. Trammel: {0}; Felucca: {1}; Ilshenar: {2}; Malas: {3};", trammelCount, feluccaCount, ilshenarCount, malasCount);
+            World.Broadcast(0x35, true,
+                "Door deletion complete. Trammel: {0}; Felucca: {1}; Ilshenar: {2}; Malas: {3};", trammelCount,
+                feluccaCount, ilshenarCount, malasCount);
         }
 
         public static void DeleteDoor(int x, int y, int z)
         {
-            int doorZ = z;
-            int doorTop = doorZ + 20;
-			
+            var doorZ = z;
+            var doorTop = doorZ + 20;
+
             m_Count += DeleteBaseDoor(m_Map, new Point3D(x, y, z));
         }
 
         public static void Delete(Rectangle2D region)
         {
-            for (int rx = 0; rx < region.Width; ++rx)
+            for (var rx = 0; rx < region.Width; ++rx)
+            for (var ry = 0; ry < region.Height; ++ry)
             {
-                for (int ry = 0; ry < region.Height; ++ry)
+                var vx = rx + region.X;
+                var vy = ry + region.Y;
+
+                var tiles = m_Map.Tiles.GetStaticTiles(vx, vy);
+
+                for (var i = 0; i < tiles.Length; ++i)
                 {
-                    int vx = rx + region.X;
-                    int vy = ry + region.Y;
+                    var tile = tiles[i];
 
-                    StaticTile[] tiles = m_Map.Tiles.GetStaticTiles(vx, vy);
+                    var id = tile.ID;
+                    var z = tile.Z;
 
-                    for (int i = 0; i < tiles.Length; ++i)
+                    if (IsWestFrame(id))
                     {
-                        StaticTile tile = tiles[i];
-
-                        int id = tile.ID;
-                        int z = tile.Z;
-
-                        if (IsWestFrame(id))
+                        if (IsEastFrame(vx + 2, vy, z))
                         {
-                            if (IsEastFrame(vx + 2, vy, z))
-                            {
-                                DeleteDoor(vx + 1, vy, z);
-                            }
-                            else if (IsEastFrame(vx + 3, vy, z))
-                            {
-                                /*BaseDoor first = */DeleteDoor(vx + 1, vy, z);
-                                /*BaseDoor second = */DeleteDoor(vx + 2, vy, z);
-                                /*if (first != null && second != null)
-                                {
-                                first.Link = second;
-                                second.Link = first;
-                                }
-                                else
-                                {
-                                if (first != null)
-                                first.Delete();
-                                if (second != null)
-                                second.Delete();
-                                }*/
-                            }
+                            DeleteDoor(vx + 1, vy, z);
                         }
-                        else if (IsNorthFrame(id))
+                        else if (IsEastFrame(vx + 3, vy, z))
                         {
-                            if (IsSouthFrame(vx, vy + 2, z))
-                            {
-                                DeleteDoor(vx, vy + 1, z);
-                            }
-                            else if (IsSouthFrame(vx, vy + 3, z))
-                            {
-                                /*BaseDoor first = */DeleteDoor(vx, vy + 1, z);
-                                /*BaseDoor second = */DeleteDoor(vx, vy + 2, z);
-                                /*if (first != null && second != null)
+                            /*BaseDoor first = */
+                            DeleteDoor(vx + 1, vy, z);
+                            /*BaseDoor second = */
+                            DeleteDoor(vx + 2, vy, z);
+                            /*if (first != null && second != null)
                                 {
                                 first.Link = second;
                                 second.Link = first;
@@ -456,7 +443,32 @@ namespace Server
                                 if (second != null)
                                 second.Delete();
                                 }*/
-                            }
+                        }
+                    }
+                    else if (IsNorthFrame(id))
+                    {
+                        if (IsSouthFrame(vx, vy + 2, z))
+                        {
+                            DeleteDoor(vx, vy + 1, z);
+                        }
+                        else if (IsSouthFrame(vx, vy + 3, z))
+                        {
+                            /*BaseDoor first = */
+                            DeleteDoor(vx, vy + 1, z);
+                            /*BaseDoor second = */
+                            DeleteDoor(vx, vy + 2, z);
+                            /*if (first != null && second != null)
+                                {
+                                first.Link = second;
+                                second.Link = first;
+                                }
+                                else
+                                {
+                                if (first != null)
+                                first.Delete();
+                                if (second != null)
+                                second.Delete();
+                                }*/
                         }
                     }
                 }
@@ -470,13 +482,13 @@ namespace Server
             if (id > list[list.Length - 1])
                 return false;
 
-            for (int i = 0; i < list.Length; ++i)
+            for (var i = 0; i < list.Length; ++i)
             {
-                int delta = id - list[i];
+                var delta = id - list[i];
 
                 if (delta < 0)
                     return false;
-                else if (delta == 0)
+                if (delta == 0)
                     return true;
             }
 
@@ -505,11 +517,11 @@ namespace Server
 
         public static bool IsEastFrame(int x, int y, int z)
         {
-            StaticTile[] tiles = m_Map.Tiles.GetStaticTiles(x, y);
+            var tiles = m_Map.Tiles.GetStaticTiles(x, y);
 
-            for (int i = 0; i < tiles.Length; ++i)
+            for (var i = 0; i < tiles.Length; ++i)
             {
-                StaticTile tile = tiles[i];
+                var tile = tiles[i];
 
                 if (tile.Z == z && IsEastFrame(tile.ID))
                     return true;
@@ -520,11 +532,11 @@ namespace Server
 
         public static bool IsSouthFrame(int x, int y, int z)
         {
-            StaticTile[] tiles = m_Map.Tiles.GetStaticTiles(x, y);
+            var tiles = m_Map.Tiles.GetStaticTiles(x, y);
 
-            for (int i = 0; i < tiles.Length; ++i)
+            for (var i = 0; i < tiles.Length; ++i)
             {
-                StaticTile tile = tiles[i];
+                var tile = tiles[i];
 
                 if (tile.Z == z && IsSouthFrame(tile.ID))
                     return true;
@@ -535,27 +547,25 @@ namespace Server
 
         private static int DeleteBaseDoor(Map map, Point3D p)
         {
-            Queue<Item> m_Queue = new Queue<Item>();
+            var m_Queue = new Queue<Item>();
 
             IPooledEnumerable eable = map.GetItemsInRange(p, 0);
 
             foreach (Item item in eable)
-            {
                 if (item is BaseDoor)
                 {
-                    int delta = item.Z - p.Z;
+                    var delta = item.Z - p.Z;
 
                     if (delta >= -12 && delta <= 12)
                         m_Queue.Enqueue(item);
                 }
-            }
 
             eable.Free();
 
-            int count = m_Queue.Count;
+            var count = m_Queue.Count;
 
             while (m_Queue.Count > 0)
-                (m_Queue.Dequeue()).Delete();
+                m_Queue.Dequeue().Delete();
 
             return count;
         }

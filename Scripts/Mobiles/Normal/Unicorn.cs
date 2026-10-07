@@ -1,11 +1,34 @@
 using System;
 using Server.Items;
+using Server.Network;
 
 namespace Server.Mobiles
 {
     [CorpseName("a unicorn corpse")]
     public class Unicorn : BaseMount
     {
+        public override bool AllowMaleRider => false;
+
+        public override bool AllowMaleTamer => false;
+
+        public override bool InitialInnocent => true;
+
+        public override TimeSpan MountAbilityDelay => TimeSpan.FromHours(1.0);
+
+        public override TribeType Tribe => TribeType.Fey;
+
+        public override OppositionGroup OppositionGroup => OppositionGroup.FeyAndUndead;
+
+        public override Poison PoisonImmune => Poison.Lethal;
+
+        public override int Meat => 3;
+
+        public override int Hides => 10;
+
+        public override HideType HideType => HideType.Horned;
+
+        public override FoodType FavoriteFood => FoodType.FruitsAndVegies | FoodType.GrainsAndHay;
+
         [Constructable]
         public Unicorn()
             : this("a unicorn")
@@ -57,79 +80,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool AllowMaleRider
-        {
-            get
-            {
-                return false;
-            }
-        }
-        public override bool AllowMaleTamer
-        {
-            get
-            {
-                return false;
-            }
-        }
-        public override bool InitialInnocent
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override TimeSpan MountAbilityDelay
-        {
-            get
-            {
-                return TimeSpan.FromHours(1.0);
-            }
-        }
-
-        public override TribeType Tribe { get { return TribeType.Fey; } }
-
-        public override OppositionGroup OppositionGroup
-        {
-            get
-            {
-                return OppositionGroup.FeyAndUndead;
-            }
-        }
-        public override Poison PoisonImmune
-        {
-            get
-            {
-                return Poison.Lethal;
-            }
-        }
-        public override int Meat
-        {
-            get
-            {
-                return 3;
-            }
-        }
-        public override int Hides
-        {
-            get
-            {
-                return 10;
-            }
-        }
-        public override HideType HideType
-        {
-            get
-            {
-                return HideType.Horned;
-            }
-        }
-        public override FoodType FavoriteFood
-        {
-            get
-            {
-                return FoodType.FruitsAndVegies | FoodType.GrainsAndHay;
-            }
-        }
         public override void OnDisallowedRider(Mobile m)
         {
             m.SendLocalizedMessage(1042318); // The unicorn refuses to allow you to ride it.
@@ -137,30 +87,31 @@ namespace Server.Mobiles
 
         public override bool DoMountAbility(int damage, Mobile attacker)
         {
-            if (Rider == null || attacker == null)	//sanity
+            if (Rider == null || attacker == null) //sanity
                 return false;
 
-            if (Rider.Poisoned && ((Rider.Hits - damage) < 40))
+            if (Rider.Poisoned && Rider.Hits - damage < 40)
             {
-                Poison p = Rider.Poison;
+                var p = Rider.Poison;
 
                 if (p != null)
                 {
-                    int chanceToCure = 10000 + (int)(Skills[SkillName.Magery].Value * 75) - ((p.RealLevel + 1) * (Core.AOS ? (p.RealLevel < 4 ? 3300 : 3100) : 1750));
+                    var chanceToCure = 10000 + (int)(Skills[SkillName.Magery].Value * 75) -
+                                       (p.RealLevel + 1) * (Core.AOS ? p.RealLevel < 4 ? 3300 : 3100 : 1750);
                     chanceToCure /= 100;
 
                     if (chanceToCure > Utility.Random(100))
-                    {
-                        if (Rider.CurePoison(this))	//TODO: Confirm if mount is the one flagged for curing it or the rider is
+                        if (Rider.CurePoison(
+                                this)) //TODO: Confirm if mount is the one flagged for curing it or the rider is
                         {
-                            Rider.LocalOverheadMessage(Server.Network.MessageType.Regular, 0x3B2, true, "Your mount senses you are in danger and aids you with magic.");
+                            Rider.LocalOverheadMessage(MessageType.Regular, 0x3B2, true,
+                                "Your mount senses you are in danger and aids you with magic.");
                             Rider.FixedParticles(0x373A, 10, 15, 5012, EffectLayer.Waist);
-                            Rider.PlaySound(0x1E0);	// Cure spell effect.
-                            Rider.PlaySound(0xA9);		// Unicorn's whinny.
+                            Rider.PlaySound(0x1E0); // Cure spell effect.
+                            Rider.PlaySound(0xA9); // Unicorn's whinny.
 
                             return true;
                         }
-                    }
                 }
             }
 
@@ -174,7 +125,7 @@ namespace Server.Mobiles
             AddLoot(LootPack.Potions);
         }
 
-		public override void OnDeath(Container c)
+        public override void OnDeath(Container c)
         {
             base.OnDeath(c);
 
@@ -186,19 +137,16 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)1); // version
+            writer.Write(1); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            if (version == 0)
-            {
-                SetWeaponAbility(WeaponAbility.ArmorIgnore);
-            }
+            if (version == 0) SetWeaponAbility(WeaponAbility.ArmorIgnore);
         }
     }
 }

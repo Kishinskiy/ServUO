@@ -1,13 +1,11 @@
-using System;
-
 namespace Server.Mobiles
 {
     [CorpseName("a hellsteed corpse")]
     public class HellSteed : BaseMount, IElementalCreature
     {
-        public ElementType ElementType { get { return ElementType.Chaos; } }
+        public override Poison PoisonImmune => Poison.Lethal;
 
-        [Constructable] 
+        [Constructable]
         public HellSteed()
             : this("a hellsteed")
         {
@@ -46,18 +44,18 @@ namespace Server.Mobiles
         {
         }
 
-        public override Poison PoisonImmune { get { return Poison.Lethal; } }
+        public ElementType ElementType => ElementType.Chaos;
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

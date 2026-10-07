@@ -7,7 +7,7 @@ namespace Server.Gumps
 {
     public class AddDoorGump : Gump
     {
-        public static DoorInfo[] m_Types = new DoorInfo[]
+        public static DoorInfo[] m_Types =
         {
             new DoorInfo(typeof(MetalDoor), 0x675),
             new DoorInfo(typeof(RattanDoor), 0x695),
@@ -46,7 +46,9 @@ namespace Server.Gumps
             new DoorInfo(typeof(SecretLightWoodDoor), 0x344),
             new DoorInfo(typeof(SecretStoneDoor3), 0x354)
         };
+
         private readonly int m_Type;
+
         public AddDoorGump()
             : this(-1)
         {
@@ -63,7 +65,7 @@ namespace Server.Gumps
             {
                 AddBlueBack(155, 174);
 
-                int baseID = m_Types[m_Type].m_BaseID;
+                var baseID = m_Types[m_Type].m_BaseID;
 
                 AddItem(25, 24, baseID);
                 AddButton(26, 37, 0x5782, 0x5782, 1, GumpButtonType.Reply, 0);
@@ -83,16 +85,17 @@ namespace Server.Gumps
             {
                 AddBlueBack(570, 165);
 
-                int pages = m_Types.Length / 10 + 1;
-                for (int i = 0; i < m_Types.Length; ++i)
+                var pages = m_Types.Length / 10 + 1;
+                for (var i = 0; i < m_Types.Length; ++i)
                 {
-                    int page = i / 10 + 1;
-                    int pos = i % 10;
+                    var page = i / 10 + 1;
+                    var pos = i % 10;
 
                     if (pos == 0)
                     {
                         AddPage(page);
-                        AddHtmlLocalized(30, 20, 60, 20, 1042971, String.Format("{0}",page), 0x7FFF, false, false); // #
+                        AddHtmlLocalized(30, 20, 60, 20, 1042971, string.Format("{0}", page), 0x7FFF, false,
+                            false); // #
 
                         AddHtmlLocalized(30, 45, 60, 20, 1043353, 0x7FFF, false, false); // Next
                         if (page < pages)
@@ -110,7 +113,7 @@ namespace Server.Gumps
                     if (m_Types[i].m_BaseID < 0)
                         continue;
 
-                    int x = (pos + 1) * 50;
+                    var x = (pos + 1) * 50;
 
                     AddButton(30 + x, 20, 0x2624, 0x2625, i + 1, GumpButtonType.Reply, 0);
                     AddItem(15 + x, 30, m_Types[i].m_BaseID);
@@ -120,7 +123,7 @@ namespace Server.Gumps
 
         public static void Initialize()
         {
-            CommandSystem.Register("AddDoor", AccessLevel.GameMaster, new CommandEventHandler(AddDoor_OnCommand));
+            CommandSystem.Register("AddDoor", AccessLevel.GameMaster, AddDoor_OnCommand);
         }
 
         [Usage("AddDoor")]
@@ -140,8 +143,8 @@ namespace Server.Gumps
 
         public override void OnResponse(NetState sender, RelayInfo info)
         {
-            Mobile from = sender.Mobile;
-            int button = info.ButtonID - 1;
+            var from = sender.Mobile;
+            var button = info.ButtonID - 1;
 
             if (m_Type == -1)
             {
@@ -153,12 +156,14 @@ namespace Server.Gumps
                 if (button >= 0 && button < 8)
                 {
                     from.SendGump(new AddDoorGump(m_Type));
-                    CommandSystem.Handle(from, String.Format("{0}Add {1} {2}", CommandSystem.Prefix, m_Types[m_Type].m_Type.Name, (DoorFacing)button));
+                    CommandSystem.Handle(from,
+                        string.Format("{0}Add {1} {2}", CommandSystem.Prefix, m_Types[m_Type].m_Type.Name,
+                            (DoorFacing)button));
                 }
                 else if (button == 8)
                 {
                     from.SendGump(new AddDoorGump(m_Type));
-                    CommandSystem.Handle(from, String.Format("{0}Link", CommandSystem.Prefix));
+                    CommandSystem.Handle(from, string.Format("{0}Link", CommandSystem.Prefix));
                 }
                 else
                 {
@@ -170,8 +175,9 @@ namespace Server.Gumps
 
     public class DoorInfo
     {
-        public Type m_Type;
         public int m_BaseID;
+        public Type m_Type;
+
         public DoorInfo(Type type, int baseID)
         {
             m_Type = type;

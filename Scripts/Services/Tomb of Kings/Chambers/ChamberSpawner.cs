@@ -6,36 +6,28 @@ namespace Server.Engines.TombOfKings
 {
     public class ChamberSpawner : Item
     {
-        public static void Generate()
+        private static readonly Point3D[] m_Positions =
         {
-            for (int i = 0; i < m_Positions.Length; i++)
-            {
-                WeakEntityCollection.Add("sa", new ChamberSpawner(m_Positions[i], Map.TerMur));
-            }
-        }
+            new Point3D(9, 199, -9),
+            new Point3D(9, 183, -9),
+            new Point3D(9, 167, -9),
+            new Point3D(9, 151, -9),
+            new Point3D(9, 135, -9),
+            new Point3D(9, 119, -9),
 
-        private static Point3D[] m_Positions = new Point3D[]
-        {
-            new Point3D( 9, 199, -9 ),
-            new Point3D( 9, 183, -9 ),
-            new Point3D( 9, 167, -9 ),
-            new Point3D( 9, 151, -9 ),
-            new Point3D( 9, 135, -9 ),
-            new Point3D( 9, 119, -9 ),
-
-            new Point3D( 60, 199, -9 ),
-            new Point3D( 60, 183, -9 ),
-            new Point3D( 60, 167, -9 ),
-            new Point3D( 60, 151, -9 ),
-            new Point3D( 60, 135, -9 ),
-            new Point3D( 60, 119, -9 ),
+            new Point3D(60, 199, -9),
+            new Point3D(60, 183, -9),
+            new Point3D(60, 167, -9),
+            new Point3D(60, 151, -9),
+            new Point3D(60, 135, -9),
+            new Point3D(60, 119, -9)
         };
 
-        private static Type[] m_CreatureTypes = new Type[]
+        private static readonly Type[] m_CreatureTypes =
         {
-            typeof( SilverSerpent ),
-            typeof( UndeadGuardian ),
-            typeof( PutridUndeadGuardian )
+            typeof(SilverSerpent),
+            typeof(UndeadGuardian),
+            typeof(PutridUndeadGuardian)
         };
 
         private List<Mobile> m_Creatures;
@@ -53,7 +45,18 @@ namespace Server.Engines.TombOfKings
 
             MoveToWorld(loc, map);
             Respawn();
-            m_RespawnTimer = Timer.DelayCall(TimeSpan.FromMinutes(15.0), TimeSpan.FromMinutes(15.0), new TimerCallback(CheckSpawn));
+            m_RespawnTimer = Timer.DelayCall(TimeSpan.FromMinutes(15.0), TimeSpan.FromMinutes(15.0), CheckSpawn);
+        }
+
+        public ChamberSpawner(Serial serial)
+            : base(serial)
+        {
+        }
+
+        public static void Generate()
+        {
+            for (var i = 0; i < m_Positions.Length; i++)
+                WeakEntityCollection.Add("sa", new ChamberSpawner(m_Positions[i], Map.TerMur));
         }
 
         public override void AddNameProperties(ObjectPropertyList list)
@@ -63,7 +66,7 @@ namespace Server.Engines.TombOfKings
 
         public bool IsEmpty()
         {
-            for (int i = 0; i < m_Creatures.Count; i++)
+            for (var i = 0; i < m_Creatures.Count; i++)
                 if (m_Creatures[i].Alive)
                     return false;
 
@@ -80,15 +83,15 @@ namespace Server.Engines.TombOfKings
         {
             m_Creatures.Clear();
 
-            int total = Utility.RandomMinMax(3, 8);
-            Type creatureType = m_CreatureTypes[Utility.Random(m_CreatureTypes.Length)];
+            var total = Utility.RandomMinMax(3, 8);
+            var creatureType = m_CreatureTypes[Utility.Random(m_CreatureTypes.Length)];
 
-            for (int i = 0; i < total; i++)
+            for (var i = 0; i < total; i++)
             {
-                Mobile m = (Mobile)Activator.CreateInstance(creatureType);
+                var m = (Mobile)Activator.CreateInstance(creatureType);
                 m.MoveToWorld(Map.GetSpawnPosition(Location, 4), Map);
 
-                BaseCreature bc = m as BaseCreature;
+                var bc = m as BaseCreature;
 
                 if (bc != null)
                 {
@@ -104,46 +107,41 @@ namespace Server.Engines.TombOfKings
         {
             base.OnAfterDelete();
 
-            for (int i = 0; i < m_Creatures.Count; i++)
+            for (var i = 0; i < m_Creatures.Count; i++)
                 m_Creatures[i].Delete();
 
             if (m_RespawnTimer != null)
                 m_RespawnTimer.Stop();
         }
 
-        public ChamberSpawner(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
-            writer.Write((int)m_Creatures.Count);
+            writer.Write(m_Creatures.Count);
 
-            for (int i = 0; i < m_Creatures.Count; i++)
-                writer.Write((Mobile)m_Creatures[i]);
+            for (var i = 0; i < m_Creatures.Count; i++)
+                writer.Write(m_Creatures[i]);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             m_Creatures = new List<Mobile>();
-            int count = reader.ReadInt();
+            var count = reader.ReadInt();
 
-            for (int i = 0; i < count; i++)
+            for (var i = 0; i < count; i++)
             {
-                Mobile m = reader.ReadMobile();
+                var m = reader.ReadMobile();
 
                 if (m != null)
                     m_Creatures.Add(m);
             }
 
-            m_RespawnTimer = Timer.DelayCall(TimeSpan.Zero, TimeSpan.FromMinutes(15.0), new TimerCallback(CheckSpawn));
+            m_RespawnTimer = Timer.DelayCall(TimeSpan.Zero, TimeSpan.FromMinutes(15.0), CheckSpawn);
         }
     }
 }

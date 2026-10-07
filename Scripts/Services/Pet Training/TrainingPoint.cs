@@ -1,7 +1,3 @@
-using System;
-using Server;
-using Server.Gumps;
-
 namespace Server.Mobiles
 {
     public class TrainingPoint
@@ -15,7 +11,8 @@ namespace Server.Mobiles
 
         public TrainingPointRequirement[] Requirements { get; set; }
 
-        public TrainingPoint(object trainpoint, double weight, int start, int max, TextDefinition name, TextDefinition description, params TrainingPointRequirement[] requirements)
+        public TrainingPoint(object trainpoint, double weight, int start, int max, TextDefinition name,
+            TextDefinition description, params TrainingPointRequirement[] requirements)
         {
             TrainPoint = trainpoint;
             Weight = weight;
@@ -31,9 +28,7 @@ namespace Server.Mobiles
         public int GetMax(BaseCreature bc)
         {
             if (TrainPoint is PetStat && (PetStat)TrainPoint == PetStat.BaseDamage)
-            {
                 return PetTrainingHelper.GetMaxDamagePerSecond(bc);
-            }
 
             return Max;
         }

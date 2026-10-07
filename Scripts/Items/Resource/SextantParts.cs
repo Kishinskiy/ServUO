@@ -1,5 +1,3 @@
-using System;
-
 namespace Server.Items
 {
     [Flipable(0x1059, 0x105A)]
@@ -15,9 +13,9 @@ namespace Server.Items
         public SextantParts(int amount)
             : base(0x1059)
         {
-            this.Stackable = true;
-            this.Amount = amount;
-            this.Weight = 2.0;
+            Stackable = true;
+            Amount = amount;
+            Weight = 2.0;
         }
 
         public SextantParts(Serial serial)
@@ -29,14 +27,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

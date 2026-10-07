@@ -1,18 +1,11 @@
 #define CLIENT6017
 
 using System;
-using System.IO;
-using System.Text;
-using Server;
-using Server.Network;
 using Server.Items;
-using Server.Mobiles;
-using Server.Engines.Quests;
-
+using Server.Network;
 
 namespace Server.Engines.XmlSpawner2
 {
-
     public class PacketHandlerOverrides
     {
         public static void Initialize()
@@ -27,39 +20,38 @@ namespace Server.Engines.XmlSpawner2
             // This will replace the default packet handler for basebooks content change.  This allows the
             // use of the text entry book interface for editing spawner entries.
             // Regular BaseBooks will still call their default handlers for ContentChange and HeaderChange
-            Timer.DelayCall(TimeSpan.Zero, new TimerCallback(ContentChangeOverride));
+            Timer.DelayCall(TimeSpan.Zero, ContentChangeOverride);
 
             // this replaces the default packet handler for Use requests.  Items and Mobiles will still 
             // behave exactly the same way, it simply adds a hook in to call the OnUse method for attachments
             // they might have.
-            Timer.DelayCall( TimeSpan.Zero, new TimerCallback( UseReqOverride ) );
+            Timer.DelayCall(TimeSpan.Zero, UseReqOverride);
 
             // This will REPLACE the default packet handler called when the quest button on the paperdoll is pressed with the xmlquest gump.
             //Timer.DelayCall(TimeSpan.Zero, new TimerCallback(QuestButtonOverride));
             // This will ADD the xmlquest gump to the default packet handler called when the quest button on the paperdoll is pressed.
-            EventSink.QuestGumpRequest += new QuestGumpRequestHandler(XmlQuest.QuestButton);
-
+            EventSink.QuestGumpRequest += XmlQuest.QuestButton;
         }
 
         public static void ContentChangeOverride()
         {
-            PacketHandlers.Register(0x66, 0, true, new OnPacketReceive(XmlTextEntryBook.ContentChange));
-#if(CLIENT6017)
-            PacketHandlers.Register6017(0x66, 0, true, new OnPacketReceive(XmlTextEntryBook.ContentChange));
+            PacketHandlers.Register(0x66, 0, true, XmlTextEntryBook.ContentChange);
+#ifCLIENT6017
+            PacketHandlers.Register6017(0x66, 0, true, XmlTextEntryBook.ContentChange);
 #endif
         }
 
         public static void UseReqOverride()
         {
-            PacketHandlers.Register(0x06, 5, true, new OnPacketReceive(XmlAttach.UseReq));
-#if(CLIENT6017)
-            PacketHandlers.Register6017(0x06, 5, true, new OnPacketReceive(XmlAttach.UseReq));
+            PacketHandlers.Register(0x06, 5, true, XmlAttach.UseReq);
+#ifCLIENT6017
+            PacketHandlers.Register6017(0x06, 5, true, XmlAttach.UseReq);
 #endif
         }
 
         public static void QuestButtonOverride()
         {
-            PacketHandlers.RegisterEncoded( 0x32, true, new OnEncodedPacketReceive( XmlQuest.QuestButton ) );
+            PacketHandlers.RegisterEncoded(0x32, true, XmlQuest.QuestButton);
         }
     }
 }

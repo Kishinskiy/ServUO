@@ -1,21 +1,22 @@
-﻿using System;
-using Server;
-using Server.Mobiles;
-
-namespace Server.Items
+﻿namespace Server.Items
 {
     public class CharacterReincarnationToken : PromotionalToken
     {
-        public override TextDefinition ItemName { get { return 1156612; } } // Character Reincarnation
-        public override TextDefinition ItemReceiveMessage { get { return null; } }
-        public override TextDefinition ItemGumpName { get { return "<center>Character Reincarnation</center>"; } }
+        public override TextDefinition ItemName => 1156612; // Character Reincarnation
+        public override TextDefinition ItemReceiveMessage => null;
+        public override TextDefinition ItemGumpName => "<center>Character Reincarnation</center>";
 
-        public override bool PlaceInBank { get { return false; } }
+        public override bool PlaceInBank => false;
 
         [Constructable]
         public CharacterReincarnationToken()
         {
             LootType = LootType.Blessed;
+        }
+
+        public CharacterReincarnationToken(Serial serial)
+            : base(serial)
+        {
         }
 
         public override Item CreateItemFor(Mobile from)
@@ -29,11 +30,6 @@ namespace Server.Items
             return bag;
         }
 
-        public CharacterReincarnationToken(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -43,7 +39,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

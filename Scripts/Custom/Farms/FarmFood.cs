@@ -1,6 +1,4 @@
 using System;
-using Server;
-using Server.Mobiles;
 
 namespace Server.Items
 {
@@ -15,6 +13,10 @@ namespace Server.Items
             FillFactor = 4; // Степень насыщения (от 1 до 10)
         }
 
+        public FriedPotatoes(Serial serial) : base(serial)
+        {
+        }
+
         public override bool Eat(Mobile from)
         {
             if (base.Eat(from))
@@ -24,12 +26,21 @@ namespace Server.Items
                 from.AddStatMod(new StatMod(StatType.Str, "FriedPotatoesStr", 5, TimeSpan.FromMinutes(5.0)));
                 return true;
             }
+
             return false;
         }
 
-        public FriedPotatoes(Serial serial) : base(serial) { }
-        public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write(0); }
-        public override void Deserialize(GenericReader reader) { base.Deserialize(reader); reader.ReadInt(); }
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            reader.ReadInt();
+        }
     }
 
     // 2. КАРТОШКА С ОВОЩАМИ (Potatoes with Vegetables)
@@ -43,6 +54,10 @@ namespace Server.Items
             FillFactor = 6;
         }
 
+        public PotatoesWithVegetables(Serial serial) : base(serial)
+        {
+        }
+
         public override bool Eat(Mobile from)
         {
             if (base.Eat(from))
@@ -52,12 +67,21 @@ namespace Server.Items
                 from.AddStatMod(new StatMod(StatType.Dex, "PotatoesWithVegDex", 5, TimeSpan.FromMinutes(5.0)));
                 return true;
             }
+
             return false;
         }
 
-        public PotatoesWithVegetables(Serial serial) : base(serial) { }
-        public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write(0); }
-        public override void Deserialize(GenericReader reader) { base.Deserialize(reader); reader.ReadInt(); }
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            reader.ReadInt();
+        }
     }
 
     // 3. КАРТОФЕЛЬНОЕ ПЮРЕ (Mashed Potatoes)
@@ -71,6 +95,10 @@ namespace Server.Items
             FillFactor = 5;
         }
 
+        public MashedPotatoes(Serial serial) : base(serial)
+        {
+        }
+
         public override bool Eat(Mobile from)
         {
             if (base.Eat(from))
@@ -80,11 +108,20 @@ namespace Server.Items
                 from.Mana += 15;
                 return true;
             }
+
             return false;
         }
 
-        public MashedPotatoes(Serial serial) : base(serial) { }
-        public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write(0); }
-        public override void Deserialize(GenericReader reader) { base.Deserialize(reader); reader.ReadInt(); }
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            reader.ReadInt();
+        }
     }
 }

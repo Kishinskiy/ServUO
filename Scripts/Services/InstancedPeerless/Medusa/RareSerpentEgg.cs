@@ -16,14 +16,13 @@
 //  License along with this program.
 //
 
-using System;
-using Server;
-
 namespace Server.Items
 {
     public class RareSerpentEgg : PeerlessKey
     {
-        public override int LabelNumber { get { return 1112575; } } // a rare serpent egg
+        public override int LabelNumber => 1112575; // a rare serpent egg
+
+        public override int Lifespan => 43200;
 
         [Constructable]
         public RareSerpentEgg()
@@ -34,8 +33,6 @@ namespace Server.Items
             Hue = Utility.RandomList(0x21, 0x4AC, 0x41C);
         }
 
-        public override int Lifespan { get { return 43200; } }
-
         public RareSerpentEgg(Serial serial)
             : base(serial)
         {
@@ -45,7 +42,7 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)

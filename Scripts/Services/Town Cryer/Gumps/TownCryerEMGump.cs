@@ -1,14 +1,11 @@
-using Server;
-using System;
-using System.Collections.Generic;
-using Server.Mobiles;
 using Server.Gumps;
+using Server.Mobiles;
 
 namespace Server.Services.TownCryer
 {
     public class TownCryerEventModeratorGump : BaseTownCryerGump
     {
-        public TownCryerModeratorEntry Entry { get; private set; }
+        public TownCryerModeratorEntry Entry { get; }
 
         public TownCryerEventModeratorGump(PlayerMobile pm, TownCrier cryer, TownCryerModeratorEntry entry)
             : base(pm, cryer)
@@ -36,7 +33,7 @@ namespace Server.Services.TownCryer
             {
                 var gump = new TownCryerGump(User, Cryer);
                 gump.Category = TownCryerGump.GumpCategory.EventModerator;
-                BaseGump.SendGump(gump);
+                SendGump(gump);
             }
         }
     }

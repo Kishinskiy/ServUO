@@ -219,9 +219,9 @@ namespace Server.Misc
 
             public CirclePoint(Point2D point, int angle, int quadrant)
             {
-                this.Point = point;
-                this.Angle = angle;
-                this.Quadrant = quadrant;
+                Point = point;
+                Angle = angle;
+                Quadrant = quadrant;
             }
         }
     }

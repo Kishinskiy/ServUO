@@ -1,26 +1,22 @@
-using System;
-using Server;
-using Server.Spells;
-using Server.Network;
 using Server.Mobiles;
 
 namespace Server.Spells.SkillMasteries
 {
     public class ToughnessSpell : SkillMasterySpell
     {
-        private static SpellInfo m_Info = new SpellInfo(
-                "Toughness", "",
-                -1,
-                9002
-            );
-
-        public override double UpKeep { get { return 20; } }
-        public override int RequiredMana { get { return 20; } }
-
-        public override SkillName CastSkill { get { return SkillName.Macing; } }
-        public override SkillName DamageSkill { get { return SkillName.Tactics; } }
+        private static readonly SpellInfo m_Info = new SpellInfo(
+            "Toughness", "",
+            -1,
+            9002
+        );
 
         private int _HPBonus;
+
+        public override double UpKeep => 20;
+        public override int RequiredMana => 20;
+
+        public override SkillName CastSkill => SkillName.Macing;
+        public override SkillName DamageSkill => SkillName.Tactics;
 
         public ToughnessSpell(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
@@ -35,7 +31,7 @@ namespace Server.Spells.SkillMasteries
                 return false;
             }
 
-            ToughnessSpell spell = GetSpell(Caster, this.GetType()) as ToughnessSpell;
+            var spell = GetSpell(Caster, GetType()) as ToughnessSpell;
 
             if (spell != null)
             {
@@ -49,13 +45,8 @@ namespace Server.Spells.SkillMasteries
         public override void SendCastEffect()
         {
             if (Caster.Player)
-            {
                 Caster.PlaySound(Caster.Female ? 0x338 : 0x44A);
-            }
-            else if (Caster is BaseCreature)
-            {
-                Caster.PlaySound(((BaseCreature)Caster).GetAngerSound());
-            }
+            else if (Caster is BaseCreature) Caster.PlaySound(((BaseCreature)Caster).GetAngerSound());
         }
 
         public override void OnCast()
@@ -69,7 +60,10 @@ namespace Server.Spells.SkillMasteries
 
                 BeginTimer();
 
-                BuffInfo.AddBuff(Caster, new BuffInfo(BuffIcon.Toughness, 1155985, 1155986, String.Format("{0}\t{1}", _HPBonus.ToString(), ScaleMana((int)UpKeep)))); // Hit Point Increase: ~1_VAL~.<br>Mana Upkeep Cost: ~2_VAL~.
+                BuffInfo.AddBuff(Caster,
+                    new BuffInfo(BuffIcon.Toughness, 1155985, 1155986,
+                        string.Format("{0}\t{1}", _HPBonus.ToString(),
+                            ScaleMana((int)UpKeep)))); // Hit Point Increase: ~1_VAL~.<br>Mana Upkeep Cost: ~2_VAL~.
             }
 
             FinishSequence();
@@ -82,7 +76,7 @@ namespace Server.Spells.SkillMasteries
 
         public static int GetHPBonus(Mobile m)
         {
-            ToughnessSpell spell = GetSpell(m, typeof(ToughnessSpell)) as ToughnessSpell;
+            var spell = GetSpell(m, typeof(ToughnessSpell)) as ToughnessSpell;
 
             if (spell != null)
                 return spell._HPBonus;

@@ -1,24 +1,20 @@
-using Server;
 using System;
-using Server.Mobiles;
 using Server.Gumps;
+using Server.Mobiles;
 
 namespace Server.Services.TownCryer
 {
     public class CreateEMEntryGump : BaseTownCryerGump
     {
         public TownCryerModeratorEntry Entry { get; set; }
-        public bool Edit { get; private set; }
+        public bool Edit { get; }
 
         public CreateEMEntryGump(PlayerMobile pm, TownCrier cryer, TownCryerModeratorEntry entry = null)
             : base(pm, cryer)
         {
             Entry = entry;
 
-            if (Entry != null)
-            {
-                Edit = true;
-            }
+            if (Entry != null) Edit = true;
         }
 
         public override void AddGumpLayout()
@@ -26,7 +22,7 @@ namespace Server.Services.TownCryer
             base.AddGumpLayout();
 
             AddHtmlLocalized(58, 150, 100, 20, 1158027, false, false); // Author:
-            AddLabel(105, 150, 0, String.Format("EM {0}", User.Name));
+            AddLabel(105, 150, 0, string.Format("EM {0}", User.Name));
 
             AddHtmlLocalized(58, 180, 100, 20, 1158026, false, false); // Headline:
             AddBackground(58, 200, 740, 20, 0x2486);
@@ -58,13 +54,13 @@ namespace Server.Services.TownCryer
         {
             if (info.ButtonID == 1)
             {
-                string headline = info.GetTextEntry(1).Text;
-                string body1 = info.GetTextEntry(2).Text;
-                string body2 = info.GetTextEntry(3).Text;
-                string body3 = info.GetTextEntry(4).Text;
-                string exp = info.GetTextEntry(5).Text;
+                var headline = info.GetTextEntry(1).Text;
+                var body1 = info.GetTextEntry(2).Text;
+                var body2 = info.GetTextEntry(3).Text;
+                var body3 = info.GetTextEntry(4).Text;
+                var exp = info.GetTextEntry(5).Text;
 
-                int expires = Utility.ToInt32(exp);
+                var expires = Utility.ToInt32(exp);
 
                 if (Entry == null)
                 {
@@ -77,30 +73,27 @@ namespace Server.Services.TownCryer
                     Entry.Body2 = body2;
                     Entry.Body3 = body3;
 
-                    if (expires >= 1 && expires <= 30)
-                    {
-                        Entry.Expires = DateTime.Now + TimeSpan.FromDays(expires);
-                    }
+                    if (expires >= 1 && expires <= 30) Entry.Expires = DateTime.Now + TimeSpan.FromDays(expires);
                 }
 
-                if(expires < 1 || expires > 30)
+                if (expires < 1 || expires > 30)
                 {
-                    User.SendLocalizedMessage(1158033); // The expiry can be between 1 and 30 days. Please check your entry and try again.
+                    User.SendLocalizedMessage(
+                        1158033); // The expiry can be between 1 and 30 days. Please check your entry and try again.
                 }
-                else if (string.IsNullOrEmpty(headline) || string.IsNullOrEmpty(body1) || headline.Length < 5 || body1.Length < 5)
+                else if (string.IsNullOrEmpty(headline) || string.IsNullOrEmpty(body1) || headline.Length < 5 ||
+                         body1.Length < 5)
                 {
-                    User.SendLocalizedMessage(1158032); // You have made an illegal entry.  Check your entries and try again.
+                    User.SendLocalizedMessage(
+                        1158032); // You have made an illegal entry.  Check your entries and try again.
                 }
                 else
                 {
-                    if (!Edit)
-                    {
-                        TownCryerSystem.AddEntry(Entry);
-                    }
+                    if (!Edit) TownCryerSystem.AddEntry(Entry);
 
                     User.SendLocalizedMessage(1158039); // Your entry has been submitted.
 
-                    BaseGump.SendGump(new TownCryerGump(User, Cryer, 0, TownCryerGump.GumpCategory.EventModerator));
+                    SendGump(new TownCryerGump(User, Cryer, 0, TownCryerGump.GumpCategory.EventModerator));
                     return;
                 }
 

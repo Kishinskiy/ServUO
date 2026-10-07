@@ -1,13 +1,16 @@
-using System;
-using Server;
-using Server.Items;
 using Server.Engines.MyrmidexInvasion;
+using Server.Items;
 
 namespace Server.Mobiles
 {
     [CorpseName("a myrmidex corpse")]
     public class MyrmidexDrone : BaseCreature
     {
+        public override int Meat => 4;
+        public override Poison HitPoison => Poison.Regular;
+        public override Poison PoisonImmune => Poison.Regular;
+        public override int TreasureMapLevel => 1;
+
         [Constructable]
         public MyrmidexDrone()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, .2, .4)
@@ -46,6 +49,11 @@ namespace Server.Mobiles
             Karma = -2500;
         }
 
+        public MyrmidexDrone(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override bool OnBeforeDeath()
         {
             if (Region.IsPartOf("MyrmidexBattleground") && 0.25 > Utility.RandomDouble())
@@ -53,11 +61,6 @@ namespace Server.Mobiles
 
             return base.OnBeforeDeath();
         }
-
-        public override int Meat { get { return 4; } }
-        public override Poison HitPoison { get { return Poison.Regular; } }
-        public override Poison PoisonImmune { get { return Poison.Regular; } }
-        public override int TreasureMapLevel { get { return 1; } }
 
         public override bool IsEnemy(Mobile m)
         {
@@ -70,11 +73,6 @@ namespace Server.Mobiles
             return base.IsEnemy(m);
         }
 
-        public MyrmidexDrone(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -84,7 +82,7 @@ namespace Server.Mobiles
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

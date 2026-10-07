@@ -1,14 +1,13 @@
-using System;
-
 namespace Server.Items
 {
     public class CherryBlossomTrunkAddon : BaseAddon
     {
+        public override BaseAddonDeed Deed => new CherryBlossomTrunkDeed();
+
         [Constructable]
         public CherryBlossomTrunkAddon()
-            : base()
         {
-            this.AddComponent(new LocalizedAddonComponent(0x26EE, 1076784), 0, 0, 0);
+            AddComponent(new LocalizedAddonComponent(0x26EE, 1076784), 0, 0, 0);
         }
 
         public CherryBlossomTrunkAddon(Serial serial)
@@ -16,13 +15,6 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonDeed Deed
-        {
-            get
-            {
-                return new CherryBlossomTrunkDeed();
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -34,17 +26,20 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class CherryBlossomTrunkDeed : BaseAddonDeed
     {
+        public override BaseAddon Addon => new CherryBlossomTrunkAddon();
+
+        public override int LabelNumber => 1076784; // Cherry Blossom Trunk
+
         [Constructable]
         public CherryBlossomTrunkDeed()
-            : base()
         {
-            this.LootType = LootType.Blessed;
+            LootType = LootType.Blessed;
         }
 
         public CherryBlossomTrunkDeed(Serial serial)
@@ -52,20 +47,6 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddon Addon
-        {
-            get
-            {
-                return new CherryBlossomTrunkAddon();
-            }
-        }
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1076784;
-            }
-        }// Cherry Blossom Trunk
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -77,7 +58,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

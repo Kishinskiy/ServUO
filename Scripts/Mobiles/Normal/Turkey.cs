@@ -1,23 +1,28 @@
 using System;
-using Server.Items;
-using Server.Mobiles;
 
 namespace Server.Mobiles
 {
-	[CorpseName( "an turkey corpse" )]
-	public class Turkey : BaseCreature
-	{
+    [CorpseName("an turkey corpse")]
+    public class Turkey : BaseCreature
+    {
+        private DateTime m_NextGobble;
+
+        public override int Meat => 1;
+        public override MeatType MeatType => MeatType.Bird;
+        public override FoodType FavoriteFood => FoodType.GrainsAndHay;
+        public override int Feathers => 25;
+
         [Constructable]
         public Turkey() : this(false)
         {
         }
 
-		[Constructable]
-		public Turkey(bool tamable) : base( AIType.AI_Animal, FightMode.Aggressor, 10, 1, 0.2, 0.4 )
-		{
-			Name = "a turkey";
-			Body = 95;
-			BaseSoundID = 0x66A;
+        [Constructable]
+        public Turkey(bool tamable) : base(AIType.AI_Animal, FightMode.Aggressor, 10, 1, 0.2, 0.4)
+        {
+            Name = "a turkey";
+            Body = 95;
+            BaseSoundID = 0x66A;
 
             SetStr(5);
             SetDex(15);
@@ -46,12 +51,11 @@ namespace Server.Mobiles
             MinTameSkill = -0.9;
 
             m_NextGobble = DateTime.UtcNow;
-		}
+        }
 
-        public override int Meat { get { return 1; } }
-        public override MeatType MeatType { get { return MeatType.Bird; } }
-        public override FoodType FavoriteFood { get { return FoodType.GrainsAndHay; } }
-        public override int Feathers { get { return 25; } }
+        public Turkey(Serial serial) : base(serial)
+        {
+        }
 
         public override int GetIdleSound()
         {
@@ -73,8 +77,6 @@ namespace Server.Mobiles
             return 0x66B;
         }
 
-        private DateTime m_NextGobble;
-
         public override void OnThink()
         {
             base.OnThink();
@@ -88,24 +90,20 @@ namespace Server.Mobiles
             }
         }
 
-		public Turkey(Serial serial) : base(serial)
-		{
-		}
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
 
-		public override void Serialize(GenericWriter writer)
-		{
-			base.Serialize(writer);
+            writer.Write(0);
+        }
 
-			writer.Write((int) 0);
-		}
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
 
-		public override void Deserialize(GenericReader reader)
-		{
-			base.Deserialize(reader);
-
-			int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             m_NextGobble = DateTime.UtcNow;
-		}
-	}
+        }
+    }
 }

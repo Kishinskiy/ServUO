@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Server.Custom.TownHouses;
 using Server.ContextMenus;
+using Server.Custom.TownHouses;
 using Server.Gumps;
 using Server.Items;
 using Server.Misc;
@@ -18,17 +18,17 @@ namespace Server.Mobiles
     {
         private Dictionary<Mobile, DateTime> _Table;
 
-        public override bool NoHouseRestrictions { get { return true; } }
-        public override bool ClickTitle { get { return false; } }
-        public override bool IsInvulnerable { get { return true; } }
-
         private BaseHouse m_House;
+
+        public override bool NoHouseRestrictions => true;
+        public override bool ClickTitle => false;
+        public override bool IsInvulnerable => true;
         public Mobile Owner { get; set; }
         public string Keyword { get; set; }
 
         public BaseHouse House
         {
-            get { return m_House; }
+            get => m_House;
             set
             {
                 if (m_House != null)
@@ -65,6 +65,11 @@ namespace Server.Mobiles
             Container pack = new StewardBackpack(Owner, this);
             pack.Movable = false;
             AddItem(pack);
+        }
+
+        public Steward(Serial serial)
+            : base(serial)
+        {
         }
 
         public bool IsOwner(Mobile m)
@@ -120,10 +125,7 @@ namespace Server.Mobiles
 
         public override bool OnDragDrop(Mobile from, Item dropped)
         {
-            if (IsOwner(from) && Backpack != null)
-            {
-                return AddToBackpack(dropped);
-            }
+            if (IsOwner(from) && Backpack != null) return AddToBackpack(dropped);
 
             return false;
         }
@@ -135,17 +137,14 @@ namespace Server.Mobiles
 
         public override void OnSpeech(SpeechEventArgs e)
         {
-            PlayerMobile m = e.Mobile as PlayerMobile;
+            var m = e.Mobile as PlayerMobile;
 
             if (m == null || Keyword == "")
                 return;
 
             if (e.Speech.Contains(Keyword))
             {
-                if (Backpack == null || Backpack.Items.Count <= 0 || IsInCooldown(m))
-                {
-                    return;
-                }
+                if (Backpack == null || Backpack.Items.Count <= 0 || IsInCooldown(m)) return;
 
                 if (Backpack.Items.Count > 0 && m.AddToBackpack(Backpack.Items[Utility.Random(Backpack.Items.Count)]))
                 {
@@ -158,10 +157,8 @@ namespace Server.Mobiles
         public bool IsInCooldown(Mobile from)
         {
             if (_Table.ContainsKey(from))
-            {
                 if (_Table[from] < DateTime.UtcNow)
                     _Table.Remove(from);
-            }
 
             return _Table.ContainsKey(from);
         }
@@ -212,10 +209,8 @@ namespace Server.Mobiles
                     list.Add(new SetKeywordEntry(from, this));
                     list.Add(new OpenBackpackEntry(from, this));
 
-                    if (from.Race == Race || (from.Race == Race.Elf && Race == Race.Human || from.Race == Race.Human && Race == Race.Elf))
-                    {
-                        list.Add(new SwitchClothesEntry(from, this));
-                    }
+                    if (from.Race == Race || (from.Race == Race.Elf && Race == Race.Human) ||
+                        (from.Race == Race.Human && Race == Race.Elf)) list.Add(new SwitchClothesEntry(from, this));
 
                     list.Add(new RotateEntry(from, this));
                     list.Add(new RedeedEntry(from, this));
@@ -223,10 +218,105 @@ namespace Server.Mobiles
             }
         }
 
+        private static bool ContainsDisallowedSpeech(string text)
+        {
+            foreach (var word in ProfanityProtection.Disallowed)
+                if (text.Contains(word))
+                    return true;
+            return false;
+        }
+
+        public static bool IsEquipped(Item item)
+        {
+            return item != null && item.Parent is Mobile && ((Mobile)item.Parent).FindItemOnLayer(item.Layer) == item &&
+                   item.Layer != Layer.Mount && item.Layer != Layer.Bank &&
+                   item.Layer != Layer.Invalid && item.Layer != Layer.Backpack && !(item is Backpack);
+        }
+
+        public void SwitchClothes(Mobile from, Mobile m)
+        {
+            var MobileItems = from.Items.Where(x => IsEquipped(x)).ToList();
+            var MannequinItems = m.Items.Where(x => IsEquipped(x)).ToList();
+
+            MannequinItems.ForEach(x => m.RemoveItem(x));
+            MobileItems.ForEach(x => from.RemoveItem(x));
+
+            var ExceptItems = new List<Item>();
+
+            MannequinItems.ForEach(x =>
+            {
+                if (x.CanEquip(from))
+                    from.EquipItem(x);
+                else
+                    ExceptItems.Add(x);
+            });
+
+            MobileItems.ForEach(x =>
+            {
+                if (x.CanEquip(m))
+                    m.EquipItem(x);
+                else
+                    ExceptItems.Add(x);
+            });
+
+            if (ExceptItems.Count > 0)
+            {
+                ExceptItems.ForEach(x => from.AddToBackpack(x));
+                from.SendLocalizedMessage(1151641, ExceptItems.Count.ToString(),
+                    0x22); // ~1_COUNT~ items could not be swapped between you and the mannequin. These items are now in your backpack, or on the floor at your feet if your backpack is too full to hold them.
+            }
+
+            from.LocalOverheadMessage(MessageType.Regular, 0x3B2,
+                1151607); // You quickly swap clothes with the mannequin.
+        }
+
+        public override void OnAfterDelete()
+        {
+            base.OnAfterDelete();
+
+            House = null;
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(1); // version
+
+            writer.Write(House);
+            writer.Write(Owner);
+            writer.Write(Keyword);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
+
+            _Table = new Dictionary<Mobile, DateTime>();
+
+            switch (version)
+            {
+                case 1:
+                {
+                    House = (BaseHouse)reader.ReadItem();
+                    goto case 0;
+                }
+                case 0:
+                {
+                    Timer.DelayCall(TimeSpan.FromSeconds(15), () => { House = BaseHouse.FindHouseAt(this); });
+
+                    Owner = reader.ReadMobile();
+                    Keyword = reader.ReadString();
+
+                    break;
+                }
+            }
+        }
+
         private class RenameEntry : ContextMenuEntry
         {
-            private Mobile _From;
-            private Mobile _Mannequin;
+            private readonly Mobile _From;
+            private readonly Mobile _Mannequin;
 
             public RenameEntry(Mobile from, Mobile m)
                 : base(1155203, 2)
@@ -244,8 +334,8 @@ namespace Server.Mobiles
 
         private class RenamePrompt : Prompt
         {
-            public override int MessageCliloc { get { return 1062433; } }
             private readonly Mobile _Mannequin;
+            public override int MessageCliloc => 1062433;
 
             public RenamePrompt(Mobile m)
             {
@@ -268,8 +358,8 @@ namespace Server.Mobiles
 
         private class SetKeywordEntry : ContextMenuEntry
         {
-            private Mobile _From;
-            private Mobile _Mannequin;
+            private readonly Mobile _From;
+            private readonly Mobile _Mannequin;
 
             public SetKeywordEntry(Mobile from, Mobile m)
                 : base(1153254, 4)
@@ -311,20 +401,10 @@ namespace Server.Mobiles
             }
         }
 
-        private static bool ContainsDisallowedSpeech(string text)
-        {
-            foreach (var word in ProfanityProtection.Disallowed)
-            {
-                if (text.Contains(word))
-                    return true;
-            }
-            return false;
-        }
-
         private class OpenBackpackEntry : ContextMenuEntry
         {
-            private Mobile _From;
-            private Mobile _Mannequin;
+            private readonly Mobile _From;
+            private readonly Mobile _Mannequin;
 
             public OpenBackpackEntry(Mobile from, Mobile m)
                 : base(3006145, 4)
@@ -342,8 +422,8 @@ namespace Server.Mobiles
 
         private class CustomizeBodyEntry : ContextMenuEntry
         {
-            private Mobile _From;
-            private Mobile _Mannequin;
+            private readonly Mobile _From;
+            private readonly Mobile _Mannequin;
 
             public CustomizeBodyEntry(Mobile from, Mobile m)
                 : base(1151585, 4)
@@ -360,8 +440,8 @@ namespace Server.Mobiles
 
         private class SwitchClothesEntry : ContextMenuEntry
         {
-            private Mobile _From;
-            private Steward _Mannequin;
+            private readonly Mobile _From;
+            private readonly Steward _Mannequin;
 
             public SwitchClothesEntry(Mobile from, Steward m)
                 : base(1151606, 2)
@@ -376,60 +456,10 @@ namespace Server.Mobiles
             }
         }
 
-        public static bool IsEquipped(Item item)
-        {
-            return item != null && item.Parent is Mobile && ((Mobile)item.Parent).FindItemOnLayer(item.Layer) == item &&
-                   item.Layer != Layer.Mount && item.Layer != Layer.Bank &&
-                   item.Layer != Layer.Invalid && item.Layer != Layer.Backpack && !(item is Backpack);
-        }
-
-        public void SwitchClothes(Mobile from, Mobile m)
-        {
-            List<Item> MobileItems = from.Items.Where(x => IsEquipped(x)).ToList();
-            List<Item> MannequinItems = m.Items.Where(x => IsEquipped(x)).ToList();
-
-            MannequinItems.ForEach(x => m.RemoveItem(x));
-            MobileItems.ForEach(x => from.RemoveItem(x));
-
-            List<Item> ExceptItems = new List<Item>();
-
-            MannequinItems.ForEach(x =>
-            {
-                if (x.CanEquip(from))
-                {
-                    from.EquipItem(x);
-                }
-                else
-                {
-                    ExceptItems.Add(x);
-                }
-            });
-
-            MobileItems.ForEach(x =>
-            {
-                if (x.CanEquip(m))
-                {
-                    m.EquipItem(x);
-                }
-                else
-                {
-                    ExceptItems.Add(x);
-                }
-            });
-
-            if (ExceptItems.Count > 0)
-            {
-                ExceptItems.ForEach(x => from.AddToBackpack(x));
-                from.SendLocalizedMessage(1151641, ExceptItems.Count.ToString(), 0x22); // ~1_COUNT~ items could not be swapped between you and the mannequin. These items are now in your backpack, or on the floor at your feet if your backpack is too full to hold them.
-            }
-
-            from.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1151607); // You quickly swap clothes with the mannequin.
-        }
-
         private class RotateEntry : ContextMenuEntry
         {
-            private Mobile _From;
-            private Mobile _Mannequin;
+            private readonly Mobile _From;
+            private readonly Mobile _Mannequin;
 
             public RotateEntry(Mobile from, Mobile m)
                 : base(1151586, 2)
@@ -440,7 +470,7 @@ namespace Server.Mobiles
 
             public override void OnClick()
             {
-                int direction = (int)_Mannequin.Direction;
+                var direction = (int)_Mannequin.Direction;
                 direction++;
 
                 if (direction > 0x7)
@@ -448,14 +478,15 @@ namespace Server.Mobiles
 
                 _Mannequin.Direction = (Direction)direction;
 
-                _From.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1151587); // You rotate the mannequin a little bit.
+                _From.LocalOverheadMessage(MessageType.Regular, 0x3B2,
+                    1151587); // You rotate the mannequin a little bit.
             }
         }
 
         private class RedeedEntry : ContextMenuEntry
         {
-            private Mobile _From;
-            private Mobile _Mannequin;
+            private readonly Mobile _From;
+            private readonly Mobile _Mannequin;
 
             public RedeedEntry(Mobile from, Mobile m)
                 : base(1151601, 2)
@@ -472,7 +503,7 @@ namespace Server.Mobiles
                     return;
                 }
 
-                List<Item> mannequinItems = _Mannequin.Items.Where(x => IsEquipped(x)).ToList();
+                var mannequinItems = _Mannequin.Items.Where(x => IsEquipped(x)).ToList();
                 mannequinItems.ForEach(x => _From.AddToBackpack(x));
 
                 _Mannequin.Delete();
@@ -480,60 +511,14 @@ namespace Server.Mobiles
                 _From.AddToBackpack(new StewardDeed());
             }
         }
-
-        public override void OnAfterDelete()
-        {
-            base.OnAfterDelete();
-
-            House = null;
-        }
-
-        public Steward(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.Write((int)1); // version
-
-            writer.Write((Item)House);
-            writer.Write(Owner);
-            writer.Write(Keyword);
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            int version = reader.ReadInt();
-
-            _Table = new Dictionary<Mobile, DateTime>();
-
-            switch (version)
-            {
-                case 1:
-                    {
-                        House = (BaseHouse)reader.ReadItem();
-                        goto case 0;
-                    }
-                case 0:
-                    {
-                        Timer.DelayCall(TimeSpan.FromSeconds(15), () => { House = BaseHouse.FindHouseAt(this); });
-
-                        Owner = reader.ReadMobile();
-                        Keyword = reader.ReadString();
-
-                        break;
-                    }
-            }
-        }
     }
 
     public class StewardBackpack : Backpack
     {
-        private Mobile _Owner;
         private Mobile _Mannequin;
+        private Mobile _Owner;
+
+        public override int DefaultMaxWeight => 400;
 
         public StewardBackpack(Mobile from, Mobile m)
         {
@@ -542,8 +527,6 @@ namespace Server.Mobiles
 
             Layer = Layer.Backpack;
         }
-
-        public override int DefaultMaxWeight { get { return 400; } }
 
         public StewardBackpack(Serial serial)
             : base(serial)
@@ -576,7 +559,7 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1); // version
+            writer.Write(1); // version
 
             writer.Write(_Mannequin);
             writer.Write(_Owner);
@@ -585,29 +568,29 @@ namespace Server.Mobiles
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             switch (version)
             {
                 case 1:
-                    {
-                        _Mannequin = reader.ReadMobile();
-                        goto case 0;
-                    }
+                {
+                    _Mannequin = reader.ReadMobile();
+                    goto case 0;
+                }
                 case 0:
-                    {
-                        _Owner = reader.ReadMobile();
+                {
+                    _Owner = reader.ReadMobile();
 
-                        break;
-                    }
+                    break;
+                }
             }
         }
     }
 
     public class MannequinGump : Gump
     {
+        private readonly Mobile _Mannequin;
         private Mobile _From;
-        private Mobile _Mannequin;
 
         public MannequinGump(Mobile from, Mobile m)
             : base(50, 50)
@@ -623,13 +606,16 @@ namespace Server.Mobiles
             AddAlphaRegion(10, 10, 280, 110);
             AddHtmlLocalized(10, 12, 280, 18, 1151582, 0x7FFF, false, false); // <center>CUSTOMIZE BODY</center>
 
-            AddHtmlLocalized(45, 52, 180, 18, 1072255, _Mannequin.Race == Race.Human ? 0x1CFF : 0x7FFF, false, false); // Human
+            AddHtmlLocalized(45, 52, 180, 18, 1072255, _Mannequin.Race == Race.Human ? 0x1CFF : 0x7FFF, false,
+                false); // Human
             AddButton(10, 50, 0xFA5, 0xFA7, 1, GumpButtonType.Reply, 0);
 
-            AddHtmlLocalized(45, 72, 180, 18, 1072256, _Mannequin.Race == Race.Elf ? 0x1CFF : 0x7FFF, false, false); // Elf
+            AddHtmlLocalized(45, 72, 180, 18, 1072256, _Mannequin.Race == Race.Elf ? 0x1CFF : 0x7FFF, false,
+                false); // Elf
             AddButton(10, 70, 0xFA5, 0xFA7, 2, GumpButtonType.Reply, 0);
 
-            AddHtmlLocalized(45, 92, 180, 18, 1029613, _Mannequin.Race == Race.Gargoyle ? 0x1CFF : 0x7FFF, false, false); // Gargoyle 
+            AddHtmlLocalized(45, 92, 180, 18, 1029613, _Mannequin.Race == Race.Gargoyle ? 0x1CFF : 0x7FFF, false,
+                false); // Gargoyle 
             AddButton(10, 90, 0xFA5, 0xFA7, 3, GumpButtonType.Reply, 0);
 
             AddHtmlLocalized(205, 52, 180, 18, 1015327, _Mannequin.Female ? 0x7FFF : 0x1CFF, false, false); // Male
@@ -641,27 +627,24 @@ namespace Server.Mobiles
 
         public void ValidateItems(Mobile from, Mobile m)
         {
-            List<Item> MannequinItems = m.Items.Where(x => Steward.IsEquipped(x)).ToList();
+            var MannequinItems = m.Items.Where(x => Steward.IsEquipped(x)).ToList();
             MannequinItems.ForEach(x => _Mannequin.RemoveItem(x));
 
-            List<Item> ExceptItems = new List<Item>();
+            var ExceptItems = new List<Item>();
 
             MannequinItems.ForEach(x =>
             {
                 if (x.CanEquip(m))
-                {
                     m.EquipItem(x);
-                }
                 else
-                {
                     ExceptItems.Add(x);
-                }
             });
 
             if (ExceptItems.Count > 0)
             {
                 ExceptItems.ForEach(x => from.AddToBackpack(x));
-                from.SendLocalizedMessage(1151641, ExceptItems.Count.ToString(), 0x22); // ~1_COUNT~ items could not be swapped between you and the mannequin. These items are now in your backpack, or on the floor at your feet if your backpack is too full to hold them.
+                from.SendLocalizedMessage(1151641, ExceptItems.Count.ToString(),
+                    0x22); // ~1_COUNT~ items could not be swapped between you and the mannequin. These items are now in your backpack, or on the floor at your feet if your backpack is too full to hold them.
             }
         }
 
@@ -670,103 +653,77 @@ namespace Server.Mobiles
             if (_Mannequin == null)
                 return;
 
-            Mobile from = state.Mobile;
+            var from = state.Mobile;
 
             switch (info.ButtonID)
             {
                 case 1: // Human
-                    {
-                        if (_Mannequin.Female)
-                        {
-                            _Mannequin.Body = 0x190;
-                        }
-                        else
-                        {
-                            _Mannequin.Body = 0x191;
-                        }
+                {
+                    if (_Mannequin.Female)
+                        _Mannequin.Body = 0x190;
+                    else
+                        _Mannequin.Body = 0x191;
 
-                        _Mannequin.Race = Race.Human;
+                    _Mannequin.Race = Race.Human;
 
-                        ValidateItems(from, _Mannequin);
+                    ValidateItems(from, _Mannequin);
 
-                        break;
-                    }
+                    break;
+                }
                 case 2: // Elf
-                    {
-                        if (_Mannequin.Female)
-                        {
-                            _Mannequin.Body = 0x25d;
-                        }
-                        else
-                        {
-                            _Mannequin.Body = 0x25e;
-                        }
+                {
+                    if (_Mannequin.Female)
+                        _Mannequin.Body = 0x25d;
+                    else
+                        _Mannequin.Body = 0x25e;
 
-                        _Mannequin.Race = Race.Elf;
+                    _Mannequin.Race = Race.Elf;
 
-                        ValidateItems(from, _Mannequin);
+                    ValidateItems(from, _Mannequin);
 
-                        break;
-                    }
+                    break;
+                }
                 case 3: // Gargoyle
-                    {
-                        if (_Mannequin.Female)
-                        {
-                            _Mannequin.Body = 0x29a;
-                        }
-                        else
-                        {
-                            _Mannequin.Body = 0x29b;
-                        }
+                {
+                    if (_Mannequin.Female)
+                        _Mannequin.Body = 0x29a;
+                    else
+                        _Mannequin.Body = 0x29b;
 
-                        _Mannequin.Race = Race.Gargoyle;
+                    _Mannequin.Race = Race.Gargoyle;
 
-                        ValidateItems(from, _Mannequin);
+                    ValidateItems(from, _Mannequin);
 
-                        break;
-                    }
+                    break;
+                }
                 case 4: // Male
-                    {
-                        if (_Mannequin.Race == Race.Human)
-                        {
-                            _Mannequin.Body = 0x190;
-                        }
-                        else if (_Mannequin.Race == Race.Elf)
-                        {
-                            _Mannequin.Body = 0x25d;
-                        }
-                        else if (_Mannequin.Race == Race.Gargoyle)
-                        {
-                            _Mannequin.Body = 0x29a;
-                        }
+                {
+                    if (_Mannequin.Race == Race.Human)
+                        _Mannequin.Body = 0x190;
+                    else if (_Mannequin.Race == Race.Elf)
+                        _Mannequin.Body = 0x25d;
+                    else if (_Mannequin.Race == Race.Gargoyle) _Mannequin.Body = 0x29a;
 
-                        _Mannequin.Female = false;
+                    _Mannequin.Female = false;
 
-                        ValidateItems(from, _Mannequin);
+                    ValidateItems(from, _Mannequin);
 
-                        break;
-                    }
+                    break;
+                }
                 case 5: // Female
-                    {
-                        if (_Mannequin.Race == Race.Human)
-                        {
-                            _Mannequin.Body = 0x191;
-                        }
-                        else if (_Mannequin.Race == Race.Elf)
-                        {
-                            _Mannequin.Body = 0x25e;
-                        }
-                        else if (_Mannequin.Race == Race.Gargoyle)
-                        {
-                            _Mannequin.Body = 0x29b;
-                        }
+                {
+                    if (_Mannequin.Race == Race.Human)
+                        _Mannequin.Body = 0x191;
+                    else if (_Mannequin.Race == Race.Elf)
+                        _Mannequin.Body = 0x25e;
+                    else if (_Mannequin.Race == Race.Gargoyle) _Mannequin.Body = 0x29b;
 
-                        _Mannequin.Female = true;
+                    _Mannequin.Female = true;
 
-                        ValidateItems(from, _Mannequin);
+                    ValidateItems(from, _Mannequin);
 
-                        break;
-                    }
+                    break;
+                }
             }
         }
     }
@@ -774,7 +731,7 @@ namespace Server.Mobiles
     [Flipable(0x14F0, 0x14EF)]
     public class StewardDeed : Item
     {
-        public override int LabelNumber { get { return 1153344; } } // Steward Deed
+        public override int LabelNumber => 1153344; // Steward Deed
 
         [Constructable]
         public StewardDeed()
@@ -792,12 +749,12 @@ namespace Server.Mobiles
         {
             if (IsChildOf(from.Backpack))
             {
-                BaseHouse house = BaseHouse.FindHouseAt(from);
+                var house = BaseHouse.FindHouseAt(from);
 
                 if (house == null)
                 {
                     // Check for TownHouse region — skip the Public requirement
-                    TownHouseRegion thr = from.Region as TownHouseRegion;
+                    var thr = from.Region as TownHouseRegion;
                     if (thr != null && thr.Controller != null && thr.Controller.IsFriend(from))
                     {
                         from.SendLocalizedMessage(1151657); // Where do you wish to place this?
@@ -839,19 +796,19 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class PlaceTarget : Target
     {
-        private Item _Deed;
+        private readonly Item _Deed;
 
         public PlaceTarget(Item deed)
             : base(-1, true, TargetFlags.None)
@@ -863,24 +820,24 @@ namespace Server.Mobiles
         {
             if (!map.CanFit(p.X, p.Y, p.Z, 20, true, true, true))
                 return AddonFitResult.Blocked;
-            else if (!BaseAddon.CheckHouse(from, p, map, 20, ref house))
+            if (!BaseAddon.CheckHouse(from, p, map, 20, ref house))
                 return AddonFitResult.NotInHouse;
-            else
-                return CheckDoors(p, 20, house);
+            return CheckDoors(p, 20, house);
         }
 
         public static AddonFitResult CheckDoors(Point3D p, int height, BaseHouse house)
         {
-            List<Item> doors = house.Doors;
+            var doors = house.Doors;
 
-            for (int i = 0; i < doors.Count; i++)
+            for (var i = 0; i < doors.Count; i++)
             {
-                BaseDoor door = doors[i] as BaseDoor;
+                var door = doors[i] as BaseDoor;
 
-                Point3D doorLoc = door.GetWorldLocation();
-                int doorHeight = door.ItemData.CalcHeight;
+                var doorLoc = door.GetWorldLocation();
+                var doorHeight = door.ItemData.CalcHeight;
 
-                if (Utility.InRange(doorLoc, p, 1) && (p.Z == doorLoc.Z || ((p.Z + height) > doorLoc.Z && (doorLoc.Z + doorHeight) > p.Z)))
+                if (Utility.InRange(doorLoc, p, 1) &&
+                    (p.Z == doorLoc.Z || (p.Z + height > doorLoc.Z && doorLoc.Z + doorHeight > p.Z)))
                     return AddonFitResult.DoorTooClose;
             }
 
@@ -889,8 +846,8 @@ namespace Server.Mobiles
 
         protected override void OnTarget(Mobile from, object targeted)
         {
-            IPoint3D p = targeted as IPoint3D;
-            Map map = from.Map;
+            var p = targeted as IPoint3D;
+            var map = from.Map;
 
             if (p == null || map == null || _Deed == null || _Deed.Deleted)
                 return;
@@ -899,21 +856,23 @@ namespace Server.Mobiles
             {
                 SpellHelper.GetSurfaceTop(ref p);
                 BaseHouse house = null;
-                Point3D loc = new Point3D(p);
+                var loc = new Point3D(p);
 
-                if (targeted is Item && !((Item)targeted).IsLockedDown && !((Item)targeted).IsSecure && !(targeted is AddonComponent))
+                if (targeted is Item && !((Item)targeted).IsLockedDown && !((Item)targeted).IsSecure &&
+                    !(targeted is AddonComponent))
                 {
                     from.SendLocalizedMessage(1151655); // The mannequin cannot fit there.
                     return;
                 }
 
-                AddonFitResult result = CouldFit(loc, map, from, ref house);
+                var result = CouldFit(loc, map, from, ref house);
 
                 // If placement failed only because there is no BaseHouse, check for a TownHouse region.
                 if (result == AddonFitResult.NotInHouse)
                 {
-                    TownHouseRegion thr = from.Region as TownHouseRegion;
-                    if (thr != null && thr.Controller != null && thr.Controller.IsFriend(from) && thr.Controller.IsInside(loc, map))
+                    var thr = from.Region as TownHouseRegion;
+                    if (thr != null && thr.Controller != null && thr.Controller.IsFriend(from) &&
+                        thr.Controller.IsInside(loc, map))
                         result = AddonFitResult.Valid;
                 }
 
@@ -922,14 +881,10 @@ namespace Server.Mobiles
                     Mobile mannequin;
 
                     if (_Deed is StewardDeed)
-                    {
                         // house may be null when placed in a TownHouse — Steward handles null safely
                         mannequin = new Steward(from, house);
-                    }
                     else
-                    {
                         mannequin = new Mannequin(from);
-                    }
 
                     mannequin.MoveToWorld(loc, map);
                     _Deed.Delete();

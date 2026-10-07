@@ -1,5 +1,3 @@
-using System;
-
 using Server.Mobiles;
 
 namespace Server.Engines.SorcerersDungeon
@@ -7,6 +5,13 @@ namespace Server.Engines.SorcerersDungeon
     [CorpseName("a rabid reindeers corpse")]
     public class RabidReindeer : BaseCreature
     {
+        public override int Meat => 6;
+        public override int Hides => 15;
+
+        public override Poison HitPoison => Poison.Lethal;
+        public override bool AlwaysMurderer => true;
+        public override Poison PoisonImmune => Poison.Lethal;
+
         [Constructable]
         public RabidReindeer()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -45,8 +50,10 @@ namespace Server.Engines.SorcerersDungeon
             SetSpecialAbility(SpecialAbility.VenomousBite);
         }
 
-        public override int Meat { get { return 6; } }
-        public override int Hides { get { return 15; } }
+        public RabidReindeer(Serial serial)
+            : base(serial)
+        {
+        }
 
         public override int GetAttackSound()
         {
@@ -63,15 +70,6 @@ namespace Server.Engines.SorcerersDungeon
             return 0x84;
         }
 
-        public RabidReindeer(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override Poison HitPoison { get { return Poison.Lethal; } }
-        public override bool AlwaysMurderer { get { return true; } }
-        public override Poison PoisonImmune { get { return Poison.Lethal; } }
-
         public override void GenerateLoot()
         {
             AddLoot(LootPack.UltraRich, 2);
@@ -80,13 +78,13 @@ namespace Server.Engines.SorcerersDungeon
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

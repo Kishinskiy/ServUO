@@ -1,19 +1,24 @@
-﻿using Server;
-using System;
-
-namespace Server.Items
+﻿namespace Server.Items
 {
     public class MerchantsTrinket : GoldEarrings
     {
         private bool _Greater;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int Bonus { get { return Greater ? 10 : 5; } }
+        public int Bonus => Greater ? 10 : 5;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public bool Greater { get { return _Greater; } set { _Greater = value; InvalidateProperties(); } }
+        public bool Greater
+        {
+            get => _Greater;
+            set
+            {
+                _Greater = value;
+                InvalidateProperties();
+            }
+        }
 
-        public override int LabelNumber { get { return _Greater ? 1156828 : 1156827; } } // Merchant's Trinket - 5% / 10%
+        public override int LabelNumber => _Greater ? 1156828 : 1156827; // Merchant's Trinket - 5% / 10%
 
         [Constructable]
         public MerchantsTrinket()
@@ -43,7 +48,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
             _Greater = reader.ReadBool();
         }
     }

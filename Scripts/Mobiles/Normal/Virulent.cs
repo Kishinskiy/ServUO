@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
@@ -6,6 +5,14 @@ namespace Server.Mobiles
     [CorpseName("a Virulent corpse")]
     public class Virulent : BaseCreature
     {
+        public override bool GivesMLMinorArtifact => true;
+
+        public override Poison PoisonImmune => Poison.Lethal;
+
+        public override Poison HitPoison => Poison.Lethal;
+
+        public override OppositionGroup OppositionGroup => OppositionGroup.FeyAndUndead;
+
         [Constructable]
         public Virulent()
             : base(AIType.AI_Mage, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -40,16 +47,14 @@ namespace Server.Mobiles
             SetSkill(SkillName.Poisoning, 120.0);
             SetSkill(SkillName.Magery, 104.2, 119.8);
             SetSkill(SkillName.EvalInt, 102.8, 116.8);
-			
+
             PackItem(new SpidersSilk(8));
 
             Fame = 21000;
             Karma = -21000;
 
-            for (int i = 0; i < Utility.RandomMinMax(0, 1); i++)
-            {
+            for (var i = 0; i < Utility.RandomMinMax(0, 1); i++)
                 PackItem(Loot.RandomScroll(0, Loot.ArcanistScrollTypes.Length, SpellbookType.Arcanist));
-            }
 
             SetWeaponAbility(WeaponAbility.MortalStrike);
         }
@@ -59,34 +64,6 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool GivesMLMinorArtifact
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override Poison PoisonImmune
-        {
-            get
-            {
-                return Poison.Lethal;
-            }
-        }
-        public override Poison HitPoison
-        {
-            get
-            {
-                return Poison.Lethal;
-            }
-        }
-        public override OppositionGroup OppositionGroup
-        {
-            get
-            {
-                return OppositionGroup.FeyAndUndead;
-            }
-        }
         public override void GenerateLoot()
         {
             AddLoot(LootPack.AosUltraRich, 4);
@@ -94,11 +71,10 @@ namespace Server.Mobiles
 
         public override void OnDeath(Container c)
         {
-            base.OnDeath(c);		
-			
+            base.OnDeath(c);
+
             if (Utility.RandomDouble() < 0.025)
-            {
-                switch ( Utility.Random(2) )
+                switch (Utility.Random(2))
                 {
                     case 0:
                         c.DropItem(new HunterLegs());
@@ -107,8 +83,7 @@ namespace Server.Mobiles
                         c.DropItem(new MalekisHonor());
                         break;
                 }
-            }
-				
+
             if (Utility.RandomDouble() < 0.1)
                 c.DropItem(new ParrotItem());
         }
@@ -116,15 +91,15 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-			
-            writer.Write((int)0); // version
+
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-			
-            int version = reader.ReadInt();
+
+            var version = reader.ReadInt();
         }
     }
 }

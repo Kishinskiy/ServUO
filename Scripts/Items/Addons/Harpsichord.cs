@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using Server.Gumps;
 using Server.Multis;
@@ -23,14 +22,13 @@ namespace Server.Items
 
     public class HarpsichordRoll : Item
     {
-        public override int LabelNumber { get { return 1098233; } } // An Harpsichord Roll
-
         private MusicName m_Music;
+        public override int LabelNumber => 1098233; // An Harpsichord Roll
 
         [CommandProperty(AccessLevel.GameMaster)]
         private MusicName Music
         {
-            get { return m_Music; }
+            get => m_Music;
             set
             {
                 m_Music = value;
@@ -51,6 +49,11 @@ namespace Server.Items
             Music = music;
         }
 
+        public HarpsichordRoll(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void OnDoubleClick(Mobile from)
         {
             if (IsChildOf(from.Backpack))
@@ -64,11 +67,6 @@ namespace Server.Items
             }
         }
 
-        public HarpsichordRoll(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void GetProperties(ObjectPropertyList list)
         {
             base.GetProperties(list);
@@ -79,7 +77,7 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
             writer.Write((int)m_Music);
         }
@@ -87,7 +85,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             Music = (MusicName)reader.ReadInt();
         }
@@ -104,19 +102,22 @@ namespace Server.Items
 
             protected override void OnTarget(Mobile from, object targeted)
             {
-                if (targeted is AddonComponent && ((AddonComponent)targeted).Addon != null && ((AddonComponent)targeted).Addon is HarpsichordAddon)
+                if (targeted is AddonComponent && ((AddonComponent)targeted).Addon != null &&
+                    ((AddonComponent)targeted).Addon is HarpsichordAddon)
                 {
-                    HarpsichordAddon addon = ((AddonComponent)targeted).Addon as HarpsichordAddon;
+                    var addon = ((AddonComponent)targeted).Addon as HarpsichordAddon;
 
                     if (addon.List.Contains(Item.Music))
                     {
-                        from.Send(new MessageLocalized(addon.Serial, addon.ItemID, MessageType.Regular, 0x3B2, 3, 1153059, "", "")); // The Harpsichord already has this song.                        
+                        from.Send(new MessageLocalized(addon.Serial, addon.ItemID, MessageType.Regular, 0x3B2, 3,
+                            1153059, "", "")); // The Harpsichord already has this song.                        
                     }
                     else
                     {
                         addon.List.Add(Item.Music);
                         Item.Delete();
-                        from.Send(new MessageLocalized(addon.Serial, addon.ItemID, MessageType.Regular, 0x3B2, 3, 1153058, "", "")); // You carefully feed the roll into the Harpsichord.
+                        from.Send(new MessageLocalized(addon.Serial, addon.ItemID, MessageType.Regular, 0x3B2, 3,
+                            1153058, "", "")); // You carefully feed the roll into the Harpsichord.
                     }
                 }
                 else
@@ -129,24 +130,19 @@ namespace Server.Items
 
     public class HarpsichordAddon : BaseAddon
     {
-        public override bool ForceShowProperties { get { return false; } }
-        public override bool RetainDeedHue { get { return true; } }
-
         public List<MusicName> List;
+        public override bool ForceShowProperties => false;
+        public override bool RetainDeedHue => true;
 
-        public override BaseAddonDeed Deed { get { return new HarpsichordAddonDeed((HarpsichordColor)Hue, List); } }
+        public override BaseAddonDeed Deed => new HarpsichordAddonDeed((HarpsichordColor)Hue, List);
 
         [Constructable]
         public HarpsichordAddon(HarpsichordColor hue, DirectionType type, List<MusicName> list)
         {
             if (list == null)
-            {
                 List = new List<MusicName>();
-            }
             else
-            {
                 List = list;
-            }
 
             switch (type)
             {
@@ -173,6 +169,11 @@ namespace Server.Items
             Hue = (int)hue;
         }
 
+        public HarpsichordAddon(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void OnComponentUsed(AddonComponent component, Mobile from)
         {
             if (!from.InRange(GetWorldLocation(), 3))
@@ -181,9 +182,10 @@ namespace Server.Items
                 return;
             }
 
-            BaseHouse house = BaseHouse.FindHouseAt(from);
+            var house = BaseHouse.FindHouseAt(from);
 
-            if (house != null && (house.IsFriend(from) || (house.LockDowns.ContainsKey(this) && house.LockDowns[this] == from)))
+            if (house != null && (house.IsFriend(from) ||
+                                  (house.LockDowns.ContainsKey(this) && house.LockDowns[this] == from)))
             {
                 from.CloseGump(typeof(HarpsichordSongGump));
                 from.SendGump(new HarpsichordSongGump(List));
@@ -194,11 +196,6 @@ namespace Server.Items
             }
         }
 
-        public HarpsichordAddon(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -206,30 +203,24 @@ namespace Server.Items
 
             writer.Write(List.Count);
 
-            List.ForEach(x =>
-            {
-                writer.Write((int)x);
-            });
+            List.ForEach(x => { writer.Write((int)x); });
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            int count = reader.ReadInt();
+            var count = reader.ReadInt();
 
             List = new List<MusicName>();
 
-            for (int i = count; i > 0; i--)
-            {
-                List.Add((MusicName)reader.ReadInt());
-            }
+            for (var i = count; i > 0; i--) List.Add((MusicName)reader.ReadInt());
         }
 
         private class HarpsichordSongGump : Gump
         {
-            public List<MusicName> m_List;
+            public readonly List<MusicName> m_List;
 
             public HarpsichordSongGump(List<MusicName> list)
                 : base(100, 100)
@@ -239,57 +230,61 @@ namespace Server.Items
                 AddPage(0);
 
                 AddBackground(0, 0, 270, 370, 0x2454);
-                AddHtmlLocalized(10, 10, 250, 18, 1114513, "#1152961", 0x4000, false, false); // <DIV ALIGN=CENTER>~1_TOKEN~</DIV>
+                AddHtmlLocalized(10, 10, 250, 18, 1114513, "#1152961", 0x4000, false,
+                    false); // <DIV ALIGN=CENTER>~1_TOKEN~</DIV>
 
                 int mindex;
 
-                for (int i = 0; i < m_List.Count; ++i)
+                for (var i = 0; i < m_List.Count; ++i)
                 {
                     mindex = (int)m_List[i];
-                    AddButton(10, 37 + (i * 20), 0xFA5, 0xFA6, 100 + mindex, GumpButtonType.Reply, 0);
-                    AddHtmlLocalized(50, 37 + (i * 20), 150, 20, 1152910 + mindex, 0x90D, false, false);
+                    AddButton(10, 37 + i * 20, 0xFA5, 0xFA6, 100 + mindex, GumpButtonType.Reply, 0);
+                    AddHtmlLocalized(50, 37 + i * 20, 150, 20, 1152910 + mindex, 0x90D, false, false);
                 }
 
                 AddButton(10, 340, 0xFAB, 0xFAC, 1, GumpButtonType.Reply, 0);
                 AddHtmlLocalized(50, 340, 100, 20, 1075207, 0x10, false, false); // Stop Song
 
                 AddButton(230, 340, 0xFB4, 0xFB5, 0, GumpButtonType.Reply, 0);
-                AddHtmlLocalized(120, 340, 100, 20, 1114514, "#1150300", 0x3E00, false, false); // <DIV ALIGN=RIGHT>~1_TOKEN~</DIV>
+                AddHtmlLocalized(120, 340, 100, 20, 1114514, "#1150300", 0x3E00, false,
+                    false); // <DIV ALIGN=RIGHT>~1_TOKEN~</DIV>
             }
 
             public override void OnResponse(NetState sender, RelayInfo info)
             {
-                int index = info.ButtonID;
+                var index = info.ButtonID;
 
                 switch (index)
                 {
-                    case 0: { break; }
+                    case 0:
+                    {
+                        break;
+                    }
                     case 1: // Stop Song
-                        {
-                            sender.Mobile.Send(StopMusic.Instance);
+                    {
+                        sender.Mobile.Send(StopMusic.Instance);
 
-                            break;
-                        }
+                        break;
+                    }
                     default:
-                        {
-                            int music = index - 100;
-                            sender.Mobile.Send(new PlayMusic((MusicName)music));
+                    {
+                        var music = index - 100;
+                        sender.Mobile.Send(new PlayMusic((MusicName)music));
 
-                            return;
-                        }
+                        return;
+                    }
                 }
             }
-        }        
+        }
     }
 
     public class HarpsichordAddonDeed : BaseAddonDeed, IRewardOption
     {
-        public override int LabelNumber { get { return 1152937; } } // Harpsichord Deed
-
         private DirectionType _Direction;
         private List<MusicName> _List;
+        public override int LabelNumber => 1152937; // Harpsichord Deed
 
-        public override BaseAddon Addon { get { return new HarpsichordAddon((HarpsichordColor)Hue, _Direction, _List); } }
+        public override BaseAddon Addon => new HarpsichordAddon((HarpsichordColor)Hue, _Direction, _List);
 
         [Constructable]
         public HarpsichordAddonDeed()
@@ -311,18 +306,9 @@ namespace Server.Items
             LootType = LootType.Blessed;
         }
 
-        public override void GetProperties(ObjectPropertyList list)
+        public HarpsichordAddonDeed(Serial serial)
+            : base(serial)
         {
-            base.GetProperties(list);
-
-            int count = 0;
-
-            if (_List != null)
-            {
-                count = _List.Count;
-            }
-
-            list.Add(1153057, count.ToString());
         }
 
         public void GetOptions(RewardOptionList list)
@@ -339,6 +325,17 @@ namespace Server.Items
                 base.OnDoubleClick(from);
         }
 
+        public override void GetProperties(ObjectPropertyList list)
+        {
+            base.GetProperties(list);
+
+            var count = 0;
+
+            if (_List != null) count = _List.Count;
+
+            list.Add(1153057, count.ToString());
+        }
+
         public override void OnDoubleClick(Mobile from)
         {
             if (IsChildOf(from.Backpack))
@@ -352,11 +349,6 @@ namespace Server.Items
             }
         }
 
-        public HarpsichordAddonDeed(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -365,30 +357,19 @@ namespace Server.Items
             writer.Write(_List != null ? _List.Count : 0);
 
             if (_List != null)
-            {
-                _List.ForEach(x =>
-                {
-                    writer.Write((int)x);
-                });
-            }
+                _List.ForEach(x => { writer.Write((int)x); });
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            int count = reader.ReadInt();
+            var count = reader.ReadInt();
 
-            if (count > 0)
-            {
-                _List = new List<MusicName>();
-            }
+            if (count > 0) _List = new List<MusicName>();
 
-            for (int i = count; i > 0; i--)
-            {
-                _List.Add((MusicName)reader.ReadInt());
-            }
+            for (var i = count; i > 0; i--) _List.Add((MusicName)reader.ReadInt());
         }
     }
 }

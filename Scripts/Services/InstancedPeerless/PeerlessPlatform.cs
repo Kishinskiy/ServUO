@@ -18,271 +18,259 @@
 
 using System;
 using System.Collections.Generic;
-using Server;
-using Server.Items;
-using Server.Gumps;
 using Server.Engines.PartySystem;
+using Server.Gumps;
+using Server.Items;
 
 namespace Server.Engines.InstancedPeerless
 {
-	public abstract class PeerlessPlatform : BaseAddon
-	{
-		public abstract Type KeyType { get; }
-		public abstract Type BossType { get; }
-
-		public virtual int OfferGumpTitle { get { return 1113737; } } // Monster's Lair
-		public virtual int OfferGumpDesc { get { return 1113738; } } // Your party has gained entrance to a monster's lair. You may choose to join the fight or stay away.
-
-		private List<PeerlessKeyBrazier> m_Braziers = new List<PeerlessKeyBrazier>();
-		private List<PeerlessInstance> m_Instances = new List<PeerlessInstance>();
-		private Queue<List<Mobile>> m_PartyQueue = new Queue<List<Mobile>>();
-
-		private Point3D m_ExitLocation;
-		private Mobile m_Summoner;
-
-		private Timer m_KeyExpireTimer;
-
-		[CommandProperty( AccessLevel.GameMaster )]
-		public Mobile Summoner { get { return m_Summoner; } set { m_Summoner = value; } }
-
-		[CommandProperty( AccessLevel.GameMaster )]
-		public Point3D ExitLocation { get { return m_ExitLocation; } set { m_ExitLocation = value; } }
-
-		public PeerlessPlatform()
-		{
-			AddInstances();
-			AddBraziers();
-		}
-
-		public abstract void AddInstances();
-		public abstract void AddBraziers();
-
-		public override bool ShareHue { get { return false; } }
-
-		public void Validate()
-		{
-			if ( m_KeyExpireTimer != null )
-				m_KeyExpireTimer.Stop();
-
-			foreach ( PeerlessKeyBrazier brazier in m_Braziers )
-			{
-				if ( !Validate( brazier ) )
-				{
-					m_KeyExpireTimer = Timer.DelayCall( TimeSpan.FromMinutes( 1.0 ), new TimerCallback( delegate { Clear( false ); } ) );
-					return;
-				}
-			}
-
-			List<Mobile> party = GetParty( m_Summoner );
-			List<Mobile> invalid;
-
-			if ( !ValidateMembers( party, out invalid ) )
-			{
-				m_Summoner.SendLocalizedMessage( 1113574 ); // Your party cannot join the queue because the following members have already registered with another group:
-
-				foreach ( Mobile m in invalid )
-					m_Summoner.SendMessage( m.Name );
-
-				Clear( true );
-			}
-			else
-			{
-				PeerlessInstance instance = AcquireEmptyInstance();
-
-				if ( instance == null )
-				{
-					m_PartyQueue.Enqueue( party );
-
-					m_Summoner.SendLocalizedMessage( 1113575 ); // Your party has been successfully added to the queue for this instance.
-				}
-				else
-				{
-					instance.Activate();
-
-					new InstanceEnterGate( instance, party ).MoveToWorld( new Point3D( X, Y, Z + 5 ), Map );
-				}
-
-				Clear( false );
-			}
-		}
-
-		private void Clear( bool returnKeys )
-		{
-			foreach ( PeerlessKeyBrazier brazier in m_Braziers )
-			{
-				Item key = brazier.Key;
-
-				if ( key == null )
-					continue;
-
-				if ( returnKeys )
-				{
-					key.Movable = true;
-					m_Summoner.PlaceInBackpack( key );
-				}
-				else
-					key.Delete();
-
-				brazier.Key = null;
-			}
-
-			if ( returnKeys )
-				m_Summoner.SendLocalizedMessage( 1113576 ); // Your sacrificial keys have been returned to you.
-
-			m_Summoner = null;
-		}
-
-		private bool Validate( PeerlessKeyBrazier brazier )
-		{
-			return brazier.Key != null && !brazier.Key.Deleted;
-		}
-
-		private bool ValidateMembers( List<Mobile> party, out List<Mobile> invalid )
-		{
-			invalid = new List<Mobile>();
-
-			foreach ( List<Mobile> otherParty in m_PartyQueue )
-			{
-				foreach ( Mobile m in otherParty )
-				{
-					if ( party.Contains( m ) )
-						invalid.Add( m );
-				}
-			}
+    public abstract class PeerlessPlatform : BaseAddon
+    {
+        private readonly List<PeerlessKeyBrazier> m_Braziers = new List<PeerlessKeyBrazier>();
+        private readonly List<PeerlessInstance> m_Instances = new List<PeerlessInstance>();
+        private readonly Queue<List<Mobile>> m_PartyQueue = new Queue<List<Mobile>>();
+
+        private Timer m_KeyExpireTimer;
+        public abstract Type KeyType { get; }
+        public abstract Type BossType { get; }
+
+        public virtual int OfferGumpTitle => 1113737; // Monster's Lair
+
+        public virtual int OfferGumpDesc =>
+            1113738; // Your party has gained entrance to a monster's lair. You may choose to join the fight or stay away.
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public Mobile Summoner { get; set; }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public Point3D ExitLocation { get; set; }
+
+        public override bool ShareHue => false;
+
+        public PeerlessPlatform()
+        {
+            AddInstances();
+            AddBraziers();
+        }
+
+        public PeerlessPlatform(Serial serial)
+            : base(serial)
+        {
+        }
+
+        public abstract void AddInstances();
+        public abstract void AddBraziers();
+
+        public void Validate()
+        {
+            if (m_KeyExpireTimer != null)
+                m_KeyExpireTimer.Stop();
+
+            foreach (var brazier in m_Braziers)
+                if (!Validate(brazier))
+                {
+                    m_KeyExpireTimer = Timer.DelayCall(TimeSpan.FromMinutes(1.0), delegate { Clear(false); });
+                    return;
+                }
+
+            var party = GetParty(Summoner);
+            List<Mobile> invalid;
+
+            if (!ValidateMembers(party, out invalid))
+            {
+                Summoner.SendLocalizedMessage(
+                    1113574); // Your party cannot join the queue because the following members have already registered with another group:
+
+                foreach (var m in invalid)
+                    Summoner.SendMessage(m.Name);
+
+                Clear(true);
+            }
+            else
+            {
+                var instance = AcquireEmptyInstance();
+
+                if (instance == null)
+                {
+                    m_PartyQueue.Enqueue(party);
+
+                    Summoner.SendLocalizedMessage(
+                        1113575); // Your party has been successfully added to the queue for this instance.
+                }
+                else
+                {
+                    instance.Activate();
+
+                    new InstanceEnterGate(instance, party).MoveToWorld(new Point3D(X, Y, Z + 5), Map);
+                }
+
+                Clear(false);
+            }
+        }
+
+        private void Clear(bool returnKeys)
+        {
+            foreach (var brazier in m_Braziers)
+            {
+                var key = brazier.Key;
+
+                if (key == null)
+                    continue;
+
+                if (returnKeys)
+                {
+                    key.Movable = true;
+                    Summoner.PlaceInBackpack(key);
+                }
+                else
+                {
+                    key.Delete();
+                }
 
-			return ( invalid.Count == 0 );
-		}
+                brazier.Key = null;
+            }
 
-		private List<Mobile> GetParty( Mobile from )
-		{
-			List<Mobile> list = new List<Mobile>();
-			Party p = from.Party as Party;
+            if (returnKeys)
+                Summoner.SendLocalizedMessage(1113576); // Your sacrificial keys have been returned to you.
 
-			if ( p != null )
-			{
-				foreach ( PartyMemberInfo pmInfo in p.Members )
-					list.Add( pmInfo.Mobile );
-			}
-			else
-			{
-				list.Add( from );
-			}
+            Summoner = null;
+        }
 
-			return list;
-		}
+        private bool Validate(PeerlessKeyBrazier brazier)
+        {
+            return brazier.Key != null && !brazier.Key.Deleted;
+        }
 
-		private PeerlessInstance AcquireEmptyInstance()
-		{
-			foreach ( PeerlessInstance instance in m_Instances )
-			{
-				if ( instance.State == InstanceState.Available )
-					return instance;
-			}
+        private bool ValidateMembers(List<Mobile> party, out List<Mobile> invalid)
+        {
+            invalid = new List<Mobile>();
 
-			return null;
-		}
+            foreach (var otherParty in m_PartyQueue)
+            foreach (var m in otherParty)
+                if (party.Contains(m))
+                    invalid.Add(m);
 
-		protected void AddInstance( int x, int y, int z, Map map, Point3D entranceLoc, Point3D bossSpawnLoc, Rectangle2D regionBounds )
-		{
-			AddonComponent light = new AddonComponent( 0x1ECF );
+            return invalid.Count == 0;
+        }
 
-			m_Instances.Add( new PeerlessInstance( this, map, light, entranceLoc, bossSpawnLoc, regionBounds ) );
+        private List<Mobile> GetParty(Mobile from)
+        {
+            var list = new List<Mobile>();
+            var p = from.Party as Party;
 
-			AddComponent( light, x, y, z );
-		}
+            if (p != null)
+                foreach (var pmInfo in p.Members)
+                    list.Add(pmInfo.Mobile);
+            else
+                list.Add(from);
 
-		protected void AddBrazier( int x, int y, int z )
-		{
-			PeerlessKeyBrazier brazier = new PeerlessKeyBrazier( this );
+            return list;
+        }
 
-			m_Braziers.Add( brazier );
+        private PeerlessInstance AcquireEmptyInstance()
+        {
+            foreach (var instance in m_Instances)
+                if (instance.State == InstanceState.Available)
+                    return instance;
 
-			AddComponent( brazier, x, y, z );
-		}
+            return null;
+        }
 
-		public void OnFreeInstance( PeerlessInstance instance )
-		{
-			if ( m_PartyQueue.Count > 0 )
-			{
-				List<Mobile> party = m_PartyQueue.Dequeue();
+        protected void AddInstance(int x, int y, int z, Map map, Point3D entranceLoc, Point3D bossSpawnLoc,
+            Rectangle2D regionBounds)
+        {
+            var light = new AddonComponent(0x1ECF);
 
-				instance.Activate();
+            m_Instances.Add(new PeerlessInstance(this, map, light, entranceLoc, bossSpawnLoc, regionBounds));
 
-				foreach ( Mobile member in party )
-				{
-					if ( member.Region.IsPartOf( "Stygian Abyss" ) )
-					{
-						member.SendGump( new RejoinInstanceGump( instance, OfferGumpTitle, OfferGumpDesc ) );
+            AddComponent(light, x, y, z);
+        }
 
-						Timer.DelayCall( TimeSpan.FromMinutes( 1.0 ), new TimerCallback(
-							delegate { member.CloseGump( typeof( RejoinInstanceGump ) ); } ) );
-					}
-				}
-			}
-		}
+        protected void AddBrazier(int x, int y, int z)
+        {
+            var brazier = new PeerlessKeyBrazier(this);
 
-		public override void OnAfterDelete()
-		{
-			base.OnAfterDelete();
+            m_Braziers.Add(brazier);
 
-			Clear( false );
+            AddComponent(brazier, x, y, z);
+        }
 
-			if ( m_KeyExpireTimer != null )
-				m_KeyExpireTimer.Stop();
+        public void OnFreeInstance(PeerlessInstance instance)
+        {
+            if (m_PartyQueue.Count > 0)
+            {
+                var party = m_PartyQueue.Dequeue();
 
-			foreach ( PeerlessInstance instance in m_Instances )
-				instance.OnDelete();
-		}
+                instance.Activate();
 
-		public PeerlessPlatform( Serial serial )
-			: base( serial )
-		{
-		}
+                foreach (var member in party)
+                    if (member.Region.IsPartOf("Stygian Abyss"))
+                    {
+                        member.SendGump(new RejoinInstanceGump(instance, OfferGumpTitle, OfferGumpDesc));
 
-		public override void Serialize( GenericWriter writer )
-		{
-			base.Serialize( writer );
+                        Timer.DelayCall(TimeSpan.FromMinutes(1.0),
+                            delegate { member.CloseGump(typeof(RejoinInstanceGump)); });
+                    }
+            }
+        }
 
-			writer.Write( (int) 0 ); // version
+        public override void OnAfterDelete()
+        {
+            base.OnAfterDelete();
 
-			writer.Write( m_ExitLocation );
+            Clear(false);
 
-			writer.Write( m_Braziers.Count );
+            if (m_KeyExpireTimer != null)
+                m_KeyExpireTimer.Stop();
 
-			for ( int i = 0; i < m_Braziers.Count; i++ )
-				writer.WriteItem<PeerlessKeyBrazier>( m_Braziers[i] );
+            foreach (var instance in m_Instances)
+                instance.OnDelete();
+        }
 
-			writer.Write( m_Instances.Count );
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
 
-			for ( int i = 0; i < m_Instances.Count; i++ )
-				m_Instances[i].Serialize( writer );
-		}
+            writer.Write(0); // version
 
-		public override void Deserialize( GenericReader reader )
-		{
-			base.Deserialize( reader );
+            writer.Write(ExitLocation);
 
-			int version = reader.ReadInt();
+            writer.Write(m_Braziers.Count);
 
-			switch ( version )
-			{
-				case 0:
-					{
-						m_ExitLocation = reader.ReadPoint3D();
+            for (var i = 0; i < m_Braziers.Count; i++)
+                writer.WriteItem(m_Braziers[i]);
 
-						int braziers = reader.ReadInt();
+            writer.Write(m_Instances.Count);
 
-						for ( int i = 0; i < braziers; i++ )
-							m_Braziers.Add( reader.ReadItem<PeerlessKeyBrazier>() );
+            for (var i = 0; i < m_Instances.Count; i++)
+                m_Instances[i].Serialize(writer);
+        }
 
-						int instances = reader.ReadInt();
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
 
-						for ( int i = 0; i < instances; i++ )
-							m_Instances.Add( new PeerlessInstance( reader ) );
+            var version = reader.ReadInt();
 
-						break;
-					}
-			}
-		}
-	}
+            switch (version)
+            {
+                case 0:
+                {
+                    ExitLocation = reader.ReadPoint3D();
+
+                    var braziers = reader.ReadInt();
+
+                    for (var i = 0; i < braziers; i++)
+                        m_Braziers.Add(reader.ReadItem<PeerlessKeyBrazier>());
+
+                    var instances = reader.ReadInt();
+
+                    for (var i = 0; i < instances; i++)
+                        m_Instances.Add(new PeerlessInstance(reader));
+
+                    break;
+                }
+            }
+        }
+    }
 }

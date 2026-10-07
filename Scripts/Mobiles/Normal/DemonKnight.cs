@@ -1,7 +1,6 @@
 using System;
-using System.Collections.Generic;
-using Server.Items;
 using System.Linq;
+using Server.Items;
 
 namespace Server.Mobiles
 {
@@ -9,6 +8,22 @@ namespace Server.Mobiles
     public class DemonKnight : BaseCreature
     {
         private bool m_InHere;
+
+        public override bool CanFlee => false;
+
+        public override bool IgnoreYoungProtection => Core.ML;
+
+        public override bool BardImmune => !Core.SE;
+
+        public override bool Unprovokable => Core.SE;
+
+        public override bool AreaPeaceImmune => Core.SE;
+
+        public override Poison PoisonImmune => Poison.Lethal;
+
+        public override int TreasureMapLevel => 6;
+
+        public override bool TeleportsTo => true;
 
         [Constructable]
         public DemonKnight()
@@ -67,59 +82,14 @@ namespace Server.Mobiles
         {
         }
 
-        public override bool CanFlee { get { return false; } }
-
-        public override bool IgnoreYoungProtection
-        {
-            get
-            {
-                return Core.ML;
-            }
-        }
-        public override bool BardImmune
-        {
-            get
-            {
-                return !Core.SE;
-            }
-        }
-        public override bool Unprovokable
-        {
-            get
-            {
-                return Core.SE;
-            }
-        }
-        public override bool AreaPeaceImmune
-        {
-            get
-            {
-                return Core.SE;
-            }
-        }
-        public override Poison PoisonImmune
-        {
-            get
-            {
-                return Poison.Lethal;
-            }
-        }
-        public override int TreasureMapLevel
-        {
-            get
-            {
-                return 6;
-            }
-        }
-
         public override void OnDeath(Container c)
         {
-            List<DamageStore> rights = GetLootingRights();
+            var rights = GetLootingRights();
 
-            int top = 0;
+            var top = 0;
             Item blood = null;
 
-            foreach (Mobile m in rights.Select(x => x.m_Mobile).Distinct().Take(3))
+            foreach (var m in rights.Select(x => x.m_Mobile).Distinct().Take(3))
             {
                 if (top == 0)
                     blood = new BloodOfTheDarkFather(5);
@@ -130,10 +100,7 @@ namespace Server.Mobiles
 
                 top++;
 
-                if (m.Backpack == null || !m.Backpack.TryDropItem(m, blood, false))
-                {
-                    m.BankBox.DropItem(blood);
-                }
+                if (m.Backpack == null || !m.Backpack.TryDropItem(m, blood, false)) m.BankBox.DropItem(blood);
             }
 
             base.OnDeath(c);
@@ -141,11 +108,11 @@ namespace Server.Mobiles
 
         public static Mobile FindRandomPlayer(BaseCreature creature)
         {
-            List<DamageStore> rights = creature.GetLootingRights();
+            var rights = creature.GetLootingRights();
 
-            for (int i = rights.Count - 1; i >= 0; --i)
+            for (var i = rights.Count - 1; i >= 0; --i)
             {
-                DamageStore ds = rights[i];
+                var ds = rights[i];
 
                 if (!ds.m_HasRight)
                     rights.RemoveAt(i);
@@ -157,14 +124,12 @@ namespace Server.Mobiles
             return null;
         }
 
-        public override bool TeleportsTo { get { return true; } }
-
         public override void GenerateLoot()
         {
             AddLoot(LootPack.SuperBoss, 2);
             AddLoot(LootPack.HighScrolls, Utility.RandomMinMax(6, 60));
         }
-        
+
         public override void OnDamage(int amount, Mobile from, bool willKill)
         {
             if (from != null && from != this && !m_InHere)
@@ -184,19 +149,19 @@ namespace Server.Mobiles
 
         public virtual void CreateBones_Callback(object state)
         {
-            Mobile from = (Mobile)state;
-            Map map = from.Map;
+            var from = (Mobile)state;
+            var map = from.Map;
 
             if (map == null)
                 return;
 
-            int count = Utility.RandomMinMax(1, 3);
+            var count = Utility.RandomMinMax(1, 3);
 
-            for (int i = 0; i < count; ++i)
+            for (var i = 0; i < count; ++i)
             {
-                int x = from.X + Utility.RandomMinMax(-1, 1);
-                int y = from.Y + Utility.RandomMinMax(-1, 1);
-                int z = from.Z;
+                var x = from.X + Utility.RandomMinMax(-1, 1);
+                var y = from.Y + Utility.RandomMinMax(-1, 1);
+                var z = from.Z;
 
                 if (!map.CanFit(x, y, z, 16, false, true))
                 {
@@ -206,7 +171,7 @@ namespace Server.Mobiles
                         continue;
                 }
 
-                UnholyBone bone = new UnholyBone();
+                var bone = new UnholyBone();
 
                 bone.Hue = 0;
                 bone.Name = "unholy bones";
@@ -219,13 +184,13 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

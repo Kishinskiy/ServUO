@@ -1,36 +1,28 @@
 using System;
-using Server;
-using Server.Items;
-using Server.Mobiles;
 using System.Collections.Generic;
+using Server.Items;
 using Server.Spells.First;
 using Server.Spells.Fourth;
-using Server.Spells.Necromancy;
 using Server.Spells.Mysticism;
+using Server.Spells.Necromancy;
+using Server.Targeting;
 
 namespace Server.Factions
 {
     public class EnchantedBandage : Item, IFactionItem
     {
-        public override int LabelNumber { get { return 1094712; } } // Enchanted Bandage
-
-        #region Factions
-        private FactionItem m_FactionState;
-
-        public FactionItem FactionItemState
-        {
-            get { return m_FactionState; }
-            set
-            {
-                m_FactionState = value;
-            }
-        }
-        #endregion
+        public static Dictionary<Mobile, Timer> Context = new Dictionary<Mobile, Timer>();
+        public override int LabelNumber => 1094712; // Enchanted Bandage
 
         public EnchantedBandage()
             : base(0xE21)
         {
             Stackable = true;
+        }
+
+        public EnchantedBandage(Serial serial)
+            : base(serial)
+        {
         }
 
         public override void GetProperties(ObjectPropertyList list)
@@ -49,59 +41,53 @@ namespace Server.Factions
 
                     from.SendLocalizedMessage(500948); // Who will you use the bandages on?
 
-                    from.BeginTarget(-1, false, Server.Targeting.TargetFlags.Beneficial, (healer, targeted) =>
+                    from.BeginTarget(-1, false, TargetFlags.Beneficial, (healer, targeted) =>
+                    {
+                        var patient = targeted as Mobile;
+
+                        if (patient != null)
                         {
-                            Mobile patient = targeted as Mobile;
-
-                            if (patient != null)
+                            if (EnchantedApple.GetTotalCurses(patient) == 0)
                             {
-                                if (EnchantedApple.GetTotalCurses(patient) == 0)
-                                {
-                                    healer.SendLocalizedMessage(500955); // That being is not damaged!
-                                }
-                                else if (!Deleted && healer.CanBeBeneficial(patient, true, true))
-                                {
-                                    healer.DoBeneficial(patient);
-
-                                    bool onSelf = (healer == patient);
-                                    int dex = healer.Dex;
-
-                                    double seconds;
-                                    double resDelay = (patient.Alive ? 0.0 : 5.0);
-
-                                    if (onSelf)
-                                    {
-                                        seconds = 9.4 + (0.6 * ((double)(120 - dex) / 10));
-                                    }
-                                    else
-                                    {
-                                        seconds = Math.Ceiling((double)4 - healer.Dex / 60);
-                                        seconds = Math.Max(seconds, 2);
-                                    }
-
-                                    if (Context.ContainsKey(healer))
-                                    {
-                                        Context[healer].Stop();
-                                    }
-
-                                    Context[healer] = new InternalTimer(this, patient, healer, seconds);
-
-                                    if (!onSelf)
-                                    {
-                                        patient.SendLocalizedMessage(1008078, false, healer.Name); //  : Attempting to heal you.
-                                    }
-
-                                    healer.SendLocalizedMessage(500956); // You begin applying the bandages.
-
-                                    if (healer.NetState != null && healer.NetState.IsEnhancedClient)
-                                    {
-                                        healer.NetState.Send(new BandageTimerPacket((int)(seconds)));
-                                    }
-
-                                    Consume();
-                                }
+                                healer.SendLocalizedMessage(500955); // That being is not damaged!
                             }
-                        });
+                            else if (!Deleted && healer.CanBeBeneficial(patient, true, true))
+                            {
+                                healer.DoBeneficial(patient);
+
+                                var onSelf = healer == patient;
+                                var dex = healer.Dex;
+
+                                double seconds;
+                                var resDelay = patient.Alive ? 0.0 : 5.0;
+
+                                if (onSelf)
+                                {
+                                    seconds = 9.4 + 0.6 * ((double)(120 - dex) / 10);
+                                }
+                                else
+                                {
+                                    seconds = Math.Ceiling((double)4 - healer.Dex / 60);
+                                    seconds = Math.Max(seconds, 2);
+                                }
+
+                                if (Context.ContainsKey(healer)) Context[healer].Stop();
+
+                                Context[healer] = new InternalTimer(this, patient, healer, seconds);
+
+                                if (!onSelf)
+                                    patient.SendLocalizedMessage(1008078, false,
+                                        healer.Name); //  : Attempting to heal you.
+
+                                healer.SendLocalizedMessage(500956); // You begin applying the bandages.
+
+                                if (healer.NetState != null && healer.NetState.IsEnhancedClient)
+                                    healer.NetState.Send(new BandageTimerPacket((int)seconds));
+
+                                Consume();
+                            }
+                        }
+                    });
                 }
             }
             else
@@ -110,7 +96,19 @@ namespace Server.Factions
             }
         }
 
-        public static Dictionary<Mobile, Timer> Context = new Dictionary<Mobile, Timer>();
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+
+            writer.Write(0); // version
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+
+            var version = reader.ReadInt();
+        }
 
         public class InternalTimer : Timer
         {
@@ -177,23 +175,10 @@ namespace Server.Factions
             }
         }
 
-        public EnchantedBandage(Serial serial)
-            : base(serial)
-        {
-        }
+        #region Factions
 
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
+        public FactionItem FactionItemState { get; set; }
 
-            writer.Write((int)0); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
-        }
+        #endregion
     }
 }

@@ -1,174 +1,142 @@
-using Server;
 using System;
-using Server.Multis;
 using System.Collections.Generic;
-using Server.Mobiles;
-using Server.Items;
 using Server.Commands;
+using Server.Engines.Points;
 using Server.Gumps;
+using Server.Items;
+using Server.Mobiles;
+using Server.Multis;
 
 namespace Server.Engines.Quests
 {
     public class BountyQuestSpawner : Item
     {
-        public static void Configure()
-        {
-            m_ActiveZones = new Dictionary<SpawnZone, List<BaseShipCaptain>>();
-
-            foreach (int i in Enum.GetValues(typeof(SpawnZone)))
-                m_ActiveZones.Add((SpawnZone)i, new List<BaseShipCaptain>());
-        }
-
-        public static void GenerateShipSpawner()
-        {
-            if (m_Instance == null)
-            {
-                m_Instance = new BountyQuestSpawner();
-                m_Instance.MoveToWorld(new Point3D(4558, 2347, 0), Map.Trammel);
-            }
-        }
-
-        private static readonly int[] GoldRange = new int[] { 1000, 10000 };
-
-        private static BountyQuestSpawner m_Instance;
-        public static BountyQuestSpawner Instance
-        { 
-            get 
-            {
-                return m_Instance;
-            } 
-        }
-
-        private static Dictionary<Mobile, int> m_Bounties = new Dictionary<Mobile, int>();
-        public static Dictionary<Mobile, int> Bounties { get { return m_Bounties; } }
-
-        private static Dictionary<SpawnZone, SpawnDefinition> m_Zones = new Dictionary<SpawnZone, SpawnDefinition>();
-        public static Dictionary<SpawnZone, SpawnDefinition> Zones { get { return m_Zones; } }
-
-        private Timer m_Timer;
-        public Timer Timer { get { return m_Timer; } }
+        private static readonly int[] GoldRange = { 1000, 10000 };
 
         private static Dictionary<SpawnZone, List<BaseShipCaptain>> m_ActiveZones;
-
-        private int m_MaxTram;
-        private int m_MaxFel;
-        private int m_MaxTokuno;
-        private TimeSpan m_SpawnTime;
         private bool m_Active;
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int aFelMoonglowCount { get { return m_ActiveZones[SpawnZone.FelMoonglow].Count; } }
+        private TimeSpan m_SpawnTime;
+
+        public static BountyQuestSpawner Instance { get; private set; }
+
+        public static Dictionary<Mobile, int> Bounties { get; } = new Dictionary<Mobile, int>();
+
+        public static Dictionary<SpawnZone, SpawnDefinition> Zones { get; } =
+            new Dictionary<SpawnZone, SpawnDefinition>();
+
+        public Timer Timer { get; private set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int aTramMoonglowCount { get { return m_ActiveZones[SpawnZone.TramMoonglow].Count; } }
+        public int aFelMoonglowCount => m_ActiveZones[SpawnZone.FelMoonglow].Count;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int aTramJhelomCount { get { return m_ActiveZones[SpawnZone.TramJhelom].Count; } }
+        public int aTramMoonglowCount => m_ActiveZones[SpawnZone.TramMoonglow].Count;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int aFelJhelomCount { get { return m_ActiveZones[SpawnZone.FelJhelom].Count; } }
+        public int aTramJhelomCount => m_ActiveZones[SpawnZone.TramJhelom].Count;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int aTokunoPirateCount { get { return m_ActiveZones[SpawnZone.TokunoPirate].Count; } }
+        public int aFelJhelomCount => m_ActiveZones[SpawnZone.FelJhelom].Count;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int aTramMerch1Count { get { return m_ActiveZones[SpawnZone.TramMerch1].Count; } }
+        public int aTokunoPirateCount => m_ActiveZones[SpawnZone.TokunoPirate].Count;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int aFelMerch1Count { get { return m_ActiveZones[SpawnZone.FelMerch1].Count; } }
+        public int aTramMerch1Count => m_ActiveZones[SpawnZone.TramMerch1].Count;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int aTramMerch2Count { get { return m_ActiveZones[SpawnZone.TramMerch2].Count; } }
+        public int aFelMerch1Count => m_ActiveZones[SpawnZone.FelMerch1].Count;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int aFelMerch2Count { get { return m_ActiveZones[SpawnZone.FelMerch2].Count; } }
+        public int aTramMerch2Count => m_ActiveZones[SpawnZone.TramMerch2].Count;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int aTokunoMerchCount { get { return m_ActiveZones[SpawnZone.TokunoMerch].Count; } }
+        public int aFelMerch2Count => m_ActiveZones[SpawnZone.FelMerch2].Count;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int MaxTram { get { return m_MaxTram; } set { m_MaxTram = value; } }
+        public int aTokunoMerchCount => m_ActiveZones[SpawnZone.TokunoMerch].Count;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int MaxFel { get { return m_MaxFel; } set { m_MaxFel = value; } }
+        public int MaxTram { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int MaxTokuno { get { return m_MaxTokuno; } set { m_MaxTokuno = value; } }
+        public int MaxFel { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public TimeSpan SpawnTime 
-        { 
-            get { return m_SpawnTime; } 
-            set 
+        public int MaxTokuno { get; set; }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public TimeSpan SpawnTime
+        {
+            get => m_SpawnTime;
+            set
             {
                 m_SpawnTime = value;
 
-                if (m_Timer != null)
-                    m_Timer.Stop();
+                if (Timer != null)
+                    Timer.Stop();
 
-                m_Timer = Timer.DelayCall(m_SpawnTime, m_SpawnTime, new TimerCallback(OnTick));
-
-            } 
+                Timer = Timer.DelayCall(m_SpawnTime, m_SpawnTime, OnTick);
+            }
         }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int bMerchantCount 
-        { 
-            get 
+        public int bMerchantCount
+        {
+            get
             {
-                int count = 0;
+                var count = 0;
 
-                foreach (List<BaseShipCaptain> list in m_ActiveZones.Values) {
-                    foreach(BaseShipCaptain capt in list) {
-                        if (capt is MerchantCaptain)
-                            count++;
-                    }
-                }
+                foreach (var list in m_ActiveZones.Values)
+                foreach (var capt in list)
+                    if (capt is MerchantCaptain)
+                        count++;
 
-                return count; 
-            } 
+                return count;
+            }
         }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int bPirateCount { get { return m_Bounties.Count; } }
+        public int bPirateCount => Bounties.Count;
 
         [CommandProperty(AccessLevel.GameMaster)]
         public bool Active
         {
-            get { return m_Active; }
-            set 
+            get => m_Active;
+            set
             {
                 if (m_Active != value)
                 {
                     if (value)
                     {
-                        if (m_Timer != null)
+                        if (Timer != null)
                         {
-                            m_Timer.Stop();
-                            m_Timer = null;
+                            Timer.Stop();
+                            Timer = null;
                         }
-                        
-                        m_Timer = Timer.DelayCall(m_SpawnTime, m_SpawnTime, new TimerCallback(OnTick));
+
+                        Timer = Timer.DelayCall(m_SpawnTime, m_SpawnTime, OnTick);
                     }
                     else
                     {
-                        if (m_Timer != null)
-                            m_Timer.Stop();
+                        if (Timer != null)
+                            Timer.Stop();
 
-                        m_Timer = null;
+                        Timer = null;
 
                         RemoveSpawns();
                     }
                 }
 
-                m_Active = value; 
+                m_Active = value;
             }
         }
 
         [Constructable]
         public BountyQuestSpawner() : base(0xED4)
         {
-            if (m_Instance != null && !m_Instance.Deleted)
+            if (Instance != null && !Instance.Deleted)
             {
                 Active = false;
                 Delete();
@@ -179,12 +147,33 @@ namespace Server.Engines.Quests
             Movable = false;
             m_SpawnTime = TimeSpan.FromMinutes(15);
 
-            m_MaxTram = 1;
-            m_MaxFel = 1;
-            m_MaxTokuno = 1;
+            MaxTram = 1;
+            MaxFel = 1;
+            MaxTokuno = 1;
 
             Active = true;
-            m_Instance = this;
+            Instance = this;
+        }
+
+        public BountyQuestSpawner(Serial serial) : base(serial)
+        {
+        }
+
+        public static void Configure()
+        {
+            m_ActiveZones = new Dictionary<SpawnZone, List<BaseShipCaptain>>();
+
+            foreach (int i in Enum.GetValues(typeof(SpawnZone)))
+                m_ActiveZones.Add((SpawnZone)i, new List<BaseShipCaptain>());
+        }
+
+        public static void GenerateShipSpawner()
+        {
+            if (Instance == null)
+            {
+                Instance = new BountyQuestSpawner();
+                Instance.MoveToWorld(new Point3D(4558, 2347, 0), Map.Trammel);
+            }
         }
 
         public override void Delete()
@@ -196,8 +185,8 @@ namespace Server.Engines.Quests
 
         public static void AddZone(SpawnDefinition def)
         {
-            if (!m_Zones.ContainsKey(def.Zone))
-                m_Zones.Add(def.Zone, def);
+            if (!Zones.ContainsKey(def.Zone))
+                Zones.Add(def.Zone, def);
         }
 
         public void HandleDeath(BaseShipCaptain captain)
@@ -211,18 +200,18 @@ namespace Server.Engines.Quests
 
         public void RemoveBounty(BaseShipCaptain pirate)
         {
-            SpawnZone zone = pirate.Zone;
+            var zone = pirate.Zone;
 
             if (m_ActiveZones[zone].Contains(pirate))
                 m_ActiveZones[zone].Remove(pirate);
 
-            if (m_Bounties.ContainsKey(pirate))
-                m_Bounties.Remove(pirate);
+            if (Bounties.ContainsKey(pirate))
+                Bounties.Remove(pirate);
         }
 
         public void RemoveMerchant(BaseShipCaptain merchant)
         {
-            SpawnZone zone = merchant.Zone;
+            var zone = merchant.Zone;
 
             if (m_ActiveZones[zone].Contains(merchant))
                 m_ActiveZones[zone].Remove(merchant);
@@ -238,48 +227,48 @@ namespace Server.Engines.Quests
         {
             foreach (int i in Enum.GetValues(typeof(SpawnZone)))
             {
-                SpawnZone zone = (SpawnZone)i;
+                var zone = (SpawnZone)i;
 
                 switch (zone)
                 {
                     case SpawnZone.TramJhelom:
-                        if (m_ActiveZones[zone].Count < m_MaxTram)
+                        if (m_ActiveZones[zone].Count < MaxTram)
                             SpawnPirateAndGalleon(zone, Map.Trammel);
                         break;
                     case SpawnZone.FelJhelom:
-                        if (m_ActiveZones[zone].Count < m_MaxFel)
+                        if (m_ActiveZones[zone].Count < MaxFel)
                             SpawnPirateAndGalleon(zone, Map.Felucca);
                         break;
                     case SpawnZone.TramMoonglow:
-                        if (m_ActiveZones[zone].Count < m_MaxTram)
+                        if (m_ActiveZones[zone].Count < MaxTram)
                             SpawnPirateAndGalleon(zone, Map.Trammel);
                         break;
                     case SpawnZone.FelMoonglow:
-                        if (m_ActiveZones[zone].Count < m_MaxFel)
+                        if (m_ActiveZones[zone].Count < MaxFel)
                             SpawnPirateAndGalleon(zone, Map.Felucca);
                         break;
                     case SpawnZone.TokunoPirate:
-                        if (m_ActiveZones[zone].Count < m_MaxTokuno)
+                        if (m_ActiveZones[zone].Count < MaxTokuno)
                             SpawnPirateAndGalleon(zone, Map.Tokuno);
                         break;
                     case SpawnZone.TramMerch1:
-                        if (m_ActiveZones[zone].Count < m_MaxTram)
+                        if (m_ActiveZones[zone].Count < MaxTram)
                             SpawnMerchantAndGalleon(zone, Map.Trammel);
                         break;
                     case SpawnZone.TramMerch2:
-                        if (m_ActiveZones[zone].Count < m_MaxTram)
+                        if (m_ActiveZones[zone].Count < MaxTram)
                             SpawnMerchantAndGalleon(zone, Map.Trammel);
                         break;
                     case SpawnZone.FelMerch1:
-                        if (m_ActiveZones[zone].Count < m_MaxFel)
+                        if (m_ActiveZones[zone].Count < MaxFel)
                             SpawnMerchantAndGalleon(zone, Map.Felucca);
                         break;
                     case SpawnZone.FelMerch2:
-                        if (m_ActiveZones[zone].Count < m_MaxFel)
+                        if (m_ActiveZones[zone].Count < MaxFel)
                             SpawnMerchantAndGalleon(zone, Map.Felucca);
                         break;
                     case SpawnZone.TokunoMerch:
-                        if (m_ActiveZones[zone].Count < m_MaxTokuno)
+                        if (m_ActiveZones[zone].Count < MaxTokuno)
                             SpawnMerchantAndGalleon(zone, Map.Tokuno);
                         break;
                 }
@@ -288,35 +277,33 @@ namespace Server.Engines.Quests
 
         public void RemoveSpawns()
         {
-            List<BaseShipCaptain> ToRemove = new List<BaseShipCaptain>();
+            var ToRemove = new List<BaseShipCaptain>();
 
-            foreach (List<BaseShipCaptain> list in m_ActiveZones.Values)
-            {
-                foreach (BaseShipCaptain capt in list)
-                    ToRemove.Add(capt);
-            }
+            foreach (var list in m_ActiveZones.Values)
+            foreach (var capt in list)
+                ToRemove.Add(capt);
 
-            foreach (BaseShipCaptain cap in ToRemove)
+            foreach (var cap in ToRemove)
                 cap.TryDecayGalleon(cap.Galleon);
         }
 
         public void SpawnPirateAndGalleon(SpawnZone zone, Map map)
         {
-            SpawnDefinition def = m_Zones[zone];
+            var def = Zones[zone];
 
             if (map != Map.Internal && map != null)
             {
-                Rectangle2D rec = def.SpawnRegion;
-                OrcishGalleon gal = new OrcishGalleon(Direction.North);
-                PirateCaptain pirate = new PirateCaptain(gal);
+                var rec = def.SpawnRegion;
+                var gal = new OrcishGalleon(Direction.North);
+                var pirate = new PirateCaptain(gal);
                 pirate.Zone = zone;
                 gal.Owner = pirate;
-                Point3D p = Point3D.Zero;
-                bool spawned = false;
-                for(int i = 0; i < 25; i++)
+                var p = Point3D.Zero;
+                var spawned = false;
+                for (var i = 0; i < 25; i++)
                 {
-                    int x = Utility.Random(rec.X, rec.Width);
-                    int y = Utility.Random(rec.Y, rec.Height);
+                    var x = Utility.Random(rec.X, rec.Width);
+                    var y = Utility.Random(rec.Y, rec.Height);
                     p = new Point3D(x, y, -5);
 
                     if (gal.CanFit(p, map, gal.ItemID))
@@ -333,14 +320,14 @@ namespace Server.Engines.Quests
                     return;
                 }
 
-                int gold = Utility.RandomMinMax(GoldRange[0], GoldRange[1]);
+                var gold = Utility.RandomMinMax(GoldRange[0], GoldRange[1]);
                 gal.MoveToWorld(p, map);
                 gal.AutoAddCannons(pirate);
                 pirate.MoveToWorld(new Point3D(gal.X, gal.Y - 1, gal.ZSurface), map);
 
-                int crewCount = Utility.RandomMinMax(3, 5);
+                var crewCount = Utility.RandomMinMax(3, 5);
 
-                for (int i = 0; i < crewCount; i++)
+                for (var i = 0; i < crewCount; i++)
                 {
                     Mobile crew = new PirateCrew();
 
@@ -348,10 +335,12 @@ namespace Server.Engines.Quests
                         crew.Title = "the orc captain";
 
                     pirate.AddToCrew(crew);
-                    crew.MoveToWorld(new Point3D(gal.X + Utility.RandomList(-1, 1), gal.Y + Utility.RandomList(-1, 0, 1), gal.ZSurface), map);
+                    crew.MoveToWorld(
+                        new Point3D(gal.X + Utility.RandomList(-1, 1), gal.Y + Utility.RandomList(-1, 0, 1),
+                            gal.ZSurface), map);
                 }
 
-                Point2D[] course = def.GetRandomWaypoints();
+                var course = def.GetRandomWaypoints();
                 gal.BoatCourse = new BoatCourse(gal, new List<Point2D>(def.GetRandomWaypoints()));
 
                 gal.NextNavPoint = 0;
@@ -359,34 +348,34 @@ namespace Server.Engines.Quests
 
                 FillHold(gal);
 
-                m_Bounties.Add(pirate, gold);
+                Bounties.Add(pirate, gold);
                 m_ActiveZones[zone].Add(pirate);
             }
         }
 
         public void SpawnMerchantAndGalleon(SpawnZone zone, Map map)
         {
-            SpawnDefinition def = m_Zones[zone];
+            var def = Zones[zone];
 
             if (map != Map.Internal && map != null)
             {
-                Rectangle2D rec = def.SpawnRegion;
-                bool garg = Utility.RandomBool();
+                var rec = def.SpawnRegion;
+                var garg = Utility.RandomBool();
                 BaseGalleon gal;
-                Point3D p = Point3D.Zero;
-                bool spawned = false;
+                var p = Point3D.Zero;
+                var spawned = false;
 
                 if (garg)
                     gal = new GargishGalleon(Direction.North);
                 else
                     gal = new TokunoGalleon(Direction.North);
 
-                MerchantCaptain captain = new MerchantCaptain(gal);
+                var captain = new MerchantCaptain(gal);
 
-                for(int i = 0; i < 25; i++)
+                for (var i = 0; i < 25; i++)
                 {
-                    int x = Utility.Random(rec.X, rec.Width);
-                    int y = Utility.Random(rec.Y, rec.Height);
+                    var x = Utility.Random(rec.X, rec.Width);
+                    var y = Utility.Random(rec.Y, rec.Height);
                     p = new Point3D(x, y, -5);
 
                     if (gal.CanFit(p, map, gal.ItemID))
@@ -409,16 +398,18 @@ namespace Server.Engines.Quests
                 gal.AutoAddCannons(captain);
                 captain.MoveToWorld(new Point3D(gal.X, gal.Y - 1, gal.ZSurface), map);
 
-                int crewCount = Utility.RandomMinMax(3, 5);
+                var crewCount = Utility.RandomMinMax(3, 5);
 
-                for (int i = 0; i < crewCount; i++)
+                for (var i = 0; i < crewCount; i++)
                 {
                     Mobile crew = new MerchantCrew();
                     captain.AddToCrew(crew);
-                    crew.MoveToWorld(new Point3D(gal.X + Utility.RandomList(-1, 1), gal.Y + Utility.RandomList(-1, 0, 1), gal.ZSurface), map);
+                    crew.MoveToWorld(
+                        new Point3D(gal.X + Utility.RandomList(-1, 1), gal.Y + Utility.RandomList(-1, 0, 1),
+                            gal.ZSurface), map);
                 }
 
-                Point2D[] course = def.GetRandomWaypoints();
+                var course = def.GetRandomWaypoints();
                 gal.BoatCourse = new BoatCourse(gal, new List<Point2D>(def.GetRandomWaypoints()));
 
                 gal.NextNavPoint = 0;
@@ -445,11 +436,11 @@ namespace Server.Engines.Quests
 
             if (hold != null)
             {
-                int cnt = Utility.RandomMinMax(7, 14);
+                var cnt = Utility.RandomMinMax(7, 14);
 
-                for (int i = 0; i < cnt; i++)
+                for (var i = 0; i < cnt; i++)
                 {
-                    Item item = RunicReforging.GenerateRandomItem(galleon);
+                    var item = RunicReforging.GenerateRandomItem(galleon);
 
                     if (item != null)
                         hold.DropItem(item);
@@ -471,7 +462,7 @@ namespace Server.Engines.Quests
 
                 if (.10 >= Utility.RandomDouble())
                 {
-                    FishSteak steaks = new FishSteak(5);
+                    var steaks = new FishSteak(5);
                     switch (Utility.Random(5))
                     {
                         case 0:
@@ -502,7 +493,6 @@ namespace Server.Engines.Quests
                 hold.DropItem(new Gold(Utility.RandomMinMax(5000, 25000)));
 
                 if (0.50 > Utility.RandomDouble())
-                {
                     switch (Utility.Random(4))
                     {
                         case 0:
@@ -515,7 +505,6 @@ namespace Server.Engines.Quests
                         case 7: hold.DropItem(new SilverWire(Utility.RandomMinMax(1, 5))); break;
                         case 8: hold.DropItem(new GoldWire(Utility.RandomMinMax(1, 5))); break;
                     }
-                }
 
                 switch (Utility.Random(8))
                 {
@@ -648,24 +637,16 @@ namespace Server.Engines.Quests
                     if (Utility.RandomBool())
                     {
                         if (Core.EJ)
-                        {
                             deed = new CarronadeDeed();
-                        }
                         else
-                        {
                             deed = new HeavyShipCannonDeed();
-                        }
                     }
                     else
                     {
                         if (Core.EJ)
-                        {
                             deed = new CulverinDeed();
-                        }
                         else
-                        {
                             deed = new LightShipCannonDeed();
-                        }
                     }
 
                     hold.DropItem(deed);
@@ -673,7 +654,7 @@ namespace Server.Engines.Quests
 
                 if (0.025 > Utility.RandomDouble())
                 {
-                    if(Utility.RandomBool())
+                    if (Utility.RandomBool())
                         hold.DropItem(new WhiteClothDyeTub());
                     else
                         hold.DropItem(PermanentBoatPaint.DropRandom());
@@ -681,16 +662,13 @@ namespace Server.Engines.Quests
 
                 RefinementComponent.Roll(hold, 3, 0.25);
 
-                if (Server.Engines.Points.PointsSystem.RisingTide.Enabled)
+                if (PointsSystem.RisingTide.Enabled)
                 {
                     if (0.25 > Utility.RandomDouble())
                     {
                         hold.DropItem(new MaritimeCargo());
 
-                        if (0.1 > Utility.RandomDouble())
-                        {
-                            hold.DropItem(new MaritimeCargo());
-                        }
+                        if (0.1 > Utility.RandomDouble()) hold.DropItem(new MaritimeCargo());
                     }
                     else if (0.25 > Utility.RandomDouble())
                     {
@@ -702,33 +680,31 @@ namespace Server.Engines.Quests
 
         public bool IsObjective(Mobile from)
         {
-            return m_Bounties.ContainsKey(from);
+            return Bounties.ContainsKey(from);
         }
-
-        public BountyQuestSpawner(Serial serial) : base(serial) { }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1);
+            writer.Write(1);
 
-            writer.Write(m_MaxFel);
-            writer.Write(m_MaxTram);
-            writer.Write(m_MaxTokuno);
+            writer.Write(MaxFel);
+            writer.Write(MaxTram);
+            writer.Write(MaxTokuno);
             writer.Write(m_SpawnTime);
             writer.Write(m_Active);
 
             writer.Write(m_ActiveZones.Count);
-            foreach (KeyValuePair<SpawnZone, List<BaseShipCaptain>> kvp in m_ActiveZones)
+            foreach (var kvp in m_ActiveZones)
             {
                 writer.Write((int)kvp.Key);
                 writer.Write(kvp.Value.Count);
-                foreach (BaseShipCaptain capt in kvp.Value)
-                    writer.Write(capt as Mobile);
+                foreach (var capt in kvp.Value)
+                    writer.Write(capt);
             }
 
-            writer.Write(m_Bounties.Count);
-            foreach (KeyValuePair<Mobile, int> kvp in m_Bounties)
+            writer.Write(Bounties.Count);
+            foreach (var kvp in Bounties)
             {
                 writer.Write(kvp.Key);
                 writer.Write(kvp.Value);
@@ -738,154 +714,154 @@ namespace Server.Engines.Quests
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            m_MaxFel = reader.ReadInt();
-            m_MaxTram = reader.ReadInt();
-            m_MaxTokuno = reader.ReadInt();
+            MaxFel = reader.ReadInt();
+            MaxTram = reader.ReadInt();
+            MaxTokuno = reader.ReadInt();
             m_SpawnTime = reader.ReadTimeSpan();
             m_Active = reader.ReadBool();
 
-            int count = reader.ReadInt();
-            for (int i = 0; i < count; i++)
+            var count = reader.ReadInt();
+            for (var i = 0; i < count; i++)
             {
-                SpawnZone zone = (SpawnZone)reader.ReadInt();
-                int c = reader.ReadInt();
-                for (int j = 0; j < c; j++)
+                var zone = (SpawnZone)reader.ReadInt();
+                var c = reader.ReadInt();
+                for (var j = 0; j < c; j++)
                 {
-                    BaseShipCaptain capt = reader.ReadMobile() as BaseShipCaptain;
-                    if (capt != null && !capt.Deleted && capt.Alive)
-                    {
-                        m_ActiveZones[zone].Add(capt);
-                    }
+                    var capt = reader.ReadMobile() as BaseShipCaptain;
+                    if (capt != null && !capt.Deleted && capt.Alive) m_ActiveZones[zone].Add(capt);
                 }
             }
 
             count = reader.ReadInt();
-            for (int i = 0; i < count; i++)
+            for (var i = 0; i < count; i++)
             {
-                Mobile mob = reader.ReadMobile();
-                int amt = reader.ReadInt();
+                var mob = reader.ReadMobile();
+                var amt = reader.ReadInt();
 
                 if (mob != null && !mob.Deleted)
-                    m_Bounties.Add(mob, amt);
+                    Bounties.Add(mob, amt);
             }
 
             if (version == 0)
             {
-                m_MaxTram = 1;
-                m_MaxFel = 1;
-                m_MaxTokuno = 1;
+                MaxTram = 1;
+                MaxFel = 1;
+                MaxTokuno = 1;
 
                 RemoveSpawns();
             }
 
-            m_Instance = this;
+            Instance = this;
 
             if (m_Active)
-                m_Timer = Timer.DelayCall(m_SpawnTime, m_SpawnTime, new TimerCallback(OnTick));
+                Timer = Timer.DelayCall(m_SpawnTime, m_SpawnTime, OnTick);
         }
 
         public override void OnDoubleClick(Mobile from)
         {
-            if(from.AccessLevel > AccessLevel.Player)
+            if (from.AccessLevel > AccessLevel.Player)
                 from.SendGump(new PropertiesGump(from, this));
         }
 
         #region Command
+
         public static void GetRoutes_OnCommand(CommandEventArgs e)
         {
             MapItem mapitem;
 
-            for (int i = 0; i < SpawnDefinition.PirateTramFelCoursesJhelom.Length; i++)
+            for (var i = 0; i < SpawnDefinition.PirateTramFelCoursesJhelom.Length; i++)
             {
                 mapitem = new MapItem();
                 mapitem.SetDisplay(5, 5, 5120 - 32, 4096 - 10, 400, 400);
 
-                for (int j = 0; j < SpawnDefinition.PirateTramFelCoursesJhelom[i].Length; j++)
+                for (var j = 0; j < SpawnDefinition.PirateTramFelCoursesJhelom[i].Length; j++)
                 {
-                    Point2D pnt = SpawnDefinition.PirateTramFelCoursesJhelom[i][j];
+                    var pnt = SpawnDefinition.PirateTramFelCoursesJhelom[i][j];
                     mapitem.AddWorldPin(pnt.X, pnt.Y);
                 }
 
-                mapitem.Name = String.Format("Pirate - Jhelom {0}", i + 1);
+                mapitem.Name = string.Format("Pirate - Jhelom {0}", i + 1);
                 e.Mobile.AddToBackpack(mapitem);
             }
 
-            for (int i = 0; i < SpawnDefinition.PirateTramFelCoursesMoonglow.Length; i++)
+            for (var i = 0; i < SpawnDefinition.PirateTramFelCoursesMoonglow.Length; i++)
             {
                 mapitem = new MapItem();
                 mapitem.SetDisplay(5, 5, 5120 - 32, 4096 - 10, 400, 400);
 
-                for (int j = 0; j < SpawnDefinition.PirateTramFelCoursesJhelom[i].Length; j++)
+                for (var j = 0; j < SpawnDefinition.PirateTramFelCoursesJhelom[i].Length; j++)
                 {
-                    Point2D pnt = SpawnDefinition.PirateTramFelCoursesJhelom[i][j];
+                    var pnt = SpawnDefinition.PirateTramFelCoursesJhelom[i][j];
                     mapitem.AddWorldPin(pnt.X, pnt.Y);
                 }
 
-                mapitem.Name = String.Format("Pirate - Moonglow {0}", i + 1);
+                mapitem.Name = string.Format("Pirate - Moonglow {0}", i + 1);
                 e.Mobile.AddToBackpack(mapitem);
             }
 
-            for (int i = 0; i < SpawnDefinition.PirateTokunoCourses.Length; i++)
+            for (var i = 0; i < SpawnDefinition.PirateTokunoCourses.Length; i++)
             {
                 mapitem = new MapItem();
                 mapitem.SetDisplay(5, 5, 1448 - 32, 1448 - 10, 400, 400);
 
-                for (int j = 0; j < SpawnDefinition.PirateTokunoCourses[i].Length; j++)
+                for (var j = 0; j < SpawnDefinition.PirateTokunoCourses[i].Length; j++)
                 {
-                    Point2D pnt = SpawnDefinition.PirateTokunoCourses[i][j];
+                    var pnt = SpawnDefinition.PirateTokunoCourses[i][j];
                     mapitem.AddWorldPin(pnt.X, pnt.Y);
                 }
 
-                mapitem.Name = String.Format("Pirate - tokuno {0}", i + 1);
+                mapitem.Name = string.Format("Pirate - tokuno {0}", i + 1);
                 e.Mobile.AddToBackpack(mapitem);
             }
 
-            for (int i = 0; i < SpawnDefinition.MerchantTokunoCourses.Length; i++)
+            for (var i = 0; i < SpawnDefinition.MerchantTokunoCourses.Length; i++)
             {
                 mapitem = new MapItem();
                 mapitem.SetDisplay(5, 5, 1448 - 32, 1448 - 10, 400, 400);
 
-                for (int j = 0; j < SpawnDefinition.PirateTokunoCourses[i].Length; j++)
+                for (var j = 0; j < SpawnDefinition.PirateTokunoCourses[i].Length; j++)
                 {
-                    Point2D pnt = SpawnDefinition.PirateTokunoCourses[i][j];
+                    var pnt = SpawnDefinition.PirateTokunoCourses[i][j];
                     mapitem.AddWorldPin(pnt.X, pnt.Y);
                 }
 
-                mapitem.Name = String.Format("Merchant - tokuno {0}", i + 1);
+                mapitem.Name = string.Format("Merchant - tokuno {0}", i + 1);
                 e.Mobile.AddToBackpack(mapitem);
             }
-            for (int i = 0; i < SpawnDefinition.MerchantTramFelCourses1.Length; i++)
+
+            for (var i = 0; i < SpawnDefinition.MerchantTramFelCourses1.Length; i++)
             {
                 mapitem = new MapItem();
                 mapitem.SetDisplay(5, 5, 5120 - 32, 4096 - 10, 400, 400);
 
-                for (int j = 0; j < SpawnDefinition.MerchantTramFelCourses1[i].Length; j++)
+                for (var j = 0; j < SpawnDefinition.MerchantTramFelCourses1[i].Length; j++)
                 {
-                    Point2D pnt = SpawnDefinition.MerchantTramFelCourses1[i][j];
+                    var pnt = SpawnDefinition.MerchantTramFelCourses1[i][j];
                     mapitem.AddWorldPin(pnt.X, pnt.Y);
                 }
 
-                mapitem.Name = String.Format("Merchant - tram/fel(a) {0}", i + 1);
+                mapitem.Name = string.Format("Merchant - tram/fel(a) {0}", i + 1);
                 e.Mobile.AddToBackpack(mapitem);
             }
-            for (int i = 0; i < SpawnDefinition.MerchantTramFelCourses2.Length; i++)
+
+            for (var i = 0; i < SpawnDefinition.MerchantTramFelCourses2.Length; i++)
             {
                 mapitem = new MapItem();
                 mapitem.SetDisplay(5, 5, 5120 - 32, 4096 - 10, 400, 400);
 
-                for (int j = 0; j < SpawnDefinition.MerchantTramFelCourses2[i].Length; j++)
+                for (var j = 0; j < SpawnDefinition.MerchantTramFelCourses2[i].Length; j++)
                 {
-                    Point2D pnt = SpawnDefinition.MerchantTramFelCourses2[i][j];
+                    var pnt = SpawnDefinition.MerchantTramFelCourses2[i][j];
                     mapitem.AddWorldPin(pnt.X, pnt.Y);
                 }
 
-                mapitem.Name = String.Format("Merchant - tram/fel(b) {0}", i + 1);
+                mapitem.Name = string.Format("Merchant - tram/fel(b) {0}", i + 1);
                 e.Mobile.AddToBackpack(mapitem);
             }
-
         }
+
         #endregion
     }
 
@@ -899,7 +875,7 @@ namespace Server.Engines.Quests
         TokunoPirate,
 
         //merchants
-        TramMerch1, 
+        TramMerch1,
         TramMerch2,
         FelMerch1,
         FelMerch2,
@@ -908,96 +884,150 @@ namespace Server.Engines.Quests
 
     public class SpawnDefinition
     {
-        private Rectangle2D m_SpawnRegion;
-        private Point2D[][] m_Waypoints;
-        private SpawnZone m_Zone;
-        private Map m_Map;
+        public Rectangle2D SpawnRegion { get; }
 
-        public Rectangle2D SpawnRegion { get { return m_SpawnRegion; } }
-        public Point2D[][] Waypoints { get { return m_Waypoints; } }
-        public SpawnZone Zone { get { return m_Zone; } }
-        public Map Map { get { return m_Map;}}
+        public Point2D[][] Waypoints { get; }
+
+        public SpawnZone Zone { get; }
+
+        public Map Map { get; }
+
+        public static Point2D[][] PirateTramFelCoursesJhelom { get; } =
+        {
+            new[]
+            {
+                new Point2D(1598, 3861), new Point2D(1520, 3470), new Point2D(1418, 3314), new Point2D(1159, 3277),
+                new Point2D(1320, 3508), new Point2D(1527, 3584)
+            },
+            new[]
+            {
+                new Point2D(1947, 3536), new Point2D(2023, 4016), new Point2D(1795, 3855), new Point2D(1613, 3887)
+            },
+            new[]
+            {
+                new Point2D(2135, 4070), new Point2D(2802, 4070), new Point2D(2620, 3761), new Point2D(1725, 3794)
+            },
+            new[]
+            {
+                new Point2D(2154, 3775), new Point2D(2378, 3652), new Point2D(2388, 3812), new Point2D(1696, 3797)
+            },
+            new[]
+            {
+                new Point2D(1599, 3933), new Point2D(1299, 3953), new Point2D(971, 3799), new Point2D(813, 3326),
+                new Point2D(1247, 3296), new Point2D(1655, 3890)
+            },
+            new[] { new Point2D(1694, 3735), new Point2D(1960, 3678), new Point2D(1808, 3966) },
+            new[] { new Point2D(1799, 4070), new Point2D(1810, 3727), new Point2D(2150, 3727), new Point2D(1691, 3916) }
+        };
+
+        public static Point2D[][] PirateTramFelCoursesMoonglow { get; } =
+        {
+            new[]
+            {
+                new Point2D(4415, 792), new Point2D(3927, 900), new Point2D(4069, 1630), new Point2D(4799, 1670),
+                new Point2D(4861, 1061), new Point2D(4533, 589)
+            },
+            new[]
+            {
+                new Point2D(4265, 145), new Point2D(5015, 153), new Point2D(5001, 669), new Point2D(4950, 720),
+                new Point2D(4573, 663)
+            },
+            new[]
+            {
+                new Point2D(4265, 145), new Point2D(3709, 107), new Point2D(3703, 773), new Point2D(4131, 913),
+                new Point2D(4533, 713)
+            },
+            new[] { new Point2D(5043, 155), new Point2D(4447, 231), new Point2D(4531, 609) }
+        };
+
+        public static Point2D[][] PirateTokunoCourses { get; } =
+        {
+            new[]
+            {
+                new Point2D(1324, 1178), new Point2D(1358, 1334), new Point2D(1032, 1358), new Point2D(1070, 1240)
+            },
+            new[] { new Point2D(1370, 1074), new Point2D(1422, 962), new Point2D(1416, 620), new Point2D(1422, 1310) },
+            new[]
+            {
+                new Point2D(1032, 1104), new Point2D(982, 1078), new Point2D(942, 914), new Point2D(942, 1086),
+                new Point2D(982, 1078), new Point2D(1134, 1202)
+            },
+            new[] { new Point2D(1320, 1378), new Point2D(1050, 1204), new Point2D(1356, 1088), new Point2D(1244, 1300) }
+        };
+
+        public static Point2D[][] MerchantTokunoCourses { get; } =
+        {
+            new[] { new Point2D(460, 1408), new Point2D(878, 1408), new Point2D(500, 1408) },
+            new[] { new Point2D(460, 1408), new Point2D(460, 768), new Point2D(460, 1350) }
+        };
+
+        public static Point2D[][] MerchantTramFelCourses1 { get; } =
+        {
+            new[]
+            {
+                new Point2D(2420, 1708), new Point2D(2420, 1400), new Point2D(3516, 1400), new Point2D(3516, 1696),
+                new Point2D(2500, 1696)
+            },
+            new[]
+            {
+                new Point2D(2420, 1708), new Point2D(2420, 2760), new Point2D(3164, 2760), new Point2D(3164, 1696),
+                new Point2D(2500, 1696)
+            }
+        };
+
+        public static Point2D[][] MerchantTramFelCourses2 { get; } =
+        {
+            new[]
+            {
+                new Point2D(4129, 2367), new Point2D(4129, 1891), new Point2D(4773, 1891), new Point2D(4773, 2639),
+                new Point2D(4129, 2639), new Point2D(4129, 2351)
+            },
+            new[]
+            {
+                new Point2D(4000, 2415), new Point2D(4000, 3515), new Point2D(3141, 3515), new Point2D(3141, 3043),
+                new Point2D(4093, 3043), new Point2D(4093, 2371)
+            }
+        };
 
         public SpawnDefinition(Rectangle2D spawnreg, Point2D[][] waypoints, SpawnZone type, Map map)
         {
-            m_SpawnRegion = spawnreg;
-            m_Waypoints = waypoints;
-            m_Zone = type;
-            m_Map = map;
+            SpawnRegion = spawnreg;
+            Waypoints = waypoints;
+            Zone = type;
+            Map = map;
 
             BountyQuestSpawner.AddZone(this);
         }
 
         public Point2D[] GetRandomWaypoints()
         {
-            return m_Waypoints[Utility.Random(m_Waypoints.Length)];
+            return Waypoints[Utility.Random(Waypoints.Length)];
         }
 
         //Defines teh definitions!
         public static void Configure()
         {
-            new SpawnDefinition(new Rectangle2D(1500, 3600, 180, 400), m_PirateTramFelCoursesJhelom,   SpawnZone.TramJhelom,   Map.Trammel);
-            new SpawnDefinition(new Rectangle2D(1500, 3600, 180, 400), m_PirateTramFelCoursesJhelom,   SpawnZone.FelJhelom,    Map.Felucca);
-            new SpawnDefinition(new Rectangle2D(4570, 630, 400, 100),  m_PirateTramFelCoursesMoonglow, SpawnZone.TramMoonglow, Map.Trammel);
-            new SpawnDefinition(new Rectangle2D(4570, 630, 400, 100),  m_PirateTramFelCoursesMoonglow, SpawnZone.FelMoonglow,  Map.Felucca);
-            new SpawnDefinition(new Rectangle2D(1022, 1182, 350, 200), m_PirateTokunoCourses,          SpawnZone.TokunoPirate, Map.Tokuno);
+            new SpawnDefinition(new Rectangle2D(1500, 3600, 180, 400), PirateTramFelCoursesJhelom, SpawnZone.TramJhelom,
+                Map.Trammel);
+            new SpawnDefinition(new Rectangle2D(1500, 3600, 180, 400), PirateTramFelCoursesJhelom, SpawnZone.FelJhelom,
+                Map.Felucca);
+            new SpawnDefinition(new Rectangle2D(4570, 630, 400, 100), PirateTramFelCoursesMoonglow,
+                SpawnZone.TramMoonglow, Map.Trammel);
+            new SpawnDefinition(new Rectangle2D(4570, 630, 400, 100), PirateTramFelCoursesMoonglow,
+                SpawnZone.FelMoonglow, Map.Felucca);
+            new SpawnDefinition(new Rectangle2D(1022, 1182, 350, 200), PirateTokunoCourses, SpawnZone.TokunoPirate,
+                Map.Tokuno);
 
-            new SpawnDefinition(new Rectangle2D(1780, 1650, 300, 200), m_MerchantTramFelCourses1, SpawnZone.TramMerch1, Map.Trammel);
-            new SpawnDefinition(new Rectangle2D(1780, 1650, 300, 200), m_MerchantTramFelCourses1, SpawnZone.FelMerch1, Map.Felucca);
-            new SpawnDefinition(new Rectangle2D(3780, 2300, 100, 200), m_MerchantTramFelCourses2, SpawnZone.TramMerch2, Map.Trammel);
-            new SpawnDefinition(new Rectangle2D(3780, 2300, 100, 200), m_MerchantTramFelCourses2, SpawnZone.FelMerch2, Map.Felucca);
-            new SpawnDefinition(new Rectangle2D(425, 1335, 160, 80),   m_MerchantTokunoCourses, SpawnZone.TokunoMerch, Map.Tokuno);
+            new SpawnDefinition(new Rectangle2D(1780, 1650, 300, 200), MerchantTramFelCourses1, SpawnZone.TramMerch1,
+                Map.Trammel);
+            new SpawnDefinition(new Rectangle2D(1780, 1650, 300, 200), MerchantTramFelCourses1, SpawnZone.FelMerch1,
+                Map.Felucca);
+            new SpawnDefinition(new Rectangle2D(3780, 2300, 100, 200), MerchantTramFelCourses2, SpawnZone.TramMerch2,
+                Map.Trammel);
+            new SpawnDefinition(new Rectangle2D(3780, 2300, 100, 200), MerchantTramFelCourses2, SpawnZone.FelMerch2,
+                Map.Felucca);
+            new SpawnDefinition(new Rectangle2D(425, 1335, 160, 80), MerchantTokunoCourses, SpawnZone.TokunoMerch,
+                Map.Tokuno);
         }
-
-        public static Point2D[][] PirateTramFelCoursesJhelom { get { return m_PirateTramFelCoursesJhelom; } }
-        private static Point2D[][] m_PirateTramFelCoursesJhelom = new Point2D[][]
-        {
-	        new Point2D[]{ new Point2D(1598, 3861), new Point2D(1520, 3470), new Point2D(1418, 3314), new Point2D(1159, 3277), new Point2D(1320, 3508), new Point2D(1527, 3584) },
-	        new Point2D[]{ new Point2D(1947, 3536), new Point2D(2023, 4016), new Point2D(1795, 3855), new Point2D(1613, 3887) },
-	        new Point2D[]{ new Point2D(2135, 4070), new Point2D(2802, 4070), new Point2D(2620, 3761), new Point2D(1725, 3794), },
-	        new Point2D[]{ new Point2D(2154, 3775), new Point2D(2378, 3652), new Point2D(2388, 3812), new Point2D(1696, 3797), },
-	        new Point2D[]{ new Point2D(1599, 3933), new Point2D(1299, 3953), new Point2D(971, 3799), new Point2D(813, 3326), new Point2D(1247, 3296), new Point2D(1655, 3890) },
-	        new Point2D[]{ new Point2D(1694, 3735), new Point2D(1960, 3678), new Point2D(1808, 3966), },
-	        new Point2D[]{ new Point2D(1799, 4070), new Point2D(1810, 3727), new Point2D(2150, 3727), new Point2D(1691, 3916), },
-        };
-
-        public static Point2D[][] PirateTramFelCoursesMoonglow { get { return m_PirateTramFelCoursesMoonglow; } }
-        private static Point2D[][] m_PirateTramFelCoursesMoonglow = new Point2D[][]
-         {
-            new Point2D[]{ new Point2D(4415, 792), new Point2D(3927, 900), new Point2D(4069, 1630), new Point2D(4799, 1670), new Point2D(4861, 1061), new Point2D(4533, 589) },
-	        new Point2D[]{ new Point2D(4265, 145), new Point2D(5015, 153), new Point2D(5001, 669), new Point2D(4950, 720), new Point2D(4573, 663) },
-	        new Point2D[]{ new Point2D(4265, 145), new Point2D(3709, 107), new Point2D(3703, 773), new Point2D(4131, 913), new Point2D(4533, 713) },
-	        new Point2D[]{ new Point2D(5043, 155), new Point2D(4447, 231), new Point2D(4531, 609) },
-        };
-
-        public static Point2D[][] PirateTokunoCourses { get { return m_PirateTokunoCourses; } }
-        private static Point2D[][] m_PirateTokunoCourses = new Point2D[][]
-        {
-	        new Point2D[]{ new Point2D(1324, 1178), new Point2D(1358, 1334), new Point2D(1032, 1358), new Point2D(1070, 1240) },
-	        new Point2D[]{ new Point2D(1370, 1074), new Point2D(1422, 962), new Point2D(1416, 620), new Point2D(1422, 1310) },
-	        new Point2D[]{ new Point2D(1032, 1104), new Point2D(982, 1078), new Point2D(942, 914), new Point2D(942, 1086), new Point2D(982, 1078), new Point2D(1134, 1202) },
-	        new Point2D[]{ new Point2D(1320, 1378), new Point2D(1050, 1204), new Point2D(1356, 1088), new Point2D(1244, 1300) },
-        };
-
-        public static Point2D[][] MerchantTokunoCourses { get { return m_MerchantTokunoCourses; } }
-        private static Point2D[][] m_MerchantTokunoCourses = new Point2D[][]
-        {
-	        new Point2D[]{ new Point2D(460, 1408), new Point2D(878, 1408), new Point2D(500, 1408) },
-	        new Point2D[]{ new Point2D(460, 1408), new Point2D(460, 768), new Point2D(460, 1350) },
-        };
-
-        public static Point2D[][] MerchantTramFelCourses1 { get { return m_MerchantTramFelCourses1; } }
-        private static Point2D[][] m_MerchantTramFelCourses1 = new Point2D[][]
-        {
-	        new Point2D[]{ new Point2D(2420, 1708), new Point2D(2420, 1400), new Point2D(3516, 1400), new Point2D(3516, 1696), new Point2D(2500, 1696) },
-	        new Point2D[]{ new Point2D(2420, 1708), new Point2D(2420, 2760), new Point2D(3164, 2760), new Point2D(3164, 1696), new Point2D(2500, 1696) },
-        };
-
-        public static Point2D[][] MerchantTramFelCourses2 { get { return m_MerchantTramFelCourses2; } }
-        private static Point2D[][] m_MerchantTramFelCourses2 = new Point2D[][]
-        {
-	        new Point2D[]{ new Point2D(4129, 2367), new Point2D(4129, 1891), new Point2D(4773, 1891), new Point2D(4773, 2639), new Point2D(4129, 2639), new Point2D(4129, 2351) },
-	        new Point2D[]{ new Point2D(4000, 2415), new Point2D(4000, 3515), new Point2D(3141, 3515), new Point2D(3141, 3043), new Point2D(4093, 3043), new Point2D(4093, 2371) },
-        };
     }
 }

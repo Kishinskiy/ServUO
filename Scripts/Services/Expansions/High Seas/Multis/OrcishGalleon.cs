@@ -1,209 +1,214 @@
-using System;
-using Server;
-using System.Collections.Generic;
 using Server.Items;
 
 namespace Server.Multis
 {
     public class OrcishGalleon : BaseGalleon
     {
-        public override int NorthID { get { return 0x18 + (DamageValue * 4); } }
-        public override int EastID { get { return  0x19 + (DamageValue * 4); } }
-        public override int SouthID { get { return 0x1A + (DamageValue * 4); } }
-        public override int WestID { get { return  0x1B + (DamageValue * 4); } }
+        private readonly int AftOffset = 12; //TODO: Get this
+        private readonly int BowOffset = 9;
 
-        public override int HoldDistance { get { return 9; } }
-        public override int TillerManDistance { get { return 6; } }
-        public override int RuneOffset { get { return -3; } }
+        private readonly int PortAndStarboardOffset = 3;
 
-        public override int WheelDistance { get { return 7; } }
-        public override int CaptiveOffset { get { return 4; } }
-        public override int MaxCannons { get { return 7; } }
-        public override double CannonDamageMod { get { return 1.3; } }
+        private readonly int[][] m_CannonTileIDs =
+        {
+            new[] { 30012, 30037, 30041, 30065, 30069, 30093, 30097 }, //SOUTH
+            new[] { 30512, 30537, 30541, 30565, 30569, 30593, 30597 }, //WEST
+            new[] { 31012, 31037, 31041, 31065, 31069, 31093, 31097 }, //NORTH
+            new[] { 31512, 31537, 31541, 31565, 31569, 31593, 31597 }, //EAST
 
-        public override double TurnDelay { get { return 2; } }
-        public override int MaxHits { get { return 100000; } }
+            new[] { 31712, 31737, 31741, 31765, 31769, 31793, 31797 }, //SOUTH D1
+            new[] { 31913, 31938, 31942, 31966, 31970, 31994, 31998 }, //WEST  D1
+            new[] { 32112, 32137, 32141, 32165, 32169, 32193, 32197 }, //NORTH D1
+            new[] { 32312, 32337, 32341, 32365, 32369, 32393, 32397 }, //EAST  D1
 
-        public override int ZSurface { get { return 14; } }
+            new[] { 32512, 32537, 32541, 32565, 32569, 32593, 32597 }, //NORTH D2
+            new[] { 32712, 32737, 32741, 32765, 32769, 32793, 32797 }, //WEST  D2
+            new[] { 32912, 32937, 32941, 32965, 32969, 32993, 32997 }, //NORTH D2
+            new[] { 33112, 33137, 33141, 33165, 33169, 33193, 33197 } //NORTH D2   
+        };
 
-        public override BaseDockedBoat DockedBoat { get { return new DockedOrcishGalleon(this); } }
+        private readonly int[][] m_FillerIDs =
+        {
+            new[] { 30030, 30034, 30048, 30044, 30090, 30086 }, //SOUTH
+            new[] { 30530, 30534, 30548, 30544, 30590, 30586 }, //WEST
+            new[] { 31030, 31034, 31048, 31044, 31090, 31086 }, //NORTH
+            new[] { 31530, 31534, 31548, 31544, 31590, 31586 }, //EAST
+
+            new[] { 31730, 31734, 31748, 31744, 31790, 31786 }, //SOUTH D1
+            new[] { 31931, 31935, 31949, 31945, 31991, 31987 }, //WEST  D1
+            new[] { 32130, 32134, 32148, 32144, 32190, 32186 }, //NORTH D1
+            new[] { 32330, 32334, 32348, 32344, 32390, 32386 }, //EAST  D1
+
+            new[] { 32530, 32534, 32548, 32544, 32590, 32586 }, //SOUTH D2
+            new[] { 32730, 32734, 32748, 32744, 32790, 32786 }, //WEST  D2
+            new[] { 32930, 32934, 32948, 32944, 32990, 32986 }, //NORTH D2
+            new[] { 33130, 33134, 33148, 33144, 33190, 33186 } //EAST  D2
+        };
+
+        private readonly int[][] m_HoldIDs =
+        {
+            new[] { 30127, 30124, 30122, 30115, 30120 }, //SOUTH
+            new[] { 30627, 30624, 30622, 30615, 30620 }, //WEST
+            new[] { 31127, 31124, 31122, 31115, 31120 }, //NORTH
+            new[] { 31627, 31624, 31622, 31615, 31620 }, //EAST
+
+            new[] { 31827, 31824, 31822, 31815, 31820 }, //SOUTH D1
+            new[] { 32028, 32025, 32023, 32016, 32021 }, //WEST D1
+            new[] { 32227, 32224, 32222, 32215, 32220 }, //NORTH D1
+            new[] { 32427, 32424, 32422, 32415, 32420 }, //EAST D1
+
+            new[] { 32627, 32624, 32622, 32615, 32620 }, //SOUTH D2
+            new[] { 32827, 32824, 32822, 32815, 32820 }, //WEST D2
+            new[] { 33027, 33024, 33022, 33015, 33020 }, //NORTH D2
+            new[] { 33227, 33224, 33222, 33215, 33220 } //EAST D1
+        };
+
+        private readonly int[][] m_HoldItemIDs =
+        {
+            new[] { 30117 },
+            new[] { 30617 },
+            new[] { 31117 },
+            new[] { 31617 },
+
+            new[] { 31817 },
+            new[] { 32018 },
+            new[] { 32217 },
+            new[] { 32417 },
+
+            new[] { 32617 },
+            new[] { 32817 },
+            new[] { 33017 },
+            new[] { 33217 }
+        };
+
+        private readonly int[][] m_WheelItemIDs =
+        {
+            new[] { 30141 },
+            new[] { 30641 },
+            new[] { 31141 },
+            new[] { 31642 }
+        };
+
+        public override int NorthID => 0x18 + DamageValue * 4;
+        public override int EastID => 0x19 + DamageValue * 4;
+        public override int SouthID => 0x1A + DamageValue * 4;
+        public override int WestID => 0x1B + DamageValue * 4;
+
+        public override int HoldDistance => 9;
+        public override int TillerManDistance => 6;
+        public override int RuneOffset => -3;
+
+        public override int WheelDistance => 7;
+        public override int CaptiveOffset => 4;
+        public override int MaxCannons => 7;
+        public override double CannonDamageMod => 1.3;
+
+        public override double TurnDelay => 2;
+        public override int MaxHits => 100000;
+
+        public override int ZSurface => 14;
+
+        public override BaseDockedBoat DockedBoat => new DockedOrcishGalleon(this);
+
+        public override int[][] CannonTileIDs => m_CannonTileIDs;
+
+        public override int[][] FillerIDs => m_FillerIDs;
+
+        public override int[][] HoldIDs => m_HoldIDs;
+
+        public override int[][] HoldItemIDs => m_HoldItemIDs;
+
+        public override int[][] WheelItemIDs => m_WheelItemIDs;
 
         [Constructable]
-        public OrcishGalleon() : this(Direction.North) { }
+        public OrcishGalleon() : this(Direction.North)
+        {
+        }
 
         [Constructable]
         public OrcishGalleon(Direction facing) : base(facing)
         {
         }
 
-        public override int[][] CannonTileIDs { get { return m_CannonTileIDs; } }
-        private int[][] m_CannonTileIDs = new int[][]
+        public OrcishGalleon(Serial serial) : base(serial)
         {
-
-            new int[] { 30012, 30037, 30041, 30065, 30069, 30093, 30097 }, //SOUTH
-            new int[] { 30512, 30537, 30541, 30565, 30569, 30593, 30597 }, //WEST
-            new int[] { 31012, 31037, 31041, 31065, 31069, 31093, 31097 }, //NORTH
-            new int[] { 31512, 31537, 31541, 31565, 31569, 31593, 31597 }, //EAST
-
-            new int[] { 31712, 31737, 31741, 31765, 31769, 31793, 31797 }, //SOUTH D1
-            new int[] { 31913, 31938, 31942, 31966, 31970, 31994, 31998 }, //WEST  D1
-            new int[] { 32112, 32137, 32141, 32165, 32169, 32193, 32197 }, //NORTH D1
-            new int[] { 32312, 32337, 32341, 32365, 32369, 32393, 32397 }, //EAST  D1
-
-            new int[] { 32512, 32537, 32541, 32565, 32569, 32593, 32597 }, //NORTH D2
-            new int[] { 32712, 32737, 32741, 32765, 32769, 32793, 32797 }, //WEST  D2
-            new int[] { 32912, 32937, 32941, 32965, 32969, 32993, 32997 }, //NORTH D2
-            new int[] { 33112, 33137, 33141, 33165, 33169, 33193, 33197 }, //NORTH D2   
-        };
-
-        public override int[][] FillerIDs { get { return m_FillerIDs; } }
-        private int[][] m_FillerIDs = new int[][]
-        {
-            new int[] { 30030, 30034, 30048, 30044, 30090, 30086 },  //SOUTH
-            new int[] { 30530, 30534, 30548, 30544, 30590, 30586 },  //WEST
-            new int[] { 31030, 31034, 31048, 31044, 31090, 31086 },  //NORTH
-            new int[] { 31530, 31534, 31548, 31544, 31590, 31586 },  //EAST
-
-            new int[] { 31730, 31734, 31748, 31744, 31790, 31786 },  //SOUTH D1
-            new int[] { 31931, 31935, 31949, 31945, 31991, 31987 },  //WEST  D1
-            new int[] { 32130, 32134, 32148, 32144, 32190, 32186 },  //NORTH D1
-            new int[] { 32330, 32334, 32348, 32344, 32390, 32386 },  //EAST  D1
-
-            new int[] { 32530, 32534, 32548, 32544, 32590, 32586 },  //SOUTH D2
-            new int[] { 32730, 32734, 32748, 32744, 32790, 32786 },  //WEST  D2
-            new int[] { 32930, 32934, 32948, 32944, 32990, 32986 },  //NORTH D2
-            new int[] { 33130, 33134, 33148, 33144, 33190, 33186 },  //EAST  D2
-        };
-
-        public override int[][] HoldIDs { get { return m_HoldIDs; } }
-        private int[][] m_HoldIDs = new int[][]
-        {
-            new int[] { 30127, 30124, 30122, 30115, 30120 },  //SOUTH
-            new int[] { 30627, 30624, 30622, 30615, 30620 },  //WEST
-            new int[] { 31127, 31124, 31122, 31115, 31120 },  //NORTH
-            new int[] { 31627, 31624, 31622, 31615, 31620 },  //EAST
-
-            new int[] { 31827, 31824, 31822, 31815, 31820 },  //SOUTH D1
-            new int[] { 32028, 32025, 32023, 32016, 32021 },  //WEST D1
-            new int[] { 32227, 32224, 32222, 32215, 32220 },  //NORTH D1
-            new int[] { 32427, 32424, 32422, 32415, 32420 },  //EAST D1
-             
-            new int[] { 32627, 32624, 32622, 32615, 32620 },  //SOUTH D2
-            new int[] { 32827, 32824, 32822, 32815, 32820 },  //WEST D2
-            new int[] { 33027, 33024, 33022, 33015, 33020 },  //NORTH D2
-            new int[] { 33227, 33224, 33222, 33215, 33220 },  //EAST D1
-        };
-
-        public override int[][] HoldItemIDs { get { return m_HoldItemIDs; } }
-        private int[][] m_HoldItemIDs = new int[][]
-        {
-            new int[] { 30117 },
-            new int[] { 30617 },
-            new int[] { 31117 },
-            new int[] { 31617 },
-
-            new int[] { 31817 },
-            new int[] { 32018 },
-            new int[] { 32217 },
-            new int[] { 32417 },
-
-            new int[] { 32617 },
-            new int[] { 32817 },
-            new int[] { 33017 },
-            new int[] { 33217 },
-        };
-
-        public override int[][] WheelItemIDs { get { return m_WheelItemIDs; } }
-        private int[][] m_WheelItemIDs = new int[][]
-        {            
-            new int[] { 30141 },
-            new int[] { 30641 },
-            new int[] { 31141 },
-            new int[] { 31642 },
-        };
+        }
 
         public override ShipPosition GetCannonPosition(Point3D pnt)
         {
-            int x = pnt.X; int y = pnt.Y;
+            var x = pnt.X;
+            var y = pnt.Y;
 
             switch (Facing)
             {
                 default:
                 case Direction.North:
-                    if (x == this.X && y < this.Y)
+                    if (x == X && y < Y)
                         return ShipPosition.Bow;
-                    if (x > this.X && y < this.Y)
+                    if (x > X && y < Y)
                         return ShipPosition.BowStarboard;
-                    if (x < this.X && y < this.Y)
+                    if (x < X && y < Y)
                         return ShipPosition.BowPort;
-                    if (x > this.X && y + 2 == this.Y)
-                        return ShipPosition.AmidShipStarboard; 
-                    else if(x <  this.X && y + 2 == this.Y)
+                    if (x > X && y + 2 == Y)
+                        return ShipPosition.AmidShipStarboard;
+                    if (x < X && y + 2 == Y)
                         return ShipPosition.AmidShipPort;
-                    else if (x > this.X && y > this.Y)
+                    if (x > X && y > Y)
                         return ShipPosition.AftStarboard;
-                    else
-                        return ShipPosition.AftPort;
+                    return ShipPosition.AftPort;
                 case Direction.West:
-                    if (x < this.X && y == this.Y)
+                    if (x < X && y == Y)
                         return ShipPosition.Bow;
-                    else if (x < this.X && y < this.Y)
+                    if (x < X && y < Y)
                         return ShipPosition.BowStarboard;
-                    else if (x < this.X && y > this.Y)
+                    if (x < X && y > Y)
                         return ShipPosition.BowPort;
-                    else if(x + 2 == this.X && y < this.Y)
-                        return ShipPosition.AmidShipStarboard; 
-                    else if (x + 2 == this.X && y > this.Y)
-                        return ShipPosition.AmidShipPort; 
-                    else if (x > this.X && y < this.Y)
-                        return ShipPosition.AftStarboard;
-                    else
-                        return ShipPosition.AftPort;
-                case Direction.South:
-                    if (x == this.X && y > this.Y)
-                        return ShipPosition.Bow;
-                    else if (x < this.X && y > this.Y)
-                        return ShipPosition.BowStarboard;
-                    else if (x > this.X && y > this.Y)
-                        return ShipPosition.BowPort;
-                    else if (x < this.X && y - 2 == this.Y)
+                    if (x + 2 == X && y < Y)
                         return ShipPosition.AmidShipStarboard;
-                    else if (x > this.X && y - 2 == this.Y)
+                    if (x + 2 == X && y > Y)
                         return ShipPosition.AmidShipPort;
-                    else if (x < this.X && y < this.Y)
+                    if (x > X && y < Y)
                         return ShipPosition.AftStarboard;
-                    else
-                        return ShipPosition.AftPort;
-                case Direction.East:
-                    if (x > this.X && y == this.Y)
+                    return ShipPosition.AftPort;
+                case Direction.South:
+                    if (x == X && y > Y)
                         return ShipPosition.Bow;
-                    else if (x > this.X && y > this.Y)
+                    if (x < X && y > Y)
                         return ShipPosition.BowStarboard;
-                    else if (x > this.X && y < this.Y)
+                    if (x > X && y > Y)
                         return ShipPosition.BowPort;
-                    else if(x - 2 == this.X && y > this.Y)
+                    if (x < X && y - 2 == Y)
                         return ShipPosition.AmidShipStarboard;
-                    else if (x - 2 == this.X && y < this.Y)
-                        return ShipPosition.AmidShipPort; 
-                    else if (x < this.X && y > this.Y)
+                    if (x > X && y - 2 == Y)
+                        return ShipPosition.AmidShipPort;
+                    if (x < X && y < Y)
                         return ShipPosition.AftStarboard;
-                    else 
-                        return ShipPosition.AftPort;
+                    return ShipPosition.AftPort;
+                case Direction.East:
+                    if (x > X && y == Y)
+                        return ShipPosition.Bow;
+                    if (x > X && y > Y)
+                        return ShipPosition.BowStarboard;
+                    if (x > X && y < Y)
+                        return ShipPosition.BowPort;
+                    if (x - 2 == X && y > Y)
+                        return ShipPosition.AmidShipStarboard;
+                    if (x - 2 == X && y < Y)
+                        return ShipPosition.AmidShipPort;
+                    if (x < X && y > Y)
+                        return ShipPosition.AftStarboard;
+                    return ShipPosition.AftPort;
             }
         }
 
-        private readonly int PortAndStarboardOffset = 3;
-        private readonly int AftOffset = 12; //TODO: Get this
-        private readonly int BowOffset = 9;
-
         public override bool Contains(int x, int y)
         {
-            bool contains = base.Contains(x, y);
+            var contains = base.Contains(x, y);
 
             if (contains)
             {
-                int boatX = this.X;
-                int boatY = this.Y;
+                var boatX = X;
+                var boatY = Y;
 
                 switch (Facing)
                 {
@@ -237,57 +242,53 @@ namespace Server.Multis
             return contains;
         }
 
-		public override bool ExemptOverheadComponent(Point3D newPnt, int itemID, int x , int y, int height)
-		{
-			//if(height > this.Z + 16) //TODO: Get height of mast
-			//	return false;
-		
-			switch(itemID)
-			{
-				case 0x18: //North/South ID's
-				case 0x1A:
-				case 0x1C:
-				case 0x1E:
-				case 0x20:
-				case 0x22:
-					if(x > newPnt.X + PortAndStarboardOffset || x < newPnt.X - PortAndStarboardOffset)
-						return true;
-					break;
-				case 0x19: //East/West ID's
-				case 0x1B:
-				case 0x1D:
-				case 0x1F:
-				case 0x21:
-				case 0x23:
-					if(y > newPnt.Y + PortAndStarboardOffset || y < newPnt.Y - PortAndStarboardOffset)
-						return true;
-					break;
-			}
+        public override bool ExemptOverheadComponent(Point3D newPnt, int itemID, int x, int y, int height)
+        {
+            //if(height > this.Z + 16) //TODO: Get height of mast
+            //	return false;
+
+            switch (itemID)
+            {
+                case 0x18: //North/South ID's
+                case 0x1A:
+                case 0x1C:
+                case 0x1E:
+                case 0x20:
+                case 0x22:
+                    if (x > newPnt.X + PortAndStarboardOffset || x < newPnt.X - PortAndStarboardOffset)
+                        return true;
+                    break;
+                case 0x19: //East/West ID's
+                case 0x1B:
+                case 0x1D:
+                case 0x1F:
+                case 0x21:
+                case 0x23:
+                    if (y > newPnt.Y + PortAndStarboardOffset || y < newPnt.Y - PortAndStarboardOffset)
+                        return true;
+                    break;
+            }
 
             return base.ExemptOverheadComponent(newPnt, itemID, x, y, height);
-		}     
-        
-        public OrcishGalleon(Serial serial) : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class OrcishGalleonDeed : BaseBoatDeed
     {
-        public override int LabelNumber { get { return 1116738; } } // small dragon ship deed
-        public override BaseBoat Boat { get { return new OrcishGalleon(this.BoatDirection); } }
+        public override int LabelNumber => 1116738; // small dragon ship deed
+        public override BaseBoat Boat => new OrcishGalleon(BoatDirection);
 
         [Constructable]
         public OrcishGalleonDeed()
@@ -304,21 +305,21 @@ namespace Server.Multis
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
     }
 
     public class DockedOrcishGalleon : BaseDockedBoat
     {
-        public override int LabelNumber { get { return 1116747; } } //Orc Ship
-        public override BaseBoat Boat { get { return new OrcishGalleon(this.BoatDirection); } }
+        public override int LabelNumber => 1116747; //Orc Ship
+        public override BaseBoat Boat => new OrcishGalleon(BoatDirection);
 
         public DockedOrcishGalleon(BaseBoat boat)
             : base(0x18, Point3D.Zero, boat)
@@ -334,14 +335,14 @@ namespace Server.Multis
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
+            writer.Write(0);
         }
     }
 }

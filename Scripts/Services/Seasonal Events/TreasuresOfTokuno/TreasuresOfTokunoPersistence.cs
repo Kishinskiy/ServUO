@@ -1,18 +1,19 @@
-using System;
-
 namespace Server.Misc
 {
     [TypeAlias("Server.Misc.TreasuresOfTokunoPersistance")]
     public class TreasuresOfTokunoPersistence : Item
     {
-        private static TreasuresOfTokunoPersistence m_Instance;
+        public static TreasuresOfTokunoPersistence Instance { get; private set; }
+
+        public override string DefaultName => "TreasuresOfTokuno Persistance - Internal";
+
         public TreasuresOfTokunoPersistence()
             : base(1)
         {
-            this.Movable = false;
+            Movable = false;
 
-            if (m_Instance == null || m_Instance.Deleted)
-                m_Instance = this;
+            if (Instance == null || Instance.Deleted)
+                Instance = this;
             else
                 base.Delete();
         }
@@ -20,26 +21,12 @@ namespace Server.Misc
         public TreasuresOfTokunoPersistence(Serial serial)
             : base(serial)
         {
-            m_Instance = this;
+            Instance = this;
         }
 
-        public static TreasuresOfTokunoPersistence Instance
-        {
-            get
-            {
-                return m_Instance;
-            }
-        }
-        public override string DefaultName
-        {
-            get
-            {
-                return "TreasuresOfTokuno Persistance - Internal";
-            }
-        }
         public static void Initialize()
         {
-            if (m_Instance == null)
+            if (Instance == null)
                 new TreasuresOfTokunoPersistence();
         }
 
@@ -47,7 +34,7 @@ namespace Server.Misc
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
             writer.WriteEncodedInt((int)TreasuresOfTokuno.RewardEra);
             writer.WriteEncodedInt((int)TreasuresOfTokuno.DropEra);
@@ -57,17 +44,17 @@ namespace Server.Misc
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            switch ( version )
+            switch (version)
             {
                 case 0:
-                    {
-                        TreasuresOfTokuno.RewardEra = (TreasuresOfTokunoEra)reader.ReadEncodedInt();
-                        TreasuresOfTokuno.DropEra = (TreasuresOfTokunoEra)reader.ReadEncodedInt();
-					
-                        break;
-                    }
+                {
+                    TreasuresOfTokuno.RewardEra = (TreasuresOfTokunoEra)reader.ReadEncodedInt();
+                    TreasuresOfTokuno.DropEra = (TreasuresOfTokunoEra)reader.ReadEncodedInt();
+
+                    break;
+                }
             }
         }
 

@@ -1,14 +1,16 @@
-using System;
-using Server.Items;
 using Server.Engines.MyrmidexInvasion;
-using Server.Misc;
+using Server.Items;
 
 namespace Server.Mobiles
 {
     [CorpseName("a human corpse")]
     public class BritannianInfantry : BaseCreature
     {
-        public override double HealChance { get { return 1.0; } }
+        public override double HealChance => 1.0;
+
+        public override bool AlwaysAttackable => Region.IsPartOf<BattleRegion>();
+        public override bool ShowFameTitle => false;
+        public override bool ClickTitle => false;
 
         [Constructable]
         public BritannianInfantry()
@@ -62,6 +64,11 @@ namespace Server.Mobiles
             Utility.AssignRandomHair(this);
         }
 
+        public BritannianInfantry(Serial serial)
+            : base(serial)
+        {
+        }
+
         private void AddImmovableItem(Item item)
         {
             item.LootType = LootType.Blessed;
@@ -79,10 +86,6 @@ namespace Server.Mobiles
             return base.IsEnemy(m);
         }
 
-        public override bool AlwaysAttackable { get { return this.Region.IsPartOf<BattleRegion>(); } }
-        public override bool ShowFameTitle { get { return false; } }
-        public override bool ClickTitle { get { return false; } }
-
         public override void GenerateLoot()
         {
             AddLoot(LootPack.Rich, 1);
@@ -90,7 +93,7 @@ namespace Server.Mobiles
 
         public override WeaponAbility GetWeaponAbility()
         {
-            BaseWeapon wep = Weapon as BaseWeapon;
+            var wep = Weapon as BaseWeapon;
 
             if (wep != null && !(wep is Fists))
             {
@@ -103,11 +106,6 @@ namespace Server.Mobiles
             return null;
         }
 
-        public BritannianInfantry(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -117,7 +115,7 @@ namespace Server.Mobiles
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

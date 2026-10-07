@@ -1,37 +1,36 @@
-using System;
 using Server.Items;
 
 namespace Server.Mobiles
 {
     public class GargishNoble : BaseEscortable
-    { 
+    {
         [Constructable]
         public GargishNoble() //: base(AIType.AI_Animal, FightMode.None, 10, 1, 0.2, 0.4)
         {
-            this.Title = "a Gargish noble";
+            Title = "a Gargish noble";
 
-            this.SetSkill(SkillName.Parry, 80.0, 100.0);
-            this.SetSkill(SkillName.Swords, 80.0, 100.0);
-            this.SetSkill(SkillName.Tactics, 80.0, 100.0);
-		
-            if (this.Female = Utility.RandomBool())
+            SetSkill(SkillName.Parry, 80.0, 100.0);
+            SetSkill(SkillName.Swords, 80.0, 100.0);
+            SetSkill(SkillName.Tactics, 80.0, 100.0);
+
+            if (Female = Utility.RandomBool())
             {
-                this.Body = 667;
-                this.HairItemID = 17067;
-                this.HairHue = 1762;
-                this.AddItem(new GargishClothChest(Utility.RandomNeutralHue()));
-                this.AddItem(new GargishClothKilt(Utility.RandomNeutralHue()));
+                Body = 667;
+                HairItemID = 17067;
+                HairHue = 1762;
+                AddItem(new GargishClothChest(Utility.RandomNeutralHue()));
+                AddItem(new GargishClothKilt(Utility.RandomNeutralHue()));
             }
             else
             {
-                this.Body = 666;
-                this.HairItemID = 16987;
-                this.HairHue = 1801;
-                this.AddItem(new GargishClothChest(Utility.RandomNeutralHue()));
-                this.AddItem(new GargishClothKilt(Utility.RandomNeutralHue()));
-                this.AddItem(new GargishClothLegs(Utility.RandomNeutralHue()));
+                Body = 666;
+                HairItemID = 16987;
+                HairHue = 1801;
+                AddItem(new GargishClothChest(Utility.RandomNeutralHue()));
+                AddItem(new GargishClothKilt(Utility.RandomNeutralHue()));
+                AddItem(new GargishClothLegs(Utility.RandomNeutralHue()));
 
-                this.PackGold(200, 250);
+                PackGold(200, 250);
             }
         }
 
@@ -44,14 +43,14 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

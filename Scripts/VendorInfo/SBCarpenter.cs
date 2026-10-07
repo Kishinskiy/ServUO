@@ -1,7 +1,6 @@
-using System;
 using System.Collections.Generic;
-using Server.Items;
 using Server.Custom.Farms;
+using Server.Items;
 
 namespace Server.Mobiles
 {
@@ -9,24 +8,10 @@ namespace Server.Mobiles
     {
         private readonly List<GenericBuyInfo> m_BuyInfo = new InternalBuyInfo();
         private readonly IShopSellInfo m_SellInfo = new InternalSellInfo();
-        public SBCarpenter()
-        {
-        }
 
-        public override IShopSellInfo SellInfo
-        {
-            get
-            {
-                return m_SellInfo;
-            }
-        }
-        public override List<GenericBuyInfo> BuyInfo
-        {
-            get
-            {
-                return m_BuyInfo;
-            }
-        }
+        public override IShopSellInfo SellInfo => m_SellInfo;
+
+        public override List<GenericBuyInfo> BuyInfo => m_BuyInfo;
 
         public class InternalBuyInfo : List<GenericBuyInfo>
         {
@@ -42,8 +27,8 @@ namespace Server.Mobiles
                 Add(new GenericBuyInfo(typeof(Scorp), 10, 20, 0x10E7, 0));
                 Add(new GenericBuyInfo(typeof(Inshave), 10, 20, 0x10E6, 0));
                 Add(new GenericBuyInfo(typeof(DovetailSaw), 12, 20, 0x1028, 0));
-                
-                
+
+
                 Add(new GenericBuyInfo(typeof(MouldingPlane), 11, 20, 0x102C, 0));
                 Add(new GenericBuyInfo(typeof(SmoothingPlane), 10, 20, 0x1032, 0));
                 Add(new GenericBuyInfo(typeof(JointingPlane), 11, 20, 0x1030, 0));
@@ -66,7 +51,7 @@ namespace Server.Mobiles
                 Add(typeof(MediumCrate), 6);
                 Add(typeof(LargeCrate), 7);
                 Add(typeof(WoodenChest), 15);
-              
+
                 Add(typeof(LargeTable), 10);
                 Add(typeof(Nightstand), 7);
                 Add(typeof(YewWoodTable), 10);

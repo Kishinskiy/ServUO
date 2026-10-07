@@ -1,19 +1,21 @@
 using System;
 
-using Server;
-using Server.Events.Halloween;
-
 namespace Server.Items
 {
     public class ShackledHeartOfThePumpkinKing : Item
     {
-        public override int LabelNumber { get { return 1157653; } } // Shackled Heart of the Pumpkin King
+        public override int LabelNumber => 1157653; // Shackled Heart of the Pumpkin King
 
         private Timer Timer { get; set; }
 
         [Constructable]
         public ShackledHeartOfThePumpkinKing()
             : base(0x4A9C)
+        {
+        }
+
+        public ShackledHeartOfThePumpkinKing(Serial serial)
+            : base(serial)
         {
         }
 
@@ -32,10 +34,22 @@ namespace Server.Items
             }
         }
 
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var v = reader.ReadInt();
+        }
+
         private class InternalTimer : Timer
         {
-            public Mobile Owner { get; set; }
-            public ShackledHeartOfThePumpkinKing Heart { get; set; }
+            public Mobile Owner { get; }
+            public ShackledHeartOfThePumpkinKing Heart { get; }
 
             public int Ticks { get; set; }
 
@@ -64,23 +78,6 @@ namespace Server.Items
                     blood.MoveToWorld(Owner.Location, Owner.Map);
                 }
             }
-        }
-
-        public ShackledHeartOfThePumpkinKing(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.Write((int)0);
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            int v = reader.ReadInt();
         }
     }
 }

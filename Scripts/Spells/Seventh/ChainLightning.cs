@@ -1,16 +1,12 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
-
-using Server.Targeting;
 using Server.Mobiles;
+using Server.Targeting;
 
 namespace Server.Spells.Seventh
 {
     public class ChainLightningSpell : MagerySpell
     {
-        public override DamageType SpellDamageType { get { return DamageType.SpellAOE; } }
-
         private static readonly SpellInfo m_Info = new SpellInfo(
             "Chain Lightning", "Vas Ort Grav",
             209,
@@ -20,25 +16,18 @@ namespace Server.Spells.Seventh
             Reagent.Bloodmoss,
             Reagent.MandrakeRoot,
             Reagent.SulfurousAsh);
+
+        public override DamageType SpellDamageType => DamageType.SpellAOE;
+
+        public override SpellCircle Circle => SpellCircle.Seventh;
+
+        public override bool DelayedDamage => true;
+
         public ChainLightningSpell(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
         {
         }
 
-        public override SpellCircle Circle
-        {
-            get
-            {
-                return SpellCircle.Seventh;
-            }
-        }
-        public override bool DelayedDamage
-        {
-            get
-            {
-                return true;
-            }
-        }
         public override void OnCast()
         {
             Caster.Target = new InternalTarget(this);
@@ -72,7 +61,7 @@ namespace Server.Spells.Seventh
                         damage = Utility.Random(27, 22);
 
                     if (Core.AOS && count > 2)
-                        damage = (damage * 2) / count;
+                        damage = damage * 2 / count;
                     else if (!Core.AOS)
                         damage /= count;
 
@@ -83,13 +72,10 @@ namespace Server.Spells.Seventh
                         m.SendLocalizedMessage(501783); // You feel yourself resisting magical energy.
                     }
 
-                    Mobile source = Caster;
+                    var source = Caster;
                     SpellHelper.CheckReflect((int)Circle, ref source, ref id, SpellDamageType);
 
-                    if (m != null)
-                    {
-                        damage *= GetDamageScalar(m);
-                    }
+                    if (m != null) damage *= GetDamageScalar(m);
 
                     Effects.SendBoltEffect(id, true, 0, false);
 
@@ -106,6 +92,7 @@ namespace Server.Spells.Seventh
         private class InternalTarget : Target
         {
             private readonly ChainLightningSpell m_Owner;
+
             public InternalTarget(ChainLightningSpell owner)
                 : base(Core.ML ? 10 : 12, true, TargetFlags.None)
             {
@@ -114,7 +101,7 @@ namespace Server.Spells.Seventh
 
             protected override void OnTarget(Mobile from, object o)
             {
-                IPoint3D p = o as IPoint3D;
+                var p = o as IPoint3D;
 
                 if (p != null)
                     m_Owner.Target(p);

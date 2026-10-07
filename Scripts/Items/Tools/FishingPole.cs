@@ -1,41 +1,35 @@
 using System;
-using System.Collections;
-using Server.Targeting;
-using Server.Items;
-using Server.Engines.Harvest;
 using System.Collections.Generic;
 using Server.ContextMenus;
-using Server.Misc;
 using Server.Engines.Craft;
+using Server.Engines.Harvest;
 
 namespace Server.Items
 {
     public class FishingPole : Item, ICraftable, IUsesRemaining, IResource, IQuality
     {
+        private AosAttributes m_AosAttributes;
+        private AosSkillBonuses m_AosSkillBonuses;
         private Type m_BaitType;
+        private int m_BaitUses;
+
+        private Mobile m_Crafter;
         private bool m_EnhancedBait;
         private HookType m_HookType;
         private int m_HookUses;
-        private int m_BaitUses;
-        private int m_OriginalHue;
-
-        private Mobile m_Crafter;
-        private ItemQuality m_Quality;
-
-        private AosAttributes m_AosAttributes;
-        private AosSkillBonuses m_AosSkillBonuses;
-        private CraftResource m_Resource;
-        private bool m_PlayerConstructed;
-        
-        private int m_UsesRemaining;
-        private bool m_ShowUsesRemaining;
 
         private int m_LowerStatReq;
+        private bool m_PlayerConstructed;
+        private ItemQuality m_Quality;
+        private CraftResource m_Resource;
+        private bool m_ShowUsesRemaining;
+
+        private int m_UsesRemaining;
 
         [CommandProperty(AccessLevel.GameMaster)]
         public Type BaitType
         {
-            get { return m_BaitType; }
+            get => m_BaitType;
             set
             {
                 m_BaitType = value;
@@ -50,20 +44,24 @@ namespace Server.Items
         [CommandProperty(AccessLevel.GameMaster)]
         public bool EnhancedBait
         {
-            get { return m_EnhancedBait; }
-            set { m_EnhancedBait = value; InvalidateProperties(); }
+            get => m_EnhancedBait;
+            set
+            {
+                m_EnhancedBait = value;
+                InvalidateProperties();
+            }
         }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public HookType HookType
         {
-            get { return m_HookType; }
+            get => m_HookType;
             set
             {
                 m_HookType = value;
 
                 if (m_HookType == HookType.None)
-                    Hue = m_OriginalHue;
+                    Hue = OriginalHue;
 
                 InvalidateProperties();
             }
@@ -72,10 +70,7 @@ namespace Server.Items
         [CommandProperty(AccessLevel.GameMaster)]
         public int HookUses
         {
-            get
-            {
-                return m_HookUses;
-            }
+            get => m_HookUses;
             set
             {
                 m_HookUses = value;
@@ -93,10 +88,7 @@ namespace Server.Items
         [CommandProperty(AccessLevel.GameMaster)]
         public int BaitUses
         {
-            get
-            {
-                return m_BaitUses;
-            }
+            get => m_BaitUses;
             set
             {
                 m_BaitUses = value;
@@ -114,76 +106,40 @@ namespace Server.Items
         [CommandProperty(AccessLevel.GameMaster)]
         public AosAttributes Attributes
         {
-            get { return m_AosAttributes; }
+            get => m_AosAttributes;
             set { }
         }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public AosSkillBonuses SkillBonuses
         {
-            get { return m_AosSkillBonuses; }
+            get => m_AosSkillBonuses;
             set { }
         }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public CraftResource Resource
-        {
-            get { return m_Resource; }
-            set { m_Resource = value; Hue = CraftResources.GetHue(m_Resource); InvalidateProperties(); }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public bool PlayerConstructed
-        {
-            get { return m_PlayerConstructed; }
-            set { m_PlayerConstructed = value; InvalidateProperties(); }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int OriginalHue
-        {
-            get { return m_OriginalHue; }
-            set { m_OriginalHue = value; }
-        }
+        public int OriginalHue { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public Mobile Crafter
         {
-            get { return m_Crafter; }
-            set { m_Crafter = value; InvalidateProperties(); }
-        }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public ItemQuality Quality
-        {
-            get { return m_Quality; }
-            set 
-            { 
-                UnscaleUses();
-                m_Quality = value;
-                ScaleUses();
+            get => m_Crafter;
+            set
+            {
+                m_Crafter = value;
+                InvalidateProperties();
             }
-        }
-        
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int UsesRemaining
-        {
-            get { return m_UsesRemaining; }
-            set { m_UsesRemaining = value; InvalidateProperties(); }
-        }
-        
-        [CommandProperty(AccessLevel.GameMaster)]
-        public bool ShowUsesRemaining
-        {
-            get { return m_ShowUsesRemaining; }
-            set { m_ShowUsesRemaining = value; InvalidateProperties(); }
         }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public int LowerStatReq
         {
-            get { return m_LowerStatReq; }
-            set { m_LowerStatReq = value; InvalidateProperties(); }
+            get => m_LowerStatReq;
+            set
+            {
+                m_LowerStatReq = value;
+                InvalidateProperties();
+            }
         }
 
         [Constructable]
@@ -199,19 +155,102 @@ namespace Server.Items
 
             m_AosAttributes = new AosAttributes(this);
             m_AosSkillBonuses = new AosSkillBonuses(this);
-            
+
             UsesRemaining = 150;
+        }
+
+        public FishingPole(Serial serial)
+            : base(serial)
+        {
+        }
+
+        public virtual int OnCraft(int quality, bool makersMark, Mobile from, CraftSystem craftSystem, Type typeRes,
+            ITool tool, CraftItem craftItem, int resHue)
+        {
+            Quality = (ItemQuality)quality;
+
+            PlayerConstructed = true;
+
+            if (makersMark) // Add to CraftItem.cs mark table
+                Crafter = from;
+
+            var resourceType = typeRes;
+
+            if (resourceType == null)
+                resourceType = craftItem.Resources.GetAt(0).ItemType;
+
+            Resource = CraftResources.GetFromType(resourceType);
+            DistributeMaterialBonus();
+
+            return quality;
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public bool PlayerConstructed
+        {
+            get => m_PlayerConstructed;
+            set
+            {
+                m_PlayerConstructed = value;
+                InvalidateProperties();
+            }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public ItemQuality Quality
+        {
+            get => m_Quality;
+            set
+            {
+                UnscaleUses();
+                m_Quality = value;
+                ScaleUses();
+            }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public CraftResource Resource
+        {
+            get => m_Resource;
+            set
+            {
+                m_Resource = value;
+                Hue = CraftResources.GetHue(m_Resource);
+                InvalidateProperties();
+            }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int UsesRemaining
+        {
+            get => m_UsesRemaining;
+            set
+            {
+                m_UsesRemaining = value;
+                InvalidateProperties();
+            }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public bool ShowUsesRemaining
+        {
+            get => m_ShowUsesRemaining;
+            set
+            {
+                m_ShowUsesRemaining = value;
+                InvalidateProperties();
+            }
         }
 
         public void ScaleUses()
         {
-            m_UsesRemaining = (m_UsesRemaining * GetUsesScalar()) / 100;
+            m_UsesRemaining = m_UsesRemaining * GetUsesScalar() / 100;
             InvalidateProperties();
         }
 
         public void UnscaleUses()
         {
-            m_UsesRemaining = (m_UsesRemaining * 100) / GetUsesScalar();
+            m_UsesRemaining = m_UsesRemaining * 100 / GetUsesScalar();
         }
 
         public int GetUsesScalar()
@@ -234,7 +273,8 @@ namespace Server.Items
                 HookUses--;
 
                 if (m_HookType == HookType.None)
-                    from.SendLocalizedMessage(1149854); //As the magic of the hook fades, it transforms to a normal fishhook.  The fishing pole returns to normal.
+                    from.SendLocalizedMessage(
+                        1149854); //As the magic of the hook fades, it transforms to a normal fishhook.  The fishing pole returns to normal.
             }
 
             if (caughtAnything && m_BaitType != null)
@@ -246,7 +286,7 @@ namespace Server.Items
             if (base.AllowEquipedCast(from))
                 return true;
 
-            return (m_AosAttributes.SpellChanneling != 0);
+            return m_AosAttributes.SpellChanneling != 0;
         }
 
         public virtual int GetLuckBonus()
@@ -254,12 +294,12 @@ namespace Server.Items
             if (m_Resource == CraftResource.Heartwood)
                 return 0;
 
-            CraftResourceInfo resInfo = CraftResources.GetInfo(m_Resource);
+            var resInfo = CraftResources.GetInfo(m_Resource);
 
             if (resInfo == null)
                 return 0;
 
-            CraftAttributeInfo attrInfo = resInfo.AttributeInfo;
+            var attrInfo = resInfo.AttributeInfo;
 
             if (attrInfo == null)
                 return 0;
@@ -292,15 +332,15 @@ namespace Server.Items
 
         public override bool OnEquip(Mobile from)
         {
-            int strBonus = m_AosAttributes.BonusStr;
-            int dexBonus = m_AosAttributes.BonusDex;
-            int intBonus = m_AosAttributes.BonusInt;
+            var strBonus = m_AosAttributes.BonusStr;
+            var dexBonus = m_AosAttributes.BonusDex;
+            var intBonus = m_AosAttributes.BonusInt;
 
-            if ((strBonus != 0 || dexBonus != 0 || intBonus != 0))
+            if (strBonus != 0 || dexBonus != 0 || intBonus != 0)
             {
-                Mobile m = from;
+                var m = from;
 
-                string modName = this.Serial.ToString();
+                var modName = Serial.ToString();
 
                 if (strBonus != 0)
                     m.AddStatMod(new StatMod(StatType.Str, modName + "Str", strBonus, TimeSpan.Zero));
@@ -319,7 +359,7 @@ namespace Server.Items
         {
             if (parent is Mobile)
             {
-                Mobile from = (Mobile)parent;
+                var from = (Mobile)parent;
 
                 if (Core.AOS)
                     m_AosSkillBonuses.AddTo(from);
@@ -332,9 +372,9 @@ namespace Server.Items
         {
             if (parent is Mobile)
             {
-                Mobile m = (Mobile)parent;
+                var m = (Mobile)parent;
 
-                string modName = this.Serial.ToString();
+                var modName = Serial.ToString();
 
                 m.RemoveStatMod(modName + "Str");
                 m.RemoveStatMod(modName + "Dex");
@@ -359,9 +399,7 @@ namespace Server.Items
         public override void AddUsesRemainingProperties(ObjectPropertyList list)
         {
             if (Siege.SiegeShard && m_ShowUsesRemaining)
-            {
                 list.Add(1060584, UsesRemaining.ToString()); // uses remaining: ~1_val~
-            }
         }
 
         public override void GetProperties(ObjectPropertyList list)
@@ -376,9 +414,9 @@ namespace Server.Items
 
             base.AddResistanceProperties(list);
 
-            int prop = 0;
+            var prop = 0;
 
-            if ((prop = (m_AosAttributes.WeaponDamage)) != 0)
+            if ((prop = m_AosAttributes.WeaponDamage) != 0)
                 list.Add(1060401, prop.ToString()); // damage increase ~1_val~%
 
             if ((prop = m_AosAttributes.DefendChance) != 0)
@@ -393,7 +431,7 @@ namespace Server.Items
             if ((prop = m_AosAttributes.CastSpeed) != 0)
                 list.Add(1060413, prop.ToString()); // faster casting ~1_val~
 
-            if ((prop = (m_AosAttributes.AttackChance)) != 0)
+            if ((prop = m_AosAttributes.AttackChance) != 0)
                 list.Add(1060415, prop.ToString()); // hit chance increase ~1_val~%
 
             if ((prop = m_AosAttributes.BonusDex) != 0)
@@ -420,7 +458,7 @@ namespace Server.Items
             if (!CraftResources.IsStandard(m_Resource))
                 list.Add(CraftResources.GetName(m_Resource));
 
-            if ((prop = (GetLuckBonus() + m_AosAttributes.Luck)) != 0)
+            if ((prop = GetLuckBonus() + m_AosAttributes.Luck) != 0)
                 list.Add(1060436, prop.ToString()); // luck ~1_val~
 
             if ((prop = m_AosAttributes.BonusMana) != 0)
@@ -453,19 +491,20 @@ namespace Server.Items
             //if ( (prop = m_AosAttributes.WeaponSpeed) != 0 )
             //	list.Add( 1060486, prop.ToString() ); // swing speed increase ~1_val~%
 
-            int hookCliloc = BaseFishingHook.GetHookType(m_HookType);
+            var hookCliloc = BaseFishingHook.GetHookType(m_HookType);
 
             if (m_HookType > HookType.None && hookCliloc > 0)
             {
-                list.Add(1150885, String.Format("#{0}", hookCliloc)); //special hook: ~1_token~
-                list.Add(1150889, String.Format("#{0}", BaseFishingHook.GetCondition(m_HookUses))); //Hook condition: ~1_val~
+                list.Add(1150885, string.Format("#{0}", hookCliloc)); //special hook: ~1_token~
+                list.Add(1150889,
+                    string.Format("#{0}", BaseFishingHook.GetCondition(m_HookUses))); //Hook condition: ~1_val~
             }
 
             if (m_BaitType != null)
             {
-                object label = FishInfo.GetFishLabel(m_BaitType);
+                var label = FishInfo.GetFishLabel(m_BaitType);
                 if (label is int)
-                    list.Add(1116468, String.Format("#{0}", (int)label)); //baited to attract: ~1_val~
+                    list.Add(1116468, string.Format("#{0}", (int)label)); //baited to attract: ~1_val~
                 else if (label is string)
                     list.Add(1116468, (string)label);
 
@@ -473,11 +512,6 @@ namespace Server.Items
             }
 
             list.Add(1061170, GetStrRequirement().ToString()); // strength requirement ~1_val~
-        }
-
-        public FishingPole(Serial serial)
-            : base(serial)
-        {
         }
 
         private static void SetSaveFlag(ref SaveFlag flags, SaveFlag toSet, bool setIf)
@@ -488,14 +522,14 @@ namespace Server.Items
 
         private static bool GetSaveFlag(SaveFlag flags, SaveFlag toGet)
         {
-            return ((flags & toGet) != 0);
+            return (flags & toGet) != 0;
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)4); // version
+            writer.Write(4); // version
 
             writer.Write(m_PlayerConstructed);
             writer.Write(m_LowerStatReq);
@@ -503,7 +537,7 @@ namespace Server.Items
             writer.Write(m_UsesRemaining);
             writer.Write(m_ShowUsesRemaining);
 
-            writer.Write(m_OriginalHue);
+            writer.Write(OriginalHue);
 
             writer.Write(FishInfo.GetIndexFromType(m_BaitType));
             writer.Write((int)m_HookType);
@@ -511,7 +545,7 @@ namespace Server.Items
             writer.Write(m_BaitUses);
             writer.Write(m_EnhancedBait);
 
-            SaveFlag flags = SaveFlag.None;
+            var flags = SaveFlag.None;
 
             SetSaveFlag(ref flags, SaveFlag.xAttributes, !m_AosAttributes.IsEmpty);
             SetSaveFlag(ref flags, SaveFlag.SkillBonuses, !m_AosSkillBonuses.IsEmpty);
@@ -529,7 +563,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             switch (version)
             {
@@ -542,15 +576,15 @@ namespace Server.Items
                     m_ShowUsesRemaining = reader.ReadBool();
                     goto case 2;
                 case 2:
-                    m_OriginalHue = reader.ReadInt();
-                    int idx = reader.ReadInt();
+                    OriginalHue = reader.ReadInt();
+                    var idx = reader.ReadInt();
                     m_BaitType = FishInfo.GetTypeFromIndex(idx);
                     m_HookType = (HookType)reader.ReadInt();
                     m_HookUses = reader.ReadInt();
                     m_BaitUses = reader.ReadInt();
                     m_EnhancedBait = reader.ReadBool();
 
-                    SaveFlag flags = (SaveFlag)reader.ReadInt();
+                    var flags = (SaveFlag)reader.ReadInt();
 
                     if (GetSaveFlag(flags, SaveFlag.xAttributes))
                         m_AosAttributes = new AosAttributes(this, reader);
@@ -571,15 +605,15 @@ namespace Server.Items
             if (Core.AOS && Parent is Mobile)
                 m_AosSkillBonuses.AddTo((Mobile)Parent);
 
-            int strBonus = m_AosAttributes.BonusStr;
-            int dexBonus = m_AosAttributes.BonusDex;
-            int intBonus = m_AosAttributes.BonusInt;
+            var strBonus = m_AosAttributes.BonusStr;
+            var dexBonus = m_AosAttributes.BonusDex;
+            var intBonus = m_AosAttributes.BonusInt;
 
-            if (this.Parent is Mobile && (strBonus != 0 || dexBonus != 0 || intBonus != 0))
+            if (Parent is Mobile && (strBonus != 0 || dexBonus != 0 || intBonus != 0))
             {
-                Mobile m = (Mobile)this.Parent;
+                var m = (Mobile)Parent;
 
-                string modName = this.Serial.ToString();
+                var modName = Serial.ToString();
 
                 if (strBonus != 0)
                     m.AddStatMod(new StatMod(StatType.Str, modName + "Str", strBonus, TimeSpan.Zero));
@@ -607,47 +641,18 @@ namespace Server.Items
                 if (m_Resource == CraftResource.None)
                     Resource = CraftResource.RegularWood;
                 else
-                {
                     DistributeMaterialBonus();
-                }
             }
-        }
-
-        private enum SaveFlag
-        {
-            None = 0x00000000,
-            xAttributes = 0x00000001,
-            SkillBonuses = 0x00000002
-        }
-
-        public virtual int OnCraft(int quality, bool makersMark, Mobile from, CraftSystem craftSystem, Type typeRes, ITool tool, CraftItem craftItem, int resHue)
-        {
-            Quality = (ItemQuality)quality;
-
-            PlayerConstructed = true;
-
-            if (makersMark) // Add to CraftItem.cs mark table
-                Crafter = from;
-
-            Type resourceType = typeRes;
-
-            if (resourceType == null)
-                resourceType = craftItem.Resources.GetAt(0).ItemType;
-
-            Resource = CraftResources.GetFromType(resourceType);
-            DistributeMaterialBonus();
-
-            return quality;
         }
 
         public void DistributeMaterialBonus()
         {
-            CraftResourceInfo resInfo = CraftResources.GetInfo(m_Resource);
+            var resInfo = CraftResources.GetInfo(m_Resource);
 
             if (resInfo == null)
                 return;
 
-            CraftAttributeInfo attrInfo = resInfo.AttributeInfo;
+            var attrInfo = resInfo.AttributeInfo;
 
             if (attrInfo != null)
                 DistributeMaterialBonus(attrInfo);
@@ -673,6 +678,13 @@ namespace Server.Items
                     case 4: LowerStatReq = attrInfo.OtherLowerRequirements; break;
                 }
             }
+        }
+
+        private enum SaveFlag
+        {
+            None = 0x00000000,
+            xAttributes = 0x00000001,
+            SkillBonuses = 0x00000002
         }
     }
 }

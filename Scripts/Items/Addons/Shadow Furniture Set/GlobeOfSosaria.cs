@@ -1,9 +1,9 @@
-using System;
-
 namespace Server.Items
 {
     public class GlobeOfSosariaAddon : BaseAddon
     {
+        public override BaseAddonDeed Deed => new GlobeOfSosariaDeed();
+
         [Constructable]
         public GlobeOfSosariaAddon()
         {
@@ -18,26 +18,26 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonDeed Deed { get { return new GlobeOfSosariaDeed(); } }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class GlobeOfSosariaDeed : BaseAddonDeed
     {
-        public override int LabelNumber { get { return 1076681; } } // Globe of Sosaria
+        public override int LabelNumber => 1076681; // Globe of Sosaria
 
-        public override bool ExcludeDeedHue { get { return true; } }
+        public override bool ExcludeDeedHue => true;
+
+        public override BaseAddon Addon => new GlobeOfSosariaAddon();
 
         [Constructable]
         public GlobeOfSosariaDeed()
@@ -51,18 +51,16 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddon Addon { get { return new GlobeOfSosariaAddon(); } }
-        
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

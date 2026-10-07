@@ -1,8 +1,5 @@
-using System;
-using Server;
-using Server.Targeting;
-using Server.Network;
 using Server.Custom.Farms;
+using Server.Targeting;
 
 namespace Server.Items
 {
@@ -16,13 +13,17 @@ namespace Server.Items
             Layer = Layer.TwoHanded; // Тяпка экипируется в две руки
         }
 
+        public FarmHoe(Serial serial) : base(serial)
+        {
+        }
+
         public override void OnDoubleClick(Mobile from)
         {
             if (from == null || !from.Player)
                 return;
 
             // Тяпка должна быть либо в руках, либо в сумке игрока
-            if (!this.IsChildOf(from.Backpack) && this.Parent != from)
+            if (!IsChildOf(from.Backpack) && Parent != from)
             {
                 from.SendLocalizedMessage(1042001); // This must be in your backpack или экипировано
                 return;
@@ -32,15 +33,23 @@ namespace Server.Items
             from.Target = new HoeTarget(this); // Запуск прицела
         }
 
-        public FarmHoe(Serial serial) : base(serial) { }
-        public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write(0); }
-        public override void Deserialize(GenericReader reader) { base.Deserialize(reader); int version = reader.ReadInt(); }
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
+        }
     }
 
     // ТАРГЕТ ТЯПКИ
     public class HoeTarget : Target
     {
-        private FarmHoe m_Hoe;
+        private readonly FarmHoe m_Hoe;
 
         public HoeTarget(FarmHoe hoe) : base(2, true, TargetFlags.None)
         {

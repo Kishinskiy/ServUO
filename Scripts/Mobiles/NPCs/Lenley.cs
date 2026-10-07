@@ -6,56 +6,57 @@ namespace Server.Engines.Quests
 {
     public class FreedomQuest : BaseQuest
     {
-        public override bool DoneOnce { get { return true; } }
+        public override bool DoneOnce => true;
+
+        /* Freedom! */
+        public override object Title => 1072367;
+
+        /*
+         * Lenley isn't seen.  Why you see me? Lenley is sneaking.  Lenley runs away.
+         * You help Lenley to not get dead?  We go out past pig-men orcs?  Yes? Yes? You say yes?
+         */
+        public override object Description => 1072552;
+
+        /* You no like Lenley? No hurt Lenley!  No see Lenley.  Go 'way. */
+        public override object Refuse => 1072553;
+
+        /* Lenley not run away yet.  Go, go, Lenley not past pig-men orcs.  You go, Lenley go after you.  Go! */
+        public override object Uncomplete => 1072554;
+
+        /* Lenley so happy!  Lenley not get dead.  You have best Lenley shiny! */
+        public override object Complete => 1072556;
 
         public FreedomQuest()
-            : base()
         {
             AddObjective(new EscortObjective("Sanctuary Entrance"));
 
             AddReward(new BaseReward(typeof(StolenRing), "Lenley's Favorite Sparkly"));
         }
 
-        /* Freedom! */
-        public override object Title { get { return 1072367; } }
-
-        /*
-         * Lenley isn't seen.  Why you see me? Lenley is sneaking.  Lenley runs away.
-         * You help Lenley to not get dead?  We go out past pig-men orcs?  Yes? Yes? You say yes?
-        */
-        public override object Description { get { return 1072552; } }
-
-        /* You no like Lenley? No hurt Lenley!  No see Lenley.  Go 'way. */
-        public override object Refuse { get { return 1072553; } }
-
-        /* Lenley not run away yet.  Go, go, Lenley not past pig-men orcs.  You go, Lenley go after you.  Go! */
-        public override object Uncomplete { get { return 1072554; } }
-
-        /* Lenley so happy!  Lenley not get dead.  You have best Lenley shiny! */
-        public override object Complete { get { return 1072556; } }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class Lenley : BaseEscort
     {
-        public override Type[] Quests { get { return new Type[] { typeof(FreedomQuest) }; } }
+        public override Type[] Quests
+        {
+            get { return new[] { typeof(FreedomQuest) }; }
+        }
 
         public LenleyRegion _Region { get; set; }
 
         [Constructable]
         public Lenley()
-            : base()
         {
             Name = "Lenley";
             Title = "the Snitch";
@@ -151,25 +152,23 @@ namespace Server.Engines.Quests
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            if (Hidden)
-            {
-                Timer.DelayCall(TimeSpan.Zero, new TimerCallback(UpdateLenleyRegion));
-            }
+            if (Hidden) Timer.DelayCall(TimeSpan.Zero, UpdateLenleyRegion);
         }
     }
 
     public class LenleyRegion : BaseRegion
     {
         public LenleyRegion(Mobile lenley)
-            : base(null, lenley.Map, Region.Find(lenley.Location, lenley.Map), new Rectangle2D(lenley.Location.X - 2, lenley.Location.Y - 2, 5, 5))
+            : base(null, lenley.Map, Find(lenley.Location, lenley.Map),
+                new Rectangle2D(lenley.Location.X - 2, lenley.Location.Y - 2, 5, 5))
         {
         }
 

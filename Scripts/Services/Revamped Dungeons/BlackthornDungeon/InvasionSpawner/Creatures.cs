@@ -1,23 +1,17 @@
 using System;
-using Server;
 using System.Collections.Generic;
 using System.Linq;
-using Server.Mobiles;
 using Server.Items;
+using Server.Misc;
+using Server.Mobiles;
 using Server.Spells;
 using Server.Spells.Necromancy;
-using Server.Engines.CityLoyalty;
 
 namespace Server.Engines.Blackthorn
 {
     public class Invader : BaseCreature
     {
-        public static SkillName RandomSpecialty()
-        {
-            return _Specialties[Utility.Random(_Specialties.Length)];
-        }
-
-        private static SkillName[] _Specialties =
+        private static readonly SkillName[] _Specialties =
         {
             SkillName.Swords,
             SkillName.Fencing,
@@ -35,37 +29,26 @@ namespace Server.Engines.Blackthorn
         };
 
         private InvasionType _InvasionType;
-        private SkillName _Specialty;
-
-        private bool _Sampire;
         private DateTime _NextSpecial;
 
-        public override bool AlwaysMurderer { get { return true; } }
-        public override double HealChance { get { return AI == AIType.AI_Melee || AI == AIType.AI_Paladin ? 1.0 : 0.0; } }
-        public override double WeaponAbilityChance { get { return AI == AIType.AI_Melee || AI == AIType.AI_Paladin ? 0.4 : 0.1; } }
-        public override bool CanStealth { get { return _Specialty == SkillName.Ninjitsu; } }
+        private bool _Sampire;
+        private SkillName _Specialty;
 
-        public override WeaponAbility GetWeaponAbility()
-        {
-            BaseWeapon wep = Weapon as BaseWeapon;
+        public override bool AlwaysMurderer => true;
+        public override double HealChance => AI == AIType.AI_Melee || AI == AIType.AI_Paladin ? 1.0 : 0.0;
+        public override double WeaponAbilityChance => AI == AIType.AI_Melee || AI == AIType.AI_Paladin ? 0.4 : 0.1;
+        public override bool CanStealth => _Specialty == SkillName.Ninjitsu;
 
-            if (wep != null)
-            {
-                return 0.6 > Utility.RandomDouble() ? wep.PrimaryAbility : wep.SecondaryAbility;
-            }
+        public override bool UseSmartAI => true;
+        public virtual bool CanDoSpecial => SpellCaster;
 
-            return null;
-        }
+        public virtual double MinSkill => 100.0;
+        public virtual double MaxSkill => 120.0;
+        public virtual int MinResist => 10;
+        public virtual int MaxResist => 20;
 
-        public override bool UseSmartAI { get { return true; } }
-        public virtual bool CanDoSpecial { get { return SpellCaster; } }
-
-        public virtual double MinSkill { get { return 100.0; } }
-        public virtual double MaxSkill { get { return 120.0; } }
-        public virtual int MinResist { get { return 10; } }
-        public virtual int MaxResist { get { return 20; } }
-
-        public bool SpellCaster { get { return AI != AIType.AI_Melee && AI != AIType.AI_Ninja && AI != AIType.AI_Samurai && AI != AIType.AI_Paladin; } }
+        public bool SpellCaster => AI != AIType.AI_Melee && AI != AIType.AI_Ninja && AI != AIType.AI_Samurai &&
+                                   AI != AIType.AI_Paladin;
 
         [Constructable]
         public Invader(InvasionType type)
@@ -84,15 +67,11 @@ namespace Server.Engines.Blackthorn
                 _Sampire = true;
 
             if (Female = Utility.RandomBool())
-            {
                 //Body = 0x191;
                 Name = NameList.RandomName("female");
-            }
             else
-            {
                 //Body = 0x190;
                 Name = NameList.RandomName("male");
-            }
 
             SetBody();
 
@@ -108,7 +87,7 @@ namespace Server.Engines.Blackthorn
             }
             else
             {
-                title = String.Format("the {0}", Skills[specialty].Info.Title);
+                title = string.Format("the {0}", Skills[specialty].Info.Title);
                 if (Female && title.EndsWith("man"))
                     title = title.Substring(0, title.Length - 3) + "woman";
             }
@@ -129,7 +108,7 @@ namespace Server.Engines.Blackthorn
                 SetDamage(8, 18);
 
             Fame = 8000;
-            Karma = -8000;  
+            Karma = -8000;
 
             SetResists();
             SetSkills();
@@ -138,15 +117,32 @@ namespace Server.Engines.Blackthorn
             _NextSpecial = DateTime.UtcNow;
 
             if (_Sampire)
-            {
                 Timer.DelayCall(TimeSpan.FromSeconds(1), () =>
-                    {
-                        VampiricEmbraceSpell spell = new VampiricEmbraceSpell(this, null);
-                        spell.Cast();
-                    });
-            }
+                {
+                    var spell = new VampiricEmbraceSpell(this, null);
+                    spell.Cast();
+                });
 
             SetAreaEffect(AreaEffect.AuraOfEnergy);
+        }
+
+        public Invader(Serial serial)
+            : base(serial)
+        {
+        }
+
+        public static SkillName RandomSpecialty()
+        {
+            return _Specialties[Utility.Random(_Specialties.Length)];
+        }
+
+        public override WeaponAbility GetWeaponAbility()
+        {
+            var wep = Weapon as BaseWeapon;
+
+            if (wep != null) return 0.6 > Utility.RandomDouble() ? wep.PrimaryAbility : wep.SecondaryAbility;
+
+            return null;
         }
 
         public virtual void SetBody()
@@ -157,7 +153,8 @@ namespace Server.Engines.Blackthorn
                     if (0.75 > Utility.RandomDouble())
                         Race = Race.Human;
                     else
-                        Race = Race.Elf; break;
+                        Race = Race.Elf;
+                    break;
                 case SkillName.Archery:
                 case SkillName.Spellweaving: Race = Race.Elf; break;
             }
@@ -200,15 +197,9 @@ namespace Server.Engines.Blackthorn
             if (Skills[_Specialty].Base < MinSkill)
                 SetSkill(_Specialty, MinSkill, MaxSkill);
 
-            if (_Sampire)
-            {
-                SetSkill(SkillName.Necromancy, MinSkill, MaxSkill);
-            }
+            if (_Sampire) SetSkill(SkillName.Necromancy, MinSkill, MaxSkill);
 
-            if (_Sampire || _Specialty == SkillName.Necromancy)
-            {
-                SetSkill(SkillName.SpiritSpeak, MinSkill, MaxSkill);
-            }
+            if (_Sampire || _Specialty == SkillName.Necromancy) SetSkill(SkillName.SpiritSpeak, MinSkill, MaxSkill);
 
             if (_Specialty == SkillName.Ninjitsu)
             {
@@ -264,7 +255,7 @@ namespace Server.Engines.Blackthorn
                     StandardMageEquip();
                     break;
                 case SkillName.Bushido:
-                    BaseWeapon w = RandomSamuraiWeapon() as BaseWeapon;
+                    var w = RandomSamuraiWeapon() as BaseWeapon;
                     SetWearable(w);
 
                     SetWearable(new LeatherSuneate());
@@ -281,15 +272,15 @@ namespace Server.Engines.Blackthorn
                 case SkillName.Ninjitsu:
                     SetWearable(RandomNinjaWeapon());
 
-                    LeatherNinjaBelt belt = new LeatherNinjaBelt();
+                    var belt = new LeatherNinjaBelt();
                     belt.UsesRemaining = 20;
                     belt.Poison = Poison.Greater;
                     belt.PoisonCharges = 20;
                     SetWearable(belt);
 
-                    for (int i = 0; i < 2; i++)
+                    for (var i = 0; i < 2; i++)
                     {
-                        Fukiya f = new Fukiya();
+                        var f = new Fukiya();
                         f.UsesRemaining = 10;
                         f.Poison = Poison.Greater;
                         f.PoisonCharges = 10;
@@ -305,7 +296,7 @@ namespace Server.Engines.Blackthorn
 
                     break;
                 case SkillName.Poisoning:
-                    BaseWeapon wep = RandomAssassinWeapon() as BaseWeapon;
+                    var wep = RandomAssassinWeapon() as BaseWeapon;
                     wep.Poison = Poison.Lethal;
                     wep.PoisonCharges = 100;
                     SetWearable(wep);
@@ -320,7 +311,7 @@ namespace Server.Engines.Blackthorn
 
         private void PaladinEquip()
         {
-            SetWearable(Loot.Construct(new Type[] { typeof(Bascinet), typeof(Helmet), typeof(PlateHelm) }), 1153);
+            SetWearable(Loot.Construct(new[] { typeof(Bascinet), typeof(Helmet), typeof(PlateHelm) }), 1153);
 
             SetWearable(new PlateChest());
             SetWearable(new PlateLegs());
@@ -334,7 +325,8 @@ namespace Server.Engines.Blackthorn
 
         private void StandardMeleeEquip()
         {
-            SetWearable(Loot.Construct(new Type[] { typeof(Bascinet), typeof(Helmet), typeof(LeatherCap), typeof(RoyalCirclet) }));
+            SetWearable(Loot.Construct(new[]
+                { typeof(Bascinet), typeof(Helmet), typeof(LeatherCap), typeof(RoyalCirclet) }));
 
             SetWearable(new ChainChest());
             SetWearable(new ChainLegs());
@@ -344,7 +336,7 @@ namespace Server.Engines.Blackthorn
 
         private void StandardMageEquip()
         {
-            bool mage = AI == AIType.AI_Mage;
+            var mage = AI == AIType.AI_Mage;
 
             SetWearable(new WizardsHat(), mage ? Utility.RandomBlueHue() : Utility.RandomRedHue());
             SetWearable(new Robe(), mage ? Utility.RandomBlueHue() : Utility.RandomRedHue());
@@ -369,50 +361,69 @@ namespace Server.Engines.Blackthorn
         public Item RandomSwordWeapon()
         {
             if (Race == Race.Elf)
-                return Loot.Construct(new Type[] { typeof(ElvenMachete), typeof(RadiantScimitar) });
+                return Loot.Construct(new[] { typeof(ElvenMachete), typeof(RadiantScimitar) });
 
-            return Loot.Construct(new Type[] { typeof(Broadsword), typeof(Longsword), typeof(Katana), typeof(Halberd), typeof(Bardiche), typeof(VikingSword) });
+            return Loot.Construct(new[]
+            {
+                typeof(Broadsword), typeof(Longsword), typeof(Katana), typeof(Halberd), typeof(Bardiche),
+                typeof(VikingSword)
+            });
         }
 
         public Item RandomFencingWeapon()
         {
-            if(Race == Race.Elf)
-                return Loot.Construct(new Type[] { typeof(Leafblade), typeof(WarCleaver), typeof(AssassinSpike) });
+            if (Race == Race.Elf)
+                return Loot.Construct(new[] { typeof(Leafblade), typeof(WarCleaver), typeof(AssassinSpike) });
 
-            return Loot.Construct(new Type[] { typeof(Kryss), typeof(Spear), typeof(ShortSpear), typeof(Lance), typeof(Pike) });
+            return Loot.Construct(new[]
+                { typeof(Kryss), typeof(Spear), typeof(ShortSpear), typeof(Lance), typeof(Pike) });
         }
 
         public Item RandomMaceWeapon()
         {
-            return Loot.Construct(new Type[] { typeof(Mace), typeof(WarHammer), typeof(WarAxe), typeof(BlackStaff), typeof(QuarterStaff), typeof(WarMace), typeof(DiamondMace), typeof(Scepter)  });
+            return Loot.Construct(new[]
+            {
+                typeof(Mace), typeof(WarHammer), typeof(WarAxe), typeof(BlackStaff), typeof(QuarterStaff),
+                typeof(WarMace), typeof(DiamondMace), typeof(Scepter)
+            });
         }
 
         public Item RandomArhceryWeapon()
         {
             if (Race == Race.Elf)
-                return Loot.Construct(new Type[] { typeof(MagicalShortbow), typeof(ElvenCompositeLongbow) });
+                return Loot.Construct(new[] { typeof(MagicalShortbow), typeof(ElvenCompositeLongbow) });
 
-            return Loot.Construct(new Type[] { typeof(Bow), typeof(Crossbow), typeof(HeavyCrossbow), typeof(CompositeBow), typeof(RepeatingCrossbow) });
+            return Loot.Construct(new[]
+            {
+                typeof(Bow), typeof(Crossbow), typeof(HeavyCrossbow), typeof(CompositeBow), typeof(RepeatingCrossbow)
+            });
         }
 
         public Item RandomMageWeapon()
         {
-            return Loot.Construct(new Type[] { typeof(Spellbook), typeof(GnarledStaff), typeof(BlackStaff), typeof(QuarterStaff), typeof(WildStaff) });
+            return Loot.Construct(new[]
+            {
+                typeof(Spellbook), typeof(GnarledStaff), typeof(BlackStaff), typeof(QuarterStaff), typeof(WildStaff)
+            });
         }
 
         public Item RandomSamuraiWeapon()
         {
-            return Loot.Construct(new Type[] { typeof(Lajatang), typeof(Wakizashi), typeof(NoDachi) });
+            return Loot.Construct(new[] { typeof(Lajatang), typeof(Wakizashi), typeof(NoDachi) });
         }
 
         public Item RandomNinjaWeapon()
         {
-            return Loot.Construct(new Type[] { typeof(Wakizashi), typeof(Tessen), typeof(Nunchaku), typeof(Daisho), typeof(Sai), typeof(Tekagi), typeof(Kama), typeof(Katana) });
+            return Loot.Construct(new[]
+            {
+                typeof(Wakizashi), typeof(Tessen), typeof(Nunchaku), typeof(Daisho), typeof(Sai), typeof(Tekagi),
+                typeof(Kama), typeof(Katana)
+            });
         }
 
         public Item RandomAssassinWeapon()
         {
-            return Loot.Construct(new Type[] { typeof(Cleaver), typeof(ButcherKnife), typeof(Kryss), typeof(Dagger) });
+            return Loot.Construct(new[] { typeof(Cleaver), typeof(ButcherKnife), typeof(Kryss), typeof(Dagger) });
         }
 
         public override void GetProperties(ObjectPropertyList list)
@@ -437,14 +448,15 @@ namespace Server.Engines.Blackthorn
             }
             else if (_Sampire)
             {
-                if (0.1 > Utility.RandomDouble() && Weapon is BaseWeapon && !CurseWeaponSpell.IsCursed(this, (BaseWeapon)Weapon))
+                if (0.1 > Utility.RandomDouble() && Weapon is BaseWeapon &&
+                    !CurseWeaponSpell.IsCursed(this, (BaseWeapon)Weapon))
                 {
-                    CurseWeaponSpell spell = new CurseWeaponSpell(this, null);
+                    var spell = new CurseWeaponSpell(this, null);
                     spell.Cast();
                 }
                 else if (!TransformationSpellHelper.UnderTransformation(this, typeof(VampiricEmbraceSpell)))
                 {
-                    VampiricEmbraceSpell spell = new VampiricEmbraceSpell(this, null);
+                    var spell = new VampiricEmbraceSpell(this, null);
                     spell.Cast();
                 }
             }
@@ -452,57 +464,55 @@ namespace Server.Engines.Blackthorn
 
         private void DoSpecial()
         {
-            if (this.Map == null || this.Map == Map.Internal)
+            if (Map == null || Map == Map.Internal)
                 return;
 
-            Map m = this.Map;
+            var m = Map;
 
-            for (int i = 0; i < 4; i++)
-            {
-                Timer.DelayCall(TimeSpan.FromMilliseconds(i * 50), o =>
-                {
-                    Server.Misc.Geometry.Circle2D(this.Location, m, (int)o, (pnt, map) =>
+            for (var i = 0; i < 4; i++)
+                Timer.DelayCall(TimeSpan.FromMilliseconds(i * 50),
+                    o =>
                     {
-                        Effects.SendLocationEffect(pnt, map, Utility.RandomBool() ? 14000 : 14013, 14, 20, 2018, 0);
-                    });
-                }, i);
-            }
+                        Geometry.Circle2D(Location, m, o,
+                            (pnt, map) =>
+                            {
+                                Effects.SendLocationEffect(pnt, map, Utility.RandomBool() ? 14000 : 14013, 14, 20, 2018,
+                                    0);
+                            });
+                    }, i);
 
             Timer.DelayCall(TimeSpan.FromMilliseconds(200), () =>
+            {
+                if (m != null)
                 {
-                    if (m != null)
+                    var list = new List<Mobile>();
+                    IPooledEnumerable eable = m.GetMobilesInRange(Location, 4);
+
+                    foreach (Mobile mob in eable)
                     {
-                        List<Mobile> list = new List<Mobile>();
-                        IPooledEnumerable eable = m.GetMobilesInRange(this.Location, 4);
+                        if (mob.AccessLevel > AccessLevel.Player)
+                            continue;
 
-                        foreach (Mobile mob in eable)
-                        {
-                            if (mob.AccessLevel > AccessLevel.Player)
-                                continue;
-
-                            if (mob is PlayerMobile || (mob is BaseCreature && ((BaseCreature)mob).GetMaster() is PlayerMobile) && CanBeHarmful(mob))
-                                list.Add(mob);
-                        }
-
-                        list.ForEach(mob =>
-                            {
-                                AOS.Damage(mob, this, Utility.RandomMinMax(80, 90), 0, 0, 0, 0, 0, 100, 0);
-                            });
-
-                        list.Clear();
-                        list.TrimExcess();
+                        if (mob is PlayerMobile || (mob is BaseCreature &&
+                                                    ((BaseCreature)mob).GetMaster() is PlayerMobile &&
+                                                    CanBeHarmful(mob)))
+                            list.Add(mob);
                     }
-                });
+
+                    list.ForEach(mob =>
+                    {
+                        AOS.Damage(mob, this, Utility.RandomMinMax(80, 90), 0, 0, 0, 0, 0, 100, 0);
+                    });
+
+                    list.Clear();
+                    list.TrimExcess();
+                }
+            });
         }
 
         public override void GenerateLoot()
         {
-            this.AddLoot(LootPack.UltraRich, 2);
-        }
-
-        public Invader(Serial serial)
-            : base(serial)
-        {
+            AddLoot(LootPack.UltraRich, 2);
         }
 
         public override void Serialize(GenericWriter writer)
@@ -518,7 +528,7 @@ namespace Server.Engines.Blackthorn
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             _Specialty = (SkillName)reader.ReadInt();
             _InvasionType = (InvasionType)reader.ReadInt();
@@ -530,10 +540,10 @@ namespace Server.Engines.Blackthorn
 
     public class InvaderCaptain : Invader
     {
-        public override double MinSkill { get { return 105.0; } }
-        public override double MaxSkill { get { return 130.0; } }
-        public override int MinResist { get { return 20; } }
-        public override int MaxResist { get { return 30; } }
+        public override double MinSkill => 105.0;
+        public override double MaxSkill => 130.0;
+        public override int MinResist => 20;
+        public override int MaxResist => 30;
 
         [Constructable]
         public InvaderCaptain(InvasionType type) : base(type)
@@ -552,7 +562,12 @@ namespace Server.Engines.Blackthorn
                 SetDamage(10, 20);
 
             Fame = 48000;
-            Karma = -48000;  
+            Karma = -48000;
+        }
+
+        public InvaderCaptain(Serial serial)
+            : base(serial)
+        {
         }
 
         public override void OnDeath(Container c)
@@ -562,21 +577,21 @@ namespace Server.Engines.Blackthorn
             var rights = GetLootingRights();
             rights.Sort();
 
-            List<Mobile> list = rights.Select(x => x.m_Mobile).Where(m => m.InRange(c.Location, 20)).ToList();
+            var list = rights.Select(x => x.m_Mobile).Where(m => m.InRange(c.Location, 20)).ToList();
 
-            if(list.Count > 0)
-            {
-                for (int i = 0; i < 2; i++)
+            if (list.Count > 0)
+                for (var i = 0; i < 2; i++)
                 {
                     Mobile drop;
-                    Item item = InvasionController.CreateItem(list[0]);
+                    var item = InvasionController.CreateItem(list[0]);
 
                     if (list.Count == 1 || i >= list.Count)
                         drop = list[0];
                     else
                         drop = list[i];
 
-                    drop.SendLocalizedMessage(1154530); // You notice the crest of Minax on your fallen foe's equipment and decide it may be of some value...
+                    drop.SendLocalizedMessage(
+                        1154530); // You notice the crest of Minax on your fallen foe's equipment and decide it may be of some value...
 
                     if (drop.Backpack == null || !drop.Backpack.TryDropItem(drop, item, false))
                     {
@@ -584,20 +599,14 @@ namespace Server.Engines.Blackthorn
                         drop.SendLocalizedMessage(1079730); // // The item has been placed into your bank box.
                     }
                 }
-            }
 
             ColUtility.Free(list);
         }
 
         public override void GenerateLoot()
         {
-            this.AddLoot(LootPack.UltraRich, 2);
-            this.AddLoot(LootPack.SuperBoss, 1);
-        }
-
-        public InvaderCaptain(Serial serial)
-            : base(serial)
-        {
+            AddLoot(LootPack.UltraRich, 2);
+            AddLoot(LootPack.SuperBoss, 1);
         }
 
         public override void Serialize(GenericWriter writer)
@@ -609,7 +618,7 @@ namespace Server.Engines.Blackthorn
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

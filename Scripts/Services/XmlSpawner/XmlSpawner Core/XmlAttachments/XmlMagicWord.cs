@@ -1,267 +1,244 @@
 using System;
-using Server;
 using Server.Items;
-using Server.Network;
 using Server.Mobiles;
+using Server.Network;
 
 namespace Server.Engines.XmlSpawner2
 {
-	public class XmlMagicWord : XmlAttachment
-	{
-		private string Word;
-		private TimeSpan Duration = TimeSpan.FromSeconds(30.0);     // 30 sec default duration for effects
-		private int Charges = 1;                        // single use by default, note a value of zero or less means unlimited use
-		private TimeSpan Refractory = TimeSpan.Zero;    // no refractory period
-		private DateTime m_EndTime = DateTime.MinValue;
+    public class XmlMagicWord : XmlAttachment
+    {
+        // static list used for random word assignment
+        private static readonly string[] keywordlist =
+            { "Shoda", "Malik", "Lepto", "Velas", "Tarda", "Marda", "Vas Malik", "Nartor", "Santor" };
 
-		// static list used for random word assignment
-		private static string [] keywordlist = new string[] { "Shoda", "Malik", "Lepto" , "Velas", "Tarda", "Marda", "Vas Malik", "Nartor", "Santor"};
+        private int Charges = 1; // single use by default, note a value of zero or less means unlimited use
+        private TimeSpan Duration = TimeSpan.FromSeconds(30.0); // 30 sec default duration for effects
+        private TimeSpan Refractory = TimeSpan.Zero; // no refractory period
+        private string Word;
+        private DateTime m_EndTime = DateTime.MinValue;
 
-		// note that support for player identification requires modification of the identification skill (see the installation notes for details)
-		private bool m_Identified = false;  // optional identification flag that can suppress application of the mod until identified when applied to items
+        // note that support for player identification requires modification of the identification skill (see the installation notes for details)
+        private bool
+            m_Identified; // optional identification flag that can suppress application of the mod until identified when applied to items
 
-		private bool m_RequireIdentification = false;  // by default no identification is required for the mod to be activatable
+        // this property can be set allowing individual items to determine whether they must be identified for the mod to be activatable
+        public bool RequireIdentification { get; set; }
 
-		// this property can be set allowing individual items to determine whether they must be identified for the mod to be activatable
-		public bool RequireIdentification { get { return m_RequireIdentification; } set {m_RequireIdentification = value; } }
+        // by overriding these properties armor and weapons can be restricted to trigger on speech only when equipped and not when in the pack or in the world
+        public override bool CanActivateInBackpack
+        {
+            get
+            {
+                if (AttachedTo is BaseWeapon || AttachedTo is BaseArmor)
+                    return false;
+                return true;
+            }
+        }
 
-		// a serial constructor is REQUIRED
-		public XmlMagicWord(ASerial serial) : base(serial)
-		{
-		}
+        public override bool CanActivateInWorld
+        {
+            get
+            {
+                if (AttachedTo is BaseWeapon || AttachedTo is BaseArmor)
+                    return false;
+                return true;
+            }
+        }
 
-		[Attachable]
-		public XmlMagicWord()
-		{
-			Word = keywordlist[Utility.Random(keywordlist.Length)];
-			Name = Word;
-		}
+        public override bool HandlesOnSpeech => true;
 
-		[Attachable]
-		public XmlMagicWord(string word)
-		{
-			Word = word;
-			Name = word;
-		}
+        // a serial constructor is REQUIRED
+        public XmlMagicWord(ASerial serial) : base(serial)
+        {
+        }
 
-		[Attachable]
-		public XmlMagicWord(string word, double duration)
-		{
-			Name = word;
-			Word = word;
-			Duration = TimeSpan.FromSeconds(duration);
-		}
+        [Attachable]
+        public XmlMagicWord()
+        {
+            Word = keywordlist[Utility.Random(keywordlist.Length)];
+            Name = Word;
+        }
 
-		[Attachable]
-		public XmlMagicWord(string word, double duration, double refractory)
-		{
-			Name = word;
-			Word = word;
-			Duration = TimeSpan.FromSeconds(duration);
-			Refractory = TimeSpan.FromSeconds(refractory);
-		}
+        [Attachable]
+        public XmlMagicWord(string word)
+        {
+            Word = word;
+            Name = word;
+        }
 
-		[Attachable]
-		public XmlMagicWord(string word, double duration, double refractory, int charges)
-		{
-			Name = word;
-			Word = word;
-			Duration = TimeSpan.FromSeconds(duration);
-			Refractory = TimeSpan.FromSeconds(refractory);
-			Charges = charges;
-		}
+        [Attachable]
+        public XmlMagicWord(string word, double duration)
+        {
+            Name = word;
+            Word = word;
+            Duration = TimeSpan.FromSeconds(duration);
+        }
 
-		public override void Serialize( GenericWriter writer )
-		{
-			base.Serialize(writer);
+        [Attachable]
+        public XmlMagicWord(string word, double duration, double refractory)
+        {
+            Name = word;
+            Word = word;
+            Duration = TimeSpan.FromSeconds(duration);
+            Refractory = TimeSpan.FromSeconds(refractory);
+        }
 
-			writer.Write( (int) 0 );
-			// version 0
-			writer.Write(Word);
-			writer.Write(Charges);
-			writer.Write(Duration);
-			writer.Write(Refractory);
-			writer.Write(m_EndTime - DateTime.UtcNow);
-			writer.Write(m_RequireIdentification);
-			writer.Write(m_Identified);
-		}
+        [Attachable]
+        public XmlMagicWord(string word, double duration, double refractory, int charges)
+        {
+            Name = word;
+            Word = word;
+            Duration = TimeSpan.FromSeconds(duration);
+            Refractory = TimeSpan.FromSeconds(refractory);
+            Charges = charges;
+        }
 
-		public override void Deserialize(GenericReader reader)
-		{
-			base.Deserialize(reader);
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
 
-			int version = reader.ReadInt();
-			// version 0
-			Word = reader.ReadString();
-			Charges = reader.ReadInt();
-			Duration = reader.ReadTimeSpan();
-			Refractory = reader.ReadTimeSpan();
-			TimeSpan remaining = reader.ReadTimeSpan();
-			m_EndTime = DateTime.UtcNow + remaining;
-			m_RequireIdentification = reader.ReadBool();
-			m_Identified = reader.ReadBool();
-		}
-		
-		public override string OnIdentify(Mobile from)
-		{     
-			string msg = null;
+            writer.Write(0);
+            // version 0
+            writer.Write(Word);
+            writer.Write(Charges);
+            writer.Write(Duration);
+            writer.Write(Refractory);
+            writer.Write(m_EndTime - DateTime.UtcNow);
+            writer.Write(RequireIdentification);
+            writer.Write(m_Identified);
+        }
 
-			// can force identification before the skill mods can be applied
-			if(from != null && from.AccessLevel == AccessLevel.Player)
-			{
-				m_Identified = true;
-			}
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
 
-			if(RequireIdentification && !m_Identified) return null;
+            var version = reader.ReadInt();
+            // version 0
+            Word = reader.ReadString();
+            Charges = reader.ReadInt();
+            Duration = reader.ReadTimeSpan();
+            Refractory = reader.ReadTimeSpan();
+            var remaining = reader.ReadTimeSpan();
+            m_EndTime = DateTime.UtcNow + remaining;
+            RequireIdentification = reader.ReadBool();
+            m_Identified = reader.ReadBool();
+        }
 
-			if(Refractory > TimeSpan.Zero)
-			{
-				msg = String.Format("{0} lasting {1} secs : {2} secs between uses",Word,Duration.TotalSeconds, Refractory.TotalSeconds);
-			} 
-			else
-			{
-				msg = String.Format("{0} lasting {1} secs",Word,Duration.TotalSeconds);
-			}
-		    
-			if(Charges > 0)
-			{
-				return String.Format("{0} : {1} charge(s) remaining",msg, Charges);
-			} 
-			else
-			{
-				return msg;
-			}
-		}
+        public override string OnIdentify(Mobile from)
+        {
+            string msg = null;
 
-		// by overriding these properties armor and weapons can be restricted to trigger on speech only when equipped and not when in the pack or in the world
-		public override bool CanActivateInBackpack 
-		{ 
-			get
-			{
-				if(AttachedTo is BaseWeapon || AttachedTo is BaseArmor)
-					return false;
-				else
-					return true;
-			}
-		}
+            // can force identification before the skill mods can be applied
+            if (from != null && from.AccessLevel == AccessLevel.Player) m_Identified = true;
 
-		public override bool CanActivateInWorld 
-		{
-			get
-			{
-				if(AttachedTo is BaseWeapon || AttachedTo is BaseArmor)
-					return false;
-				else
-					return true;
-			}
-		}
+            if (RequireIdentification && !m_Identified) return null;
 
-		public override bool HandlesOnSpeech { get { return true; } }
-		
-		public override void OnSpeech(SpeechEventArgs e )
-		{
-			base.OnSpeech(e);
-		    
-			if(e.Mobile == null || e.Mobile.AccessLevel > AccessLevel.Player) return;
+            if (Refractory > TimeSpan.Zero)
+                msg = string.Format("{0} lasting {1} secs : {2} secs between uses", Word, Duration.TotalSeconds,
+                    Refractory.TotalSeconds);
+            else
+                msg = string.Format("{0} lasting {1} secs", Word, Duration.TotalSeconds);
 
-			// dont respond to other players speech if this is attached to a mob
-			if(AttachedTo is Mobile && (Mobile)AttachedTo != e.Mobile) return;
+            if (Charges > 0) return string.Format("{0} : {1} charge(s) remaining", msg, Charges);
 
-			if(e.Speech == Word)
-			{
-				OnTrigger(null, e.Mobile);
-			}
-		}
+            return msg;
+        }
 
-		public void Hide_Callback(object state)
-		{
-			object[] args = (object[])state;
-			Mobile m = (Mobile)args[0];
+        public override void OnSpeech(SpeechEventArgs e)
+        {
+            base.OnSpeech(e);
 
-			m.Hidden = true;
-		}
+            if (e.Mobile == null || e.Mobile.AccessLevel > AccessLevel.Player) return;
 
-		public override void OnTrigger(object activator, Mobile m)
-		{
-			if(m == null || Word == null || (RequireIdentification && !m_Identified)) return;
+            // dont respond to other players speech if this is attached to a mob
+            if (AttachedTo is Mobile && (Mobile)AttachedTo != e.Mobile) return;
 
-			if(DateTime.UtcNow < m_EndTime) return;
+            if (e.Speech == Word) OnTrigger(null, e.Mobile);
+        }
 
-			string msgstr = "Activating the power of " + Word;
+        public void Hide_Callback(object state)
+        {
+            var args = (object[])state;
+            var m = (Mobile)args[0];
 
-			// assign powers to certain words
-			switch ( Word )
-			{
-				case "Shoda":
-					m.AddStatMod( new StatMod( StatType.Int, "Shoda", 20, Duration ) );
-					m.SendMessage("Your mind expands!");
-					break;
-				case "Malik":
-					m.AddStatMod( new StatMod( StatType.Str, "Malik", 20, Duration ) );
-					m.SendMessage("Your strength surges!");
-					break;
-				case "Lepto":
-					m.AddStatMod( new StatMod( StatType.Dex, "Lepto", 20, Duration ) );
-					m.SendMessage("You are more nimble!");
-					break;
-				case "Velas":
-					Timer.DelayCall( TimeSpan.Zero, new TimerStateCallback( Hide_Callback ), new object[]{ m } );
-					m.SendMessage("You disappear!");
-					break;
-				case "Tarda":
-					m.AddSkillMod( new TimedSkillMod( SkillName.Tactics, true, 20, Duration ) );
-					m.SendMessage("You are more skillful warrior!");
-					break;
-				case "Marda":
-					m.AddSkillMod( new TimedSkillMod( SkillName.Magery, true, 20, Duration ) );
-					m.SendMessage("You are more skillful mage!");
-					break;
-				case "Vas Malik":
-					m.AddStatMod( new StatMod( StatType.Str, "Vas Malik", 40, Duration ) );
-					m.SendMessage("You are exceptionally strong!");
-					break;
-				case "Nartor":
-					BaseCreature b = new Drake();
-					b.MoveToWorld(m.Location, m.Map);
-					b.Owners.Add( m );
-					b.SetControlMaster( m );
-					if(b.Controlled)
-						m.SendMessage("You master the beast!");
-					break;
-				case "Santor":
-					b = new Horse();
-					b.MoveToWorld(m.Location, m.Map);
-					b.Owners.Add( m );
-					b.SetControlMaster( m );
-					if(b.Controlled)
-						m.SendMessage("You master the beast!");
-					break;
-				default:
-					m.SendMessage("There is no effect.");
-					break;
-			}
-            
-			// display activation effects
-			Effects.SendLocationParticles( EffectItem.Create( m.Location, m.Map, EffectItem.DefaultDuration ), 0x3728, 8, 20, 5042 );
-			Effects.PlaySound( m, m.Map, 0x201 );
+            m.Hidden = true;
+        }
 
-			// display a message over the item it was attached to
-			if(AttachedTo is Item )
-			{
-				((Item)AttachedTo).PublicOverheadMessage( MessageType.Regular, 0x3B2, true, msgstr );
-			}
-            
-			Charges--;
+        public override void OnTrigger(object activator, Mobile m)
+        {
+            if (m == null || Word == null || (RequireIdentification && !m_Identified)) return;
 
-			// remove the attachment after the charges run out
-			if(Charges == 0)
-			{
-				Delete();
-			} 
-			else
-			{
-				m_EndTime = DateTime.UtcNow + Refractory;
-			}
-		}
-	}
+            if (DateTime.UtcNow < m_EndTime) return;
+
+            var msgstr = "Activating the power of " + Word;
+
+            // assign powers to certain words
+            switch (Word)
+            {
+                case "Shoda":
+                    m.AddStatMod(new StatMod(StatType.Int, "Shoda", 20, Duration));
+                    m.SendMessage("Your mind expands!");
+                    break;
+                case "Malik":
+                    m.AddStatMod(new StatMod(StatType.Str, "Malik", 20, Duration));
+                    m.SendMessage("Your strength surges!");
+                    break;
+                case "Lepto":
+                    m.AddStatMod(new StatMod(StatType.Dex, "Lepto", 20, Duration));
+                    m.SendMessage("You are more nimble!");
+                    break;
+                case "Velas":
+                    Timer.DelayCall(TimeSpan.Zero, new TimerStateCallback(Hide_Callback), new object[] { m });
+                    m.SendMessage("You disappear!");
+                    break;
+                case "Tarda":
+                    m.AddSkillMod(new TimedSkillMod(SkillName.Tactics, true, 20, Duration));
+                    m.SendMessage("You are more skillful warrior!");
+                    break;
+                case "Marda":
+                    m.AddSkillMod(new TimedSkillMod(SkillName.Magery, true, 20, Duration));
+                    m.SendMessage("You are more skillful mage!");
+                    break;
+                case "Vas Malik":
+                    m.AddStatMod(new StatMod(StatType.Str, "Vas Malik", 40, Duration));
+                    m.SendMessage("You are exceptionally strong!");
+                    break;
+                case "Nartor":
+                    BaseCreature b = new Drake();
+                    b.MoveToWorld(m.Location, m.Map);
+                    b.Owners.Add(m);
+                    b.SetControlMaster(m);
+                    if (b.Controlled)
+                        m.SendMessage("You master the beast!");
+                    break;
+                case "Santor":
+                    b = new Horse();
+                    b.MoveToWorld(m.Location, m.Map);
+                    b.Owners.Add(m);
+                    b.SetControlMaster(m);
+                    if (b.Controlled)
+                        m.SendMessage("You master the beast!");
+                    break;
+                default:
+                    m.SendMessage("There is no effect.");
+                    break;
+            }
+
+            // display activation effects
+            Effects.SendLocationParticles(EffectItem.Create(m.Location, m.Map, EffectItem.DefaultDuration), 0x3728, 8,
+                20, 5042);
+            Effects.PlaySound(m, m.Map, 0x201);
+
+            // display a message over the item it was attached to
+            if (AttachedTo is Item) ((Item)AttachedTo).PublicOverheadMessage(MessageType.Regular, 0x3B2, true, msgstr);
+
+            Charges--;
+
+            // remove the attachment after the charges run out
+            if (Charges == 0)
+                Delete();
+            else
+                m_EndTime = DateTime.UtcNow + Refractory;
+        }
+    }
 }

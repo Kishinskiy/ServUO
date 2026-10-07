@@ -8,10 +8,10 @@ namespace Server.Items
         private CraftResource _Resource;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public CraftResource Resource 
-        { 
-            get { return _Resource; }
-            set 
+        public CraftResource Resource
+        {
+            get => _Resource;
+            set
             {
                 var old = _Resource;
                 _Resource = value;
@@ -23,19 +23,19 @@ namespace Server.Items
             }
         }
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public virtual Type RepairResource
-        {
-            get
-            {
-                CraftResourceInfo resInfo = CraftResources.GetInfo(_Resource);
+        // Missing Wrestling Mastery Ability
 
-                if (resInfo == null || resInfo.ResourceTypes.Length == 0)
-                    return typeof(IronIngot);
+        public override double WeaponAbilityChance => 0.33;
 
-                return resInfo.ResourceTypes[0];
-            }
-        }
+        public override bool IsScaredOfScaryThings => false;
+        public override bool IsScaryToPets => !Controlled;
+        public override FoodType FavoriteFood => FoodType.None;
+        public override bool CanBeDistracted => false;
+        public override bool DeleteOnRelease => true;
+        public override bool AutoDispel => !Controlled;
+        public override bool BleedImmune => true;
+        public override bool BardImmune => true;
+        public override Poison PoisonImmune => Poison.Lethal;
 
         [Constructable]
         public KotlAutomaton()
@@ -76,23 +76,42 @@ namespace Server.Items
             ControlSlots = 4;
             SetWeaponAbility(WeaponAbility.ParalyzingBlow);
             SetWeaponAbility(WeaponAbility.Disarm);
-        }       
+        }
+
+        public KotlAutomaton(Serial serial)
+            : base(serial)
+        {
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public virtual Type RepairResource
+        {
+            get
+            {
+                var resInfo = CraftResources.GetInfo(_Resource);
+
+                if (resInfo == null || resInfo.ResourceTypes.Length == 0)
+                    return typeof(IronIngot);
+
+                return resInfo.ResourceTypes[0];
+            }
+        }
 
         public override void GenerateLoot()
         {
-            this.AddLoot(LootPack.Rich, 4);
+            AddLoot(LootPack.Rich, 4);
         }
 
         public virtual void OnResourceChanged()
         {
             Hue = 0x8000 | CraftResources.GetHue(_Resource);
 
-            CraftResourceInfo resInfo = CraftResources.GetInfo(_Resource);
+            var resInfo = CraftResources.GetInfo(_Resource);
 
             if (resInfo == null)
                 return;
 
-            CraftAttributeInfo attrs = resInfo.AttributeInfo;
+            var attrs = resInfo.AttributeInfo;
 
             if (attrs == null)
                 return;
@@ -103,11 +122,11 @@ namespace Server.Items
             SetResistance(ResistanceType.Poison, Utility.RandomMinMax(45, 50) + attrs.ArmorPoisonResist);
             SetResistance(ResistanceType.Energy, Utility.RandomMinMax(45, 50) + attrs.ArmorEnergyResist);
 
-            int fire = attrs.WeaponFireDamage;
-            int cold = attrs.WeaponColdDamage;
-            int poison = attrs.WeaponPoisonDamage;
-            int energy = attrs.WeaponEnergyDamage;
-            int physical = 100 - fire - cold - poison - energy;
+            var fire = attrs.WeaponFireDamage;
+            var cold = attrs.WeaponColdDamage;
+            var poison = attrs.WeaponPoisonDamage;
+            var energy = attrs.WeaponEnergyDamage;
+            var physical = 100 - fire - cold - poison - energy;
 
             SetDamageType(ResistanceType.Physical, physical);
             SetDamageType(ResistanceType.Fire, fire);
@@ -130,23 +149,19 @@ namespace Server.Items
         public override bool OnBeforeDeath()
         {
             if (!Controlled)
-            {
                 if (Region.IsPartOf("KotlCity"))
-                {
                     AutomatonStatue.OnDeath(this);
-                }
-            }
 
             return base.OnBeforeDeath();
         }
 
         public override void OnDeath(Container c)
         {
-            Mobile master = GetMaster();
+            var master = GetMaster();
 
             if (Controlled && master != null && master.Backpack != null)
             {
-                BrokenAutomatonHead broke = new BrokenAutomatonHead(this);
+                var broke = new BrokenAutomatonHead(this);
 
                 ControlTarget = null;
                 ControlOrder = OrderType.Stay;
@@ -163,25 +178,6 @@ namespace Server.Items
             base.OnDeath(c);
         }
 
-        public KotlAutomaton(Serial serial)
-            : base(serial)
-        {
-        }
-
-        // Missing Wrestling Mastery Ability
-
-        public override double WeaponAbilityChance { get { return 0.33; } }
-
-        public override bool IsScaredOfScaryThings { get {  return false;  } }
-        public override bool IsScaryToPets { get { return !Controlled; } }
-        public override FoodType FavoriteFood { get { return FoodType.None; } }
-        public override bool CanBeDistracted { get { return false; } }
-        public override bool DeleteOnRelease { get { return true; } }
-        public override bool AutoDispel { get { return !Controlled; } }
-        public override bool BleedImmune { get { return true; } }
-        public override bool BardImmune { get { return true; } }
-        public override Poison PoisonImmune { get { return Poison.Lethal; } }
-
         public override bool CanTransfer(Mobile m)
         {
             return false;
@@ -195,7 +191,7 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1);
+            writer.Write(1);
 
             writer.Write((int)_Resource);
         }
@@ -203,7 +199,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             _Resource = (CraftResource)reader.ReadInt();
 

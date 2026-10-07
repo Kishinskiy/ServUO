@@ -1,9 +1,6 @@
-using System;
-using Server;
-using Server.Mobiles;
-using Server.Regions;
-using System.Xml;
 using System.Collections.Generic;
+using System.Xml;
+using Server.Regions;
 
 namespace Server.Engines.NewMagincia
 {
@@ -15,14 +12,14 @@ namespace Server.Engines.NewMagincia
 
         public override bool AllowHousing(Mobile from, Point3D p)
         {
-            MaginciaLottoSystem system = MaginciaLottoSystem.Instance;
+            var system = MaginciaLottoSystem.Instance;
 
             if (system != null && system.Enabled && from.Backpack != null)
             {
-                List<Item> items = new List<Item>();
+                var items = new List<Item>();
 
-                Item[] packItems = from.Backpack.FindItemsByType(typeof(WritOfLease));
-                Item[] bankItems = from.BankBox.FindItemsByType(typeof(WritOfLease));
+                var packItems = from.Backpack.FindItemsByType(typeof(WritOfLease));
+                var bankItems = from.BankBox.FindItemsByType(typeof(WritOfLease));
 
                 if (packItems != null && packItems.Length > 0)
                     items.AddRange(packItems);
@@ -30,16 +27,17 @@ namespace Server.Engines.NewMagincia
                 if (bankItems != null && bankItems.Length > 0)
                     items.AddRange(bankItems);
 
-                foreach (Item item in items)
+                foreach (var item in items)
                 {
-                    WritOfLease lease = item as WritOfLease;
+                    var lease = item as WritOfLease;
 
-                    if (lease != null && !lease.Expired && lease.Plot != null && lease.Plot.Bounds.Contains(p) && from.Map == lease.Plot.Map)
+                    if (lease != null && !lease.Expired && lease.Plot != null && lease.Plot.Bounds.Contains(p) &&
+                        from.Map == lease.Plot.Map)
                         return true;
                 }
             }
 
-            return MaginciaLottoSystem.IsFreeHousingZone(p, this.Map);
+            return MaginciaLottoSystem.IsFreeHousingZone(p, Map);
         }
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Server.Spells.SkillMasteries;
 
 namespace Server.Spells.Bushido
 {
@@ -10,34 +11,18 @@ namespace Server.Spells.Bushido
             -1,
             9002);
 
-        private static Dictionary<Mobile, Timer> m_Table = new Dictionary<Mobile, Timer>();
-        private static Dictionary<Mobile, Timer> m_RegenTable = new Dictionary<Mobile, Timer>();
+        private static readonly Dictionary<Mobile, Timer> m_Table = new Dictionary<Mobile, Timer>();
+        private static readonly Dictionary<Mobile, Timer> m_RegenTable = new Dictionary<Mobile, Timer>();
+
+        public override TimeSpan CastDelayBase => TimeSpan.FromSeconds(0.25);
+
+        public override double RequiredSkill => 25.0;
+
+        public override int RequiredMana => 10;
 
         public Confidence(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
         {
-        }
-
-        public override TimeSpan CastDelayBase
-        {
-            get
-            {
-                return TimeSpan.FromSeconds(0.25);
-            }
-        }
-        public override double RequiredSkill
-        {
-            get
-            {
-                return 25.0;
-            }
-        }
-        public override int RequiredMana
-        {
-            get
-            {
-                return 10;
-            }
         }
 
         public static bool IsConfident(Mobile m)
@@ -58,13 +43,19 @@ namespace Server.Spells.Bushido
 
             t.Start();
 
-            double bushido = m.Skills[SkillName.Bushido].Value;
-            BuffInfo.AddBuff(m, new BuffInfo(BuffIcon.Confidence, 1060596, 1153809, TimeSpan.FromSeconds(4), m, String.Format("{0}\t{1}\t{2}", ((int)(bushido / 12)).ToString(), ((int)(bushido / 5)).ToString(), "100"))); // Successful parry will heal for 1-~1_HEAL~ hit points and refresh for 1-~2_STAM~ stamina points.<br>+~3_HP~ hit point regeneration (4 second duration).
+            var bushido = m.Skills[SkillName.Bushido].Value;
+            BuffInfo.AddBuff(m,
+                new BuffInfo(BuffIcon.Confidence, 1060596, 1153809, TimeSpan.FromSeconds(4), m,
+                    string.Format("{0}\t{1}\t{2}", ((int)(bushido / 12)).ToString(), ((int)(bushido / 5)).ToString(),
+                        "100"))); // Successful parry will heal for 1-~1_HEAL~ hit points and refresh for 1-~2_STAM~ stamina points.<br>+~3_HP~ hit point regeneration (4 second duration).
 
-            int anticipateHitBonus = SkillMasteries.MasteryInfo.AnticipateHitBonus(m);
+            var anticipateHitBonus = MasteryInfo.AnticipateHitBonus(m);
 
             if (anticipateHitBonus > 0)
-                BuffInfo.AddBuff(m, new BuffInfo(BuffIcon.AnticipateHit, 1155905, 1156057, TimeSpan.FromSeconds(4), m, String.Format("{0}\t{1}", anticipateHitBonus.ToString(), "75"))); // ~1_CHANCE~% chance to reduce Confidence heal by ~2_REDUCE~% when hit. 
+                BuffInfo.AddBuff(m,
+                    new BuffInfo(BuffIcon.AnticipateHit, 1155905, 1156057, TimeSpan.FromSeconds(4), m,
+                        string.Format("{0}\t{1}", anticipateHitBonus.ToString(),
+                            "75"))); // ~1_CHANCE~% chance to reduce Confidence heal by ~2_REDUCE~% when hit. 
         }
 
         public static void EndConfidence(Mobile m)
@@ -72,7 +63,7 @@ namespace Server.Spells.Bushido
             if (!m_Table.ContainsKey(m))
                 return;
 
-            Timer t = m_Table[m];
+            var t = m_Table[m];
 
             t.Stop();
             m_Table.Remove(m);
@@ -105,7 +96,7 @@ namespace Server.Spells.Bushido
         public static void StopRegenerating(Mobile m)
         {
             Timer t;
-            int anticipateHitBonus = SkillMasteries.MasteryInfo.AnticipateHitBonus(m);
+            var anticipateHitBonus = MasteryInfo.AnticipateHitBonus(m);
 
             if (anticipateHitBonus >= Utility.Random(100) && m_RegenTable.TryGetValue(m, out t))
             {
@@ -152,6 +143,7 @@ namespace Server.Spells.Bushido
         private class InternalTimer : Timer
         {
             private readonly Mobile m_Mobile;
+
             public InternalTimer(Mobile m)
                 : base(TimeSpan.FromSeconds(15.0))
             {
@@ -168,17 +160,16 @@ namespace Server.Spells.Bushido
 
         private class RegenTimer : Timer
         {
-            private Mobile m_Mobile;
+            private readonly Mobile m_Mobile;
             private int m_Ticks;
-            private int m_Hits;
 
-            public int Hits { get { return m_Hits; } set { m_Hits = value; } }
+            public int Hits { get; set; }
 
             public RegenTimer(Mobile m)
                 : base(TimeSpan.FromSeconds(1.0), TimeSpan.FromSeconds(1.0))
             {
                 m_Mobile = m;
-                m_Hits = 15 + (m.Skills.Bushido.Fixed * m.Skills.Bushido.Fixed / 57600);
+                Hits = 15 + m.Skills.Bushido.Fixed * m.Skills.Bushido.Fixed / 57600;
                 Priority = TimerPriority.TwoFiftyMS;
             }
 
@@ -188,11 +179,11 @@ namespace Server.Spells.Bushido
 
                 if (m_Ticks >= 5)
                 {
-                    m_Mobile.Hits += (m_Hits - (m_Hits * 4 / 5));
+                    m_Mobile.Hits += Hits - Hits * 4 / 5;
                     StopRegenerating(m_Mobile);
                 }
 
-                m_Mobile.Hits += (m_Hits / 5);
+                m_Mobile.Hits += Hits / 5;
             }
         }
     }

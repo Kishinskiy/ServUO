@@ -1,9 +1,4 @@
-using Server;
 using System;
-using Server.Mobiles;
-using Server.Items;
-using Server.Multis;
-using System.Collections.Generic;
 
 namespace Server.Engines.Auction
 {
@@ -24,7 +19,7 @@ namespace Server.Engines.Auction
 
         public HistoryEntry(GenericReader reader)
         {
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
             Mobile = reader.ReadMobile();
             Bid = reader.ReadLong();
             ShowRealBid = reader.ReadBool();

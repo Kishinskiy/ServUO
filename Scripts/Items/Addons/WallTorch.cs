@@ -1,4 +1,3 @@
-using System;
 using Server.Network;
 
 namespace Server.Items
@@ -6,6 +5,8 @@ namespace Server.Items
     [Flipable(0x3D98, 0x3D94)]
     public class WallTorchComponent : AddonComponent
     {
+        public override int LabelNumber => 1076282; // Wall Torch
+
         public WallTorchComponent()
             : base(0x3D98)
         {
@@ -16,37 +17,32 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1076282;
-            }
-        }// Wall Torch
         public override void OnDoubleClick(Mobile from)
         {
-            if (from.InRange(this.Location, 2))
+            if (from.InRange(Location, 2))
             {
-                switch ( this.ItemID )
+                switch (ItemID)
                 {
                     case 0x3D98:
-                        this.ItemID = 0x3D9B;
+                        ItemID = 0x3D9B;
                         break;
                     case 0x3D9B:
-                        this.ItemID = 0x3D98;
+                        ItemID = 0x3D98;
                         break;
                     case 0x3D94:
-                        this.ItemID = 0x3D97;
+                        ItemID = 0x3D97;
                         break;
                     case 0x3D97:
-                        this.ItemID = 0x3D94;
+                        ItemID = 0x3D94;
                         break;
                 }
 
-                Effects.PlaySound(this.Location, this.Map, 0x3BE);
+                Effects.PlaySound(Location, Map, 0x3BE);
             }
             else
+            {
                 from.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1019045); // I can't reach that.
+            }
         }
 
         public override void Serialize(GenericWriter writer)
@@ -60,16 +56,17 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class WallTorchAddon : BaseAddon
     {
+        public override BaseAddonDeed Deed => new WallTorchDeed();
+
         public WallTorchAddon()
-            : base()
         {
-            this.AddComponent(new WallTorchComponent(), 0, 0, 0);
+            AddComponent(new WallTorchComponent(), 0, 0, 0);
         }
 
         public WallTorchAddon(Serial serial)
@@ -77,13 +74,6 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonDeed Deed
-        {
-            get
-            {
-                return new WallTorchDeed();
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -95,17 +85,20 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class WallTorchDeed : BaseAddonDeed
     {
+        public override BaseAddon Addon => new WallTorchAddon();
+
+        public override int LabelNumber => 1076282; // Wall Torch
+
         [Constructable]
         public WallTorchDeed()
-            : base()
         {
-            this.LootType = LootType.Blessed;
+            LootType = LootType.Blessed;
         }
 
         public WallTorchDeed(Serial serial)
@@ -113,20 +106,6 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddon Addon
-        {
-            get
-            {
-                return new WallTorchAddon();
-            }
-        }
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1076282;
-            }
-        }// Wall Torch
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -138,7 +117,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

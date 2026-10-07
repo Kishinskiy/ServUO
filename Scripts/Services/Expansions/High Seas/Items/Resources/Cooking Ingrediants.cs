@@ -1,12 +1,10 @@
-﻿using Server;
-using System;
-using Server.Targeting;
+﻿using Server.Targeting;
 
 namespace Server.Items
 {
     public class MentoSeasoning : Item
     {
-        public override int LabelNumber { get { return 1116299; } }
+        public override int LabelNumber => 1116299;
 
         [Constructable]
         public MentoSeasoning()
@@ -22,19 +20,19 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class SamuelsSecretSauce : Item
     {
-        public override int LabelNumber { get { return 1116338; } }
+        public override int LabelNumber => 1116338;
 
         [Constructable]
         public SamuelsSecretSauce() : base(2463)
@@ -49,19 +47,19 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class DarkTruffle : Item
     {
-        public override int LabelNumber { get { return 1116300; } }
+        public override int LabelNumber => 1116300;
 
         [Constructable]
         public DarkTruffle()
@@ -78,19 +76,19 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class FreshGinger : Item
     {
-        public override int LabelNumber { get { return 1031235; } }
+        public override int LabelNumber => 1031235;
 
         [Constructable]
         public FreshGinger()
@@ -106,19 +104,19 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class FishOilFlask : Item
     {
-        public override int LabelNumber { get { return 1150863; } }
+        public override int LabelNumber => 1150863;
 
         [Constructable]
         public FishOilFlask()
@@ -127,15 +125,32 @@ namespace Server.Items
             Hue = 2404;
         }
 
+        public FishOilFlask(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void OnDoubleClick(Mobile from)
         {
-            if(IsChildOf(from.Backpack))
+            if (IsChildOf(from.Backpack))
                 from.Target = new InternalTarget(this);
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
         }
 
         private class InternalTarget : Target
         {
-            private FishOilFlask m_Flask;
+            private readonly FishOilFlask m_Flask;
 
             public InternalTarget(FishOilFlask flask) : base(-1, false, TargetFlags.None)
             {
@@ -147,7 +162,9 @@ namespace Server.Items
                 if (targeted is OracleOfTheSea)
                 {
                     if (((OracleOfTheSea)targeted).UsesRemaining >= 5)
+                    {
                         from.SendMessage("That is already fully charged!");
+                    }
                     else
                     {
                         ((OracleOfTheSea)targeted).UsesRemaining = 5;
@@ -156,23 +173,6 @@ namespace Server.Items
                     }
                 }
             }
-        }
-
-        public FishOilFlask(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.Write((int)0);
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            int version = reader.ReadInt();
         }
     }
 }

@@ -1,6 +1,4 @@
 using System;
-using Server;
-using Server.Mobiles;
 using Server.Engines.Craft;
 using Server.Multis;
 
@@ -17,6 +15,7 @@ namespace Server.Items
         RoughSmallArch,
         RoughAngledPillar,
         ShortRough,
+
         // Stairs
         RoughBlock,
         RoughSteps,
@@ -24,10 +23,12 @@ namespace Server.Items
         RoughRoundedCornerSteps,
         RoughInsetSteps,
         RoughRoundedInsetSteps,
+
         // Floors
         LightPaver,
         MediumPaver,
         DarkPaver,
+
         //Hangers
         LightWoodenSignHanger,
         DarkWoodenSignHanger,
@@ -35,6 +36,7 @@ namespace Server.Items
         FlourishedMetalSignHanger,
         InwardCurledMetalSignHanger,
         EndCurledMetalSignHanger,
+
         //DecorativeStableSet
         Arch,
         NWCornerPiece,
@@ -42,57 +44,58 @@ namespace Server.Items
         EastFacingPieces,
         GateSouth,
         GateEast,
-        CornerPiece,
+        CornerPiece
     }
 
     public class CraftableHouseItem : Item, IFlipable, ICraftable
     {
         public static int[][] IDs =
-		{
-			new int[] { 1155794, 464, 465, 466, 463 },      // RoughWindowless
-			new int[] { 1155797, 467, 468 },                // RoughWindow
-			new int[] { 1155799, 469, 470, 471, 472, 473 }, // RoughArch
-			new int[] { 1155804, 474, },                    // RoughPillar
-			new int[] { 1155805, 475, 476, 477, 478, 479 }, // RoughRoundedArch
-			new int[] { 1155810, 480, 481, 482, 484 },      // RoughSmallArch
-			new int[] { 1155814, 486, 487 },                // RoughAngledPillar
-			new int[] { 1155816, 488, 489, 490, 491 },      // ShortRough
-			new int[] { 1155821, 1928 },                    // RoughBlock
-			new int[] { 1155822, 1929, 1930, 1931, 1932 },  // RoughSteps
-			new int[] { 1155826, 1934, 1933, 1935, 1936 },  // RoughCornerSteps
-			new int[] { 1155830, 1938, 1940, 1937, 1939 },  // RoughRoundedCornerSeps
-			new int[] { 1155834, 1941, 1942, 1943, 1944 },  // RoughInsetSteps
-			new int[] { 1155838, 1945, 1946, 1947, 1948 },  // RoughRoundedIsetSteps
-			new int[] { 1155878, 1305 },                    // LightPaver
-			new int[] { 1155879, 1309 },                    // Medium Paver
-			new int[] { 1155880, 1313 },                    // DarkPaver
-            new int[] { 1155850, 2969, 2970 },              // LightWoodenSIgnHanger
-            new int[] { 1155849, 2967, 2968 },              // DarkWoodenSIgnHanger
-			new int[] { 1155851, 2971, 2972 },              // CurledMetalSIgnHanger
-			new int[] { 1155852, 2973, 2974 },              // FlourishedCurledSignHanger
-			new int[] { 1155853, 2975, 2976 },              // InwardCurledCurledMetalSIgnHanger
-			new int[] { 1155854, 2977, 2978 },              // EndCurledMetalSignHanger
-            new int[] { 1126213, 42189, 42190 },            // Arch
-			new int[] { 1126197, 42171 },                   // NWCornerPiece
-			new int[] { 1126197, 42172, 42173 },            // SouthFacingPieces
-			new int[] { 1126197, 42173, 42172 },            // EastFacingPieces
-			new int[] { 1126211, 42176 },                   // GateSouth
-			new int[] { 1126211, 42187 },                   // GateEast
-			new int[] { 1126197, 42174 },                   // CornerPiece
-		};
+        {
+            new[] { 1155794, 464, 465, 466, 463 }, // RoughWindowless
+            new[] { 1155797, 467, 468 }, // RoughWindow
+            new[] { 1155799, 469, 470, 471, 472, 473 }, // RoughArch
+            new[] { 1155804, 474 }, // RoughPillar
+            new[] { 1155805, 475, 476, 477, 478, 479 }, // RoughRoundedArch
+            new[] { 1155810, 480, 481, 482, 484 }, // RoughSmallArch
+            new[] { 1155814, 486, 487 }, // RoughAngledPillar
+            new[] { 1155816, 488, 489, 490, 491 }, // ShortRough
+            new[] { 1155821, 1928 }, // RoughBlock
+            new[] { 1155822, 1929, 1930, 1931, 1932 }, // RoughSteps
+            new[] { 1155826, 1934, 1933, 1935, 1936 }, // RoughCornerSteps
+            new[] { 1155830, 1938, 1940, 1937, 1939 }, // RoughRoundedCornerSeps
+            new[] { 1155834, 1941, 1942, 1943, 1944 }, // RoughInsetSteps
+            new[] { 1155838, 1945, 1946, 1947, 1948 }, // RoughRoundedIsetSteps
+            new[] { 1155878, 1305 }, // LightPaver
+            new[] { 1155879, 1309 }, // Medium Paver
+            new[] { 1155880, 1313 }, // DarkPaver
+            new[] { 1155850, 2969, 2970 }, // LightWoodenSIgnHanger
+            new[] { 1155849, 2967, 2968 }, // DarkWoodenSIgnHanger
+            new[] { 1155851, 2971, 2972 }, // CurledMetalSIgnHanger
+            new[] { 1155852, 2973, 2974 }, // FlourishedCurledSignHanger
+            new[] { 1155853, 2975, 2976 }, // InwardCurledCurledMetalSIgnHanger
+            new[] { 1155854, 2977, 2978 }, // EndCurledMetalSignHanger
+            new[] { 1126213, 42189, 42190 }, // Arch
+            new[] { 1126197, 42171 }, // NWCornerPiece
+            new[] { 1126197, 42172, 42173 }, // SouthFacingPieces
+            new[] { 1126197, 42173, 42172 }, // EastFacingPieces
+            new[] { 1126211, 42176 }, // GateSouth
+            new[] { 1126211, 42187 }, // GateEast
+            new[] { 1126197, 42174 } // CornerPiece
+        };
 
-        private CraftableItemType _Type;
         private CraftResource _Resource;
 
-        public int NorthID { get { return 0; } }
-        public int WestID { get { return 0; } }
+        private CraftableItemType _Type;
+
+        public int NorthID => 0;
+        public int WestID => 0;
 
         [CommandProperty(AccessLevel.GameMaster)]
         public bool CanFlip
         {
             get
             {
-                int value = (int)_Type;
+                var value = (int)_Type;
 
                 return (value >= 0 && value <= 13) || value >= 17;
             }
@@ -101,7 +104,7 @@ namespace Server.Items
         [CommandProperty(AccessLevel.GameMaster)]
         public CraftResource Resource
         {
-            get { return _Resource; }
+            get => _Resource;
             set
             {
                 if (_Resource != value)
@@ -117,7 +120,7 @@ namespace Server.Items
         [CommandProperty(AccessLevel.GameMaster)]
         public CraftableItemType ItemType
         {
-            get { return _Type; }
+            get => _Type;
             set
             {
                 _Type = value;
@@ -125,7 +128,7 @@ namespace Server.Items
             }
         }
 
-        public override bool IsArtifact { get { return true; } }
+        public override bool IsArtifact => true;
 
         public CraftableHouseItem()
             : base(1)
@@ -133,58 +136,25 @@ namespace Server.Items
         }
 
         [Constructable]
-        public CraftableHouseItem(CraftableItemType type) 
+        public CraftableHouseItem(CraftableItemType type)
             : base(IDs[(int)type][1])
         {
             _Type = type;
         }
 
-        public void InvalidateID()
+        public CraftableHouseItem(Serial serial)
+            : base(serial)
         {
-            ItemID = IDs[(int)_Type][1];
         }
 
-        public void OnFlip(Mobile from)
-        {
-            int[] list = IDs[(int)_Type];
-
-            if (CanFlip && list.Length > 2)
-            {
-                for (int i = 1; i < list.Length; i++)
-                {
-                    int id = list[i];
-
-                    if (this.ItemID == id)
-                    {
-                        if (i >= list.Length - 1)
-                        {
-                            ItemID = list[1];
-                            break;
-                        }
-                        else
-                        {
-                            ItemID = list[i + 1];
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
-        public override void GetProperties(ObjectPropertyList list)
-        {
-            base.GetProperties(list);
-
-            list.Add(1153494); // House Only
-        }
-
-        public virtual int OnCraft(int quality, bool makersMark, Mobile from, CraftSystem craftSystem, Type typeRes, ITool tool, CraftItem craftItem, int resHue)
+        public virtual int OnCraft(int quality, bool makersMark, Mobile from, CraftSystem craftSystem, Type typeRes,
+            ITool tool, CraftItem craftItem, int resHue)
         {
             if (craftItem != null && craftItem.Data is CraftableItemType)
             {
                 ItemType = (CraftableItemType)craftItem.Data;
 
-                Type resourceType = typeRes;
+                var resourceType = typeRes;
 
                 if (resourceType == null)
                     resourceType = craftItem.Resources.GetAt(0).ItemType;
@@ -195,53 +165,74 @@ namespace Server.Items
             return quality;
         }
 
+        public void OnFlip(Mobile from)
+        {
+            var list = IDs[(int)_Type];
+
+            if (CanFlip && list.Length > 2)
+                for (var i = 1; i < list.Length; i++)
+                {
+                    var id = list[i];
+
+                    if (ItemID == id)
+                    {
+                        if (i >= list.Length - 1)
+                        {
+                            ItemID = list[1];
+                            break;
+                        }
+
+                        ItemID = list[i + 1];
+                        break;
+                    }
+                }
+        }
+
+        public void InvalidateID()
+        {
+            ItemID = IDs[(int)_Type][1];
+        }
+
+        public override void GetProperties(ObjectPropertyList list)
+        {
+            base.GetProperties(list);
+
+            list.Add(1153494); // House Only
+        }
+
         public override void AddNameProperty(ObjectPropertyList list)
         {
             if (!CraftResources.IsStandard(_Resource))
-            {
-                list.Add(1050039, String.Format("#{0}\t{1}", CraftResources.GetLocalizationNumber(_Resource).ToString(), GetNameString())); // ~1_NUMBER~ ~2_ITEMNAME~
-            }
+                list.Add(1050039,
+                    string.Format("#{0}\t{1}", CraftResources.GetLocalizationNumber(_Resource).ToString(),
+                        GetNameString())); // ~1_NUMBER~ ~2_ITEMNAME~
             else
-            {
                 base.AddNameProperty(list);
-            }
         }
 
         private string GetNameString()
         {
-            string name = Name;
+            var name = Name;
 
-            if (name == null)
-            {
-                name = String.Format("#{0}", LabelNumber);
-            }
+            if (name == null) name = string.Format("#{0}", LabelNumber);
 
             return name;
         }
 
         public override bool DropToWorld(Mobile from, Point3D p)
         {
-            BaseHouse h = BaseHouse.FindHouseAt(p, from.Map, ItemData.Height);
+            var h = BaseHouse.FindHouseAt(p, from.Map, ItemData.Height);
 
-            if (h != null && h.IsCoOwner(from))
-            {
-                return base.DropToWorld(from, p);
-            }
+            if (h != null && h.IsCoOwner(from)) return base.DropToWorld(from, p);
 
-            if (from.Backpack == null || !from.Backpack.TryDropItem(from, this, false))
-            {
-                Delete();
-            }
+            if (from.Backpack == null || !from.Backpack.TryDropItem(from, this, false)) Delete();
 
             return false;
         }
 
         public override bool DropToMobile(Mobile from, Mobile target, Point3D p)
         {
-            if (target.Backpack is StrongBackpack)
-            {
-                return false;
-            }
+            if (target.Backpack is StrongBackpack) return false;
 
             return base.DropToMobile(from, target, p);
         }
@@ -256,22 +247,17 @@ namespace Server.Items
 
         public override bool OnDroppedOnto(Mobile from, Item target)
         {
-            if (target is Container && target.Movable || target is StrongBackpack)
+            if ((target is Container && target.Movable) || target is StrongBackpack)
                 return false;
 
             return base.OnDroppedOnto(from, target);
-        }
-
-        public CraftableHouseItem(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
             writer.Write((int)_Type);
         }
 
@@ -279,13 +265,13 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
             _Type = (CraftableItemType)reader.ReadInt();
         }
 
         public static void Replace(Item oldItem, CraftableItemType type)
         {
-            BaseAddon addon = oldItem is AddonComponent ? ((AddonComponent)oldItem).Addon : null;
+            var addon = oldItem is AddonComponent ? ((AddonComponent)oldItem).Addon : null;
 
             var item = new CraftableHouseItem(type);
 
@@ -295,7 +281,7 @@ namespace Server.Items
             }
             else
             {
-                BaseHouse house = BaseHouse.FindHouseAt(oldItem);
+                var house = BaseHouse.FindHouseAt(oldItem);
 
                 item.MoveToWorld(oldItem.Location, oldItem.Map);
 
@@ -317,10 +303,7 @@ namespace Server.Items
                     }
                     else if (addon != null)
                     {
-                        if (house.Addons.ContainsKey(addon))
-                        {
-                            house.Addons.Remove(addon);
-                        }
+                        if (house.Addons.ContainsKey(addon)) house.Addons.Remove(addon);
 
                         house.LockDowns.Add(item, house.Owner);
                     }
@@ -352,14 +335,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             Timer.DelayCall(TimeSpan.FromSeconds(30), () =>
             {
@@ -372,7 +355,7 @@ namespace Server.Items
     public class CraftableHouseAddon : BaseAddon
     {
         public CraftableItemType ItemType { get; set; }
-        public override BaseAddonDeed Deed { get { return null; } }
+        public override BaseAddonDeed Deed => null;
 
         public CraftableHouseAddon()
         {
@@ -387,7 +370,7 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
             writer.Write((int)ItemType);
         }
 
@@ -395,7 +378,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
             ItemType = (CraftableItemType)reader.ReadInt();
         }
     }
@@ -403,7 +386,7 @@ namespace Server.Items
     public class CraftableHouseAddonDeed : BaseAddonDeed
     {
         public CraftableItemType ItemType { get; set; }
-        public override BaseAddon Addon { get { return null; } }
+        public override BaseAddon Addon => null;
 
         public CraftableHouseAddonDeed()
         {
@@ -413,12 +396,12 @@ namespace Server.Items
         {
         }
 
-        public override void OnDoubleClick(Mobile m)
+        public CraftableHouseAddonDeed(Serial serial)
+            : base(serial)
         {
         }
 
-        public CraftableHouseAddonDeed(Serial serial)
-            : base(serial)
+        public override void OnDoubleClick(Mobile m)
         {
         }
 
@@ -426,7 +409,7 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
             writer.Write((int)ItemType);
         }
 
@@ -434,27 +417,24 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
             ItemType = (CraftableItemType)reader.ReadInt();
 
-            Timer.DelayCall(TimeSpan.FromSeconds(30), () =>
-                {
-                    CraftableHouseItem.Replace(this, ItemType);
-                });
+            Timer.DelayCall(TimeSpan.FromSeconds(30), () => { CraftableHouseItem.Replace(this, ItemType); });
         }
     }
 
     public class CraftableHouseDoorDeed : Item
     {
+        private CraftResource _Resource;
+
         [CommandProperty(AccessLevel.GameMaster)]
         public DoorType Type { get; set; }
-
-        private CraftResource _Resource;
 
         [CommandProperty(AccessLevel.GameMaster)]
         public CraftResource Resource
         {
-            get { return _Resource; }
+            get => _Resource;
             set
             {
                 if (_Resource != value)
@@ -475,7 +455,7 @@ namespace Server.Items
         public CraftableHouseDoorDeed(DoorType type)
             : base(0x14F0)
         {
-            this.Type = type;
+            Type = type;
         }
 
         public CraftableHouseDoorDeed(Serial serial)
@@ -491,8 +471,8 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0);
-            writer.Write((int)this.Type);
+            writer.Write(0);
+            writer.Write((int)Type);
             writer.Write((int)_Resource);
         }
 
@@ -500,26 +480,23 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
-            this.Type = (DoorType)reader.ReadInt();
+            var version = reader.ReadInt();
+            Type = (DoorType)reader.ReadInt();
             _Resource = (CraftResource)reader.ReadInt();
 
-            Timer.DelayCall(TimeSpan.FromSeconds(30), () =>
-            {
-                Replace();
-            });
+            Timer.DelayCall(TimeSpan.FromSeconds(30), () => { Replace(); });
         }
 
         public void Replace()
         {
             BaseDoor door;
 
-            if (this.Type < DoorType.LeftMetalDoor_S_In)
-                door = new CraftableStoneHouseDoor(this.Type, CraftableMetalHouseDoor.GetDoorFacing(this.Type));
+            if (Type < DoorType.LeftMetalDoor_S_In)
+                door = new CraftableStoneHouseDoor(Type, CraftableMetalHouseDoor.GetDoorFacing(Type));
             else
-                door = new CraftableMetalHouseDoor(this.Type, CraftableMetalHouseDoor.GetDoorFacing(this.Type));
+                door = new CraftableMetalHouseDoor(Type, CraftableMetalHouseDoor.GetDoorFacing(Type));
 
-            if(door is IResource)
+            if (door is IResource)
                 ((IResource)door).Resource = _Resource;
 
             if (Parent is Container)
@@ -528,7 +505,7 @@ namespace Server.Items
             }
             else
             {
-                BaseHouse house = BaseHouse.FindHouseAt(this);
+                var house = BaseHouse.FindHouseAt(this);
 
                 door.MoveToWorld(Location, Map);
 
@@ -570,13 +547,14 @@ namespace Server.Items
 
     public class CraftableMetalHouseDoor : MetalHouseDoor, ICraftable, IFlipable
     {
+        private CraftResource _Resource;
         public DoorType Type { get; set; }
 
         public override int LabelNumber
         {
             get
             {
-                switch (this.Type)
+                switch (Type)
                 {
                     default:
                     case DoorType.LeftMetalDoor_S_In: return 1156080;
@@ -591,12 +569,10 @@ namespace Server.Items
             }
         }
 
-        private CraftResource _Resource;
-
         [CommandProperty(AccessLevel.GameMaster)]
         public CraftResource Resource
         {
-            get { return _Resource; }
+            get => _Resource;
             set
             {
                 if (_Resource != value)
@@ -612,27 +588,21 @@ namespace Server.Items
         public CraftableMetalHouseDoor(DoorType type, DoorFacing facing)
             : base(facing)
         {
-            this.Type = type;
+            Type = type;
             Movable = true;
         }
 
-        public static Item Create(Mobile m, CraftItem craftItem, ITool tool)
+        public CraftableMetalHouseDoor(Serial serial)
+            : base(serial)
         {
-            DoorType type = DoorType.LeftMetalDoor_S_In;
-
-            if (craftItem.Data is DoorType)
-            {
-                type = (DoorType)craftItem.Data;
-            }
-
-            return new CraftableMetalHouseDoor(type, GetDoorFacing(type));
         }
 
-        public virtual int OnCraft(int quality, bool makersMark, Mobile from, CraftSystem craftSystem, Type typeRes, ITool tool, CraftItem craftItem, int resHue)
+        public virtual int OnCraft(int quality, bool makersMark, Mobile from, CraftSystem craftSystem, Type typeRes,
+            ITool tool, CraftItem craftItem, int resHue)
         {
             if (craftItem != null)
             {
-                Type resourceType = typeRes;
+                var resourceType = typeRes;
 
                 if (resourceType == null)
                     resourceType = craftItem.Resources.GetAt(0).ItemType;
@@ -694,11 +664,20 @@ namespace Server.Items
 
             Facing = GetDoorFacing(Type);
 
-            ClosedID = 0x675 + (2 * (int)Facing);
-            OpenedID = 0x676 + (2 * (int)Facing);
+            ClosedID = 0x675 + 2 * (int)Facing;
+            OpenedID = 0x676 + 2 * (int)Facing;
 
             Offset = GetOffset(Facing);
             InvalidateProperties();
+        }
+
+        public static Item Create(Mobile m, CraftItem craftItem, ITool tool)
+        {
+            var type = DoorType.LeftMetalDoor_S_In;
+
+            if (craftItem.Data is DoorType) type = (DoorType)craftItem.Data;
+
+            return new CraftableMetalHouseDoor(type, GetDoorFacing(type));
         }
 
         public static DoorFacing GetDoorFacing(DoorType type)
@@ -730,50 +709,36 @@ namespace Server.Items
         public override void AddNameProperty(ObjectPropertyList list)
         {
             if (!CraftResources.IsStandard(_Resource))
-            {
-                list.Add(1050039, String.Format("#{0}\t{1}", CraftResources.GetLocalizationNumber(_Resource).ToString(), GetNameString())); // ~1_NUMBER~ ~2_ITEMNAME~
-            }
+                list.Add(1050039,
+                    string.Format("#{0}\t{1}", CraftResources.GetLocalizationNumber(_Resource).ToString(),
+                        GetNameString())); // ~1_NUMBER~ ~2_ITEMNAME~
             else
-            {
                 base.AddNameProperty(list);
-            }
         }
 
         private string GetNameString()
         {
-            string name = Name;
+            var name = Name;
 
-            if (name == null)
-            {
-                name = String.Format("#{0}", LabelNumber);
-            }
+            if (name == null) name = string.Format("#{0}", LabelNumber);
 
             return name;
         }
 
         public override bool DropToWorld(Mobile from, Point3D p)
         {
-            BaseHouse h = BaseHouse.FindHouseAt(p, from.Map, ItemData.Height);
+            var h = BaseHouse.FindHouseAt(p, from.Map, ItemData.Height);
 
-            if (h != null && !(h is HouseFoundation) && h.IsCoOwner(from))
-            {
-                return base.DropToWorld(from, p);
-            }
+            if (h != null && !(h is HouseFoundation) && h.IsCoOwner(from)) return base.DropToWorld(from, p);
 
-            if (from.Backpack == null || !from.Backpack.TryDropItem(from, this, false))
-            {
-                Delete();
-            }
+            if (from.Backpack == null || !from.Backpack.TryDropItem(from, this, false)) Delete();
 
             return false;
         }
 
         public override bool DropToMobile(Mobile from, Mobile target, Point3D p)
         {
-            if (target.Backpack is StrongBackpack)
-            {
-                return false;
-            }
+            if (target.Backpack is StrongBackpack) return false;
 
             return base.DropToMobile(from, target, p);
         }
@@ -788,23 +753,18 @@ namespace Server.Items
 
         public override bool OnDroppedOnto(Mobile from, Item target)
         {
-            if (target is Container && target.Movable || target is StrongBackpack)
+            if ((target is Container && target.Movable) || target is StrongBackpack)
                 return false;
 
             return base.OnDroppedOnto(from, target);
-        }
-
-        public CraftableMetalHouseDoor(Serial serial)
-            : base(serial)
-        {
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)1);
-            writer.Write((int)this.Type);
+            writer.Write(1);
+            writer.Write((int)Type);
             writer.Write((int)_Resource);
         }
 
@@ -812,38 +772,37 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
-            this.Type = (DoorType)reader.ReadInt();
+            var version = reader.ReadInt();
+            Type = (DoorType)reader.ReadInt();
             _Resource = (CraftResource)reader.ReadInt();
 
             if (version == 0)
-            {
                 Timer.DelayCall(TimeSpan.FromSeconds(30), () =>
+                {
+                    var house = BaseHouse.FindHouseAt(this);
+
+                    if (house != null && house.Addons.ContainsKey(this))
                     {
-                        BaseHouse house = BaseHouse.FindHouseAt(this);
+                        house.Addons.Remove(this);
+                        house.LockDowns[this] = house.Owner;
 
-                        if (house != null && house.Addons.ContainsKey(this))
-                        {
-                            house.Addons.Remove(this);
-                            house.LockDowns[this] = house.Owner;
-
-                            IsLockedDown = true;
-                            Movable = false;
-                        }
-                    });
-            }
+                        IsLockedDown = true;
+                        Movable = false;
+                    }
+                });
         }
     }
 
     public class CraftableStoneHouseDoor : BaseHouseDoor, ICraftable, IFlipable
     {
+        private CraftResource _Resource;
         public DoorType Type { get; set; }
 
         public override int LabelNumber
         {
             get
             {
-                switch (this.Type)
+                switch (Type)
                 {
                     default:
                     case DoorType.StoneDoor_S_In: return 1156078;
@@ -854,12 +813,10 @@ namespace Server.Items
             }
         }
 
-        private CraftResource _Resource;
-
         [CommandProperty(AccessLevel.GameMaster)]
         public CraftResource Resource
         {
-            get { return _Resource; }
+            get => _Resource;
             set
             {
                 if (_Resource != value)
@@ -873,29 +830,23 @@ namespace Server.Items
         }
 
         public CraftableStoneHouseDoor(DoorType type, DoorFacing facing)
-            : base(facing, 0x324 + (2 * (int)facing), 0x325 + (2 * (int)facing), 0xED, 0xF4, BaseDoor.GetOffset(facing))
+            : base(facing, 0x324 + 2 * (int)facing, 0x325 + 2 * (int)facing, 0xED, 0xF4, GetOffset(facing))
         {
-            this.Type = type;
+            Type = type;
             Movable = true;
         }
 
-        public static Item Create(Mobile m, CraftItem craftItem, ITool tool)
+        public CraftableStoneHouseDoor(Serial serial)
+            : base(serial)
         {
-            DoorType type = DoorType.StoneDoor_S_In;
-
-            if (craftItem.Data is DoorType)
-            {
-                type = (DoorType)craftItem.Data;
-            }
-
-            return new CraftableStoneHouseDoor(type, CraftableMetalHouseDoor.GetDoorFacing(type));
         }
 
-        public virtual int OnCraft(int quality, bool makersMark, Mobile from, CraftSystem craftSystem, Type typeRes, ITool tool, CraftItem craftItem, int resHue)
+        public virtual int OnCraft(int quality, bool makersMark, Mobile from, CraftSystem craftSystem, Type typeRes,
+            ITool tool, CraftItem craftItem, int resHue)
         {
             if (craftItem != null)
             {
-                Type resourceType = typeRes;
+                var resourceType = typeRes;
 
                 if (resourceType == null)
                     resourceType = craftItem.Resources.GetAt(0).ItemType;
@@ -904,79 +855,6 @@ namespace Server.Items
             }
 
             return quality;
-        }
-
-        public override void Use(Mobile from)
-        {
-            if (!Movable)
-                base.Use(from);
-        }
-
-        public override void AddNameProperty(ObjectPropertyList list)
-        {
-            if (!CraftResources.IsStandard(_Resource))
-            {
-                list.Add(1050039, String.Format("#{0}\t{1}", CraftResources.GetLocalizationNumber(_Resource).ToString(), GetNameString())); // ~1_NUMBER~ ~2_ITEMNAME~
-            }
-            else
-            {
-                base.AddNameProperty(list);
-            }
-        }
-
-        private string GetNameString()
-        {
-            string name = Name;
-
-            if (name == null)
-            {
-                name = String.Format("#{0}", LabelNumber);
-            }
-
-            return name;
-        }
-
-        public override bool DropToWorld(Mobile from, Point3D p)
-        {
-            BaseHouse h = BaseHouse.FindHouseAt(p, from.Map, ItemData.Height);
-
-            if (h != null && !(h is HouseFoundation) && h.IsCoOwner(from))
-            {
-                return base.DropToWorld(from, p);
-            }
-
-            if (from.Backpack == null || !from.Backpack.TryDropItem(from, this, false))
-            {
-                Delete();
-            }
-
-            return false;
-        }
-
-        public override bool DropToMobile(Mobile from, Mobile target, Point3D p)
-        {
-            if (target.Backpack is StrongBackpack)
-            {
-                return false;
-            }
-
-            return base.DropToMobile(from, target, p);
-        }
-
-        public override bool OnDroppedInto(Mobile from, Container target, Point3D p)
-        {
-            if (target.Movable || target is StrongBackpack)
-                return false;
-
-            return base.OnDroppedInto(from, target, p);
-        }
-
-        public override bool OnDroppedOnto(Mobile from, Item target)
-        {
-            if (target is Container && target.Movable || target is StrongBackpack)
-                return false;
-
-            return base.OnDroppedOnto(from, target);
         }
 
         public virtual void OnFlip(Mobile from)
@@ -1030,24 +908,87 @@ namespace Server.Items
 
             Facing = CraftableMetalHouseDoor.GetDoorFacing(Type);
 
-            ClosedID = 0x324 + (2 * (int)Facing);
-            OpenedID = 0x325 + (2 * (int)Facing);
+            ClosedID = 0x324 + 2 * (int)Facing;
+            OpenedID = 0x325 + 2 * (int)Facing;
 
             Offset = GetOffset(Facing);
             InvalidateProperties();
         }
 
-        public CraftableStoneHouseDoor(Serial serial)
-            : base(serial)
+        public static Item Create(Mobile m, CraftItem craftItem, ITool tool)
         {
+            var type = DoorType.StoneDoor_S_In;
+
+            if (craftItem.Data is DoorType) type = (DoorType)craftItem.Data;
+
+            return new CraftableStoneHouseDoor(type, CraftableMetalHouseDoor.GetDoorFacing(type));
+        }
+
+        public override void Use(Mobile from)
+        {
+            if (!Movable)
+                base.Use(from);
+        }
+
+        public override void AddNameProperty(ObjectPropertyList list)
+        {
+            if (!CraftResources.IsStandard(_Resource))
+                list.Add(1050039,
+                    string.Format("#{0}\t{1}", CraftResources.GetLocalizationNumber(_Resource).ToString(),
+                        GetNameString())); // ~1_NUMBER~ ~2_ITEMNAME~
+            else
+                base.AddNameProperty(list);
+        }
+
+        private string GetNameString()
+        {
+            var name = Name;
+
+            if (name == null) name = string.Format("#{0}", LabelNumber);
+
+            return name;
+        }
+
+        public override bool DropToWorld(Mobile from, Point3D p)
+        {
+            var h = BaseHouse.FindHouseAt(p, from.Map, ItemData.Height);
+
+            if (h != null && !(h is HouseFoundation) && h.IsCoOwner(from)) return base.DropToWorld(from, p);
+
+            if (from.Backpack == null || !from.Backpack.TryDropItem(from, this, false)) Delete();
+
+            return false;
+        }
+
+        public override bool DropToMobile(Mobile from, Mobile target, Point3D p)
+        {
+            if (target.Backpack is StrongBackpack) return false;
+
+            return base.DropToMobile(from, target, p);
+        }
+
+        public override bool OnDroppedInto(Mobile from, Container target, Point3D p)
+        {
+            if (target.Movable || target is StrongBackpack)
+                return false;
+
+            return base.OnDroppedInto(from, target, p);
+        }
+
+        public override bool OnDroppedOnto(Mobile from, Item target)
+        {
+            if ((target is Container && target.Movable) || target is StrongBackpack)
+                return false;
+
+            return base.OnDroppedOnto(from, target);
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)1);
-            writer.Write((int)this.Type);
+            writer.Write(1);
+            writer.Write((int)Type);
             writer.Write((int)_Resource);
         }
 
@@ -1055,15 +996,14 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
-            this.Type = (DoorType)reader.ReadInt();
+            var version = reader.ReadInt();
+            Type = (DoorType)reader.ReadInt();
             _Resource = (CraftResource)reader.ReadInt();
 
             if (version == 0)
-            {
                 Timer.DelayCall(TimeSpan.FromSeconds(30), () =>
                 {
-                    BaseHouse house = BaseHouse.FindHouseAt(this);
+                    var house = BaseHouse.FindHouseAt(this);
 
                     if (house != null && house.Addons.ContainsKey(this))
                     {
@@ -1074,7 +1014,6 @@ namespace Server.Items
                         Movable = false;
                     }
                 });
-            }
         }
     }
 }

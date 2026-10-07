@@ -1,10 +1,9 @@
 using System;
-using Server;
-using Server.Multis;
 using System.Collections.Generic;
-using Server.Items;
-using Server.Misc;
 using System.Linq;
+using Server.Items;
+using Server.Multis;
+using Server.Spells;
 
 namespace Server.Mobiles
 {
@@ -14,29 +13,101 @@ namespace Server.Mobiles
         public static readonly TimeSpan TeleportRate = TimeSpan.FromSeconds(60);
         public static readonly int SpawnMax = 25;
 
-        private List<Mobile> m_Tentacles = new List<Mobile>();
+        private readonly Type[] m_Pies =
+        {
+            typeof(AutumnDragonfishPie),
+            typeof(BlueLobsterPie),
+            typeof(BullFishPie),
+            typeof(CrystalFishPie),
+            typeof(FairySalmonPie),
+            typeof(FireFishPie),
+            typeof(GiantKoiPie),
+            typeof(GreatBarracudaPie),
+            typeof(HolyMackerelPie),
+            typeof(LavaFishPie),
+            typeof(ReaperFishPie),
+            typeof(SpiderCrabPie),
+            typeof(StoneCrabPie),
+            typeof(SummerDragonfishPie),
+            typeof(UnicornFishPie),
+            typeof(YellowtailBarracudaPie)
+        };
+
+        private readonly Type[] m_Steaks =
+        {
+            typeof(AutumnDragonfishSteak),
+            typeof(BlueLobsterMeat),
+            typeof(BullFishSteak),
+            typeof(CrystalFishSteak),
+            typeof(FairySalmonSteak),
+            typeof(FireFishSteak),
+            typeof(GiantKoiSteak),
+            typeof(GreatBarracudaSteak),
+            typeof(HolyMackerelSteak),
+            typeof(LavaFishSteak),
+            typeof(ReaperFishSteak),
+            typeof(SpiderCrabMeat),
+            typeof(StoneCrabMeat),
+            typeof(SummerDragonfishSteak),
+            typeof(UnicornFishSteak),
+            typeof(YellowtailBarracudaSteak)
+        };
+
+        private readonly List<Mobile> m_Tentacles = new List<Mobile>();
+
+        private bool m_HasPushed;
+
+        private Point3D m_LastLocation;
+        private Map m_LastMap;
         private DateTime m_NextSpawn;
         private DateTime m_NextTeleport;
 
-        public override bool CanDamageBoats { get { return true; } }
-        public override TimeSpan BoatDamageCooldown { get { return TimeSpan.FromSeconds(Utility.RandomMinMax(45, 80)); } }
-        public override int MinBoatDamage { get { return 5; } }
-        public override int MaxBoatDamage { get { return 15; } }
-        public override int DamageRange { get { return 10; } }
+        public override bool CanDamageBoats => true;
+        public override TimeSpan BoatDamageCooldown => TimeSpan.FromSeconds(Utility.RandomMinMax(45, 80));
+        public override int MinBoatDamage => 5;
+        public override int MaxBoatDamage => 15;
+        public override int DamageRange => 10;
 
-        public override int Meat { get { return 5; } }
-        public override double TreasureMapChance { get { return .50; } }
-        public override int TreasureMapLevel { get { return 7; } }
+        public override int Meat => 5;
+        public override double TreasureMapChance => .50;
+        public override int TreasureMapLevel => 7;
 
-        public override Type[] UniqueList { get { return new Type[] { typeof(FishermansHat), typeof(FishermansVest), typeof(FishermansEelskinGloves), typeof(FishermansTrousers) }; } }
-        public override Type[] SharedList { get { return new Type[] { typeof(HelmOfVengence), typeof(RingOfTheSoulbinder), typeof(RuneEngravedPegLeg), typeof(CullingBlade) }; } }
-        public override Type[] DecorativeList { get { return new Type[] { typeof(EnchantedBladeDeed), typeof(EnchantedVortexDeed) }; } }
+        public override Type[] UniqueList
+        {
+            get
+            {
+                return new[]
+                {
+                    typeof(FishermansHat), typeof(FishermansVest), typeof(FishermansEelskinGloves),
+                    typeof(FishermansTrousers)
+                };
+            }
+        }
+
+        public override Type[] SharedList
+        {
+            get
+            {
+                return new[]
+                {
+                    typeof(HelmOfVengence), typeof(RingOfTheSoulbinder), typeof(RuneEngravedPegLeg),
+                    typeof(CullingBlade)
+                };
+            }
+        }
+
+        public override Type[] DecorativeList
+        {
+            get { return new[] { typeof(EnchantedBladeDeed), typeof(EnchantedVortexDeed) }; }
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int Tentacles { get { return m_Tentacles.Count; } }
+        public int Tentacles => m_Tentacles.Count;
 
         [Constructable]
-        public Charydbis() : this(null) { }
+        public Charydbis() : this(null)
+        {
+        }
 
         public Charydbis(Mobile fisher)
             : base(fisher, AIType.AI_Mage, FightMode.Closest)
@@ -85,6 +156,11 @@ namespace Server.Mobiles
                 IsSoulbound = true;
         }
 
+        public Charydbis(Serial serial)
+            : base(serial)
+        {
+        }
+
         public void AddTentacle(Mobile tent)
         {
             if (!m_Tentacles.Contains(tent))
@@ -108,9 +184,6 @@ namespace Server.Mobiles
                 DoTeleport();
         }
 
-        private Point3D m_LastLocation;
-        private Map m_LastMap;
-
         public void DoTeleport()
         {
             var combatant = Combatant as Mobile;
@@ -130,7 +203,7 @@ namespace Server.Mobiles
 
             DoAreaLightningAttack(combatant);
 
-            Timer.DelayCall<Mobile>(TimeSpan.FromSeconds(3), FinishTeleport, combatant);
+            Timer.DelayCall(TimeSpan.FromSeconds(3), FinishTeleport, combatant);
             m_NextTeleport = DateTime.UtcNow + TeleportRate;
         }
 
@@ -139,19 +212,15 @@ namespace Server.Mobiles
             Point3D focusLoc;
 
             if (combatant == null || combatant.Map == null)
-            {
                 focusLoc = Location;
-            }
             else
-            {
                 focusLoc = combatant.Location;
-            }
 
-            Map map = m_LastMap;
-            Point3D newLoc = Point3D.Zero;
-            BaseBoat boat = BaseBoat.FindBoatAt(focusLoc, map);
+            var map = m_LastMap;
+            var newLoc = Point3D.Zero;
+            var boat = BaseBoat.FindBoatAt(focusLoc, map);
 
-            for (int i = 0; i < 25; i++)
+            for (var i = 0; i < 25; i++)
             {
                 if (boat != null)
                 {
@@ -159,16 +228,16 @@ namespace Server.Mobiles
                 }
                 else
                 {
-                    int x = focusLoc.X + Utility.RandomMinMax(-12, 12);
-                    int y = focusLoc.Y + Utility.RandomMinMax(-12, 12);
-                    int z = map.GetAverageZ(x, y);
+                    var x = focusLoc.X + Utility.RandomMinMax(-12, 12);
+                    var y = focusLoc.Y + Utility.RandomMinMax(-12, 12);
+                    var z = map.GetAverageZ(x, y);
 
                     newLoc = new Point3D(x, y, z);
                 }
 
-                LandTile t = map.Tiles.GetLandTile(newLoc.X, newLoc.Y);
+                var t = map.Tiles.GetLandTile(newLoc.X, newLoc.Y);
 
-                if (!Spells.SpellHelper.CheckMulti(new Point3D(newLoc.X, newLoc.Y, newLoc.Z), map) && IsSeaTile(t))
+                if (!SpellHelper.CheckMulti(new Point3D(newLoc.X, newLoc.Y, newLoc.Z), map) && IsSeaTile(t))
                     break;
             }
 
@@ -177,15 +246,16 @@ namespace Server.Mobiles
 
             DoTeleportEffects(newLoc, map);
             Hidden = false;
-            Timer.DelayCall(TimeSpan.FromSeconds(.5), new TimerStateCallback(TimedMoveToWorld), new object[] { newLoc, map, combatant });
+            Timer.DelayCall(TimeSpan.FromSeconds(.5), new TimerStateCallback(TimedMoveToWorld),
+                new object[] { newLoc, map, combatant });
         }
 
         public void TimedMoveToWorld(object o)
         {
-            object[] ojs = (object[])o;
-            Point3D pnt = (Point3D)ojs[0];
-            Map map = ojs[1] as Map;
-            Mobile focus = ojs[2] as Mobile;
+            var ojs = (object[])o;
+            var pnt = (Point3D)ojs[0];
+            var map = ojs[1] as Map;
+            var focus = ojs[2] as Mobile;
 
             MoveToWorld(pnt, map);
             Combatant = focus;
@@ -198,41 +268,35 @@ namespace Server.Mobiles
             if (focus == null)
                 return;
 
-            BaseBoat boat = BaseBoat.FindBoatAt(focus, focus.Map);
+            var boat = BaseBoat.FindBoatAt(focus, focus.Map);
 
             if (boat != null)
-            {
                 foreach (var mob in boat.GetMobilesOnBoard().Where(m => CanBeHarmful(m, false) && m.Alive))
                 {
-                    double damage = Math.Max(40, Utility.RandomMinMax(50, 100) * ((double)Hits / (double)HitsMax));
+                    var damage = Math.Max(40, Utility.RandomMinMax(50, 100) * (Hits / (double)HitsMax));
 
                     mob.BoltEffect(0);
-                    AOS.Damage((Mobile)mob, this, (int)damage, false, 0, 0, 0, 0, 0, 0, 100, false, false, false);
+                    AOS.Damage(mob, this, (int)damage, false, 0, 0, 0, 0, 0, 0, 100, false, false, false);
                     mob.FixedParticles(0x36BD, 20, 10, 5044, EffectLayer.Head);
                 }
-            }
         }
 
         public void DoTeleportEffects(Point3D p, Map map)
         {
-            for (int x = -2; x <= 2; x++)
+            for (var x = -2; x <= 2; x++)
+            for (var y = -2; y <= 2; y++)
             {
-                for (int y = -2; y <= 2; y++)
-                {
-                    if (Math.Abs(x) == 2 && Math.Abs(y) == 2)
-                        continue;
+                if (Math.Abs(x) == 2 && Math.Abs(y) == 2)
+                    continue;
 
-                    Point3D pnt = new Point3D(p.X + x, p.Y + y, Map.GetAverageZ(p.X + x, p.Y + y));
-                    Effects.SendLocationEffect(pnt, map, 0x3728, 16, 4);
-                }
+                var pnt = new Point3D(p.X + x, p.Y + y, Map.GetAverageZ(p.X + x, p.Y + y));
+                Effects.SendLocationEffect(pnt, map, 0x3728, 16, 4);
             }
 
             Effects.PlaySound(p, map, 0x025);
             Effects.PlaySound(p, map, 0x026);
             Effects.PlaySound(p, map, 0x027);
         }
-
-        private bool m_HasPushed;
 
         public override void DoDamageBoat(BaseBoat boat)
         {
@@ -245,30 +309,66 @@ namespace Server.Mobiles
             if (Combatant != null && boat.Contains(Combatant))
                 pnt = Combatant;
 
-            Direction dir = Utility.GetDirection(this, pnt);
-            Point3DList path = new Point3DList();
+            var dir = Utility.GetDirection(this, pnt);
+            var path = new Point3DList();
 
-            for (int i = 0; i < DamageRange; i++)
+            for (var i = 0; i < DamageRange; i++)
             {
                 int x = 0, y = 0;
                 switch ((int)dir)
                 {
                     case (int)Direction.Running:
-                    case (int)Direction.North: { y -= i; break; }
+                    case (int)Direction.North:
+                    {
+                        y -= i;
+                        break;
+                    }
                     case 129:
-                    case (int)Direction.Right: { y -= i; x += i; break; }
+                    case (int)Direction.Right:
+                    {
+                        y -= i;
+                        x += i;
+                        break;
+                    }
                     case 130:
-                    case (int)Direction.East: { x += i; break; }
+                    case (int)Direction.East:
+                    {
+                        x += i;
+                        break;
+                    }
                     case 131:
-                    case (int)Direction.Down: { x += i; y += i; break; }
+                    case (int)Direction.Down:
+                    {
+                        x += i;
+                        y += i;
+                        break;
+                    }
                     case 132:
-                    case (int)Direction.South: { y += i; break; }
+                    case (int)Direction.South:
+                    {
+                        y += i;
+                        break;
+                    }
                     case 133:
-                    case (int)Direction.Left: { y += i; x -= i; break; }
+                    case (int)Direction.Left:
+                    {
+                        y += i;
+                        x -= i;
+                        break;
+                    }
                     case 134:
-                    case (int)Direction.West: { x -= i; break; }
+                    case (int)Direction.West:
+                    {
+                        x -= i;
+                        break;
+                    }
                     case (int)Direction.ValueMask:
-                    case (int)Direction.Up: { x -= i; y -= i; break; }
+                    case (int)Direction.Up:
+                    {
+                        x -= i;
+                        y -= i;
+                        break;
+                    }
                 }
 
                 path.Add(X + x, Y + y, Z);
@@ -281,76 +381,133 @@ namespace Server.Mobiles
         {
             if (path.Count > i)
             {
-                Point3D point = path[i];
-                int o = i - 1;
+                var point = path[i];
+                var o = i - 1;
 
-                Server.Effects.PlaySound(point, Map, 278);
-                Server.Effects.PlaySound(point, Map, 279);
+                Effects.PlaySound(point, Map, 278);
+                Effects.PlaySound(point, Map, 279);
 
-                for (int rn = 0; rn < (o * 2) + 1; rn++)
+                for (var rn = 0; rn < o * 2 + 1; rn++)
                 {
                     int y = 0, x = 0, y2 = 0, x2 = 0;
-                    bool diag = false;
+                    var diag = false;
                     switch ((int)dir)
                     {
                         case (int)Direction.Running:
-                        case (int)Direction.North: { x = x - o + rn; break; }
+                        case (int)Direction.North:
+                        {
+                            x = x - o + rn;
+                            break;
+                        }
                         case 129:
-                        case (int)Direction.Right: { x = x - o + rn; y = y - o + rn; break; }
+                        case (int)Direction.Right:
+                        {
+                            x = x - o + rn;
+                            y = y - o + rn;
+                            break;
+                        }
                         case 130:
-                        case (int)Direction.East: { y = y - o + rn; break; }
+                        case (int)Direction.East:
+                        {
+                            y = y - o + rn;
+                            break;
+                        }
                         case 131:
-                        case (int)Direction.Down: { y = y - o + rn; x = x + o - rn; break; }
+                        case (int)Direction.Down:
+                        {
+                            y = y - o + rn;
+                            x = x + o - rn;
+                            break;
+                        }
                         case 132:
-                        case (int)Direction.South: { x = x + o - rn; break; }
+                        case (int)Direction.South:
+                        {
+                            x = x + o - rn;
+                            break;
+                        }
                         case 133:
-                        case (int)Direction.Left: { x = x + o - rn; y = y + o - rn; break; }
+                        case (int)Direction.Left:
+                        {
+                            x = x + o - rn;
+                            y = y + o - rn;
+                            break;
+                        }
                         case 134:
-                        case (int)Direction.West: { y = y + o - rn; break; }
+                        case (int)Direction.West:
+                        {
+                            y = y + o - rn;
+                            break;
+                        }
                         case (int)Direction.ValueMask:
-                        case (int)Direction.Up: { y = y + o - rn; x = x - o + rn; break; }
+                        case (int)Direction.Up:
+                        {
+                            y = y + o - rn;
+                            x = x - o + rn;
+                            break;
+                        }
                     }
+
                     switch ((int)dir)
                     {
                         case 129:
-                        case (int)Direction.Right: { y2++; diag = true; break; }
+                        case (int)Direction.Right:
+                        {
+                            y2++;
+                            diag = true;
+                            break;
+                        }
                         case 131:
-                        case (int)Direction.Down: { x2--; diag = true; break; }
+                        case (int)Direction.Down:
+                        {
+                            x2--;
+                            diag = true;
+                            break;
+                        }
                         case 133:
-                        case (int)Direction.Left: { y2--; diag = true; break; }
+                        case (int)Direction.Left:
+                        {
+                            y2--;
+                            diag = true;
+                            break;
+                        }
                         case (int)Direction.ValueMask:
-                        case (int)Direction.Up: { x2++; diag = true; break; }
-                        default: { break; }
+                        case (int)Direction.Up:
+                        {
+                            x2++;
+                            diag = true;
+                            break;
+                        }
                     }
 
-                    Point3D ep = new Point3D(point.X + x, point.Y + y, point.Z);
-                    Point3D ep2 = new Point3D(ep.X + x2, ep.Y + y2, ep.Z);
+                    var ep = new Point3D(point.X + x, point.Y + y, point.Z);
+                    var ep2 = new Point3D(ep.X + x2, ep.Y + y2, ep.Z);
 
-                    if (diag && i >= ((2 * path.Count) / 3))
+                    if (diag && i >= 2 * path.Count / 3)
                         return;
 
                     Point3D p;
-                    if (diag && rn < (o * 2))
+                    if (diag && rn < o * 2)
                         p = ep2;
                     else
                         p = ep;
 
-                    if (Spells.SpellHelper.CheckMulti(p, Map))
+                    if (SpellHelper.CheckMulti(p, Map))
                     {
-                        BaseBoat boat = BaseBoat.FindBoatAt(p, Map);
+                        var boat = BaseBoat.FindBoatAt(p, Map);
 
                         if (boat != null && !m_HasPushed)
                         {
-                            int damage = Utility.RandomMinMax(MinBoatDamage, MaxBoatDamage);
+                            var damage = Utility.RandomMinMax(MinBoatDamage, MaxBoatDamage);
                             boat.OnTakenDamage(this, damage);
 
                             boat.StartMove(dir, 1, 0x2, boat.SlowDriftInterval, true, false);
                             m_HasPushed = true;
                         }
+
                         continue;
                     }
 
-                    LandTile t = Map.Tiles.GetLandTile(x, y);
+                    var t = Map.Tiles.GetLandTile(x, y);
 
                     if (IsSeaTile(t))
                     {
@@ -358,112 +515,6 @@ namespace Server.Mobiles
                         spawn.MoveToWorld(p, Map);
                     }
                 }
-            }
-        }
-
-        public class EffectSpawn : BaseCreature
-        {
-            public EffectSpawn()
-                : base(AIType.AI_Vendor, FightMode.Closest, 10, 1, 0.2, 0.4)
-            {
-                Body = 16;
-                BaseSoundID = 278;
-                CantWalk = true;
-                CanSwim = false;
-                Frozen = true;
-
-                SetHits(150000);
-
-                SetResistance(ResistanceType.Physical, 100);
-                SetResistance(ResistanceType.Fire, 100);
-                SetResistance(ResistanceType.Cold, 100);
-                SetResistance(ResistanceType.Poison, 100);
-                SetResistance(ResistanceType.Energy, 100);
-
-                Timer.DelayCall(TimeSpan.FromSeconds(2), new TimerCallback(DoDelete));
-            }
-
-            public override bool DeleteCorpseOnDeath
-            {
-                get
-                {
-                    return true;
-                }
-            }
-
-            public void DoDelete()
-            {
-                if (Alive)
-                    Kill();
-            }
-
-            public override void OnDelete()
-            {
-                Effects.SendLocationEffect(Location, Map, 0x352D, 16, 4);
-                Effects.PlaySound(Location, Map, 0x364);
-
-                Effects.SendLocationParticles(EffectItem.Create(Location, Map, EffectItem.DefaultDuration), 0x3728, 1, 14, 0, 7, 9915, 0);
-
-                base.OnDelete();
-            }
-
-            public override bool AutoDispel { get { return true; } }
-            public override double AutoDispelChance { get { return 1.0; } }
-            public override bool BardImmune { get { return true; } }
-            public override bool Unprovokable { get { return true; } }
-            public override bool Uncalmable { get { return true; } }
-            public override Poison PoisonImmune { get { return Poison.Lethal; } }
-
-            public override int Meat { get { return 1; } }
-
-            public EffectSpawn(Serial serial)
-                : base(serial)
-            {
-            }
-
-            public override void Serialize(GenericWriter writer)
-            {
-                base.Serialize(writer);
-                writer.Write((int)0);
-            }
-
-            public override void Deserialize(GenericReader reader)
-            {
-                base.Deserialize(reader);
-                int version = reader.ReadInt();
-            }
-        }
-
-        private class EffectsTimer : Timer
-        {
-            private Direction m_Dir;
-            private int m_I, m_IMax;
-            private Point3DList m_Path;
-            private Charydbis m_Mobile;
-
-            public EffectsTimer(Charydbis mobile, Point3DList path, Direction dir, int imax)
-                : base(TimeSpan.FromSeconds(0.25), TimeSpan.FromSeconds(0.25))
-            {
-                m_Dir = dir;
-                m_I = 1;
-                m_IMax = imax;
-                m_Path = path;
-                m_Mobile = mobile;
-                Priority = TimerPriority.FiftyMS;
-                Start();
-            }
-
-            protected override void OnTick()
-            {
-                m_Mobile.OnTick(m_Path, m_Dir, m_I);
-
-                if (m_I >= m_IMax)
-                {
-                    Stop();
-                    return;
-                }
-
-                m_I++;
             }
         }
 
@@ -475,9 +526,9 @@ namespace Server.Mobiles
                 return;
             }
 
-            Map map = Map;
+            var map = Map;
 
-            List<Mobile> list = new List<Mobile>();
+            var list = new List<Mobile>();
 
             IPooledEnumerable eable = GetMobilesInRange(15);
             foreach (Mobile m in eable)
@@ -485,42 +536,46 @@ namespace Server.Mobiles
                 if (m == this || !CanBeHarmful(m))
                     continue;
 
-                if (m is BaseCreature && (((BaseCreature)m).Controlled || ((BaseCreature)m).Summoned || ((BaseCreature)m).Team != Team))
+                if (m is BaseCreature && (((BaseCreature)m).Controlled || ((BaseCreature)m).Summoned ||
+                                          ((BaseCreature)m).Team != Team))
                     list.Add(m);
                 else if (m.Player)
                     list.Add(m);
             }
+
             eable.Free();
 
             if (list.Count > 0)
             {
-                Mobile spawn = list[Utility.Random(list.Count)];
-                BaseBoat boat = BaseBoat.FindBoatAt(spawn, map);
-                Point3D loc = spawn.Location;
+                var spawn = list[Utility.Random(list.Count)];
+                var boat = BaseBoat.FindBoatAt(spawn, map);
+                var loc = spawn.Location;
 
-                for (int i = 0; i < 25; i++)
+                for (var i = 0; i < 25; i++)
                 {
-                    Point3D spawnLoc = Point3D.Zero;
+                    var spawnLoc = Point3D.Zero;
 
                     if (boat != null)
+                    {
                         spawnLoc = GetValidPoint(boat, map, 4);
+                    }
                     else
                     {
-                        int y = Utility.RandomMinMax(loc.X - 10, loc.Y + 10);
-                        int x = Utility.RandomMinMax(loc.X - 10, loc.Y + 10);
-                        int z = map.GetAverageZ(x, y);
+                        var y = Utility.RandomMinMax(loc.X - 10, loc.Y + 10);
+                        var x = Utility.RandomMinMax(loc.X - 10, loc.Y + 10);
+                        var z = map.GetAverageZ(x, y);
 
                         spawnLoc = new Point3D(x, y, z);
                     }
 
-                    if (Spells.SpellHelper.CheckMulti(spawnLoc, map))
+                    if (SpellHelper.CheckMulti(spawnLoc, map))
                         continue;
 
-                    LandTile t = map.Tiles.GetLandTile(spawnLoc.X, spawnLoc.Y);
+                    var t = map.Tiles.GetLandTile(spawnLoc.X, spawnLoc.Y);
 
                     if (IsSeaTile(t) && spawnLoc != Point3D.Zero)
                     {
-                        GiantTentacle tent = new GiantTentacle(this);
+                        var tent = new GiantTentacle(this);
 
                         tent.MoveToWorld(spawnLoc, map);
                         tent.Home = tent.Location;
@@ -530,7 +585,6 @@ namespace Server.Mobiles
                             tent.Combatant = spawn;
                         break;
                     }
-
                 }
             }
 
@@ -557,13 +611,13 @@ namespace Server.Mobiles
         {
             base.OnDeath(c);
 
-            int drop = Utility.RandomMinMax(2, 5);
+            var drop = Utility.RandomMinMax(2, 5);
 
-            for (int i = 0; i < drop; i++)
+            for (var i = 0; i < drop; i++)
             {
-                Type pieType = m_Pies[Utility.Random(m_Pies.Length)];
+                var pieType = m_Pies[Utility.Random(m_Pies.Length)];
 
-                Item pie = Loot.Construct(pieType);
+                var pie = Loot.Construct(pieType);
 
                 if (pie != null)
                     c.DropItem(pie);
@@ -571,11 +625,11 @@ namespace Server.Mobiles
 
             drop = Utility.RandomMinMax(2, 5);
 
-            for (int i = 0; i < drop; i++)
+            for (var i = 0; i < drop; i++)
             {
-                Type steakType = m_Steaks[Utility.Random(m_Steaks.Length)];
+                var steakType = m_Steaks[Utility.Random(m_Steaks.Length)];
 
-                Item steak = Loot.Construct(steakType);
+                var steak = Loot.Construct(steakType);
 
                 if (steak != null)
                     c.DropItem(steak);
@@ -587,13 +641,15 @@ namespace Server.Mobiles
             c.DropItem(new SpecialFishingNet());
             c.DropItem(new SpecialFishingNet());
 
-            FishingPole pole = new FishingPole();
+            var pole = new FishingPole();
             BaseRunicTool.ApplyAttributesTo(pole, false, 0, Utility.RandomMinMax(2, 5), 50, 100);
             c.DropItem(pole);
 
             #region TOL
+
             if (Core.TOL)
                 SkillMasteryPrimer.CheckPrimerDrop(this);
+
             #endregion
         }
 
@@ -601,91 +657,146 @@ namespace Server.Mobiles
         {
             if (m_Tentacles != null)
             {
-                List<Mobile> tents = new List<Mobile>(m_Tentacles);
-                for (int i = 0; i < tents.Count; i++)
-                {
+                var tents = new List<Mobile>(m_Tentacles);
+                for (var i = 0; i < tents.Count; i++)
                     if (tents[i] != null)
                         tents[i].Kill();
-                }
             }
 
             base.Delete();
         }
-
-        private Type[] m_Pies = new Type[]
-        {
-            typeof(AutumnDragonfishPie),
-            typeof(BlueLobsterPie),
-            typeof(BullFishPie),
-            typeof(CrystalFishPie),
-            typeof(FairySalmonPie),
-            typeof(FireFishPie),
-            typeof(GiantKoiPie),
-            typeof(GreatBarracudaPie),
-            typeof(HolyMackerelPie),
-            typeof(LavaFishPie),
-            typeof(ReaperFishPie),
-            typeof(SpiderCrabPie),
-            typeof(StoneCrabPie),
-            typeof(SummerDragonfishPie),
-            typeof(UnicornFishPie),
-            typeof(YellowtailBarracudaPie),
-        };
-
-        private Type[] m_Steaks = new Type[]
-        {
-            typeof(AutumnDragonfishSteak),
-            typeof(BlueLobsterMeat),
-            typeof(BullFishSteak),
-            typeof(CrystalFishSteak),
-            typeof(FairySalmonSteak),
-            typeof(FireFishSteak),
-            typeof(GiantKoiSteak),
-            typeof(GreatBarracudaSteak),
-            typeof(HolyMackerelSteak),
-            typeof(LavaFishSteak),
-            typeof(ReaperFishSteak),
-            typeof(SpiderCrabMeat),
-            typeof(StoneCrabMeat),
-            typeof(SummerDragonfishSteak),
-            typeof(UnicornFishSteak),
-            typeof(YellowtailBarracudaSteak),
-        };
 
         public override void GenerateLoot()
         {
             AddLoot(LootPack.SuperBoss, 8);
         }
 
-        public Charydbis(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
 
             writer.Write(m_Tentacles.Count);
-            foreach (Mobile tent in m_Tentacles)
+            foreach (var tent in m_Tentacles)
                 writer.Write(tent);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
-            int cnt = reader.ReadInt();
-            for (int i = 0; i < cnt; i++)
+            var cnt = reader.ReadInt();
+            for (var i = 0; i < cnt; i++)
             {
-                Mobile tent = reader.ReadMobile();
+                var tent = reader.ReadMobile();
                 if (tent != null && !tent.Deleted && tent.Alive)
                     m_Tentacles.Add(tent);
             }
 
             m_NextSpawn = DateTime.UtcNow;
+        }
+
+        public class EffectSpawn : BaseCreature
+        {
+            public override bool DeleteCorpseOnDeath => true;
+
+            public override bool AutoDispel => true;
+            public override double AutoDispelChance => 1.0;
+            public override bool BardImmune => true;
+            public override bool Unprovokable => true;
+            public override bool Uncalmable => true;
+            public override Poison PoisonImmune => Poison.Lethal;
+
+            public override int Meat => 1;
+
+            public EffectSpawn()
+                : base(AIType.AI_Vendor, FightMode.Closest, 10, 1, 0.2, 0.4)
+            {
+                Body = 16;
+                BaseSoundID = 278;
+                CantWalk = true;
+                CanSwim = false;
+                Frozen = true;
+
+                SetHits(150000);
+
+                SetResistance(ResistanceType.Physical, 100);
+                SetResistance(ResistanceType.Fire, 100);
+                SetResistance(ResistanceType.Cold, 100);
+                SetResistance(ResistanceType.Poison, 100);
+                SetResistance(ResistanceType.Energy, 100);
+
+                Timer.DelayCall(TimeSpan.FromSeconds(2), DoDelete);
+            }
+
+            public EffectSpawn(Serial serial)
+                : base(serial)
+            {
+            }
+
+            public void DoDelete()
+            {
+                if (Alive)
+                    Kill();
+            }
+
+            public override void OnDelete()
+            {
+                Effects.SendLocationEffect(Location, Map, 0x352D, 16, 4);
+                Effects.PlaySound(Location, Map, 0x364);
+
+                Effects.SendLocationParticles(EffectItem.Create(Location, Map, EffectItem.DefaultDuration), 0x3728, 1,
+                    14, 0, 7, 9915, 0);
+
+                base.OnDelete();
+            }
+
+            public override void Serialize(GenericWriter writer)
+            {
+                base.Serialize(writer);
+                writer.Write(0);
+            }
+
+            public override void Deserialize(GenericReader reader)
+            {
+                base.Deserialize(reader);
+                var version = reader.ReadInt();
+            }
+        }
+
+        private class EffectsTimer : Timer
+        {
+            private readonly Direction m_Dir;
+            private readonly int m_IMax;
+            private readonly Charydbis m_Mobile;
+            private readonly Point3DList m_Path;
+            private int m_I;
+
+            public EffectsTimer(Charydbis mobile, Point3DList path, Direction dir, int imax)
+                : base(TimeSpan.FromSeconds(0.25), TimeSpan.FromSeconds(0.25))
+            {
+                m_Dir = dir;
+                m_I = 1;
+                m_IMax = imax;
+                m_Path = path;
+                m_Mobile = mobile;
+                Priority = TimerPriority.FiftyMS;
+                Start();
+            }
+
+            protected override void OnTick()
+            {
+                m_Mobile.OnTick(m_Path, m_Dir, m_I);
+
+                if (m_I >= m_IMax)
+                {
+                    Stop();
+                    return;
+                }
+
+                m_I++;
+            }
         }
     }
 
@@ -739,6 +850,11 @@ namespace Server.Mobiles
                 IsSoulbound = true;
         }
 
+        public GiantTentacle(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void GenerateLoot()
         {
             AddLoot(LootPack.FilthyRich, 1);
@@ -752,15 +868,10 @@ namespace Server.Mobiles
             base.Delete();
         }
 
-        public GiantTentacle(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
 
             writer.Write(m_Master);
         }
@@ -768,7 +879,7 @@ namespace Server.Mobiles
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             m_Master = reader.ReadMobile();
         }

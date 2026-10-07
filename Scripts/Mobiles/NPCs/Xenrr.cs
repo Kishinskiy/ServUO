@@ -1,68 +1,70 @@
 using System;
-using Server;
 using Server.Items;
-using Server.Mobiles;
 
 namespace Server.Engines.Quests
-{	
-	public class ScrapingtheBottom : BaseQuest
-	{				
-		/* SomethingFishy */
-		public override object Title{ get{ return 1095059; } }
-		
-		public override object Description{ get{ return 1095061; } }
-		
-		public override object Refuse{ get{ return 1095062; } }
-		
-		public override object Uncomplete{ get{ return 1095063; } }
+{
+    public class ScrapingtheBottom : BaseQuest
+    {
+        /* SomethingFishy */
+        public override object Title => 1095059;
 
-                public override object Complete { get { return 1095065; } }
-	
-		public ScrapingtheBottom() : base()
-		{
-                        AddObjective(new ObtainObjective(typeof(MudPuppy), "Mud Puppy", 1, 0x9cc));
-					
-			AddReward( new BaseReward( typeof( XenrrFishingPole ), 1095066 ) );
-		}
-		
-		public override void Serialize( GenericWriter writer )
-		{
-			base.Serialize( writer );
+        public override object Description => 1095061;
 
-			writer.Write( (int) 0 ); // version
-		}
-		
-		public override void Deserialize( GenericReader reader )
-		{
-			base.Deserialize( reader );
+        public override object Refuse => 1095062;
 
-			int version = reader.ReadInt();
-		}		
-	}
-		
+        public override object Uncomplete => 1095063;
+
+        public override object Complete => 1095065;
+
+        public ScrapingtheBottom()
+        {
+            AddObjective(new ObtainObjective(typeof(MudPuppy), "Mud Puppy", 1, 0x9cc));
+
+            AddReward(new BaseReward(typeof(XenrrFishingPole), 1095066));
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+
+            writer.Write(0); // version
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+
+            var version = reader.ReadInt();
+        }
+    }
+
     public class Xenrr : MondainQuester
     {
         public override Type[] Quests
         {
             get
             {
-                return new Type[] 
-			{ 
-				typeof( ScrapingtheBottom )			
-			};
+                return new[]
+                {
+                    typeof(ScrapingtheBottom)
+                };
             }
         }
 
         [Constructable]
         public Xenrr()
-            : base()
         {
             Name = "Xenrr";
         }
 
+        public Xenrr(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void InitBody()
         {
-            HairItemID = 0x2044;//
+            HairItemID = 0x2044; //
             HairHue = 1153;
             FacialHairItemID = 0x204B;
             FacialHairHue = 1153;
@@ -79,23 +81,18 @@ namespace Server.Engines.Quests
             AddItem(new Cloak(0x59));
         }
 
-        public Xenrr(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
-	}
+    }
 }

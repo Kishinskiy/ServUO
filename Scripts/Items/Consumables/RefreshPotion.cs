@@ -1,9 +1,9 @@
-using System;
-
 namespace Server.Items
 {
     public class RefreshPotion : BaseRefreshPotion
     {
+        public override double Refresh => 0.25;
+
         [Constructable]
         public RefreshPotion()
             : base(PotionEffect.Refresh)
@@ -15,25 +15,18 @@ namespace Server.Items
         {
         }
 
-        public override double Refresh
-        {
-            get
-            {
-                return 0.25;
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

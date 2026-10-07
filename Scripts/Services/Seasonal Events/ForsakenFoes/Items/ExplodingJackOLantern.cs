@@ -1,4 +1,3 @@
-using System;
 using Server.Mobiles;
 using Server.Network;
 using Server.Targeting;
@@ -7,7 +6,7 @@ namespace Server.Items
 {
     public class ExplodingJackOLantern : Item
     {
-        public override int LabelNumber { get { return 1159220; } } // Exploding Jack o' Lantern
+        public override int LabelNumber => 1159220; // Exploding Jack o' Lantern
 
         [Constructable]
         public ExplodingJackOLantern()
@@ -15,6 +14,11 @@ namespace Server.Items
         {
             Weight = 1.0;
             LootType = LootType.Blessed;
+        }
+
+        public ExplodingJackOLantern(Serial serial)
+            : base(serial)
+        {
         }
 
         public override void OnDoubleClick(Mobile from)
@@ -28,6 +32,18 @@ namespace Server.Items
                 from.SendLocalizedMessage(1113280); // Which target do you wish to throw this at?
                 from.Target = new ThrowTarget(from);
             }
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
         }
 
         private class ThrowTarget : Target
@@ -44,7 +60,7 @@ namespace Server.Items
             {
                 if (targeted is PlayerMobile)
                 {
-                    Mobile m = targeted as Mobile;
+                    var m = targeted as Mobile;
 
                     if (from == m)
                     {
@@ -52,29 +68,14 @@ namespace Server.Items
                         return;
                     }
 
-                    Effects.SendPacket(from, from.Map, new HuedEffect(EffectType.Moving, from.Serial, m.Serial, 0xA407, from, m, 10, 0, false, false, 0, 0));
+                    Effects.SendPacket(from, from.Map,
+                        new HuedEffect(EffectType.Moving, from.Serial, m.Serial, 0xA407, from, m, 10, 0, false, false,
+                            0, 0));
                     from.SendLocalizedMessage(1159219); // You hit your target!
                     m.SendLocalizedMessage(1159218); // You have just been hit by a Jack o' Lantern!!!	
                     m.PlaySound(519);
                 }
             }
-        }
-
-        public ExplodingJackOLantern(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.Write((int)0);
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            int version = reader.ReadInt();
         }
     }
 }

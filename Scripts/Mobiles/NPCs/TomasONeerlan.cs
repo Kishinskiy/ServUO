@@ -1,4 +1,3 @@
-using System;
 using Server.Items;
 using Server.Mobiles;
 
@@ -19,24 +18,24 @@ namespace Server.Engines.Quests.Collector
 
         public override void InitBody()
         {
-            this.InitStats(100, 100, 25);
+            InitStats(100, 100, 25);
 
-            this.Hue = 0x83F8;
+            Hue = 0x83F8;
 
-            this.Female = false;
-            this.Body = 0x190;
-            this.Name = "Tomas O'Neerlan";
+            Female = false;
+            Body = 0x190;
+            Name = "Tomas O'Neerlan";
         }
 
         public override void InitOutfit()
         {
-            this.AddItem(new FancyShirt());
-            this.AddItem(new LongPants(0x546));
-            this.AddItem(new Boots(0x452));
-            this.AddItem(new FullApron(0x455));
+            AddItem(new FancyShirt());
+            AddItem(new LongPants(0x546));
+            AddItem(new Boots(0x452));
+            AddItem(new FullApron(0x455));
 
-            this.HairItemID = 0x203B;	//ShortHair
-            this.HairHue = 0x455;
+            HairItemID = 0x203B; //ShortHair
+            HairHue = 0x455;
         }
 
         public override bool CanTalkTo(PlayerMobile to)
@@ -46,20 +45,20 @@ namespace Server.Engines.Quests.Collector
             if (qs == null)
                 return false;
 
-            return (qs.IsObjectiveInProgress(typeof(FindTomasObjective)) ||
-                    qs.IsObjectiveInProgress(typeof(CaptureImagesObjective)) ||
-                    qs.IsObjectiveInProgress(typeof(ReturnImagesObjective)));
+            return qs.IsObjectiveInProgress(typeof(FindTomasObjective)) ||
+                   qs.IsObjectiveInProgress(typeof(CaptureImagesObjective)) ||
+                   qs.IsObjectiveInProgress(typeof(ReturnImagesObjective));
         }
 
         public override void OnTalk(PlayerMobile player, bool contextMenu)
         {
-            QuestSystem qs = player.Quest;
+            var qs = player.Quest;
 
             if (qs is CollectorQuest)
             {
-                this.Direction = this.GetDirectionTo(player);
+                Direction = GetDirectionTo(player);
 
-                QuestObjective obj = qs.FindObjective(typeof(FindTomasObjective));
+                var obj = qs.FindObjective(typeof(FindTomasObjective));
 
                 if (obj != null && !obj.Completed)
                 {
@@ -68,7 +67,8 @@ namespace Server.Engines.Quests.Collector
                     if (!player.PlaceInBackpack(paints))
                     {
                         paints.Delete();
-                        player.SendLocalizedMessage(1046260); // You need to clear some space in your inventory to continue with the quest.  Come back here when you have more space in your inventory.
+                        player.SendLocalizedMessage(
+                            1046260); // You need to clear some space in your inventory to continue with the quest.  Come back here when you have more space in your inventory.
                     }
                     else
                     {
@@ -98,14 +98,14 @@ namespace Server.Engines.Quests.Collector
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

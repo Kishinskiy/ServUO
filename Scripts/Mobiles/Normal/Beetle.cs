@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using Server.ContextMenus;
 using Server.Items;
@@ -8,33 +7,19 @@ namespace Server.Mobiles
     [CorpseName("a giant beetle corpse")]
     public class Beetle : BaseMount
     {
-        public virtual double BoostedSpeed
-        {
-            get
-            {
-                return 0.1;
-            }
-        }
+        public virtual double BoostedSpeed => 0.1;
+
+        public override bool SubdueBeforeTame => true; // Must be beaten into submission
+        public override bool ReduceSpeedWithDamage => false;
+
+        public override FoodType FavoriteFood => FoodType.Meat;
+
+        public override bool CanAutoStable => (Backpack == null || Backpack.Items.Count == 0) && base.CanAutoStable;
 
         [Constructable]
         public Beetle()
             : this("a giant beetle")
         {
-        }
-
-        public override bool SubdueBeforeTame
-        {
-            get
-            {
-                return true;
-            }
-        }// Must be beaten into submission
-        public override bool ReduceSpeedWithDamage
-        {
-            get
-            {
-                return false;
-            }
         }
 
         [Constructable]
@@ -68,7 +53,7 @@ namespace Server.Mobiles
             ControlSlots = 3;
             MinTameSkill = 29.1;
 
-            Container pack = Backpack;
+            var pack = Backpack;
 
             if (pack != null)
                 pack.Delete();
@@ -77,6 +62,11 @@ namespace Server.Mobiles
             pack.Movable = false;
 
             AddItem(pack);
+        }
+
+        public Beetle(Serial serial)
+            : base(serial)
+        {
         }
 
         public override int GetAngerSound()
@@ -104,21 +94,6 @@ namespace Server.Mobiles
             return 0x21D;
         }
 
-        public override FoodType FavoriteFood
-        {
-            get
-            {
-                return FoodType.Meat;
-            }
-        }
-
-        public override bool CanAutoStable { get { return (Backpack == null || Backpack.Items.Count == 0) && base.CanAutoStable; } }
-
-        public Beetle(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void OnHarmfulSpell(Mobile from)
         {
             if (!Controlled && ControlMaster == null)
@@ -131,7 +106,43 @@ namespace Server.Mobiles
                 CurrentSpeed = PassiveSpeed;
         }
 
+        public override void OnAfterTame(Mobile tamer)
+        {
+            base.OnAfterTame(tamer);
+
+            if (Owners.Count == 0 && PetTrainingHelper.Enabled) SetInt(500);
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+
+            writer.Write(1); // version
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+
+            var version = reader.ReadInt();
+
+            if (version < 1 && PetTrainingHelper.Enabled && ControlSlots <= 3)
+            {
+                var profile = PetTrainingHelper.GetAbilityProfile(this);
+
+                if (profile == null || !profile.HasCustomized())
+                {
+                    MinTameSkill = 98.7;
+                    ControlSlotsMin = 1;
+                    ControlSlots = 1;
+                }
+
+                if ((ControlMaster != null || IsStabled) && Int < 500) SetInt(500);
+            }
+        }
+
         #region Pack Animal Methods
+
         public override bool OnBeforeDeath()
         {
             if (!base.OnBeforeDeath())
@@ -187,46 +198,5 @@ namespace Server.Mobiles
         }
 
         #endregion
-
-        public override void OnAfterTame(Mobile tamer)
-        {
-            base.OnAfterTame(tamer);
-
-            if (Owners.Count == 0 && PetTrainingHelper.Enabled)
-            {
-                SetInt(500);
-            }
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-
-            writer.Write((int)1); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
-
-            if (version < 1 && PetTrainingHelper.Enabled && ControlSlots <= 3)
-            {
-                var profile = PetTrainingHelper.GetAbilityProfile(this);
-
-                if (profile == null || !profile.HasCustomized())
-                {
-                    MinTameSkill = 98.7;
-                    ControlSlotsMin = 1;
-                    ControlSlots = 1;
-                }
-
-                if ((ControlMaster != null || IsStabled) && Int < 500)
-                {
-                    SetInt(500);
-                }
-            }
-        }
     }
 }

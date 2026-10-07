@@ -1,21 +1,20 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
-using Server;
-using Server.Mobiles;
-using Server.Misc;
-using Server.Engines.CannedEvil;
-using Server.Guilds;
 using Server.ContextMenus;
+using Server.Engines.CannedEvil;
 using Server.Engines.CityLoyalty;
+using Server.Guilds;
+using Server.Misc;
+using Server.Mobiles;
+using Server.Network;
 using Server.Spells.SkillMasteries;
 
 namespace Server.Gumps
 {
     public class TitlesMenuEntry : ContextMenuEntry
     {
-        private PlayerMobile _From;
+        private readonly PlayerMobile _From;
 
         public TitlesMenuEntry(PlayerMobile from)
             : base(1115022, -1) // Open Titles Menu
@@ -30,7 +29,7 @@ namespace Server.Gumps
         }
     }
 
-    public enum  TitleType
+    public enum TitleType
     {
         None,
         PaperdollPrefix,
@@ -63,7 +62,8 @@ namespace Server.Gumps
 
         public Dictionary<GumpButton, Action<GumpButton>> ButtonCallbacks { get; set; }
 
-        public TitlesGump(PlayerMobile pm, TitleType type = TitleType.None, TitleCategory cat = TitleCategory.None, bool description = false)
+        public TitlesGump(PlayerMobile pm, TitleType type = TitleType.None, TitleCategory cat = TitleCategory.None,
+            bool description = false)
             : base(50, 50)
         {
             User = pm;
@@ -77,9 +77,10 @@ namespace Server.Gumps
             AddGumpLayout();
         }
 
-        public void AddCallbackButton(int x, int y, int buttonIDnormal, int buttonIDpushed, int id, GumpButtonType type, int page, Action<GumpButton> callback)
+        public void AddCallbackButton(int x, int y, int buttonIDnormal, int buttonIDpushed, int id, GumpButtonType type,
+            int page, Action<GumpButton> callback)
         {
-            GumpButton b = new GumpButton(x, y, buttonIDnormal, buttonIDpushed, id, type, page);
+            var b = new GumpButton(x, y, buttonIDnormal, buttonIDpushed, id, type, page);
             ButtonCallbacks[b] = callback;
             Add(b);
         }
@@ -109,39 +110,39 @@ namespace Server.Gumps
 
             AddHtmlLocalized(55, 70, 160, 16, 1115026, 0xFFFF, false, false); // Paperdoll Name (Prefix)
             AddCallbackButton(20, 70, 4005, 4007, 10001, GumpButtonType.Reply, 0, b =>
-                {
-                    TitleType = TitleType.PaperdollPrefix;
-                    Reset();
-                    Category = TitleCategory.None;
-                    Refresh();
-                });
+            {
+                TitleType = TitleType.PaperdollPrefix;
+                Reset();
+                Category = TitleCategory.None;
+                Refresh();
+            });
 
             AddHtmlLocalized(55, 92, 160, 16, 1115027, 0xFFFF, false, false); // Paperdoll Name (Suffix)
             AddCallbackButton(20, 92, 4005, 4007, 10002, GumpButtonType.Reply, 0, b =>
-                {
-                    TitleType = TitleType.PaperdollSuffix;
-                    Reset();
-                    Category = TitleCategory.None;
-                    Refresh();
-                });
+            {
+                TitleType = TitleType.PaperdollSuffix;
+                Reset();
+                Category = TitleCategory.None;
+                Refresh();
+            });
 
             AddHtmlLocalized(55, 114, 160, 16, 1115028, 0xFFFF, false, false); // Overhead Name
             AddCallbackButton(20, 114, 4005, 4007, 10003, GumpButtonType.Reply, 0, b =>
-                {
-                    TitleType = TitleType.OverheadName;
-                    Reset();
-                    Category = TitleCategory.None;
-                    Refresh();
-                });
+            {
+                TitleType = TitleType.OverheadName;
+                Reset();
+                Category = TitleCategory.None;
+                Refresh();
+            });
 
             AddHtmlLocalized(55, 136, 160, 16, 1115029, 0xFFFF, false, false); // Subtitle
             AddCallbackButton(20, 136, 4005, 4007, 10004, GumpButtonType.Reply, 0, b =>
-                {
-                    TitleType = TitleType.SubTitles;
-                    Reset();
-                    Category = TitleCategory.None;
-                    Refresh();
-                });
+            {
+                TitleType = TitleType.SubTitles;
+                Reset();
+                Category = TitleCategory.None;
+                Refresh();
+            });
 
             if (TitleType > TitleType.PaperdollPrefix && HasTitle())
             {
@@ -153,12 +154,12 @@ namespace Server.Gumps
                         TitleClearing = true;
                         Category = TitleCategory.None;
                         Refresh();
-
                     });
                 }
                 else
                 {
-                    AddHtmlLocalized(225, 275, 200, 16, 1115038, 0xFFFF, false, false); // Do you wish to clear your title?
+                    AddHtmlLocalized(225, 275, 200, 16, 1115038, 0xFFFF, false,
+                        false); // Do you wish to clear your title?
 
                     AddHtmlLocalized(480, 275, 80, 16, 1062141, 0xFFFF, false, false); // CLEAR
                     AddCallbackButton(445, 275, 4005, 4007, 10006, GumpButtonType.Reply, 0, but =>
@@ -172,10 +173,10 @@ namespace Server.Gumps
                     });
                 }
             }
-            
+
             if (Category != TitleCategory.None)
             {
-                if(ShowingDescription)
+                if (ShowingDescription)
                     AddHtmlLocalized(215, 50, 315, 16, 1115025, 0xFFFF, false, false); // <CENTER>DESCRIPTION</CENTER>
                 else
                     AddHtmlLocalized(215, 50, 315, 16, 1044011, 0xFFFF, false, false); // <CENTER>SELECTIONS</CENTER>
@@ -207,22 +208,22 @@ namespace Server.Gumps
 
         private void BuildPaperdollPrefix()
         {
-            List<string> fameKarma = Titles.GetFameKarmaEntries(User);
+            var fameKarma = Titles.GetFameKarmaEntries(User);
 
             AddHtmlLocalized(55, 190, 160, 16, 1115031, 0xFFFF, false, false); // Fame/Karma
             AddCallbackButton(20, 190, 4005, 4007, 1, GumpButtonType.Reply, 0, b =>
-                {
-                    Category = TitleCategory.FameKarma;
-                    Reset();
-                    Refresh();
-                });
+            {
+                Category = TitleCategory.FameKarma;
+                Reset();
+                Refresh();
+            });
 
             if (Category == TitleCategory.FameKarma)
             {
                 if (!ShowingDescription)
                 {
-                    int index = 0;
-                    int page = 1;
+                    var index = 0;
+                    var page = 1;
 
                     AddPage(page);
 
@@ -234,10 +235,10 @@ namespace Server.Gumps
                         Refresh();
                     });
 
-                    for (int i = 0; i < fameKarma.Count; i++)
+                    for (var i = 0; i < fameKarma.Count; i++)
                     {
-                        AddHtml(260, 92 + (index * 22), 245, 16, Color("#FFFFFF", fameKarma[i]), false, false);
-                        AddCallbackButton(225, 92 + (index * 22), 4005, 4007, 3 + i, GumpButtonType.Reply, 0, b =>
+                        AddHtml(260, 92 + index * 22, 245, 16, Color("#FFFFFF", fameKarma[i]), false, false);
+                        AddCallbackButton(225, 92 + index * 22, 4005, 4007, 3 + i, GumpButtonType.Reply, 0, b =>
                         {
                             TitleSelected = b.ButtonID - 3;
                             ShowingDescription = true;
@@ -253,7 +254,9 @@ namespace Server.Gumps
                     string title = null;
 
                     if (fameKarma.Count == 0 || TitleSelected == 1500)
+                    {
                         AddHtmlLocalized(275, 240, 160, 32, 1154764, 0xFFFF, false, false); // (DEFAULT)
+                    }
                     else
                     {
                         if (TitleSelected >= 0 && TitleSelected < fameKarma.Count)
@@ -263,24 +266,26 @@ namespace Server.Gumps
                         }
                     }
 
-                    AddHtmlLocalized(225, 70, 270, 200, 1115128, 0xFFFF, false, false); // This option will update your Fame/Karma title automatically during progression.
+                    AddHtmlLocalized(225, 70, 270, 200, 1115128, 0xFFFF, false,
+                        false); // This option will update your Fame/Karma title automatically during progression.
                     AddHtmlLocalized(225, 220, 160, 16, 1115026, 0xFFFF, false, false); // Paperdoll Name (Prefix)
-                    AddHtmlLocalized(225, 275, 200, 16, 1115035, 0xFFFF, false, false); // Do you wish to apply this title?
+                    AddHtmlLocalized(225, 275, 200, 16, 1115035, 0xFFFF, false,
+                        false); // Do you wish to apply this title?
 
                     AddHtmlLocalized(480, 275, 80, 16, 1011046, 0xFFFF, false, false); // APPLY
                     AddCallbackButton(445, 275, 4005, 4007, 99, GumpButtonType.Reply, 0, b =>
-                        {
-                            if (TitleSelected >= 0 && TitleSelected < fameKarma.Count)
-                                title = fameKarma[TitleSelected];
+                    {
+                        if (TitleSelected >= 0 && TitleSelected < fameKarma.Count)
+                            title = fameKarma[TitleSelected];
 
-                            if (title != null)
-                                User.FameKarmaTitle = title;
-                            else
-                                User.FameKarmaTitle = null;
+                        if (title != null)
+                            User.FameKarmaTitle = title;
+                        else
+                            User.FameKarmaTitle = null;
 
-                            AddHtmlLocalized(225, 315, 200, 16, 1115036, 0xFFFF, false, false); // TITLE APPLIED
-                            Refresh(false);
-                        });
+                        AddHtmlLocalized(225, 315, 200, 16, 1115036, 0xFFFF, false, false); // TITLE APPLIED
+                        Refresh(false);
+                    });
                 }
             }
         }
@@ -295,7 +300,7 @@ namespace Server.Gumps
                 Refresh();
             });
 
-            PlayerMobile.ChampionTitleInfo info = User.ChampionTitles;
+            var info = User.ChampionTitles;
 
             if (info != null && info.HasChampionTitle(User))
             {
@@ -312,24 +317,23 @@ namespace Server.Gumps
             {
                 if (!ShowingDescription || TitleSelected == -1)
                 {
-                    int index = 0;
-                    int page = 1;
+                    var index = 0;
+                    var page = 1;
 
                     AddPage(page);
 
-                    foreach (Skill sk in User.Skills)
+                    foreach (var sk in User.Skills)
                     {
                         if (sk.Base < 30)
                             continue;
 
-                        string title = Titles.GetSkillTitle(User, sk);
+                        var title = Titles.GetSkillTitle(User, sk);
 
                         if (title != null)
-                        {
-                            AddHtml(260, 70 + (index * 22), 245, 16, Color("#FFFFFF", title), false, false);
-                        }
+                            AddHtml(260, 70 + index * 22, 245, 16, Color("#FFFFFF", title), false, false);
 
-                        AddCallbackButton(225, 70 + (index * 22), 4005, 4007, sk.Info.SkillID + 102, GumpButtonType.Reply, 0, b =>
+                        AddCallbackButton(225, 70 + index * 22, 4005, 4007, sk.Info.SkillID + 102, GumpButtonType.Reply,
+                            0, b =>
                             {
                                 TitleSelected = b.ButtonID - 102;
                                 ShowingDescription = true;
@@ -343,17 +347,15 @@ namespace Server.Gumps
                 }
                 else
                 {
-                    string str = Titles.GetSkillTitle(User, User.Skills[(SkillName)TitleSelected]);
+                    var str = Titles.GetSkillTitle(User, User.Skills[(SkillName)TitleSelected]);
 
                     AddHtmlLocalized(225, 70, 270, 200, 1115056 + TitleSelected, 0xFFFF, false, false);
                     AddHtmlLocalized(225, 220, 160, 16, 1115027, 0xFFFF, false, false); // Paperdoll Name (Suffix)
 
-                    if (str != null)
-                    {
-                        AddHtml(275, 240, 245, 16, Color("#FFFFFF", str), false, false);
-                    }
+                    if (str != null) AddHtml(275, 240, 245, 16, Color("#FFFFFF", str), false, false);
 
-                    AddHtmlLocalized(225, 275, 200, 16, 1115035, 0xFFFF, false, false); // Do you wish to apply this title?
+                    AddHtmlLocalized(225, 275, 200, 16, 1115035, 0xFFFF, false,
+                        false); // Do you wish to apply this title?
 
                     AddHtmlLocalized(480, 275, 80, 16, 1011046, 0xFFFF, false, false); // APPLY
                     AddCallbackButton(445, 275, 4005, 4007, 199, GumpButtonType.Reply, 0, b =>
@@ -370,15 +372,19 @@ namespace Server.Gumps
             {
                 if (!ShowingDescription || TitleSelected == -1)
                 {
-                    int y = 70;
-                    int page = 1;
-                    int index = 0;
+                    var y = 70;
+                    var page = 1;
+                    var index = 0;
 
                     AddPage(page);
 
                     if (info.Harrower > 0)
                     {
-                        AddHtml(260, y, 245, 16, Color("#FFFFFF", String.Format(": {0} of Evil", Titles.HarrowerTitles[Math.Min(Titles.HarrowerTitles.Length, info.Harrower) - 1])), false, false);
+                        AddHtml(260, y, 245, 16,
+                            Color("#FFFFFF",
+                                string.Format(": {0} of Evil",
+                                    Titles.HarrowerTitles[Math.Min(Titles.HarrowerTitles.Length, info.Harrower) - 1])),
+                            false, false);
                         AddCallbackButton(225, y, 4005, 4007, 295, GumpButtonType.Reply, 0, b =>
                         {
                             TitleSelected = 295;
@@ -389,26 +395,30 @@ namespace Server.Gumps
                         index++;
                     }
 
-                    for (int i = 0; i < ChampionSpawnInfo.Table.Length; i++)
+                    for (var i = 0; i < ChampionSpawnInfo.Table.Length; i++)
                     {
-                        int v = info.GetValue(i);
+                        var v = info.GetValue(i);
 
                         if (v == 0)
                             continue;
 
-                        int offset = 0;
+                        var offset = 0;
                         if (v > 800)
                             offset = 3;
                         else if (v > 300)
-                            offset = (int)(v / 300);
+                            offset = v / 300;
 
                         if (offset <= 0)
                             continue;
 
-                        ChampionSpawnInfo champInfo = ChampionSpawnInfo.GetInfo((ChampionSpawnType)i);
+                        var champInfo = ChampionSpawnInfo.GetInfo((ChampionSpawnType)i);
 
-                        AddHtml(260, y + (index * 22), 245, 16, Color("#FFFFFF", String.Format(": {0} of the {1}", champInfo.LevelNames[Math.Min(offset, champInfo.LevelNames.Length) - 1], champInfo.Name)), false, false);
-                        AddCallbackButton(225, y + (index * 22), 4005, 4007, i + 251, GumpButtonType.Reply, 0, b =>
+                        AddHtml(260, y + index * 22, 245, 16,
+                            Color("#FFFFFF",
+                                string.Format(": {0} of the {1}",
+                                    champInfo.LevelNames[Math.Min(offset, champInfo.LevelNames.Length) - 1],
+                                    champInfo.Name)), false, false);
+                        AddCallbackButton(225, y + index * 22, 4005, 4007, i + 251, GumpButtonType.Reply, 0, b =>
                         {
                             TitleSelected = b.ButtonID - 251;
                             ShowingDescription = true;
@@ -421,8 +431,8 @@ namespace Server.Gumps
                 }
                 else
                 {
-                    string str = GetChampionTitle();
-                    object description = GetChampInfo();
+                    var str = GetChampionTitle();
+                    var description = GetChampInfo();
 
                     if (description is int)
                         AddHtmlLocalized(225, 70, 270, 140, (int)description, 0xFFFF, false, false);
@@ -432,7 +442,8 @@ namespace Server.Gumps
                     AddHtmlLocalized(225, 220, 160, 16, 1115027, 0xFFFF, false, false); // Paperdoll Name (Suffix)
                     AddHtml(275, 240, 245, 16, Color("#FFFFFF", str), false, false);
 
-                    AddHtmlLocalized(225, 275, 200, 16, 1115035, 0xFFFF, false, false); // Do you wish to apply this title?
+                    AddHtmlLocalized(225, 275, 200, 16, 1115035, 0xFFFF, false,
+                        false); // Do you wish to apply this title?
 
                     AddHtmlLocalized(480, 275, 80, 16, 1011046, 0xFFFF, false, false); // APPLY
                     AddCallbackButton(445, 275, 4005, 4007, 299, GumpButtonType.Reply, 0, b =>
@@ -450,7 +461,7 @@ namespace Server.Gumps
 
         private void BuildOverheadName()
         {
-            int y = 190;
+            var y = 190;
             AddHtmlLocalized(55, y, 160, 16, 1115030, 0xFFFF, false, false); // Skills
             AddCallbackButton(20, y, 4005, 4007, 300, GumpButtonType.Reply, 0, b =>
             {
@@ -462,7 +473,7 @@ namespace Server.Gumps
 
             y += 22;
 
-            List<int> rewards = GetCityTitles();
+            var rewards = GetCityTitles();
 
             if (rewards != null && rewards.Count > 0)
             {
@@ -478,7 +489,7 @@ namespace Server.Gumps
                 y += 22;
             }
 
-            Guild g = User.Guild as Guild;
+            var g = User.Guild as Guild;
 
             if (g != null)
             {
@@ -496,31 +507,34 @@ namespace Server.Gumps
             {
                 if (!ShowingDescription || TitleSelected == -1)
                 {
-                    int index = 0;
-                    int page = 1;
+                    var index = 0;
+                    var page = 1;
 
                     AddPage(page);
 
-                    foreach (Skill sk in User.Skills)
+                    foreach (var sk in User.Skills)
                     {
                         if (sk.Base < 30)
                             continue;
 
-                        AddHtml(260, 70 + (index * 22), 245, 16, Color("#FFFFFF", "the " + sk.Info.Title), false, false);
-                        AddCallbackButton(225, 70 + (index * 22), 4005, 4007, sk.Info.SkillID + 45000, GumpButtonType.Reply, 0, b =>
-                        {
-                            TitleSelected = b.ButtonID - 45000;
-                            ShowingDescription = true;
-                            Refresh();
-                        });
+                        AddHtml(260, 70 + index * 22, 245, 16, Color("#FFFFFF", "the " + sk.Info.Title), false, false);
+                        AddCallbackButton(225, 70 + index * 22, 4005, 4007, sk.Info.SkillID + 45000,
+                            GumpButtonType.Reply, 0, b =>
+                            {
+                                TitleSelected = b.ButtonID - 45000;
+                                ShowingDescription = true;
+                                Refresh();
+                            });
 
                         index++;
                         CheckPage(ref index, ref page);
 
-                        if ((SkillName)sk.Info.SkillID == User.Skills.CurrentMastery && User.Skills.CurrentMastery != SkillName.Alchemy)
+                        if ((SkillName)sk.Info.SkillID == User.Skills.CurrentMastery &&
+                            User.Skills.CurrentMastery != SkillName.Alchemy)
                         {
-                            AddHtml(260, 70 + (index * 22), 160, 16, Color("#FFFFFF", MasteryInfo.GetTitle(User)), false, false);
-                            AddCallbackButton(225, 70 + (index * 22), 4005, 4007, 999999, GumpButtonType.Reply, 0, b =>
+                            AddHtml(260, 70 + index * 22, 160, 16, Color("#FFFFFF", MasteryInfo.GetTitle(User)), false,
+                                false);
+                            AddCallbackButton(225, 70 + index * 22, 4005, 4007, 999999, GumpButtonType.Reply, 0, b =>
                             {
                                 TitleSelected = 999999;
                                 ShowingDescription = true;
@@ -553,14 +567,17 @@ namespace Server.Gumps
                     AddHtmlLocalized(225, 220, 160, 16, 1115028, 0xFFFF, false, false); // Overhead Name
 
                     AddHtml(275, 240, 245, 16, Color("#FFFFFF", title), false, false);
-                    AddHtmlLocalized(225, 275, 200, 16, 1115035, 0xFFFF, false, false); // Do you wish to apply this title?
+                    AddHtmlLocalized(225, 275, 200, 16, 1115035, 0xFFFF, false,
+                        false); // Do you wish to apply this title?
 
                     AddHtmlLocalized(480, 275, 80, 16, 1011046, 0xFFFF, false, false); // APPLY
                     AddCallbackButton(445, 275, 4005, 4007, 399, GumpButtonType.Reply, 0, b =>
                     {
                         AddHtmlLocalized(225, 315, 200, 16, 1115036, 0xFFFF, false, false); // TITLE APPLIED
 
-                        User.OverheadTitle = TitleSelected == 999999 ? MasteryInfo.GetTitle(User) : "the " + User.Skills[(SkillName)TitleSelected].Info.Title;
+                        User.OverheadTitle = TitleSelected == 999999
+                            ? MasteryInfo.GetTitle(User)
+                            : "the " + User.Skills[(SkillName)TitleSelected].Info.Title;
 
                         Refresh(false);
                     });
@@ -570,53 +587,54 @@ namespace Server.Gumps
             {
                 if (!ShowingDescription || TitleSelected == -1)
                 {
-                    AddHtml(260, 70, 160, 16, Color("#FFFFFF", String.Format("[{0}]", g.Abbreviation)), false, false);
+                    AddHtml(260, 70, 160, 16, Color("#FFFFFF", string.Format("[{0}]", g.Abbreviation)), false, false);
                     AddCallbackButton(225, 70, 4005, 4007, 397, GumpButtonType.Reply, 0, b =>
-                        {
-                            ShowingDescription = true;
-                            TitleSelected = 351;
-                            Refresh();
-                        });
+                    {
+                        ShowingDescription = true;
+                        TitleSelected = 351;
+                        Refresh();
+                    });
                 }
                 else
                 {
-                    AddHtmlLocalized(225, 65, 270, 140, 1115040, 0xFFFF, false, false); // This is your guild's abbreviation.
+                    AddHtmlLocalized(225, 65, 270, 140, 1115040, 0xFFFF, false,
+                        false); // This is your guild's abbreviation.
                     AddHtmlLocalized(225, 220, 160, 16, 1115028, 0xFFFF, false, false); // Overhead Name
 
-                    AddHtml(275, 240, 245, 16, Color("#FFFFFF", String.Format("[{0}]", g.Abbreviation)), false, false);
-                    AddHtmlLocalized(225, 275, 200, 16, 1115035, 0xFFFF, false, false); // Do you wish to apply this title?
+                    AddHtml(275, 240, 245, 16, Color("#FFFFFF", string.Format("[{0}]", g.Abbreviation)), false, false);
+                    AddHtmlLocalized(225, 275, 200, 16, 1115035, 0xFFFF, false,
+                        false); // Do you wish to apply this title?
 
                     AddHtmlLocalized(480, 275, 80, 16, 1011046, 0xFFFF, false, false); // APPLY
                     AddCallbackButton(445, 275, 4005, 4007, 398, GumpButtonType.Reply, 0, b =>
-                        {
-                            AddHtmlLocalized(225, 315, 200, 16, 1115036, 0xFFFF, false, false); // TITLE APPLIED
-                            Refresh(false);
+                    {
+                        AddHtmlLocalized(225, 315, 200, 16, 1115036, 0xFFFF, false, false); // TITLE APPLIED
+                        Refresh(false);
 
-                            User.OverheadTitle = null;
-                            User.DisplayGuildAbbr = true;
-                        });
+                        User.OverheadTitle = null;
+                        User.DisplayGuildAbbr = true;
+                    });
                 }
             }
             else if (Category == TitleCategory.RewardTitles && rewards != null && rewards.Count > 0)
             {
                 if (!ShowingDescription || TitleSelected == -1)
                 {
-                    int index = 0;
-                    int page = 1;
+                    var index = 0;
+                    var page = 1;
 
                     AddPage(page);
 
-                    for (int i = 0; i < rewards.Count; i++)
+                    for (var i = 0; i < rewards.Count; i++)
                     {
-
-                        int title = rewards[i];
+                        var title = rewards[i];
 
                         if (title == 1154017)
                             continue;
 
-                        AddHtmlLocalized(260, 70 + (index * 22), 245, 16, (int)title, 0xFFFF, false, false);
+                        AddHtmlLocalized(260, 70 + index * 22, 245, 16, title, 0xFFFF, false, false);
 
-                        AddCallbackButton(225, 70 + (index * 22), 4005, 4007, i + 2550, GumpButtonType.Reply, 0, b =>
+                        AddCallbackButton(225, 70 + index * 22, 4005, 4007, i + 2550, GumpButtonType.Reply, 0, b =>
                         {
                             TitleSelected = b.ButtonID - 2550;
                             ShowingDescription = true;
@@ -629,8 +647,8 @@ namespace Server.Gumps
                 }
                 else if (TitleSelected >= 0 && TitleSelected < rewards.Count)
                 {
-                    int title = rewards[TitleSelected];
-                    object description = GetRewardTitleInfo(title);
+                    var title = rewards[TitleSelected];
+                    var description = GetRewardTitleInfo(title);
 
                     if (description is int)
                         AddHtmlLocalized(225, 70, 270, 140, (int)description, 0xFFFF, false, false);
@@ -643,10 +661,11 @@ namespace Server.Gumps
 
                     if (title == 1154017 && CityLoyaltySystem.HasCustomTitle(User, out cust))
                         AddHtmlLocalized(275, 240, 245, 16, title, cust, 0xFFFF, false, false);
-                    else if(title != 1154017)
+                    else if (title != 1154017)
                         AddHtmlLocalized(275, 240, 160, 32, title, 0xFFFF, false, false);
 
-                    AddHtmlLocalized(225, 275, 200, 16, 1115035, 0xFFFF, false, false); // Do you wish to apply this title?
+                    AddHtmlLocalized(225, 275, 200, 16, 1115035, 0xFFFF, false,
+                        false); // Do you wish to apply this title?
 
                     AddHtmlLocalized(480, 275, 80, 16, 1011046, 0xFFFF, false, false); // APPLY
                     AddCallbackButton(445, 275, 4005, 4007, 5789, GumpButtonType.Reply, 0, b =>
@@ -662,9 +681,9 @@ namespace Server.Gumps
 
         private void BuildSubtitle()
         {
-            int y = 190;
+            var y = 190;
 
-            Guild guild = User.Guild as Guild;
+            var guild = User.Guild as Guild;
 
             AddHtmlLocalized(55, y, 160, 16, 1115030, 0xFFFF, false, false); // Skills
             AddCallbackButton(20, y, 4005, 4007, 400, GumpButtonType.Reply, 0, b =>
@@ -705,8 +724,8 @@ namespace Server.Gumps
                 y += 22;
             }
 
-            List<VeteranTitle> vetTitles = Titles.GetVeteranTitles(User);
-            
+            var vetTitles = Titles.GetVeteranTitles(User);
+
             if (vetTitles != null && vetTitles.Count > 0)
             {
                 AddHtml(55, y, 160, 16, Color("#FFFFFF", "Veterans"), false, false); // Rewards
@@ -723,29 +742,28 @@ namespace Server.Gumps
             {
                 if (!ShowingDescription || TitleSelected == -1)
                 {
-                    int index = 0;
-                    int page = 1;
+                    var index = 0;
+                    var page = 1;
 
                     AddPage(page);
 
-                    foreach (Skill sk in User.Skills)
+                    foreach (var sk in User.Skills)
                     {
                         if (sk.Base < 30)
                             continue;
 
-                        string title = Titles.GetSkillTitle(User, sk);
+                        var title = Titles.GetSkillTitle(User, sk);
 
                         if (title != null)
-                        {
-                            AddHtml(260, 70 + (index * 22), 245, 16, Color("#FFFFFF", title), false, false);
-                        }
+                            AddHtml(260, 70 + index * 22, 245, 16, Color("#FFFFFF", title), false, false);
 
-                        AddCallbackButton(225, 70 + (index * 22), 4005, 4007, sk.Info.SkillID + 404, GumpButtonType.Reply, 0, b =>
-                        {
-                            TitleSelected = b.ButtonID - 404;
-                            ShowingDescription = true;
-                            Refresh();
-                        });
+                        AddCallbackButton(225, 70 + index * 22, 4005, 4007, sk.Info.SkillID + 404, GumpButtonType.Reply,
+                            0, b =>
+                            {
+                                TitleSelected = b.ButtonID - 404;
+                                ShowingDescription = true;
+                                Refresh();
+                            });
 
                         index++;
                         CheckPage(ref index, ref page);
@@ -753,13 +771,14 @@ namespace Server.Gumps
                 }
                 else
                 {
-                    string title = Titles.GetSkillTitle(User, User.Skills[(SkillName)TitleSelected]);
+                    var title = Titles.GetSkillTitle(User, User.Skills[(SkillName)TitleSelected]);
 
                     AddHtmlLocalized(225, 70, 270, 140, 1115056 + TitleSelected, 0xFFFF, false, false);
                     AddHtmlLocalized(225, 220, 160, 16, 1115029, 0xFFFF, false, false); // Subtitle
                     AddHtml(275, 240, 245, 16, Color("#FFFFFF", title), false, false);
 
-                    AddHtmlLocalized(225, 275, 200, 16, 1115035, 0xFFFF, false, false); // Do you wish to apply this title?
+                    AddHtmlLocalized(225, 275, 200, 16, 1115035, 0xFFFF, false,
+                        false); // Do you wish to apply this title?
 
                     AddHtmlLocalized(480, 275, 80, 16, 1011046, 0xFFFF, false, false); // APPLY
                     AddCallbackButton(445, 275, 4005, 4007, 102, GumpButtonType.Reply, 0, b =>
@@ -784,7 +803,10 @@ namespace Server.Gumps
             {
                 if (!ShowingDescription || TitleSelected == -1)
                 {
-                    AddHtml(260, 70, 245, 16, Color("#FFFFFF", String.Format("{0}, {1}", Utility.FixHtml(User.GuildTitle), Utility.FixHtml(guild.Name))), false, false);
+                    AddHtml(260, 70, 245, 16,
+                        Color("#FFFFFF",
+                            string.Format("{0}, {1}", Utility.FixHtml(User.GuildTitle), Utility.FixHtml(guild.Name))),
+                        false, false);
                     AddCallbackButton(225, 70, 4005, 4007, 500, GumpButtonType.Reply, 0, b =>
                     {
                         TitleSelected = 1;
@@ -794,11 +816,16 @@ namespace Server.Gumps
                 }
                 else
                 {
-                    AddHtmlLocalized(225, 70, 270, 140, 1115039, 0xFFFF, false, false); // This is a custom guild title assigned by your guild leader.
+                    AddHtmlLocalized(225, 70, 270, 140, 1115039, 0xFFFF, false,
+                        false); // This is a custom guild title assigned by your guild leader.
                     AddHtmlLocalized(225, 220, 160, 16, 1115029, 0xFFFF, false, false); // Subtitle
-                    AddHtml(275, 240, 245, 16, Color("#FFFFFF", String.Format("{0}, {1}", Utility.FixHtml(User.GuildTitle), Utility.FixHtml(guild.Name))), false, false);
+                    AddHtml(275, 240, 245, 16,
+                        Color("#FFFFFF",
+                            string.Format("{0}, {1}", Utility.FixHtml(User.GuildTitle), Utility.FixHtml(guild.Name))),
+                        false, false);
 
-                    AddHtmlLocalized(225, 275, 200, 16, 1115035, 0xFFFF, false, false); // Do you wish to apply this title?
+                    AddHtmlLocalized(225, 275, 200, 16, 1115035, 0xFFFF, false,
+                        false); // Do you wish to apply this title?
 
                     AddHtmlLocalized(480, 275, 80, 16, 1011046, 0xFFFF, false, false); // APPLY
                     AddCallbackButton(445, 275, 4005, 4007, 599, GumpButtonType.Reply, 0, b =>
@@ -813,35 +840,35 @@ namespace Server.Gumps
                         Refresh(false);
                     });
                 }
-            }  
+            }
             else if (Category == TitleCategory.RewardTitles && User.RewardTitles != null && User.RewardTitles.Count > 0)
             {
                 if (!ShowingDescription || TitleSelected == -1)
                 {
-                    int index = 0;
-                    int page = 1;
+                    var index = 0;
+                    var page = 1;
 
                     AddPage(page);
 
-                    for (int i = 0; i < User.RewardTitles.Count; i++)
+                    for (var i = 0; i < User.RewardTitles.Count; i++)
                     {
-                        object title = User.RewardTitles[i];
+                        var title = User.RewardTitles[i];
 
                         if (title is int)
                         {
                             string cust = null;
 
                             if ((int)title == 1154017 && CityLoyaltySystem.HasCustomTitle(User, out cust))
-                            {
-                                AddHtmlLocalized(260, 70 + (index * 22), 245, 16, 1154017, cust, 0xFFFF, false, false);
-                            }
+                                AddHtmlLocalized(260, 70 + index * 22, 245, 16, 1154017, cust, 0xFFFF, false, false);
                             else
-                                AddHtmlLocalized(260, 70 + (index * 22), 245, 16, (int)title, 0xFFFF, false, false);
+                                AddHtmlLocalized(260, 70 + index * 22, 245, 16, (int)title, 0xFFFF, false, false);
                         }
                         else if (title is string)
-                            AddHtml(260, 70 + (index * 22), 245, 16, Color("#FFFFFF", (string)title), false, false);
+                        {
+                            AddHtml(260, 70 + index * 22, 245, 16, Color("#FFFFFF", (string)title), false, false);
+                        }
 
-                        AddCallbackButton(225, 70 + (index * 22), 4005, 4007, i + 600, GumpButtonType.Reply, 0, b =>
+                        AddCallbackButton(225, 70 + index * 22, 4005, 4007, i + 600, GumpButtonType.Reply, 0, b =>
                         {
                             TitleSelected = b.ButtonID - 600;
                             ShowingDescription = true;
@@ -854,8 +881,8 @@ namespace Server.Gumps
                 }
                 else if (TitleSelected >= 0 && User.RewardTitles != null && TitleSelected < User.RewardTitles.Count)
                 {
-                    object title = User.RewardTitles[TitleSelected];
-                    object description = GetRewardTitleInfo(title);
+                    var title = User.RewardTitles[TitleSelected];
+                    var description = GetRewardTitleInfo(title);
 
                     if (description is int)
                         AddHtmlLocalized(225, 70, 270, 140, (int)description, 0xFFFF, false, false);
@@ -869,16 +896,17 @@ namespace Server.Gumps
                         string cust = null;
 
                         if ((int)title == 1154017 && CityLoyaltySystem.HasCustomTitle(User, out cust))
-                        {
                             AddHtmlLocalized(275, 240, 245, 16, 1154017, cust, 0xFFFF, false, false);
-                        } 
                         else
                             AddHtmlLocalized(275, 240, 160, 32, (int)title, 0xFFFF, false, false);
                     }
                     else
+                    {
                         AddHtml(275, 240, 245, 16, Color("#FFFFFF", (string)title), false, false);
+                    }
 
-                    AddHtmlLocalized(225, 275, 200, 16, 1115035, 0xFFFF, false, false); // Do you wish to apply this title?
+                    AddHtmlLocalized(225, 275, 200, 16, 1115035, 0xFFFF, false,
+                        false); // Do you wish to apply this title?
 
                     AddHtmlLocalized(480, 275, 80, 16, 1011046, 0xFFFF, false, false); // APPLY
                     AddCallbackButton(445, 275, 4005, 4007, 699, GumpButtonType.Reply, 0, b =>
@@ -898,35 +926,36 @@ namespace Server.Gumps
             {
                 if (!ShowingDescription || TitleSelected == -1)
                 {
-                    int index = 0;
-                    int page = 1;
+                    var index = 0;
+                    var page = 1;
 
                     AddPage(page);
 
-                    for (int i = 0; i < vetTitles.Count; i++)
+                    for (var i = 0; i < vetTitles.Count; i++)
                     {
-                        AddHtmlLocalized(260, 70 + (index * 22), 245, 16, vetTitles[i].Title, 0xFFFF, false, false);
-                        AddCallbackButton(225, 70 + (index * 22), 4005, 4007, i + 700, GumpButtonType.Reply, 0, b =>
-                            {
-                                TitleSelected = b.ButtonID - 700;
-                                ShowingDescription = true;
-                                Refresh();
-                            });
+                        AddHtmlLocalized(260, 70 + index * 22, 245, 16, vetTitles[i].Title, 0xFFFF, false, false);
+                        AddCallbackButton(225, 70 + index * 22, 4005, 4007, i + 700, GumpButtonType.Reply, 0, b =>
+                        {
+                            TitleSelected = b.ButtonID - 700;
+                            ShowingDescription = true;
+                            Refresh();
+                        });
 
                         index++;
                         CheckPage(ref index, ref page);
                     }
                 }
-                else if(TitleSelected >= 0 && TitleSelected < vetTitles.Count)
+                else if (TitleSelected >= 0 && TitleSelected < vetTitles.Count)
                 {
-                    VeteranTitle title = vetTitles[TitleSelected];
+                    var title = vetTitles[TitleSelected];
 
                     AddHtmlLocalized(225, 70, 270, 200, title.Title + 410, 0xFFFF, false, false);
                     AddHtmlLocalized(225, 220, 160, 16, 1115029, 0xFFFF, false, false); // Subtitle
 
                     AddHtmlLocalized(275, 240, 160, 32, title.Title, 0xFFFF, false, false);
 
-                    AddHtmlLocalized(225, 275, 200, 16, 1115035, 0xFFFF, false, false); // Do you wish to apply this title?
+                    AddHtmlLocalized(225, 275, 200, 16, 1115035, 0xFFFF, false,
+                        false); // Do you wish to apply this title?
 
                     AddHtmlLocalized(480, 275, 80, 16, 1011046, 0xFFFF, false, false); // APPLY
                     AddCallbackButton(445, 275, 4005, 4007, 799, GumpButtonType.Reply, 0, b =>
@@ -945,9 +974,9 @@ namespace Server.Gumps
             }
         }
 
-        public override void OnResponse(Server.Network.NetState state, RelayInfo info)
+        public override void OnResponse(NetState state, RelayInfo info)
         {
-            GumpButton button = ButtonCallbacks.Keys.FirstOrDefault(b => b.ButtonID == info.ButtonID);
+            var button = ButtonCallbacks.Keys.FirstOrDefault(b => b.ButtonID == info.ButtonID);
 
             if (ButtonCallbacks.ContainsKey(button) && ButtonCallbacks[button] != null)
                 ButtonCallbacks[button](button);
@@ -978,7 +1007,8 @@ namespace Server.Gumps
                 case TitleType.OverheadName:
                     return User.OverheadTitle != null || User.DisplayGuildAbbr;
                 case TitleType.SubTitles:
-                    return User.SubtitleSkillTitle != null || User.SelectedTitle > -1 || User.CurrentVeteranTitle > 0 || User.DisplayGuildTitle;
+                    return User.SubtitleSkillTitle != null || User.SelectedTitle > -1 || User.CurrentVeteranTitle > 0 ||
+                           User.DisplayGuildTitle;
             }
 
             return false;
@@ -1009,7 +1039,7 @@ namespace Server.Gumps
 
         private string GetChampionTitle()
         {
-            PlayerMobile.ChampionTitleInfo info = User.ChampionTitles;
+            var info = User.ChampionTitles;
 
             int v;
             string str = null;
@@ -1019,24 +1049,24 @@ namespace Server.Gumps
                 v = info.Harrower;
 
                 if (v > 0)
-                    str = String.Format(": {0} of Evil", Titles.HarrowerTitles[Math.Min(Titles.HarrowerTitles.Length, info.Harrower) - 1]);
+                    str = string.Format(": {0} of Evil",
+                        Titles.HarrowerTitles[Math.Min(Titles.HarrowerTitles.Length, info.Harrower) - 1]);
             }
             else
             {
                 v = info.GetValue(TitleSelected);
 
-                ChampionSpawnInfo champInfo = ChampionSpawnInfo.GetInfo((ChampionSpawnType)TitleSelected);
+                var champInfo = ChampionSpawnInfo.GetInfo((ChampionSpawnType)TitleSelected);
 
-                int offset = 0;
+                var offset = 0;
                 if (v > 800)
                     offset = 3;
                 else if (v > 300)
-                    offset = (int)(v / 300);
+                    offset = v / 300;
 
                 if (offset > 0)
-                {
-                    str = String.Format(": {0} of the {1}", champInfo.LevelNames[Math.Min(offset, champInfo.LevelNames.Length) - 1], champInfo.Name);
-                }
+                    str = string.Format(": {0} of the {1}",
+                        champInfo.LevelNames[Math.Min(offset, champInfo.LevelNames.Length) - 1], champInfo.Name);
             }
 
             return str;
@@ -1044,7 +1074,7 @@ namespace Server.Gumps
 
         private object GetChampInfo()
         {
-            int index = TitleSelected;
+            var index = TitleSelected;
 
             switch (index)
             {
@@ -1053,14 +1083,22 @@ namespace Server.Gumps
                 case 1: return 1115046; // This title is gained from battling against the minions of Mephitis.
                 case 2: return 1115044; // This title is gained from battling against the minions of Rikktor.
                 case 3: return 1115045; // This title is gained from battling against the minions of Lord Oaks.
-                case 4: return 1115048; // This title is gained from battling against the minions of Barracoon the Piper.
-                case 5: return 1115049; // This title is gained from battling against the minions of Neira the Necromancer.
-                case 6: return 1115050; // This title is gained from battling against the minions of Serado the Awakened.
-                case 7: return 1115052; // This title is gained from battling against the minions of Twaulo of the Glade.
-                case 8: return 1115051; // This title is gained from battling against the minions of Ilhenir the Stained.
-                case 12: return 1115054; // This title is gained from battling against the minions of the Abyssal Inferno.
+                case 4:
+                    return 1115048; // This title is gained from battling against the minions of Barracoon the Piper.
+                case 5:
+                    return 1115049; // This title is gained from battling against the minions of Neira the Necromancer.
+                case 6:
+                    return 1115050; // This title is gained from battling against the minions of Serado the Awakened.
+                case 7:
+                    return 1115052; // This title is gained from battling against the minions of Twaulo of the Glade.
+                case 8:
+                    return 1115051; // This title is gained from battling against the minions of Ilhenir the Stained.
+                case 12:
+                    return 1115054; // This title is gained from battling against the minions of the Abyssal Inferno.
                 case 13: return 1115053; // This title is gained from battling against the minions of the Primeval Lich.
-                case 14: return "This title is gained from battling against the minions of the Dragon Turtle."; // Dragon Turtle, no cliloc???
+                case 14:
+                    return
+                        "This title is gained from battling against the minions of the Dragon Turtle."; // Dragon Turtle, no cliloc???
                 case 295: return 1115055; // This title is gained from battling against the Harrower and the Champions.
             }
         }
@@ -1077,7 +1115,7 @@ namespace Server.Gumps
 
             if (title is int)
             {
-                int id = (int)title;
+                var id = (int)title;
 
                 if ((id >= 1152739 && id <= 1152893) || id == 1154017)
                     return 1152893; // This title is gained through city loyalty.
@@ -1098,7 +1136,8 @@ namespace Server.Gumps
                     return 1155601; // This title is obtained from the Halloween Treasures of Doom Event.
 
                 if (id >= 1157649 && id <= 1157651)
-                    return 1157648; // This title is obtained from the Halloween Treasures of the Sorcerer's Dungeon Event.	
+                    return
+                        1157648; // This title is obtained from the Halloween Treasures of the Sorcerer's Dungeon Event.	
 
                 switch (id)
                 {
@@ -1113,24 +1152,36 @@ namespace Server.Gumps
                     case 1073203:
                     case 1073204:
                     case 1073205:
-                    case 1073206: return 1115116; // This is a reward title given for contributing to the Britannia Royal Zoo.
+                    case 1073206:
+                        return 1115116; // This is a reward title given for contributing to the Britannia Royal Zoo.
                     case 1073341:
                     case 1073342:
                     case 1073343:
                     case 1073344:
-                    case 1073345: return 1115117; // This is a reward title given for contributing to the Britain Public Library.
-                    case 1156477: return 1156476; // This title is obtained by completing the Valley of One Quest in the Valley of Eodon.
-                    case 1155727: return 1155728; // This title is obtained from the Huntmaster's Challenge at the Ranger's Guild in Skara Brae.
+                    case 1073345:
+                        return 1115117; // This is a reward title given for contributing to the Britain Public Library.
+                    case 1156477:
+                        return
+                            1156476; // This title is obtained by completing the Valley of One Quest in the Valley of Eodon.
+                    case 1155727:
+                        return
+                            1155728; // This title is obtained from the Huntmaster's Challenge at the Ranger's Guild in Skara Brae.
                     case 1156318: return 1156319; // This is a reward title given for completing Shadowguard.
-                    case 1157594: return 1157595; // This title is obtained by completing the "Discovering Animal Training" quest.
-                    case 1158140: return 1158141; // This title is obtained by completing the Huntmaster's Challenge Quest.
+                    case 1157594:
+                        return 1157595; // This title is obtained by completing the "Discovering Animal Training" quest.
+                    case 1158140:
+                        return 1158141; // This title is obtained by completing the Huntmaster's Challenge Quest.
                     case 1158090: return 1158087; // This title is obtained by completing the Paladins of Trinsic Quest.
                     case 1158161: return 1158162; // This title is obtained by completing the Righting Wrong Quest.	
                     case 1158389: return 1158248; // This title is obtained by completing the Treasure Chase Quest.
-                    case 1158278: return 1158279; // This title is obtained by completing the "A Forced Sacrifice" quest.
-                    case 1158303: return 1158324; // This title is obtained by completing the "Whispering with Wisps" quest.
-                    case 1154505: return 1154506; // This is a reward title given for completing the Exploring the Deep Quest.
-                    case 1158523: return 1158537; // This title is obtained by discovering a constellation using the telescope.
+                    case 1158278:
+                        return 1158279; // This title is obtained by completing the "A Forced Sacrifice" quest.
+                    case 1158303:
+                        return 1158324; // This title is obtained by completing the "Whispering with Wisps" quest.
+                    case 1154505:
+                        return 1154506; // This is a reward title given for completing the Exploring the Deep Quest.
+                    case 1158523:
+                        return 1158537; // This title is obtained by discovering a constellation using the telescope.
                 }
             }
 
@@ -1140,12 +1191,13 @@ namespace Server.Gumps
 
         private bool IsCityTitle(int id)
         {
-            return (id >= 1152739 && id <= 1152893) || (id >= 1151739 && id <= 1151747) || id == 1155481 || id == 1154017;
+            return (id >= 1152739 && id <= 1152893) || (id >= 1151739 && id <= 1151747) || id == 1155481 ||
+                   id == 1154017;
         }
 
         public List<int> GetCityTitles()
         {
-            IEnumerable<int> list = User.RewardTitles.OfType<int>().Where(i => IsCityTitle(i));
+            var list = User.RewardTitles.OfType<int>().Where(i => IsCityTitle(i));
 
             return list.ToList();
         }
@@ -1159,13 +1211,13 @@ namespace Server.Gumps
                 AddGumpLayout();
             }
 
-            User.CloseGump(this.GetType());
+            User.CloseGump(GetType());
             User.SendGump(this, false);
         }
 
         private string Color(string color, string str)
         {
-            return String.Format("<basefont color={0}>{1}", color, str);
+            return string.Format("<basefont color={0}>{1}", color, str);
         }
     }
 }

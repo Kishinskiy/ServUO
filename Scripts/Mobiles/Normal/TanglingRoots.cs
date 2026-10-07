@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-
 using Server.Items;
 using Server.Spells;
 using Server.Spells.Spellweaving;
@@ -10,6 +9,13 @@ namespace Server.Mobiles
     [CorpseName("a tangling root corpse")]
     public class TanglingRoots : BaseCreature
     {
+        private static readonly List<Mobile> m_TangleCooldown = new List<Mobile>();
+        private readonly Dictionary<Mobile, Timer> m_DamageTable = new Dictionary<Mobile, Timer>();
+
+        public override Poison PoisonImmune => Poison.Lesser;
+        public override bool DisallowAllMoves => true;
+        public override OppositionGroup OppositionGroup => OppositionGroup.FeyAndUndead;
+
         [Constructable]
         public TanglingRoots()
             : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
@@ -57,18 +63,13 @@ namespace Server.Mobiles
         {
         }
 
-        public override Poison PoisonImmune { get { return Poison.Lesser; } }
-        public override bool DisallowAllMoves { get { return true; } }
-        public override OppositionGroup OppositionGroup { get { return OppositionGroup.FeyAndUndead; } }
-
-        private static List<Mobile> m_TangleCooldown = new List<Mobile>();
-        private Dictionary<Mobile, Timer> m_DamageTable = new Dictionary<Mobile, Timer>();
-
         public override void OnMovement(Mobile m, Point3D oldLocation)
         {
-            if (m.Alive && !m.IsDeadBondedPet && m.AccessLevel == AccessLevel.Player && !m.Hidden && !TransformationSpellHelper.UnderTransformation(m, typeof(EtherealVoyageSpell)))
+            if (m.Alive && !m.IsDeadBondedPet && m.AccessLevel == AccessLevel.Player && !m.Hidden &&
+                !TransformationSpellHelper.UnderTransformation(m, typeof(EtherealVoyageSpell)))
             {
-                if (0.2 > Utility.RandomDouble() && !m_TangleCooldown.Contains(m) && InRange(m, 6) && !FountainOfFortune.UnderProtection(m))
+                if (0.2 > Utility.RandomDouble() && !m_TangleCooldown.Contains(m) && InRange(m, 6) &&
+                    !FountainOfFortune.UnderProtection(m))
                 {
                     m.Frozen = true;
                     m.MoveToWorld(Location, Map);
@@ -78,15 +79,13 @@ namespace Server.Mobiles
 
                     m_TangleCooldown.Add(m);
 
-                    Timer.DelayCall(TimeSpan.FromSeconds(Utility.RandomMinMax(3, 6)), new TimerStateCallback<Mobile>(Untangle), m);
-                    Timer.DelayCall(TimeSpan.FromSeconds(15.0), new TimerStateCallback<Mobile>(RemoveCooldown), m);
+                    Timer.DelayCall(TimeSpan.FromSeconds(Utility.RandomMinMax(3, 6)), Untangle, m);
+                    Timer.DelayCall(TimeSpan.FromSeconds(15.0), RemoveCooldown, m);
                 }
 
                 if (m.InRange(this, 1) && !m_DamageTable.ContainsKey(m))
-                {
                     // Should start the timer
-                    m_DamageTable[m] = Timer.DelayCall(TimeSpan.Zero, TimeSpan.FromSeconds(1.0), new TimerStateCallback<Mobile>(DoDamage), m);
-                }
+                    m_DamageTable[m] = Timer.DelayCall(TimeSpan.Zero, TimeSpan.FromSeconds(1.0), DoDamage, m);
             }
         }
 
@@ -111,7 +110,7 @@ namespace Server.Mobiles
             }
             else
             {
-                Timer t = m_DamageTable[m];
+                var t = m_DamageTable[m];
                 t.Stop();
 
                 m_DamageTable.Remove(m);
@@ -134,14 +133,14 @@ namespace Server.Mobiles
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

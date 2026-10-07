@@ -1,14 +1,11 @@
-using Server;
-using System;
-using System.Collections.Generic;
-using Server.Mobiles;
 using Server.Gumps;
+using Server.Mobiles;
 
 namespace Server.Services.TownCryer
 {
     public class TownCryerCityGump : BaseTownCryerGump
     {
-        public TownCryerCityEntry Entry { get; private set; }
+        public TownCryerCityEntry Entry { get; }
 
         public TownCryerCityGump(PlayerMobile pm, TownCrier cryer, TownCryerCityEntry entry)
             : base(pm, cryer)
@@ -34,7 +31,7 @@ namespace Server.Services.TownCryer
             {
                 var gump = new TownCryerGump(User, Cryer);
                 gump.Category = TownCryerGump.GumpCategory.City;
-                BaseGump.SendGump(gump);
+                SendGump(gump);
             }
         }
     }

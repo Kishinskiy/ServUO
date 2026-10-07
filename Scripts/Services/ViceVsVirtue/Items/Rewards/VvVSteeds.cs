@@ -1,42 +1,46 @@
-using Server;
 using System;
+using System.Collections.Generic;
 using Server.Items;
 using Server.Mobiles;
-using System.Collections.Generic;
+using Server.Network;
 
 namespace Server.Engines.VvV
 {
-	public enum SteedType 
-	{
-		Ostard, 
-		WarHorse
-	}
+    public enum SteedType
+    {
+        Ostard,
+        WarHorse
+    }
 
     public class VvVSteedStatuette : BaseImprisonedMobile
-	{
-		[CommandProperty(AccessLevel.GameMaster)]
-		public SteedType SteedType { get; set; }
+    {
+        [CommandProperty(AccessLevel.GameMaster)]
+        public SteedType SteedType { get; set; }
 
         public override BaseCreature Summon
         {
             get
             {
-                switch (this.SteedType)
+                switch (SteedType)
                 {
                     default:
-                    case SteedType.Ostard: return new VvVMount("a war ostard", 0xDA, 0x3EA4, this.Hue);
-                    case SteedType.WarHorse: return new VvVMount("a war horse", 0xE2, 0x3EA0, this.Hue);
+                    case SteedType.Ostard: return new VvVMount("a war ostard", 0xDA, 0x3EA4, Hue);
+                    case SteedType.WarHorse: return new VvVMount("a war horse", 0xE2, 0x3EA0, Hue);
                 }
             }
         }
 
-		[Constructable]
-		public VvVSteedStatuette(SteedType mounttype, int hue) 
+        [Constructable]
+        public VvVSteedStatuette(SteedType mounttype, int hue)
             : base(mounttype == SteedType.Ostard ? 8501 : 8484)
-		{
+        {
             Hue = hue;
             SteedType = mounttype;
-		}
+        }
+
+        public VvVSteedStatuette(Serial serial) : base(serial)
+        {
+        }
 
         public override void GetProperties(ObjectPropertyList list)
         {
@@ -54,91 +58,104 @@ namespace Server.Engines.VvV
 
             base.OnDoubleClick(m);
         }
-		
-		public VvVSteedStatuette(Serial serial) : base(serial)
-		{
-		}
-		
-		public override void Serialize(GenericWriter writer)
-		{
-			base.Serialize(writer);
-			writer.Write(0);
-			
-			writer.Write((int)SteedType);
-		}
-		
-		public override void Deserialize(GenericReader reader)
-		{
-			base.Deserialize(reader);
-			int version = reader.ReadInt();
-			
-			SteedType = (SteedType)reader.ReadInt();
-		}
-	}
-	
-	public class VvVMount : BaseMount
-	{
-		private int _Readiness;
-		
-		[CommandProperty(AccessLevel.GameMaster)]
-		public int BattleReadiness
-		{
-			get { return _Readiness; }
-			set
-			{
-				int old = _Readiness;
-				_Readiness = value;
-				
-				if(_Readiness > 20)
-					_Readiness = 20;
-				
-				if(old != value && ControlMaster != null && ControlMaster.NetState != null)
-				{
-					int cliloc;
-					
-					if(old > value)
-					{
-						if(_Readiness < 5)
-							cliloc = 1155551; // *Your steed's battle readiness is dangerously low!*
-						else
-							cliloc = 1155549; // *Your steed's battle readiness is fading...*
-					}
-					else
-					{
-						if(_Readiness == 20)
-							cliloc = 1155553; // *Your steed is at maximum battle readiness!*
-						else
-							cliloc = 1155552;// *Your steed's battle readiness has increased!*
-					}
-					
-					Timer.DelayCall(TimeSpan.FromSeconds(1), () =>
-					{
-                        if(!Deleted && ControlMaster != null)
-						    ControlMaster.PrivateOverheadMessage(Server.Network.MessageType.Regular, 1154, cliloc, ControlMaster.NetState);
-					});
-				}
-				
-				if(_Readiness <= 0)
-					GoPoof();
-			}
-		}
-		
-		[CommandProperty(AccessLevel.GameMaster)]
-		public DateTime NextReadinessAtrophy { get; set; }
 
-        public override bool DeleteOnRelease { get { return true; } }
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
 
-		public VvVMount(string name, int id, int itemid, int hue) 
-			: base(name, id, itemid, AIType.AI_Animal, FightMode.Aggressor, 10, 1, 0.4, .2)
-		{
-			Hue = hue;
-			
-            if(id == 0xDA)
+            writer.Write((int)SteedType);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
+
+            SteedType = (SteedType)reader.ReadInt();
+        }
+    }
+
+    public class VvVMount : BaseMount
+    {
+        private int _Readiness;
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int BattleReadiness
+        {
+            get => _Readiness;
+            set
+            {
+                var old = _Readiness;
+                _Readiness = value;
+
+                if (_Readiness > 20)
+                    _Readiness = 20;
+
+                if (old != value && ControlMaster != null && ControlMaster.NetState != null)
+                {
+                    int cliloc;
+
+                    if (old > value)
+                    {
+                        if (_Readiness < 5)
+                            cliloc = 1155551; // *Your steed's battle readiness is dangerously low!*
+                        else
+                            cliloc = 1155549; // *Your steed's battle readiness is fading...*
+                    }
+                    else
+                    {
+                        if (_Readiness == 20)
+                            cliloc = 1155553; // *Your steed is at maximum battle readiness!*
+                        else
+                            cliloc = 1155552; // *Your steed's battle readiness has increased!*
+                    }
+
+                    Timer.DelayCall(TimeSpan.FromSeconds(1), () =>
+                    {
+                        if (!Deleted && ControlMaster != null)
+                            ControlMaster.PrivateOverheadMessage(MessageType.Regular, 1154, cliloc,
+                                ControlMaster.NetState);
+                    });
+                }
+
+                if (_Readiness <= 0)
+                    GoPoof();
+            }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public DateTime NextReadinessAtrophy { get; set; }
+
+        public override bool DeleteOnRelease => true;
+
+        public override int Meat => 3;
+
+        public override int Hides => 10;
+
+        public override FoodType FavoriteFood
+        {
+            get
+            {
+                if (Body == 0xDA) return FoodType.Meat | FoodType.Fish | FoodType.Eggs | FoodType.FruitsAndVegies;
+
+                return FoodType.FruitsAndVegies | FoodType.GrainsAndHay;
+            }
+        }
+
+        public static List<VvVMount> Steeds { get; set; }
+
+        public VvVMount(string name, int id, int itemid, int hue)
+            : base(name, id, itemid, AIType.AI_Animal, FightMode.Aggressor, 10, 1, 0.4, .2)
+        {
+            Hue = hue;
+
+            if (id == 0xDA)
                 BaseSoundID = 0x275;
             else
                 BaseSoundID = 0xA8;
 
-			this.InitStats(Utility.Random(300, 100), 125, 60);
+            InitStats(Utility.Random(300, 100), 125, 60);
 
             SetStr(400);
             SetDex(125);
@@ -167,64 +184,61 @@ namespace Server.Engines.VvV
             Tamable = true;
             ControlSlots = 1;
             MinTameSkill = 29.1;
-			
-			_Readiness = 8;
-			NextReadinessAtrophy = DateTime.UtcNow + TimeSpan.FromHours(24);
-			
-			Steeds.Add(this);
-		}
-		
-		public void GoPoof()
-		{
-			if(Rider != null)
-			{
-				Rider = null;
-			}
-			
-			if(ControlMaster != null && ControlMaster.NetState != null)
-				ControlMaster.PrivateOverheadMessage(Server.Network.MessageType.Regular, 1154, 1155550, ControlMaster.NetState); // *Your steed has depleted it's battle readiness!*
-			
-			Delete();
-		}
-		
-		public override void OnDeath(Container c)
-		{
-			base.OnDeath(c);
+
+            _Readiness = 8;
+            NextReadinessAtrophy = DateTime.UtcNow + TimeSpan.FromHours(24);
+
+            Steeds.Add(this);
+        }
+
+        public VvVMount(Serial serial) : base(serial)
+        {
+        }
+
+        public void GoPoof()
+        {
+            if (Rider != null) Rider = null;
+
+            if (ControlMaster != null && ControlMaster.NetState != null)
+                ControlMaster.PrivateOverheadMessage(MessageType.Regular, 1154, 1155550,
+                    ControlMaster.NetState); // *Your steed has depleted it's battle readiness!*
+
+            Delete();
+        }
+
+        public override void OnDeath(Container c)
+        {
+            base.OnDeath(c);
 
             if (BattleReadiness > 1)
                 BattleReadiness--;
-		}
-		
-		public override bool OnDragDrop(Mobile from, Item dropped)
-		{
-			if(from == ControlMaster && dropped is EssenceOfCourage)
-			{
-				EssenceOfCourage ec = dropped as EssenceOfCourage;
+        }
+
+        public override bool OnDragDrop(Mobile from, Item dropped)
+        {
+            if (from == ControlMaster && dropped is EssenceOfCourage)
+            {
+                var ec = dropped as EssenceOfCourage;
                 BattleReadiness += dropped.Amount;
 
                 dropped.Delete();
 
                 if (Body.IsAnimal)
-                {
                     Animate(3, 5, 1, true, false, 0);
-                }
-                else if (Body.IsMonster)
-                {
-                    Animate(17, 5, 1, true, false, 0);
-                }
+                else if (Body.IsMonster) Animate(17, 5, 1, true, false, 0);
 
-				return true;
-			}
-			
-			return base.OnDragDrop(from, dropped);
-		}
-		
-		public override void Delete()
-		{
-			base.Delete();
-			
-			Steeds.Remove(this);
-		}
+                return true;
+            }
+
+            return base.OnDragDrop(from, dropped);
+        }
+
+        public override void Delete()
+        {
+            base.Delete();
+
+            Steeds.Remove(this);
+        }
 
         public override bool CanTransfer(Mobile m)
         {
@@ -242,88 +256,52 @@ namespace Server.Engines.VvV
             return false;
         }
 
-        public override int Meat
+        public override void Serialize(GenericWriter writer)
         {
-            get
-            {
-                return 3;
-            }
+            base.Serialize(writer);
+            writer.Write(0);
+
+            writer.Write(_Readiness);
+            writer.Write(NextReadinessAtrophy);
         }
 
-        public override int Hides
+        public override void Deserialize(GenericReader reader)
         {
-            get
-            {
-                return 10;
-            }
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
+
+            _Readiness = reader.ReadInt();
+            NextReadinessAtrophy = reader.ReadDateTime();
+
+            Steeds.Add(this);
         }
 
-        public override FoodType FavoriteFood
+        public static void Configure()
         {
-            get
+            Steeds = new List<VvVMount>();
+        }
+
+        public static void Initialize()
+        {
+            Timer.DelayCall(TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(10), () =>
             {
-                if (Body == 0xDA)
+                var steeds = new List<VvVMount>(Steeds);
+
+                steeds.ForEach(s =>
                 {
-                    return FoodType.Meat | FoodType.Fish | FoodType.Eggs | FoodType.FruitsAndVegies;
-                }
-                else
-                {
-                    return FoodType.FruitsAndVegies | FoodType.GrainsAndHay;
-                }
-            }
-        }
-		
-		public VvVMount(Serial serial) : base(serial)
-		{
-		}
-		
-		public override void Serialize(GenericWriter writer)
-		{
-			base.Serialize(writer);
-			writer.Write(0);
-			
-			writer.Write(_Readiness);
-			writer.Write(NextReadinessAtrophy);
-		}
-		
-		public override void Deserialize(GenericReader reader)
-		{
-			base.Deserialize(reader);
-			int version = reader.ReadInt();
-			
-			_Readiness = reader.ReadInt();
-			NextReadinessAtrophy = reader.ReadDateTime();
-			
-			Steeds.Add(this);
-		}
-		
-		public static List<VvVMount> Steeds { get; set; }
-		
-		public static void Configure()
-		{
-			Steeds = new List<VvVMount>();
-		}
-		
-		public static void Initialize()
-		{
-			Timer.DelayCall(TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(10), () =>
-			{
-                List<VvVMount> steeds = new List<VvVMount>(Steeds);
+                    if ((s.Map != Map.Internal || (s.Rider != null && s.Rider.Map != Map.Internal)) &&
+                        s.NextReadinessAtrophy < DateTime.UtcNow)
+                    {
+                        s.BattleReadiness--;
 
-				steeds.ForEach(s =>
-				{
-					if((s.Map != Map.Internal || (s.Rider != null && s.Rider.Map != Map.Internal)) && s.NextReadinessAtrophy < DateTime.UtcNow)
-					{
-						s.BattleReadiness--;
-						
-						if(!s.Deleted)
-							s.NextReadinessAtrophy = DateTime.UtcNow + TimeSpan.FromHours(24);
-					}
-				});
-				
-				steeds.Clear();
-				steeds.TrimExcess();
-			});
-		}
-	}
+                        if (!s.Deleted)
+                            s.NextReadinessAtrophy = DateTime.UtcNow + TimeSpan.FromHours(24);
+                    }
+                });
+
+                steeds.Clear();
+                steeds.TrimExcess();
+            });
+        }
+    }
 }

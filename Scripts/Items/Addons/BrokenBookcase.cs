@@ -1,10 +1,10 @@
-using System;
-
 namespace Server.Items
 {
     [Flipable(0xC14, 0xC15)]
     public class BrokenBookcaseComponent : AddonComponent
     {
+        public override int LabelNumber => 1076258; // Broken Bookcase
+
         public BrokenBookcaseComponent()
             : base(0xC14)
         {
@@ -15,13 +15,6 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1076258;
-            }
-        }// Broken Bookcase
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -33,17 +26,18 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class BrokenBookcaseAddon : BaseAddon
     {
+        public override BaseAddonDeed Deed => new BrokenBookcaseDeed();
+
         [Constructable]
         public BrokenBookcaseAddon()
-            : base()
         {
-            this.AddComponent(new BrokenBookcaseComponent(), 0, 0, 0);
+            AddComponent(new BrokenBookcaseComponent(), 0, 0, 0);
         }
 
         public BrokenBookcaseAddon(Serial serial)
@@ -51,13 +45,6 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddonDeed Deed
-        {
-            get
-            {
-                return new BrokenBookcaseDeed();
-            }
-        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -69,17 +56,20 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 
     public class BrokenBookcaseDeed : BaseAddonDeed
     {
+        public override BaseAddon Addon => new BrokenBookcaseAddon();
+
+        public override int LabelNumber => 1076258; // Broken Bookcase
+
         [Constructable]
         public BrokenBookcaseDeed()
-            : base()
         {
-            this.LootType = LootType.Blessed;
+            LootType = LootType.Blessed;
         }
 
         public BrokenBookcaseDeed(Serial serial)
@@ -87,20 +77,6 @@ namespace Server.Items
         {
         }
 
-        public override BaseAddon Addon
-        {
-            get
-            {
-                return new BrokenBookcaseAddon();
-            }
-        }
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1076258;
-            }
-        }// Broken Bookcase
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -112,7 +88,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

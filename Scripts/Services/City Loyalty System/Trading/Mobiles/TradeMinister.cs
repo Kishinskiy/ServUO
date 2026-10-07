@@ -1,14 +1,12 @@
-using System;
-using Server;
-using Server.Mobiles;
-using Server.ContextMenus;
-using Server.Engines.Points;
-using Server.Targeting;
-using Server.Gumps;
-using Server.Network;
 using System.Collections.Generic;
+using Server.ContextMenus;
+using Server.Gumps;
 using Server.Items;
 using Server.Misc;
+using Server.Mobiles;
+using Server.Network;
+using Server.SkillHandlers;
+using Server.Targeting;
 
 namespace Server.Engines.CityLoyalty
 {
@@ -18,7 +16,11 @@ namespace Server.Engines.CityLoyalty
         public City City { get; set; }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public CityLoyaltySystem CitySystem { get { return CityLoyaltySystem.GetCityInstance(City); } set { } }
+        public CityLoyaltySystem CitySystem
+        {
+            get => CityLoyaltySystem.GetCityInstance(City);
+            set { }
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public CityItemDonation DonationCrate { get; set; }
@@ -26,7 +28,9 @@ namespace Server.Engines.CityLoyalty
         [CommandProperty(AccessLevel.GameMaster)]
         public CityPetDonation DonationPost { get; set; }
 
-        public override bool IsInvulnerable { get { return true; } }
+        public override bool IsInvulnerable => true;
+
+        public static List<TradeMinister> Ministers { get; private set; }
 
         [Constructable]
         public TradeMinister(City city) : base(AIType.AI_Vendor, FightMode.None, 10, 1, .4, .2)
@@ -67,12 +71,13 @@ namespace Server.Engines.CityLoyalty
             CantWalk = true;
         }
 
+        public TradeMinister(Serial serial) : base(serial)
+        {
+        }
+
         public override void OnDoubleClick(Mobile from)
         {
-            if (from.InRange(this.Location, 4))
-            {
-                from.SendGump(new InternalGump());
-            }
+            if (from.InRange(Location, 4)) from.SendGump(new InternalGump());
         }
 
         public override void GetContextMenuEntries(Mobile from, List<ContextMenuEntry> list)
@@ -83,10 +88,113 @@ namespace Server.Engines.CityLoyalty
             list.Add(new TurnInEntry(from, this));
         }
 
+        private Item GiveReward(TradeEntry entry)
+        {
+            if (0.01 > Utility.RandomDouble())
+                switch (Utility.Random(2))
+                {
+                    default:
+                    case 0: return CityBook.GetRandom();
+                    case 1: return new RewardSign();
+                }
+
+            switch (Utility.Random(2))
+            {
+                default:
+                case 1: return RandomResource(entry);
+                case 2: return ScrollOfTranscendence.CreateRandom(1, 10);
+            }
+        }
+
+        private Item RandomResource(TradeEntry entry)
+        {
+            var amount = 40;
+
+            if (entry.Details.Count > 1)
+                amount = 40 + Utility.RandomMinMax(10, entry.Details.Count * 20);
+
+            switch (Utility.Random(4))
+            {
+                case 0:
+                    switch (Utility.Random(9))
+                    {
+                        case 0: return new IronIngot(amount);
+                        case 1: return new DullCopperIngot(amount);
+                        case 2: return new ShadowIronIngot(amount);
+                        case 3: return new CopperIngot(amount);
+                        case 4: return new BronzeIngot(amount);
+                        case 5: return new GoldIngot(amount);
+                        case 6: return new AgapiteIngot(amount);
+                        case 7: return new VeriteIngot(amount);
+                        case 8: return new ValoriteIngot(amount);
+                    }
+
+                    break;
+                case 1:
+                    switch (Utility.Random(4))
+                    {
+                        case 0: return new Leather(amount);
+                        case 1: return new SpinedLeather(amount);
+                        case 2: return new HornedLeather(amount);
+                        case 3: return new BarbedLeather(amount);
+                    }
+
+                    break;
+                case 2:
+                    switch (Utility.Random(7))
+                    {
+                        case 0: return new Board(amount);
+                        case 1: return new OakBoard(amount);
+                        case 2: return new AshBoard(amount);
+                        case 3: return new YewBoard(amount);
+                        case 4: return new BloodwoodBoard(amount);
+                        case 5: return new HeartwoodBoard(amount);
+                        case 6: return new FrostwoodBoard(amount);
+                    }
+
+                    break;
+                case 3:
+                    var item = Loot.Construct(Imbuing.IngredTypes[Utility.Random(Imbuing.IngredTypes.Length)]);
+
+                    amount /= 10;
+
+                    if (item != null && item.Stackable)
+                        item.Amount = amount;
+
+                    return item;
+            }
+
+            return null;
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
+            writer.Write((int)City);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var v = reader.ReadInt();
+            City = (City)reader.ReadInt();
+
+            if (CitySystem != null)
+                CitySystem.Minister = this;
+
+            Ministers.Add(this);
+        }
+
+        public static void Configure()
+        {
+            Ministers = new List<TradeMinister>();
+        }
+
         private class TradeOrderEntry : ContextMenuEntry
         {
-            public TradeMinister Minister { get; private set; }
-            public Mobile Player { get; private set; }
+            public TradeMinister Minister { get; }
+            public Mobile Player { get; }
 
             public TradeOrderEntry(Mobile player, TradeMinister minister) : base(1114453, 5) // Get Trade Order
             {
@@ -99,16 +207,14 @@ namespace Server.Engines.CityLoyalty
             public override void OnClick()
             {
                 if (!CityTradeSystem.HasTrade(Player))
-                {
                     Player.SendGump(new InternalTradeOrderGump(Player as PlayerMobile, Minister));
-                }
             }
         }
 
         private class TurnInEntry : ContextMenuEntry
         {
-            public TradeMinister Minister { get; private set; }
-            public Mobile Player { get; private set; }
+            public TradeMinister Minister { get; }
+            public Mobile Player { get; }
 
             public TurnInEntry(Mobile player, TradeMinister minister) : base(1151729, 3) // Turn in a trade order
             {
@@ -129,7 +235,7 @@ namespace Server.Engines.CityLoyalty
 
             private class InternalTarget : Target
             {
-                public TradeMinister Minister { get; private set; }
+                public TradeMinister Minister { get; }
 
                 public InternalTarget(TradeMinister minister) : base(-1, false, TargetFlags.None)
                 {
@@ -138,7 +244,7 @@ namespace Server.Engines.CityLoyalty
 
                 protected override void OnTarget(Mobile from, object targeted)
                 {
-                    TradeOrderCrate order = targeted as TradeOrderCrate;
+                    var order = targeted as TradeOrderCrate;
 
                     if (order != null)
                     {
@@ -164,99 +270,20 @@ namespace Server.Engines.CityLoyalty
             }
         }
 
-        private Item GiveReward(TradeEntry entry)
-        {
-            if (0.01 > Utility.RandomDouble())
-            {
-                switch (Utility.Random(2))
-                {
-                    default:
-                    case 0: return CityBook.GetRandom();
-                    case 1: return new RewardSign();
-                }
-            }
-            else
-            {
-                switch (Utility.Random(2))
-                {
-                    default:
-                    case 1: return RandomResource(entry);
-                    case 2: return ScrollOfTranscendence.CreateRandom(1, 10);
-                }
-            }
-        }
-
-        private Item RandomResource(TradeEntry entry)
-        {
-            int amount = 40;
-
-            if (entry.Details.Count > 1)
-                amount = 40 + Utility.RandomMinMax(10, entry.Details.Count * 20);
-
-            switch (Utility.Random(4))
-            {
-                case 0:
-                    switch (Utility.Random(9))
-                    {
-                        case 0: return new IronIngot(amount);
-                        case 1: return new DullCopperIngot(amount);
-                        case 2: return new ShadowIronIngot(amount);
-                        case 3: return new CopperIngot(amount);
-                        case 4: return new BronzeIngot(amount);
-                        case 5: return new GoldIngot(amount);
-                        case 6: return new AgapiteIngot(amount);
-                        case 7: return new VeriteIngot(amount);
-                        case 8: return new ValoriteIngot(amount);
-                    }
-                    break;
-                case 1:
-                    switch (Utility.Random(4))
-                    {
-                        case 0: return new Leather(amount);
-                        case 1: return new SpinedLeather(amount);
-                        case 2: return new HornedLeather(amount);
-                        case 3: return new BarbedLeather(amount);
-                    }
-                    break;
-                case 2:
-                    switch (Utility.Random(7))
-                    {
-                        case 0: return new Board(amount);
-                        case 1: return new OakBoard(amount);
-                        case 2: return new AshBoard(amount);
-                        case 3: return new YewBoard(amount);
-                        case 4: return new BloodwoodBoard(amount);
-                        case 5: return new HeartwoodBoard(amount);
-                        case 6: return new FrostwoodBoard(amount);
-                    }
-                    break;
-                case 3:
-                    Item item = Loot.Construct(SkillHandlers.Imbuing.IngredTypes[Utility.Random(SkillHandlers.Imbuing.IngredTypes.Length)]);
-
-                    amount /= 10;
-
-                    if (item != null && item.Stackable)
-                        item.Amount = amount;
-
-                    return item;
-            }
-            return null;
-        }
-
         private class InternalGump : Gump
         {
             public InternalGump() : base(40, 40)
             {
                 AddBackground(0, 0, 500, 400, 9380);
 
-                AddHtmlLocalized(30, 50, 400, 16, 1152962, 0x4800, false, false);	// City Trade Minister
+                AddHtmlLocalized(30, 50, 400, 16, 1152962, 0x4800, false, false); // City Trade Minister
                 AddHtmlLocalized(30, 80, 440, 320, 1152963, 0x001F, false, false);
             }
         }
 
         public class InternalTradeOrderGump : Gump
         {
-            public TradeMinister Minister { get; private set; }
+            public TradeMinister Minister { get; }
             public PlayerMobile User { get; set; }
 
             public InternalTradeOrderGump(PlayerMobile user, TradeMinister minister)
@@ -272,7 +299,8 @@ namespace Server.Engines.CityLoyalty
             {
                 AddBackground(0, 0, 370, 420, 9300);
 
-                AddHtmlLocalized(10, 30, 350, 18, 1114513, "#1114454", 0x3442, false, false); // An Offer For a trade Order
+                AddHtmlLocalized(10, 30, 350, 18, 1114513, "#1114454", 0x3442, false,
+                    false); // An Offer For a trade Order
 
                 /*
                  * Greetings! His majesty thanks you for furthering the economic interests of the City!
@@ -280,13 +308,13 @@ namespace Server.Engines.CityLoyalty
                  * for fear that use of such magics will corrupt the quality of the goods held within.
                  * Be forewarned! The life of a trader is sure to be met with peril as highwayman and pirates
                  * alike seek to profit a bit of coin for the goods.  Good luck!
-                */
+                 */
                 AddHtmlLocalized(10, 61, 350, 162, 1114455, 0x10, false, false);
 
                 /*
                  * <i>Should you accept this trade order your ability to magically teleport to another location will be disabled.
                  * You may cancel the trade order at any time by accessing the context menu on the trade crate by single left clicking</i>
-                */
+                 */
                 AddHtmlLocalized(10, 225, 350, 90, 1151721, 0x3442, false, false);
 
                 AddButton(10, 390, 4005, 4007, 1, GumpButtonType.Reply, 0);
@@ -301,45 +329,11 @@ namespace Server.Engines.CityLoyalty
                 if (info.ButtonID == 1)
                 {
                     if (!Minister.InRange(User, 5))
-                    {
                         User.SendLocalizedMessage(500295); // You are too far away to do that.
-                    }
                     else
-                    {
                         CityLoyaltySystem.CityTrading.TryOfferTrade(User, Minister);
-                    }
                 }
             }
         }
-
-        public TradeMinister(Serial serial) : base(serial)
-        {
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.Write(0);
-            writer.Write((int)City);
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            int v = reader.ReadInt();
-            City = (City)reader.ReadInt();
-
-            if (CitySystem != null)
-                CitySystem.Minister = this;
-
-            Ministers.Add(this);
-        }
-
-        public static void Configure()
-        {
-            Ministers = new List<TradeMinister>();
-        }
-
-        public static List<TradeMinister> Ministers { get; private set; }
     }
 }

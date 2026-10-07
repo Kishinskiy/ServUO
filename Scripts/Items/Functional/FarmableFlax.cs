@@ -1,5 +1,3 @@
-using System;
-
 namespace Server.Items
 {
     public class FarmableFlax : FarmableCrop
@@ -22,7 +20,7 @@ namespace Server.Items
 
         public override Item GetCropObject()
         {
-            Flax flax = new Flax();
+            var flax = new Flax();
 
             flax.ItemID = Utility.Random(6812, 2);
 
@@ -45,7 +43,7 @@ namespace Server.Items
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
 }

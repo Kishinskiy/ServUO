@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Server.Engines.PartySystem;
+using Server.Spells.Second;
 using Server.Targeting;
 
 namespace Server.Spells.Fourth
@@ -15,101 +16,93 @@ namespace Server.Spells.Fourth
             Reagent.Ginseng,
             Reagent.MandrakeRoot,
             Reagent.SulfurousAsh);
+
+        private static readonly Dictionary<Mobile, int> _Table = new Dictionary<Mobile, int>();
+
+        public override SpellCircle Circle => SpellCircle.Fourth;
+
         public ArchProtectionSpell(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
         {
         }
 
-        public override SpellCircle Circle
-        {
-            get
-            {
-                return SpellCircle.Fourth;
-            }
-        }
         public override void OnCast()
         {
-            this.Caster.Target = new InternalTarget(this);
+            Caster.Target = new InternalTarget(this);
         }
 
         public void Target(IPoint3D p)
         {
-            if (!this.Caster.CanSee(p))
+            if (!Caster.CanSee(p))
             {
-                this.Caster.SendLocalizedMessage(500237); // Target can not be seen.
+                Caster.SendLocalizedMessage(500237); // Target can not be seen.
             }
-            else if (this.CheckSequence())
+            else if (CheckSequence())
             {
-                SpellHelper.Turn(this.Caster, p);
+                SpellHelper.Turn(Caster, p);
 
                 SpellHelper.GetSurfaceTop(ref p);
 
-                List<Mobile> targets = new List<Mobile>();
+                var targets = new List<Mobile>();
 
-                Map map = this.Caster.Map;
+                var map = Caster.Map;
 
                 if (map != null)
                 {
                     IPooledEnumerable eable = map.GetMobilesInRange(new Point3D(p), Core.AOS ? 2 : 3);
 
                     foreach (Mobile m in eable)
-                    {
-                        if (this.Caster.CanBeBeneficial(m, false))
+                        if (Caster.CanBeBeneficial(m, false))
                             targets.Add(m);
-                    }
 
                     eable.Free();
                 }
 
                 if (Core.AOS)
                 {
-                    Party party = Party.Get(this.Caster);
+                    var party = Party.Get(Caster);
 
-                    for (int i = 0; i < targets.Count; ++i)
+                    for (var i = 0; i < targets.Count; ++i)
                     {
-                        Mobile m = targets[i];
+                        var m = targets[i];
 
-                        if (m == this.Caster || (party != null && party.Contains(m)))
+                        if (m == Caster || (party != null && party.Contains(m)))
                         {
-                            this.Caster.DoBeneficial(m);
-                            Spells.Second.ProtectionSpell.Toggle(this.Caster, m, true);
+                            Caster.DoBeneficial(m);
+                            ProtectionSpell.Toggle(Caster, m, true);
                         }
                     }
                 }
                 else
                 {
-                    Effects.PlaySound(p, this.Caster.Map, 0x299);
+                    Effects.PlaySound(p, Caster.Map, 0x299);
 
-                    int val = (int)(this.Caster.Skills[SkillName.Magery].Value / 10.0 + 1);
+                    var val = (int)(Caster.Skills[SkillName.Magery].Value / 10.0 + 1);
 
                     if (targets.Count > 0)
-                    {
-                        for (int i = 0; i < targets.Count; ++i)
+                        for (var i = 0; i < targets.Count; ++i)
                         {
-                            Mobile m = targets[i];
+                            var m = targets[i];
 
                             if (m.BeginAction(typeof(ArchProtectionSpell)))
                             {
-                                this.Caster.DoBeneficial(m);
+                                Caster.DoBeneficial(m);
                                 m.VirtualArmorMod += val;
 
                                 AddEntry(m, val);
-                                new InternalTimer(m, this.Caster).Start();
+                                new InternalTimer(m, Caster).Start();
 
                                 m.FixedParticles(0x375A, 9, 20, 5027, EffectLayer.Waist);
                                 m.PlaySound(0x1F7);
                             }
                         }
-                    }
                 }
             }
 
-            this.FinishSequence();
+            FinishSequence();
         }
 
-        private static Dictionary<Mobile, Int32> _Table = new Dictionary<Mobile, Int32>();
-
-        private static void AddEntry(Mobile m, Int32 v)
+        private static void AddEntry(Mobile m, int v)
         {
             _Table[m] = v;
         }
@@ -118,7 +111,7 @@ namespace Server.Spells.Fourth
         {
             if (_Table.ContainsKey(m))
             {
-                int v = _Table[m];
+                var v = _Table[m];
                 _Table.Remove(m);
                 m.EndAction(typeof(ArchProtectionSpell));
                 m.VirtualArmorMod -= v;
@@ -134,41 +127,42 @@ namespace Server.Spells.Fourth
             public InternalTimer(Mobile target, Mobile caster)
                 : base(TimeSpan.FromSeconds(0))
             {
-                double time = caster.Skills[SkillName.Magery].Value * 1.2;
+                var time = caster.Skills[SkillName.Magery].Value * 1.2;
                 if (time > 144)
                     time = 144;
-                this.Delay = TimeSpan.FromSeconds(time);
-                this.Priority = TimerPriority.OneSecond;
+                Delay = TimeSpan.FromSeconds(time);
+                Priority = TimerPriority.OneSecond;
 
-                this.m_Owner = target;
+                m_Owner = target;
             }
 
             protected override void OnTick()
             {
-                ArchProtectionSpell.RemoveEntry(this.m_Owner);
+                RemoveEntry(m_Owner);
             }
         }
 
         private class InternalTarget : Target
         {
             private readonly ArchProtectionSpell m_Owner;
+
             public InternalTarget(ArchProtectionSpell owner)
                 : base(Core.ML ? 10 : 12, true, TargetFlags.None)
             {
-                this.m_Owner = owner;
+                m_Owner = owner;
             }
 
             protected override void OnTarget(Mobile from, object o)
             {
-                IPoint3D p = o as IPoint3D;
+                var p = o as IPoint3D;
 
                 if (p != null)
-                    this.m_Owner.Target(p);
+                    m_Owner.Target(p);
             }
 
             protected override void OnTargetFinish(Mobile from)
             {
-                this.m_Owner.FinishSequence();
+                m_Owner.FinishSequence();
             }
         }
     }

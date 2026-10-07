@@ -1,10 +1,8 @@
-using System;
-
 namespace Server.Engines.Chat
 {
     public class ChatActionHandlers
     {
-        private static ChatActionHandler[] m_Handlers;
+        private static readonly ChatActionHandler[] m_Handlers;
 
         static ChatActionHandlers()
         {
@@ -32,7 +30,8 @@ namespace Server.Engines.Chat
 
         public static void ChannelMessage(ChatUser from, Channel channel, string param)
         {
-            channel.SendMessage(57, from, from.GetColorCharacter() + from.Username, string.Format("{{{0}}} {1}", channel.Name, param)); // %1: %2
+            channel.SendMessage(57, from, from.GetColorCharacter() + from.Username,
+                string.Format("{{{0}}} {1}", channel.Name, param)); // %1: %2
             ChatLogging.LogMessage(channel.Name, from.Username, param);
         }
 
@@ -46,11 +45,11 @@ namespace Server.Engines.Chat
             string name;
             string password = null;
 
-            int start = param.IndexOf('\"');
+            var start = param.IndexOf('\"');
 
             if (start >= 0)
             {
-                int end = param.IndexOf('\"', ++start);
+                var end = param.IndexOf('\"', ++start);
 
                 if (end >= 0)
                 {
@@ -64,7 +63,7 @@ namespace Server.Engines.Chat
             }
             else
             {
-                int indexOf = param.IndexOf(' ');
+                var indexOf = param.IndexOf(' ');
 
                 if (indexOf >= 0)
                 {
@@ -98,7 +97,8 @@ namespace Server.Engines.Chat
                 }
                 else
                 {
-                    from.Mobile.SendMessage("Channel creation is not allowed right now. Switching to default channel...");
+                    from.Mobile.SendMessage(
+                        "Channel creation is not allowed right now. Switching to default channel...");
                     joined = Channel.Default;
                 }
             }

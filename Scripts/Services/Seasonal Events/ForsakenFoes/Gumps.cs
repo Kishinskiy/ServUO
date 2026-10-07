@@ -1,17 +1,15 @@
-using Server;
-using System;
-using Server.Mobiles;
+using Server.Engines.Craft;
+using Server.Engines.Points;
 using Server.Gumps;
 using Server.Items;
-using Server.Engines.Points;
-using Server.Engines.Craft;
+using Server.Mobiles;
 
 namespace Server.Engines.Fellowship
 {
     public class FellowshipRewardGump : BaseRewardGump
     {
-        public override int PointsName { get { return 1159184; } } // Your Fellowship Silver:
-        public override int RewardLabel { get { return 1159185; } } // Would you like to buy something?
+        public override int PointsName => 1159184; // Your Fellowship Silver:
+        public override int RewardLabel => 1159185; // Would you like to buy something?
 
         public FellowshipRewardGump(Mobile owner, PlayerMobile user)
             : base(owner, user, FellowshipRewards.Rewards, 1159183)
@@ -46,7 +44,6 @@ namespace Server.Engines.Fellowship
             Item item = null;
 
             if (citem.Type == typeof(RecipeScroll))
-            {
                 switch (index)
                 {
                     default:
@@ -57,13 +54,13 @@ namespace Server.Engines.Fellowship
                     case 13: item = new RecipeScroll((int)TailorRecipe.CrimsonSwordBelt); break;
                     case 14: item = new RecipeScroll((int)TailorRecipe.CrimsonMaceBelt); break;
                 }
-            }
 
             if (item != null)
             {
                 if (User.Backpack == null || !User.Backpack.TryDropItem(User, item, false))
                 {
-                    User.SendLocalizedMessage(1074361); // The reward could not be given.  Make sure you have room in your pack.
+                    User.SendLocalizedMessage(
+                        1074361); // The reward could not be given.  Make sure you have room in your pack.
                     item.Delete();
                 }
                 else

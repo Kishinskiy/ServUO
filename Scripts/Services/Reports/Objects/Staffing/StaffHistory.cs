@@ -6,90 +6,35 @@ namespace Server.Engines.Reports
 {
     public class StaffHistory : PersistableObject
     {
-        #region Type Identification
-        public static readonly PersistableType ThisTypeID = new PersistableType("stfhst", new ConstructCallback(Construct));
+        public static readonly PersistableType ThisTypeID = new PersistableType("stfhst", Construct);
+        public static readonly object RenderLock = new object();
+        public static readonly object SaveLock = new object();
 
-        private static PersistableObject Construct()
-        {
-            return new StaffHistory();
-        }
+        public PageInfoCollection Pages { get; set; }
 
-        public override PersistableType TypeID
-        {
-            get
-            {
-                return ThisTypeID;
-            }
-        }
-        #endregion
+        public QueueStatusCollection QueueStats { get; set; }
 
-        private PageInfoCollection m_Pages;
-        private QueueStatusCollection m_QueueStats;
+        public Hashtable UserInfo { get; set; }
 
-        private Hashtable m_UserInfo;
-        private Hashtable m_StaffInfo;
+        public Hashtable StaffInfo { get; set; }
 
-        public PageInfoCollection Pages
+        public StaffHistory()
         {
-            get
-            {
-                return this.m_Pages;
-            }
-            set
-            {
-                this.m_Pages = value;
-            }
-        }
-        public QueueStatusCollection QueueStats
-        {
-            get
-            {
-                return this.m_QueueStats;
-            }
-            set
-            {
-                this.m_QueueStats = value;
-            }
-        }
+            Pages = new PageInfoCollection();
+            QueueStats = new QueueStatusCollection();
 
-        public Hashtable UserInfo
-        {
-            get
-            {
-                return this.m_UserInfo;
-            }
-            set
-            {
-                this.m_UserInfo = value;
-            }
-        }
-        public Hashtable StaffInfo
-        {
-            get
-            {
-                return this.m_StaffInfo;
-            }
-            set
-            {
-                this.m_StaffInfo = value;
-            }
+            UserInfo = new Hashtable(StringComparer.OrdinalIgnoreCase);
+            StaffInfo = new Hashtable(StringComparer.OrdinalIgnoreCase);
         }
 
         public void AddPage(PageInfo info)
         {
             lock (SaveLock)
-                this.m_Pages.Add(info);
+            {
+                Pages.Add(info);
+            }
 
             info.History = this;
-        }
-
-        public StaffHistory()
-        {
-            this.m_Pages = new PageInfoCollection();
-            this.m_QueueStats = new QueueStatusCollection();
-
-            this.m_UserInfo = new Hashtable(StringComparer.OrdinalIgnoreCase);
-            this.m_StaffInfo = new Hashtable(StringComparer.OrdinalIgnoreCase);
         }
 
         public StaffInfo GetStaffInfo(string account)
@@ -99,10 +44,10 @@ namespace Server.Engines.Reports
                 if (account == null || account.Length == 0)
                     return null;
 
-                StaffInfo info = this.m_StaffInfo[account] as StaffInfo;
+                var info = StaffInfo[account] as StaffInfo;
 
                 if (info == null)
-                    this.m_StaffInfo[account] = info = new StaffInfo(account);
+                    StaffInfo[account] = info = new StaffInfo(account);
 
                 return info;
             }
@@ -113,22 +58,19 @@ namespace Server.Engines.Reports
             if (account == null || account.Length == 0)
                 return null;
 
-            UserInfo info = this.m_UserInfo[account] as UserInfo;
+            var info = UserInfo[account] as UserInfo;
 
             if (info == null)
-                this.m_UserInfo[account] = info = new UserInfo(account);
+                UserInfo[account] = info = new UserInfo(account);
 
             return info;
         }
-
-        public static readonly object RenderLock = new object();
-        public static readonly object SaveLock = new object();
 
         public void Save()
         {
             lock (SaveLock)
             {
-                string path = Path.Combine(Core.BaseDirectory, "staffHistory.xml");
+                var path = Path.Combine(Core.BaseDirectory, "staffHistory.xml");
                 PersistenceWriter pw = new XmlPersistenceWriter(path, "Staff");
 
                 pw.WriteDocument(this);
@@ -139,7 +81,7 @@ namespace Server.Engines.Reports
 
         public void Load()
         {
-            string path = Path.Combine(Core.BaseDirectory, "staffHistory.xml");
+            var path = Path.Combine(Core.BaseDirectory, "staffHistory.xml");
 
             if (!File.Exists(path))
                 return;
@@ -153,30 +95,30 @@ namespace Server.Engines.Reports
 
         public override void SerializeChildren(PersistenceWriter op)
         {
-            for (int i = 0; i < this.m_Pages.Count; ++i)
-                this.m_Pages[i].Serialize(op);
+            for (var i = 0; i < Pages.Count; ++i)
+                Pages[i].Serialize(op);
 
-            for (int i = 0; i < this.m_QueueStats.Count; ++i)
-                this.m_QueueStats[i].Serialize(op);
+            for (var i = 0; i < QueueStats.Count; ++i)
+                QueueStats[i].Serialize(op);
         }
 
         public override void DeserializeChildren(PersistenceReader ip)
         {
-            DateTime min = DateTime.UtcNow - TimeSpan.FromDays(8.0);
+            var min = DateTime.UtcNow - TimeSpan.FromDays(8.0);
 
             while (ip.HasChild)
             {
-                PersistableObject obj = ip.GetChild();
+                var obj = ip.GetChild();
 
                 if (obj is PageInfo)
                 {
-                    PageInfo pageInfo = obj as PageInfo;
+                    var pageInfo = obj as PageInfo;
 
                     pageInfo.UpdateResolver();
 
                     if (pageInfo.TimeSent >= min || pageInfo.TimeResolved >= min)
                     {
-                        this.m_Pages.Add(pageInfo);
+                        Pages.Add(pageInfo);
                         pageInfo.History = this;
                     }
                     else
@@ -187,20 +129,20 @@ namespace Server.Engines.Reports
                 }
                 else if (obj is QueueStatus)
                 {
-                    QueueStatus queueStatus = obj as QueueStatus;
+                    var queueStatus = obj as QueueStatus;
 
                     if (queueStatus.TimeStamp >= min)
-                        this.m_QueueStats.Add(queueStatus);
+                        QueueStats.Add(queueStatus);
                 }
             }
         }
 
         public StaffInfo[] GetStaff()
         {
-            StaffInfo[] staff = new StaffInfo[this.m_StaffInfo.Count];
-            int index = 0;
+            var staff = new StaffInfo[StaffInfo.Count];
+            var index = 0;
 
-            foreach (StaffInfo staffInfo in this.m_StaffInfo.Values)
+            foreach (StaffInfo staffInfo in StaffInfo.Values)
                 staff[index++] = staffInfo;
 
             return staff;
@@ -210,39 +152,43 @@ namespace Server.Engines.Reports
         {
             lock (RenderLock)
             {
-                objects.Add(this.GraphQueueStatus());
+                objects.Add(GraphQueueStatus());
 
-                StaffInfo[] staff = this.GetStaff();
+                var staff = GetStaff();
 
                 BaseInfo.SortRange = TimeSpan.FromDays(7.0);
                 Array.Sort(staff);
 
-                objects.Add(this.GraphHourlyPages(this.m_Pages, PageResolution.None, "New pages by hour", "graph_new_pages_hr"));
-                objects.Add(this.GraphHourlyPages(this.m_Pages, PageResolution.Handled, "Handled pages by hour", "graph_handled_pages_hr"));
-                objects.Add(this.GraphHourlyPages(this.m_Pages, PageResolution.Deleted, "Deleted pages by hour", "graph_deleted_pages_hr"));
-                objects.Add(this.GraphHourlyPages(this.m_Pages, PageResolution.Canceled, "Canceled pages by hour", "graph_canceled_pages_hr"));
-                objects.Add(this.GraphHourlyPages(this.m_Pages, PageResolution.Logged, "Logged-out pages by hour", "graph_logged_pages_hr"));
+                objects.Add(GraphHourlyPages(Pages, PageResolution.None, "New pages by hour", "graph_new_pages_hr"));
+                objects.Add(GraphHourlyPages(Pages, PageResolution.Handled, "Handled pages by hour",
+                    "graph_handled_pages_hr"));
+                objects.Add(GraphHourlyPages(Pages, PageResolution.Deleted, "Deleted pages by hour",
+                    "graph_deleted_pages_hr"));
+                objects.Add(GraphHourlyPages(Pages, PageResolution.Canceled, "Canceled pages by hour",
+                    "graph_canceled_pages_hr"));
+                objects.Add(GraphHourlyPages(Pages, PageResolution.Logged, "Logged-out pages by hour",
+                    "graph_logged_pages_hr"));
 
                 BaseInfo.SortRange = TimeSpan.FromDays(1.0);
                 Array.Sort(staff);
 
-                objects.Add(this.ReportTotalPages(staff, TimeSpan.FromDays(1.0), "1 Day"));
-                objects.AddRange((PersistableObject[])this.ChartTotalPages(staff, TimeSpan.FromDays(1.0), "1 Day", "graph_daily_pages"));
+                objects.Add(ReportTotalPages(staff, TimeSpan.FromDays(1.0), "1 Day"));
+                objects.AddRange(ChartTotalPages(staff, TimeSpan.FromDays(1.0), "1 Day", "graph_daily_pages"));
 
                 BaseInfo.SortRange = TimeSpan.FromDays(7.0);
                 Array.Sort(staff);
 
-                objects.Add(this.ReportTotalPages(staff, TimeSpan.FromDays(7.0), "1 Week"));
-                objects.AddRange((PersistableObject[])this.ChartTotalPages(staff, TimeSpan.FromDays(7.0), "1 Week", "graph_weekly_pages"));
+                objects.Add(ReportTotalPages(staff, TimeSpan.FromDays(7.0), "1 Week"));
+                objects.AddRange(ChartTotalPages(staff, TimeSpan.FromDays(7.0), "1 Week", "graph_weekly_pages"));
 
                 BaseInfo.SortRange = TimeSpan.FromDays(30.0);
                 Array.Sort(staff);
 
-                objects.Add(this.ReportTotalPages(staff, TimeSpan.FromDays(30.0), "1 Month"));
-                objects.AddRange((PersistableObject[])this.ChartTotalPages(staff, TimeSpan.FromDays(30.0), "1 Month", "graph_monthly_pages"));
+                objects.Add(ReportTotalPages(staff, TimeSpan.FromDays(30.0), "1 Month"));
+                objects.AddRange(ChartTotalPages(staff, TimeSpan.FromDays(30.0), "1 Month", "graph_monthly_pages"));
 
-                for (int i = 0; i < staff.Length; ++i)
-                    objects.Add(this.GraphHourlyPages(staff[i]));
+                for (var i = 0; i < staff.Length; ++i)
+                    objects.Add(GraphHourlyPages(staff[i]));
             }
         }
 
@@ -253,14 +199,14 @@ namespace Server.Engines.Reports
 
         public static int GetPageCount(PageInfoCollection pages, PageResolution res, DateTime min, DateTime max)
         {
-            int count = 0;
+            var count = 0;
 
-            for (int i = 0; i < pages.Count; ++i)
+            for (var i = 0; i < pages.Count; ++i)
             {
                 if (res != PageResolution.None && pages[i].Resolution != res)
                     continue;
 
-                DateTime ts = pages[i].TimeResolved;
+                var ts = pages[i].TimeResolved;
 
                 if (ts >= min && ts < max)
                     ++count;
@@ -271,42 +217,43 @@ namespace Server.Engines.Reports
 
         private BarGraph GraphQueueStatus()
         {
-            int[] totals = new int[24];
-            int[] counts = new int[24];
+            var totals = new int[24];
+            var counts = new int[24];
 
-            DateTime max = DateTime.UtcNow;
-            DateTime min = max - TimeSpan.FromDays(7.0);
+            var max = DateTime.UtcNow;
+            var min = max - TimeSpan.FromDays(7.0);
 
-            for (int i = 0; i < this.m_QueueStats.Count; ++i)
+            for (var i = 0; i < QueueStats.Count; ++i)
             {
-                DateTime ts = this.m_QueueStats[i].TimeStamp;
+                var ts = QueueStats[i].TimeStamp;
 
                 if (ts >= min && ts < max)
                 {
-                    DateTime date = ts.Date;
-                    TimeSpan time = ts.TimeOfDay;
+                    var date = ts.Date;
+                    var time = ts.TimeOfDay;
 
-                    int hour = time.Hours;
+                    var hour = time.Hours;
 
-                    totals[hour] += this.m_QueueStats[i].Count;
+                    totals[hour] += QueueStats[i].Count;
                     counts[hour]++;
                 }
             }
 
-            BarGraph barGraph = new BarGraph("Average pages in queue", "graph_pagequeue_avg", 10, "Time", "Pages", BarGraphRenderMode.Lines);
+            var barGraph = new BarGraph("Average pages in queue", "graph_pagequeue_avg", 10, "Time", "Pages",
+                BarGraphRenderMode.Lines);
 
             barGraph.FontSize = 6;
 
-            for (int i = 7; i <= totals.Length + 7; ++i)
+            for (var i = 7; i <= totals.Length + 7; ++i)
             {
                 int val;
 
                 if (counts[i % totals.Length] == 0)
                     val = 0;
                 else
-                    val = (totals[i % totals.Length] + (counts[i % totals.Length] / 2)) / counts[i % totals.Length];
+                    val = (totals[i % totals.Length] + counts[i % totals.Length] / 2) / counts[i % totals.Length];
 
-                int realHours = i % totals.Length;
+                var realHours = i % totals.Length;
                 int hours;
 
                 if (realHours == 0)
@@ -324,34 +271,35 @@ namespace Server.Engines.Reports
 
         private BarGraph GraphHourlyPages(StaffInfo staff)
         {
-            return this.GraphHourlyPages(staff.Pages, PageResolution.Handled, "Average pages handled by " + staff.Display, "graphs_" + staff.Account.ToLower() + "_avg");
+            return GraphHourlyPages(staff.Pages, PageResolution.Handled, "Average pages handled by " + staff.Display,
+                "graphs_" + staff.Account.ToLower() + "_avg");
         }
 
         private BarGraph GraphHourlyPages(PageInfoCollection pages, PageResolution res, string title, string fname)
         {
-            int[] totals = new int[24];
-            int[] counts = new int[24];
-			
-            DateTime[] dates = new DateTime[24];
+            var totals = new int[24];
+            var counts = new int[24];
 
-            DateTime max = DateTime.UtcNow;
-            DateTime min = max - TimeSpan.FromDays(7.0);
+            var dates = new DateTime[24];
 
-            bool sentStamp = (res == PageResolution.None);
+            var max = DateTime.UtcNow;
+            var min = max - TimeSpan.FromDays(7.0);
 
-            for (int i = 0; i < pages.Count; ++i)
+            var sentStamp = res == PageResolution.None;
+
+            for (var i = 0; i < pages.Count; ++i)
             {
                 if (res != PageResolution.None && pages[i].Resolution != res)
                     continue;
 
-                DateTime ts = (sentStamp ? pages[i].TimeSent : pages[i].TimeResolved);
+                var ts = sentStamp ? pages[i].TimeSent : pages[i].TimeResolved;
 
                 if (ts >= min && ts < max)
                 {
-                    DateTime date = ts.Date;
-                    TimeSpan time = ts.TimeOfDay;
+                    var date = ts.Date;
+                    var time = ts.TimeOfDay;
 
-                    int hour = time.Hours;
+                    var hour = time.Hours;
 
                     totals[hour]++;
 
@@ -363,20 +311,20 @@ namespace Server.Engines.Reports
                 }
             }
 
-            BarGraph barGraph = new BarGraph(title, fname, 10, "Time", "Pages", BarGraphRenderMode.Lines);
+            var barGraph = new BarGraph(title, fname, 10, "Time", "Pages", BarGraphRenderMode.Lines);
 
             barGraph.FontSize = 6;
 
-            for (int i = 7; i <= totals.Length + 7; ++i)
+            for (var i = 7; i <= totals.Length + 7; ++i)
             {
                 int val;
 
                 if (counts[i % totals.Length] == 0)
                     val = 0;
                 else
-                    val = (totals[i % totals.Length] + (counts[i % totals.Length] / 2)) / counts[i % totals.Length];
+                    val = (totals[i % totals.Length] + counts[i % totals.Length] / 2) / counts[i % totals.Length];
 
-                int realHours = i % totals.Length;
+                var realHours = i % totals.Length;
                 int hours;
 
                 if (realHours == 0)
@@ -394,15 +342,15 @@ namespace Server.Engines.Reports
 
         private Report ReportTotalPages(StaffInfo[] staff, TimeSpan ts, string title)
         {
-            DateTime max = DateTime.UtcNow;
-            DateTime min = max - ts;
+            var max = DateTime.UtcNow;
+            var min = max - ts;
 
-            Report report = new Report(title + " Staff Report", "400");
+            var report = new Report(title + " Staff Report", "400");
 
             report.Columns.Add("65%", "left", "Staff Name");
             report.Columns.Add("35%", "center", "Page Count");
 
-            for (int i = 0; i < staff.Length; ++i)
+            for (var i = 0; i < staff.Length; ++i)
                 report.Items.Add(staff[i].Display, GetPageCount(staff[i], min, max));
 
             return report;
@@ -410,16 +358,16 @@ namespace Server.Engines.Reports
 
         private PieChart[] ChartTotalPages(StaffInfo[] staff, TimeSpan ts, string title, string fname)
         {
-            DateTime max = DateTime.UtcNow;
-            DateTime min = max - ts;
+            var max = DateTime.UtcNow;
+            var min = max - ts;
 
-            PieChart staffChart = new PieChart(title + " Staff Chart", fname + "_staff", true);
+            var staffChart = new PieChart(title + " Staff Chart", fname + "_staff", true);
 
-            int other = 0;
+            var other = 0;
 
-            for (int i = 0; i < staff.Length; ++i)
+            for (var i = 0; i < staff.Length; ++i)
             {
-                int count = GetPageCount(staff[i], min, max);
+                var count = GetPageCount(staff[i], min, max);
 
                 if (i < 12 && count > 0)
                     staffChart.Items.Add(staff[i].Display, count);
@@ -430,14 +378,14 @@ namespace Server.Engines.Reports
             if (other > 0)
                 staffChart.Items.Add("Other", other);
 
-            PieChart resChart = new PieChart(title + " Resolutions", fname + "_resol", true);
+            var resChart = new PieChart(title + " Resolutions", fname + "_resol", true);
 
-            int countTotal = GetPageCount(this.m_Pages, PageResolution.None, min, max);
-            int countHandled = GetPageCount(this.m_Pages, PageResolution.Handled, min, max);
-            int countDeleted = GetPageCount(this.m_Pages, PageResolution.Deleted, min, max);
-            int countCanceled = GetPageCount(this.m_Pages, PageResolution.Canceled, min, max);
-            int countLogged = GetPageCount(this.m_Pages, PageResolution.Logged, min, max);
-            int countUnres = countTotal - (countHandled + countDeleted + countCanceled + countLogged);
+            var countTotal = GetPageCount(Pages, PageResolution.None, min, max);
+            var countHandled = GetPageCount(Pages, PageResolution.Handled, min, max);
+            var countDeleted = GetPageCount(Pages, PageResolution.Deleted, min, max);
+            var countCanceled = GetPageCount(Pages, PageResolution.Canceled, min, max);
+            var countLogged = GetPageCount(Pages, PageResolution.Logged, min, max);
+            var countUnres = countTotal - (countHandled + countDeleted + countCanceled + countLogged);
 
             resChart.Items.Add("Handled", countHandled);
             resChart.Items.Add("Deleted", countDeleted);
@@ -445,7 +393,18 @@ namespace Server.Engines.Reports
             resChart.Items.Add("Logged Out", countLogged);
             resChart.Items.Add("Unresolved", countUnres);
 
-            return new PieChart[] { staffChart, resChart };
+            return new[] { staffChart, resChart };
         }
+
+        #region Type Identification
+
+        private static PersistableObject Construct()
+        {
+            return new StaffHistory();
+        }
+
+        public override PersistableType TypeID => ThisTypeID;
+
+        #endregion
     }
 }

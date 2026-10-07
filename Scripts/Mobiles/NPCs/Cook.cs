@@ -1,18 +1,24 @@
 using System;
 using System.Collections.Generic;
 using Server.Engines.BulkOrders;
+using Server.Items;
 
 namespace Server.Mobiles
 {
     public class Cook : BaseVendor
     {
         private readonly List<SBInfo> m_SBInfos = new List<SBInfo>();
+
+        public override VendorShoeType ShoeType => Utility.RandomBool() ? VendorShoeType.Sandals : VendorShoeType.Shoes;
+
+        protected override List<SBInfo> SBInfos => m_SBInfos;
+
         [Constructable]
         public Cook()
             : base("the cook")
         {
-            this.SetSkill(SkillName.Cooking, 90.0, 100.0);
-            this.SetSkill(SkillName.TasteID, 75.0, 98.0);
+            SetSkill(SkillName.Cooking, 90.0, 100.0);
+            SetSkill(SkillName.TasteID, 75.0, 98.0);
         }
 
         public Cook(Serial serial)
@@ -20,41 +26,42 @@ namespace Server.Mobiles
         {
         }
 
-        public override VendorShoeType ShoeType
-        {
-            get
-            {
-                return Utility.RandomBool() ? VendorShoeType.Sandals : VendorShoeType.Shoes;
-            }
-        }
-        protected override List<SBInfo> SBInfos
-        {
-            get
-            {
-                return this.m_SBInfos;
-            }
-        }
         public override void InitSBInfo()
         {
-            this.m_SBInfos.Add(new SBCook());
+            m_SBInfos.Add(new SBCook());
 
-            if (this.IsTokunoVendor)
-                this.m_SBInfos.Add(new SBSECook());
+            if (IsTokunoVendor)
+                m_SBInfos.Add(new SBSECook());
         }
 
         public override void InitOutfit()
         {
             base.InitOutfit();
 
-            this.AddItem(new Server.Items.HalfApron());
+            AddItem(new HalfApron());
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+
+            writer.Write(0); // version
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+
+            var version = reader.ReadInt();
         }
 
         #region Bulk Orders
-        public override BODType BODType { get { return BODType.Cooking; } }
+
+        public override BODType BODType => BODType.Cooking;
 
         public override bool IsValidBulkOrder(Item item)
         {
-            return (item is SmallCookingBOD || item is LargeCookingBOD);
+            return item is SmallCookingBOD || item is LargeCookingBOD;
         }
 
         public override bool SupportsBulkOrders(Mobile from)
@@ -69,19 +76,5 @@ namespace Server.Mobiles
         }
 
         #endregion
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-
-            writer.Write((int)0); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-
-            int version = reader.ReadInt();
-        }
     }
 }

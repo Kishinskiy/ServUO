@@ -1,30 +1,25 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
-
-using Server;
-using Server.Items;
 using Server.Mobiles;
-using Server.Spells;
 using Server.Targeting;
 
 namespace Server.Spells.Mysticism
 {
     public class HailStormSpell : MysticSpell
     {
-        public override SpellCircle Circle { get { return SpellCircle.Seventh; } }
-        public override bool DelayedDamage { get { return true; } }
-        public override DamageType SpellDamageType { get { return DamageType.SpellAOE; } }
+        private static readonly SpellInfo m_Info = new SpellInfo(
+            "Hail Storm", "Kal Des Ylem",
+            230,
+            9022,
+            Reagent.BlackPearl,
+            Reagent.Bloodmoss,
+            Reagent.MandrakeRoot,
+            Reagent.DragonBlood
+        );
 
-        private static SpellInfo m_Info = new SpellInfo(
-                "Hail Storm", "Kal Des Ylem",
-                230,
-                9022,
-                Reagent.BlackPearl,
-                Reagent.Bloodmoss,
-                Reagent.MandrakeRoot,
-                Reagent.DragonBlood
-            );
+        public override SpellCircle Circle => SpellCircle.Seventh;
+        public override bool DelayedDamage => true;
+        public override DamageType SpellDamageType => DamageType.SpellAOE;
 
         public HailStormSpell(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
@@ -43,52 +38,48 @@ namespace Server.Spells.Mysticism
                 SpellHelper.Turn(Caster, p);
                 SpellHelper.GetSurfaceTop(ref p);
 
-                Map map = Caster.Map;
+                var map = Caster.Map;
 
                 if (map == null)
                     return;
 
-                Rectangle2D effectArea = new Rectangle2D(p.X - 3, p.Y - 3, 6, 6);
+                var effectArea = new Rectangle2D(p.X - 3, p.Y - 3, 6, 6);
                 Effects.PlaySound(p, map, 0x64F);
 
-                for (int x = effectArea.X; x <= effectArea.X + effectArea.Width; x++)
+                for (var x = effectArea.X; x <= effectArea.X + effectArea.Width; x++)
+                for (var y = effectArea.Y; y <= effectArea.Y + effectArea.Height; y++)
                 {
-                    for (int y = effectArea.Y; y <= effectArea.Y + effectArea.Height; y++)
-                    {
-                        if (x == effectArea.X && y == effectArea.Y ||
-                            x >= effectArea.X + effectArea.Width - 1 && y >= effectArea.Y + effectArea.Height - 1 ||
-                            y >= effectArea.Y + effectArea.Height - 1 && x == effectArea.X ||
-                            y == effectArea.Y && x >= effectArea.X + effectArea.Width - 1)
-                                continue;
+                    if ((x == effectArea.X && y == effectArea.Y) ||
+                        (x >= effectArea.X + effectArea.Width - 1 && y >= effectArea.Y + effectArea.Height - 1) ||
+                        (y >= effectArea.Y + effectArea.Height - 1 && x == effectArea.X) ||
+                        (y == effectArea.Y && x >= effectArea.X + effectArea.Width - 1))
+                        continue;
 
-                        IPoint3D pnt = new Point3D(x, y, p.Z);
-                        SpellHelper.GetSurfaceTop(ref pnt);
+                    IPoint3D pnt = new Point3D(x, y, p.Z);
+                    SpellHelper.GetSurfaceTop(ref pnt);
 
-                        Timer.DelayCall<Point3D>(TimeSpan.FromMilliseconds(Utility.RandomMinMax(100, 300)), point =>
-                            {
-                                Effects.SendLocationEffect(point, map, 0x3779, 12, 11, 0x63, 0);
-                            },
-                            new Point3D(pnt));
-                    }
+                    Timer.DelayCall(TimeSpan.FromMilliseconds(Utility.RandomMinMax(100, 300)),
+                        point => { Effects.SendLocationEffect(point, map, 0x3779, 12, 11, 0x63, 0); },
+                        new Point3D(pnt));
                 }
 
                 var list = AcquireIndirectTargets(p, 2).ToList();
-                int count = list.Count;
+                var count = list.Count;
 
                 foreach (var id in list)
                 {
                     if (id.Deleted)
                         continue;
 
-                    int damage = GetNewAosDamage(51, 1, 5, id is PlayerMobile, id);
+                    var damage = GetNewAosDamage(51, 1, 5, id is PlayerMobile, id);
 
                     if (count > 2)
-                        damage = (damage * 2) / count;
+                        damage = damage * 2 / count;
 
                     Caster.DoHarmful(id);
                     SpellHelper.Damage(this, id, damage, 0, 0, 100, 0, 0);
 
-                    Server.Effects.SendTargetParticles(id, 0x374A, 1, 15, 9502, 97, 3, (EffectLayer)255, 0);
+                    Effects.SendTargetParticles(id, 0x374A, 1, 15, 9502, 97, 3, (EffectLayer)255, 0);
                 }
 
                 ColUtility.Free(list);
@@ -99,7 +90,7 @@ namespace Server.Spells.Mysticism
 
         public class InternalTarget : Target
         {
-            private HailStormSpell m_Owner;
+            private readonly HailStormSpell m_Owner;
 
             public InternalTarget(HailStormSpell owner)
                 : base(10, true, TargetFlags.None)

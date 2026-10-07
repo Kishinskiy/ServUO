@@ -1,126 +1,103 @@
-﻿using Server;
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Server.Engines.TombOfKings
 {
-	public class ChamberInfo
-	{
-		private Point3D m_BarrierLocation, m_SwitchLocation;
-		private int m_SwitchId;
+    public class ChamberInfo
+    {
+        public Point3D BarrierLocation { get; }
 
-		public Point3D BarrierLocation { get { return m_BarrierLocation; } }
-		public Point3D SwitchLocation { get { return m_SwitchLocation; } }
-		public int SwitchId { get { return m_SwitchId; } }
+        public Point3D SwitchLocation { get; }
 
-		public ChamberInfo( Point3D barrierLoc, Point3D switchLoc, int switchId )
-		{
-			m_BarrierLocation = barrierLoc;
-			m_SwitchLocation = switchLoc;
-			m_SwitchId = switchId;
-		}
-	}
+        public int SwitchId { get; }
 
-	public class Chamber
-	{
-		public static void Initialize()
-		{
-			// we should call it after deserialize the levers
-			Timer.DelayCall( TimeSpan.Zero, new TimerCallback( Generate ) );
-		}
+        public ChamberInfo(Point3D barrierLoc, Point3D switchLoc, int switchId)
+        {
+            BarrierLocation = barrierLoc;
+            SwitchLocation = switchLoc;
+            SwitchId = switchId;
+        }
+    }
 
-		public static void Generate()
-		{
-			if ( ChamberLever.Levers.Count == 0 )
-				return;
+    public class Chamber
+    {
+        private static readonly ChamberInfo[] m_ChamberInfos =
+        {
+            // left side
+            new ChamberInfo(new Point3D(15, 200, -5), new Point3D(13, 195, 7), 0x1091),
+            new ChamberInfo(new Point3D(15, 184, -5), new Point3D(13, 179, 7), 0x1091),
+            new ChamberInfo(new Point3D(15, 168, -5), new Point3D(13, 163, 7), 0x1091),
+            new ChamberInfo(new Point3D(15, 152, -5), new Point3D(13, 147, 7), 0x1091),
+            new ChamberInfo(new Point3D(15, 136, -5), new Point3D(13, 131, 7), 0x1091),
+            new ChamberInfo(new Point3D(15, 120, -5), new Point3D(13, 115, 7), 0x1091),
 
-			foreach ( ChamberInfo info in m_ChamberInfos )
-				m_Chambers.Add( new Chamber( info ) );
+            // right side
+            new ChamberInfo(new Point3D(55, 200, -5), new Point3D(56, 197, 7), 0x1090),
+            new ChamberInfo(new Point3D(55, 184, -5), new Point3D(56, 181, 7), 0x1090),
+            new ChamberInfo(new Point3D(55, 168, -5), new Point3D(56, 165, 7), 0x1090),
+            new ChamberInfo(new Point3D(55, 152, -5), new Point3D(56, 149, 7), 0x1090),
+            new ChamberInfo(new Point3D(55, 136, -5), new Point3D(56, 133, 7), 0x1090),
+            new ChamberInfo(new Point3D(55, 120, -5), new Point3D(56, 117, 7), 0x1090)
+        };
 
-			// randomize
-			List<ChamberLever> levers = new List<ChamberLever>( ChamberLever.Levers );
+        public static List<Chamber> Chambers { get; } = new List<Chamber>();
 
-			foreach ( Chamber chamber in m_Chambers )
-			{
-				int idx = Utility.Random( levers.Count );
+        public ChamberSwitch Switch { get; set; }
 
-				chamber.Lever = levers[idx];
-				levers[idx].Chamber = chamber;
-				levers.RemoveAt( idx );
-			}
-		}
+        public ChamberBarrier Barrier { get; set; }
 
-		private static List<Chamber> m_Chambers = new List<Chamber>();
+        public ChamberLever Lever { get; set; }
 
-		public static List<Chamber> Chambers
-		{
-			get { return m_Chambers; }
-		}
+        public Chamber(ChamberInfo info)
+        {
+            Switch = new ChamberSwitch(this, info.SwitchLocation, info.SwitchId);
+            Barrier = new ChamberBarrier(info.BarrierLocation);
+        }
 
-		private static ChamberInfo[] m_ChamberInfos = new ChamberInfo[]
-		{
-			// left side
-			new ChamberInfo( new Point3D( 15, 200, -5 ), new Point3D( 13, 195, 7 ), 0x1091 ),
-			new ChamberInfo( new Point3D( 15, 184, -5 ), new Point3D( 13, 179, 7 ), 0x1091 ),
-			new ChamberInfo( new Point3D( 15, 168, -5 ), new Point3D( 13, 163, 7 ), 0x1091 ),
-			new ChamberInfo( new Point3D( 15, 152, -5 ), new Point3D( 13, 147, 7 ), 0x1091 ),
-			new ChamberInfo( new Point3D( 15, 136, -5 ), new Point3D( 13, 131, 7 ), 0x1091 ),
-			new ChamberInfo( new Point3D( 15, 120, -5 ), new Point3D( 13, 115, 7 ), 0x1091 ),
+        public static void Initialize()
+        {
+            // we should call it after deserialize the levers
+            Timer.DelayCall(TimeSpan.Zero, Generate);
+        }
 
-			// right side
-			new ChamberInfo( new Point3D( 55, 200, -5 ), new Point3D( 56, 197, 7 ), 0x1090 ),
-			new ChamberInfo( new Point3D( 55, 184, -5 ), new Point3D( 56, 181, 7 ), 0x1090 ),
-			new ChamberInfo( new Point3D( 55, 168, -5 ), new Point3D( 56, 165, 7 ), 0x1090 ),
-			new ChamberInfo( new Point3D( 55, 152, -5 ), new Point3D( 56, 149, 7 ), 0x1090 ),
-			new ChamberInfo( new Point3D( 55, 136, -5 ), new Point3D( 56, 133, 7 ), 0x1090 ),
-			new ChamberInfo( new Point3D( 55, 120, -5 ), new Point3D( 56, 117, 7 ), 0x1090 ),
-		};
+        public static void Generate()
+        {
+            if (ChamberLever.Levers.Count == 0)
+                return;
 
-		private ChamberSwitch m_Switch;
-		private ChamberBarrier m_Barrier;
-		private ChamberLever m_Lever;
+            foreach (var info in m_ChamberInfos)
+                Chambers.Add(new Chamber(info));
 
-		public ChamberSwitch Switch
-		{
-			get { return m_Switch; }
-			set { m_Switch = value; }
-		}
+            // randomize
+            var levers = new List<ChamberLever>(ChamberLever.Levers);
 
-		public ChamberBarrier Barrier
-		{
-			get { return m_Barrier; }
-			set { m_Barrier = value; }
-		}
+            foreach (var chamber in Chambers)
+            {
+                var idx = Utility.Random(levers.Count);
 
-		public ChamberLever Lever
-		{
-			get { return m_Lever; }
-			set { m_Lever = value; }
-		}
+                chamber.Lever = levers[idx];
+                levers[idx].Chamber = chamber;
+                levers.RemoveAt(idx);
+            }
+        }
 
-		public bool IsOpened()
-		{
-			return !m_Barrier.Active;
-		}
+        public bool IsOpened()
+        {
+            return !Barrier.Active;
+        }
 
-		public void Open()
-		{
-			m_Barrier.Active = false;
-			m_Lever.Switch();
+        public void Open()
+        {
+            Barrier.Active = false;
+            Lever.Switch();
 
-			Timer.DelayCall( TimeSpan.FromMinutes( Utility.RandomMinMax( 10, 15 ) ), RestoreBarrier );
-		}
+            Timer.DelayCall(TimeSpan.FromMinutes(Utility.RandomMinMax(10, 15)), RestoreBarrier);
+        }
 
-		public void RestoreBarrier()
-		{
-			m_Barrier.Active = true;
-			m_Lever.InvalidateProperties();
-		}
-
-		public Chamber( ChamberInfo info )
-		{
-			m_Switch = new ChamberSwitch( this, info.SwitchLocation, info.SwitchId );
-			m_Barrier = new ChamberBarrier( info.BarrierLocation );
-		}
-	}
+        public void RestoreBarrier()
+        {
+            Barrier.Active = true;
+            Lever.InvalidateProperties();
+        }
+    }
 }

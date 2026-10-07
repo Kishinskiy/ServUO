@@ -5,7 +5,7 @@ using Server.Mobiles;
 namespace Server.Multis
 {
     public class HumanBrigandCamp : BaseCamp
-    { 
+    {
         [Constructable]
         public HumanBrigandCamp()
             : base(0x1F6D)
@@ -29,11 +29,11 @@ namespace Server.Multis
             AddItem(new Item(0xFAC), 0, 0, 0); // fire pit
             AddItem(new Item(0xDE3), 0, 0, 0); // camp fire
             AddItem(new Item(0x974), 0, 0, 1); // cauldron
-			
+
             for (int i = 0; i < 2; i ++)
             {
                 LockableContainer cont = null;
-				
+
                 switch ( Utility.Random(3) )
                 {
                     case 0:
@@ -46,10 +46,10 @@ namespace Server.Multis
                         cont = new SmallCrate();
                         break;
                 }
-				
+
                 cont.Movable = false;
                 cont.Locked = true;
-				
+
                 cont.TrapType = TrapType.ExplosionTrap;
                 cont.TrapPower = Utility.RandomMinMax(30, 40);
                 cont.TrapLevel = 2;
@@ -59,7 +59,7 @@ namespace Server.Multis
                 cont.DropItem(new Gold(Utility.RandomMinMax(100, 400)));
                 cont.DropItem(new Arrow(10));
                 cont.DropItem(new Bolt(10));
-				
+
                 if (Utility.RandomDouble() < 0.8)
                 {
                     switch ( Utility.Random(4) )
@@ -78,25 +78,25 @@ namespace Server.Multis
                             break;
                     }
                 }
-				
+
                 if (Utility.RandomDouble() < 0.5)
                 {
-                    Item item = Loot.RandomArmorOrShieldOrWeapon();					
-					
+                    Item item = Loot.RandomArmorOrShieldOrWeapon();
+
                     if (item is BaseWeapon)
                         BaseRunicTool.ApplyAttributesTo((BaseWeapon)item, false, 0, Utility.RandomMinMax(1, 5), 10, 100);
                     else if (item is BaseArmor)
                         BaseRunicTool.ApplyAttributesTo((BaseArmor)item, false, 0, Utility.RandomMinMax(1, 5), 10, 100);
-						
+
                     cont.DropItem(item);
                 }
-				
+
                 Point3D loc = GetRandomSpawnPoint(3);
-				
+
                 AddItem(cont, loc.X, loc.Y, loc.Z);
                 Treasure1 = cont;
             }
-			
+
             switch ( Utility.Random(2) )
             {
                 case 0:
@@ -106,18 +106,18 @@ namespace Server.Multis
                     Prisoner = new SeekerOfAdventure();
                     break;
             }
-			
+
             for (int i = 0; i < 4; i ++)
             {
-                Point3D loc = GetRandomSpawnPoint(5);				
-				
+                Point3D loc = GetRandomSpawnPoint(5);
+
                 AddMobile(Camper,loc.X, loc.Y, loc.Z);
             }
 
             Prisoner.IsPrisoner = true;
             Prisoner.CantWalk = true;
 
-            Point3D p = GetRandomSpawnPoint(3);	
+            Point3D p = GetRandomSpawnPoint(3);
             AddMobile(Prisoner, p.X, p.Y, p.Z);
         }
 
@@ -125,16 +125,16 @@ namespace Server.Multis
         {
             if (item != null)
                 item.Movable = false;
-				
+
             base.AddItem(item, xOffset, yOffset, zOffset);
         }
 
         public virtual Point3D GetRandomSpawnPoint(int range)
-        { 
+        {
             Map map = Map;
 
             if (map == null)
-                return Location;				
+                return Location;
 
             // Try 10 times to find a Spawnable location.
             for (int i = 0; i < 10; i++)
@@ -185,3 +185,5 @@ namespace Server.Multis
         }
     }
 }*/
+
+

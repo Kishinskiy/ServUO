@@ -1,5 +1,4 @@
 using System;
-using Server;
 using Server.Items;
 using Server.Network;
 
@@ -7,7 +6,8 @@ namespace Server.Engines.TreasuresOfKotlCity
 {
     public class WheelsOfTime : Item
     {
-        public static TimeSpan TimeWarpDuration = TimeSpan.FromHours(2); // Duration in which you have to activate spawn to do the spawn
+        public static TimeSpan
+            TimeWarpDuration = TimeSpan.FromHours(2); // Duration in which you have to activate spawn to do the spawn
 
         public static Point3D RockBarrierLocation = new Point3D(584, 2399, 0);
         public static WheelsOfTime Instance { get; set; }
@@ -20,7 +20,7 @@ namespace Server.Engines.TreasuresOfKotlCity
 
         public Timer Timer { get; set; }
 
-        public override int LabelNumber { get { return 1157032; } } // Wheels of Time
+        public override int LabelNumber => 1157032; // Wheels of Time
 
         public WheelsOfTime()
             : base(0x9CEF)
@@ -35,9 +35,14 @@ namespace Server.Engines.TreasuresOfKotlCity
             TimeWarpEnds = DateTime.MinValue;
         }
 
+        public WheelsOfTime(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void OnDoubleClick(Mobile from)
         {
-            if (!from.InRange(this.GetWorldLocation(), 1))
+            if (!from.InRange(GetWorldLocation(), 1))
             {
                 from.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1019045); // I can't reach that.
             }
@@ -47,7 +52,7 @@ namespace Server.Engines.TreasuresOfKotlCity
             }
             else
             {
-                from.PrivateOverheadMessage(Server.Network.MessageType.Regular, 1154, 1157020, from.NetState);
+                from.PrivateOverheadMessage(MessageType.Regular, 1154, 1157020, from.NetState);
                 from.PlaySound(0x0FF);
 
                 ActivateTimeWarp();
@@ -57,9 +62,7 @@ namespace Server.Engines.TreasuresOfKotlCity
         public void ActivateTimeWarp()
         {
             if (RockBarrier != null)
-            {
                 RockBarrier.MoveToWorld(new Point3D(RockBarrier.X, RockBarrier.Y, RockBarrier.Z - 50), Map.TerMur);
-            }
 
             TimeWarpEnds = DateTime.UtcNow + TimeWarpDuration;
             Timer = Timer.DelayCall(TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1), OnTick);
@@ -84,19 +87,10 @@ namespace Server.Engines.TreasuresOfKotlCity
             TimeWarpEnds = DateTime.MinValue;
 
             if (KotlBattleSimulator.Instance != null && KotlBattleSimulator.Instance.Active)
-            {
                 KotlBattleSimulator.Instance.EndSimulation();
-            }
-            
-            if (RockBarrier != null && RockBarrier.Location != RockBarrierLocation)
-            {
-                RockBarrier.MoveToWorld(RockBarrierLocation, Map.TerMur);
-            }
-        }
 
-        public WheelsOfTime(Serial serial)
-            : base(serial)
-        {
+            if (RockBarrier != null && RockBarrier.Location != RockBarrierLocation)
+                RockBarrier.MoveToWorld(RockBarrierLocation, Map.TerMur);
         }
 
         public override void Serialize(GenericWriter writer)
@@ -111,7 +105,7 @@ namespace Server.Engines.TreasuresOfKotlCity
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             Instance = this;
 
@@ -121,13 +115,9 @@ namespace Server.Engines.TreasuresOfKotlCity
             if (TimeWarpEnds != DateTime.MinValue)
             {
                 if (TimeWarpEnds > DateTime.UtcNow)
-                {
                     Timer = Timer.DelayCall(TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1), OnTick);
-                }
                 else
-                {
                     Timer.DelayCall(TimeSpan.FromSeconds(60), Cleanup);
-                }
             }
 
             if (RockBarrier == null)

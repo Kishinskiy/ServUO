@@ -1,4 +1,3 @@
-using System;
 using Server.Factions;
 
 namespace Server.Ethics.Evil
@@ -7,7 +6,7 @@ namespace Server.Ethics.Evil
     {
         public EvilEthic()
         {
-            this.m_Definition = new EthicDefinition(
+            m_Definition = new EthicDefinition(
                 0x455,
                 "Evil", "(Evil)",
                 "I am evil incarnate",
@@ -26,9 +25,9 @@ namespace Server.Ethics.Evil
 
         public override bool IsEligible(Mobile mob)
         {
-            Faction fac = Faction.Find(mob);
+            var fac = Faction.Find(mob);
 
-            return (fac is Minax || fac is Shadowlords);
+            return fac is Minax || fac is Shadowlords;
         }
     }
 }

@@ -1,10 +1,8 @@
-using System;
-
 namespace Server.Items
 {
     public class DecorativeStableSet : Backpack
     {
-        public override int LabelNumber { get { return 1159272; } } // Decorative Stable Set
+        public override int LabelNumber => 1159272; // Decorative Stable Set
 
         [Constructable]
         public DecorativeStableSet()
@@ -14,9 +12,9 @@ namespace Server.Items
             DropItem(new ChickenStatue());
             DropItem(new MetalTubDeed());
             DropItem(new Feedbag());
-			DropItem(new CowPie());
+            DropItem(new CowPie());
 
-            Bag bag = new Bag();
+            var bag = new Bag();
             // Needs fencing added
             DropItem(bag);
         }
@@ -35,7 +33,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

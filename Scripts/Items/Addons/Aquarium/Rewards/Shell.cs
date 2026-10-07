@@ -1,9 +1,10 @@
-using System;
-
 namespace Server.Items
 {
     public class Shell : Item
     {
+        public override int LabelNumber => 1074598; // A shell
+        public override double DefaultWeight => 1.0;
+
         [Constructable]
         public Shell()
             : base(Utility.RandomList(0x3B12, 0x3B13))
@@ -15,20 +16,6 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1074598;
-            }
-        }// A shell
-        public override double DefaultWeight
-        {
-            get
-            {
-                return 1.0;
-            }
-        }
         public override void AddNameProperties(ObjectPropertyList list)
         {
             base.AddNameProperties(list);
@@ -40,14 +27,14 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

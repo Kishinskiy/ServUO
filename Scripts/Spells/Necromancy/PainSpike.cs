@@ -1,9 +1,7 @@
 using System;
 using System.Collections.Generic;
-
-using Server;
-using Server.Targeting;
 using Server.Spells.SkillMasteries;
+using Server.Targeting;
 
 namespace Server.Spells.Necromancy
 {
@@ -18,39 +16,19 @@ namespace Server.Spells.Necromancy
 
         private static readonly Dictionary<Mobile, InternalTimer> m_Table = new Dictionary<Mobile, InternalTimer>();
 
+        public override TimeSpan CastDelayBase => TimeSpan.FromSeconds(1.25);
+
+        public override double RequiredSkill => 20.0;
+
+        public override int RequiredMana => 5;
+
+        public override bool DelayedDamage => false;
+
         public PainSpikeSpell(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
         {
         }
 
-        public override TimeSpan CastDelayBase
-        {
-            get
-            {
-                return TimeSpan.FromSeconds(1.25);
-            }
-        }
-        public override double RequiredSkill
-        {
-            get
-            {
-                return 20.0;
-            }
-        }
-        public override int RequiredMana
-        {
-            get
-            {
-                return 5;
-            }
-        }
-        public override bool DelayedDamage
-        {
-            get
-            {
-                return false;
-            }
-        }
         public override void OnCast()
         {
             Caster.Target = new InternalTarget(this);
@@ -74,7 +52,7 @@ namespace Server.Spells.Necromancy
             //SpellHelper.CheckReflect( (int)Circle, Caster, ref m ); //Irrelevent asfter AoS
 
             /* Temporarily causes intense physical pain to the target, dealing direct damage.
-             * After 10 seconds the spell wears off, and if the target is still alive, 
+             * After 10 seconds the spell wears off, and if the target is still alive,
              * some of the Hit Points lost through Pain Spike are restored.
              */
 
@@ -82,13 +60,13 @@ namespace Server.Spells.Necromancy
             m.FixedParticles(0x37C4, 1, 8, 9502, 39, 4, EffectLayer.Head);
             m.PlaySound(0x210);
 
-            double damage = (((GetDamageSkill(Caster) - GetResistSkill(m)) / 10) + (m.Player ? 18 : 30)) * strength;
-            m.CheckSkill(SkillName.MagicResist, 0.0, 120.0);	//Skill check for gain
+            var damage = ((GetDamageSkill(Caster) - GetResistSkill(m)) / 10 + (m.Player ? 18 : 30)) * strength;
+            m.CheckSkill(SkillName.MagicResist, 0.0, 120.0); //Skill check for gain
 
             if (damage < 1)
                 damage = 1;
 
-            TimeSpan buffTime = TimeSpan.FromSeconds(10.0 * strength);
+            var buffTime = TimeSpan.FromSeconds(10.0 * strength);
             InternalTimer t;
 
             if (m_Table.ContainsKey(m))
@@ -96,10 +74,7 @@ namespace Server.Spells.Necromancy
                 damage = Utility.RandomMinMax(3, 7);
                 t = m_Table[m];
 
-                if (t != null)
-                {
-                    t.Expires += TimeSpan.FromSeconds(2);
-                }
+                if (t != null) t.Expires += TimeSpan.FromSeconds(2);
             }
             else
             {
@@ -107,7 +82,9 @@ namespace Server.Spells.Necromancy
                 t.Start();
             }
 
-            BuffInfo.AddBuff(m, new BuffInfo(BuffIcon.PainSpike, 1075667, t.Expires - DateTime.UtcNow, m, Convert.ToString((int)damage)));
+            BuffInfo.AddBuff(m,
+                new BuffInfo(BuffIcon.PainSpike, 1075667, t.Expires - DateTime.UtcNow, m,
+                    Convert.ToString((int)damage)));
 
             m.DFA = DFAlgorithm.PainSpike;
             AOS.Damage(m, Caster, (int)damage, 0, 0, 0, 0, 0, 0, 100);
@@ -148,7 +125,7 @@ namespace Server.Spells.Necromancy
                         m_Mobile.Hits += m_ToRestore;
 
                     BuffInfo.RemoveBuff(m_Mobile, BuffIcon.PainSpike);
-                    
+
                     Stop();
                 }
             }
@@ -157,6 +134,7 @@ namespace Server.Spells.Necromancy
         private class InternalTarget : Target
         {
             private readonly PainSpikeSpell m_Owner;
+
             public InternalTarget(PainSpikeSpell owner)
                 : base(Core.ML ? 10 : 12, false, TargetFlags.Harmful)
             {

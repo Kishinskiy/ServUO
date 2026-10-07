@@ -1,19 +1,16 @@
 using System;
-using Server;
-using Server.Targeting;
 using Server.Mobiles;
+using Server.Targeting;
 
 namespace Server.Items
 {
     public class Matches : Item, ICommodity
     {
-        public override int LabelNumber { get { return 1116112; } }
-
         private static readonly TimeSpan LightDuration = TimeSpan.FromMinutes(60);
 
-        private bool m_IsLight;
+        public override int LabelNumber => 1116112;
 
-        public bool IsLight { get { return m_IsLight; } set { m_IsLight = value; } }
+        public bool IsLight { get; set; }
 
         [Constructable]
         public Matches() : this(1)
@@ -28,39 +25,48 @@ namespace Server.Items
             Amount = amount;
         }
 
+        public Matches(Serial serial) : base(serial)
+        {
+        }
+
+        TextDefinition ICommodity.Description => LabelNumber;
+        bool ICommodity.IsDeedable => true;
+
         public override void OnDoubleClick(Mobile from)
         {
             if (IsChildOf(from.Backpack))
             {
                 if (Amount > 1)
                 {
-                    Container pack = from.Backpack;
+                    var pack = from.Backpack;
 
-                    if(pack != null)
+                    if (pack != null)
                     {
-                        Matches match = new Matches();
+                        var match = new Matches();
 
                         if (pack.CheckHold(from, match, true))
                         {
                             pack.DropItem(match);
-                            this.Amount--;
+                            Amount--;
 
                             match.ItemID = 2578;
                             from.SendSound(0x047);
                             match.IsLight = true;
                         }
                         else
+                        {
                             match.Delete();
+                        }
                     }
                 }
-                else if (!m_IsLight)
+                else if (!IsLight)
                 {
                     new InternalTimer(this);
                     from.SendLocalizedMessage(1116114); //You ignite the match.
 
                     ItemID = 2578;
                     from.SendSound(0x047);
-                    m_IsLight = true;
+                    IsLight = true;
                 }
                 else
                 {
@@ -69,7 +75,7 @@ namespace Server.Items
                 }
             }
         }
-            
+
 
         public void BurnOut()
         {
@@ -79,11 +85,26 @@ namespace Server.Items
             Delete();
         }
 
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
+            writer.Write(IsLight);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
+            if (reader.ReadBool())
+                Delete();
+        }
+
         private class InternalTimer : Timer
         {
-            private Matches m_Match;
+            private readonly Matches m_Match;
 
-            public InternalTimer(Matches match) : base(Matches.LightDuration)
+            public InternalTimer(Matches match) : base(LightDuration)
             {
                 m_Match = match;
                 Start();
@@ -100,7 +121,7 @@ namespace Server.Items
         {
             private Matches m_Match;
 
-            public InternalTarget(Matches match) : base (3, false, TargetFlags.None)
+            public InternalTarget(Matches match) : base(3, false, TargetFlags.None)
             {
                 m_Match = match;
             }
@@ -109,38 +130,14 @@ namespace Server.Items
             {
                 if (obj is IShipCannon)
                 {
-                    IShipCannon cannon = (IShipCannon)obj;
+                    var cannon = (IShipCannon)obj;
 
                     if (cannon.CanLight)
-                    {
                         cannon.LightFuse(from);
-                    }
                     else
-                    {
                         from.SendLocalizedMessage(1116078); //There is no fuse to light! Prime the cannon first.
-                    }
                 }
             }
-        }
-
-        public Matches(Serial serial) : base(serial) { }
-
-        TextDefinition ICommodity.Description { get { return LabelNumber; } }
-        bool ICommodity.IsDeedable { get { return true; } }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.Write((int)0);
-            writer.Write(m_IsLight);
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            int version = reader.ReadInt();
-            if (reader.ReadBool())
-                Delete();
         }
     }
 }

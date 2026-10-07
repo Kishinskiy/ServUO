@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using Server.Items;
 
@@ -9,27 +8,13 @@ namespace Server.Mobiles
         private readonly List<GenericBuyInfo> m_BuyInfo;
         private readonly IShopSellInfo m_SellInfo = new InternalSellInfo();
 
+        public override IShopSellInfo SellInfo => m_SellInfo;
+
+        public override List<GenericBuyInfo> BuyInfo => m_BuyInfo;
+
         public SBScribe(Mobile m)
         {
-            if (m != null)
-            {
-                m_BuyInfo = new InternalBuyInfo(m);
-            }
-        }
-
-        public override IShopSellInfo SellInfo
-        {
-            get
-            {
-                return m_SellInfo;
-            }
-        }
-        public override List<GenericBuyInfo> BuyInfo
-        {
-            get
-            {
-                return m_BuyInfo;
-            }
+            if (m != null) m_BuyInfo = new InternalBuyInfo(m);
         }
 
         public class InternalBuyInfo : List<GenericBuyInfo>

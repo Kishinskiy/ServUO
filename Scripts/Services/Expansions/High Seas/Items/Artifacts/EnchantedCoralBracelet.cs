@@ -1,11 +1,8 @@
-﻿using Server;
-using System;
-
-namespace Server.Items
+﻿namespace Server.Items
 {
     public class EnchantedCoralBracelet : SilverBracelet
     {
-        public override int LabelNumber { get { return 1116624; } }
+        public override int LabelNumber => 1116624;
 
         [Constructable]
         public EnchantedCoralBracelet()
@@ -28,13 +25,13 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

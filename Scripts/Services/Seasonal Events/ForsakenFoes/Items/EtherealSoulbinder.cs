@@ -1,26 +1,19 @@
-using System;
 using System.Linq;
-
-using Server;
 using Server.Mobiles;
 
 namespace Server.Items
 {
     public class EtherealSoulbinder : Item
     {
-        public override int LabelNumber { get { return 1159167; } } // ethereal soulbinder
+        private double m_SoulPoint;
+        public override int LabelNumber => 1159167; // ethereal soulbinder
 
         public double MaxSoulPoint { get; set; } = 100;
-
-        private double m_SoulPoint;
 
         [CommandProperty(AccessLevel.GameMaster)]
         public double SoulPoint
         {
-            get
-            {
-                return m_SoulPoint;
-            }
+            get => m_SoulPoint;
             set
             {
                 if (value < 0)
@@ -33,6 +26,17 @@ namespace Server.Items
                 SetHue();
                 InvalidateProperties();
             }
+        }
+
+        [Constructable]
+        public EtherealSoulbinder()
+            : base(0xA1E7)
+        {
+        }
+
+        public EtherealSoulbinder(Serial serial)
+            : base(serial)
+        {
         }
 
         private void SetHue()
@@ -55,49 +59,33 @@ namespace Server.Items
         {
             if (SoulPoint <= 0)
                 return 1159177; // An Empty Soulbinder
-            else if (SoulPoint <= 1)
+            if (SoulPoint <= 1)
                 return 1159176; // Meager
-            else if (SoulPoint <= 25)
+            if (SoulPoint <= 25)
                 return 1159175; // Grand
-            else if (SoulPoint <= 50)
+            if (SoulPoint <= 50)
                 return 1159174; // Exalted
-            else if (SoulPoint <= 90)
+            if (SoulPoint <= 90)
                 return 1159173; // Legendary
-            else
-                return 1159172; // Mythical
-        }
-
-        [Constructable]
-        public EtherealSoulbinder()
-            : base(0xA1E7)
-        {
-        }
-
-        public EtherealSoulbinder(Serial serial)
-            : base(serial)
-        {
+            return 1159172; // Mythical
         }
 
         public override void GetProperties(ObjectPropertyList list)
         {
             base.GetProperties(list);
 
-            int desc = GetDescription();
+            var desc = GetDescription();
 
             if (desc == 1159177)
-            {
                 list.Add(1159177); // An Empty Soulbinder
-            }
             else
-            {
                 list.Add(1159178, string.Format("#{0}", desc)); // Contains a ~1_TYPE~ Soul
-            }
         }
-        
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
 
             writer.Write(m_SoulPoint);
         }
@@ -105,7 +93,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             m_SoulPoint = reader.ReadDouble();
         }
@@ -122,12 +110,10 @@ namespace Server.Items
 
             if (bc != null && bc.IsSoulbound && killer is PlayerMobile && killer.Backpack != null)
             {
-                EtherealSoulbinder es = killer.Backpack.FindItemsByType<EtherealSoulbinder>().Where(x => x.SoulPoint < x.MaxSoulPoint).FirstOrDefault();
+                var es = killer.Backpack.FindItemsByType<EtherealSoulbinder>().Where(x => x.SoulPoint < x.MaxSoulPoint)
+                    .FirstOrDefault();
 
-                if (es != null)
-                {
-                    es.SoulPoint += bc.HitsMax / 1000;
-                }
+                if (es != null) es.SoulPoint += bc.HitsMax / 1000;
             }
         }
     }

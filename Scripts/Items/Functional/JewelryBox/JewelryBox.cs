@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using Server.Multis;
 using Server.ContextMenus;
+using Server.Multis;
 using Server.Network;
 
 namespace Server.Items
@@ -10,16 +10,23 @@ namespace Server.Items
     [FlipableAttribute(0x9F1C, 0x9F1D)]
     public class JewelryBox : Container, IDyable
     {
-		public override int LabelNumber { get { return 1157694; } } // Jewelry Box
+        private readonly Type[] _AcceptList =
+        {
+            typeof(BaseRing), typeof(BaseBracelet), typeof(BaseNecklace), typeof(BaseEarrings), typeof(BaseTalisman)
+        };
+
+        public override int LabelNumber => 1157694; // Jewelry Box
 
         [CommandProperty(AccessLevel.GameMaster)]
         public SecureLevel Level { get; set; }
 
         public JewelryBoxFilter Filter { get; set; }
 
-        public override int DefaultMaxItems { get { return 500; } }
+        public override int DefaultMaxItems => 500;
 
-        public bool IsFull { get { return DefaultMaxItems <= Items.Count; } }
+        public bool IsFull => DefaultMaxItems <= Items.Count;
+
+        public override bool DisplaysContent => false;
 
         [Constructable]
         public JewelryBox()
@@ -27,7 +34,12 @@ namespace Server.Items
         {
             Weight = 10.0;
             Filter = new JewelryBoxFilter();
-            Level = SecureLevel.CoOwners;            
+            Level = SecureLevel.CoOwners;
+        }
+
+        public JewelryBox(Serial serial)
+            : base(serial)
+        {
         }
 
         public bool Dye(Mobile from, DyeTub sender)
@@ -46,17 +58,11 @@ namespace Server.Items
                 base.OnDoubleClick(from);
 
             if (!from.InRange(GetWorldLocation(), 2))
-            {
                 from.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1019045); // I can't reach that.
-            }
             else if (!IsLockedDown && !IsSecure)
-            {
                 from.SendLocalizedMessage(1157727); // The jewelry box must be secured before you can use it.
-            }
             else
-            {
                 from.SendGump(new JewelryBoxGump(from, this));
-            }
         }
 
         public bool CheckAccessible(Mobile from, Item item)
@@ -64,7 +70,7 @@ namespace Server.Items
             if (from.AccessLevel >= AccessLevel.GameMaster)
                 return true; // Staff can access anything
 
-            BaseHouse house = BaseHouse.FindHouseAt(item);
+            var house = BaseHouse.FindHouseAt(item);
 
             if (house == null)
                 return false;
@@ -90,18 +96,12 @@ namespace Server.Items
 
         public bool IsAccept(Item item)
         {
-            foreach (Type type in _AcceptList)
+            foreach (var type in _AcceptList)
                 if (item.GetType().IsSubclassOf(type))
                     return true;
 
             return false;
         }
-
-
-        private Type[] _AcceptList =
-        {
-            typeof(BaseRing), typeof(BaseBracelet), typeof(BaseNecklace), typeof(BaseEarrings), typeof(BaseTalisman)
-        };
 
         public override bool OnDragDrop(Mobile from, Item dropped)
         {
@@ -110,52 +110,46 @@ namespace Server.Items
                 from.SendLocalizedMessage(1157727); // The jewelry box must be secured before you can use it.
                 return false;
             }
-            else if (!CheckAccessible(from, this))
+
+            if (!CheckAccessible(from, this))
             {
                 PrivateOverheadMessage(MessageType.Regular, 946, 1010563, from.NetState); // This container is secure.
                 return false;
             }
-            else if (!IsAccept(dropped))
+
+            if (!IsAccept(dropped))
             {
                 from.SendLocalizedMessage(1157724); // This is not a ring, bracelet, necklace, earring, or talisman.
                 return false;
             }
-            else if (IsFull)
+
+            if (IsFull)
             {
                 from.SendLocalizedMessage(1157723); // The jewelry box is full.
                 return false;
             }
-            else
-            {
-                Timer.DelayCall(TimeSpan.FromSeconds(1), () => from.SendGump(new JewelryBoxGump(from, this)));
-                return base.OnDragDrop(from, dropped);
-            }
-        }
 
-        public override bool DisplaysContent { get { return false; } }
+            Timer.DelayCall(TimeSpan.FromSeconds(1), () => from.SendGump(new JewelryBoxGump(from, this)));
+            return base.OnDragDrop(from, dropped);
+        }
 
         public override int GetTotal(TotalType type)
         {
             if (type == TotalType.Weight)
             {
-                int weight = base.GetTotal(type);
+                var weight = base.GetTotal(type);
 
                 if (weight > 0)
-                    return (int)Math.Max(1, (base.GetTotal(type) * 0.3));
+                    return (int)Math.Max(1, base.GetTotal(type) * 0.3);
             }
 
             return base.GetTotal(type);
         }
 
-        public JewelryBox(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
 
             writer.Write((int)Level);
             Filter.Serialize(writer);
@@ -164,7 +158,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
 
             Level = (SecureLevel)reader.ReadInt();
             Filter = new JewelryBoxFilter(reader);

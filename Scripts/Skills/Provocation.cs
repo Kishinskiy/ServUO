@@ -1,11 +1,12 @@
 #region References
-using System;
 
-using Server.Engines.XmlSpawner2;
+using System;
+using Server.Engines.Quests;
 using Server.Items;
 using Server.Mobiles;
+using Server.Spells.SkillMasteries;
 using Server.Targeting;
-using Server.Engines.Quests;
+
 #endregion
 
 namespace Server.SkillHandlers
@@ -49,11 +50,12 @@ namespace Server.SkillHandlers
 
                 if (targeted is BaseCreature && from.CanBeHarmful((Mobile)targeted, true))
                 {
-                    BaseCreature creature = (BaseCreature)targeted;
+                    var creature = (BaseCreature)targeted;
 
                     if (!m_Instrument.IsChildOf(from.Backpack))
                     {
-                        from.SendLocalizedMessage(1062488); // The instrument you are trying to play is no longer in your backpack!
+                        from.SendLocalizedMessage(
+                            1062488); // The instrument you are trying to play is no longer in your backpack!
                     }
                     else if (from is PlayerMobile && creature.Controlled)
                     {
@@ -97,14 +99,15 @@ namespace Server.SkillHandlers
 
                 if (targeted is BaseCreature || (from is BaseCreature && ((BaseCreature)from).CanProvoke))
                 {
-                    BaseCreature creature = targeted as BaseCreature;
-                    Mobile target = targeted as Mobile;
+                    var creature = targeted as BaseCreature;
+                    var target = targeted as Mobile;
 
-                    bool questTargets = QuestTargets(creature, from);
+                    var questTargets = QuestTargets(creature, from);
 
                     if (!m_Instrument.IsChildOf(from.Backpack))
                     {
-                        from.SendLocalizedMessage(1062488); // The instrument you are trying to play is no longer in your backpack!
+                        from.SendLocalizedMessage(
+                            1062488); // The instrument you are trying to play is no longer in your backpack!
                     }
                     else if (m_Creature.Unprovokable)
                     {
@@ -124,26 +127,24 @@ namespace Server.SkillHandlers
                     {
                         from.NextSkillTime = Core.TickCount + 10000;
 
-                        double diff = ((m_Instrument.GetDifficultyFor(m_Creature) + m_Instrument.GetDifficultyFor(target)) * 0.5) - 5.0;
-                        double music = from.Skills[SkillName.Musicianship].Value;
-                        int masteryBonus = 0;
+                        var diff = (m_Instrument.GetDifficultyFor(m_Creature) + m_Instrument.GetDifficultyFor(target)) *
+                            0.5 - 5.0;
+                        var music = from.Skills[SkillName.Musicianship].Value;
+                        var masteryBonus = 0;
 
                         if (from is PlayerMobile)
-                            masteryBonus = Spells.SkillMasteries.BardSpell.GetMasteryBonus((PlayerMobile)from, SkillName.Provocation);
+                            masteryBonus = BardSpell.GetMasteryBonus((PlayerMobile)from, SkillName.Provocation);
 
                         if (masteryBonus > 0)
-                            diff -= (diff * ((double)masteryBonus / 100));
+                            diff -= diff * ((double)masteryBonus / 100);
 
-                        if (music > 100.0)
-                        {
-                            diff -= (music - 100.0) * 0.5;
-                        }
+                        if (music > 100.0) diff -= (music - 100.0) * 0.5;
 
                         if (questTargets || (from.CanBeHarmful(m_Creature, true) && from.CanBeHarmful(target, true)))
                         {
                             if (from.Player && !BaseInstrument.CheckMusicianship(from))
                             {
-                                from.NextSkillTime = Core.TickCount + (10000 - ((masteryBonus / 5) * 1000));
+                                from.NextSkillTime = Core.TickCount + (10000 - masteryBonus / 5 * 1000);
                                 from.SendLocalizedMessage(500612); // You play poorly, and there is no effect.
                                 m_Instrument.PlayInstrumentBadly(from);
                                 m_Instrument.ConsumeUse(from);
@@ -154,7 +155,7 @@ namespace Server.SkillHandlers
                                 //from.DoHarmful( creature );
                                 if (!from.CheckTargetSkill(SkillName.Provocation, target, diff - 25.0, diff + 25.0))
                                 {
-                                    from.NextSkillTime = Core.TickCount + (10000 - ((masteryBonus / 5) * 1000));
+                                    from.NextSkillTime = Core.TickCount + (10000 - masteryBonus / 5 * 1000);
                                     from.SendLocalizedMessage(501599); // Your music fails to incite enough anger.
                                     m_Instrument.PlayInstrumentBadly(from);
                                     m_Instrument.ConsumeUse(from);
@@ -167,16 +168,17 @@ namespace Server.SkillHandlers
                                     m_Creature.Provoke(from, target, true);
 
                                     #region Bard Mastery Quest
+
                                     if (questTargets)
                                     {
-                                        BaseQuest quest = QuestHelper.GetQuest((PlayerMobile)from, typeof(IndoctrinationOfABattleRouserQuest));
+                                        var quest = QuestHelper.GetQuest((PlayerMobile)from,
+                                            typeof(IndoctrinationOfABattleRouserQuest));
 
                                         if (quest != null)
-                                        {
-                                            foreach (BaseObjective objective in quest.Objectives)
+                                            foreach (var objective in quest.Objectives)
                                                 objective.Update(creature);
-                                        }
                                     }
+
                                     #endregion
                                 }
                             }
@@ -197,23 +199,21 @@ namespace Server.SkillHandlers
             {
                 if (creature != null)
                 {
-                    Mobile getmaster = creature.GetMaster();
+                    var getmaster = creature.GetMaster();
 
                     if (getmaster != null)
-                    {
                         if (getmaster is PlayerMobile)
                             return false;
-                    }
 
-                    if (from is PlayerMobile && (m_Creature.GetType() == typeof(Rabbit) || m_Creature.GetType() == typeof(JackRabbit)) && ((creature is WanderingHealer) || (creature is EvilWanderingHealer)))
+                    if (from is PlayerMobile &&
+                        (m_Creature.GetType() == typeof(Rabbit) || m_Creature.GetType() == typeof(JackRabbit)) &&
+                        (creature is WanderingHealer || creature is EvilWanderingHealer))
                         return true;
 
                     return false;
                 }
-                else
-                {
-                    return false;
-                }
+
+                return false;
             }
         }
     }

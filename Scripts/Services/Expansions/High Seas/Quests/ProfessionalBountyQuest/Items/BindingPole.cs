@@ -1,5 +1,3 @@
-using Server;
-using System;
 using Server.Engines.Quests;
 using Server.Multis;
 
@@ -7,54 +5,43 @@ namespace Server.Items
 {
     public class BindingPole : Item, IGalleonFixture
     {
-		private BaseQuest m_Quest;
-        private BaseGalleon m_Galleon;
+        public BaseQuest Quest { get; set; }
 
-		public BaseQuest Quest 
-        { 
-            get { return m_Quest; } 
-            set { m_Quest = value; } 
-        }
+        public override int LabelNumber => 1116718;
 
-        public BaseGalleon Galleon
+        public BindingPole(BaseQuest quest) : base(5696)
         {
-            get { return m_Galleon; }
-            set { m_Galleon = value; }
+            Quest = quest;
+            Movable = false;
         }
 
-        public override int LabelNumber { get { return 1116718; } }
+        public BindingPole(Serial serial) : base(serial)
+        {
+        }
 
-		public override void Delete()
-		{
+        public BaseGalleon Galleon { get; set; }
+
+        public override void Delete()
+        {
             base.Delete();
 
-			if (m_Quest != null)
-				m_Quest.OnResign(false);
+            if (Quest != null)
+                Quest.OnResign(false);
 
-            if (m_Galleon != null)
-                m_Galleon.RemoveFixture(this);
-		}
+            if (Galleon != null)
+                Galleon.RemoveFixture(this);
+        }
 
-		public BindingPole(BaseQuest quest) : base(5696)
-		{
-			m_Quest = quest;
-			Movable = false;
-		}
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
+        }
 
-		public BindingPole(Serial serial) : base(serial)
-		{
-		}
-
-		public override void Serialize(GenericWriter writer)
-		{	
-			base.Serialize(writer);
-			writer.Write((int)0);	
-		}
-	
-		public override void Deserialize(GenericReader reader)
-		{
-		 	base.Deserialize(reader);
-			int version = reader.ReadInt();
-		}
-	}
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
+        }
+    }
 }

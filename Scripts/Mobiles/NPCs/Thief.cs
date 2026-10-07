@@ -1,11 +1,14 @@
-using System;
 using System.Collections.Generic;
+using Server.Items;
 
 namespace Server.Mobiles
 {
     public class Thief : BaseVendor
     {
         private readonly List<SBInfo> m_SBInfos = new List<SBInfo>();
+
+        protected override List<SBInfo> SBInfos => m_SBInfos;
+
         [Constructable]
         public Thief()
             : base("the thief")
@@ -24,13 +27,6 @@ namespace Server.Mobiles
         {
         }
 
-        protected override List<SBInfo> SBInfos
-        {
-            get
-            {
-                return m_SBInfos;
-            }
-        }
         public override void InitSBInfo()
         {
             m_SBInfos.Add(new SBThief());
@@ -38,10 +34,10 @@ namespace Server.Mobiles
 
         public override void InitOutfit()
         {
-            AddItem(new Server.Items.Shirt(Utility.RandomNeutralHue()));
-            AddItem(new Server.Items.LongPants(Utility.RandomNeutralHue()));
-            AddItem(new Server.Items.Dagger());
-            AddItem(new Server.Items.ThighBoots(Utility.RandomNeutralHue()));
+            AddItem(new Shirt(Utility.RandomNeutralHue()));
+            AddItem(new LongPants(Utility.RandomNeutralHue()));
+            AddItem(new Dagger());
+            AddItem(new ThighBoots(Utility.RandomNeutralHue()));
 
             base.InitOutfit();
         }
@@ -50,14 +46,14 @@ namespace Server.Mobiles
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

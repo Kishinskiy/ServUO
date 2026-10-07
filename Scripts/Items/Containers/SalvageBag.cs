@@ -1,23 +1,17 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Server.ContextMenus;
 using Server.Engines.Craft;
 using Server.Network;
-using System.Linq;
 
 namespace Server.Items
 {
     public class SalvageBag : Bag
     {
         private bool m_Failure;
-		
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1079931;
-            }
-        }// Salvage Bag
+
+        public override int LabelNumber => 1079931; // Salvage Bag
 
         [Constructable]
         public SalvageBag()
@@ -44,39 +38,9 @@ namespace Server.Items
                 list.Add(new SalvageAllEntry(this, IsChildOf(from.Backpack) && Resmeltables() && Scissorables()));
             }
         }
-		
-        #region Checks
-        private bool Resmeltables() //Where context menu checks for metal items and dragon barding deeds
-        {
-            foreach (Item i in Items)
-            {
-                if (i != null && !i.Deleted)
-                {
-                    if (i is BaseWeapon)
-                    {
-                        if (CraftResources.GetType(((BaseWeapon)i).Resource) == CraftResourceType.Metal)
-                            return true;
-                    }
-                    if (i is BaseArmor)
-                    {
-                        if (CraftResources.GetType(((BaseArmor)i).Resource) == CraftResourceType.Metal)
-                            return true;
-                    }
-                    if (i is DragonBardingDeed)
-                        return true;
-                }
-            }
-            return false;
-        }
-		
-        private bool Scissorables() //Where context menu checks for Leather items and cloth items
-        {
-            return Items.Any(i => (i != null) && (!i.Deleted) && (i is IScissorable) && (i is Item));
-        }
-
-        #endregion	
 
         #region Resmelt.cs
+
         private bool Resmelt(Mobile from, Item item, CraftResource resource)
         {
             try
@@ -84,24 +48,24 @@ namespace Server.Items
                 if (CraftResources.GetType(resource) != CraftResourceType.Metal)
                     return false;
 
-                CraftResourceInfo info = CraftResources.GetInfo(resource);
+                var info = CraftResources.GetInfo(resource);
 
                 if (info == null || info.ResourceTypes.Length == 0)
                     return false;
 
-                CraftItem craftItem = DefBlacksmithy.CraftSystem.CraftItems.SearchFor(item.GetType());
+                var craftItem = DefBlacksmithy.CraftSystem.CraftItems.SearchFor(item.GetType());
 
                 if (craftItem == null || craftItem.Resources.Count == 0)
                     return false;
 
-                CraftRes craftResource = craftItem.Resources.GetAt(0);
+                var craftResource = craftItem.Resources.GetAt(0);
 
                 if (craftResource.Amount < 2)
                     return false; // Not enough metal to resmelt
-					
-                double difficulty = 0.0;
 
-                switch ( resource )
+                var difficulty = 0.0;
+
+                switch (resource)
                 {
                     case CraftResource.DullCopper:
                         difficulty = 65.0;
@@ -129,17 +93,19 @@ namespace Server.Items
                         break;
                 }
 
-                Type resourceType = info.ResourceTypes[0];
-                Item ingot = (Item)Activator.CreateInstance(resourceType);
+                var resourceType = info.ResourceTypes[0];
+                var ingot = (Item)Activator.CreateInstance(resourceType);
 
-                double skill = Math.Max(from.Skills[SkillName.Mining].Value, from.Skills[SkillName.Blacksmith].Value);
+                var skill = Math.Max(from.Skills[SkillName.Mining].Value, from.Skills[SkillName.Blacksmith].Value);
 
-                if (item is DragonBardingDeed || (item is BaseArmor && ((BaseArmor)item).PlayerConstructed) || (item is BaseWeapon && ((BaseWeapon)item).PlayerConstructed) || (item is BaseClothing && ((BaseClothing)item).PlayerConstructed))
+                if (item is DragonBardingDeed || (item is BaseArmor && ((BaseArmor)item).PlayerConstructed) ||
+                    (item is BaseWeapon && ((BaseWeapon)item).PlayerConstructed) ||
+                    (item is BaseClothing && ((BaseClothing)item).PlayerConstructed))
                 {
                     if (skill > 100.0)
                         skill = 100.0;
 
-                    double amount = (((4 + skill) * craftResource.Amount - 4) * 0.0068);
+                    var amount = ((4 + skill) * craftResource.Amount - 4) * 0.0068;
 
                     if (amount < 2)
                         ingot.Amount = 2;
@@ -153,11 +119,13 @@ namespace Server.Items
 
                 if (difficulty > skill)
                 {
-                    m_Failure = true; 
+                    m_Failure = true;
                     ingot.Delete();
                 }
                 else
+                {
                     item.Delete();
+                }
 
                 from.AddToBackpack(ingot);
 
@@ -175,11 +143,40 @@ namespace Server.Items
         }
 
         #endregion
-		
+
+        #region Checks
+
+        private bool Resmeltables() //Where context menu checks for metal items and dragon barding deeds
+        {
+            foreach (var i in Items)
+                if (i != null && !i.Deleted)
+                {
+                    if (i is BaseWeapon)
+                        if (CraftResources.GetType(((BaseWeapon)i).Resource) == CraftResourceType.Metal)
+                            return true;
+                    if (i is BaseArmor)
+                        if (CraftResources.GetType(((BaseArmor)i).Resource) == CraftResourceType.Metal)
+                            return true;
+                    if (i is DragonBardingDeed)
+                        return true;
+                }
+
+            return false;
+        }
+
+        private bool Scissorables() //Where context menu checks for Leather items and cloth items
+        {
+            return Items.Any(i => i != null && !i.Deleted && i is IScissorable && i is Item);
+        }
+
+        #endregion
+
         #region Salvaging
+
         private void SalvageIngots(Mobile from)
         {
-            bool ToolFound = from.Backpack.Items.Any(i => i is ITool && ((ITool)i).CraftSystem == DefBlacksmithy.CraftSystem);
+            var ToolFound =
+                from.Backpack.Items.Any(i => i is ITool && ((ITool)i).CraftSystem == DefBlacksmithy.CraftSystem);
 
             if (!ToolFound)
             {
@@ -196,17 +193,17 @@ namespace Server.Items
                 return;
             }
 
-            int salvaged = 0;
-            int notSalvaged = 0;
-			
-            Container sBag = this;
-			
-            List<Item> Smeltables = sBag.FindItemsByType<Item>();
+            var salvaged = 0;
+            var notSalvaged = 0;
 
-            for (int i = Smeltables.Count - 1; i >= 0; i--)
+            Container sBag = this;
+
+            var Smeltables = sBag.FindItemsByType<Item>();
+
+            for (var i = Smeltables.Count - 1; i >= 0; i--)
             {
-                Item item = Smeltables[i];
-				
+                var item = Smeltables[i];
+
                 if (item is BaseArmor)
                 {
                     if (Resmelt(from, item, ((BaseArmor)item).Resource))
@@ -230,58 +227,58 @@ namespace Server.Items
                         notSalvaged++;
                 }
             }
+
             if (m_Failure)
             {
                 from.SendLocalizedMessage(1079975); // You failed to smelt some metal for lack of skill.
                 m_Failure = false;
             }
             else
-                from.SendLocalizedMessage(1079973, String.Format("{0}\t{1}", salvaged, salvaged + notSalvaged)); // Salvaged: ~1_COUNT~/~2_NUM~ blacksmithed items
+            {
+                from.SendLocalizedMessage(1079973,
+                    string.Format("{0}\t{1}", salvaged,
+                        salvaged + notSalvaged)); // Salvaged: ~1_COUNT~/~2_NUM~ blacksmithed items
+            }
         }
 
         private void SalvageCloth(Mobile from)
         {
-            Scissors scissors = from.Backpack.FindItemByType(typeof(Scissors)) as Scissors;
+            var scissors = from.Backpack.FindItemByType(typeof(Scissors)) as Scissors;
             if (scissors == null)
             {
                 from.SendLocalizedMessage(1079823); // You need scissors in order to salvage cloth.
                 return;
             }
 
-            int salvaged = 0;
-            int notSalvaged = 0;
-			
-            Container sBag = this;
-			
-            List<Item> Scissorables = sBag.FindItemsByType<Item>();
+            var salvaged = 0;
+            var notSalvaged = 0;
 
-            for (int i = Scissorables.Count - 1; i >= 0; i--)
+            Container sBag = this;
+
+            var Scissorables = sBag.FindItemsByType<Item>();
+
+            for (var i = Scissorables.Count - 1; i >= 0; i--)
             {
-                Item item = Scissorables[i];
+                var item = Scissorables[i];
                 if (item is IScissorable)
                 {
                     if (((IScissorable)item).Scissor(from, scissors))
-                    {
                         salvaged++;
-                    }
                     else
-                    {
                         notSalvaged++;
-                    }
                 }
             }
-			
-            from.SendLocalizedMessage(1079974, String.Format("{0}\t{1}", salvaged, salvaged + notSalvaged)); // Salvaged: ~1_COUNT~/~2_NUM~ tailored items
-			
-            Container pack = from.Backpack;
-			
-            foreach (Item i in ((Container)this).FindItemsByType(typeof(Item), true))
-            {
-                if ((i is Leather) || (i is Cloth) || (i is SpinedLeather) || (i is HornedLeather) || (i is BarbedLeather) || (i is Bandage) || (i is Bone))
-                {
+
+            from.SendLocalizedMessage(1079974,
+                string.Format("{0}\t{1}", salvaged,
+                    salvaged + notSalvaged)); // Salvaged: ~1_COUNT~/~2_NUM~ tailored items
+
+            var pack = from.Backpack;
+
+            foreach (var i in this.FindItemsByType(typeof(Item), true))
+                if (i is Leather || i is Cloth || i is SpinedLeather || i is HornedLeather || i is BarbedLeather ||
+                    i is Bandage || i is Bone)
                     from.AddToBackpack(i);
-                }
-            }
         }
 
         private void SalvageAll(Mobile from)
@@ -294,6 +291,7 @@ namespace Server.Items
         #endregion
 
         #region ContextMenuEntries
+
         private class SalvageAllEntry : ContextMenuEntry
         {
             private readonly SalvageBag m_Bag;
@@ -312,7 +310,7 @@ namespace Server.Items
                 if (m_Bag.Deleted)
                     return;
 
-                Mobile from = Owner.From;
+                var from = Owner.From;
 
                 if (from.CheckAlive())
                     m_Bag.SalvageAll(from);
@@ -337,7 +335,7 @@ namespace Server.Items
                 if (m_Bag.Deleted)
                     return;
 
-                Mobile from = Owner.From;
+                var from = Owner.From;
 
                 if (from.CheckAlive())
                     m_Bag.SalvageIngots(from);
@@ -362,15 +360,17 @@ namespace Server.Items
                 if (m_Bag.Deleted)
                     return;
 
-                Mobile from = Owner.From;
+                var from = Owner.From;
 
                 if (from.CheckAlive())
                     m_Bag.SalvageCloth(from);
             }
         }
+
         #endregion
 
         #region Serialization
+
         public SalvageBag(Serial serial)
             : base(serial)
         {
@@ -380,15 +380,16 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
+
         #endregion
     }
 }

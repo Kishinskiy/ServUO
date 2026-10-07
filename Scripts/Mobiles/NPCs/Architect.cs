@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 
 namespace Server.Mobiles
@@ -6,6 +5,11 @@ namespace Server.Mobiles
     public class Architect : BaseVendor
     {
         private readonly List<SBInfo> m_SBInfos = new List<SBInfo>();
+
+        public override NpcGuild NpcGuild => NpcGuild.TinkersGuild;
+
+        protected override List<SBInfo> SBInfos => m_SBInfos;
+
         [Constructable]
         public Architect()
             : base("the architect")
@@ -17,40 +21,26 @@ namespace Server.Mobiles
         {
         }
 
-        public override NpcGuild NpcGuild
-        {
-            get
-            {
-                return NpcGuild.TinkersGuild;
-            }
-        }
-        protected override List<SBInfo> SBInfos
-        {
-            get
-            {
-                return this.m_SBInfos;
-            }
-        }
         public override void InitSBInfo()
         {
             if (!Core.AOS)
-                this.m_SBInfos.Add(new SBHouseDeed());
+                m_SBInfos.Add(new SBHouseDeed());
 
-            this.m_SBInfos.Add(new SBArchitect());
+            m_SBInfos.Add(new SBArchitect());
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
 
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

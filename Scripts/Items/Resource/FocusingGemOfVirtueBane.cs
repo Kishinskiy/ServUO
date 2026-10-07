@@ -5,7 +5,7 @@ namespace Server.Items
 {
     public class FocusingGemOfVirtueBane : Item
     {
-        public override int LabelNumber { get { return 1150004; } } // Focusing Gem of Virtue Bane
+        public override int LabelNumber => 1150004; // Focusing Gem of Virtue Bane
 
         [CommandProperty(AccessLevel.GameMaster)]
         public DateTime Cooldown { get; private set; }
@@ -17,13 +17,19 @@ namespace Server.Items
             Hue = 2508;
         }
 
+        public FocusingGemOfVirtueBane(Serial serial)
+            : base(serial)
+        {
+        }
+
         public override void OnDoubleClick(Mobile from)
         {
-            bool messagecheck = true;
+            var messagecheck = true;
 
             if (Cooldown < DateTime.Now)
             {
-                from.SendLocalizedMessage(1149987); // Using this on your weapon will make it a rage focused weapon and turn it brittle.
+                from.SendLocalizedMessage(
+                    1149987); // Using this on your weapon will make it a rage focused weapon and turn it brittle.
                 Cooldown = DateTime.Now + TimeSpan.FromMinutes(10);
                 messagecheck = false;
             }
@@ -31,14 +37,10 @@ namespace Server.Items
             if (!IsChildOf(from.Backpack))
             {
                 from.SendLocalizedMessage(1042001); // That must be in your pack for you to use it.
-                return;
             }
             else
             {
-                if (messagecheck)
-                {
-                    from.BeginTarget(2, false, TargetFlags.None, new TargetCallback(OnTarget));
-                }
+                if (messagecheck) from.BeginTarget(2, false, TargetFlags.None, OnTarget);
             }
         }
 
@@ -52,7 +54,7 @@ namespace Server.Items
 
             if (obj is Item)
             {
-                Item item = (Item)obj;
+                var item = (Item)obj;
 
                 if (!item.IsChildOf(from.Backpack))
                 {
@@ -61,8 +63,8 @@ namespace Server.Items
                 }
 
                 if (item is BaseWeapon)
-                {                    
-                    BaseWeapon weapon = (BaseWeapon)obj;
+                {
+                    var weapon = (BaseWeapon)obj;
 
                     if (weapon.ExtendedWeaponAttributes.Focus == 0)
                     {
@@ -83,22 +85,16 @@ namespace Server.Items
             }
         }
 
-        public FocusingGemOfVirtueBane(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
-    }    
+    }
 }
-

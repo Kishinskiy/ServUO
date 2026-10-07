@@ -1,15 +1,16 @@
-using System;
+using Server.Guilds;
 using Server.Items;
+using Server.Mobiles;
 using Server.Multis;
 using Server.Network;
-using Server.Mobiles;
 
 namespace Server.Gumps
 {
     public class ConfirmHouseResize : Gump
     {
-        private readonly Mobile m_Mobile;
         private readonly BaseHouse m_House;
+        private readonly Mobile m_Mobile;
+
         public ConfirmHouseResize(Mobile mobile, BaseHouse house)
             : base(110, 100)
         {
@@ -29,15 +30,15 @@ namespace Server.Gumps
             AddImageTiled(10, 40, 400, 200, 0xA40);
             AddAlphaRegion(10, 40, 400, 200);
 
-            /* You are attempting to resize your house. You will be refunded the house's 
-            value directly to your bank box. All items in the house will *remain behind* 
-            and can be *freely picked up by anyone*. Once the house is demolished, however, 
-            only this account will be able to place on the land for one hour. This *will* 
-            circumvent the normal 7-day waiting period (if it applies to you). This action 
-            will not un-condemn any other houses on your account. If you have other, 
-            grandfathered houses, this action *WILL* condemn them. Are you sure you wish 
+            /* You are attempting to resize your house. You will be refunded the house's
+            value directly to your bank box. All items in the house will *remain behind*
+            and can be *freely picked up by anyone*. Once the house is demolished, however,
+            only this account will be able to place on the land for one hour. This *will*
+            circumvent the normal 7-day waiting period (if it applies to you). This action
+            will not un-condemn any other houses on your account. If you have other,
+            grandfathered houses, this action *WILL* condemn them. Are you sure you wish
             to continue?*/
-            AddHtmlLocalized(10, 40, 400, 200, 1080196, 0x7F00, false, true); 
+            AddHtmlLocalized(10, 40, 400, 200, 1080196, 0x7F00, false, true);
 
             AddImageTiled(10, 250, 400, 20, 0xA40);
             AddAlphaRegion(10, 250, 400, 20);
@@ -55,10 +56,12 @@ namespace Server.Gumps
                 {
                     if (m_House.MovingCrate != null || m_House.InternalizedVendors.Count > 0)
                     {
-                        m_Mobile.SendLocalizedMessage(1080455); // You can not resize your house at this time. Please remove all items fom the moving crate and try again.
+                        m_Mobile.SendLocalizedMessage(
+                            1080455); // You can not resize your house at this time. Please remove all items fom the moving crate and try again.
                         return;
                     }
-                    else if (!Guilds.Guild.NewGuildSystem && m_House.FindGuildstone() != null)
+
+                    if (!Guild.NewGuildSystem && m_House.FindGuildstone() != null)
                     {
                         m_Mobile.SendLocalizedMessage(501389); // You cannot redeed a house with a guildstone inside.
                         return;
@@ -68,19 +71,25 @@ namespace Server.Gumps
                     m_Mobile.SendLocalizedMessage( 503236 ); // You need to collect your vendor's belongings before moving.
                     return;
                     }*/
-                    else if (m_House.HasRentedVendors && m_House.VendorInventories.Count > 0)
+
+                    if (m_House.HasRentedVendors && m_House.VendorInventories.Count > 0)
                     {
-                        m_Mobile.SendLocalizedMessage(1062679); // You cannot do that that while you still have contract vendors or unclaimed contract vendor inventory in your house.
+                        m_Mobile.SendLocalizedMessage(
+                            1062679); // You cannot do that that while you still have contract vendors or unclaimed contract vendor inventory in your house.
                         return;
                     }
-                    else if (m_House.HasRentedVendors)
+
+                    if (m_House.HasRentedVendors)
                     {
-                        m_Mobile.SendLocalizedMessage(1062680); // You cannot do that that while you still have contract vendors in your house.
+                        m_Mobile.SendLocalizedMessage(
+                            1062680); // You cannot do that that while you still have contract vendors in your house.
                         return;
                     }
-                    else if (m_House.VendorInventories.Count > 0)
+
+                    if (m_House.VendorInventories.Count > 0)
                     {
-                        m_Mobile.SendLocalizedMessage(1062681); // You cannot do that that while you still have unclaimed contract vendor inventory in your house.
+                        m_Mobile.SendLocalizedMessage(
+                            1062681); // You cannot do that that while you still have unclaimed contract vendor inventory in your house.
                         return;
                     }
 
@@ -128,12 +137,14 @@ namespace Server.Gumps
 
                         if (toGive != null)
                         {
-                            BankBox box = m_Mobile.BankBox;
+                            var box = m_Mobile.BankBox;
 
                             if (box.TryDropItem(m_Mobile, toGive, false))
                             {
                                 if (toGive is BankCheck)
-                                    m_Mobile.SendLocalizedMessage(1060397, ((BankCheck)toGive).Worth.ToString()); // ~1_AMOUNT~ gold has been deposited into your bank box.
+                                    m_Mobile.SendLocalizedMessage(1060397,
+                                        ((BankCheck)toGive).Worth
+                                        .ToString()); // ~1_AMOUNT~ gold has been deposited into your bank box.
 
                                 m_House.RemoveKeys(m_Mobile);
                                 new TempNoHousingRegion(m_House, m_Mobile);

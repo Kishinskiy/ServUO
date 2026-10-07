@@ -1,13 +1,13 @@
-using System;
-
 namespace Server.Items
-{ 
+{
     public class VesperCollectionRing : GoldRing
-	{
-		public override bool IsArtifact { get { return true; } }
+    {
+        public override bool IsArtifact => true;
+
+        public override int LabelNumber => 1073234; // A Souvenir from the Museum of Vesper
+
         public VesperCollectionRing()
-            : base()
-        { 
+        {
         }
 
         public VesperCollectionRing(Serial serial)
@@ -15,34 +15,29 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1073234;
-            }
-        }// A Souvenir from the Museum of Vesper
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-			
-            writer.Write((int)0); // version
+
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-			
-            int version = reader.ReadInt();
+
+            var version = reader.ReadInt();
         }
     }
 
     public class VesperCollectionNecklace : GoldNecklace
-	{
-		public override bool IsArtifact { get { return true; } }
+    {
+        public override bool IsArtifact => true;
+
+        public override int LabelNumber => 1073234; // A Souvenir from the Museum of Vesper
+
         public VesperCollectionNecklace()
-            : base()
-        { 
+        {
         }
 
         public VesperCollectionNecklace(Serial serial)
@@ -50,34 +45,29 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1073234;
-            }
-        }// A Souvenir from the Museum of Vesper
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-			
-            writer.Write((int)0); // version
+
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-			
-            int version = reader.ReadInt();
+
+            var version = reader.ReadInt();
         }
     }
 
     public class VesperCollectionBracelet : GoldBracelet
-	{
-		public override bool IsArtifact { get { return true; } }
+    {
+        public override bool IsArtifact => true;
+
+        public override int LabelNumber => 1073234; // A Souvenir from the Museum of Vesper
+
         public VesperCollectionBracelet()
-            : base()
-        { 
+        {
         }
 
         public VesperCollectionBracelet(Serial serial)
@@ -85,34 +75,29 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1073234;
-            }
-        }// A Souvenir from the Museum of Vesper
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-			
-            writer.Write((int)0); // version
+
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-			
-            int version = reader.ReadInt();
+
+            var version = reader.ReadInt();
         }
     }
 
     public class VesperCollectionEarrings : GoldEarrings
-	{
-		public override bool IsArtifact { get { return true; } }
+    {
+        public override bool IsArtifact => true;
+
+        public override int LabelNumber => 1073234; // A Souvenir from the Museum of Vesper
+
         public VesperCollectionEarrings()
-            : base()
-        { 
+        {
         }
 
         public VesperCollectionEarrings(Serial serial)
@@ -120,25 +105,18 @@ namespace Server.Items
         {
         }
 
-        public override int LabelNumber
-        {
-            get
-            {
-                return 1073234;
-            }
-        }// A Souvenir from the Museum of Vesper
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-			
-            writer.Write((int)0); // version
+
+            writer.Write(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-			
-            int version = reader.ReadInt();
+
+            var version = reader.ReadInt();
         }
     }
 }

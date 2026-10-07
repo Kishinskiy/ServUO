@@ -10,26 +10,27 @@ namespace Server.Accounting
     {
         public static bool Enabled = true;
         private static readonly List<InvalidAccountAccessLog> m_List = new List<InvalidAccountAccessLog>();
+
         public static void Initialize()
         {
             if (!Enabled)
                 return;
 
-            PacketHandlers.RegisterThrottler(0x80, new ThrottlePacketCallback(Throttle_Callback));
-            PacketHandlers.RegisterThrottler(0x91, new ThrottlePacketCallback(Throttle_Callback));
-            PacketHandlers.RegisterThrottler(0xCF, new ThrottlePacketCallback(Throttle_Callback));
+            PacketHandlers.RegisterThrottler(0x80, Throttle_Callback);
+            PacketHandlers.RegisterThrottler(0x91, Throttle_Callback);
+            PacketHandlers.RegisterThrottler(0xCF, Throttle_Callback);
         }
 
         public static bool Throttle_Callback(byte packetID, NetState ns, out bool drop)
         {
             drop = false;
 
-            InvalidAccountAccessLog accessLog = FindAccessLog(ns);
+            var accessLog = FindAccessLog(ns);
 
             if (accessLog == null)
                 return true;
 
-            return (DateTime.UtcNow >= (accessLog.LastAccessTime + ComputeThrottle(accessLog.Counts)));
+            return DateTime.UtcNow >= accessLog.LastAccessTime + ComputeThrottle(accessLog.Counts);
         }
 
         public static InvalidAccountAccessLog FindAccessLog(NetState ns)
@@ -37,11 +38,11 @@ namespace Server.Accounting
             if (ns == null)
                 return null;
 
-            IPAddress ipAddress = ns.Address;
+            var ipAddress = ns.Address;
 
-            for (int i = 0; i < m_List.Count; ++i)
+            for (var i = 0; i < m_List.Count; ++i)
             {
-                InvalidAccountAccessLog accessLog = m_List[i];
+                var accessLog = m_List[i];
 
                 if (accessLog.HasExpired)
                     m_List.RemoveAt(i--);
@@ -57,7 +58,7 @@ namespace Server.Accounting
             if (ns == null || !Enabled)
                 return;
 
-            InvalidAccountAccessLog accessLog = FindAccessLog(ns);
+            var accessLog = FindAccessLog(ns);
 
             if (accessLog == null)
                 m_List.Add(accessLog = new InvalidAccountAccessLog(ns.Address));
@@ -66,10 +67,9 @@ namespace Server.Accounting
             accessLog.RefreshAccessTime();
 
             if (accessLog.Counts >= 3)
-            {
                 try
                 {
-                    using (StreamWriter op = new StreamWriter("throttle.log", true))
+                    using (var op = new StreamWriter("throttle.log", true))
                     {
                         op.WriteLine(
                             "{0}\t{1}\t{2}",
@@ -81,7 +81,6 @@ namespace Server.Accounting
                 catch
                 {
                 }
-            }
         }
 
         public static TimeSpan ComputeThrottle(int counts)
@@ -107,58 +106,23 @@ namespace Server.Accounting
 
     public class InvalidAccountAccessLog
     {
-        private IPAddress m_Address;
-        private DateTime m_LastAccessTime;
-        private int m_Counts;
+        public IPAddress Address { get; set; }
+
+        public DateTime LastAccessTime { get; set; }
+
+        public bool HasExpired => DateTime.UtcNow >= LastAccessTime + TimeSpan.FromHours(1.0);
+
+        public int Counts { get; set; }
+
         public InvalidAccountAccessLog(IPAddress address)
         {
-            this.m_Address = address;
-            this.RefreshAccessTime();
+            Address = address;
+            RefreshAccessTime();
         }
 
-        public IPAddress Address
-        {
-            get
-            {
-                return this.m_Address;
-            }
-            set
-            {
-                this.m_Address = value;
-            }
-        }
-        public DateTime LastAccessTime
-        {
-            get
-            {
-                return this.m_LastAccessTime;
-            }
-            set
-            {
-                this.m_LastAccessTime = value;
-            }
-        }
-        public bool HasExpired
-        {
-            get
-            {
-                return (DateTime.UtcNow >= (this.m_LastAccessTime + TimeSpan.FromHours(1.0)));
-            }
-        }
-        public int Counts
-        {
-            get
-            {
-                return this.m_Counts;
-            }
-            set
-            {
-                this.m_Counts = value;
-            }
-        }
         public void RefreshAccessTime()
         {
-            this.m_LastAccessTime = DateTime.UtcNow;
+            LastAccessTime = DateTime.UtcNow;
         }
     }
 }

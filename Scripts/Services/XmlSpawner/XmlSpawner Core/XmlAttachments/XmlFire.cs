@@ -1,176 +1,160 @@
 using System;
-using Server;
 using Server.Items;
-using Server.Network;
-using Server.Mobiles;
 using Server.Spells;
 
 namespace Server.Engines.XmlSpawner2
 {
-	public class XmlFire : XmlAttachment
-	{
-		private int m_Damage = 0;
-		private TimeSpan m_Refractory = TimeSpan.FromSeconds(5);    // 5 seconds default time between activations
-		private DateTime m_EndTime;
-		private int proximityrange = 5;                 // default movement activation from 5 tiles away
+    public class XmlFire : XmlAttachment
+    {
+        private DateTime m_EndTime;
 
-		[CommandProperty( AccessLevel.GameMaster )]
-		public int Damage { get{ return m_Damage; } set { m_Damage = value; } }
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int Damage { get; set; }
 
-		[CommandProperty( AccessLevel.GameMaster )]
-		public TimeSpan Refractory { get { return m_Refractory; } set { m_Refractory  = value; } }
+        [CommandProperty(AccessLevel.GameMaster)]
+        public TimeSpan Refractory { get; set; } = TimeSpan.FromSeconds(5);
 
-		[CommandProperty( AccessLevel.GameMaster )]
-		public int Range { get { return proximityrange; } set { proximityrange  = value; } }
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int Range { get; set; } = 5;
 
-		// These are the various ways in which the message attachment can be constructed.
-		// These can be called via the [addatt interface, via scripts, via the spawner ATTACH keyword.
-		// Other overloads could be defined to handle other types of arguments
+        public override bool HandlesOnMovement => true;
 
-		// a serial constructor is REQUIRED
-		public XmlFire(ASerial serial) : base(serial)
-		{
-		}
+        // These are the various ways in which the message attachment can be constructed.
+        // These can be called via the [addatt interface, via scripts, via the spawner ATTACH keyword.
+        // Other overloads could be defined to handle other types of arguments
 
-		[Attachable]
-		public XmlFire(int damage)
-		{
-			m_Damage = damage;
-		}
+        // a serial constructor is REQUIRED
+        public XmlFire(ASerial serial) : base(serial)
+        {
+        }
 
-		[Attachable]
-		public XmlFire(int damage, double refractory)
-		{
-			m_Damage = damage;
-			Refractory = TimeSpan.FromSeconds(refractory);
+        [Attachable]
+        public XmlFire(int damage)
+        {
+            Damage = damage;
+        }
 
-		}
-        
-		[Attachable]
-		public XmlFire(int damage, double refractory, double expiresin)
-		{
-			m_Damage = damage;
-			Expiration = TimeSpan.FromMinutes(expiresin);
-			Refractory = TimeSpan.FromSeconds(refractory);
-		}
+        [Attachable]
+        public XmlFire(int damage, double refractory)
+        {
+            Damage = damage;
+            Refractory = TimeSpan.FromSeconds(refractory);
+        }
+
+        [Attachable]
+        public XmlFire(int damage, double refractory, double expiresin)
+        {
+            Damage = damage;
+            Expiration = TimeSpan.FromMinutes(expiresin);
+            Refractory = TimeSpan.FromSeconds(refractory);
+        }
 
 
-		// note that this method will be called when attached to either a mobile or a weapon
-		// when attached to a weapon, only that weapon will do additional damage
-		// when attached to a mobile, any weapon the mobile wields will do additional damage
-		public override void OnWeaponHit(Mobile attacker, Mobile defender, BaseWeapon weapon, int damageGiven)
-		{
-			// if it is still refractory then return
-			if(DateTime.UtcNow < m_EndTime) return;
+        // note that this method will be called when attached to either a mobile or a weapon
+        // when attached to a weapon, only that weapon will do additional damage
+        // when attached to a mobile, any weapon the mobile wields will do additional damage
+        public override void OnWeaponHit(Mobile attacker, Mobile defender, BaseWeapon weapon, int damageGiven)
+        {
+            // if it is still refractory then return
+            if (DateTime.UtcNow < m_EndTime) return;
 
-			int damage = 0;
+            var damage = 0;
 
-			if(m_Damage > 0)
-				damage = Utility.Random(m_Damage);
+            if (Damage > 0)
+                damage = Utility.Random(Damage);
 
-			if(defender != null && attacker != null && damage > 0)
-			{
-				attacker.MovingParticles( defender, 0x36D4, 7, 0, false, true, 9502, 4019, 0x160 );
-				attacker.PlaySound( 0x15E );
+            if (defender != null && attacker != null && damage > 0)
+            {
+                attacker.MovingParticles(defender, 0x36D4, 7, 0, false, true, 9502, 4019, 0x160);
+                attacker.PlaySound(0x15E);
 
-				SpellHelper.Damage( TimeSpan.Zero, defender, attacker, damage, 0, 100, 0, 0, 0 );
-			    
-				m_EndTime = DateTime.UtcNow + Refractory;
-			}
-		}
-        
-		public override bool HandlesOnMovement { get { return true; } }
+                SpellHelper.Damage(TimeSpan.Zero, defender, attacker, damage, 0, 100, 0, 0, 0);
 
-		public override void OnMovement(MovementEventArgs e )
-		{
-			base.OnMovement(e);
-		    
-			if(e.Mobile == null || e.Mobile.AccessLevel > AccessLevel.Player) return;
+                m_EndTime = DateTime.UtcNow + Refractory;
+            }
+        }
 
-			if(AttachedTo is Item && (((Item)AttachedTo).Parent == null) && Utility.InRange( e.Mobile.Location, ((Item)AttachedTo).Location, proximityrange ))
-			{
-				OnTrigger(null, e.Mobile);
-			} 
-			else
-				return;
-		}
+        public override void OnMovement(MovementEventArgs e)
+        {
+            base.OnMovement(e);
 
-		public override void Serialize( GenericWriter writer )
-		{
-			base.Serialize(writer);
+            if (e.Mobile == null || e.Mobile.AccessLevel > AccessLevel.Player) return;
 
-			writer.Write( (int) 1 );
-			// version 1
-			writer.Write(proximityrange);
-			// version 0
-			writer.Write(m_Damage);
-			writer.Write(m_Refractory);
-			writer.Write(m_EndTime - DateTime.UtcNow);
+            if (AttachedTo is Item && ((Item)AttachedTo).Parent == null &&
+                Utility.InRange(e.Mobile.Location, ((Item)AttachedTo).Location, Range))
+                OnTrigger(null, e.Mobile);
+            else
+                return;
+        }
 
-		}
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
 
-		public override void Deserialize(GenericReader reader)
-		{
-			base.Deserialize(reader);
+            writer.Write(1);
+            // version 1
+            writer.Write(Range);
+            // version 0
+            writer.Write(Damage);
+            writer.Write(Refractory);
+            writer.Write(m_EndTime - DateTime.UtcNow);
+        }
 
-			int version = reader.ReadInt();
-			switch(version)
-			{
-				case 1:
-					Range = reader.ReadInt();
-					goto case 0;
-				case 0:
-					// version 0
-					m_Damage = reader.ReadInt();
-					Refractory = reader.ReadTimeSpan();
-					TimeSpan remaining = reader.ReadTimeSpan();
-					m_EndTime = DateTime.UtcNow + remaining;
-					break;
-			}
-		}
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
 
-		public override string OnIdentify(Mobile from)
-		{
-			string msg = null;
+            var version = reader.ReadInt();
+            switch (version)
+            {
+                case 1:
+                    Range = reader.ReadInt();
+                    goto case 0;
+                case 0:
+                    // version 0
+                    Damage = reader.ReadInt();
+                    Refractory = reader.ReadTimeSpan();
+                    var remaining = reader.ReadTimeSpan();
+                    m_EndTime = DateTime.UtcNow + remaining;
+                    break;
+            }
+        }
 
-			if(Expiration > TimeSpan.Zero)
-			{
-				msg = String.Format("Fire Damage {0} expires in {1} mins", m_Damage, Expiration.TotalMinutes);
-			} 
-			else
-			{
-				msg = String.Format("Fire Damage {0}",m_Damage);
-			}
-            
-			if(Refractory > TimeSpan.Zero)
-			{
-				return String.Format("{0} : {1} secs between uses",msg, Refractory.TotalSeconds);
-			} 
-			else
-				return msg;
-		}
-		
-		public override void OnTrigger(object activator, Mobile m)
-		{
-			if(m == null ) return;
+        public override string OnIdentify(Mobile from)
+        {
+            string msg = null;
 
-			// if it is still refractory then return
-			if(DateTime.UtcNow < m_EndTime) return;
+            if (Expiration > TimeSpan.Zero)
+                msg = string.Format("Fire Damage {0} expires in {1} mins", Damage, Expiration.TotalMinutes);
+            else
+                msg = string.Format("Fire Damage {0}", Damage);
 
-			int damage = 0;
+            if (Refractory > TimeSpan.Zero)
+                return string.Format("{0} : {1} secs between uses", msg, Refractory.TotalSeconds);
 
-			if(m_Damage > 0)
-				damage = Utility.Random(m_Damage);
+            return msg;
+        }
 
-			if(damage > 0)
-			{
-				m.MovingParticles( m, 0x36D4, 7, 0, false, true, 9502, 4019, 0x160 );
-				m.PlaySound( 0x15E );
-				SpellHelper.Damage( TimeSpan.Zero, m, damage, 0, 100, 0, 0, 0 );
-			}
+        public override void OnTrigger(object activator, Mobile m)
+        {
+            if (m == null) return;
 
-			m_EndTime = DateTime.UtcNow + Refractory;
+            // if it is still refractory then return
+            if (DateTime.UtcNow < m_EndTime) return;
 
-		}    
-	}
+            var damage = 0;
+
+            if (Damage > 0)
+                damage = Utility.Random(Damage);
+
+            if (damage > 0)
+            {
+                m.MovingParticles(m, 0x36D4, 7, 0, false, true, 9502, 4019, 0x160);
+                m.PlaySound(0x15E);
+                SpellHelper.Damage(TimeSpan.Zero, m, damage, 0, 100, 0, 0, 0);
+            }
+
+            m_EndTime = DateTime.UtcNow + Refractory;
+        }
+    }
 }

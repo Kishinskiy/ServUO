@@ -8,26 +8,18 @@ namespace Server.Mobiles
     [CorpseName("the remains of Meraktus")]
     public class Meraktus : BaseChampion
     {
-        public override ChampionSkullType SkullType
-        {
-            get
-            {
-                return ChampionSkullType.Pain;
-            }
-        }
+        public override ChampionSkullType SkullType => ChampionSkullType.Pain;
 
         public override Type[] UniqueList
         {
-            get
-            {
-                return new Type[] { typeof(Subdue) };
-            }
+            get { return new[] { typeof(Subdue) }; }
         }
+
         public override Type[] SharedList
         {
             get
             {
-                return new Type[]
+                return new[]
                 {
                     typeof(RoyalGuardSurvivalKnife),
                     typeof(TheMostKnowledgePerson),
@@ -35,11 +27,12 @@ namespace Server.Mobiles
                 };
             }
         }
+
         public override Type[] DecorativeList
         {
             get
             {
-                return new Type[]
+                return new[]
                 {
                     typeof(ArtifactLargeVase),
                     typeof(ArtifactVase),
@@ -52,12 +45,28 @@ namespace Server.Mobiles
         {
             get
             {
-                return new MonsterStatuetteType[]
+                return new[]
                 {
                     MonsterStatuetteType.Minotaur
                 };
             }
         }
+
+        public override int Meat => 2;
+
+        public override int Hides => 10;
+
+        public override HideType HideType => HideType.Regular;
+
+        public override Poison PoisonImmune => Poison.Regular;
+
+        public override int TreasureMapLevel => 3;
+
+        public override bool BardImmune => true;
+
+        public override bool Unprovokable => true;
+
+        public override bool Uncalmable => true;
 
         [Constructable]
         public Meraktus()
@@ -95,10 +104,8 @@ namespace Server.Mobiles
 
             VirtualArmor = 28; // Don't know what it should be
 
-            for (int i = 0; i < Utility.RandomMinMax(0, 1); i++)
-            {
+            for (var i = 0; i < Utility.RandomMinMax(0, 1); i++)
                 PackItem(Loot.RandomScroll(0, Loot.ArcanistScrollTypes.Length, SpellbookType.Arcanist));
-            }
 
             NoKillAwards = true;
 
@@ -108,14 +115,19 @@ namespace Server.Mobiles
                 PackTalismans(5);
             }
 
-            Timer.DelayCall(TimeSpan.FromSeconds(1), new TimerCallback(SpawnTormented));
+            Timer.DelayCall(TimeSpan.FromSeconds(1), SpawnTormented);
 
             SetWeaponAbility(WeaponAbility.Dismount);
         }
 
+        public Meraktus(Serial serial)
+            : base(serial)
+        {
+        }
+
         public virtual void PackResources(int amount)
         {
-            for (int i = 0; i < amount; i++)
+            for (var i = 0; i < amount; i++)
                 switch (Utility.Random(6))
                 {
                     case 0:
@@ -141,9 +153,9 @@ namespace Server.Mobiles
 
         public virtual void PackTalismans(int amount)
         {
-            int count = Utility.Random(amount);
+            var count = Utility.Random(amount);
 
-            for (int i = 0; i < count; i++)
+            for (var i = 0; i < count; i++)
                 PackItem(new RandomTalisman());
         }
 
@@ -178,10 +190,7 @@ namespace Server.Mobiles
 
         public override void GenerateLoot()
         {
-            if (Core.ML)
-            {
-                AddLoot(LootPack.AosSuperBoss, 5);  // Need to verify
-            }
+            if (Core.ML) AddLoot(LootPack.AosSuperBoss, 5); // Need to verify
         }
 
         public override int GetAngerSound()
@@ -209,63 +218,6 @@ namespace Server.Mobiles
             return 0x59c;
         }
 
-        public override int Meat
-        {
-            get
-            {
-                return 2;
-            }
-        }
-        public override int Hides
-        {
-            get
-            {
-                return 10;
-            }
-        }
-        public override HideType HideType
-        {
-            get
-            {
-                return HideType.Regular;
-            }
-        }
-        public override Poison PoisonImmune
-        {
-            get
-            {
-                return Poison.Regular;
-            }
-        }
-        public override int TreasureMapLevel
-        {
-            get
-            {
-                return 3;
-            }
-        }
-        public override bool BardImmune
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool Unprovokable
-        {
-            get
-            {
-                return true;
-            }
-        }
-        public override bool Uncalmable
-        {
-            get
-            {
-                return true;
-            }
-        }
-
         public override void OnGaveMeleeAttack(Mobile defender)
         {
             base.OnGaveMeleeAttack(defender);
@@ -275,34 +227,35 @@ namespace Server.Mobiles
 
         public void Earthquake()
         {
-            Map map = Map;
+            var map = Map;
             if (map == null)
                 return;
-            ArrayList targets = new ArrayList();
+            var targets = new ArrayList();
             IPooledEnumerable eable = GetMobilesInRange(8);
             foreach (Mobile m in eable)
             {
                 if (m == this || !CanBeHarmful(m))
                     continue;
-                if (m is BaseCreature && (((BaseCreature)m).Controlled || ((BaseCreature)m).Summoned || ((BaseCreature)m).Team != Team))
+                if (m is BaseCreature && (((BaseCreature)m).Controlled || ((BaseCreature)m).Summoned ||
+                                          ((BaseCreature)m).Team != Team))
                     targets.Add(m);
                 else if (m.Player)
                     targets.Add(m);
             }
+
             eable.Free();
             PlaySound(0x2F3);
-            for (int i = 0; i < targets.Count; ++i)
+            for (var i = 0; i < targets.Count; ++i)
             {
-                Mobile m = (Mobile)targets[i];
+                var m = (Mobile)targets[i];
                 if (m != null && !m.Deleted && m is PlayerMobile)
                 {
-                    PlayerMobile pm = m as PlayerMobile;
+                    var pm = m as PlayerMobile;
                     if (pm != null && pm.Mounted)
-                    {
                         pm.SetMountBlock(BlockMountType.DismountRecovery, TimeSpan.FromSeconds(10), true);
-                    }
                 }
-                double damage = m.Hits * 0.6;//was .6
+
+                var damage = m.Hits * 0.6; //was .6
                 if (damage < 10.0)
                     damage = 10.0;
                 else if (damage > 75.0)
@@ -314,24 +267,20 @@ namespace Server.Mobiles
             }
         }
 
-        public Meraktus(Serial serial)
-            : base(serial)
-        {
-        }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write(0);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
 
         #region SpawnHelpers
+
         public void SpawnTormented()
         {
             BaseCreature spawna = new TormentedMinotaur();
@@ -346,6 +295,7 @@ namespace Server.Mobiles
             BaseCreature spawnd = new TormentedMinotaur();
             spawnd.MoveToWorld(Location, Map);
         }
+
         #endregion
     }
 }

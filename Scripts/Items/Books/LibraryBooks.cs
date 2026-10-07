@@ -1,8 +1,7 @@
-using System;
-
 namespace Server.Items
 {
     #region A Grammar of Orcish
+
     public class GrammarOfOrcish : BaseBook
     {
         public static readonly BookContent Content = new BookContent(
@@ -215,13 +214,7 @@ namespace Server.Items
                 "gug, gug, gugh, guk,",
                 "guk,"));
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
+        public override BookContent DefaultContent => Content;
 
         [Constructable]
         public GrammarOfOrcish()
@@ -238,19 +231,21 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
+
     #endregion
 
     #region A Politic Call to Anarchy
+
     public class CallToAnarchy : BaseBook
     {
         public static readonly BookContent Content = new BookContent(
@@ -386,13 +381,7 @@ namespace Server.Items
                 "Lord British for",
                 "some time now."));
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
+        public override BookContent DefaultContent => Content;
 
         [Constructable]
         public CallToAnarchy()
@@ -409,19 +398,21 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
+
     #endregion
 
     #region A Primer on Arms and Weapons
+
     public class ArmsAndWeaponsPrimer : BaseBook
     {
         public static readonly BookContent Content = new BookContent(
@@ -566,13 +557,7 @@ namespace Server.Items
                 "which maketh looting",
                 "difficult!"));
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
+        public override BookContent DefaultContent => Content;
 
         [Constructable]
         public ArmsAndWeaponsPrimer()
@@ -589,19 +574,21 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
+
     #endregion
 
     #region A Song of Samlethe
+
     public class SongOfSamlethe : BaseBook
     {
         public static readonly BookContent Content = new BookContent(
@@ -654,13 +641,7 @@ namespace Server.Items
             new BookPageInfo(
                 "Samlethe's day."));
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
+        public override BookContent DefaultContent => Content;
 
         [Constructable]
         public SongOfSamlethe()
@@ -677,19 +658,21 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
+
     #endregion
 
     #region A Tale of Three Tribes
+
     public class TaleOfThreeTribes : BaseBook
     {
         public static readonly BookContent Content = new BookContent(
@@ -781,13 +764,7 @@ namespace Server.Items
                 "escaped and lived to",
                 "write it all down!"));
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
+        public override BookContent DefaultContent => Content;
 
         [Constructable]
         public TaleOfThreeTribes()
@@ -804,19 +781,21 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
+
     #endregion
 
     #region Beltran's Guide to Guilds
+
     public class GuideToGuilds : BaseBook
     {
         public static readonly BookContent Content = new BookContent(
@@ -976,13 +955,7 @@ namespace Server.Items
                 "White bar centered",
                 "down green field."));
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
+        public override BookContent DefaultContent => Content;
 
         [Constructable]
         public GuideToGuilds()
@@ -999,19 +972,21 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
+
     #endregion
 
     #region Birds of Britannia
+
     public class BirdsOfBritannia : BaseBook
     {
         public static readonly BookContent Content = new BookContent(
@@ -1263,13 +1238,7 @@ namespace Server.Items
                 "extraordinarily",
                 "beautiful song."));
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
+        public override BookContent DefaultContent => Content;
 
         [Constructable]
         public BirdsOfBritannia()
@@ -1286,19 +1255,21 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
+
     #endregion
 
     #region Britannian Flora: A Casual Guide
+
     public class BritannianFlora : BaseBook
     {
         public static readonly BookContent Content = new BookContent(
@@ -1465,13 +1436,7 @@ namespace Server.Items
                 "know means to forgo",
                 "paying a debt."));
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
+        public override BookContent DefaultContent => Content;
 
         [Constructable]
         public BritannianFlora()
@@ -1488,19 +1453,21 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
+
     #endregion
 
     #region Classic Children's Tales, Volume 2
+
     public class ChildrenTalesVol2 : BaseBook
     {
         public static readonly BookContent Content = new BookContent(
@@ -1588,13 +1555,7 @@ namespace Server.Items
                 "never during the day."),
             new BookPageInfo());
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
+        public override BookContent DefaultContent => Content;
 
         [Constructable]
         public ChildrenTalesVol2()
@@ -1611,19 +1572,21 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
+
     #endregion
 
     #region Classic Tales of Vesper, Volume 1
+
     public class TalesOfVesperVol1 : BaseBook
     {
         public static readonly BookContent Content = new BookContent(
@@ -1813,13 +1776,7 @@ namespace Server.Items
                 "Snakehills",
                 "Lest You Care to Die"));
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
+        public override BookContent DefaultContent => Content;
 
         [Constructable]
         public TalesOfVesperVol1()
@@ -1836,19 +1793,21 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
+
     #endregion
 
     #region Deceit: A Dungeon of Horrors
+
     public class DeceitDungeonOfHorror : BaseBook
     {
         public static readonly BookContent Content = new BookContent(
@@ -1958,13 +1917,7 @@ namespace Server.Items
                 "into flame when one",
                 "passeth across it!"));
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
+        public override BookContent DefaultContent => Content;
 
         [Constructable]
         public DeceitDungeonOfHorror()
@@ -1981,19 +1934,21 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
+
     #endregion
 
     #region Dimensional Travel, a Monograph
+
     public class DimensionalTravel : BaseBook
     {
         public static readonly BookContent Content = new BookContent(
@@ -2161,13 +2116,7 @@ namespace Server.Items
                 "thorny problem and",
                 "enlighten the world."));
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
+        public override BookContent DefaultContent => Content;
 
         [Constructable]
         public DimensionalTravel()
@@ -2184,19 +2133,21 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
+
     #endregion
 
     #region Ethical Hedonism: An Introduction
+
     public class EthicalHedonism : BaseBook
     {
         public static readonly BookContent Content = new BookContent(
@@ -2422,13 +2373,7 @@ namespace Server.Items
                 "Richard Garriott and",
                 "Herman Miller."));
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
+        public override BookContent DefaultContent => Content;
 
         [Constructable]
         public EthicalHedonism()
@@ -2445,19 +2390,21 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
+
     #endregion
 
     #region My Story
+
     public class MyStory : BaseBook
     {
         public static readonly BookContent Content = new BookContent(
@@ -2900,13 +2847,7 @@ namespace Server.Items
                 "and for our people in",
                 "these perilous times."));
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
+        public override BookContent DefaultContent => Content;
 
         [Constructable]
         public MyStory()
@@ -2923,19 +2864,21 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
+
     #endregion
 
     #region On the Diversity of Our Land
+
     public class DiversityOfOurLand : BaseBook
     {
         public static readonly BookContent Content = new BookContent(
@@ -3073,13 +3016,7 @@ namespace Server.Items
                 "ourselves in the",
                 "process."));
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
+        public override BookContent DefaultContent => Content;
 
         [Constructable]
         public DiversityOfOurLand()
@@ -3096,19 +3033,21 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
+
     #endregion
 
     #region Quest of the Virtues
+
     public class QuestOfVirtues : BaseBook
     {
         public static readonly BookContent Content = new BookContent(
@@ -3453,13 +3392,7 @@ namespace Server.Items
                 "for the final three",
                 "Shrines."));
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
+        public override BookContent DefaultContent => Content;
 
         [Constructable]
         public QuestOfVirtues()
@@ -3476,19 +3409,21 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
+
     #endregion
 
     #region Regarding Llamas
+
     public class RegardingLlamas : BaseBook
     {
         public static readonly BookContent Content = new BookContent(
@@ -3528,13 +3463,7 @@ namespace Server.Items
                 "which to sound an",
                 "alarum."));
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
+        public override BookContent DefaultContent => Content;
 
         [Constructable]
         public RegardingLlamas()
@@ -3551,19 +3480,21 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
+
     #endregion
 
     #region Talking to Wisps
+
     public class TalkingToWisps : BaseBook
     {
         public static readonly BookContent Content = new BookContent(
@@ -3644,13 +3575,7 @@ namespace Server.Items
                 "language, but this is",
                 "of course unlikely."));
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
+        public override BookContent DefaultContent => Content;
 
         [Constructable]
         public TalkingToWisps()
@@ -3667,19 +3592,21 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
+
     #endregion
 
     #region Taming Dragons
+
     public class TamingDragons : BaseBook
     {
         public static readonly BookContent Content = new BookContent(
@@ -3751,13 +3678,7 @@ namespace Server.Items
                 "running away very",
                 "very fast."));
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
+        public override BookContent DefaultContent => Content;
 
         [Constructable]
         public TamingDragons()
@@ -3774,19 +3695,21 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
+
     #endregion
 
     #region The Bold Stranger
+
     public class BoldStranger : BaseBook
     {
         public static readonly BookContent Content = new BookContent(
@@ -3915,13 +3838,7 @@ namespace Server.Items
                 "tale of the bold",
                 "stranger."));
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
+        public override BookContent DefaultContent => Content;
 
         [Constructable]
         public BoldStranger()
@@ -3938,19 +3855,21 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
+
     #endregion
 
     #region The Burning of Trinsic
+
     public class BurningOfTrinsic : BaseBook
     {
         public static readonly BookContent Content = new BookContent(
@@ -4161,13 +4080,7 @@ namespace Server.Items
                 "Guildmaster of the",
                 "City of Trinsic"));
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
+        public override BookContent DefaultContent => Content;
 
         [Constructable]
         public BurningOfTrinsic()
@@ -4184,19 +4097,21 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
+
     #endregion
 
     #region The Fight
+
     public class TheFight : BaseBook
     {
         public static readonly BookContent Content = new BookContent(
@@ -4315,13 +4230,7 @@ namespace Server.Items
                 "armor shining like",
                 "newly born stars."));
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
+        public override BookContent DefaultContent => Content;
 
         [Constructable]
         public TheFight()
@@ -4338,19 +4247,21 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
+
     #endregion
 
     #region The Life of a Travelling Minstrel
+
     public class LifeOfATravellingMinstrel : BaseBook
     {
         public static readonly BookContent Content = new BookContent(
@@ -4511,13 +4422,7 @@ namespace Server.Items
             new BookPageInfo(
                 "limb."));
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
+        public override BookContent DefaultContent => Content;
 
         [Constructable]
         public LifeOfATravellingMinstrel()
@@ -4534,19 +4439,21 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
+
     #endregion
 
     #region The Major Trade Associations
+
     public class MajorTradeAssociation : BaseBook
     {
         public static readonly BookContent Content = new BookContent(
@@ -4708,13 +4615,7 @@ namespace Server.Items
                 "(beggars), Assassins,",
                 "Thieves"));
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
+        public override BookContent DefaultContent => Content;
 
         [Constructable]
         public MajorTradeAssociation()
@@ -4731,19 +4632,21 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
+
     #endregion
 
     #region The Rankings of Trades
+
     public class RankingsOfTrades : BaseBook
     {
         public static readonly BookContent Content = new BookContent(
@@ -4825,13 +4728,7 @@ namespace Server.Items
                 "mastery of their",
                 "craft recently."));
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
+        public override BookContent DefaultContent => Content;
 
         [Constructable]
         public RankingsOfTrades()
@@ -4848,19 +4745,21 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
+
     #endregion
 
     #region The Wild Girl of the Forest
+
     public class WildGirlOfTheForest : BaseBook
     {
         public static readonly BookContent Content = new BookContent(
@@ -5008,13 +4907,7 @@ namespace Server.Items
                 "orc that she called",
                 "father."));
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
+        public override BookContent DefaultContent => Content;
 
         [Constructable]
         public WildGirlOfTheForest()
@@ -5031,19 +4924,21 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
+
     #endregion
 
     #region Treatise on Alchemy
+
     public class TreatiseOnAlchemy : BaseBook
     {
         public static readonly BookContent Content = new BookContent(
@@ -5150,13 +5045,7 @@ namespace Server.Items
             new BookPageInfo(
                 "truly. Not once."));
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
+        public override BookContent DefaultContent => Content;
 
         [Constructable]
         public TreatiseOnAlchemy()
@@ -5173,19 +5062,21 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
+
     #endregion
 
     #region Virtue
+
     public class VirtueBook : BaseBook
     {
         public static readonly BookContent Content = new BookContent(
@@ -5369,13 +5260,7 @@ namespace Server.Items
                 "Spirituality, and",
                 "Humility."));
 
-        public override BookContent DefaultContent
-        {
-            get
-            {
-                return Content;
-            }
-        }
+        public override BookContent DefaultContent => Content;
 
         [Constructable]
         public VirtueBook()
@@ -5392,15 +5277,16 @@ namespace Server.Items
         {
             base.Serialize(writer);
 
-            writer.WriteEncodedInt((int)0); // version
+            writer.WriteEncodedInt(0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
 
-            int version = reader.ReadEncodedInt();
+            var version = reader.ReadEncodedInt();
         }
     }
+
     #endregion
 }

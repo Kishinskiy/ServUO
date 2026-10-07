@@ -7,36 +7,23 @@ namespace Server.Spells.Spellweaving
     public class EssenceOfWindSpell : ArcanistSpell
     {
         private static readonly SpellInfo m_Info = new SpellInfo("Essence of Wind", "Anathrae", -1);
-        private static readonly Dictionary<Mobile, EssenceOfWindInfo> m_Table = new Dictionary<Mobile, EssenceOfWindInfo>();
 
-        public override DamageType SpellDamageType { get { return DamageType.SpellAOE; } }
+        private static readonly Dictionary<Mobile, EssenceOfWindInfo> m_Table =
+            new Dictionary<Mobile, EssenceOfWindInfo>();
+
+        public override DamageType SpellDamageType => DamageType.SpellAOE;
+
+        public override TimeSpan CastDelayBase => TimeSpan.FromSeconds(3.0);
+
+        public override double RequiredSkill => 52.0;
+
+        public override int RequiredMana => 40;
 
         public EssenceOfWindSpell(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
         {
         }
 
-        public override TimeSpan CastDelayBase
-        {
-            get
-            {
-                return TimeSpan.FromSeconds(3.0);
-            }
-        }
-        public override double RequiredSkill
-        {
-            get
-            {
-                return 52.0;
-            }
-        }
-        public override int RequiredMana
-        {
-            get
-            {
-                return 40;
-            }
-        }
         public static int GetFCMalus(Mobile m)
         {
             EssenceOfWindInfo info;
@@ -76,16 +63,16 @@ namespace Server.Spells.Spellweaving
             {
                 Caster.PlaySound(0x5C6);
 
-                int damage = 10 + FocusLevel;
+                var damage = 10 + FocusLevel;
 
-                double skill = Caster.Skills[SkillName.Spellweaving].Value;
-                int dmgBonus = Math.Max((int)(skill / 24.0d), 1);
+                var skill = Caster.Skills[SkillName.Spellweaving].Value;
+                var dmgBonus = Math.Max((int)(skill / 24.0d), 1);
                 damage += dmgBonus;
 
-                TimeSpan duration = TimeSpan.FromSeconds((int)(skill / 24) + FocusLevel);
+                var duration = TimeSpan.FromSeconds((int)(skill / 24) + FocusLevel);
 
-                int fcMalus = FocusLevel + 1;
-                int ssiMalus = 2 * (FocusLevel + 1);
+                var fcMalus = FocusLevel + 1;
+                var ssiMalus = 2 * (FocusLevel + 1);
 
                 foreach (var m in AcquireIndirectTargets(Caster.Location, 5 + FocusLevel).OfType<Mobile>())
                 {
@@ -93,15 +80,17 @@ namespace Server.Spells.Spellweaving
 
                     SpellHelper.Damage(this, m, damage, 0, 0, 100, 0, 0);
 
-                    if (!CheckResisted(m))	//No message on resist
+                    if (!CheckResisted(m)) //No message on resist
                     {
                         m_Table[m] = new EssenceOfWindInfo(m, fcMalus, ssiMalus, duration);
 
-                        BuffInfo.AddBuff(m, new BuffInfo(BuffIcon.EssenceOfWind, 1075802, duration, m, String.Format("{0}\t{1}", fcMalus.ToString(), ssiMalus.ToString())));
+                        BuffInfo.AddBuff(m,
+                            new BuffInfo(BuffIcon.EssenceOfWind, 1075802, duration, m,
+                                string.Format("{0}\t{1}", fcMalus.ToString(), ssiMalus.ToString())));
 
                         m.Delta(MobileDelta.WeaponDamage);
                     }
-                }    
+                }
             }
 
             FinishSequence();
@@ -109,53 +98,29 @@ namespace Server.Spells.Spellweaving
 
         private class EssenceOfWindInfo
         {
-            private readonly Mobile m_Defender;
-            private readonly int m_FCMalus;
-            private readonly int m_SSIMalus;
-            private readonly ExpireTimer m_Timer;
+            public Mobile Defender { get; }
+
+            public int FCMalus { get; }
+
+            public int SSIMalus { get; }
+
+            public ExpireTimer Timer { get; }
+
             public EssenceOfWindInfo(Mobile defender, int fcMalus, int ssiMalus, TimeSpan duration)
             {
-                m_Defender = defender;
-                m_FCMalus = fcMalus;
-                m_SSIMalus = ssiMalus;
+                Defender = defender;
+                FCMalus = fcMalus;
+                SSIMalus = ssiMalus;
 
-                m_Timer = new ExpireTimer(m_Defender, duration);
-                m_Timer.Start();
-            }
-
-            public Mobile Defender
-            {
-                get
-                {
-                    return m_Defender;
-                }
-            }
-            public int FCMalus
-            {
-                get
-                {
-                    return m_FCMalus;
-                }
-            }
-            public int SSIMalus
-            {
-                get
-                {
-                    return m_SSIMalus;
-                }
-            }
-            public ExpireTimer Timer
-            {
-                get
-                {
-                    return m_Timer;
-                }
+                Timer = new ExpireTimer(Defender, duration);
+                Timer.Start();
             }
         }
 
         private class ExpireTimer : Timer
         {
             private readonly Mobile m_Mobile;
+
             public ExpireTimer(Mobile m, TimeSpan delay)
                 : base(delay)
             {

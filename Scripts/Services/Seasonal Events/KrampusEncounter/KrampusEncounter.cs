@@ -1,15 +1,13 @@
 using System;
-using System.IO;
 using System.Collections.Generic;
-
-using Server;
+using System.IO;
+using Server.Commands;
+using Server.Engines.CityLoyalty;
+using Server.Gumps;
 using Server.Items;
 using Server.Mobiles;
-using Server.Engines.CityLoyalty;
-using Server.Spells;
 using Server.Network;
-using Server.Commands;
-using Server.Gumps;
+using Server.Spells;
 
 namespace Server.Engines.SeasonalEvents
 {
@@ -18,10 +16,45 @@ namespace Server.Engines.SeasonalEvents
     {
         public static string FilePath = Path.Combine("Saves/Misc", "KrampusEncounter.bin");
 
-        public static bool Enabled { get { return SeasonalEventSystem.IsActive(EventType.KrampusEncounter); } }
+        public static readonly int MinComplete = 20;
+
+        public Type[][] _SpawnTypes =
+        {
+            new[] { typeof(FrostOoze), typeof(FrostSpider) },
+            new[] { typeof(SnowElemental), typeof(IceElemental) },
+            new[] { typeof(IceSerpent), typeof(FrostTroll) },
+            new[] { typeof(IceFiend), typeof(WhiteWyrm) },
+            new[] { typeof(KrampusMinion) },
+            new[] { typeof(Krampus) }
+        };
+
+        public Type[] _WetSpawnTypes =
+        {
+            typeof(SeaSerpent), typeof(DeepSeaSerpent), typeof(Kraken), typeof(WaterElemental)
+        };
+
+        public static bool Enabled => SeasonalEventSystem.IsActive(EventType.KrampusEncounter);
         public static KrampusEncounter Encounter { get; set; }
 
-        public static readonly int MinComplete = 20;
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int TotalTradesComplete { get; set; }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int Wave => Math.Max(1, (int)Math.Min(6, TotalTradesComplete / 4.1));
+
+        public Dictionary<PlayerMobile, int> CompleteTable { get; set; } = new Dictionary<PlayerMobile, int>();
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public Krampus Krampus { get; set; }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public Point3D SpawnLocation { get; set; }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public bool KrampusSpawning => SpawnMap != null && SpawnLocation != Point3D.Zero;
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public Map SpawnMap { get; set; }
 
         public static void Configure()
         {
@@ -34,13 +67,9 @@ namespace Server.Engines.SeasonalEvents
             CommandSystem.Register("KrampusEncounter", AccessLevel.Administrator, e =>
             {
                 if (Encounter != null)
-                {
                     e.Mobile.SendGump(new PropertiesGump(e.Mobile, Encounter));
-                }
                 else
-                {
                     e.Mobile.SendMessage("Encounter null");
-                }
             });
         }
 
@@ -86,17 +115,11 @@ namespace Server.Engines.SeasonalEvents
         {
             if (Enabled)
             {
-                if (Encounter == null)
-                {
-                    Encounter = new KrampusEncounter();
-                }
+                if (Encounter == null) Encounter = new KrampusEncounter();
             }
             else
             {
-                if (Encounter != null && Encounter.Krampus == null)
-                {
-                    Encounter = null;
-                }
+                if (Encounter != null && Encounter.Krampus == null) Encounter = null;
             }
         }
 
@@ -105,33 +128,9 @@ namespace Server.Engines.SeasonalEvents
             return Enabled && Encounter != null && Encounter.Krampus != null && !Encounter.Krampus.Deleted;
         }
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int TotalTradesComplete { get; set; }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public int Wave { get { return (int)Math.Max(1, (int)Math.Min(6, (double)TotalTradesComplete / 4.1)); } }
-
-        public Dictionary<PlayerMobile, int> CompleteTable { get; set; } = new Dictionary<PlayerMobile, int>();
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public Krampus Krampus { get; set; }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public Point3D SpawnLocation { get; set; }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public bool KrampusSpawning { get { return SpawnMap != null && SpawnLocation != Point3D.Zero; } }
-
-        [CommandProperty(AccessLevel.GameMaster)]
-        public Map SpawnMap { get; set; }
-
-        public KrampusEncounter()
-        {
-        }
-
         public void OnTradeComplete(Mobile m, TradeEntry entry)
         {
-            bool distCheck = entry.Distance > 0;
+            var distCheck = entry.Distance > 0;
 
             // 0 distance indicates they used a moongate
             if (m is PlayerMobile && distCheck)
@@ -139,50 +138,36 @@ namespace Server.Engines.SeasonalEvents
                 var pm = (PlayerMobile)m;
 
                 if (!CompleteTable.ContainsKey(pm))
-                {
                     CompleteTable[pm] = 1;
-                }
                 else
-                {
                     CompleteTable[pm]++;
-                }
             }
 
-            if (TotalTradesComplete > MinComplete || distCheck)
-            {
-                TotalTradesComplete++;
-            }
+            if (TotalTradesComplete > MinComplete || distCheck) TotalTradesComplete++;
         }
 
         public Type[] GetCreatureTypes(Mobile m, bool wet)
         {
-            if (Krampus != null || KrampusSpawning)
-            {
-                return null;
-            }
+            if (Krampus != null || KrampusSpawning) return null;
 
-            if (wet)
-            {
-                return _WetSpawnTypes;
-            }
-            else
-            {
-                var wave = (int)Math.Max(1, (int)Math.Min(6, (double)TotalTradesComplete / 4.1)); // TODO: Is this right?
+            if (wet) return _WetSpawnTypes;
 
-                if (wave == 6)
+            var wave = Math.Max(1, (int)Math.Min(6, TotalTradesComplete / 4.1)); // TODO: Is this right?
+
+            if (wave == 6)
+            {
+                if ((m.Map == Map.Trammel || (Siege.SiegeShard && m.Map == Map.Felucca)) &&
+                    !SpellHelper.IsAnyT2A(m.Map, m.Location))
                 {
-                    if ((m.Map == Map.Trammel || (Siege.SiegeShard && m.Map == Map.Felucca)) && !SpellHelper.IsAnyT2A(m.Map, m.Location))
-                    {
-                        SpawnKrampus(m);
+                    SpawnKrampus(m);
 
-                        return null;
-                    }
-
-                    return _SpawnTypes[4];
+                    return null;
                 }
 
-                return _SpawnTypes[wave - 1];
+                return _SpawnTypes[4];
             }
+
+            return _SpawnTypes[wave - 1];
         }
 
         private void SpawnKrampus(Mobile m)
@@ -190,11 +175,11 @@ namespace Server.Engines.SeasonalEvents
             SpawnMap = m.Map;
             var p = m.Location;
 
-            for (int i = 0; i < 25; i++)
+            for (var i = 0; i < 25; i++)
             {
-                int x = p.X + (Utility.RandomMinMax(-3, 3));
-                int y = p.Y + (Utility.RandomMinMax(-3, 3));
-                int z = m.Map.GetAverageZ(x, y);
+                var x = p.X + Utility.RandomMinMax(-3, 3);
+                var y = p.Y + Utility.RandomMinMax(-3, 3);
+                var z = m.Map.GetAverageZ(x, y);
 
                 if (SpawnMap.CanSpawnMobile(x, y, z))
                 {
@@ -210,15 +195,13 @@ namespace Server.Engines.SeasonalEvents
                 var mob = ns.Mobile;
 
                 if (mob != null && CityTradeSystem.HasTrade(mob))
-                {
-                    mob.LocalOverheadMessage(MessageType.Regular, 1150, 1158832, String.Format("{0}\t{1}", WorldLocationInfo.GetLocationString(SpawnLocation, SpawnMap), Sextant.GetCoords(SpawnLocation, SpawnMap))); // *You sense Krampus has been spotted near ~2_where~ at ~1_coords~!*
-                }
+                    mob.LocalOverheadMessage(MessageType.Regular, 1150, 1158832,
+                        string.Format("{0}\t{1}", WorldLocationInfo.GetLocationString(SpawnLocation, SpawnMap),
+                            Sextant.GetCoords(SpawnLocation,
+                                SpawnMap))); // *You sense Krampus has been spotted near ~2_where~ at ~1_coords~!*
             }
 
-            Timer.DelayCall(TimeSpan.FromMinutes(5), () =>
-            {
-                SpawnKrampus();
-            });
+            Timer.DelayCall(TimeSpan.FromMinutes(5), () => { SpawnKrampus(); });
         }
 
         private void SpawnKrampus()
@@ -237,16 +220,13 @@ namespace Server.Engines.SeasonalEvents
             {
                 var drake = new FrostDrake();
 
-                Point3D p = new Point3D(SpawnLocation);
+                var p = new Point3D(SpawnLocation);
 
-                for (int j = 0; i < 10; j++)
+                for (var j = 0; i < 10; j++)
                 {
                     p = SpawnMap.GetRandomSpawnPoint(rec);
 
-                    if (SpawnMap.CanSpawnMobile(p.X, p.Y, p.Z))
-                    {
-                        break;
-                    }
+                    if (SpawnMap.CanSpawnMobile(p.X, p.Y, p.Z)) break;
                 }
 
                 drake.MoveToWorld(p, SpawnMap);
@@ -265,26 +245,8 @@ namespace Server.Engines.SeasonalEvents
             CompleteTable.Clear();
             TotalTradesComplete = 0;
 
-            if (!Enabled)
-            {
-                Encounter = null;
-            }
+            if (!Enabled) Encounter = null;
         }
-
-        public Type[][] _SpawnTypes =
-        {
-            new Type[] { typeof(FrostOoze), typeof(FrostSpider) },
-            new Type[] { typeof(SnowElemental), typeof(IceElemental) },
-            new Type[] { typeof(IceSerpent), typeof(FrostTroll) },
-            new Type[] { typeof(IceFiend), typeof(WhiteWyrm) },
-			new Type[] { typeof(KrampusMinion) },
-			new Type[] { typeof(Krampus) }
-        };
-
-        public Type[] _WetSpawnTypes =
-        {
-            typeof(SeaSerpent), typeof(DeepSeaSerpent), typeof(Kraken), typeof(WaterElemental)
-        };
 
         public void Serialize(GenericWriter writer)
         {
@@ -315,23 +277,17 @@ namespace Server.Engines.SeasonalEvents
 
             TotalTradesComplete = reader.ReadInt();
 
-            int count = reader.ReadInt();
+            var count = reader.ReadInt();
 
-            for (int i = 0; i < count; i++)
+            for (var i = 0; i < count; i++)
             {
                 var m = reader.ReadMobile() as PlayerMobile;
                 var c = reader.ReadInt();
 
-                if (m != null)
-                {
-                    CompleteTable[m] = c;
-                }
+                if (m != null) CompleteTable[m] = c;
             }
 
-            if (KrampusSpawning && Krampus == null)
-            {
-                Timer.DelayCall(TimeSpan.FromMinutes(2), SpawnKrampus);
-            }
+            if (KrampusSpawning && Krampus == null) Timer.DelayCall(TimeSpan.FromMinutes(2), SpawnKrampus);
         }
     }
 }

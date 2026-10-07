@@ -1,33 +1,32 @@
 using System;
 using System.Collections.Generic;
-using Server;
-using Server.Spells;
-using Server.Network;
+using Server.Items;
 using Server.Mobiles;
+using Server.Network;
+using Server.Spells.Fifth;
 using Server.Spells.Ninjitsu;
 using Server.Spells.Seventh;
-using Server.Spells.Sixth;
-using Server.Spells.Fifth;
-using Server.Items;
 
 namespace Server.Spells.SkillMasteries
 {
     public class WhiteTigerFormSpell : SkillMasterySpell
     {
-        private static SpellInfo m_Info = new SpellInfo(
-                "White Tiger Form", "",
-                -1,
-                9002
-            );
+        private static readonly SpellInfo m_Info = new SpellInfo(
+            "White Tiger Form", "",
+            -1,
+            9002
+        );
 
-        public override int RequiredMana { get { return 10; } }
+        private static Dictionary<Mobile, DateTime> _Table;
 
-        public override SkillName CastSkill { get { return SkillName.Ninjitsu; } }
-        public override SkillName DamageSkill { get { return SkillName.Stealth; } }
+        public override int RequiredMana => 10;
 
-        public override bool BlockedByAnimalForm { get { return false; } }
-        public override bool BlocksMovement { get { return false; } }
-        public override int CastRecoveryBase { get { return (Core.ML ? 10 : base.CastRecoveryBase); } }
+        public override SkillName CastSkill => SkillName.Ninjitsu;
+        public override SkillName DamageSkill => SkillName.Stealth;
+
+        public override bool BlockedByAnimalForm => false;
+        public override bool BlocksMovement => false;
+        public override int CastRecoveryBase => Core.ML ? 10 : base.CastRecoveryBase;
 
         public WhiteTigerFormSpell(Mobile caster, Item scroll)
             : base(caster, scroll, m_Info)
@@ -52,12 +51,14 @@ namespace Server.Spells.SkillMasteries
                 Caster.SendLocalizedMessage(1061628); // You can't do that while polymorphed.
                 return false;
             }
-            else if (TransformationSpellHelper.UnderTransformation(Caster))
+
+            if (TransformationSpellHelper.UnderTransformation(Caster))
             {
                 Caster.SendLocalizedMessage(1063219); // You cannot mimic an animal while in that form.
                 return false;
             }
-            else if (DisguiseTimers.IsDisguised(Caster))
+
+            if (DisguiseTimers.IsDisguised(Caster))
             {
                 Caster.SendLocalizedMessage(1061631); // You can't do that while disguised.
                 return false;
@@ -75,27 +76,29 @@ namespace Server.Spells.SkillMasteries
         public override void OnCast()
         {
             if (!Caster.CanBeginAction(typeof(PolymorphSpell)))
-			{
-				Caster.SendLocalizedMessage(1061628); // You can't do that while polymorphed.
-			}
-			else if (TransformationSpellHelper.UnderTransformation(Caster))
-			{
-				Caster.SendLocalizedMessage(1063219); // You cannot mimic an animal while in that form.
-			}
-			else if (!Caster.CanBeginAction(typeof(IncognitoSpell)) || (Caster.IsBodyMod && AnimalForm.GetContext(Caster) == null))
-			{
-				DoFizzle();
-			}
+            {
+                Caster.SendLocalizedMessage(1061628); // You can't do that while polymorphed.
+            }
+            else if (TransformationSpellHelper.UnderTransformation(Caster))
+            {
+                Caster.SendLocalizedMessage(1063219); // You cannot mimic an animal while in that form.
+            }
+            else if (!Caster.CanBeginAction(typeof(IncognitoSpell)) ||
+                     (Caster.IsBodyMod && AnimalForm.GetContext(Caster) == null))
+            {
+                DoFizzle();
+            }
             else if (CheckSequence())
             {
-                AnimalFormContext context = AnimalForm.GetContext(Caster);
-                int mana = ScaleMana(RequiredMana);
+                var context = AnimalForm.GetContext(Caster);
+                var mana = ScaleMana(RequiredMana);
 
-                Ninjitsu.AnimalForm.AddLastAnimalForm(Caster, 16);
+                AnimalForm.AddLastAnimalForm(Caster, 16);
 
                 if (mana > Caster.Mana)
                 {
-                    Caster.SendLocalizedMessage(1060174, mana.ToString()); // You must have at least ~1_MANA_REQUIREMENT~ Mana to use this ability.
+                    Caster.SendLocalizedMessage(1060174,
+                        mana.ToString()); // You must have at least ~1_MANA_REQUIREMENT~ Mana to use this ability.
                 }
                 else if (context != null)
                 {
@@ -107,11 +110,11 @@ namespace Server.Spells.SkillMasteries
                 }
                 else
                 {
-                    double ninjitsu = Caster.Skills.Ninjitsu.Value;
+                    var ninjitsu = Caster.Skills.Ninjitsu.Value;
 
                     if (ninjitsu < RequiredSkill + 37.5)
                     {
-                        double chance = (ninjitsu - RequiredSkill) / 37.5;
+                        var chance = (ninjitsu - RequiredSkill) / 37.5;
 
                         if (chance < Utility.RandomDouble())
                         {
@@ -128,8 +131,8 @@ namespace Server.Spells.SkillMasteries
 
                 BaseMount.Dismount(Caster);
 
-                int bodyMod = Caster.Female ? 1255 : 1254;
-                int hueMod = 2500;
+                var bodyMod = Caster.Female ? 1255 : 1254;
+                var hueMod = 2500;
 
                 Caster.BodyMod = bodyMod;
                 Caster.HueMod = hueMod;
@@ -139,13 +142,17 @@ namespace Server.Spells.SkillMasteries
                 Timer timer = new AnimalFormTimer(Caster, bodyMod, hueMod);
                 timer.Start();
 
-                int skills = (int)((Caster.Skills[CastSkill].Value + Caster.Skills[DamageSkill].Value + (GetMasteryLevel() * 40)) / 3);
+                var skills = (int)((Caster.Skills[CastSkill].Value + Caster.Skills[DamageSkill].Value +
+                                    GetMasteryLevel() * 40) / 3);
 
                 AnimalForm.AddContext(Caster, new AnimalFormContext(timer, null, true, typeof(WildWhiteTiger), null));
                 Caster.CheckStatTimers();
 
-                int bleedMod = (int)(((Caster.Skills[SkillName.Ninjitsu].Value + Caster.Skills[SkillName.Stealth].Value + (GetMasteryLevel() * 40)) / 3) / 10);
-                BuffInfo.AddBuff(Caster, new BuffInfo(BuffIcon.WhiteTigerForm, 1155911, 1156060, String.Format("{0}\t{1}\t{2}\t{3}", "20", "5", "", bleedMod.ToString()))); 
+                var bleedMod = (int)((Caster.Skills[SkillName.Ninjitsu].Value + Caster.Skills[SkillName.Stealth].Value +
+                                      GetMasteryLevel() * 40) / 3 / 10);
+                BuffInfo.AddBuff(Caster,
+                    new BuffInfo(BuffIcon.WhiteTigerForm, 1155911, 1156060,
+                        string.Format("{0}\t{1}\t{2}\t{3}", "20", "5", "", bleedMod.ToString())));
                 // +~1_ARG~ Defense Chance Increase.<br>+~2_ARG~ Max Defense Chance Increase Cap.<br> Chance to evade attacks.<br>Applies bleed to victim with a max damage of ~4_ARG~.
 
                 Caster.Delta(MobileDelta.WeaponDamage);
@@ -164,24 +171,25 @@ namespace Server.Spells.SkillMasteries
 
         public static int GetDamageBonus(Mobile m)
         {
-            AnimalFormContext context = AnimalForm.GetContext(m);
+            var context = AnimalForm.GetContext(m);
 
             if (context != null && context.Type == typeof(WildWhiteTiger))
-                return (int)(((m.Skills[SkillName.Ninjitsu].Value + m.Skills[SkillName.Stealth].Value + (MasteryInfo.GetMasteryLevel(m, SkillName.Ninjitsu) * 40)) / 3) / 10) / 2;
+                return (int)((m.Skills[SkillName.Ninjitsu].Value + m.Skills[SkillName.Stealth].Value +
+                              MasteryInfo.GetMasteryLevel(m, SkillName.Ninjitsu) * 40) / 3 / 10) / 2;
 
             return 0;
         }
 
         public static bool IsActive(Mobile m)
         {
-            AnimalFormContext context = AnimalForm.GetContext(m);
+            var context = AnimalForm.GetContext(m);
 
             return context != null && context.Type == typeof(WildWhiteTiger);
         }
 
         public static int GetDefenseCap(Mobile m)
         {
-            AnimalFormContext context = AnimalForm.GetContext(m);
+            var context = AnimalForm.GetContext(m);
 
             if (context != null && context.Type == typeof(WildWhiteTiger))
                 return 5;
@@ -197,11 +205,13 @@ namespace Server.Spells.SkillMasteries
             if (!HasBleedMod(attacker, out damage) || (_Table != null && _Table.ContainsKey(attacker)))
                 return;
 
-            double bleedchance = (double)((attacker.Skills.Ninjitsu.Value + attacker.Skills.Stealth.Value + (MasteryInfo.GetMasteryLevel(attacker, SkillName.Ninjitsu) * 40)) / 3.0) / 15.0;
+            var bleedchance =
+                (attacker.Skills.Ninjitsu.Value + attacker.Skills.Stealth.Value +
+                 MasteryInfo.GetMasteryLevel(attacker, SkillName.Ninjitsu) * 40) / 3.0 / 15.0;
 
             if (bleedchance > Utility.RandomDouble())
             {
-                BleedAttack.BeginBleed(defender, attacker, false);
+                BleedAttack.BeginBleed(defender, attacker);
 
                 if (_Table == null)
                     _Table = new Dictionary<Mobile, DateTime>();
@@ -219,18 +229,16 @@ namespace Server.Spells.SkillMasteries
             return damage > 0;
         }
 
-        private static Dictionary<Mobile, DateTime> _Table;
-
         private static void CheckTable()
         {
             if (_Table == null)
                 return;
 
             ColUtility.ForEach(_Table, (mob, expires) =>
-                {
-                    if (expires < DateTime.UtcNow)
-                        _Table.Remove(mob);
-                });
+            {
+                if (expires < DateTime.UtcNow)
+                    _Table.Remove(mob);
+            });
         }
     }
 }

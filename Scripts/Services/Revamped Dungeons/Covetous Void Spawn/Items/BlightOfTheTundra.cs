@@ -1,5 +1,3 @@
-using Server;
-using System;
 using Server.Engines.Craft;
 
 namespace Server.Items
@@ -7,8 +5,8 @@ namespace Server.Items
     [Alterable(typeof(DefBlacksmithy), typeof(GargishBlightOfTheTundra))]
     public class BlightOfTheTundra : CompositeBow
     {
-        public override int LabelNumber { get { return 1152727; } } // Blight of the Tundra
-		public override bool IsArtifact { get { return true; } }
+        public override int LabelNumber => 1152727; // Blight of the Tundra
+        public override bool IsArtifact => true;
 
         [Constructable]
         public BlightOfTheTundra() : this(true)
@@ -36,7 +34,9 @@ namespace Server.Items
                 NegativeAttributes.Antique = 1;
             }
             else
+            {
                 MaxHitPoints = 255;
+            }
 
             HitPoints = MaxHitPoints;
         }
@@ -55,14 +55,14 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 
     public class GargishBlightOfTheTundra : SoulGlaive
     {
-        public override int LabelNumber { get { return 1152727; } } // Blight of the Tundra
-		public override bool IsArtifact { get { return true; } }
+        public override int LabelNumber => 1152727; // Blight of the Tundra
+        public override bool IsArtifact => true;
 
         [Constructable]
         public GargishBlightOfTheTundra() : this(true)
@@ -90,7 +90,9 @@ namespace Server.Items
                 NegativeAttributes.Antique = 1;
             }
             else
+            {
                 MaxHitPoints = 255;
+            }
 
             HitPoints = MaxHitPoints;
         }
@@ -109,7 +111,7 @@ namespace Server.Items
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            int version = reader.ReadInt();
+            var version = reader.ReadInt();
         }
     }
 }

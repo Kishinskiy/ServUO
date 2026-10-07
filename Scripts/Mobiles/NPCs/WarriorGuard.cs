@@ -1,344 +1,323 @@
 #region References
-using System;
 
+using System;
 using Server.Items;
+
 #endregion
 
 namespace Server.Mobiles
 {
-	public class WarriorGuard : BaseGuard
-	{
-		private Timer m_AttackTimer, m_IdleTimer;
-		private Mobile m_Focus;
+    public class WarriorGuard : BaseGuard
+    {
+        private Timer m_AttackTimer, m_IdleTimer;
+        private Mobile m_Focus;
 
-		[Constructable]
-		public WarriorGuard()
-			: this(null)
-		{ }
+        [CommandProperty(AccessLevel.GameMaster)]
+        public override Mobile Focus
+        {
+            get => m_Focus;
+            set
+            {
+                if (Deleted) return;
 
-		public WarriorGuard(Mobile target)
-			: base(target)
-		{
-			InitStats(1000, 1000, 1000);
-			Title = "the guard";
+                var oldFocus = m_Focus;
 
-			SpeechHue = Utility.RandomDyedHue();
+                if (oldFocus != value)
+                {
+                    m_Focus = value;
 
-			Hue = Utility.RandomSkinHue();
+                    if (value != null) AggressiveAction(value);
 
-			if (Female = Utility.RandomBool())
-			{
-				Body = 0x191;
-				Name = NameList.RandomName("female");
+                    Combatant = value;
 
-				switch (Utility.Random(2))
-				{
-					case 0:
-						AddItem(new LeatherSkirt());
-						break;
-					case 1:
-						AddItem(new LeatherShorts());
-						break;
-				}
+                    if (oldFocus != null && !oldFocus.Alive) Say("Thou hast suffered thy punishment, scoundrel.");
 
-				switch (Utility.Random(5))
-				{
-					case 0:
-						AddItem(new FemaleLeatherChest());
-						break;
-					case 1:
-						AddItem(new FemaleStuddedChest());
-						break;
-					case 2:
-						AddItem(new LeatherBustierArms());
-						break;
-					case 3:
-						AddItem(new StuddedBustierArms());
-						break;
-					case 4:
-						AddItem(new FemalePlateChest());
-						break;
-				}
-			}
-			else
-			{
-				Body = 0x190;
-				Name = NameList.RandomName("male");
+                    if (value != null) Say(500131); // Thou wilt regret thine actions, swine!
 
-				AddItem(new PlateChest());
-				AddItem(new PlateArms());
-				AddItem(new PlateLegs());
+                    if (m_AttackTimer != null)
+                    {
+                        m_AttackTimer.Stop();
+                        m_AttackTimer = null;
+                    }
 
-				switch (Utility.Random(3))
-				{
-					case 0:
-						AddItem(new Doublet(Utility.RandomNondyedHue()));
-						break;
-					case 1:
-						AddItem(new Tunic(Utility.RandomNondyedHue()));
-						break;
-					case 2:
-						AddItem(new BodySash(Utility.RandomNondyedHue()));
-						break;
-				}
-			}
-			Utility.AssignRandomHair(this);
+                    if (m_IdleTimer != null)
+                    {
+                        m_IdleTimer.Stop();
+                        m_IdleTimer = null;
+                    }
 
-			if (Utility.RandomBool())
-			{
-				Utility.AssignRandomFacialHair(this, HairHue);
-			}
+                    if (m_Focus != null)
+                    {
+                        m_AttackTimer = new AttackTimer(this);
+                        m_AttackTimer.Start();
+                        ((AttackTimer)m_AttackTimer).DoOnTick();
+                    }
+                    else
+                    {
+                        m_IdleTimer = new IdleTimer(this);
+                        m_IdleTimer.Start();
+                    }
+                }
+                else if (m_Focus == null && m_IdleTimer == null)
+                {
+                    m_IdleTimer = new IdleTimer(this);
+                    m_IdleTimer.Start();
+                }
+            }
+        }
 
-			Halberd weapon = new Halberd();
+        [Constructable]
+        public WarriorGuard()
+            : this(null)
+        {
+        }
 
-			weapon.Movable = false;
-			weapon.Crafter = this;
-			weapon.Quality = ItemQuality.Exceptional;
+        public WarriorGuard(Mobile target)
+            : base(target)
+        {
+            InitStats(1000, 1000, 1000);
+            Title = "the guard";
 
-			AddItem(weapon);
+            SpeechHue = Utility.RandomDyedHue();
 
-			Container pack = new Backpack();
+            Hue = Utility.RandomSkinHue();
 
-			pack.Movable = false;
+            if (Female = Utility.RandomBool())
+            {
+                Body = 0x191;
+                Name = NameList.RandomName("female");
 
-			pack.DropItem(new Gold(10, 25));
+                switch (Utility.Random(2))
+                {
+                    case 0:
+                        AddItem(new LeatherSkirt());
+                        break;
+                    case 1:
+                        AddItem(new LeatherShorts());
+                        break;
+                }
 
-			AddItem(pack);
+                switch (Utility.Random(5))
+                {
+                    case 0:
+                        AddItem(new FemaleLeatherChest());
+                        break;
+                    case 1:
+                        AddItem(new FemaleStuddedChest());
+                        break;
+                    case 2:
+                        AddItem(new LeatherBustierArms());
+                        break;
+                    case 3:
+                        AddItem(new StuddedBustierArms());
+                        break;
+                    case 4:
+                        AddItem(new FemalePlateChest());
+                        break;
+                }
+            }
+            else
+            {
+                Body = 0x190;
+                Name = NameList.RandomName("male");
 
-			Skills[SkillName.Anatomy].Base = 120.0;
-			Skills[SkillName.Tactics].Base = 120.0;
-			Skills[SkillName.Swords].Base = 120.0;
-			Skills[SkillName.MagicResist].Base = 120.0;
-			Skills[SkillName.DetectHidden].Base = 100.0;
+                AddItem(new PlateChest());
+                AddItem(new PlateArms());
+                AddItem(new PlateLegs());
 
-			NextCombatTime = Core.TickCount + 500;
-			Focus = target;
-		}
+                switch (Utility.Random(3))
+                {
+                    case 0:
+                        AddItem(new Doublet(Utility.RandomNondyedHue()));
+                        break;
+                    case 1:
+                        AddItem(new Tunic(Utility.RandomNondyedHue()));
+                        break;
+                    case 2:
+                        AddItem(new BodySash(Utility.RandomNondyedHue()));
+                        break;
+                }
+            }
 
-		public WarriorGuard(Serial serial)
-			: base(serial)
-		{ }
+            Utility.AssignRandomHair(this);
 
-		[CommandProperty(AccessLevel.GameMaster)]
-		public override Mobile Focus
-		{
-			get { return m_Focus; }
-			set
-			{
-				if (Deleted)
-				{
-					return;
-				}
+            if (Utility.RandomBool()) Utility.AssignRandomFacialHair(this, HairHue);
 
-				Mobile oldFocus = m_Focus;
+            var weapon = new Halberd();
 
-				if (oldFocus != value)
-				{
-					m_Focus = value;
+            weapon.Movable = false;
+            weapon.Crafter = this;
+            weapon.Quality = ItemQuality.Exceptional;
 
-					if (value != null)
-					{
-						AggressiveAction(value);
-					}
+            AddItem(weapon);
 
-					Combatant = value;
+            Container pack = new Backpack();
 
-					if (oldFocus != null && !oldFocus.Alive)
-					{
-						Say("Thou hast suffered thy punishment, scoundrel.");
-					}
+            pack.Movable = false;
 
-					if (value != null)
-					{
-						Say(500131); // Thou wilt regret thine actions, swine!
-					}
+            pack.DropItem(new Gold(10, 25));
 
-					if (m_AttackTimer != null)
-					{
-						m_AttackTimer.Stop();
-						m_AttackTimer = null;
-					}
+            AddItem(pack);
 
-					if (m_IdleTimer != null)
-					{
-						m_IdleTimer.Stop();
-						m_IdleTimer = null;
-					}
+            Skills[SkillName.Anatomy].Base = 120.0;
+            Skills[SkillName.Tactics].Base = 120.0;
+            Skills[SkillName.Swords].Base = 120.0;
+            Skills[SkillName.MagicResist].Base = 120.0;
+            Skills[SkillName.DetectHidden].Base = 100.0;
 
-					if (m_Focus != null)
-					{
-						m_AttackTimer = new AttackTimer(this);
-						m_AttackTimer.Start();
-						((AttackTimer)m_AttackTimer).DoOnTick();
-					}
-					else
-					{
-						m_IdleTimer = new IdleTimer(this);
-						m_IdleTimer.Start();
-					}
-				}
-				else if (m_Focus == null && m_IdleTimer == null)
-				{
-					m_IdleTimer = new IdleTimer(this);
-					m_IdleTimer.Start();
-				}
-			}
-		}
+            NextCombatTime = Core.TickCount + 500;
+            Focus = target;
+        }
 
-		public override bool OnBeforeDeath()
-		{
-			if (m_Focus != null && m_Focus.Alive)
-			{
-				new AvengeTimer(m_Focus).Start(); // If a guard dies, three more guards will spawn
-			}
+        public WarriorGuard(Serial serial)
+            : base(serial)
+        {
+        }
 
-			return base.OnBeforeDeath();
-		}
+        public override bool OnBeforeDeath()
+        {
+            if (m_Focus != null && m_Focus.Alive)
+                new AvengeTimer(m_Focus).Start(); // If a guard dies, three more guards will spawn
 
-		public override void Serialize(GenericWriter writer)
-		{
-			base.Serialize(writer);
+            return base.OnBeforeDeath();
+        }
 
-			writer.Write(0); // version
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
 
-			writer.Write(m_Focus);
-		}
+            writer.Write(0); // version
 
-		public override void Deserialize(GenericReader reader)
-		{
-			base.Deserialize(reader);
+            writer.Write(m_Focus);
+        }
 
-			int version = reader.ReadInt();
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
 
-			switch (version)
-			{
-				case 0:
-					{
-						m_Focus = reader.ReadMobile();
+            var version = reader.ReadInt();
 
-						if (m_Focus != null)
-						{
-							m_AttackTimer = new AttackTimer(this);
-							m_AttackTimer.Start();
-						}
-						else
-						{
-							m_IdleTimer = new IdleTimer(this);
-							m_IdleTimer.Start();
-						}
+            switch (version)
+            {
+                case 0:
+                {
+                    m_Focus = reader.ReadMobile();
 
-						break;
-					}
-			}
-		}
+                    if (m_Focus != null)
+                    {
+                        m_AttackTimer = new AttackTimer(this);
+                        m_AttackTimer.Start();
+                    }
+                    else
+                    {
+                        m_IdleTimer = new IdleTimer(this);
+                        m_IdleTimer.Start();
+                    }
 
-		public override void OnAfterDelete()
-		{
-			if (m_AttackTimer != null)
-			{
-				m_AttackTimer.Stop();
-				m_AttackTimer = null;
-			}
+                    break;
+                }
+            }
+        }
 
-			if (m_IdleTimer != null)
-			{
-				m_IdleTimer.Stop();
-				m_IdleTimer = null;
-			}
+        public override void OnAfterDelete()
+        {
+            if (m_AttackTimer != null)
+            {
+                m_AttackTimer.Stop();
+                m_AttackTimer = null;
+            }
 
-			base.OnAfterDelete();
-		}
+            if (m_IdleTimer != null)
+            {
+                m_IdleTimer.Stop();
+                m_IdleTimer = null;
+            }
 
-		private class AvengeTimer : Timer
-		{
-			private readonly Mobile m_Focus;
+            base.OnAfterDelete();
+        }
 
-			public AvengeTimer(Mobile focus)
-				: base(TimeSpan.FromSeconds(2.5), TimeSpan.FromSeconds(1.0), 3)
-			{
-				m_Focus = focus;
-			}
+        private class AvengeTimer : Timer
+        {
+            private readonly Mobile m_Focus;
 
-			protected override void OnTick()
-			{
-				Spawn(m_Focus, m_Focus, 1, true);
-			}
-		}
+            public AvengeTimer(Mobile focus)
+                : base(TimeSpan.FromSeconds(2.5), TimeSpan.FromSeconds(1.0), 3)
+            {
+                m_Focus = focus;
+            }
 
-		private class AttackTimer : Timer
-		{
-			private readonly WarriorGuard m_Owner;
+            protected override void OnTick()
+            {
+                Spawn(m_Focus, m_Focus, 1, true);
+            }
+        }
 
-			public AttackTimer(WarriorGuard owner)
-				: base(TimeSpan.FromSeconds(0.25), TimeSpan.FromSeconds(0.1))
-			{
-				m_Owner = owner;
-			}
+        private class AttackTimer : Timer
+        {
+            private readonly WarriorGuard m_Owner;
 
-			public void DoOnTick()
-			{
-				OnTick();
-			}
+            public AttackTimer(WarriorGuard owner)
+                : base(TimeSpan.FromSeconds(0.25), TimeSpan.FromSeconds(0.1))
+            {
+                m_Owner = owner;
+            }
 
-			protected override void OnTick()
-			{
-				if (m_Owner.Deleted)
-				{
-					Stop();
-					return;
-				}
+            public void DoOnTick()
+            {
+                OnTick();
+            }
 
-				m_Owner.Criminal = false;
-				m_Owner.Kills = 0;
-				m_Owner.Stam = m_Owner.StamMax;
+            protected override void OnTick()
+            {
+                if (m_Owner.Deleted)
+                {
+                    Stop();
+                    return;
+                }
 
-				Mobile target = m_Owner.Focus;
+                m_Owner.Criminal = false;
+                m_Owner.Kills = 0;
+                m_Owner.Stam = m_Owner.StamMax;
 
-				if (target != null && (target.Deleted || !target.Alive || !m_Owner.CanBeHarmful(target)))
-				{
-					m_Owner.Focus = null;
-					Stop();
-					return;
-				}
-				else if (m_Owner.Weapon is Fists)
-				{
-					m_Owner.Kill();
-					Stop();
-					return;
-				}
+                var target = m_Owner.Focus;
 
-				if (target != null && m_Owner.Combatant != target)
-				{
-					m_Owner.Combatant = target;
-				}
+                if (target != null && (target.Deleted || !target.Alive || !m_Owner.CanBeHarmful(target)))
+                {
+                    m_Owner.Focus = null;
+                    Stop();
+                    return;
+                }
 
-				if (target == null)
-				{
-					Stop();
-				}
-				else
-				{
-					// <instakill>
-					TeleportTo(target);
-					target.BoltEffect(0);
+                if (m_Owner.Weapon is Fists)
+                {
+                    m_Owner.Kill();
+                    Stop();
+                    return;
+                }
 
-					if (target is BaseCreature)
-					{
-						((BaseCreature)target).NoKillAwards = true;
-					}
+                if (target != null && m_Owner.Combatant != target) m_Owner.Combatant = target;
 
-					target.Damage(target.HitsMax, m_Owner);
-					target.Kill(); // just in case, maybe Damage is overriden on some shard
+                if (target == null)
+                {
+                    Stop();
+                }
+                else
+                {
+                    // <instakill>
+                    TeleportTo(target);
+                    target.BoltEffect(0);
 
-					if (target.Corpse != null && !target.Player)
-					{
-						target.Corpse.Delete();
-					}
+                    if (target is BaseCreature) ((BaseCreature)target).NoKillAwards = true;
 
-					m_Owner.Focus = null;
-					Stop();
-				} // </instakill>
-				/*else if ( !m_Owner.InRange( target, 20 ) )
+                    target.Damage(target.HitsMax, m_Owner);
+                    target.Kill(); // just in case, maybe Damage is overriden on some shard
+
+                    if (target.Corpse != null && !target.Player) target.Corpse.Delete();
+
+                    m_Owner.Focus = null;
+                    Stop();
+                } // </instakill>
+                /*else if ( !m_Owner.InRange( target, 20 ) )
                 {
                 m_Owner.Focus = null;
                 }
@@ -356,56 +335,56 @@ namespace Server.Mobiles
                 if ( !m_Owner.UseSkill( SkillName.DetectHidden ) && Utility.Random( 50 ) == 0 )
                 m_Owner.Say( "Reveal!" );
                 }*/
-			}
+            }
 
-			private void TeleportTo(Mobile target)
-			{
-				Point3D from = m_Owner.Location;
-				Point3D to = target.Location;
+            private void TeleportTo(Mobile target)
+            {
+                var from = m_Owner.Location;
+                var to = target.Location;
 
-				m_Owner.Location = to;
+                m_Owner.Location = to;
 
-				Effects.SendLocationParticles(
-					EffectItem.Create(from, m_Owner.Map, EffectItem.DefaultDuration), 0x3728, 10, 10, 2023);
-				Effects.SendLocationParticles(EffectItem.Create(to, m_Owner.Map, EffectItem.DefaultDuration), 0x3728, 10, 10, 5023);
+                Effects.SendLocationParticles(
+                    EffectItem.Create(from, m_Owner.Map, EffectItem.DefaultDuration), 0x3728, 10, 10, 2023);
+                Effects.SendLocationParticles(EffectItem.Create(to, m_Owner.Map, EffectItem.DefaultDuration), 0x3728,
+                    10, 10, 5023);
 
-				m_Owner.PlaySound(0x1FE);
-			}
-		}
+                m_Owner.PlaySound(0x1FE);
+            }
+        }
 
-		private class IdleTimer : Timer
-		{
-			private readonly WarriorGuard m_Owner;
-			private int m_Stage;
+        private class IdleTimer : Timer
+        {
+            private readonly WarriorGuard m_Owner;
+            private int m_Stage;
 
-			public IdleTimer(WarriorGuard owner)
-				: base(TimeSpan.FromSeconds(2.0), TimeSpan.FromSeconds(2.5))
-			{
-				m_Owner = owner;
-			}
+            public IdleTimer(WarriorGuard owner)
+                : base(TimeSpan.FromSeconds(2.0), TimeSpan.FromSeconds(2.5))
+            {
+                m_Owner = owner;
+            }
 
-			protected override void OnTick()
-			{
-				if (m_Owner.Deleted)
-				{
-					Stop();
-					return;
-				}
+            protected override void OnTick()
+            {
+                if (m_Owner.Deleted)
+                {
+                    Stop();
+                    return;
+                }
 
-				if ((m_Stage++ % 4) == 0 || !m_Owner.Move(m_Owner.Direction))
-				{
-					m_Owner.Direction = (Direction)Utility.Random(8);
-				}
+                if (m_Stage++ % 4 == 0 || !m_Owner.Move(m_Owner.Direction))
+                    m_Owner.Direction = (Direction)Utility.Random(8);
 
-				if (m_Stage > 16)
-				{
-					Effects.SendLocationParticles(
-						EffectItem.Create(m_Owner.Location, m_Owner.Map, EffectItem.DefaultDuration), 0x3728, 10, 10, 2023);
-					m_Owner.PlaySound(0x1FE);
+                if (m_Stage > 16)
+                {
+                    Effects.SendLocationParticles(
+                        EffectItem.Create(m_Owner.Location, m_Owner.Map, EffectItem.DefaultDuration), 0x3728, 10, 10,
+                        2023);
+                    m_Owner.PlaySound(0x1FE);
 
-					m_Owner.Delete();
-				}
-			}
-		}
-	}
+                    m_Owner.Delete();
+                }
+            }
+        }
+    }
 }

@@ -1,14 +1,27 @@
 using System;
-using Server;
-using Server.Targeting;
 using Server.Engines.Plants;
 using Server.Network;
+using Server.Targeting;
 
 namespace Server.Items
 {
     public class Hoe : BaseAxe, IUsesRemaining
     {
-        public override int LabelNumber { get { return 1150482; } } // hoe
+        public override int LabelNumber => 1150482; // hoe
+
+        public override WeaponAbility PrimaryAbility => WeaponAbility.DoubleStrike;
+        public override WeaponAbility SecondaryAbility => WeaponAbility.Disarm;
+        public override int AosStrengthReq => 50;
+        public override int AosMinDamage => 12;
+        public override int AosMaxDamage => 16;
+        public override int AosSpeed => 35;
+        public override float MlSpeed => 3.00f;
+        public override int InitMinHits => 31;
+        public override int InitMaxHits => 60;
+
+        public override bool CanBeWornByGargoyles => true;
+
+        public override WeaponAnimation DefAnimation => WeaponAnimation.Slash1H;
 
         [Constructable]
         public Hoe()
@@ -20,26 +33,26 @@ namespace Server.Items
             ShowUsesRemaining = true;
         }
 
-        public override WeaponAbility PrimaryAbility { get { return WeaponAbility.DoubleStrike; } }
-        public override WeaponAbility SecondaryAbility { get { return WeaponAbility.Disarm; } }
-        public override int AosStrengthReq { get { return 50; } }
-        public override int AosMinDamage { get { return 12; } }
-        public override int AosMaxDamage { get { return 16; } }
-        public override int AosSpeed { get { return 35; } }
-        public override float MlSpeed { get { return 3.00f; } }
-        public override int InitMinHits { get { return 31; } }
-        public override int InitMaxHits { get { return 60; } }
-
-        public override bool CanBeWornByGargoyles { get { return true; } }
-
-        public override WeaponAnimation DefAnimation { get { return WeaponAnimation.Slash1H; } }
+        public Hoe(Serial serial)
+            : base(serial)
+        {
+        }
 
         public override void OnDoubleClick(Mobile from)
         {
-            if (IsChildOf(from.Backpack))
-            {
-                from.Target = new InternalTarget(this);
-            }
+            if (IsChildOf(from.Backpack)) from.Target = new InternalTarget(this);
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0); // version
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            var version = reader.ReadInt();
         }
 
         private class InternalTarget : Target
@@ -60,12 +73,12 @@ namespace Server.Items
                     return;
                 }
 
-                Map map = from.Map;
+                var map = from.Map;
 
                 if (targeted is LandTarget && map != null)
                 {
-                    LandTarget lt = (LandTarget)targeted;
-                    Region r = Region.Find(lt.Location, map);
+                    var lt = (LandTarget)targeted;
+                    var r = Region.Find(lt.Location, map);
 
                     if (r != null && r.IsPartOf("Magincia") && (lt.Name == "dirt" || lt.Name == "grass"))
                     {
@@ -73,7 +86,6 @@ namespace Server.Items
                         {
                             if (!MaginciaPlantSystem.CheckDelay(from))
                             {
-                                return;
                             }
                             else if (from.Mounted || from.Flying)
                             {
@@ -87,16 +99,18 @@ namespace Server.Items
                             {
                                 m_Hoe.UsesRemaining--;
 
-                                from.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1150492); // You till a small area to plant.                                
+                                from.LocalOverheadMessage(MessageType.Regular, 0x3B2,
+                                    1150492); // You till a small area to plant.                                
                                 from.Animate(AnimationType.Attack, 3);
 
-                                MaginciaPlantItem dirt = new MaginciaPlantItem();
+                                var dirt = new MaginciaPlantItem();
                                 dirt.Owner = from;
                                 dirt.StartTimer();
 
                                 MaginciaPlantSystem.OnPlantPlanted(from, from.Map);
 
-                                Timer.DelayCall(TimeSpan.FromSeconds(.7), new TimerStateCallback(MoveItem_Callback), new object[] { dirt, lt.Location, map });
+                                Timer.DelayCall(TimeSpan.FromSeconds(.7), new TimerStateCallback(MoveItem_Callback),
+                                    new object[] { dirt, lt.Location, map });
                             }
                         }
                     }
@@ -109,35 +123,18 @@ namespace Server.Items
 
             private void MoveItem_Callback(object o)
             {
-                object[] objs = o as object[];
+                var objs = o as object[];
 
                 if (objs != null)
                 {
-                    Item dirt = objs[0] as Item;
-                    Point3D p = (Point3D)objs[1];
-                    Map map = objs[2] as Map;
+                    var dirt = objs[0] as Item;
+                    var p = (Point3D)objs[1];
+                    var map = objs[2] as Map;
 
                     if (dirt != null)
                         dirt.MoveToWorld(p, map);
                 }
             }
-        }
-
-        public Hoe(Serial serial)
-            : base(serial)
-        {
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.Write((int)0); // version
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            int version = reader.ReadInt();
         }
     }
 }
