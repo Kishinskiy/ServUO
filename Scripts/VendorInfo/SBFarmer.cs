@@ -39,6 +39,7 @@ namespace Server.Mobiles
                 Add(new GenericBuyInfo(typeof(EmptyFarmSack), 10, 100, 0x0E76, 0)); // 1: Пустой мешок
                 Add(new GenericBuyInfo(typeof(FarmPotato), 15, 50, 0x1846, 52));   // 2: Картофель поштучно
                 Add(new GenericBuyInfo(typeof(OnionSeed), 15, 50, 0xDCF, 2417));   // 3: Семена лука
+                Add(new GenericBuyInfo(typeof(PestSpray), 15, 50, 0xDCF, 2417));
                 Add(new GenericBuyInfo(typeof(CabbageSeed), 15, 50, 0xDCF, 61));  // 4: Семена капусты
 
                 // =========================================================================
