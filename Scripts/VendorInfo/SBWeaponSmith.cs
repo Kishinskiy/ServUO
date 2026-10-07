@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Server.Items;
+using Server.Custom.CombatCodex;
 
 namespace Server.Mobiles 
 { 
@@ -31,6 +32,7 @@ namespace Server.Mobiles
         { 
             public InternalBuyInfo() 
             { 
+                Add(new GenericBuyInfo("Свиток создания Боевого Кодекса", typeof(CodexDeed), 25000, 5, 0x14F0, 1258));
                 Add(new GenericBuyInfo(typeof(BlackStaff), 22, 20, 0xDF1, 0));
                 Add(new GenericBuyInfo(typeof(Club), 16, 20, 0x13B4, 0));
                 Add(new GenericBuyInfo(typeof(GnarledStaff), 16, 20, 0x13F8, 0));
