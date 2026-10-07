@@ -60,7 +60,7 @@ namespace Server.Custom.CityDevelopment
                     continue;
 
                 CityProgress progress = GetCityProfile(coreCity);
-                
+
                 // Если город развит до финала (5 уровень)
                 if (progress != null && progress.Level >= 5)
                 {
@@ -88,7 +88,7 @@ namespace Server.Custom.CityDevelopment
         {
             if (player == null || originTown == null) return;
 
-            // Конвертируем фракционный Town в оригинальный City для базы данных
+            // Конвертируем фракционный Town ОТПРАВИТЕЛЯ в оригинальный City для базы данных
             if (!Enum.TryParse(originTown.ToString(), true, out Server.Engines.CityLoyalty.City coreCity))
                 return;
 
@@ -99,7 +99,7 @@ namespace Server.Custom.CityDevelopment
 
             if (progress.Level >= 5)
             {
-                player.SendMessage(89, $"Город {townName} уже достиг максимального уровня развития!");
+                player.SendMessage(89, $"Город-отправитель {townName} уже достиг максимального уровня развития!");
                 return;
             }
 
@@ -125,17 +125,18 @@ namespace Server.Custom.CityDevelopment
             // Планка требований (базовая х10: 250, 500, 1000, 2000)
             progress.RequiredSupplies = 250.0 * Math.Pow(2.0, progress.Level - 1);
 
-            // 2. НАЧИСЛЕНИЕ ОЧКОВ ЗА КВЕСТ
+            // 2. НАЧИСЛЕНИЕ ОЧКОВ ГОРОДУ-ОТПРАВИТЕЛЮ ЗА ВЫПОЛНЕННЫЙ ЗАКАЗ
             double targetChance = DevelopmentChance / 100.0;
 
             if (Utility.RandomDouble() < targetChance)
             {
                 progress.CurrentSupplies += pointsAdded;
 
-                player.SendMessage(88, $"[Развитие] Вы сдали экспортный заказ! Городу {townName} начислено +{pointsAdded:F2} очков.");
-                player.SendMessage(0x59, $"Текущий прогресс (онлайн {onlineCount}): {progress.CurrentSupplies:F2} / {progress.RequiredSupplies:F2}");
+                // Корректное системное сообщение: очки уходят городу, откуда был взят заказ
+                player.SendMessage(88, $"[Развитие] Торговый заказ успешно доставлен! Городу-отправителю {townName} начислено +{pointsAdded:F2} очков.");
+                player.SendMessage(0x59, $"Прогресс снабжения (онлайн {onlineCount}): {progress.CurrentSupplies:F2} / {progress.RequiredSupplies:F2}");
 
-                // 3. ПРОВЕРКА ТРИГГЕРА УЛУЧШЕНИЯ (Требуются очки И золото в казне)
+                // 3. ПРОВЕРКА ТРИГГЕРА УЛУЧШЕНИЯ ГОРОДА-ОТПРАВИТЕЛЯ (Требуются очки И золото в его казне)
                 long cityTreasury = GetCoreTreasury(townName);
 
                 if (progress.CurrentSupplies >= progress.RequiredSupplies && cityTreasury > 0)
@@ -147,16 +148,16 @@ namespace Server.Custom.CityDevelopment
 
                     ApplyDynamicTaxToBaseSystem(originTown, progress.Level);
 
-                    // ИСПРАВЛЕНО: Передаем player.Map третьим аргументом, чтобы декорации спавнились там, где находится купец
+                    // Спавним декорации и торговцев в городе-ОТПРАВИТЕЛЕ
                     CityDecorationMod.DecorateTown(originTown, progress.Level, player.Map);
                     CityLegendaryMerchantMod.CheckMerchantSpawn(originTown, progress.Level);
 
-                    string globalMsg = $"[Экономика] Город {townName} развился до {progress.Level} уровня благодаря вливаниям капитала и поставкам припасов!";
+                    string globalMsg = $"[Экономика] Город {townName} развился до {progress.Level} уровня благодаря успешной торговле и поставкам припасов!";
                     CommandHandlers.BroadcastMessage(AccessLevel.Player, 0x35, globalMsg);
                 }
                 else if (progress.CurrentSupplies >= progress.RequiredSupplies && cityTreasury <= 0)
                 {
-                    player.SendMessage(0x22, $"[Внимание] Город {townName} набрал очки для улучшения, но его казна пуста! Развитие заморожено.");
+                    player.SendMessage(0x22, $"[Внимание] Город {townName} набрал очки для улучшения, но казна отправления пуста! Развитие заморожено.");
                 }
             }
         }
@@ -429,5 +430,29 @@ namespace Server.Custom.CityDevelopment
                 }
             }
         }
+
+        // Добавьте это внутрь класса CityDevelopmentMod в файле
+        public static int CalculateDynamicQuestAmount()
+        {
+            // Возвращаем динамику ServUO, умноженную на 10. 
+            // Теперь база будет случайно выбираться из вариантов: 50, 100, 150 или 200 предметов.
+            int baseAmount = Utility.RandomList(50, 100, 150, 200);
+
+            int onlineCount = NetState.Instances.Count;
+            double multiplier = 1.0;
+
+            // Множитель от онлайна (начинает расти, если в игре больше 10 человек)
+            if (onlineCount > 10)
+            {
+                multiplier += (onlineCount - 10) * 0.02;
+            }
+
+            // Ограничение сверху (максимум х5 от выбранной случайной базы)
+            if (multiplier > 5.0)
+                multiplier = 5.0;
+
+            return (int)(baseAmount * multiplier);
+        }
+
     }
 }
