@@ -61,7 +61,19 @@ namespace Server.Custom.CityDevelopment
 
                 CityProgress progress = GetCityProfile(coreCity);
 
-                // Если город развит до финала (5 уровень)
+                // =========================================================================
+                // СТАБИЛИЗАЦИЯ НАЛОГОВ МЭРА ⚖️
+                // Проверяет налог города на любом уровне и сбрасывает его в рамки коридора,
+                // если мэр установил нелегальную ставку.
+                // =========================================================================
+                if (progress != null)
+                {
+                    ApplyDynamicTaxToBaseSystem(t, progress.Level);
+                }
+
+                // =========================================================================
+                // СТАНДАРТНЫЙ СПАВН ЛЕГЕНДАРНЫХ КУПЦОВ
+                // =========================================================================
                 if (progress != null && progress.Level >= 5)
                 {
                     // Вызываем проверку спавна. Метод CheckMerchantSpawn сам проверит, 
@@ -269,16 +281,37 @@ namespace Server.Custom.CityDevelopment
         private static void ApplyDynamicTaxToBaseSystem(Town town, int cityLevel)
         {
             if (town == null) return;
-            int baseTax = 2;
+            
+            // 1. Вычисляем целевой базовый налог по уровню развития города 📉
+            var targetTax = 8;
             switch (cityLevel)
             {
-                case 1: baseTax = 2; break;
-                case 2: baseTax = 3; break;
-                case 3: baseTax = 5; break;
-                case 4: baseTax = 6; break;
-                case 5: baseTax = 8; break;
+                case 1: targetTax = 8; break;
+                case 2: targetTax = 6; break;
+                case 3: targetTax = 4; break;
+                case 4: targetTax = 2; break;
+                case 5: targetTax = 1; break;
             }
-            town.Tax = baseTax;
+
+            // 2. Рассчитываем расширенный коридор свободного выбора для Мэра
+            int minAllowed = Math.Max(0, targetTax - 2);
+            int maxAllowed = Math.Min(15, targetTax + 5);
+
+            // Особое правило: Абсолютная свобода для Мэра мегаполиса 👑
+            if (cityLevel == 5)
+            {
+                maxAllowed = 15; // Снимаем ограничения, разрешаем поднимать до максимума
+            }
+
+            // 3. Удерживаем налог в рамках обновленного закона
+            if (town.Tax < minAllowed)
+            {
+                town.Tax = minAllowed;
+            }
+            else if (town.Tax > maxAllowed)
+            {
+                town.Tax = maxAllowed;
+            }
         }
         public static void Save()
         {

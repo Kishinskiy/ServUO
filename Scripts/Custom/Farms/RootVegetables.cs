@@ -217,9 +217,9 @@ namespace Server.Custom.Farms
         // =========================================================================
         // СИСТЕМА ТУЛТИПОВ ПРИ НАВЕДЕНИИ МЫШКИ 🔍
         // =========================================================================
-        public override void AddProperties(ObjectPropertyList list)
+        public override void GetProperties(ObjectPropertyList list)
         {
-            base.AddProperties(list); // Выводит Name первой строчкой
+            base.GetProperties(list); // Выводит Name первой строчкой
 
             if (m_IsDead || m_IsWeedSource) return;
 
@@ -235,6 +235,7 @@ namespace Server.Custom.Farms
             if (m_WaterLevel < 25 && m_Stage < 2)
                 list.Add("Нужен срочный полив!");
         }
+
 
         private string GetVegNameString()
         {
