@@ -939,7 +939,7 @@ namespace Server.Mobiles
 			}
 			// ------------------------------------------------------------------------------------------
 
-			combinedBuyInfo = Server.Custom.AdvancedNpcTrade.AdvancedNpcTradeMod.FilterVendorAssortment(this, from, combinedBuyInfo);
+			// combinedBuyInfo = Server.Custom.AdvancedNpcTrade.AdvancedNpcTradeMod.FilterVendorAssortment(this, from, combinedBuyInfo);
 
 			list = new List<BuyItemState>(combinedBuyInfo.Count);
 			Container cont = BuyPack;

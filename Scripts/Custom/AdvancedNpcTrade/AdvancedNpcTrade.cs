@@ -399,55 +399,55 @@ namespace Server.Custom.AdvancedNpcTrade
         // =========================================================================
         // МЕХАНИКА ОГРАНИЧЕНИЯ АССОРТИМЕНТА ПО РАНГАМ ЛОЯЛЬНОСТИ
         // =========================================================================
-        public static List<IBuyItemInfo> FilterVendorAssortment(BaseVendor vendor, Mobile buyer, List<IBuyItemInfo> originalList)
-        {
-            if (vendor == null || buyer == null || originalList == null)
-                return originalList;
+        // public static List<IBuyItemInfo> FilterVendorAssortment(BaseVendor vendor, Mobile buyer, List<IBuyItemInfo> originalList)
+        // {
+        //     if (vendor == null || buyer == null || originalList == null)
+        //         return originalList;
 
-            // Вычисляем текущий ранг лояльности покупателя у данного вендора
-            double totalPoints = GetTotalLoyaltyPoints(vendor, buyer);
-            LoyaltyLevel currentLevel = LoyaltyTables.GetLevelFromPoints(totalPoints);
+        //     // Вычисляем текущий ранг лояльности покупателя у данного вендора
+        //     double totalPoints = GetTotalLoyaltyPoints(vendor, buyer);
+        //     LoyaltyLevel currentLevel = LoyaltyTables.GetLevelFromPoints(totalPoints);
 
-            List<IBuyItemInfo> filteredList = new List<IBuyItemInfo>();
+        //     List<IBuyItemInfo> filteredList = new List<IBuyItemInfo>();
 
-            // Сканируем исходную витрину предметов
-            for (int i = 0; i < originalList.Count; i++)
-            {
-                IBuyItemInfo item = originalList[i];
+        //     // Сканируем исходную витрину предметов
+        //     for (int i = 0; i < originalList.Count; i++)
+        //     {
+        //         IBuyItemInfo item = originalList[i];
 
-                // На базовом ранге (None) игроку доступно строго первые 5 товаров из списка SBFarmer
-                if (i < 5)
-                {
-                    filteredList.Add(item);
-                }
-                // Для доступа к товарам с 5 по 9 (включительно) нужен ранг Friendly и выше
-                else if (i >= 5 && i < 10)
-                {
-                    if (currentLevel >= LoyaltyLevel.Friendly) filteredList.Add(item);
-                }
-                // Для доступа к товарам с 10 по 14 нужен ранг Trusted и выше
-                else if (i >= 10 && i < 15)
-                {
-                    if (currentLevel >= LoyaltyLevel.Trusted) filteredList.Add(item);
-                }
-                // Для доступа к товарам с 15 по 19 нужен ранг Ally и выше
-                else if (i >= 15 && i < 20)
-                {
-                    if (currentLevel >= LoyaltyLevel.Ally) filteredList.Add(item);
-                }
-                // Для доступа к товарам с 20 по 23 (первый опт) нужен ранг Champion и выше
-                else if (i >= 20 && i < 24)
-                {
-                    if (currentLevel >= LoyaltyLevel.Champion) filteredList.Add(item);
-                }
-                // Все остальные товары (24+) открываются только на ранге элиты — Legend!
-                else if (i >= 24)
-                {
-                    if (currentLevel >= LoyaltyLevel.Legend) filteredList.Add(item);
-                }
-            }
+        //         // На базовом ранге (None) игроку доступно строго первые 5 товаров из списка SBFarmer
+        //         if (i < 5)
+        //         {
+        //             filteredList.Add(item);
+        //         }
+        //         // Для доступа к товарам с 5 по 9 (включительно) нужен ранг Friendly и выше
+        //         else if (i >= 5 && i < 10)
+        //         {
+        //             if (currentLevel >= LoyaltyLevel.Friendly) filteredList.Add(item);
+        //         }
+        //         // Для доступа к товарам с 10 по 14 нужен ранг Trusted и выше
+        //         else if (i >= 10 && i < 15)
+        //         {
+        //             if (currentLevel >= LoyaltyLevel.Trusted) filteredList.Add(item);
+        //         }
+        //         // Для доступа к товарам с 15 по 19 нужен ранг Ally и выше
+        //         else if (i >= 15 && i < 20)
+        //         {
+        //             if (currentLevel >= LoyaltyLevel.Ally) filteredList.Add(item);
+        //         }
+        //         // Для доступа к товарам с 20 по 23 (первый опт) нужен ранг Champion и выше
+        //         else if (i >= 20 && i < 24)
+        //         {
+        //             if (currentLevel >= LoyaltyLevel.Champion) filteredList.Add(item);
+        //         }
+        //         // Все остальные товары (24+) открываются только на ранге элиты — Legend!
+        //         else if (i >= 24)
+        //         {
+        //             if (currentLevel >= LoyaltyLevel.Legend) filteredList.Add(item);
+        //         }
+        //     }
 
-            return filteredList;
-        }
+        //     return filteredList;
+        // }
     }
 }
