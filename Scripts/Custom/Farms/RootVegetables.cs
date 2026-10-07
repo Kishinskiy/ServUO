@@ -234,7 +234,6 @@ namespace Server.Custom.Farms
         {
             if (Deleted) return;
 
-            // ЛОГИКА ОЧАГА ЗАРАЖЕНИЯ: Если куст стал сорняком, он больше не растет, а только заражает соседей 🛑
             if (m_IsWeedSource)
             {
                 SpreadWeedsToNeighbors();
@@ -293,13 +292,11 @@ namespace Server.Custom.Farms
             m_FertilityLevel = Math.Max(0, m_FertilityLevel - 10);
             if (m_Stage < 2)
             {
-                // ИСПОЛЬЗУЕМ ВЫНЕСЕННУЮ НАВЕРХ ПЕРЕМЕННУЮ ДЛЯ ШАНСА СОРНЯКОВ 🌿
                 if (Utility.RandomDouble() < BaseWeedsChance)
                     m_WeedsLevel = Math.Min(100, m_WeedsLevel + 15);
                 if (Utility.RandomDouble() < 0.25)
                     m_PestsCount = Math.Min(3, m_PestsCount + 1);
             }
-            // КРИТИЧЕСКАЯ ПРОВЕРКА НА 100% СОРНЯКОВ (ПРЕВРАЩЕНИЕ В ОЧАГ КУСТА) ⚠️
             if (m_WeedsLevel >= 100)
             {
                 TurnIntoWeedBush();
@@ -358,32 +355,26 @@ namespace Server.Custom.Farms
             }
             UpdateName();
         }
-        // МЕТОД ТРАНСФОРМАЦИИ ГРЯДКИ В ЗАРАЗНЫЙ КУСТ СОРНЯКА
         private void TurnIntoWeedBush()
         {
             m_IsWeedSource = true;
             m_IsDead = true;
             m_Stage = 0;
-            ItemID = 0x0CB5; // Графика дикого колючего сорняка
-            Hue = 1167;      // Болотный сорный цвет
+            ItemID = 0x0CB5;
+            Hue = 1167;
             UpdateName();
             if (m_Planter != null)
                 m_Planter.SendMessage(0x22, "ВНИМАНИЕ! Из-за плохой прополки одна из ваших грядок ПОЛНОСТЬЮ ОБРОСЛА СОРНЯКОМ и теперь заражает соседние кусты!");
         }
-        // АЛГОРИТМ РАСПРОСТРАНЕНИЯ СОРНЯКОВ НА СОСЕДНИЕ ТАЙЛЫ 🦠
         private void SpreadWeedsToNeighbors()
         {
             if (this.Map == null || this.Map == Map.Internal) return;
-            // Ищем другие грядки в радиусе 1 тайла (все соседние клетки, включая диагонали)
             IPooledEnumerable eable = this.Map.GetItemsInRange(this.Location, 1);
             foreach (Item item in eable)
             {
-                // Если рядом растет другая грядка, и она еще не мертва/не сорняк
                 if (item is FarmVegetablePlant neighborPlant && neighborPlant != this && !neighborPlant.IsDead && !neighborPlant.IsWeedSource)
                 {
-                    // Насильно добавляем ей +25% сорняков за цикл
                     neighborPlant.WeedsLevel = Math.Min(100, neighborPlant.WeedsLevel + 25);
-                    // Визуальный эффект спор сорняка
                     Effects.SendLocationParticles(EffectItem.Create(neighborPlant.Location, neighborPlant.Map, TimeSpan.FromSeconds(0.5)), 0x376A, 9, 10, 5042);
                     if (neighborPlant.Planter != null)
                         neighborPlant.Planter.SendMessage(0x22, $"[!] Сорняки с соседнего заросшего куста перекинулись на вашу посадку ({neighborPlant.GetVegNameString()})! Нужна срочная прополка!");
@@ -398,22 +389,22 @@ namespace Server.Custom.Farms
             ItemID = 0x0CBC;
             Hue = 0;
             UpdateName();
-            if (m_Planter != null) m_Planter.SendMessage("Один из ваших кустов на ферме полностью погиб из-за засухи или вредителей.");
+            if (m_Planter != null)
+                m_Planter.SendMessage("Один из ваших кустов на ферме полностью погиб из-за засухи или вредителей.");
         }
         public override void OnDoubleClick(Mobile from)
         {
-            // Очистка зараженного куста сорняка тяпкой или руками
             if (m_IsWeedSource)
             {
                 Region region = Region.Find(Location, Map);
                 if (region is FarmRegion && ((FarmRegion)region).Controller != null && ((FarmRegion)region).Controller.Owner != from && from.AccessLevel == AccessLevel.Player)
                 {
-                    from.SendMessage("Вы не можете трогать чужой куст сорняков.");
+                    from.SendMessage("Вы не можете трогать чужое засохшее растение.");
                     return;
                 }
                 from.SendMessage("Вы полностью выкорчевали огромный куст сорняка, очистив грядку.");
                 from.PlaySound(0x13E);
-                this.Delete(); // Освобождаем грядку
+                this.Delete();
                 return;
             }
             if (m_IsDead)
@@ -447,12 +438,31 @@ namespace Server.Custom.Farms
                 from.SendMessage(m_PestsCount > 0 ? $"[!] Замечено вредителей: {m_PestsCount} шт. Нужна дезинсекция." : "Паразитов на листьях нет.");
                 return;
             }
-            // (Блок сбора спелых плодов остается без изменений...)
-            int baseYield = Utility.RandomMinMax(1, 2);
+            Region reg = Region.Find(Location, Map);
+            if (reg is FarmRegion)
+            {
+                FarmRegion farmReg = (FarmRegion)reg;
+                if (farmReg.Controller != null && farmReg.Controller.Owner != from && from.AccessLevel == AccessLevel.Player)
+                {
+                    from.SendMessage("Вы не можете собирать чужой урожай!");
+                    return;
+                }
+            }
+            // =========================================================================
+            // ОБНОВЛЕННЫЙ БЛОК: РАСЧЕТ ЛЕГЕНДАРНОГО УРОЖАЯ (ДО 8 ЕДИНГОК ОВОЩЕЙ 🌾)
+            // =========================================================================
+            int baseYield = Utility.RandomMinMax(2, 3); // Базовый сбор повышен до 2-3 штук
             int bonusItems = 0;
-            if (m_GoodCareTicks >= 3) bonusItems += 1;
+            // 1. Бонус за накопленные дни идеального ухода (полив + питание почвы + отсутствие угроз)
+            if (m_GoodCareTicks >= 2) bonusItems += 1;
+            if (m_GoodCareTicks >= 4) bonusItems += 1;
             if (m_GoodCareTicks >= 6) bonusItems += 1;
+            // 2. Бонус за финальную подкормку (уровень питания почвы к моменту сбора)
+            if (m_FertilityLevel >= 30) bonusItems += 1;
+            if (m_FertilityLevel >= 70) bonusItems += 1;
             int finalYield = baseYield + bonusItems;
+            // Жесткий ограничитель сверху, чтобы случайно не вылезло больше 8
+            if (finalYield > 8) finalYield = 8;
             bool totalSuccess = true;
             for (int i = 0; i < finalYield; i++)
             {
@@ -472,10 +482,18 @@ namespace Server.Custom.Farms
             }
             if (totalSuccess)
             {
-                if (bonusItems > 0) from.SendMessage(0x35, $"Благодаря уходу вы собрали МАКСИМАЛЬНЫЙ урожай: {finalYield} шт.!");
-                else from.SendMessage($"Вы успешно собрали плоды в количестве {finalYield} шт.");
+                if (finalYield >= 7)
+                    from.SendMessage(0x35, $"Потрясающе! Благодаря вашему мастерскому уходу и богатой почве, вы собрали ЛЕГЕНДАРНЫЙ урожай: {finalYield} шт.!");
+                else if (bonusItems > 0)
+                    from.SendMessage(0x5D, $"Хорошая работа! Заботливый уход принес вам повышенный урожай: {finalYield} шт.");
+                else
+                    from.SendMessage($"Вы успешно собрали плоды в количестве {finalYield} шт.");
                 from.PlaySound(0x13E);
                 this.Delete();
+            }
+            else
+            {
+                from.SendMessage("Ваш инвентарь переполнен! Освободите место для овощей.");
             }
         }
         public void PourWater(Mobile from, int percent)
@@ -519,7 +537,7 @@ namespace Server.Custom.Farms
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)6); // Поднимаем версию сохранения до 6
+            writer.Write((int)6);
             writer.Write(m_Planter);
             writer.Write(m_Stage);
             writer.Write((int)m_VegType);
@@ -531,7 +549,7 @@ namespace Server.Custom.Farms
             writer.Write(m_WeedsLevel);
             writer.Write(m_PestsCount);
             writer.Write(m_GoodCareTicks);
-            writer.Write(m_IsWeedSource); // Сохраняем новый статус сорняка
+            writer.Write(m_IsWeedSource);
         }
         public override void Deserialize(GenericReader reader)
         {
@@ -553,9 +571,9 @@ namespace Server.Custom.Farms
             }
             if (version >= 6)
             {
-                m_IsWeedSource = reader.ReadBool(); // Читаем статус сорняка
+                m_IsWeedSource = reader.ReadBool();
             }
-            if (!m_IsDead || m_IsWeedSource) // Перезапускаем таймер и для сорняков, чтобы они тикали и заражали
+            if (!m_IsDead || m_IsWeedSource)
                 m_GrowthTimer = Timer.DelayCall(TimeSpan.FromHours(2.0), TimeSpan.FromHours(2.0), new TimerCallback(GrowPerDay));
             UpdateName();
         }
