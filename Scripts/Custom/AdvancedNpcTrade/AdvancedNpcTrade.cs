@@ -113,13 +113,44 @@ namespace Server.Custom.AdvancedNpcTrade
             int roundedPrice = (int)Math.Round(finalPrice);
             return roundedPrice < 1 ? 1 : roundedPrice;
         }
+        // =========================================================================
+        // ВСПОМОГАТЕЛЬНЫЙ МЕТОД: ВЫЧИСЛЕНИЕ ДИНАМИЧЕСКОГО ШАНСА ОТ УРОВНЯ ГОРОДА 🏙️
+        // =========================================================================
+        private static double GetDynamicLoyaltyChance(BaseVendor vendor)
+        {
+            // Если вендор без региона или вне городов — оставляем стандартный базовый шанс 5% (0.05)
+            if (vendor == null || vendor.Region == null || string.IsNullOrEmpty(vendor.Region.Name))
+                return LoyaltyChance / 100.0;
+
+            foreach (Server.Engines.CityLoyalty.City c in Enum.GetValues(typeof(Server.Engines.CityLoyalty.City)))
+            {
+                if (vendor.Region.Name.IndexOf(c.ToString(), StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    var cityProfile = Server.Custom.CityDevelopment.CityDevelopmentMod.GetCityProfile(c);
+                    if (cityProfile != null)
+                    {
+                        // Рассчитываем шанс линейно: от 5% на 1 ур. до 30% на 5 ур.
+                        // Шаг за каждый уровень выше первого: (30 - 5) / (5 - 1) = 25 / 4 = 6.25%
+                        double calculatedChance = 5.0 + (cityProfile.Level - 1) * 6.25;
+
+                        // Возвращаем в формате double для Utility.RandomDouble() (например, 30% -> 0.30)
+                        return calculatedChance / 100.0;
+                    }
+                    break;
+                }
+            }
+
+            return LoyaltyChance / 100.0;
+        }
 
         public static void OnSuccessfulPurchase(BaseVendor vendor, Mobile buyer, int amount)
         {
             if (vendor == null || buyer == null || amount <= 0) return;
 
             double calculatedPoints = 0.0;
-            double targetChance = LoyaltyChance / 100.0;
+
+            // Получаем динамический шанс (от 0.05 до 0.30 в зависимости от уровня города)
+            double targetChance = GetDynamicLoyaltyChance(vendor);
 
             for (int i = 0; i < amount; i++)
             {
@@ -132,7 +163,10 @@ namespace Server.Custom.AdvancedNpcTrade
             if (calculatedPoints > 0.0)
             {
                 LoyaltyManager.AddPurchase(vendor, buyer, calculatedPoints);
-                buyer.SendMessage(88, $"Лояльность продавца {vendor.Name} увеличилась на +{calculatedPoints:F2}!");
+
+                // Выводим текущий реальный шанс в сообщении, чтобы игроки видели прогресс города
+                int visualChance = (int)Math.Round(targetChance * 100);
+                buyer.SendMessage(88, $"Лояльность продавца {vendor.Name} увеличилась на +{calculatedPoints:F2}! [Шанс региона: {visualChance}%]");
             }
             else
             {
@@ -140,13 +174,15 @@ namespace Server.Custom.AdvancedNpcTrade
             }
         }
 
-                // НАЧИСЛЕНИЕ ОЧКОВ ПРИ ПРОДАЖЕ ТОВАРА ВЕНДОРУ (Снабжение рынка)
+        // НАЧИСЛЕНИЕ ОЧКОВ ПРИ ПРОДАЖЕ ТОВАРА ВЕНДОРУ (Снабжение рынка)
         public static void OnSuccessfulSell(BaseVendor vendor, Mobile seller, int amount)
         {
             if (vendor == null || seller == null || amount <= 0) return;
 
             double calculatedPoints = 0.0;
-            double targetChance = LoyaltyChance / 100.0;
+
+            // Получаем динамический шанс (от 0.05 до 0.30 в зависимости от уровня города)
+            double targetChance = GetDynamicLoyaltyChance(vendor);
 
             // Цикл проверяет каждый сданный предмет отдельно
             for (int i = 0; i < amount; i++)
@@ -161,14 +197,15 @@ namespace Server.Custom.AdvancedNpcTrade
             {
                 // Записываем очки в общую базу данных лояльности
                 LoyaltyManager.AddPurchase(vendor, seller, calculatedPoints);
-                seller.SendMessage(0x35, $"Вы снабдили торговца сырьем! Лояльность {vendor.Name} выросла на +{calculatedPoints:F2}!");
+
+                int visualChance = (int)Math.Round(targetChance * 100);
+                seller.SendMessage(0x35, $"Вы снабдили торговца сырьем! Лояльность {vendor.Name} выросла на +{calculatedPoints:F2}! [Шанс региона: {visualChance}%]");
             }
             else
             {
                 seller.SendMessage(0x59, "Вы успешно продали свои товары торговцу.");
             }
         }
-
         private static int CountProps(object attributesObject)
         {
             if (attributesObject == null) return 0;
@@ -194,7 +231,7 @@ namespace Server.Custom.AdvancedNpcTrade
             List<IBuyItemInfo> artifacts = new List<IBuyItemInfo>();
             if (vendor == null || buyer == null) return artifacts;
 
-        
+
             double totalPoints = GetTotalLoyaltyPoints(vendor, buyer);
             LoyaltyLevel currentLevel = LoyaltyTables.GetLevelFromPoints(totalPoints);
 
@@ -364,7 +401,7 @@ namespace Server.Custom.AdvancedNpcTrade
         // =========================================================================
         public static List<IBuyItemInfo> FilterVendorAssortment(BaseVendor vendor, Mobile buyer, List<IBuyItemInfo> originalList)
         {
-            if (vendor == null || buyer == null || originalList == null) 
+            if (vendor == null || buyer == null || originalList == null)
                 return originalList;
 
             // Вычисляем текущий ранг лояльности покупателя у данного вендора
@@ -377,7 +414,7 @@ namespace Server.Custom.AdvancedNpcTrade
             for (int i = 0; i < originalList.Count; i++)
             {
                 IBuyItemInfo item = originalList[i];
-                
+
                 // На базовом ранге (None) игроку доступно строго первые 5 товаров из списка SBFarmer
                 if (i < 5)
                 {
