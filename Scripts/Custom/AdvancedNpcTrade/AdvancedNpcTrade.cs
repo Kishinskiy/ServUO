@@ -13,6 +13,7 @@ using System.Linq;
 
 namespace Server.Custom.AdvancedNpcTrade
 {
+
     public static class AdvancedNpcTradeMod
     {
         public static readonly int LoyaltyChance = 5;
@@ -39,11 +40,21 @@ namespace Server.Custom.AdvancedNpcTrade
             var info = LoyaltyManager.GetInfo(vendor, buyer);
             double points = info.Purchases;
 
-            if (buyer.Karma >= 10000) points += 15.0;
-            else if (buyer.Karma >= 5000) points += 5.0;
-            else if (buyer.Karma <= -10000) points -= 25.0;
-            else if (buyer.Karma <= -5000) points -= 10.0;
+            double karmaBonus = 0.0;
+            // ИСПРАВЛЕНО: Записываем значения строго в karmaBonus, НЕ в points!
+            if (buyer.Karma >= 10000) karmaBonus = 15.0;
+            else if (buyer.Karma >= 5000) karmaBonus = 5.0;
+            else if (buyer.Karma <= -10000) karmaBonus = -25.0;
+            else if (buyer.Karma <= -5000) karmaBonus = -10.0;
 
+            // ВНИМАНИЕ: Теперь здесь инвертируется РЕАЛЬНОЕ значение (например, -25.0 превратится в 25.0)
+            if (IsEvilVendor(vendor))
+            {
+                karmaBonus = -karmaBonus;
+            }
+
+            // 3. И только теперь применяем этот бонус к общим очкам
+            points += karmaBonus;
             points += GetCityBonusPoints(vendor, buyer);
 
             return points < 0.0 ? 0.0 : points;
@@ -82,14 +93,22 @@ namespace Server.Custom.AdvancedNpcTrade
                 }
             }
 
+            // РАСЧЕТ МОДИФИКАТОРА КАРМЫ
             double karmaModifier = 0.0;
+            bool isEvilShop = IsEvilVendor(vendor);
+
             if (buyer.Karma > 0)
             {
-                karmaModifier = -(Math.Min(buyer.Karma, 15000) / 150000.0);
+                // Базовый эффект для доброго игрока (скидка до -10%)
+                double effect = -(Math.Min(buyer.Karma, 15000) / 150000.0); //
+                karmaModifier = isEvilShop ? Math.Abs(effect) : effect;
             }
             else if (buyer.Karma < 0)
             {
-                karmaModifier = Math.Abs(Math.Max(buyer.Karma, -15000)) / 60000.0;
+                // Базовый эффект для злого игрока (наценка до +25%)
+                double effect = Math.Abs(Math.Max(buyer.Karma, -15000)) / 60000.0; //
+                // Если магазин злой — этот эффект превращается в СКИДКУ (минус)
+                karmaModifier = isEvilShop ? -effect : effect;
             }
             finalPrice *= (1.0 + karmaModifier);
 
@@ -103,26 +122,45 @@ namespace Server.Custom.AdvancedNpcTrade
             return roundedPrice < 1 ? 1 : roundedPrice;
         }
 
-        private static double GetDynamicLoyaltyChance(BaseVendor vendor)
+        private static double GetDynamicLoyaltyChance(BaseVendor vendor, Mobile player)
         {
-            if (vendor == null || vendor.Region == null || string.IsNullOrEmpty(vendor.Region.Name))
-                return LoyaltyChance / 100.0;
+            // 1. Рассчитываем базовый шанс на основе уровня города (от 0.05 до ~0.50)
+            double baseChance = LoyaltyChance / 100.0;
 
-            foreach (Server.Engines.CityLoyalty.City c in Enum.GetValues(typeof(Server.Engines.CityLoyalty.City)))
+            if (vendor != null && vendor.Region != null && !string.IsNullOrEmpty(vendor.Region.Name))
             {
-                if (vendor.Region.Name.IndexOf(c.ToString(), StringComparison.OrdinalIgnoreCase) >= 0)
+                foreach (Server.Engines.CityLoyalty.City c in Enum.GetValues(typeof(Server.Engines.CityLoyalty.City)))
                 {
-                    var cityProfile = Server.Custom.CityDevelopment.CityDevelopmentMod.GetCityProfile(c);
-                    if (cityProfile != null)
+                    if (vendor.Region.Name.IndexOf(c.ToString(), StringComparison.OrdinalIgnoreCase) >= 0)
                     {
-                        double calculatedChance = 5.0 + (cityProfile.Level - 1) * 6.25;
-                        return calculatedChance / 100.0;
+                        var cityProfile = Server.Custom.CityDevelopment.CityDevelopmentMod.GetCityProfile(c);
+                        if (cityProfile != null)
+                        {
+                            double calculatedChance = 5.0 + (cityProfile.Level - 1) * 6.25;
+                            baseChance = calculatedChance / 100.0;
+                        }
+                        break;
                     }
-                    break;
                 }
             }
 
-            return LoyaltyChance / 100.0;
+            // 2. ВСТАВКА: Влияние удачи как множителя (Ванильный подход)
+            if (player != null && player.Luck > 0)
+            {
+                // При 2200 удачи (ванильный кап) этот коэффициент будет равен 2.5
+                // То есть удача увеличит базовый шанс города на +250% (в 3.5 раза)
+                double luckMultiplier = 1.0 + (player.Luck / 880.0);
+                baseChance *= luckMultiplier;
+            }
+
+            // 3. Жесткое ограничение (кап шанса). 
+            // Даже самый везучий игрок имеет 15% шанс "осечки", что сохраняет баланс экономики
+            if (baseChance > 0.85)
+            {
+                baseChance = 0.85;
+            }
+
+            return baseChance;
         }
 
         public static void OnSuccessfulPurchase(BaseVendor vendor, Mobile buyer, int amount)
@@ -130,7 +168,7 @@ namespace Server.Custom.AdvancedNpcTrade
             if (vendor == null || buyer == null || amount <= 0) return;
 
             double calculatedPoints = 0.0;
-            double targetChance = GetDynamicLoyaltyChance(vendor);
+            double targetChance = GetDynamicLoyaltyChance(vendor, buyer);
 
             for (int i = 0; i < amount; i++)
             {
@@ -157,7 +195,7 @@ namespace Server.Custom.AdvancedNpcTrade
             if (vendor == null || seller == null || amount <= 0) return;
 
             double calculatedPoints = 0.0;
-            double targetChance = GetDynamicLoyaltyChance(vendor);
+            double targetChance = GetDynamicLoyaltyChance(vendor, seller);
 
             for (int i = 0; i < amount; i++)
             {
@@ -292,8 +330,10 @@ namespace Server.Custom.AdvancedNpcTrade
                         }
                         string finalDisplayName = $"[Легенда] {itemRealName}";
                         string diabloColoredName = Server.Custom.DiabloLoot.DiabloLootColors.FormatName(spawnedItem, finalDisplayName);
+
                         var info = new GenericBuyInfo(diabloColoredName, spawnedItem.GetType(), finalPrice, 1, spawnedItem.ItemID, spawnedItem.Hue);
                         artifacts.Add(info);
+
                         spawnedItem.Delete();
                     }
                 }
@@ -324,10 +364,17 @@ namespace Server.Custom.AdvancedNpcTrade
                     if (info != null)
                     {
                         double pts = info.Purchases;
+                        // ИСПРАВЛЕНО: Считаем финальные очки через новый метод (он уже учитывает злых/добрых торговцев)
+                        double finalPts = GetTotalLoyaltyPoints(vendor, from);
+
+                        // ИСПРАВЛЕНО: Рассчитываем karmaBonus и инвертируем его, если торговец злой (только для красивого вывода в чат)
                         double karmaBonus = from.Karma >= 10000 ? 15.0 : (from.Karma >= 5000 ? 5.0 : (from.Karma <= -10000 ? -25.0 : (from.Karma <= -5000 ? -10.0 : 0.0)));
+                        if (IsEvilVendor(vendor))
+                        {
+                            karmaBonus = -karmaBonus;
+                        }
+
                         double cityBonus = GetCityBonusPoints(vendor, from);
-                        double finalPts = pts + karmaBonus + cityBonus;
-                        if (finalPts < 0.0) finalPts = 0.0;
                         string cityRegionName = (vendor.Region != null) ? vendor.Region.Name : "Неизвестно";
                         from.SendMessage(89, $"Торговец: {vendor.Name}. Личных очков покупок: {pts:F2}");
                         from.SendMessage(0x59, $"Регион: {cityRegionName}. Бонус Кармы: {karmaBonus:F2}, Бонус Славы: {cityBonus:F2}");
@@ -340,5 +387,58 @@ namespace Server.Custom.AdvancedNpcTrade
                 }
             }
         }
+
+        private static bool IsEvilVendor(BaseVendor vendor)
+        {
+            if (vendor == null) return false;
+
+            // 1. ПРОВЕРКА ПО ПРОФЕССИИ / КЛАССУ
+            // Проверяем имя класса самого скрипта торговца (в нижнем регистре)
+            string vendorClass = vendor.GetType().Name.ToLower();
+            if (vendorClass.Contains("necromancer") ||
+                vendorClass.Contains("witch") ||
+                vendorClass.Contains("undead") ||
+                vendorClass.Contains("thief")) // Можно добавить разбойников/воров
+            {
+                return true;
+            }
+
+            // Дополнительно проверяем кастомное свойство ProfessionIndex, если оно завязано на темные ремесла
+            var profProp = vendor.GetType().GetProperty("ProfessionIndex");
+            if (profProp != null)
+            {
+                try
+                {
+                    int profession = (int)profProp.GetValue(vendor, null);
+                    // Например, если в вашей системе 13 — это Некромантия или Теневое дело
+                    if (profession == 13)
+                        return true;
+                }
+                catch { }
+            }
+
+            // 2. ПРОВЕРКА ПО ГОРОДУ / РЕГИОНУ
+            // Проверяем, находится ли торговец в темном городе (например, Umbra)
+            if (vendor.Region != null && !string.IsNullOrEmpty(vendor.Region.Name))
+            {
+                if (vendor.Region.Name.IndexOf("Umbra", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    vendor.Region.Name.IndexOf("Doom", StringComparison.OrdinalIgnoreCase) >= 0) // Пример другого региона
+                {
+                    return true;
+                }
+            }
+
+            // 3. ПРОВЕРКА ПО ФРАКЦИИ (КАРМЕ) САМОГО NPC
+            // Если по дефолту в ServUO у этого NPC прописана отрицательная карма, 
+            // значит он изначально задуман как представитель темной стороны
+            if (vendor.Karma < 0)
+            {
+                return true;
+            }
+
+            // Если ни одно условие не подошло — торговец "добрый" (обычный)
+            return false;
+        }
+
     }
 }

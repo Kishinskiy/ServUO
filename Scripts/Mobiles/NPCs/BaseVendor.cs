@@ -955,26 +955,46 @@ namespace Server.Mobiles
 					continue;
 				}
 
-				// NOTE: Only GBI supported; if you use another implementation of IBuyItemInfo, this will crash
 				GenericBuyInfo gbi = (GenericBuyInfo)buyItem;
-				IEntity disp = gbi.GetDisplayEntity();
-				
+				IEntity disp = null;
+
+				// ИСПРАВЛЕНО: Безопасно получаем объект отображения один раз
 				try
 				{
-					// Безопасно пытаемся создать слепок предмета для витрины магазина
 					disp = gbi.GetDisplayEntity();
 				}
 				catch (Exception ex)
 				{
-					// Если у предмета кривой конструктор — пишем ошибку в консоль, но НЕ роняем сервер
 					Console.WriteLine($"[BaseVendor] Ошибка генерации витрины для типа {gbi.Type?.FullName}: {ex.Message}");
-					continue; // Просто пропускаем этот проблемный предмет и идем к следующему
+					continue;
 				}
 
 				if (Siege.SiegeShard && !Siege.VendorCanSell(gbi.Type))
 				{
 					continue;
 				}
+
+				// --- НАЧАЛО ВСТАВКИ: Накладываем легендарные свойства на предмет в витрине, чтобы игрок видел их при наведении ---
+				if (disp is Item displayItem && displayItem.Name != null && displayItem.Name.Contains("[Легенда]"))
+				{
+					if (displayItem is BaseWeapon weapon)
+						BaseRunicTool.ApplyAttributesTo(weapon, 5, 95, 100);
+					else if (displayItem is BaseArmor armor)
+						BaseRunicTool.ApplyAttributesTo(armor, 5, 95, 100);
+					else if (displayItem is BaseJewel jewel)
+						BaseRunicTool.ApplyAttributesTo(jewel, 5, 95, 100);
+
+					var powerProp = displayItem.GetType().GetProperty("ItemPower");
+					if (powerProp != null && powerProp.CanWrite)
+					{
+						try { powerProp.SetValue(displayItem, Enum.ToObject(powerProp.PropertyType, 5), null); } catch { }
+					}
+
+					// Обновляем список свойств предмета, чтобы клиент игры считал новые параметры
+					displayItem.InvalidateProperties();
+				}
+				// --- КОНЕЦ ВСТАВКИ ---
+
 				int displayPrice = Server.Custom.AdvancedNpcTrade.AdvancedNpcTradeMod.CalculateDiscountedPrice(this, from, buyItem.Price);
 
 				list.Add(
@@ -982,7 +1002,7 @@ namespace Server.Mobiles
 						buyItem.Name,
 						cont.Serial,
 						disp == null ? (Serial)0x7FC0FFEE : disp.Serial,
-						displayPrice, // Используем измененную цену вместо оригинальной buyItem.Price
+						displayPrice,
 						buyItem.Amount,
 						buyItem.ItemID,
 						buyItem.Hue));
@@ -1587,6 +1607,23 @@ namespace Server.Mobiles
 								item.MoveToWorld(buyer.Location, buyer.Map);
 							}
 						}
+					}
+				}
+
+				// ВСТАВКА МОДА: Если игрок покупает легендарный артефакт, наделяем его магической силой на лету
+				if (bii.Name != null && bii.Name.Contains("[Легенда]"))
+				{
+					if (item is BaseWeapon weapon)
+						BaseRunicTool.ApplyAttributesTo(weapon, 5, 95, 100);
+					else if (item is BaseArmor armor)
+						BaseRunicTool.ApplyAttributesTo(armor, 5, 95, 100);
+					else if (item is BaseJewel jewel)
+						BaseRunicTool.ApplyAttributesTo(jewel, 5, 95, 100);
+
+					var powerProp = item.GetType().GetProperty("ItemPower");
+					if (powerProp != null && powerProp.CanWrite)
+					{
+						try { powerProp.SetValue(item, Enum.ToObject(powerProp.PropertyType, 5), null); } catch { }
 					}
 				}
 
