@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Server.Items;
 using Server.Network;
+using Server.Custom.Seasons;
 
 namespace Server.Misc
 {
@@ -334,11 +335,24 @@ namespace Server.Misc
             }
         }
 
-        public virtual void OnTick()
+                public virtual void OnTick()
         {
             if (this.m_Stage == 0)
             {
-                this.m_Active = (this.m_ChanceOfPercipitation > Utility.Random(100));
+                int currentSeason = this.m_Facet.Season; // 0-Весна, 1-Лето, 2-Осень, 3-Зима
+                int modifiedChance = this.m_ChanceOfPercipitation;
+
+                switch (currentSeason)
+                {
+                    case 0: modifiedChance = 30; break; // ВЕСНА
+                    case 1: modifiedChance = 10; break; // ЛЕТО
+                    case 2: modifiedChance = 55; break; // ОСЕНЬ
+                    case 3: modifiedChance = 40; break; // ЗИМА
+                }
+
+                this.m_Active = (modifiedChance > Utility.Random(100));
+                
+                // Используем оригинальный шанс для определения экстремальной погоды (например, 5% шанс)
                 this.m_ExtremeTemperature = (this.m_ChanceOfExtremeTemperature > Utility.Random(100));
 
                 if (this.m_MoveSpeed > 0)
@@ -355,11 +369,6 @@ namespace Server.Misc
 
                 int type, density, temperature;
 
-                temperature = this.m_Temperature;
-
-                if (this.m_ExtremeTemperature)
-                    temperature *= -1;
-
                 if (this.m_Stage < 15)
                 {
                     density = this.m_Stage * 5;
@@ -374,15 +383,76 @@ namespace Server.Misc
                         density = 70;
                 }
 
+                int activeSeason = this.m_Facet.Season;
+
+                if (activeSeason == 3) // ЗИМА
+                {
+                    type = 2; // Строго СНЕГ
+                    
+                    if (this.m_ExtremeTemperature)
+                    {
+                        temperature = -30; // ЭКСТРЕМАЛЬНЫЙ БУРАН: Лютый мороз
+                        density += 40;     // Очень густой снег
+                    }
+                    else
+                    {
+                        temperature = -10; // Обычная зима
+                        density += 15;
+                    }
+                }
+                else // ВЕСНА (0), ЛЕТО (1), ОСЕНЬ (2)
+                {
+                    type = 0; // Строго ДОЖДЬ
+                    
+                    if (activeSeason == 2) // Осень
+                    {
+                        if (this.m_ExtremeTemperature)
+                        {
+                            temperature = 5;  // ЭКСТРЕМАЛЬНЫЙ ШТОРМ: Ледяной ливень близко к нулю
+                            density += 45;    // Максимальная стена воды
+                        }
+                        else
+                        {
+                            temperature = 15; // Обычная осень
+                            density += 20;
+                        }
+                    }
+                    else if (activeSeason == 1) // Лето
+                    {
+                        if (this.m_ExtremeTemperature)
+                        {
+                            // АНОМАЛЬНАЯ ЖАРА: Солнце печет, дождя почти нет
+                            temperature = 40; 
+                            density = 5; // Едва заметные капли, испаряющиеся на лету
+                        }
+                        else
+                        {
+                            temperature = 25; // Обычное лето
+                            density = Math.Max(5, density - 15);
+                        }
+                    }
+                    else // Весна
+                    {
+                        if (this.m_ExtremeTemperature)
+                        {
+                            temperature = 10; 
+                            density += 25; // ВЕСЕННЯЯ ГРОЗА: Сильный ливень
+                        }
+                        else
+                        {
+                            temperature = 18; // Обычная весна
+                        }
+                    }
+                }
+
+                // Ограничиваем верхний порог плотности осадков для стабильности клиента UO
+                if (density > 95)
+                    density = 95;
+
                 if (density == 0)
                     type = 0xFE;
-                else if (temperature > 0)
-                    type = 0;
-                else
-                    type = 2;
 
                 IList<NetState> states = NetState.Instances;
-
                 Packet weatherPacket = null;
 
                 for (int i = 0; i < states.Count; ++i)
@@ -413,6 +483,7 @@ namespace Server.Misc
             this.m_Stage++;
             this.m_Stage %= 30;
         }
+
     }
 
     public class WeatherMap : MapItem
