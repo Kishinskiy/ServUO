@@ -31,6 +31,7 @@ namespace Server.Mobiles
         { 
             public InternalBuyInfo() 
             {
+                Add(new GenericBuyInfo("Бочка Городского Провианта (Пустая)", typeof(Server.Custom.GarrisonSupply.GarrisonSupplyCrate), 1000, 20, 0x0FAE, 1424, new object[] { Server.Custom.GarrisonSupply.SupplyType.Cooking }));
                 Add(new GenericBuyInfo("1044567", typeof(Skillet), 3, 20, 0x97F, 0));
                 Add(new GenericBuyInfo(typeof(BreadLoaf), 5, 20, 0x103B, 0, true));
                 Add(new GenericBuyInfo(typeof(BreadLoaf), 5, 20, 0x103C, 0, true));

@@ -31,6 +31,7 @@ namespace Server.Mobiles
         {
             public InternalBuyInfo()
             {
+                Add(new GenericBuyInfo("Тюк Армейского Обмундирования (Пустой)", typeof(Server.Custom.GarrisonSupply.GarrisonSupplyCrate), 1000, 20, 0x0E7A, 2417, new object[] { Server.Custom.GarrisonSupply.SupplyType.Tailor }));
                 Add(new GenericBuyInfo(typeof(SewingKit), 3, 20, 0xF9D, 0)); 
                 Add(new GenericBuyInfo(typeof(Scissors), 11, 20, 0xF9F, 0));
                 Add(new GenericBuyInfo(typeof(DyeTub), 8, 20, 0xFAB, 0)); 

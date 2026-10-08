@@ -135,7 +135,7 @@ namespace Server.Custom.Farms
                 return;
             }
 
-            if (plant.Watered)
+            if (plant.WaterLevel >= 100)
             {
                 from.SendMessage("Эта грядка уже отлично увлажнена!");
                 return;
@@ -153,7 +153,7 @@ namespace Server.Custom.Farms
             }
 
             // ПОЛИВ УСПЕШЕН:
-            plant.Watered = true;
+            plant.PourWater(from, 5);
             m_Can.Uses--;
 
             from.PlaySound(0x4E); // Звук брызг

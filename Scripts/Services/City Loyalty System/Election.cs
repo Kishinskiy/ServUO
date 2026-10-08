@@ -7,12 +7,25 @@ using System.Globalization;
 using Server.Accounting;
 using System.Linq;
 using Server.Gumps;
+using Server.Custom.CityDevelopment;
 
 namespace Server.Engines.CityLoyalty
 {
     [PropertyObject]
 	public class CityElection
 	{
+
+        // =========================================================================
+        // НАСТРОЙКА ИНТЕРВАЛОВ ВЫБОРОВ ДЛЯ ВАШЕГО ШАРДА ⏳
+        // =========================================================================
+        public static readonly TimeSpan NominationDuration = TimeSpan.FromDays(7.0); // Длительность выдвижения
+        public static readonly TimeSpan VotingDuration = TimeSpan.FromDays(7.0);     // Длительность голосования
+        public static readonly TimeSpan PeaceDuration = TimeSpan.FromDays(16.0);    // Перерыв между выборами (Итого цикл: 30 дней)
+        // =========================================================================
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public DateTime CurrentCycleStart { get; set; } // Время старта текущего цикла
+
         public static readonly int VotePeriod = 7;
         public static readonly int NominationDeadline = 24;
 
@@ -69,6 +82,7 @@ namespace Server.Engines.CityLoyalty
 
                     StartTimes = new DateTime[1];
                     StartTimes[0] = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day);
+
                 }
             }
         }
@@ -124,6 +138,45 @@ namespace Server.Engines.CityLoyalty
                         return false;
                     }
                 }
+
+                // =========================================================================
+                // ИНТЕГРАЦИЯ: ПОЛИТИЧЕСКИЙ ПЕРЕВОРОТ (Влияние Фракций на Выборы) 👑
+                // БЕЗОПАСНЫЙ ПОИСК ГОРОДА ФРАКЦИИ БЕЗ ENUM.TRYPARSE
+                // =========================================================================
+                if (Server.Factions.Town.Towns != null)
+                {
+                    string currentCityName = City.City.ToString();
+                    
+                    // Ищем фракционный город, имя которого совпадает с текущим городом лояльности
+                    Server.Factions.Town factionTown = Server.Factions.Town.Towns.FirstOrDefault(t => 
+                        string.Equals(t.ToString(), currentCityName, StringComparison.OrdinalIgnoreCase));
+
+                    if (factionTown != null && factionTown.Owner != null && factionTown.Owner.Definition != null)
+                    {
+                        string factionName = factionTown.Owner.Definition.Name;
+
+                        // Безопасное сравнение строк без использования .ToLower()
+                        bool isMinaxOrShadow = factionName.IndexOf("minax", StringComparison.OrdinalIgnoreCase) >= 0 || 
+                                               factionName.IndexOf("shadow", StringComparison.OrdinalIgnoreCase) >= 0;
+
+                        bool isOrderOrCouncil = factionName.IndexOf("britannia", StringComparison.OrdinalIgnoreCase) >= 0 || 
+                                                factionName.IndexOf("council", StringComparison.OrdinalIgnoreCase) >= 0;
+
+                        if (isMinaxOrShadow && pm.Karma > -2000)
+                        {
+                            pm.SendMessage(0x22, "Этот город находится под оккупацией Синдиката Хаоса! Законопослушные граждане не допускаются к выборам Губернатора.");
+                            return false;
+                        }
+                        else if (isOrderOrCouncil && pm.Karma < 2000)
+                        {
+                            pm.SendMessage(0x22, "Этот город верен Короне! Лица с дурной репутацией не могут выдвигаться на пост Губернатора.");
+                            return false;
+                        }
+                    }
+                }
+                // =========================================================================
+
+
 
                 Candidates.Add(new BallotEntry(pm, pentry.Love, pentry.Hate));
                 pm.PrivateOverheadMessage(Network.MessageType.Regular, 0x3B2, 1153905, pm.NetState); // *You etch your name into the stone* 
@@ -281,18 +334,35 @@ namespace Server.Engines.CityLoyalty
 
         public void OnTick()
         {
-            foreach(DateTime dt in StartTimes)
+            // Инициализация при первом запуске новой системы
+            if (CurrentCycleStart == DateTime.MinValue)
             {
-                if (dt.Year == DateTime.Now.Year && DateTime.Now.Month == dt.Month && DateTime.Now.Day > 14 && !ElectionEnded)
-                {
-                    EndElection();
-                }
-                else if (dt.Year == DateTime.Now.Year && DateTime.Now.Month == dt.Month && DateTime.Now.Day == dt.Day && ElectionEnded)
-                {
-                    StartNewElection();
-                }
+                CurrentCycleStart = DateTime.Now;
+                StartNewElection();
+                return;
             }
 
+            TimeSpan timePassed = DateTime.Now - CurrentCycleStart;
+
+            // 1. ПРОВЕРКА ЗАВЕРШЕНИЯ ВЫБОРОВ
+            // Если идет голосование и общее время (Выдвижение + Голосование) вышло
+            if (!ElectionEnded && timePassed >= (NominationDuration + VotingDuration))
+            {
+                EndElection();
+            }
+            // 2. ПРОВЕРКА НАЧАЛА НОВЫХ ВЫБОРОВ
+            // Если выборы завершены и прошел период мирного времени (губернатор правит)
+            else if (ElectionEnded && timePassed >= (NominationDuration + VotingDuration + PeaceDuration))
+            {
+                CurrentCycleStart = DateTime.Now; // Сбрасываем таймер цикла в ноль
+                StartNewElection();
+                
+                // Оповещаем мир через глашатаев!
+                string notify = string.Format("Внимание, жители Содружества! В городе {0} начался новый избирательный цикл! Кандидаты, подойдите к Городскому Камню для регистрации!", City.Definition.Name);
+                CityNotificationSystem.GlobalGlobalBroadcast(notify);
+            }
+
+            // Автоматическое утверждение губернатора, если он не нажал кнопку "Принять должность" за 7 дней
             if (City.Governor == null && AutoPickGovernor != DateTime.MinValue && DateTime.Now > AutoPickGovernor)
             {
                 if (City.GovernorElect != null)
@@ -300,11 +370,8 @@ namespace Server.Engines.CityLoyalty
                     if (Candidates.Count > 0)
                     {
                         BallotEntry entry = Candidates.FirstOrDefault(c => c.Player == City.GovernorElect);
-
-                        if (entry != null)
-                            Candidates.Remove(entry);
+                        if (entry != null) Candidates.Remove(entry);
                     }
-
                     City.GovernorElect = null;
                 }
 
@@ -317,13 +384,17 @@ namespace Server.Engines.CityLoyalty
                 AutoPickGovernor = DateTime.MinValue;
             }
 
+            // Очистка просроченных кандидатов без одобрения (NominationDeadline = 24 часа)
             if (CanNominate())
             {
-                Candidates.ForEach(entry =>
+                for (int i = Candidates.Count - 1; i >= 0; i--)
+                {
+                    BallotEntry entry = Candidates[i];
+                    if (entry.TimeOfNomination + TimeSpan.FromHours(NominationDeadline) < DateTime.Now && entry.Endorsements.Count == 0)
                     {
-                        if (entry.TimeOfNomination + TimeSpan.FromHours(NominationDeadline) < DateTime.Now && entry.Endorsements.Count == 0)
-                            Candidates.Remove(entry);
-                    });
+                        Candidates.RemoveAt(i);
+                    }
+                }
             }
         }
 
@@ -441,17 +512,12 @@ namespace Server.Engines.CityLoyalty
 
         public bool CanNominate(out DateTime until)
         {
-            until = DateTime.Now;
-            foreach (DateTime dt in StartTimes)
-            {
-                if (dt.Year == DateTime.Now.Year && DateTime.Now.Month == dt.Month && DateTime.Now <= dt.AddDays(VotePeriod))
-                {
-                    until = dt.AddDays(VotePeriod);
-                    return true;
-                }
-            }
+            until = CurrentCycleStart + NominationDuration;
+            
+            if (CurrentCycleStart == DateTime.MinValue || ElectionEnded)
+                return false;
 
-            return false;
+            return DateTime.Now <= until;
         }
 
         public bool CanVote()
@@ -462,18 +528,13 @@ namespace Server.Engines.CityLoyalty
 
         public bool CanVote(out DateTime until)
         {
-            until = DateTime.Now;
-            foreach (DateTime dt in StartTimes)
-            {
-                if (dt.Year == DateTime.Now.Year && DateTime.Now.Month == dt.Month && DateTime.Now > dt.AddDays(VotePeriod) && DateTime.Now <= dt.AddDays(VotePeriod * 2))
-                {
-                    until = dt.AddDays(VotePeriod * 2);
+            DateTime voteStart = CurrentCycleStart + NominationDuration;
+            until = voteStart + VotingDuration;
 
-                    return true;
-                }
-            }
+            if (CurrentCycleStart == DateTime.MinValue || ElectionEnded)
+                return false;
 
-            return false;
+            return DateTime.Now > voteStart && DateTime.Now <= until;
         }
 
         public void EndElection()
@@ -486,6 +547,19 @@ namespace Server.Engines.CityLoyalty
                 City.GovernorElect = Candidates[0].Player;
 
                 AutoPickGovernor = DateTime.Now + TimeSpan.FromDays(7);
+                // =========================================================================
+                // ТРИГГЕР ГЛАШАТАЕВ: Выборы окончены! 📢
+                // =========================================================================
+                if (City.GovernorElect != null)
+                {
+                    string alert = string.Format("Слушайте все! Подсчет голосов завершен! В городе {0} на выборах победил почтенный {1}! Да здравствует избранный Губернатор!", 
+                        City.Definition.Name, 
+                        City.GovernorElect.Name);
+                    
+                    CityNotificationSystem.GlobalGlobalBroadcast(alert);
+                }
+                // =========================================================================
+
             }
 
             if (City.GovernorElect == null)
@@ -521,8 +595,8 @@ namespace Server.Engines.CityLoyalty
 
         public void Serialize(GenericWriter writer)
         {
-            writer.Write(0);
-
+            writer.Write(1); 
+            writer.Write(CurrentCycleStart);
             writer.Write(ElectionEnded);
             writer.Write(AutoPickGovernor);
 
@@ -540,6 +614,10 @@ namespace Server.Engines.CityLoyalty
             Candidates = new List<BallotEntry>();
 
             int version = reader.ReadInt();
+            if (version >= 1)
+            {
+                CurrentCycleStart = reader.ReadDateTime();
+            }
 
             ElectionEnded = reader.ReadBool();
             AutoPickGovernor = reader.ReadDateTime();

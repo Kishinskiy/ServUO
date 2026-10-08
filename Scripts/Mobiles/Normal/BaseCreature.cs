@@ -5380,7 +5380,7 @@ namespace Server.Mobiles
         protected bool m_Spawning;
         protected int m_KillersLuck;
 
-        public virtual void GenerateLoot(bool spawning)
+                public virtual void GenerateLoot(bool spawning)
         {
             if (m_NoLootOnDeath || m_Allured)
                 return;
@@ -5418,9 +5418,25 @@ namespace Server.Mobiles
                 }
             }
 
+            // =========================================================================
+            // ДОБАВЛЕНО: БОНУС К ЗОЛОТУ ОТ РАНГА БЕСТИАРИЯ 💰✨
+            // Метод сработает только при реальной смерти (не при спавне)
+            // =========================================================================
+            if (!spawning && this.Backpack != null)
+            {
+                // Ищем золото среди сгенерированного лута в бэкпаке/трупе существа
+                Item goldItem = this.Backpack.FindItemByType(typeof(Server.Items.Gold));
+                if (goldItem != null)
+                {
+                    // Передаем золото в движок Бестиария для увеличения его количества
+                    Server.Custom.ExileHunterBestiary.HunterBestiaryEngine.ModifyLootGold(this, goldItem);
+                }
+            }
+
             m_Spawning = false;
             m_KillersLuck = 0;
         }
+
 
         public virtual void GenerateLoot()
         { }

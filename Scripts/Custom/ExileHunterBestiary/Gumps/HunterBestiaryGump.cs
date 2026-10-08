@@ -47,25 +47,24 @@ namespace Server.Custom.ExileHunterBestiary.Gumps
             // Book Icon
             AddItem(25, 20, 0x2252, 1153);
 
-            // Header Titles (No bold, no italics, clear bright colors)
+            // Header Titles
             AddHtml(85, 20, 320, 24, "<BASEFONT COLOR=#FFFFFF SIZE=5>The Grand Hunter's Bestiary</BASEFONT>", false, false);
-            AddHtml(85, 46, 320, 20, "<BASEFONT COLOR=#D1C4E9 SIZE=3>Studied Treatises & Anatomical Lore</BASEFONT>", false, false);
+            AddHtml(85, 46, 320, 20, "<BASEFONT COLOR=#D1C4E9 SIZE=3>Изучение Анатомии и Рангов Монстров</BASEFONT>", false, false);
 
             // Overall Progress Badge
-            string overallStats = string.Format("<BASEFONT COLOR=#ECEFF1>Overall Mastery: <BASEFONT COLOR=#00FFCC>{0}/{1}</BASEFONT><BASEFONT COLOR=#ECEFF1> ({2:F0}%)</BASEFONT>", totalMastered, grandTotal, grandPct);
+            string overallStats = string.Format("<BASEFONT COLOR=#ECEFF1>Всего изучено: <BASEFONT COLOR=#00FFCC>{0}/{1}</BASEFONT><BASEFONT COLOR=#ECEFF1> ({2:F0}%)</BASEFONT>", totalMastered, grandTotal, grandPct);
             AddHtml(380, 24, 230, 22, overallStats, false, false);
-            AddHtml(380, 46, 230, 20, "<BASEFONT COLOR=#FFE082>Permanent +20% Damage per Mastered</BASEFONT>", false, false);
+            AddHtml(380, 46, 230, 20, "<BASEFONT COLOR=#FFE082>Ранги 1-5 даруют бонусы к урону и золоту</BASEFONT>", false, false);
 
             // Sidebar / Content Vertical Divider
             AddImageTiled(185, 78, 2, 388, 9354);
 
-            // Sidebar: Categories
+            // Sidebar: Categories (Вывод текущего Ранга всей группы)
             int catY = 82;
             foreach (BestiaryCategory cat in Enum.GetValues(typeof(BestiaryCategory)))
             {
                 bool isSelected = cat == m_Category;
-                int catTotal = HunterBestiaryEngine.EntriesByCategory[cat].Count;
-                int catMastered = profile != null ? profile.GetCategoryMasteredCount(cat) : 0;
+                int catGroupLevel = profile != null ? profile.GetGroupLevel(cat) : 0;
 
                 int btnId = 100 + (int)cat;
                 int normalBtn = isSelected ? 4006 : 4005;
@@ -73,9 +72,10 @@ namespace Server.Custom.ExileHunterBestiary.Gumps
 
                 AddButton(24, catY + 4, normalBtn, pressBtn, btnId, GumpButtonType.Reply, 0);
 
-                string catColor = isSelected ? "#00FFCC" : (catMastered == catTotal && catTotal > 0 ? "#69F0AE" : "#ECEFF1");
-                string catLabel = string.Format("<BASEFONT COLOR={0}>{1}</BASEFONT> <BASEFONT COLOR=#90A4AE>({2}/{3})</BASEFONT>", catColor, cat, catMastered, catTotal);
-                AddHtml(60, catY + 5, 120, 20, catLabel, false, false);
+                // Окрашиваем текст: если ранг максимальный (5) — подсвечиваем сочным зеленым
+                string catColor = isSelected ? "#00FFCC" : (catGroupLevel == 5 ? "#69F0AE" : "#ECEFF1");
+                string catLabel = string.Format("<BASEFONT COLOR={0}>{1}</BASEFONT> <BASEFONT COLOR=#90A4AE>[Ранг {2}/5]</BASEFONT>", catColor, cat, catGroupLevel);
+                AddHtml(45, catY + 5, 140, 20, catLabel, false, false);
 
                 catY += 36;
             }
@@ -83,12 +83,17 @@ namespace Server.Custom.ExileHunterBestiary.Gumps
             // Right Panel: Category Content
             var creatureList = HunterBestiaryEngine.EntriesByCategory[m_Category];
             int catCount = creatureList.Count;
-            int catLearned = profile != null ? profile.GetCategoryMasteredCount(m_Category) : 0;
-            double catPercent = catCount > 0 ? (catLearned * 100.0 / catCount) : 0.0;
+            int currentActiveGroupLevel = profile != null ? profile.GetGroupLevel(m_Category) : 0;
+
+            int currentGroupDamage = currentActiveGroupLevel * 2;
+            int currentGroupGold = currentActiveGroupLevel * 3;
 
             // Category Subheader
-            AddHtml(200, 82, 400, 24, string.Format("<BASEFONT COLOR=#FFFFFF SIZE=4>{0} Studies</BASEFONT>", m_Category), false, false);
-            AddHtml(200, 106, 400, 20, string.Format("<BASEFONT COLOR=#ECEFF1>Category Mastery: <BASEFONT COLOR=#00FFCC>{0} / {1}</BASEFONT><BASEFONT COLOR=#ECEFF1> ({2:F0}% completed)</BASEFONT>", catLearned, catCount, catPercent), false, false);
+            AddHtml(200, 82, 400, 24, string.Format("<BASEFONT COLOR=#FFFFFF SIZE=4>Категория: {0}</BASEFONT>", m_Category), false, false);
+            
+            // Наглядно выводим текущие боевые бонусы для выбранной вкладки
+            string groupBonusText = string.Format("<BASEFONT COLOR=#ECEFF1>Текущий Ранг: <BASEFONT COLOR=#00FFCC>{0} / 5</BASEFONT> <BASEFONT COLOR=#69F0AE>(+{1}% урон, +{2}% золото)</BASEFONT></BASEFONT>", currentActiveGroupLevel, currentGroupDamage, currentGroupGold);
+            AddHtml(200, 106, 400, 20, groupBonusText, false, false);
 
             AddImageTiled(195, 128, 420, 2, 9354);
 
@@ -104,34 +109,47 @@ namespace Server.Custom.ExileHunterBestiary.Gumps
             for (int i = startIndex; i < endIndex; i++)
             {
                 var creature = creatureList[i];
-                bool isLearned = profile != null && profile.HasLearned(creature.Id);
+                
+                // Получаем точный опыт конкретного моба (0 - 300)
+                int currentXp = profile != null ? profile.GetProgress(creature.Id) : 0;
+                bool hasAnyProgress = currentXp > 0;
+                bool isMaxed = currentXp >= 300;
 
                 // Entry Frame
-                AddBackground(195, entryY, 418, 34, isLearned ? 9200 : 9300);
+                AddBackground(195, entryY, 418, 34, isMaxed ? 9200 : 9300);
                 AddAlphaRegion(197, entryY + 2, 414, 30);
 
-                // Status Icon / Bullet (entryY + 6)
-                if (isLearned)
+                // Status Icon / Bullet
+                if (isMaxed)
                 {
-                    AddImage(202, entryY + 6, 4017); // Green check/star
+                    AddImage(202, entryY + 6, 4017); // Зеленая звезда (Максимум изучено)
+                }
+                else if (hasAnyProgress)
+                {
+                    AddImage(202, entryY + 6, 4023); // Желтый маркер (В процессе изучения)
                 }
                 else
                 {
-                    AddImage(202, entryY + 6, 4020); // Gray uncompleted circle
+                    AddImage(202, entryY + 6, 4020); // Серый пустой маркер
                 }
 
-                // Creature Display Name (moved 4mm right: X = 248)
-                string nameColor = isLearned ? "#FFFFFF" : "#B0BEC5";
-                AddHtml(248, entryY + 7, 168, 20, string.Format("<BASEFONT COLOR={0}>{1}</BASEFONT>", nameColor, creature.DisplayName), false, false);
+                // Creature Display Name
+                string nameColor = isMaxed ? "#69F0AE" : (hasAnyProgress ? "#FFFFFF" : "#B0BEC5");
+                AddHtml(235, entryY + 7, 168, 20, string.Format("<BASEFONT COLOR={0}>{1}</BASEFONT>", nameColor, creature.DisplayName), false, false);
 
-                // Status & Bonus Text
-                if (isLearned)
+                // Progress & Experience Display
+                if (isMaxed)
                 {
-                    AddHtml(420, entryY + 7, 185, 20, "<BASEFONT COLOR=#69F0AE>+20% Damage Mastered</BASEFONT>", false, false);
+                    AddHtml(410, entryY + 7, 195, 20, "<BASEFONT COLOR=#69F0AE>[ИЗУЧЕНО: 300/300 XP]</BASEFONT>", false, false);
+                }
+                else if (hasAnyProgress)
+                {
+                    string progressStr = string.Format("<BASEFONT COLOR=#00E5FF>[Прогресс: {0}/300 XP]</BASEFONT>", currentXp);
+                    AddHtml(410, entryY + 7, 195, 20, progressStr, false, false);
                 }
                 else
                 {
-                    AddHtml(420, entryY + 7, 185, 20, "<BASEFONT COLOR=#78909C>Pending Treatise</BASEFONT>", false, false);
+                    AddHtml(410, entryY + 7, 195, 20, "<BASEFONT COLOR=#78909C>[Не изучено: 0/300 XP]</BASEFONT>", false, false);
                 }
 
                 entryY += 38;
@@ -153,44 +171,41 @@ namespace Server.Custom.ExileHunterBestiary.Gumps
                 AddHtml(510, 478, 40, 20, "<BASEFONT COLOR=#ECEFF1>Next</BASEFONT>", false, false);
             }
 
-            AddHtml(360, 478, 120, 20, string.Format("<BASEFONT COLOR=#B0BEC5>Page {0} of {1}</BASEFONT>", m_Page + 1, maxPages), false, false);
+            AddHtml(360, 478, 120, 20, string.Format("<BASEFONT COLOR=#B0BEC5>Страница {0} из {1}</BASEFONT>", m_Page + 1, maxPages), false, false);
 
             // Close Button
             AddButton(30, 476, 4017, 4019, 0, GumpButtonType.Reply, 0);
             AddHtml(65, 478, 50, 20, "<BASEFONT COLOR=#FFFFFF>Close</BASEFONT>", false, false);
         }
 
-        public override void OnResponse(NetState sender, RelayInfo info)
+        // Поддержка вашей рабочей версии NetState из Варианта 2
+        public override void OnResponse(Server.Network.NetState sender, RelayInfo info)
         {
+            if (sender == null) return;
             Mobile from = sender.Mobile;
-            if (from == null)
-                return;
+            if (from == null) return;
 
             int id = info.ButtonID;
 
             if (id == 0)
             {
-                // Close
-                return;
+                return; // Закрыть окно
             }
 
             if (id == 10)
             {
-                // Next page
                 from.SendGump(new HunterBestiaryGump(from, m_Category, m_Page + 1));
                 return;
             }
 
             if (id == 11)
             {
-                // Previous page
                 from.SendGump(new HunterBestiaryGump(from, m_Category, Math.Max(0, m_Page - 1)));
                 return;
             }
 
             if (id >= 100 && id < 150)
             {
-                // Category switch
                 BestiaryCategory newCat = (BestiaryCategory)(id - 100);
                 from.SendGump(new HunterBestiaryGump(from, newCat, 0));
                 return;

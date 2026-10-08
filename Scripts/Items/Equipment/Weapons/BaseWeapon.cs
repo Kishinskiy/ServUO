@@ -20,6 +20,7 @@ using Server.Spells.Ninjitsu;
 using Server.Spells.Sixth;
 using Server.Spells.Spellweaving;
 using Server.Spells.SkillMasteries;
+using Server.Custom.CombatCodex;
 #endregion
 
 namespace Server.Items
@@ -1778,6 +1779,7 @@ namespace Server.Items
 
                 // Skill Masteries
                 chance += HeightenedSensesSpell.GetParryBonus(defender);
+				CombatCodex.ModifyDefense(defender, ref chance);
 
 				// Parry/Bushido over 100 grants a 5% bonus.
 				if (parry >= 100.0 || bushido >= 100.0)
@@ -1821,6 +1823,8 @@ namespace Server.Items
 				double chance = (parry * bushido) / divisor;
 
 				double aosChance = parry / 800.0;
+
+				CombatCodex.ModifyDefense(defender, ref chance);
 
 				// Parry or Bushido over 100 grant a 5% bonus.
 				if (parry >= 100.0)
@@ -3021,6 +3025,8 @@ namespace Server.Items
             BaseFamiliar.OnHit(attacker, damageable);
             WhiteTigerFormSpell.OnHit(attacker, defender);
 			XmlAttach.OnWeaponHit(this, attacker, defender, damageGiven);
+			CombatCodex.OnWeaponHit(attacker, defender, ref damage);
+
 		}
 
         public Direction GetOppositeDir(Direction d)

@@ -8,6 +8,7 @@ using Server.Guilds;
 using System.Collections.Generic;
 using System.Linq;
 using Server.Items;
+using Server.Custom.CityDevelopment;
 
 namespace Server.Engines.CityLoyalty
 {
@@ -407,9 +408,35 @@ namespace Server.Engines.CityLoyalty
 
         public override void AddGumpLayout()
         {
+            // =========================================================================
+            // ДОБАВЛЕННЫЙ БЛОК: Считывание кастомных данных прогресса города 📊
+            // =========================================================================
+            string devStatusText = "";
+            if (City != null)
+            {
+                CityProgress progress = CityDevelopmentMod.GetCityProfile(City.City);
+                if (progress != null)
+                {
+                    // Рассчитываем суточную стоимость содержания текущего уровня
+                    double baseCost = CityDevelopmentMod.BaseMaintenanceCost * Math.Pow(CityDevelopmentMod.MaintenanceMultiplier, progress.Level - 1);
+
+                    devStatusText = string.Format(
+                        "<br><br><basefont color=#FFD700>Уровень развития региона: {0} из 5</basefont><br>" +
+                        "<basefont color=#98FB98>Припасы снабжения: {1:F1} / {2:F1}</basefont><br>" +
+                        "<basefont color=#FFA07A>Расход казны в сутки: {3:N0} gp</basefont>",
+                        progress.Level,
+                        progress.CurrentSupplies,
+                        progress.RequiredSupplies,
+                        baseCost
+                    );
+                }
+            }
+            // =========================================================================
+
             if (City.Election == null || !City.Election.Ongoing)
             {
-                AddBackground(0, 0, 400, 150, 5054);
+                // Высота подложки увеличена со 150 до 230, чтобы влез кастомный текст
+                AddBackground(0, 0, 400, 230, 5054);
                 AddHtmlLocalized(10, 12, 150, 20, 1155758, 0xFFFF, false, false); // City Stone
 
                 DateTime next = City.Election.NextElection();
@@ -417,11 +444,15 @@ namespace Server.Engines.CityLoyalty
                 AddHtmlLocalized(20, 45, 360, 60, 1153898, String.Format("{0}\t{1}\t{2}", 
                     City.Definition.Name,
                     City.Governor == null ? "Vacant" : City.Governor.Name, 
-                    next.ToString()), 0xFFFF, false, false); // The current Governor of ~1_CITY~ is ~2_PLAYER~.  The next election cycle begins after ~3_DAYS~. 
+                    next.ToString()), 0xFFFF, false, false); 
+
+                // Выводим кастомный HTML статус региона точно под официальным текстом
+                AddHtml(20, 110, 360, 90, devStatusText, false, false);
             }
             else
             {
-                AddBackground(0, 0, 500, 182, 5054);
+                // Высота подложки во время выборов увеличена со 182 до 270
+                AddBackground(0, 0, 500, 270, 5054);
                 AddHtmlLocalized(10, 12, 150, 20, 1155758, 0xFFFF, false, false); // City Stone
 
                 if (City.Election.CanNominate())
@@ -436,8 +467,12 @@ namespace Server.Engines.CityLoyalty
                 AddButton(10, 110, 4005, 4007, 3, GumpButtonType.Reply, 0);
                 AddHtmlLocalized(45, 110, 250, 20, 1153899, 0xFFFF, false, false); // View List of Current Candidates 
 
-                AddButton(10, 150, 4005, 4007, 0, GumpButtonType.Reply, 0);
-                AddHtmlLocalized(45, 150, 250, 20, 1060675, 0xFFFF, false, false); // CLOSE
+                // Смещаем кастомный статус в правую часть гампа (X=280), чтобы не перекрывать кнопки выборов
+                AddHtml(280, 40, 210, 120, devStatusText, false, false);
+
+                // Кнопка CLOSE смещена со 150 на 190, чтобы фоновое окно выглядело гармонично
+                AddButton(10, 190, 4005, 4007, 0, GumpButtonType.Reply, 0);
+                AddHtmlLocalized(45, 190, 250, 20, 1060675, 0xFFFF, false, false); // CLOSE
             }
         }
 
@@ -694,6 +729,35 @@ namespace Server.Engines.CityLoyalty
                     City.Treasury -= CityLoyaltySystem.TradeDealCost;
 
                     City.OnNewTradeDeal(_Deals[id]);
+
+                    // =========================================================================
+                    // ИНТЕГРАЦИЯ: ФРАКЦИОННЫЕ БАФФЫ КРАФТА ДЛЯ ГУБЕРНАТОРА 🛠️
+                    // БЕЗОПАСНЫЙ ПОИСК ГОРОДА ФРАКЦИИ БЕЗ ENUM.TRYPARSE И БЕЗ .TOLOWER()
+                    // =========================================================================
+                    if (Server.Factions.Town.Towns != null)
+                    {
+                        string currentCityName = City.City.ToString();
+                        Server.Factions.Town fTown = Server.Factions.Town.Towns.FirstOrDefault(t => 
+                            string.Equals(t.ToString(), currentCityName, StringComparison.OrdinalIgnoreCase));
+
+                        if (fTown != null && fTown.Owner != null && fTown.Owner.Definition != null)
+                        {
+                            string ownerName = fTown.Owner.Definition.Name;
+
+                            // Если город принадлежит Магам (Council of Mages) и выбрана гильдия магов
+                            if (_Deals[id] == TradeDeal.GuildOfArcaneArts && ownerName.IndexOf("Council", StringComparison.OrdinalIgnoreCase) >= 0)
+                            {
+                                User.SendMessage(0x35, "[Фракционный Резонанс] Магический совет усилил сделку! Все жители получают +5% к шансу создать Exceptional свитки и зелья!");
+                            }
+                            // Если город принадлежит Воинам Короны (True Britannians) и выбрана инженерная/кузнечная гильдия
+                            else if (_Deals[id] == TradeDeal.OrderOfEngineers && ownerName.IndexOf("Britannians", StringComparison.OrdinalIgnoreCase) >= 0)
+                            {
+                                User.SendMessage(0x35, "[Фракционный Резонанс] Кузнецы Короны дают буст! Скорость сборки ящиков снабжения гарнизона увеличена!");
+                            }
+                        }
+                    }
+                    // =========================================================================
+
                     City.HeraldMessage(1154058, String.Format("{0}\t#{1}", City.Definition.Name, (int)_Deals[id] - 12));
                 }
             }
@@ -731,15 +795,78 @@ namespace Server.Engines.CityLoyalty
 
         public override void AddGumpLayout()
         {
-            AddBackground(0, 0, 400, 400, 5054);
-            AddHtmlLocalized(0, 15, 400, 20, 1154015, false, false); // <CENTER>City Title</CENTER>
+            // =========================================================================
+            // ДОБАВЛЕННЫЙ БЛОК: Считывание кастомных данных прогресса города 📊
+            // =========================================================================
+            string devStatusText = "";
+            if (City != null)
+            {
+                CityProgress progress = CityDevelopmentMod.GetCityProfile(City.City);
+                if (progress != null)
+                {
+                    // Рассчитываем суточную стоимость содержания текущего уровня
+                    double baseCost = CityDevelopmentMod.BaseMaintenanceCost * Math.Pow(CityDevelopmentMod.MaintenanceMultiplier, progress.Level - 1);
 
-            AddHtmlLocalized(15, 45, 370, 80, 1154016, false, false); // What title doth thou wish to bestow upon this citizen?<BR><BR>Note: All City Titles are automatically followed by "of (City Name)" where (City Name) is the name of the city. 
+                    devStatusText = string.Format(
+                        "<br><br><basefont color=#FFD700>Уровень развития региона: {0} из 5</basefont><br>" +
+                        "<basefont color=#98FB98>Припасы снабжения: {1:F1} / {2:F1}</basefont><br>" +
+                        "<basefont color=#FFA07A>Расход казны в сутки: {3:N0} gp</basefont>",
+                        progress.Level,
+                        progress.CurrentSupplies,
+                        progress.RequiredSupplies,
+                        baseCost
+                    );
+                }
+            }
+            // =========================================================================
 
-            AddImageTiled(50, 145, 250, 20, 3504);
-            AddTextEntry(51, 145, 249, 20, 0, 1, "");
-            AddButton(15, 145, 4023, 4024, 1, GumpButtonType.Reply, 0); 
+            if (City.Election == null || !City.Election.Ongoing)
+            {
+                // Увеличена высота подложки со 150 до 230, чтобы влез новый текст
+                AddBackground(0, 0, 400, 230, 5054); 
+                AddHtmlLocalized(10, 12, 150, 20, 1155758, 0xFFFF, false, false); // City Stone
+
+                DateTime next = City.Election.NextElection();
+
+                // Формируем базовую строку лора UO
+                string baseOfficialText = String.Format("{0}\t{1}\t{2}", 
+                    City.Definition.Name,
+                    City.Governor == null ? "Vacant" : City.Governor.Name, 
+                    next.ToString());
+
+                // Отрисовываем стандартный текст
+                AddHtmlLocalized(20, 45, 360, 60, 1153898, baseOfficialText, 0xFFFF, false, false); 
+                
+                // Выводим кастомные HTML данные под официальным текстом (на Y=110, высота 90)
+                AddHtml(20, 110, 360, 90, devStatusText, false, false);
+            }
+            else
+            {
+                // Увеличена высота подложки со 182 до 270, чтобы влез новый текст во время выборов
+                AddBackground(0, 0, 500, 270, 5054);
+                AddHtmlLocalized(10, 12, 150, 20, 1155758, 0xFFFF, false, false); // City Stone
+
+                if (City.Election.CanNominate())
+                {
+                    AddButton(10, 40, 4002, 4004, 1, GumpButtonType.Reply, 0);
+                    AddHtmlLocalized(45, 40, 250, 20, 1153901, 0xFFFF, false, false); // Nominate Yourself for the Ballot 
+                }
+
+                AddButton(10, 80, 4005, 4007, 2, GumpButtonType.Reply, 0);
+                AddHtmlLocalized(45, 80, 250, 20, 1153900, 0xFFFF, false, false); // View List of Current Nominees
+
+                AddButton(10, 110, 4005, 4007, 3, GumpButtonType.Reply, 0);
+                AddHtmlLocalized(45, 110, 250, 20, 1153899, 0xFFFF, false, false); // View List of Current Candidates 
+
+                // Выводим кастомные HTML данные (смещено в правую часть гампа X=280, чтобы не перекрывать кнопки)
+                AddHtml(280, 40, 210, 120, devStatusText, false, false);
+
+                // Сместили кнопку CLOSE чуть ниже (со 150 на 190)
+                AddButton(10, 190, 4005, 4007, 0, GumpButtonType.Reply, 0);
+                AddHtmlLocalized(45, 190, 250, 20, 1060675, 0xFFFF, false, false); // CLOSE
+            }
         }
+
 
         public override void OnResponse(RelayInfo info)
         {

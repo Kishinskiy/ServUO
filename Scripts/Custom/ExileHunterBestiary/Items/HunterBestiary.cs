@@ -33,15 +33,18 @@ namespace Server.Custom.ExileHunterBestiary.Items
             from.SendGump(new HunterBestiaryGump(from));
         }
 
+        // =========================================================================
+        // ИСПРАВЛЕНО: КРАСИВОЕ ОТОБРАЖЕНИЕ БОНУСОВ И РАНГОВ В ТУЛТИПЕ КНИГИ 🔍📖
+        // =========================================================================
         public override void GetProperties(ObjectPropertyList list)
         {
             base.GetProperties(list);
 
             list.Add(1070722, "<BASEFONT COLOR=#D1C4E9>Grand Grimoire of Monster Lore<BASEFONT COLOR=#FFFFFF>");
-            list.Add(1070722, "<BASEFONT COLOR=#ECEFF1>Tracks mastered treatises and combat bonuses<BASEFONT COLOR=#FFFFFF>");
-            list.Add(1070722, "<BASEFONT COLOR=#FFE082>Double-click to open Bestiary<BASEFONT COLOR=#FFFFFF>");
+            list.Add(1070722, "<BASEFONT COLOR=#FFE082>Дважды кликните, чтобы открыть Бестиарий<BASEFONT COLOR=#FFFFFF>");
         }
 
+        // Метод динамически пересчитывает ранги категорий и выводит сводку прямо на экран игрока
         public override void SendPropertiesTo(Mobile from)
         {
             var list = new ObjectPropertyList(this);
@@ -51,12 +54,30 @@ namespace Server.Custom.ExileHunterBestiary.Items
             int mastered = profile != null ? profile.TotalMastered : 0;
             int total = HunterBestiaryEngine.RegistryById.Count;
 
-            list.Add(1070722, string.Format("<BASEFONT COLOR=#00FFCC>Mastery Progress: {0} / {1} Creatures<BASEFONT COLOR=#FFFFFF>", mastered, total));
+            // Выводим общее количество открытых записей
+            list.Add(1070722, string.Format("<BASEFONT COLOR=#00FFCC>Исследовано монстров: {0} / {1}<BASEFONT COLOR=#FFFFFF>", mastered, total));
 
-            // if (OnGetProperties != null)
-            // {
-            //     OnGetProperties(this, list);
-            // }
+            // Построчно выводим текущий Ранг по каждой категории в стиле UO Outlands
+            if (profile != null)
+            {
+                foreach (BestiaryCategory cat in Enum.GetValues(typeof(BestiaryCategory)))
+                {
+                    int lvl = profile.GetGroupLevel(cat);
+                    
+                    if (lvl > 0)
+                    {
+                        // Подсвечиваем прокачанные категории зеленым цветом и пишем итоговые бонусы
+                        int damBonus = lvl * 2;
+                        int goldBonus = lvl * 3;
+                        list.Add(1070722, string.Format("<BASEFONT COLOR=#00E676>• {0}: Ранг {1}/5 (+{2}% урон, +{3}% золото)<BASEFONT COLOR=#FFFFFF>", cat, lvl, damBonus, goldBonus));
+                    }
+                    else
+                    {
+                        // Категории без прогресса оставляем серыми
+                        list.Add(1070722, string.Format("<BASEFONT COLOR=#90A4AE>• {0}: Ранг 0/5 (Не изучено)<BASEFONT COLOR=#FFFFFF>", cat));
+                    }
+                }
+            }
 
             list.Terminate();
             from.Send(list);
@@ -65,14 +86,12 @@ namespace Server.Custom.ExileHunterBestiary.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-
             writer.Write((int)0); // version
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-
             int version = reader.ReadInt();
         }
     }

@@ -20,6 +20,8 @@ namespace Server.Custom.CityDevelopment
 
     public static class CityDevelopmentMod
     {
+        public static readonly int DatabaseVersion = 1;
+        
         public static readonly int DevelopmentChance = 100; // 100% для удобства ваших тестов
 
         // ================= НАСТРОЙКА ЭКОНОМИКИ ГОРОДА =================
@@ -60,8 +62,20 @@ namespace Server.Custom.CityDevelopment
                     continue;
 
                 CityProgress progress = GetCityProfile(coreCity);
-                
-                // Если город развит до финала (5 уровень)
+
+                // =========================================================================
+                // СТАБИЛИЗАЦИЯ НАЛОГОВ МЭРА ⚖️
+                // Проверяет налог города на любом уровне и сбрасывает его в рамки коридора,
+                // если мэр установил нелегальную ставку.
+                // =========================================================================
+                if (progress != null)
+                {
+                    ApplyDynamicTaxToBaseSystem(t, progress.Level);
+                }
+
+                // =========================================================================
+                // СТАНДАРТНЫЙ СПАВН ЛЕГЕНДАРНЫХ КУПЦОВ
+                // =========================================================================
                 if (progress != null && progress.Level >= 5)
                 {
                     // Вызываем проверку спавна. Метод CheckMerchantSpawn сам проверит, 
@@ -88,7 +102,7 @@ namespace Server.Custom.CityDevelopment
         {
             if (player == null || originTown == null) return;
 
-            // Конвертируем фракционный Town в оригинальный City для базы данных
+            // Конвертируем фракционный Town ОТПРАВИТЕЛЯ в оригинальный City для базы данных
             if (!Enum.TryParse(originTown.ToString(), true, out Server.Engines.CityLoyalty.City coreCity))
                 return;
 
@@ -99,7 +113,7 @@ namespace Server.Custom.CityDevelopment
 
             if (progress.Level >= 5)
             {
-                player.SendMessage(89, $"Город {townName} уже достиг максимального уровня развития!");
+                player.SendMessage(89, $"Город-отправитель {townName} уже достиг максимального уровня развития!");
                 return;
             }
 
@@ -125,17 +139,18 @@ namespace Server.Custom.CityDevelopment
             // Планка требований (базовая х10: 250, 500, 1000, 2000)
             progress.RequiredSupplies = 250.0 * Math.Pow(2.0, progress.Level - 1);
 
-            // 2. НАЧИСЛЕНИЕ ОЧКОВ ЗА КВЕСТ
+            // 2. НАЧИСЛЕНИЕ ОЧКОВ ГОРОДУ-ОТПРАВИТЕЛЮ ЗА ВЫПОЛНЕННЫЙ ЗАКАЗ
             double targetChance = DevelopmentChance / 100.0;
 
             if (Utility.RandomDouble() < targetChance)
             {
                 progress.CurrentSupplies += pointsAdded;
 
-                player.SendMessage(88, $"[Развитие] Вы сдали экспортный заказ! Городу {townName} начислено +{pointsAdded:F2} очков.");
-                player.SendMessage(0x59, $"Текущий прогресс (онлайн {onlineCount}): {progress.CurrentSupplies:F2} / {progress.RequiredSupplies:F2}");
+                // Корректное системное сообщение: очки уходят городу, откуда был взят заказ
+                player.SendMessage(88, $"[Развитие] Торговый заказ успешно доставлен! Городу-отправителю {townName} начислено +{pointsAdded:F2} очков.");
+                player.SendMessage(0x59, $"Прогресс снабжения (онлайн {onlineCount}): {progress.CurrentSupplies:F2} / {progress.RequiredSupplies:F2}");
 
-                // 3. ПРОВЕРКА ТРИГГЕРА УЛУЧШЕНИЯ (Требуются очки И золото в казне)
+                // 3. ПРОВЕРКА ТРИГГЕРА УЛУЧШЕНИЯ ГОРОДА-ОТПРАВИТЕЛЯ (Требуются очки И золото в его казне)
                 long cityTreasury = GetCoreTreasury(townName);
 
                 if (progress.CurrentSupplies >= progress.RequiredSupplies && cityTreasury > 0)
@@ -147,16 +162,16 @@ namespace Server.Custom.CityDevelopment
 
                     ApplyDynamicTaxToBaseSystem(originTown, progress.Level);
 
-                    // ИСПРАВЛЕНО: Передаем player.Map третьим аргументом, чтобы декорации спавнились там, где находится купец
+                    // Спавним декорации и торговцев в городе-ОТПРАВИТЕЛЕ
                     CityDecorationMod.DecorateTown(originTown, progress.Level, player.Map);
                     CityLegendaryMerchantMod.CheckMerchantSpawn(originTown, progress.Level);
 
-                    string globalMsg = $"[Экономика] Город {townName} развился до {progress.Level} уровня благодаря вливаниям капитала и поставкам припасов!";
+                    string globalMsg = $"[Экономика] Город {townName} развился до {progress.Level} уровня благодаря успешной торговле и поставкам припасов!";
                     CommandHandlers.BroadcastMessage(AccessLevel.Player, 0x35, globalMsg);
                 }
                 else if (progress.CurrentSupplies >= progress.RequiredSupplies && cityTreasury <= 0)
                 {
-                    player.SendMessage(0x22, $"[Внимание] Город {townName} набрал очки для улучшения, но его казна пуста! Развитие заморожено.");
+                    player.SendMessage(0x22, $"[Внимание] Город {townName} набрал очки для улучшения, но казна отправления пуста! Развитие заморожено.");
                 }
             }
         }
@@ -201,11 +216,14 @@ namespace Server.Custom.CityDevelopment
                     long finalMaintenanceCost = (long)(levelCost * onlineScale);
 
                     SubtractCoreTreasury(townName, finalMaintenanceCost);
-                    progress.CurrentSupplies -= 0.01;
+                    
+                    // Мягкое падение очков при штатном списании
+                    progress.CurrentSupplies -= 1.0; 
                 }
                 else
                 {
-                    progress.CurrentSupplies -= 0.50; // КРИЗИС
+                    // КРИЗИС: Казна пуста, город стремительно теряет припасы
+                    progress.CurrentSupplies -= 25.0; 
                 }
 
                 // ПРОВЕРКА ПАДЕНИЯ УРОВНЯ
@@ -215,13 +233,16 @@ namespace Server.Custom.CityDevelopment
                     {
                         progress.Level--;
                         progress.RequiredSupplies = 250.0 * Math.Pow(2.0, progress.Level - 1);
-                        progress.CurrentSupplies = 0.0; // Очки сбрасываются в 0 на новом уровне
+                        
+                        // ИСПРАВЛЕНО: Вместо 0.0 выставляем буфер в 10% от новой планки,
+                        // чтобы город не ушел в минус и не упал на следующем тике еще ниже.
+                        progress.CurrentSupplies = progress.RequiredSupplies * 0.10; 
 
                         ApplyDynamicTaxToBaseSystem(t, progress.Level);
 
-                        // ИСПРАВЛЕНО: Передаем карту лояльности Trammel, где запущены основные фракционные города
+                        // Передаем карту лояльности Trammel и Felucca
                         CityDecorationMod.RemoveTownDecoration(t, progress.Level + 1, Map.Trammel);
-                        CityDecorationMod.RemoveTownDecoration(t, progress.Level + 1, Map.Felucca); // Чистим зеркало во Felucca
+                        CityDecorationMod.RemoveTownDecoration(t, progress.Level + 1, Map.Felucca); 
                         CityLegendaryMerchantMod.RemoveMerchant(t);
 
                         string decayMsg = $"[Кризис] Город {townName} обанкротился или остался без снабжения! Уровень упал до {progress.Level}.";
@@ -229,7 +250,7 @@ namespace Server.Custom.CityDevelopment
                     }
                     else
                     {
-                        progress.CurrentSupplies = 0.0;
+                        progress.CurrentSupplies = 0.0; // На 1 уровне ниже падать некуда
                     }
                 }
             }
@@ -268,16 +289,37 @@ namespace Server.Custom.CityDevelopment
         private static void ApplyDynamicTaxToBaseSystem(Town town, int cityLevel)
         {
             if (town == null) return;
-            int baseTax = 2;
+            
+            // 1. Вычисляем целевой базовый налог по уровню развития города 📉
+            var targetTax = 8;
             switch (cityLevel)
             {
-                case 1: baseTax = 2; break;
-                case 2: baseTax = 3; break;
-                case 3: baseTax = 5; break;
-                case 4: baseTax = 6; break;
-                case 5: baseTax = 8; break;
+                case 1: targetTax = 8; break;
+                case 2: targetTax = 6; break;
+                case 3: targetTax = 4; break;
+                case 4: targetTax = 2; break;
+                case 5: targetTax = 1; break;
             }
-            town.Tax = baseTax;
+
+            // 2. Рассчитываем расширенный коридор свободного выбора для Мэра
+            int minAllowed = Math.Max(0, targetTax - 2);
+            int maxAllowed = Math.Min(15, targetTax + 5);
+
+            // Особое правило: Абсолютная свобода для Мэра мегаполиса 👑
+            if (cityLevel == 5)
+            {
+                maxAllowed = 15; // Снимаем ограничения, разрешаем поднимать до максимума
+            }
+
+            // 3. Удерживаем налог в рамках обновленного закона
+            if (town.Tax < minAllowed)
+            {
+                town.Tax = minAllowed;
+            }
+            else if (town.Tax > maxAllowed)
+            {
+                town.Tax = maxAllowed;
+            }
         }
         public static void Save()
         {
@@ -287,8 +329,10 @@ namespace Server.Custom.CityDevelopment
             {
                 if (!Directory.Exists(_saveFolder)) Directory.CreateDirectory(_saveFolder);
                 writer = new BinaryFileWriter(_savePath, true);
-                writer.Write((int)0);
+                
+                writer.Write((int)DatabaseVersion); // Записываем актуальную версию (1)
                 writer.Write((int)_cityData.Count);
+                
                 foreach (var kvp in _cityData)
                 {
                     writer.Write((string)kvp.Key);
@@ -300,6 +344,7 @@ namespace Server.Custom.CityDevelopment
             catch { }
             finally { if (writer != null) writer.Close(); }
         }
+
         public static void Load()
         {
             if (!File.Exists(_savePath)) return;
@@ -308,17 +353,23 @@ namespace Server.Custom.CityDevelopment
             {
                 stream = new FileStream(_savePath, FileMode.Open, FileAccess.Read, FileShare.Read);
                 binReader = new BinaryReader(stream); reader = new BinaryFileReader(binReader);
-                int version = reader.ReadInt(); int count = reader.ReadInt();
+                
+                int version = reader.ReadInt(); 
+                int count = reader.ReadInt();
+                
                 _cityData.Clear();
                 for (int i = 0; i < count; i++)
                 {
                     string townName = reader.ReadString();
-                    CityProgress progress = new CityProgress
+                    CityProgress progress = new CityProgress();
+                    
+                    if (version >= 1)
                     {
-                        Level = reader.ReadInt(),
-                        CurrentSupplies = reader.ReadDouble(),
-                        RequiredSupplies = reader.ReadDouble()
-                    };
+                        progress.Level = reader.ReadInt();
+                        progress.CurrentSupplies = reader.ReadDouble();
+                        progress.RequiredSupplies = reader.ReadDouble();
+                    }
+                    
                     _cityData[townName] = progress;
                 }
             }
@@ -429,5 +480,29 @@ namespace Server.Custom.CityDevelopment
                 }
             }
         }
+
+        // Добавьте это внутрь класса CityDevelopmentMod в файле
+        public static int CalculateDynamicQuestAmount()
+        {
+            // Возвращаем динамику ServUO, умноженную на 10. 
+            // Теперь база будет случайно выбираться из вариантов: 50, 100, 150 или 200 предметов.
+            int baseAmount = Utility.RandomList(50, 100, 150, 200);
+
+            int onlineCount = NetState.Instances.Count;
+            double multiplier = 1.0;
+
+            // Множитель от онлайна (начинает расти, если в игре больше 10 человек)
+            if (onlineCount > 10)
+            {
+                multiplier += (onlineCount - 10) * 0.02;
+            }
+
+            // Ограничение сверху (максимум х5 от выбранной случайной базы)
+            if (multiplier > 5.0)
+                multiplier = 5.0;
+
+            return (int)(baseAmount * multiplier);
+        }
+
     }
 }

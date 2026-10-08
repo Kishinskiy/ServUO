@@ -72,20 +72,30 @@ namespace Server.Custom.SmartNPCs
 
         private static readonly Dictionary<string, Point3D> m_Ministers = new Dictionary<string, Point3D>(StringComparer.OrdinalIgnoreCase)
         {
-            { "Britain", new Point3D(1435, 1680, 0) }, { "Minoc", new Point3D(2437, 449, 15) },
-            { "Yew", new Point3D(542, 983, 0) }, { "Moonglow", new Point3D(4436, 1076, 0) },
-            { "Magincia", new Point3D(3712, 2228, 20) }, { "Trinsic", new Point3D(1821, 2772, 0) },
-            { "Skara Brae", new Point3D(571, 2217, 0) }, { "Jhelom", new Point3D(1401, 3778, 0) },
-            { "Vesper", new Point3D(2992, 672, 0) }, { "Ocllo", new Point3D(3661, 2603, 0) }
+            { "Britain", new Point3D(1435, 1680, 0) },
+            { "Minoc", new Point3D(2437, 449, 15) },
+            { "Yew", new Point3D(542, 983, 0) }, 
+            { "Moonglow", new Point3D(4436, 1076, 0) },
+            { "Magincia", new Point3D(3712, 2228, 20) }, 
+            { "Trinsic", new Point3D(2061, 2855, -2) },
+            { "Skara Brae", new Point3D(571, 2217, 0) }, 
+            { "Jhelom", new Point3D(1401, 3778, 0) },
+            { "Vesper", new Point3D(2992, 672, 0) }, 
+            { "Ocllo", new Point3D(3661, 2603, 0) }
         };
 
         private static readonly Dictionary<string, Point3D> m_Governors = new Dictionary<string, Point3D>(StringComparer.OrdinalIgnoreCase)
         {
-            { "Britain", new Point3D(1324, 1621, 0) }, { "Minoc", new Point3D(2450, 480, 0) },
-            { "Yew", new Point3D(618, 934, 0) }, { "Moonglow", new Point3D(4474, 1130, 0) },
-            { "Magincia", new Point3D(3731, 2168, 20) }, { "Trinsic", new Point3D(1859, 2692, 0) },
-            { "Skara Brae", new Point3D(614, 2137, 0) }, { "Jhelom", new Point3D(1376, 3816, 0) },
-            { "Vesper", new Point3D(2937, 574, 0) }, { "Ocllo", new Point3D(3649, 2682, 0) }
+            { "Britain", new Point3D(1324, 1621, 0) }, 
+            { "Minoc", new Point3D(2450, 480, 0) },
+            { "Yew", new Point3D(618, 934, 0) }, 
+            { "Moonglow", new Point3D(4474, 1130, 0) },
+            { "Magincia", new Point3D(3731, 2168, 20) }, 
+            { "Trinsic", new Point3D(1907, 2683, 0) },
+            { "Skara Brae", new Point3D(614, 2137, 0) }, 
+            { "Jhelom", new Point3D(1376, 3816, 0) },
+            { "Vesper", new Point3D(2937, 574, 0) }, 
+            { "Ocllo", new Point3D(3649, 2682, 0) }
         };
 
         public static void Initialize()
