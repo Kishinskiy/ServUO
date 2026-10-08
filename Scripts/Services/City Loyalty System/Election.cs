@@ -339,6 +339,13 @@ namespace Server.Engines.CityLoyalty
             {
                 CurrentCycleStart = DateTime.Now;
                 StartNewElection();
+
+                // Сразу при старте назначаем Глашатая временным главой, чтобы не было пустоты
+                if (City != null && City.Governor == null && City.Herald != null)
+                {
+                    City.Governor = City.Herald;
+                    City.Herald.Title = ", временно исполняющий обязанности Губернатора";
+                }
                 return;
             }
 
@@ -560,6 +567,32 @@ namespace Server.Engines.CityLoyalty
                 }
                 // =========================================================================
 
+            }
+
+            // =========================================================================
+            // НАЗНАЧЕНИЕ NPC-ГУБЕРНАТОРА ПРИ ОТСУТСТВИИ КАНДИДАТОВ 👑
+            // =========================================================================
+            if (City.GovernorElect == null && City.Governor == null)
+            {
+                // Ищем в городе Глашатая (Herald) или Министра торговли, чтобы сделать его временным регентом,
+                // либо прописываем символическое имя системного NPC.
+                string npcName = string.Format("Регент {0}", City.Definition.Name);
+                
+                // Создаем временную виртуальную заглушку (так как поле Governor требует объект Mobile)
+                // Для вывода в гампах достаточно, чтобы в поле Governor не был null.
+                if (City.Herald != null)
+                {
+                    City.Governor = City.Herald; // Назначаем Глашатая временным исполняющим обязанности губернатора
+                    City.Herald.Title = ", временно исполняющий обязанности Губернатора";
+                }
+                
+                City.PendingGovernor = false;
+                AutoPickGovernor = DateTime.MinValue; // Отключаем таймер автоподбора, так как место занято NPC
+            }
+            else if (City.GovernorElect == null)
+            {
+                City.PendingGovernor = true;
+                AutoPickGovernor = DateTime.Now + TimeSpan.FromDays(Utility.RandomMinMax(2, 4));
             }
 
             if (City.GovernorElect == null)
