@@ -4,6 +4,7 @@ using Server.Items;
 using Server.Targeting;
 using Server.Mobiles; // Явное подключение всех NPC торговцев
 using Server.Engines.BulkOrders; // Подключение BOD системы
+using Server.Custom.CityDevelopment;
 
 namespace Server.Custom.GarrisonSupply
 {
@@ -116,7 +117,7 @@ namespace Server.Custom.GarrisonSupply
         }
 
         // =========================================================================
-        // ТАРГЕТ УПАКОВКИ КОНТРАКТОВ ИЛИ ЕДЫ 🛠️
+        // ТАРГЕТ УПАКОВКИ КОНТРАКТОВ ИЛИ ЕДЫ 🛠️ (ВОССТАНОВЛЕН К ОРИГИНАЛУ)
         // =========================================================================
         private class InternalPackTarget : Target
         {
@@ -169,7 +170,7 @@ namespace Server.Custom.GarrisonSupply
                     bool isValidBOD = false;
 
                     if (m_Container.ContainerType == SupplyType.Blacksmith && bod.BODType == BODType.Smith) isValidBOD = true;
-                    if (m_Container.ContainerType == SupplyType.Carpentry && bod.BODType == BODType.Carpentry) isValidBOD = true;
+                    if (m_Container.ContainerType == SupplyType.Carpentry && (m_Container.ContainerType == SupplyType.Carpentry && bod.BODType == BODType.Carpentry)) isValidBOD = true;
                     if (m_Container.ContainerType == SupplyType.Tailor && bod.BODType == BODType.Tailor) isValidBOD = true;
 
                     if (!isValidBOD)
@@ -195,7 +196,6 @@ namespace Server.Custom.GarrisonSupply
                     string itemTypeName = bod.Type != null ? bod.Type.Name : "Craft Equipment";
                     m_Container.ContentName = $"{bod.AmountMax}x {(bod.RequireExceptional ? "Exceptional " : "")}{itemTypeName}";
 
-                    // ИСПРАВЛЕНО: Заменено ошибочное m_Crate на правильное m_Container
                     if (m_Container.ContainerType == SupplyType.Blacksmith) { m_Container.ItemID = 0x09A9; m_Container.Name = "Ящик со снаряжением для городского гарнизона"; }
                     else if (m_Container.ContainerType == SupplyType.Carpentry) { m_Container.ItemID = 0x09A9; m_Container.Name = "Заколоченный ящик строительных припасов"; }
                     else { m_Container.Name = "Завязанный тюк армейского обмундирования"; }
@@ -216,7 +216,7 @@ namespace Server.Custom.GarrisonSupply
         }
 
         // =========================================================================
-        // ТАРГЕТ СДАЧИ КОНТЕНТА К КАСTОМНЫМ NPC 🏙️💰
+        // ТАРГЕТ СДАЧИ КОНТЕНТА К КАСTОМНЫМ NPC 🏙️💰 (ИНТЕГРИРОВАНА ВЫДАЧА НАГРАДЫ)
         // =========================================================================
         private class InternalDeliverTarget : Target
         {
@@ -255,7 +255,6 @@ namespace Server.Custom.GarrisonSupply
                                 Gold gold = new Gold(m_Container.RewardGold);
                                 if (!from.Backpack.TryDropItem(from, gold, false)) gold.MoveToWorld(from.Location, from.Map);
                                 // 2. Качаем опыт города
-                                // ИСПРАВЛЕНО: Вызываем точную переменную CurrentSupplies
                                 var cityProfile = Server.Custom.CityDevelopment.CityDevelopmentMod.GetCityProfile(c);
                                 if (cityProfile != null)
                                 {
@@ -266,6 +265,20 @@ namespace Server.Custom.GarrisonSupply
                                 {
                                     Server.Custom.AdvancedNpcTrade.LoyaltyManager.AddPurchase(baseVendor, from, 0.50);
                                 }
+                                // =========================================================================
+                                // ТОЧЕЧНАЯ ИНТЕГРАЦИЯ НАГРАДЫ: ВЫДАЧА НАБОРА САБОТАЖА (ШАНС 10%) 🥷
+                                // ПЕРЕНЕСЕНО СЮДА ИЗ МЕТОДА УПАКОВКИ, ТИП ДАННЫХ ИМПОРТИРОВАН ЧЕРЕЗ USING
+                                // =========================================================================
+                                if (Utility.RandomDouble() < 0.10) // 10% вероятности
+                                {
+                                    FactionSabotageKit sabotageKit = new FactionSabotageKit();
+                                    if (from.Backpack == null || !from.Backpack.TryDropItem(from, sabotageKit, false))
+                                    {
+                                        sabotageKit.MoveToWorld(from.Location, from.Map); // На землю под ноги, если пак полон
+                                    }
+                                    from.SendMessage(0x35, "В благодарность за ценный вклад, городская разведка делится с вами набором для фракционного саботажа!");
+                                }
+                                // =========================================================================
                                 vendor.PlaySound(0x2E6);
                                 vendor.Say("Великолепные припасы! Наш город крайне нуждался в этом. Вот ваша плата ремесленника!");
                                 from.SendMessage(0x35, $"Припасы успешно сданы! Получено: {m_Container.RewardGold} золотых. Лояльность {vendor.Name} выросла!");

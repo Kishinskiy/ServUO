@@ -82,6 +82,7 @@ namespace Server.Engines.CityLoyalty
 
                     StartTimes = new DateTime[1];
                     StartTimes[0] = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day);
+
                 }
             }
         }
@@ -137,6 +138,45 @@ namespace Server.Engines.CityLoyalty
                         return false;
                     }
                 }
+
+                // =========================================================================
+                // ИНТЕГРАЦИЯ: ПОЛИТИЧЕСКИЙ ПЕРЕВОРОТ (Влияние Фракций на Выборы) 👑
+                // БЕЗОПАСНЫЙ ПОИСК ГОРОДА ФРАКЦИИ БЕЗ ENUM.TRYPARSE
+                // =========================================================================
+                if (Server.Factions.Town.Towns != null)
+                {
+                    string currentCityName = City.City.ToString();
+                    
+                    // Ищем фракционный город, имя которого совпадает с текущим городом лояльности
+                    Server.Factions.Town factionTown = Server.Factions.Town.Towns.FirstOrDefault(t => 
+                        string.Equals(t.ToString(), currentCityName, StringComparison.OrdinalIgnoreCase));
+
+                    if (factionTown != null && factionTown.Owner != null && factionTown.Owner.Definition != null)
+                    {
+                        string factionName = factionTown.Owner.Definition.Name;
+
+                        // Безопасное сравнение строк без использования .ToLower()
+                        bool isMinaxOrShadow = factionName.IndexOf("minax", StringComparison.OrdinalIgnoreCase) >= 0 || 
+                                               factionName.IndexOf("shadow", StringComparison.OrdinalIgnoreCase) >= 0;
+
+                        bool isOrderOrCouncil = factionName.IndexOf("britannia", StringComparison.OrdinalIgnoreCase) >= 0 || 
+                                                factionName.IndexOf("council", StringComparison.OrdinalIgnoreCase) >= 0;
+
+                        if (isMinaxOrShadow && pm.Karma > -2000)
+                        {
+                            pm.SendMessage(0x22, "Этот город находится под оккупацией Синдиката Хаоса! Законопослушные граждане не допускаются к выборам Губернатора.");
+                            return false;
+                        }
+                        else if (isOrderOrCouncil && pm.Karma < 2000)
+                        {
+                            pm.SendMessage(0x22, "Этот город верен Короне! Лица с дурной репутацией не могут выдвигаться на пост Губернатора.");
+                            return false;
+                        }
+                    }
+                }
+                // =========================================================================
+
+
 
                 Candidates.Add(new BallotEntry(pm, pentry.Love, pentry.Hate));
                 pm.PrivateOverheadMessage(Network.MessageType.Regular, 0x3B2, 1153905, pm.NetState); // *You etch your name into the stone* 
