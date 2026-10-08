@@ -148,6 +148,13 @@ namespace Server.Engines.CityLoyalty
 
                 ActiveTrades[from] = crate;
 
+                // ВСТАВКА МОДА: Блокируем ТОЛЬКО город-отправитель (origin) на 60 минут
+                if (from is PlayerMobile)
+                {
+                    Server.Custom.CityDevelopment.CityDevelopmentMod.SetCityCooldown(from, origin, TimeSpan.FromMinutes(60.0));
+                }
+
+
                 return true;
             }
 
