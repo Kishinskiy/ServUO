@@ -216,6 +216,12 @@ namespace Server.Engines.CityLoyalty
                 }
 
                 slim.SayTo(from, 1151736); // Haha! These goods will fetch me quite a bit o' coin!  Thanks fer yer help!  Here's a little something I was able to get me hands on...
+                
+                // ВСТАВКА МОДА: Контрабандист платит наличными (прямо в рюкзак, ведь это черная наличка!)
+                int slimGold = 4500; // Слим платит больше честных министров (4500 вместо 3500)
+                from.AddToBackpack(new Gold(slimGold));
+                from.SendMessage(0x22, $"[Контрабанда] Слим отсыпал вам {slimGold} золотых монет из своего кармана.");
+
 
                 order.Delete();
                 return true;
