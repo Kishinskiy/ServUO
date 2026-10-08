@@ -1,0 +1,24 @@
+[Unit]
+Description=ServUO Ultima Online Emulator Service
+After=network.target
+
+[Service]
+Type=forking
+User=servuo
+Group=servuo
+WorkingDirectory=/home/root/ServUO
+
+# Запуск сервера внутри сессии screen в фоновом режиме
+ExecStart=/usr/bin/screen -dmS servuo /usr/bin/make run
+
+# Корректная остановка сервера (отправка команды сохранения и выхода в консоль screen)
+ExecStop=/usr/bin/screen -S servuo -X eval "stuff '[save\015'"
+ExecStop=/bin/sleep 5
+ExecStop=/usr/bin/screen -S servuo -X eval "stuff '[shutdown\015'"
+ExecStop=/bin/sleep 5
+
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
