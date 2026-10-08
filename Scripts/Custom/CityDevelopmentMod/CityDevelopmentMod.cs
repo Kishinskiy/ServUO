@@ -21,7 +21,7 @@ namespace Server.Custom.CityDevelopment
     public static class CityDevelopmentMod
     {
         public static readonly int DatabaseVersion = 1;
-        
+
         public static readonly int DevelopmentChance = 100; // 100% для удобства ваших тестов
 
         // ================= НАСТРОЙКА ЭКОНОМИКИ ГОРОДА =================
@@ -32,7 +32,9 @@ namespace Server.Custom.CityDevelopment
         private static readonly Dictionary<string, CityProgress> _cityData = new Dictionary<string, CityProgress>();
         private static readonly string _saveFolder = Path.Combine(Core.BaseDirectory, "Saves/Custom");
         private static readonly string _savePath = Path.Combine(Core.BaseDirectory, "Saves/Custom/CityDevelopmentDatabase.bin");
-
+        // Хранилище временных кулдаунов игроков (запоминает UUID персонажа и время окончания штрафа)
+        private static readonly Dictionary<Mobile, Dictionary<Server.Engines.CityLoyalty.City, DateTime>> _cityCooldowns = 
+            new Dictionary<Mobile, Dictionary<Server.Engines.CityLoyalty.City, DateTime>>();
         public static void Initialize()
         {
             CommandSystem.Register("CityStatus", AccessLevel.GameMaster, new CommandEventHandler(CityStatus_OnCommand));
@@ -41,13 +43,29 @@ namespace Server.Custom.CityDevelopment
             EventSink.Shutdown += (e) => Save();
             EventSink.ServerStarted += new ServerStartedEventHandler(Load);
 
-            // Механика суточных расходов (каждые 24 часа)
             Timer.DelayCall(TimeSpan.FromDays(1.0), TimeSpan.FromDays(1.0), new TimerCallback(ProcessCityDecayAndMaintenance));
-
-            // НОВАЯ МЕХАНИКА: Таймер циклического прибытия караванов (тикает каждые 30 минут)
-            // Он проверяет пустые площади городов 5-го уровня и с шансом 80% спавнит нового купца!
             Timer.DelayCall(TimeSpan.FromMinutes(60.0), TimeSpan.FromMinutes(60.0), new TimerCallback(ProcessCyclicMerchantSpawn));
+
+            // ВСТАВКА МОДА: Перехватчик удаления ящиков (штрафует конкретный город при отмене/потере)
+            EventSink.ItemDeleted += (e) =>
+            {
+                if (e.Item is Server.Engines.CityLoyalty.TradeOrderCrate crate && crate.Owner != null && crate.Entry != null)
+                {
+                    // Если ящик удален, но в глобальной системе квест всё еще числится активным
+                    if (Server.Engines.CityLoyalty.CityTradeSystem.HasTrade(crate.Owner))
+                    {
+                        Server.Engines.CityLoyalty.City originCity = crate.Entry.Origin;
+
+                        // Накладываем штраф 20 минут ТОЛЬКО на город, откуда был взят заказ
+                        SetCityCooldown(crate.Owner, originCity, TimeSpan.FromMinutes(20.0));
+                        
+                        crate.Owner.SendMessage(0x22, $"[Контракт] Вы потеряли или отменили груз. Торговая гильдия города {originCity} наложила на вас штраф на 20 минут!");
+                        crate.Owner.SendMessage(0x59, "Вы по-прежнему можете брать заказы в других городах мира.");
+                    }
+                }
+            };
         }
+
 
         private static void ProcessCyclicMerchantSpawn()
         {
@@ -146,6 +164,16 @@ namespace Server.Custom.CityDevelopment
             {
                 progress.CurrentSupplies += pointsAdded;
 
+                // --- ВСТАВКА МОДА: Награда игроку за покрытие транспортных расходов ---
+                // 3500 золотых — отличная ванильная сумма: ощутимо для новичка, но не ломает экономику хай-левелам
+                int goldReward = 3500;
+
+                // Депозит в банк, чтобы золото не упало на землю из-за перевеса в сумке
+                Server.Mobiles.Banker.Deposit(player, goldReward, true);
+                player.SendMessage(0x58, $"[Контракт] Ваша дорожная компенсация составила {goldReward} золотых (зачислено в банк).");
+                // ---------------------------------------------------------------------
+
+
                 // Корректное системное сообщение: очки уходят городу, откуда был взят заказ
                 player.SendMessage(88, $"[Развитие] Торговый заказ успешно доставлен! Городу-отправителю {townName} начислено +{pointsAdded:F2} очков.");
                 player.SendMessage(0x59, $"Прогресс снабжения (онлайн {onlineCount}): {progress.CurrentSupplies:F2} / {progress.RequiredSupplies:F2}");
@@ -216,14 +244,14 @@ namespace Server.Custom.CityDevelopment
                     long finalMaintenanceCost = (long)(levelCost * onlineScale);
 
                     SubtractCoreTreasury(townName, finalMaintenanceCost);
-                    
+
                     // Мягкое падение очков при штатном списании
-                    progress.CurrentSupplies -= 1.0; 
+                    progress.CurrentSupplies -= 1.0;
                 }
                 else
                 {
                     // КРИЗИС: Казна пуста, город стремительно теряет припасы
-                    progress.CurrentSupplies -= 25.0; 
+                    progress.CurrentSupplies -= 25.0;
                 }
 
                 // ПРОВЕРКА ПАДЕНИЯ УРОВНЯ
@@ -233,16 +261,16 @@ namespace Server.Custom.CityDevelopment
                     {
                         progress.Level--;
                         progress.RequiredSupplies = 250.0 * Math.Pow(2.0, progress.Level - 1);
-                        
+
                         // ИСПРАВЛЕНО: Вместо 0.0 выставляем буфер в 10% от новой планки,
                         // чтобы город не ушел в минус и не упал на следующем тике еще ниже.
-                        progress.CurrentSupplies = progress.RequiredSupplies * 0.10; 
+                        progress.CurrentSupplies = progress.RequiredSupplies * 0.10;
 
                         ApplyDynamicTaxToBaseSystem(t, progress.Level);
 
                         // Передаем карту лояльности Trammel и Felucca
                         CityDecorationMod.RemoveTownDecoration(t, progress.Level + 1, Map.Trammel);
-                        CityDecorationMod.RemoveTownDecoration(t, progress.Level + 1, Map.Felucca); 
+                        CityDecorationMod.RemoveTownDecoration(t, progress.Level + 1, Map.Felucca);
                         CityLegendaryMerchantMod.RemoveMerchant(t);
 
                         string decayMsg = $"[Кризис] Город {townName} обанкротился или остался без снабжения! Уровень упал до {progress.Level}.";
@@ -292,9 +320,9 @@ namespace Server.Custom.CityDevelopment
 
             // Если у города есть фракционный владелец (город захвачен), 
             // даем фракции приоритет и не переписываем налог насильно
-            if (town.Owner != null) 
-                return; 
-            
+            if (town.Owner != null)
+                return;
+
             // 1. Вычисляем целевой базовый налог по уровню развития города 📉
             var targetTax = 8;
             switch (cityLevel)
@@ -334,10 +362,10 @@ namespace Server.Custom.CityDevelopment
             {
                 if (!Directory.Exists(_saveFolder)) Directory.CreateDirectory(_saveFolder);
                 writer = new BinaryFileWriter(_savePath, false);
-                
+
                 writer.Write((int)DatabaseVersion); // Записываем актуальную версию (1)
                 writer.Write((int)_cityData.Count);
-                
+
                 foreach (var kvp in _cityData)
                 {
                     writer.Write((string)kvp.Key);
@@ -358,23 +386,23 @@ namespace Server.Custom.CityDevelopment
             {
                 stream = new FileStream(_savePath, FileMode.Open, FileAccess.Read, FileShare.Read);
                 binReader = new BinaryReader(stream); reader = new BinaryFileReader(binReader);
-                
-                int version = reader.ReadInt(); 
+
+                int version = reader.ReadInt();
                 int count = reader.ReadInt();
-                
+
                 _cityData.Clear();
                 for (int i = 0; i < count; i++)
                 {
                     string townName = reader.ReadString();
                     CityProgress progress = new CityProgress();
-                    
+
                     if (version >= 1)
                     {
                         progress.Level = reader.ReadInt();
                         progress.CurrentSupplies = reader.ReadDouble();
                         progress.RequiredSupplies = reader.ReadDouble();
                     }
-                    
+
                     _cityData[townName] = progress;
                 }
             }
@@ -489,24 +517,69 @@ namespace Server.Custom.CityDevelopment
         // Добавьте это внутрь класса CityDevelopmentMod в файле
         public static int CalculateDynamicQuestAmount()
         {
-            // Возвращаем динамику ServUO, умноженную на 10. 
-            // Теперь база будет случайно выбираться из вариантов: 50, 100, 150 или 200 предметов.
-            int baseAmount = Utility.RandomList(50, 100, 150, 200);
+            // Находим игрока и Министра торговли, с которым он сейчас взаимодействует
+            foreach (var ns in NetState.Instances)
+            {
+                Mobile m = ns.Mobile;
+                if (m != null && m.Alive && m.AccessLevel == AccessLevel.Player)
+                {
+                    // Проверяем, открыто ли у игрока окно подтверждения заказа
+                    if (m.HasGump(typeof(Server.Engines.CityLoyalty.TradeMinister.InternalTradeOrderGump)))
+                    {
+                        // Находим Министра торговли в радиусе 5 клеток от игрока, чтобы узнать его город
+                        var minister = m.GetMobilesInRange(5)
+                            .OfType<Server.Engines.CityLoyalty.TradeMinister>()
+                            .FirstOrDefault();
 
+                        if (minister != null)
+                        {
+                            Server.Engines.CityLoyalty.City currentCity = minister.City;
+
+                            // Проверяем, заблокирован ли конкретно ЭТОТ город для этого игрока
+                            if (_cityCooldowns.TryGetValue(m, out var playerCooldowns))
+                            {
+                                if (playerCooldowns.TryGetValue(currentCity, out DateTime expiry) && expiry > DateTime.UtcNow)
+                                {
+                                    TimeSpan remaining = expiry - DateTime.UtcNow;
+                                    m.SendMessage(0x22, $"Гильдия купцов города {currentCity} еще не подготовила новые контракты для вас.");
+                                    m.SendMessage(0x22, $"Попробуйте взять заказ в другом регионе. Кулдаун здесь: {remaining.Minutes} мин. {remaining.Seconds} сек.");
+                                    
+                                    // Мягко прерываем генерацию ящика, ServUO отменит выдачу квеста
+                                    throw new Exception("Город отправления находится на кулдауне для данного игрока.");
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Стандартный расчет количества, если кулдауна на город нет
+            int baseAmount = Utility.RandomList(50, 100, 150, 200);
             int onlineCount = NetState.Instances.Count;
             double multiplier = 1.0;
 
-            // Множитель от онлайна (начинает расти, если в игре больше 10 человек)
             if (onlineCount > 10)
             {
                 multiplier += (onlineCount - 10) * 0.02;
             }
 
-            // Ограничение сверху (максимум х5 от выбранной случайной базы)
             if (multiplier > 5.0)
                 multiplier = 5.0;
 
             return (int)(baseAmount * multiplier);
+        }
+
+        // Метод вешает кулдаун на конкретный город для конкретного игрока
+        public static void SetCityCooldown(Mobile player, Server.Engines.CityLoyalty.City city, TimeSpan duration)
+        {
+            if (player == null) return;
+
+            if (!_cityCooldowns.ContainsKey(player))
+            {
+                _cityCooldowns[player] = new Dictionary<Server.Engines.CityLoyalty.City, DateTime>();
+            }
+
+            _cityCooldowns[player][city] = DateTime.UtcNow + duration;
         }
 
     }
