@@ -6,11 +6,11 @@ namespace Server.Custom.AdvancedNpcTrade
     public enum LoyaltyLevel : byte
     {
         None = 0,
-        Friendly = 1,
-        Trusted = 2,
-        Ally = 3,
-        Champion = 4,
-        Legend = 5
+        Friendly = 1, // Для злых: Шестерка / Подельник
+        Trusted = 2,  // Для злых: Проверенный / Голоoptions
+        Ally = 3,     // Для злых: Сообщник / Брат
+        Champion = 4, // Для злых: Авторитет / Громила
+        Legend = 5    // Для злых: Босс / Владыка Тьмы
     }
 
     public static class LoyaltyTables
@@ -25,17 +25,15 @@ namespace Server.Custom.AdvancedNpcTrade
             [LoyaltyLevel.Legend]     = 0.40
         };
 
-        // ИСПРАВЛЕНО: Теперь пороги — это честные дробные double
         public static readonly Dictionary<LoyaltyLevel, double> RequiredPurchases = new Dictionary<LoyaltyLevel, double>()
         {
-            { LoyaltyLevel.Friendly, 25.0   },  // Нужна сумма 25.00 очков
-            { LoyaltyLevel.Trusted,  75.0   },  // 75.00 очков
-            { LoyaltyLevel.Ally,     150.0  },  // 150.00 очков
-            { LoyaltyLevel.Champion, 300.0  },  // 300.00 очков
-            { LoyaltyLevel.Legend,   500.0  }   // 500.00 очков
+            { LoyaltyLevel.Friendly, 25.0   },  
+            { LoyaltyLevel.Trusted,  75.0   },  
+            { LoyaltyLevel.Ally,     150.0  },  
+            { LoyaltyLevel.Champion, 300.0  },  
+            { LoyaltyLevel.Legend,   500.0  }   
         };
 
-        // ИСПРАВЛЕНО: Метод теперь принимает double points
         public static LoyaltyLevel GetLevelFromPoints(double points)
         {
             LoyaltyLevel current = LoyaltyLevel.None;
@@ -51,6 +49,35 @@ namespace Server.Custom.AdvancedNpcTrade
             }
 
             return current;
+        }
+
+        // Кастомные лорные титулы для вывода в чат при проверке [LoyaltyInfo
+        public static string GetCustomTitle(LoyaltyLevel level, bool isEvilShop)
+        {
+            if (isEvilShop)
+            {
+                switch (level)
+                {
+                    case LoyaltyLevel.Friendly: return "Подельник (Friendly)";
+                    case LoyaltyLevel.Trusted: return "Проверенный (Trusted)";
+                    case LoyaltyLevel.Ally: return "Соратник Тьмы (Ally)";
+                    case LoyaltyLevel.Champion: return "Авторитет синдиката (Champion)";
+                    case LoyaltyLevel.Legend: return "Владыка Преисподней (Legend)";
+                    default: return "Чужак";
+                }
+            }
+            else
+            {
+                switch (level)
+                {
+                    case LoyaltyLevel.Friendly: return "Дружелюбный (Friendly)";
+                    case LoyaltyLevel.Trusted: return "Доверенный (Trusted)";
+                    case LoyaltyLevel.Ally: return "Союзник (Ally)";
+                    case LoyaltyLevel.Champion: return "Чемпион (Champion)";
+                    case LoyaltyLevel.Legend: return "Легенда Города (Legend)";
+                    default: return "Незнакомец";
+                }
+            }
         }
     }
 }
