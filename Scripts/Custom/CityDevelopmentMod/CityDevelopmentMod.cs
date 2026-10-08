@@ -20,6 +20,8 @@ namespace Server.Custom.CityDevelopment
 
     public static class CityDevelopmentMod
     {
+        public static readonly int DatabaseVersion = 1;
+        
         public static readonly int DevelopmentChance = 100; // 100% для удобства ваших тестов
 
         // ================= НАСТРОЙКА ЭКОНОМИКИ ГОРОДА =================
@@ -214,11 +216,14 @@ namespace Server.Custom.CityDevelopment
                     long finalMaintenanceCost = (long)(levelCost * onlineScale);
 
                     SubtractCoreTreasury(townName, finalMaintenanceCost);
-                    progress.CurrentSupplies -= 0.01;
+                    
+                    // Мягкое падение очков при штатном списании
+                    progress.CurrentSupplies -= 1.0; 
                 }
                 else
                 {
-                    progress.CurrentSupplies -= 0.50; // КРИЗИС
+                    // КРИЗИС: Казна пуста, город стремительно теряет припасы
+                    progress.CurrentSupplies -= 25.0; 
                 }
 
                 // ПРОВЕРКА ПАДЕНИЯ УРОВНЯ
@@ -228,13 +233,16 @@ namespace Server.Custom.CityDevelopment
                     {
                         progress.Level--;
                         progress.RequiredSupplies = 250.0 * Math.Pow(2.0, progress.Level - 1);
-                        progress.CurrentSupplies = 0.0; // Очки сбрасываются в 0 на новом уровне
+                        
+                        // ИСПРАВЛЕНО: Вместо 0.0 выставляем буфер в 10% от новой планки,
+                        // чтобы город не ушел в минус и не упал на следующем тике еще ниже.
+                        progress.CurrentSupplies = progress.RequiredSupplies * 0.10; 
 
                         ApplyDynamicTaxToBaseSystem(t, progress.Level);
 
-                        // ИСПРАВЛЕНО: Передаем карту лояльности Trammel, где запущены основные фракционные города
+                        // Передаем карту лояльности Trammel и Felucca
                         CityDecorationMod.RemoveTownDecoration(t, progress.Level + 1, Map.Trammel);
-                        CityDecorationMod.RemoveTownDecoration(t, progress.Level + 1, Map.Felucca); // Чистим зеркало во Felucca
+                        CityDecorationMod.RemoveTownDecoration(t, progress.Level + 1, Map.Felucca); 
                         CityLegendaryMerchantMod.RemoveMerchant(t);
 
                         string decayMsg = $"[Кризис] Город {townName} обанкротился или остался без снабжения! Уровень упал до {progress.Level}.";
@@ -242,7 +250,7 @@ namespace Server.Custom.CityDevelopment
                     }
                     else
                     {
-                        progress.CurrentSupplies = 0.0;
+                        progress.CurrentSupplies = 0.0; // На 1 уровне ниже падать некуда
                     }
                 }
             }
@@ -321,8 +329,10 @@ namespace Server.Custom.CityDevelopment
             {
                 if (!Directory.Exists(_saveFolder)) Directory.CreateDirectory(_saveFolder);
                 writer = new BinaryFileWriter(_savePath, true);
-                writer.Write((int)0);
+                
+                writer.Write((int)DatabaseVersion); // Записываем актуальную версию (1)
                 writer.Write((int)_cityData.Count);
+                
                 foreach (var kvp in _cityData)
                 {
                     writer.Write((string)kvp.Key);
@@ -334,6 +344,7 @@ namespace Server.Custom.CityDevelopment
             catch { }
             finally { if (writer != null) writer.Close(); }
         }
+
         public static void Load()
         {
             if (!File.Exists(_savePath)) return;
@@ -342,17 +353,23 @@ namespace Server.Custom.CityDevelopment
             {
                 stream = new FileStream(_savePath, FileMode.Open, FileAccess.Read, FileShare.Read);
                 binReader = new BinaryReader(stream); reader = new BinaryFileReader(binReader);
-                int version = reader.ReadInt(); int count = reader.ReadInt();
+                
+                int version = reader.ReadInt(); 
+                int count = reader.ReadInt();
+                
                 _cityData.Clear();
                 for (int i = 0; i < count; i++)
                 {
                     string townName = reader.ReadString();
-                    CityProgress progress = new CityProgress
+                    CityProgress progress = new CityProgress();
+                    
+                    if (version >= 1)
                     {
-                        Level = reader.ReadInt(),
-                        CurrentSupplies = reader.ReadDouble(),
-                        RequiredSupplies = reader.ReadDouble()
-                    };
+                        progress.Level = reader.ReadInt();
+                        progress.CurrentSupplies = reader.ReadDouble();
+                        progress.RequiredSupplies = reader.ReadDouble();
+                    }
+                    
                     _cityData[townName] = progress;
                 }
             }
