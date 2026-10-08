@@ -6,7 +6,7 @@ After=network.target
 Type=forking
 User=servuo
 Group=servuo
-WorkingDirectory=/home/root/ServUO
+WorkingDirectory=/root/ServUO
 
 # Запуск сервера внутри сессии screen в фоновом режиме
 ExecStart=/usr/bin/screen -dmS servuo /usr/bin/make run
