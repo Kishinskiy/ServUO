@@ -146,6 +146,16 @@ namespace Server.Custom.CityDevelopment
             {
                 progress.CurrentSupplies += pointsAdded;
 
+                // --- ВСТАВКА МОДА: Награда игроку за покрытие транспортных расходов ---
+                // 3500 золотых — отличная ванильная сумма: ощутимо для новичка, но не ломает экономику хай-левелам
+                int goldReward = 3500; 
+                
+                // Депозит в банк, чтобы золото не упало на землю из-за перевеса в сумке
+                Server.Mobiles.Banker.Deposit(player, goldReward, true); 
+                player.SendMessage(0x58, $"[Контракт] Ваша дорожная компенсация составила {goldReward} золотых (зачислено в банк).");
+                // ---------------------------------------------------------------------
+
+
                 // Корректное системное сообщение: очки уходят городу, откуда был взят заказ
                 player.SendMessage(88, $"[Развитие] Торговый заказ успешно доставлен! Городу-отправителю {townName} начислено +{pointsAdded:F2} очков.");
                 player.SendMessage(0x59, $"Прогресс снабжения (онлайн {onlineCount}): {progress.CurrentSupplies:F2} / {progress.RequiredSupplies:F2}");
