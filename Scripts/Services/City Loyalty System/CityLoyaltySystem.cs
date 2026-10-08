@@ -183,14 +183,23 @@ namespace Server.Engines.CityLoyalty
             get { return _Governor; }
             set
             {
+                // Добавлена жесткая проверка на null, чтобы не свалить сервер при генерации мира
+                if (_Governor != null && _Governor.Deleted)
+                    _Governor = null;
+
+                if (_Governor != null && _Governor is CityHerald && value is PlayerMobile)
+                {
+                    _Governor.Title = null; 
+                }
+
                 if (_Governor != null && _Governor != value && _Governor.NetState != null)
-                    _Governor.SendLocalizedMessage(1154071); // King Blackthorn thanks you for your service. You have been removed from the Office of the Governor.
+                    _Governor.SendLocalizedMessage(1154071); 
 
                 if (value == _GovernorElect)
                     _GovernorElect = null;
 
                 if(value != null && value != _Governor)
-                    HeraldMessage(1154070, value.Name); // Hear Ye! Hear Ye! ~1_NAME~ hath accepted the Office of Governor! King Blackthorn congratulates Governor ~1_NAME~! 
+                    HeraldMessage(1154070, value.Name); 
 
                 _PendingGovernor = false;
                 _Governor = value;
@@ -653,6 +662,8 @@ namespace Server.Engines.CityLoyalty
 
         public static void Initialize()
         {
+            ConstructSystems();
+
             EventSink.Login += OnLogin;
             Timer.DelayCall(TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10), OnTick);
 

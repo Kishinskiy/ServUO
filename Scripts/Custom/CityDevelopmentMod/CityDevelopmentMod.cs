@@ -289,6 +289,11 @@ namespace Server.Custom.CityDevelopment
         private static void ApplyDynamicTaxToBaseSystem(Town town, int cityLevel)
         {
             if (town == null) return;
+
+            // Если у города есть фракционный владелец (город захвачен), 
+            // даем фракции приоритет и не переписываем налог насильно
+            if (town.Owner != null) 
+                return; 
             
             // 1. Вычисляем целевой базовый налог по уровню развития города 📉
             var targetTax = 8;
@@ -328,7 +333,7 @@ namespace Server.Custom.CityDevelopment
             try
             {
                 if (!Directory.Exists(_saveFolder)) Directory.CreateDirectory(_saveFolder);
-                writer = new BinaryFileWriter(_savePath, true);
+                writer = new BinaryFileWriter(_savePath, false);
                 
                 writer.Write((int)DatabaseVersion); // Записываем актуальную версию (1)
                 writer.Write((int)_cityData.Count);
