@@ -82,6 +82,7 @@ namespace Server.Custom.AdvancedNpcTrade
 
             double finalPrice = originalPrice;
 
+            // 1. ФРАКЦИОННЫЙ НАЛОГ ГОРОДА
             if (vendor.Region != null && !string.IsNullOrEmpty(vendor.Region.Name))
             {
                 Server.Factions.Town town = Server.Factions.Town.Towns.Find(t =>
@@ -93,31 +94,87 @@ namespace Server.Custom.AdvancedNpcTrade
                 }
             }
 
-            // РАСЧЕТ МОДИФИКАТОРА КАРМЫ
+            // 2. РАСЧЕТ МОДИФИКАТОРА КАРМЫ (Мировоззрение лавки и игрока)
             double karmaModifier = 0.0;
             bool isEvilShop = IsEvilVendor(vendor);
 
             if (buyer.Karma > 0)
             {
-                // Базовый эффект для доброго игрока (скидка до -10%)
-                double effect = -(Math.Min(buyer.Karma, 15000) / 150000.0); //
+                double effect = -(Math.Min(buyer.Karma, 15000) / 150000.0); 
                 karmaModifier = isEvilShop ? Math.Abs(effect) : effect;
             }
             else if (buyer.Karma < 0)
             {
-                // Базовый эффект для злого игрока (наценка до +25%)
-                double effect = Math.Abs(Math.Max(buyer.Karma, -15000)) / 60000.0; //
-                // Если магазин злой — этот эффект превращается в СКИДКУ (минус)
+                double effect = Math.Abs(Math.Max(buyer.Karma, -15000)) / 60000.0; 
                 karmaModifier = isEvilShop ? -effect : effect;
             }
             finalPrice *= (1.0 + karmaModifier);
 
+            // 3. ВСТАВКА МОДА: ВЛИЯНИЕ ОЧКОВ ГОРОДСКОЙ ЛЮБВИ / НЕНАВИСТИ (City Loyalty)
+            if (vendor.Region != null && !string.IsNullOrEmpty(vendor.Region.Name))
+            {
+                // Находим, к какому из 9 городов ядра относится текущий торговец
+                foreach (Server.Engines.CityLoyalty.City c in Enum.GetValues(typeof(Server.Engines.CityLoyalty.City)))
+                {
+                    if (vendor.Region.Name.IndexOf(c.ToString(), StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        var citySys = Server.Engines.CityLoyalty.CityLoyaltySystem.GetCityInstance(c);
+                        if (citySys != null)
+                        {
+                            // Узнаем текстовый ранг игрока в этом конкретном городе
+                            Server.Engines.CityLoyalty.LoyaltyRating rating = citySys.GetLoyaltyRating(buyer);
+                            double loyaltyModifier = 0.0;
+
+                            switch (rating)
+                            {
+                                // ---- ПОЛОЖИТЕЛЬНЫЕ РАНГИ (СКИДКИ) ----
+                                case Server.Engines.CityLoyalty.LoyaltyRating.Commended:
+                                    loyaltyModifier = -0.02; break; // -2%
+                                case Server.Engines.CityLoyalty.LoyaltyRating.Esteemed:
+                                case Server.Engines.CityLoyalty.LoyaltyRating.Respected:
+                                    loyaltyModifier = -0.04; break; // -4%
+                                case Server.Engines.CityLoyalty.LoyaltyRating.Honored:
+                                case Server.Engines.CityLoyalty.LoyaltyRating.Admired:
+                                case Server.Engines.CityLoyalty.LoyaltyRating.Adored:
+                                    loyaltyModifier = -0.06; break; // -6%
+                                case Server.Engines.CityLoyalty.LoyaltyRating.Lauded:
+                                case Server.Engines.CityLoyalty.LoyaltyRating.Exalted:
+                                case Server.Engines.CityLoyalty.LoyaltyRating.Revered:
+                                case Server.Engines.CityLoyalty.LoyaltyRating.Venerated:
+                                    loyaltyModifier = -0.10; break; // -10%
+
+                                // ---- ОТРИЦАТЕЛЬНЫЕ РАНГИ (НАЦЕНКИ / САНКЦИИ) ----
+                                case Server.Engines.CityLoyalty.LoyaltyRating.Disfavored:
+                                    loyaltyModifier = 0.05; break;  // +5%
+                                case Server.Engines.CityLoyalty.LoyaltyRating.Disliked:
+                                case Server.Engines.CityLoyalty.LoyaltyRating.Detested:
+                                    loyaltyModifier = 0.10; break;  // +10%
+                                case Server.Engines.CityLoyalty.LoyaltyRating.Loathed:
+                                case Server.Engines.CityLoyalty.LoyaltyRating.Despised:
+                                case Server.Engines.CityLoyalty.LoyaltyRating.Reviled:
+                                    loyaltyModifier = 0.15; break;  // +15%
+                                case Server.Engines.CityLoyalty.LoyaltyRating.Scorned:
+                                case Server.Engines.CityLoyalty.LoyaltyRating.Shunned:
+                                case Server.Engines.CityLoyalty.LoyaltyRating.Villified:
+                                case Server.Engines.CityLoyalty.LoyaltyRating.Abhorred:
+                                    loyaltyModifier = 0.25; break;  // +25%
+                            }
+
+                            finalPrice *= (1.0 + loyaltyModifier);
+                        }
+                        break;
+                    }
+                }
+            }
+
+            // 4. ПЕРСОНАЛЬНАЯ СКИДКА ОТ КЛИЕНТСКОЙ ЛОЯЛЬНОСТИ NPC ( Purchases)
             double totalPoints = GetTotalLoyaltyPoints(vendor, buyer);
             LoyaltyLevel finalLevel = LoyaltyTables.GetLevelFromPoints(totalPoints);
             double loyaltyDiscount = LoyaltyTables.Discount[finalLevel];
 
             finalPrice *= (1.0 - loyaltyDiscount);
 
+            // Округляем и страхуем от нулевой цены
             int roundedPrice = (int)Math.Round(finalPrice);
             return roundedPrice < 1 ? 1 : roundedPrice;
         }
@@ -241,6 +298,38 @@ namespace Server.Custom.AdvancedNpcTrade
         {
             List<IBuyItemInfo> artifacts = new List<IBuyItemInfo>();
             if (vendor == null || buyer == null) return artifacts;
+
+                        // --- ВСТАВКА МОДА: ПОЛИТИЧЕСКИЙ ЗАПРЕТ ДЛЯ ВРАГОВ ГОРОДА ---
+            if (vendor.Region != null && !string.IsNullOrEmpty(vendor.Region.Name))
+            {
+                foreach (Server.Engines.CityLoyalty.City c in Enum.GetValues(typeof(Server.Engines.CityLoyalty.City)))
+                {
+                    if (vendor.Region.Name.IndexOf(c.ToString(), StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        var citySys = Server.Engines.CityLoyalty.CityLoyaltySystem.GetCityInstance(c);
+                        if (citySys != null)
+                        {
+                            Server.Engines.CityLoyalty.LoyaltyRating rating = citySys.GetLoyaltyRating(buyer);
+                            
+                            // Если игрок является закоренелым преступником и врагом города (Тир 3 и Тир 4 Ненависти)
+                            if (rating == Server.Engines.CityLoyalty.LoyaltyRating.Loathed ||
+                                rating == Server.Engines.CityLoyalty.LoyaltyRating.Despised ||
+                                rating == Server.Engines.CityLoyalty.LoyaltyRating.Reviled ||
+                                rating == Server.Engines.CityLoyalty.LoyaltyRating.Scorned ||
+                                rating == Server.Engines.CityLoyalty.LoyaltyRating.Shunned ||
+                                rating == Server.Engines.CityLoyalty.LoyaltyRating.Villified ||
+                                rating == Server.Engines.CityLoyalty.LoyaltyRating.Abhorred)
+                            {
+                                // Полностью блокируем доступ к скрытой витрине, стража не дремлет!
+                                return artifacts; 
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+            // -----------------------------------------------------------
+
 
             double totalPoints = GetTotalLoyaltyPoints(vendor, buyer);
             LoyaltyLevel currentLevel = LoyaltyTables.GetLevelFromPoints(totalPoints);
