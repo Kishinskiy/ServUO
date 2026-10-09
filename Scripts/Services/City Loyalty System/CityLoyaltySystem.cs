@@ -684,6 +684,59 @@ namespace Server.Engines.CityLoyalty
                     Server.Gumps.BaseGump.SendGump(new SystemInfoGump((PlayerMobile)e.Mobile));
                 }
             });
+
+            // МУЛЬТИКАРТОЧНЫЙ СПАВН: Перезаписываем стандартную команду, чтобы она спавнила и в Trammel, и в Felucca
+            CommandSystem.Register("SetupCityLoyalty", AccessLevel.Administrator, e =>
+            {
+                SetupInfrastructureOnMap(Map.Trammel);
+                SetupInfrastructureOnMap(Map.Felucca);
+                e.Mobile.SendMessage("Инфраструктура городов успешно создана в Trammel и Felucca!");
+            });
+        }
+
+        // Вспомогательный метод для спавна на конкретную карту
+        private static void SetupInfrastructureOnMap(Map targetMap)
+        {
+            foreach (var sys in Cities)
+            {
+                if (sys.Definition == null) continue;
+
+                // Спавним Камень Города, если его нет на этой карте
+                bool stoneExists = World.Items.Values.Any(i => i is CityStone && i.Map == targetMap && ((CityStone)i).City == sys);
+                if (!stoneExists)
+                {
+                    CityStone stone = new CityStone(sys);
+                    stone.MoveToWorld(sys.Definition.StoneLocation, targetMap);
+                    sys.Stone = stone;
+                }
+
+                // Спавним Доску Объявлений
+                bool boardExists = World.Items.Values.Any(i => i is CityMessageBoard && i.Map == targetMap && ((CityMessageBoard)i).City == sys.City);
+                if (!boardExists)
+                {
+                    CityMessageBoard board = new CityMessageBoard(sys.City, 0xA0C5);
+                    board.MoveToWorld(sys.Definition.BoardLocation, targetMap);
+                    sys.Board = board;
+                }
+
+                // Спавним Министра Торговли
+                bool ministerExists = World.Mobiles.Values.Any(m => m is TradeMinister && m.Map == targetMap && ((TradeMinister)m).City == sys.City);
+                if (!ministerExists)
+                {
+                    TradeMinister minister = new TradeMinister(sys.City);
+                    minister.MoveToWorld(sys.Definition.TradeMinisterLocation, targetMap);
+                    sys.Minister = minister;
+                }
+
+                // Спавним Глашатая (Временного Губернатора)
+                bool heraldExists = World.Mobiles.Values.Any(m => m is CityHerald && m.Map == targetMap && ((CityHerald)m).City == sys.City);
+                if (!heraldExists)
+                {
+                    CityHerald herald = new CityHerald(sys.City);
+                    herald.MoveToWorld(sys.Definition.HeraldLocation, targetMap);
+                    sys.Herald = herald;
+                }
+            }
         }
 
 		private static DateTime _NextAtrophy;

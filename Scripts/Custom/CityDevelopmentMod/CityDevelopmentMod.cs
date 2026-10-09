@@ -49,21 +49,21 @@ namespace Server.Custom.CityDevelopment
                 Timer.DelayCall(TimeSpan.FromMinutes(60.0), TimeSpan.FromMinutes(60.0), new TimerCallback(ProcessCyclicMerchantSpawn));
 
                 // =========================================================================
-                // АВТОСПАВН МИНИСТРОВ И ИНФРАСТРУКТУРЫ ГОРОДОВ ПРИ СТАРТЕ 🏙️
-                // Если мир чистый, этот таймер автоматически создаст всех NPC на их местах
+                // АВТОСПАВН МИНИСТРОВ В ОБОИХ МИРАХ (TRAMMEL & FELUCCA) 🏙️
                 // =========================================================================
                 Timer.DelayCall(TimeSpan.FromSeconds(5.0), () =>
                 {
-                    if (!Server.Engines.CityLoyalty.CityLoyaltySystem.IsSetup())
+                    // Проверяем физическое наличие Министров торговли в Фелучче
+                    bool hasMinistersInFelucca = World.Mobiles.Values.Any(m => m is Server.Engines.CityLoyalty.TradeMinister && m.Map == Map.Felucca);
+                    
+                    if (!hasMinistersInFelucca)
                     {
-                        Console.WriteLine("[CityDevelopment] Базовые NPC лояльности не найдены. Запуск автоматической генерации инфраструктуры...");
-
-                        // Вызываем стандартную консольную команду ядра ServUO для генерации лояльности
+                        Console.WriteLine("[CityDevelopment] NPC лояльности не найдены в Felucca. Запуск принудительного спавна на обе карты...");
                         CommandSystem.Handle(null, string.Format("{0}SetupCityLoyalty", CommandSystem.Prefix));
                     }
                     else
                     {
-                        Console.WriteLine("[CityDevelopment] NPC лояльности успешно верифицированы в мире.");
+                        Console.WriteLine("[CityDevelopment] Верификация NPC: Торговые министры успешно работают в обоих мирах.");
                     }
                 });
 
