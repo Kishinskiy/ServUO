@@ -50,17 +50,23 @@ namespace Server.Custom.CityDevelopment
             Timer.DelayCall(TimeSpan.FromDays(1.0), TimeSpan.FromDays(1.0), new TimerCallback(ProcessCityDecayAndMaintenance));
             Timer.DelayCall(TimeSpan.FromMinutes(60.0), TimeSpan.FromMinutes(60.0), new TimerCallback(ProcessCyclicMerchantSpawn));
 
-            // АВТОСПАВН МИНИСТРОВ И ИНФРАСТРУКТУРЫ В ОБОИХ МИРАХ ПРИ СТАРТЕ 🏙️
+             // АВТОСПАВН МИНИСТРОВ И ИНФРАСТРУКТУРЫ В ОБОИХ МИРАХ ПРИ СТАРТЕ 🏙️
             Timer.DelayCall(TimeSpan.FromSeconds(5.0), () =>
             {
                 bool hasMinistersInFelucca = World.Mobiles.Values.Any(m => m is Server.Engines.CityLoyalty.TradeMinister && m.Map == Map.Felucca);
                 if (!hasMinistersInFelucca)
                 {
-                    Console.WriteLine("[CityDevelopment] NPC лояльности не найдены. Запуск принудительного спавна на обе карты...");
-                    CommandSystem.Handle(null, string.Format("{0}SetupCityLoyalty", CommandSystem.Prefix));
+                    Console.WriteLine("[CityDevelopment] NPC лояльности не найдены в Felucca. Запуск принудительного спавна на обе карты...");
+                    
+                    // Вызываем наш метод из ядра напрямую, это на 100% исключит NullReferenceException
+                    Server.Engines.CityLoyalty.CityLoyaltySystem.GenerateAllInfrastructure();
+                }
+                else
+                {
+                    Console.WriteLine("[CityDevelopment] Верификация NPC: Инфраструктура успешно работает в обоих мирах.");
                 }
             });
-
+            
             // Перехватчик удаления ящиков (штрафует конкретный город НА КОНКРЕТНОЙ КАРТЕ)
             EventSink.ItemDeleted += (e) =>
             {

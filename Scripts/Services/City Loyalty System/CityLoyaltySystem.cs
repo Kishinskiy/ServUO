@@ -703,20 +703,32 @@ namespace Server.Engines.CityLoyalty
             // МУЛЬТИКАРТОЧНЫЙ СПАВН: Перезаписываем стандартную команду, чтобы она спавнила и в Trammel, и в Felucca
             CommandSystem.Register("SetupCityLoyalty", AccessLevel.Administrator, e =>
             {
-                SetupInfrastructureOnMap(Map.Trammel);
-                SetupInfrastructureOnMap(Map.Felucca);
-                e.Mobile.SendMessage("Инфраструктура городов успешно создана в Trammel и Felucca!");
+                GenerateAllInfrastructure();
+                if (e.Mobile != null)
+                {
+                    e.Mobile.SendMessage("Инфраструктура городов успешно создана в Trammel и Felucca!");
+                }
             });
         }
 
-        // Вспомогательный метод для спавна на конкретную карту
+        // ПУБЛИЧНЫЙ МОСТ ДЛЯ ВАШЕГО МОДА РАЗВИТИЯ ГОРОДОВ 🌉
+        public static void GenerateAllInfrastructure()
+        {
+            SetupInfrastructureOnMap(Map.Trammel);
+            SetupInfrastructureOnMap(Map.Felucca);
+            Console.WriteLine("[CityLoyalty] Базовая инфраструктура успешно сгенерирована для Trammel и Felucca.");
+        }
+
+        // ВСПОМОГАТЕЛЬНЫЙ МЕТОД ДЛЯ ФИЗИЧЕСКОГО СПАВНА ОБЪЕКТОВ И NPC НА КАРТУ
         private static void SetupInfrastructureOnMap(Map targetMap)
         {
+            if (targetMap == null || targetMap == Map.Internal) return;
+
             foreach (var sys in Cities)
             {
                 if (sys.Definition == null) continue;
 
-                // Спавним Камень Города, если его нет на этой карте
+                // 1. Спавним Камень Города, если его нет на этой карте
                 bool stoneExists = World.Items.Values.Any(i => i is CityStone && i.Map == targetMap && ((CityStone)i).City == sys);
                 if (!stoneExists)
                 {
@@ -725,7 +737,7 @@ namespace Server.Engines.CityLoyalty
                     sys.Stone = stone;
                 }
 
-                // Спавним Доску Объявлений
+                // 2. Спавним Доску Объявлений
                 bool boardExists = World.Items.Values.Any(i => i is CityMessageBoard && i.Map == targetMap && ((CityMessageBoard)i).City == sys.City);
                 if (!boardExists)
                 {
@@ -734,7 +746,7 @@ namespace Server.Engines.CityLoyalty
                     sys.Board = board;
                 }
 
-                // Спавним Министра Торговли
+                // 3. Спавним Министра Торговли
                 bool ministerExists = World.Mobiles.Values.Any(m => m is TradeMinister && m.Map == targetMap && ((TradeMinister)m).City == sys.City);
                 if (!ministerExists)
                 {
@@ -743,7 +755,7 @@ namespace Server.Engines.CityLoyalty
                     sys.Minister = minister;
                 }
 
-                // Спавним Глашатая (Временного Губернатора)
+                // 4. Спавним Глашатая (Временного NPC-Губернатора)
                 bool heraldExists = World.Mobiles.Values.Any(m => m is CityHerald && m.Map == targetMap && ((CityHerald)m).City == sys.City);
                 if (!heraldExists)
                 {
@@ -753,7 +765,6 @@ namespace Server.Engines.CityLoyalty
                 }
             }
         }
-
 		private static DateTime _NextAtrophy;
 		
 		public static List<CityLoyaltySystem> Cities { get; private set; }
