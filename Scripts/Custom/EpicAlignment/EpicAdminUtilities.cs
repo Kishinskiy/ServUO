@@ -21,12 +21,13 @@ namespace Server.Custom.EpicAlignment
             Mobile from = e.Mobile;
             if (from == null) return;
 
-            from.SendMessage(0x59, "Запуск глобальной генерации эфирной сети на ВСЕ доступные миры...");
+            from.SendMessage(0x59, "Запуск глобальной генерации эфирной сети БЕЗ TRAMMEL...");
             int spawnedShrines = 0;
             int spawnedMinisters = 0;
+            int spawnedAltars = 0;
 
+            // ИСПРАВЛЕНО: Из списка активных карт полностью убран Map.Trammel
             List<Map> activeMaps = new List<Map>();
-            if (Map.Trammel != Map.Internal && Map.Trammel != null) activeMaps.Add(Map.Trammel);
             if (Map.Felucca != Map.Internal && Map.Felucca != null) activeMaps.Add(Map.Felucca);
             if (Map.Ilshenar != Map.Internal && Map.Ilshenar != null) activeMaps.Add(Map.Ilshenar);
             if (Map.Malas != Map.Internal && Map.Malas != null) activeMaps.Add(Map.Malas);
@@ -52,11 +53,11 @@ namespace Server.Custom.EpicAlignment
                             spawnedShrines++;
                         }
 
-                        if ((map == Map.Trammel || map == Map.Felucca || map == Map.Ilshenar) && !IsMinisterExistsAt(loc, map))
+                        // ИСПРАВЛЕНО: Министры спавнятся только в Felucca и Ilshenar (Trammel исключен)
+                        if ((map == Map.Felucca || map == Map.Ilshenar) && !IsMinisterExistsAt(loc, map))
                         {
                             try
                             {
-                                // ИСПРАВЛЕНО: Вместо Activator вызываем нативный конструктор с передачей обязательного параметра City
                                 Server.Engines.CityLoyalty.TradeMinister minister = new Server.Engines.CityLoyalty.TradeMinister(c);
 
                                 if (minister != null)
@@ -72,8 +73,6 @@ namespace Server.Custom.EpicAlignment
                             catch (Exception ex)
                             {
                                 Console.WriteLine($"[EpicAdmin] Не удалось создать министра для {c} через основной конструктор: {ex.Message}");
-
-                                // Резервный обходной путь через передачу массива параметров, если сигнатура в твоем ядре кастомная
                                 try
                                 {
                                     object[] args = new object[] { c };
@@ -95,7 +94,7 @@ namespace Server.Custom.EpicAlignment
                 }
             }
 
-            // 2. АВТО-ГЕНЕРАЦИЯ ДЛЯ КЛАССИЧЕСКИХ ДАНЖЕЙ
+            // 2. АВТО-ГЕНЕРАЦИЯ ДЛЯ КЛАССИЧЕСКИХ ДАНЖЕЙ (Только Felucca)
             Dictionary<string, Point3D> dungeonWaypoints = new Dictionary<string, Point3D>()
             {
                 { "Covetous Dungeon", new Point3D(2498, 921, 0) },
@@ -112,7 +111,7 @@ namespace Server.Custom.EpicAlignment
             {
                 foreach (Map map in activeMaps)
                 {
-                    if (map != Map.Trammel && map != Map.Felucca) continue;
+                    if (map != Map.Felucca) continue; // ИСПРАВЛЕНО: Данжи заселяются строго на Фелукке
 
                     Point3D loc = new Point3D(kvp.Value.X, kvp.Value.Y, map.GetAverageZ(kvp.Value.X, kvp.Value.Y));
 
@@ -125,7 +124,7 @@ namespace Server.Custom.EpicAlignment
                 }
             }
 
-            // 3. АВТО-ГЕНЕРАЦИЯ ДЛЯ ТЕМНЫХ ГОРОДОВ (Используем город Moonglow или Британию как базовый тип для подмены)
+            // 3. АВТО-ГЕНЕРАЦИЯ ДЛЯ ТЕМНЫХ ГОРОДОВ
             Point3D umbraBase = new Point3D(2114, 1312, -49);
             Point3D doomBase = new Point3D(356, 175, 4);
 
@@ -136,7 +135,6 @@ namespace Server.Custom.EpicAlignment
                 Point3D uLoc = new Point3D(umbraBase.X, umbraBase.Y, map.GetAverageZ(umbraBase.X, umbraBase.Y));
                 Point3D dLoc = new Point3D(doomBase.X, doomBase.Y, map.GetAverageZ(doomBase.X, doomBase.Y));
 
-                // Umbra
                 if (!IsShrineExistsAt(uLoc, map))
                 {
                     EtherealShrine umbraShrine = new EtherealShrine("Umbra");
@@ -147,7 +145,6 @@ namespace Server.Custom.EpicAlignment
                 {
                     try
                     {
-                        // ИСПРАВЛЕНО: Прямой вызов конструктора
                         Server.Engines.CityLoyalty.TradeMinister umbraMinister = new Server.Engines.CityLoyalty.TradeMinister(Server.Engines.CityLoyalty.City.Moonglow);
                         if (umbraMinister != null)
                         {
@@ -164,7 +161,6 @@ namespace Server.Custom.EpicAlignment
                     catch { }
                 }
 
-                // Doom
                 if (!IsShrineExistsAt(dLoc, map))
                 {
                     EtherealShrine doomShrine = new EtherealShrine("Doom");
@@ -175,7 +171,6 @@ namespace Server.Custom.EpicAlignment
                 {
                     try
                     {
-                        // ИСПРАВЛЕНО: Прямой вызов конструктора
                         Server.Engines.CityLoyalty.TradeMinister doomMinister = new Server.Engines.CityLoyalty.TradeMinister(Server.Engines.CityLoyalty.City.Moonglow);
                         if (doomMinister != null)
                         {
@@ -193,8 +188,32 @@ namespace Server.Custom.EpicAlignment
                 }
             }
 
-            from.SendMessage(0x35, $"Глобальная генерация завершена! Сеть развернута во всех мирах.");
+            // 4. СВЕТЛЫЙ АЛТАРЬ: Перенесен строго на Фелукку (Despise Уровень 4)
+            Point3D lightAltarLoc = new Point3D(1210, 1085, -20);
+            lightAltarLoc.Z = Map.Felucca.GetAverageZ(lightAltarLoc.X, lightAltarLoc.Y);
+
+            if (!IsAltarExistsAt(lightAltarLoc, Map.Felucca))
+            {
+                AltarOfDestiny feluccaAltar = new AltarOfDestiny();
+                feluccaAltar.Name = "Светлый Алтарь Предназначения [Путь Аватара - PvP зона]";
+                feluccaAltar.Hue = 2418;
+                feluccaAltar.MoveToWorld(lightAltarLoc, Map.Felucca);
+                spawnedAltars++;
+            }
+            // 5. ТЕМНЫЙ АЛТАРЬ: Наследие Мондейна в Doom
+            Point3D darkAltarLoc = new Point3D(260, 185, 4);
+            darkAltarLoc.Z = Map.Malas.GetAverageZ(darkAltarLoc.X, darkAltarLoc.Y);
+            if (!IsAltarExistsAt(darkAltarLoc, Map.Malas))
+            {
+                AltarOfDestiny darkAltar = new AltarOfDestiny();
+                darkAltar.Name = "ТЕМНЫЙ АЛТАРЬ ПРЕДНАЗНАЧЕНИЯ [Наследие Мондейна]";
+                darkAltar.Hue = 1175;
+                darkAltar.MoveToWorld(darkAltarLoc, Map.Malas);
+                spawnedAltars++;
+            }
+            from.SendMessage(0x35, $"Генерация без Trammel завершена!");
             from.SendMessage(0x35, $"Всего создано Эфирных Шрайнов: {spawnedShrines}, Выставлено Министров: {spawnedMinisters}.");
+            from.SendMessage(0x58, $"Автоматически возведено Алтарей Предназначения: {spawnedAltars}.");
         }
         private static bool IsShrineExistsAt(Point3D loc, Map map)
         {
@@ -208,11 +227,17 @@ namespace Server.Custom.EpicAlignment
             foreach (Mobile m in eable) { if (m.GetType().Name == "TradeMinister") { eable.Free(); return true; } }
             eable.Free(); return false;
         }
+        private static bool IsAltarExistsAt(Point3D loc, Map map)
+        {
+            IPooledEnumerable eable = map.GetItemsInRange(loc, 3);
+            foreach (Item item in eable) { if (item is AltarOfDestiny) { eable.Free(); return true; } }
+            eable.Free(); return false;
+        }
         private static void GoPurgatory_OnCommand(CommandEventArgs e)
         {
             Mobile from = e.Mobile; if (from == null) return;
-            from.MoveToWorld(EpicAlignmentSystem.PurgatoryLoc, Map.Trammel);
-            from.SendMessage(0x59, "Вы переместились в Чистилище (Trammel).");
+            from.MoveToWorld(EpicAlignmentSystem.PurgatoryLoc, Map.Felucca); // ИСПРАВЛЕНО: Go-команда ведет на Фелукку
+            from.SendMessage(0x59, "Вы переместились в Чистилище (Felucca).");
         }
         private static void GoEpicFortress_OnCommand(CommandEventArgs e)
         {
@@ -221,8 +246,8 @@ namespace Server.Custom.EpicAlignment
             string type = e.GetString(0).ToLower();
             if (type == "light" || type == "свет")
             {
-                from.MoveToWorld(EpicAlignmentSystem.LightFortress, Map.Trammel);
-                from.SendMessage(0x35, "Вы переместились в Оплот Света (Trammel).");
+                from.MoveToWorld(EpicAlignmentSystem.LightFortress, Map.Felucca); // ИСПРАВЛЕНО: Ведет на Фелукку
+                from.SendMessage(0x35, "Вы переместились в Оплот Света (Felucca).");
             }
             else if (type == "dark" || type == "тьма")
             {

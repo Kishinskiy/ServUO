@@ -21,6 +21,7 @@ namespace Server.Custom.EpicAlignment
         public EpicRank Rank { get; set; }
         public int Lives { get; set; } = 10;
         public DateTime LastActive { get; set; } = DateTime.UtcNow;
+        public Timer AuraTimer { get; set; }
     }
 
     public static class EpicAlignmentSystem
@@ -32,7 +33,6 @@ namespace Server.Custom.EpicAlignment
         private static Dictionary<Serial, DateTime> _bossCooldown = new Dictionary<Serial, DateTime>();
         private static Dictionary<Serial, DateTime> _guardCooldown = new Dictionary<Serial, DateTime>();
 
-        // Пути сохранения базы данных
         private static readonly string _saveFolder = Path.Combine(Core.BaseDirectory, "Saves/Custom");
         private static readonly string _savePath = Path.Combine(Core.BaseDirectory, "Saves/Custom/EpicAlignmentDatabase.bin");
 
@@ -48,7 +48,6 @@ namespace Server.Custom.EpicAlignment
             EventSink.PlayerDeath += OnPlayerDeath;
             EventSink.Login += OnPlayerLogin;
 
-            // ПОДПИСКА НА ГЛОБАЛЬНЫЙ ЦИКЛ СОХРАНЕНИЯ СЕРВЕРА [save
             EventSink.WorldSave += (e) => Save();
             EventSink.Shutdown += (e) => Save();
             EventSink.ServerStarted += new ServerStartedEventHandler(Load);
@@ -75,6 +74,11 @@ namespace Server.Custom.EpicAlignment
 
             if (rank == EpicRank.None)
             {
+                if (_epicRegistry.TryGetValue(m.Serial, out EpicProfile oldProfile))
+                {
+                    if (oldProfile.AuraTimer != null) oldProfile.AuraTimer.Stop();
+                }
+
                 _epicRegistry.Remove(m.Serial);
                 m.Title = "";
                 m.HueMod = -1;
@@ -89,7 +93,16 @@ namespace Server.Custom.EpicAlignment
             }
 
             EpicProfile profile = new EpicProfile { Rank = rank, Lives = 10, LastActive = DateTime.UtcNow };
+
+            if (_epicRegistry.TryGetValue(m.Serial, out EpicProfile existing))
+            {
+                if (existing.AuraTimer != null) existing.AuraTimer.Stop();
+            }
+
             _epicRegistry[m.Serial] = profile;
+
+            profile.AuraTimer = new EpicAuraParticleTimer(m, rank);
+            profile.AuraTimer.Start();
 
             if (rank == EpicRank.HandOfMondain)
             {
@@ -104,6 +117,44 @@ namespace Server.Custom.EpicAlignment
                 CommandHandlers.BroadcastMessage(AccessLevel.Player, 0x35, $"[Свет] Пророчество сбылось! {m.Name} прошел Путь Аватара и стал Воплощением Добродетелей (Жизней: 10)!");
             }
             m.Delta(MobileDelta.Hue);
+        }
+
+        private class EpicAuraParticleTimer : Timer
+        {
+            private Mobile m_Owner;
+            private EpicRank m_Rank;
+
+            public EpicAuraParticleTimer(Mobile owner, EpicRank rank) : base(TimeSpan.FromSeconds(1.0), TimeSpan.FromSeconds(1.2))
+            {
+                m_Owner = owner;
+                m_Rank = rank;
+                Priority = TimerPriority.OneSecond;
+            }
+
+            protected override void OnTick()
+            {
+                if (m_Owner == null || m_Owner.Deleted || EpicAlignmentSystem.GetRank(m_Owner) != m_Rank)
+                {
+                    Stop();
+                    return;
+                }
+
+                if (m_Owner.Alive && m_Owner.Map != Map.Internal && m_Owner.Map != null && m_Owner.AccessLevel == AccessLevel.Player)
+                {
+                    if (m_Rank == EpicRank.Avatar)
+                    {
+                        Effects.SendLocationParticles(EffectItem.Create(m_Owner.Location, m_Owner.Map, TimeSpan.FromSeconds(0.5)), 0x373A, 10, 15, 2418, 0, 5012, 0);
+                        if (Utility.RandomBool())
+                            Effects.SendLocationParticles(EffectItem.Create(new Point3D(m_Owner.X, m_Owner.Y, m_Owner.Z + 10), m_Owner.Map, TimeSpan.FromSeconds(0.3)), 0x375A, 9, 10, 1150, 0, 5027, 0);
+                    }
+                    else if (m_Rank == EpicRank.HandOfMondain)
+                    {
+                        Effects.SendLocationParticles(EffectItem.Create(m_Owner.Location, m_Owner.Map, TimeSpan.FromSeconds(0.5)), 0x3709, 10, 20, 1175, 0, 5004, 0);
+                        if (Utility.RandomBool())
+                            Effects.SendLocationParticles(EffectItem.Create(m_Owner.Location, m_Owner.Map, TimeSpan.FromSeconds(0.3)), 0x376A, 9, 12, 1157, 0, 5002, 0);
+                    }
+                }
+            }
         }
 
         private static void OnPlayerDeath(PlayerDeathEventArgs e)
@@ -147,7 +198,7 @@ namespace Server.Custom.EpicAlignment
 
                     Timer.DelayCall(TimeSpan.FromSeconds(1.0), () =>
                     {
-                        victim.MoveToWorld(PurgatoryLoc, Map.Trammel);
+                        victim.MoveToWorld(PurgatoryLoc, Map.Felucca);
                         victim.SendMessage(0x22, "Вы пали от руки смертного. Силы Посмертия сковали вас на этой территории!");
                     });
                 }
@@ -159,7 +210,7 @@ namespace Server.Custom.EpicAlignment
                 Timer.DelayCall(TimeSpan.FromSeconds(1.0), () =>
                 {
                     Point3D spawnFort = (profile.Rank == EpicRank.Avatar) ? LightFortress : DarkFortress;
-                    victim.MoveToWorld(spawnFort, (profile.Rank == EpicRank.Avatar) ? Map.Trammel : Map.Malas);
+                    victim.MoveToWorld(spawnFort, (profile.Rank == EpicRank.Avatar) ? Map.Felucca : Map.Malas);
 
                     _bossCooldown[victim.Serial] = DateTime.UtcNow + TimeSpan.FromMinutes(30.0);
                     victim.SendMessage(0x22, "Вы ослаблены. Способности Книги Судьбы заблокированы на 30 минут!");
@@ -172,6 +223,16 @@ namespace Server.Custom.EpicAlignment
             Mobile m = e.Mobile;
             if (m == null) return;
 
+            EpicProfile profile = GetProfile(m);
+            if (profile != null && profile.Rank != EpicRank.None)
+            {
+                profile.LastActive = DateTime.UtcNow;
+                if (profile.AuraTimer != null) profile.AuraTimer.Stop();
+
+                profile.AuraTimer = new EpicAuraParticleTimer(m, profile.Rank);
+                profile.AuraTimer.Start();
+            }
+
             List<Serial> toRemove = new List<Serial>();
             DateTime threshold = DateTime.UtcNow - TimeSpan.FromDays(90.0);
 
@@ -180,7 +241,6 @@ namespace Server.Custom.EpicAlignment
                 if (kvp.Value.LastActive < threshold)
                 {
                     toRemove.Add(kvp.Key);
-
                     Mobile target = World.FindMobile(kvp.Key);
                     if (target != null)
                     {
@@ -189,9 +249,12 @@ namespace Server.Custom.EpicAlignment
                     }
                 }
             }
-
             foreach (Serial s in toRemove)
             {
+                if (_epicRegistry.TryGetValue(s, out EpicProfile expiredProf))
+                {
+                    if (expiredProf.AuraTimer != null) expiredProf.AuraTimer.Stop();
+                }
                 _epicRegistry.Remove(s);
                 Mobile ghost = World.FindMobile(s);
                 if (ghost != null && ghost.Backpack != null)
@@ -200,38 +263,24 @@ namespace Server.Custom.EpicAlignment
                     if (b != null) b.Delete();
                 }
             }
-
-            EpicProfile profile = GetProfile(m);
-            if (profile != null)
-            {
-                profile.LastActive = DateTime.UtcNow;
-            }
         }
-
-        // =========================================================================
-        // МЕХАНИКА БИНАРНОГО СОХРАНЕНИЯ БАЗЫ ДАННЫХ ЭПИКОВ НА ДИСК 💾
-        // =========================================================================
         public static void Save()
         {
             if (_epicRegistry.Count == 0) return;
-
             GenericWriter writer = null;
             try
             {
                 if (!Directory.Exists(_saveFolder))
                     Directory.CreateDirectory(_saveFolder);
-
                 writer = new BinaryFileWriter(_savePath, false);
-
-                writer.Write((int)DatabaseVersion); // Записываем версию структуры (1)
-                writer.Write((int)_epicRegistry.Count); // Количество записей
-
+                writer.Write((int)DatabaseVersion);
+                writer.Write((int)_epicRegistry.Count);
                 foreach (var kvp in _epicRegistry)
                 {
-                    writer.Write((int)kvp.Key.Value); // Сериал персонажа
-                    writer.Write((byte)kvp.Value.Rank); // Ранг (Avatar / Mondain)
-                    writer.Write((int)kvp.Value.Lives); // Оставшиеся жизни
-                    writer.Write((string)kvp.Value.LastActive.ToString("o")); // Штамп активности в ISO
+                    writer.Write((int)kvp.Key.Value);
+                    writer.Write((byte)kvp.Value.Rank);
+                    writer.Write((int)kvp.Value.Lives);
+                    writer.Write((string)kvp.Value.LastActive.ToString("o"));
                 }
                 Console.WriteLine($"[EpicAlignment] Успешно сохранено {_epicRegistry.Count} эпических профилей.");
             }
@@ -244,11 +293,9 @@ namespace Server.Custom.EpicAlignment
                 if (writer != null) writer.Close();
             }
         }
-
         public static void Load()
         {
             if (!File.Exists(_savePath)) return;
-
             GenericReader reader = null;
             FileStream stream = null;
             BinaryReader binReader = null;
@@ -273,6 +320,12 @@ namespace Server.Custom.EpicAlignment
                         LastActive = lastActive
                     };
                     _epicRegistry[serial] = profile;
+                    Mobile onlineMob = World.FindMobile(serial);
+                    if (onlineMob != null && onlineMob.NetState != null)
+                    {
+                        profile.AuraTimer = new EpicAuraParticleTimer(onlineMob, rank);
+                        profile.AuraTimer.Start();
+                    }
                 }
                 Console.WriteLine($"[EpicAlignment] Успешно загружено {_epicRegistry.Count} эпических профилей из базы данных.");
             }
@@ -322,19 +375,20 @@ namespace Server.Custom.EpicAlignment
                 m.SendMessage(0x35, $"Осталось жизней: {profile.Lives} из 10. Последняя активность обновлена.");
             }
         }
+        // ИСПРАВЛЕНО: Полностью убрана путаница с именами коллекций, метод использует стандартную изолированную проверку онлайна
         private static void EpicList_OnCommand(CommandEventArgs e)
         {
             Mobile from = e.Mobile;
             if (from == null) return;
             from.SendMessage(0x59, "=== ВЕСТНИК МИРОВОЗЗРЕНИЙ: СТАТУС ПОЛЮСОВ ===");
-            int count = 0;
+            int epicOnlineCount = 0;
             foreach (NetState ns in NetState.Instances)
             {
                 Mobile m = ns.Mobile;
                 if (m == null || !m.Alive || m.AccessLevel > AccessLevel.Player) continue;
                 EpicProfile profile = GetProfile(m);
                 if (profile == null || profile.Rank == EpicRank.None) continue;
-                count++;
+                epicOnlineCount++;
                 string locName = (m.Region != null && !string.IsNullOrEmpty(m.Region.Name)) ? m.Region.Name : "Дикие земли";
                 string mapName = m.Map != null ? m.Map.Name : "Неизвестно";
                 if (profile.Rank == EpicRank.Avatar)
@@ -346,7 +400,7 @@ namespace Server.Custom.EpicAlignment
                     from.SendMessage(0x22, $"[ТЬМА] Воплощение Зла {m.Name} (Жизней: {profile.Lives}/10) — Находится: {locName} ({mapName})");
                 }
             }
-            if (count == 0)
+            if (epicOnlineCount == 0)
                 from.SendMessage(0x59, "В данный момент Высшие Полюса спят или скрываются в тенях.");
             from.SendMessage(0x59, "=============================================");
         }
