@@ -16,13 +16,12 @@ namespace Server.Custom.CityDevelopment
         public int Level { get; set; } = 1;
         public double CurrentSupplies { get; set; } = 0.0;
         public double RequiredSupplies { get; set; } = 250.0;
-        public long Treasury { get; set; } = 0; // Добавлено: казна теперь хранится здесь!
+        public long Treasury { get; set; } = 0;
     }
 
     public static class CityDevelopmentMod
     {
-        public static readonly int DatabaseVersion = 2; // Повысили версию базы для поддержки карт
-
+        public static readonly int DatabaseVersion = 2;
         public static readonly int DevelopmentChance = 100;
 
         // ================= НАСТРОЙКА ЭКОНОМИКИ ГОРОДА =================
@@ -30,12 +29,10 @@ namespace Server.Custom.CityDevelopment
         public static readonly double MaintenanceMultiplier = 2.5;
         // ===============================================================
 
-        // Ключ теперь строго: "ИмяГорода_ИмяКарты" (например, "Britain_Trammel")
         private static readonly Dictionary<string, CityProgress> _cityData = new Dictionary<string, CityProgress>();
         private static readonly string _saveFolder = Path.Combine(Core.BaseDirectory, "Saves/Custom");
         private static readonly string _savePath = Path.Combine(Core.BaseDirectory, "Saves/Custom/CityDevelopmentDatabase.bin");
 
-        // Раздельные кулдауны: хранят штрафы с привязкой к конкретной карте
         private static readonly Dictionary<Mobile, Dictionary<string, DateTime>> _cityCooldowns =
             new Dictionary<Mobile, Dictionary<string, DateTime>>();
 
@@ -50,24 +47,16 @@ namespace Server.Custom.CityDevelopment
             Timer.DelayCall(TimeSpan.FromDays(1.0), TimeSpan.FromDays(1.0), new TimerCallback(ProcessCityDecayAndMaintenance));
             Timer.DelayCall(TimeSpan.FromMinutes(60.0), TimeSpan.FromMinutes(60.0), new TimerCallback(ProcessCyclicMerchantSpawn));
 
-             // АВТОСПАВН МИНИСТРОВ И ИНФРАСТРУКТУРЫ В ОБОИХ МИРАХ ПРИ СТАРТЕ 🏙️
             Timer.DelayCall(TimeSpan.FromSeconds(5.0), () =>
             {
                 bool hasMinistersInFelucca = World.Mobiles.Values.Any(m => m is Server.Engines.CityLoyalty.TradeMinister && m.Map == Map.Felucca);
                 if (!hasMinistersInFelucca)
                 {
                     Console.WriteLine("[CityDevelopment] NPC лояльности не найдены в Felucca. Запуск принудительного спавна на обе карты...");
-                    
-                    // Вызываем наш метод из ядра напрямую, это на 100% исключит NullReferenceException
                     Server.Engines.CityLoyalty.CityLoyaltySystem.GenerateAllInfrastructure();
-                }
-                else
-                {
-                    Console.WriteLine("[CityDevelopment] Верификация NPC: Инфраструктура успешно работает в обоих мирах.");
                 }
             });
 
-            // Перехватчик удаления ящиков (штрафует конкретный город НА КОНКРЕТНОЙ КАРТЕ)
             EventSink.ItemDeleted += (e) =>
             {
                 if (e.Item is Server.Engines.CityLoyalty.TradeOrderCrate crate && crate.Owner != null && crate.Entry != null)
@@ -78,31 +67,27 @@ namespace Server.Custom.CityDevelopment
                         Map currentMap = crate.Map ?? crate.Owner.Map;
 
                         SetCityCooldown(crate.Owner, originCity, currentMap, TimeSpan.FromMinutes(20.0));
-
                         crate.Owner.SendMessage(0x22, $"[Контракт] Вы потеряли или отменили груз. Торговая гильдия города {originCity} ({currentMap}) наложила на вас штраф на 20 минут!");
                     }
                 }
             };
         }
 
-
-        // ДОБАВИТЬ: Резервный метод для совместимости со старыми скриптами (CS7036)
         public static CityProgress GetCityProfile(Server.Engines.CityLoyalty.City city)
         {
-            return GetCityProfile(city, Map.Trammel); // Перенаправляем старые вызовы на Trammel
+            return GetCityProfile(city, Map.Trammel);
         }
 
-        // ДОБАВИТЬ: Резервный метод кулдауна для старой системы караванов (CS7036)
         public static void SetCityCooldown(Mobile player, Server.Engines.CityLoyalty.City city, TimeSpan duration)
         {
             SetCityCooldown(player, city, player != null ? player.Map : Map.Trammel, duration);
         }
+
         private static void ProcessCyclicMerchantSpawn()
         {
             List<Town> townsList = Town.Towns;
             if (townsList == null) return;
 
-            // Глобализация: перебираем вообще все карты
             foreach (Map map in Map.AllMaps)
             {
                 if (map == null || map == Map.Internal) continue;
@@ -116,10 +101,9 @@ namespace Server.Custom.CityDevelopment
 
                     CityProgress progress = GetCityProfile(coreCity, map);
 
-                    // Налоги фракций оставляем только для Felucca (или ваших кастомных PvP миров, если нужно)
                     if (progress != null && map == Map.Felucca)
                     {
-                        ApplyDynamicTaxToBaseSystem(t, progress.Level); 
+                        ApplyDynamicTaxToBaseSystem(t, progress.Level);
                     }
 
                     if (progress != null && progress.Level >= 5)
@@ -130,7 +114,6 @@ namespace Server.Custom.CityDevelopment
             }
         }
 
-        // Новая логика: Профиль строго привязан к Городу и Карте
         public static CityProgress GetCityProfile(Server.Engines.CityLoyalty.City city, Map map)
         {
             if (map == null || map == Map.Internal) map = Map.Trammel;
@@ -184,10 +167,10 @@ namespace Server.Custom.CityDevelopment
                 int goldReward = 3500;
                 Server.Mobiles.Banker.Deposit(player, goldReward, true);
                 player.SendMessage(0x58, $"[Контракт] Ваша дорожная компенсация составила {goldReward} золотых (зачислено в банк).");
+                player.SendMessage(88, $"[Развитие] ... Доставка успешно завершена! Городу {townName} ({map.Name}) начислено +{pointsAdded:F2} очков.");
 
-                player.SendMessage(88, $"[Развитие] Торговый заказ доставлен! Городу {townName} ({map.Name}) начислено +{pointsAdded:F2} очков.");
-
-                long cityTreasury = GetCoreTreasury(townName, map); // Казна ядра УНИКАЛЬНА для каждого инстанса, если разделим ядро (см. Шаг 3)
+                // ИСПРАВЛЕНО: Считываем актуальный баланс казны с жестким игнорированием регистра названия города
+                long cityTreasury = GetCoreTreasury(townName, map);
 
                 if (progress.CurrentSupplies >= progress.RequiredSupplies && cityTreasury > 0)
                 {
@@ -198,7 +181,6 @@ namespace Server.Custom.CityDevelopment
                     if (map == Map.Felucca)
                         ApplyDynamicTaxToBaseSystem(originTown, progress.Level);
 
-                    // Спавним декор СТРОГО на той карте, где произошло улучшение
                     CityDecorationMod.DecorateTown(originTown, progress.Level, map);
                     CityLegendaryMerchantMod.CheckMerchantSpawn(originTown, progress.Level);
 
@@ -207,7 +189,7 @@ namespace Server.Custom.CityDevelopment
                 }
                 else if (progress.CurrentSupplies >= progress.RequiredSupplies && cityTreasury <= 0)
                 {
-                    player.SendMessage(0x22, $"[Внимание] Город {townName} ({map.Name}) готов к улучшению, но его казна пуста!");
+                    player.SendMessage(0x22, $"[Внимание] Город {townName} ({map.Name}) готов к улучшению, но его казна пуста! Требуются средства.");
                 }
             }
         }
@@ -225,7 +207,6 @@ namespace Server.Custom.CityDevelopment
 
             onlineScale = Math.Max(0.5, Math.Min(5.0, onlineScale));
 
-            // Глобализация: снимаем налоги и считаем упадок на ВСЕХ картах
             foreach (Map map in Map.AllMaps)
             {
                 if (map == null || map == Map.Internal) continue;
@@ -241,21 +222,20 @@ namespace Server.Custom.CityDevelopment
                     CityProgress progress = GetCityProfile(coreCity, map);
                     if (progress == null) continue;
 
-                    long currentGold = GetCoreTreasury(townName, map); 
+                    long currentGold = GetCoreTreasury(townName, map);
 
                     if (currentGold > 0)
                     {
                         double levelCost = BaseMaintenanceCost * Math.Pow(MaintenanceMultiplier, progress.Level - 1);
                         long finalMaintenanceCost = (long)(levelCost * onlineScale);
 
-                        SubtractCoreTreasury(townName, finalMaintenanceCost, map); 
+                        SubtractCoreTreasury(townName, finalMaintenanceCost, map);
                         progress.CurrentSupplies -= 1.0;
                     }
                     else
                     {
-                        progress.CurrentSupplies -= 25.0; 
+                        progress.CurrentSupplies -= 25.0;
                     }
-
                     if (progress.CurrentSupplies < 0.0)
                     {
                         if (progress.Level > 1)
@@ -263,13 +243,10 @@ namespace Server.Custom.CityDevelopment
                             progress.Level--;
                             progress.RequiredSupplies = 250.0 * Math.Pow(2.0, progress.Level - 1);
                             progress.CurrentSupplies = progress.RequiredSupplies * 0.10;
-
                             if (map == Map.Felucca)
                                 ApplyDynamicTaxToBaseSystem(t, progress.Level);
-
                             CityDecorationMod.RemoveTownDecoration(t, progress.Level + 1, map);
                             CityLegendaryMerchantMod.RemoveMerchant(t);
-
                             string decayMsg = $"[Кризис] Город {townName} ({map.Name}) остался без припасов! Уровень упал до {progress.Level}.";
                             CommandHandlers.BroadcastMessage(AccessLevel.Player, 0x22, decayMsg);
                         }
@@ -281,7 +258,7 @@ namespace Server.Custom.CityDevelopment
                 }
             }
         }
-        
+        // ИСПРАВЛЕНО: Добавлен флаг true для тотального игнорирования регистра букв при парсинге строки города
         private static long GetCoreTreasury(string townName, Map map)
         {
             if (Enum.TryParse(townName, true, out Server.Engines.CityLoyalty.City coreCity))
@@ -291,6 +268,7 @@ namespace Server.Custom.CityDevelopment
             }
             return 0;
         }
+        // ИСПРАВЛЕНО: Добавлен флаг true для игнорирования регистра и добавлена синхронизация с ванильным полем
         private static void SubtractCoreTreasury(string townName, long amount, Map map)
         {
             if (Enum.TryParse(townName, true, out Server.Engines.CityLoyalty.City coreCity))
@@ -300,6 +278,9 @@ namespace Server.Custom.CityDevelopment
                 {
                     progress.Treasury -= amount;
                     if (progress.Treasury < 0) progress.Treasury = 0;
+                    // Синхронизируем базовую переменную ядра, чтобы гампы камней обновлялись мгновенно
+                    var coreSys = Server.Engines.CityLoyalty.CityLoyaltySystem.GetCityInstance(coreCity);
+                    if (coreSys != null) coreSys.Treasury = progress.Treasury;
                 }
             }
         }
@@ -337,7 +318,7 @@ namespace Server.Custom.CityDevelopment
                     writer.Write((int)kvp.Value.Level);
                     writer.Write((double)kvp.Value.CurrentSupplies);
                     writer.Write((double)kvp.Value.RequiredSupplies);
-                    writer.Write((long)kvp.Value.Treasury); // Добавлено
+                    writer.Write((long)kvp.Value.Treasury);
                 }
             }
             catch { }
@@ -361,9 +342,9 @@ namespace Server.Custom.CityDevelopment
                     progress.Level = reader.ReadInt();
                     progress.CurrentSupplies = reader.ReadDouble();
                     progress.RequiredSupplies = reader.ReadDouble();
-                    if (version >= 2) // Будет считывать только с новой версии базы
+                    if (version >= 2)
                     {
-                        progress.Treasury = reader.ReadLong(); // Добавлено
+                        progress.Treasury = reader.ReadLong();
                     }
                     _cityData[key] = progress;
                 }
@@ -418,7 +399,6 @@ namespace Server.Custom.CityDevelopment
                     if (cityFound)
                     {
                         CityProgress progress = GetCityProfile(city, npc.Map);
-                        var sys = Server.Engines.CityLoyalty.CityLoyaltySystem.GetCityInstance(city);
                         long treasury = progress.Treasury;
                         from.SendMessage(89, $"=== Статус развития города: {city} ({npc.Map.Name}) ===");
                         from.SendMessage(0x59, $"Текущий уровень: {progress.Level} из 5");
