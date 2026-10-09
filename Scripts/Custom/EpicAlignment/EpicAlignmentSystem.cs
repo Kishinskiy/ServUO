@@ -7,6 +7,7 @@ using Server.Items;
 using Server.Commands;
 using Server.Network;
 
+
 namespace Server.Custom.EpicAlignment
 {
     public enum EpicRank : byte
@@ -37,11 +38,11 @@ namespace Server.Custom.EpicAlignment
         private static readonly string _saveFolder = Path.Combine(Core.BaseDirectory, "Saves/Custom");
         private static readonly string _savePath = Path.Combine(Core.BaseDirectory, "Saves/Custom/EpicAlignmentDatabase.bin");
 
-        public static readonly Point3D PurgatoryLoc = new Point3D(5234, 120, 0);
+        public static readonly Point3D PurgatoryLoc = new Point3D(6430, 1250, 13);
         public static readonly Point3D LightFortress = new Point3D(1495, 1629, 10);
         public static readonly Point3D DarkFortress = new Point3D(2114, 1312, -49);
 
-        public static void Initialize()
+                public static void Initialize()
         {
             CommandSystem.Register("CheckEpicStatus", AccessLevel.Player, new CommandEventHandler(CheckEpicStatus_OnCommand));
             CommandSystem.Register("EpicList", AccessLevel.Player, new CommandEventHandler(EpicList_OnCommand));
@@ -52,7 +53,12 @@ namespace Server.Custom.EpicAlignment
             EventSink.WorldSave += (e) => Save();
             EventSink.Shutdown += (e) => Save();
             EventSink.ServerStarted += new ServerStartedEventHandler(Load);
+
+            // ИСПРАВЛЕНО: Запуск нового разбитого модуля мантр Храма Хаоса! 🌌
+            Server.Items.EpicMantraCore.Initialize();
         }
+
+
 
         public static EpicRank GetRank(Mobile m)
         {
