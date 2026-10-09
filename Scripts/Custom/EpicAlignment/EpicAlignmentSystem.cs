@@ -34,9 +34,15 @@ namespace Server.Custom.EpicAlignment
 
     public static class EpicAlignmentSystem
     {
-        public static readonly Point3D PurgatoryLoc = new Point3D(5214, 3650, 0);
-        public static readonly Point3D LightFortress = new Point3D(1215, 4120, 10);
-        public static readonly Point3D DarkFortress = new Point3D(2450, 4150, -5);
+        // ИСПРАВЛЕНО: Перенесли Чистилище духов из астрала на РЕАЛЬНЫЙ лорный остров Felucca! 🗺️🏝️
+        public static readonly Point3D PurgatoryLoc = new Point3D(6430, 1236, 10);    // Чистилище духов (Felucca)
+        public static readonly Map PurgatoryMap = Map.Felucca;
+
+        public static readonly Point3D LightFortress = new Point3D(5262, 129, 20);    // Цитадель Святого Света (Felucca)
+        public static readonly Map LightFortressMap = Map.Felucca;
+
+        public static readonly Point3D DarkFortress = new Point3D(2024, 1383, -80);  // Обитель Вечной Тьмы (Malas)
+        public static readonly Map DarkFortressMap = Map.Malas; 
 
         private static readonly Dictionary<string, EpicProfile> _database = new Dictionary<string, EpicProfile>();
 
