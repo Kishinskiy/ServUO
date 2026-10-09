@@ -52,8 +52,14 @@ namespace Server.Custom.CityDevelopment
                 bool hasMinistersInFelucca = World.Mobiles.Values.Any(m => m is Server.Engines.CityLoyalty.TradeMinister && m.Map == Map.Felucca);
                 if (!hasMinistersInFelucca)
                 {
-                    Console.WriteLine("[CityDevelopment] NPC лояльности не найдены в Felucca. Запуск принудительного спавна на обе карты...");
-                    Server.Engines.CityLoyalty.CityLoyaltySystem.GenerateAllInfrastructure();
+                    Console.WriteLine("[CityDevelopment] NPC лояльности не найдены в Felucca. Запуск принудительного спавна строго на Felucca...");
+                    
+                    // Вызываем генерацию ИСКЛЮЧИТЕЛЬНО для карты Felucca
+                    Server.Engines.CityLoyalty.CityLoyaltySystem.GenerateInfrastructureForMap(Map.Felucca);
+                }
+                else
+                {
+                    Console.WriteLine("[CityDevelopment] Верификация NPC: Торговая инфраструктура Felucca успешно работает.");
                 }
             });
 
