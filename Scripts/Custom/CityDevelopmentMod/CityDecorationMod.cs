@@ -4,7 +4,9 @@ using Server;
 using Server.Items;
 using Server.Mobiles;
 using Server.Factions;
+using Server.Regions;
 using Server.Engines.CityLoyalty;
+using Server.Custom.EpicAlignment;
 
 namespace Server.Custom.CityDevelopment
 {
@@ -12,17 +14,14 @@ namespace Server.Custom.CityDevelopment
     {
         public static void Initialize() { }
 
-        // Список для отслеживания заспавненной стражи, чтобы корректно удалять её при смене уровней
         private static readonly Dictionary<Town, List<Mobile>> _activeGuards = new Dictionary<Town, List<Mobile>>();
 
-        // Радар находит центр города в любом мире на основе жестких координат ядра лояльности
         private static Point3D FindCityCenter(Town town, Map currentMap, out Map targetMap)
         {
             targetMap = (currentMap != null && currentMap != Map.Internal) ? currentMap : Map.Trammel;
 
             if (town == null) return Point3D.Zero;
 
-            // Конвертируем имя фракционного города в enum лояльности ядра ServUO
             if (Enum.TryParse(town.ToString(), true, out City coreCity))
             {
                 CityLoyaltySystem sys = CityLoyaltySystem.GetCityInstance(coreCity);
@@ -32,10 +31,39 @@ namespace Server.Custom.CityDevelopment
                 }
             }
 
+            if (town.ToString().IndexOf("Umbra", StringComparison.OrdinalIgnoreCase) >= 0)
+                return new Point3D(2114, 1312, -49);
+            if (town.ToString().IndexOf("Doom", StringComparison.OrdinalIgnoreCase) >= 0)
+                return new Point3D(356, 175, 4);
+
             return Point3D.Zero;
         }
 
-        // НАПОЛНЕНО: Спавн стражи и праздничные эффекты
+        private static Point3D FindRandomPointInRegion(Region region, Map map, Point3D fallbackCenter, int radius)
+        {
+            if (region == null || map == Map.Internal || map == null) return fallbackCenter;
+
+            for (int i = 0; i < 30; i++)
+            {
+                int rx = fallbackCenter.X + Utility.RandomMinMax(-radius, radius);
+                int ry = fallbackCenter.Y + Utility.RandomMinMax(-radius, radius);
+                int rz = map.GetAverageZ(rx, ry);
+
+                Point3D testLoc = new Point3D(rx, ry, rz);
+
+                Region testReg = Region.Find(testLoc, map);
+                if (testReg != null && (testReg == region || region.IsPartOf(testReg) || testReg.IsPartOf(region)))
+                {
+                    if (map.CanSpawnMobile(testLoc))
+                    {
+                        return testLoc;
+                    }
+                }
+            }
+
+            return fallbackCenter;
+        }
+
         public static void DecorateTown(Town town, int newLevel, Map currentMap)
         {
             Map map;
@@ -43,41 +71,42 @@ namespace Server.Custom.CityDevelopment
 
             if (center == Point3D.Zero) return;
 
-            // 1. Очищаем старую стражу этого уровня перед спавном новой
             ClearGuards(town);
 
-            // 2. Рассчитываем количество стражи (например, по 2 гвардейца за каждый уровень города)
+            Region cityRegion = Region.Find(center, map);
+
             int countToSpawn = newLevel * 2;
             List<Mobile> townGuards = new List<Mobile>();
 
+            int patrolRadius = 40 + (newLevel * 10);
+
             for (int i = 0; i < countToSpawn; i++)
             {
-                // Создаем кастомного стражника и передаем ему уровень города
                 DevelopmentCityGuard guard = new DevelopmentCityGuard(town, newLevel);
-
-                // Генерируем небольшое случайное смещение вокруг городского камня, чтобы они не стояли в одной точке
-                int offsetX = Utility.RandomMinMax(-4, 4);
-                int offsetY = Utility.RandomMinMax(-4, 4);
-                Point3D spawnLoc = new Point3D(center.X + offsetX, center.Y + offsetY, center.Z);
-
-                // Стабилизируем Z-координату на поверхности земли
-                spawnLoc.Z = map.GetAverageZ(spawnLoc.X, spawnLoc.Y);
+                Point3D spawnLoc = FindRandomPointInRegion(cityRegion, map, center, patrolRadius);
 
                 guard.MoveToWorld(spawnLoc, map);
-                guard.Home = center; // Точка, куда стражник будет возвращаться после боя
-                guard.RangeHome = 12; // Радиус патрулирования
+
+                guard.Home = spawnLoc;
+                guard.RangeHome = 15;
+                guard.Warmode = false;
 
                 townGuards.Add(guard);
             }
 
             _activeGuards[town] = townGuards;
 
-            // Взрываем праздничный салют точно на координатах городского камня
-            Effects.PlaySound(center, map, 0x11C);
+            if (IsEvilTown(town))
+            {
+                Effects.PlaySound(center, map, 0x22F);
+            }
+            else
+            {
+                Effects.PlaySound(center, map, 0x11C);
+            }
             Effects.SendLocationParticles(EffectItem.Create(center, map, EffectItem.DefaultDuration), 0x36B0, 9, 32, 5013);
         }
 
-        // НАПОЛНЕНО: Удаление элитной стражи и откат к более слабой при кризисе казны
         public static void RemoveTownDecoration(Town town, int levelToDestroy, Map currentMap)
         {
             Map map;
@@ -85,17 +114,14 @@ namespace Server.Custom.CityDevelopment
 
             if (center == Point3D.Zero) return;
 
-            // Очищаем стражу уничтоженного уровня
             ClearGuards(town);
 
-            // Спавним стражу на 1 уровень ниже (так как levelToDestroy — это уровень, с которого город упал)
             int lowerLevel = Math.Max(1, levelToDestroy - 1);
             DecorateTown(town, lowerLevel, currentMap);
 
-            Effects.PlaySound(center, map, 0x11D); // Мягкий звук падения уровня инфраструктуры
+            Effects.PlaySound(center, map, IsEvilTown(town) ? 0x21F : 0x11D);
         }
 
-        // Вспомогательный метод для безопасной очистки существ из мира
         private static void ClearGuards(Town town)
         {
             if (_activeGuards.TryGetValue(town, out List<Mobile> guardsList))
@@ -109,16 +135,24 @@ namespace Server.Custom.CityDevelopment
                 _activeGuards.Remove(town);
             }
         }
+
+        public static bool IsEvilTown(Town town)
+        {
+            if (town == null) return false;
+            string name = town.ToString();
+            return name.IndexOf("Umbra", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   name.IndexOf("Doom", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
     }
 
     // =========================================================================
-    // КАСТОМНЫЙ КЛАСС ДИНАМИЧЕСКОГО СТРАЖНИКА 🛡️
-    // Вы можете вынести его в отдельный файл, либо оставить прямо здесь
+    // ЗЕРКАЛЬНЫЙ КЛАСС ДИНАМИЧЕСКОГО СТРАЖНИКА (СВЕТ / ТЬМА) 🛡️💀
     // =========================================================================
     public class DevelopmentCityGuard : BaseCreature
     {
         public Town CityTown { get; set; }
         public int CityLevel { get; set; }
+        public bool IsUndeadGuard { get; private set; }
 
         public override bool ClickTitle => false;
         public override bool ShowFameTitle => false;
@@ -127,158 +161,224 @@ namespace Server.Custom.CityDevelopment
         {
             CityTown = town;
             CityLevel = level;
+            IsUndeadGuard = CityDecorationMod.IsEvilTown(town);
 
             SpeechHue = Utility.RandomDyedHue();
-            Hue = Utility.RandomSkinHue();
 
-            // Задаем пол стражника случайно
-            if (Female = Utility.RandomBool())
+            if (IsUndeadGuard)
             {
-                Body = 401; Name = NameList.RandomName("female");
+                Hue = 0;
+                Female = false;
             }
             else
             {
-                Body = 400; Name = NameList.RandomName("male");
+                Hue = Utility.RandomSkinHue();
+                if (Female = Utility.RandomBool())
+                {
+                    Body = 401; Name = NameList.RandomName("female");
+                }
+                else
+                {
+                    Body = 400; Name = NameList.RandomName("male");
+                }
             }
 
-            // Настраиваем силу, боевые навыки и экипировку в зависимости от уровня города
             ApplyLevelStats();
         }
 
         private void ApplyLevelStats()
         {
-            // Базовые навыки для всех стражников
             SetSkill(SkillName.Anatomy, 60.0 + (CityLevel * 10.0));
             SetSkill(SkillName.Tactics, 60.0 + (CityLevel * 10.0));
-            SetSkill(SkillName.MagicResist, 50.0 + (CityLevel * 12.0));
             SetSkill(SkillName.Healing, 50.0 + (CityLevel * 10.0));
 
-            // Смена экипировки и мощи по уровням
-            switch (CityLevel)
+            if (IsUndeadGuard)
             {
-                case 1: // Ополченец (Слабый)
-                    Title = $", новобранец гарнизона {CityTown}";
-                    SetStr(100); SetDex(80); SetInt(50);
-                    HitsMaxSeed = 150; Hits = 150;
-                    SetDamage(8, 14);
-                    SetSkill(SkillName.Macing, 60.0);
+                SetSkill(SkillName.MagicResist, 70.0 + (CityLevel * 12.0));
+                SetSkill(SkillName.Necromancy, 50.0 + (CityLevel * 10.0));
+                SetSkill(SkillName.SpiritSpeak, 50.0 + (CityLevel * 10.0));
 
-                    AddItem(new Boots());
-                    AddItem(new LeatherChest());
-                    AddItem(new LeatherLegs());
-                    AddItem(new Club()); // Деревянная дубинка
-                    break;
+                switch (CityLevel)
+                {
+                    case 1:
+                        Name = "восставший страж";
+                        Title = $", ополченец склепа {CityTown}";
+                        Body = 50;
+                        SetStr(110); SetDex(85); SetInt(40);
+                        HitsMaxSeed = 160; Hits = 160;
+                        SetDamage(9, 15);
+                        SetSkill(SkillName.Macing, 65.0);
+                        AddItem(new BoneCrusher());
+                        break;
 
-                case 2:
-                case 3: // Регулярная стража (Средний уровень)
-                    Title = $", стражник города {CityTown}";
-                    SetStr(175); SetDex(100); SetInt(70);
-                    HitsMaxSeed = 350; Hits = 350;
-                    SetDamage(14, 22);
-                    SetSkill(SkillName.Swords, 85.0);
+                    case 2:
+                    case 3:
+                        Name = "проклятый гвардеец";
+                        Title = $", центурион праха {CityTown}";
+                        Body = 148;
+                        if (Utility.RandomBool()) Body = 154;
+                        SetStr(190); SetDex(105); SetInt(60);
+                        HitsMaxSeed = 380; Hits = 380;
+                        SetDamage(15, 24);
+                        SetSkill(SkillName.Swords, 90.0);
+                        AddItem(new ExecutionersAxe());
+                        break;
 
-                    AddItem(new ThighBoots());
-                    AddItem(new ChainChest());
-                    AddItem(new ChainLegs());
-                    AddItem(new ChainCoif());
-                    AddItem(new VikingSword()); // Стальной меч
-                    AddItem(new MetalShield());
-                    break;
+                    case 4:
+                        Name = "рыцарь увядания";
+                        Title = $", предводитель тени {CityTown}";
+                        Body = 400;
+                        Hue = 1175;
+                        AI = AIType.AI_Mage;
+                        SetStr(280); SetDex(130); SetInt(150);
+                        HitsMaxSeed = 650; Hits = 650;
+                        SetDamage(22, 30);
+                        SetSkill(SkillName.Swords, 105.0);
+                        SetSkill(SkillName.Meditation, 90.0);
 
-                case 4: // Ветеран
-                    Title = $", ветеран гвардии {CityTown}";
-                    SetStr(250); SetDex(120); SetInt(90);
-                    HitsMaxSeed = 600; Hits = 600;
-                    SetDamage(20, 28);
-                    SetSkill(SkillName.Swords, 100.0);
-                    SetSkill(SkillName.Parry, 90.0);
+                        AddItem(new PlateChest() { Hue = 1175 });
+                        AddItem(new PlateLegs() { Hue = 1175 });
+                        AddItem(new VikingSword() { Hue = 1175 });
+                        break;
 
-                    AddItem(new PlateChest());
-                    AddItem(new PlateLegs());
-                    AddItem(new PlateGloves());
-                    AddItem(new PlateArms());
-                    AddItem(new Halberd()); // Двуручная алебарда
-                    break;
-
-                case 5: // Элитный Паладин Мегаполиса (Очень сильный)
-                    Title = $", элитный паладин ордена {CityTown}";
-                    SetStr(450); SetDex(150); SetInt(120);
-                    HitsMaxSeed = 1200; Hits = 1200; // Огромный запас здоровья
-                    SetDamage(28, 38);
-                    SetSkill(SkillName.Swords, 120.0);
-                    SetSkill(SkillName.Parry, 115.0);
-                    SetSkill(SkillName.MagicResist, 120.0); // Иммунитет к легкой магии
-
-                    // Одеваем в красивый полный плейт
-                    PlateChest chest = new PlateChest(); chest.Hue = 2418; AddItem(chest);
-                    PlateLegs legs = new PlateLegs(); legs.Hue = 2418; AddItem(legs);
-                    PlateArms arms = new PlateArms(); arms.Hue = 2418; AddItem(arms);
-                    PlateGloves gloves = new PlateGloves(); gloves.Hue = 2418; AddItem(gloves);
-                    PlateHelm helm = new PlateHelm(); helm.Hue = 2418; AddItem(helm);
-
-                    AddItem(new Longsword());
-                    AddItem(new OrderShield()); // Элитный щит ордена
-                    break;
+                    case 5:
+                        Name = "Владыка праха";
+                        Title = $", страж бездны {CityTown}";
+                        Body = 79;
+                        AI = AIType.AI_Mage;
+                        SetStr(500); SetDex(160); SetInt(300);
+                        HitsMaxSeed = 1350; Hits = 1350;
+                        SetDamage(30, 42);
+                        SetSkill(SkillName.Swords, 125.0);
+                        SetSkill(SkillName.Magery, 110.0);
+                        SetSkill(SkillName.EvalInt, 110.0);
+                        break;
+                }
             }
+            else
+            {
+                SetSkill(SkillName.MagicResist, 50.0 + (CityLevel * 12.0));
 
+                switch (CityLevel)
+                {
+                    case 1:
+                        Title = $", новобранец гарнизона {CityTown}";
+                        SetStr(100); SetDex(80); SetInt(50);
+                        HitsMaxSeed = 150; Hits = 150;
+                        SetDamage(8, 14);
+                        SetSkill(SkillName.Macing, 60.0);
+                        AddItem(new Boots()); AddItem(new LeatherChest()); AddItem(new LeatherLegs()); AddItem(new Club());
+                        break;
+                    case 2:
+                    case 3:
+                        Title = $", стражник города {CityTown}";
+                        SetStr(175); SetDex(100); SetInt(70);
+                        HitsMaxSeed = 350; Hits = 350;
+                        SetDamage(14, 22);
+                        SetSkill(SkillName.Swords, 85.0);
+                        AddItem(new ThighBoots()); AddItem(new ChainChest()); AddItem(new ChainLegs()); AddItem(new ChainCoif()); AddItem(new VikingSword()); AddItem(new MetalShield());
+                        break;
+                    case 4:
+                        Title = $", ветеран гвардии {CityTown}";
+                        SetStr(250); SetDex(120); SetInt(90);
+                        HitsMaxSeed = 600; Hits = 600;
+                        SetDamage(20, 28);
+                        SetSkill(SkillName.Swords, 100.0); SetSkill(SkillName.Parry, 90.0);
+                        AddItem(new PlateChest()); AddItem(new PlateLegs()); AddItem(new PlateGloves()); AddItem(new PlateArms()); AddItem(new Halberd());
+                        break;
+                    case 5:
+                        Title = $", элитный паладин ордена {CityTown}";
+                        SetStr(450); SetDex(150); SetInt(120);
+                        HitsMaxSeed = 1200; Hits = 1200;
+                        SetDamage(28, 38);
+                        SetSkill(SkillName.Swords, 120.0); SetSkill(SkillName.Parry, 115.0); SetSkill(SkillName.MagicResist, 120.0);
+                        PlateChest chest = new PlateChest(); chest.Hue = 2418; AddItem(chest);
+                        PlateLegs legs = new PlateLegs(); legs.Hue = 2418; AddItem(legs);
+                        PlateArms arms = new PlateArms(); arms.Hue = 2418; AddItem(arms);
+                        PlateGloves gloves = new PlateGloves(); gloves.Hue = 2418; AddItem(gloves);
+                        // ИСПРАВЛЕНО: Убрана ошибочная функция HelmWithVisual. Заменена на штатный перекрас свойства Hue
+                        PlateHelm helm = new PlateHelm(); helm.Hue = 2418; AddItem(helm);
+                        // ИСПРАВЛЕНО: Ошибочные фракционные щиты и мечи заменены на 100% стабильный ванильный арсенал
+                        AddItem(new Broadsword());
+                        AddItem(new BronzeShield());
+                        break;
+                }
+            }
             Fame = CityLevel * 2000;
-            Karma = CityLevel * 2000;
+            Karma = IsUndeadGuard ? -(CityLevel * 2000) : (CityLevel * 2000);
         }
-
-        // Правила атаки: Кастомный стражник защищает город от Убийц (ПК) и Монстров
         public override bool IsEnemy(Mobile m)
         {
             if (m == null || m.Deleted || m == this) return false;
 
-            // Если это ПК-игрок (красный ник) или преступник (серый ник) — атаковать!
-            if (m.Kills >= 5 || m.Criminal) return true;
+            // Извлекаем эпический ранг цели
+            EpicRank targetEpicRank = EpicAlignmentSystem.GetRank(m);
 
-            // Если это агрессивное дикое существо (монстр) — атаковать!
-            if (m is BaseCreature bc)
+            if (IsUndeadGuard)
             {
-                if (bc.Controlled || bc.Summoned) return false; // Не трогаем питомцев игроков
+                // Темная стража Умбры/Дума МГНОВЕННО атакует Аватара, игнорируя любые другие условия!
+                if (targetEpicRank == EpicRank.Avatar) return true;
 
-                return bc.Combatant != null || bc.FightMode == FightMode.Closest || bc.FightMode == FightMode.Aggressor;
+                // Руку Мондейна они никогда не тронут
+                if (targetEpicRank == EpicRank.HandOfMondain) return false;
+
+                if (m.Karma >= 5000 && m.Kills == 0) return true;
+
+                if (m is BaseCreature bc)
+                {
+                    if (bc.Controlled || bc.Summoned) return false;
+                    return bc.Combatant != null || bc.FightMode == FightMode.Closest;
+                }
+                return false;
             }
-            return base.IsEnemy(m);
+            else
+            {
+                // Светлая стража Британии/Мунглоу МГНОВЕННО атакует Руку Мондейна! за его голову назначена награда!
+                if (targetEpicRank == EpicRank.HandOfMondain) return true;
+
+                // Аватара они защищают и никогда не атакуют
+                if (targetEpicRank == EpicRank.Avatar) return false;
+
+                if (m.Kills >= 5 || m.Criminal) return true;
+
+                if (m is BaseCreature bc)
+                {
+                    if (bc.Controlled || bc.Summoned) return false;
+                    return bc.Combatant != null || bc.FightMode == FightMode.Closest || bc.FightMode == FightMode.Aggressor;
+                }
+                return base.IsEnemy(m);
+            }
         }
-        // Чтобы стражники не оставляли после себя горы золота или артефактов при кастомных тестах
         public override void GenerateLoot()
         {
-            AddLoot(LootPack.Meager);
+            AddLoot(IsUndeadGuard ? LootPack.Average : LootPack.Meager);
         }
-        // Сериализация для поддержки рестартов сервера
+        public override bool DeleteCorpseOnDeath => IsUndeadGuard;
         public DevelopmentCityGuard(Serial serial) : base(serial) { }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1); // Поднимаем версию структуры до 1
-
-            // Записываем имя города как строку, так как класс Town не кастится в int напрямую
+            writer.Write((int)2);
             writer.Write((string)(CityTown != null ? CityTown.ToString() : "None"));
             writer.Write(CityLevel);
+            writer.Write(IsUndeadGuard);
         }
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
             int version = reader.ReadInt();
-
             if (version >= 1)
             {
                 string townName = reader.ReadString();
                 CityLevel = reader.ReadInt();
-
-                // Ищем объект города в глобальном списке фракций по сохраненному имени
                 if (townName != "None" && Town.Towns != null)
                 {
                     CityTown = Town.Towns.Find(t => string.Equals(t.ToString(), townName, StringComparison.OrdinalIgnoreCase));
                 }
             }
-            else
+            if (version >= 2)
             {
-                // Старая заглушка для совместимости с версией 0
-                reader.ReadInt(); 
-                CityLevel = reader.ReadInt();
+                IsUndeadGuard = reader.ReadBool();
             }
         }
     }
