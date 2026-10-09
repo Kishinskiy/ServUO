@@ -3802,6 +3802,56 @@ namespace Server.Mobiles
                 Waypoints.AddCorpse(this);
             }
 
+			            // =========================================================================
+            // 🔥 СИНХРОНИЗИРОВАНО: Мультимирный перехват смерти Полубогов (JSON-сопряжение) 🎉
+            // =========================================================================
+            EpicRank epicRank = Server.Custom.EpicAlignment.EpicAlignmentSystem.GetRank(this);
+            if (epicRank != EpicRank.None)
+            {
+                Mobile killer = this.LastKiller;
+                bool killedByPlayer = (killer != null && killer.Player && killer != this);
+
+                // СЦЕНАРИЙ 1: СМЕРТЬ В PVP (ОТ РУК ИГРОКА) — ИЗГНАНИЕ НА КАСТOМНЫЙ ОСТРОВ ДУХОВ
+                if (killedByPlayer)
+                {
+                    this.SendMessage(0x22, "Ваша материальная оболочка разорвана! Изгнание духа в Чистилище...");
+                    
+                    if (this.Backpack != null && this.Backpack.FindItemByType(typeof(PurgatoryEssenceCatcher)) == null)
+                    {
+                        this.Backpack.DropItem(new PurgatoryEssenceCatcher());
+                    }
+
+                    // Считываем точные координаты и правильную карту Чистилища из JSON-базы (6430, 1236, 10, Felucca)
+                    Timer.DelayCall(TimeSpan.FromMilliseconds(50), () => {
+                        this.MoveToWorld(Server.Custom.EpicAlignment.EpicAlignmentSystem.PurgatoryLoc, Server.Custom.EpicAlignment.EpicAlignmentSystem.PurgatoryMap);
+                        Effects.PlaySound(Server.Custom.EpicAlignment.EpicAlignmentSystem.PurgatoryLoc, Server.Custom.EpicAlignment.EpicAlignmentSystem.PurgatoryMap, 0x5C0);
+                    });
+                }
+                // СЦЕНАРИЙ 2: СМЕРТЬ В PVE (ОТ NPC / МОНСТРОВ) — МГНОВЕННЫЙ УЛЕТ В ЦИТАДЕЛЬ КАРТЫ
+                else
+                {
+                    Point3D targetFortress = (epicRank == EpicRank.Avatar) 
+                        ? Server.Custom.EpicAlignment.EpicAlignmentSystem.LightFortress 
+                        : Server.Custom.EpicAlignment.EpicAlignmentSystem.DarkFortress;
+
+                    Map targetMap = (epicRank == EpicRank.Avatar)
+                        ? Server.Custom.EpicAlignment.EpicAlignmentSystem.LightFortressMap
+                        : Server.Custom.EpicAlignment.EpicAlignmentSystem.DarkFortressMap;
+
+                    string homeName = (epicRank == EpicRank.Avatar) ? "Цитадель Святого Света" : "Обитель Вечной Тьмы";
+                    this.SendMessage(0x35, $"Высшие силы спасают твой дух от Скверны! Телепортация в {homeName}...");
+
+                    // Мгновенный улет Полубога на целевые координаты и ЦЕЛЕВУЮ карту мира (Felucca или Malas!)
+                    Timer.DelayCall(TimeSpan.FromMilliseconds(50), () => {
+                        this.MoveToWorld(targetFortress, targetMap);
+                        Effects.SendLocationParticles(EffectItem.Create(targetFortress, targetMap, TimeSpan.FromSeconds(1.0)), 0x3709, 10, 30, (epicRank == EpicRank.Avatar) ? 2418 : 1175, 0, 5004, 0);
+                        Effects.PlaySound(targetFortress, targetMap, 0x212);
+                    });
+                }
+            }
+            // =========================================================================
+
+
             return base.OnBeforeDeath();
         }
 

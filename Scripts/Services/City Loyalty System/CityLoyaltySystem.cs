@@ -703,27 +703,22 @@ namespace Server.Engines.CityLoyalty
             // МУЛЬТИКАРТОЧНЫЙ СПАВН: Перезаписываем стандартную команду, чтобы она спавнила и в Trammel, и в Felucca
             CommandSystem.Register("SetupCityLoyalty", AccessLevel.Administrator, e =>
             {
-                GenerateAllInfrastructure();
+                GenerateInfrastructureForMap(Map.Felucca);
                 if (e.Mobile != null)
                 {
-                    e.Mobile.SendMessage("Инфраструктура городов успешно создана в Trammel и Felucca!");
+                    e.Mobile.SendMessage("Инфраструктура городов успешно создана в Felucca!");
                 }
             });
         }
 
         // ПУБЛИЧНЫЙ МОСТ ДЛЯ ВАШЕГО МОДА РАЗВИТИЯ ГОРОДОВ 🌉
-        public static void GenerateAllInfrastructure()
+        public static void GenerateInfrastructureForMap(Map targetMap)
         {
-            // Перебираем абсолютно все зарегистрированные карты на сервере
-            foreach (Map map in Map.AllMaps)
-            {
-                // Игнорируем внутреннюю техническую карту Internal (0), где нет мира
-                if (map == null || map == Map.Internal) 
-                    continue;
+            if (targetMap == null || targetMap == Map.Internal) 
+                return;
 
-                SetupInfrastructureOnMap(map);
-            }
-            Console.WriteLine("[CityLoyalty] Базовая инфраструктура успешно сгенерирована для ВСЕХ активных миров сервера!");
+            SetupInfrastructureOnMap(targetMap);
+            Console.WriteLine("[CityLoyalty] Базовая инфраструктура городов сгенерирована для карты: {0}", targetMap.Name);
         }
 
         // ВСПОМОГАТЕЛЬНЫЙ МЕТОД ДЛЯ ФИЗИЧЕСКОГО СПАВНА ОБЪЕКТОВ И NPC НА КАРТУ
@@ -762,7 +757,7 @@ namespace Server.Engines.CityLoyalty
                     sys.Minister = minister;
                 }
 
-                // 4. Спавним Глашатая (Временного NPC-Губернатора)
+                // 4. Спавним Глашатая (NPC-Губернатора)
                 bool heraldExists = World.Mobiles.Values.Any(m => m is CityHerald && m.Map == targetMap && ((CityHerald)m).City == sys.City);
                 if (!heraldExists)
                 {
@@ -799,6 +794,17 @@ namespace Server.Engines.CityLoyalty
 
             if (pm == null)
                 return;
+
+            // =========================================================================
+            // 🔥 УЛЬТИМАТИВНЫЙ ХУК ДЛЯ ВЕЧНОГО СОХРАНЕНИЯ СТАТУСА ПОЛУБОГА ПРИ РЕЛОГЕ!
+            // =========================================================================
+            var profile = Server.Custom.EpicAlignment.EpicAlignmentSystem.GetProfile(pm);
+            if (profile != null && profile.Rank != EpicRank.None)
+            {
+                pm.Title = (profile.Rank == EpicRank.Avatar) ? "[Avatar of Virtues]" : "[Hand of Mondain]";
+                pm.HueMod = (profile.Rank == EpicRank.Avatar) ? 2418 : 1175;
+                pm.Delta(MobileDelta.Hue);
+            }
 
             CityLoyaltySystem sys = GetCitizenship(pm);
 
