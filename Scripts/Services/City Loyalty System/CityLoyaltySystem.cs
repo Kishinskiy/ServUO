@@ -795,6 +795,17 @@ namespace Server.Engines.CityLoyalty
             if (pm == null)
                 return;
 
+            // =========================================================================
+            // 🔥 УЛЬТИМАТИВНЫЙ ХУК ДЛЯ ВЕЧНОГО СОХРАНЕНИЯ СТАТУСА ПОЛУБОГА ПРИ РЕЛОГЕ!
+            // =========================================================================
+            var profile = Server.Custom.EpicAlignment.EpicAlignmentSystem.GetProfile(pm);
+            if (profile != null && profile.Rank != EpicRank.None)
+            {
+                pm.Title = (profile.Rank == EpicRank.Avatar) ? "[Avatar of Virtues]" : "[Hand of Mondain]";
+                pm.HueMod = (profile.Rank == EpicRank.Avatar) ? 2418 : 1175;
+                pm.Delta(MobileDelta.Hue);
+            }
+
             CityLoyaltySystem sys = GetCitizenship(pm);
 
             if (sys != null)
