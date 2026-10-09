@@ -228,7 +228,11 @@ namespace Server.Engines.CityLoyalty
         [CommandProperty(AccessLevel.GameMaster)]
         public long Treasury
         {
-            get { return _Treasury; }
+            get 
+            { 
+                // Безопасный возврат баланса без использования System.Transactions
+                return _Treasury; 
+            }
             set
             {
                 _Treasury = value;
@@ -467,7 +471,18 @@ namespace Server.Engines.CityLoyalty
 
         public void AddToTreasury(Mobile m, int amount, bool givelove = false)
         {
-            Treasury += amount;
+            Map currentMap = m.Map;
+            var progress = Server.Custom.CityDevelopment.CityDevelopmentMod.GetCityProfile(this.City, currentMap);
+            
+            if (progress != null)
+            {
+                progress.Treasury += amount;
+                _Treasury = progress.Treasury; // Синхронизируем локальный баланс для гампов на текущей карте
+            }
+            else
+            {
+                _Treasury += amount;
+            }
 
             if (Stone != null)
                 Stone.InvalidateProperties();
