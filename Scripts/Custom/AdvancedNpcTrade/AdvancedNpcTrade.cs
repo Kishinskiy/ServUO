@@ -10,6 +10,7 @@ using Server.Items;
 using Server.Network;
 using Server.Engines.Plants;
 using System.Linq;
+using Server.Custom.EpicAlignment;
 
 namespace Server.Custom.AdvancedNpcTrade
 {
@@ -180,6 +181,25 @@ namespace Server.Custom.AdvancedNpcTrade
             double loyaltyDiscount = LoyaltyTables.Discount[finalLevel];
 
             finalPrice *= (1.0 - loyaltyDiscount);
+
+            // =========================================================================
+            // ВСТАВКА МОДА: УЛЬТИМАТИВНЫЕ ЭПИЧЕСКИЕ СКИДКИ СВЕРХ СИСТЕМЫ 👑
+            // =========================================================================
+            EpicRank playerEpicRank = EpicAlignmentSystem.GetRank(buyer);
+            if (playerEpicRank != EpicRank.None)
+            {
+                if (playerEpicRank == EpicRank.HandOfMondain && isEvilShop)
+                {
+                    // Злые города боготворят Руку Мондейна. Даем скидку 50% ПОВЕРХ всех капов!
+                    finalPrice *= 0.50; 
+                }
+                else if (playerEpicRank == EpicRank.Avatar && !isEvilShop)
+                {
+                    // Добрые города преклоняются перед Аватаром. Скидка 50% ПОВЕРХ лимитов!
+                    finalPrice *= 0.50;
+                }
+            }
+            // =========================================================================
 
             int roundedPrice = (int)Math.Round(finalPrice);
             return roundedPrice < 1 ? 1 : roundedPrice;

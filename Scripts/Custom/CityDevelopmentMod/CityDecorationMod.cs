@@ -6,6 +6,7 @@ using Server.Mobiles;
 using Server.Factions;
 using Server.Regions;
 using Server.Engines.CityLoyalty;
+using Server.Custom.EpicAlignment;
 
 namespace Server.Custom.CityDevelopment
 {
@@ -309,9 +310,20 @@ namespace Server.Custom.CityDevelopment
         public override bool IsEnemy(Mobile m)
         {
             if (m == null || m.Deleted || m == this) return false;
+
+            // Извлекаем эпический ранг цели
+            EpicRank targetEpicRank = EpicAlignmentSystem.GetRank(m);
+
             if (IsUndeadGuard)
             {
+                // Темная стража Умбры/Дума МГНОВЕННО атакует Аватара, игнорируя любые другие условия!
+                if (targetEpicRank == EpicRank.Avatar) return true;
+
+                // Руку Мондейна они никогда не тронут
+                if (targetEpicRank == EpicRank.HandOfMondain) return false;
+
                 if (m.Karma >= 5000 && m.Kills == 0) return true;
+
                 if (m is BaseCreature bc)
                 {
                     if (bc.Controlled || bc.Summoned) return false;
@@ -321,7 +333,14 @@ namespace Server.Custom.CityDevelopment
             }
             else
             {
+                // Светлая стража Британии/Мунглоу МГНОВЕННО атакует Руку Мондейна! за его голову назначена награда!
+                if (targetEpicRank == EpicRank.HandOfMondain) return true;
+
+                // Аватара они защищают и никогда не атакуют
+                if (targetEpicRank == EpicRank.Avatar) return false;
+
                 if (m.Kills >= 5 || m.Criminal) return true;
+
                 if (m is BaseCreature bc)
                 {
                     if (bc.Controlled || bc.Summoned) return false;

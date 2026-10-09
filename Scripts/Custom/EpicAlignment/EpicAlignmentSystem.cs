@@ -1,0 +1,276 @@
+using System;
+using System.Collections.Generic;
+using Server;
+using Server.Mobiles;
+using Server.Items;
+using Server.Commands;
+using Server.Network;
+
+namespace Server.Custom.EpicAlignment
+{
+    public enum EpicRank : byte
+    {
+        None = 0,
+        Avatar = 1,        // Абсолютное Благо
+        HandOfMondain = 2  // Вселенское Зло
+    }
+
+    public class EpicProfile
+    {
+        public EpicRank Rank { get; set; }
+        // ИСПРАВЛЕНО: Теперь у Полубога 10 жизней против игроков вместо 3
+        public int Lives { get; set; } = 10;
+        public DateTime LastActive { get; set; } = DateTime.UtcNow;
+    }
+
+    public static class EpicAlignmentSystem
+    {
+        private static Dictionary<Serial, EpicProfile> _epicRegistry = new Dictionary<Serial, EpicProfile>();
+
+        private static Dictionary<Serial, DateTime> _bossCooldown = new Dictionary<Serial, DateTime>();
+        private static Dictionary<Serial, DateTime> _guardCooldown = new Dictionary<Serial, DateTime>();
+
+        public static readonly Point3D PurgatoryLoc = new Point3D(5234, 120, 0);
+        public static readonly Point3D LightFortress = new Point3D(1495, 1629, 10);
+        public static readonly Point3D DarkFortress = new Point3D(2114, 1312, -49);
+
+        public static void Initialize()
+        {
+            CommandSystem.Register("CheckEpicStatus", AccessLevel.Player, new CommandEventHandler(CheckEpicStatus_OnCommand));
+            CommandSystem.Register("EpicList", AccessLevel.Player, new CommandEventHandler(EpicList_OnCommand));
+
+            EventSink.PlayerDeath += OnPlayerDeath;
+            EventSink.Login += OnPlayerLogin;
+        }
+
+        public static EpicRank GetRank(Mobile m)
+        {
+            if (m == null) return EpicRank.None;
+            if (_epicRegistry.TryGetValue(m.Serial, out EpicProfile profile))
+                return profile.Rank;
+            return EpicRank.None;
+        }
+
+        public static EpicProfile GetProfile(Mobile m)
+        {
+            if (m == null) return null;
+            _epicRegistry.TryGetValue(m.Serial, out EpicProfile profile);
+            return profile;
+        }
+
+        public static void SetRank(Mobile m, EpicRank rank)
+        {
+            if (m == null) return;
+
+            if (rank == EpicRank.None)
+            {
+                _epicRegistry.Remove(m.Serial);
+                m.Title = "";
+                m.HueMod = -1;
+                m.Delta(MobileDelta.Hue);
+
+                if (m.Backpack != null)
+                {
+                    Item book = m.Backpack.FindItemByType(typeof(BookOfDestiny));
+                    if (book != null) book.Delete();
+                }
+                return;
+            }
+
+            // ИСПРАВЛЕНО: Инициализация с 10 жизнями
+            EpicProfile profile = new EpicProfile { Rank = rank, Lives = 10, LastActive = DateTime.UtcNow };
+            _epicRegistry[m.Serial] = profile;
+
+            if (rank == EpicRank.HandOfMondain)
+            {
+                m.Title = "[Hand of Mondain]";
+                m.HueMod = 1175;
+                CommandHandlers.BroadcastMessage(AccessLevel.Player, 0x22, $"[Тьма] Сосария содрогнулась! {m.Name} завершил Наследие Мондейна и занял Престол Тьмы (Жизней: 10)!");
+            }
+            else if (rank == EpicRank.Avatar)
+            {
+                m.Title = "[Avatar of Virtues]";
+                m.HueMod = 2418;
+                CommandHandlers.BroadcastMessage(AccessLevel.Player, 0x35, $"[Свет] Пророчество сбылось! {m.Name} прошел Путь Аватара и стал Воплощением Добродетелей (Жизней: 10)!");
+            }
+            m.Delta(MobileDelta.Hue);
+        }
+
+        private static void OnPlayerDeath(PlayerDeathEventArgs e)
+        {
+            Mobile victim = e.Mobile;
+            if (victim == null) return;
+
+            EpicProfile profile = GetProfile(victim);
+            if (profile == null || profile.Rank == EpicRank.None) return;
+
+            profile.LastActive = DateTime.UtcNow;
+            Mobile killer = victim.LastKiller;
+
+            if (killer != null && killer.Player && killer != victim)
+            {
+                profile.Lives--;
+
+                BankCheck goldCheck = new BankCheck(1000000);
+                killer.AddToBackpack(goldCheck);
+                Item relic = Loot.RandomArmorOrShieldOrWeaponOrJewelry(true, true, true);
+                if (relic != null)
+                {
+                    BaseRunicTool.ApplyAttributesTo(relic, 5, 100, 100);
+                    relic.Name = $"[Трофей] Реликвия за свержение {victim.Name}";
+                    relic.Hue = 1161;
+                    killer.AddToBackpack(relic);
+                }
+
+                if (profile.Lives <= 0)
+                {
+                    string fallAlert = string.Format("[Низвержение] Невероятно! Игрок {0} нанес финальный смертельный удар {1}. Полубог потерял все свои силы и низвергнут в прах!", killer.Name, victim.Name);
+                    CommandHandlers.BroadcastMessage(AccessLevel.Player, 0x22, fallAlert);
+
+                    SetRank(victim, EpicRank.None);
+                    return;
+                }
+                else
+                {
+                    string pvpAlert = string.Format("[Битва] {0} убил {1}! У Полубога осталось {2} из 10 жизней! Он отправлен в Мир Посмертия.", killer.Name, victim.Name, profile.Lives);
+                    CommandHandlers.BroadcastMessage(AccessLevel.Player, 0x59, pvpAlert);
+
+                    Timer.DelayCall(TimeSpan.FromSeconds(1.0), () =>
+                    {
+                        victim.MoveToWorld(PurgatoryLoc, Map.Trammel);
+                        victim.SendMessage(0x22, "Вы пали от руки смертного. Силы Посмертия сковали вас на этой территории!");
+                    });
+                }
+            }
+            else
+            {
+                victim.SendMessage(0x22, "Вы пали в бою с монстрами. Ваша сущность разорвана, вы телепортированы в цитадель фракции.");
+
+                Timer.DelayCall(TimeSpan.FromSeconds(1.0), () =>
+                {
+                    Point3D spawnFort = (profile.Rank == EpicRank.Avatar) ? LightFortress : DarkFortress;
+                    victim.MoveToWorld(spawnFort, (profile.Rank == EpicRank.Avatar) ? Map.Trammel : Map.Malas);
+
+                    _bossCooldown[victim.Serial] = DateTime.UtcNow + TimeSpan.FromMinutes(30.0);
+                    victim.SendMessage(0x22, "Вы ослаблены. Способности Книги Судьбы заблокированы на 30 минут!");
+                });
+            }
+        }
+
+        private static void OnPlayerLogin(LoginEventArgs e)
+        {
+            Mobile m = e.Mobile;
+            if (m == null) return;
+
+            List<Serial> toRemove = new List<Serial>();
+            // ИСПРАВЛЕНО: Лимит инактива увеличен с 14 дней до 90 дней (~3 месяца)
+            DateTime threshold = DateTime.UtcNow - TimeSpan.FromDays(90.0);
+
+            foreach (var kvp in _epicRegistry)
+            {
+                if (kvp.Value.LastActive < threshold)
+                {
+                    toRemove.Add(kvp.Key);
+
+                    Mobile target = World.FindMobile(kvp.Key);
+                    if (target != null)
+                    {
+                        target.Title = "";
+                        target.HueMod = -1;
+                    }
+                }
+            }
+
+            foreach (Serial s in toRemove)
+            {
+                _epicRegistry.Remove(s);
+                Mobile ghost = World.FindMobile(s);
+                if (ghost != null && ghost.Backpack != null)
+                {
+                    Item b = ghost.Backpack.FindItemByType(typeof(BookOfDestiny));
+                    if (b != null) b.Delete();
+                }
+            }
+
+            EpicProfile profile = GetProfile(m);
+            if (profile != null)
+            {
+                profile.LastActive = DateTime.UtcNow;
+            }
+        }
+
+        public static bool CanSummonBoss(Mobile m)
+        {
+            if (_bossCooldown.TryGetValue(m.Serial, out DateTime readyTime))
+                return DateTime.UtcNow >= readyTime;
+            return true;
+        }
+
+        public static void RegisterBossSummon(Mobile m)
+        {
+            _bossCooldown[m.Serial] = DateTime.UtcNow + TimeSpan.FromDays(1.0);
+        }
+
+        public static bool CanSummonGuards(Mobile m)
+        {
+            if (_guardCooldown.TryGetValue(m.Serial, out DateTime readyTime))
+                return DateTime.UtcNow >= readyTime;
+            return true;
+        }
+
+        public static void RegisterGuardSummon(Mobile m)
+        {
+            _guardCooldown[m.Serial] = DateTime.UtcNow + TimeSpan.FromHours(2.0);
+        }
+
+        private static void CheckEpicStatus_OnCommand(CommandEventArgs e)
+        {
+            Mobile m = e.Mobile;
+            if (m == null) return;
+
+            EpicProfile profile = GetProfile(m);
+            if (profile == null || profile.Rank == EpicRank.None)
+            {
+                m.SendMessage(0x59, "=== Ваш Эпический Статус: None ===");
+                m.SendMessage($"Для начала квеста ваша Карма должна быть +15000 (Аватар) или -15000 (Мондейн).");
+            }
+            else
+            {
+                m.SendMessage(0x59, $"=== Ваш Эпический Статус: {profile.Rank} ===");
+                m.SendMessage(0x35, $"Осталось жизней: {profile.Lives} из 10. Последняя активность обновлена.");
+            }
+        }
+
+        private static void EpicList_OnCommand(CommandEventArgs e)
+        {
+            Mobile from = e.Mobile;
+            if (from == null) return;
+
+            from.SendMessage(0x59, "=== ВЕСТНИК МИРОВОЗЗРЕНИЙ: СТАТУС ПОЛЮСОВ ===");
+            int count = 0;
+
+            foreach (NetState ns in NetState.Instances)
+            {
+                Mobile m = ns.Mobile;
+                if (m == null || !m.Alive || m.AccessLevel > AccessLevel.Player) continue;
+
+                EpicProfile profile = GetProfile(m);
+                if (profile == null || profile.Rank == EpicRank.None) continue;
+                count++;
+                string locName = (m.Region != null && !string.IsNullOrEmpty(m.Region.Name)) ? m.Region.Name : "Дикие земли";
+                string mapName = m.Map != null ? m.Map.Name : "Неизвестно";
+                if (profile.Rank == EpicRank.Avatar)
+                {
+                    from.SendMessage(0x35, $"[СВЕТ] Аватар {m.Name} (Жизней: {profile.Lives}/10) — Находится: {locName} ({mapName})");
+                }
+                else if (profile.Rank == EpicRank.HandOfMondain)
+                {
+                    from.SendMessage(0x22, $"[ТЬМА] Воплощение Зла {m.Name} (Жизней: {profile.Lives}/10) — Находится: {locName} ({mapName})");
+                }
+            }
+            if (count == 0)
+                from.SendMessage(0x59, "В данный момент Высшие Полюса спят или скрываются в тенях.");
+            from.SendMessage(0x59, "=============================================");
+        }
+    }
+}
