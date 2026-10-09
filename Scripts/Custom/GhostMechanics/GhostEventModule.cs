@@ -2,8 +2,10 @@ using System;
 using Server;
 using Server.Mobiles;
 using Server.Items;
+using Server.Commands;
 using Server.Engines.XmlSpawner2;
 using Server.Custom.EpicAlignment;
+using Server.Custom.GhostMechanics;
 
 namespace Server.Misc
 {
@@ -12,9 +14,10 @@ namespace Server.Misc
         public static void Initialize()
         {
             EventSink.PlayerDeath += OnPlayerDeath;
-            
-            // Самый стабильный перехват в ServUO: отслеживаем каждое перемещение Полубога в форме призрака
             EventSink.Movement += OnPlayerMovement;
+            
+            // Регистрируем команду ".ghosttravel" или "[ghosttravel", чтобы призрак мог открыть меню в любой момент
+            CommandSystem.Register("GhostTravel", AccessLevel.Player, new CommandEventHandler(GhostTravel_OnCommand));
         }
 
         private static void OnPlayerDeath(PlayerDeathEventArgs e)
@@ -53,11 +56,15 @@ namespace Server.Misc
             }
             else
             {
+                // ДОБАВЛЕНО: Для обычных игроков при смерти выводим информацию и сразу открываем Гамп Путешествий!
                 pm.SendMessage(0x482, $"Вы вошли в мир духов. Ваша призрачная эссенция: {currentEssence}.");
+                pm.SendMessage(0x482, "Используйте команду [GhostTravel или напишите .ghosttravel, чтобы открыть меню святилищ.");
+                
+                // Автоматически открываем гамп со списком точек
+                pm.SendGump(new EtherealTravelGump(pm));
             }
         }
 
-        // УЛЬТИМАТИВНЫЙ ФИКС КОНТРОЛЯ: Если Полубог пытается ожить обходными путями (скрипты, баги) внутри зоны Чистилища
         private static void OnPlayerMovement(MovementEventArgs e)
         {
             Mobile m = e.Mobile;
@@ -66,13 +73,27 @@ namespace Server.Misc
             EpicRank rank = EpicAlignmentSystem.GetRank(m);
             if (rank == EpicRank.None) return;
 
-            // Если Полубог находится на штрафном острове Чистилища и КАКИМ-ТО ОБРАЗОМ оказался ЖИВЫМ без Врат Перерождения
             if (m.Alive && m.Map == Map.Trammel && m.GetDistanceToSqrt(EpicAlignmentSystem.PurgatoryLoc) <= 100.0)
             {
-                // Принудительно возвращаем его в форму духа — Посмертие обмануть нельзя!
                 m.Kill();
                 m.SendMessage(0x22, "Высшие силы Посмертия карают за попытку ложного воскрешения! Используйте только Врата Перерождения.");
             }
+        }
+
+        // КОМАНДА ОТКРЫТИЯ МЕНЮ ДЛЯ ПРИЗРАКОВ
+        private static void GhostTravel_OnCommand(CommandEventArgs e)
+        {
+            Mobile from = e.Mobile;
+            if (from == null) return;
+
+            if (from.Alive)
+            {
+                from.SendMessage("Вы должны быть мертвы, чтобы использовать пути эфирного перемещения.");
+                return;
+            }
+
+            // Открываем интерфейс шрайнов
+            from.SendGump(new EtherealTravelGump(from));
         }
     }
 }

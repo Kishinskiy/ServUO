@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using Server;
 using Server.Mobiles;
 using Server.Items;
@@ -11,24 +12,29 @@ namespace Server.Custom.EpicAlignment
     public enum EpicRank : byte
     {
         None = 0,
-        Avatar = 1,        // Абсолютное Благо
-        HandOfMondain = 2  // Вселенское Зло
+        Avatar = 1,
+        HandOfMondain = 2
     }
 
     public class EpicProfile
     {
         public EpicRank Rank { get; set; }
-        // ИСПРАВЛЕНО: Теперь у Полубога 10 жизней против игроков вместо 3
         public int Lives { get; set; } = 10;
         public DateTime LastActive { get; set; } = DateTime.UtcNow;
     }
 
     public static class EpicAlignmentSystem
     {
+        public static readonly int DatabaseVersion = 1;
+
         private static Dictionary<Serial, EpicProfile> _epicRegistry = new Dictionary<Serial, EpicProfile>();
 
         private static Dictionary<Serial, DateTime> _bossCooldown = new Dictionary<Serial, DateTime>();
         private static Dictionary<Serial, DateTime> _guardCooldown = new Dictionary<Serial, DateTime>();
+
+        // Пути сохранения базы данных
+        private static readonly string _saveFolder = Path.Combine(Core.BaseDirectory, "Saves/Custom");
+        private static readonly string _savePath = Path.Combine(Core.BaseDirectory, "Saves/Custom/EpicAlignmentDatabase.bin");
 
         public static readonly Point3D PurgatoryLoc = new Point3D(5234, 120, 0);
         public static readonly Point3D LightFortress = new Point3D(1495, 1629, 10);
@@ -41,6 +47,11 @@ namespace Server.Custom.EpicAlignment
 
             EventSink.PlayerDeath += OnPlayerDeath;
             EventSink.Login += OnPlayerLogin;
+
+            // ПОДПИСКА НА ГЛОБАЛЬНЫЙ ЦИКЛ СОХРАНЕНИЯ СЕРВЕРА [save
+            EventSink.WorldSave += (e) => Save();
+            EventSink.Shutdown += (e) => Save();
+            EventSink.ServerStarted += new ServerStartedEventHandler(Load);
         }
 
         public static EpicRank GetRank(Mobile m)
@@ -77,7 +88,6 @@ namespace Server.Custom.EpicAlignment
                 return;
             }
 
-            // ИСПРАВЛЕНО: Инициализация с 10 жизнями
             EpicProfile profile = new EpicProfile { Rank = rank, Lives = 10, LastActive = DateTime.UtcNow };
             _epicRegistry[m.Serial] = profile;
 
@@ -163,7 +173,6 @@ namespace Server.Custom.EpicAlignment
             if (m == null) return;
 
             List<Serial> toRemove = new List<Serial>();
-            // ИСПРАВЛЕНО: Лимит инактива увеличен с 14 дней до 90 дней (~3 месяца)
             DateTime threshold = DateTime.UtcNow - TimeSpan.FromDays(90.0);
 
             foreach (var kvp in _epicRegistry)
@@ -199,35 +208,108 @@ namespace Server.Custom.EpicAlignment
             }
         }
 
+        // =========================================================================
+        // МЕХАНИКА БИНАРНОГО СОХРАНЕНИЯ БАЗЫ ДАННЫХ ЭПИКОВ НА ДИСК 💾
+        // =========================================================================
+        public static void Save()
+        {
+            if (_epicRegistry.Count == 0) return;
+
+            GenericWriter writer = null;
+            try
+            {
+                if (!Directory.Exists(_saveFolder))
+                    Directory.CreateDirectory(_saveFolder);
+
+                writer = new BinaryFileWriter(_savePath, false);
+
+                writer.Write((int)DatabaseVersion); // Записываем версию структуры (1)
+                writer.Write((int)_epicRegistry.Count); // Количество записей
+
+                foreach (var kvp in _epicRegistry)
+                {
+                    writer.Write((int)kvp.Key.Value); // Сериал персонажа
+                    writer.Write((byte)kvp.Value.Rank); // Ранг (Avatar / Mondain)
+                    writer.Write((int)kvp.Value.Lives); // Оставшиеся жизни
+                    writer.Write((string)kvp.Value.LastActive.ToString("o")); // Штамп активности в ISO
+                }
+                Console.WriteLine($"[EpicAlignment] Успешно сохранено {_epicRegistry.Count} эпических профилей.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[EpicAlignment] Ошибка сохранения базы данных: {ex.Message}");
+            }
+            finally
+            {
+                if (writer != null) writer.Close();
+            }
+        }
+
+        public static void Load()
+        {
+            if (!File.Exists(_savePath)) return;
+
+            GenericReader reader = null;
+            FileStream stream = null;
+            BinaryReader binReader = null;
+            try
+            {
+                stream = new FileStream(_savePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                binReader = new BinaryReader(stream);
+                reader = new BinaryFileReader(binReader);
+                int version = reader.ReadInt();
+                int count = reader.ReadInt();
+                _epicRegistry.Clear();
+                for (int i = 0; i < count; i++)
+                {
+                    Serial serial = (Serial)reader.ReadInt();
+                    EpicRank rank = (EpicRank)reader.ReadByte();
+                    int lives = reader.ReadInt();
+                    DateTime lastActive = DateTime.Parse(reader.ReadString());
+                    EpicProfile profile = new EpicProfile
+                    {
+                        Rank = rank,
+                        Lives = lives,
+                        LastActive = lastActive
+                    };
+                    _epicRegistry[serial] = profile;
+                }
+                Console.WriteLine($"[EpicAlignment] Успешно загружено {_epicRegistry.Count} эпических профилей из базы данных.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[EpicAlignment] Ошибка загрузки базы данных: {ex.Message}");
+            }
+            finally
+            {
+                if (binReader != null) binReader.Close();
+                if (stream != null) stream.Close();
+            }
+        }
         public static bool CanSummonBoss(Mobile m)
         {
             if (_bossCooldown.TryGetValue(m.Serial, out DateTime readyTime))
                 return DateTime.UtcNow >= readyTime;
             return true;
         }
-
         public static void RegisterBossSummon(Mobile m)
         {
             _bossCooldown[m.Serial] = DateTime.UtcNow + TimeSpan.FromDays(1.0);
         }
-
         public static bool CanSummonGuards(Mobile m)
         {
             if (_guardCooldown.TryGetValue(m.Serial, out DateTime readyTime))
                 return DateTime.UtcNow >= readyTime;
             return true;
         }
-
         public static void RegisterGuardSummon(Mobile m)
         {
             _guardCooldown[m.Serial] = DateTime.UtcNow + TimeSpan.FromHours(2.0);
         }
-
         private static void CheckEpicStatus_OnCommand(CommandEventArgs e)
         {
             Mobile m = e.Mobile;
             if (m == null) return;
-
             EpicProfile profile = GetProfile(m);
             if (profile == null || profile.Rank == EpicRank.None)
             {
@@ -240,20 +322,16 @@ namespace Server.Custom.EpicAlignment
                 m.SendMessage(0x35, $"Осталось жизней: {profile.Lives} из 10. Последняя активность обновлена.");
             }
         }
-
         private static void EpicList_OnCommand(CommandEventArgs e)
         {
             Mobile from = e.Mobile;
             if (from == null) return;
-
             from.SendMessage(0x59, "=== ВЕСТНИК МИРОВОЗЗРЕНИЙ: СТАТУС ПОЛЮСОВ ===");
             int count = 0;
-
             foreach (NetState ns in NetState.Instances)
             {
                 Mobile m = ns.Mobile;
                 if (m == null || !m.Alive || m.AccessLevel > AccessLevel.Player) continue;
-
                 EpicProfile profile = GetProfile(m);
                 if (profile == null || profile.Rank == EpicRank.None) continue;
                 count++;
