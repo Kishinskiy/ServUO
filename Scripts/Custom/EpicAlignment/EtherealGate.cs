@@ -9,14 +9,14 @@ namespace Server.Custom.EpicAlignment
 {
     public class EtherealGate : Item
     {
-        public static readonly int RequiredEssence = 100; // Планка эссенции для перерождения
+        public static readonly int RequiredEssence = 100; 
 
         [Constructable]
-        public EtherealGate() : base(0x1F14) // Красивый мистический портал
+        public EtherealGate() : base(0x1F14) 
         {
             Name = "Врата Перерождения Полубогов";
             Movable = false;
-            Hue = 0x482; // Призрачный неоновый цвет
+            Hue = 0x482; 
             Light = LightType.Circle300;
         }
 
@@ -30,7 +30,6 @@ namespace Server.Custom.EpicAlignment
                 return;
             }
 
-            // На врата могут нажимать только Полубоги
             EpicRank rank = EpicAlignmentSystem.GetRank(from);
             if (rank == EpicRank.None)
             {
@@ -38,14 +37,12 @@ namespace Server.Custom.EpicAlignment
                 return;
             }
 
-            // Выходить можно ТОЛЬКО призраком
             if (from.Alive)
             {
                 from.SendMessage("Вы уже живы. Врата Перерождения нужны лишь тем, кто застрял в форме духа.");
                 return;
             }
 
-            // Проверяем накопленную эссенцию через XmlPoints/XmlValue из присланного файла
             XmlValue pointsData = XmlAttach.FindAttachment(from, typeof(XmlValue), "EtherealEssence") as XmlValue;
             int currentEssence = pointsData != null ? pointsData.Value : 0;
 
@@ -56,29 +53,26 @@ namespace Server.Custom.EpicAlignment
                 return;
             }
 
-            // РИТУАЛ УСПЕШЕН: Списываем эссенцию
             pointsData.Value = 0;
 
-            // Воскрешаем Полубога прямо у портала
             from.Resurrect();
             from.Hits = from.HitsMax;
             from.Mana = from.ManaMax;
             from.Stam = from.StamMax;
 
-            // Эффекты перерождения
             Effects.PlaySound(this.Location, this.Map, 0x212);
             Effects.SendLocationParticles(EffectItem.Create(this.Location, this.Map, TimeSpan.FromSeconds(2.0)), 0x373A, 10, 30, 0x482, 0, 5024, 0);
 
-            // ЛОРНЫЙ МИРОВОЙ ЭВЕНТ (Трансляция на весь шард)
             if (rank == EpicRank.Avatar)
             {
                 CommandHandlers.BroadcastMessage(AccessLevel.Player, 0x35, $"[Эвент] Небесные сферы сошлись! Аватар {from.Name} собрал осколки духа и вернулся в Сосарию из Мира Посмертия!");
-                from.MoveToWorld(EpicAlignmentSystem.LightFortress, Map.Trammel); // Возврат в Оплот Света
+                // ИСПРАВЛЕНО: Телепортация Аватара на Фелукку
+                from.MoveToWorld(EpicAlignmentSystem.LightFortress, Map.Felucca); 
             }
             else if (rank == EpicRank.HandOfMondain)
             {
                 CommandHandlers.BroadcastMessage(AccessLevel.Player, 0x22, $"[Эвент] Пророчество Тьмы исполнено! Воплощение Зла {from.Name} поглотил эфирные аномалии и восстал из мертвых!");
-                from.MoveToWorld(EpicAlignmentSystem.DarkFortress, Map.Malas); // Возврат в Цитадель Тьмы
+                from.MoveToWorld(EpicAlignmentSystem.DarkFortress, Map.Malas); 
             }
         }
 

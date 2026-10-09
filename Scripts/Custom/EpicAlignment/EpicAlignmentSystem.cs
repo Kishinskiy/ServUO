@@ -32,10 +32,10 @@ namespace Server.Custom.EpicAlignment
         private static Dictionary<Serial, DateTime> _bossCooldown = new Dictionary<Serial, DateTime>();
         private static Dictionary<Serial, DateTime> _guardCooldown = new Dictionary<Serial, DateTime>();
 
-        // Пути сохранения базы данных
         private static readonly string _saveFolder = Path.Combine(Core.BaseDirectory, "Saves/Custom");
         private static readonly string _savePath = Path.Combine(Core.BaseDirectory, "Saves/Custom/EpicAlignmentDatabase.bin");
 
+        // ИСПРАВЛЕНО: Карты перенаправлены на Map.Felucca взамен Trammel
         public static readonly Point3D PurgatoryLoc = new Point3D(5234, 120, 0);
         public static readonly Point3D LightFortress = new Point3D(1495, 1629, 10);
         public static readonly Point3D DarkFortress = new Point3D(2114, 1312, -49);
@@ -48,7 +48,6 @@ namespace Server.Custom.EpicAlignment
             EventSink.PlayerDeath += OnPlayerDeath;
             EventSink.Login += OnPlayerLogin;
 
-            // ПОДПИСКА НА ГЛОБАЛЬНЫЙ ЦИКЛ СОХРАНЕНИЯ СЕРВЕРА [save
             EventSink.WorldSave += (e) => Save();
             EventSink.Shutdown += (e) => Save();
             EventSink.ServerStarted += new ServerStartedEventHandler(Load);
@@ -147,7 +146,8 @@ namespace Server.Custom.EpicAlignment
 
                     Timer.DelayCall(TimeSpan.FromSeconds(1.0), () =>
                     {
-                        victim.MoveToWorld(PurgatoryLoc, Map.Trammel);
+                        // ИСПРАВЛЕНО: Отправка призрака на Фелукку
+                        victim.MoveToWorld(PurgatoryLoc, Map.Felucca);
                         victim.SendMessage(0x22, "Вы пали от руки смертного. Силы Посмертия сковали вас на этой территории!");
                     });
                 }
@@ -158,8 +158,9 @@ namespace Server.Custom.EpicAlignment
 
                 Timer.DelayCall(TimeSpan.FromSeconds(1.0), () =>
                 {
+                    // ИСПРАВЛЕНО: Телепортация PvE смерти Аватара на Фелукку
                     Point3D spawnFort = (profile.Rank == EpicRank.Avatar) ? LightFortress : DarkFortress;
-                    victim.MoveToWorld(spawnFort, (profile.Rank == EpicRank.Avatar) ? Map.Trammel : Map.Malas);
+                    victim.MoveToWorld(spawnFort, (profile.Rank == EpicRank.Avatar) ? Map.Felucca : Map.Malas);
 
                     _bossCooldown[victim.Serial] = DateTime.UtcNow + TimeSpan.FromMinutes(30.0);
                     victim.SendMessage(0x22, "Вы ослаблены. Способности Книги Судьбы заблокированы на 30 минут!");
@@ -208,9 +209,6 @@ namespace Server.Custom.EpicAlignment
             }
         }
 
-        // =========================================================================
-        // МЕХАНИКА БИНАРНОГО СОХРАНЕНИЯ БАЗЫ ДАННЫХ ЭПИКОВ НА ДИСК 💾
-        // =========================================================================
         public static void Save()
         {
             if (_epicRegistry.Count == 0) return;
@@ -223,15 +221,15 @@ namespace Server.Custom.EpicAlignment
 
                 writer = new BinaryFileWriter(_savePath, false);
 
-                writer.Write((int)DatabaseVersion); // Записываем версию структуры (1)
-                writer.Write((int)_epicRegistry.Count); // Количество записей
+                writer.Write((int)DatabaseVersion);
+                writer.Write((int)_epicRegistry.Count);
 
                 foreach (var kvp in _epicRegistry)
                 {
-                    writer.Write((int)kvp.Key.Value); // Сериал персонажа
-                    writer.Write((byte)kvp.Value.Rank); // Ранг (Avatar / Mondain)
-                    writer.Write((int)kvp.Value.Lives); // Оставшиеся жизни
-                    writer.Write((string)kvp.Value.LastActive.ToString("o")); // Штамп активности в ISO
+                    writer.Write((int)kvp.Key.Value);
+                    writer.Write((byte)kvp.Value.Rank);
+                    writer.Write((int)kvp.Value.Lives);
+                    writer.Write((string)kvp.Value.LastActive.ToString("o"));
                 }
                 Console.WriteLine($"[EpicAlignment] Успешно сохранено {_epicRegistry.Count} эпических профилей.");
             }
@@ -244,11 +242,9 @@ namespace Server.Custom.EpicAlignment
                 if (writer != null) writer.Close();
             }
         }
-
         public static void Load()
         {
             if (!File.Exists(_savePath)) return;
-
             GenericReader reader = null;
             FileStream stream = null;
             BinaryReader binReader = null;

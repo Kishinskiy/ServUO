@@ -2,7 +2,7 @@ using System;
 using Server;
 using Server.Mobiles;
 using Server.Items;
-using Server.Commands;
+using Server.Commands; // ИСПРАВЛЕНО: Добавлен namespace для работы класса аргументов команд CommandEventArgs
 using Server.Engines.XmlSpawner2;
 using Server.Custom.EpicAlignment;
 using Server.Custom.GhostMechanics;
@@ -16,7 +16,6 @@ namespace Server.Misc
             EventSink.PlayerDeath += OnPlayerDeath;
             EventSink.Movement += OnPlayerMovement;
             
-            // Регистрируем команду ".ghosttravel" или "[ghosttravel", чтобы призрак мог открыть меню в любой момент
             CommandSystem.Register("GhostTravel", AccessLevel.Player, new CommandEventHandler(GhostTravel_OnCommand));
         }
 
@@ -37,7 +36,7 @@ namespace Server.Misc
                 pm.SendMessage(0x482, "Обычные лекари бессильны. Ищите Эфирные Аномалии на острове Посмертия.");
                 pm.SendMessage(0x482, "Как только накопите 100 эссенции, активируйте Врата Перерождения для ивентового возвращения!");
 
-                Map targetMap = Map.Trammel;
+                Map targetMap = Map.Felucca;
                 Point3D center = EpicAlignmentSystem.PurgatoryLoc;
 
                 for (int i = 0; i < 15; i++)
@@ -56,11 +55,8 @@ namespace Server.Misc
             }
             else
             {
-                // ДОБАВЛЕНО: Для обычных игроков при смерти выводим информацию и сразу открываем Гамп Путешествий!
                 pm.SendMessage(0x482, $"Вы вошли в мир духов. Ваша призрачная эссенция: {currentEssence}.");
                 pm.SendMessage(0x482, "Используйте команду [GhostTravel или напишите .ghosttravel, чтобы открыть меню святилищ.");
-                
-                // Автоматически открываем гамп со списком точек
                 pm.SendGump(new EtherealTravelGump(pm));
             }
         }
@@ -73,14 +69,13 @@ namespace Server.Misc
             EpicRank rank = EpicAlignmentSystem.GetRank(m);
             if (rank == EpicRank.None) return;
 
-            if (m.Alive && m.Map == Map.Trammel && m.GetDistanceToSqrt(EpicAlignmentSystem.PurgatoryLoc) <= 100.0)
+            if (m.Alive && m.Map == Map.Felucca && m.GetDistanceToSqrt(EpicAlignmentSystem.PurgatoryLoc) <= 100.0)
             {
                 m.Kill();
                 m.SendMessage(0x22, "Высшие силы Посмертия карают за попытку ложного воскрешения! Используйте только Врата Перерождения.");
             }
         }
 
-        // КОМАНДА ОТКРЫТИЯ МЕНЮ ДЛЯ ПРИЗРАКОВ
         private static void GhostTravel_OnCommand(CommandEventArgs e)
         {
             Mobile from = e.Mobile;
@@ -92,7 +87,6 @@ namespace Server.Misc
                 return;
             }
 
-            // Открываем интерфейс шрайнов
             from.SendGump(new EtherealTravelGump(from));
         }
     }
