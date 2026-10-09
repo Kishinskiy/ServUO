@@ -4,6 +4,7 @@ using Server;
 using Server.Mobiles;
 using Server.Items;
 using Server.Regions;
+using Server.Custom.EpicAlignment; // ДОБАВЛЕНО: Подключаем связь с полубогами
 
 namespace Server.Custom.SmartNPCs
 {
@@ -11,7 +12,6 @@ namespace Server.Custom.SmartNPCs
     {
         private static Dictionary<Mobile, DateTime> m_Cooldowns = new Dictionary<Mobile, DateTime>();
 
-        // --- ДИНАМИЧЕСКИЕ НАБОРЫ ПРИВЕТСТВИЙ (Пассивное поведение) ---
         private static readonly string[] DynamicGreetings_Normal = new string[]
         {
             "Приветствую тебя, благородный путник!",
@@ -55,7 +55,6 @@ namespace Server.Custom.SmartNPCs
             "Да хранят тебя боги! Доброго пути."
         };
 
-        // База координат городов
         private static readonly Dictionary<string, Point3D> m_StaticCities = new Dictionary<string, Point3D>(StringComparer.OrdinalIgnoreCase)
         {
             { "Britain", new Point3D(1495, 1629, 10) },
@@ -74,27 +73,27 @@ namespace Server.Custom.SmartNPCs
         {
             { "Britain", new Point3D(1435, 1680, 0) },
             { "Minoc", new Point3D(2437, 449, 15) },
-            { "Yew", new Point3D(542, 983, 0) }, 
+            { "Yew", new Point3D(542, 983, 0) },
             { "Moonglow", new Point3D(4436, 1076, 0) },
-            { "Magincia", new Point3D(3712, 2228, 20) }, 
+            { "Magincia", new Point3D(3712, 2228, 20) },
             { "Trinsic", new Point3D(2061, 2855, -2) },
-            { "Skara Brae", new Point3D(571, 2217, 0) }, 
+            { "Skara Brae", new Point3D(571, 2217, 0) },
             { "Jhelom", new Point3D(1401, 3778, 0) },
-            { "Vesper", new Point3D(2992, 672, 0) }, 
+            { "Vesper", new Point3D(2992, 672, 0) },
             { "Ocllo", new Point3D(3661, 2603, 0) }
         };
 
         private static readonly Dictionary<string, Point3D> m_Governors = new Dictionary<string, Point3D>(StringComparer.OrdinalIgnoreCase)
         {
-            { "Britain", new Point3D(1324, 1621, 0) }, 
+            { "Britain", new Point3D(1324, 1621, 0) },
             { "Minoc", new Point3D(2450, 480, 0) },
-            { "Yew", new Point3D(618, 934, 0) }, 
+            { "Yew", new Point3D(618, 934, 0) },
             { "Moonglow", new Point3D(4474, 1130, 0) },
-            { "Magincia", new Point3D(3731, 2168, 20) }, 
+            { "Magincia", new Point3D(3731, 2168, 20) },
             { "Trinsic", new Point3D(1907, 2683, 0) },
-            { "Skara Brae", new Point3D(614, 2137, 0) }, 
+            { "Skara Brae", new Point3D(614, 2137, 0) },
             { "Jhelom", new Point3D(1376, 3816, 0) },
-            { "Vesper", new Point3D(2937, 574, 0) }, 
+            { "Vesper", new Point3D(2937, 574, 0) },
             { "Ocllo", new Point3D(3649, 2682, 0) }
         };
 
@@ -103,7 +102,6 @@ namespace Server.Custom.SmartNPCs
             EventSink.Movement += new MovementEventHandler(OnPlayerMovement);
         }
 
-        // Пассивное приветствие при проходе игрока (С учетом контекста мира)
         private static void OnPlayerMovement(MovementEventArgs e)
         {
             Mobile player = e.Mobile;
@@ -125,7 +123,6 @@ namespace Server.Custom.SmartNPCs
                         m_Cooldowns[m] = DateTime.UtcNow;
                         m.Direction = m.GetDirectionTo(player);
 
-                        // Выбираем фразу на основе погоды и времени суток
                         string speech = GetContextualSpeech(m);
 
                         m.PublicOverheadMessage(Network.MessageType.Regular, 0x3B2, false, speech);
@@ -147,13 +144,11 @@ namespace Server.Custom.SmartNPCs
             string text = speechText.ToLower().Trim();
             string reply = "";
 
-            // Считываем время и фазу луны из ядра ServUO
             int uoHours, uoMinutes;
             Clock.GetTime(npc.Map, npc.X, npc.Y, out uoHours, out uoMinutes);
             MoonPhase currentMoonPhase = Clock.GetMoonPhase(npc.Map, npc.X, npc.Y);
             bool isNight = (uoHours >= 20 || uoHours < 4);
 
-            // Определяем текущий город
             string currentTownName = "";
             Region r = npc.Region;
             if (r != null && !string.IsNullOrEmpty(r.Name) && !r.Name.Equals(npc.Map.Name, StringComparison.OrdinalIgnoreCase) && !r.Name.Equals("Default", StringComparison.OrdinalIgnoreCase))
@@ -161,7 +156,6 @@ namespace Server.Custom.SmartNPCs
                 currentTownName = r.Name;
             }
 
-            // 0. Реакция на благодарность
             if (text.Contains("спасибо") || text.Contains("благодарю") || text.Contains("thanks") || text.Contains("ty"))
             {
                 reply = DynamicGoodbyes[Utility.Random(DynamicGoodbyes.Length)];
@@ -181,6 +175,74 @@ namespace Server.Custom.SmartNPCs
                 if (npc is BaseVendor vendor) { vendor.Direction = vendor.GetDirectionTo(player); vendor.VendorSell(player); return true; }
             }
 
+            // =========================================================================
+            // НОВОЕ: ДИНАМИЧЕСКИЕ СЛУХИ И СПЛЕТНИ О ПОЛУБОГАХ (ОНЛАЙН РАДАР) 📡🗣️
+            // =========================================================================
+            else if (text.Contains("слухи") || text.Contains("новости") || text.Contains("аватар") || text.Contains("зло") || text.Contains("мондейн") || text.Contains("полубог"))
+            {
+                // Собираем списки лидеров в онлайне
+                List<Mobile> onlineAvatars = new List<Mobile>();
+                List<Mobile> onlineEvils = new List<Mobile>();
+
+                foreach (Server.Network.NetState ns in Server.Network.NetState.Instances)
+                {
+                    Mobile m = ns.Mobile;
+                    if (m == null || !m.Alive || m.AccessLevel > AccessLevel.Player) continue;
+
+                    EpicRank rank = EpicAlignmentSystem.GetRank(m);
+                    if (rank == EpicRank.Avatar) onlineAvatars.Add(m);
+                    else if (rank == EpicRank.HandOfMondain) onlineEvils.Add(m);
+                }
+
+                // Логика выбора ответа в зависимости от того, кого ищет игрок или кто в сети
+                if (onlineAvatars.Count == 0 && onlineEvils.Count == 0)
+                {
+                    reply = "О, нынче на дорогах затишье. Высшие Полубоги Сосарии скрылись в своих чертогах. Ни Аватаров, ни прихвостней Мондейна давно не видать.";
+                }
+                else if (text.Contains("аватар") || (onlineAvatars.Count > 0 && Utility.RandomBool()))
+                {
+                    if (onlineAvatars.Count > 0)
+                    {
+                        Mobile av = onlineAvatars[Utility.Random(onlineAvatars.Count)];
+                        EpicProfile prof = EpicAlignmentSystem.GetProfile(av);
+                        string classTitle = prof != null ? prof.DetectedClass : "Великий Аватар";
+                        string regName = (av.Region != null && !string.IsNullOrEmpty(av.Region.Name)) ? av.Region.Name : "Диких землях";
+
+                        string[] avatarRumors = new string[]
+{
+$"Говорят, истинный Аватар Света по имени {av.Name} сейчас в мире! Его видели как {classTitle} в районе {regName} ({av.Map.Name}). Люди молятся на него!",
+$"Шепчутся, что {av.Name} — живое воплощение Добродетелей — сейчас проезжал через {regName}. Сияние его ауры озарило небосвод!",
+$"В тавернах только и разговоров, что {av.Name} ведет за собой силы Света где-то в {regName}. Охотники, у вас есть шанс помочь ему!"
+};
+                        reply = avatarRumors[Utility.Random(avatarRumors.Length)];
+                    }
+                    else
+                    {
+                        reply = "Силы Света сейчас безмолвствуют. На Алтаре Предназначения в Despise давно никто не проходил судейство.";
+                    }
+                }
+                else // Запрос про Зло / Мондейна или случайный выбор Тьмы
+                {
+                    if (onlineEvils.Count > 0)
+                    {
+                        Mobile ev = onlineEvils[Utility.Random(onlineEvils.Count)];
+                        EpicProfile prof = EpicAlignmentSystem.GetProfile(ev);
+                        string classTitle = prof != null ? prof.DetectedClass : "Вестник Тьмы";
+                        string regName = (ev.Region != null && !string.IsNullOrEmpty(ev.Region.Name)) ? ev.Region.Name : "Диких землях";
+                        string[] evilRumors = new string[]
+                        {
+$"Спаси нас боги... Правая Рука Мондейна — нечестивый {ev.Name} — восстал из бездны! Его тень как {classTitle} пала на земли {regName} ({ev.Map.Name})!",
+$"Стража на взводе! Проклятый {ev.Name} собирает армию Тьмы в районе {regName}. За его голову назначена награда в 10,000 монет, соберите рейд!",
+$"Контрабандисты поговаривают, что {ev.Name} распространяет скверну некромантии прямо сейчас в {regName}. Бегите оттуда, если вам дорога жизнь!"
+                        };
+                        reply = evilRumors[Utility.Random(evilRumors.Length)];
+                    }
+                    else
+                    {
+                        reply = "Слуги Мондейна притихли. Темный Алтарь в глубинах Doom пустует, Сосария может спать спокойно... пока что.";
+                    }
+                }
+            }
             // 2. ДИНАМИЧЕСКИЙ ПОИСК КОНКРЕТНОГО ГОРОДА 🗺️
             if (string.IsNullOrEmpty(reply))
             {
@@ -195,7 +257,6 @@ namespace Server.Custom.SmartNPCs
                     }
                 }
             }
-
             // 3. ПОИСК МИНИСТРА ⚖️
             if (string.IsNullOrEmpty(reply) && (text.Equals("министр") || text.Contains("министр торговли") || text.Contains("minister")))
             {
@@ -209,7 +270,6 @@ namespace Server.Custom.SmartNPCs
                     reply = "В этой глуши нет никакого Торгового Министра. Ищи его в крупных городах.";
                 }
             }
-
             // 4. ПОИСК ГУБЕРНАТОРА 👑
             if (string.IsNullOrEmpty(reply) && (text.Contains("губернатор") || text.Contains("мэр") || text.Contains("governor")))
             {
@@ -223,17 +283,17 @@ namespace Server.Custom.SmartNPCs
                     reply = "Здесь нет действующего Губернатора. Тебе нужно зайти в черту какого-нибудь города.";
                 }
             }
-            // 5. НОВОЕ: РЕАКЦИЯ НА ПОГОДУ / ДОЖДЬ И ВРЕМЯ ГОДА 🌧️
+            // 5. РЕАКЦИЯ НА ПОГОДУ 🌧️
             if (string.IsNullOrEmpty(reply) && (text.Contains("погода") || text.Contains("дождь") || text.Contains("weather") || text.Contains("rain")))
             {
                 if (IsRainingOverNpc(npc))
-                    reply = "Льет как из ведра! Пронизывающий холод. Если промочит до нитки, бег будет заблокирован, пока не согреешься у костра или внутри таверны.";
-                else if (npc.Map.Season == 1) // Лето в ServUO
+                    reply = "Льет как из ведра! Пронизывающий cold. Если промочит до нитки, бег будет заблокирован, пока не согреешься у костра или внутри таверны.";
+                else if (npc.Map.Season == 1)
                     reply = "Погода нынче жаркая, настоящее лето! Главное — не перегреваться в тяжелых доспехах под палящим солнцем.";
                 else
                     reply = "Погода нынче благосклонна к путешественникам, небосвод чист.";
             }
-            // 6. НОВОЕ: РЕАКЦИЯ НА НОЧЬ / ШТУРМЫ ГОРОДОВ 🌙
+            // 6. РЕАКЦИЯ НА НОЧЬ 🌙
             if (string.IsNullOrEmpty(reply) && (text.Contains("ночь") || text.Contains("осада") || text.Contains("штурм") || text.Contains("ночные монстры")))
             {
                 if (isNight)
@@ -241,7 +301,7 @@ namespace Server.Custom.SmartNPCs
                 else
                     reply = string.Format("Сейчас на часах {0}:{1:D2}. Всё спокойно. Но как только пробьет 20:00 вечера, чудовища пойдут на штурм.", uoHours, uoMinutes);
             }
-            // 7. НОВОЕ: РЕАКЦИЯ НА КРОВАТУЮ ЛУНУ 🩸
+            // 7. РЕАКЦИЯ НА КРОВАТУЮ ЛУНУ 🩸
             if (string.IsNullOrEmpty(reply) && (text.Contains("луна") || text.Contains("полнолуние") || text.Contains("moon")))
             {
                 if (currentMoonPhase == MoonPhase.Full)
@@ -275,7 +335,6 @@ namespace Server.Custom.SmartNPCs
             {
                 reply = string.Format("Здравствуй, {0}. Чем я могу помочь?", player.Name);
             }
-            // Отправка
             if (!string.IsNullOrEmpty(reply))
             {
                 npc.Direction = npc.GetDirectionTo(player);
@@ -285,7 +344,6 @@ namespace Server.Custom.SmartNPCs
             }
             return false;
         }
-        // --- Вспомогательные методы определения состояния мира ---
         private static string GetContextualSpeech(Mobile npc)
         {
             Map map = npc.Map;
@@ -296,23 +354,18 @@ namespace Server.Custom.SmartNPCs
             MoonPhase currentMoonPhase = Clock.GetMoonPhase(map, npc.X, npc.Y);
             bool isNight = (uoHours >= 20 || uoHours < 4);
             bool isNpcInDoors = IsNpcInDoors(npc);
-            // Кровавая луна (Ночь + Полнолуние)
             if (isNight && currentMoonPhase == MoonPhase.Full)
                 return DynamicGreetings_BloodMoon[Utility.Random(DynamicGreetings_BloodMoon.Length)];
-            // Обычная ночь
             if (isNight)
                 return DynamicGreetings_Night[Utility.Random(DynamicGreetings_Night.Length)];
-            // Дождь (только если NPC на улице)
             if (!isNpcInDoors && IsRainingOverNpc(npc))
                 return DynamicGreetings_Rain[Utility.Random(DynamicGreetings_Rain.Length)];
-            // Летний зной (Сезон 1 в UO, NPC на улице)
             if (!isNpcInDoors && map.Season == 1)
                 return DynamicGreetings_SummerHeat[Utility.Random(DynamicGreetings_SummerHeat.Length)];
             return DynamicGreetings_Normal[Utility.Random(DynamicGreetings_Normal.Length)];
         }
         private static bool IsRainingOverNpc(Mobile npc)
         {
-            // Проверяем встроенный список активной погоды на карте ServUO
             var weatherList = Server.Misc.Weather.GetWeatherList(npc.Map);
             if (weatherList != null)
             {
@@ -320,7 +373,6 @@ namespace Server.Custom.SmartNPCs
                 {
                     Server.Misc.Weather w = weatherList[j];
                     bool isActive = false;
-                    // Вытаскиваем приватный флаг активности погоды через рефлексию (совместимо со всеми версиями RunUO/ServUO)
                     System.Reflection.FieldInfo activeField = typeof(Server.Misc.Weather).GetField("m_Active", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
                     if (activeField != null) isActive = (bool)activeField.GetValue(w);
                     if (isActive && w.Temperature > 0 && w.IntersectsWith(new Rectangle2D(npc.X, npc.Y, 1, 1)))
@@ -333,7 +385,6 @@ namespace Server.Custom.SmartNPCs
         {
             Region reg = npc.Region;
             if (reg == null) return false;
-            // Если регион технически помечен как дом или таверна
             if (reg.IsPartOf(typeof(Server.Regions.HouseRegion)) || reg.Name == "Inns" || reg.Name == "Taverns")
                 return true;
             return false;
