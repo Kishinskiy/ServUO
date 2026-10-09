@@ -56,27 +56,40 @@ namespace Server.Custom.EpicAlignment
                         {
                             try
                             {
-                                Mobile minister = System.Activator.CreateInstance(typeof(Server.Engines.CityLoyalty.TradeMinister)) as Mobile;
+                                // ИСПРАВЛЕНО: Вместо Activator вызываем нативный конструктор с передачей обязательного параметра City
+                                Server.Engines.CityLoyalty.TradeMinister minister = new Server.Engines.CityLoyalty.TradeMinister(c);
+
                                 if (minister != null)
                                 {
-                                    var cityProp = minister.GetType().GetProperty("City");
-                                    if (cityProp != null && cityProp.CanWrite) cityProp.SetValue(minister, c, null);
-
-                                    // ИСПРАВЛЕНО: Приведение к BaseCreature для безопасного доступа к свойствам патрулирования
-                                    BaseCreature bc = minister as BaseCreature;
-                                    if (bc != null)
-                                    {
-                                        bc.Home = loc;
-                                        bc.RangeHome = 2;
-                                    }
-
+                                    minister.Home = loc;
+                                    minister.RangeHome = 2;
                                     minister.CantWalk = true;
                                     minister.Direction = Direction.South;
                                     minister.MoveToWorld(new Point3D(loc.X - 2, loc.Y, loc.Z), map);
                                     spawnedMinisters++;
                                 }
                             }
-                            catch { }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"[EpicAdmin] Не удалось создать министра для {c} через основной конструктор: {ex.Message}");
+
+                                // Резервный обходной путь через передачу массива параметров, если сигнатура в твоем ядре кастомная
+                                try
+                                {
+                                    object[] args = new object[] { c };
+                                    Mobile altMinister = Activator.CreateInstance(typeof(Server.Engines.CityLoyalty.TradeMinister), args) as Mobile;
+                                    if (altMinister != null)
+                                    {
+                                        BaseCreature bcAlt = altMinister as BaseCreature;
+                                        if (bcAlt != null) { bcAlt.Home = loc; bcAlt.RangeHome = 2; }
+                                        altMinister.CantWalk = true;
+                                        altMinister.Direction = Direction.South;
+                                        altMinister.MoveToWorld(new Point3D(loc.X - 2, loc.Y, loc.Z), map);
+                                        spawnedMinisters++;
+                                    }
+                                }
+                                catch { }
+                            }
                         }
                     }
                 }
@@ -112,7 +125,7 @@ namespace Server.Custom.EpicAlignment
                 }
             }
 
-            // 3. АВТО-ГЕНЕРАЦИЯ ДЛЯ ТЕМНЫХ ГОРОДОВ
+            // 3. АВТО-ГЕНЕРАЦИЯ ДЛЯ ТЕМНЫХ ГОРОДОВ (Используем город Moonglow или Британию как базовый тип для подмены)
             Point3D umbraBase = new Point3D(2114, 1312, -49);
             Point3D doomBase = new Point3D(356, 175, 4);
 
@@ -132,25 +145,23 @@ namespace Server.Custom.EpicAlignment
                 }
                 if (!IsMinisterExistsAt(uLoc, map))
                 {
-                    Mobile umbraMinister = System.Activator.CreateInstance(typeof(Server.Engines.CityLoyalty.TradeMinister)) as Mobile;
-                    if (umbraMinister != null)
+                    try
                     {
-                        umbraMinister.Name = "Магистр Теневых Поставок";
-                        umbraMinister.Title = "[Контрабанда Umbra]";
-                        umbraMinister.Hue = 1175;
-                        umbraMinister.CantWalk = true;
-
-                        // ИСПРАВЛЕНО: Приведение к BaseCreature
-                        BaseCreature bcUmbra = umbraMinister as BaseCreature;
-                        if (bcUmbra != null)
+                        // ИСПРАВЛЕНО: Прямой вызов конструктора
+                        Server.Engines.CityLoyalty.TradeMinister umbraMinister = new Server.Engines.CityLoyalty.TradeMinister(Server.Engines.CityLoyalty.City.Moonglow);
+                        if (umbraMinister != null)
                         {
-                            bcUmbra.Home = uLoc;
-                            bcUmbra.RangeHome = 2;
+                            umbraMinister.Name = "Магистр Теневых Поставок";
+                            umbraMinister.Title = "[Контрабанда Umbra]";
+                            umbraMinister.Hue = 1175;
+                            umbraMinister.CantWalk = true;
+                            umbraMinister.Home = uLoc;
+                            umbraMinister.RangeHome = 2;
+                            umbraMinister.MoveToWorld(new Point3D(uLoc.X - 2, uLoc.Y, uLoc.Z), map);
+                            spawnedMinisters++;
                         }
-
-                        umbraMinister.MoveToWorld(new Point3D(uLoc.X - 2, uLoc.Y, uLoc.Z), map);
-                        spawnedMinisters++;
                     }
+                    catch { }
                 }
 
                 // Doom
@@ -162,53 +173,47 @@ namespace Server.Custom.EpicAlignment
                 }
                 if (!IsMinisterExistsAt(dLoc, map))
                 {
-                    Mobile doomMinister = System.Activator.CreateInstance(typeof(Server.Engines.CityLoyalty.TradeMinister)) as Mobile;
-                    if (doomMinister != null)
+                    try
                     {
-                        doomMinister.Name = "Скупщик Похищенного Имущества";
-                        doomMinister.Title = "[Контрабанда Doom]";
-                        doomMinister.Hue = 1157;
-                        doomMinister.CantWalk = true;
-
-                        // ИСПРАВЛЕНО: Приведение к BaseCreature
-                        BaseCreature bcDoom = doomMinister as BaseCreature;
-                        if (bcDoom != null)
+                        // ИСПРАВЛЕНО: Прямой вызов конструктора
+                        Server.Engines.CityLoyalty.TradeMinister doomMinister = new Server.Engines.CityLoyalty.TradeMinister(Server.Engines.CityLoyalty.City.Moonglow);
+                        if (doomMinister != null)
                         {
-                            bcDoom.Home = dLoc;
-                            bcDoom.RangeHome = 2;
+                            doomMinister.Name = "Скупщик Похищенного Имущества";
+                            doomMinister.Title = "[Контрабанда Doom]";
+                            doomMinister.Hue = 1157;
+                            doomMinister.CantWalk = true;
+                            doomMinister.Home = dLoc;
+                            doomMinister.RangeHome = 2;
+                            doomMinister.MoveToWorld(new Point3D(dLoc.X - 2, dLoc.Y, dLoc.Z), map);
+                            spawnedMinisters++;
                         }
-
-                        doomMinister.MoveToWorld(new Point3D(dLoc.X - 2, dLoc.Y, dLoc.Z), map);
-                        spawnedMinisters++;
                     }
+                    catch { }
                 }
             }
 
             from.SendMessage(0x35, $"Глобальная генерация завершена! Сеть развернута во всех мирах.");
             from.SendMessage(0x35, $"Всего создано Эфирных Шрайнов: {spawnedShrines}, Выставлено Министров: {spawnedMinisters}.");
         }
-
         private static bool IsShrineExistsAt(Point3D loc, Map map)
         {
             IPooledEnumerable eable = map.GetItemsInRange(loc, 5);
             foreach (Item item in eable) { if (item is EtherealShrine) { eable.Free(); return true; } }
             eable.Free(); return false;
         }
-
         private static bool IsMinisterExistsAt(Point3D loc, Map map)
         {
             IPooledEnumerable eable = map.GetMobilesInRange(loc, 5);
             foreach (Mobile m in eable) { if (m.GetType().Name == "TradeMinister") { eable.Free(); return true; } }
             eable.Free(); return false;
         }
-
         private static void GoPurgatory_OnCommand(CommandEventArgs e)
         {
             Mobile from = e.Mobile; if (from == null) return;
             from.MoveToWorld(EpicAlignmentSystem.PurgatoryLoc, Map.Trammel);
             from.SendMessage(0x59, "Вы переместились в Чистилище (Trammel).");
         }
-
         private static void GoEpicFortress_OnCommand(CommandEventArgs e)
         {
             Mobile from = e.Mobile; if (from == null) return;
