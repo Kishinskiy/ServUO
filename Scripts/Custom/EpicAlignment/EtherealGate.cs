@@ -1,83 +1,89 @@
 using System;
 using Server;
 using Server.Mobiles;
-using Server.Items;
-using Server.Engines.XmlSpawner2;
-using Server.Commands;
+using Server.Gumps;
+using Server.Commands; // Подключили для обработки системного вещания
+using Server.Custom.EpicAlignment;
 
-namespace Server.Custom.EpicAlignment
+namespace Server.Items
 {
     public class EtherealGate : Item
     {
-        public static readonly int RequiredEssence = 100; 
-
         [Constructable]
-        public EtherealGate() : base(0x1F14) 
+        public EtherealGate() : base(0x1FD4) // Задали графику огромных Звездных Врат (Moongate)
         {
             Name = "Врата Перерождения Полубогов";
+            Hue = 2418; // Свечение Аватара
             Movable = false;
-            Hue = 0x482; 
-            Light = LightType.Circle300;
+            Light = LightType.Circle300; // Сильное круговое свечение вокруг портала
+        }
+
+        public EtherealGate(Serial serial) : base(serial)
+        {
         }
 
         public override void OnDoubleClick(Mobile from)
         {
-            if (from == null) return;
+            if (from == null || !from.Player) return;
 
-            if (!from.InRange(this.Location, 2))
-            {
-                from.SendMessage("Вы слишком далеко от Врат.");
-                return;
-            }
+            PlayerMobile pm = from as PlayerMobile;
+            if (pm == null) return;
 
-            EpicRank rank = EpicAlignmentSystem.GetRank(from);
+            EpicRank rank = EpicAlignmentSystem.GetRank(pm);
             if (rank == EpicRank.None)
             {
-                from.SendMessage("Врата перерождения не реагируют на обычные души смертных.");
+                pm.SendMessage(0x22, "Эти врата созданы из чистой эфирной энергии. Смертным запрещено прикасаться к ним!");
                 return;
             }
 
-            if (from.Alive)
+            if (pm.Alive)
             {
-                from.SendMessage("Вы уже живы. Врата Перерождения нужны лишь тем, кто застрял в форме духа.");
+                pm.SendMessage(0x35, "Вы уже находитесь в мире живых.");
                 return;
             }
 
-            XmlValue pointsData = XmlAttach.FindAttachment(from, typeof(XmlValue), "EtherealEssence") as XmlValue;
+            var pointsData = Server.Engines.XmlSpawner2.XmlAttach.FindAttachment(pm, typeof(Server.Engines.XmlSpawner2.XmlValue), "EtherealEssence") as Server.Engines.XmlSpawner2.XmlValue;
             int currentEssence = pointsData != null ? pointsData.Value : 0;
 
-            if (currentEssence < RequiredEssence)
+            if (currentEssence < 100)
             {
-                from.SendMessage(0x22, $"Вратам требуется {RequiredEssence} единиц Эфирной Эссенции для восстановления вашего физического тела!");
-                from.SendMessage(0x59, $"Ваш текущий запас: {currentEssence} / {RequiredEssence}. Продолжайте искать Эфирные Аномалии на острове.");
+                pm.SendMessage(0x22, $"Врата безмолвствуют. Вам не хватает призрачной энергии! Собрано: {currentEssence} / 100 ед.");
+                pm.SendMessage(0x5D, "Охотьтесь на Эфирные Аномалии на острове, чтобы впитать их силу.");
                 return;
             }
 
-            pointsData.Value = 0;
+            // УСПЕШНОЕ ВОСКРЕСЕНИЕ ПОЛУБОГА 🎉
+            if (pointsData != null) pointsData.Value = 0; 
 
-            from.Resurrect();
-            from.Hits = from.HitsMax;
-            from.Mana = from.ManaMax;
-            from.Stam = from.StamMax;
+            pm.Resurrect(); 
+            pm.Hits = pm.HitsMax;
+            pm.Mana = pm.ManaMax;
+            pm.Stam = pm.StamMax;
 
-            Effects.PlaySound(this.Location, this.Map, 0x212);
-            Effects.SendLocationParticles(EffectItem.Create(this.Location, this.Map, TimeSpan.FromSeconds(2.0)), 0x373A, 10, 30, 0x482, 0, 5024, 0);
+            Point3D spawnFort = (rank == EpicRank.Avatar) ? EpicAlignmentSystem.LightFortress : EpicAlignmentSystem.DarkFortress;
+            Map targetMap = (rank == EpicRank.Avatar) ? Map.Felucca : Map.Malas;
+            pm.MoveToWorld(spawnFort, targetMap);
 
-            if (rank == EpicRank.Avatar)
-            {
-                CommandHandlers.BroadcastMessage(AccessLevel.Player, 0x35, $"[Эвент] Небесные сферы сошлись! Аватар {from.Name} собрал осколки духа и вернулся в Сосарию из Мира Посмертия!");
-                // ИСПРАВЛЕНО: Телепортация Аватара на Фелукку
-                from.MoveToWorld(EpicAlignmentSystem.LightFortress, Map.Felucca); 
-            }
-            else if (rank == EpicRank.HandOfMondain)
-            {
-                CommandHandlers.BroadcastMessage(AccessLevel.Player, 0x22, $"[Эвент] Пророчество Тьмы исполнено! Воплощение Зла {from.Name} поглотил эфирные аномалии и восстал из мертвых!");
-                from.MoveToWorld(EpicAlignmentSystem.DarkFortress, Map.Malas); 
-            }
+            Effects.PlaySound(pm.Location, pm.Map, 0x212);
+            Effects.SendLocationParticles(EffectItem.Create(pm.Location, pm.Map, TimeSpan.FromSeconds(2.0)), 0x375A, 9, 20, 2418, 0, 5027, 0);
+
+            // ИСПРАВЛЕНО: Используем нативное глобальное вещание ServUO на весь сервер
+            string rankName = (rank == EpicRank.Avatar) ? "Аватар Света" : "Рука Мондейна";
+            string broadcastText = $"[Триумф] Полубог {pm.Name} накопил 100 эссенций, активировал Врата Перерождения и вернулся в мир живых как {rankName}!";
+            
+            World.Broadcast(0x35, true, broadcastText);
         }
 
-        public EtherealGate(Serial serial) : base(serial) { }
-        public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write(0); }
-        public override void Deserialize(GenericReader reader) { base.Deserialize(reader); reader.ReadInt(); }
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write((int)0); // Version
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            int version = reader.ReadInt();
+        }
     }
 }

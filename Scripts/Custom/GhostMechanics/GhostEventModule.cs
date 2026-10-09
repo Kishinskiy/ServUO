@@ -2,10 +2,11 @@ using System;
 using Server;
 using Server.Mobiles;
 using Server.Items;
-using Server.Commands; // ИСПРАВЛЕНО: Добавлен namespace для работы класса аргументов команд CommandEventArgs
+using Server.Commands;
+using Server.Gumps; // Подключили ванильные интерфейсы ServUO
 using Server.Engines.XmlSpawner2;
 using Server.Custom.EpicAlignment;
-using Server.Custom.GhostMechanics;
+using Server.Custom.GhostMechanics; // Подключили кастомную папку призрачных механик, где лежит гамп
 
 namespace Server.Misc
 {
@@ -15,7 +16,7 @@ namespace Server.Misc
         {
             EventSink.PlayerDeath += OnPlayerDeath;
             EventSink.Movement += OnPlayerMovement;
-            
+
             CommandSystem.Register("GhostTravel", AccessLevel.Player, new CommandEventHandler(GhostTravel_OnCommand));
         }
 
@@ -25,7 +26,7 @@ namespace Server.Misc
             if (pm == null) return;
 
             EpicRank rank = EpicAlignmentSystem.GetRank(pm);
-            
+
             XmlValue pointsData = XmlAttach.FindAttachment(pm, typeof(XmlValue), "EtherealEssence") as XmlValue;
             int currentEssence = pointsData != null ? pointsData.Value : 0;
 
@@ -56,8 +57,45 @@ namespace Server.Misc
             else
             {
                 pm.SendMessage(0x482, $"Вы вошли в мир духов. Ваша призрачная эссенция: {currentEssence}.");
-                pm.SendMessage(0x482, "Используйте команду [GhostTravel или напишите .ghosttravel, чтобы открыть меню святилищ.");
-                pm.SendGump(new EtherealTravelGump(pm));
+                pm.SendMessage(0x482, "Призрачные Шрайны активны. Интерфейс перемещения откроется через мгновение...");
+
+                Timer.DelayCall(TimeSpan.FromSeconds(1.5), () =>
+                {
+                    if (pm != null && !pm.Alive && pm.NetState != null)
+                    {
+                        // ИСПРАВЛЕНО: Явно зачищаем и шлем гамп с проверкой пространств имен
+                        pm.CloseGump(typeof(EtherealTravelGump));
+                        pm.SendGump(new EtherealTravelGump(pm));
+
+                        // СТАБИЛЬНЫЙ СТРАХОВОЧНЫЙ ХУК ПРИЦЕЛА НА СЕБЯ КЛИЕНТА
+                        pm.Target = new GhostRestoreTarget();
+                    }
+                });
+            }
+        }
+
+        private class GhostRestoreTarget : Server.Targeting.Target
+        {
+            public GhostRestoreTarget() : base(12, true, Server.Targeting.TargetFlags.None) { }
+
+            protected override void OnTarget(Mobile from, object targeted)
+            {
+                if (from == null || from.Alive || from.NetState == null) return;
+                if (EpicAlignmentSystem.GetRank(from) != EpicRank.None) return;
+
+                if (targeted == from)
+                {
+                    from.CloseGump(typeof(EtherealTravelGump));
+                    from.SendGump(new EtherealTravelGump(from));
+                    from.SendMessage(0x5D, "Хроники Духов успешно восстановлены.");
+                }
+                if (!from.Alive) from.Target = new GhostRestoreTarget();
+            }
+
+            protected override void OnTargetCancel(Mobile from, Server.Targeting.TargetCancelType cancelType)
+            {
+                if (from != null && !from.Alive && from.NetState != null && EpicAlignmentSystem.GetRank(from) == EpicRank.None)
+                    from.Target = new GhostRestoreTarget();
             }
         }
 
@@ -80,13 +118,13 @@ namespace Server.Misc
         {
             Mobile from = e.Mobile;
             if (from == null) return;
-
             if (from.Alive)
             {
                 from.SendMessage("Вы должны быть мертвы, чтобы использовать пути эфирного перемещения.");
                 return;
             }
-
+            
+            from.CloseGump(typeof(EtherealTravelGump));
             from.SendGump(new EtherealTravelGump(from));
         }
     }
