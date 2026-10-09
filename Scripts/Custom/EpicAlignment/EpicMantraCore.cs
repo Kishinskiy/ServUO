@@ -4,7 +4,7 @@ using Server;
 using Server.Mobiles;
 using Server.Items;
 using Server.Network;
-using Server.Custom.EpicAlignment; // ДОБАВЛЕНО ДЛЯ СВЯЗИ С ЯДРОМ ПРОФИЛЕЙ
+using Server.Custom.EpicAlignment; 
 
 namespace Server.Items
 {
@@ -32,12 +32,28 @@ namespace Server.Items
             if (_speechCooldown.TryGetValue(pm.Serial, out DateTime ready) && DateTime.UtcNow < ready) return;
             _speechCooldown[pm.Serial] = DateTime.UtcNow + TimeSpan.FromSeconds(1.0);
 
-            // ИСПРАВЛЕНО: Считываем ранг напрямую из глобального пространства
+            // ТВОЁ ТЗ: Если игрок САМ уже является Полубогом — алтарь шлёт эхо и блокирует повторный старт!
             if (EpicAlignmentSystem.GetRank(pm) != EpicRank.None) 
-            { pm.SendMessage(0x35, "Мантра отражается эхом..."); return; }
+            { pm.SendMessage(0x35, "Мантра отражается эхом от стен... Вы уже познали Истинную Силу и не можете запустить Алтарь повторно!"); return; }
 
             if (isLight && pm.Skills[SkillName.Necromancy].Value >= 50.0) { pm.SendMessage(0x22, "Некромант не может стать Аватаром!"); return; }
             if (isDark && pm.Skills[SkillName.Chivalry].Value >= 50.0) { pm.SendMessage(0x22, "Паладин не может присягнуть Тьме!"); return; }
+
+            // ТВОЁ ТЗ: Жесткая проверка эксклюзивности фракционного места на сервере перед тратой осколков
+            Item checkBeacon = new Item(0x1183) { Name = "Altar of Chaos", Movable = false, Visible = false };
+            checkBeacon.MoveToWorld(new Point3D(altarLoc.X, altarLoc.Y, altarLoc.Z + 2), Map.Felucca);
+            Timer.DelayCall(TimeSpan.FromSeconds(5.0), () => checkBeacon.Delete());
+
+            if (isLight && EpicAlignmentSystem.IsAvatarActive())
+            {
+                checkBeacon.PublicOverheadMessage(MessageType.Regular, 0x22, false, "[Место Воплощения Добродетелей уже занято другим Аватаром Света!]");
+                return;
+            }
+            if (isDark && EpicAlignmentSystem.IsMondainActive())
+            {
+                checkBeacon.PublicOverheadMessage(MessageType.Regular, 0x22, false, "[Престол Тьмы уже занят другим Наместником Мондейна!]");
+                return;
+            }
 
             if (!VerifyRequirements(pm, altarLoc, isLight)) return;
 
