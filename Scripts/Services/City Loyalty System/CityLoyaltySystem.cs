@@ -714,9 +714,16 @@ namespace Server.Engines.CityLoyalty
         // ПУБЛИЧНЫЙ МОСТ ДЛЯ ВАШЕГО МОДА РАЗВИТИЯ ГОРОДОВ 🌉
         public static void GenerateAllInfrastructure()
         {
-            SetupInfrastructureOnMap(Map.Trammel);
-            SetupInfrastructureOnMap(Map.Felucca);
-            Console.WriteLine("[CityLoyalty] Базовая инфраструктура успешно сгенерирована для Trammel и Felucca.");
+            // Перебираем абсолютно все зарегистрированные карты на сервере
+            foreach (Map map in Map.AllMaps)
+            {
+                // Игнорируем внутреннюю техническую карту Internal (0), где нет мира
+                if (map == null || map == Map.Internal) 
+                    continue;
+
+                SetupInfrastructureOnMap(map);
+            }
+            Console.WriteLine("[CityLoyalty] Базовая инфраструктура успешно сгенерирована для ВСЕХ активных миров сервера!");
         }
 
         // ВСПОМОГАТЕЛЬНЫЙ МЕТОД ДЛЯ ФИЗИЧЕСКОГО СПАВНА ОБЪЕКТОВ И NPC НА КАРТУ

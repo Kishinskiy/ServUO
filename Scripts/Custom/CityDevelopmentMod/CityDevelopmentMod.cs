@@ -66,7 +66,7 @@ namespace Server.Custom.CityDevelopment
                     Console.WriteLine("[CityDevelopment] Верификация NPC: Инфраструктура успешно работает в обоих мирах.");
                 }
             });
-            
+
             // Перехватчик удаления ящиков (штрафует конкретный город НА КОНКРЕТНОЙ КАРТЕ)
             EventSink.ItemDeleted += (e) =>
             {
@@ -102,11 +102,11 @@ namespace Server.Custom.CityDevelopment
             List<Town> townsList = Town.Towns;
             if (townsList == null) return;
 
-            // Цикл по двум основным картам
-            Map[] activeMaps = new Map[] { Map.Trammel, Map.Felucca };
-
-            foreach (Map map in activeMaps)
+            // Глобализация: перебираем вообще все карты
+            foreach (Map map in Map.AllMaps)
             {
+                if (map == null || map == Map.Internal) continue;
+
                 foreach (Town t in townsList)
                 {
                     if (t == null) continue;
@@ -116,9 +116,10 @@ namespace Server.Custom.CityDevelopment
 
                     CityProgress progress = GetCityProfile(coreCity, map);
 
+                    // Налоги фракций оставляем только для Felucca (или ваших кастомных PvP миров, если нужно)
                     if (progress != null && map == Map.Felucca)
                     {
-                        ApplyDynamicTaxToBaseSystem(t, progress.Level); // Налоги фракций актуальны только для Felucca
+                        ApplyDynamicTaxToBaseSystem(t, progress.Level); 
                     }
 
                     if (progress != null && progress.Level >= 5)
@@ -223,10 +224,12 @@ namespace Server.Custom.CityDevelopment
             else if (onlineCount > 100) onlineScale = 1.0 + ((onlineCount - 100) / 100.0);
 
             onlineScale = Math.Max(0.5, Math.Min(5.0, onlineScale));
-            Map[] activeMaps = new Map[] { Map.Trammel, Map.Felucca };
 
-            foreach (Map map in activeMaps)
+            // Глобализация: снимаем налоги и считаем упадок на ВСЕХ картах
+            foreach (Map map in Map.AllMaps)
             {
+                if (map == null || map == Map.Internal) continue;
+
                 foreach (Town t in townsList)
                 {
                     if (t == null) continue;
@@ -238,20 +241,21 @@ namespace Server.Custom.CityDevelopment
                     CityProgress progress = GetCityProfile(coreCity, map);
                     if (progress == null) continue;
 
-                    long currentGold = GetCoreTreasury(townName, map); // Передаем map
+                    long currentGold = GetCoreTreasury(townName, map); 
 
                     if (currentGold > 0)
                     {
                         double levelCost = BaseMaintenanceCost * Math.Pow(MaintenanceMultiplier, progress.Level - 1);
                         long finalMaintenanceCost = (long)(levelCost * onlineScale);
 
-                        SubtractCoreTreasury(townName, finalMaintenanceCost, map); // Передаем map
+                        SubtractCoreTreasury(townName, finalMaintenanceCost, map); 
                         progress.CurrentSupplies -= 1.0;
                     }
                     else
                     {
-                        progress.CurrentSupplies -= 25.0;
+                        progress.CurrentSupplies -= 25.0; 
                     }
+
                     if (progress.CurrentSupplies < 0.0)
                     {
                         if (progress.Level > 1)
@@ -259,10 +263,13 @@ namespace Server.Custom.CityDevelopment
                             progress.Level--;
                             progress.RequiredSupplies = 250.0 * Math.Pow(2.0, progress.Level - 1);
                             progress.CurrentSupplies = progress.RequiredSupplies * 0.10;
+
                             if (map == Map.Felucca)
                                 ApplyDynamicTaxToBaseSystem(t, progress.Level);
+
                             CityDecorationMod.RemoveTownDecoration(t, progress.Level + 1, map);
                             CityLegendaryMerchantMod.RemoveMerchant(t);
+
                             string decayMsg = $"[Кризис] Город {townName} ({map.Name}) остался без припасов! Уровень упал до {progress.Level}.";
                             CommandHandlers.BroadcastMessage(AccessLevel.Player, 0x22, decayMsg);
                         }
@@ -274,6 +281,7 @@ namespace Server.Custom.CityDevelopment
                 }
             }
         }
+        
         private static long GetCoreTreasury(string townName, Map map)
         {
             if (Enum.TryParse(townName, true, out Server.Engines.CityLoyalty.City coreCity))
