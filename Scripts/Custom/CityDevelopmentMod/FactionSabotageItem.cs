@@ -58,22 +58,20 @@ namespace Server.Custom.CityDevelopment
                         {
                             if (reg.Name.IndexOf(c.ToString(), StringComparison.OrdinalIgnoreCase) >= 0)
                             {
-                                var cityProfile = CityDevelopmentMod.GetCityProfile(c);
+                                var cityProfile = CityDevelopmentMod.GetCityProfile(c, from.Map);
                                 if (cityProfile != null)
                                 {
-                                    // Снимаем очки снабжения у города врага
                                     cityProfile.CurrentSupplies -= 40.0;
                                     if (cityProfile.CurrentSupplies < 0.0) cityProfile.CurrentSupplies = 0.0;
 
-                                    // Оповещаем регион через глашатаев!
-                                    string alert = string.Format("Тревога! Вражеские лазутчики совершили диверсию на складах города {0}! Снабжение гарнизона подорвано!", c);
-                                    CityNotificationSystem.LocalCityBroadcast(c, alert);
+                                    string alert = string.Format("Тревога! Вражеские лазутчики совершили диверсию на складах города {0} ({1})!", c, from.Map.Name);
+                                    CityNotificationSystem.LocalCityBroadcast(c, alert); // Если этот метод транслирует в регион, он отработает на нужной карте
 
-                                    from.PlaySound(0x3C4); // Звук порчи/ломания
-                                    from.SendMessage(0x35, "Вы успешно испортили припасы! Вражеский регион потерял очки снабжения.");
-                                    
-                                    crate.Delete(); // Уничтожаем ящик
-                                    m_Kit.Delete();   // Расходуем набор саботажа
+                                    from.PlaySound(0x3C4);
+                                    from.SendMessage(0x35, $"Вы успешно испортили припасы! Регион {c} ({from.Map.Name}) потерял очки снабжения.");
+
+                                    crate.Delete();
+                                    m_Kit.Delete();
                                     return;
                                 }
                             }
