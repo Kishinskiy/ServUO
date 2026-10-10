@@ -254,7 +254,10 @@ namespace Server.Custom.EpicAlignment
             pm.StatCap = EpicRewardSystem.CustomStatCap;
             pm.RawStr = EpicRewardSystem.MaxIndividualStat; pm.RawDex = EpicRewardSystem.MaxIndividualStat; pm.RawInt = EpicRewardSystem.MaxIndividualStat;
             pm.AddToBackpack(new BookOfDestiny());
-            if (isLight) pm.AddToBackpack(new SwordOfVirtues()); else pm.AddToBackpack(new MondainsRetribution());
+            if (isLight) 
+                pm.AddToBackpack(new AvatarSwordOfVirtues()); 
+            else 
+                pm.AddToBackpack(new AvatarMondainsRetribution());
             pm.PlaySound(0x5C9); pm.SendMessage(0x35, "[BecomeEpic] Вы успешно получили статус Полубога!");
         }
     }
