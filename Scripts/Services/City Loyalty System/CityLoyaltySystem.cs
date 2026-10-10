@@ -290,6 +290,7 @@ namespace Server.Engines.CityLoyalty
 
         public override PointsEntry GetSystemEntry(PlayerMobile pm)
         {
+            string worldKey = pm.Map == Map.Felucca ? "_Felucca" : "_Trammel";
             return new CityLoyaltyEntry(pm, this.City);
         }
 
@@ -544,7 +545,7 @@ namespace Server.Engines.CityLoyalty
             switch (title)
             {
                 default:
-case CityTitle.Citizen: return LoyaltyRating.Commended; // 2 000+ очков (Доступ к мантрам)
+                case CityTitle.Citizen: return LoyaltyRating.Commended; // 2 000+ очков (Доступ к мантрам)
 				case CityTitle.Knight: return LoyaltyRating.Esteemed;   // 5 000+ очков
 				case CityTitle.Baronet: return LoyaltyRating.Respected;  // 10 000+ очков
 				case CityTitle.Baron: return LoyaltyRating.Honored;    // 25 000+ очков

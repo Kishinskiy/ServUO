@@ -98,6 +98,9 @@ namespace Server.Engines.CityLoyalty
             for (int i = 0; i < CityLoyaltySystem.Cities.Count; i++)
             {
                 CityLoyaltySystem city = CityLoyaltySystem.Cities[i];
+                if (city.Stone != null && city.Stone.Map != User.Map)
+                    continue;
+
 
                 if (city.CanUtilize && Citizenship == null && CityLoyaltySystem.CanAddCitizen(User))
                     AddButton(30, y + 3, 2103, 2104, 100 + i, GumpButtonType.Reply, 0);
