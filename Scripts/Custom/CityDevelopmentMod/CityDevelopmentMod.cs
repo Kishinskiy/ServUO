@@ -49,17 +49,19 @@ namespace Server.Custom.CityDevelopment
 
             Timer.DelayCall(TimeSpan.FromSeconds(5.0), () =>
             {
-                bool hasMinistersInFelucca = World.Mobiles.Values.Any(m => m is Server.Engines.CityLoyalty.TradeMinister && m.Map == Map.Felucca);
-                if (!hasMinistersInFelucca)
+                // Считаем количество министров на карте Felucca
+                int ministersInFelucca = World.Mobiles.Values.Count(m => m is Server.Engines.CityLoyalty.TradeMinister && m.Map == Map.Felucca);
+                
+                if (ministersInFelucca == 0)
                 {
-                    Console.WriteLine("[CityDevelopment] NPC лояльности не найдены в Felucca. Запуск принудительного спавна строго на Felucca...");
-                    
-                    // Вызываем генерацию ИСКЛЮЧИТЕЛЬНО для карты Felucca
-                    Server.Engines.CityLoyalty.CityLoyaltySystem.GenerateInfrastructureForMap(Map.Felucca);
+                    Utility.PushColor(ConsoleColor.Yellow);
+                    Console.WriteLine("[CityDevelopment] ВНИМАНИЕ: Инфраструктура лояльности Felucca не сгенерирована.");
+                    Console.WriteLine("[CityDevelopment] Чтобы заселить Felucca, используйте ГМ-команду: [GenerateLoyalty");
+                    Utility.PopColor();
                 }
                 else
                 {
-                    Console.WriteLine("[CityDevelopment] Верификация NPC: Торговая инфраструктура Felucca успешно работает.");
+                    Console.WriteLine($"[CityDevelopment] Верификация: В Felucca успешно работает {ministersInFelucca} Торговых Министров.");
                 }
             });
 
