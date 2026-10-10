@@ -859,10 +859,13 @@ namespace Server.Engines.CityLoyalty
 
         public static void OnBODTurnIn(Mobile from, int gold)
         {
-            if (!Enabled)
+            if (!Enabled || from == null)
                 return;
 
-            CityLoyaltySystem city = Cities.FirstOrDefault(c => c.Definition.Region != null && c.Definition.Region.IsPartOf(from.Region));
+            // 🔥 ИСПРАВЛЕНО: Очки за BOD начисляются строго в казну города ТОЙ карты, на которой сдан заказ! 📜🎉
+            CityLoyaltySystem city = Cities.FirstOrDefault(c => c.Definition.Region != null 
+                && c.Definition.Region.IsPartOf(from.Region) 
+                && (c.Stone != null && c.Stone.Map == from.Map));
 
             if (city != null)
             {
@@ -879,7 +882,11 @@ namespace Server.Engines.CityLoyalty
 
             rights.ForEach(store =>
                 {
-                    CityLoyaltySystem city = CityLoyaltySystem.GetCitizenship(store.m_Mobile, false);
+                    if (store.m_Mobile == null) return;
+
+                    // 🔥 ИСПРАВЛЕНО: Поиск лояльности за убийство мобов адаптирован под текущую карту игрока!
+                    CityLoyaltySystem city = Cities.FirstOrDefault(c => c.IsCitizen(store.m_Mobile, false) 
+                        && (c.Stone != null && c.Stone.Map == store.m_Mobile.Map));
 
                     if (city != null)
                         city.AwardLove(store.m_Mobile, 1 * (spawnLevel + 1), 0.10 > Utility.RandomDouble());
