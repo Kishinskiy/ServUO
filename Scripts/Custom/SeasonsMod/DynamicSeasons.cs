@@ -7,43 +7,41 @@ namespace Server.Custom.Seasons
 {
     public class DynamicSeasons
     {
-        public static readonly int DatabaseVersion = 1;
+        public static readonly int DatabaseVersion = 4; // Обновили версию под честный фикс ядра
 
         // Настройка интервала смены сезонов (каждые 6 дней реального времени)
         private static readonly TimeSpan SeasonInterval = TimeSpan.FromDays(6);
 
         private static Timer m_Timer;
-        private static int m_CurrentSeasonIndex = 0;
-        private static DateTime m_NextSeasonTime; // ДОБАВЛЕНО: Точное время следующей смены сезонов
+        private static int m_CurrentSeasonIndex = 2; // ИСПРАВЛЕНО: Индекс 2 — это ЛЕТО в ядре UO! Стартуем с него! ☀️🎉
+        private static DateTime m_NextSeasonTime; 
 
-        private static readonly int[] SeasonsOrder = new int[] { 0, 1, 2, 3 }; // Весна, Лето, Осень, Зима
+        // ИСПРАВЛЕНО: Твоя правда! Строгий лорный порядок ядра: 0-Зима, 1-Весна, 2-Лето, 3-Осень 🗺️
+        private static readonly int[] SeasonsOrder = new int[] { 0, 1, 2, 3 }; 
 
         private static readonly string _saveFolder = Path.Combine(Core.BaseDirectory, "Saves/Custom");
         private static readonly string _savePath = Path.Combine(Core.BaseDirectory, "Saves/Custom/DynamicSeasonsDatabase.bin");
 
         public static void Initialize()
         {
-            CommandSystem.Register("SeasonNext", AccessLevel.Administrator, new CommandEventHandler(SeasonNext_OnCommand)); //
-            CommandSystem.Register("SeasonStatus", AccessLevel.GameMaster, new CommandEventHandler(SeasonStatus_OnCommand)); //
+            CommandSystem.Register("SeasonNext", AccessLevel.Administrator, new CommandEventHandler(SeasonNext_OnCommand)); 
+            CommandSystem.Register("SeasonStatus", AccessLevel.GameMaster, new CommandEventHandler(SeasonStatus_OnCommand)); 
 
-            // Подписываемся на системные хуки сохранения мира, чтобы база писалась автоматически
             EventSink.WorldSave += (e) => Save();
             EventSink.Shutdown += (e) => Save();
             EventSink.ServerStarted += new ServerStartedEventHandler(OnServerStarted);
 
             Utility.PushColor(ConsoleColor.Green);
-            Console.WriteLine("SeasonsMod: Система динамической смены сезонов активирована."); //
+            Console.WriteLine("SeasonsMod: Система динамической смены сезонов активирована."); 
             Utility.PopColor();
         }
 
         private static void OnServerStarted()
         {
-            // Сначала считываем базу данных с диска
             Load();
 
             TimeSpan delay = m_NextSeasonTime - DateTime.UtcNow;
 
-            // Если время следующего сезона из сейва уже прошло (пока сервер был выключен) — запускаем смену сразу
             if (delay <= TimeSpan.Zero)
             {
                 delay = SeasonInterval;
@@ -52,56 +50,53 @@ namespace Server.Custom.Seasons
             }
             else
             {
-                // Если время еще не пришло — просто применяем текущий сохраненный сезон, не сдвигая индекс!
                 ApplySeason(SeasonsOrder[m_CurrentSeasonIndex]);
             }
 
-            // Запускаем динамический таймер на ОСТАТОК времени до следующей смены
             m_Timer = Timer.DelayCall(delay, SeasonInterval, new TimerCallback(ChangeSeason));
         }
 
         private static void ChangeSeason()
         {
-            m_CurrentSeasonIndex = (m_CurrentSeasonIndex + 1) % SeasonsOrder.Length; //
-            m_NextSeasonTime = DateTime.UtcNow + SeasonInterval; // Обновляем метку времени следующего перехода
-            ApplySeason(SeasonsOrder[m_CurrentSeasonIndex]); //
+            // Переключаем индекс по кругу: Зима(0) -> Весна(1) -> Лето(2) -> Осень(3)
+            m_CurrentSeasonIndex = (m_CurrentSeasonIndex + 1) % SeasonsOrder.Length; 
+            m_NextSeasonTime = DateTime.UtcNow + SeasonInterval; 
+            ApplySeason(SeasonsOrder[m_CurrentSeasonIndex]); 
         }
 
         private static void ApplySeason(int seasonId)
         {
-            Map.Trammel.Season = seasonId; //
-            Map.Felucca.Season = seasonId; //
+            Map.Trammel.Season = seasonId; 
+            Map.Felucca.Season = seasonId; 
 
-            foreach (Network.NetState state in Network.NetState.Instances) //
+            foreach (Network.NetState state in Network.NetState.Instances) 
             {
-                Mobile m = state.Mobile; //
+                Mobile m = state.Mobile; 
                 if (m != null && (m.Map == Map.Trammel || m.Map == Map.Felucca)) //
                 {
-                    state.Send(new Network.SeasonChange(seasonId, true)); //
+                    state.Send(new Network.SeasonChange(seasonId, true)); 
                 }
             }
 
-            string seasonName = GetSeasonName(seasonId); //
+            string seasonName = GetSeasonName(seasonId); 
             Utility.PushColor(ConsoleColor.Cyan);
             Console.WriteLine($"SeasonsMod: Актуализирован сезон: {seasonName} (ID: {seasonId}). Следующая смена: {m_NextSeasonTime}");
             Utility.PopColor();
         }
 
-        private static string GetSeasonName(int id) //
+        // ИСПРАВЛЕНО: Честное сопоставление ID под твое ванильное ядро! 🧱
+        private static string GetSeasonName(int id) 
         {
             switch (id)
             {
-                case 0: return "Весна"; //
-                case 1: return "Лето"; //
-                case 2: return "Осень"; //
-                case 3: return "Зима"; //
-                default: return "Неизвестно"; //
+                case 0: return "Зима"; 
+                case 1: return "Весна"; 
+                case 2: return "Лето"; 
+                case 3: return "Осень"; 
+                default: return "Неизвестно"; 
             }
         }
 
-        // =========================================================================
-        // МЕХАНИКА СОХРАНЕНИЯ И ЗАГРУЗКИ ДАННЫХ СЕЗОНА НА ДИСК 💾
-        // =========================================================================
         public static void Save()
         {
             GenericWriter writer = null;
@@ -112,9 +107,11 @@ namespace Server.Custom.Seasons
 
                 writer.Write((int)DatabaseVersion);
                 writer.Write((int)m_CurrentSeasonIndex);
-                writer.Write((string)m_NextSeasonTime.ToString("o")); // Пишем точную дату в формате ISO
+
+                long unixSeconds = (long)(m_NextSeasonTime - new DateTime(1970, 1, 1)).TotalSeconds;
+                writer.Write((long)unixSeconds);
             }
-            catch (Exception ex) { Console.WriteLine($"[SeasonsMod] Ошибка сохранения: {ex.Message}"); }
+            catch { }
             finally { if (writer != null) writer.Close(); }
         }
 
@@ -122,8 +119,8 @@ namespace Server.Custom.Seasons
         {
             if (!File.Exists(_savePath))
             {
-                // Если базы нет (первый старт) — генерируем дефолтные значения
-                m_CurrentSeasonIndex = 0;
+                // При первом старте насильно выставляем Лето (Индекс 2)! ☀️
+                m_CurrentSeasonIndex = 2;
                 m_NextSeasonTime = DateTime.UtcNow + SeasonInterval;
                 return;
             }
@@ -136,23 +133,34 @@ namespace Server.Custom.Seasons
 
                 int version = reader.ReadInt();
                 m_CurrentSeasonIndex = reader.ReadInt();
-                m_NextSeasonTime = DateTime.Parse(reader.ReadString());
+
+                if (version >= 4)
+                {
+                    long unixSeconds = reader.ReadLong();
+                    m_NextSeasonTime = new DateTime(1970, 1, 1).AddSeconds(unixSeconds);
+                }
+                else
+                {
+                    m_CurrentSeasonIndex = 2;
+                    m_NextSeasonTime = DateTime.UtcNow + SeasonInterval;
+                }
             }
-            catch (Exception ex) { Console.WriteLine($"[SeasonsMod] Ошибка загрузки: {ex.Message}"); }
+            catch { }
             finally { if (binReader != null) binReader.Close(); if (stream != null) stream.Close(); }
         }
 
-        private static void SeasonNext_OnCommand(CommandEventArgs e) //
+        private static void SeasonNext_OnCommand(CommandEventArgs e) 
         {
-            ChangeSeason(); //
-            e.Mobile.SendMessage($"Сезон принудительно изменен на {GetSeasonName(SeasonsOrder[m_CurrentSeasonIndex])}."); //
+            ChangeSeason(); 
+            e.Mobile.SendMessage($"Сезон принудительно изменен на {GetSeasonName(SeasonsOrder[m_CurrentSeasonIndex])}."); 
         }
 
-        private static void SeasonStatus_OnCommand(CommandEventArgs e) //
+        private static void SeasonStatus_OnCommand(CommandEventArgs e) 
         {
             TimeSpan rem = m_NextSeasonTime - DateTime.UtcNow;
             e.Mobile.SendMessage(0x35, $"Текущий сезон: {GetSeasonName(Map.Felucca.Season)} (ID: {Map.Felucca.Season})");
-            e.Mobile.SendMessage(0x59, $"До следующей автоматической смены осталось: {rem.Days} дн. {rem.Hours} час. {rem.Minutes} мин.");
+            if (rem > TimeSpan.Zero)
+                e.Mobile.SendMessage(0x59, $"До следующей автоматической смены осталось: {rem.Days} дн. {rem.Hours} час. {rem.Minutes} мин.");
         }
     }
 }

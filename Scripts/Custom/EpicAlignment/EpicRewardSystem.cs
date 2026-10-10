@@ -49,7 +49,6 @@ namespace Server.Items
 
                         if (profile != null)
                         {
-                            // ИСПРАВЛЕНО: Убрали падающую строку с LastActive, оставив только вечную запись JSON-ранга! 🎉
                             profile.Rank = m_TargetRank; 
                             profile.Lives = 10;
 
@@ -64,8 +63,12 @@ namespace Server.Items
                         }
 
                         m_Player.AddToBackpack(new BookOfDestiny());
-                        if (m_TargetRank == EpicRank.Avatar) m_Player.AddToBackpack(new SwordOfVirtues());
-                        else if (m_TargetRank == EpicRank.HandOfMondain) m_Player.AddToBackpack(new MondainsRetribution());
+                        
+                        // СИНХРОНИЗИРОВАНО: Выдаем игрокам наше легендарное кастомное АоЕ-оружие вместо ванильного! ⚔️🔥🎉
+                        if (m_TargetRank == EpicRank.Avatar) 
+                            m_Player.AddToBackpack(new SwordOfVirtues());
+                        else if (m_TargetRank == EpicRank.HandOfMondain) 
+                            m_Player.AddToBackpack(new MondainsRetribution());
 
                         m_Player.StatCap = CustomStatCap;
                         m_Player.RawStr = Math.Min(MaxIndividualStat, m_Player.RawStr + StatBonusAmount);
