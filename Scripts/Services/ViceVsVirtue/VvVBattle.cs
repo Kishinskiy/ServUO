@@ -444,6 +444,29 @@ namespace Server.Engines.VvV
 
         public void EndBattle()
         {
+            // =========================================================================
+            // 🔥 ДОБАВЛЕНО: Инжектируем проверку победителя ДО полной очистки переменных! 🪙💀
+            // =========================================================================
+            try
+            {
+                BattleTeam winnerTeam = GetLeader();
+                if (winnerTeam != null && winnerTeam.Guild != null)
+                {
+                    VvVPlayerEntry leadPlayer = ViceVsVirtueSystem.Instance.GetPlayerEntry<VvVPlayerEntry>(winnerTeam.PlayerStats.FirstOrDefault()?.Player);
+                    // Если лидер битвы принадлежит к фракции Vice (Тьма/Порок) — запускаем контрибуцию!
+                    if (winnerTeam.Kills > 0 || winnerTeam.Score > 0) 
+                    {
+                        // Так как в твоей ревизии тип VvVType лежит на уровне игроков, проверяем активность осад
+                        if (winnerTeam.PlayerStats.Any(p => p.Player != null && p.Player.HueMod == 1175))
+                        {
+                            Server.Custom.CityDevelopment.VvVCityBridge.OnViceVictory(this.City);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex) { Console.WriteLine($"[VvV-Bridge] Ошибка триггера контрибуции: {ex.Message}"); }
+            // =========================================================================
+
             OnGoing = false;
             EndTimer();
 

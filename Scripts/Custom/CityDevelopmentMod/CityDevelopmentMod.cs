@@ -140,6 +140,17 @@ namespace Server.Custom.CityDevelopment
             if (!Enum.TryParse(originTown.ToString(), true, out Server.Engines.CityLoyalty.City coreCity))
                 return;
 
+            // =========================================================================
+            // 🔥 ДОБАВЛЕНО: Блокировка сдачи караванов во время активной VvV осады! ⚔️
+            // =========================================================================
+            if (VvVCityBridge.IsCityUnderVvVSiege(coreCity) && player.Map == Map.Felucca)
+            {
+                player.SendMessage(0x22, $"[Осада] Торговые пути заблокированы! Город {coreCity} охвачен фракционной войной Vice vs Virtue. Сдача заказов невозможна до окончания битвы!");
+                return;
+            }
+            // =========================================================================
+
+
             Map map = player.Map;
             CityProgress progress = GetCityProfile(coreCity, map);
             if (progress == null) return;
