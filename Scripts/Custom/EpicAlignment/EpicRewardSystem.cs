@@ -12,12 +12,12 @@ namespace Server.Items
         // =========================================================================
         // НАСТРОЙКИ СВЕРХСПОСОБНОСТЕЙ ПОЛУБОГОВ (УДОБНО МЕНЯТЬ ТУТ) 👑
         // =========================================================================
-        public static readonly int StatBonusAmount = 50;       
-        public static readonly int MaxIndividualStat = 150;     
+        public static readonly int StatBonusAmount = 30;       
+        public static readonly int MaxIndividualStat = 130;     
         public static readonly int CustomStatCap = 450;        
 
-        public static readonly double EpicSkillCap = 150.0;    
-        public static readonly double UniversalSkillCap = 130.0; 
+        public static readonly double EpicSkillCap = 130.0;    
+        public static readonly double UniversalSkillCap = 120.0; 
 
         public static void MonitorBoss(BaseCreature boss, PlayerMobile player, EpicRank targetRank)
         { 
@@ -66,9 +66,9 @@ namespace Server.Items
                         
                         // СИНХРОНИЗИРОВАНО: Выдаем игрокам наше легендарное кастомное АоЕ-оружие вместо ванильного! ⚔️🔥🎉
                         if (m_TargetRank == EpicRank.Avatar) 
-                            m_Player.AddToBackpack(new SwordOfVirtues());
+                            m_Player.AddToBackpack(new AvatarSwordOfVirtues());
                         else if (m_TargetRank == EpicRank.HandOfMondain) 
-                            m_Player.AddToBackpack(new MondainsRetribution());
+                            m_Player.AddToBackpack(new AvatarMondainsRetribution());
 
                         m_Player.StatCap = CustomStatCap;
                         m_Player.RawStr = Math.Min(MaxIndividualStat, m_Player.RawStr + StatBonusAmount);
@@ -85,8 +85,10 @@ namespace Server.Items
 
             private string ApplySkills(PlayerMobile pm)
             {
-                double nec = pm.Skills[SkillName.Necromancy].Value; double mag = pm.Skills[SkillName.Magery].Value;
-                double chiv = pm.Skills[SkillName.Chivalry].Value; double arch = pm.Skills[SkillName.Archery].Value;
+                double nec = pm.Skills[SkillName.Necromancy].Value; 
+                double mag = pm.Skills[SkillName.Magery].Value;
+                double chiv = pm.Skills[SkillName.Chivalry].Value; 
+                double arch = pm.Skills[SkillName.Archery].Value;
                 double melee = Math.Max(pm.Skills[SkillName.Swords].Value, Math.Max(pm.Skills[SkillName.Fencing].Value, pm.Skills[SkillName.Macing].Value));
 
                 if (nec >= 80.0 && m_TargetRank == EpicRank.HandOfMondain) 
