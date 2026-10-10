@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using Server;
 using Server.Mobiles;
 using Server.Items;
 using Server.Regions;
-using Server.Custom.EpicAlignment; // ДОБАВЛЕНО: Подключаем связь с полубогами
+using Server.Custom.EpicAlignment;
+using Server.Custom.CityDevelopment; // Подключаем экономику городов
 
 namespace Server.Custom.SmartNPCs
 {
@@ -53,6 +56,19 @@ namespace Server.Custom.SmartNPCs
             "Хорошего дня и удачной охоты!",
             "Рад был помочь, путник! Заходи еще.",
             "Да хранят тебя боги! Доброго пути."
+        };
+
+        // Сопоставление городов и нативных мантр для ИИ торговцев
+        private static readonly Dictionary<Server.Engines.CityLoyalty.City, Tuple<string, string>> VirtueMap = new Dictionary<Server.Engines.CityLoyalty.City, Tuple<string, string>>()
+        {
+            { Server.Engines.CityLoyalty.City.Britain,     new Tuple<string, string>("Compassion (Сострадание)", "МУ") },
+            { Server.Engines.CityLoyalty.City.Yew,         new Tuple<string, string>("Justice (Справедливость)", "БЕХ") },
+            { Server.Engines.CityLoyalty.City.Minoc,       new Tuple<string, string>("Sacrifice (Жертвенность)", "КАХ") },
+            { Server.Engines.CityLoyalty.City.Moonglow,    new Tuple<string, string>("Honesty (Честность)", "АХМ") },
+            { Server.Engines.CityLoyalty.City.Trinsic,     new Tuple<string, string>("Honor (Честь)", "СУММ") },
+            { Server.Engines.CityLoyalty.City.SkaraBrae,   new Tuple<string, string>("Spirituality (Духовность)", "ОМ") },
+            { Server.Engines.CityLoyalty.City.Jhelom,      new Tuple<string, string>("Valor (Доблесть)", "РА") },
+            { Server.Engines.CityLoyalty.City.NewMagincia, new Tuple<string, string>("Humility (Смирение)", "ЛУМ") }
         };
 
         private static readonly Dictionary<string, Point3D> m_StaticCities = new Dictionary<string, Point3D>(StringComparer.OrdinalIgnoreCase)
@@ -176,11 +192,51 @@ namespace Server.Custom.SmartNPCs
             }
 
             // =========================================================================
-            // НОВОЕ: ДИНАМИЧЕСКИЕ СЛУХИ И СПЛЕТНИ О ПОЛУБОГАХ (ОНЛАЙН РАДАР) 📡🗣️
+            // 🔥 СИНХРОНИЗИРОВАНО: ИНТЕРАКТИВНЫЕ МАНТРЫ ДОБРОДЕТЕЛЕЙ ОТ ЖИВЫХ NPC 🏛️🗣️🌟
+            // =========================================================================
+            else if (text.Contains("мантра") || text.Contains("mantra"))
+            {
+                Server.Engines.CityLoyalty.City currentCity = Server.Engines.CityLoyalty.City.Britain;
+                bool insideValidCity = false;
+
+                foreach (Server.Engines.CityLoyalty.City c in Enum.GetValues(typeof(Server.Engines.CityLoyalty.City)))
+                {
+                    string checkName = (c == Server.Engines.CityLoyalty.City.NewMagincia) ? "magincia" : c.ToString().ToLower();
+                    if (!string.IsNullOrEmpty(currentTownName) && currentTownName.ToLower().Contains(checkName))
+                    {
+                        currentCity = c;
+                        insideValidCity = true;
+                        break;
+                    }
+                }
+                if (!insideValidCity)
+                {
+                    reply = "Дивные слова ты шепчешь, путник... Мантры Добродетелей ведомы лишь жителям Великих Городов. Ступай в Британию, Минок или Тринсик.";
+                }
+                else
+                {
+                    Tuple<string, string> virtueInfo = VirtueMap[currentCity];
+                    CityProgress progress = CityDevelopmentMod.GetCityProfile(currentCity, player.Map);
+                    int cityLevel = progress != null ? progress.Level : 1;
+                    if (virtueInfo != null)
+                    {
+                        if (cityLevel >= 2)
+                        {
+                            reply = $"Слушай внимательно, путник! Наш регион процветает, и мы помним корни. Древнее слово силы для Алтаря {virtueInfo.Item1} — это \"{virtueInfo.Item2}\". Произнеси его прямо у святыни!";
+                        }
+                        else
+                        {
+                            // ИСПРАВЛЕНО: Полностью зачищена опечатка со знаком двоеточия во избежание бага CS1002! 🛠️🎉
+                            reply = $"Я не могу открыть тебе слово силы... Наш город {currentCity} сейчас в упадке. Вози караваны Торговому Министру, подними благосостояние города до 2 уровня, и тогда мы вспомним мантру {virtueInfo.Item1}!";
+                        }
+                    }
+                }
+            }
+            // =========================================================================
+            // ДИНАМИЧЕСКИЕ СЛУХИ И СПЛЕТНИ О ПОЛУБОГАХ (ОНЛАЙН РАДАР) 📡🗣️
             // =========================================================================
             else if (text.Contains("слухи") || text.Contains("новости") || text.Contains("аватар") || text.Contains("зло") || text.Contains("мондейн") || text.Contains("полубог"))
             {
-                // Собираем списки лидеров в онлайне
                 List<Mobile> onlineAvatars = new List<Mobile>();
                 List<Mobile> onlineEvils = new List<Mobile>();
 
@@ -188,16 +244,13 @@ namespace Server.Custom.SmartNPCs
                 {
                     Mobile m = ns.Mobile;
                     if (m == null || !m.Alive || m.AccessLevel > AccessLevel.Player) continue;
-
                     EpicRank rank = EpicAlignmentSystem.GetRank(m);
                     if (rank == EpicRank.Avatar) onlineAvatars.Add(m);
                     else if (rank == EpicRank.HandOfMondain) onlineEvils.Add(m);
                 }
-
-                // Логика выбора ответа в зависимости от того, кого ищет игрок или кто в сети
                 if (onlineAvatars.Count == 0 && onlineEvils.Count == 0)
                 {
-                    reply = "О, нынче на дорогах затишье. Высшие Полубоги Сосарии скрылись в своих чертогах. Ни Аватаров, ни прихвостней Мондейна давно не видать.";
+                    reply = "О, нынче на дорогах затишье. Высшие Полубоги Сосарии скрылись in своих чертогах. Ни Аватаров, ни прихвостней Мондейна давно не видать.";
                 }
                 else if (text.Contains("аватар") || (onlineAvatars.Count > 0 && Utility.RandomBool()))
                 {
@@ -207,13 +260,12 @@ namespace Server.Custom.SmartNPCs
                         EpicProfile prof = EpicAlignmentSystem.GetProfile(av);
                         string classTitle = prof != null ? prof.DetectedClass : "Великий Аватар";
                         string regName = (av.Region != null && !string.IsNullOrEmpty(av.Region.Name)) ? av.Region.Name : "Диких землях";
-
                         string[] avatarRumors = new string[]
-{
+                        {
 $"Говорят, истинный Аватар Света по имени {av.Name} сейчас в мире! Его видели как {classTitle} в районе {regName} ({av.Map.Name}). Люди молятся на него!",
 $"Шепчутся, что {av.Name} — живое воплощение Добродетелей — сейчас проезжал через {regName}. Сияние его ауры озарило небосвод!",
 $"В тавернах только и разговоров, что {av.Name} ведет за собой силы Света где-то в {regName}. Охотники, у вас есть шанс помочь ему!"
-};
+                        };
                         reply = avatarRumors[Utility.Random(avatarRumors.Length)];
                     }
                     else
@@ -221,7 +273,7 @@ $"В тавернах только и разговоров, что {av.Name} в�
                         reply = "Силы Света сейчас безмолвствуют. На Алтаре Предназначения в Despise давно никто не проходил судейство.";
                     }
                 }
-                else // Запрос про Зло / Мондейна или случайный выбор Тьмы
+                else
                 {
                     if (onlineEvils.Count > 0)
                     {
