@@ -36,6 +36,20 @@ namespace Server.Items
             if (EpicAlignmentSystem.GetRank(pm) != EpicRank.None) 
             { pm.SendMessage(0x35, "Мантра отражается эхом от стен... Вы уже познали Истинную Силу и не можете запустить Алтарь повторно!"); return; }
 
+            // =========================================================================
+            // 🔥 ДОБАВЛЕНО: Проверка прохождения Кругосветного Паломничества по 8 Алтарям! 🏛️🌌
+            // =========================================================================
+            EpicProfile pmProfile = EpicAlignmentSystem.GetProfile(pm);
+            if (pmProfile == null || pmProfile.DiscoveredShrines.Count < 8)
+            {
+                int currentCount = pmProfile != null ? pmProfile.DiscoveredShrines.Count : 0;
+                pm.SendMessage(0x22, $"[Отказ] Древний Алтарь Хаоса отвергает твою мантру! Твоя душа не готова.");
+                pm.SendMessage(0x22, $"Вы обязаны завершить Паломничество и активировать все 8 Алтарей Добродетелей по миру! Пройдено: {currentCount} из 8.");
+                pm.SendMessage(0x59, "Используйте команду [CheckEpicStatus чтобы посмотреть свой прогресс путешествия.");
+                return;
+            }
+            // =========================================================================
+            
             if (isLight && pm.Skills[SkillName.Necromancy].Value >= 50.0) { pm.SendMessage(0x22, "Некромант не может стать Аватаром!"); return; }
             if (isDark && pm.Skills[SkillName.Chivalry].Value >= 50.0) { pm.SendMessage(0x22, "Паладин не может присягнуть Тьме!"); return; }
 

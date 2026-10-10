@@ -20,9 +20,10 @@ namespace Server.Custom.EpicAlignment
         public int RankId { get; set; } = 0;
         public int Lives { get; set; } = 10;
 
-        // Храним время кулдауна в простых секундах (Unix Time). По умолчанию 0 = доступно сразу! ⏱️🎉
         public long NextGuardSeconds { get; set; } = 0;
         public long NextBossSeconds { get; set; } = 0;
+
+        public List<string> DiscoveredShrines { get; set; } = new List<string>();
 
         public EpicRank Rank
         {
@@ -35,14 +36,13 @@ namespace Server.Custom.EpicAlignment
 
     public static class EpicAlignmentSystem
     {
-        // Твои точные координаты кастомной карты! 🗺️🏝️
-        public static readonly Point3D PurgatoryLoc = new Point3D(6430, 1236, 10);    // Чистилище духов (Felucca)
+        public static readonly Point3D PurgatoryLoc = new Point3D(6430, 1236, 10);
         public static readonly Map PurgatoryMap = Map.Felucca;
 
-        public static readonly Point3D LightFortress = new Point3D(5262, 129, 20);    // Цитадель Святого Света (Felucca)
+        public static readonly Point3D LightFortress = new Point3D(5262, 129, 20);
         public static readonly Map LightFortressMap = Map.Felucca;
 
-        public static readonly Point3D DarkFortress = new Point3D(2024, 1383, -80);  // Обитель Вечной Тьмы (Malas)
+        public static readonly Point3D DarkFortress = new Point3D(2024, 1383, -80);
         public static readonly Map DarkFortressMap = Map.Malas;
 
         private static readonly Dictionary<string, EpicProfile> _database = new Dictionary<string, EpicProfile>();
@@ -61,25 +61,18 @@ namespace Server.Custom.EpicAlignment
             EventSink.Login += OnPlayerLogin;
 
             Server.Items.EpicMantraCore.Initialize();
+            EpicPilgrimageCore.Initialize();
         }
 
-        // Проверка, занято ли место Аватара Света на сервере
         public static bool IsAvatarActive()
         {
-            foreach (var prof in _database.Values)
-            {
-                if (prof.Rank == EpicRank.Avatar) return true;
-            }
+            foreach (var prof in _database.Values) { if (prof.Rank == EpicRank.Avatar) return true; }
             return false;
         }
 
-        // Проверка, занято ли место Аватара Тьмы (Руки Мондейна) на сервере
         public static bool IsMondainActive()
         {
-            foreach (var prof in _database.Values)
-            {
-                if (prof.Rank == EpicRank.HandOfMondain) return true;
-            }
+            foreach (var prof in _database.Values) { if (prof.Rank == EpicRank.HandOfMondain) return true; }
             return false;
         }
 
@@ -90,7 +83,7 @@ namespace Server.Custom.EpicAlignment
 
             if (!_database.TryGetValue(accName, out EpicProfile profile))
             {
-                profile = new EpicProfile { AccountName = accName, CharacterName = m.Name, NextGuardSeconds = 0, NextBossSeconds = 0 };
+                profile = new EpicProfile { AccountName = accName, CharacterName = m.Name };
                 _database[accName] = profile;
             }
             return profile;
@@ -112,7 +105,7 @@ namespace Server.Custom.EpicAlignment
 
             if (rank == EpicRank.None)
             {
-                m.Title = null; m.HueMod = -1; profile.Lives = 0;
+                m.Title = null; m.HueMod = -1; profile.Lives = 0; profile.DiscoveredShrines.Clear();
             }
             else
             {
@@ -140,26 +133,10 @@ namespace Server.Custom.EpicAlignment
 
         private static long GetCurrentUnixSeconds() { return (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalSeconds; }
 
-        public static bool CanSummonGuards(Mobile m)
-        {
-            EpicProfile p = GetProfile(m);
-            return p == null || GetCurrentUnixSeconds() >= p.NextGuardSeconds;
-        }
-        public static void RegisterGuardSummon(Mobile m)
-        {
-            EpicProfile p = GetProfile(m);
-            if (p != null) { p.NextGuardSeconds = GetCurrentUnixSeconds() + 86400; Save(); }
-        }
-        public static bool CanSummonBoss(Mobile m)
-        {
-            EpicProfile p = GetProfile(m);
-            return p == null || GetCurrentUnixSeconds() >= p.NextBossSeconds;
-        }
-        public static void RegisterBossSummon(Mobile m)
-        {
-            EpicProfile p = GetProfile(m);
-            if (p != null) { p.NextBossSeconds = GetCurrentUnixSeconds() + 86400; Save(); }
-        }
+        public static bool CanSummonGuards(Mobile m) { EpicProfile p = GetProfile(m); return p == null || GetCurrentUnixSeconds() >= p.NextGuardSeconds; }
+        public static void RegisterGuardSummon(Mobile m) { EpicProfile p = GetProfile(m); if (p != null) { p.NextGuardSeconds = GetCurrentUnixSeconds() + 86400; Save(); } }
+        public static bool CanSummonBoss(Mobile m) { EpicProfile p = GetProfile(m); return p == null || GetCurrentUnixSeconds() >= p.NextBossSeconds; }
+        public static void RegisterBossSummon(Mobile m) { EpicProfile p = GetProfile(m); if (p != null) { p.NextBossSeconds = GetCurrentUnixSeconds() + 86400; Save(); } }
 
         public static void Save()
         {
@@ -180,7 +157,12 @@ namespace Server.Custom.EpicAlignment
                         sw.WriteLine($"    \"Lives\": {kvp.Value.Lives},");
                         sw.WriteLine($"    \"DetectedClass\": \"{kvp.Value.DetectedClass}\",");
                         sw.WriteLine($"    \"NextGuardSeconds\": {kvp.Value.NextGuardSeconds},");
-                        sw.WriteLine($"    \"NextBossSeconds\": {kvp.Value.NextBossSeconds}");
+                        sw.WriteLine($"    \"NextBossSeconds\": {kvp.Value.NextBossSeconds},");
+
+                        string shrinesInline = string.Join(",", kvp.Value.DiscoveredShrines.ConvertAll(s => $"\"{s}\""));
+                        sw.WriteLine($"    \"DiscoveredShrines\": [{shrinesInline}],");
+
+                        sw.WriteLine($"    \"LastActive\": \"{DateTime.UtcNow.ToString("o")}\"");
                         sw.Write(++i == _database.Count ? "  }" : "  },");
                         sw.WriteLine();
                     }
@@ -216,8 +198,15 @@ namespace Server.Custom.EpicAlignment
                     else if (key == "DetectedClass") current.DetectedClass = val;
                     else if (key == "NextGuardSeconds") current.NextGuardSeconds = long.Parse(val);
                     else if (key == "NextBossSeconds") current.NextBossSeconds = long.Parse(val);
+                    else if (key == "DiscoveredShrines")
+                    {
+                        string cleanVal = val.Replace("[", "").Replace("]", "").Replace("\"", "").Trim();
+                        if (!string.IsNullOrEmpty(cleanVal))
+                        {
+                            current.DiscoveredShrines = new List<string>(cleanVal.Split(','));
+                        }
+                    }
                 }
-                Console.WriteLine($"[EpicAlignment] JSON-База успешно загружена. Полубогов: {_database.Count}");
             }
             catch { }
         }
@@ -228,7 +217,8 @@ namespace Server.Custom.EpicAlignment
             EpicProfile prof = GetProfile(e.Mobile);
             e.Mobile.SendMessage(0x35, $"=== Ваш Эпический Status ===");
             e.Mobile.SendMessage(0x59, $"Ранг Полубога: {(rank == EpicRank.None ? "Отсутствует" : rank.ToString())}");
-            if (rank != EpicRank.None) { e.Mobile.SendMessage(0x58, $"Жизней: {prof.Lives}/10, Класс: {prof.DetectedClass}"); }
+            if (prof != null) { e.Mobile.SendMessage(0x58, $"Пройдено Алтарей Паломничества: {prof.DiscoveredShrines.Count} из 8"); }
+            if (rank != EpicRank.None && prof != null) { e.Mobile.SendMessage(0x58, $"Жизней: {prof.Lives}/10, Класс: {prof.DetectedClass}"); }
         }
 
         private static void BecomeEpic_OnCommand(CommandEventArgs e)
@@ -236,7 +226,6 @@ namespace Server.Custom.EpicAlignment
             PlayerMobile pm = e.Mobile as PlayerMobile;
             if (pm == null || pm.AccessLevel < AccessLevel.Administrator) return;
             if (e.Length < 1) { pm.SendMessage(0x22, "Использование: [BecomeEpic [light/dark/none]"); return; }
-
             string mode = e.GetString(0).ToLower().Trim();
             if (mode == "none" || mode == "clear") { SetRank(pm, EpicRank.None); pm.SendMessage(0x22, "[Admin] Статус удален."); return; }
             bool isLight = (mode == "light" || mode == "avatar" || mode == "свет");
@@ -244,6 +233,20 @@ namespace Server.Custom.EpicAlignment
             if (!isLight && !isDark) { pm.SendMessage(0x22, "Используй: light или dark"); return; }
             EpicRank targetRank = isLight ? EpicRank.Avatar : EpicRank.HandOfMondain;
             SetRank(pm, targetRank);
+            // ИСПРАВЛЕНО: Построчное, классическое наполнение списка без использования inline-инициализаторов! 👑🎉
+            EpicProfile prof = GetProfile(pm);
+            if (prof != null)
+            {
+                prof.DiscoveredShrines = new List<string>();
+                prof.DiscoveredShrines.Add("compassion");
+                prof.DiscoveredShrines.Add("honesty");
+                prof.DiscoveredShrines.Add("honor");
+                prof.DiscoveredShrines.Add("humility");
+                prof.DiscoveredShrines.Add("justice");
+                prof.DiscoveredShrines.Add("sacrifice");
+                prof.DiscoveredShrines.Add("spirituality");
+                prof.DiscoveredShrines.Add("valor");
+            }
             pm.Skills[SkillName.Magery].Cap = EpicRewardSystem.EpicSkillCap; pm.Skills[SkillName.Magery].Base = EpicRewardSystem.EpicSkillCap;
             pm.Skills[SkillName.EvalInt].Cap = EpicRewardSystem.EpicSkillCap; pm.Skills[SkillName.EvalInt].Base = EpicRewardSystem.EpicSkillCap;
             pm.Skills[SkillName.Swords].Cap = EpicRewardSystem.EpicSkillCap; pm.Skills[SkillName.Swords].Base = EpicRewardSystem.EpicSkillCap;
