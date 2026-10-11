@@ -7,7 +7,7 @@ using Server.Mobiles;
 using Server.Items;
 using Server.Regions;
 using Server.Custom.EpicAlignment;
-using Server.Custom.CityDevelopment; // Подключаем экономику городов
+using Server.Custom.CityDevelopment;
 
 namespace Server.Custom.SmartNPCs
 {
@@ -58,17 +58,17 @@ namespace Server.Custom.SmartNPCs
             "Да хранят тебя боги! Доброго пути."
         };
 
-        // Сопоставление городов и нативных мантр для ИИ торговцев
+        // ИСПРАВЛЕНО: Все мантры переведены строго на английскую латиницу для нативной активации шрайнов! 🌌📜🎉
         private static readonly Dictionary<Server.Engines.CityLoyalty.City, Tuple<string, string>> VirtueMap = new Dictionary<Server.Engines.CityLoyalty.City, Tuple<string, string>>()
         {
-            { Server.Engines.CityLoyalty.City.Britain,     new Tuple<string, string>("Compassion (Сострадание)", "МУ") },
-            { Server.Engines.CityLoyalty.City.Yew,         new Tuple<string, string>("Justice (Справедливость)", "БЕХ") },
-            { Server.Engines.CityLoyalty.City.Minoc,       new Tuple<string, string>("Sacrifice (Жертвенность)", "КАХ") },
-            { Server.Engines.CityLoyalty.City.Moonglow,    new Tuple<string, string>("Honesty (Честность)", "АХМ") },
-            { Server.Engines.CityLoyalty.City.Trinsic,     new Tuple<string, string>("Honor (Честь)", "СУММ") },
-            { Server.Engines.CityLoyalty.City.SkaraBrae,   new Tuple<string, string>("Spirituality (Духовность)", "ОМ") },
-            { Server.Engines.CityLoyalty.City.Jhelom,      new Tuple<string, string>("Valor (Доблесть)", "РА") },
-            { Server.Engines.CityLoyalty.City.NewMagincia, new Tuple<string, string>("Humility (Смирение)", "ЛУМ") }
+            { Server.Engines.CityLoyalty.City.Britain,     new Tuple<string, string>("Compassion (Сострадание)", "MU") },
+            { Server.Engines.CityLoyalty.City.Yew,         new Tuple<string, string>("Justice (Справедливость)", "BEH") },
+            { Server.Engines.CityLoyalty.City.Minoc,       new Tuple<string, string>("Sacrifice (Жертвенность)", "KAH") },
+            { Server.Engines.CityLoyalty.City.Moonglow,    new Tuple<string, string>("Honesty (Честность)", "AHM") },
+            { Server.Engines.CityLoyalty.City.Trinsic,     new Tuple<string, string>("Honor (Честь)", "SUMM") },
+            { Server.Engines.CityLoyalty.City.SkaraBrae,   new Tuple<string, string>("Spirituality (Духовность)", "OM") },
+            { Server.Engines.CityLoyalty.City.Jhelom,      new Tuple<string, string>("Valor (Доблесть)", "RA") },
+            { Server.Engines.CityLoyalty.City.NewMagincia, new Tuple<string, string>("Humility (Смирение)", "LUM") }
         };
 
         private static readonly Dictionary<string, Point3D> m_StaticCities = new Dictionary<string, Point3D>(StringComparer.OrdinalIgnoreCase)
@@ -192,13 +192,104 @@ namespace Server.Custom.SmartNPCs
             }
 
             // =========================================================================
-            // 🔥 СИНХРОНИЗИРОВАНО: ИНТЕРАКТИВНЫЕ МАНТРЫ ДОБРОДЕТЕЛЕЙ ОТ ЖИВЫХ NPC 🏛️🗣️🌟
+            // 🔥 ТВОЁ ТЗ: КОМАНДА «НАНЯТЬ» (ДЛЯ НАШЕГО МОДА НАЁМНИКОВ) 🍻⚔️
             // =========================================================================
+            else if (text.Contains("нанять") || text.Contains("hire") || text.Contains("наемник"))
+            {
+                if (npc is MercenaryCaptain mercVendor)
+                {
+                    npc.Direction = npc.GetDirectionTo(player);
+                    mercVendor.VendorBuy(player);
+                    return true;
+                }
+                else
+                {
+                    reply = "Я честный горожанин, путник, а не наёмный убийца. Ступай в таверну к Капитану Наёмников, он продаст тебе военные контракты.";
+                }
+            }
+
+            else if (text.Contains("работа") || text.Contains("квест") || text.Contains("quest") || text.Contains("задание"))
+            {
+                // Нативно вызываем контекстное меню квеста или сопровождения (Escort), зашитое в NPC
+                if (npc is BaseEscortable escortNpc)
+                {
+                    npc.Direction = npc.GetDirectionTo(player);
+                    escortNpc.OnDoubleClick(player);
+                    return true;
+                }
+                else
+                {
+                    reply = "Нынче у меня нет свободных поручений. Но ты всегда можешь помочь Торговому Министру с развозкой караванов!";
+                }
+            }
+            else if (text.Contains("профессия") || text.Contains("кто ты") || text.Contains("проф"))
+            {
+                string npcType = npc.GetType().Name.ToLower();
+                if (npc is BaseVendor vendorNpc)
+                {
+                    reply = $"Я — местный {vendorNpc.Name}. Занимаюсь торговлей и обучаю путников мастерству. Напиши мне слово 'тренировать', чтобы увидеть мои уроки!";
+                }
+                else
+                {
+                    reply = $"Моё имя {npc.Name}. Я простой житель этого прекрасного региона.";
+                }
+            }
+            else if (text.StartsWith("тренировать") || text.StartsWith("train"))
+            {
+                if (npc is BaseVendor trainer)
+                {
+                    npc.Direction = npc.GetDirectionTo(player);
+                    // Если игрок просто написал "тренировать" — выводим список доступных у NPC скиллов
+                    if (text.Equals("тренировать") || text.Equals("train"))
+                    {
+                        List<string> teachableSkills = new List<string>();
+
+                        foreach (SkillName skName in Enum.GetValues(typeof(SkillName)))
+                        {
+                           if (trainer.Skills[skName] != null && trainer.Skills[skName].Base > 0) 
+                                teachableSkills.Add(skName.ToString());
+                        }
+                        if (teachableSkills.Count > 0)
+                            reply = "Я могу обучить тебя следующим навыкам за золото: " + string.Join(", ", teachableSkills.ToArray()) + ". Напиши, например: 'тренировать " + teachableSkills[0] + "'";
+                        else
+                            reply = "Увы, мне нечему тебя научить, путник.";
+                    }
+                    else
+                    {
+                        // Игрок указал конкретный скилл, например "тренировать Swordsmanship"
+                        string skillToTrain = text.Replace("тренировать", "").Replace("train", "").Trim().ToLower();
+                        bool foundSkill = false;
+                        foreach (SkillName skName in Enum.GetValues(typeof(SkillName)))
+                        {
+                            if (skName.ToString().ToLower().Contains(skillToTrain) && trainer.Skills[skName] != null && trainer.Skills[skName].Base > 0)
+                            {
+                                foundSkill = true;
+                                 trainer.Teach(skName, player, 0, true);  // Запускаем нативную систему обучения ServUO
+                                break;
+                            }
+                        }
+                        if (!foundSkill)
+                            reply = "Я не обучаю такому навыку. Напиши просто 'тренировать', чтобы увидеть список моих умений.";
+                        return true;
+                    }
+                }
+            }
+            else if (text.Contains("слухи") || text.Contains("новости") || text.Contains("сплетни"))
+            {
+                string[] staticRumors = new string[]
+                {
+"Говорят, Алтарь Justice (Справедливости) сокрыт на самом севере Felucca, среди ледяных скал. Путь туда охраняют грозные ледяные твари!",
+"Старейшины шепчут, что Алтарь Honor (Чести) находится на изолированном острове. Без верных наёмников туда соваться — верная смерть.",
+"Охотники поговаривают, что в глубинах лесов Yew спрятан древний сундук с сокровищами пиратов... Но точные координаты знают лишь звёзды.",
+"В тавернах поговаривают, что если развивать караваны городов до 2 уровня, жители вспомнят утерянные английские мантры Добродетелей!",
+"Контрабандисты шепчутся, что Алтарь Доблести (Valor) в Felucca позволяет принудительно вызывать Чемпионов, если ты истинный Рыцарь!"
+                };
+                reply = staticRumors[Utility.Random(staticRumors.Length)];
+            }
             else if (text.Contains("мантра") || text.Contains("mantra"))
             {
                 Server.Engines.CityLoyalty.City currentCity = Server.Engines.CityLoyalty.City.Britain;
                 bool insideValidCity = false;
-
                 foreach (Server.Engines.CityLoyalty.City c in Enum.GetValues(typeof(Server.Engines.CityLoyalty.City)))
                 {
                     string checkName = (c == Server.Engines.CityLoyalty.City.NewMagincia) ? "magincia" : c.ToString().ToLower();
@@ -222,76 +313,12 @@ namespace Server.Custom.SmartNPCs
                     {
                         if (cityLevel >= 2)
                         {
-                            reply = $"Слушай внимательно, путник! Наш регион процветает, и мы помним корни. Древнее слово силы для Алтаря {virtueInfo.Item1} — это \"{virtueInfo.Item2}\". Произнеси его прямо у святыни!";
+                            reply = $"Слушай внимательно, путник! Наш регион процветает, и мы помним корни. Древнее слово силы для Алтаря {virtueInfo.Item1} — это { virtueInfo.Item2}. Произнеси его прямо у святыни!";
                         }
                         else
                         {
-                            // ИСПРАВЛЕНО: Полностью зачищена опечатка со знаком двоеточия во избежание бага CS1002! 🛠️🎉
                             reply = $"Я не могу открыть тебе слово силы... Наш город {currentCity} сейчас в упадке. Вози караваны Торговому Министру, подними благосостояние города до 2 уровня, и тогда мы вспомним мантру {virtueInfo.Item1}!";
                         }
-                    }
-                }
-            }
-            // =========================================================================
-            // ДИНАМИЧЕСКИЕ СЛУХИ И СПЛЕТНИ О ПОЛУБОГАХ (ОНЛАЙН РАДАР) 📡🗣️
-            // =========================================================================
-            else if (text.Contains("слухи") || text.Contains("новости") || text.Contains("аватар") || text.Contains("зло") || text.Contains("мондейн") || text.Contains("полубог"))
-            {
-                List<Mobile> onlineAvatars = new List<Mobile>();
-                List<Mobile> onlineEvils = new List<Mobile>();
-
-                foreach (Server.Network.NetState ns in Server.Network.NetState.Instances)
-                {
-                    Mobile m = ns.Mobile;
-                    if (m == null || !m.Alive || m.AccessLevel > AccessLevel.Player) continue;
-                    EpicRank rank = EpicAlignmentSystem.GetRank(m);
-                    if (rank == EpicRank.Avatar) onlineAvatars.Add(m);
-                    else if (rank == EpicRank.HandOfMondain) onlineEvils.Add(m);
-                }
-                if (onlineAvatars.Count == 0 && onlineEvils.Count == 0)
-                {
-                    reply = "О, нынче на дорогах затишье. Высшие Полубоги Сосарии скрылись in своих чертогах. Ни Аватаров, ни прихвостней Мондейна давно не видать.";
-                }
-                else if (text.Contains("аватар") || (onlineAvatars.Count > 0 && Utility.RandomBool()))
-                {
-                    if (onlineAvatars.Count > 0)
-                    {
-                        Mobile av = onlineAvatars[Utility.Random(onlineAvatars.Count)];
-                        EpicProfile prof = EpicAlignmentSystem.GetProfile(av);
-                        string classTitle = prof != null ? prof.DetectedClass : "Великий Аватар";
-                        string regName = (av.Region != null && !string.IsNullOrEmpty(av.Region.Name)) ? av.Region.Name : "Диких землях";
-                        string[] avatarRumors = new string[]
-                        {
-$"Говорят, истинный Аватар Света по имени {av.Name} сейчас в мире! Его видели как {classTitle} в районе {regName} ({av.Map.Name}). Люди молятся на него!",
-$"Шепчутся, что {av.Name} — живое воплощение Добродетелей — сейчас проезжал через {regName}. Сияние его ауры озарило небосвод!",
-$"В тавернах только и разговоров, что {av.Name} ведет за собой силы Света где-то в {regName}. Охотники, у вас есть шанс помочь ему!"
-                        };
-                        reply = avatarRumors[Utility.Random(avatarRumors.Length)];
-                    }
-                    else
-                    {
-                        reply = "Силы Света сейчас безмолвствуют. На Алтаре Предназначения в Despise давно никто не проходил судейство.";
-                    }
-                }
-                else
-                {
-                    if (onlineEvils.Count > 0)
-                    {
-                        Mobile ev = onlineEvils[Utility.Random(onlineEvils.Count)];
-                        EpicProfile prof = EpicAlignmentSystem.GetProfile(ev);
-                        string classTitle = prof != null ? prof.DetectedClass : "Вестник Тьмы";
-                        string regName = (ev.Region != null && !string.IsNullOrEmpty(ev.Region.Name)) ? ev.Region.Name : "Диких землях";
-                        string[] evilRumors = new string[]
-                        {
-$"Спаси нас боги... Правая Рука Мондейна — нечестивый {ev.Name} — восстал из бездны! Его тень как {classTitle} пала на земли {regName} ({ev.Map.Name})!",
-$"Стража на взводе! Проклятый {ev.Name} собирает армию Тьмы в районе {regName}. За его голову назначена награда в 10,000 монет, соберите рейд!",
-$"Контрабандисты поговаривают, что {ev.Name} распространяет скверну некромантии прямо сейчас в {regName}. Бегите оттуда, если вам дорога жизнь!"
-                        };
-                        reply = evilRumors[Utility.Random(evilRumors.Length)];
-                    }
-                    else
-                    {
-                        reply = "Слуги Мондейна притихли. Темный Алтарь в глубинах Doom пустует, Сосария может спать спокойно... пока что.";
                     }
                 }
             }
