@@ -20,6 +20,13 @@ namespace Server.Custom.MercenarySystem
         [CommandProperty(AccessLevel.GameMaster)]
         public int MercExp { get { return m_Progression.Experience; } set { m_Progression.Experience = value; m_Progression.CheckLevelUp(this, m_Class); } }
 
+        public static void Initialize()
+        {
+            EventSink.ServerStarted += () => {
+                Timer.DelayCall(TimeSpan.FromSeconds(6.0), new TimerCallback(MercenaryProgression.AutoSpawnCaptains));
+            };
+        }
+
         public BaseMercenary(MercenaryClass mClass) : base(AIType.AI_Melee, FightMode.Closest, 10, 1, 0.2, 0.4)
         {
             m_Class = mClass;
