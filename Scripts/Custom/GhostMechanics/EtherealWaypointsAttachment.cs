@@ -34,6 +34,9 @@ namespace Server.Custom.GhostMechanics
             }
         }
 
+        public EtherealWaypointsAttachment(ASerial serial) : base(serial)
+        {
+        }
         // Сериализация данных для сохранения при [save] сервера
         public override void Serialize(GenericWriter writer)
         {

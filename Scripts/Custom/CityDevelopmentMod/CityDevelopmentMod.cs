@@ -69,14 +69,19 @@ namespace Server.Custom.CityDevelopment
             {
                 if (e.Item is Server.Engines.CityLoyalty.TradeOrderCrate crate && crate.Owner != null && crate.Entry != null)
                 {
-                    if (Server.Engines.CityLoyalty.CityTradeSystem.HasTrade(crate.Owner))
-                    {
-                        Server.Engines.CityLoyalty.City originCity = crate.Entry.Origin;
-                        Map currentMap = crate.Map ?? crate.Owner.Map;
+                    Mobile owner = crate.Owner;
+                    Server.Engines.CityLoyalty.City originCity = crate.Entry.Origin;
+                    Map currentMap = crate.Map ?? owner.Map;
 
-                        SetCityCooldown(crate.Owner, originCity, currentMap, TimeSpan.FromMinutes(20.0));
-                        crate.Owner.SendMessage(0x22, $"[Контракт] Вы потеряли или отменили груз. Торговая гильдия города {originCity} ({currentMap}) наложила на вас штраф на 20 минут!");
-                    }
+                    // Откладываем проверку и выдачу штрафа на 0.5 секунды, чтобы ядро ServUO успело завершить свой цикл!
+                    Timer.DelayCall(TimeSpan.FromSeconds(0.5), () =>
+                    {
+                        if (owner != null && !owner.Deleted)
+                        {
+                            SetCityCooldown(owner, originCity, currentMap, TimeSpan.FromMinutes(20.0));
+                            owner.SendMessage(0x22, $"[Контракт] Вы потеряли или отменили груз. Торговая гильдия города {originCity} ({currentMap}) наложила на вас штраф на 20 минут!");
+                        }
+                    });
                 }
             };
         }
