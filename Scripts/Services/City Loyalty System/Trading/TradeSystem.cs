@@ -256,12 +256,21 @@ namespace Server.Engines.CityLoyalty
             if (from == null)
                 from = crate.Owner;
 
-            if (from != null)
+            if (from != null && crate.Items != null && crate.Items.Count > 0)
             {
-                crate.Items.ForEach(i =>
+                // Заменяем капризный LINQ ForEach на классический обратный цикл.
+                // При выгрузке вещей индексы коллекции будут сдвигаться безопасно для процессора!
+                for (int i = crate.Items.Count - 1; i >= 0; i--)
                 {
-                    from.Backpack.DropItem(i);
-                });
+                    if (i < crate.Items.Count && crate.Items[i] != null)
+                    {
+                        Item itemToDrop = crate.Items[i];
+                        if (from.Backpack != null)
+                            from.Backpack.DropItem(itemToDrop);
+                        else
+                            itemToDrop.MoveToWorld(from.Location, from.Map); // Защита, если рюкзак пропал
+                    }
+                }
 
                 CityTradeEntry entry = CityLoyaltySystem.CityTrading.GetPlayerEntry<CityTradeEntry>(from as PlayerMobile, true);
 

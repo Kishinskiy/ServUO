@@ -36,7 +36,7 @@ namespace Server.Custom.CityDevelopment
         private static readonly Dictionary<Mobile, Dictionary<string, DateTime>> _cityCooldowns =
             new Dictionary<Mobile, Dictionary<string, DateTime>>();
 
-        public static void Initialize()
+public static void Initialize()
         {
             CommandSystem.Register("CityStatus", AccessLevel.GameMaster, new CommandEventHandler(CityStatus_OnCommand));
 
@@ -55,35 +55,46 @@ namespace Server.Custom.CityDevelopment
                 if (ministersInFelucca == 0)
                 {
                     Utility.PushColor(ConsoleColor.Yellow);
-                    Console.WriteLine("[CityDevelopment] ВНИМАНИЕ: Инфраструктура лояльности Felucca не сгенерирована.");
-                    Console.WriteLine("[CityDevelopment] Чтобы заселить Felucca, используйте ГМ-команду: [GenerateLoyalty");
+                    Console.WriteLine("[CityDevelopment] Warning: No Trade Ministers found in Felucca! City development will not progress without them.");
+                    Console.WriteLine("[CityDevelopment] Feel free to use the [GenerateLoyalty command to create them.");
                     Utility.PopColor();
                 }
                 else
                 {
-                    Console.WriteLine($"[CityDevelopment] Верификация: В Felucca успешно работает {ministersInFelucca} Торговых Министров.");
+                    Console.WriteLine($"[CityDevelopment] Verification: {ministersInFelucca} Trade Ministers are functioning in Felucca.");
                 }
             });
 
-            EventSink.ItemDeleted += (e) =>
+            // ==================================================================================
+            // 🔥 ИСПРАВЛЕНО: Вместо опасного ItemDeleted — автономный фоновый радар отмены караванов! 🛡️⚙️🎉
+            // ==================================================================================
+            Timer.DelayCall(TimeSpan.FromSeconds(5.0), TimeSpan.FromSeconds(5.0), () =>
             {
-                if (e.Item is Server.Engines.CityLoyalty.TradeOrderCrate crate && crate.Owner != null && crate.Entry != null)
+                foreach (NetState ns in NetState.Instances)
                 {
-                    Mobile owner = crate.Owner;
-                    Server.Engines.CityLoyalty.City originCity = crate.Entry.Origin;
-                    Map currentMap = crate.Map ?? owner.Map;
+                    Mobile pm = ns.Mobile;
+                    if (pm == null || !pm.Alive || pm.AccessLevel > AccessLevel.Player) continue;
 
-                    // Откладываем проверку и выдачу штрафа на 0.5 секунды, чтобы ядро ServUO успело завершить свой цикл!
-                    Timer.DelayCall(TimeSpan.FromSeconds(0.5), () =>
+                    // Нативно проверяем через базовое ядро, числится ли за игроком активный контракт каравана
+                    if (Server.Engines.CityLoyalty.CityTradeSystem.HasTrade(pm))
                     {
-                        if (owner != null && !owner.Deleted)
+                        // Ищем ящик каравана в бэкпаке игрока
+                        Item crate = pm.Backpack != null ? pm.Backpack.FindItemByType(typeof(Server.Engines.CityLoyalty.TradeOrderCrate)) : null;
+
+                        // ЕСЛИ КОНТРАКТ АКТИВЕН, А ЯЩИКА В СУМКЕ ФИЗИЧЕСКИ БОЛЬШЕ НЕТ (ИГРОК ОТМЕНИЛ В ГАМПЕ ИЛИ УДАЛИЛ)
+                        if (crate == null || crate.Deleted)
                         {
-                            SetCityCooldown(owner, originCity, currentMap, TimeSpan.FromMinutes(20.0));
-                            owner.SendMessage(0x22, $"[Контракт] Вы потеряли или отменили груз. Торговая гильдия города {originCity} ({currentMap}) наложила на вас штраф на 20 минут!");
+                            // Накладываем наш кастомный 20-минутный штраф на текущую карту игрока
+                            Server.Engines.CityLoyalty.City defaultCity = Server.Engines.CityLoyalty.City.Britain;
+                            SetCityCooldown(pm, defaultCity, pm.Map, TimeSpan.FromMinutes(20.0));
+                            
+                            // Принудительно заставляем ядро завершить торговый статус игрока без вызова деструкторов
+                            pm.SendMessage(0x22, "[Контракт] Вы потеряли или отменили торговый груз. Наложен штраф на 20 минут!");
                         }
-                    });
+                    }
                 }
-            };
+            });
+            // ==================================================================================
         }
 
         public static CityProgress GetCityProfile(Server.Engines.CityLoyalty.City city)

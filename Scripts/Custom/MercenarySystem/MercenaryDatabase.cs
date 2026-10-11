@@ -87,7 +87,7 @@ namespace Server.Custom.MercenarySystem
                         spawnLoc = minister.Location;
 
                     captain.MoveToWorld(spawnLoc, minister.Map);
-                    Console.WriteLine($"[MercenarySystem] Спавн: Капитан наёмников заселён в город {minister.Region?.Name} ({minister.Map.Name})");
+                    Console.WriteLine($"[MercenarySystem] Spawn: Mercenary Captain spawned in city {minister.Region?.Name} ({minister.Map.Name})");
                 }
             }
         }
