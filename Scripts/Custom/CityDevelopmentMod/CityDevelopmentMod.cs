@@ -64,37 +64,6 @@ public static void Initialize()
                     Console.WriteLine($"[CityDevelopment] Verification: {ministersInFelucca} Trade Ministers are functioning in Felucca.");
                 }
             });
-
-            // ==================================================================================
-            // 🔥 ИСПРАВЛЕНО: Вместо опасного ItemDeleted — автономный фоновый радар отмены караванов! 🛡️⚙️🎉
-            // ==================================================================================
-            Timer.DelayCall(TimeSpan.FromSeconds(5.0), TimeSpan.FromSeconds(5.0), () =>
-            {
-                foreach (NetState ns in NetState.Instances)
-                {
-                    Mobile pm = ns.Mobile;
-                    if (pm == null || !pm.Alive || pm.AccessLevel > AccessLevel.Player) continue;
-
-                    // Нативно проверяем через базовое ядро, числится ли за игроком активный контракт каравана
-                    if (Server.Engines.CityLoyalty.CityTradeSystem.HasTrade(pm))
-                    {
-                        // Ищем ящик каравана в бэкпаке игрока
-                        Item crate = pm.Backpack != null ? pm.Backpack.FindItemByType(typeof(Server.Engines.CityLoyalty.TradeOrderCrate)) : null;
-
-                        // ЕСЛИ КОНТРАКТ АКТИВЕН, А ЯЩИКА В СУМКЕ ФИЗИЧЕСКИ БОЛЬШЕ НЕТ (ИГРОК ОТМЕНИЛ В ГАМПЕ ИЛИ УДАЛИЛ)
-                        if (crate == null || crate.Deleted)
-                        {
-                            // Накладываем наш кастомный 20-минутный штраф на текущую карту игрока
-                            Server.Engines.CityLoyalty.City defaultCity = Server.Engines.CityLoyalty.City.Britain;
-                            SetCityCooldown(pm, defaultCity, pm.Map, TimeSpan.FromMinutes(20.0));
-                            
-                            // Принудительно заставляем ядро завершить торговый статус игрока без вызова деструкторов
-                            pm.SendMessage(0x22, "[Контракт] Вы потеряли или отменили торговый груз. Наложен штраф на 20 минут!");
-                        }
-                    }
-                }
-            });
-            // ==================================================================================
         }
 
         public static CityProgress GetCityProfile(Server.Engines.CityLoyalty.City city)
