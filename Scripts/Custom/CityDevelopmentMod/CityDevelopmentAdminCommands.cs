@@ -68,7 +68,8 @@ namespace Server.Custom.CityDevelopment
             }
 
             string townName = coreCity.ToString();
-            CityProgress progress = CityDevelopmentMod.GetCityProfile(coreCity);
+            // 🔥 ИСПРАВЛЕНО: Передаем текущую карту (from.Map) согласно обновленной сигнатуре базы данных! 🎉⚙️🛠️
+            CityProgress progress = CityDevelopmentMod.GetCityProfile(coreCity, from.Map);
 
             if (progress != null)
             {
@@ -118,7 +119,8 @@ namespace Server.Custom.CityDevelopment
 
             double pointsToAdd = e.GetDouble(0);
             string townName = coreCity.ToString();
-            CityProgress progress = CityDevelopmentMod.GetCityProfile(coreCity);
+            // 🔥 ИСПРАВЛЕНО: Передаем карту игрока from.Map в метод профиля города! ⚙️
+            CityProgress progress = CityDevelopmentMod.GetCityProfile(coreCity, from.Map);
 
             if (progress != null)
             {
@@ -127,10 +129,9 @@ namespace Server.Custom.CityDevelopment
 
                 from.SendMessage(88, $"Вы изменили очки благосостояния {townName} на {pointsToAdd:F2}.");
 
-                int startLevel = progress.Level; // Запоминаем уровень до начала апа
+                int startLevel = progress.Level; 
                 bool leveledUp = false;
 
-                // ЦИКЛ: Только считает уровни и распределяет очки, ничего не спавнит внутри!
                 while (progress.CurrentSupplies >= progress.RequiredSupplies && progress.Level < 5)
                 {
                     progress.CurrentSupplies -= progress.RequiredSupplies;
@@ -139,7 +140,6 @@ namespace Server.Custom.CityDevelopment
                     leveledUp = true;
                 }
 
-                // ФИНАЛЬНЫЕ ТРИГГЕРЫ: Срабатывают ОДИН раз после завершения всех расчетов
                 if (leveledUp)
                 {
                     Town town = Town.Towns.Find(t => t.ToString().Contains(townName));
@@ -156,7 +156,6 @@ namespace Server.Custom.CityDevelopment
                         }
                         town.Tax = baseTax;
 
-                        // Вызываем эффекты и купца один раз для ИТОГОВОГО уровня города
                         CityDecorationMod.DecorateTown(town, progress.Level, from.Map);
                         CityLegendaryMerchantMod.CheckMerchantSpawn(town, progress.Level);
                     }
@@ -164,11 +163,9 @@ namespace Server.Custom.CityDevelopment
                     CommandHandlers.BroadcastMessage(AccessLevel.Player, 0x35, $"[Экономика] Город {townName} успешно развился с {startLevel} до {progress.Level} уровня благодаря ГМ-поддержке!");
                 }
 
-                // Выводим финальный остаток очков
                 from.SendMessage(0x59, $"Текущий прогресс {townName}: {progress.CurrentSupplies:F2} / {progress.RequiredSupplies:F2}");
             }
         }
-
 
         private static void ResetCity_OnCommand(CommandEventArgs e)
         {
@@ -183,7 +180,8 @@ namespace Server.Custom.CityDevelopment
             }
 
             string townName = coreCity.ToString();
-            CityProgress progress = CityDevelopmentMod.GetCityProfile(coreCity);
+            // 🔥 ИСПРАВЛЕНО: Синхронизирована ГМ-команда сброса города!
+            CityProgress progress = CityDevelopmentMod.GetCityProfile(coreCity, from.Map);
 
             if (progress != null)
             {
