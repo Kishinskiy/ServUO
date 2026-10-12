@@ -108,33 +108,33 @@ namespace Server.Custom.SoulEssences
         }
 
         // 2. ЛОГИКА PvE-ФАРМА (ДРОП ИЗ МОБОВ КЛАДБИЩ И БОССОВ ФЕЛУККИ) 💀⚔️
-        private static void OnCreatureDeath(CreatureDeathEventArgs e)
+         private static void OnCreatureDeath(CreatureDeathEventArgs e)
         {
             BaseCreature bc = e.Creature as BaseCreature;
-            if (bc == null || bc.Map != Map.Felucca) return; // Строго только мир Felucca!
+            if (bc == null || bc.Map != Map.Felucca || bc.Backpack == null) return; // Строго только мир Felucca и живой рюкзак!
 
             Region reg = bc.Region;
             bool isCemetery = reg != null && reg.Name != null && reg.Name.ToLower().Contains("cemetery");
             bool isDespise = reg != null && reg.Name != null && reg.Name.ToLower().Contains("despise");
 
-            // Проверяем, является ли убитый моб Боссом-Чемпионом (у них нативно IsChampion или стоит высокий HitsMax)
+            // Проверяем, является ли убитый моб Боссом-Чемпионом
             bool isChampion = bc.Title != null && (bc.Title.ToLower().Contains("champion") || bc.Title.ToLower().Contains("piper")) || bc.HitsMax > 5000;
 
-            // Сценарий А: Дроп с Чемпионов (Барракун и т.д.) — 100% шанс, от 1 до 3 штук в труп! 🏆
+            // Сценарий А: Дроп с Чемпионов (Барракун и т.д.) — 100% шанс, от 1 до 3 штук падает в рюкзак, который станет трупом!
             if (isChampion && Utility.RandomDouble() < BossDropChance)
             {
                 int count = Utility.RandomMinMax(1, 3);
                 for (int i = 0; i < count; i++)
                 {
-                    e.Container.DropItem(new SoulEssence());
+                    bc.Backpack.DropItem(new SoulEssence());
                 }
                 return;
             }
 
-            // Сценарий Б: Дроп из обычных кладбищенских или данжевых мобов Felucca (5% шанс) 🐀💀
+            // Сценарий Б: Дроп из обычных кладбищенских или данжевых мобов Felucca (5% шанс)
             if ((isCemetery || isDespise) && Utility.RandomDouble() < CemeteryDropChance)
             {
-                e.Container.DropItem(new SoulEssence());
+                bc.Backpack.DropItem(new SoulEssence());
             }
         }
     }
