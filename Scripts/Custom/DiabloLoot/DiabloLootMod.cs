@@ -54,6 +54,9 @@ namespace Server.Custom.DiabloLoot
                         maxPenalty = 55; // Смертоносные штрафы, требующие элитных магов!
                     }
 
+                    double balanceMultiplier = Server.Custom.EpicBalance.EpicWorldBalanceMod.GetCurseChanceMultiplier();
+                    curseChance = curseChance * balanceMultiplier;
+
                     // Бросаем кубик на появление проклятия
                     if (Utility.RandomDouble() < curseChance)
                     {

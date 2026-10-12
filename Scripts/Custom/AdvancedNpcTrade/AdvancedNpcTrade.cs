@@ -11,10 +11,10 @@ using Server.Network;
 using Server.Engines.Plants;
 using System.Linq;
 using Server.Custom.EpicAlignment;
+using Server.Custom.EpicBalance; // Подключаем калькулятор баланса сил
 
 namespace Server.Custom.AdvancedNpcTrade
 {
-
     public static class AdvancedNpcTradeMod
     {
         public static readonly int LoyaltyChance = 5;
@@ -42,19 +42,16 @@ namespace Server.Custom.AdvancedNpcTrade
             double points = info.Purchases;
 
             double karmaBonus = 0.0;
-            // ИСПРАВЛЕНО: Записываем значения строго в karmaBonus, НЕ в points!
             if (buyer.Karma >= 10000) karmaBonus = 15.0;
             else if (buyer.Karma >= 5000) karmaBonus = 5.0;
             else if (buyer.Karma <= -10000) karmaBonus = -25.0;
             else if (buyer.Karma <= -5000) karmaBonus = -10.0;
 
-            // ВНИМАНИЕ: Теперь здесь инвертируется РЕАЛЬНОЕ значение (например, -25.0 превратится в 25.0)
             if (IsEvilVendor(vendor))
             {
                 karmaBonus = -karmaBonus;
             }
 
-            // 3. И только теперь применяем этот бонус к общим очкам
             points += karmaBonus;
             points += GetCityBonusPoints(vendor, buyer);
 
@@ -76,7 +73,6 @@ namespace Server.Custom.AdvancedNpcTrade
             return 0.0;
         }
 
-        // ВНИМАНИЕ: Заменяем метод CalculateDiscountedPrice для поддержки темных городов
         public static int CalculateDiscountedPrice(BaseVendor vendor, Mobile buyer, int originalPrice)
         {
             if (vendor == null || buyer == null)
@@ -85,7 +81,6 @@ namespace Server.Custom.AdvancedNpcTrade
             double finalPrice = originalPrice;
             bool isEvilShop = IsEvilVendor(vendor);
 
-            // 1. ФРАКЦИОННЫЙ НАЛОГ ГОРОДА (Для Умбры и Дума ищем совпадение в кастомном имени региона)
             if (vendor.Region != null && !string.IsNullOrEmpty(vendor.Region.Name))
             {
                 Server.Factions.Town town = Server.Factions.Town.Towns.Find(t =>
@@ -97,38 +92,34 @@ namespace Server.Custom.AdvancedNpcTrade
                 }
             }
 
-            // 2. РАСЧЕТ МОДИФИКАТОРА КАРМЫ (Зеркальный)
             double karmaModifier = 0.0;
             if (buyer.Karma > 0)
             {
                 double effect = -(Math.Min(buyer.Karma, 15000) / 150000.0);
-                karmaModifier = isEvilShop ? Math.Abs(effect) * 1.5 : effect; // Праведникам в злом городе — наценка +15%
+                karmaModifier = isEvilShop ? Math.Abs(effect) * 1.5 : effect;
             }
             else if (buyer.Karma < 0)
             {
                 double effect = Math.Abs(Math.Max(buyer.Karma, -15000)) / 60000.0;
-                karmaModifier = isEvilShop ? -effect : effect; // Злодеям в злом городе — скидка, в добром — жесткая наценка
+                karmaModifier = isEvilShop ? -effect : effect;
             }
             finalPrice *= (1.0 + karmaModifier);
 
-            // 3. ВЛИЯНИЕ ГОРОДСКОЙ РЕПУТАЦИИ (Светлые города через ядро, Темные — рассчитываем зеркально)
             double loyaltyModifier = 0.0;
             bool cityModifierApplied = false;
 
             if (vendor.Region != null && !string.IsNullOrEmpty(vendor.Region.Name))
             {
-                // Если это злой регион (Umbra / Doom)
                 if (isEvilShop)
                 {
-                    // Для злых городов репутация высчитывается из баланса Кармы и совершенных преступлений персонажа
                     if (buyer.Kills >= 5 || buyer.Karma <= -10000)
-                        loyaltyModifier = -0.10; // Скидка авторитетам криминала -10%
+                        loyaltyModifier = -0.10;
                     else if (buyer.Karma >= 10000)
-                        loyaltyModifier = 0.25;  // Наценка паладинам и добрякам +25%
+                        loyaltyModifier = 0.25;
 
                     cityModifierApplied = true;
                 }
-                else // Если обычный светлый город
+                else
                 {
                     foreach (Server.Engines.CityLoyalty.City c in Enum.GetValues(typeof(Server.Engines.CityLoyalty.City)))
                     {
@@ -175,31 +166,24 @@ namespace Server.Custom.AdvancedNpcTrade
                 finalPrice *= (1.0 + loyaltyModifier);
             }
 
-            // 4. ПЕРСОНАЛЬНАЯ СКИДКА ОТ ЛОЯЛЬНОСТИ NPC 
             double totalPoints = GetTotalLoyaltyPoints(vendor, buyer);
             LoyaltyLevel finalLevel = LoyaltyTables.GetLevelFromPoints(totalPoints);
             double loyaltyDiscount = LoyaltyTables.Discount[finalLevel];
 
             finalPrice *= (1.0 - loyaltyDiscount);
 
-            // =========================================================================
-            // ВСТАВКА МОДА: УЛЬТИМАТИВНЫЕ ЭПИЧЕСКИЕ СКИДКИ СВЕРХ СИСТЕМЫ 👑
-            // =========================================================================
             EpicRank playerEpicRank = EpicAlignmentSystem.GetRank(buyer);
             if (playerEpicRank != EpicRank.None)
             {
                 if (playerEpicRank == EpicRank.HandOfMondain && isEvilShop)
                 {
-                    // Злые города боготворят Руку Мондейна. Даем скидку 50% ПОВЕРХ всех капов!
-                    finalPrice *= 0.50; 
+                    finalPrice *= 0.50;
                 }
                 else if (playerEpicRank == EpicRank.Avatar && !isEvilShop)
                 {
-                    // Добрые города преклоняются перед Аватаром. Скидка 50% ПОВЕРХ лимитов!
                     finalPrice *= 0.50;
                 }
             }
-            // =========================================================================
 
             int roundedPrice = (int)Math.Round(finalPrice);
             return roundedPrice < 1 ? 1 : roundedPrice;
@@ -207,8 +191,9 @@ namespace Server.Custom.AdvancedNpcTrade
 
         private static double GetDynamicLoyaltyChance(BaseVendor vendor, Mobile player)
         {
-            // 1. Рассчитываем базовый шанс на основе уровня города (от 0.05 до ~0.50)
             double baseChance = LoyaltyChance / 100.0;
+            Server.Engines.CityLoyalty.City coreCity = Server.Engines.CityLoyalty.City.Britain;
+            bool cityFound = false;
 
             if (vendor != null && vendor.Region != null && !string.IsNullOrEmpty(vendor.Region.Name))
             {
@@ -216,6 +201,8 @@ namespace Server.Custom.AdvancedNpcTrade
                 {
                     if (vendor.Region.Name.IndexOf(c.ToString(), StringComparison.OrdinalIgnoreCase) >= 0)
                     {
+                        coreCity = c;
+                        cityFound = true;
                         var cityProfile = Server.Custom.CityDevelopment.CityDevelopmentMod.GetCityProfile(c);
                         if (cityProfile != null)
                         {
@@ -227,40 +214,48 @@ namespace Server.Custom.AdvancedNpcTrade
                 }
             }
 
-            // 2. ВСТАВКА: Влияние удачи как множителя (Ванильный подход)
-            if (player != null && player.Luck > 0)
+            if (cityFound)
             {
-                // При 2200 удачи (ванильный кап) этот коэффициент будет равен 2.5
-                // То есть удача увеличит базовый шанс города на +250% (в 3.5 раза)
-                double luckMultiplier = 1.0 + (player.Luck / 880.0);
-                baseChance *= luckMultiplier;
+                double balanceModifier = EpicWorldBalanceMod.GetCityProgressMultiplier(coreCity);
+                baseChance *= balanceModifier;
             }
 
-            // 3. Жесткое ограничение (кап шанса). 
-            // Даже самый везучий игрок имеет 15% шанс "осечки", что сохраняет баланс экономики
+            if (player != null && player.Luck > 0)
+            {
+                double luckMultiplier = 1.0 + (player.Luck / 880.0); baseChance *= luckMultiplier;
+            }
             if (baseChance > 0.85)
             {
                 baseChance = 0.85;
             }
-
             return baseChance;
         }
-
         public static void OnSuccessfulPurchase(BaseVendor vendor, Mobile buyer, int amount)
         {
             if (vendor == null || buyer == null || amount <= 0) return;
-
             double calculatedPoints = 0.0;
             double targetChance = GetDynamicLoyaltyChance(vendor, buyer);
-
+            Server.Engines.CityLoyalty.City coreCity = Server.Engines.CityLoyalty.City.Britain;
+            if (vendor.Region != null && !string.IsNullOrEmpty(vendor.Region.Name))
+            {
+                foreach (Server.Engines.CityLoyalty.City c in Enum.GetValues(typeof(Server.Engines.CityLoyalty.City)))
+                {
+                    if (vendor.Region.Name.IndexOf(c.ToString(), StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        coreCity = c;
+                        break;
+                    }
+                }
+            }
+            double stepMultiplier = EpicWorldBalanceMod.GetCityProgressMultiplier(coreCity);
+            double pointStep = 0.01 * stepMultiplier;
             for (int i = 0; i < amount; i++)
             {
                 if (Utility.RandomDouble() < targetChance)
                 {
-                    calculatedPoints += 0.01;
+                    calculatedPoints += pointStep;
                 }
             }
-
             if (calculatedPoints > 0.0)
             {
                 LoyaltyManager.AddPurchase(vendor, buyer, calculatedPoints);
@@ -272,22 +267,32 @@ namespace Server.Custom.AdvancedNpcTrade
                 buyer.SendMessage(89, "Спасибо за покупку!");
             }
         }
-
         public static void OnSuccessfulSell(BaseVendor vendor, Mobile seller, int amount)
         {
             if (vendor == null || seller == null || amount <= 0) return;
-
             double calculatedPoints = 0.0;
             double targetChance = GetDynamicLoyaltyChance(vendor, seller);
-
+            Server.Engines.CityLoyalty.City coreCity = Server.Engines.CityLoyalty.City.Britain;
+            if (vendor.Region != null && !string.IsNullOrEmpty(vendor.Region.Name))
+            {
+                foreach (Server.Engines.CityLoyalty.City c in Enum.GetValues(typeof(Server.Engines.CityLoyalty.City)))
+                {
+                    if (vendor.Region.Name.IndexOf(c.ToString(), StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        coreCity = c;
+                        break;
+                    }
+                }
+            }
+            double stepMultiplier = EpicWorldBalanceMod.GetCityProgressMultiplier(coreCity);
+            double pointStep = 0.10 * stepMultiplier;
             for (int i = 0; i < amount; i++)
             {
                 if (Utility.RandomDouble() < targetChance)
                 {
-                    calculatedPoints += 0.10;
+                    calculatedPoints += pointStep;
                 }
             }
-
             if (calculatedPoints > 0.0)
             {
                 LoyaltyManager.AddPurchase(vendor, seller, calculatedPoints);
@@ -299,7 +304,6 @@ namespace Server.Custom.AdvancedNpcTrade
                 seller.SendMessage(0x59, "Вы успешно продали свои товары торговцу.");
             }
         }
-
         private static int CountProps(object attributesObject)
         {
             if (attributesObject == null) return 0;
@@ -319,19 +323,14 @@ namespace Server.Custom.AdvancedNpcTrade
             catch { }
             return count;
         }
-
-        // ВНИМАНИЕ: Заменяем метод GetLegendaryArtifacts для ЛОРНОГО разделения дропа
+        // 🔥 ИСПРАВЛЕНО: Возвращаемое значение приведено к List ядра ванильных вендоров! 👑⚙️
         public static List<IBuyItemInfo> GetLegendaryArtifacts(BaseVendor vendor, Mobile buyer)
         {
             List<IBuyItemInfo> artifacts = new List<IBuyItemInfo>();
             if (vendor == null || buyer == null) return artifacts;
-
             bool isEvilShop = IsEvilVendor(vendor);
-
-            // --- ЗЕРКАЛЬНЫЙ ПОЛИТИЧЕСКИЙ ЗАПРЕТ (ЛОКАУТ) ---
             if (!isEvilShop && vendor.Region != null && !string.IsNullOrEmpty(vendor.Region.Name))
             {
-                // Добрые города блокируют отступников и ПК
                 foreach (Server.Engines.CityLoyalty.City c in Enum.GetValues(typeof(Server.Engines.CityLoyalty.City)))
                 {
                     if (vendor.Region.Name.IndexOf(c.ToString(), StringComparison.OrdinalIgnoreCase) >= 0)
@@ -341,15 +340,15 @@ namespace Server.Custom.AdvancedNpcTrade
                         {
                             Server.Engines.CityLoyalty.LoyaltyRating rating = citySys.GetLoyaltyRating(buyer);
                             if (buyer.Kills >= 5 ||
-                                rating == Server.Engines.CityLoyalty.LoyaltyRating.Loathed ||
-                                rating == Server.Engines.CityLoyalty.LoyaltyRating.Despised ||
-                                rating == Server.Engines.CityLoyalty.LoyaltyRating.Reviled ||
-                                rating == Server.Engines.CityLoyalty.LoyaltyRating.Scorned ||
-                                rating == Server.Engines.CityLoyalty.LoyaltyRating.Shunned ||
-                                rating == Server.Engines.CityLoyalty.LoyaltyRating.Villified ||
-                                rating == Server.Engines.CityLoyalty.LoyaltyRating.Abhorred)
+                            rating == Server.Engines.CityLoyalty.LoyaltyRating.Loathed ||
+                            rating == Server.Engines.CityLoyalty.LoyaltyRating.Despised ||
+                            rating == Server.Engines.CityLoyalty.LoyaltyRating.Reviled ||
+                            rating == Server.Engines.CityLoyalty.LoyaltyRating.Scorned ||
+                            rating == Server.Engines.CityLoyalty.LoyaltyRating.Shunned ||
+                            rating == Server.Engines.CityLoyalty.LoyaltyRating.Villified ||
+                            rating == Server.Engines.CityLoyalty.LoyaltyRating.Abhorred)
                             {
-                                return artifacts; // Светлые торговцы не ведут дел с отбросами общества!
+                                return artifacts;
                             }
                         }
                         break;
@@ -358,49 +357,37 @@ namespace Server.Custom.AdvancedNpcTrade
             }
             else if (isEvilShop)
             {
-                // Злые торговцы (Umbra, Doom, Синдикаты воров) презирают Паладинов и святош!
                 if (buyer.Karma >= 9000 && buyer.Kills == 0)
                 {
-                    // Переодетый инквизитор не получит доступ к запретным знаниям
                     return artifacts;
                 }
             }
-
             double totalPoints = GetTotalLoyaltyPoints(vendor, buyer);
             LoyaltyLevel currentLevel = LoyaltyTables.GetLevelFromPoints(totalPoints);
-
             if (currentLevel != LoyaltyLevel.Legend)
             {
                 return artifacts;
             }
-
             string vendorClass = vendor.GetType().Name.ToLower();
             Item spawnedItem = null;
-
             int customProfession = -1;
             var profProp = vendor.GetType().GetProperty("ProfessionIndex");
             if (profProp != null) { customProfession = (int)profProp.GetValue(vendor, null); }
-
             int artifactsCount = Utility.RandomMinMax(1, 2);
-
             for (int i = 0; i < artifactsCount; i++)
             {
                 spawnedItem = null;
                 try
                 {
-                    // --- ЛОРНОЕ РАЗДЕЛЕНИЕ ГЕНЕРАЦИИ ПРЕДМЕТОВ ---
                     if (isEvilShop)
                     {
-                        // ТЕМНЫЙ ЛОР (Некромантия, Костяная броня, Проклятое оружие)
                         if (customProfession == 4 || vendorClass.Contains("armorer") || vendorClass.Contains("tailor"))
                         {
-                            // Злые кузнецы делают доспехи из костей мертвецов или темной кожи
                             if (Utility.RandomBool()) spawnedItem = new BoneChest();
                             else spawnedItem = new BoneLegs();
                         }
                         else if (vendorClass.Contains("necromancer") || vendorClass.Contains("witch") || vendorClass.Contains("mage"))
                         {
-                            // ИСПРАВЛЕНО: Безопасно достаем случайный свиток Некромантии из официального списка Loot ядра ServUO
                             if (Loot.NecromancyScrollTypes != null && Loot.NecromancyScrollTypes.Length > 0)
                             {
                                 Type scrollType = Loot.NecromancyScrollTypes[Utility.Random(Loot.NecromancyScrollTypes.Length)];
@@ -410,22 +397,19 @@ namespace Server.Custom.AdvancedNpcTrade
                                 }
                                 catch { spawnedItem = null; }
                             }
-                            // Резервный вариант, если массив по какой-то причине недоступен
                             if (spawnedItem == null)
                             {
-                                spawnedItem = new Server.Items.AnimateDeadScroll(); // Свиток "Анимация мертвых" как заглушка
+                                spawnedItem = new Server.Items.AnimateDeadScroll();
                             }
                         }
                         else
                         {
-                            // Проклятое оружие (Assassin Blades, Клейморы, Кинжалы)
                             spawnedItem = Loot.RandomWeapon();
-                            if (spawnedItem != null) spawnedItem.Hue = 1175; // Ядовитый/темный оттенок греха
+                            if (spawnedItem != null) spawnedItem.Hue = 1175;
                         }
                     }
                     else
                     {
-                        // СВЕТЛЫЙ ЛОР (Классический благородный ServUO арсенал)
                         if (customProfession == 0 || customProfession == 5 || vendorClass.Contains("blacksmith") || vendorClass.Contains("weaponsmith"))
                         {
                             spawnedItem = Loot.RandomWeapon();
@@ -445,7 +429,6 @@ namespace Server.Custom.AdvancedNpcTrade
                         }
                     }
                     if (spawnedItem == null) spawnedItem = new Candle();
-                    // Накачка свойствами
                     if (spawnedItem != null)
                     {
                         if (spawnedItem is BaseWeapon weapon)
@@ -465,7 +448,6 @@ namespace Server.Custom.AdvancedNpcTrade
                         {
                             itemRealName = (!string.IsNullOrEmpty(spawnedItem.ItemData.Name)) ? spawnedItem.ItemData.Name : spawnedItem.GetType().Name;
                         }
-                        // Лорный префикс к названию
                         string prefix = isEvilShop ? "[Запретный Артефакт]" : "[Легенда]";
                         string finalDisplayName = $"{prefix} {itemRealName}";
                         string diabloColoredName = Server.Custom.DiabloLoot.DiabloLootColors.FormatName(spawnedItem, finalDisplayName);
@@ -490,7 +472,6 @@ namespace Server.Custom.AdvancedNpcTrade
                 m.Target = new LoyaltyTarget();
             }
         }
-        // ВНИМАНИЕ: Корректируем метод LoyaltyTarget для вывода кастомных зеркальных титулов
         private class LoyaltyTarget : Target
         {
             public LoyaltyTarget() : base(12, false, TargetFlags.None) { }
@@ -524,58 +505,41 @@ namespace Server.Custom.AdvancedNpcTrade
                 }
             }
         }
-
         private static bool IsEvilVendor(BaseVendor vendor)
         {
             if (vendor == null) return false;
-
-            // 1. ПРОВЕРКА ПО ПРОФЕССИИ / КЛАССУ
-            // Проверяем имя класса самого скрипта торговца (в нижнем регистре)
             string vendorClass = vendor.GetType().Name.ToLower();
             if (vendorClass.Contains("necromancer") ||
-                vendorClass.Contains("witch") ||
-                vendorClass.Contains("undead") ||
-                vendorClass.Contains("thief")) // Можно добавить разбойников/воров
+            vendorClass.Contains("witch") ||
+            vendorClass.Contains("undead") ||
+            vendorClass.Contains("thief"))
             {
                 return true;
             }
-
-            // Дополнительно проверяем кастомное свойство ProfessionIndex, если оно завязано на темные ремесла
             var profProp = vendor.GetType().GetProperty("ProfessionIndex");
             if (profProp != null)
             {
                 try
                 {
                     int profession = (int)profProp.GetValue(vendor, null);
-                    // Например, если в вашей системе 13 — это Некромантия или Теневое дело
                     if (profession == 13)
                         return true;
                 }
                 catch { }
             }
-
-            // 2. ПРОВЕРКА ПО ГОРОДУ / РЕГИОНУ
-            // Проверяем, находится ли торговец в темном городе (например, Umbra)
             if (vendor.Region != null && !string.IsNullOrEmpty(vendor.Region.Name))
             {
                 if (vendor.Region.Name.IndexOf("Umbra", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    vendor.Region.Name.IndexOf("Doom", StringComparison.OrdinalIgnoreCase) >= 0) // Пример другого региона
+                vendor.Region.Name.IndexOf("Doom", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
                     return true;
                 }
             }
-
-            // 3. ПРОВЕРКА ПО ФРАКЦИИ (КАРМЕ) САМОГО NPC
-            // Если по дефолту в ServUO у этого NPC прописана отрицательная карма, 
-            // значит он изначально задуман как представитель темной стороны
             if (vendor.Karma < 0)
             {
                 return true;
             }
-
-            // Если ни одно условие не подошло — торговец "добрый" (обычный)
             return false;
         }
-
     }
 }
