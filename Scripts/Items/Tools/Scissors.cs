@@ -167,7 +167,16 @@ namespace Server.Items
                         return; // Прерываем метод, наш мод успешно забрал и обработал предмет!
                     }
                 }
-				
+
+				if (targeted is Item targetItem)
+                {
+                    if (Server.Custom.TreasureRecycling.TreasureMapRecycling.TryCutCompletedMap(from, targetItem))
+                    {
+                        return; // Прерываем метод, наш новый плагин успешно переработал карту сокровищ!
+                    }
+                }
+
+
 				if (m_Item.Deleted)
 				{
 					return;
