@@ -6,7 +6,6 @@ using Server.Misc;
 using Server.Items;
 using Server.Gumps;
 using Server.Targeting;
-using Server.Targets;
 using Server.Engines.XmlSpawner2;
 
 namespace Server.Items
@@ -63,7 +62,7 @@ namespace Server.Items
         public override void AddNameProperties(ObjectPropertyList list)
         {
             base.AddNameProperties(list);
-            list.Add(1060847, "Levelable Items Only");
+            list.Add(1060847, "Any Weapon or Armor");
         }
 
         public LevelUpScroll(Serial serial) : base(serial)
@@ -73,7 +72,7 @@ namespace Server.Items
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1); // Версия 1 (очищенная)
+            writer.Write((int)1); // Версия 1
 
             writer.Write((int)m_Value);
         }
@@ -90,9 +89,9 @@ namespace Server.Items
                         m_Value = reader.ReadInt();
                         break;
                     }
-                case 0: // Обратная совместимость, если на сервере уже были старые свитки
+                case 0:
                     {
-                        bool oldValidated = reader.ReadBool(); // Читаем и отбрасываем старую переменную
+                        reader.ReadBool(); 
                         m_Value = reader.ReadInt();
                         break;
                     }
@@ -107,7 +106,7 @@ namespace Server.Items
                 return;
             }
 
-            from.SendMessage("Выберите оружие или броню для увеличения максимального уровня.");
+            from.SendMessage("Выберите ЛЮБОЕ оружие или броню для увеличения максимального уровня.");
             from.Target = new LevelUpScroll.LevelItemTarget(this);
         }
 
@@ -130,10 +129,19 @@ namespace Server.Items
                         return;
                     }
 
-                    XmlLevelItem levitem = XmlAttach.FindAttachment(item, typeof(XmlLevelItem)) as XmlLevelItem;
-
-                    if (levitem != null)
+                    // Проверяем, подходит ли тип предмета под прокачку
+                    if (item is BaseWeapon || item is BaseArmor || item is BaseClothing || item is BaseJewel)
                     {
+                        XmlLevelItem levitem = XmlAttach.FindAttachment(item, typeof(XmlLevelItem)) as XmlLevelItem;
+
+                        // 🔥 МОДФИКАЦИЯ: Если аттачмента нет — автоматически вешаем его на обычную пуху! 🎉⚙️
+                        if (levitem == null)
+                        {
+                            levitem = new XmlLevelItem();
+                            XmlAttach.AttachTo(item, levitem);
+                            from.SendMessage("Этот предмет теперь официально стал прокачиваемым!");
+                        }
+
                         if ((levitem.MaxLevel + m_Scroll.Value) > LevelItems.MaxLevelsCap)
                         {
                             from.SendMessage("Максимальный уровень этого предмета уже слишком высок для этого свитка!");
@@ -141,18 +149,18 @@ namespace Server.Items
                         else
                         {
                             levitem.MaxLevel += m_Scroll.Value;
-                            from.SendMessage("Максимальный уровень вашего предмета успешно увеличен на " + m_Scroll.Value + ".");
+                            from.SendMessage("Максимальный уровень вашего предмета успешно увеличен на +" + m_Scroll.Value + ". Текущий максимум: " + levitem.MaxLevel + ".");
                             m_Scroll.Delete();
                         }
                     }
                     else
                     {
-                        from.SendMessage("Этот предмет не поддерживает прокачку. Используйте только на оружии, броне или бижутерии с аттачментом.");
+                        from.SendMessage("Вы не можете наложить свиток прокачки на этот тип предмета.");
                     }
                 }
                 else
                 {
-                    from.SendMessage("Неверная цель. Выберите прокачиваемое оружие или броню.");
+                    from.SendMessage("Неверная цель. Выберите оружие, броню или бижутерию.");
                 }
             }
         }
