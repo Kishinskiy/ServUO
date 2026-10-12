@@ -7,6 +7,7 @@ using Server.Mobiles;
 using Server.Commands;
 using Server.Targeting;
 using Server.Network;
+using Server.Custom.EpicBalance; // Подключаем калькулятор баланса сил Полубогов! 🎉
 
 namespace Server.Custom.CityDevelopment
 {
@@ -72,7 +73,6 @@ namespace Server.Custom.CityDevelopment
             }
         }
 
-        // 🔥 КРОСС-БРАУЗЕРНАЯ ПЕРЕГРУЗКА: Защищает ГМ-команды и внешние моды от нехватки аргументов!
         public static CityProgress GetCityProfile(Server.Engines.CityLoyalty.City city)
         {
             return GetCityProfile(city, Map.Trammel);
@@ -138,7 +138,7 @@ namespace Server.Custom.CityDevelopment
                         else if (progress.LeatherStock >= progress.IronStock && progress.LeatherStock >= progress.WoodStock && progress.LeatherStock > 0)
                             dominantResource = "leather";
                         else if (progress.WoodStock > 0)
-                            dominantResource = "wood"; // 🔥 ИСПРАВЛЕНО: Синтаксическая ошибка со срезанным typeof полностью удалена! 🎉
+                            dominantResource = "wood";
 
                         if (dominantResource == "iron" && progress.IronStock > 0)
                         {
@@ -189,9 +189,9 @@ namespace Server.Custom.CityDevelopment
 
             playerCooldowns[cooldownKey] = DateTime.UtcNow + duration;
         }
-
         public static void SetCityCooldown(Mobile from, Server.Engines.CityLoyalty.City city, Map map, TimeSpan duration)
         {
+            // Безопасно перенаправляем ядро на рабочий метод, игнорируя лишний параметр карты
             SetCityCooldown(from, city, duration);
         }
 
@@ -206,8 +206,10 @@ namespace Server.Custom.CityDevelopment
             bool isSeaRoute = (coreCity == Server.Engines.CityLoyalty.City.Britain || coreCity == Server.Engines.CityLoyalty.City.Trinsic);
             long exportProfit = isSeaRoute ? 90000 : 45000;
             int goldReward = isSeaRoute ? 15000 : 4500;
+            // 🔥 СИНХРОНИЗИРОВАНО С КАЛЬКУЛЯТОРОМ РАВНОВЕСИЯ: Применяем мягкий буст очков города! 🏛️📊
+            double epicBonus = Server.Custom.EpicBalance.EpicWorldBalanceMod.GetCityProgressMultiplier(coreCity);
             progress.Treasury += exportProfit;
-            progress.CurrentSupplies += isSeaRoute ? 15.0 : 5.0;
+            progress.CurrentSupplies += (isSeaRoute ? 15.0 : 5.0) * epicBonus; // Умножаем приток supplies на epicBonus!
             if (progress.IronStock > 30) { progress.IronStock -= 30; }
             else if (progress.LeatherStock > 30) { progress.LeatherStock -= 30; }
             else if (progress.WoodStock > 30) { progress.WoodStock -= 30; }
@@ -223,14 +225,13 @@ namespace Server.Custom.CityDevelopment
                 player.SendMessage(0x58, $"[Экспорт] Караван успешно доставлен! Казна города {coreCity} получила прибыль +{exportProfit}. Ваша доля: {goldReward}.");
             }
         }
-
         private static void CityStatus_OnCommand(CommandEventArgs e)
         {
             Mobile m = e.Mobile;
-            if (m != null) 
-            { 
-                m.SendMessage(0x22, "Выберите NPC для проверки статуса города."); 
-                m.Target = new CityTarget(); 
+            if (m != null)
+            {
+                m.SendMessage(0x22, "Выберите NPC для проверки статуса города.");
+                m.Target = new CityTarget();
             }
         }
         private class CityTarget : Target

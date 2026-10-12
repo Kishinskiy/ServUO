@@ -9,19 +9,21 @@ namespace Server.Items
 {
     public static class EpicWaveSpawner
     {
-        public static readonly int BaseWaveCount = 4;       
-        public static readonly int MonstersPerPlayer = 5;    
-        public static readonly int StaticGuardCount = 3;     
-        public static readonly double DetectionRadius = 12.0; 
+        public static readonly int BaseWaveCount = 4;
+        public static readonly int MonstersPerPlayer = 5;
+        public static readonly int StaticGuardCount = 3;
+        public static readonly double DetectionRadius = 12.0;
         public static readonly TimeSpan TimeBetweenWaves = TimeSpan.FromMinutes(15.0);
-        
-        public static readonly double ParagonChance = 0.15;      
-        public static readonly double BossParagonChance = 0.25;  
+
+        public static readonly double ParagonChance = 0.15;
+        public static readonly double BossParagonChance = 0.25;
 
         public static void StartBattle(PlayerMobile pm, Point3D center, bool isLight)
-        { SpawnWaveInstance(pm, center, isLight, 1, null); }
+        {
+            SpawnWaveInstance(pm, center, isLight, 1, null);
+        }
 
-        private static void SpawnWaveInstance(PlayerMobile leader, Point3D center, bool isLight, int waveStep, Item fireEffect)
+        public static void SpawnWaveInstance(PlayerMobile leader, Point3D center, bool isLight, int waveStep, Item fireEffect)
         {
             Map map = Map.Felucca;
             if (leader == null || leader.Deleted || !leader.Alive || leader.Map != map || leader.GetDistanceToSqrt(center) > 30.0)
@@ -42,7 +44,6 @@ namespace Server.Items
 
             if (waveStep <= BaseWaveCount)
             {
-                string waveName = waveStep == 1 ? "ЗЕМЛЯ" : waveStep == 2 ? "ОГОНЬ" : waveStep == 3 ? "ВОДА" : "ВОЗДУХ";
                 int playerCount = 0;
                 IPooledEnumerable playerEnum = map.GetMobilesInRange(center, (int)DetectionRadius);
                 foreach (Mobile m in playerEnum) { if (m.Player && m.Alive) playerCount++; }
@@ -50,7 +51,7 @@ namespace Server.Items
 
                 if (playerCount < 1) playerCount = 1;
                 int totalSpawn = (playerCount * MonstersPerPlayer) + StaticGuardCount;
-                
+
                 string sideName = isLight ? "ТЬМЫ И СКВЕРНЫ" : "СВЕТА И ДОБРОДЕТЕЛИ";
                 leader.SendMessage(0x22, $"[ВНИМАНИЕ] Натиск {sideName}! Наступает ВОЛНА {waveStep} ИЗ {BaseWaveCount}!");
 
@@ -59,12 +60,14 @@ namespace Server.Items
                     BaseCreature spawn;
                     if (isLight)
                     {
-                        if (waveStep == 1) spawn = new Gargoyle(); else if (waveStep == 2) spawn = new Succubus();
+                        if (waveStep == 1) spawn = new Gargoyle();
+                        else if (waveStep == 2) spawn = new Succubus();
                         else if (waveStep == 3) spawn = new LichLord(); else spawn = new Daemon();
                     }
                     else
                     {
-                        if (waveStep == 1) spawn = new Pixie(); else if (waveStep == 2) spawn = new Wisp();
+                        if (waveStep == 1) spawn = new Pixie();
+                        else if (waveStep == 2) spawn = new Wisp();
                         else if (waveStep == 3) spawn = new Centaur(); else spawn = new Kirin();
                     }
 
@@ -82,9 +85,10 @@ namespace Server.Items
                         spawn.Hue = isLight ? 1175 : 2418;
                     }
 
-                    Point3D loc = new Point3D(center.X + Utility.RandomMinMax(-4, 4), center.Y + Utility.RandomMinMax(-4, 4), center.Z);
-                    loc.Z = map.GetAverageZ(loc.X, loc.Y);
-                    spawn.MoveToWorld(loc, map); spawn.Combatant = leader;
+                    // 🔥 ИСПРАВЛЕНО: Применяем расширенный безопасный радиус 12 клеток с защитой от воды! 🏝️⚔️🎉
+                    Point3D loc = GetSafeIslandSpawnOffset(center, map, 12);
+                    spawn.MoveToWorld(loc, map);
+                    spawn.Combatant = leader;
                 }
                 new EpicTimeAttackTimer(leader, center, isLight, waveStep + 1, fireEffect).Start();
             }
@@ -95,10 +99,10 @@ namespace Server.Items
         {
             Map map = Map.Felucca;
             leader.SendMessage(0x35, "Время испытания стихий истекло! Грядёт пробуждение Хранителя Полюса!");
-            
+
             BaseCreature boss = isLight ? (BaseCreature)new Daemon() : (BaseCreature)new AncientWyrm();
-            boss.HitsMaxSeed = 25000; boss.Hits = 25000; boss.SetDamage(50, 75); 
-            boss.Karma = 0; boss.Fame = 0; 
+            boss.HitsMaxSeed = 25000; boss.Hits = 25000; boss.SetDamage(50, 75);
+            boss.Karma = 0; boss.Fame = 0;
 
             Container backpack = boss.Backpack;
             if (backpack == null) { backpack = new Backpack(); backpack.Movable = false; boss.AddItem(backpack); }
@@ -116,10 +120,12 @@ namespace Server.Items
                 backpack.DropItem(new Gold(Utility.RandomMinMax(3000, 5000)));
             }
 
-            Point3D loc = new Point3D(center.X, center.Y - 2, center.Z); loc.Z = map.GetAverageZ(loc.X, loc.Y);
-            boss.MoveToWorld(loc, map); boss.Combatant = leader;
+            // 🔥 ИСПРАВЛЕНО: Спавн босса переведен на безопасный островной радиус!
+            Point3D loc = GetSafeIslandSpawnOffset(center, map, 6);
+            boss.MoveToWorld(loc, map);
+            boss.Combatant = leader;
             World.Broadcast(isLight ? 0x22 : 0x35, true, $"[Квест] В Храме Хаоса из бушующего разлома явился грозный {boss.Name}!");
-            
+
             new FirstBossDeathMonitor(boss, leader, center, isLight).Start();
         }
 
@@ -137,7 +143,7 @@ namespace Server.Items
                     if (m_Leader == null || m_Leader.Deleted || !m_Leader.Alive) return;
 
                     Effects.SendLocationParticles(EffectItem.Create(m_Leader.Location, m_Leader.Map, TimeSpan.FromSeconds(1.5)), 0x3709, 10, 30, m_IsLight ? 2418 : 1175, 0, 5004, 0);
-                    m_Leader.PlaySound(0x5C0); 
+                    m_Leader.PlaySound(0x5C0);
 
                     m_Leader.SendMessage(0x22, "Хранитель сокрушен, но Алтарь Хаоса вытягивает твое собственное отражение...");
                     m_Leader.SendMessage(0x35, "ФИНАЛЬНОЕ ИСПЫТАНИЕ: Сразись со своими грехами! Из праха восстает Травести!");
@@ -150,27 +156,47 @@ namespace Server.Items
 
                     Container pack = travesty.Backpack;
                     if (pack == null) { pack = new Backpack(); pack.Movable = false; travesty.AddItem(pack); }
-                    pack.DropItem(new Gold(Utility.RandomMinMax(8000, 12000))); 
+                    pack.DropItem(new Gold(Utility.RandomMinMax(8000, 12000)));
                     for (int i = 0; i < 6; i++)
                     {
                         Item magicItem = Loot.RandomArmorOrShieldOrJewelry();
                         if (magicItem != null) { BaseRunicTool.ApplyAttributesTo(magicItem, 5, 95, 100); pack.DropItem(magicItem); }
                     }
 
-                    Point3D loc = new Point3D(m_Center.X, m_Center.Y - 2, m_Center.Z); loc.Z = m_Leader.Map.GetAverageZ(loc.X, loc.Y);
+                    // 🔥 ИСПРАВЛЕНО: Финальный босс Травести спавнится на суше в радиусе острова
+                    Point3D loc = GetSafeIslandSpawnOffset(m_Center, m_Leader.Map, 4);
                     travesty.MoveToWorld(loc, m_Leader.Map);
-                    travesty.Combatant = m_Leader; 
+                    travesty.Combatant = m_Leader;
 
-                    // ИСПРАВЛЕНО: Вызываем награды с каноничным типом глобального EpicRank
                     EpicRewardSystem.MonitorBoss(travesty, m_Leader, m_IsLight ? EpicRank.Avatar : EpicRank.HandOfMondain);
                 }
             }
         }
 
+        // 🔥 НАДЁЖНЫЙ ОСТРОВНОЙ АЛГОРИТМ ГЕНЕРАЦИИ СУХИХ КООРДИНАТ ДЛЯ ВОЛН МОБОВ 🏝️⚡
+        private static Point3D GetSafeIslandSpawnOffset(Point3D center, Map map, int radius)
+        {
+            for (int attempt = 0; attempt < 25; attempt++)
+            {
+                int rx = center.X + Utility.RandomMinMax(-radius, radius);
+                int ry = center.Y + Utility.RandomMinMax(-radius, radius);
+                int rz = map.GetAverageZ(rx, ry);
+
+                Point3D testLoc = new Point3D(rx, ry, rz);
+
+                // Защита: Моб появится только если тайл проходим, устойчив и там нет глубокой воды
+                if (map.CanSpawnMobile(testLoc) && map.CanFit(testLoc, 16, false, false))
+                {
+                    return testLoc;
+                }
+            }
+            return center; // Фолбэк на центр алтаря при неудаче
+        }
+
         private class EpicTimeAttackTimer : Timer
         {
             private PlayerMobile m_Leader; Point3D m_Center; bool m_IsLight; int m_WaveStep; Item m_FireEffect;
-            public EpicTimeAttackTimer(PlayerMobile leader, Point3D center, bool isLight, int waveStep, Item fire) : base(EpicWaveSpawner.TimeBetweenWaves) 
+            public EpicTimeAttackTimer(PlayerMobile leader, Point3D center, bool isLight, int waveStep, Item fire) : base(EpicWaveSpawner.TimeBetweenWaves)
             { m_Leader = leader; m_Center = center; m_IsLight = isLight; m_WaveStep = waveStep; m_FireEffect = fire; }
             protected override void OnTick() { EpicWaveSpawner.SpawnWaveInstance(m_Leader, m_Center, m_IsLight, m_WaveStep, m_FireEffect); }
         }
