@@ -7,7 +7,13 @@ using Server.Mobiles;
 
 namespace Server.Custom.MercenarySystem
 {
-    public enum MercenaryClass { Knight, Mage, Ranger }
+    // Расширяем енам всеми новыми классами и расами
+    public enum MercenaryClass 
+    { 
+        Knight, Mage, Ranger, 
+        Bard, Thief, Paladin, Necromancer, Samurai,
+        ElfMage, GargoyleWarrior 
+    }
 
     public class MercenaryProgression
     {
@@ -26,13 +32,26 @@ namespace Server.Custom.MercenarySystem
                 NextLevelExperience = (int)(500 * Math.Pow(1.8, Level - 1));
 
                 string modName = "MercLevelUpHP_" + Level;
-                int hpBonus = (mClass == MercenaryClass.Knight) ? 50 : 25;
+                
+                // Танкам и паладинам даем больше живучести
+                int hpBonus = 25;
+                if (mClass == MercenaryClass.Knight || mClass == MercenaryClass.Paladin || mClass == MercenaryClass.GargoyleWarrior)
+                    hpBonus = 50;
                 
                 merc.AddStatMod(new StatMod(StatType.Str, modName, hpBonus * 2, TimeSpan.Zero));
 
-                merc.RawStr += (mClass == MercenaryClass.Knight) ? 15 : 5;
-                merc.RawInt += (mClass == MercenaryClass.Mage) ? 15 : 5;
-                merc.RawDex += (mClass == MercenaryClass.Ranger) ? 15 : 5;
+                // Распределяем прирост характеристик в зависимости от архетипа
+                if (mClass == MercenaryClass.Knight || mClass == MercenaryClass.Samurai || mClass == MercenaryClass.GargoyleWarrior)
+                    merc.RawStr += 15;
+                else if (mClass == MercenaryClass.Mage || mClass == MercenaryClass.Necromancer || mClass == MercenaryClass.ElfMage)
+                    merc.RawInt += 15;
+                else if (mClass == MercenaryClass.Ranger || mClass == MercenaryClass.Thief)
+                    merc.RawDex += 15;
+                else if (mClass == MercenaryClass.Paladin || mClass == MercenaryClass.Bard)
+                {
+                    merc.RawStr += 8;
+                    merc.RawInt += 8;
+                }
 
                 merc.Hits = merc.HitsMax;
                 merc.Mana = merc.ManaMax;
@@ -52,17 +71,15 @@ namespace Server.Custom.MercenarySystem
             }
         }
 
-        // 🔥 ДОБАВЛЕНО: Безопасный автоматический спавн Капитанов по всем городам мира! 🏙️⚔️🎉
+        // Автоспавн Капитанов по городам
         public static void AutoSpawnCaptains()
         {
             Console.WriteLine("[MercenarySystem] Проверка присутствия Капитанов Наёмников в мире...");
             
-            // Собираем всех Торговых Министров ядра ServUO, которые уже стоят в городах
             List<Mobile> ministers = World.Mobiles.Values.Where(m => m is Server.Engines.CityLoyalty.TradeMinister && m.Map != null && m.Map != Map.Internal).ToList();
             
             foreach (Mobile minister in ministers)
             {
-                // Проверяем, стоит ли уже Капитан в радиусе 6 тайлов от этого Министра (защита от дублирования при рестартах)
                 bool captainExists = false;
                 IPooledEnumerable eable = minister.Map.GetMobilesInRange(minister.Location, 6);
                 foreach (Mobile m in eable)
@@ -75,14 +92,11 @@ namespace Server.Custom.MercenarySystem
                 }
                 eable.Free();
 
-                // Если Капитана в этом городе ещё нет — спавним его рядышком!
                 if (!captainExists)
                 {
                     MercenaryCaptain captain = new MercenaryCaptain();
-                    // Смещаем на 2 тайла на восток от министра, чтобы они не стояли друг в друге
                     Point3D spawnLoc = new Point3D(minister.X + 2, minister.Y, minister.Z);
                     
-                    // Проверяем проходимость точки, если там стена — спавним прямо на министра
                     if (!minister.Map.CanFit(spawnLoc.X, spawnLoc.Y, spawnLoc.Z, 16, false, false))
                         spawnLoc = minister.Location;
 

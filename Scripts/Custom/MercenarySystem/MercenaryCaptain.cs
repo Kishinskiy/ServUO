@@ -26,8 +26,6 @@ namespace Server.Mobiles
         {
             AddItem(new PlateChest() { Hue = 2115 });
             AddItem(new PlateLegs() { Hue = 2115 });
-            
-            // ИСПРАВЛЕНО: Название класса меча приведено к регистру Longsword эмулятора! ⚔️🎉
             AddItem(new Longsword());
             AddItem(new Boots());
             Utility.AssignRandomHair(this);
@@ -52,9 +50,21 @@ namespace Server.Items
 
         public SBMercenaryCaptain()
         {
+            // Базовые стартовые спутники (75 000 золота)
             m_BuyInfo.Add(new GenericBuyInfo("Контракт: Наёмник (Knight)", typeof(Server.Custom.MercenarySystem.MercenaryContract), 75000, 20, 0x14F0, 2115, new object[] { Server.Custom.MercenarySystem.MercenaryClass.Knight }));
             m_BuyInfo.Add(new GenericBuyInfo("Контракт: Наёмник (Mage)", typeof(Server.Custom.MercenarySystem.MercenaryContract), 75000, 20, 0x14F0, 2418, new object[] { Server.Custom.MercenarySystem.MercenaryClass.Mage }));
             m_BuyInfo.Add(new GenericBuyInfo("Контракт: Наёмник (Ranger)", typeof(Server.Custom.MercenarySystem.MercenaryContract), 75000, 20, 0x14F0, 2125, new object[] { Server.Custom.MercenarySystem.MercenaryClass.Ranger }));
+            
+            // ТВОЁ ТЗ: Специализированные продвинутые классы (95 000 — 120 000 золота) 🎉📜
+            m_BuyInfo.Add(new GenericBuyInfo("Контракт: Наёмник (Bard)", typeof(Server.Custom.MercenarySystem.MercenaryContract), 95000, 20, 0x14F0, 1161, new object[] { Server.Custom.MercenarySystem.MercenaryClass.Bard }));
+            m_BuyInfo.Add(new GenericBuyInfo("Контракт: Наёмник (Thief)", typeof(Server.Custom.MercenarySystem.MercenaryContract), 95000, 20, 0x14F0, 1109, new object[] { Server.Custom.MercenarySystem.MercenaryClass.Thief }));
+            m_BuyInfo.Add(new GenericBuyInfo("Контракт: Наёмник (Paladin)", typeof(Server.Custom.MercenarySystem.MercenaryContract), 120000, 20, 0x14F0, 1266, new object[] { Server.Custom.MercenarySystem.MercenaryClass.Paladin }));
+            m_BuyInfo.Add(new GenericBuyInfo("Контракт: Наёмник (Necromancer)", typeof(Server.Custom.MercenarySystem.MercenaryContract), 120000, 20, 0x14F0, 1102, new object[] { Server.Custom.MercenarySystem.MercenaryClass.Necromancer }));
+            m_BuyInfo.Add(new GenericBuyInfo("Контракт: Наёмник (Samurai)", typeof(Server.Custom.MercenarySystem.MercenaryContract), 110000, 20, 0x14F0, 2211, new object[] { Server.Custom.MercenarySystem.MercenaryClass.Samurai }));
+            
+            // ТВОЁ ТЗ: Добавление нечеловеческих рас Эльфов и Горгулий (150 000 золота) 🧝‍♂️🦇
+            m_BuyInfo.Add(new GenericBuyInfo("Контракт: Наёмник (ElfMage)", typeof(Server.Custom.MercenarySystem.MercenaryContract), 150000, 20, 0x14F0, 1270, new object[] { Server.Custom.MercenarySystem.MercenaryClass.ElfMage }));
+            m_BuyInfo.Add(new GenericBuyInfo("Контракт: Наёмник (GargoyleWarrior)", typeof(Server.Custom.MercenarySystem.MercenaryContract), 150000, 20, 0x14F0, 1115, new object[] { Server.Custom.MercenarySystem.MercenaryClass.GargoyleWarrior }));
         }
     }
 }

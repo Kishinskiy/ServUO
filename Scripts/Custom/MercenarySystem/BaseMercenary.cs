@@ -34,49 +34,98 @@ namespace Server.Custom.MercenarySystem
 
             Name = NameList.RandomName("male");
             Title = $"[{MercenaryProgression.GetRankTitle(1)}]";
+            
             Body = 400; 
             Hue = Utility.RandomSkinHue();
-
             BaseSoundID = 0;
             ControlSlots = 2; 
 
             if (mClass == MercenaryClass.Knight)
             {
                 AI = AIType.AI_Melee;
-                SetStr(150); SetDex(80); SetInt(50);
-                SetHits(300);
-                SetDamage(15, 25);
-                
-                // ИСПРАВЛЕНО: SkillName.Parrying заменен на каноничный SkillName.Parry! 🛡️🎉
+                SetStr(150); SetDex(80); SetInt(50); SetHits(300); SetDamage(15, 25);
                 SetSkill(SkillName.Swords, 70.0); SetSkill(SkillName.Tactics, 70.0); SetSkill(SkillName.Anatomy, 50.0); SetSkill(SkillName.Parry, 60.0);
                 AddItem(new PlateChest() { Movable = false }); AddItem(new VikingSword() { Movable = false }); AddItem(new BronzeShield() { Movable = false });
             }
             else if (mClass == MercenaryClass.Mage)
             {
                 AI = AIType.AI_Mage;
-                SetStr(80); SetDex(80); SetInt(150);
-                SetHits(150); SetMana(300);
-                SetDamage(10, 15);
+                SetStr(80); SetDex(80); SetInt(150); SetHits(150); SetMana(300); SetDamage(10, 15);
                 SetSkill(SkillName.Magery, 80.0); SetSkill(SkillName.EvalInt, 80.0); SetSkill(SkillName.Meditation, 80.0); SetSkill(SkillName.Wrestling, 50.0);
-                
-                // ИСПРАВЛЕНО: Заменили MagicianRobe на нативную стандартную Robe ядра эмулятора! 🧙‍♂️📜
                 AddItem(new Robe() { Movable = false, Hue = 2418 }); AddItem(new GnarledStaff() { Movable = false });
             }
             else if (mClass == MercenaryClass.Ranger)
             {
                 AI = AIType.AI_Archer;
-                SetStr(100); SetDex(150); SetInt(50);
-                SetHits(200);
-                SetDamage(20, 30);
+                SetStr(100); SetDex(150); SetInt(50); SetHits(200); SetDamage(20, 30);
                 SetSkill(SkillName.Archery, 80.0); SetSkill(SkillName.Tactics, 70.0); SetSkill(SkillName.Anatomy, 70.0);
                 AddItem(new LeatherChest() { Movable = false }); AddItem(new Bow() { Movable = false });
             }
+            else if (mClass == MercenaryClass.Bard)
+            {
+                AI = AIType.AI_Mage; 
+                SetStr(100); SetDex(100); SetInt(100); SetHits(220); SetDamage(12, 18);
+                SetSkill(SkillName.Musicianship, 80.0); SetSkill(SkillName.Discordance, 80.0); SetSkill(SkillName.Magery, 60.0);
+                AddItem(new JesterSuit() { Movable = false, Hue = 1161 }); AddItem(new Tambourine() { Movable = false });
+            }
+            else if (mClass == MercenaryClass.Thief)
+            {
+                AI = AIType.AI_Melee;
+                SetStr(90); SetDex(160); SetInt(50); SetHits(200); SetDamage(18, 28);
+                SetSkill(SkillName.Fencing, 85.0); SetSkill(SkillName.Tactics, 75.0); SetSkill(SkillName.Stealth, 80.0);
+                AddItem(new LeatherChest() { Movable = false, Hue = 1109 }); AddItem(new Dagger() { Movable = false });
+            }
+            else if (mClass == MercenaryClass.Paladin)
+            {
+                AI = AIType.AI_Melee; 
+                SetStr(140); SetDex(90); SetInt(70); SetHits(320); SetDamage(20, 30);
+                SetSkill(SkillName.Swords, 80.0); SetSkill(SkillName.Tactics, 75.0); SetSkill(SkillName.Chivalry, 75.0); SetSkill(SkillName.Focus, 70.0);
+                AddItem(new PlateChest() { Movable = false, Hue = 1266 }); AddItem(new Broadsword() { Movable = false });
+            }
+            else if (mClass == MercenaryClass.Necromancer)
+            {
+                // ИСПРАВЛЕНО: Изменен тип ИИ на универсальный AI_Mage, умеющий кастовать некромантию
+                AI = AIType.AI_Mage; 
+                SetStr(90); SetDex(80); SetInt(140); SetHits(180); SetMana(280); SetDamage(12, 20);
+                SetSkill(SkillName.Necromancy, 80.0); SetSkill(SkillName.SpiritSpeak, 80.0); SetSkill(SkillName.MagicResist, 70.0);
+                AddItem(new BoneChest() { Movable = false, Hue = 1102 }); AddItem(new Scythe() { Movable = false });
+            }
+            else if (mClass == MercenaryClass.Samurai)
+            {
+                AI = AIType.AI_Melee;
+                SetStr(130); SetDex(110); SetInt(60); SetHits(260); SetDamage(22, 32);
+                SetSkill(SkillName.Swords, 85.0); SetSkill(SkillName.Bushido, 80.0); SetSkill(SkillName.Tactics, 80.0);
+                AddItem(new LeatherDo() { Movable = false, Hue = 2211 }); AddItem(new NoDachi() { Movable = false });
+            }
+            else if (mClass == MercenaryClass.ElfMage)
+            {
+                AI = AIType.AI_Mage;
+                Body = 605; 
+                Name = NameList.RandomName("elf_male");
+                SetStr(80); SetDex(90); SetInt(160); SetHits(170); SetMana(350); SetDamage(10, 16);
+                SetSkill(SkillName.Magery, 90.0); SetSkill(SkillName.EvalInt, 90.0); SetSkill(SkillName.Meditation, 90.0);
+                AddItem(new Robe() { Movable = false, Hue = 1270 }); AddItem(new WildStaff() { Movable = false });
+            }
+            else if (mClass == MercenaryClass.GargoyleWarrior)
+            {
+                AI = AIType.AI_Melee;
+                Body = 666; // Моделька Горгульи
+                Name = NameList.RandomName("gargoyle_male");
+                BaseSoundID = 1345; 
+                SetStr(175); SetDex(80); SetInt(45); SetHits(380); SetDamage(24, 34);
+                SetSkill(SkillName.Throwing, 80.0); SetSkill(SkillName.Tactics, 80.0); SetSkill(SkillName.Anatomy, 60.0);
+                
+                // ИСПРАВЛЕНО: Полностью убрали капризную стартовую одежду. Горгулья спавнится с брутальным голым торсом! 🛡️🎉⚙️
+                AddItem(new Cyclone() { Movable = false }); // Даем только метательное оружие
+            }
 
-            SetResistance(ResistanceType.Physical, 40);
-            SetResistance(ResistanceType.Fire, 30);
-            SetResistance(ResistanceType.Cold, 30);
-            SetResistance(ResistanceType.Poison, 30);
-            SetResistance(ResistanceType.Energy, 30);
+
+
+            SetResistance(ResistanceType.Physical, 45);
+            SetResistance(ResistanceType.Fire, 35);
+            SetResistance(ResistanceType.Cold, 35);
+            SetResistance(ResistanceType.Poison, 35);
+            SetResistance(ResistanceType.Energy, 35);
         }
 
         public override void OnDamage(int amount, Mobile from, bool willKill)
