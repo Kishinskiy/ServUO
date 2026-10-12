@@ -97,8 +97,15 @@ namespace Server.Custom.CityDevelopment
         }
 
         // 🔥 МОРСКАЯ МОДИФИКАЦИЯ: Автоматически переводит Тринзик и Британию в режим экспортных Портов Хабов! ⚓🚢
-        public static int CalculateDynamicQuestAmount(Mobile from)
+public static int CalculateDynamicQuestAmount(Mobile from)
         {
+            // 1. Сразу рассчитываем базовый объем контракта с учетом онлайна игроков
+            int baseAmount = Utility.RandomList(40, 60, 80, 100);
+            int onlineCount = NetState.Instances.Count;
+            double multiplier = 1.0;
+            if (onlineCount > 10) multiplier += (onlineCount - 10) * 0.02;
+            int totalRequiredAmount = (int)(baseAmount * Math.Min(5.0, multiplier));
+
             if (from != null && from.Alive && from.AccessLevel == AccessLevel.Player)
             {
                 var minister = from.GetMobilesInRange(5).OfType<Server.Engines.CityLoyalty.TradeMinister>().FirstOrDefault();
@@ -123,28 +130,63 @@ namespace Server.Custom.CityDevelopment
                         from.SendMessage(0x35, $"[МОРСКОЙ ПОРТ]: Министр {currentCity} формирует заморский контейнер экспорта на Острова (Moonglow / Magincia)!");
                         from.SendMessage(0x5D, "Внимание! Использование магии телепортации будет заблокировано. Доставка строго по воде на кораблях!");
 
-                        // Даем тяжелый морской рейс (фиксированный объем 100 единиц)
+                        // Для морских рейсов оставляем фиксированный тяжелый вес груза
                         return 100;
                     }
 
                     CityProgress progress = GetCityProfile(currentCity, from.Map);
                     if (progress != null)
                     {
-                        if (progress.IronStock >= progress.LeatherStock && progress.IronStock >= progress.WoodStock && progress.IronStock > 0)
+                        // Определяем, какой ресурс доминирует на складе правительства
+                        string dominantResource = "none";
+                        if (progress.IronStock >= progress.LeatherStock && progress.IronStock >= progress.WoodStock && progress.IronStock > 0) 
+                            dominantResource = "iron";
+                        else if (progress.LeatherStock >= progress.IronStock && progress.LeatherStock >= progress.WoodStock && progress.LeatherStock > 0) 
+                            dominantResource = "leather";
+                        else if (progress.WoodStock > 0) 
+                            dominantResource = "wood";
+
+                        // 🔥 Списываем ресурсы со склада города, уменьшая финальное требование к сбору для игрока!
+                        if (dominantResource == "iron" && progress.IronStock > 0)
+                        {
                             from.SendMessage(0x5D, $"[{currentCity}]: На складах избыток железа ({progress.IronStock} уп.). Открываем экспортный рейс металла!");
-                        else if (progress.LeatherStock >= progress.IronStock && progress.LeatherStock >= progress.WoodStock && progress.LeatherStock > 0)
+                            
+                            int fillFromStock = Math.Min(totalRequiredAmount - 10, progress.IronStock); // Оставляем 10 ед. для ручного добора
+                            progress.IronStock -= fillFromStock; 
+                            totalRequiredAmount -= fillFromStock; 
+                            
+                            from.SendMessage(0x5D, $"Город выделил {fillFromStock} ед. железа со склада гос. резерва. Ящик частично заполнен за счет казны!");
+                        }
+                        else if (dominantResource == "leather" && progress.LeatherStock > 0)
+                        {
                             from.SendMessage(0x5D, $"[{currentCity}]: Склады переполнены излишками кожи ({progress.LeatherStock} уп.). Готовим торговую повозку!");
-                        else if (progress.WoodStock > 0)
+                            
+                            int fillFromStock = Math.Min(totalRequiredAmount - 10, progress.LeatherStock);
+                            progress.LeatherStock -= fillFromStock;
+                            totalRequiredAmount -= fillFromStock;
+                            
+                            from.SendMessage(0x5D, $"Город выделил {fillFromStock} ед. кожи со склада гос. резерва. Повозка частично укомплектована!");
+                        }
+                        else if (dominantResource == "wood" && progress.WoodStock > 0)
+                        {
                             from.SendMessage(0x5D, $"[{currentCity}]: Накоплен избыток древесины лесопилок ({progress.WoodStock} уп.). Выдаем контракт снабжения!");
+                            
+                            int fillFromStock = Math.Min(totalRequiredAmount - 10, progress.WoodStock);
+                            progress.WoodStock -= fillFromStock;
+                            totalRequiredAmount -= fillFromStock;
+                            
+                            from.SendMessage(0x5D, $"Город выделил {fillFromStock} ед. дерева со склада лесопилок. Повозка частично укомплектована!");
+                        }
+                        else
+                        {
+                            from.SendMessage(0x22, $"[{currentCity}]: Наши государственные склады пусты! Вам придется собрать весь объем припасов вручную.");
+                        }
                     }
                 }
             }
 
-            int baseAmount = Utility.RandomList(40, 60, 80, 100);
-            int onlineCount = NetState.Instances.Count;
-            double multiplier = 1.0;
-            if (onlineCount > 10) multiplier += (onlineCount - 10) * 0.02;
-            return (int)(baseAmount * Math.Min(5.0, multiplier));
+            // Возвращаем остаток, который игроку реально нужно догрузить руками (не меньше 10 штук для сохранения геймплея)
+            return Math.Max(10, totalRequiredAmount);
         }
 
         public static void SetCityCooldown(Mobile from, Server.Engines.CityLoyalty.City city, TimeSpan duration)
