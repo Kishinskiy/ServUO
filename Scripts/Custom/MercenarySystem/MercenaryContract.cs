@@ -12,11 +12,27 @@ namespace Server.Custom.MercenarySystem
         [CommandProperty(AccessLevel.GameMaster)]
         public MercenaryClass TargetClass { get { return m_TargetClass; } set { m_TargetClass = value; InvalidateProperties(); } }
 
-        public MercenaryContract(MercenaryClass mClass) : base(0x14F0) // Графика свитка
+        public MercenaryContract(MercenaryClass mClass) : base(0x14F0) 
         {
             m_TargetClass = mClass;
             Weight = 1.0;
-            Hue = (mClass == MercenaryClass.Knight) ? 2115 : (mClass == MercenaryClass.Mage ? 2418 : 2125);
+            
+            // Раскрашиваем свитки под новые архетипы
+            switch(mClass)
+            {
+                case MercenaryClass.Knight: Hue = 2115; break;
+                case MercenaryClass.Mage: Hue = 2418; break;
+                case MercenaryClass.Ranger: Hue = 2125; break;
+                case MercenaryClass.Bard: Hue = 1161; break;
+                case MercenaryClass.Thief: Hue = 1109; break;
+                case MercenaryClass.Paladin: Hue = 1266; break;
+                case MercenaryClass.Necromancer: Hue = 1102; break;
+                case MercenaryClass.Samurai: Hue = 2211; break;
+                case MercenaryClass.ElfMage: Hue = 1270; break;
+                case MercenaryClass.GargoyleWarrior: Hue = 1115; break;
+                default: Hue = 0; break;
+            }
+            
             Name = $"Контракт: Наёмник ({mClass})";
         }
 
@@ -24,33 +40,30 @@ namespace Server.Custom.MercenarySystem
         {
             if (!IsChildOf(from.Backpack))
             {
-                from.SendLocalizedMessage(1042001); // Итем должен быть в сумке
+                from.SendLocalizedMessage(1042001); 
                 return;
             }
 
             PlayerMobile pm = from as PlayerMobile;
             if (pm == null || !pm.Alive) return;
 
-            // Проверяем лимит слотов контроля пати у игрока (максимум 5)
             if ((pm.Followers + 2) > pm.FollowersMax)
             {
-                pm.SendMessage(0x22, "У вас недостаточно свободных слотов контроля! Наёмник занимает 2 слота пати.");
+                pm.SendMessage(0x22, "У вас недостаточно свободных slots контроля! Наёмник занимает 2 слота пати.");
                 return;
             }
 
-            // Спавним живого бота-компаньона
             BaseMercenary merc = new BaseMercenary(m_TargetClass);
             merc.MoveToWorld(pm.Location, pm.Map);
 
-            // Переводим бота в статус ручного пета игрока нативно
             merc.SetControlMaster(pm);
             merc.ControlTarget = pm;
             merc.ControlOrder = OrderType.Follow;
 
-            pm.PlaySound(0x5BC); // Магический звук спавна
+            pm.PlaySound(0x5BC); 
             pm.SendMessage(0x35, $"Вы успешно активировали контракт! К вам присоединился наёмник {merc.Name}.");
 
-            this.Delete(); // Уничтожаем свиток контракта из сумки
+            this.Delete(); 
         }
 
         public MercenaryContract(Serial s) : base(s) { }
