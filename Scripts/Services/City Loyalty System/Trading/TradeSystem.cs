@@ -256,17 +256,40 @@ namespace Server.Engines.CityLoyalty
             if (from == null)
                 from = crate.Owner;
 
+            Server.Engines.CityLoyalty.City originCity = Server.Engines.CityLoyalty.City.Britain;
+
             if (from != null)
             {
-                crate.Items.ForEach(i =>
+                // Запоминаем город-отправитель перед тем, как ящик будет уничтожен
+                if (crate.Entry != null)
+                    originCity = crate.Entry.Origin;
+
+                if (crate.Items != null && crate.Items.Count > 0)
                 {
-                    from.Backpack.DropItem(i);
-                });
+                    for (int i = crate.Items.Count - 1; i >= 0; i--)
+                    {
+                        if (i < crate.Items.Count && crate.Items[i] != null)
+                        {
+                            Item itemToDrop = crate.Items[i];
+                            if (from.Backpack != null)
+                                from.Backpack.DropItem(itemToDrop);
+                            else
+                                itemToDrop.MoveToWorld(from.Location, from.Map);
+                        }
+                    }
+                }
 
                 CityTradeEntry entry = CityLoyaltySystem.CityTrading.GetPlayerEntry<CityTradeEntry>(from as PlayerMobile, true);
 
                 if (entry != null)
                     entry.Canceled++;
+
+                // 🔥 ИНЖЕКЦИЯ: Накладываем 20-минутный штраф на игрока в момент отмены контракта! (Админы игнорируются)
+                if (from.AccessLevel == AccessLevel.Player)
+                {
+                    Server.Custom.CityDevelopment.CityDevelopmentMod.SetCityCooldown(from, originCity, from.Map, TimeSpan.FromMinutes(20.0));
+                    from.SendMessage(0x22, $"[Контракт] Вы отменили заказ. Торговая гильдия города {originCity} наложила штраф на 20 минут!");
+                }
             }
 
             crate.Delete();

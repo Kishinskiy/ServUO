@@ -38,7 +38,7 @@ namespace Server.Custom.CityDevelopment
         private static readonly Dictionary<Mobile, Dictionary<string, DateTime>> _cityCooldowns =
             new Dictionary<Mobile, Dictionary<string, DateTime>>();
 
-        public static void Initialize()
+public static void Initialize()
         {
             CommandSystem.Register("CityStatus", AccessLevel.GameMaster, new CommandEventHandler(CityStatus_OnCommand));
 

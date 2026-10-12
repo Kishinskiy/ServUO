@@ -27,19 +27,27 @@ namespace Server.Engines.CityLoyalty
         {
             AddHtmlLocalized(0, 7, 345, 20, 1154645, "#1152190", 0, false, false); // City Loyalty
 
+            // Базовый каркас свитка
             AddImage(0, 0, 8000);
             AddImage(20, 37, 8001);
             AddImage(20, 107, 8002);
             AddImage(20, 177, 8001);
             AddImage(20, 247, 8002);
             AddImage(20, 317, 8001);
-            AddImage(20, 387, 8003);
+            
+            // 🔥 РАСШИРЕНИЕ: Инжектируем два дополнительных сегмента бумаги (+140 пикселей по вертикали) 🎉
+            AddImage(20, 387, 8002); 
+            AddImage(20, 457, 8001); 
+            
+            // Финальный хвост свитка (смещен вниз на Y=527)
+            AddImage(20, 527, 8003);
 
-            AddHtmlLocalized(65, 395, 200, 16, 1152189, false, false); // Loyalty Ratings
-            AddButton(50, 400, 2103, 2104, 500, GumpButtonType.Reply, 0);
+            // 🔥 СМЕЩЕНИЕ КНОПОК: Опускаем элементы интерфейса ниже, чтобы освободить место для текста
+            AddHtmlLocalized(65, 535, 200, 16, 1152189, false, false); // Loyalty Ratings
+            AddButton(50, 540, 2103, 2104, 500, GumpButtonType.Reply, 0);
 
-            AddHtmlLocalized(175, 395, 200, 16, 1157159, false, false); // Toggle Gain Message
-            AddButton(160, 400, 2103, 2104, 501, GumpButtonType.Reply, 0);
+            AddHtmlLocalized(175, 535, 200, 16, 1157159, false, false); // Toggle Gain Message
+            AddButton(160, 540, 2103, 2104, 501, GumpButtonType.Reply, 0);
         }
 
         public override void OnResponse(RelayInfo info)
@@ -90,6 +98,9 @@ namespace Server.Engines.CityLoyalty
             for (int i = 0; i < CityLoyaltySystem.Cities.Count; i++)
             {
                 CityLoyaltySystem city = CityLoyaltySystem.Cities[i];
+                if (city.Stone != null && city.Stone.Map != User.Map)
+                    continue;
+
 
                 if (city.CanUtilize && Citizenship == null && CityLoyaltySystem.CanAddCitizen(User))
                     AddButton(30, y + 3, 2103, 2104, 100 + i, GumpButtonType.Reply, 0);
@@ -105,7 +116,7 @@ namespace Server.Engines.CityLoyalty
 			AddHtmlLocalized(70, y, 250, 16, 1152883, false, false); // Citizenship:
 			AddHtmlLocalized(200, y, 100, 16, Citizenship != null ? CityLoyaltySystem.CityLocalization(Citizenship.City) : 1152884, false, false);
 			
-			y += 40;
+			y += 30;
 
             if (!CityLoyaltySystem.IsSetup())
             {
@@ -125,14 +136,14 @@ namespace Server.Engines.CityLoyalty
             {
                 if (CityLoyaltySystem.CanAddCitizen(User))
                 {
-                    AddHtmlLocalized(30, y, 280, 90, 1152885, false, false);
+                    AddHtmlLocalized(30, y, 280, 140, 1152885, false, false);
                     /*Click the gem next to the name of a city to declare your 
                      * citizenship. You may renounce citizenship, but afterwards
                      * you may not declare new citizenship for one week.*/
                 }
                 else
                 {
-                    AddHtmlLocalized(30, y, 285, 80, 1152886, CityLoyaltySystem.NextJoinCity(User).ToString(), 0, false, false);
+                    AddHtmlLocalized(30, y, 285, 130, 1152886, CityLoyaltySystem.NextJoinCity(User).ToString(), 0, false, false);
                     /*You recently renounced citizenship, so you must wait ~1_COUNT~ 
                      * more days before you may declare citizenship again.*/
                 }
@@ -184,8 +195,7 @@ namespace Server.Engines.CityLoyalty
             if (City == null)
                 return;
 
-            AddHtmlLocalized(30, 40, 285, 200, 1152891, String.Format("#{0}", CityLoyaltySystem.GetCityLocalization(City.City).ToString()), 1, false, true);
-            /*If you choose to declare citizenship with ~1_CITY~, you will be granted the "Citizen" title.
+AddHtmlLocalized(30, 40, 285, 230, 1152891, String.Format("#{0}", CityLoyaltySystem.GetCityLocalization(City.City).ToString()), 1, false, true);            /*If you choose to declare citizenship with ~1_CITY~, you will be granted the "Citizen" title.
              * If your loyalty rating to ~1_CITY~ is high enough, you will be able to receive titles with
              * that city.<br><br>You may only have citizenship in one city at a time. You may renounce 
              * citizenship at any time. After renouncing citizenship, you must wait one week before declaring 
@@ -193,11 +203,11 @@ namespace Server.Engines.CityLoyalty
              * and you will be required to donate funds to the city's coffers.<br><br>Are you sure you wish to
              * declare citizenship with ~1_CITY~?*/
 
-            AddHtmlLocalized(115, 280, 150, 16, 1152892, false, false); // Declare Citizenship
-            AddButton(100, 285, 2103, 2104, 1, GumpButtonType.Reply, 0);
+            AddHtmlLocalized(115, 420, 150, 16, 1152892, false, false); // Declare Citizenship
+            AddButton(100, 425, 2103, 2104, 1, GumpButtonType.Reply, 0);
 
-            AddHtmlLocalized(115, 300, 150, 16, 1152889, false, false); // Cancel
-            AddButton(100, 305, 2103, 2104, 2, GumpButtonType.Reply, 0);
+            AddHtmlLocalized(115, 440, 150, 16, 1152889, false, false); // Cancel
+            AddButton(100, 445, 2103, 2104, 2, GumpButtonType.Reply, 0);
         }
 
         public override void OnResponse(RelayInfo info)
