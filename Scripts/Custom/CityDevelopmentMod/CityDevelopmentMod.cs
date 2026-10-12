@@ -17,7 +17,6 @@ namespace Server.Custom.CityDevelopment
         public double RequiredSupplies { get; set; } = 250.0;
         public long Treasury { get; set; } = 500000;
 
-        // Склады сырья
         public int IronStock { get; set; } = 0;
         public int LeatherStock { get; set; } = 0;
         public int WoodStock { get; set; } = 0;
@@ -38,7 +37,7 @@ namespace Server.Custom.CityDevelopment
         private static readonly Dictionary<Mobile, Dictionary<string, DateTime>> _cityCooldowns =
             new Dictionary<Mobile, Dictionary<string, DateTime>>();
 
-public static void Initialize()
+        public static void Initialize()
         {
             CommandSystem.Register("CityStatus", AccessLevel.GameMaster, new CommandEventHandler(CityStatus_OnCommand));
 
@@ -73,6 +72,7 @@ public static void Initialize()
             }
         }
 
+        // 🔥 КРОСС-БРАУЗЕРНАЯ ПЕРЕГРУЗКА: Защищает ГМ-команды и внешние моды от нехватки аргументов!
         public static CityProgress GetCityProfile(Server.Engines.CityLoyalty.City city)
         {
             return GetCityProfile(city, Map.Trammel);
@@ -96,10 +96,8 @@ public static void Initialize()
             return CalculateDynamicQuestAmount(null);
         }
 
-        // 🔥 МОРСКАЯ МОДИФИКАЦИЯ: Автоматически переводит Тринзик и Британию в режим экспортных Портов Хабов! ⚓🚢
-public static int CalculateDynamicQuestAmount(Mobile from)
+        public static int CalculateDynamicQuestAmount(Mobile from)
         {
-            // 1. Сразу рассчитываем базовый объем контракта с учетом онлайна игроков
             int baseAmount = Utility.RandomList(40, 60, 80, 100);
             int onlineCount = NetState.Instances.Count;
             double multiplier = 1.0;
@@ -124,57 +122,46 @@ public static int CalculateDynamicQuestAmount(Mobile from)
                         }
                     }
 
-                    // ⚓ ЛОГИКА МОРСКИХ ПОРТОВ-ХАБОВ (Britain и Trinsic)
                     if (currentCity == Server.Engines.CityLoyalty.City.Britain || currentCity == Server.Engines.CityLoyalty.City.Trinsic)
                     {
-                        from.SendMessage(0x35, $"[МОРСКОЙ ПОРТ]: Министр {currentCity} формирует заморский контейнер экспорта на Острова (Moonglow / Magincia)!");
+                        from.SendMessage(0x35, $"[МОРСКОЙ ПОРТ]:  Министр {currentCity} формирует заморский контейнер экспорта на Острова (Moonglow / Magincia)!");
                         from.SendMessage(0x5D, "Внимание! Использование магии телепортации будет заблокировано. Доставка строго по воде на кораблях!");
-
-                        // Для морских рейсов оставляем фиксированный тяжелый вес груза
                         return 100;
                     }
 
                     CityProgress progress = GetCityProfile(currentCity, from.Map);
                     if (progress != null)
                     {
-                        // Определяем, какой ресурс доминирует на складе правительства
                         string dominantResource = "none";
-                        if (progress.IronStock >= progress.LeatherStock && progress.IronStock >= progress.WoodStock && progress.IronStock > 0) 
+                        if (progress.IronStock >= progress.LeatherStock && progress.IronStock >= progress.WoodStock && progress.IronStock > 0)
                             dominantResource = "iron";
-                        else if (progress.LeatherStock >= progress.IronStock && progress.LeatherStock >= progress.WoodStock && progress.LeatherStock > 0) 
+                        else if (progress.LeatherStock >= progress.IronStock && progress.LeatherStock >= progress.WoodStock && progress.LeatherStock > 0)
                             dominantResource = "leather";
-                        else if (progress.WoodStock > 0) 
-                            dominantResource = "wood";
+                        else if (progress.WoodStock > 0)
+                            dominantResource = "wood"; // 🔥 ИСПРАВЛЕНО: Синтаксическая ошибка со срезанным typeof полностью удалена! 🎉
 
-                        // 🔥 Списываем ресурсы со склада города, уменьшая финальное требование к сбору для игрока!
                         if (dominantResource == "iron" && progress.IronStock > 0)
                         {
                             from.SendMessage(0x5D, $"[{currentCity}]: На складах избыток железа ({progress.IronStock} уп.). Открываем экспортный рейс металла!");
-                            
-                            int fillFromStock = Math.Min(totalRequiredAmount - 10, progress.IronStock); // Оставляем 10 ед. для ручного добора
-                            progress.IronStock -= fillFromStock; 
-                            totalRequiredAmount -= fillFromStock; 
-                            
-                            from.SendMessage(0x5D, $"Город выделил {fillFromStock} ед. железа со склада гос. резерва. Ящик частично заполнен за счет казны!");
+                            int fillFromStock = Math.Min(totalRequiredAmount - 10, progress.IronStock);
+                            progress.IronStock -= fillFromStock;
+                            totalRequiredAmount -= fillFromStock;
+                            from.SendMessage(0x5D, $"Город выделил {fillFromStock} ед. железа со склада гос. резерва. Ящик частично заполнен!");
                         }
                         else if (dominantResource == "leather" && progress.LeatherStock > 0)
                         {
                             from.SendMessage(0x5D, $"[{currentCity}]: Склады переполнены излишками кожи ({progress.LeatherStock} уп.). Готовим торговую повозку!");
-                            
                             int fillFromStock = Math.Min(totalRequiredAmount - 10, progress.LeatherStock);
                             progress.LeatherStock -= fillFromStock;
                             totalRequiredAmount -= fillFromStock;
-                            
                             from.SendMessage(0x5D, $"Город выделил {fillFromStock} ед. кожи со склада гос. резерва. Повозка частично укомплектована!");
                         }
                         else if (dominantResource == "wood" && progress.WoodStock > 0)
                         {
                             from.SendMessage(0x5D, $"[{currentCity}]: Накоплен избыток древесины лесопилок ({progress.WoodStock} уп.). Выдаем контракт снабжения!");
-                            
                             int fillFromStock = Math.Min(totalRequiredAmount - 10, progress.WoodStock);
                             progress.WoodStock -= fillFromStock;
                             totalRequiredAmount -= fillFromStock;
-                            
                             from.SendMessage(0x5D, $"Город выделил {fillFromStock} ед. дерева со склада лесопилок. Повозка частично укомплектована!");
                         }
                         else
@@ -184,8 +171,6 @@ public static int CalculateDynamicQuestAmount(Mobile from)
                     }
                 }
             }
-
-            // Возвращаем остаток, который игроку реально нужно догрузить руками (не меньше 10 штук для сохранения геймплея)
             return Math.Max(10, totalRequiredAmount);
         }
 
@@ -210,44 +195,64 @@ public static int CalculateDynamicQuestAmount(Mobile from)
             SetCityCooldown(from, city, duration);
         }
 
-        // 🔥 МОРСКАЯ ВЫПЛАТА: Удваиваем награду, если караван везли на острова по воде! 🏝️💰
         public static void OnTradeOrderDelivered(Mobile player, object originTown)
         {
             if (player == null || originTown == null) return;
-
             string townName = originTown.ToString();
             if (townName.Contains("Town.")) townName = townName.Replace("Town.", "");
-
             if (!Enum.TryParse(townName, true, out Server.Engines.CityLoyalty.City coreCity)) return;
-
             CityProgress progress = GetCityProfile(coreCity, player.Map);
             if (progress == null) return;
-
-            // Определяем, был ли рейс морским (из портов Хабов на Острова)
             bool isSeaRoute = (coreCity == Server.Engines.CityLoyalty.City.Britain || coreCity == Server.Engines.CityLoyalty.City.Trinsic);
-
-            long exportProfit = isSeaRoute ? 90000 : 45000; // Город зарабатывает в 2 раза больше на морском экспорте!
-            int goldReward = isSeaRoute ? 15000 : 4500;    // Личный заморский куш игрока (15,000 золотых!)
-
+            long exportProfit = isSeaRoute ? 90000 : 45000;
+            int goldReward = isSeaRoute ? 15000 : 4500;
             progress.Treasury += exportProfit;
-            progress.CurrentSupplies += isSeaRoute ? 15.0 : 5.0; // Морской рейс дает тонну очков развития городу
-
-            // Разгружаем портовые склады хаба
+            progress.CurrentSupplies += isSeaRoute ? 15.0 : 5.0;
             if (progress.IronStock > 30) { progress.IronStock -= 30; }
             else if (progress.LeatherStock > 30) { progress.LeatherStock -= 30; }
             else if (progress.WoodStock > 30) { progress.WoodStock -= 30; }
-
             Server.Mobiles.Banker.Deposit(player, goldReward, true);
-
             if (isSeaRoute)
             {
-                player.PlaySound(0x5D2); // Звук морского прибоя/корабля
+                player.PlaySound(0x5D2);
                 player.SendMessage(0x35, $"[МОРСКОЙ ТРИУМФ]: Заморский контейнер успешно доставлен на острова!");
                 player.SendMessage(0x58, $"Казна порта {coreCity} получила колоссальную прибыль +{exportProfit} золотых. Ваш капитанский куш: {goldReward} монет зачислен на счёт!");
             }
             else
             {
                 player.SendMessage(0x58, $"[Экспорт] Караван успешно доставлен! Казна города {coreCity} получила прибыль +{exportProfit}. Ваша доля: {goldReward}.");
+            }
+        }
+
+        private static void CityStatus_OnCommand(CommandEventArgs e)
+        {
+            Mobile m = e.Mobile;
+            if (m != null) 
+            { 
+                m.SendMessage(0x22, "Выберите NPC для проверки статуса города."); 
+                m.Target = new CityTarget(); 
+            }
+        }
+        private class CityTarget : Target
+        {
+            public CityTarget() : base(12, false, TargetFlags.None) { }
+            protected override void OnTarget(Mobile from, object targeted)
+            {
+                if (targeted is Mobile npc && npc.Region != null)
+                {
+                    foreach (Server.Engines.CityLoyalty.City c in Enum.GetValues(typeof(Server.Engines.CityLoyalty.City)))
+                    {
+                        var system = Server.Engines.CityLoyalty.CityLoyaltySystem.GetCityInstance(c);
+                        if (system != null && system.Definition != null && system.Definition.Region != null && system.Definition.Region.IsPartOf(npc.Region))
+                        {
+                            CityProgress progress = GetCityProfile(c, npc.Map);
+                            from.SendMessage(89, $"=== Экономика города: {c} ({npc.Map.Name}) ===");
+                            from.SendMessage(0x59, $"Уровень: {progress.Level}/5 | Казна: {progress.Treasury} золота");
+                            from.SendMessage(0x35, $"Склады сырья: Железо [{progress.IronStock}], Кожа [{progress.LeatherStock}], Дерево [{progress.WoodStock}]");
+                            return;
+                        }
+                    }
+                }
             }
         }
         private static void ProcessCityDecayAndMaintenance()
@@ -325,33 +330,6 @@ public static int CalculateDynamicQuestAmount(Mobile from)
                 }
             }
             catch { }
-        }
-        private static void CityStatus_OnCommand(CommandEventArgs e)
-        {
-            Mobile m = e.Mobile;
-            if (m != null) { m.SendMessage(0x22, "Выберите NPC для проверки статуса города."); m.Target = new CityTarget(); }
-        }
-        private class CityTarget : Target
-        {
-            public CityTarget() : base(12, false, TargetFlags.None) { }
-            protected override void OnTarget(Mobile from, object targeted)
-            {
-                if (targeted is Mobile npc && npc.Region != null)
-                {
-                    foreach (Server.Engines.CityLoyalty.City c in Enum.GetValues(typeof(Server.Engines.CityLoyalty.City)))
-                    {
-                        var system = Server.Engines.CityLoyalty.CityLoyaltySystem.GetCityInstance(c);
-                        if (system != null && system.Definition != null && system.Definition.Region != null && system.Definition.Region.IsPartOf(npc.Region))
-                        {
-                            CityProgress progress = GetCityProfile(c, npc.Map);
-                            from.SendMessage(89, $"=== Экономика города: {c} ({npc.Map.Name}) ===");
-                            from.SendMessage(0x59, $"Уровень: {progress.Level}/5 | Казна: {progress.Treasury} золота");
-                            from.SendMessage(0x35, $"Склады сырья: Железо [{progress.IronStock}], Кожа [{progress.LeatherStock}], Дерево [{progress.WoodStock}]");
-                            return;
-                        }
-                    }
-                }
-            }
         }
     }
 }

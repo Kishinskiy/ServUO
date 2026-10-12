@@ -13,7 +13,6 @@ using Server.Engines.XmlSpawner2;
 
 namespace Server.Custom.BuccaneersDen
 {
-    // 🔥 NPC: СКУПЩИК КОНТРАБАНДЫ И ДИВЕРСАНТ (Smuggler)
     public class Smuggler : BaseCreature
     {
         public override bool IsInvulnerable => true;
@@ -98,7 +97,6 @@ namespace Server.Custom.BuccaneersDen
 
                     string typeName = item.GetType().Name.ToLower();
 
-                    // 🏴‍☠️ СЦЕНАРИЙ А: Сдача ворованного фракционного каравана (Грабёж)
                     if (typeName.Contains("tradeordercrate") || typeName.Contains("crate"))
                     {
                         item.Delete(); 
@@ -108,7 +106,6 @@ namespace Server.Custom.BuccaneersDen
                         from.PlaySound(0x57);
                         m_Smuggler.PublicOverheadMessage(MessageType.Regular, 0x22, false, "Ха-ха! Свежая контрабанда из имперских портов! Вот твоё золото!");
 
-                        // 30% Шанс перехватить патент при ограблении каравана
                         if (Utility.RandomDouble() < 0.30)
                         {
                             Item hijackedBOD = new Server.Engines.BulkOrders.LargeSmithBOD();
@@ -118,7 +115,6 @@ namespace Server.Custom.BuccaneersDen
                         return;
                     }
 
-                    // 🔮 СЦЕНАРИЙ Б: Продажа проклятого Diablo-лута
                     var curse = XmlAttach.FindAttachment(item, typeof(XmlCurseAttribute)) as XmlCurseAttribute;
                     if (curse != null)
                     {
@@ -131,8 +127,6 @@ namespace Server.Custom.BuccaneersDen
                         return;
                     }
 
-                    // ⚔️ СЦЕНАРИЙ В: ТВОЁ ТЗ — СДАЧА ЛЮБОГО ВАНИЛЬНОГО, КУПЛЕННОГО ИЛИ УКРАДЕННОГО ЧЕРЕЗ STEALING BOD-КОНТРАКТА!
-                    // 🔥 ИСПРАВЛЕНО: Проверка переведена на универсальный и неуязвимый строковый парсер во избежание конфликтов классов! 🎉⚙️
                     if (typeName.Contains("deed") && (typeName.Contains("smith") || typeName.Contains("tailor") || typeName.Contains("bulk") || typeName.Contains("order")))
                     {
                         Server.Engines.CityLoyalty.City targetCity = Utility.RandomDouble() < 0.50 ? Server.Engines.CityLoyalty.City.Britain : Server.Engines.CityLoyalty.City.Trinsic;
@@ -142,7 +136,7 @@ namespace Server.Custom.BuccaneersDen
                         {
                             progress.IronStock = Math.Max(0, progress.IronStock - 35);
                             progress.WoodStock = Math.Max(0, progress.WoodStock - 35);
-                            progress.Treasury = Math.Max(0, progress.Treasury - 30000); // Выкачиваем 30к из бюджета города!
+                            progress.Treasury = Math.Max(0, progress.Treasury - 30000); 
                         }
 
                         item.Delete();
