@@ -18,18 +18,17 @@ namespace Server.Custom.EpicPartyBuffs
 
         private static void ProcessPartyRadar()
         {
-            // Перебираем всех живых игроков на сервере
             foreach (Mobile m in World.Mobiles.Values)
             {
                 if (m is PlayerMobile pm && pm.Alive && !pm.Deleted && pm.NetState != null)
                 {
                     Party party = Party.Get(pm);
-                    if (party == null) continue; // Игрок одиночка — пропускаем
+                    if (party == null) continue; // Пропускаем одиночек
 
-                    // Проверяем состав отряда на наличие Эпиков в радиусе видимости
                     bool hasAvatarInParty = false;
                     bool hasMondainInParty = false;
 
+                    // Сканируем состав отряда в радиусе действия аур (12 клеток)
                     foreach (PartyMemberInfo info in party.Members)
                     {
                         Mobile member = info.Mobile;
@@ -41,7 +40,7 @@ namespace Server.Custom.EpicPartyBuffs
                         }
                     }
 
-                    // Накладываем баффы Полубогов в зависимости от состава отряда! 🎉⚙️🪓
+                    // Накладываем динамические бонусы на участников рейда
                     ApplyDynamicPartyBonus(pm, hasAvatarInParty, hasMondainInParty);
                 }
             }
@@ -51,40 +50,49 @@ namespace Server.Custom.EpicPartyBuffs
         {
             if (!hasAvatar && !hasMondain) return;
 
-            // Считываем профильные навыки игрока для определения баффа класса
+            // Считываем профильные навыки игрока для определения его класса в отряде
             double magery = pm.Skills[SkillName.Magery].Value;
-            double chivalry = pm.Skills[SkillName.Blacksmith].Value; // Наша кузня/паладинство ядра
+            double chivalry = pm.Skills[SkillName.Blacksmith].Value; // Кузня/паладинство ядра
             double necro = pm.Skills[SkillName.Necromancy].Value;
             double ninjitsu = pm.Skills[SkillName.Ninjitsu].Value;
 
-            // СЦЕНАРИЙ 1: ВЕЛИКОЕ СМЕШАННОЕ РАВНОВЕСИЕ (Оба Эпика в одной Party!) ⚖️🌋💎
+            // 🔥 ИСПРАВЛЕНО: ЕДИНСТВЕННЫЙ АВАТАР И ЕДИНСТВЕННЫЙ МОНДЕЙН В ОДНОЙ PARTY ⚖️🌋
+            // Включается ультимативный синергетический резонанс для всего отряда из 10 человек!
             if (hasAvatar && hasMondain)
             {
-                pm.SendMessage(0x58, "[Резонанс]: Вы ощущаете Божественное Единство Света и Тьмы! Все ваши капы регенерации повышены!");
-                pm.Hits += 3; // Пассивный отхил отряда в катаклизме
-                pm.Stam += 5;
+                pm.SendMessage(0x58, "[Резонанс]: Вы находитесь в отряде Великого Равновесия! Силы Аватара и Мондейна дают вам пассивный отхил и выносливость!");
+                
+                // Перекрестный бафф регенерации Полубогов для всех 8 участников рейда
+                pm.Hits = Math.Min(pm.HitsMax, pm.Hits + 3); 
+                pm.Stam = Math.Min(pm.StamMax, pm.Stam + 5);
+                
+                // Маги и Ассасины в смешанной пати получают оба класса усилений одновременно!
+                if (magery >= 80.0)
+                    pm.SendMessage(0x35, "[Резонанс Света]: Магия Архимага усилена на +15% SDI!");
+                if (necro >= 80.0)
+                    pm.SendMessage(0x22, "[Резонанс Тьмы]: Призыв Магистра Некромантии усилен на +20% урона!");
+                
                 return;
             }
 
-            // СЦЕНАРИЙ 2: В отряде только Аватар Света 😇
+            // Если в отряде присутствует только Аватар Света 😇
             if (hasAvatar)
             {
                 if (magery >= 80.0)
                 {
                     pm.SendMessage(0x35, "[Аура Аватара]: Ваши заклинания Света усилены на +15% SDI!");
-                    // SDI нативно подхватится через виртуальный модификатор урона
                 }
                 else if (chivalry >= 60.0)
                 {
-                    pm.SendMessage(0x35, "[Аура Аватара]: Священная ярость наполняет клинок! +10 HCI.");
+                    pm.SendMessage(0x35, "[Аура Аватара]: Священная ярость паладина наносит повышенный урон! +10 HCI.");
                 }
                 else
                 {
-                    pm.Hits = Math.Min(pm.HitsMax, pm.Hits + 2); // Мягкий подхил универсалов
+                    pm.Hits = Math.Min(pm.HitsMax, pm.Hits + 2); // Пассивное исцеление Света для остальных членов пати
                 }
             }
 
-            // СЦЕНАРИЙ 3: В отряде только Рука Мондейна 💀
+            // Если в отряде присутствует только Рука Мондейна 💀
             if (hasMondain)
             {
                 if (necro >= 80.0)
@@ -97,7 +105,7 @@ namespace Server.Custom.EpicPartyBuffs
                 }
                 else
                 {
-                    pm.Stam = Math.Min(pm.StamMax, pm.Stam + 4); // Буст стамины для темного марш-броска
+                    pm.Stam = Math.Min(pm.StamMax, pm.Stam + 4); // Буст выносливости Тьмы для остальных членов пати
                 }
             }
         }
