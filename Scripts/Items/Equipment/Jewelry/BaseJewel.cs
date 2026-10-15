@@ -645,6 +645,23 @@ namespace Server.Items
                         HitPoints = 0;
                     }
 
+                    if (m_HitPoints <= 0)
+                    {
+                        m_HitPoints = 0; // Фиксируем ноль
+
+                        if (Parent is Mobile)
+                        {
+                            Mobile wearer = (Mobile)Parent;
+                            wearer.PlaySound(0x4A); // Звук рвущейся экипировки
+                            wearer.SendMessage(0x22, $"Ваше украшение '{this.Name ?? this.GetType().Name}' полностью износилось! Она спала с вас и упала в рюкзак.");
+                            
+                            // Снимаем предмет со слота одежды и переносим в сумку
+                            wearer.RemoveItem(this);
+                            wearer.AddToBackpack(this);
+                        }
+                        return damageTaken;
+                    }
+
                     if (wear > 0)
                     {
                         if (m_MaxHitPoints > wear)

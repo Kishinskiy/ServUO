@@ -2633,6 +2633,23 @@ namespace Server.Items
                             HitPoints = 0;
                         }
 
+                        if (m_HitPoints <= 0)
+                        {
+                            m_HitPoints = 0; // Жестко фиксируем ноль прочности
+
+                            if (Parent is Mobile)
+                            {
+                                Mobile wearer = (Mobile)Parent;
+                                wearer.PlaySound(0x3B); // Каноничный звук ломающегося железа
+                                wearer.SendMessage(0x22, $"Ваш доспех/щит '{this.Name ?? this.GetType().Name}' полностью сломался! Он потерял защитные свойства и упал в рюкзак.");
+                                
+                                // Снимаем предмет со слота экипировки и кидаем в сумку
+                                wearer.RemoveItem(this);
+                                wearer.AddToBackpack(this);
+                            }
+                            return damageTaken;
+                        }
+
                         if (wear > 0)
                         {
                             if (m_MaxHitPoints > wear)
