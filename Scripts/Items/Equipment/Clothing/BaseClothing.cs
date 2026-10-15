@@ -470,6 +470,12 @@ namespace Server.Items
 
         public override bool CanEquip(Mobile from)
         {
+            if (m_HitPoints <= 0 && m_MaxHitPoints > 0)
+            {
+                from.SendMessage(0x22, "Эта одежда или плащ полностью изношены! Вы не можете надеть их без предварительного ремонта у Портного.");
+                return false;
+            }
+            
             if (!Ethics.Ethic.CheckEquip(from, this))
                 return false;
 

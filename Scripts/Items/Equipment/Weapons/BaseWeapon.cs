@@ -1036,6 +1036,12 @@ namespace Server.Items
 
 		public override bool CanEquip(Mobile from)
 		{
+			if (m_Hits <= 0 && m_MaxHits > 0)
+            {
+                from.SendMessage(0x22, "Этот предмет полностью сломан! Вы не можете экипировать его, пока Грандмастер не восстановит его прочность.");
+                return false;
+            }
+			
 			if (!Ethic.CheckEquip(from, this))
 			{
 				return false;
@@ -2356,6 +2362,9 @@ namespace Server.Items
 										// Принудительно разэкипируем пуху и переносим в бэкпак игрока
 										wielder.RemoveItem(this);
 										wielder.AddToBackpack(this);
+
+										wielder.UpdateTotals();
+                                    	wielder.Delta(MobileDelta.WeaponDamage | MobileDelta.Attributes);
 									}
 									return;
 								}

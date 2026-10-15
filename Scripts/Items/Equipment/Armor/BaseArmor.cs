@@ -2415,6 +2415,12 @@ namespace Server.Items
 
         public override bool CanEquip(Mobile from)
         {
+            if (m_HitPoints <= 0 && m_MaxHitPoints > 0)
+            {
+                from.SendMessage(0x22, "Этот элемент брони или щит полностью разрушен! Вы не можете экипировать его, пока Грандмастер не починит его.");
+                return false;
+            }
+            
             if (!Ethics.Ethic.CheckEquip(from, this))
                 return false;
 

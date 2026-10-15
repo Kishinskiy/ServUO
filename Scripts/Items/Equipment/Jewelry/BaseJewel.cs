@@ -560,6 +560,12 @@ namespace Server.Items
         #region Stygian Abyss
         public override bool CanEquip(Mobile from)
         {
+            if (m_HitPoints <= 0 && m_MaxHitPoints > 0)
+            {
+                from.SendMessage(0x22, "Это украшение полностью истощено и треснуло! Алхимик должен перезарядить его структуру, прежде чем вы сможете его надеть.");
+                return false;
+            }
+
             if (BlessedBy != null && BlessedBy != from)
             {
                 from.SendLocalizedMessage(1075277); // That item is blessed by another player.
