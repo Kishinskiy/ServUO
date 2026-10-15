@@ -6,6 +6,7 @@ using Server.Mobiles;
 using Server.Targeting;
 using Server.Engines.XmlSpawner2;
 using Server.Custom.DiabloLoot;
+using Server.Custom.VoidCraft;
 
 namespace Server.Custom.CurseSystem
 {
@@ -181,12 +182,7 @@ namespace Server.Custom.CurseSystem
                         item.InvalidateProperties();
                         
                         // Извлекаем остаток проклятия и выдаем магу Осколок Скверны
-                        Item curseResource = new Item(0x573A) 
-                        { 
-                            Name = "Осколок Скверны [Редкий Магический Ресурс]", 
-                            Hue = 1175, 
-                            Weight = 0.1 
-                        };
+                        Item curseResource = new CurseShardCraftable(); 
                         from.AddToBackpack(curseResource);
 
                         // Звук зловещего некромантского поглощения магии и спецэффект вспышки
