@@ -36,12 +36,10 @@ namespace Server.Custom.CurseSystem
         {
             Name = "CurseAttribute";
             m_IsIdentified = false;
-            // Значения по умолчанию (если предмет заспавнен ГМ-командой вручную вне миров)
             m_HpPenalty = 10;   
             m_ManaPenalty = 10; 
         }
 
-        // Вычисляем динамическую сложность Item ID на основе Diablo-рангов лута
         public double GetRequiredSkill(Item attachedItem)
         {
             if (attachedItem == null) return 50.0;
@@ -60,14 +58,11 @@ namespace Server.Custom.CurseSystem
             return Math.Max(40.0, Math.Min(120.0, baseDifficulty));
         }
 
-        // Нативный метод: Объект from передается ядром автоматически при экипировке! 🛡️
         public override void OnEquip(Mobile from)
         {
             if (from == null) return;
 
             m_CurrentEquipped = from;
-            
-            // Чтобы имя мода было уникальным, используем хэш-код текущего аттачмента
             string modName = "CurseMod_" + this.GetHashCode();
 
             from.AddStatMod(new StatMod(StatType.Str, modName + "_hp", -m_HpPenalty, TimeSpan.Zero));
@@ -78,7 +73,6 @@ namespace Server.Custom.CurseSystem
             from.Mana = Math.Min(from.Mana, from.ManaMax);
         }
 
-        // Нативный метод: Объект parent (сама вещь) передается ядром автоматически при декипировке/удалении! 🛡️
         public override void OnRemoved(object parent)
         {
             if (m_CurrentEquipped != null)
@@ -90,7 +84,6 @@ namespace Server.Custom.CurseSystem
             }
         }
 
-        // Нативный перехватчик тултипа Xml-аттачментов в ServUO 🎉
         public override string OnIdentify(Mobile from)
         {
             if (m_IsIdentified)
@@ -120,7 +113,7 @@ namespace Server.Custom.CurseSystem
         }
     }
 
-    // Свиток мага для дешифровки и очищения
+    // 📜 Свиток мага для дешифровки и очищения
     public class MageIdCurseScroll : Item
     {
         [Constructable]
@@ -163,7 +156,6 @@ namespace Server.Custom.CurseSystem
                         return;
                     }
 
-                    // Передаем саму вещь в калькулятор сложности напрямую! 📊
                     double neededSkill = curse.GetRequiredSkill(item);
                     double currentSkill = from.Skills[SkillName.ItemID].Value;
 
@@ -183,13 +175,25 @@ namespace Server.Custom.CurseSystem
                     }
                     else
                     {
-                        // Полное очищение вещи и удаление аттачмента порчи
+                        // --- 🔥 ВЫСШИЙ РИТУАЛ ЭКЗОРЦИЗМА С МАТЕРИАЛИЗАЦИЕЙ СКВЕРНЫ! 🎉✂️🪙 ---
                         curse.OnRemoved(item); 
                         curse.Delete(); 
                         item.InvalidateProperties();
                         
-                        from.PlaySound(0x5C3); 
-                        from.SendMessage(0x58, $"Высший ритуал Экзорцизма (Сложность: {neededSkill:F1}) завершен! Легендарное проклятие выжжено.");
+                        // Извлекаем остаток проклятия и выдаем магу Осколок Скверны
+                        Item curseResource = new Item(0x573A) 
+                        { 
+                            Name = "Осколок Скверны [Редкий Магический Ресурс]", 
+                            Hue = 1175, 
+                            Weight = 0.1 
+                        };
+                        from.AddToBackpack(curseResource);
+
+                        // Звук зловещего некромантского поглощения магии и спецэффект вспышки
+                        from.PlaySound(0x1F8); 
+                        Effects.SendLocationParticles(EffectItem.Create(item.Location, item.Map, TimeSpan.FromSeconds(1.0)), 0x3709, 10, 20, 1175, 0, 5004, 0);
+
+                        from.SendMessage(0x58, $"Высший ритуал Экзорцизма (Сложность: {neededSkill:F1}) завершен! Легендарное проклятие выжжено и материализовано в Осколок Скверны в вашем рюкзаке.");
                         m_Scroll.Delete(); 
                     }
                 }
