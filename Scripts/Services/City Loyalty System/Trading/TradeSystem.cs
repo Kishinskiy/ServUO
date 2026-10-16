@@ -129,7 +129,7 @@ namespace Server.Engines.CityLoyalty
                     if (t != null)
                     {
                         // Вызываем ваш динамический метод расчета из кастомного мода (Файл 5)
-                        int amount = Server.Custom.CityDevelopment.CityDevelopmentMod.CalculateDynamicQuestAmount(from);
+                        int amount = Server.Custom.CityDevelopment.CityDevelopmentMod.CalculateTradeOrderAmount(from);
                         if (amount <= 0)
                         {
                             crate.Delete();
@@ -149,8 +149,10 @@ namespace Server.Engines.CityLoyalty
                 {
                     crate.Delete();
                     from.SendLocalizedMessage(114456); // Your backpack cannot hold the Trade Order.  Free up space and speak to the Trade Minister again.
+                    return false;
                 }
 
+                Server.Custom.CityDevelopment.CityDevelopmentMod.FillTradeOrderFromWarehouse(crate, crate.WarehouseMap);
                 ActiveTrades[from] = crate;
 
                 // ВСТАВКА МОДА: Блокируем ТОЛЬКО город-отправитель (origin) на 60 минут
@@ -276,7 +278,9 @@ namespace Server.Engines.CityLoyalty
                         if (i < crate.Items.Count && crate.Items[i] != null)
                         {
                             Item itemToDrop = crate.Items[i];
-                            if (from.Backpack != null)
+                            if (crate.IsWarehouseItem(itemToDrop))
+                                Server.Custom.CityDevelopment.CityDevelopmentMod.ReturnWarehouseCargo(crate, itemToDrop, crate.WarehouseMap);
+                            else if (from.Backpack != null)
                                 from.Backpack.DropItem(itemToDrop);
                             else
                                 itemToDrop.MoveToWorld(from.Location, from.Map);

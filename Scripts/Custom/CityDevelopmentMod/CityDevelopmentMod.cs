@@ -7,6 +7,7 @@ using Server.Mobiles;
 using Server.Commands;
 using Server.Targeting;
 using Server.Network;
+using Server.Items;
 using Server.Custom.EpicBalance; // Подключаем калькулятор баланса сил Полубогов! 🎉
 
 namespace Server.Custom.CityDevelopment
@@ -21,11 +22,14 @@ namespace Server.Custom.CityDevelopment
         public int IronStock { get; set; } = 0;
         public int LeatherStock { get; set; } = 0;
         public int WoodStock { get; set; } = 0;
+        public int EquipmentStock { get; set; } = 0;
+        public int AmmunitionStock { get; set; } = 0;
+        public int ProvisionsStock { get; set; } = 0;
     }
 
     public static class CityDevelopmentMod
     {
-        public static readonly int DatabaseVersion = 3;
+        public static readonly int DatabaseVersion = 4;
         public static readonly int DevelopmentChance = 100;
 
         public static readonly long BaseMaintenanceCost = 100000;
@@ -91,6 +95,26 @@ namespace Server.Custom.CityDevelopment
             return progress;
         }
 
+        public static double GetCraftingChanceBonus(Mobile mobile)
+        {
+            if (mobile == null || mobile.Region == null || mobile.Map == null || mobile.Map == Map.Internal)
+                return 0.0;
+
+            foreach (Server.Engines.CityLoyalty.City city in Enum.GetValues(typeof(Server.Engines.CityLoyalty.City)))
+            {
+                Server.Engines.CityLoyalty.CityLoyaltySystem instance =
+                    Server.Engines.CityLoyalty.CityLoyaltySystem.GetCityInstance(city);
+
+                if (instance?.Definition?.Region != null && instance.Definition.Region.IsPartOf(mobile.Region))
+                {
+                    CityProgress progress = GetCityProfile(city, mobile.Map);
+                    return Math.Max(0, Math.Min(4, progress.Level - 1)) * 0.02;
+                }
+            }
+
+            return 0.0;
+        }
+
         public static int CalculateDynamicQuestAmount()
         {
             return CalculateDynamicQuestAmount(null);
@@ -98,79 +122,132 @@ namespace Server.Custom.CityDevelopment
 
         public static int CalculateDynamicQuestAmount(Mobile from)
         {
-            int baseAmount = Utility.RandomList(40, 60, 80, 100);
-            int onlineCount = NetState.Instances.Count;
-            double multiplier = 1.0;
-            if (onlineCount > 10) multiplier += (onlineCount - 10) * 0.02;
-            int totalRequiredAmount = (int)(baseAmount * Math.Min(5.0, multiplier));
+            return CalculateTradeOrderAmount(from);
+        }
 
+        public static int CalculateTradeOrderAmount(Mobile from)
+        {
             if (from != null && from.Alive && from.AccessLevel == AccessLevel.Player)
             {
-                var minister = from.GetMobilesInRange(5).OfType<Server.Engines.CityLoyalty.TradeMinister>().FirstOrDefault();
+                Server.Engines.CityLoyalty.TradeMinister minister =
+                    from.GetMobilesInRange(5).OfType<Server.Engines.CityLoyalty.TradeMinister>().FirstOrDefault();
+
                 if (minister != null)
                 {
-                    Server.Engines.CityLoyalty.City currentCity = minister.City;
-                    string cooldownKey = $"{currentCity}_{from.Map.Name}";
-
-                    if (_cityCooldowns.TryGetValue(from, out var playerCooldowns))
+                    string cooldownKey = $"{minister.City}_{from.Map.Name}";
+                    if (_cityCooldowns.TryGetValue(from, out Dictionary<string, DateTime> cooldowns) &&
+                        cooldowns.TryGetValue(cooldownKey, out DateTime expiry) && expiry > DateTime.UtcNow)
                     {
-                        if (playerCooldowns.TryGetValue(cooldownKey, out DateTime expiry) && expiry > DateTime.UtcNow)
-                        {
-                            from.SendMessage(0x22, $"Гильдия купцов {currentCity} еще не подготовила контракты.");
-                            return 0;
-                        }
+                        from.SendMessage(0x22, $"Гильдия купцов {minister.City} еще не подготовила контракты.");
+                        return 0;
                     }
 
-                    if (currentCity == Server.Engines.CityLoyalty.City.Britain || currentCity == Server.Engines.CityLoyalty.City.Trinsic)
+                    if (minister.City == Server.Engines.CityLoyalty.City.Britain ||
+                        minister.City == Server.Engines.CityLoyalty.City.Trinsic)
                     {
-                        from.SendMessage(0x35, $"[МОРСКОЙ ПОРТ]:  Министр {currentCity} формирует заморский контейнер экспорта на Острова (Moonglow / Magincia)!");
-                        from.SendMessage(0x5D, "Внимание! Использование магии телепортации будет заблокировано. Доставка строго по воде на кораблях!");
+                        from.SendMessage(0x35, $"[МОРСКОЙ ПОРТ]: Министр {minister.City} готовит заморский торговый рейс.");
+                        from.SendMessage(0x5D, "Использование магии телепортации будет заблокировано. Доставка строго по воде на кораблях!");
                         return 100;
-                    }
-
-                    CityProgress progress = GetCityProfile(currentCity, from.Map);
-                    if (progress != null)
-                    {
-                        string dominantResource = "none";
-                        if (progress.IronStock >= progress.LeatherStock && progress.IronStock >= progress.WoodStock && progress.IronStock > 0)
-                            dominantResource = "iron";
-                        else if (progress.LeatherStock >= progress.IronStock && progress.LeatherStock >= progress.WoodStock && progress.LeatherStock > 0)
-                            dominantResource = "leather";
-                        else if (progress.WoodStock > 0)
-                            dominantResource = "wood";
-
-                        if (dominantResource == "iron" && progress.IronStock > 0)
-                        {
-                            from.SendMessage(0x5D, $"[{currentCity}]: На складах избыток железа ({progress.IronStock} уп.). Открываем экспортный рейс металла!");
-                            int fillFromStock = Math.Min(totalRequiredAmount - 10, progress.IronStock);
-                            progress.IronStock -= fillFromStock;
-                            totalRequiredAmount -= fillFromStock;
-                            from.SendMessage(0x5D, $"Город выделил {fillFromStock} ед. железа со склада гос. резерва. Ящик частично заполнен!");
-                        }
-                        else if (dominantResource == "leather" && progress.LeatherStock > 0)
-                        {
-                            from.SendMessage(0x5D, $"[{currentCity}]: Склады переполнены излишками кожи ({progress.LeatherStock} уп.). Готовим торговую повозку!");
-                            int fillFromStock = Math.Min(totalRequiredAmount - 10, progress.LeatherStock);
-                            progress.LeatherStock -= fillFromStock;
-                            totalRequiredAmount -= fillFromStock;
-                            from.SendMessage(0x5D, $"Город выделил {fillFromStock} ед. кожи со склада гос. резерва. Повозка частично укомплектована!");
-                        }
-                        else if (dominantResource == "wood" && progress.WoodStock > 0)
-                        {
-                            from.SendMessage(0x5D, $"[{currentCity}]: Накоплен избыток древесины лесопилок ({progress.WoodStock} уп.). Выдаем контракт снабжения!");
-                            int fillFromStock = Math.Min(totalRequiredAmount - 10, progress.WoodStock);
-                            progress.WoodStock -= fillFromStock;
-                            totalRequiredAmount -= fillFromStock;
-                            from.SendMessage(0x5D, $"Город выделил {fillFromStock} ед. дерева со склада лесопилок. Повозка частично укомплектована!");
-                        }
-                        else
-                        {
-                            from.SendMessage(0x22, $"[{currentCity}]: Наши государственные склады пусты! Вам придется собрать весь объем припасов вручную.");
-                        }
                     }
                 }
             }
-            return Math.Max(10, totalRequiredAmount);
+
+            int baseAmount = Utility.RandomList(40, 60, 80, 100);
+            int onlineCount = NetState.Instances.Count;
+            double multiplier = onlineCount > 10 ? 1.0 + (onlineCount - 10) * 0.02 : 1.0;
+            return (int)(baseAmount * Math.Min(5.0, multiplier));
+        }
+
+        public static void FillTradeOrderFromWarehouse(Server.Engines.CityLoyalty.TradeOrderCrate crate, Map map)
+        {
+            if (crate == null || crate.Deleted || crate.Entry == null)
+                return;
+
+            CityProgress progress = GetCityProfile(crate.Entry.Origin, map);
+            bool filled = false;
+
+            foreach (Server.Engines.CityLoyalty.TradeEntry.TradeDetails detail in crate.Entry.Details)
+            {
+                int available = GetMatchingStock(progress, detail.ItemType);
+                if (available <= 0)
+                    continue;
+
+                int amountToFill = Math.Min(available, detail.Amount);
+                int filledAmount = 0;
+
+                while (filledAmount < amountToFill)
+                {
+                    if (crate.Items.Count >= crate.DefaultMaxItems)
+                        break;
+
+                    Item item = Loot.Construct(detail.ItemType);
+                    if (item == null)
+                    {
+                        Console.WriteLine($"[CityDevelopment] Could not create warehouse goods of type {detail.ItemType}.");
+                        break;
+                    }
+
+                    if (item.Stackable)
+                    {
+                        item.Amount = amountToFill - filledAmount;
+                        crate.AddWarehouseItem(item);
+                        filledAmount = amountToFill;
+                    }
+                    else
+                    {
+                        item.Amount = 1;
+                        crate.AddWarehouseItem(item);
+                        filledAmount++;
+                    }
+                }
+
+                if (filledAmount > 0)
+                {
+                    SetMatchingStock(progress, detail.ItemType, available - filledAmount);
+                    filled = true;
+                }
+            }
+
+            if (filled && crate.Owner != null)
+                crate.Owner.SendMessage(0x35, "Торговый министр вложил в коробку доступные товары со склада города.");
+        }
+
+        private static int GetMatchingStock(CityProgress progress, Type type)
+        {
+            if (progress == null || type == null)
+                return 0;
+
+            if (typeof(BaseIngot).IsAssignableFrom(type)) return progress.IronStock;
+            if (typeof(BaseLeather).IsAssignableFrom(type) || typeof(BaseHides).IsAssignableFrom(type)) return progress.LeatherStock;
+            if (typeof(BaseWoodBoard).IsAssignableFrom(type) || typeof(BaseLog).IsAssignableFrom(type)) return progress.WoodStock;
+            if (typeof(BaseWeapon).IsAssignableFrom(type) || typeof(BaseArmor).IsAssignableFrom(type) || typeof(BaseClothing).IsAssignableFrom(type)) return progress.EquipmentStock;
+            if (typeof(Arrow).IsAssignableFrom(type) || typeof(Bolt).IsAssignableFrom(type)) return progress.AmmunitionStock;
+            if (typeof(Bandage).IsAssignableFrom(type) || typeof(Food).IsAssignableFrom(type)) return progress.ProvisionsStock;
+            return 0;
+        }
+
+        private static void SetMatchingStock(CityProgress progress, Type type, int value)
+        {
+            if (progress == null || type == null)
+                return;
+
+            if (typeof(BaseIngot).IsAssignableFrom(type)) progress.IronStock = value;
+            else if (typeof(BaseLeather).IsAssignableFrom(type) || typeof(BaseHides).IsAssignableFrom(type)) progress.LeatherStock = value;
+            else if (typeof(BaseWoodBoard).IsAssignableFrom(type) || typeof(BaseLog).IsAssignableFrom(type)) progress.WoodStock = value;
+            else if (typeof(BaseWeapon).IsAssignableFrom(type) || typeof(BaseArmor).IsAssignableFrom(type) || typeof(BaseClothing).IsAssignableFrom(type)) progress.EquipmentStock = value;
+            else if (typeof(Arrow).IsAssignableFrom(type) || typeof(Bolt).IsAssignableFrom(type)) progress.AmmunitionStock = value;
+            else if (typeof(Bandage).IsAssignableFrom(type) || typeof(Food).IsAssignableFrom(type)) progress.ProvisionsStock = value;
+        }
+
+        public static void ReturnWarehouseCargo(Server.Engines.CityLoyalty.TradeOrderCrate crate, Item item, Map map)
+        {
+            if (crate?.Entry == null || item == null || item.Deleted || !crate.IsWarehouseItem(item))
+                return;
+
+            CityProgress progress = GetCityProfile(crate.Entry.Origin, map);
+            int amount = item.Stackable ? item.Amount : 1;
+            SetMatchingStock(progress, item.GetType(), GetMatchingStock(progress, item.GetType()) + amount);
+            item.Delete();
         }
 
         public static void SetCityCooldown(Mobile from, Server.Engines.CityLoyalty.City city, TimeSpan duration)
@@ -229,9 +306,6 @@ namespace Server.Custom.CityDevelopment
             {
                 World.Broadcast(0x35, true, $"[Развитие городов] Город {coreCity} достиг {progress.Level} уровня благодаря успешным поставкам!");
             }
-            if (progress.IronStock > 30) { progress.IronStock -= 30; }
-            else if (progress.LeatherStock > 30) { progress.LeatherStock -= 30; }
-            else if (progress.WoodStock > 30) { progress.WoodStock -= 30; }
             Server.Mobiles.Banker.Deposit(player, goldReward, true);
             if (isSeaRoute)
             {
@@ -306,7 +380,7 @@ namespace Server.Custom.CityDevelopment
                             CityProgress progress = GetCityProfile(c, npc.Map);
                             from.SendMessage(89, $"=== Экономика города: {c} ({npc.Map.Name}) ===");
                             from.SendMessage(0x59, $"Уровень: {progress.Level}/5 | Казна: {progress.Treasury} золота");
-                            from.SendMessage(0x35, $"Склады сырья: Железо [{progress.IronStock}], Кожа [{progress.LeatherStock}], Дерево [{progress.WoodStock}]");
+                            from.SendMessage(0x35, $"Склады: железо [{progress.IronStock}], кожа [{progress.LeatherStock}], дерево [{progress.WoodStock}], снаряжение [{progress.EquipmentStock}], амуниция [{progress.AmmunitionStock}], припасы [{progress.ProvisionsStock}]");
                             return;
                         }
                     }
@@ -354,6 +428,9 @@ namespace Server.Custom.CityDevelopment
                     writer.Write((int)kvp.Value.IronStock);
                     writer.Write((int)kvp.Value.LeatherStock);
                     writer.Write((int)kvp.Value.WoodStock);
+                    writer.Write((int)kvp.Value.EquipmentStock);
+                    writer.Write((int)kvp.Value.AmmunitionStock);
+                    writer.Write((int)kvp.Value.ProvisionsStock);
                 }
             }
             catch (Exception ex)
@@ -409,6 +486,12 @@ namespace Server.Custom.CityDevelopment
                             progress.IronStock = reader.ReadInt();
                             progress.LeatherStock = reader.ReadInt();
                             progress.WoodStock = reader.ReadInt();
+                        }
+                        if (version >= 4)
+                        {
+                            progress.EquipmentStock = reader.ReadInt();
+                            progress.AmmunitionStock = reader.ReadInt();
+                            progress.ProvisionsStock = reader.ReadInt();
                         }
                         loadedData[key] = progress;
                     }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 
 using Server;
 using Server.ContextMenus;
@@ -13,6 +14,9 @@ namespace Server.Engines.CityLoyalty
 {
 	public class TradeOrderCrate : Container
 	{
+        private List<Item> _warehouseItems = new List<Item>();
+        public Map WarehouseMap { get; private set; }
+
         public override int LabelNumber { get { return CityTradeSystem.KrampusEncounterActive ? 1123594 : base.LabelNumber; } }
         
         [CommandProperty(AccessLevel.GameMaster)]
@@ -51,6 +55,7 @@ namespace Server.Engines.CityLoyalty
 		{
             Owner = from;
 			Entry = entry;
+            WarehouseMap = from?.Map;
 
             if (CityTradeSystem.KrampusEncounterActive)
             {
@@ -137,12 +142,48 @@ namespace Server.Engines.CityLoyalty
 			if(Entry == null)
 				return false;
 				
-			if(TryAddItem(from, item, message))
-				return base.TryDropItem(from, item, message);
-				
-			return false;
+			if (!TryAddItem(from, item, message))
+				return false;
+
+			if (!CheckStack(from, item) && !CheckHold(from, item, message, true))
+				return false;
+
+			foreach (Item existing in Items)
+			{
+				if (!(existing is Container) && !IsWarehouseItem(existing) && existing.StackWith(from, item, false))
+					return true;
+			}
+
+			DropItem(item);
+			return true;
 		}
-		
+
+        public void AddWarehouseItem(Item item)
+        {
+            if (item == null || item.Deleted)
+                return;
+
+            DropItem(item);
+            _warehouseItems.Add(item);
+        }
+
+        public bool IsWarehouseItem(Item item)
+        {
+            return item != null && _warehouseItems.Contains(item);
+        }
+
+        public override bool CheckLift(Mobile from, Item item, ref LRReason reject)
+        {
+            if (IsWarehouseItem(item) && from.AccessLevel < AccessLevel.GameMaster)
+            {
+                reject = LRReason.CannotLift;
+                from.SendMessage(0x22, "Товар со склада можно получить только после доставки или отмены контракта.");
+                return false;
+            }
+
+            return base.CheckLift(from, item, ref reject);
+        }
+
 		public bool TryAddItem(Mobile from, Item item, bool message = true)
 		{
             bool canAdd = false;
@@ -285,12 +326,16 @@ namespace Server.Engines.CityLoyalty
 		public override void Serialize(GenericWriter writer)
 		{
 			base.Serialize(writer);
-			writer.Write(0);
+			writer.Write(2);
 
             writer.Write(Owner);
             writer.Write(Expires);
 
             Entry.Serialize(writer);
+            writer.Write(_warehouseItems.Count);
+            foreach (Item item in _warehouseItems)
+                writer.Write(item);
+            writer.Write(WarehouseMap);
 		}
 		
 		public override void Deserialize(GenericReader reader)
@@ -302,6 +347,21 @@ namespace Server.Engines.CityLoyalty
             Expires = reader.ReadDateTime();
 
             Entry = new TradeEntry(reader);
+            if (v >= 1)
+            {
+                int count = reader.ReadInt();
+                if (count < 0 || count > 1000)
+                    throw new InvalidDataException($"Invalid warehouse cargo count: {count}.");
+
+                _warehouseItems = new List<Item>();
+                for (int i = 0; i < count; i++)
+                {
+                    Item item = reader.ReadItem();
+                    if (item != null)
+                        _warehouseItems.Add(item);
+                }
+            }
+            WarehouseMap = v >= 2 ? reader.ReadMap() : Owner?.Map;
 		}
 	}
 
