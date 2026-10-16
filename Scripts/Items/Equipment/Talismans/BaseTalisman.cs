@@ -485,7 +485,7 @@ namespace Server.Items
             Layer = Layer.Talisman;
             Weight = 1.0;
 
-            m_HitPoints = m_MaxHitPoints = Utility.RandomMinMax(InitMinHits, InitMaxHits);
+            m_HitPoints = m_MaxHitPoints = Utility.RandomMinMax(30, 50);
 
             m_Protection = new TalismanAttribute();
             m_Killer = new TalismanAttribute();
@@ -507,22 +507,27 @@ namespace Server.Items
                 return damage;
 
             int chance = m_NegativeAttributes.Antique > 0 ? 50 : 25;
-            if (chance > Utility.Random(100)) // 25% chance to lower durability
+            if (chance > Utility.Random(100)) 
             {
                 if (m_HitPoints >= 1)
                 {
                     HitPoints--;
                 }
-                else if (m_MaxHitPoints > 0)
+
+                // 🔥 Если тотем истощен — он спадает с персонажа
+                if (m_HitPoints <= 0)
                 {
-                    MaxHitPoints--;
+                    m_HitPoints = 0; // Фиксируем чистый ноль
 
                     if (Parent is Mobile)
-                        ((Mobile)Parent).LocalOverheadMessage(Server.Network.MessageType.Regular, 0x3B2, 1061121); // Your equipment is severely damaged.
-
-                    if (m_MaxHitPoints == 0)
                     {
-                        Delete();
+                        Mobile wearer = (Mobile)Parent;
+                        wearer.PlaySound(0x1F2); // Хрустальный звон треснувшего камня
+                        wearer.SendMessage(0x22, $"Энергия вашего талисмана '{this.Name ?? "Talisman"}' полностью иссякла! Он спал в рюкзак.");
+                        
+                        // Принудительно разэкипируем тотем в бэкпак
+                        wearer.RemoveItem(this);
+                        wearer.AddToBackpack(this);
                     }
                 }
             }

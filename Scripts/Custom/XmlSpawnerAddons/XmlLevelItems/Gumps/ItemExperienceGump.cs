@@ -64,8 +64,10 @@ namespace Server.Gumps
 			AddButton(75, 182, 4005, 4007, GetButtonID( 1, 3 ), GumpButtonType.Reply, 0);
             AddLabel(112, 183, LabelHue, @"Resistances");
             if (m_Item is BaseWeapon)
+			{
 			    AddButton(75, 204, 4005, 4007, GetButtonID( 1, 4 ), GumpButtonType.Reply, 0);
-            AddLabel(112, 205, LabelHue, @"Weapon Hits");
+			    AddLabel(112, 205, LabelHue, @"Weapon Hits");
+			}
 			AddButton(75, 226, 4005, 4007, GetButtonID( 1, 5 ), GumpButtonType.Reply, 0);
             AddLabel(112, 227, LabelHue, @"Misc. Attributes");
 
@@ -94,13 +96,10 @@ namespace Server.Gumps
             AddLabel(154, 297, LabelHue, levitem.Experience.ToString());
 
             int tolevel = 0;
-            for (int i = 0; i < LevelItemManager.ExpTable.Length; ++i)
+            if (levitem.Level < levitem.MaxLevel && levitem.Level < LevelItemManager.ExpTable.Length)
             {
-                if (levitem.Experience < LevelItemManager.ExpTable[i])
-                {
-                    tolevel = LevelItemManager.ExpTable[i] - levitem.Experience;
-                    break;
-                }
+                int expNeeded = LevelItemManager.ExpTable[Math.Max(1, levitem.Level)];
+                tolevel = Math.Max(0, expNeeded - levitem.Experience);
             }
             AddLabel(75, 319, LabelHue, @"Exp. to next level:");
             AddLabel(191, 319, LabelHue, tolevel.ToString());
@@ -146,8 +145,10 @@ namespace Server.Gumps
                         attrvalue = ((BaseJewel)m_Item).Attributes[LevelAttributes.m_Attributes[i].m_Attribute];
                     else if (m_Item is BaseClothing)
                         attrvalue = ((BaseClothing)m_Item).Attributes[LevelAttributes.m_Attributes[i].m_Attribute];
+                    else if (m_Item is BaseTalisman)
+                        attrvalue = ((BaseTalisman)m_Item).Attributes[LevelAttributes.m_Attributes[i].m_Attribute];
                     else
-                        return;
+                        continue;
 
                     if (attrvalue < LevelAttributes.m_Attributes[i].m_MaxValue)
 					    AddButton(301, 116 + (pageindex * 20), 4005, 4007, GetButtonID( 2, i ), GumpButtonType.Reply, 0);
@@ -185,7 +186,7 @@ namespace Server.Gumps
 
 						if (LevelAttributes.m_WeaponAttributes[i].m_Attribute == AosWeaponAttribute.DurabilityBonus)
 						{
-							attrvalue = ((BaseWeapon)m_Item).MaxHitPoints;
+							attrvalue = ((BaseWeapon)m_Item).WeaponAttributes[LevelAttributes.m_WeaponAttributes[i].m_Attribute];
 						}
 						else
 						{
@@ -275,7 +276,7 @@ namespace Server.Gumps
 
 							if (LevelAttributes.m_ArmorAttributes[i].m_Attribute == AosArmorAttribute.DurabilityBonus)
 							{
-								attrvalue = ((BaseArmor)m_Item).MaxHitPoints;
+								attrvalue = ((BaseArmor)m_Item).ArmorAttributes[LevelAttributes.m_ArmorAttributes[i].m_Attribute];
 							}
 							else
 							{
@@ -358,6 +359,11 @@ namespace Server.Gumps
                     if (((BaseJewel)m_Item).ArtifactRarity >= 10)
                         cost *= 2;
                 }
+                else if (m_Item is BaseTalisman)
+                {
+                    if (((BaseTalisman)m_Item).ArtifactRarity >= 10)
+                        cost *= 2;
+                }
                 else
                 {
                     if (((BaseClothing)m_Item).ArtifactRarity >= 10)
@@ -378,9 +384,24 @@ namespace Server.Gumps
 			if ( info.ButtonID <= 0 )
 				return; // Canceled
 
+			if (sender == null || m_From == null || sender.Mobile != m_From || m_Item == null || m_Item.Deleted)
+				return;
 
-            //ILevelable levitem = (ILevelable)m_Item;
+			if (m_Item.RootParent != m_From)
+			{
+				m_From.SendMessage("The item must remain in your backpack or equipped while spending points.");
+				return;
+			}
+
             XmlLevelItem levitem = XmlAttach.FindAttachment(m_Item, typeof(XmlLevelItem)) as XmlLevelItem;
+			if (levitem == null)
+			{
+				m_From.SendMessage("This item is no longer levelable.");
+				return;
+			}
+
+			if (!LevelItemManager.IsLevelableItem(m_Item))
+				return;
 
 			int buttonID = info.ButtonID - 1;
 			int type = buttonID % 7;
@@ -442,52 +463,59 @@ namespace Server.Gumps
 
 				case 2: // Attribute selected
 				{
+					if (index >= LevelAttributes.m_Attributes.Length)
+						return;
+
 					cost = GetPointCost(m_Item, LevelAttributes.m_Attributes[index].m_XP);
 
                     if ((levitem.Points - cost) >= 0)
                     {
                         //add point to selected attribute
-                        if (index >= 0 && index < LevelAttributes.m_Attributes.Length)
+                        if (m_Item is BaseWeapon)
                         {
-							if (m_Item is BaseWeapon)
+							attrvalue = ((BaseWeapon)m_Item).Attributes[LevelAttributes.m_Attributes[index].m_Attribute];
+							if (attrvalue < LevelAttributes.m_Attributes[index].m_MaxValue)
 							{
-								attrvalue = ((BaseWeapon)m_Item).Attributes[LevelAttributes.m_Attributes[index].m_Attribute];
-								if (attrvalue < LevelAttributes.m_Attributes[index].m_MaxValue)
-								{
-									((BaseWeapon)m_Item).Attributes[LevelAttributes.m_Attributes[index].m_Attribute] += 1;
-									levitem.Points -= cost;
-								}
+								((BaseWeapon)m_Item).Attributes[LevelAttributes.m_Attributes[index].m_Attribute] += 1;
+								levitem.Points -= cost;
 							}
-							else if (m_Item is BaseArmor)
+						}
+						else if (m_Item is BaseArmor)
+						{
+							attrvalue = ((BaseArmor)m_Item).Attributes[LevelAttributes.m_Attributes[index].m_Attribute];
+							if (attrvalue < LevelAttributes.m_Attributes[index].m_MaxValue)
 							{
-								attrvalue = ((BaseArmor)m_Item).Attributes[LevelAttributes.m_Attributes[index].m_Attribute];
-								if (attrvalue < LevelAttributes.m_Attributes[index].m_MaxValue)
-								{
-									((BaseArmor)m_Item).Attributes[LevelAttributes.m_Attributes[index].m_Attribute] += 1;
-									levitem.Points -= cost;
-								}
+								((BaseArmor)m_Item).Attributes[LevelAttributes.m_Attributes[index].m_Attribute] += 1;
+								levitem.Points -= cost;
 							}
-							else if (m_Item is BaseJewel)
+						}
+						else if (m_Item is BaseJewel)
+						{
+							attrvalue = ((BaseJewel)m_Item).Attributes[LevelAttributes.m_Attributes[index].m_Attribute];
+							if (attrvalue < LevelAttributes.m_Attributes[index].m_MaxValue)
 							{
-								attrvalue = ((BaseJewel)m_Item).Attributes[LevelAttributes.m_Attributes[index].m_Attribute];
-								if (attrvalue < LevelAttributes.m_Attributes[index].m_MaxValue)
-								{
-									((BaseJewel)m_Item).Attributes[LevelAttributes.m_Attributes[index].m_Attribute] += 1;
-									levitem.Points -= cost;
-								}
+								((BaseJewel)m_Item).Attributes[LevelAttributes.m_Attributes[index].m_Attribute] += 1;
+								levitem.Points -= cost;
 							}
-							else if (m_Item is BaseClothing)
+						}
+						else if (m_Item is BaseClothing)
+						{
+							attrvalue = ((BaseClothing)m_Item).Attributes[LevelAttributes.m_Attributes[index].m_Attribute];
+							if (attrvalue < LevelAttributes.m_Attributes[index].m_MaxValue)
 							{
-								attrvalue = ((BaseClothing)m_Item).Attributes[LevelAttributes.m_Attributes[index].m_Attribute];
-								if (attrvalue < LevelAttributes.m_Attributes[index].m_MaxValue)
-								{
-									((BaseClothing)m_Item).Attributes[LevelAttributes.m_Attributes[index].m_Attribute] += 1;
-									levitem.Points -= cost;
-								}
+								((BaseClothing)m_Item).Attributes[LevelAttributes.m_Attributes[index].m_Attribute] += 1;
+								levitem.Points -= cost;
 							}
-							else
-								return;
-    					}
+						}
+						else if (m_Item is BaseTalisman)
+						{
+							attrvalue = ((BaseTalisman)m_Item).Attributes[LevelAttributes.m_Attributes[index].m_Attribute];
+							if (attrvalue < LevelAttributes.m_Attributes[index].m_MaxValue)
+							{
+								((BaseTalisman)m_Item).Attributes[LevelAttributes.m_Attributes[index].m_Attribute] += 1;
+								levitem.Points -= cost;
+							}
+						}
                     }
                     else
                     {
@@ -500,27 +528,18 @@ namespace Server.Gumps
 				}
                 case 3: // WeaponAttribute selected
                 {
+					if (!(m_Item is BaseWeapon) || index >= LevelAttributes.m_WeaponAttributes.Length)
+						return;
+
 					cost = GetPointCost(m_Item, LevelAttributes.m_WeaponAttributes[index].m_XP);
 
                     if ((levitem.Points - cost) >= 0)
                     {
-                        //add point to selected weapon attribute
-                        if (index >= 0 && index < LevelAttributes.m_WeaponAttributes.Length)
-                        {
-							if (LevelAttributes.m_WeaponAttributes[index].m_Attribute == AosWeaponAttribute.DurabilityBonus)
-							{
-								attrvalue = ((BaseWeapon)m_Item).MaxHitPoints;
-							}
-							else
-							{
-                        		attrvalue = ((BaseWeapon)m_Item).WeaponAttributes[LevelAttributes.m_WeaponAttributes[index].m_Attribute];
-							}
-
-							if (attrvalue < LevelAttributes.m_WeaponAttributes[index].m_MaxValue)
-							{
-                            	((BaseWeapon)m_Item).WeaponAttributes[LevelAttributes.m_WeaponAttributes[index].m_Attribute] += 1;
-                            	levitem.Points -= cost;
-							}
+						attrvalue = ((BaseWeapon)m_Item).WeaponAttributes[LevelAttributes.m_WeaponAttributes[index].m_Attribute];
+						if (attrvalue < LevelAttributes.m_WeaponAttributes[index].m_MaxValue)
+						{
+							((BaseWeapon)m_Item).WeaponAttributes[LevelAttributes.m_WeaponAttributes[index].m_Attribute] += 1;
+							levitem.Points -= cost;
                         }
                     }
                     else
@@ -534,26 +553,17 @@ namespace Server.Gumps
                 }
                 case 4: // Armor Attributes Selected
                 {
+					if (!(m_Item is BaseArmor) || index >= LevelAttributes.m_ArmorAttributes.Length)
+						return;
+
 					cost = GetPointCost(m_Item, LevelAttributes.m_ArmorAttributes[index].m_XP);
                     if ((levitem.Points - cost) >= 0)
                     {
-                        //add point to selected weapon attribute
-                        if (index >= 0 && index < LevelAttributes.m_ArmorAttributes.Length)
-                        {
-							if (LevelAttributes.m_ArmorAttributes[index].m_Attribute == AosArmorAttribute.DurabilityBonus)
-							{
-								attrvalue = ((BaseArmor)m_Item).MaxHitPoints;
-							}
-							else
-							{
-								attrvalue = ((BaseArmor)m_Item).ArmorAttributes[LevelAttributes.m_ArmorAttributes[index].m_Attribute];
-							}
-
-							if (attrvalue < LevelAttributes.m_ArmorAttributes[index].m_MaxValue)
-							{
-                            	((BaseArmor)m_Item).ArmorAttributes[LevelAttributes.m_ArmorAttributes[index].m_Attribute] += 1;
-                            	levitem.Points -= cost;
-							}
+						attrvalue = ((BaseArmor)m_Item).ArmorAttributes[LevelAttributes.m_ArmorAttributes[index].m_Attribute];
+						if (attrvalue < LevelAttributes.m_ArmorAttributes[index].m_MaxValue)
+						{
+							((BaseArmor)m_Item).ArmorAttributes[LevelAttributes.m_ArmorAttributes[index].m_Attribute] += 1;
+							levitem.Points -= cost;
                         }
                     }
                     else
@@ -567,60 +577,56 @@ namespace Server.Gumps
                 }
                 case 5: // Armor Resists Selected
                 {
+					if (!(m_Item is BaseArmor) || index >= LevelAttributes.m_ResistanceTypes.Length)
+						return;
+
 					cost = GetPointCost(m_Item, LevelAttributes.m_ResistanceTypes[index].m_XP);
                     if ((levitem.Points - cost) >= 0)
                     {
-                        //add point to selected weapon attribute
-                        if (index >= 0 && index < LevelAttributes.m_ResistanceTypes.Length)
-                        {
-							if (LevelAttributes.m_ResistanceTypes[index].m_Attribute == ResistanceType.Physical)
-							{
-								attrvalue = ((BaseArmor)m_Item).PhysicalBonus;
+						BaseArmor armor = (BaseArmor)m_Item;
+						switch (LevelAttributes.m_ResistanceTypes[index].m_Attribute)
+						{
+							case ResistanceType.Physical:
+								attrvalue = armor.PhysicalBonus;
 								if (attrvalue < LevelAttributes.m_ResistanceTypes[index].m_MaxValue)
 								{
-									((BaseArmor)m_Item).PhysicalBonus += 1;
+									armor.PhysicalBonus += 1;
 									levitem.Points -= cost;
 								}
-							}
-							else if (LevelAttributes.m_ResistanceTypes[index].m_Attribute == ResistanceType.Fire)
-							{
-								attrvalue = ((BaseArmor)m_Item).FireBonus;
+								break;
+							case ResistanceType.Fire:
+								attrvalue = armor.FireBonus;
 								if (attrvalue < LevelAttributes.m_ResistanceTypes[index].m_MaxValue)
 								{
-									((BaseArmor)m_Item).FireBonus += 1;
+									armor.FireBonus += 1;
 									levitem.Points -= cost;
 								}
-							}
-							else if (LevelAttributes.m_ResistanceTypes[index].m_Attribute == ResistanceType.Cold)
-							{
-								attrvalue = ((BaseArmor)m_Item).ColdBonus;
+								break;
+							case ResistanceType.Cold:
+								attrvalue = armor.ColdBonus;
 								if (attrvalue < LevelAttributes.m_ResistanceTypes[index].m_MaxValue)
 								{
-									((BaseArmor)m_Item).ColdBonus += 1;
+									armor.ColdBonus += 1;
 									levitem.Points -= cost;
 								}
-							}
-							else if (LevelAttributes.m_ResistanceTypes[index].m_Attribute == ResistanceType.Poison)
-							{
-								attrvalue = ((BaseArmor)m_Item).PoisonBonus;
+								break;
+							case ResistanceType.Poison:
+								attrvalue = armor.PoisonBonus;
 								if (attrvalue < LevelAttributes.m_ResistanceTypes[index].m_MaxValue)
 								{
-									((BaseArmor)m_Item).PoisonBonus += 1;
+									armor.PoisonBonus += 1;
 									levitem.Points -= cost;
 								}
-							}
-							else if (LevelAttributes.m_ResistanceTypes[index].m_Attribute == ResistanceType.Energy)
-							{
-								attrvalue = ((BaseArmor)m_Item).EnergyBonus;
+								break;
+							case ResistanceType.Energy:
+								attrvalue = armor.EnergyBonus;
 								if (attrvalue < LevelAttributes.m_ResistanceTypes[index].m_MaxValue)
 								{
-									((BaseArmor)m_Item).EnergyBonus += 1;
+									armor.EnergyBonus += 1;
 									levitem.Points -= cost;
 								}
-							}
-							else
-								return;
-                        }
+								break;
+						}
                     }
                     else
                     {
@@ -633,29 +639,30 @@ namespace Server.Gumps
                 }
                 case 6: // Jewelry & Clothing Resists Selected
                 {
+					if (!(m_Item is BaseJewel || m_Item is BaseClothing) || index >= LevelAttributes.m_ElementAttributes.Length)
+						return;
+
 					cost = GetPointCost(m_Item, LevelAttributes.m_ElementAttributes[index].m_XP);
                     if ((levitem.Points - cost) >= 0)
                     {
-                        //add point to selected weapon attribute
-                        if (index >= 0 && index < LevelAttributes.m_ElementAttributes.Length)
-                        {
-							if (m_Item is BaseJewel)
+						if (m_Item is BaseJewel)
+						{
+							BaseJewel jewel = (BaseJewel)m_Item;
+							attrvalue = jewel.Resistances[LevelAttributes.m_ElementAttributes[index].m_Attribute];
+							if (attrvalue < LevelAttributes.m_ElementAttributes[index].m_MaxValue)
 							{
-								attrvalue = ((BaseJewel)m_Item).Resistances[LevelAttributes.m_ElementAttributes[index].m_Attribute];
-								if (attrvalue < LevelAttributes.m_ElementAttributes[index].m_MaxValue)
-								{
-                            		((BaseJewel)m_Item).Resistances[LevelAttributes.m_ElementAttributes[index].m_Attribute] += 1;
-                            		levitem.Points -= cost;
-								}
+								jewel.Resistances[LevelAttributes.m_ElementAttributes[index].m_Attribute] += 1;
+								levitem.Points -= cost;
 							}
-							else
+						}
+						else
+						{
+							BaseClothing clothing = (BaseClothing)m_Item;
+							attrvalue = clothing.Resistances[LevelAttributes.m_ElementAttributes[index].m_Attribute];
+							if (attrvalue < LevelAttributes.m_ElementAttributes[index].m_MaxValue)
 							{
-								attrvalue = ((BaseClothing)m_Item).Resistances[LevelAttributes.m_ElementAttributes[index].m_Attribute];
-								if (attrvalue < LevelAttributes.m_ElementAttributes[index].m_MaxValue)
-								{
-                            		((BaseClothing)m_Item).Resistances[LevelAttributes.m_ElementAttributes[index].m_Attribute] += 1;
-                            		levitem.Points -= cost;
-								}
+								clothing.Resistances[LevelAttributes.m_ElementAttributes[index].m_Attribute] += 1;
+								levitem.Points -= cost;
 							}
                         }
                     }

@@ -160,6 +160,23 @@ namespace Server.Items
 
 			protected override void OnTarget(Mobile from, object targeted)
 			{
+				 if (targeted is Item item && item is DeathRobe)
+                {
+                    if (Server.Custom.DeathRobes.DeathRobeUtility.TryCutRobe(from, item))
+                    {
+                        return; // Прерываем метод, наш мод успешно забрал и обработал предмет!
+                    }
+                }
+
+				if (targeted is Item targetItem)
+                {
+                    if (Server.Custom.TreasureRecycling.TreasureMapRecycling.TryCutCompletedMap(from, targetItem))
+                    {
+                        return; // Прерываем метод, наш новый плагин успешно переработал карту сокровищ!
+                    }
+                }
+
+
 				if (m_Item.Deleted)
 				{
 					return;

@@ -49,6 +49,16 @@ namespace Server.Mobiles
                 Add(new GenericBuyInfo(typeof(Robe), 18, 20, 0x1F03, 0));
                 Add(new GenericBuyInfo(typeof(Cloak), 8, 20, 0x1515, 0));
                 Add(new GenericBuyInfo(typeof(Cloak), 8, 20, 0x1515, 0));
+                Add(new GenericBuyInfo("Утепленный зимний плащ", typeof(Server.Custom.Seasons.WinterCloak), 180, 10, 0x1515, 0x4B5));
+                Add(new GenericBuyInfo("Шерстяной капюшон", typeof(Server.Custom.Seasons.WoolenHood), 90, 10, 0x1719, 0x481));
+                Add(new GenericBuyInfo("Утепленные меховые сапоги", typeof(Server.Custom.Seasons.FurLinedBoots), 120, 10, 0x2307, 0x481));
+                Add(new GenericBuyInfo("Непромокаемый плащ", typeof(Server.Custom.Seasons.OilskinCloak), 150, 10, 0x1515, 0x59B));
+                Add(new GenericBuyInfo("Шерстяная рубаха", typeof(Server.Custom.Seasons.WoolenShirt), 65, 10, 0x1517, 0x481));
+                Add(new GenericBuyInfo("Утепленная зимняя туника", typeof(Server.Custom.Seasons.WinterTunic), 160, 10, 0x1FA1, 0x481));
+                Add(new GenericBuyInfo("Утепленные штаны", typeof(Server.Custom.Seasons.ThermalPants), 95, 10, 0x1539, 0x481));
+                Add(new GenericBuyInfo("Меховой килт", typeof(Server.Custom.Seasons.FurKilt), 85, 10, 0x1537, 0x481));
+                Add(new GenericBuyInfo("Водонепроницаемый капюшон", typeof(Server.Custom.Seasons.RainHood), 55, 10, 0x1719, 0x59B));
+                Add(new GenericBuyInfo("Непромокаемые сапоги", typeof(Server.Custom.Seasons.RainBoots), 75, 10, 0x170B, 0x59B));
                 Add(new GenericBuyInfo(typeof(Doublet), 13, 20, 0x1F7B, 0));
                 Add(new GenericBuyInfo(typeof(Tunic), 18, 20, 0x1FA1, 0));
                 Add(new GenericBuyInfo(typeof(JesterSuit), 26, 20, 0x1F9F, 0));
@@ -98,6 +108,16 @@ namespace Server.Mobiles
                 Add(typeof(LongPants), 5);
 
                 Add(typeof(Cloak), 4);
+                Add(typeof(Server.Custom.Seasons.WinterCloak), 60);
+                Add(typeof(Server.Custom.Seasons.WoolenHood), 30);
+                Add(typeof(Server.Custom.Seasons.FurLinedBoots), 40);
+                Add(typeof(Server.Custom.Seasons.OilskinCloak), 50);
+                Add(typeof(Server.Custom.Seasons.WoolenShirt), 22);
+                Add(typeof(Server.Custom.Seasons.WinterTunic), 55);
+                Add(typeof(Server.Custom.Seasons.ThermalPants), 32);
+                Add(typeof(Server.Custom.Seasons.FurKilt), 28);
+                Add(typeof(Server.Custom.Seasons.RainHood), 18);
+                Add(typeof(Server.Custom.Seasons.RainBoots), 25);
                 Add(typeof(FancyDress), 12);
                 Add(typeof(Robe), 9);
                 Add(typeof(PlainDress), 7);

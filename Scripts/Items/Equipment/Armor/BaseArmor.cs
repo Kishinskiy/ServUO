@@ -2415,6 +2415,12 @@ namespace Server.Items
 
         public override bool CanEquip(Mobile from)
         {
+            if (m_HitPoints <= 0 && m_MaxHitPoints > 0)
+            {
+                from.SendMessage(0x22, "Этот элемент брони или щит полностью разрушен! Вы не можете экипировать его, пока Грандмастер не починит его.");
+                return false;
+            }
+            
             if (!Ethics.Ethic.CheckEquip(from, this))
                 return false;
 
@@ -2631,6 +2637,23 @@ namespace Server.Items
                         {
                             wear -= HitPoints;
                             HitPoints = 0;
+                        }
+
+                        if (m_HitPoints <= 0)
+                        {
+                            m_HitPoints = 0; // Жестко фиксируем ноль прочности
+
+                            if (Parent is Mobile)
+                            {
+                                Mobile wearer = (Mobile)Parent;
+                                wearer.PlaySound(0x3B); // Каноничный звук ломающегося железа
+                                wearer.SendMessage(0x22, $"Ваш доспех/щит '{this.Name ?? this.GetType().Name}' полностью сломался! Он потерял защитные свойства и упал в рюкзак.");
+                                
+                                // Снимаем предмет со слота экипировки и кидаем в сумку
+                                wearer.RemoveItem(this);
+                                wearer.AddToBackpack(this);
+                            }
+                            return damageTaken;
                         }
 
                         if (wear > 0)

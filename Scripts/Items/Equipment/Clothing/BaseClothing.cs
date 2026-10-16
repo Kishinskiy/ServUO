@@ -470,6 +470,12 @@ namespace Server.Items
 
         public override bool CanEquip(Mobile from)
         {
+            if (m_HitPoints <= 0 && m_MaxHitPoints > 0)
+            {
+                from.SendMessage(0x22, "Эта одежда или плащ полностью изношены! Вы не можете надеть их без предварительного ремонта у Портного.");
+                return false;
+            }
+            
             if (!Ethics.Ethic.CheckEquip(from, this))
                 return false;
 
@@ -812,6 +818,23 @@ namespace Server.Items
                         {
                             wear -= HitPoints;
                             HitPoints = 0;
+                        }
+
+                        if (m_HitPoints <= 0)
+                        {
+                            m_HitPoints = 0; // Фиксируем ноль
+
+                            if (Parent is Mobile)
+                            {
+                                Mobile wearer = (Mobile)Parent;
+                                wearer.PlaySound(0x3B); // Звук рвущейся экипировки
+                                wearer.SendMessage(0x22, $"Ваша одежда/мантия '{this.Name ?? this.GetType().Name}' полностью износилась! Она спала с вас и упала в рюкзак.");
+                                
+                                // Снимаем предмет со слота одежды и переносим в сумку
+                                wearer.RemoveItem(this);
+                                wearer.AddToBackpack(this);
+                            }
+                            return damageTaken;
                         }
 
                         if (wear > 0)

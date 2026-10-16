@@ -560,6 +560,12 @@ namespace Server.Items
         #region Stygian Abyss
         public override bool CanEquip(Mobile from)
         {
+            if (m_HitPoints <= 0 && m_MaxHitPoints > 0)
+            {
+                from.SendMessage(0x22, "Это украшение полностью истощено и треснуло! Алхимик должен перезарядить его структуру, прежде чем вы сможете его надеть.");
+                return false;
+            }
+
             if (BlessedBy != null && BlessedBy != from)
             {
                 from.SendLocalizedMessage(1075277); // That item is blessed by another player.
@@ -643,6 +649,23 @@ namespace Server.Items
                     {
                         wear -= HitPoints;
                         HitPoints = 0;
+                    }
+
+                    if (m_HitPoints <= 0)
+                    {
+                        m_HitPoints = 0; // Фиксируем ноль
+
+                        if (Parent is Mobile)
+                        {
+                            Mobile wearer = (Mobile)Parent;
+                            wearer.PlaySound(0x4A); // Звук рвущейся экипировки
+                            wearer.SendMessage(0x22, $"Ваше украшение '{this.Name ?? this.GetType().Name}' полностью износилось! Она спала с вас и упала в рюкзак.");
+                            
+                            // Снимаем предмет со слота одежды и переносим в сумку
+                            wearer.RemoveItem(this);
+                            wearer.AddToBackpack(this);
+                        }
+                        return damageTaken;
                     }
 
                     if (wear > 0)

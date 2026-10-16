@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  servuo-shard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: servuo_shard
+    restart: always  # Docker поднимет сервер за 1 секунду при любом сбое или краше ядра
+    ports:
+      - "2593:2593"  # Проброс игрового порта в мир
+    volumes:
+      # 🔥 ПРОБРОС ЖИВЫХ И ВАЖНЫХ ПАПОК С ХОСТА В КОНТЕЙНЕР 🎉⚙️🛠️
+      - ./Scripts:/app/Scripts
+      - ./Saves:/app/Saves
+      - ./Config:/app/Config   # Дает возможность править конфиги на лету без пересборки контейнера
+      - ./Logs:/app/Logs
+    stdin_open: true
+    tty: true

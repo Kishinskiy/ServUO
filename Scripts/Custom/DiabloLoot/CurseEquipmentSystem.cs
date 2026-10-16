@@ -6,6 +6,7 @@ using Server.Mobiles;
 using Server.Targeting;
 using Server.Engines.XmlSpawner2;
 using Server.Custom.DiabloLoot;
+using Server.Custom.VoidCraft;
 
 namespace Server.Custom.CurseSystem
 {
@@ -15,6 +16,9 @@ namespace Server.Custom.CurseSystem
         private bool m_IsIdentified;
         private int m_HpPenalty;
         private int m_ManaPenalty;
+        private int m_StrengthBonus;
+        private int m_DexterityBonus;
+        private int m_IntelligenceBonus;
         private Mobile m_CurrentEquipped; // Следим, на ком сейчас надета вещь
 
         [CommandProperty(AccessLevel.GameMaster)]
@@ -30,25 +34,59 @@ namespace Server.Custom.CurseSystem
         [CommandProperty(AccessLevel.GameMaster)]
         public int ManaPenalty { get { return m_ManaPenalty; } set { m_ManaPenalty = value; } }
 
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int StrengthBonus { get { return m_StrengthBonus; } set { m_StrengthBonus = value; } }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int DexterityBonus { get { return m_DexterityBonus; } set { m_DexterityBonus = value; } }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int IntelligenceBonus { get { return m_IntelligenceBonus; } set { m_IntelligenceBonus = value; } }
+
+        public bool HasNegativeEffects
+        {
+            get { return m_HpPenalty > 0 || m_ManaPenalty > 0; }
+        }
+
         public XmlCurseAttribute(ASerial serial) : base(serial) { }
 
         public XmlCurseAttribute()
         {
             Name = "CurseAttribute";
             m_IsIdentified = false;
-            // Значения по умолчанию (если предмет заспавнен ГМ-командой вручную вне миров)
             m_HpPenalty = 10;   
             m_ManaPenalty = 10; 
         }
 
-        // Вычисляем динамическую сложность Item ID на основе Diablo-рангов лута
+        public void RandomizeBonuses(int maxBonus)
+        {
+            maxBonus = Math.Max(1, maxBonus);
+            int guaranteedBonus = Utility.Random(3);
+
+            for (int i = 0; i < 3; i++)
+            {
+                if (i != guaranteedBonus && Utility.RandomDouble() >= 0.35)
+                    continue;
+
+                int bonus = Utility.RandomMinMax(1, maxBonus);
+
+                switch (i)
+                {
+                    case 0: m_StrengthBonus = bonus; break;
+                    case 1: m_DexterityBonus = bonus; break;
+                    case 2: m_IntelligenceBonus = bonus; break;
+                }
+            }
+        }
+
         public double GetRequiredSkill(Item attachedItem)
         {
             if (attachedItem == null) return 50.0;
 
             int rarityClass = DiabloLootColors.GetRarityClass(attachedItem);
-            int totalPenalty = m_HpPenalty + m_ManaPenalty;
-            double baseDifficulty = 40.0 + (totalPenalty * 0.8);
+            int totalEffectMagnitude = m_HpPenalty + m_ManaPenalty +
+                                      m_StrengthBonus + m_DexterityBonus + m_IntelligenceBonus;
+            double baseDifficulty = 40.0 + (totalEffectMagnitude * 0.8);
 
             switch (rarityClass)
             {
@@ -60,41 +98,74 @@ namespace Server.Custom.CurseSystem
             return Math.Max(40.0, Math.Min(120.0, baseDifficulty));
         }
 
-        // Нативный метод: Объект from передается ядром автоматически при экипировке! 🛡️
         public override void OnEquip(Mobile from)
         {
             if (from == null) return;
 
             m_CurrentEquipped = from;
-            
-            // Чтобы имя мода было уникальным, используем хэш-код текущего аттачмента
-            string modName = "CurseMod_" + this.GetHashCode();
+            string modName = "CurseMod_" + SerialValue;
 
             from.AddStatMod(new StatMod(StatType.Str, modName + "_hp", -m_HpPenalty, TimeSpan.Zero));
             from.AddStatMod(new StatMod(StatType.Int, modName + "_mn", -m_ManaPenalty, TimeSpan.Zero));
-            from.SendMessage(0x22, "Вы ощутили странную слабость, надев этот предмет...");
+            from.AddStatMod(new StatMod(StatType.Str, modName + "_str", m_StrengthBonus, TimeSpan.Zero));
+            from.AddStatMod(new StatMod(StatType.Dex, modName + "_dex", m_DexterityBonus, TimeSpan.Zero));
+            from.AddStatMod(new StatMod(StatType.Int, modName + "_int", m_IntelligenceBonus, TimeSpan.Zero));
+            from.SendMessage(0x22, "Вы ощутили скрытое влияние предмета...");
             
             from.Hits = Math.Min(from.Hits, from.HitsMax);
             from.Mana = Math.Min(from.Mana, from.ManaMax);
         }
 
-        // Нативный метод: Объект parent (сама вещь) передается ядром автоматически при декипировке/удалении! 🛡️
         public override void OnRemoved(object parent)
         {
             if (m_CurrentEquipped != null)
             {
-                string modName = "CurseMod_" + this.GetHashCode();
+                string modName = "CurseMod_" + SerialValue;
                 m_CurrentEquipped.RemoveStatMod(modName + "_hp");
                 m_CurrentEquipped.RemoveStatMod(modName + "_mn");
+                m_CurrentEquipped.RemoveStatMod(modName + "_str");
+                m_CurrentEquipped.RemoveStatMod(modName + "_dex");
+                m_CurrentEquipped.RemoveStatMod(modName + "_int");
                 m_CurrentEquipped = null;
             }
         }
 
-        // Нативный перехватчик тултипа Xml-аттачментов в ServUO 🎉
+        public void CleanseNegativeEffects()
+        {
+            if (!HasNegativeEffects)
+                return;
+
+            if (m_CurrentEquipped != null)
+            {
+                string modName = "CurseMod_" + SerialValue;
+                m_CurrentEquipped.RemoveStatMod(modName + "_hp");
+                m_CurrentEquipped.RemoveStatMod(modName + "_mn");
+            }
+
+            m_HpPenalty = 0;
+            m_ManaPenalty = 0;
+            InvalidateParentProperties();
+        }
+
         public override string OnIdentify(Mobile from)
         {
             if (m_IsIdentified)
-                return $"[Проклятие: -{m_HpPenalty} HP, -{m_ManaPenalty} Mana]";
+            {
+                string effects = "[";
+
+                if (m_HpPenalty > 0)
+                    effects += String.Format("-{0} Силы", m_HpPenalty);
+                if (m_ManaPenalty > 0)
+                    effects += String.Format("{0}-{1} Интеллекта", effects.Length > 1 ? ", " : String.Empty, m_ManaPenalty);
+                if (m_StrengthBonus > 0)
+                    effects += String.Format("{0}+{1} Силы", effects.Length > 1 ? ", " : String.Empty, m_StrengthBonus);
+                if (m_DexterityBonus > 0)
+                    effects += String.Format("{0}+{1} Ловкости", effects.Length > 1 ? ", " : String.Empty, m_DexterityBonus);
+                if (m_IntelligenceBonus > 0)
+                    effects += String.Format("{0}+{1} Интеллекта", effects.Length > 1 ? ", " : String.Empty, m_IntelligenceBonus);
+
+                return effects + "]";
+            }
             
             return "[Свойства предмета скрыты]";
         }
@@ -102,10 +173,13 @@ namespace Server.Custom.CurseSystem
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)1); 
+            writer.Write((int)2);
             writer.Write(m_IsIdentified);
             writer.Write(m_HpPenalty);
             writer.Write(m_ManaPenalty);
+            writer.Write(m_StrengthBonus);
+            writer.Write(m_DexterityBonus);
+            writer.Write(m_IntelligenceBonus);
             writer.Write(m_CurrentEquipped);
         }
 
@@ -116,11 +190,19 @@ namespace Server.Custom.CurseSystem
             m_IsIdentified = reader.ReadBool();
             m_HpPenalty = reader.ReadInt();
             m_ManaPenalty = reader.ReadInt();
+
+            if (version >= 2)
+            {
+                m_StrengthBonus = reader.ReadInt();
+                m_DexterityBonus = reader.ReadInt();
+                m_IntelligenceBonus = reader.ReadInt();
+            }
+
             m_CurrentEquipped = reader.ReadMobile();
         }
     }
 
-    // Свиток мага для дешифровки и очищения
+    // 📜 Свиток мага для дешифровки и очищения
     public class MageIdCurseScroll : Item
     {
         [Constructable]
@@ -163,7 +245,6 @@ namespace Server.Custom.CurseSystem
                         return;
                     }
 
-                    // Передаем саму вещь в калькулятор сложности напрямую! 📊
                     double neededSkill = curse.GetRequiredSkill(item);
                     double currentSkill = from.Skills[SkillName.ItemID].Value;
 
@@ -179,17 +260,26 @@ namespace Server.Custom.CurseSystem
                         curse.IsIdentified = true;
                         item.InvalidateProperties();
                         from.PlaySound(0x249); 
-                        from.SendMessage(0x35, $"Вы успешно преодолели элитный барьер ({neededSkill:F1}) и распознали скрытые дефекты вещи!");
+                        from.SendMessage(0x35, $"Вы успешно преодолели элитный барьер ({neededSkill:F1}) и распознали скрытые свойства вещи!");
                     }
                     else
                     {
-                        // Полное очищение вещи и удаление аттачмента порчи
-                        curse.OnRemoved(item); 
-                        curse.Delete(); 
-                        item.InvalidateProperties();
+                        if (!curse.HasNegativeEffects)
+                        {
+                            from.SendMessage("Отрицательные эффекты этого предмета уже очищены.");
+                            return;
+                        }
+
+                        curse.CleanseNegativeEffects();
                         
-                        from.PlaySound(0x5C3); 
-                        from.SendMessage(0x58, $"Высший ритуал Экзорцизма (Сложность: {neededSkill:F1}) завершен! Легендарное проклятие выжжено.");
+                        // Очищение удаляет только штрафы; положительные эффекты остаются на предмете.
+                        Item curseResource = new CurseShardCraftable(); 
+                        from.AddToBackpack(curseResource);
+
+                        from.PlaySound(0x1F8); 
+                        Effects.SendLocationParticles(EffectItem.Create(item.Location, item.Map, TimeSpan.FromSeconds(1.0)), 0x3709, 10, 20, 1175, 0, 5004, 0);
+
+                        from.SendMessage(0x58, $"Ритуал экзорцизма (Сложность: {neededSkill:F1}) удалил отрицательные эффекты. Положительные свойства предмета сохранены. Осколок Скверны получен.");
                         m_Scroll.Delete(); 
                     }
                 }

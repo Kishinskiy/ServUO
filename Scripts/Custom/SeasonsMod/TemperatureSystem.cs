@@ -161,7 +161,7 @@ namespace Server.Custom.Seasons
 
         private static void HandleRainEffects(PlayerMobile pm)
         {
-            bool isProtected = IsWarmlyDressed(pm);
+            bool isProtected = IsProtectedFromRain(pm);
 
             if (!isProtected)
             {
@@ -203,7 +203,7 @@ namespace Server.Custom.Seasons
                     RemoveFreezeDebuff(pm);
 
                 if (Utility.RandomDouble() < 0.05)
-                    pm.SendMessage(0x5D, "Дождь льет стеной, но плотный плащ защищает ваше тело от пронизывающей влаги.");
+                    pm.SendMessage(0x5D, "Дождь льет стеной, но непромокаемая одежда защищает вас от влаги.");
             }
         }
 
@@ -266,16 +266,13 @@ namespace Server.Custom.Seasons
                                 return true;
                             }
                         }
-                        // Б. РЕНТГЕН-СКАНЕР КРЫШИ: Ищем любые блокирующие статические тайлы НАД головой игрока
-                        // Проверяем высоту Z от уровня головы (+10 тайлов) до неба (+35 тайлов)
+                        // Учитываем только статические тайлы, помеченные в данных клиента как крыши.
                         if (tile.Z > pm.Z + 10 && tile.Z <= pm.Z + 35)
                         {
-                            // Базовые ID крыш в UO: черепица (0x6A5-0x6D4, 0x759-0x788), дерево (0x33A-0x379) и т.д.
-                            // Чтобы не перечислять сотни ID крыш, мы просто проверяем, является ли ассет частью статической геометрии здания
-                            // (Поскольку над головой в лесу ничего не висит, любой статик на высоте Z+15 — это крыша, навес или перекрытие)
-                            if (id > 0)
+                            ItemData tileData = TileData.ItemTable[id & TileData.MaxItemValue];
+                            if ((tileData.Flags & TileFlag.Roof) != 0)
                             {
-                                return true; // Персонаж находится ПОД крышей/навесом фермерского дома!
+                                return true;
                             }
                         }
                     }
@@ -307,21 +304,38 @@ namespace Server.Custom.Seasons
         }
         private static bool IsWarmlyDressed(PlayerMobile pm)
         {
-            Item OuterTorso = pm.FindItemOnLayer(Layer.OuterTorso);
-            Item Cloak = pm.FindItemOnLayer(Layer.Cloak);
-            if (Cloak != null)
+            int coldProtection = 0;
+
+            foreach (Item item in pm.Items)
             {
-                if (Cloak is WinterCloak)
-                    return true;
-                if (Cloak.Name != null && Cloak.Name.ToLower().Contains("зимний"))
-                    return true;
+                ISeasonalClothing clothing = item as ISeasonalClothing;
+                if (item.Parent != pm)
+                    continue;
+
+                if (clothing != null)
+                    coldProtection += clothing.ColdProtection;
+
+                if (item.Name != null &&
+                    (item.Name.IndexOf("зимний", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                     item.Name.IndexOf("зимняя", StringComparison.OrdinalIgnoreCase) >= 0))
+                    coldProtection = Math.Max(coldProtection, 2);
             }
-            if (OuterTorso != null)
+
+            return coldProtection >= 2;
+        }
+
+        private static bool IsProtectedFromRain(PlayerMobile pm)
+        {
+            int rainProtection = 0;
+
+            foreach (Item item in pm.Items)
             {
-                if (OuterTorso.Name != null && OuterTorso.Name.ToLower().Contains("зимняя"))
-                    return true;
+                ISeasonalClothing clothing = item as ISeasonalClothing;
+                if (item.Parent == pm && clothing != null)
+                    rainProtection += clothing.RainProtection;
             }
-            return false;
+
+            return rainProtection >= 2;
         }
         private static void ApplyFreezeDebuff(PlayerMobile pm)
         {

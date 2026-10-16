@@ -1,10 +1,6 @@
 using System;
 using Server.Network;
-using Server.Prompts;
-using Server.Mobiles;
-using Server.Misc;
 using Server.Items;
-using Server.Gumps;
 using Server.Targeting;
 using Server.Engines.XmlSpawner2;
 
@@ -15,98 +11,31 @@ namespace Server.Items
         private int m_Value;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int Value
-        {
-            get { return m_Value; }
-        }
+        public int Value { get { return m_Value; } }
 
         [Constructable]
         public LevelUpScroll(int value) : base(0x14F0)
         {
             Weight = 1.0;
-            Name = "Level Increase Scroll";
+            Name = "Свиток Повышения Лимита Прокачки";
             Hue = 0x64;
             LootType = LootType.Cursed;
-
             m_Value = value;
         }
 
-        public override void AddNameProperty(ObjectPropertyList list)
-        {
-            if (m_Value == 5)
-                list.Add("a wonderous scroll of Leveling (+{0} max levels)", m_Value);
-            else if (m_Value == 10)
-                list.Add("an exalted scroll of Leveling (+{0} max levels)", m_Value);
-            else if (m_Value == 15)
-                list.Add("a mythical scroll of Leveling (+{0} max levels)", m_Value);
-            else if (m_Value == 20)
-                list.Add("a legendary scroll of Leveling (+{0} max levels)", m_Value);
-            else
-                list.Add("a scroll of Leveling (+{0} max levels)", m_Value);
-        }
-
-        public override void OnSingleClick(Mobile from)
-        {
-            if (m_Value == 5)
-                base.LabelTo(from, "a wonderous scroll of Leveling (+{0} max levels)", m_Value);
-            else if (m_Value == 10)
-                base.LabelTo(from, "an exalted scroll of Leveling (+{0} max levels)", m_Value);
-            else if (m_Value == 15)
-                base.LabelTo(from, "a mythical scroll of Leveling (+{0} max levels)", m_Value);
-            else if (m_Value == 20)
-                base.LabelTo(from, "a legendary scroll of Leveling (+{0} max levels)", m_Value);
-            else
-                base.LabelTo(from, "a scroll of Leveling (+{0} max levels)", m_Value);
-        }
-
-        public override void AddNameProperties(ObjectPropertyList list)
-        {
-            base.AddNameProperties(list);
-            list.Add(1060847, "Any Weapon or Armor");
-        }
-
-        public LevelUpScroll(Serial serial) : base(serial)
-        {
-        }
-
-        public override void Serialize(GenericWriter writer)
-        {
-            base.Serialize(writer);
-            writer.Write((int)1); // Версия 1
-
-            writer.Write((int)m_Value);
-        }
-
-        public override void Deserialize(GenericReader reader)
-        {
-            base.Deserialize(reader);
-            int version = reader.ReadInt();
-
-            switch (version)
-            {
-                case 1:
-                    {
-                        m_Value = reader.ReadInt();
-                        break;
-                    }
-                case 0:
-                    {
-                        reader.ReadBool(); 
-                        m_Value = reader.ReadInt();
-                        break;
-                    }
-            }
-        }
+        public LevelUpScroll(Serial serial) : base(serial) { }
+        public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write((int)1); writer.Write((int)m_Value); }
+        public override void Deserialize(GenericReader reader) { base.Deserialize(reader); int version = reader.ReadInt(); m_Value = reader.ReadInt(); }
 
         public override void OnDoubleClick(Mobile from)
         {
             if (!IsChildOf(from.Backpack))
             {
-                from.SendLocalizedMessage(1042001); // That must be in your pack for you to use it.
+                from.SendLocalizedMessage(1042001);
                 return;
             }
 
-            from.SendMessage("Выберите ЛЮБОЕ оружие или броню для увеличения максимального уровня.");
+            from.SendMessage("Выберите оружие или броню для увеличения максимального уровня.");
             from.Target = new LevelUpScroll.LevelItemTarget(this);
         }
 
@@ -121,35 +50,47 @@ namespace Server.Items
 
             protected override void OnTarget(Mobile from, object target)
             {
+                if (m_Scroll == null || m_Scroll.Deleted || !m_Scroll.IsChildOf(from.Backpack))
+                {
+                    from.SendMessage("The level increase scroll must remain in your backpack while you use it.");
+                    return;
+                }
+
+                if (!IsNearAnvil(from, 3))
+                {
+                    from.SendMessage(0x22, "Для работы со свитком повышения уровней вы обязаны стоять в кузнице у наковальни!");
+                    return;
+                }
+
                 if (target is Item item)
                 {
-                    if (item.RootParent != from || !item.IsChildOf(from.Backpack))
+                    if (item.RootParent != from)
                     {
                         from.SendMessage("Предмет должен быть у вас в инвентаре или экипирован.");
                         return;
                     }
 
-                    // Проверяем, подходит ли тип предмета под прокачку
-                    if (item is BaseWeapon || item is BaseArmor || item is BaseClothing || item is BaseJewel)
+                    if (LevelItemManager.IsLevelableItem(item))
                     {
                         XmlLevelItem levitem = XmlAttach.FindAttachment(item, typeof(XmlLevelItem)) as XmlLevelItem;
-
-                        // 🔥 МОДФИКАЦИЯ: Если аттачмента нет — автоматически вешаем его на обычную пуху! 🎉⚙️
                         if (levitem == null)
                         {
-                            levitem = new XmlLevelItem();
-                            XmlAttach.AttachTo(item, levitem);
-                            from.SendMessage("Этот предмет теперь официально стал прокачиваемым!");
+                            from.SendMessage("Этот предмет еще не является прокачиваемым! Сначала используйте Levelable Deed.");
+                            return;
                         }
 
-                        if ((levitem.MaxLevel + m_Scroll.Value) > LevelItems.MaxLevelsCap)
+                        long newMaxLevel = (long)levitem.MaxLevel + m_Scroll.Value;
+                        if (m_Scroll.Value <= 0 || levitem.MaxLevel < levitem.Level ||
+                            newMaxLevel > LevelItems.MaxLevelsCap ||
+                            newMaxLevel * LevelItems.PointsPerLevel > LevelItemManager.MaxPointsCap)
                         {
-                            from.SendMessage("Максимальный уровень этого предмета уже слишком высок для этого свитка!");
+                            from.SendMessage(0x22, "You cannot use this scroll: the new level limit must be positive and cannot exceed the item's level or point cap.");
                         }
                         else
                         {
                             levitem.MaxLevel += m_Scroll.Value;
-                            from.SendMessage("Максимальный уровень вашего предмета успешно увеличен на +" + m_Scroll.Value + ". Текущий максимум: " + levitem.MaxLevel + ".");
+                            from.PlaySound(0x2A); 
+                            from.SendMessage(0x58, $"Максимальный уровень предмета увеличен на +{m_Scroll.Value}. Новый лимит уровней: {levitem.MaxLevel} (Потенциал: {levitem.MaxLevel * LevelItems.PointsPerLevel}/{LevelItemManager.MaxPointsCap} sp)!");
                             m_Scroll.Delete();
                         }
                     }
@@ -158,10 +99,23 @@ namespace Server.Items
                         from.SendMessage("Вы не можете наложить свиток прокачки на этот тип предмета.");
                     }
                 }
-                else
+            }
+
+            private bool IsNearAnvil(Mobile from, int range)
+            {
+                if (from == null || from.Map == null || from.Map == Map.Internal) return false;
+                IPooledEnumerable items = from.Map.GetItemsInRange(from.Location, range);
+                foreach (Item item in items)
                 {
-                    from.SendMessage("Неверная цель. Выберите оружие, броню или бижутерию.");
+                    string name = item.GetType().Name.ToLower();
+                    if (name.Contains("anvil") || item.ItemID == 0xFAF || item.ItemID == 0xFB0)
+                    {
+                        items.Free();
+                        return true;
+                    }
                 }
+                items.Free();
+                return false;
             }
         }
     }

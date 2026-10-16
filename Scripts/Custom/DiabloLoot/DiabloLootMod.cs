@@ -15,61 +15,62 @@ namespace Server.Custom.DiabloLoot
         private static void OnItemCreated(ItemCreatedEventArgs e)
         {
             Item item = e.Item;
-            if (item == null)
+            if (item == null || item.Deleted)
                 return;
 
             // Работаем только с экипировкой (Оружие, Броня, Одежда, Бижутерия)
-            if (item is BaseWeapon || item is BaseArmor || item is BaseClothing || item is BaseJewel)
+            if (!(item is BaseWeapon || item is BaseArmor || item is BaseClothing || item is BaseJewel))
+                return;
+
+            // Нативно определяем текущую карту, где создается предмет
+            Map currentMap = item.Map;
+
+            // Если вещь в контейнере или на мобе — считываем карту её родителя
+            if (currentMap == null || currentMap == Map.Internal)
+                currentMap = item.RootParent is Mobile ? ((Mobile)item.RootParent).Map : (item.RootParent is Item ? ((Item)item.RootParent).Map : Map.Trammel);
+
+            if (currentMap != null && currentMap != Map.Internal)
             {
-                // Нативно определяем текущую карту, где создается предмет
-                Map currentMap = item.Map;
-                
-                // Если вещь в контейнере или на мобе — считываем карту её родителя
-                if (currentMap == null || currentMap == Map.Internal)
-                    currentMap = item.RootParent is Mobile ? ((Mobile)item.RootParent).Map : (item.RootParent is Item ? ((Item)item.RootParent).Map : Map.Trammel);
+                double curseChance = 0.05; // Дефолтный шанс для Траммеля (5%)
+                int minPenalty = 10;
+                int maxPenalty = 20;
 
-                if (currentMap != null && currentMap != Map.Internal)
+                // 🔥 ТВОЁ ТЗ: Динамический диапазон шансов и силы порчи под каждый мир! 🗺️⚙️🎉
+                if (currentMap == Map.Felucca)
                 {
-                    double curseChance = 0.05; // Дефолтный шанс для Траммеля (5%)
-                    int minPenalty = 10;
-                    int maxPenalty = 20;
+                    curseChance = 0.20; // Фелукка (20%)
+                    minPenalty = 15;
+                    maxPenalty = 35;
+                }
+                else if (currentMap == Map.Ilshenar || currentMap == Map.Tokuno)
+                {
+                    curseChance = 0.25; // Ильшенар и Токуно (25%)
+                    minPenalty = 20;
+                    maxPenalty = 40;
+                }
+                else if (currentMap == Map.Malas || currentMap == Map.TerMur)
+                {
+                    curseChance = 0.40; // Малас (город некромантов Umbra) и Тер Мур (40%!)
+                    minPenalty = 30;
+                    maxPenalty = 55; // Смертоносные штрафы, требующие элитных магов!
+                }
 
-                    // 🔥 ТВОЁ ТЗ: Динамический диапазон шансов и силы порчи под каждый мир! 🗺️⚙️🎉
-                    if (currentMap == Map.Felucca)
-                    {
-                        curseChance = 0.20; // Фелукка (20%)
-                        minPenalty = 15;
-                        maxPenalty = 35;
-                    }
-                    else if (currentMap == Map.Ilshenar || currentMap == Map.Tokuno)
-                    {
-                        curseChance = 0.25; // Ильшенар и Токуно (25%)
-                        minPenalty = 20;
-                        maxPenalty = 40;
-                    }
-                    else if (currentMap == Map.Malas || currentMap == Map.TerMur)
-                    {
-                        curseChance = 0.40; // Малас (город некромантов Umbra) и Тер Мур (40%!)
-                        minPenalty = 30;
-                        maxPenalty = 55; // Смертоносные штрафы, требующие элитных магов!
-                    }
+                double balanceMultiplier = Server.Custom.EpicBalance.EpicWorldBalanceMod.GetCurseChanceMultiplier();
+                curseChance = curseChance * balanceMultiplier;
 
-                    double balanceMultiplier = Server.Custom.EpicBalance.EpicWorldBalanceMod.GetCurseChanceMultiplier();
-                    curseChance = curseChance * balanceMultiplier;
+                // Бросаем кубик на появление проклятия
+                if (Utility.RandomDouble() < curseChance)
+                {
+                    // Создаем кастомный аттачмент
+                    XmlCurseAttribute curse = new XmlCurseAttribute();
 
-                    // Бросаем кубик на появление проклятия
-                    if (Utility.RandomDouble() < curseChance)
-                    {
-                        // Создаем кастомный аттачмент
-                        XmlCurseAttribute curse = new XmlCurseAttribute();
-                        
-                        // Вшиваем сгенерированную силу порчи данного мира напрямую в параметры аттачмента
-                        curse.HpPenalty = Utility.RandomMinMax(minPenalty, maxPenalty);
-                        curse.ManaPenalty = Utility.RandomMinMax(minPenalty - 5, maxPenalty - 10);
-                        
-                        // Намертво пришиваем аттачмент к сгенерированному предмету
-                        Server.Engines.XmlSpawner2.XmlAttach.AttachTo(item, curse);
-                    }
+                    // Вшиваем сгенерированную силу порчи данного мира напрямую в параметры аттачмента
+                    curse.HpPenalty = Utility.RandomMinMax(minPenalty, maxPenalty);
+                    curse.ManaPenalty = Utility.RandomMinMax(minPenalty - 5, maxPenalty - 10);
+                    curse.RandomizeBonuses(Math.Max(1, maxPenalty / 4));
+
+                    // Намертво пришиваем аттачмент к сгенерированному предмету
+                    Server.Engines.XmlSpawner2.XmlAttach.AttachTo(item, curse);
                 }
             }
 

@@ -6,26 +6,30 @@ using Server;
 using Server.Items;
 using Server.Mobiles;
 using Server.Accounting;
+using Server.Custom.CityDevelopment;
+using Server.Custom.CurseSystem;
+using Server.Engines.XmlSpawner2;
+using Server.Custom.Pawnshop;
 
 namespace Server.Mobiles
 {
     public class MerchantBot : PlayerVendor
     {
-        private static readonly TimeSpan UpdateInterval = TimeSpan.FromHours(4); // Как часто обновлять прилавок
-        private static readonly int MaxItemsOnSale = 15; // Максимально лотов на витрине
+        // 🔥 ТВОЁ ТЗ: Увеличиваем тайминги рыночного цикла с 4 часов до 4 ДНЕЙ реального времени! ⏳📅⚖️
+        private static readonly TimeSpan UpdateInterval = TimeSpan.FromDays(4.0);
+        private static readonly int MaxItemsOnSale = 15;
 
         [Constructable]
         public MerchantBot() : base(null, null)
         {
             Name = NameList.RandomName("male");
-            Title = "Traveling Merchant"; // ASCII title to keep VendorSearch stable
+            Title = "Traveling Merchant";
             CantWalk = false;
             this.HoldGold = 500000;
             this.Direction = (Direction)Utility.Random(8);
 
             DressUp();
 
-            // Generate initial inventory and start the update timer.
             ProcessMarketCycle();
             Timer.DelayCall(UpdateInterval, UpdateInterval, new TimerCallback(ProcessMarketCycle));
         }
@@ -41,8 +45,8 @@ namespace Server.Mobiles
             Hashtable sellItems = field.GetValue(this) as Hashtable;
             if (sellItems == null) return;
 
+            // --- ШАГ 1: Чистка старой витрины (раз в 4 дня с шансом 30% для каждой вещи) ---
             List<Item> toRemove = new List<Item>();
-
             foreach (DictionaryEntry de in sellItems)
             {
                 Item item = de.Key as Item;
@@ -52,14 +56,44 @@ namespace Server.Mobiles
                         toRemove.Add(item);
                 }
             }
+            foreach (Item item in toRemove) item.Delete();
 
-            foreach (Item item in toRemove)
+            // --- ШАГ 2: Круговорот вещей из Ломбарда ---
+            if (Utility.RandomDouble() < 0.35 && sellItems.Count < MaxItemsOnSale)
             {
-                item.Delete();
+                Item pawnedItem = PawnshopVault.ExtractRandomItem();
+                if (pawnedItem != null && !pawnedItem.Deleted)
+                {
+                    pawnedItem.Weight = 0;
+                    this.Backpack.DropItem(pawnedItem);
+
+                    int estimatedWorth = EvaluateItemWorth(pawnedItem);
+
+                    int serverSupply = GetGlobalSupplyCount(pawnedItem.GetType(), field);
+                    double scarcityMultiplier = 2.0;
+
+                    if (serverSupply <= 1) scarcityMultiplier = Utility.RandomMinMax(5.0, 6.0);
+                    else if (serverSupply <= 3) scarcityMultiplier = Utility.RandomMinMax(3.5, 4.5);
+                    else if (serverSupply <= 6) scarcityMultiplier = Utility.RandomMinMax(2.5, 3.0);
+
+                    int finalResalePrice = (int)(estimatedWorth * scarcityMultiplier);
+
+                    string desc = GetItemDescription(pawnedItem) ?? $"[Выкуплено из Ломбарда. Уровень дефицита на сервере: {serverSupply}]";
+                    VendorItem vi = new VendorItem(pawnedItem, finalResalePrice, desc, DateTime.UtcNow);
+
+                    sellItems[pawnedItem] = vi;
+                    this.PublicOverheadMessage(Network.MessageType.Regular, 0x35, false, $"[Контрабанда]: Я импортировал редкий лот '{pawnedItem.Name ?? pawnedItem.GetType().Name}'! Из-за дефицита цена: {finalResalePrice} gp!");
+                }
             }
 
-            int currentOnSaleCount = sellItems.Count;
+            // --- ШАГ 3: ИИ-спекуляция и глобальный перехват лавок ---
+            if (Utility.RandomDouble() < 0.45 && sellItems.Count < MaxItemsOnSale)
+            {
+                TrySpeculatePlayerVendors(sellItems);
+            }
 
+            // --- ШАГ 4: Редкий системный довоз ---
+            int currentOnSaleCount = sellItems.Count;
             if (currentOnSaleCount < MaxItemsOnSale)
             {
                 int itemsToGenerate = Utility.RandomMinMax(1, 3);
@@ -72,14 +106,268 @@ namespace Server.Mobiles
             this.InvalidateProperties();
         }
 
+        private int GetGlobalSupplyCount(Type targetType, FieldInfo field)
+        {
+            int count = 0;
+            foreach (Mobile m in World.Mobiles.Values)
+            {
+                if (m is PlayerVendor pv && !pv.Deleted && pv.Backpack != null)
+                {
+                    Hashtable itemsTable = field.GetValue(pv) as Hashtable;
+                    if (itemsTable != null)
+                    {
+                        foreach (DictionaryEntry de in itemsTable)
+                        {
+                            if (de.Key.GetType() == targetType) count++;
+                        }
+                    }
+                }
+            }
+            return count;
+        }
+
+        private void TrySpeculatePlayerVendors(Hashtable botSellItems)
+        {
+            FieldInfo field = typeof(PlayerVendor).GetField("m_SellItems", BindingFlags.Instance | BindingFlags.NonPublic);
+            if (field == null) return;
+
+            List<PlayerVendor> allVendorsOnServer = new List<PlayerVendor>();
+            foreach (Mobile m in World.Mobiles.Values)
+            {
+                if (m is PlayerVendor pv && pv.Backpack != null && !pv.Deleted && pv.Map == this.Map && pv != this)
+                {
+                    Hashtable itemsTable = field.GetValue(pv) as Hashtable;
+                    if (itemsTable != null && itemsTable.Count > 0)
+                    {
+                        allVendorsOnServer.Add(pv);
+                    }
+                }
+            }
+
+            if (allVendorsOnServer.Count == 0) return;
+
+            PlayerVendor targetVendor = allVendorsOnServer[Utility.Random(allVendorsOnServer.Count)];
+            bool buyingFromBot = (targetVendor is MerchantBot);
+
+            Hashtable playerSellItems = field.GetValue(targetVendor) as Hashtable;
+            if (playerSellItems == null || playerSellItems.Count == 0) return;
+
+            List<Item> availableItems = new List<Item>();
+            foreach (DictionaryEntry de in playerSellItems)
+            {
+                if (de.Key is Item it && !it.Deleted) availableItems.Add(it);
+            }
+
+            if (availableItems.Count == 0) return;
+            Item itemToBuy = availableItems[Utility.Random(availableItems.Count)];
+            VendorItem playerVi = playerSellItems[itemToBuy] as VendorItem;
+
+            if (playerVi == null || playerVi.Price <= 0) return;
+
+            int targetPrice = playerVi.Price;
+            Type targetType = itemToBuy.GetType();
+
+            int globalSameTypeCount = GetGlobalSupplyCount(targetType, field);
+            int trueWorth = EvaluateItemWorth(itemToBuy);
+            bool shouldBuy = false;
+
+            if (!buyingFromBot && targetPrice > (trueWorth * 3) && globalSameTypeCount == 1)
+            {
+                shouldBuy = false;
+            }
+            else if (buyingFromBot)
+            {
+                if (targetPrice <= (trueWorth * 4) && targetPrice <= 250000 && botSellItems.Count < MaxItemsOnSale)
+                {
+                    shouldBuy = true;
+                }
+            }
+            else if (globalSameTypeCount == 1)
+            {
+                if (targetPrice <= 500000)
+                {
+                    double markupRatio = (double)targetPrice / Math.Max(1, trueWorth);
+                    double finalGreedChance = 0.75;
+
+                    if (markupRatio > 1.5) finalGreedChance = 0.45;
+                    if (markupRatio > 2.5) finalGreedChance = 0.15;
+                    if (markupRatio > 3.0) finalGreedChance = 0.00;
+
+                    if (Utility.RandomDouble() < finalGreedChance) shouldBuy = true;
+                }
+            }
+            else
+            {
+                int totalCalculatedPrice = 0;
+                foreach (Mobile m in World.Mobiles.Values)
+                {
+                    if (m is PlayerVendor pv && !pv.Deleted && pv.Backpack != null)
+                    {
+                        Hashtable itemsTable = field.GetValue(pv) as Hashtable;
+                        if (itemsTable != null)
+                        {
+                            foreach (DictionaryEntry de in itemsTable)
+                            {
+                                if (de.Key.GetType() == targetType && de.Value is VendorItem vi && vi.Price > 0)
+                                    totalCalculatedPrice += vi.Price;
+                            }
+                        }
+                    }
+                }
+                int averageMarketPrice = (int)(totalCalculatedPrice / Math.Max(1, globalSameTypeCount));
+                if (targetPrice < averageMarketPrice && targetPrice <= 150000 && targetPrice <= (trueWorth * 2)) shouldBuy = true;
+            }
+
+            if (shouldBuy)
+            {
+                int taxPercent = 5;
+                Server.Engines.CityLoyalty.City taxTargetCity = Server.Engines.CityLoyalty.City.Britain;
+
+                Region vendorRegion = Region.Find(targetVendor.Location, targetVendor.Map);
+                bool cityFound = false;
+
+                if (vendorRegion != null && !string.IsNullOrEmpty(vendorRegion.Name))
+                {
+                    foreach (Server.Engines.CityLoyalty.City c in Enum.GetValues(typeof(Server.Engines.CityLoyalty.City)))
+                    {
+                        string checkName = (c == Server.Engines.CityLoyalty.City.NewMagincia) ? "magincia" : c.ToString().ToLower();
+                        if (vendorRegion.Name.ToLower().Contains(checkName))
+                        {
+                            taxTargetCity = c;
+                            cityFound = true;
+                            break;
+                        }
+                    }
+                }
+                if (cityFound)
+                {
+                    Server.Factions.Town factionTown = Server.Factions.Town.Towns.Find(t => t.ToString().ToLower().Contains(taxTargetCity.ToString().ToLower()));
+                    if (factionTown != null) taxPercent = factionTown.Tax;
+                }
+                else
+                {
+                    if (Utility.RandomBool()) taxTargetCity = Server.Engines.CityLoyalty.City.Trinsic;
+                }
+                int totalGoldPaidByBot = targetPrice;
+                int cityTaxGold = (int)(totalGoldPaidByBot * ((double)taxPercent / 100.0));
+                int cleanGoldToOwner = totalGoldPaidByBot - cityTaxGold;
+                if (buyingFromBot)
+                {
+                    targetVendor.HoldGold += totalGoldPaidByBot;
+                }
+                else if (targetVendor.Owner != null)
+                {
+                    targetVendor.Owner.BankBox.DropItem(new Gold(cleanGoldToOwner));
+                    targetVendor.Owner.SendMessage(0x58, $"[Рынок]: Бот-перекупщик {this.Name} выкупил ваш товар '{itemToBuy.Name ?? targetType.Name}' за {totalGoldPaidByBot} gp!");
+                    targetVendor.Owner.SendMessage(0x22, $"[Налоги]: Удержана пошлина {taxPercent}% ({cityTaxGold} gp) в бюджет {taxTargetCity}.");
+                }
+                else
+                {
+                    targetVendor.HoldGold += cleanGoldToOwner;
+                }
+                if (!buyingFromBot)
+                {
+                    CityProgress cityProgress = CityDevelopmentMod.GetCityProfile(taxTargetCity, targetVendor.Map);
+                    if (cityProgress != null) cityProgress.Treasury += cityTaxGold;
+                }
+                playerSellItems.Remove(itemToBuy);
+                itemToBuy.Weight = 0;
+                this.Backpack.DropItem(itemToBuy);
+                double scarcityMultiplier = 2.0; 
+
+                if (globalSameTypeCount <= 1) scarcityMultiplier = Utility.RandomMinMax(5.0, 6.0); 
+                else if (globalSameTypeCount <= 3) scarcityMultiplier = Utility.RandomMinMax(3.5, 4.5); 
+                else if (globalSameTypeCount <= 6) scarcityMultiplier = Utility.RandomMinMax(2.5, 3.0); 
+
+                int resalePrice = (int)(trueWorth * scarcityMultiplier);
+
+                string detailedDesc = GetItemDescription(itemToBuy) ?? $"[Товар импортирован из города {taxTargetCity}. Дефицит: {globalSameTypeCount}]";
+                VendorItem vi = new VendorItem(itemToBuy, resalePrice, detailedDesc, DateTime.UtcNow);
+                
+                botSellItems[itemToBuy] = vi; // Использовалась переменная vi вместо botVi
+                
+                targetVendor.InvalidateProperties();
+                this.InvalidateProperties();
+            }
+        }
+        private int EvaluateItemWorth(Item item)
+        {
+            if (item == null) return 0;
+            int worth = (int)(item.Weight * 50) + 150;
+            int propertiesCount = 0;
+            int totalIntensity = 0;
+            object attrs = null;
+            if (item is BaseWeapon bw) attrs = bw.Attributes;
+            else if (item is BaseArmor ba) attrs = ba.Attributes;
+            else if (item is BaseJewel bj) attrs = bj.Attributes;
+            if (attrs != null)
+            {
+                try
+                {
+                    PropertyInfo[] props = attrs.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
+                    foreach (PropertyInfo prop in props)
+                    {
+                        if (prop.PropertyType == typeof(int))
+                        {
+                            int val = (int)prop.GetValue(attrs, null);
+                            if (val > 0) { propertiesCount++; totalIntensity += val; }
+                        }
+                    }
+                }
+                catch { }
+            }
+            worth += (propertiesCount * 4500) + (totalIntensity * 120);
+            if (item is TreasureMap tm) worth += tm.Level * 8000;
+            if (item is SpellScroll scroll) worth += scroll.ItemID * 150;
+            var curse = XmlAttach.FindAttachment(item, typeof(XmlCurseAttribute)) as XmlCurseAttribute;
+            if (curse != null) worth /= 5;
+            if (propertiesCount == 0 && !(item is TreasureMap)) return Math.Min(350, worth);
+            return Math.Max(200, Math.Min(45000, worth));
+        }
+        public override bool OnDragDrop(Mobile from, Item item)
+        {
+            if (from == null || item == null || this.Deleted)
+                return false;
+            FieldInfo field = typeof(PlayerVendor).GetField("m_SellItems", BindingFlags.Instance | BindingFlags.NonPublic);
+            if (field == null) return false;
+            Hashtable sellItems = field.GetValue(this) as Hashtable;
+            if (sellItems != null && sellItems.Count >= MaxItemsOnSale)
+            {
+                this.SayTo(from, "Моя лавка переполнена, приходи позже, когда я распродам старый товар!");
+                return false;
+            }
+            int payoutGold = EvaluateItemWorth(item);
+            if (payoutGold <= 350 && (item is BaseWeapon || item is BaseArmor))
+            {
+                this.SayTo(from, "Этот предмет пуст и не представляет ценности для заморских рынков. Я дам за него лишь символические гроши.");
+            }
+            if (payoutGold > 0)
+            {
+                from.AddToBackpack(new Gold(payoutGold));
+                this.SayTo(from, $"Превосходная экспертиза! Истинная ценность этой вещи — {payoutGold} золотых монет. По рукам!");
+                this.PlaySound(0x2E6);
+            }
+            if (item is BaseWeapon weapon) weapon.Crafter = null;
+            else if (item is BaseArmor armor) armor.Crafter = null;
+            string origName = item.Name;
+            if (string.IsNullOrEmpty(origName)) origName = item.ItemData.Name;
+            if (string.IsNullOrEmpty(origName)) origName = item.GetType().Name;
+            item.InvalidateProperties();
+            item.Weight = 0;
+            this.Backpack.DropItem(item);
+            int resalePrice = payoutGold * 3;
+            string usedDesc = GetItemDescription(item) ?? $"[Used item from player {from.Name}]";
+            VendorItem vi = new VendorItem(item, resalePrice, usedDesc, DateTime.UtcNow);
+            sellItems[item] = vi;
+            this.InvalidateProperties();
+            return true;
+        }
         private void GenerateRareLoot(Hashtable sellItems)
         {
             Item lootItem = null;
             int roll = Utility.Random(100);
             int finalPrice = 5000;
-            // Base description – will be replaced with a detailed one per item below.
             string customDescription = "[Редкий завоз от торгового бота]";
-
             if (roll > 85)
             {
                 lootItem = Loot.RandomArmorOrShieldOrWeaponOrJewelry(true, true, true);
@@ -87,11 +375,8 @@ namespace Server.Mobiles
             }
             else if (roll > 55)
             {
-                if (Utility.RandomBool())
-                    lootItem = Loot.RandomWeapon();
-                else
-                    lootItem = Loot.RandomArmor();
-
+                if (Utility.RandomBool()) lootItem = Loot.RandomWeapon();
+                else lootItem = Loot.RandomArmor();
                 if (lootItem != null)
                 {
                     if (lootItem is BaseWeapon)
@@ -116,9 +401,6 @@ namespace Server.Mobiles
             }
             else
             {
-                // ИСПРАВЛЕНО ДЛЯ КИРИЛЛИЦЫ: Мы убрали жесткое присвоение lootItem.Name на русском языке!
-                // Вместо этого мы используем оригинальные имена Ultima, меняем цвет, а русское название
-                // выводим в vi.Description, которое Vendor Search переваривает абсолютно безопасно.
                 int resourceRoll = Utility.Random(3);
                 if (resourceRoll == 0)
                 {
@@ -139,39 +421,29 @@ namespace Server.Mobiles
                     lootItem = Loot.Construct(Loot.GemTypes);
                     lootItem.Amount = Utility.RandomMinMax(10, 20);
                 }
-
                 finalPrice = Utility.RandomMinMax(5000, 12000);
             }
-
             if (lootItem != null)
             {
-                // Ensure the item has a proper display name (Ultima DB name or type name).
                 if (string.IsNullOrEmpty(lootItem.Name))
                 {
-                    // Safely obtain Ultima name from ItemData (struct) – check the Name string directly.
                     if (!string.IsNullOrEmpty(lootItem.ItemData.Name))
                         lootItem.Name = lootItem.ItemData.Name;
                     else
                         lootItem.Name = lootItem.GetType().Name;
                 }
-
-                // Resolve the "%s%" placeholder that appears in some Ultima item names when the amount > 1.
                 if (lootItem.Amount > 1 && lootItem.Name != null && lootItem.Name.Contains("%s%"))
                 {
                     lootItem.Name = lootItem.Name.Replace("%s%", lootItem.Amount.ToString());
                 }
-
                 lootItem.InvalidateProperties();
                 lootItem.Weight = 0;
                 this.Backpack.DropItem(lootItem);
-
-                // Build a detailed description containing the main stats of the item.
                 string detailedDesc = GetItemDescription(lootItem) ?? customDescription;
                 VendorItem vi = new VendorItem(lootItem, finalPrice, detailedDesc, DateTime.UtcNow);
                 sellItems[lootItem] = vi;
             }
         }
-
         private void DressUp()
         {
             int randomHue = Utility.RandomList(1150, 1153, 1284, 2123);
@@ -179,92 +451,11 @@ namespace Server.Mobiles
             this.AddItem(new LongPants(1157));
             this.AddItem(new ThighBoots(1175));
         }
-
         public MerchantBot(Serial serial) : base(serial) { }
-
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
             writer.Write((int)1);
-        }
-
-        public override bool OnDragDrop(Mobile from, Item item)
-        {
-            if (from == null || item == null || this.Deleted)
-                return false;
-
-            FieldInfo field = typeof(PlayerVendor).GetField("m_SellItems", BindingFlags.Instance | BindingFlags.NonPublic);
-            if (field == null) return false;
-            Hashtable sellItems = field.GetValue(this) as Hashtable;
-
-            if (sellItems != null && sellItems.Count >= MaxItemsOnSale)
-            {
-                this.SayTo(from, "Моя лавка переполнена, приходи позже, когда я распродам старый товар!");
-                return false;
-            }
-
-            int payoutGold = 0;
-            int resalePrice = 0;
-
-            if (item is BaseWeapon)
-            {
-                payoutGold = Utility.RandomMinMax(3000, 7000);
-                resalePrice = payoutGold * Utility.RandomMinMax(4, 6);
-            }
-            else if (item is BaseArmor || item is BaseShield)
-            {
-                payoutGold = Utility.RandomMinMax(2500, 6000);
-                resalePrice = payoutGold * Utility.RandomMinMax(4, 6);
-            }
-            else if (item is BaseJewel)
-            {
-                payoutGold = Utility.RandomMinMax(4000, 9000);
-                resalePrice = payoutGold * Utility.RandomMinMax(4, 6);
-            }
-            else if (item is TreasureMap)
-            {
-                payoutGold = Utility.RandomMinMax(5000, 12000);
-                resalePrice = payoutGold * Utility.RandomMinMax(3, 5);
-            }
-            else if (item is SpellScroll)
-            {
-                payoutGold = Utility.RandomMinMax(150, 400) * item.Amount;
-                resalePrice = payoutGold * Utility.RandomMinMax(4, 6);
-            }
-            else
-            {
-                this.SayTo(from, "Меня интересует только ценное снаряжение, магические свитки или карты сокровищ.");
-                return false;
-            }
-
-            if (payoutGold > 0)
-            {
-                from.AddToBackpack(new Gold(payoutGold));
-                this.SayTo(from, $"Отличная вещь! Я забираю её и плачу тебе {payoutGold} золотых монет.");
-                this.PlaySound(0x2E6);
-            }
-
-            if (item is BaseWeapon) ((BaseWeapon)item).Crafter = null;
-            else if (item is BaseArmor) ((BaseArmor)item).Crafter = null;
-
-            string origName = item.Name;
-            if (string.IsNullOrEmpty(origName)) origName = item.ItemData.Name;
-            if (string.IsNullOrEmpty(origName)) origName = item.GetType().Name;
-            if (!string.IsNullOrEmpty(origName) && origName.StartsWith("#")) origName = item.ItemData.Name;
-            if (string.IsNullOrEmpty(origName)) origName = "Item";
-
-            item.InvalidateProperties();
-            item.Weight = 0;
-            this.Backpack.DropItem(item);
-
-            // ИСПРАВЛЕНО ДЛЯ КИРИЛЛИЦЫ В КОМИССИОНКЕ:
-            // Не пишем русские буквы в свойство item.Name, переносим информацию в vi.Description
-            // Create a description that shows the main properties of the sold item.
-            string usedDesc = GetItemDescription(item) ?? $"[Used item from player {from.Name}]";
-            VendorItem vi = new VendorItem(item, resalePrice, usedDesc, DateTime.UtcNow);
-            sellItems[item] = vi;
-            this.InvalidateProperties();
-            return true;
         }
         public override void Deserialize(GenericReader reader)
         {
@@ -272,36 +463,23 @@ namespace Server.Mobiles
             int version = reader.ReadInt();
             if (this.HoldGold < 100000)
                 this.HoldGold = 500000;
-            // Previously used reflection to inject a fake owner for VendorSearch compatibility.
-            // This hack is no longer needed and has been removed for simplicity.
-            Timer.DelayCall(TimeSpan.FromMinutes(5.0), UpdateInterval, new TimerCallback(ProcessMarketCycle));
-
-
+            // 🔥 ИСПРАВЛЕНО: Таймер десериализации синхронизирован со статическим интервалом в 4 дня! 📅⚙️
+            Timer.DelayCall(UpdateInterval, UpdateInterval, new TimerCallback(ProcessMarketCycle));
         }
-
-        // Provides a concise tooltip description for items shown in Vendor Search.
         private static string GetItemDescription(Item item)
         {
             if (item == null) return null;
-
             if (item is BaseWeapon bw)
                 return $"Damage: {bw.MinDamage}-{bw.MaxDamage}, Speed: {bw.Speed}";
-
             if (item is BaseArmor ba)
                 return $"Armor Rating: {ba.ArmorRating}, Durability: {ba.Durability}";
-
             if (item is BaseJewel bj)
                 return $"Slots: {bj.MaxHitPoints}";
-
             if (item is SpellScroll)
                 return "Spell Scroll";
-
             if (item is TreasureMap tm)
                 return $"Treasure Map (Level {tm.Level})";
-
             return item.Name ?? item.GetType().Name;
         }
     }
-
-    // The FakeMerchantOwner class and related reflection hacks have been removed.
 }

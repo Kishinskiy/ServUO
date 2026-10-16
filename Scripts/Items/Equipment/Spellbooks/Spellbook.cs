@@ -124,6 +124,7 @@ namespace Server.Items
 			LootType = LootType.Blessed;
 
 			Content = content;
+			m_HitPoints = m_MaxHitPoints = Utility.RandomMinMax(InitMinHits, InitMaxHits);
 		}
 
 		public Spellbook(Serial serial)
@@ -264,18 +265,9 @@ namespace Server.Items
             get { return m_HitPoints; }
             set
             {
-                if (m_HitPoints == value)
-                {
-                    return;
-                }
-
-                if (value > m_MaxHitPoints)
-                {
-                    value = m_MaxHitPoints;
-                }
-
+                if (m_HitPoints == value) return;
+                if (value > m_MaxHitPoints) value = m_MaxHitPoints;
                 m_HitPoints = value;
-
                 InvalidateProperties();
             }
         }
@@ -284,26 +276,19 @@ namespace Server.Items
         public int MaxHitPoints
         {
             get { return m_MaxHitPoints; }
-            set
-            {
-                m_MaxHitPoints = value;
-                InvalidateProperties();
-            }
+            set { m_MaxHitPoints = value; InvalidateProperties(); }
         }
 
         public virtual bool CanFortify { get { return false; } }
 
-        public virtual int InitMinHits { get { return 0; } }
-        public virtual int InitMaxHits { get { return 0; } }
+        // Порог прочности для генерации
+        public virtual int InitMinHits { get { return 35; } }
+        public virtual int InitMaxHits { get { return 50; } }
 
-        public virtual void ScaleDurability()
-        {
-        }
+        public virtual void ScaleDurability() { }
+        public virtual void UnscaleDurability() { }
 
-        public virtual void UnscaleDurability()
-        {
-        }
-
+        // 🔥 ТВОЁ ТЗ: Мягкий износ книг заклинаний! Спадает в рюкзак при 0 прочности, БЕЗ удаления! 📜🔮💥
         public virtual int OnHit(BaseWeapon weap, int damage)
         {
             if (m_MaxHitPoints == 0)
@@ -311,22 +296,27 @@ namespace Server.Items
 
             int chance = m_NegativeAttributes.Antique > 0 ? 50 : 25;
 
-            if (chance > Utility.Random(100)) // 25% chance to lower durability
+            if (chance > Utility.Random(100)) 
             {
                 if (m_HitPoints >= 1)
                 {
                     HitPoints--;
                 }
-                else if (m_MaxHitPoints > 0)
+
+                // Если прочность упала до нуля — книга выгорает и падает в рюкзак
+                if (m_HitPoints <= 0)
                 {
-                    MaxHitPoints--;
+                    m_HitPoints = 0; // Жестко фиксируем ноль
 
                     if (Parent is Mobile)
-                        ((Mobile)Parent).LocalOverheadMessage(MessageType.Regular, 0x3B2, 1061121); // Your equipment is severely damaged.
-
-                    if (m_MaxHitPoints == 0)
                     {
-                        Delete();
+                        Mobile mage = (Mobile)Parent;
+                        mage.PlaySound(0x5C3); // Зловещий звук развеивания магии
+                        mage.SendMessage(0x22, $"Эфирные руны вашей книги заклинаний '{this.Name ?? this.GetType().Name}' полностью выгорели! Она спала в рюкзак.");
+                        
+                        // Снимаем книгу со слота экипировки и кидаем в сумку
+                        mage.RemoveItem(this);
+                        mage.AddToBackpack(this);
                     }
                 }
             }

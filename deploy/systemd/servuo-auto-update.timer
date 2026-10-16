@@ -1,0 +1,11 @@
+[Unit]
+Description=Check ServUO for updates every five minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+AccuracySec=30s
+Unit=servuo-auto-update.service
+
+[Install]
+WantedBy=timers.target

@@ -1628,6 +1628,7 @@ namespace Server
 
         public virtual bool CanEquip(Mobile m)
         {
+            
             return m_Layer != Layer.Invalid && m.FindItemOnLayer(m_Layer) == null && CheckEquip(m, true);
         }
 

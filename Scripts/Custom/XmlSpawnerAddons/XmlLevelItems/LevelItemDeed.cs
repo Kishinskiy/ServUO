@@ -1,4 +1,3 @@
-// By SHAMBAMPOW
 using System;
 using Server.Network;
 using Server.Prompts;
@@ -20,86 +19,100 @@ namespace Server.Items
 
 		protected override void OnTarget( Mobile from, object target )
 		{
-			if ( target is BaseWeapon || target is BaseArmor || target is BaseClothing || target is BaseJewel )
+			if (m_Deed == null || m_Deed.Deleted || !m_Deed.IsChildOf(from.Backpack))
 			{
-				Item item = (Item)target;
+				from.SendMessage("The levelable deed must remain in your backpack while you use it.");
+				return;
+			}
 
+            // 🔥 ИСПРАВЛЕНО: Задействован собственный автономный сканер наковален во избежание ошибки CS1061! 🎉⚙️🛠️
+            if (!IsNearAnvil(from, 3))
+            {
+                from.SendMessage(0x22, "Для проведения ритуала зачарования предмета вы обязаны находиться в кузнице рядом с наковальней!");
+                return;
+            }
+
+            if (target is Item item && LevelItemManager.IsLevelableItem(item))
+			{
 				XmlLevelItem a = (XmlLevelItem)XmlAttach.FindAttachment(item, typeof(XmlLevelItem));
 
 				if ( a != null )
 				{
-					from.SendMessage( "That already is levelable!");
+					from.SendMessage( "Этот предмет уже обладает возможностью прокачки!");
 					return;
 				}
 				else
 				{
-					if( item.RootParent != from ) // Make sure its in their pack or they are wearing it
+					if( item.RootParent != from ) 
 					{
-						from.SendMessage( "You cannot make that levelable there!" );
+						from.SendMessage( "Предмет должен находиться у вас в руках или сумке!" );
 					}
 					else
 					{
-						// mod to attach the XmlPoints attachment automatically to new chars
 						XmlAttach.AttachTo(item, new XmlLevelItem());
-
-						from.SendMessage( "You magically make the item levelable..." );
-
-						m_Deed.Delete();
+						from.SendMessage( 0x58, "Вы успешно перековали предмет на наковальне, наделив его потенциалом развития (Уровень 1)!" );
+						
+                        from.PlaySound(0x2A); 
+                        m_Deed.Delete();
 					}
 				}
 			}
 			else
 			{
-				from.SendMessage( "You cannot make that levelable" );
+				from.SendMessage( "Вы не можете наложить чары прокачки на эту вещь." );
 			}
 		}
+
+        // Автономный сканер наковален в радиусе видимости игрока
+        private bool IsNearAnvil(Mobile from, int range)
+        {
+            if (from == null || from.Map == null || from.Map == Map.Internal) return false;
+
+            IPooledEnumerable items = from.Map.GetItemsInRange(from.Location, range);
+            foreach (Item item in items)
+            {
+                // Нативно проверяем любые типы стационарных наковален и кузнечных инструментов ядра
+                string name = item.GetType().Name.ToLower();
+                if (name.Contains("anvil") || item.ItemID == 0xFAF || item.ItemID == 0xFB0)
+                {
+                    items.Free();
+                    return true;
+                }
+            }
+            items.Free();
+            return false;
+        }
 	}
 
-	public class LevelItemDeed : Item // Create the item class which is derived from the base item class
+	public class LevelItemDeed : Item 
 	{
 		[Constructable]
 		public LevelItemDeed() : base( 0x14F0 )
 		{
 			Weight = 1.0;
-			Name = "a levelable item deed";
+			Name = "Свиток Зачарования: Прокачка предметов [Levelable Deed]";
 			LootType = LootType.Blessed;
 			Hue = 1171;
 		}
 
-		public LevelItemDeed( Serial serial ) : base( serial )
-		{
-		}
+		public LevelItemDeed( Serial serial ) : base( serial ) { }
 
-		public override void Serialize( GenericWriter writer )
-		{
-			base.Serialize( writer );
-
-			writer.Write( (int) 0 ); // version
-		}
-
-		public override void Deserialize( GenericReader reader )
-		{
-			base.Deserialize( reader );
-			LootType = LootType.Blessed;
-
-			int version = reader.ReadInt();
-		}
+		public override void Serialize( GenericWriter writer ) { base.Serialize( writer ); writer.Write( (int) 0 ); }
+		public override void Deserialize( GenericReader reader ) { base.Deserialize( reader ); int version = reader.ReadInt(); }
 
 		public override bool DisplayLootType{ get{ return false; } }
 
-		public override void OnDoubleClick( Mobile from ) // Override double click of the deed to call our target
+		public override void OnDoubleClick( Mobile from ) 
 		{
-			if ( !IsChildOf( from.Backpack ) ) // Make sure its in their pack
+			if ( !IsChildOf( from.Backpack ) ) 
 			{
-				 from.SendLocalizedMessage( 1042001 ); // That must be in your pack for you to use it.
+				 from.SendLocalizedMessage( 1042001 ); 
 			}
 			else
 			{
-				from.SendMessage("What item would you like to make levelable?"  );
-				from.Target = new LevelItemTarget( this ); // Call our target
+				from.SendMessage("Выберите оружие или броню, которую хотите сделать прокачиваемой:" );
+				from.Target = new LevelItemTarget( this ); 
 			}
 		}	
 	}
 }
-
-

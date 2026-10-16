@@ -45,3 +45,5 @@
 !/bin/rosyln/*
 /Config
 /runtimes
+Config/DataPath.cfg
+Scripts/Custom/AdvancedNpcTrade/Data/LoyaltyDatabase.db
