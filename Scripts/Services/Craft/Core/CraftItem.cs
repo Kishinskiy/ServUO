@@ -1435,6 +1435,9 @@ namespace Server.Engines.Craft
 				chance = 1.0;
 			}
 
+            if (allRequiredSkills)
+                chance += Server.Custom.CityDevelopment.CityDevelopmentMod.GetCraftingChanceBonus(from);
+
 			return chance;
 		}
 

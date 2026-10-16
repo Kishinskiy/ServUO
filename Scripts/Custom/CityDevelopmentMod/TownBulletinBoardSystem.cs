@@ -55,7 +55,7 @@ namespace Server.Custom.TownBoards
             if (m_Type == TownContractType.Bounty)
                 list.Add($"Цель: Уничтожить нечисть в округе: {m_CurrentCount}/{m_RequiredCount}");
             else
-                list.Add($"Цель: Продать городу упакованный ресурс [{m_ResourceClass}]: {m_RequiredCount} шт.");
+                list.Add($"Цель: Поставить городскому складу ресурс [{m_ResourceClass}]: {m_RequiredCount} шт.");
 
             list.Add("Сдача: Дважды кликнуть на свиток и прицелиться в Министра Торговли");
         }
@@ -106,13 +106,8 @@ namespace Server.Custom.TownBoards
                     }
 
                     CityProgress progress = CityDevelopmentMod.GetCityProfile(minister.City, from.Map);
-                    long purchaseCost = 12000;
-
-                    if (progress == null || progress.Treasury < purchaseCost)
-                    {
-                        minister.PublicOverheadMessage(MessageType.Regular, 0x22, false, "В нашей городской казне сейчас нет средств на закупку сырья! Привезите сначала экспортный караван!");
+                    if (progress == null)
                         return;
-                    }
 
                     Container pack = from.Backpack;
                     if (pack == null) return;
@@ -143,20 +138,15 @@ namespace Server.Custom.TownBoards
                                 break;
                         }
 
-                        progress.Treasury -= purchaseCost;
-
                         if (m_Scroll.ResourceClass == "iron") progress.IronStock += m_Scroll.RequiredCount;
                         else if (m_Scroll.ResourceClass == "leather") progress.LeatherStock += m_Scroll.RequiredCount;
                         else if (m_Scroll.ResourceClass == "wood") progress.WoodStock += m_Scroll.RequiredCount;
 
                         m_Scroll.Delete();
 
-                        int goldReward = 6500;
-                        Banker.Deposit(from, goldReward, true);
-
                         from.PlaySound(0x57);
-                        minister.PublicOverheadMessage(MessageType.Regular, 0x35, false, $"Превосходно! Материалы приняты на склады города. Из казны вам выплачено {goldReward} золотых.");
-                        from.SendMessage(0x58, $"[Доска Заказов]: Вы получили +15 Очков Гражданина. Из бюджета города выплачено {goldReward} золотых (зачислено в банк).");
+                        minister.PublicOverheadMessage(MessageType.Regular, 0x35, false, "Превосходно! Материалы приняты на городской склад.");
+                        from.SendMessage(0x58, "[Доска Заказов]: Поставка зачислена на склад. Казна пополнится после доставки торговой коробки.");
                     }
                     else
                     {
@@ -214,6 +204,7 @@ namespace Server.Custom.TownBoards
         {
             CommandSystem.Register("TownBoard", AccessLevel.Player, new CommandEventHandler(TownBoard_OnCommand));
             EventSink.CreatureDeath += OnCreatureDeath;
+            ArtisanSupplySystem.Initialize();
         }
 
         private static void TownBoard_OnCommand(CommandEventArgs e)
@@ -289,7 +280,7 @@ namespace Server.Custom.TownBoards
         {
             m_City = city;
             AddPage(0);
-            AddBackground(0, 0, 420, 300, 0x13BE);
+            AddBackground(0, 0, 420, 430, 0x13BE);
             AddImageTiled(10, 10, 400, 20, 0xA40);
             AddLabel(20, 10, 0x35, $"БЮЛЛЕТЕНЬ ГОРОДСКИХ ЗАКАЗОВ: {city.ToString().ToUpper()}");
             // Контракт 1: Охота (Всегда доступен, за него платит гильдия наемников, а не город)
@@ -297,33 +288,62 @@ namespace Server.Custom.TownBoards
             AddLabel(25, 55, 0x58, "⚔️ ОХОТА НА ВРАГОВ РЕГИОНА (+15 Очков)");
             AddLabel(25, 80, 0x3B2, "Уничтожить 30 монстров в округе для защиты граждан.");
             AddButton(320, 70, 0x254F, 0x2551, 1, GumpButtonType.Reply, 0);
-            // 🔥 ТВОЁ ТЗ: Проверяем бюджет казны города прямо во время отрисовки доски! 🏛️📉❌
-            CityProgress progress = CityDevelopmentMod.GetCityProfile(city, from.Map);
-            bool canAfford = (progress != null && progress.Treasury >= 12000);
             AddBackground(15, 140, 390, 80, 0x24AE);
-            if (canAfford)
-            {
-                // Если деньги есть — штатный контракт закупки
-                AddLabel(25, 150, 0x24, "⛏️ ЗАКУПКА СЫРЬЯ: РЕСУРСЫ РЕМЕСЛЕННИКОВ");
-                AddLabel(25, 175, 0x3B2, "Город закупает 50 единиц ресурса из вашего рюкзака.");
-                AddButton(320, 165, 0x254F, 0x2551, 2, GumpButtonType.Reply, 0);
-                AddLabel(15, 265, 0x35, "Город выплачивает золото за поставки напрямую из казны!");
-            }
-            else
-            {
-                // 🔥 КРИЗИС: Если город банкрот — кнопка исчезает, а текст меняется на лорное предупреждение! 🪫
-                AddLabel(25, 150, 0x22, "❌ [КРИЗИС] ЗАКУПКА СЫРЬЯ ЗАБЛОКИРОВАНА");
-                AddLabel(25, 175, 0x22, "Городская казна пуста. Город приостановил закупку материалов.");
-                AddLabel(15, 265, 0x22, "Внимание! Снарядите караван из Felucca, чтобы пополнить бюджет!");
-            }
+            AddLabel(25, 150, 0x24, "⛏️ ПОСТАВКА СЫРЬЯ НА ГОРОДСКОЙ СКЛАД");
+            AddLabel(25, 175, 0x3B2, "Город принимает 50 единиц ресурса; без выплаты из казны.");
+            AddButton(320, 165, 0x254F, 0x2551, 2, GumpButtonType.Reply, 0);
+
+            AddBackground(15, 230, 390, 185, 0x24AE);
+            AddLabel(25, 240, 0x35, "РЕМЕСЛЕННЫЕ ЗАКАЗЫ");
+            AddLabel(25, 265, 0x3B2, "Объем: сырье 50, снаряжение 5, амуниция 100, припасы 40.");
+            AddLabel(25, 280, 0x3B2, "Один заказ в 24 ч.; поставка пополняет склад, не казну.");
+            AddButton(25, 310, 0xFA5, 0xFA7, 3, GumpButtonType.Reply, 0);
+            AddLabel(55, 310, 0x3B2, "Сырье");
+            AddButton(125, 310, 0xFA5, 0xFA7, 4, GumpButtonType.Reply, 0);
+            AddLabel(155, 310, 0x3B2, "Оружие/броня");
+            AddButton(270, 310, 0xFA5, 0xFA7, 5, GumpButtonType.Reply, 0);
+            AddLabel(300, 310, 0x3B2, "Амуниция");
+            AddButton(25, 345, 0xFA5, 0xFA7, 6, GumpButtonType.Reply, 0);
+            AddLabel(55, 345, 0x3B2, "Припасы");
+            AddLabel(155, 345, 0x35, $"Ваша ремесленная репутация: {ArtisanSupplySystem.GetReputation(from)}");
+            AddLabel(155, 365, 0x35, $"Шанс крафта в городе: +{CityDevelopmentMod.GetCraftingChanceBonus(from) * 100:0}%");
         }
         public override void OnResponse(Server.Network.NetState sender, RelayInfo info)
         {
             Mobile from = sender.Mobile;
             if (from == null || !from.Alive) return;
+            if (info.ButtonID >= 3 && info.ButtonID <= 6)
+            {
+                if (from.Backpack != null && from.Backpack.FindItemByType(typeof(TownContractScroll)) != null)
+                {
+                    from.SendMessage(0x22, "Сначала завершите активный городской контракт.");
+                    return;
+                }
+
+                if (ArtisanSupplySystem.HasActiveDeed(from))
+                {
+                    from.SendMessage(0x22, "Сначала выполните или удалите активный ремесленный заказ.");
+                    return;
+                }
+
+                if (!ArtisanSupplySystem.CanTakeOrder(from))
+                {
+                    from.SendMessage(0x22, "Городская управа принимает новый ремесленный заказ раз в 24 часа.");
+                    return;
+                }
+
+                ArtisanSupplySystem.CreateOrder(from, m_City, (ArtisanSupplyCategory)(info.ButtonID - 3));
+                return;
+            }
+
             if (from.Backpack != null && from.Backpack.FindItemByType(typeof(TownContractScroll)) != null)
             {
                 from.SendMessage(0x22, "У вас уже есть один активный контракт! Выполните или выбросьте его.");
+                return;
+            }
+            if (ArtisanSupplySystem.HasActiveDeed(from))
+            {
+                from.SendMessage(0x22, "Сначала выполните или удалите активный ремесленный заказ.");
                 return;
             }
             if (info.ButtonID == 1)
@@ -333,13 +353,6 @@ namespace Server.Custom.TownBoards
             }
             else if (info.ButtonID == 2)
             {
-                // Двойная страховка: проверяем бюджет при попытке кликнуть кнопку пакетом
-                CityProgress progress = CityDevelopmentMod.GetCityProfile(m_City, from.Map);
-                if (progress == null || progress.Treasury < 12000)
-                {
-                    from.SendMessage(0x22, "Казна города пуста! Вы не можете взять этот контракт.");
-                    return;
-                }
                 string[] resTypes = { "iron", "leather", "wood" };
                 string chosenRes = resTypes[Utility.Random(resTypes.Length)];
                 from.AddToBackpack(new TownContractScroll(m_City, TownContractType.Supplies, chosenRes, 50));

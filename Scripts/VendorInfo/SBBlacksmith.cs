@@ -31,6 +31,7 @@ namespace Server.Mobiles
         {
             public InternalBuyInfo()
             {
+                Add(new GenericBuyInfo("Свиток ремонта зачарованного предмета", typeof(Server.Custom.CityDevelopment.EnchantedRepairScroll), 10000, 20, 0x1F2D, 1153));
                 this.Add(new GenericBuyInfo(typeof(IronIngot), 5, 16, 0x1BF2, 0, true));
                 this.Add(new GenericBuyInfo(typeof(Tongs), 13, 14, 0xFBB, 0));
 
