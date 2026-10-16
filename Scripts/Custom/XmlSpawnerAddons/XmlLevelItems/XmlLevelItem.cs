@@ -12,9 +12,9 @@ namespace Server.Engines.XmlSpawner2
     public class XmlLevelItem : XmlAttachment
     {
         private int m_Experience = 0;
-        private int m_Level = 1; // 🔥 ИСПРАВЛЕНО: Дефолтный старт строго с 1-го уровня!
+        private int m_Level = 1; 
         private int m_Points = 0;
-        private int m_MaxLevel = 20; // 🔥 ИСПРАВЛЕНО: По умолчанию лимит прокачки всего 20 уровней!
+        private int m_MaxLevel = 20; 
 
         [CommandProperty(AccessLevel.GameMaster)]
         public int Experience { get { return m_Experience; } set { m_Experience = value; InvalidateParentProperties(); } }
@@ -26,12 +26,12 @@ namespace Server.Engines.XmlSpawner2
         public int Points { get { return m_Points; } set { m_Points = value; InvalidateParentProperties(); } }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public int MaxLevel { get { return m_MaxLevel; } set { m_MaxLevel = value; if (m_MaxLevel > LevelItems.MaxLevelsCap) m_MaxLevel = LevelItems.MaxLevelsCap; InvalidateParentProperties(); } }
+        public int MaxLevel { get { return m_MaxLevel; } set { m_MaxLevel = value; InvalidateParentProperties(); } }
 
         public XmlLevelItem(ASerial serial) : base(serial) { }
 
         [Attachable]
-        public XmlLevelItem() : this(20) // 🔥 ИСПРАВЛЕНО: Базовый кап 20 уровней
+        public XmlLevelItem() : this(20) 
         {
         }
 
@@ -41,7 +41,7 @@ namespace Server.Engines.XmlSpawner2
             Name = "LevelItem";
             MaxLevel = maxLevel;
             Experience = 0;
-            Level = 1; // Строго первый уровень
+            Level = 1; 
             Points = 0;
         }
 
@@ -64,17 +64,15 @@ namespace Server.Engines.XmlSpawner2
             InvalidateParentProperties();
         }
 
-        // 🔥 ТВОЁ ТЗ: НАДЁЖНЫЙ ВЫВОД ХАРАКТЕРИСТИК ПРОКАЧКИ ПРЯМО В TOOLTIP ПРЕДМЕТА! 🎉⚙️
         public override string OnIdentify(Mobile from)
         {
-            // ClassicUO нативно склеит эту строчку в свойства предмета при наведении мыши
             return $"[Уровень Предмета: {m_Level} / {m_MaxLevel} | Опыт: {m_Experience}]";
         }
 
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0); // version
+            writer.Write((int)0); 
             writer.Write((int)m_Experience);
             writer.Write((int)m_Level);
             writer.Write((int)m_MaxLevel);

@@ -1,219 +1,107 @@
 using System;
 using Server;
+using Server.Items;
 using Server.Mobiles;
-using Server.Engines.XmlSpawner2;
+using Server.Network;
+using Server.Gumps;
 
-namespace Server.Items
+namespace Server.Engines.XmlSpawner2 // Намертво склеиваем с XmlSpawner и ItemExperienceGump! 🎉
 {
-	public class LevelItemManager
-	{
-		/// <summary>
-		/// The Number of levels our items can go to. If you
-		/// change this, be sure the Exp table has the correct
-		/// number of Integer values in it.
-		/// </summary>
+    public static class LevelItemManager
+    {
+        // Абсолютный потолок уровней на шарде из файла LevelItems.cs
+        public static readonly int MaxLevelsCap = 1000; 
 
-		#region Level calculation method
+        // Таблица порогов опыта, которую ищет ItemExperienceGump для прорисовки полосы прогресса
+        public static readonly int[] ExpTable = new int[101];
 
-		private static int[] m_Table;
-
-		public static int[] ExpTable
-		{
-			get{ return m_Table; }
-		}
-
-		public static void Initialize()
-		{
-			// The following will build the Level experence table */
-			m_Table = new int[LevelItems.MaxLevelsCap];
-			m_Table[0] = 0;
-
-			for ( int i = 1; i < LevelItems.MaxLevelsCap; ++i )
-			{
-				m_Table[i] = ExpToLevel( i );
-			}
-		}
-
-		public static int ExpToLevel( int currentlevel )
-		{
-			double req = ( currentlevel + 1 ) * 10;
-
-			req = Math.Pow( req, 2 );
-
-			req -= 100.0;
-
-			return ( (int)Math.Round( req ) );
-		}
-
-		#endregion
-
-		#region Exp calculation methods
-
-		private static bool IsMageryCreature( BaseCreature bc )
-		{
-			return ( bc != null && bc.AI == AIType.AI_Mage && bc.Skills[SkillName.Magery].Base > 5.0 );
-		}
-
-		private static bool IsFireBreathingCreature( BaseCreature bc )
-		{
-			if ( bc == null )
-				return false;
-
-			// Use the creature's AbilityProfile to determine if it has the DragonBreath ability.
-			var profile = bc.AbilityProfile;
-			if ( profile != null )
-				return profile.HasAbility( SpecialAbility.DragonBreath );
-
-			return false;
-		}
-
-		private static bool IsPoisonImmune( BaseCreature bc )
-		{
-			return ( bc != null && bc.PoisonImmune != null );
-		}
-
-		private static int GetPoisonLevel( BaseCreature bc )
-		{
-			if ( bc == null )
-				return 0;
-
-			Poison p = bc.HitPoison;
-
-			if ( p == null )
-				return 0;
-
-			return p.Level + 1;
-		}
-
-		public static int CalcExp( Mobile targ )
-		{
-			double val = targ.Hits + targ.Stam + targ.Mana;
-
-			for ( int i = 0; i < targ.Skills.Length; i++ )
-				val += targ.Skills[i].Base;
-
-			if ( val > 700 )
-				val = 700 + ((val - 700) / 3.66667);
-
-			BaseCreature bc = targ as BaseCreature;
-
-			if ( IsMageryCreature( bc ) )
-				val += 100;
-
-			if ( IsFireBreathingCreature( bc ) )
-				val += 100;
-
-			if ( IsPoisonImmune( bc ) )
-				val += 100;
-
-			if ( targ is VampireBat || targ is VampireBatFamiliar )
-				val += 100;
-
-			val += GetPoisonLevel( bc ) * 20;
-
-			val /= 10;
-
-			return (int)val;
-		}
-
-		public static int CalcExpCap( int level )
-		{
-			int req = ExpToLevel( level + 1 );
-
-			return ( req / 20 );
-		}
-
-		#endregion
-
-		public static void CheckItems( Mobile killer, Mobile killed )
-		{
-			if ( killer != null )
-			{
-				for( int i = 0; i < 25; ++i )
-				{
-					Item item = killer.FindItemOnLayer( (Layer)i );
-
-                    XmlLevelItem levitem = XmlAttach.FindAttachment(item, typeof(XmlLevelItem)) as XmlLevelItem;
-
-					//if ( item != null && item is ILevelable )
-                    if (item != null && levitem != null)
-                        CheckLevelable(levitem, killer, killed);
-				}
-			}
-		}
-
-		//public static void InvalidateLevel( ILevelable item )
-        public static void InvalidateLevel(XmlLevelItem item)
-		{
-			for( int i = 0; i < ExpTable.Length; ++i )
-			{
-				if ( item.Experience < ExpTable[i] )
-					return;
-
-				item.Level = i + 1;
-			}
-		}
-
-		//public static void CheckLevelable( ILevelable item, Mobile killer, Mobile killed )
-        public static void CheckLevelable(XmlLevelItem item, Mobile killer, Mobile killed)
-		{
-			if ( (item.Level >= LevelItems.MaxLevelsCap) || (item.Level >= item.MaxLevel) )
-				return;
-
-			int exp = CalcExp( killed );
-			int oldLevel = item.Level;
-			int expcap = CalcExpCap( oldLevel );
-
-			if ( LevelItems.EnableExpCap && exp > expcap )
-				exp = expcap;
-
-			item.Experience += exp;
-
-			InvalidateLevel( item );
-
-			if ( item.Level != oldLevel )
-				OnLevel( item, oldLevel, item.Level, killer );
-
-            //if ( item is Item )
-            //    ((Item)item).InvalidateProperties();
-            if (item != null)
-                item.InvalidateParentProperties();
-		}
-
-        //public static void OnLevel(ILevelable item, int oldLevel, int newLevel, Mobile from)
-        public static void OnLevel(XmlLevelItem item, int oldLevel, int newLevel, Mobile from)
+        static LevelItemManager()
         {
-            /* This is where we control all our props
-             * and their maximum value. */
-            int index;
-            string itemdesc;
-
-            index = newLevel % 10;
-            if (index == 0)
+            // Заполняем каноничную таблицу экспоненциального опыта
+            for (int i = 0; i <= 100; i++)
             {
-                item.Points += LevelItems.PointsPerLevel*2;
+                if (i <= 1) ExpTable[i] = 1000;
+                else ExpTable[i] = (int)((i * 1000) * 1.5);
             }
-            else
-            {
-                item.Points += LevelItems.PointsPerLevel;
-            }
-
-			from.PlaySound( 0x20F );
-			from.FixedParticles( 0x376A, 1, 31, 9961, 1160, 0, EffectLayer.Waist );
-			from.FixedParticles( 0x37C4, 1, 31, 9502, 43, 2, EffectLayer.Waist );
-
-			if ( item.AttachedTo is BaseWeapon )
-				itemdesc = "weapon";
-			else if ( item.AttachedTo is BaseArmor )
-				itemdesc = "armor";
-			else if (item.AttachedTo is BaseJewel )
-				itemdesc = "jewelry";
-			else if (item.AttachedTo is BaseClothing )
-				itemdesc = "clothing";
-			else
-				itemdesc = "item";
-
-			from.SendMessage( "Your "+itemdesc+" has gained a level. It is now level {0}.", newLevel );
         }
-	}
+
+        public static void Initialize()
+        {
+            // Подписываемся на нативное событие смерти монстров ядра ServUO
+            EventSink.CreatureDeath += new CreatureDeathEventHandler(OnCreatureDeath);
+        }
+
+        private static void OnCreatureDeath(CreatureDeathEventArgs e)
+        {
+            BaseCreature victim = e.Creature as BaseCreature;
+            
+            // Защита от прокачки на призванных существах, питомцах или ПвП-целях
+            if (victim == null || victim.Summoned || victim.Controlled)
+                return;
+
+            // Вытаскиваем топ-дамагера или добившего игрока напрямую из аргументов ядра
+            PlayerMobile killer = e.Killer as PlayerMobile;
+
+            // Если монстра добил пет или призванный элементаль — отдаем опыт его хозяину
+            if (killer == null && e.Killer is BaseCreature pet)
+            {
+                killer = pet.ControlMaster as PlayerMobile ?? pet.SummonMaster as PlayerMobile;
+            }
+
+            if (killer == null || killer.NetState == null)
+                return;
+
+            // 🩸 РАСЧЕТ ПвЕ-ОПЫТА: Опыт масштабируется от Fame (Славы) монстра! 
+            // Мягкий баланс: обычный моб = +10..20 exp, Чемпион = +100 exp, Босс Бездны = +350 exp.
+            int expGained = Math.Max(1, Math.Min(350, victim.Fame / 100));
+
+            // Распределяем полученный опыт в предметы в правой и левой руках игрока
+            CheckAndAddItemExp(killer, killer.FindItemOnLayer(Layer.OneHanded), expGained);
+            CheckAndAddItemExp(killer, killer.FindItemOnLayer(Layer.TwoHanded), expGained);
+        }
+
+        private static void CheckAndAddItemExp(PlayerMobile pm, Item item, int exp)
+        {
+            if (item == null || item.Deleted) return;
+
+            // Вытаскиваем базу данных XmlLevelItem с предмета экипировки
+            XmlLevelItem levelData = XmlAttach.FindAttachment(item, typeof(XmlLevelItem)) as XmlLevelItem;
+
+            if (levelData != null)
+            {
+                // 🔥 ТВОЁ ТЗ: Если предмет достиг текущего лимита MaxLevel (дефолт 20) — опыт ХАРДКОРНО КАТЕГОРИЧЕСКИ ЗАМОРАЖИВАЕТСЯ! 🛑
+                if (levelData.Level >= levelData.MaxLevel)
+                    return;
+
+                levelData.Experience += exp;
+
+                // Сверяем набранный опыт по нашей таблице ExpTable
+                int currentLevelIndex = Math.Max(1, Math.Min(100, levelData.Level));
+                int expNeeded = ExpTable[currentLevelIndex];
+
+                // Проверяем ап уровня предмета! ⭐🎉
+                if (levelData.Experience >= expNeeded)
+                {
+                    levelData.Experience = 0; // Сбрасываем текущую шкалу опыта
+                    levelData.Level++;        // Повышаем уровень предмета на +1
+
+                    // Начисляем 4 очка параметров (PointsPerLevel из файла LevelItems.cs)
+                    levelData.Points += 4;    
+
+                    // Запускаем звуковые и визуальные эффекты триумфа над головой игрока
+                    pm.PlaySound(0x5B6); 
+                    Effects.SendTargetParticles(pm, 0x375A, 9, 20, 1171, 0, 5027, EffectLayer.Waist, 0);
+                    
+                    pm.SendMessage(0x58, $"[ПРОКАЧКА]: Ваше снаряжение '{item.Name ?? item.GetType().Name}' подняло уровень! Текущий: {levelData.Level}. Получено +4 очка параметров (sp)!");
+                }
+                else
+                {
+                    // Мягкое системное уведомление игроку в левый нижний угол экрана
+                    pm.SendMessage(0x59, $"Ваш предмет [{item.Name ?? item.GetType().Name}] получил +{exp} ПвЕ-опыта.");
+                }
+
+                item.InvalidateProperties(); // Принудительно шлем сетевой пакет для мгновенного обновления ToolTip в ClassicUO!
+            }
+        }
+    }
 }
