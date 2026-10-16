@@ -16,15 +16,22 @@ namespace Server.Custom.DiabloLoot
         {
             if (item == null) return 0;
 
+            int power = 0;
+
             if (item is BaseWeapon weapon)
+                power = (int)weapon.ItemPower;
+            else if (item is BaseArmor armor)
+                power = (int)armor.ItemPower;
+            else if (item is BaseClothing clothing)
+                power = (int)clothing.ItemPower;
+            else if (item is BaseJewel jewel)
+                power = (int)jewel.ItemPower;
+
+            if (power > 0)
             {
-                int power = (int)weapon.ItemPower;
-                if (power > 0)
-                {
-                    if (power >= 5) return 3; // Легендарный
-                    if (power >= 3) return 2; // Редкий
-                    return 1;                 // Магический
-                }
+                if (power >= 5) return 3; // Легендарный
+                if (power >= 3) return 2; // Редкий
+                return 1;                 // Магический
             }
 
             if (item.IsArtifact)
@@ -45,6 +52,15 @@ namespace Server.Custom.DiabloLoot
                 if (a.ArmorAttributes != null && !a.ArmorAttributes.IsEmpty) propsCount += 2;
                 if ((int)a.ProtectionLevel > 0) propsCount++;
                 if ((int)a.Durability > 0) propsCount++;
+            }
+            else if (item is BaseClothing c)
+            {
+                if (c.Attributes != null && !c.Attributes.IsEmpty) propsCount += 2;
+                if (c.ClothingAttributes != null && !c.ClothingAttributes.IsEmpty) propsCount += 2;
+            }
+            else if (item is BaseJewel j)
+            {
+                if (j.Attributes != null && !j.Attributes.IsEmpty) propsCount += 2;
             }
 
             if (propsCount >= 5) return 3;
@@ -69,7 +85,7 @@ namespace Server.Custom.DiabloLoot
         public static string FormatName(Item item, string originalName)
         {
             string color = GetRarityColor(item);
-            return String.Format("<COLOR={0}>{1}", color, originalName);
+            return String.Format("<BASEFONT COLOR={0}>{1}</BASEFONT>", color, originalName);
         }
     }
 }
