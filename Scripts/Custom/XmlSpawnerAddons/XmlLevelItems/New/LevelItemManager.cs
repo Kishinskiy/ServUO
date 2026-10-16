@@ -75,7 +75,11 @@ namespace Server.Engines.XmlSpawner2
                     return;
                 }
 
-                levelData.Experience += exp;
+                int itemExp = Math.Max(0, exp - (levelData.Level - 1));
+                if (itemExp == 0)
+                    return;
+
+                levelData.Experience += itemExp;
 
                 int currentLevelIndex = Math.Max(1, Math.Min(250, levelData.Level));
                 int expNeeded = ExpTable[currentLevelIndex];
@@ -97,7 +101,7 @@ namespace Server.Engines.XmlSpawner2
                 }
                 else
                 {
-                    pm.SendMessage(0x59, $"Ваш предмет [{item.Name ?? item.GetType().Name}] получил +{exp} ПвЕ-опыта.");
+                    pm.SendMessage(0x59, $"Ваш предмет [{item.Name ?? item.GetType().Name}] получил +{itemExp} ПвЕ-опыта.");
                 }
 
                 item.InvalidateProperties(); 
