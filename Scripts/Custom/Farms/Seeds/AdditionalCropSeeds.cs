@@ -125,4 +125,76 @@ namespace Server.Custom.Farms
         {
         }
     }
+
+    public class AppleSeed : FarmCropSeed
+    {
+        [Constructable]
+        public AppleSeed() : this(1) { }
+        [Constructable]
+        public AppleSeed(int amount) : base("Apple Seed", VegetableType.Apple, 0x21, amount) { }
+        public AppleSeed(Serial serial) : base(serial) { }
+    }
+
+    public class PeachSeed : FarmCropSeed
+    {
+        [Constructable]
+        public PeachSeed() : this(1) { }
+        [Constructable]
+        public PeachSeed(int amount) : base("Peach Seed", VegetableType.Peach, 0x25, amount) { }
+        public PeachSeed(Serial serial) : base(serial) { }
+    }
+
+    public class PearSeed : FarmCropSeed
+    {
+        [Constructable]
+        public PearSeed() : this(1) { }
+        [Constructable]
+        public PearSeed(int amount) : base("Pear Seed", VegetableType.Pear, 0x27, amount) { }
+        public PearSeed(Serial serial) : base(serial) { }
+    }
+
+    public class BananaSeed : FarmCropSeed
+    {
+        [Constructable]
+        public BananaSeed() : this(1) { }
+        [Constructable]
+        public BananaSeed(int amount) : base("Banana Seed", VegetableType.Banana, 0x4A, amount) { }
+        public BananaSeed(Serial serial) : base(serial) { }
+    }
+
+    public class LemonSeed : FarmCropSeed
+    {
+        [Constructable]
+        public LemonSeed() : this(1) { }
+        [Constructable]
+        public LemonSeed(int amount) : base("Lemon Seed", VegetableType.Lemon, 0x34, amount) { }
+        public LemonSeed(Serial serial) : base(serial) { }
+    }
+
+    public class LimeSeed : FarmCropSeed
+    {
+        [Constructable]
+        public LimeSeed() : this(1) { }
+        [Constructable]
+        public LimeSeed(int amount) : base("Lime Seed", VegetableType.Lime, 0x3F, amount) { }
+        public LimeSeed(Serial serial) : base(serial) { }
+    }
+
+    public class CoconutSeed : FarmCropSeed
+    {
+        [Constructable]
+        public CoconutSeed() : this(1) { }
+        [Constructable]
+        public CoconutSeed(int amount) : base("Coconut Seed", VegetableType.Coconut, 0x47, amount) { }
+        public CoconutSeed(Serial serial) : base(serial) { }
+    }
+
+    public class DatesSeed : FarmCropSeed
+    {
+        [Constructable]
+        public DatesSeed() : this(1) { }
+        [Constructable]
+        public DatesSeed(int amount) : base("Date Seed", VegetableType.Dates, 0x45, amount) { }
+        public DatesSeed(Serial serial) : base(serial) { }
+    }
 }

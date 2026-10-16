@@ -25,7 +25,7 @@ namespace Server.Custom.Farms
             // Розыгрыш случайного количества семян (от 1 до 5 включительно)
             int count = Utility.RandomMinMax(1, 5);
 
-            int seedType = Utility.Random(10);
+            int seedType = Utility.Random(18);
 
             Item spawnedSeed;
             string seedName = "";
@@ -41,7 +41,15 @@ namespace Server.Custom.Farms
                 case 6: spawnedSeed = new TurnipSeed(count); seedName = "репы"; break;
                 case 7: spawnedSeed = new GrapeSeed(count); seedName = "винограда"; break;
                 case 8: spawnedSeed = new WatermelonSeed(count); seedName = "арбуза"; break;
-                default: spawnedSeed = new WheatSeed(count); seedName = "пшеницы"; break;
+                case 9: spawnedSeed = new WheatSeed(count); seedName = "пшеницы"; break;
+                case 10: spawnedSeed = new AppleSeed(count); seedName = "яблони"; break;
+                case 11: spawnedSeed = new PeachSeed(count); seedName = "персика"; break;
+                case 12: spawnedSeed = new PearSeed(count); seedName = "груши"; break;
+                case 13: spawnedSeed = new BananaSeed(count); seedName = "банана"; break;
+                case 14: spawnedSeed = new LemonSeed(count); seedName = "лимона"; break;
+                case 15: spawnedSeed = new LimeSeed(count); seedName = "лайма"; break;
+                case 16: spawnedSeed = new CoconutSeed(count); seedName = "кокоса"; break;
+                default: spawnedSeed = new DatesSeed(count); seedName = "фиников"; break;
             }
 
             // Пытаемся положить семена в бэкпак игрока
