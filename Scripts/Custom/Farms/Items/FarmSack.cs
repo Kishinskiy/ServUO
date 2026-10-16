@@ -197,6 +197,18 @@ namespace Server.Custom.Farms
             if (item is Carrot) return VegetableType.Carrot;
             if (item is Lettuce) return VegetableType.Lettuce;
             if (item is Pumpkin) return VegetableType.Pumpkin;
+            if (item is Turnip) return VegetableType.Turnip;
+            if (item is Grapes) return VegetableType.Grapes;
+            if (item is Watermelon) return VegetableType.Watermelon;
+            if (item is WheatSheaf) return VegetableType.Wheat;
+            if (item is Apple) return VegetableType.Apple;
+            if (item is Peach) return VegetableType.Peach;
+            if (item is Pear) return VegetableType.Pear;
+            if (item is Banana) return VegetableType.Banana;
+            if (item is Lemon) return VegetableType.Lemon;
+            if (item is Lime) return VegetableType.Lime;
+            if (item is Coconut) return VegetableType.Coconut;
+            if (item is Dates) return VegetableType.Dates;
             return null;
         }
 
@@ -209,6 +221,18 @@ namespace Server.Custom.Farms
                 case VegetableType.Carrot: return "Carrots";
                 case VegetableType.Lettuce: return "Lettuce";
                 case VegetableType.Pumpkin: return "Pumpkins";
+                case VegetableType.Turnip: return "Turnips";
+                case VegetableType.Grapes: return "Grapes";
+                case VegetableType.Watermelon: return "Watermelons";
+                case VegetableType.Wheat: return "Wheat";
+                case VegetableType.Apple: return "Apples";
+                case VegetableType.Peach: return "Peaches";
+                case VegetableType.Pear: return "Pears";
+                case VegetableType.Banana: return "Bananas";
+                case VegetableType.Lemon: return "Lemons";
+                case VegetableType.Lime: return "Limes";
+                case VegetableType.Coconut: return "Coconuts";
+                case VegetableType.Dates: return "Dates";
             }
             return "Vegetables";
         }
@@ -222,6 +246,18 @@ namespace Server.Custom.Farms
                 case VegetableType.Carrot: return 43;
                 case VegetableType.Lettuce: return 169;
                 case VegetableType.Pumpkin: return 144;
+                case VegetableType.Turnip: return 0;
+                case VegetableType.Grapes: return 0;
+                case VegetableType.Watermelon: return 0;
+                case VegetableType.Wheat: return 0;
+                case VegetableType.Apple: return 0;
+                case VegetableType.Peach: return 0;
+                case VegetableType.Pear: return 0;
+                case VegetableType.Banana: return 0;
+                case VegetableType.Lemon: return 0;
+                case VegetableType.Lime: return 0;
+                case VegetableType.Coconut: return 0;
+                case VegetableType.Dates: return 0;
             }
             return 0;
         }
@@ -235,6 +271,18 @@ namespace Server.Custom.Farms
                 case VegetableType.Carrot: veg = new Carrot(); break;
                 case VegetableType.Lettuce: veg = new Lettuce(); break;
                 case VegetableType.Pumpkin: veg = new Pumpkin(); break;
+                case VegetableType.Turnip: veg = new Turnip(); break;
+                case VegetableType.Grapes: veg = new Grapes(); break;
+                case VegetableType.Watermelon: veg = new Watermelon(); break;
+                case VegetableType.Wheat: veg = new WheatSheaf(); break;
+                case VegetableType.Apple: veg = new Apple(); break;
+                case VegetableType.Peach: veg = new Peach(); break;
+                case VegetableType.Pear: veg = new Pear(); break;
+                case VegetableType.Banana: veg = new Banana(); break;
+                case VegetableType.Lemon: veg = new Lemon(); break;
+                case VegetableType.Lime: veg = new Lime(); break;
+                case VegetableType.Coconut: veg = new Coconut(); break;
+                case VegetableType.Dates: veg = new Dates(); break;
                 default: veg = new FarmPotato(); break;
             }
             veg.Amount = count;

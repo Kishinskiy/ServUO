@@ -4,6 +4,90 @@ using Server.Mobiles;
 
 namespace Server.Items
 {
+    public abstract class FarmPreparedDish : Food
+    {
+        protected FarmPreparedDish(string name, int itemID, int fillFactor) : base(itemID)
+        {
+            Name = name;
+            Weight = 1.0;
+            FillFactor = fillFactor;
+        }
+
+        protected FarmPreparedDish(Serial serial) : base(serial)
+        {
+        }
+    }
+
+    public class GardenSalad : FarmPreparedDish
+    {
+        [Constructable]
+        public GardenSalad() : base("Garden Salad", 0xC71, 5) { }
+        public GardenSalad(Serial serial) : base(serial) { }
+    }
+
+    public class RootVegetableStew : FarmPreparedDish
+    {
+        [Constructable]
+        public RootVegetableStew() : base("Root Vegetable Stew", 0x15FC, 7) { }
+        public RootVegetableStew(Serial serial) : base(serial) { }
+    }
+
+    public class StuffedPumpkin : FarmPreparedDish
+    {
+        [Constructable]
+        public StuffedPumpkin() : base("Stuffed Pumpkin", 0xC6A, 8) { }
+        public StuffedPumpkin(Serial serial) : base(serial) { }
+    }
+
+    public class TurnipMash : FarmPreparedDish
+    {
+        [Constructable]
+        public TurnipMash() : base("Turnip and Potato Mash", 0x15F8, 6) { }
+        public TurnipMash(Serial serial) : base(serial) { }
+    }
+
+    public class GrapeTart : FarmPreparedDish
+    {
+        [Constructable]
+        public GrapeTart() : base("Grape Tart", 0x1041, 6) { }
+        public GrapeTart(Serial serial) : base(serial) { }
+    }
+
+    public class OrchardPie : FarmPreparedDish
+    {
+        [Constructable]
+        public OrchardPie() : base("Orchard Pie", 0x1041, 7) { }
+        public OrchardPie(Serial serial) : base(serial) { }
+    }
+
+    public class PeachDateCobbler : FarmPreparedDish
+    {
+        [Constructable]
+        public PeachDateCobbler() : base("Peach and Date Cobbler", 0x9D2, 7) { }
+        public PeachDateCobbler(Serial serial) : base(serial) { }
+    }
+
+    public class CitrusFruitSalad : FarmPreparedDish
+    {
+        [Constructable]
+        public CitrusFruitSalad() : base("Citrus Fruit Salad", 0xC71, 5) { }
+        public CitrusFruitSalad(Serial serial) : base(serial) { }
+    }
+
+    public class WatermelonFruitBowl : FarmPreparedDish
+    {
+        [Constructable]
+        public WatermelonFruitBowl() : base("Watermelon Fruit Bowl", 0xC5C, 6) { }
+        public WatermelonFruitBowl(Serial serial) : base(serial) { }
+    }
+
+    public class CountryVegetableBread : FarmPreparedDish
+    {
+        [Constructable]
+        public CountryVegetableBread() : base("Country Vegetable Bread", 0x103B, 7) { }
+        public CountryVegetableBread(Serial serial) : base(serial) { }
+    }
+
     // 1. ЖАРЕНАЯ КАРТОШКА (Fried Potatoes)
     public class FriedPotatoes : Food
     {

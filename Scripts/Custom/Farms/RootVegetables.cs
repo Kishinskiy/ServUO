@@ -17,7 +17,19 @@ namespace Server.Custom.Farms
         Cabbage,
         Carrot,
         Lettuce,
-        Pumpkin
+        Pumpkin,
+        Turnip,
+        Grapes,
+        Watermelon,
+        Wheat,
+        Apple,
+        Peach,
+        Pear,
+        Banana,
+        Lemon,
+        Lime,
+        Coconut,
+        Dates
     }
 
     // =========================================================================
@@ -247,6 +259,18 @@ namespace Server.Custom.Farms
                 case VegetableType.Carrot: return "Carrot";
                 case VegetableType.Lettuce: return "Lettuce";
                 case VegetableType.Pumpkin: return "Pumpkin";
+                case VegetableType.Turnip: return "Turnip";
+                case VegetableType.Grapes: return "Grapes";
+                case VegetableType.Watermelon: return "Watermelon";
+                case VegetableType.Wheat: return "Wheat";
+                case VegetableType.Apple: return "Apple";
+                case VegetableType.Peach: return "Peach";
+                case VegetableType.Pear: return "Pear";
+                case VegetableType.Banana: return "Banana";
+                case VegetableType.Lemon: return "Lemon";
+                case VegetableType.Lime: return "Lime";
+                case VegetableType.Coconut: return "Coconut";
+                case VegetableType.Dates: return "Dates";
                 default: return "Vegetable";
             }
         }
@@ -362,6 +386,18 @@ namespace Server.Custom.Farms
                         if (m_VegType == VegetableType.Pumpkin) ItemID = 0xCB5;
                         if (m_VegType == VegetableType.Cabbage) ItemID = 0xCB6;
                         if (m_VegType == VegetableType.Lettuce) ItemID = 0xC70;
+                        if (m_VegType == VegetableType.Grapes) ItemID = 0x9D1;
+                        if (m_VegType == VegetableType.Watermelon) ItemID = 0xC5C;
+                        if (m_VegType == VegetableType.Turnip) ItemID = 0xD3A;
+                        if (m_VegType == VegetableType.Wheat) ItemID = 7869;
+                        if (m_VegType == VegetableType.Apple) ItemID = 0x9D0;
+                        if (m_VegType == VegetableType.Peach) ItemID = 0x9D2;
+                        if (m_VegType == VegetableType.Pear) ItemID = 0x994;
+                        if (m_VegType == VegetableType.Banana) ItemID = 0x171F;
+                        if (m_VegType == VegetableType.Lemon) ItemID = 0x1728;
+                        if (m_VegType == VegetableType.Lime) ItemID = 0x172A;
+                        if (m_VegType == VegetableType.Coconut) ItemID = 0x1726;
+                        if (m_VegType == VegetableType.Dates) ItemID = 0x1727;
                         if (m_Planter != null) m_Planter.SendMessage(88, $"Ваша грядка ({GetVegNameString()}) успешно перешла во вторую фазу роста!");
                     }
                     else if (m_Stage == 2)
@@ -374,6 +410,18 @@ namespace Server.Custom.Farms
                             case VegetableType.Carrot: ItemID = 0xCB7; Hue = 43; break;
                             case VegetableType.Onion: ItemID = 0x1846; Hue = 0; break;
                             case VegetableType.Potato: ItemID = 0x1846; Hue = 52; break;
+                            case VegetableType.Turnip: ItemID = 0xD3A; Hue = 0; break;
+                            case VegetableType.Grapes: ItemID = 0x9D1; Hue = 0; break;
+                            case VegetableType.Watermelon: ItemID = 0xC5C; Hue = 0; break;
+                            case VegetableType.Wheat: ItemID = 7869; Hue = 0; break;
+                            case VegetableType.Apple: ItemID = 0x9D0; Hue = 0; break;
+                            case VegetableType.Peach: ItemID = 0x9D2; Hue = 0; break;
+                            case VegetableType.Pear: ItemID = 0x994; Hue = 0; break;
+                            case VegetableType.Banana: ItemID = 0x171F; Hue = 0; break;
+                            case VegetableType.Lemon: ItemID = 0x1728; Hue = 0; break;
+                            case VegetableType.Lime: ItemID = 0x172A; Hue = 0; break;
+                            case VegetableType.Coconut: ItemID = 0x1726; Hue = 0; break;
+                            case VegetableType.Dates: ItemID = 0x1727; Hue = 0; break;
                         }
                         if (m_Planter != null) m_Planter.SendMessage(0x35, $"Ваш урожай ({GetVegNameString()}) полностью созрел и готов к сбору!");
                     }
@@ -496,13 +544,7 @@ namespace Server.Custom.Farms
             bool totalSuccess = true;
             for (int i = 0; i < finalYield; i++)
             {
-                Item vegetable;
-                if (m_VegType == VegetableType.Onion) vegetable = new Onion();
-                else if (m_VegType == VegetableType.Cabbage) vegetable = new Cabbage();
-                else if (m_VegType == VegetableType.Carrot) vegetable = new Carrot();
-                else if (m_VegType == VegetableType.Lettuce) vegetable = new Lettuce();
-                else if (m_VegType == VegetableType.Pumpkin) vegetable = new Pumpkin();
-                else vegetable = new FarmPotato();
+                Item vegetable = FullFarmSack.CreateVegetableStatic(m_VegType, 1);
                 if (!from.Backpack.TryDropItem(from, vegetable, false))
                 {
                     vegetable.Delete();

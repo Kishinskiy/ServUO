@@ -25,8 +25,7 @@ namespace Server.Custom.Farms
             // Розыгрыш случайного количества семян (от 1 до 5 включительно)
             int count = Utility.RandomMinMax(1, 5);
 
-            // Розыгрыш типа семян (от 0 до 5, так как у нас 6 видов овощей)
-            int seedType = Utility.Random(6);
+            int seedType = Utility.Random(18);
 
             Item spawnedSeed;
             string seedName = "";
@@ -34,11 +33,23 @@ namespace Server.Custom.Farms
             switch (seedType)
             {
                 case 0: spawnedSeed = new OnionSeed(count); seedName = "лука"; break;
-                case 1: spawnedSeed = new FarmPotato(count); seedName = "картофеля (клубни)"; break; // Выдаем сразу плод картофеля!
+                case 1: spawnedSeed = new PotatoSeed(count); seedName = "картофеля"; break;
                 case 2: spawnedSeed = new CabbageSeed(count); seedName = "капусты"; break;
                 case 3: spawnedSeed = new CarrotSeed(count); seedName = "моркови"; break;
                 case 4: spawnedSeed = new LettuceSeed(count); seedName = "салата"; break;
-                default: spawnedSeed = new PumpkinSeed(count); seedName = "тыквы"; break;
+                case 5: spawnedSeed = new PumpkinSeed(count); seedName = "тыквы"; break;
+                case 6: spawnedSeed = new TurnipSeed(count); seedName = "репы"; break;
+                case 7: spawnedSeed = new GrapeSeed(count); seedName = "винограда"; break;
+                case 8: spawnedSeed = new WatermelonSeed(count); seedName = "арбуза"; break;
+                case 9: spawnedSeed = new WheatSeed(count); seedName = "пшеницы"; break;
+                case 10: spawnedSeed = new AppleSeed(count); seedName = "яблони"; break;
+                case 11: spawnedSeed = new PeachSeed(count); seedName = "персика"; break;
+                case 12: spawnedSeed = new PearSeed(count); seedName = "груши"; break;
+                case 13: spawnedSeed = new BananaSeed(count); seedName = "банана"; break;
+                case 14: spawnedSeed = new LemonSeed(count); seedName = "лимона"; break;
+                case 15: spawnedSeed = new LimeSeed(count); seedName = "лайма"; break;
+                case 16: spawnedSeed = new CoconutSeed(count); seedName = "кокоса"; break;
+                default: spawnedSeed = new DatesSeed(count); seedName = "фиников"; break;
             }
 
             // Пытаемся положить семена в бэкпак игрока

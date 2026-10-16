@@ -14,6 +14,7 @@ namespace Server.Misc
     {
         public static readonly string MerchantBotTypeName = "MerchantBot";
         public const int SpacingRadius = 15; // Минимальная дистанция между ботами
+        public const int MaxBotsPerMap = 100;
 
         public static void Initialize()
         {
@@ -33,20 +34,32 @@ namespace Server.Misc
 
         private static void OnWorldLoad()
         {
-            // Автоматический стартовый спавн по умолчанию для всех живых миров сервера
-            DoGlobalSpawn(Map.Trammel, 15);
-            DoGlobalSpawn(Map.Felucca, 15);
-            DoGlobalSpawn(Map.Ilshenar, 10);
-            DoGlobalSpawn(Map.Malas, 15);
-            DoGlobalSpawn(Map.Tokuno, 10);
-            DoGlobalSpawn(Map.TerMur, 10);
+            EnsureGlobalSpawn(Map.Trammel, 15);
+            EnsureGlobalSpawn(Map.Felucca, 15);
+            EnsureGlobalSpawn(Map.Ilshenar, 10);
+            EnsureGlobalSpawn(Map.Malas, 15);
+            EnsureGlobalSpawn(Map.Tokuno, 10);
+            EnsureGlobalSpawn(Map.TerMur, 10);
+        }
+
+        private static void EnsureGlobalSpawn(Map map, int targetCount)
+        {
+            int currentCount = 0;
+            foreach (Mobile mobile in World.Mobiles.Values)
+            {
+                if (!mobile.Deleted && mobile.Map == map &&
+                    mobile.GetType().Name.Equals(MerchantBotTypeName, StringComparison.OrdinalIgnoreCase))
+                    currentCount++;
+            }
+
+            if (currentCount < targetCount)
+                SpawnAcrossTowns(map, targetCount - currentCount);
         }
 
         private static void OnSpawnerCommand(CommandEventArgs e)
         {
             e.Mobile.CloseGump(typeof(GlobalMerchantSpawnerGump));
-            // Use a larger default amount (5,000 merchants) for initial spawn
-            e.Mobile.SendGump(new GlobalMerchantSpawnerGump(e.Mobile, Map.Trammel, 5000));
+            e.Mobile.SendGump(new GlobalMerchantSpawnerGump(e.Mobile, Map.Trammel, 15));
         }
 
         // Возвращает отфильтрованный список городов для конкретной карты
@@ -76,16 +89,23 @@ namespace Server.Misc
         // Метод проверки плотности
         public static bool IsAreaCrowded(Point3D point, Map map)
         {
+            if (map == null || map == Map.Internal)
+                return true;
+
             IPooledEnumerable eable = map.GetMobilesInRange(point, SpacingRadius);
-            foreach (Mobile m in eable)
+            try
             {
-                if (m.GetType().Name.Equals(MerchantBotTypeName, StringComparison.OrdinalIgnoreCase))
+                foreach (Mobile m in eable)
                 {
-                    eable.Free();
-                    return true;
+                    if (m.GetType().Name.Equals(MerchantBotTypeName, StringComparison.OrdinalIgnoreCase))
+                        return true;
                 }
             }
-            eable.Free();
+            finally
+            {
+                eable.Free();
+            }
+
             return false;
         }
 
@@ -126,11 +146,38 @@ namespace Server.Misc
         // Глобальный пропорциональный спавн по всей карте
         public static int DoGlobalSpawn(Map map, int amount)
         {
-            WipeMap(map);
+            if (map == null || map == Map.Internal || amount <= 0)
+                return 0;
 
             Type botType = ScriptCompiler.FindTypeByName(MerchantBotTypeName, true);
-            if (botType == null || map == null || map == Map.Internal) return 0;
+            if (botType == null)
+            {
+                Console.WriteLine($"[MerchantSpawner] Could not find mobile type '{MerchantBotTypeName}'.");
+                return 0;
+            }
 
+            amount = Math.Min(amount, MaxBotsPerMap);
+            WipeMap(map);
+            return SpawnAcrossTowns(map, amount, botType);
+        }
+
+        private static int SpawnAcrossTowns(Map map, int amount)
+        {
+            if (map == null || map == Map.Internal || amount <= 0)
+                return 0;
+
+            Type botType = ScriptCompiler.FindTypeByName(MerchantBotTypeName, true);
+            if (botType == null)
+            {
+                Console.WriteLine($"[MerchantSpawner] Could not find mobile type '{MerchantBotTypeName}'.");
+                return 0;
+            }
+
+            return SpawnAcrossTowns(map, amount, botType);
+        }
+
+        private static int SpawnAcrossTowns(Map map, int amount, Type botType)
+        {
             List<Region> towns = GetTownRegions(map);
             if (towns.Count == 0) return 0;
 
@@ -140,9 +187,19 @@ namespace Server.Misc
             {
                 int rArea = 0;
                 foreach (Rectangle3D rect in r.Area) rArea += rect.Width * rect.Height;
-                townAreas[r] = rArea;
-                totalArea += rArea;
+                if (rArea > 0)
+                {
+                    townAreas[r] = rArea;
+                    totalArea += rArea;
+                }
             }
+
+            if (totalArea <= 0)
+                return 0;
+
+            towns.RemoveAll(region => !townAreas.ContainsKey(region));
+            if (towns.Count == 0)
+                return 0;
 
             int distributed = 0;
             Dictionary<Region, int> quotas = new Dictionary<Region, int>();
@@ -172,9 +229,18 @@ namespace Server.Misc
         // Точечный спавн в рамках ОДНОГО выбранного города
         public static int DoTownSpawn(Region town, int amount)
         {
+            if (town == null || town.Map == null || town.Map == Map.Internal || amount <= 0 ||
+                town.Area == null || town.Area.Length == 0)
+                return 0;
+
+            amount = Math.Min(amount, MaxBotsPerMap);
             WipeTown(town);
             Type botType = ScriptCompiler.FindTypeByName(MerchantBotTypeName, true);
-            if (botType == null || town == null || town.Map == null) return 0;
+            if (botType == null)
+            {
+                Console.WriteLine($"[MerchantSpawner] Could not find mobile type '{MerchantBotTypeName}'.");
+                return 0;
+            }
 
             return SpawnInTownInternal(botType, town, amount);
         }
@@ -207,11 +273,15 @@ namespace Server.Misc
                                 bc.RangeHome = 4;
                             }
                             bot.MoveToWorld(loc, town.Map);
+                            bot.OnAfterSpawn();
                             spawned++;
                             Log($"Spawned merchant bot at {loc} in town {town.Name}.");
                             break;
                         }
-                        catch { }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"[MerchantSpawner] Failed to spawn bot in {town.Name} at {loc}: {ex}");
+                        }
                     }
                 }
             }
@@ -267,12 +337,11 @@ namespace Server.Misc
             AddBackground(210, 132, 80, 24, 9200);
             AddTextEntry(215, 134, 80, 20, 0x480, 0, m_InputAmount.ToString());
 
-            // Кнопки глобального спавна/очистки для ВСЕЙ выбранной карты
-            // Move the global spawn button and its label a bit right for better spacing
+            // Кнопки спавна/очистки для выбранной карты
             AddButton(340, 132, 4005, 4007, 10, GumpButtonType.Reply, 0);
-            AddLabel(375, 134, 68, "Заселить весь мир");
+            AddLabel(375, 134, 68, "Заселить выбранный мир");
             AddButton(340, 157, 4017, 4019, 11, GumpButtonType.Reply, 0);
-            AddLabel(375, 159, 68, "Очистить весь мир");
+            AddLabel(375, 159, 68, "Очистить выбранный мир");
             AddButton(20, 162, 4011, 4019, 12, GumpButtonType.Reply, 0);
             AddLabel(55, 164, 1153, "ЗАСЕЛИТЬ ВСЕ МИРЫ СЕРВЕРА");
             AddImageTiled(20, 195, 520, 4, 9107); // Разделительная линия
@@ -307,11 +376,24 @@ namespace Server.Misc
         public override void OnResponse(NetState sender, RelayInfo info)
         {
             Mobile from = sender.Mobile;
+            if (from == null || from.Deleted || from.AccessLevel < AccessLevel.Administrator)
+                return;
 
             // Update amount from the text entry if present (index 0)
             var txt = info.GetTextEntry(0);
-            if (txt != null && int.TryParse(txt.Text, out int parsed) && parsed > 0)
-                m_InputAmount = parsed;
+            if (txt != null)
+            {
+                if (!int.TryParse(txt.Text, out int parsed) || parsed <= 0)
+                {
+                    from.SendMessage($"Введите положительное число не больше {GlobalMerchantSpawner.MaxBotsPerMap}.");
+                    from.SendGump(new GlobalMerchantSpawnerGump(from, m_SelectedMap, m_InputAmount));
+                    return;
+                }
+
+                m_InputAmount = Math.Min(parsed, GlobalMerchantSpawner.MaxBotsPerMap);
+                if (parsed > GlobalMerchantSpawner.MaxBotsPerMap)
+                    from.SendMessage($"Лимит спавна установлен на {GlobalMerchantSpawner.MaxBotsPerMap} ботов на мир.");
+            }
 
             // Map selection buttons (IDs 1‑6)
             if (info.ButtonID >= 1 && info.ButtonID <= 6)
@@ -323,24 +405,22 @@ namespace Server.Misc
                 return;
             }
 
-            // Global actions (buttons 10‑12)
+            // Actions for the selected map (buttons 10-11), or every map (button 12).
             Map[] allMaps = { Map.Trammel, Map.Felucca, Map.Ilshenar, Map.Malas, Map.Tokuno, Map.TerMur };
             switch (info.ButtonID)
             {
-                case 10: // "Заселить весь мир" – proportional global spawn on all maps
+                case 10:
+                    int spawned = GlobalMerchantSpawner.DoGlobalSpawn(m_SelectedMap, m_InputAmount);
+                    from.SendMessage($"Spawned {spawned} merchants on {m_SelectedMap}.");
+                    break;
+                case 11:
+                    int wiped = GlobalMerchantSpawner.WipeMap(m_SelectedMap);
+                    from.SendMessage($"Wiped {wiped} merchants from {m_SelectedMap}.");
+                    break;
+                case 12:
                     foreach (Map map in allMaps)
                         GlobalMerchantSpawner.DoGlobalSpawn(map, m_InputAmount);
-                    from.SendMessage("Global spawn completed on all maps.");
-                    break;
-                case 11: // "Очистить весь мир" – wipe all maps
-                    foreach (Map map in allMaps)
-                        GlobalMerchantSpawner.WipeMap(map);
-                    from.SendMessage("All maps wiped of merchant bots.");
-                    break;
-                case 12: // Absolute global spawn – same as 10 for now
-                    foreach (Map map in allMaps)
-                        GlobalMerchantSpawner.DoGlobalSpawn(map, m_InputAmount);
-                    from.SendMessage("Absolute global spawn completed on all maps.");
+                    from.SendMessage($"Global spawn completed on all maps, up to {m_InputAmount} merchants per map.");
                     break;
                 default:
                     break;

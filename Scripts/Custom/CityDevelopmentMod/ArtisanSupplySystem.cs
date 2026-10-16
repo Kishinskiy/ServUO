@@ -15,7 +15,8 @@ namespace Server.Custom.CityDevelopment
         RawMaterials,
         WeaponsAndArmor,
         Ammunition,
-        Provisions
+        Provisions,
+        MagicMaterials
     }
 
     public static class ArtisanSupplySystem
@@ -59,6 +60,7 @@ namespace Server.Custom.CityDevelopment
                 case ArtisanSupplyCategory.WeaponsAndArmor: return 5;
                 case ArtisanSupplyCategory.Ammunition: return 100;
                 case ArtisanSupplyCategory.Provisions: return 40;
+                case ArtisanSupplyCategory.MagicMaterials: return 20;
                 default: return 0;
             }
         }
@@ -71,6 +73,7 @@ namespace Server.Custom.CityDevelopment
                 case ArtisanSupplyCategory.WeaponsAndArmor: return "оружие и броня";
                 case ArtisanSupplyCategory.Ammunition: return "боеприпасы";
                 case ArtisanSupplyCategory.Provisions: return "припасы и расходники";
+                case ArtisanSupplyCategory.MagicMaterials: return "магические материалы";
                 default: return "товары";
             }
         }
@@ -83,6 +86,7 @@ namespace Server.Custom.CityDevelopment
                 case ArtisanSupplyCategory.WeaponsAndArmor: return "созданные вами оружие, броня и одежда";
                 case ArtisanSupplyCategory.Ammunition: return "стрелы и болты";
                 case ArtisanSupplyCategory.Provisions: return "бинты и приготовленная еда";
+                case ArtisanSupplyCategory.MagicMaterials: return "ресурсы арканистов и некромантов";
                 default: return "городские товары";
             }
         }
@@ -164,6 +168,8 @@ namespace Server.Custom.CityDevelopment
             ConsumeGoods(goods, deed.RequiredAmount, deed.Category, progress);
             deed.Delete();
 
+            CityDevelopmentMod.AddTreasuryRevenue(deed.City, player.Map, CityDevelopmentMod.ArtisanOrderRevenue);
+
             int level = Math.Max(1, Math.Min(5, progress.Level));
             int reputationReward = 10 + (level - 1) * 2;
 
@@ -175,7 +181,7 @@ namespace Server.Custom.CityDevelopment
             player.PlaySound(0x57);
             minister.PublicOverheadMessage(MessageType.Regular, 0x35, false, "Ваш вклад принят. Городские склады пополнены!");
             player.SendMessage(0x58, $"Поставка зачислена на городской склад. +{reputationReward} ремесленной репутации. Репутация: {_reputation[player]}.");
-            player.SendMessage(0x35, $"Казна пополняется только после успешной доставки торговой коробки. Бонус города к шансу крафта: +{Math.Max(0, level - 1) * 2}%.");
+            player.SendMessage(0x35, $"Казна города пополнена на {CityDevelopmentMod.ArtisanOrderRevenue:N0} золота. Бонус города к шансу крафта: +{Math.Max(0, level - 1) * 2}%.");
 
             return true;
         }
@@ -202,6 +208,9 @@ namespace Server.Custom.CityDevelopment
                         break;
                     case ArtisanSupplyCategory.Provisions:
                         matches = item is Bandage || item is Food;
+                        break;
+                    case ArtisanSupplyCategory.MagicMaterials:
+                        matches = item is Server.Custom.MagicProfessions.MagicProfessionResource;
                         break;
                 }
 
@@ -234,6 +243,8 @@ namespace Server.Custom.CityDevelopment
                     progress.AmmunitionStock += consume;
                 else if (category == ArtisanSupplyCategory.Provisions)
                     progress.ProvisionsStock += consume;
+                else if (category == ArtisanSupplyCategory.MagicMaterials)
+                    progress.MagicStock += consume;
 
                 if (item.Stackable)
                 {
@@ -398,7 +409,7 @@ namespace Server.Custom.CityDevelopment
             list.Add($"Город: {_city}");
             list.Add($"Поставка: {ArtisanSupplySystem.GetCategoryName(_category)} — {_requiredAmount} ед.");
             list.Add($"Принимаются: {ArtisanSupplySystem.GetCategoryDescription(_category)}.");
-            list.Add("Поставка пополняет склад города и дает ремесленную репутацию.");
+            list.Add($"Поставка пополняет склад, казну (+{CityDevelopmentMod.ArtisanOrderRevenue:N0} золота) и дает ремесленную репутацию.");
             list.Add($"Действует до: {_expiresAt.ToLocalTime():g}");
             list.Add("Дважды щелкните и сдайте товары Торговому Министру.");
         }
