@@ -50,7 +50,7 @@ namespace Server.Commands
 
                     XmlLevelItem levitem = XmlAttach.FindAttachment(item, typeof(XmlLevelItem)) as XmlLevelItem;
 
-                    if ( item.Parent != from && item.Parent != from.Backpack )
+                    if ( item.RootParent != from )
                     {
                     	from.SendMessage("The item must be in your pack or equipped!");
                     	return;
@@ -59,7 +59,7 @@ namespace Server.Commands
 				    //if ( item is ILevelable)
                     if(levitem != null)
 				    {
-                        if ( item is BaseWeapon || item is BaseArmor || item is BaseJewel || item is BaseClothing )
+                        if ( LevelItemManager.IsLevelableItem(item) )
                         {
                             from.SendGump( new ItemExperienceGump( from, item, AttributeCategory.Melee ) );
 						}

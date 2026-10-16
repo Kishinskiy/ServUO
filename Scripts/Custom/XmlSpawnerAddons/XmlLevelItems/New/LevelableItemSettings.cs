@@ -16,9 +16,9 @@ namespace Server
         public static readonly bool DoubleArtifactCost = true; 
 
         // Мягкий режим использования свитков
-        public const bool BlacksmithOnly = false; 
-        public const double BlacksmithSkillRequired = 0.0; 
-        public const bool RewardBlacksmith = false; 
-        public const int BlacksmithRewardAmt = 0; 
+        public const bool BlacksmithOnly = false;
+        public const double BlacksmithSkillRequired = 0.0;
+        public static readonly bool RewardBlacksmith = false;
+        public static readonly int BlacksmithRewardAmt = 0;
 	}
 }

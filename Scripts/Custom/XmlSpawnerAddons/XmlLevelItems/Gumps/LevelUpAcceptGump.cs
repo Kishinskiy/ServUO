@@ -54,30 +54,22 @@ namespace Server.Gumps
 			{
                 if ( m_From != null && m_Scroll != null)
                 {
-					if ( m_From != null )
-					{
-                        m_From.CloseGump(typeof(AwaitingSmithApprovalGump));
-                        m_From.SendMessage("They have validated your scroll.  Select a levelable item to increase max levels or ESC to apply at another time.");
-                        m_From.Target = new LevelUpScroll.LevelItemTarget(m_Scroll); // Call our target
-					}
+                    m_From.CloseGump(typeof(AwaitingSmithApprovalGump));
+                    m_From.SendMessage("They have validated your scroll.  Select a levelable item to increase max levels or ESC to apply at another time.");
+                    m_From.Target = new LevelUpScroll.LevelItemTarget(m_Scroll);
 
-					if ( smith != null ) //Accepted... send message to smith and pay them bonus reward
-					{
-						smith.SendMessage("Thank you for your services!");
-                        if (smith != m_From && LevelItems.RewardBlacksmith && LevelItems.BlacksmithRewardAmt > 0)
-                        {
-                            smith.AddToBackpack(new BankCheck(LevelItems.BlacksmithRewardAmt));
-                            smith.SendMessage("A Bonus payment has been added to your pack.");
-                        }
-					}
+					smith.SendMessage("Thank you for your services!");
+                    if (smith != m_From && LevelItems.RewardBlacksmith && LevelItems.BlacksmithRewardAmt > 0)
+                    {
+                        smith.AddToBackpack(new BankCheck(LevelItems.BlacksmithRewardAmt));
+                        smith.SendMessage("A Bonus payment has been added to your pack.");
+                    }
 				}
 				else
 				{
-					if ( m_From != null && smith != null )
-					{
+                    if (m_From != null)
 						m_From.SendMessage( "There was a problem validating this scroll." );
-                        smith.SendMessage( "There was a problem validating this scroll." );
-					}
+                    smith.SendMessage( "There was a problem validating this scroll." );
 				}
 			}
 
@@ -87,8 +79,10 @@ namespace Server.Gumps
 				smith.SendMessage( "You have declined their offer." );
 
 				if ( m_From != null )
+				{
                     m_From.CloseGump(typeof(AwaitingSmithApprovalGump));
 					m_From.SendMessage( "They have declined your offer" );
+				}
 			}
 		}
 	}

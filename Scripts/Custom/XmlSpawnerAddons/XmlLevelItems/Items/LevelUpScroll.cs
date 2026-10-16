@@ -50,6 +50,12 @@ namespace Server.Items
 
             protected override void OnTarget(Mobile from, object target)
             {
+                if (m_Scroll == null || m_Scroll.Deleted || !m_Scroll.IsChildOf(from.Backpack))
+                {
+                    from.SendMessage("The level increase scroll must remain in your backpack while you use it.");
+                    return;
+                }
+
                 if (!IsNearAnvil(from, 3))
                 {
                     from.SendMessage(0x22, "Для работы со свитком повышения уровней вы обязаны стоять в кузнице у наковальни!");
@@ -58,13 +64,13 @@ namespace Server.Items
 
                 if (target is Item item)
                 {
-                    if (item.RootParent != from || !item.IsChildOf(from.Backpack))
+                    if (item.RootParent != from)
                     {
                         from.SendMessage("Предмет должен быть у вас в инвентаре или экипирован.");
                         return;
                     }
 
-                    if (item is BaseWeapon || item is BaseArmor || item is BaseClothing || item is BaseJewel)
+                    if (LevelItemManager.IsLevelableItem(item))
                     {
                         XmlLevelItem levitem = XmlAttach.FindAttachment(item, typeof(XmlLevelItem)) as XmlLevelItem;
                         if (levitem == null)
@@ -73,19 +79,18 @@ namespace Server.Items
                             return;
                         }
 
-                        // 🔥 ТВОЁ ТЗ: Проверяем, не превысит ли потенциальный кап очков лимит в 1000 sp!
-                        // Максимальный уровень * 4 очка = потенциальный лимит очков вещи
-                        int futureMaxPoints = (levitem.MaxLevel + m_Scroll.Value) * 4;
-
-                        if (futureMaxPoints > LevelItemManager.MaxPointsCap)
+                        long newMaxLevel = (long)levitem.MaxLevel + m_Scroll.Value;
+                        if (m_Scroll.Value <= 0 || levitem.MaxLevel < levitem.Level ||
+                            newMaxLevel > LevelItems.MaxLevelsCap ||
+                            newMaxLevel * LevelItems.PointsPerLevel > LevelItemManager.MaxPointsCap)
                         {
-                            from.SendMessage(0x22, "Вы не можете использовать этот свиток! Он превысит абсолютный предел предмета в 1000 очков развития.");
+                            from.SendMessage(0x22, "You cannot use this scroll: the new level limit must be positive and cannot exceed the item's level or point cap.");
                         }
                         else
                         {
                             levitem.MaxLevel += m_Scroll.Value;
                             from.PlaySound(0x2A); 
-                            from.SendMessage(0x58, $"Максимальный уровень предмета увеличен на +{m_Scroll.Value}. Новый лимит уровней: {levitem.MaxLevel} (Потенциал: {levitem.MaxLevel * 4}/1000 sp)!");
+                            from.SendMessage(0x58, $"Максимальный уровень предмета увеличен на +{m_Scroll.Value}. Новый лимит уровней: {levitem.MaxLevel} (Потенциал: {levitem.MaxLevel * LevelItems.PointsPerLevel}/{LevelItemManager.MaxPointsCap} sp)!");
                             m_Scroll.Delete();
                         }
                     }

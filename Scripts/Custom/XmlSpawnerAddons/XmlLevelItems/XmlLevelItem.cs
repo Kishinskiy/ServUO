@@ -9,7 +9,7 @@ using Server.ContextMenus;
 
 namespace Server.Engines.XmlSpawner2
 {
-    public class XmlLevelItem : XmlAttachment
+    public class XmlLevelItem : XmlAttachment, ILevelable
     {
         private int m_Experience = 0;
         private int m_Level = 1; 
@@ -31,7 +31,7 @@ namespace Server.Engines.XmlSpawner2
         public XmlLevelItem(ASerial serial) : base(serial) { }
 
         [Attachable]
-        public XmlLevelItem() : this(20) 
+        public XmlLevelItem() : this(LevelItems.DefaultMaxLevel)
         {
         }
 
@@ -48,7 +48,7 @@ namespace Server.Engines.XmlSpawner2
         public override void OnAttach()
         {
             base.OnAttach();
-            if (AttachedTo is BaseWeapon || AttachedTo is BaseArmor || AttachedTo is BaseJewel || AttachedTo is BaseClothing)
+            if (LevelItemManager.IsLevelableItem(AttachedTo as Item))
             {
                 InvalidateParentProperties();
             }

@@ -19,6 +19,12 @@ namespace Server.Items
 
 		protected override void OnTarget( Mobile from, object target )
 		{
+			if (m_Deed == null || m_Deed.Deleted || !m_Deed.IsChildOf(from.Backpack))
+			{
+				from.SendMessage("The levelable deed must remain in your backpack while you use it.");
+				return;
+			}
+
             // 🔥 ИСПРАВЛЕНО: Задействован собственный автономный сканер наковален во избежание ошибки CS1061! 🎉⚙️🛠️
             if (!IsNearAnvil(from, 3))
             {
@@ -26,9 +32,8 @@ namespace Server.Items
                 return;
             }
 
-            if ( target is BaseWeapon || target is BaseArmor || target is BaseClothing || target is BaseJewel )
+            if (target is Item item && LevelItemManager.IsLevelableItem(item))
 			{
-				Item item = (Item)target;
 				XmlLevelItem a = (XmlLevelItem)XmlAttach.FindAttachment(item, typeof(XmlLevelItem));
 
 				if ( a != null )

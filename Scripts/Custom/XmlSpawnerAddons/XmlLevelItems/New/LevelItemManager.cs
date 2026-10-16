@@ -11,7 +11,6 @@ namespace Server.Engines.XmlSpawner2
     {
         // 🔥 ТВОЁ ТЗ: Максимальное количество очков прокачки (sp) на один предмет равно 1000!
         public static readonly int MaxPointsCap = 1000; 
-        public static readonly int MaxLevelsCap = 250; // 1000 sp / 4 = 250 уровней максимум
 
         public static readonly int[] ExpTable = new int[251];
 
@@ -44,8 +43,17 @@ namespace Server.Engines.XmlSpawner2
 
             int expGained = Math.Max(1, Math.Min(350, victim.Fame / 100));
 
-            CheckAndAddItemExp(killer, killer.FindItemOnLayer(Layer.OneHanded), expGained);
-            CheckAndAddItemExp(killer, killer.FindItemOnLayer(Layer.TwoHanded), expGained);
+            foreach (Item item in killer.Items)
+            {
+                if (IsLevelableItem(item))
+                    CheckAndAddItemExp(killer, item, expGained);
+            }
+        }
+
+        public static bool IsLevelableItem(Item item)
+        {
+            return item is BaseWeapon || item is BaseArmor || item is BaseJewel ||
+                   item is BaseClothing || item is BaseTalisman;
         }
 
         private static void CheckAndAddItemExp(PlayerMobile pm, Item item, int exp)
@@ -56,11 +64,11 @@ namespace Server.Engines.XmlSpawner2
             if (levelData != null)
             {
                 // Если предмет уже уперся в лимит уровней — стопорим
-                if (levelData.Level >= levelData.MaxLevel) return;
+                if (levelData.Level >= levelData.MaxLevel || levelData.Level >= LevelItems.MaxLevelsCap) return;
 
                 // 🔥 ТВОЁ ТЗ: Проверяем жесткий кап очков (Points)! Если набрано 1000 sp — опыт заморожен!
                 // Считаем: текущие доступные очки + те, что уже потрачены в гумпе
-                int totalPointsEarned = levelData.Level * 4; 
+                int totalPointsEarned = levelData.Level * LevelItems.PointsPerLevel;
                 if (totalPointsEarned >= MaxPointsCap)
                 {
                     pm.SendMessage(0x22, $"Ваш предмет [{item.Name ?? item.GetType().Name}] достиг абсолютного капа в 1000 очков развития!");
@@ -74,15 +82,15 @@ namespace Server.Engines.XmlSpawner2
 
                 if (levelData.Experience >= expNeeded)
                 {
-                    levelData.Experience = 0; 
+                    levelData.Experience -= expNeeded;
                     levelData.Level++;        
-                    levelData.Points += 4; // Строго по 4 очка за уровень! 🎉
+                    levelData.Points += LevelItems.PointsPerLevel;
 
                     pm.PlaySound(0x5B6); 
                     Effects.SendTargetParticles(pm, 0x375A, 9, 20, 1171, 0, 5027, EffectLayer.Waist, 0);
-                    pm.SendMessage(0x58, $"[ПРОКАЧКА]: Предмет '{item.Name ?? item.GetType().Name}' поднял уровень {levelData.Level}! Получено +4 очка параметров (sp).");
+                    pm.SendMessage(0x58, $"[ПРОКАЧКА]: Предмет '{item.Name ?? item.GetType().Name}' поднял уровень {levelData.Level}! Получено +{LevelItems.PointsPerLevel} очка параметров (sp).");
 
-                    if (item is BaseWeapon)
+                    if (IsLevelableItem(item))
                     {
                         pm.SendGump(new ItemExperienceGump(pm, item, AttributeCategory.Melee));
                     }
