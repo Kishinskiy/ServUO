@@ -34,6 +34,10 @@ namespace Server.Custom.CityDevelopment
 
         public static readonly long BaseMaintenanceCost = 100000;
         public static readonly double MaintenanceMultiplier = 2.5;
+        public const long BulletinBoardSupplyRevenue = 10000;
+        public const long BulletinBoardBountyRevenue = 10000;
+        public const long ArtisanOrderRevenue = 10000;
+        private const double DailyWarehouseDecayRate = 0.05;
 
         private static readonly Dictionary<string, CityProgress> _cityData = new Dictionary<string, CityProgress>();
         private static readonly string _saveFolder = Path.Combine(Core.BaseDirectory, "Saves/Custom");
@@ -93,6 +97,19 @@ namespace Server.Custom.CityDevelopment
                 _cityData[key] = progress;
             }
             return progress;
+        }
+
+        public static bool AddTreasuryRevenue(Server.Engines.CityLoyalty.City city, Map map, long amount)
+        {
+            if (amount <= 0)
+                return false;
+
+            CityProgress progress = GetCityProfile(city, map);
+            if (progress == null)
+                return false;
+
+            progress.Treasury += amount;
+            return true;
         }
 
         public static double GetCraftingChanceBonus(Mobile mobile)
@@ -381,6 +398,7 @@ namespace Server.Custom.CityDevelopment
                             from.SendMessage(89, $"=== Экономика города: {c} ({npc.Map.Name}) ===");
                             from.SendMessage(0x59, $"Уровень: {progress.Level}/5 | Казна: {progress.Treasury} золота");
                             from.SendMessage(0x35, $"Склады: железо [{progress.IronStock}], кожа [{progress.LeatherStock}], дерево [{progress.WoodStock}], снаряжение [{progress.EquipmentStock}], амуниция [{progress.AmmunitionStock}], припасы [{progress.ProvisionsStock}]");
+                            from.SendMessage(0x35, "Складские запасы расходуются на 5% в сутки (не менее 1 единицы при наличии запаса).");
                             return;
                         }
                     }
@@ -396,6 +414,14 @@ namespace Server.Custom.CityDevelopment
                 {
                     CityProgress progress = GetCityProfile(coreCity, map);
                     if (progress == null) continue;
+
+                    progress.IronStock = DecayWarehouseStock(progress.IronStock);
+                    progress.LeatherStock = DecayWarehouseStock(progress.LeatherStock);
+                    progress.WoodStock = DecayWarehouseStock(progress.WoodStock);
+                    progress.EquipmentStock = DecayWarehouseStock(progress.EquipmentStock);
+                    progress.AmmunitionStock = DecayWarehouseStock(progress.AmmunitionStock);
+                    progress.ProvisionsStock = DecayWarehouseStock(progress.ProvisionsStock);
+
                     if (progress.Treasury > 50000)
                     {
                         long maintenance = (long)(BaseMaintenanceCost * Math.Pow(MaintenanceMultiplier, progress.Level - 1) * 0.1);
@@ -408,6 +434,16 @@ namespace Server.Custom.CityDevelopment
                 }
             }
         }
+
+        private static int DecayWarehouseStock(int stock)
+        {
+            if (stock <= 0)
+                return 0;
+
+            int amountToConsume = Math.Max(1, (int)Math.Ceiling(stock * DailyWarehouseDecayRate));
+            return Math.Max(0, stock - amountToConsume);
+        }
+
         public static void Save()
         {
             BinaryFileWriter writer = null;
