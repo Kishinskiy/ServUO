@@ -11,6 +11,7 @@ namespace Server.Engines.XmlSpawner2
     {
         // 🔥 ТВОЁ ТЗ: Максимальное количество очков прокачки (sp) на один предмет равно 1000!
         public static readonly int MaxPointsCap = 1000; 
+        private const int HighLevelBossFameThreshold = 25000;
 
         public static readonly int[] ExpTable = new int[251];
 
@@ -46,7 +47,7 @@ namespace Server.Engines.XmlSpawner2
             foreach (Item item in killer.Items)
             {
                 if (IsLevelableItem(item))
-                    CheckAndAddItemExp(killer, item, expGained);
+                    CheckAndAddItemExp(killer, item, expGained, victim.Fame);
             }
         }
 
@@ -56,7 +57,7 @@ namespace Server.Engines.XmlSpawner2
                    item is BaseClothing || item is BaseTalisman;
         }
 
-        private static void CheckAndAddItemExp(PlayerMobile pm, Item item, int exp)
+        private static void CheckAndAddItemExp(PlayerMobile pm, Item item, int exp, int victimFame)
         {
             if (item == null || item.Deleted) return;
 
@@ -74,6 +75,9 @@ namespace Server.Engines.XmlSpawner2
                     pm.SendMessage(0x22, $"Ваш предмет [{item.Name ?? item.GetType().Name}] достиг абсолютного капа в 1000 очков развития!");
                     return;
                 }
+
+                if (levelData.Level > 200 && victimFame < HighLevelBossFameThreshold)
+                    return;
 
                 int itemExp = Math.Max(0, exp - (levelData.Level - 1));
                 if (itemExp == 0)
