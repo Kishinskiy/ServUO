@@ -53,7 +53,8 @@ namespace Server.Custom.CityPolitics
 
                     if (progress != null && polData != null)
                     {
-                        int stockBonus = (progress.IronStock + progress.LeatherStock + progress.WoodStock) / 50;
+                        int stockBonus = (progress.IronStock + progress.LeatherStock +
+                                          progress.WoodStock + progress.MagicStock) / 50;
                         polData.InfluencePoints += (progress.Level * 10) + stockBonus;
                     }
                 }

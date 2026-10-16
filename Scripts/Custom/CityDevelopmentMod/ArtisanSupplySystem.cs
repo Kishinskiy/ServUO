@@ -15,7 +15,8 @@ namespace Server.Custom.CityDevelopment
         RawMaterials,
         WeaponsAndArmor,
         Ammunition,
-        Provisions
+        Provisions,
+        MagicMaterials
     }
 
     public static class ArtisanSupplySystem
@@ -59,6 +60,7 @@ namespace Server.Custom.CityDevelopment
                 case ArtisanSupplyCategory.WeaponsAndArmor: return 5;
                 case ArtisanSupplyCategory.Ammunition: return 100;
                 case ArtisanSupplyCategory.Provisions: return 40;
+                case ArtisanSupplyCategory.MagicMaterials: return 20;
                 default: return 0;
             }
         }
@@ -71,6 +73,7 @@ namespace Server.Custom.CityDevelopment
                 case ArtisanSupplyCategory.WeaponsAndArmor: return "оружие и броня";
                 case ArtisanSupplyCategory.Ammunition: return "боеприпасы";
                 case ArtisanSupplyCategory.Provisions: return "припасы и расходники";
+                case ArtisanSupplyCategory.MagicMaterials: return "магические материалы";
                 default: return "товары";
             }
         }
@@ -83,6 +86,7 @@ namespace Server.Custom.CityDevelopment
                 case ArtisanSupplyCategory.WeaponsAndArmor: return "созданные вами оружие, броня и одежда";
                 case ArtisanSupplyCategory.Ammunition: return "стрелы и болты";
                 case ArtisanSupplyCategory.Provisions: return "бинты и приготовленная еда";
+                case ArtisanSupplyCategory.MagicMaterials: return "ресурсы арканистов и некромантов";
                 default: return "городские товары";
             }
         }
@@ -205,6 +209,9 @@ namespace Server.Custom.CityDevelopment
                     case ArtisanSupplyCategory.Provisions:
                         matches = item is Bandage || item is Food;
                         break;
+                    case ArtisanSupplyCategory.MagicMaterials:
+                        matches = item is Server.Custom.MagicProfessions.MagicProfessionResource;
+                        break;
                 }
 
                 if (matches)
@@ -236,6 +243,8 @@ namespace Server.Custom.CityDevelopment
                     progress.AmmunitionStock += consume;
                 else if (category == ArtisanSupplyCategory.Provisions)
                     progress.ProvisionsStock += consume;
+                else if (category == ArtisanSupplyCategory.MagicMaterials)
+                    progress.MagicStock += consume;
 
                 if (item.Stackable)
                 {

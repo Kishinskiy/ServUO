@@ -298,9 +298,9 @@ namespace Server.Custom.TownBoards
             AddLabel(25, 175, 0x3B2, "50 единиц ресурса пополняют склад и приносят 10 000 золота в казну.");
             AddButton(320, 165, 0x254F, 0x2551, 2, GumpButtonType.Reply, 0);
 
-            AddBackground(15, 230, 390, 185, 0x24AE);
+            AddBackground(15, 230, 390, 200, 0x24AE);
             AddLabel(25, 240, 0x35, "РЕМЕСЛЕННЫЕ ЗАКАЗЫ");
-            AddLabel(25, 265, 0x3B2, "Объем: сырье 50, снаряжение 5, амуниция 100, припасы 40.");
+            AddLabel(25, 265, 0x3B2, "Объем: сырье 50, снаряжение 5, амуниция 100, припасы 40, магические ресурсы 20.");
             AddLabel(25, 280, 0x3B2, "Один заказ в 24 ч.; склад и казна получают награду. Запасы убывают на 5% в сутки.");
             AddButton(25, 310, 0xFA5, 0xFA7, 3, GumpButtonType.Reply, 0);
             AddLabel(55, 310, 0x3B2, "Сырье");
@@ -312,12 +312,14 @@ namespace Server.Custom.TownBoards
             AddLabel(55, 345, 0x3B2, "Припасы");
             AddLabel(155, 345, 0x35, $"Ваша ремесленная репутация: {ArtisanSupplySystem.GetReputation(from)}");
             AddLabel(155, 365, 0x35, $"Шанс крафта в городе: +{CityDevelopmentMod.GetCraftingChanceBonus(from) * 100:0}%");
+            AddButton(25, 385, 0xFA5, 0xFA7, 7, GumpButtonType.Reply, 0);
+            AddLabel(55, 385, 0x3B2, "Магические ресурсы");
         }
         public override void OnResponse(Server.Network.NetState sender, RelayInfo info)
         {
             Mobile from = sender.Mobile;
             if (from == null || !from.Alive) return;
-            if (info.ButtonID >= 3 && info.ButtonID <= 6)
+            if (info.ButtonID >= 3 && info.ButtonID <= 7)
             {
                 if (from.Backpack != null && from.Backpack.FindItemByType(typeof(TownContractScroll)) != null)
                 {

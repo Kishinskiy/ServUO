@@ -9,6 +9,7 @@ using Server.Targeting;
 using Server.Network;
 using Server.Items;
 using Server.Custom.EpicBalance; // Подключаем калькулятор баланса сил Полубогов! 🎉
+using Server.Custom.MagicProfessions;
 
 namespace Server.Custom.CityDevelopment
 {
@@ -25,11 +26,12 @@ namespace Server.Custom.CityDevelopment
         public int EquipmentStock { get; set; } = 0;
         public int AmmunitionStock { get; set; } = 0;
         public int ProvisionsStock { get; set; } = 0;
+        public int MagicStock { get; set; } = 0;
     }
 
     public static class CityDevelopmentMod
     {
-        public static readonly int DatabaseVersion = 4;
+        public static readonly int DatabaseVersion = 5;
         public static readonly int DevelopmentChance = 100;
 
         public static readonly long BaseMaintenanceCost = 100000;
@@ -240,6 +242,7 @@ namespace Server.Custom.CityDevelopment
             if (typeof(BaseWeapon).IsAssignableFrom(type) || typeof(BaseArmor).IsAssignableFrom(type) || typeof(BaseClothing).IsAssignableFrom(type)) return progress.EquipmentStock;
             if (typeof(Arrow).IsAssignableFrom(type) || typeof(Bolt).IsAssignableFrom(type)) return progress.AmmunitionStock;
             if (typeof(Bandage).IsAssignableFrom(type) || typeof(Food).IsAssignableFrom(type)) return progress.ProvisionsStock;
+            if (typeof(MagicProfessionResource).IsAssignableFrom(type)) return progress.MagicStock;
             return 0;
         }
 
@@ -254,6 +257,7 @@ namespace Server.Custom.CityDevelopment
             else if (typeof(BaseWeapon).IsAssignableFrom(type) || typeof(BaseArmor).IsAssignableFrom(type) || typeof(BaseClothing).IsAssignableFrom(type)) progress.EquipmentStock = value;
             else if (typeof(Arrow).IsAssignableFrom(type) || typeof(Bolt).IsAssignableFrom(type)) progress.AmmunitionStock = value;
             else if (typeof(Bandage).IsAssignableFrom(type) || typeof(Food).IsAssignableFrom(type)) progress.ProvisionsStock = value;
+            else if (typeof(MagicProfessionResource).IsAssignableFrom(type)) progress.MagicStock = value;
         }
 
         public static void ReturnWarehouseCargo(Server.Engines.CityLoyalty.TradeOrderCrate crate, Item item, Map map)
@@ -397,7 +401,7 @@ namespace Server.Custom.CityDevelopment
                             CityProgress progress = GetCityProfile(c, npc.Map);
                             from.SendMessage(89, $"=== Экономика города: {c} ({npc.Map.Name}) ===");
                             from.SendMessage(0x59, $"Уровень: {progress.Level}/5 | Казна: {progress.Treasury} золота");
-                            from.SendMessage(0x35, $"Склады: железо [{progress.IronStock}], кожа [{progress.LeatherStock}], дерево [{progress.WoodStock}], снаряжение [{progress.EquipmentStock}], амуниция [{progress.AmmunitionStock}], припасы [{progress.ProvisionsStock}]");
+                            from.SendMessage(0x35, $"Склады: железо [{progress.IronStock}], кожа [{progress.LeatherStock}], дерево [{progress.WoodStock}], снаряжение [{progress.EquipmentStock}], амуниция [{progress.AmmunitionStock}], припасы [{progress.ProvisionsStock}], магические материалы [{progress.MagicStock}]");
                             from.SendMessage(0x35, "Складские запасы расходуются на 5% в сутки (не менее 1 единицы при наличии запаса).");
                             return;
                         }
@@ -421,6 +425,7 @@ namespace Server.Custom.CityDevelopment
                     progress.EquipmentStock = DecayWarehouseStock(progress.EquipmentStock);
                     progress.AmmunitionStock = DecayWarehouseStock(progress.AmmunitionStock);
                     progress.ProvisionsStock = DecayWarehouseStock(progress.ProvisionsStock);
+                    progress.MagicStock = DecayWarehouseStock(progress.MagicStock);
 
                     if (progress.Treasury > 50000)
                     {
@@ -467,6 +472,7 @@ namespace Server.Custom.CityDevelopment
                     writer.Write((int)kvp.Value.EquipmentStock);
                     writer.Write((int)kvp.Value.AmmunitionStock);
                     writer.Write((int)kvp.Value.ProvisionsStock);
+                    writer.Write((int)kvp.Value.MagicStock);
                 }
             }
             catch (Exception ex)
@@ -529,6 +535,8 @@ namespace Server.Custom.CityDevelopment
                             progress.AmmunitionStock = reader.ReadInt();
                             progress.ProvisionsStock = reader.ReadInt();
                         }
+                        if (version >= 5)
+                            progress.MagicStock = reader.ReadInt();
                         loadedData[key] = progress;
                     }
                 }
