@@ -197,6 +197,10 @@ namespace Server.Custom.Farms
             if (item is Carrot) return VegetableType.Carrot;
             if (item is Lettuce) return VegetableType.Lettuce;
             if (item is Pumpkin) return VegetableType.Pumpkin;
+            if (item is Turnip) return VegetableType.Turnip;
+            if (item is Grapes) return VegetableType.Grapes;
+            if (item is Watermelon) return VegetableType.Watermelon;
+            if (item is WheatSheaf) return VegetableType.Wheat;
             return null;
         }
 
@@ -209,6 +213,10 @@ namespace Server.Custom.Farms
                 case VegetableType.Carrot: return "Carrots";
                 case VegetableType.Lettuce: return "Lettuce";
                 case VegetableType.Pumpkin: return "Pumpkins";
+                case VegetableType.Turnip: return "Turnips";
+                case VegetableType.Grapes: return "Grapes";
+                case VegetableType.Watermelon: return "Watermelons";
+                case VegetableType.Wheat: return "Wheat";
             }
             return "Vegetables";
         }
@@ -222,6 +230,10 @@ namespace Server.Custom.Farms
                 case VegetableType.Carrot: return 43;
                 case VegetableType.Lettuce: return 169;
                 case VegetableType.Pumpkin: return 144;
+                case VegetableType.Turnip: return 0;
+                case VegetableType.Grapes: return 0;
+                case VegetableType.Watermelon: return 0;
+                case VegetableType.Wheat: return 0;
             }
             return 0;
         }
@@ -235,6 +247,10 @@ namespace Server.Custom.Farms
                 case VegetableType.Carrot: veg = new Carrot(); break;
                 case VegetableType.Lettuce: veg = new Lettuce(); break;
                 case VegetableType.Pumpkin: veg = new Pumpkin(); break;
+                case VegetableType.Turnip: veg = new Turnip(); break;
+                case VegetableType.Grapes: veg = new Grapes(); break;
+                case VegetableType.Watermelon: veg = new Watermelon(); break;
+                case VegetableType.Wheat: veg = new WheatSheaf(); break;
                 default: veg = new FarmPotato(); break;
             }
             veg.Amount = count;
