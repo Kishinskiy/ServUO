@@ -13,12 +13,17 @@ namespace Server.Custom.GhostMechanics
     {
         private Mobile m_From;
         private List<EtherealShrine> m_AvailableShrines;
+        private int m_Page;
         public static readonly int TeleportCost = 25; // Стоимость телепортации
+        private const int PageSize = 8;
+        private const int PreviousPageButton = 1001;
+        private const int NextPageButton = 1002;
 
-        public EtherealTravelGump(Mobile from) : base(150, 100)
+        public EtherealTravelGump(Mobile from, int page = 0) : base(150, 100)
         {
             m_From = from;
             m_AvailableShrines = new List<EtherealShrine>();
+            m_Page = Math.Max(0, page);
 
             Closable = true;
             Disposable = true;
@@ -58,20 +63,34 @@ namespace Server.Custom.GhostMechanics
                 return;
             }
 
+            int pageCount = (m_AvailableShrines.Count + PageSize - 1) / PageSize;
+            m_Page = Math.Min(m_Page, pageCount - 1);
+            int startIndex = m_Page * PageSize;
+            int endIndex = Math.Min(startIndex + PageSize, m_AvailableShrines.Count);
+
             // Список прокрутки точек
             int y = 80;
-            for (int i = 0; i < m_AvailableShrines.Count; i++)
+            for (int i = startIndex; i < endIndex; i++)
             {
-                if (y > 260) break; // Лимит контейнера по высоте
-
                 EtherealShrine target = m_AvailableShrines[i];
                 
                 // Кнопка телепорта
-                AddButton(25, y + 2, 4005, 4007, i + 1, GumpButtonType.Reply, 0);
+                AddButton(25, y + 2, 4005, 4007, i - startIndex + 1, GumpButtonType.Reply, 0);
                 // Название шрайна
                 AddLabel(60, y, 0x482, target.ShrineName);
 
                 y += 25;
+            }
+
+            AddLabel(150, 285, 0x35, $"{m_Page + 1} / {pageCount}");
+            if (m_Page > 0)
+            {
+                AddButton(25, 282, 4014, 4016, PreviousPageButton, GumpButtonType.Reply, 0);
+            }
+
+            if (m_Page < pageCount - 1)
+            {
+                AddButton(300, 282, 4005, 4007, NextPageButton, GumpButtonType.Reply, 0);
             }
         }
 
@@ -81,7 +100,14 @@ namespace Server.Custom.GhostMechanics
             Mobile from = m_From;
             if (from == null || from.Alive || info.ButtonID == 0) return;
 
-            int index = info.ButtonID - 1;
+            if (info.ButtonID == PreviousPageButton || info.ButtonID == NextPageButton)
+            {
+                int nextPage = m_Page + (info.ButtonID == NextPageButton ? 1 : -1);
+                from.SendGump(new EtherealTravelGump(from, nextPage));
+                return;
+            }
+
+            int index = (m_Page * PageSize) + info.ButtonID - 1;
             if (index >= 0 && index < m_AvailableShrines.Count)
             {
                 EtherealShrine dest = m_AvailableShrines[index];

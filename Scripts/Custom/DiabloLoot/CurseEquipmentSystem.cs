@@ -170,6 +170,31 @@ namespace Server.Custom.CurseSystem
             return "[Свойства предмета скрыты]";
         }
 
+        public override string DisplayedProperties(Mobile from)
+        {
+            return null;
+        }
+
+        public override void AddProperties(ObjectPropertyList list)
+        {
+            if (!m_IsIdentified)
+            {
+                list.Add("Скрытые свойства не распознаны");
+                return;
+            }
+
+            if (m_HpPenalty > 0)
+                list.Add($"-{m_HpPenalty} к силе");
+            if (m_ManaPenalty > 0)
+                list.Add($"-{m_ManaPenalty} к интеллекту");
+            if (m_StrengthBonus > 0)
+                list.Add($"+{m_StrengthBonus} к силе");
+            if (m_DexterityBonus > 0)
+                list.Add($"+{m_DexterityBonus} к ловкости");
+            if (m_IntelligenceBonus > 0)
+                list.Add($"+{m_IntelligenceBonus} к интеллекту");
+        }
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
@@ -259,6 +284,7 @@ namespace Server.Custom.CurseSystem
                     {
                         curse.IsIdentified = true;
                         item.InvalidateProperties();
+                        item.SendPropertiesTo(from);
                         from.PlaySound(0x249); 
                         from.SendMessage(0x35, $"Вы успешно преодолели элитный барьер ({neededSkill:F1}) и распознали скрытые свойства вещи!");
                     }

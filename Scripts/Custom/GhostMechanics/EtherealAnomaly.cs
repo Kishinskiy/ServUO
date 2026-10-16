@@ -7,6 +7,8 @@ namespace Server.Items
 {
     public class EtherealAnomaly : Item
     {
+        public const int MaxEssence = 100;
+
         private int m_EssenceValue;
 
         [CommandProperty(AccessLevel.GameMaster)]
@@ -44,22 +46,36 @@ namespace Server.Items
 
             // Начисляем эссенцию через XmlPoints / XmlValue
             XmlValue pointsData = XmlAttach.FindAttachment(from, typeof(XmlValue), "EtherealEssence") as XmlValue;
-            
+
+            int currentEssence = pointsData != null ? pointsData.Value : 0;
+            if (currentEssence >= MaxEssence)
+            {
+                from.SendMessage(0x22, $"У вас уже достигнут предел эссенции: {MaxEssence}.");
+                return;
+            }
+
+            int gainedEssence = Math.Min(Math.Max(0, m_EssenceValue), MaxEssence - currentEssence);
+            if (gainedEssence <= 0)
+            {
+                from.SendMessage(0x22, "Эта аномалия не содержит пригодной эссенции.");
+                return;
+            }
+
             if (pointsData == null)
             {
-                pointsData = new XmlValue("EtherealEssence", m_EssenceValue);
+                pointsData = new XmlValue("EtherealEssence", gainedEssence);
                 XmlAttach.AttachTo(from, pointsData);
             }
             else
             {
-                pointsData.Value += m_EssenceValue;
+                pointsData.Value += gainedEssence;
             }
 
             // Эффекты поглощения (анимация и звук)
             Effects.SendLocationParticles(EffectItem.Create(Location, Map, TimeSpan.FromSeconds(1.0)), 0x373A, 10, 15, 0x482, 0, 5024, 0);
             from.PlaySound(0x1F7); 
 
-            from.SendMessage(0x482, $"Вы поглотили аномалию и получили {m_EssenceValue} эссенции духа. Всего: {pointsData.Value}.");
+            from.SendMessage(0x482, $"Вы поглотили аномалию и получили {gainedEssence} эссенции духа. Всего: {pointsData.Value}.");
 
             // Удаляем аномалию
             this.Delete();
