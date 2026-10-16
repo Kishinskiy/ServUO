@@ -21,33 +21,50 @@ namespace Server.Items
 
         public override void OnDoubleClick(Mobile from)
         {
-            if (from == null || from.Backpack == null || this.Parent != from.Backpack) return;
+            if (from == null || from.Backpack == null || !IsChildOf(from.Backpack)) return;
 
             if (from.Alive)
             {
                 from.SendMessage("Вы уже живы! Ловец эссенций имеет силу только в облике духа.");
-                this.Delete();
                 return;
             }
 
+            EpicRank rank = EpicAlignmentSystem.GetRank(from);
+            if (rank == EpicRank.None)
+            {
+                from.SendMessage(0x22, "Ловец связан с эпическим испытанием и не реагирует на вашу сущность.");
+                return;
+            }
+
+            if (from.Map == null || from.Map == Map.Internal)
+                return;
+
             IPooledEnumerable mobiles = from.Map.GetMobilesInRange(from.Location, 3);
             bool found = false;
-
-            foreach (Mobile m in mobiles)
+            try
             {
-                if (m is Wisp && m.Alive)
+                foreach (Mobile m in mobiles)
                 {
-                    m.PlaySound(0x212);
-                    Effects.SendLocationParticles(EffectItem.Create(m.Location, m.Map, TimeSpan.FromSeconds(0.5)), 0x376A, 9, 32, 5015);
-                    m.Delete(); 
+                    Wisp wisp = m as Wisp;
+                    if (wisp != null && wisp.Alive && !wisp.Deleted &&
+                        !wisp.Controlled && !wisp.Summoned && wisp.ControlMaster == null &&
+                        wisp.SummonMaster == null)
+                    {
+                        wisp.PlaySound(0x212);
+                        Effects.SendLocationParticles(EffectItem.Create(wisp.Location, wisp.Map, TimeSpan.FromSeconds(0.5)), 0x376A, 9, 32, 5015);
+                        wisp.Delete();
 
-                    CollectedCount++;
-                    from.SendMessage(0x35, $"Вы поглотили эссенцию духа! Собрано: {CollectedCount} из {RequiredEssences}.");
-                    found = true;
-                    break;
+                        CollectedCount++;
+                        from.SendMessage(0x35, $"Вы поглотили эссенцию духа! Собрано: {CollectedCount} из {RequiredEssences}.");
+                        found = true;
+                        break;
+                    }
                 }
             }
-            mobiles.Free();
+            finally
+            {
+                mobiles.Free();
+            }
 
             if (!found)
             {
@@ -60,8 +77,6 @@ namespace Server.Items
             // =========================================================================
             if (CollectedCount >= RequiredEssences)
             {
-                EpicRank rank = EpicAlignmentSystem.GetRank(from);
-
                 // Оживляем персонажа и восстанавливаем половину ХП
                 from.Resurrect(); 
                 from.Hits = from.HitsMax / 2; 

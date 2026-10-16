@@ -10,6 +10,7 @@ namespace Server.Items
 {
     public static class EpicMantraCore
     {
+        public static readonly Point3D TrialAltarLocation = new Point3D(1234, 567, 8);
         private static Dictionary<Serial, DateTime> _speechCooldown = new Dictionary<Serial, DateTime>();
 
         public static void Initialize() { EventSink.Speech += OnPlayerSpeech; }
@@ -19,7 +20,7 @@ namespace Server.Items
             PlayerMobile pm = e.Mobile as PlayerMobile;
             if (pm == null || !pm.Alive || pm.NetState == null || string.IsNullOrEmpty(e.Speech)) return;
 
-            Point3D altarLoc = new Point3D(1903, 2087, 10);
+            Point3D altarLoc = TrialAltarLocation;
             if (pm.Map != Map.Felucca || pm.GetDistanceToSqrt(altarLoc) > 5.0) return;
 
             string text = e.Speech.ToLower().Trim();
@@ -76,16 +77,36 @@ namespace Server.Items
                 return;
             }
 
-            if (!VerifyRequirements(pm, altarLoc, isLight)) return;
+            if (!EpicWaveSpawner.TryReserveBattle(pm, isLight))
+            {
+                pm.SendMessage(0x22, "Испытание вашей фракции уже идет у Алтаря Хаоса. Испытание противоположной фракции может проходить одновременно.");
+                return;
+            }
+
+            if (!VerifyRequirements(pm, altarLoc, isLight))
+            {
+                EpicWaveSpawner.CancelBattleReservation(pm);
+                return;
+            }
 
             Item fire = new Item(0x3709) { Hue = isLight ? 2418 : 1175, Movable = false };
             fire.MoveToWorld(new Point3D(altarLoc.X, altarLoc.Y, altarLoc.Z + 1), Map.Felucca);
             Timer.DelayCall(TimeSpan.FromSeconds(180.0), () => fire.Delete());
 
             pm.PlaySound(0x243);
-            pm.SendMessage(0x59, "Осколки поглощены! У вас есть 6 секунд форы до начала Великого Противостояния...");
+            pm.SendMessage(0x59, "Осколки поглощены! Через 6 секунд начнется финальное испытание у Алтаря Хаоса.");
             
-            Timer.DelayCall(TimeSpan.FromSeconds(6.0), () => { if (pm.Alive) EpicWaveSpawner.StartBattle(pm, altarLoc, isLight); });
+            Timer.DelayCall(TimeSpan.FromSeconds(6.0), () =>
+            {
+                if (!pm.Deleted && pm.Alive && pm.Map == Map.Felucca)
+                    EpicWaveSpawner.StartBattle(pm, altarLoc, isLight, fire);
+                else
+                {
+                    EpicWaveSpawner.CancelBattleReservation(pm);
+                    if (!pm.Deleted)
+                        pm.SendMessage(0x22, "Испытание не началось: инициатор должен оставаться живым в мире до начала волн.");
+                }
+            });
         }
 
         private static bool VerifyRequirements(PlayerMobile pm, Point3D altarLoc, bool isLight)

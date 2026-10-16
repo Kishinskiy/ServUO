@@ -23,6 +23,7 @@
 	</PropertyGroup>
 	<ItemGroup>
 		<Reference Include="System.Web" />
+		<Reference Include="System.Web.Extensions" />
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\Server\Server.csproj" />
