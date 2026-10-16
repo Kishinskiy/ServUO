@@ -90,9 +90,16 @@ namespace Server.Custom.TownBoards
 
             protected override void OnTarget(Mobile from, object targeted)
             {
+                if (m_Scroll == null || m_Scroll.Deleted || from.Backpack == null ||
+                    !m_Scroll.IsChildOf(from.Backpack))
+                {
+                    from.SendMessage(0x22, "Активный контракт должен находиться в вашем рюкзаке.");
+                    return;
+                }
+
                 if (targeted is Server.Engines.CityLoyalty.TradeMinister minister)
                 {
-                    if (minister.City != m_Scroll.City)
+                    if (minister.Deleted || minister.Map != from.Map || minister.City != m_Scroll.City)
                     {
                         from.SendMessage(0x22, $"Этот контракт предназначен строго для Торгового Министра города {m_Scroll.City}!");
                         return;
@@ -110,41 +117,38 @@ namespace Server.Custom.TownBoards
                     Container pack = from.Backpack;
                     if (pack == null) return;
 
-                    Item targetBOD = null;
-                    foreach (Item item in pack.Items)
+                    List<Item> resources = new List<Item>();
+                    CollectResources(pack, m_Scroll.ResourceClass, resources);
+                    int available = 0;
+
+                    foreach (Item item in resources)
                     {
-                        string typeName = item.GetType().Name.ToLower();
-                        bool isValid = false;
-
-                        if (m_Scroll.ResourceClass == "iron" && (typeName.Contains("ingot") || typeName.Contains("iron"))) isValid = true;
-                        else if (m_Scroll.ResourceClass == "leather" && (typeName.Contains("leather") || typeName.Contains("hide"))) isValid = true;
-                        else if (m_Scroll.ResourceClass == "wood" && (typeName.Contains("board") || typeName.Contains("log") || typeName.Contains("wood"))) isValid = true;
-
-                        if (isValid)
-                        {
-                            int count = item.Amount;
-                            if (item is Container c) count = c.TotalItems;
-
-                            if (count >= m_Scroll.RequiredCount)
-                            {
-                                targetBOD = item;
-                                break;
-                            }
-                        }
+                        available += item.Amount;
                     }
 
-                    if (targetBOD != null)
+                    if (available >= m_Scroll.RequiredCount)
                     {
-                        int amountToStore = targetBOD.Amount;
-                        if (targetBOD is Container c) amountToStore = c.TotalItems;
+                        int amountRemaining = m_Scroll.RequiredCount;
+
+                        foreach (Item item in resources)
+                        {
+                            int amountToConsume = Math.Min(item.Amount, amountRemaining);
+                            item.Amount -= amountToConsume;
+                            amountRemaining -= amountToConsume;
+
+                            if (item.Amount <= 0)
+                                item.Delete();
+
+                            if (amountRemaining == 0)
+                                break;
+                        }
 
                         progress.Treasury -= purchaseCost;
 
-                        if (m_Scroll.ResourceClass == "iron") progress.IronStock += amountToStore;
-                        else if (m_Scroll.ResourceClass == "leather") progress.LeatherStock += amountToStore;
-                        else if (m_Scroll.ResourceClass == "wood") progress.WoodStock += amountToStore;
+                        if (m_Scroll.ResourceClass == "iron") progress.IronStock += m_Scroll.RequiredCount;
+                        else if (m_Scroll.ResourceClass == "leather") progress.LeatherStock += m_Scroll.RequiredCount;
+                        else if (m_Scroll.ResourceClass == "wood") progress.WoodStock += m_Scroll.RequiredCount;
 
-                        targetBOD.Delete();
                         m_Scroll.Delete();
 
                         int goldReward = 6500;
@@ -156,12 +160,27 @@ namespace Server.Custom.TownBoards
                     }
                     else
                     {
-                        from.SendMessage(0x22, $"В вашем рюкзаке не найдено упакованного ресурса [{m_Scroll.ResourceClass}] в количестве {m_Scroll.RequiredCount} шт.!");
+                        from.SendMessage(0x22, $"В вашем рюкзаке не найдено {m_Scroll.RequiredCount} единиц ресурса [{m_Scroll.ResourceClass}].");
                     }
                 }
                 else
                 {
                     from.SendMessage(0x22, "Сдать ресурсы по городскому объявлению можно только Министру Торговли.");
+                }
+            }
+
+            private static void CollectResources(Container container, string resourceClass, List<Item> resources)
+            {
+                foreach (Item item in container.Items)
+                {
+                    bool matches = resourceClass == "iron" && item is BaseIngot ||
+                                   resourceClass == "leather" && (item is BaseLeather || item is BaseHides) ||
+                                   resourceClass == "wood" && (item is BaseWoodBoard || item is BaseLog);
+
+                    if (matches && item.Stackable)
+                        resources.Add(item);
+                    else if (item is Container nested)
+                        CollectResources(nested, resourceClass, resources);
                 }
             }
         }
@@ -285,8 +304,8 @@ namespace Server.Custom.TownBoards
             if (canAfford)
             {
                 // Если деньги есть — штатный контракт закупки
-                AddLabel(25, 150, 0x24, "⛏️ ЗАКУПКА СЫРЬЯ: МАТЕРИАЛЫ КРАФТА (BOD)");
-                AddLabel(25, 175, 0x3B2, "Город закупает 50 упакованных ресурсов на склады.");
+                AddLabel(25, 150, 0x24, "⛏️ ЗАКУПКА СЫРЬЯ: РЕСУРСЫ РЕМЕСЛЕННИКОВ");
+                AddLabel(25, 175, 0x3B2, "Город закупает 50 единиц ресурса из вашего рюкзака.");
                 AddButton(320, 165, 0x254F, 0x2551, 2, GumpButtonType.Reply, 0);
                 AddLabel(15, 265, 0x35, "Город выплачивает золото за поставки напрямую из казны!");
             }
@@ -324,7 +343,7 @@ namespace Server.Custom.TownBoards
                 string[] resTypes = { "iron", "leather", "wood" };
                 string chosenRes = resTypes[Utility.Random(resTypes.Length)];
                 from.AddToBackpack(new TownContractScroll(m_City, TownContractType.Supplies, chosenRes, 50));
-                from.SendMessage(0x35, $"Вы приняли контракт Снабжения! Упакуйте 50 ед. [{chosenRes}] в BOD, кликните по свитку и сдайте Министру.");
+                from.SendMessage(0x35, $"Вы приняли контракт Снабжения! Соберите 50 ед. [{chosenRes}] в рюкзаке, кликните по свитку и сдайте Министру.");
             }
         }
     }

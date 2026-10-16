@@ -116,9 +116,8 @@ namespace Server.Custom.CityDevelopment
                     {
                         if (playerCooldowns.TryGetValue(cooldownKey, out DateTime expiry) && expiry > DateTime.UtcNow)
                         {
-                            TimeSpan remaining = expiry - DateTime.UtcNow;
                             from.SendMessage(0x22, $"Гильдия купцов {currentCity} еще не подготовила контракты.");
-                            throw new Exception("Город на кулдауне.");
+                            return 0;
                         }
                     }
 
@@ -191,8 +190,23 @@ namespace Server.Custom.CityDevelopment
         }
         public static void SetCityCooldown(Mobile from, Server.Engines.CityLoyalty.City city, Map map, TimeSpan duration)
         {
-            // Безопасно перенаправляем ядро на рабочий метод, игнорируя лишний параметр карты
-            SetCityCooldown(from, city, duration);
+            if (from == null) return;
+
+            if (map == null || map == Map.Internal)
+                map = from.Map;
+
+            if (map == null || map == Map.Internal)
+                map = Map.Trammel;
+
+            string cooldownKey = $"{city}_{map.Name}";
+
+            if (!_cityCooldowns.TryGetValue(from, out var playerCooldowns))
+            {
+                playerCooldowns = new Dictionary<string, DateTime>();
+                _cityCooldowns[from] = playerCooldowns;
+            }
+
+            playerCooldowns[cooldownKey] = DateTime.UtcNow + duration;
         }
 
         public static void OnTradeOrderDelivered(Mobile player, object originTown)
@@ -209,7 +223,12 @@ namespace Server.Custom.CityDevelopment
             // 🔥 СИНХРОНИЗИРОВАНО С КАЛЬКУЛЯТОРОМ РАВНОВЕСИЯ: Применяем мягкий буст очков города! 🏛️📊
             double epicBonus = Server.Custom.EpicBalance.EpicWorldBalanceMod.GetCityProgressMultiplier(coreCity);
             progress.Treasury += exportProfit;
-            progress.CurrentSupplies += (isSeaRoute ? 15.0 : 5.0) * epicBonus; // Умножаем приток supplies на epicBonus!
+            double suppliesGained = (isSeaRoute ? 15.0 : 5.0) * epicBonus;
+            progress.CurrentSupplies += suppliesGained;
+            if (ProcessCityLevelUps(coreCity, player.Map))
+            {
+                World.Broadcast(0x35, true, $"[Развитие городов] Город {coreCity} достиг {progress.Level} уровня благодаря успешным поставкам!");
+            }
             if (progress.IronStock > 30) { progress.IronStock -= 30; }
             else if (progress.LeatherStock > 30) { progress.LeatherStock -= 30; }
             else if (progress.WoodStock > 30) { progress.WoodStock -= 30; }
@@ -220,10 +239,48 @@ namespace Server.Custom.CityDevelopment
                 player.SendMessage(0x35, $"[МОРСКОЙ ТРИУМФ]: Заморский контейнер успешно доставлен на острова!");
                 player.SendMessage(0x58, $"Казна порта {coreCity} получила колоссальную прибыль +{exportProfit} золотых. Ваш капитанский куш: {goldReward} монет зачислен на счёт!");
             }
+
             else
             {
                 player.SendMessage(0x58, $"[Экспорт] Караван успешно доставлен! Казна города {coreCity} получила прибыль +{exportProfit}. Ваша доля: {goldReward}.");
             }
+        }
+
+        public static bool ProcessCityLevelUps(Server.Engines.CityLoyalty.City city, Map map)
+        {
+            CityProgress progress = GetCityProfile(city, map);
+            int startingLevel = progress.Level;
+
+            while (progress.Level < 5 && progress.RequiredSupplies > 0.0 &&
+                   progress.CurrentSupplies >= progress.RequiredSupplies)
+            {
+                progress.CurrentSupplies -= progress.RequiredSupplies;
+                progress.Level++;
+                progress.RequiredSupplies = 250.0 * Math.Pow(2.0, progress.Level - 1);
+            }
+
+            if (progress.Level == startingLevel)
+                return false;
+
+            Server.Factions.Town town = Server.Factions.Town.Towns.Find(
+                t => string.Equals(t.ToString(), city.ToString(), StringComparison.OrdinalIgnoreCase));
+
+            if (town != null)
+            {
+                switch (progress.Level)
+                {
+                    case 1: town.Tax = 2; break;
+                    case 2: town.Tax = 3; break;
+                    case 3: town.Tax = 5; break;
+                    case 4: town.Tax = 6; break;
+                    case 5: town.Tax = 8; break;
+                }
+
+                CityDecorationMod.DecorateTown(town, progress.Level, map);
+                CityLegendaryMerchantMod.CheckMerchantSpawn(town, progress.Level);
+            }
+
+            return true;
         }
         private static void CityStatus_OnCommand(CommandEventArgs e)
         {
@@ -279,10 +336,12 @@ namespace Server.Custom.CityDevelopment
         }
         public static void Save()
         {
+            BinaryFileWriter writer = null;
+
             try
             {
                 if (!Directory.Exists(_saveFolder)) Directory.CreateDirectory(_saveFolder);
-                BinaryFileWriter writer = new BinaryFileWriter(_savePath, false);
+                writer = new BinaryFileWriter(_savePath, false);
                 writer.Write((int)DatabaseVersion);
                 writer.Write((int)_cityData.Count);
                 foreach (var kvp in _cityData)
@@ -296,22 +355,47 @@ namespace Server.Custom.CityDevelopment
                     writer.Write((int)kvp.Value.LeatherStock);
                     writer.Write((int)kvp.Value.WoodStock);
                 }
-                writer.Close();
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[CityDevelopment] Failed to save city data: {ex}");
+            }
+            finally
+            {
+                if (writer != null)
+                {
+                    try
+                    {
+                        writer.Close();
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[CityDevelopment] Failed to close city data file: {ex}");
+                    }
+                }
+            }
         }
         public static void Load()
         {
             if (!File.Exists(_savePath)) return;
+
             try
             {
+                Dictionary<string, CityProgress> loadedData = new Dictionary<string, CityProgress>();
+
                 using (FileStream stream = new FileStream(_savePath, FileMode.Open, FileAccess.Read, FileShare.Read))
                 using (BinaryReader binReader = new BinaryReader(stream))
                 {
                     BinaryFileReader reader = new BinaryFileReader(binReader);
                     int version = reader.ReadInt();
                     int count = reader.ReadInt();
-                    _cityData.Clear();
+
+                    if (version < 1 || version > DatabaseVersion)
+                        throw new InvalidDataException($"Unsupported city database version: {version}.");
+
+                    if (count < 0 || count > 10000)
+                        throw new InvalidDataException($"Invalid city database entry count: {count}.");
+
                     for (int i = 0; i < count; i++)
                     {
                         string key = reader.ReadString();
@@ -326,11 +410,18 @@ namespace Server.Custom.CityDevelopment
                             progress.LeatherStock = reader.ReadInt();
                             progress.WoodStock = reader.ReadInt();
                         }
-                        _cityData[key] = progress;
+                        loadedData[key] = progress;
                     }
                 }
+
+                _cityData.Clear();
+                foreach (KeyValuePair<string, CityProgress> entry in loadedData)
+                    _cityData[entry.Key] = entry.Value;
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[CityDevelopment] Failed to load city data: {ex}");
+            }
         }
     }
 }

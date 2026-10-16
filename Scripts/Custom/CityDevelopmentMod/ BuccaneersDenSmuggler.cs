@@ -87,6 +87,13 @@ namespace Server.Custom.BuccaneersDen
 
             protected override void OnTarget(Mobile from, object targeted)
             {
+                if (m_Smuggler == null || m_Smuggler.Deleted || from.Map != m_Smuggler.Map ||
+                    !from.InRange(m_Smuggler.Location, 3))
+                {
+                    from.SendMessage(0x22, "Вы должны находиться рядом со Скупщиком.");
+                    return;
+                }
+
                 if (targeted is Item item)
                 {
                     if (item.RootParent != from)
@@ -97,7 +104,7 @@ namespace Server.Custom.BuccaneersDen
 
                     string typeName = item.GetType().Name.ToLower();
 
-                    if (typeName.Contains("tradeordercrate") || typeName.Contains("crate"))
+                    if (item is Server.Engines.CityLoyalty.TradeOrderCrate)
                     {
                         item.Delete(); 
                         int dirtyGold = 8000; 

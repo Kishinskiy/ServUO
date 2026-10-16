@@ -129,7 +129,12 @@ namespace Server.Engines.CityLoyalty
                     if (t != null)
                     {
                         // Вызываем ваш динамический метод расчета из кастомного мода (Файл 5)
-                        int amount = Server.Custom.CityDevelopment.CityDevelopmentMod.CalculateDynamicQuestAmount();
+                        int amount = Server.Custom.CityDevelopment.CityDevelopmentMod.CalculateDynamicQuestAmount(from);
+                        if (amount <= 0)
+                        {
+                            crate.Delete();
+                            return false;
+                        }
 
                         entry.Details.Add(new TradeEntry.TradeDetails(t, worth, amount, name));
                     }

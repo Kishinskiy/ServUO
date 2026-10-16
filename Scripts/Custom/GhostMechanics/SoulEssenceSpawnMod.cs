@@ -10,7 +10,9 @@ namespace Server.Custom.SoulEssences
     // Кастомный предмет Эссенции Души (если у тебя уже есть свой класс, этот блок можно удалить)
     public class SoulEssence : Item
     {
-        public SoulEssence() : base(0x3779)
+        private const int EssenceItemID = 0x3198; // Blue Diamond graphic, available in client 7.111
+
+        public SoulEssence() : base(EssenceItemID)
         {
             Name = "Эссенция Души (Soul Essence)";
             Hue = 1365; // Призрачный фиолетово-синий цвет
@@ -19,7 +21,16 @@ namespace Server.Custom.SoulEssences
 
         public SoulEssence(Serial serial) : base(serial) { }
         public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write((int)0); }
-        public override void Deserialize(GenericReader reader) { base.Deserialize(reader); int version = reader.ReadInt(); }
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            int version = reader.ReadInt();
+
+            // Also repair essences already saved with the invalid effect graphic.
+            ItemID = EssenceItemID;
+            Hue = 1365;
+            Weight = 0.1;
+        }
     }
 
     public static class SoulEssenceSpawnMod

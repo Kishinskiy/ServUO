@@ -66,8 +66,14 @@ namespace Server.Custom.CityDevelopment
                     progress.RequiredSupplies = 250.0 * Math.Pow(2.0, progress.Level - 1);
                     progress.CurrentSupplies = progress.RequiredSupplies * 0.15;
 
-                    CityDecorationMod.RemoveTownDecoration(null, progress.Level + 1, targetMap);
-                    CityLegendaryMerchantMod.RemoveMerchant(null);
+                    Server.Factions.Town town = Server.Factions.Town.Towns.Find(
+                        t => string.Equals(t.ToString(), townName, StringComparison.OrdinalIgnoreCase));
+
+                    if (town != null)
+                    {
+                        CityDecorationMod.RemoveTownDecoration(town, progress.Level + 1, targetMap);
+                        CityLegendaryMerchantMod.CheckMerchantSpawn(town, progress.Level);
+                    }
 
                     // ИСПРАВЛЕНО: Заменили несуществующий CommandHandlers на нативный World.Broadcast! 🎉
                     string globalAlert = $"[Война] Город {townName} ({targetMap.Name}) пал под натиском Vice! Уровень развития разрушен до {progress.Level}!";
