@@ -23,9 +23,9 @@ namespace Server.Custom.CityDevelopment
         }
 
         // 2. Локальное вещание (Кричат только те глашатаи, которые стоят в черте указанного города)
-        public static void LocalCityBroadcast(City city, string message)
+        public static void LocalCityBroadcast(City city, Map map, string message)
         {
-            if (string.IsNullOrEmpty(message)) return;
+            if (string.IsNullOrEmpty(message) || map == null || map == Map.Internal) return;
 
             var cityInstance = CityLoyaltySystem.GetCityInstance(city);
             if (cityInstance == null || cityInstance.Definition == null || cityInstance.Definition.Region == null)
@@ -33,7 +33,7 @@ namespace Server.Custom.CityDevelopment
 
             foreach (Mobile m in World.Mobiles.Values)
             {
-                if ((m is TownCrier || m is CityHerald) && m.Region != null)
+                if ((m is TownCrier || m is CityHerald) && m.Map == map && m.Region != null)
                 {
                     // Проверяем, принадлежит ли регион NPC к целевому городу
                     if (cityInstance.Definition.Region.IsPartOf(m.Region))

@@ -130,36 +130,10 @@ namespace Server.Custom.CityDevelopment
                 from.SendMessage(88, $"Вы изменили очки благосостояния {townName} на {pointsToAdd:F2}.");
 
                 int startLevel = progress.Level; 
-                bool leveledUp = false;
-
-                while (progress.CurrentSupplies >= progress.RequiredSupplies && progress.Level < 5)
-                {
-                    progress.CurrentSupplies -= progress.RequiredSupplies;
-                    progress.Level++;
-                    progress.RequiredSupplies = 250.0 * Math.Pow(2.0, progress.Level - 1);
-                    leveledUp = true;
-                }
+                bool leveledUp = CityDevelopmentMod.ProcessCityLevelUps(coreCity, from.Map);
 
                 if (leveledUp)
                 {
-                    Town town = Town.Towns.Find(t => t.ToString().Contains(townName));
-                    if (town != null)
-                    {
-                        int baseTax = 2;
-                        switch (progress.Level)
-                        {
-                            case 1: baseTax = 2; break;
-                            case 2: baseTax = 3; break;
-                            case 3: baseTax = 5; break;
-                            case 4: baseTax = 6; break;
-                            case 5: baseTax = 8; break;
-                        }
-                        town.Tax = baseTax;
-
-                        CityDecorationMod.DecorateTown(town, progress.Level, from.Map);
-                        CityLegendaryMerchantMod.CheckMerchantSpawn(town, progress.Level);
-                    }
-
                     CommandHandlers.BroadcastMessage(AccessLevel.Player, 0x35, $"[Экономика] Город {townName} успешно развился с {startLevel} до {progress.Level} уровня благодаря ГМ-поддержке!");
                 }
 

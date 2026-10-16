@@ -14,8 +14,6 @@ namespace Server.Custom.CityDevelopment
     {
         public static void Initialize() { }
 
-        private static readonly Dictionary<Town, List<Mobile>> _activeGuards = new Dictionary<Town, List<Mobile>>();
-
         private static Point3D FindCityCenter(Town town, Map currentMap, out Map targetMap)
         {
             targetMap = (currentMap != null && currentMap != Map.Internal) ? currentMap : Map.Trammel;
@@ -71,12 +69,11 @@ namespace Server.Custom.CityDevelopment
 
             if (center == Point3D.Zero) return;
 
-            ClearGuards(town);
+            ClearGuards(town, map);
 
             Region cityRegion = Region.Find(center, map);
 
             int countToSpawn = newLevel * 2;
-            List<Mobile> townGuards = new List<Mobile>();
 
             int patrolRadius = 40 + (newLevel * 10);
 
@@ -91,10 +88,7 @@ namespace Server.Custom.CityDevelopment
                 guard.RangeHome = 15;
                 guard.Warmode = false;
 
-                townGuards.Add(guard);
             }
-
-            _activeGuards[town] = townGuards;
 
             if (IsEvilTown(town))
             {
@@ -114,7 +108,7 @@ namespace Server.Custom.CityDevelopment
 
             if (center == Point3D.Zero) return;
 
-            ClearGuards(town);
+            ClearGuards(town, map);
 
             int lowerLevel = Math.Max(1, levelToDestroy - 1);
             DecorateTown(town, lowerLevel, currentMap);
@@ -122,18 +116,23 @@ namespace Server.Custom.CityDevelopment
             Effects.PlaySound(center, map, IsEvilTown(town) ? 0x21F : 0x11D);
         }
 
-        private static void ClearGuards(Town town)
+        private static void ClearGuards(Town town, Map map)
         {
-            if (_activeGuards.TryGetValue(town, out List<Mobile> guardsList))
+            List<Mobile> guardsToDelete = new List<Mobile>();
+
+            foreach (Mobile mobile in World.Mobiles.Values)
             {
-                foreach (Mobile m in guardsList)
+                if (mobile is DevelopmentCityGuard guard &&
+                    !guard.Deleted &&
+                    guard.CityTown == town &&
+                    guard.Map == map)
                 {
-                    if (m != null && !m.Deleted)
-                        m.Delete();
+                    guardsToDelete.Add(guard);
                 }
-                guardsList.Clear();
-                _activeGuards.Remove(town);
             }
+
+            foreach (Mobile guard in guardsToDelete)
+                guard.Delete();
         }
 
         public static bool IsEvilTown(Town town)

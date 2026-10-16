@@ -42,6 +42,14 @@ namespace Server.Custom.CityDevelopment
             {
                 if (m_Kit == null || m_Kit.Deleted || targeted == null) return;
 
+                if (from.Backpack == null || m_Kit.Map != from.Map ||
+                    !from.InRange(m_Kit.GetWorldLocation(), 3) ||
+                    (m_Kit.RootParent != from && !m_Kit.IsChildOf(from.Backpack)))
+                {
+                    from.SendMessage(0x22, "Набор для саботажа должен находиться при вас.");
+                    return;
+                }
+
                 if (targeted is GarrisonSupplyCrate crate)
                 {
                     if (!crate.IsSealed)
@@ -50,34 +58,38 @@ namespace Server.Custom.CityDevelopment
                         return;
                     }
 
-                    // Находим город, в котором сейчас находится игрок-саботажник или который указан в регионе NPC
-                    Region reg = Region.Find(from.Location, from.Map);
-                    if (reg != null && !string.IsNullOrEmpty(reg.Name))
+                    Region crateRegion = Region.Find(crate.Location, crate.Map);
+                    if (crate.Map != from.Map || crateRegion == null)
                     {
-                        foreach (Server.Engines.CityLoyalty.City c in Enum.GetValues(typeof(Server.Engines.CityLoyalty.City)))
+                        from.SendMessage(0x22, "Ящик должен находиться в городе на той же карте.");
+                        return;
+                    }
+
+                    foreach (Server.Engines.CityLoyalty.City c in Enum.GetValues(typeof(Server.Engines.CityLoyalty.City)))
+                    {
+                        var city = Server.Engines.CityLoyalty.CityLoyaltySystem.GetCityInstance(c);
+                        if (city != null && city.Definition != null && city.Definition.Region != null &&
+                            city.Definition.Region.IsPartOf(crateRegion))
                         {
-                            if (reg.Name.IndexOf(c.ToString(), StringComparison.OrdinalIgnoreCase) >= 0)
+                            var cityProfile = CityDevelopmentMod.GetCityProfile(c, crate.Map);
+                            if (cityProfile != null)
                             {
-                                var cityProfile = CityDevelopmentMod.GetCityProfile(c, from.Map);
-                                if (cityProfile != null)
-                                {
-                                    cityProfile.CurrentSupplies -= 40.0;
-                                    if (cityProfile.CurrentSupplies < 0.0) cityProfile.CurrentSupplies = 0.0;
+                                cityProfile.CurrentSupplies -= 40.0;
+                                if (cityProfile.CurrentSupplies < 0.0) cityProfile.CurrentSupplies = 0.0;
 
-                                    string alert = string.Format("Тревога! Вражеские лазутчики совершили диверсию на складах города {0} ({1})!", c, from.Map.Name);
-                                    CityNotificationSystem.LocalCityBroadcast(c, alert); // Если этот метод транслирует в регион, он отработает на нужной карте
+                                string alert = string.Format("Тревога! Вражеские лазутчики совершили диверсию на складах города {0} ({1})!", c, crate.Map.Name);
+                                CityNotificationSystem.LocalCityBroadcast(c, crate.Map, alert);
 
-                                    from.PlaySound(0x3C4);
-                                    from.SendMessage(0x35, $"Вы успешно испортили припасы! Регион {c} ({from.Map.Name}) потерял очки снабжения.");
+                                from.PlaySound(0x3C4);
+                                from.SendMessage(0x35, $"Вы успешно испортили припасы! Регион {c} ({crate.Map.Name}) потерял очки снабжения.");
 
-                                    crate.Delete();
-                                    m_Kit.Delete();
-                                    return;
-                                }
+                                crate.Delete();
+                                m_Kit.Delete();
+                                return;
                             }
                         }
                     }
-                    from.SendMessage(0x22, "Вы должны находиться в черте какого-либо города, чтобы совершить диверсию.");
+                    from.SendMessage(0x22, "Ящик снабжения не принадлежит городу, который можно подвергнуть саботажу.");
                 }
                 else
                 {
