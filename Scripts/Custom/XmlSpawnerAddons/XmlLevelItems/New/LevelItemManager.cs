@@ -19,8 +19,7 @@ namespace Server.Engines.XmlSpawner2
         {
             for (int i = 0; i <= 250; i++)
             {
-                if (i <= 1) ExpTable[i] = 1000;
-                else ExpTable[i] = (int)((i * 1000) * 1.5);
+                ExpTable[i] = 1000;
             }
         }
 
@@ -76,12 +75,12 @@ namespace Server.Engines.XmlSpawner2
                     return;
                 }
 
-                if (levelData.Level > 200 && victimFame < HighLevelBossFameThreshold)
+                if (levelData.Level >= 200 && victimFame < HighLevelBossFameThreshold)
                     return;
 
-                int itemExp = Math.Max(0, exp - (levelData.Level - 1));
-                if (itemExp == 0)
-                    return;
+                int levelProgress = Math.Max(1, Math.Min(LevelItems.MaxLevelsCap, levelData.Level));
+                int expFactorPermille = 1000 - ((levelProgress - 1) * 600 / (LevelItems.MaxLevelsCap - 1));
+                int itemExp = Math.Max(1, (int)((long)exp * expFactorPermille / 1000));
 
                 levelData.Experience += itemExp;
 
