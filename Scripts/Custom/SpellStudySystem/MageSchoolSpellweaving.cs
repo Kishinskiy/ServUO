@@ -7,14 +7,15 @@ namespace Server.Custom.SpellStudySystem
     public class MageSchoolSpellweaving : BaseMagicSchool
     {
         public override string SchoolName => "Ткачество Чар Эльфов (Spellweaving)";
-        public override SkillName SupportSkill => SkillName.Spellweaving;
+        public override SkillName StudySkill => SkillName.Spellweaving;
+        public override SkillName SupportSkill => SkillName.Focus;
 
         public override int StartSound => 0x4B0; // Звон кристаллов
         public override int SuccessSound => 0x4B2; // Волшебный всплеск энергии
 
         public override bool MatchBook(Spellbook book)
         {
-            return book.GetType().Name.Contains("Spellweaving") || book.GetType().Name.Contains("Arcane");
+            return book.SpellbookType == SpellbookType.Arcanist;
         }
 
         public override bool CheckRequirements(Mobile from, Spellbook book, int spellID, int offsetID)

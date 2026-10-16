@@ -7,6 +7,7 @@ namespace Server.Custom.SpellStudySystem
     public class MageSchoolBard : BaseMagicSchool
     {
         public override string SchoolName => "Песнопения Бардов (Bardic Songs)";
+        public override SkillName StudySkill => SkillName.Discordance;
         public override SkillName SupportSkill => SkillName.Musicianship;
 
         public override int StartSound => 0x383; // Настройка лютни

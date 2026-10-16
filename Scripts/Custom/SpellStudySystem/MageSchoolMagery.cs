@@ -7,6 +7,7 @@ namespace Server.Custom.SpellStudySystem
     public class MageSchoolMagery : BaseMagicSchool
     {
         public override string SchoolName => "Классическая Магия";
+        public override SkillName StudySkill => SkillName.Magery;
         public override SkillName SupportSkill => SkillName.EvalInt;
 
         public override bool MatchBook(Spellbook book)

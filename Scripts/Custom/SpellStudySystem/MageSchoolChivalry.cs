@@ -7,6 +7,7 @@ namespace Server.Custom.SpellStudySystem
     public class MageSchoolChivalry : BaseMagicSchool
     {
         public override string SchoolName => "Паладинство (Chivalry)";
+        public override SkillName StudySkill => SkillName.Chivalry;
         public override SkillName SupportSkill => SkillName.Focus;
 
         public override int StartSound => 0x5C9; // Святой гул
@@ -14,7 +15,7 @@ namespace Server.Custom.SpellStudySystem
 
         public override bool MatchBook(Spellbook book)
         {
-            return book.GetType().Name.Contains("Chivalry") || book.GetType().Name.Contains("Paladin");
+            return book.SpellbookType == SpellbookType.Paladin;
         }
 
         public override bool CheckRequirements(Mobile from, Spellbook book, int spellID, int offsetID)

@@ -625,6 +625,9 @@ namespace Server.Items
             {
 				SpellScroll scroll = (SpellScroll)dropped;
 
+                if (Server.Custom.SpellStudySystem.SpellStudyCore.TryBeginStudy(from, scroll, this))
+                    return false;
+
 				SpellbookType type = GetTypeForSpell(scroll.SpellID);
 
 				if (type != SpellbookType)
