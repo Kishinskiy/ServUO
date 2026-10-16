@@ -5,20 +5,20 @@ namespace Server
 {
 	public class LevelItems
 	{
-		//These are the definable features for item leveling...
-        public static readonly int DefaultMaxLevel = 200; //Default Max level for items.
-        public static readonly int MaxLevelsCap = 1000; //Number of total levels items can go up to when maxed.
-        public static readonly bool EnableExpCap = true; //true = Cap experience per level.  false = no cap.
-        public static readonly bool DisplayExpProp = true; //true = Display experience on item onmouseover/click.
+		// Глобальные капы под наше новое ТЗ! 🎉⚙️🛠
+        public static readonly int DefaultMaxLevel = 20;   // При первой ковке лимит строго 20!
+        public static readonly int MaxLevelsCap = 250;     // Итоговый лимит уровней (250lvl * 4 = 1000sp)
+        public static readonly bool EnableExpCap = true; 
+        public static readonly bool DisplayExpProp = true; 
 
-        //These are the definable features for spending points...
-        public static readonly int PointsPerLevel = 4; //How many spending points an item gets per level.
-        public static readonly bool DoubleArtifactCost = true; //true = Artifact attributes will cost double points.
+        // Начисление очков
+        public static readonly int PointsPerLevel = 4;     // Ровно 4 очка за уровень!
+        public static readonly bool DoubleArtifactCost = true; 
 
-        //These are the definable features for Level Increasing...
-        public const bool BlacksmithOnly = false; //true = May only be used by char with blacksmithy.
-        public const double BlacksmithSkillRequired = 100; // Amount of Blacksmith skill required to validate deeds (if BlacksmithOnly is true).
-        public const bool RewardBlacksmith = false; //true = give the blacksmith reward for validating (if BlacksmithOnly is true).
-        public const int BlacksmithRewardAmt = 500; // Amount to pay blacksmith if they validate deed for another player (if BlacksmithOnly and RewardBlacksmith are true).
+        // Мягкий режим использования свитков
+        public const bool BlacksmithOnly = false; 
+        public const double BlacksmithSkillRequired = 0.0; 
+        public const bool RewardBlacksmith = false; 
+        public const int BlacksmithRewardAmt = 0; 
 	}
 }

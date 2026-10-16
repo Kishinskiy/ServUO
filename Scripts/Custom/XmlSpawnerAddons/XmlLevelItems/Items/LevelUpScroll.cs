@@ -1,10 +1,6 @@
 using System;
 using Server.Network;
-using Server.Prompts;
-using Server.Mobiles;
-using Server.Misc;
 using Server.Items;
-using Server.Gumps;
 using Server.Targeting;
 using Server.Engines.XmlSpawner2;
 
@@ -27,12 +23,6 @@ namespace Server.Items
             m_Value = value;
         }
 
-        public override void AddNameProperties(ObjectPropertyList list)
-        {
-            base.AddNameProperties(list);
-            list.Add(1060847, $"Увеличивает макс. уровень предмета на +{m_Value}");
-        }
-
         public LevelUpScroll(Serial serial) : base(serial) { }
         public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write((int)1); writer.Write((int)m_Value); }
         public override void Deserialize(GenericReader reader) { base.Deserialize(reader); int version = reader.ReadInt(); m_Value = reader.ReadInt(); }
@@ -45,7 +35,7 @@ namespace Server.Items
                 return;
             }
 
-            from.SendMessage("Выберите ЛЮБОЕ оружие или броню для увеличения максимального уровня.");
+            from.SendMessage("Выберите оружие или броню для увеличения максимального уровня.");
             from.Target = new LevelUpScroll.LevelItemTarget(this);
         }
 
@@ -60,7 +50,6 @@ namespace Server.Items
 
             protected override void OnTarget(Mobile from, object target)
             {
-                // 🔥 ИСПРАВЛЕНО: Задействован собственный автономный сканер наковален во избежание ошибки CS1061! 🎉⚙️🛠️
                 if (!IsNearAnvil(from, 3))
                 {
                     from.SendMessage(0x22, "Для работы со свитком повышения уровней вы обязаны стоять в кузнице у наковальни!");
@@ -78,23 +67,25 @@ namespace Server.Items
                     if (item is BaseWeapon || item is BaseArmor || item is BaseClothing || item is BaseJewel)
                     {
                         XmlLevelItem levitem = XmlAttach.FindAttachment(item, typeof(XmlLevelItem)) as XmlLevelItem;
-
                         if (levitem == null)
                         {
-                            levitem = new XmlLevelItem();
-                            XmlAttach.AttachTo(item, levitem);
-                            from.SendMessage(0x58, "Этот предмет не был прокачиваемым. Аттачмент уровня 1 успешно инициализирован кузницей!");
+                            from.SendMessage("Этот предмет еще не является прокачиваемым! Сначала используйте Levelable Deed.");
+                            return;
                         }
 
-                        if ((levitem.MaxLevel + m_Scroll.Value) > LevelItems.MaxLevelsCap)
+                        // 🔥 ТВОЁ ТЗ: Проверяем, не превысит ли потенциальный кап очков лимит в 1000 sp!
+                        // Максимальный уровень * 4 очка = потенциальный лимит очков вещи
+                        int futureMaxPoints = (levitem.MaxLevel + m_Scroll.Value) * 4;
+
+                        if (futureMaxPoints > LevelItemManager.MaxPointsCap)
                         {
-                            from.SendMessage("Максимальный уровень этого предмета уже достиг абсолютного капа сервера!");
+                            from.SendMessage(0x22, "Вы не можете использовать этот свиток! Он превысит абсолютный предел предмета в 1000 очков развития.");
                         }
                         else
                         {
                             levitem.MaxLevel += m_Scroll.Value;
                             from.PlaySound(0x2A); 
-                            from.SendMessage(0x58, $"Максимальный уровень вашего предмета успешно увеличен на +{m_Scroll.Value}. Новый лимит: {levitem.MaxLevel}!");
+                            from.SendMessage(0x58, $"Максимальный уровень предмета увеличен на +{m_Scroll.Value}. Новый лимит уровней: {levitem.MaxLevel} (Потенциал: {levitem.MaxLevel * 4}/1000 sp)!");
                             m_Scroll.Delete();
                         }
                     }
@@ -108,7 +99,6 @@ namespace Server.Items
             private bool IsNearAnvil(Mobile from, int range)
             {
                 if (from == null || from.Map == null || from.Map == Map.Internal) return false;
-
                 IPooledEnumerable items = from.Map.GetItemsInRange(from.Location, range);
                 foreach (Item item in items)
                 {
