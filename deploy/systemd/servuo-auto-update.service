@@ -1,0 +1,10 @@
+[Unit]
+Description=Check for ServUO updates and restart when main advances
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/root/ServUO
+ExecStart=/bin/bash /root/ServUO/deploy/servuo-auto-update.sh
