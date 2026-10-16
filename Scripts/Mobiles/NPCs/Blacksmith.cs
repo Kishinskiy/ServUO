@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using Server.ContextMenus;
 using Server.Engines.BulkOrders;
+using Server.Custom.CityDevelopment;
 
 namespace Server.Mobiles
 {
@@ -21,6 +23,12 @@ namespace Server.Mobiles
             {
                 return NpcGuild.BlacksmithsGuild;
             }
+        }
+
+        public override void GetContextMenuEntries(Mobile from, List<ContextMenuEntry> list)
+        {
+            base.GetContextMenuEntries(from, list);
+            SmithRepairService.AddRepairEntry(this, from, list);
         }
 
         [Constructable]
