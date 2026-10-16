@@ -7,11 +7,11 @@ namespace Server.Services.Guardians
     public static class GuardCore
     {
         // Используем Dictionary для мгновенного поиска по игроку без циклов foreach
-        private static Dictionary<PlayerMobile, (Type MobType, int Count)> PlayerMobCount { get; set; }
+        private static Dictionary<PlayerMobile, (Type MobType, int Count, int Threshold)> PlayerMobCount { get; set; }
 
         public static void Initialize()
         {
-            PlayerMobCount = new Dictionary<PlayerMobile, (Type MobType, int Count)>();
+            PlayerMobCount = new Dictionary<PlayerMobile, (Type MobType, int Count, int Threshold)>();
 
             EventSink.Login += EventSink_Login;
             EventSink.Logout += EventSink_Logout;
@@ -22,7 +22,7 @@ namespace Server.Services.Guardians
         {
             if (e.Mobile is PlayerMobile pm && !PlayerMobCount.ContainsKey(pm))
             {
-                PlayerMobCount[pm] = (null, 0);
+                PlayerMobCount[pm] = (null, 0, 0);
             }
         }
 
@@ -36,77 +36,100 @@ namespace Server.Services.Guardians
 
         private static void EventSink_CreatureDeath(CreatureDeathEventArgs e)
         {
-            if (e.Killer is PlayerMobile pm && e.Creature is BaseCreature mob)
+            if (!(e.Creature is BaseCreature mob) || !mob.CanBeParagon)
             {
-                // Защита: если игрока почему-то нет в словаре (например, зашел до включения скрипта)
-                if (!PlayerMobCount.ContainsKey(pm))
-                    PlayerMobCount[pm] = (null, 0);
+                return;
+            }
 
-                var currentData = PlayerMobCount[pm];
+            PlayerMobile pm = GetPlayerKiller(e.Killer);
+            if (pm == null || !pm.Alive)
+            {
+                return;
+            }
 
-                // Если игрок убил того же самого моба, что и в прошлый раз
-                if (currentData.MobType != null && currentData.MobType == mob.GetType())
+            // Убийство питомцем учитываем за его владельцем.
+            if (!PlayerMobCount.TryGetValue(pm, out var currentData))
+            {
+                currentData = (null, 0, 0);
+            }
+
+            int newCount;
+            int threshold;
+
+            if (currentData.MobType == mob.GetType())
+            {
+                newCount = currentData.Count + 1;
+                threshold = currentData.Threshold;
+            }
+            else
+            {
+                newCount = 1;
+                threshold = Utility.RandomMinMax(50, 100);
+            }
+
+            if (newCount >= threshold)
+            {
+                try
                 {
-                    int newCount = currentData.Count + 1;
-
-                    // Шанс появления (после 50-100 убийств)
-                    if (newCount > Utility.RandomMinMax(50, 100))
-                    {
-                        try
-                        {
-                            SpawnGuardian(pm, mob, e.Corpse.Location);
-                        }
-                        catch
-                        {
-                            pm.SendMessage(52, "A magical force protects you from the guardian!");
-                        }
-                        finally
-                        {
-                            // Сбрасываем счетчик после спавна стража
-                            PlayerMobCount[pm] = (null, 0);
-                        }
-                    }
-                    else
-                    {
-                        PlayerMobCount[pm] = (mob.GetType(), newCount);
-                    }
+                    Point3D location = e.Corpse != null ? e.Corpse.Location : mob.Location;
+                    SpawnGuardian(pm, mob, location);
+                    PlayerMobCount[pm] = (null, 0, 0);
                 }
-                else
+                catch (Exception ex)
                 {
-                    // Если моб другой — начинаем новую цепочку
-                    PlayerMobCount[pm] = (mob.GetType(), 1);
+                    Console.WriteLine($"[GuardianChallenge] Failed to spawn guardian for {mob.GetType().FullName}: {ex}");
+                    pm.SendMessage(52, "Страж не смог появиться. Сообщите администратору сервера.");
+                    PlayerMobCount[pm] = (null, 0, 0);
                 }
             }
+            else
+            {
+                PlayerMobCount[pm] = (mob.GetType(), newCount, threshold);
+            }
+        }
+
+        private static PlayerMobile GetPlayerKiller(Mobile killer)
+        {
+            while (killer is BaseCreature creature)
+            {
+                killer = creature.GetMaster();
+            }
+
+            return killer as PlayerMobile;
         }
 
         private static void SpawnGuardian(PlayerMobile pm, BaseCreature mob, Point3D location)
         {
-            if (pm.Alive && mob.CanBeParagon)
+            if (pm == null || mob == null || !pm.Alive || !mob.CanBeParagon)
             {
-                var guardian = Activator.CreateInstance(mob.GetType());
-
-                if (guardian != null && guardian is BaseCreature bc)
-                {
-                    string name = bc.Name;
-
-                    bc.IsParagon = true; // Вызывает вашу кастомную систему XmlParagon!
-                    bc.Name = $"{name} guardian";
-                    bc.Hue = Utility.RandomBrightHue();
-                    bc.GenerateLoot(true);
-                    bc.Fame = 10001;
-
-                    bc.MoveToWorld(location, pm.Map);
-
-                    // Агро на игрока
-                    bc.Combatant = pm;
-                    pm.Combatant = bc;
-
-                    bc.ForceActiveSpeed = 0.2;
-                    bc.ForcePassiveSpeed = 0.4;
-
-                    pm.SendMessage(bc.Hue, $"{name} guardian appears!");
-                }
+                return;
             }
+
+            var guardian = Activator.CreateInstance(mob.GetType());
+
+            if (!(guardian is BaseCreature bc))
+            {
+                throw new InvalidOperationException($"Could not create guardian of type {mob.GetType().FullName}.");
+            }
+
+            string name = bc.Name;
+
+            bc.IsParagon = true; // Вызывает вашу кастомную систему XmlParagon!
+            bc.Name = $"{name} guardian";
+            bc.Hue = Utility.RandomBrightHue();
+            bc.GenerateLoot(true);
+            bc.Fame = 10001;
+
+            bc.MoveToWorld(location, mob.Map);
+
+            // Агро на игрока
+            bc.Combatant = pm;
+            pm.Combatant = bc;
+
+            bc.ForceActiveSpeed = 0.2;
+            bc.ForcePassiveSpeed = 0.4;
+
+            pm.SendMessage(bc.Hue, $"{name} guardian appears!");
         }
     }
 }
