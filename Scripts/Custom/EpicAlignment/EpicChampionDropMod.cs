@@ -23,8 +23,7 @@ namespace Server.Custom.EpicAlignment
             BaseCreature boss = e.Creature as BaseCreature;
             if (boss == null || boss.Deleted) return;
 
-            // Проверяем, является ли погибшее существо Высшим Чемпионом Алтаря
-            if (boss.IsChampionSpawn == false && !IsVanillaChampionType(boss)) return;
+            if (!IsVanillaChampionType(boss)) return;
 
             // Находим топ-игрока, который нанес боссу максимальный урон (Рейд-Лидер по луту)
             List<DamageStore> rights = boss.GetLootingRights();
@@ -33,15 +32,14 @@ namespace Server.Custom.EpicAlignment
 
             foreach (DamageStore store in rights)
             {
-                if (store.m_Mobile is PlayerMobile pm && pm.Alive && store.m_Damage > maxDamage)
+                PlayerMobile pm = GetResponsiblePlayer(store.m_Mobile);
+                if (pm != null && pm.Alive && store.m_Damage > maxDamage)
                 {
                     maxDamage = store.m_Damage;
                     luckyPlayer = pm;
                 }
             }
 
-            // Если участников рейда нет (босса убили админом [kill), берем последнего атаковавшего для теста
-            if (luckyPlayer == null) luckyPlayer = boss.LastKiller as PlayerMobile;
             if (luckyPlayer == null || luckyPlayer.Backpack == null) return;
 
             // Рандомизатор дропа
@@ -50,32 +48,34 @@ namespace Server.Custom.EpicAlignment
             Item artifact = null;
             string bossName = boss.GetType().Name.ToLower().Trim();
 
-            // ТВОЁ ТЗ: Распределяем реликвии по типам классов Чемпионов ServUO 🌌
-            if (bossName.Contains("neira") || bossName.Contains("lich") || bossName.Contains("barrera"))
+            if (bossName == "neira" || bossName == "barracoon")
             {
                 artifact = new HeartOfEarth();
             }
-            else if (bossName.Contains("rikktor"))
+            else if (bossName == "rikktor")
             {
                 artifact = new TongueOfFlame();
             }
-            else if (bossName.Contains("semidar") || bossName.Contains("mephitis"))
+            else if (bossName == "semidar" || bossName == "mephitis")
             {
                 artifact = new TearOfSeas();
             }
-            else if (bossName.Contains("oaks") || bossName.Contains("silvani") || bossName.Contains("harrower"))
-            {
-                artifact = new BreathOfWind();
-            }
             else
             {
-                // Заглушка-рандом для кастомных или неучтенных чемпионов сборки
-                artifact = CreateRandomShard();
+                artifact = new BreathOfWind();
             }
 
             if (artifact != null)
             {
-                luckyPlayer.AddToBackpack(artifact);
+                if (!luckyPlayer.AddToBackpack(artifact))
+                {
+                    if (boss.Corpse != null && !boss.Corpse.Deleted)
+                        boss.Corpse.DropItem(artifact);
+                    else
+                        artifact.MoveToWorld(boss.Location, boss.Map);
+
+                    luckyPlayer.SendMessage(0x22, "В рюкзаке нет места; реликвия лежит на трупе чемпиона.");
+                }
                 
                 // Эпическое сообщение счастливчику и спецэффект в рюкзаке! 🎉
                 luckyPlayer.SendMessage(0x35, $"[Триумф] За сокрушение Высшего Чемпиона {boss.Name}, вселенная дарует вам легендарный {artifact.Name}!");
@@ -90,19 +90,26 @@ namespace Server.Custom.EpicAlignment
         {
             if (m == null) return false;
             string name = m.GetType().Name.ToLower();
-            return name == "neira" || name == "rikktor" || name == "semidar" || name == "mephitis" || name == "lordoaks" || name == "silvani" || name == "harrower";
+            return name == "neira" || name == "rikktor" || name == "semidar" ||
+                   name == "mephitis" || name == "lordoaks" || name == "silvani" ||
+                   name == "harrower" || name == "barracoon";
         }
 
-        private static Item CreateRandomShard()
+        private static PlayerMobile GetResponsiblePlayer(Mobile mobile)
         {
-            switch (Utility.Random(4))
+            PlayerMobile player = mobile as PlayerMobile;
+            if (player != null)
+                return player;
+
+            BaseCreature creature = mobile as BaseCreature;
+            if (creature != null)
             {
-                default:
-                case 0: return new HeartOfEarth();
-                case 1: return new TongueOfFlame();
-                case 2: return new TearOfSeas();
-                case 3: return new BreathOfWind();
+                player = creature.ControlMaster as PlayerMobile;
+                if (player == null)
+                    player = creature.SummonMaster as PlayerMobile;
             }
+
+            return player;
         }
     }
 }

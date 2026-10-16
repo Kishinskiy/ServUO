@@ -4,11 +4,16 @@ using Server;
 using Server.Mobiles;
 using Server.Items;
 using Server.Custom.EpicAlignment;
+using Server.Custom.CityDevelopment;
 
 namespace Server.Items
 {
     public static class EpicWaveSpawner
     {
+        private static PlayerMobile m_LightLeader;
+        private static PlayerMobile m_DarkLeader;
+        private static bool m_CataclysmTriggered;
+
         public static readonly int BaseWaveCount = 4;
         public static readonly int MonstersPerPlayer = 5;
         public static readonly int StaticGuardCount = 3;
@@ -18,28 +23,66 @@ namespace Server.Items
         public static readonly double ParagonChance = 0.15;
         public static readonly double BossParagonChance = 0.25;
 
-        public static void StartBattle(PlayerMobile pm, Point3D center, bool isLight)
+        public static bool TryReserveBattle(PlayerMobile leader, bool isLight)
         {
-            SpawnWaveInstance(pm, center, isLight, 1, null);
+            if (leader == null || leader.Deleted)
+                return false;
+
+            if (isLight)
+            {
+                if (m_LightLeader != null && !m_LightLeader.Deleted)
+                    return false;
+                m_LightLeader = leader;
+            }
+            else
+            {
+                if (m_DarkLeader != null && !m_DarkLeader.Deleted)
+                    return false;
+                m_DarkLeader = leader;
+            }
+
+            if (m_LightLeader != null && !m_LightLeader.Deleted &&
+                m_DarkLeader != null && !m_DarkLeader.Deleted &&
+                !m_CataclysmTriggered)
+            {
+                m_CataclysmTriggered = true;
+                TriggerFactionCataclysm();
+            }
+
+            return true;
+        }
+
+        public static void CancelBattleReservation(PlayerMobile leader)
+        {
+            if (m_LightLeader == leader)
+                m_LightLeader = null;
+            if (m_DarkLeader == leader)
+                m_DarkLeader = null;
+
+            if (m_LightLeader == null || m_DarkLeader == null)
+                m_CataclysmTriggered = false;
+        }
+
+        public static void StartBattle(PlayerMobile pm, Point3D center, bool isLight, Item fireEffect)
+        {
+            if (!IsBattleReserved(pm, isLight))
+                return;
+
+            SpawnWaveInstance(pm, center, isLight, 1, fireEffect);
         }
 
         public static void SpawnWaveInstance(PlayerMobile leader, Point3D center, bool isLight, int waveStep, Item fireEffect)
         {
             Map map = Map.Felucca;
-            if (leader == null || leader.Deleted || !leader.Alive || leader.Map != map || leader.GetDistanceToSqrt(center) > 30.0)
+            if (!IsBattleReserved(leader, isLight) || leader.Deleted || !leader.Alive ||
+                leader.Map != map || leader.GetDistanceToSqrt(center) > 30.0)
             {
                 if (fireEffect != null && !fireEffect.Deleted) fireEffect.Delete();
+                CancelBattleReservation(leader);
                 Item failBeacon = new Item(0x1183) { Name = "Altar of Chaos", Movable = false, Visible = false };
                 failBeacon.MoveToWorld(new Point3D(center.X, center.Y, center.Z + 2), map);
                 failBeacon.PublicOverheadMessage(Network.MessageType.Regular, 0x22, false, "[Инициатор пал или покинул Храм! Ритуал Хаоса сброшен!]");
                 Timer.DelayCall(TimeSpan.FromSeconds(8.0), () => failBeacon.Delete()); return;
-            }
-
-            if (waveStep == 1 && fireEffect == null)
-            {
-                IPooledEnumerable itemEnum = map.GetItemsInRange(center, 1);
-                foreach (Item item in itemEnum) { if (item.ItemID == 0x3709) { fireEffect = item; break; } }
-                itemEnum.Free();
             }
 
             if (waveStep <= BaseWaveCount)
@@ -71,7 +114,8 @@ namespace Server.Items
                         else if (waveStep == 3) spawn = new Centaur(); else spawn = new Kirin();
                     }
 
-                    spawn.Karma = 0; spawn.Fame = 0;
+                    spawn.Karma = isLight ? -10000 : 10000;
+                    spawn.Fame = 0;
 
                     if (Utility.RandomDouble() < ParagonChance)
                     {
@@ -102,7 +146,8 @@ namespace Server.Items
 
             BaseCreature boss = isLight ? (BaseCreature)new Daemon() : (BaseCreature)new AncientWyrm();
             boss.HitsMaxSeed = 25000; boss.Hits = 25000; boss.SetDamage(50, 75);
-            boss.Karma = 0; boss.Fame = 0;
+            boss.Karma = isLight ? -10000 : 10000;
+            boss.Fame = 0;
 
             Container backpack = boss.Backpack;
             if (backpack == null) { backpack = new Backpack(); backpack.Movable = false; boss.AddItem(backpack); }
@@ -137,10 +182,21 @@ namespace Server.Items
 
             protected override void OnTick()
             {
-                if (m_FirstBoss == null || m_FirstBoss.Deleted || !m_FirstBoss.Alive)
+                if (m_FirstBoss == null || m_FirstBoss.Deleted)
                 {
                     Stop();
-                    if (m_Leader == null || m_Leader.Deleted || !m_Leader.Alive) return;
+                    CancelBattleReservation(m_Leader);
+                    return;
+                }
+
+                if (!m_FirstBoss.Alive)
+                {
+                    Stop();
+                    if (m_Leader == null || m_Leader.Deleted || !m_Leader.Alive)
+                    {
+                        CancelBattleReservation(m_Leader);
+                        return;
+                    }
 
                     Effects.SendLocationParticles(EffectItem.Create(m_Leader.Location, m_Leader.Map, TimeSpan.FromSeconds(1.5)), 0x3709, 10, 30, m_IsLight ? 2418 : 1175, 0, 5004, 0);
                     m_Leader.PlaySound(0x5C0);
@@ -151,7 +207,8 @@ namespace Server.Items
                     BaseCreature travesty = new Travesty();
                     travesty.HitsMaxSeed = 30000; travesty.Hits = 30000;
                     travesty.SetDamage(55, 80);
-                    travesty.Karma = 0; travesty.Fame = 0;
+                    travesty.Karma = m_IsLight ? -10000 : 10000;
+                    travesty.Fame = 0;
                     travesty.Name = $"Травести: Эфирное Зеркало {m_Leader.Name} [TRUE BOSS]";
 
                     Container pack = travesty.Backpack;
@@ -199,6 +256,53 @@ namespace Server.Items
             public EpicTimeAttackTimer(PlayerMobile leader, Point3D center, bool isLight, int waveStep, Item fire) : base(EpicWaveSpawner.TimeBetweenWaves)
             { m_Leader = leader; m_Center = center; m_IsLight = isLight; m_WaveStep = waveStep; m_FireEffect = fire; }
             protected override void OnTick() { EpicWaveSpawner.SpawnWaveInstance(m_Leader, m_Center, m_IsLight, m_WaveStep, m_FireEffect); }
+        }
+
+        public static void FinishBattle(PlayerMobile leader)
+        {
+            CancelBattleReservation(leader);
+        }
+
+        private static bool IsBattleReserved(PlayerMobile leader, bool isLight)
+        {
+            return leader != null && (isLight ? m_LightLeader == leader : m_DarkLeader == leader);
+        }
+
+        private static void TriggerFactionCataclysm()
+        {
+            Map map = Map.Felucca;
+            World.Broadcast(
+                0x22,
+                true,
+                "[КАТАКЛИЗМ]: Аватар и Мондейн одновременно призвали силы своих фракций! У Алтаря Хаоса сходятся Свет и Тьма.");
+            Effects.PlaySound(EpicMantraCore.TrialAltarLocation, map, 0x22F);
+
+            Server.Factions.Town lightTown = Server.Factions.Town.Towns.Find(
+                town => town.ToString().IndexOf("Britain", StringComparison.OrdinalIgnoreCase) >= 0);
+            Server.Factions.Town darkTown = Server.Factions.Town.Towns.Find(
+                town => town.ToString().IndexOf("Umbra", StringComparison.OrdinalIgnoreCase) >= 0);
+            darkTown = darkTown ?? Server.Factions.Town.Towns.Find(
+                town => town.ToString().IndexOf("Moonglow", StringComparison.OrdinalIgnoreCase) >= 0);
+
+            SpawnCataclysmGuards(lightTown, map, "Свет");
+            SpawnCataclysmGuards(darkTown, map, "Тьмы");
+        }
+
+        private static void SpawnCataclysmGuards(Server.Factions.Town town, Map map, string factionName)
+        {
+            if (town == null)
+            {
+                Console.WriteLine($"[EpicAlignment] Cannot spawn {factionName} cataclysm guards: faction town was not found.");
+                return;
+            }
+
+            for (int i = 0; i < 4; i++)
+            {
+                DevelopmentCityGuard guard = new DevelopmentCityGuard(town, 5);
+                Point3D spawnLocation = GetSafeIslandSpawnOffset(EpicMantraCore.TrialAltarLocation, map, 12);
+                guard.MoveToWorld(spawnLocation, map);
+                guard.Warmode = true;
+            }
         }
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Server;
 using Server.Mobiles;
 using Server.Items;
@@ -34,52 +35,84 @@ namespace Server.Items
 
             protected override void OnTick()
             {
-                if (m_Boss == null || m_Boss.Deleted || !m_Boss.Alive) 
-                { 
-                    Stop(); 
+                if (m_Boss == null || m_Boss.Deleted)
+                {
+                    Stop();
+                    EpicWaveSpawner.FinishBattle(m_Player);
+                    return;
+                }
 
-                    if (m_Player != null && !m_Player.Deleted && m_Player.Alive)
-                    {
-                        EpicProfile profile = EpicAlignmentSystem.GetProfile(m_Player);
-                        if (profile == null)
-                        {
-                            EpicAlignmentSystem.SetRank(m_Player, m_TargetRank);
-                            profile = EpicAlignmentSystem.GetProfile(m_Player);
-                        }
+                if (m_Boss.Alive)
+                    return;
 
-                        if (profile != null)
-                        {
-                            profile.Rank = m_TargetRank; 
-                            profile.Lives = 10;
+                Stop();
 
-                            m_Player.Title = (m_TargetRank == EpicRank.Avatar) ? "[Avatar of Virtues]" : "[Hand of Mondain]";
-                            m_Player.HueMod = (m_TargetRank == EpicRank.Avatar) ? 2418 : 1175;
-                            m_Player.Delta(MobileDelta.Hue);
+                if (m_Player == null || m_Player.Deleted || !HasParticipated())
+                {
+                    if (m_Player != null && !m_Player.Deleted)
+                        m_Player.SendMessage(0x22, "Испытание не засчитано: требуется лично участвовать в победе над финальным боссом.");
+                    EpicWaveSpawner.FinishBattle(m_Player);
+                    return;
+                }
 
-                            string alert = (m_TargetRank == EpicRank.Avatar) 
-                                ? $"[Свет] Пророчество сбылось! {m_Player.Name} укротил стихии Пагана и стал Воплощением Добродетелей!"
-                                : $"[Тьма] Сосария содрогнулась! {m_Player.Name} осквернил Храм Хаоса и занял Престол Тьмы!";
-                            World.Broadcast((m_TargetRank == EpicRank.Avatar) ? 0x35 : 0x22, true, alert);
-                        }
+                if (!EpicAlignmentSystem.TryAwardRank(m_Player, m_TargetRank))
+                {
+                    m_Player.SendMessage(0x22, "Победа над финальным боссом засчитана, но этот эпический ранг уже занят или у вас уже есть ранг.");
+                    EpicWaveSpawner.FinishBattle(m_Player);
+                    return;
+                }
 
-                        m_Player.AddToBackpack(new BookOfDestiny());
-                        
-                        // СИНХРОНИЗИРОВАНО: Выдаем игрокам наше легендарное кастомное АоЕ-оружие вместо ванильного! ⚔️🔥🎉
-                        if (m_TargetRank == EpicRank.Avatar) 
-                            m_Player.AddToBackpack(new AvatarSwordOfVirtues());
-                        else if (m_TargetRank == EpicRank.HandOfMondain) 
-                            m_Player.AddToBackpack(new AvatarMondainsRetribution());
+                World.Broadcast(
+                    m_TargetRank == EpicRank.Avatar ? 0x35 : 0x22,
+                    true,
+                    m_TargetRank == EpicRank.Avatar
+                        ? $"[Свет] {m_Player.Name} победил финального босса испытания и стал Аватаром Добродетелей!"
+                        : $"[Тьма] {m_Player.Name} победил финального босса испытания и стал Рукой Мондейна!");
 
-                        m_Player.StatCap = CustomStatCap;
-                        m_Player.RawStr = Math.Min(MaxIndividualStat, m_Player.RawStr + StatBonusAmount);
-                        m_Player.RawDex = Math.Min(MaxIndividualStat, m_Player.RawDex + StatBonusAmount);
-                        m_Player.RawInt = Math.Min(MaxIndividualStat, m_Player.RawInt + StatBonusAmount);
+                GiveItem(m_Player, new BookOfDestiny());
+                GiveItem(m_Player, m_TargetRank == EpicRank.Avatar
+                    ? (Item)new AvatarSwordOfVirtues()
+                    : new AvatarMondainsRetribution());
 
-                        string classReport = ApplySkills(m_Player);
-                        m_Player.SendMessage((m_TargetRank == EpicRank.Avatar) ? 0x35 : 0x22, $"Испытание завершено! {classReport}. Все характеристики выросли на +{StatBonusAmount}! Вы обрели силу Полубога!");
-                        Effects.PlaySound(m_Player.Location, m_Player.Map, (m_TargetRank == EpicRank.Avatar) ? 0x5C9 : 0x5C8);
-                    }
-                    return; 
+                m_Player.StatCap = CustomStatCap;
+                m_Player.RawStr = Math.Min(MaxIndividualStat, m_Player.RawStr + StatBonusAmount);
+                m_Player.RawDex = Math.Min(MaxIndividualStat, m_Player.RawDex + StatBonusAmount);
+                m_Player.RawInt = Math.Min(MaxIndividualStat, m_Player.RawInt + StatBonusAmount);
+
+                string classReport = ApplySkills(m_Player);
+                m_Player.SendMessage(
+                    m_TargetRank == EpicRank.Avatar ? 0x35 : 0x22,
+                    $"Испытание завершено, вы получили эпический ранг! {classReport}. Все характеристики выросли на +{StatBonusAmount}.");
+                Effects.PlaySound(m_Player.Location, m_Player.Map, m_TargetRank == EpicRank.Avatar ? 0x5C9 : 0x5C8);
+                EpicWaveSpawner.FinishBattle(m_Player);
+            }
+
+            private bool HasParticipated()
+            {
+                List<DamageStore> rights = m_Boss.GetLootingRights();
+                foreach (DamageStore store in rights)
+                {
+                    if (store.m_Damage <= 0 || store.m_Mobile == null)
+                        continue;
+
+                    if (store.m_Mobile == m_Player)
+                        return true;
+
+                    BaseCreature creature = store.m_Mobile as BaseCreature;
+                    if (creature != null &&
+                        (creature.ControlMaster == m_Player || creature.SummonMaster == m_Player))
+                        return true;
+                }
+
+                return false;
+            }
+
+            private static void GiveItem(PlayerMobile player, Item item)
+            {
+                if (player.Backpack == null || !player.AddToBackpack(item))
+                {
+                    item.MoveToWorld(player.Location, player.Map);
+                    player.SendMessage(0x22, $"В рюкзаке нет места; предмет {item.Name} оставлен у ваших ног.");
                 }
             }
 

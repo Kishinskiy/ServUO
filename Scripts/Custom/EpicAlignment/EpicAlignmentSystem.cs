@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Web.Script.Serialization;
 using Server;
 using Server.Mobiles;
 using Server.Commands;
@@ -22,7 +23,7 @@ namespace Server.Custom.EpicAlignment
 
         public long NextGuardSeconds { get; set; } = 0;
         public long NextBossSeconds { get; set; } = 0;
-
+        [ScriptIgnore]
         public EpicRank Rank
         {
             get { return (EpicRank)RankId; }
@@ -58,10 +59,6 @@ namespace Server.Custom.EpicAlignment
             EventSink.ServerStarted += new ServerStartedEventHandler(Load);
             EventSink.Login += OnPlayerLogin;
 
-            Server.Items.EpicMantraCore.Initialize();
-            Server.Custom.Premium.PremiumDonateSystem.Initialize();
-
-            Server.Custom.CityDevelopment.CityVirtueQuestSystem.Initialize();
         }
 
         public static bool IsAvatarActive()
@@ -79,7 +76,7 @@ namespace Server.Custom.EpicAlignment
         public static EpicProfile GetProfile(Mobile m)
         {
             if (m == null || m.Account == null) return null;
-            string accName = m.Account.Username.ToLower().Trim();
+            string accName = m.Account.Username.ToLowerInvariant().Trim();
 
             if (!_database.TryGetValue(accName, out EpicProfile profile))
             {
@@ -102,7 +99,6 @@ namespace Server.Custom.EpicAlignment
 
             profile.Rank = rank;
             profile.CharacterName = m.Name;
-
             if (rank == EpicRank.None)
             {
                 m.Title = null; m.HueMod = -1; profile.Lives = 0;
@@ -115,6 +111,26 @@ namespace Server.Custom.EpicAlignment
             }
             m.Delta(MobileDelta.Hue);
             Save();
+        }
+
+        public static bool TryAwardRank(Mobile mobile, EpicRank rank)
+        {
+            if (mobile == null || (rank != EpicRank.Avatar && rank != EpicRank.HandOfMondain))
+                return false;
+
+            EpicProfile playerProfile = GetProfile(mobile);
+            if (playerProfile == null || playerProfile.Rank != EpicRank.None)
+                return false;
+
+            foreach (EpicProfile profile in _database.Values)
+            {
+                if (!String.Equals(profile.AccountName, playerProfile.AccountName, StringComparison.OrdinalIgnoreCase) &&
+                    profile.Rank == rank)
+                    return false;
+            }
+
+            SetRank(mobile, rank);
+            return true;
         }
 
         private static void OnPlayerLogin(LoginEventArgs e)
@@ -141,32 +157,38 @@ namespace Server.Custom.EpicAlignment
         public static void Save()
         {
             if (_database.Count == 0) return;
+
+            string temporaryPath = _savePath + ".tmp";
             try
             {
                 if (!Directory.Exists(_saveFolder)) Directory.CreateDirectory(_saveFolder);
-                using (StreamWriter sw = new StreamWriter(_savePath, false))
+                JavaScriptSerializer serializer = new JavaScriptSerializer();
+                serializer.MaxJsonLength = int.MaxValue;
+                File.WriteAllText(temporaryPath, serializer.Serialize(new List<EpicProfile>(_database.Values)));
+
+                if (File.Exists(_savePath))
+                    File.Replace(temporaryPath, _savePath, null);
+                else
+                    File.Move(temporaryPath, _savePath);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[EpicAlignment] Failed to save profiles: {ex}");
+            }
+            finally
+            {
+                if (File.Exists(temporaryPath))
                 {
-                    sw.WriteLine("[");
-                    int i = 0;
-                    foreach (var kvp in _database)
+                    try
                     {
-                        // ТВОЙ ОПТИМАЛЬНЫЙ РАБОЧИЙ БЛОК JSON СЕРИАЛИЗАЦИИ 📜🎉
-                        sw.WriteLine("  {");
-                        sw.WriteLine($"    \"AccountName\": \"{kvp.Value.AccountName}\",");
-                        sw.WriteLine($"    \"CharacterName\": \"{kvp.Value.CharacterName}\",");
-                        sw.WriteLine($"    \"RankId\": {kvp.Value.RankId},");
-                        sw.WriteLine($"    \"Lives\": {kvp.Value.Lives},");
-                        sw.WriteLine($"    \"DetectedClass\": \"{kvp.Value.DetectedClass}\",");
-                        sw.WriteLine($"    \"NextGuardSeconds\": {kvp.Value.NextGuardSeconds},");
-                        sw.WriteLine($"    \"NextBossSeconds\": {kvp.Value.NextBossSeconds},");
-                        sw.WriteLine($"    \"LastActive\": \"{DateTime.UtcNow.ToString("o")}\"");
-                        sw.Write(++i == _database.Count ? "  }" : "  },");
-                        sw.WriteLine();
+                        File.Delete(temporaryPath);
                     }
-                    sw.WriteLine("]");
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[EpicAlignment] Failed to remove temporary profile file '{temporaryPath}': {ex}");
+                    }
                 }
             }
-            catch { }
         }
 
         public static void Load()
@@ -174,33 +196,32 @@ namespace Server.Custom.EpicAlignment
             if (!File.Exists(_savePath)) return;
             try
             {
-                _database.Clear();
-                string[] lines = File.ReadAllLines(_savePath);
-                current = null; // Потоковый парсер
+                JavaScriptSerializer serializer = new JavaScriptSerializer();
+                serializer.MaxJsonLength = int.MaxValue;
+                List<EpicProfile> profiles = serializer.Deserialize<List<EpicProfile>>(File.ReadAllText(_savePath));
+                if (profiles == null)
+                    throw new InvalidDataException("Epic profile database is empty or invalid.");
 
-                foreach (string line in lines)
+                Dictionary<string, EpicProfile> loadedProfiles = new Dictionary<string, EpicProfile>();
+                foreach (EpicProfile profile in profiles)
                 {
-                    string t = line.Trim();
-                    if (t == "{" || t == "}," || t == "}") { if (t == "{" || t == "},") current = new EpicProfile(); if ((t == "}" || t == "},") && current != null && !string.IsNullOrEmpty(current.AccountName)) _database[current.AccountName] = current; continue; }
+                    if (profile == null || string.IsNullOrWhiteSpace(profile.AccountName) ||
+                        profile.RankId < (int)EpicRank.None || profile.RankId > (int)EpicRank.HandOfMondain)
+                        continue;
 
-                    int idx = t.IndexOf(':'); if (idx < 0) continue;
-                    string key = t.Substring(0, idx).Replace("\"", "").Trim();
-                    string val = t.Substring(idx + 1).Replace("\"", "").Replace(",", "").Trim();
-
-                    if (current == null) current = new EpicProfile();
-                    if (key == "AccountName") current.AccountName = val;
-                    else if (key == "CharacterName") current.CharacterName = val;
-                    else if (key == "RankId") current.RankId = int.Parse(val);
-                    else if (key == "Lives") current.Lives = int.Parse(val);
-                    else if (key == "DetectedClass") current.DetectedClass = val;
-                    else if (key == "NextGuardSeconds") current.NextGuardSeconds = long.Parse(val);
-                    else if (key == "NextBossSeconds") current.NextBossSeconds = long.Parse(val);
+                    profile.AccountName = profile.AccountName.ToLowerInvariant().Trim();
+                    loadedProfiles[profile.AccountName] = profile;
                 }
-            }
-            catch { }
-        }
 
-        private static EpicProfile current; // Страховочный контекст
+                _database.Clear();
+                foreach (KeyValuePair<string, EpicProfile> entry in loadedProfiles)
+                    _database[entry.Key] = entry.Value;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[EpicAlignment] Failed to load profiles from '{_savePath}': {ex}");
+            }
+        }
 
         private static void CheckEpicStatus_OnCommand(CommandEventArgs e)
         {
@@ -209,7 +230,6 @@ namespace Server.Custom.EpicAlignment
 
             e.Mobile.SendMessage(0x35, $"=== Ваш Эпический Status ===");
             e.Mobile.SendMessage(0x59, $"Ранг Полубога: {(rank == EpicRank.None ? "Отсутствует" : rank.ToString())}");
-
             if (pm != null)
             {
                 int activeStars = 0;

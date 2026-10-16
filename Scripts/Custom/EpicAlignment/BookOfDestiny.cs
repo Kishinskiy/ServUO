@@ -60,7 +60,11 @@ namespace Server.Custom.EpicAlignment
 
             public override void OnResponse(NetState sender, RelayInfo info)
             {
-                if (m_From == null || m_Book == null || m_Book.Deleted || !m_Book.IsChildOf(m_From.Backpack)) return;
+                if (m_From == null || m_From.Deleted || !m_From.Alive || m_From.Map == null ||
+                    m_From.Map == Map.Internal || m_Book == null || m_Book.Deleted ||
+                    m_From.Backpack == null || !m_Book.IsChildOf(m_From.Backpack) ||
+                    EpicAlignmentSystem.GetRank(m_From) != m_Rank)
+                    return;
                 bool isDark = (m_Rank == EpicRank.HandOfMondain);
 
                 // ⚔️ КНОПКА 1: ПРИЗЫВ ЛИЧНОЙ АРМИИ НА СУТКИ Реального Времени!
@@ -70,11 +74,9 @@ namespace Server.Custom.EpicAlignment
                     if (!EpicAlignmentSystem.CanSummonGuards(m_From))
                     { m_From.SendMessage(0x22, "Ваше войско восстанавливает силы. Призыв армии доступен 1 раз в сутки."); return; }
 
-                    EpicAlignmentSystem.RegisterGuardSummon(m_From);
-                    m_From.PlaySound(0x213);
-
                     int spawnCount = 6;
                     List<BaseCreature> armyList = new List<BaseCreature>();
+                    List<Point3D> spawnLocations = new List<Point3D>();
 
                     for (int i = 0; i < spawnCount; i++)
                     {
@@ -82,21 +84,46 @@ namespace Server.Custom.EpicAlignment
                             ? (Utility.RandomBool() ? (BaseCreature)new Succubus() : (BaseCreature)new RottingCorpse())
                             : (Utility.RandomBool() ? (BaseCreature)new Gargoyle() : (BaseCreature)new Efreet());
 
+                        Point3D spawnLocation;
+                        if (!TryFindSpawnLocation(m_From.Map, m_From.Location, 3, out spawnLocation))
+                        {
+                            soldier.Delete();
+                            DeleteCreatures(armyList);
+                            m_From.SendMessage(0x22, "Рядом недостаточно свободного места для призыва армии.");
+                            return;
+                        }
+
                         soldier.Karma = 0; soldier.Fame = 0;
                         soldier.Name = isDark ? $"[Гвардия Тьмы] {soldier.Name}" : $"[Легион Света] {soldier.Name}";
                         soldier.Hue = isDark ? 1175 : 2418;
-                        soldier.Controlled = true; soldier.ControlMaster = m_From;
-                        soldier.ActiveSpeed = 0.1; 
-                        
-                        soldier.MoveToWorld(new Point3D(m_From.X + Utility.RandomMinMax(-2, 2), m_From.Y + Utility.RandomMinMax(-2, 2), m_From.Z), m_From.Map);
+                        soldier.ActiveSpeed = 0.1;
                         armyList.Add(soldier);
+                        spawnLocations.Add(spawnLocation);
                     }
 
-                    m_From.SendMessage(isDark ? 0x22 : 0x35, $"Ваш личный легион ({spawnCount} бойцов) призван на 3 минуты!");
+                    int requiredSlots = 0;
+                    foreach (BaseCreature soldier in armyList)
+                        requiredSlots += soldier.ControlSlots;
 
-                    Timer.DelayCall(TimeSpan.FromMinutes(3.0), () => {
-                        foreach (BaseCreature soldier in armyList) { if (soldier != null && !soldier.Deleted && soldier.Alive) soldier.Delete(); }
-                    });
+                    if (m_From.Followers + requiredSlots > m_From.FollowersMax)
+                    {
+                        DeleteCreatures(armyList);
+                        m_From.SendMessage(0x22, "Для призыва всего легиона недостаточно свободных слотов последователей.");
+                        return;
+                    }
+
+                    for (int i = 0; i < armyList.Count; i++)
+                    {
+                        if (!BaseCreature.Summon(armyList[i], false, m_From, spawnLocations[i], 0x213, TimeSpan.FromMinutes(3.0)))
+                        {
+                            DeleteCreatures(armyList);
+                            return;
+                        }
+                    }
+
+                    EpicAlignmentSystem.RegisterGuardSummon(m_From);
+                    m_From.PlaySound(0x213);
+                    m_From.SendMessage(isDark ? 0x22 : 0x35, $"Ваш личный легион ({spawnCount} бойцов) призван на 3 минуты!");
                 }
                 else if (info.ButtonID == 2)
                 {
@@ -117,15 +144,31 @@ namespace Server.Custom.EpicAlignment
 
             protected override void OnTarget(Mobile from, object targeted)
             {
-                if (from == null || m_Book == null || m_Book.Deleted || !m_Book.IsChildOf(from.Backpack)) return;
+                if (from == null || from.Deleted || !from.Alive || from.Map == null ||
+                    from.Map == Map.Internal || from.Backpack == null || m_Book == null ||
+                    m_Book.Deleted || !m_Book.IsChildOf(from.Backpack) ||
+                    EpicAlignmentSystem.GetRank(from) != m_Rank)
+                    return;
+
+                if (!EpicAlignmentSystem.CanSummonBoss(from))
+                {
+                    from.SendMessage(0x22, "Портал нестабилен. Призыв Мирового Босса доступен 1 раз в сутки.");
+                    return;
+                }
 
                 IPoint3D p = targeted as IPoint3D; if (p == null) return;
                 bool isDark = (m_Rank == EpicRank.HandOfMondain);
 
-                EpicAlignmentSystem.RegisterBossSummon(from);
-                Point3D loc = new Point3D(p.X, p.Y, p.Z); loc.Z = from.Map.GetAverageZ(loc.X, loc.Y);
+                Point3D targetLocation = new Point3D(p.X, p.Y, from.Map.GetAverageZ(p.X, p.Y));
+                Point3D loc;
+                if (!TryFindSpawnLocation(from.Map, targetLocation, 3, out loc))
+                {
+                    from.SendMessage(0x22, "В этой точке нельзя безопасно открыть разлом.");
+                    return;
+                }
                 BaseCreature boss = isDark ? (BaseCreature)new Daemon() : (BaseCreature)new AncientWyrm(); 
                 boss.Karma = 0; boss.Fame = 0; boss.HitsMaxSeed = 35000; boss.Hits = 35000; boss.SetDamage(55, 85); 
+                boss.Tamable = false;
 
                 boss.Name = isDark ? "Харроуэр: Абсолютное Теневое Зло [МИРОВОЙ БОСС]" : "Слэшер Сияния: Высший Судия [МИРОВОЙ БОСС]";
                 boss.Hue = isDark ? 1175 : 2418;
@@ -136,26 +179,39 @@ namespace Server.Custom.EpicAlignment
                 if (backpack == null) { backpack = new Backpack(); backpack.Movable = false; boss.AddItem(backpack); }
                 backpack.DropItem(new Gold(Utility.RandomMinMax(10000, 15000)));
 
-                boss.Controlled = true;
-                boss.ControlMaster = from;
                 boss.MoveToWorld(loc, from.Map);
+                boss.Combatant = from;
+                boss.Warmode = true;
 
-                PlayerMobile pm = from as PlayerMobile;
-                if (pm != null && pm.AllFollowers != null)
-                {
-                    for (int i = 0; i < pm.AllFollowers.Count; i++)
-                    {
-                        Mobile pet = pm.AllFollowers[i];
-                        if (pet is BaseCreature bc && bc.Controlled && bc.ControlMaster == pm)
-                        {
-                            bc.Combatant = null;
-                            if (bc.Aggressors != null) bc.Aggressors.Clear();
-                            if (bc.Aggressed != null) bc.Aggressed.Clear();
-                        }
-                    }
-                }
-
+                EpicAlignmentSystem.RegisterBossSummon(from);
                 Timer.DelayCall(TimeSpan.FromMinutes(15.0), () => { if (boss != null && !boss.Deleted && boss.Alive) boss.Delete(); });
+            }
+        }
+
+        private static bool TryFindSpawnLocation(Map map, Point3D center, int radius, out Point3D location)
+        {
+            for (int attempt = 0; attempt < 30; attempt++)
+            {
+                int x = center.X + Utility.RandomMinMax(-radius, radius);
+                int y = center.Y + Utility.RandomMinMax(-radius, radius);
+                Point3D candidate = new Point3D(x, y, map.GetAverageZ(x, y));
+                if (map.CanSpawnMobile(candidate) && map.CanFit(candidate, 16, false, false))
+                {
+                    location = candidate;
+                    return true;
+                }
+            }
+
+            location = Point3D.Zero;
+            return false;
+        }
+
+        private static void DeleteCreatures(List<BaseCreature> creatures)
+        {
+            foreach (BaseCreature creature in creatures)
+            {
+                if (creature != null && !creature.Deleted)
+                    creature.Delete();
             }
         }
 
