@@ -1102,6 +1102,37 @@ namespace Server.Items
             return true;
         }
 
+        private static bool IsWaterTile(int tileID)
+        {
+            return (tileID >= 0x00A8 && tileID <= 0x00AB) ||
+                   (tileID >= 0x0136 && tileID <= 0x0137) ||
+                   (tileID >= 0x0B41 && tileID <= 0x0B44) ||
+                   (tileID >= 0x1796 && tileID <= 0x17B2) ||
+                   tileID == 0x0E7B || tileID == 0x154D ||
+                   (tileID >= 0x5797 && tileID <= 0x579C) ||
+                   (tileID >= 0x746E && tileID <= 0x7485) ||
+                   (tileID >= 0x7490 && tileID <= 0x74AB) ||
+                   (tileID >= 0x74B5 && tileID <= 0x75D5);
+        }
+
+        private void FillFromWaterTile(Mobile from, Point3D location)
+        {
+            if (from.Map == null || from.Map == Map.Internal ||
+                !from.InRange(location, 2) || !from.InLOS(location))
+            {
+                from.LocalOverheadMessage(MessageType.Regular, 0x3B2, 1019045); // I can't reach that.
+                return;
+            }
+
+            Content = BeverageType.Water;
+            Poison = null;
+            Poisoner = null;
+            Quantity = MaxQuantity;
+
+            from.PlaySound(0x26);
+            from.SendLocalizedMessage(1010089); // You fill the container with water.
+        }
+
         public virtual void Fill_OnTarget(Mobile from, object targ)
         {
             if (!IsEmpty || !Fillable || !ValidateUse(from, false))
@@ -1147,6 +1178,13 @@ namespace Server.Items
                         from.PlaySound(0x4E);
                     }
                 }
+            }
+            else if (targ is StaticTarget)
+            {
+                StaticTarget target = (StaticTarget)targ;
+
+                if (IsWaterTile(target.ItemID))
+                    FillFromWaterTile(from, target.Location);
             }
             else if (targ is Item)
             {
@@ -1230,7 +1268,8 @@ namespace Server.Items
             }
             else if (targ is LandTarget)
             {
-                int tileID = ((LandTarget)targ).TileID;
+                LandTarget target = (LandTarget)targ;
+                int tileID = target.TileID;
 
                 PlayerMobile player = from as PlayerMobile;
 
@@ -1255,10 +1294,14 @@ namespace Server.Items
 
                                 player.SendLocalizedMessage(1055035); // You dip the container into the disgusting swamp water, collecting enough for the Hag's vile stew.
                                 obj.Complete();
+                                return;
                             }
                         }
                     }
                 }
+
+                if (IsWaterTile(tileID))
+                    FillFromWaterTile(from, target.Location);
             }
         }
 
