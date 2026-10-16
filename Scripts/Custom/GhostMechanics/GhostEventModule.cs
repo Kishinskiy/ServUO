@@ -34,7 +34,6 @@ namespace Server.Misc
             EventSink.PlayerDeath += OnPlayerDeath;
             EventSink.Movement += OnPlayerMovement;
             
-            // ИСПРАВЛЕНО: Заменили капризный хук воскрешения на ультра-стабильный перехватчик логина! 🔐🎉
             EventSink.Login += OnPlayerLogin;
 
             CommandSystem.Register("gt", AccessLevel.Player, new CommandEventHandler(GhostTravel_OnCommand));
@@ -53,18 +52,12 @@ namespace Server.Misc
             int currentEssence = pointsData != null ? pointsData.Value : 0;
 
             // Запуск таймера удаления персонажа через 3 дня, если он остался призраком! 💀☠️
-            if (!_permaDeathTimers.ContainsKey(pm))
-            {
-                Timer timer = Timer.DelayCall(PermaDeathDuration, () => ExecutePermaDeath(pm));
-                _permaDeathTimers[pm] = timer;
-                timer.Start();
-                pm.SendMessage(0x22, $"[ВНИМАНИЕ] Ваша призрачная оболочка нестабильна! Если вы не воскреснете в течение 3 дней (72 ч), ваш персонаж полностью растворится в астрале без возможности восстановления!");
-            }
+            StartPermaDeathTimer(pm, true);
 
             if (rank != EpicRank.None)
             {
                 pm.SendMessage(0x22, "=== ВЫ ПАЛИ В PvP И ВЕНЧАНЫ С ЧИСТИЛИЩЕМ ===");
-                pm.SendMessage(0x482, $"Ваша текущая призрачная эссенция: {currentEssence} / 100.");
+                pm.SendMessage(0x482, $"Ваша текущая призрачная эссенция: {currentEssence} / {EtherealAnomaly.MaxEssence}.");
                 pm.SendMessage(0x482, "Ищите Эфирные Аномалии на кладбищах Felucca для поглощения силы.");
 
                 TriggerLocalCemeterySpawn(pm);
@@ -83,24 +76,125 @@ namespace Server.Misc
             }
         }
 
-        // ИСПРАВЛЕНО: Безупречный и на 100% безопасный сброс таймера пермадеза при логине живого чара! 🛡️
         private static void OnPlayerLogin(LoginEventArgs e)
         {
             Mobile m = e.Mobile;
-            if (m != null && m.Alive)
+            if (m == null)
             {
-                if (_permaDeathTimers.TryGetValue(m, out Timer timer))
-                {
-                    timer.Stop();
-                    _permaDeathTimers.Remove(m);
-                    m.SendMessage(0x35, "Ваша материальная оболочка восстановлена. Таймер растворения души успешно остановлен.");
-                }
+                return;
             }
+
+            if (m.Alive)
+            {
+                StopPermaDeathTimer(m, true);
+            }
+            else
+            {
+                StartPermaDeathTimer(m as PlayerMobile, false);
+            }
+        }
+
+        private static void StartPermaDeathTimer(PlayerMobile mobile, bool newDeath)
+        {
+            if (mobile == null || mobile.Deleted || mobile.Alive)
+            {
+                return;
+            }
+
+            GhostPermaDeathAttachment deathData = XmlAttach.FindAttachment(
+                mobile, typeof(GhostPermaDeathAttachment), "GhostPermaDeath") as GhostPermaDeathAttachment;
+
+            if (deathData == null)
+            {
+                deathData = new GhostPermaDeathAttachment();
+                XmlAttach.AttachTo(mobile, deathData);
+            }
+
+            if (newDeath || deathData.DeathTimeUtc == DateTime.MinValue)
+            {
+                deathData.DeathTimeUtc = DateTime.UtcNow;
+            }
+
+            if (_permaDeathTimers.TryGetValue(mobile, out Timer oldTimer))
+            {
+                oldTimer.Stop();
+            }
+
+            TimeSpan remaining = PermaDeathDuration - (DateTime.UtcNow - deathData.DeathTimeUtc);
+            if (remaining <= TimeSpan.Zero)
+            {
+                ExecutePermaDeath(mobile);
+                return;
+            }
+
+            _permaDeathTimers[mobile] = Timer.DelayCall(remaining, () => ExecutePermaDeath(mobile));
+
+            if (newDeath)
+            {
+                mobile.SendMessage(0x22, $"[ВНИМАНИЕ] Ваша призрачная оболочка нестабильна! Если вы не воскреснете в течение 3 дней (72 ч), ваш персонаж полностью растворится в астрале без возможности восстановления!");
+            }
+        }
+
+        private static void StopPermaDeathTimer(Mobile mobile, bool notify)
+        {
+            if (mobile == null || !mobile.Alive)
+            {
+                return;
+            }
+
+            bool hadTimer = _permaDeathTimers.TryGetValue(mobile, out Timer timer);
+            if (hadTimer)
+            {
+                timer.Stop();
+                _permaDeathTimers.Remove(mobile);
+            }
+
+            GhostPermaDeathAttachment deathData = XmlAttach.FindAttachment(
+                mobile, typeof(GhostPermaDeathAttachment), "GhostPermaDeath") as GhostPermaDeathAttachment;
+            if (deathData != null && deathData.DeathTimeUtc != DateTime.MinValue)
+            {
+                deathData.DeathTimeUtc = DateTime.MinValue;
+                hadTimer = true;
+            }
+
+            if (notify && hadTimer)
+            {
+                mobile.SendMessage(0x35, "Ваша материальная оболочка восстановлена. Таймер растворения души успешно остановлен.");
+            }
+        }
+
+        public static void OnPlayerResurrected(PlayerMobile mobile)
+        {
+            StopPermaDeathTimer(mobile, true);
         }
 
         private static void ExecutePermaDeath(Mobile m)
         {
-            if (m == null || m.Alive || m.Deleted) return;
+            if (m == null)
+            {
+                return;
+            }
+
+            if (m.Deleted)
+            {
+                _permaDeathTimers.Remove(m);
+                return;
+            }
+
+            if (m.Alive)
+            {
+                _permaDeathTimers.Remove(m);
+                GhostPermaDeathAttachment deathData = XmlAttach.FindAttachment(
+                    m, typeof(GhostPermaDeathAttachment), "GhostPermaDeath") as GhostPermaDeathAttachment;
+                if (deathData != null)
+                {
+                    deathData.DeathTimeUtc = DateTime.MinValue;
+                }
+
+                return;
+            }
+
+            _permaDeathTimers.Remove(m);
 
             string name = m.Name;
             string accName = (m.Account != null) ? m.Account.Username : "Unknown";
@@ -131,6 +225,7 @@ namespace Server.Misc
                         spawned++;
                     }
                 }
+
             }
             if (spawned > 0) Console.WriteLine($"[GhostMechanics] Циклический спавн: На кладбищах Felucca материализовалось {spawned} эфирных аномалий.");
         }
@@ -161,6 +256,11 @@ namespace Server.Misc
             Mobile m = e.Mobile;
             if (m == null || m.AccessLevel > AccessLevel.Player) return;
 
+            if (m.Alive && _permaDeathTimers.ContainsKey(m))
+            {
+                StopPermaDeathTimer(m, true);
+            }
+
             EpicRank rank = EpicAlignmentSystem.GetRank(m);
             if (rank == EpicRank.None) return;
 
@@ -179,6 +279,47 @@ namespace Server.Misc
             
             from.CloseGump(typeof(EtherealTravelGump));
             from.SendGump(new EtherealTravelGump(from));
+        }
+    }
+
+    public class GhostPermaDeathAttachment : XmlAttachment
+    {
+        public DateTime DeathTimeUtc { get; set; }
+
+        public GhostPermaDeathAttachment()
+        {
+            Name = "GhostPermaDeath";
+            DeathTimeUtc = DateTime.MinValue;
+        }
+
+        public GhostPermaDeathAttachment(ASerial serial) : base(serial)
+        {
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
+            writer.Write(DeathTimeUtc);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            int version = reader.ReadInt();
+            DeathTimeUtc = reader.ReadDateTime();
+        }
+    }
+}
+
+namespace Server.Mobiles
+{
+    public partial class PlayerMobile
+    {
+        public override void OnAfterResurrect()
+        {
+            base.OnAfterResurrect();
+            Server.Misc.GhostEventModule.OnPlayerResurrected(this);
         }
     }
 }

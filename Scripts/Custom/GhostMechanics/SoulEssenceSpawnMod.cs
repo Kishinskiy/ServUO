@@ -10,7 +10,7 @@ namespace Server.Custom.SoulEssences
     // Кастомный предмет Эссенции Души (если у тебя уже есть свой класс, этот блок можно удалить)
     public class SoulEssence : Item
     {
-        public SoulEssence() : base(0x21F5) // Графика красивой светящейся сферы
+        public SoulEssence() : base(0x3779)
         {
             Name = "Эссенция Души (Soul Essence)";
             Hue = 1365; // Призрачный фиолетово-синий цвет
@@ -114,11 +114,11 @@ namespace Server.Custom.SoulEssences
             if (bc == null || bc.Map != Map.Felucca || bc.Backpack == null) return; // Строго только мир Felucca и живой рюкзак!
 
             Region reg = bc.Region;
-            bool isCemetery = reg != null && reg.Name != null && reg.Name.ToLower().Contains("cemetery");
-            bool isDespise = reg != null && reg.Name != null && reg.Name.ToLower().Contains("despise");
+            bool isCemetery = reg != null && reg.Name != null && reg.Name.IndexOf("cemetery", StringComparison.OrdinalIgnoreCase) >= 0;
+            bool isDespise = reg != null && reg.Name != null && reg.Name.IndexOf("despise", StringComparison.OrdinalIgnoreCase) >= 0;
 
             // Проверяем, является ли убитый моб Боссом-Чемпионом
-            bool isChampion = bc.Title != null && (bc.Title.ToLower().Contains("champion") || bc.Title.ToLower().Contains("piper")) || bc.HitsMax > 5000;
+            bool isChampion = bc is BaseChampion;
 
             // Сценарий А: Дроп с Чемпионов (Барракун и т.д.) — 100% шанс, от 1 до 3 штук падает в рюкзак, который станет трупом!
             if (isChampion && Utility.RandomDouble() < BossDropChance)

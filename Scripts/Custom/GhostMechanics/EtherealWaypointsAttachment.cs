@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using Server;
 using Server.Engines.XmlSpawner2;
 
@@ -56,6 +57,11 @@ namespace Server.Custom.GhostMechanics
             int version = reader.ReadInt();
 
             int count = reader.ReadInt();
+            if (count < 0 || count > 256)
+            {
+                throw new InvalidDataException($"Invalid discovered shrine count: {count}.");
+            }
+
             m_DiscoveredShrines = new List<string>(count);
             for (int i = 0; i < count; i++)
             {
