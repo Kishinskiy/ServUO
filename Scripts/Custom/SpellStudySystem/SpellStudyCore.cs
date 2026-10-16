@@ -6,6 +6,7 @@ using Server.Items;
 using Server.Network;
 using Server.Targeting;
 using Server.Mobiles;
+using Server.Spells.Mysticism;
 
 namespace Server.Custom.SpellStudySystem
 {
@@ -18,7 +19,26 @@ namespace Server.Custom.SpellStudySystem
     {
         private static readonly Dictionary<Mobile, PlayerSpellStudyProfile> _studyData = new Dictionary<Mobile, PlayerSpellStudyProfile>();
         private static readonly List<BaseMagicSchool> _registeredSchools = new List<BaseMagicSchool>();
+        private static readonly Dictionary<Mobile, StudySession> _activeStudies = new Dictionary<Mobile, StudySession>();
         private static readonly string _savePath = Path.Combine(Core.BaseDirectory, "Saves/Custom/SpellStudyDatabase.bin");
+
+        private sealed class StudySession
+        {
+            public Mobile From { get; private set; }
+            public SpellScroll Scroll { get; private set; }
+            public Spellbook Book { get; private set; }
+            public BaseMagicSchool School { get; private set; }
+            public int OffsetID { get; private set; }
+
+            public StudySession(Mobile from, SpellScroll scroll, Spellbook book, BaseMagicSchool school, int offsetID)
+            {
+                From = from;
+                Scroll = scroll;
+                Book = book;
+                School = school;
+                OffsetID = offsetID;
+            }
+        }
 
         public static void Initialize()
         {
@@ -26,6 +46,7 @@ namespace Server.Custom.SpellStudySystem
             EventSink.WorldSave += e => Save();
             EventSink.Shutdown += e => Save();
             EventSink.ServerStarted += Load;
+            EventSink.Logout += OnLogout;
 
             // РЕГИСТРАЦИЯ СТАНДАРТНЫХ ШКОЛ ИЗ НАШИХ ОТДЕЛЬНЫХ ФАЙЛОВ 🎉
             RegisterSchool(new MageSchoolMagery());
@@ -93,139 +114,232 @@ namespace Server.Custom.SpellStudySystem
 
             public override void OnClick()
             {
-                Mobile from = Owner.From;
+                Mobile from = Owner == null ? null : Owner.From;
 
-                if (!from.CheckAlive() || m_Scroll == null || m_Scroll.Deleted || !m_Scroll.IsChildOf(from.Backpack))
+                if (from == null || !from.CheckAlive() || m_Scroll == null || m_Scroll.Deleted ||
+                    !m_Scroll.Movable || m_Scroll.Amount < 1 || from.Backpack == null ||
+                    !m_Scroll.IsChildOf(from.Backpack) || !m_Scroll.CheckItemUse(from))
                     return;
 
-                Spellbook book = Spellbook.Find(from, m_Scroll.SpellID);
+                SpellbookType bookType = Spellbook.GetTypeForSpell(m_Scroll.SpellID);
+                if (bookType == SpellbookType.Invalid)
+                {
+                    from.SendMessage(0x22, "Этот свиток нельзя записать в книгу заклинаний.");
+                    return;
+                }
+
+                Spellbook book = Spellbook.Find(from, -1, bookType);
                 if (book == null)
                 {
                     from.SendMessage(0x22, "У вас должно быть при себе соответствующее руководство заклинаний этой школы!");
                     return;
                 }
 
-                if (book.HasSpell(m_Scroll.SpellID))
-                {
-                    from.SendLocalizedMessage(500179); // Уже записано
-                    return;
-                }
-
-                // Ищем, какая модульная школа магии готова взять этот свиток в обработку
-                BaseMagicSchool targetSchool = null;
-                foreach (BaseMagicSchool school in _registeredSchools)
-                {
-                    if (school.MatchBook(book))
-                    {
-                        targetSchool = school;
-                        break;
-                    }
-                }
-
-                if (targetSchool == null)
-                {
+                if (!TryBeginStudy(from, m_Scroll, book))
                     from.SendMessage(0x35, "Эта книга заполняется обычным путем, мистические исследования для нее не требуются.");
-                    return;
-                }
-
-                int offsetID = m_Scroll.SpellID - book.BookOffset;
-
-                // Передаем верификацию параметров в изолированный класс школы магии! 🛡️
-                if (!targetSchool.CheckRequirements(from, book, m_Scroll.SpellID, offsetID))
-                    return;
-
-                PlayerSpellStudyProfile profile = SpellStudyCore.GetStudyProfile(from);
-                profile.Progress.TryGetValue(m_Scroll.SpellID, out int currentProgress);
-
-                from.SendMessage(0x5D, $"Вы начинаете дешифровку манускрипта [{targetSchool.SchoolName}]. Текущий прогресс: {currentProgress}% / 100%");
-
-                from.Frozen = true;
-                from.PlaySound(targetSchool.StartSound);
-
-                Timer.DelayCall(TimeSpan.FromSeconds(5.0), new TimerStateCallback(FinishStudy_Callback), new object[] { from, m_Scroll, book, targetSchool });
             }
+        }
+
+        public static bool TryBeginStudy(Mobile from, SpellScroll scroll, Spellbook book)
+        {
+            if (from == null || scroll == null || scroll is SpellStone || book == null)
+                return false;
+
+            BaseMagicSchool targetSchool = null;
+            foreach (BaseMagicSchool school in _registeredSchools)
+            {
+                if (school.MatchBook(book))
+                {
+                    targetSchool = school;
+                    break;
+                }
+            }
+
+            if (targetSchool == null)
+                return false;
+
+            if (!from.CheckAlive() || scroll.Deleted || !scroll.Movable || scroll.Amount < 1 ||
+                !scroll.CheckItemUse(from) ||
+                (from.Backpack == null || (!scroll.IsChildOf(from.Backpack) && scroll.HeldBy != from)))
+            {
+                from.SendMessage(0x22, "Свиток должен находиться при вас и быть доступен для использования.");
+                return true;
+            }
+
+            if (Spellbook.GetTypeForSpell(scroll.SpellID) != book.SpellbookType)
+            {
+                from.SendMessage(0x22, "Этот свиток не подходит к выбранной книге.");
+                return true;
+            }
+
+            if (book.HasSpell(scroll.SpellID))
+            {
+                from.SendLocalizedMessage(500179);
+                return true;
+            }
+
+            int offsetID = scroll.SpellID - book.BookOffset;
+            if (offsetID < 0 || offsetID >= book.BookCount)
+            {
+                from.SendMessage(0x22, "Это заклинание не помещается в выбранную книгу.");
+                return true;
+            }
+
+            if (book.Parent != from && (from.Backpack == null || !book.IsChildOf(from.Backpack)))
+            {
+                from.SendMessage(0x22, "Книга должна быть при вас или находиться в рюкзаке.");
+                return true;
+            }
+
+            if (_activeStudies.ContainsKey(from))
+            {
+                from.SendMessage(0x22, "Вы уже изучаете другой свиток.");
+                return true;
+            }
+
+            if (!targetSchool.CheckRequirements(from, book, scroll.SpellID, offsetID))
+                return true;
+
+            if (from.Frozen)
+            {
+                from.SendMessage(0x22, "Сейчас вы не можете сосредоточиться на изучении.");
+                return true;
+            }
+
+            PlayerSpellStudyProfile profile = GetStudyProfile(from);
+            profile.Progress.TryGetValue(scroll.SpellID, out int currentProgress);
+            TimeSpan duration = targetSchool.GetStudyDuration(from);
+
+            from.SendMessage(0x5D, $"Вы начинаете дешифровку манускрипта [{targetSchool.SchoolName}]. Текущий прогресс: {currentProgress}% / 100%. Время: {duration.TotalSeconds:0} сек.");
+
+            StudySession session = new StudySession(from, scroll, book, targetSchool, offsetID);
+            _activeStudies[from] = session;
+            from.Frozen = true;
+            from.PlaySound(targetSchool.StartSound);
+
+            Timer.DelayCall(duration, new TimerStateCallback(FinishStudy_Callback), session);
+            return true;
         }
 
         private static void FinishStudy_Callback(object state)
         {
-            object[] args = (object[])state;
-            Mobile from = (Mobile)args[0];
-            SpellScroll scroll = (SpellScroll)args[1];
-            Spellbook book = (Spellbook)args[2];
-            BaseMagicSchool school = (BaseMagicSchool)args[3];
-
-            if (from == null || !from.CheckAlive()) return;
-            from.Frozen = false;
-
-            if (scroll == null || scroll.Deleted || !scroll.IsChildOf(from.Backpack) || book == null || book.Deleted)
-            {
-                from.SendMessage(0x22, "Изучение прервано: свиток или фолиант утеряны.");
+            StudySession session = state as StudySession;
+            StudySession activeSession;
+            if (session == null || session.From == null ||
+                !_activeStudies.TryGetValue(session.From, out activeSession) ||
+                !Object.ReferenceEquals(activeSession, session))
                 return;
-            }
 
-            int offsetID = scroll.SpellID - book.BookOffset;
-            PlayerSpellStudyProfile profile = GetStudyProfile(from);
-            profile.Progress.TryGetValue(scroll.SpellID, out int currentProgress);
+            Mobile from = session.From;
+            SpellScroll scroll = session.Scroll;
+            Spellbook book = session.Book;
+            BaseMagicSchool school = session.School;
 
-            // Базовый расчет шанса неудачи
-            double baseFizzleChance = (offsetID * 3.5) / 100.0;
-            if (baseFizzleChance > 0.50) baseFizzleChance = 0.50;
-
-            // Запрашиваем из конфигурации школы её вспомогательный навык для снижения физзла
-            double supportSkillValue = from.Skills[school.SupportSkill].Base;
-            double reduction = supportSkillValue / 100.0;
-            double finalFizzleChance = baseFizzleChance * (1.0 - reduction);
-
-            if (finalFizzleChance > 0.0 && Utility.RandomDouble() < finalFizzleChance)
+            try
             {
-                scroll.Consume();
-                from.PlaySound(school.FailSound);
-                from.SendMessage(0x22, $"[{school.SchoolName}]: {school.FailMessage}");
-                return;
-            }
+                from.Frozen = false;
 
-            // Динамический шаг прогресса из класса школы
-            school.GetProgressGain(offsetID, out int minGain, out int maxGain);
+                if (!from.CheckAlive())
+                    return;
 
-            double intelligenceBonus = 1.0 + (supportSkillValue / 200.0);
-            int progressGained = (int)(Utility.RandomMinMax(minGain, maxGain) * intelligenceBonus);
-
-            currentProgress = Math.Min(100, currentProgress + progressGained);
-            profile.Progress[scroll.SpellID] = currentProgress;
-
-            scroll.Consume();
-            from.PlaySound(school.SuccessSound);
-
-            if (currentProgress >= 100)
-            {
-                if (offsetID >= 0 && offsetID < book.BookCount)
+                if (scroll == null || scroll.Deleted || !scroll.Movable || scroll.Amount < 1 ||
+                    from.Backpack == null || !scroll.IsChildOf(from.Backpack) || !scroll.CheckItemUse(from) ||
+                    book == null || book.Deleted ||
+                    (book.Parent != from && (from.Backpack == null || !book.IsChildOf(from.Backpack))))
                 {
-                    book.Content |= (ulong)1 << offsetID;
+                    from.SendMessage(0x22, "Изучение прервано: свиток или фолиант утеряны.");
+                    return;
+                }
+
+                int offsetID = session.OffsetID;
+                if (Spellbook.GetTypeForSpell(scroll.SpellID) != book.SpellbookType ||
+                    offsetID < 0 || offsetID >= book.BookCount || book.HasSpell(scroll.SpellID) ||
+                    !school.MatchBook(book) ||
+                    !school.CheckRequirements(from, book, scroll.SpellID, offsetID))
+                {
+                    from.SendMessage(0x22, "Изучение прервано: требования к свитку или книге изменились.");
+                    return;
+                }
+
+                double primarySkill = Math.Min(100.0, from.Skills[school.StudySkill].Base);
+                double supportSkill = Math.Min(100.0, from.Skills[school.SupportSkill].Base);
+                double difficulty = book.BookCount <= 1 ? 0.0 : (double)offsetID / (book.BookCount - 1);
+                double fizzleChance = Math.Max(0.0, 0.10 + (0.20 * difficulty) -
+                    (primarySkill * 0.0005) - (supportSkill * 0.0005));
+
+                if (fizzleChance > 0.0 && Utility.RandomDouble() < fizzleChance)
+                {
+                    scroll.Consume();
+                    from.PlaySound(school.FailSound);
+                    from.SendMessage(0x22, $"[{school.SchoolName}]: {school.FailMessage}");
+                    return;
+                }
+
+                school.GetProgressGain(offsetID, out int minGain, out int maxGain);
+                minGain = Math.Max(1, minGain);
+                maxGain = Math.Max(minGain, maxGain);
+
+                double skillMultiplier = 0.40 + (primarySkill * 0.004) + (supportSkill * 0.002);
+                int progressGained = Math.Max(1,
+                    (int)Math.Round(Utility.RandomMinMax(minGain, maxGain) * skillMultiplier));
+
+                PlayerSpellStudyProfile profile = GetStudyProfile(from);
+                profile.Progress.TryGetValue(scroll.SpellID, out int currentProgress);
+                currentProgress = Math.Min(100, currentProgress + progressGained);
+                profile.Progress[scroll.SpellID] = currentProgress;
+
+                scroll.Consume();
+                from.PlaySound(school.SuccessSound);
+
+                if (currentProgress >= 100)
+                {
+                    book.Content = book.Content | (1UL << offsetID);
                     from.SendMessage(0x35, $"[{school.SchoolName}]: {school.CompleteMessage}");
                     profile.Progress.Remove(scroll.SpellID);
                 }
+                else
+                {
+                    from.SendMessage(88, $"Вы продвинулись в изучении [{school.SchoolName}] на +{progressGained}%! Итого: {currentProgress}% / 100%");
+                }
             }
-            else
+            finally
             {
-                from.SendMessage(88, $"Вы продвинулись в изучении [{school.SchoolName}] на +{progressGained}%! Итого: {currentProgress}% / 100%");
+                from.Frozen = false;
+                if (_activeStudies.TryGetValue(from, out activeSession) &&
+                    Object.ReferenceEquals(activeSession, session))
+                    _activeStudies.Remove(from);
             }
+        }
+
+        private static void OnLogout(LogoutEventArgs e)
+        {
+            if (e.Mobile != null && _activeStudies.Remove(e.Mobile))
+                e.Mobile.Frozen = false;
         }
 
         public static void Save()
         {
-            if (_studyData.Count == 0) return;
             GenericWriter writer = null;
             try
             {
                 string folder = Path.GetDirectoryName(_savePath);
                 if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
 
-                writer = new BinaryFileWriter(_savePath, true);
+                writer = new BinaryFileWriter(_savePath, false);
                 writer.Write((int)0); // Версия
-                writer.Write((int)_studyData.Count);
+                int profileCount = 0;
+                foreach (PlayerSpellStudyProfile profile in _studyData.Values)
+                {
+                    if (profile.Progress.Count > 0)
+                        profileCount++;
+                }
+                writer.Write(profileCount);
 
                 foreach (KeyValuePair<Mobile, PlayerSpellStudyProfile> kvp in _studyData)
                 {
+                    if (kvp.Value.Progress.Count == 0)
+                        continue;
+
                     writer.Write(kvp.Key);
                     writer.Write((int)kvp.Value.Progress.Count);
                     foreach (KeyValuePair<int, int> spellKvp in kvp.Value.Progress)
@@ -235,8 +349,24 @@ namespace Server.Custom.SpellStudySystem
                     }
                 }
             }
-            catch { }
-            finally { if (writer != null) writer.Close(); }
+            catch (Exception ex)
+            {
+                Console.WriteLine("SpellStudySystem: Ошибка сохранения прогресса изучения: " + ex);
+            }
+            finally
+            {
+                if (writer != null)
+                {
+                    try
+                    {
+                        writer.Close();
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("SpellStudySystem: Ошибка закрытия файла прогресса: " + ex);
+                    }
+                }
+            }
         }
 
         public static void Load()
@@ -249,24 +379,51 @@ namespace Server.Custom.SpellStudySystem
                 binReader = new BinaryReader(stream); reader = new BinaryFileReader(binReader);
                 int version = reader.ReadInt();
                 int count = reader.ReadInt();
-                _studyData.Clear();
+                if (version != 0 || count < 0 || count > 100000)
+                    throw new InvalidDataException("Некорректный формат базы прогресса изучения.");
+
+                Dictionary<Mobile, PlayerSpellStudyProfile> loadedData = new Dictionary<Mobile, PlayerSpellStudyProfile>();
                 for (int i = 0; i < count; i++)
                 {
                     Mobile player = reader.ReadMobile();
                     int spellCount = reader.ReadInt();
+                    if (spellCount < 0 || spellCount > 1000)
+                        throw new InvalidDataException("Некорректное количество изучаемых заклинаний.");
+
                     PlayerSpellStudyProfile profile = new PlayerSpellStudyProfile();
                     for (int j = 0; j < spellCount; j++)
                     {
                         int spellID = reader.ReadInt();
                         int progress = reader.ReadInt();
-                        profile.Progress[spellID] = progress;
+                        if (Spellbook.GetTypeForSpell(spellID) != SpellbookType.Invalid && progress > 0 && progress < 100)
+                            profile.Progress[spellID] = progress;
                     }
                     if (player != null)
-                        _studyData[player] = profile;
+                        loadedData[player] = profile;
+                }
+
+                _studyData.Clear();
+                foreach (KeyValuePair<Mobile, PlayerSpellStudyProfile> entry in loadedData)
+                    _studyData[entry.Key] = entry.Value;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("SpellStudySystem: Ошибка загрузки прогресса изучения: " + ex);
+            }
+            finally
+            {
+                try
+                {
+                    if (binReader != null)
+                        binReader.Close();
+                    else if (stream != null)
+                        stream.Close();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("SpellStudySystem: Ошибка закрытия файла прогресса: " + ex);
                 }
             }
-            catch { }
-            finally { if (binReader != null) binReader.Close(); if (stream != null) stream.Close(); }
         }
     }
 }

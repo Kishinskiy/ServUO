@@ -7,6 +7,7 @@ namespace Server.Custom.SpellStudySystem
     public class MageSchoolNinjitsu : BaseMagicSchool
     {
         public override string SchoolName => "Тайные Искусства Ниндзя (Ninjitsu)";
+        public override SkillName StudySkill => SkillName.Ninjitsu;
         public override SkillName SupportSkill => SkillName.Stealth;
 
         public override int StartSound => 0x510; // Шелест дымовой шашки
@@ -14,7 +15,7 @@ namespace Server.Custom.SpellStudySystem
 
         public override bool MatchBook(Spellbook book)
         {
-            return book.GetType().Name.Contains("Ninjitsu") || book.GetType().Name.Contains("Ninja");
+            return book.SpellbookType == SpellbookType.Ninja;
         }
 
         public override bool CheckRequirements(Mobile from, Spellbook book, int spellID, int offsetID)

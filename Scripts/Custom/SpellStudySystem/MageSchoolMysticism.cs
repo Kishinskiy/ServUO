@@ -7,6 +7,7 @@ namespace Server.Custom.SpellStudySystem
     public class MageSchoolMysticism : BaseMagicSchool
     {
         public override string SchoolName => "Мистицизм Горгулий (Mysticism)";
+        public override SkillName StudySkill => SkillName.Mysticism;
         public override SkillName SupportSkill => SkillName.Focus;
 
         public override int StartSound => 0x5C3; // Каменный скрежет рун
@@ -14,7 +15,7 @@ namespace Server.Custom.SpellStudySystem
 
         public override bool MatchBook(Spellbook book)
         {
-            return book.GetType().Name.Contains("Mysticism") || book.GetType().Name.Contains("Gargoyle");
+            return book.SpellbookType == SpellbookType.Mystic;
         }
 
         public override bool CheckRequirements(Mobile from, Spellbook book, int spellID, int offsetID)

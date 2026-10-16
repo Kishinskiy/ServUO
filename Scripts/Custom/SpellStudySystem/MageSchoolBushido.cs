@@ -7,6 +7,7 @@ namespace Server.Custom.SpellStudySystem
     public class MageSchoolBushido : BaseMagicSchool
     {
         public override string SchoolName => "Путь Самурая (Bushido)";
+        public override SkillName StudySkill => SkillName.Bushido;
         public override SkillName SupportSkill => SkillName.Anatomy;
 
         public override int StartSound => 0x54; // Звук вытаскивания катаны
@@ -14,7 +15,7 @@ namespace Server.Custom.SpellStudySystem
 
         public override bool MatchBook(Spellbook book)
         {
-            return book.GetType().Name.Contains("Bushido") || book.GetType().Name.Contains("Samurai");
+            return book.SpellbookType == SpellbookType.Samurai;
         }
 
         public override bool CheckRequirements(Mobile from, Spellbook book, int spellID, int offsetID)

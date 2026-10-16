@@ -15,8 +15,19 @@ namespace Server.Custom.SpellStudySystem
         // Проверка требований для начала изучения конкретного заклинания
         public abstract bool CheckRequirements(Mobile from, Spellbook book, int spellID, int offsetID);
 
+        public abstract SkillName StudySkill { get; }
+
         // Какой вспомогательный навык защищает от физзла (EvalInt, SpiritSpeak, Focus и т.д.)
         public abstract SkillName SupportSkill { get; }
+
+        public virtual TimeSpan GetStudyDuration(Mobile from)
+        {
+            double studySkill = Math.Min(100.0, from.Skills[StudySkill].Base);
+            double supportSkill = Math.Min(100.0, from.Skills[SupportSkill].Base);
+            double combinedSkill = (studySkill + supportSkill) / 2.0;
+
+            return TimeSpan.FromSeconds(Math.Max(3.0, 15.0 - (combinedSkill * 0.1)));
+        }
 
         // Звуки при начале и успешном завершении шага изучения
         public virtual int StartSound => 0x24D; // Перелистывание страниц
