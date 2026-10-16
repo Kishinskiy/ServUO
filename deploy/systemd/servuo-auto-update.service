@@ -7,4 +7,4 @@ Wants=network-online.target
 Type=oneshot
 User=root
 WorkingDirectory=/root/ServUO
-ExecStart=/bin/bash /root/ServUO/deploy/servuo-auto-update.sh
+ExecStart=/bin/bash /root/ServUO/deploy/servuo-auto-update.bash
