@@ -147,7 +147,7 @@ namespace Server.Gumps
                     else if (m_Item is BaseClothing)
                         attrvalue = ((BaseClothing)m_Item).Attributes[LevelAttributes.m_Attributes[i].m_Attribute];
                     else
-                        return;
+                        continue;
 
                     if (attrvalue < LevelAttributes.m_Attributes[i].m_MaxValue)
 					    AddButton(301, 116 + (pageindex * 20), 4005, 4007, GetButtonID( 2, i ), GumpButtonType.Reply, 0);
