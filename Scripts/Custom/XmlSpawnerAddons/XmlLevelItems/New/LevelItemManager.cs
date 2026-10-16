@@ -81,6 +81,11 @@ namespace Server.Engines.XmlSpawner2
                     pm.PlaySound(0x5B6); 
                     Effects.SendTargetParticles(pm, 0x375A, 9, 20, 1171, 0, 5027, EffectLayer.Waist, 0);
                     pm.SendMessage(0x58, $"[ПРОКАЧКА]: Предмет '{item.Name ?? item.GetType().Name}' поднял уровень {levelData.Level}! Получено +4 очка параметров (sp).");
+
+                    if (item is BaseWeapon)
+                    {
+                        pm.SendGump(new ItemExperienceGump(pm, item, AttributeCategory.Melee));
+                    }
                 }
                 else
                 {
