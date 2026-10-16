@@ -1342,6 +1342,8 @@ namespace Server.Items
                 else
                     list.Add(1152281 + ((int)m_ItemPower - 9));
             }
+
+            Server.Engines.XmlSpawner2.XmlAttach.AddAttachmentProperties(this, list);
         }
 
         public override void OnSingleClick(Mobile from)
