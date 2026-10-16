@@ -283,8 +283,16 @@ namespace Server.Custom.CurseSystem
                     if (!curse.IsIdentified)
                     {
                         curse.IsIdentified = true;
+
+                        // Weapons and armor have their own identification state, separate from this attachment.
+                        if (item is BaseWeapon weapon)
+                            weapon.Identified = true;
+                        else if (item is BaseArmor armor)
+                            armor.Identified = true;
+
                         item.InvalidateProperties();
                         item.SendPropertiesTo(from);
+                        item.OnSingleClick(from);
                         from.PlaySound(0x249); 
                         from.SendMessage(0x35, $"Вы успешно преодолели элитный барьер ({neededSkill:F1}) и распознали скрытые свойства вещи!");
                     }

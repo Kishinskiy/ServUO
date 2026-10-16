@@ -98,7 +98,7 @@ namespace Server.Custom.GarrisonSupply
 
         public override void OnDoubleClick(Mobile from)
         {
-            if (!IsChildOf(from.Backpack))
+            if (from.Backpack == null || !IsChildOf(from.Backpack))
             {
                 from.SendLocalizedMessage(1042001); // Предмет должен быть в паке
                 return;
@@ -130,22 +130,30 @@ namespace Server.Custom.GarrisonSupply
 
             protected override void OnTarget(Mobile from, object targeted)
             {
-                if (m_Container == null || m_Container.Deleted || !m_Container.IsChildOf(from.Backpack) || m_Container.IsSealed)
+                if (m_Container == null || m_Container.Deleted || from.Backpack == null ||
+                    !m_Container.IsChildOf(from.Backpack) || m_Container.IsSealed)
                     return;
 
                 // ЛОГИКА ДЛЯ ПОВАРОВ (Загрузка еды напрямую)
                 if (m_Container.ContainerType == SupplyType.Cooking)
                 {
-                    if (targeted is Food food)
+                    if (targeted is Food food &&
+                        (food.RootParent == from || food.IsChildOf(from.Backpack)))
                     {
-                        m_Container.m_FoodCount += food.Amount;
-                        m_Container.RewardGold += food.Amount * 15; // По 15 золотых за штуку еды
-                        food.Consume();
+                        int amountToPack = Math.Min(food.Amount, 100 - m_Container.m_FoodCount);
+                        if (amountToPack <= 0)
+                        {
+                            from.SendMessage(0x22, "Бочка уже заполнена.");
+                            return;
+                        }
+
+                        m_Container.m_FoodCount += amountToPack;
+                        m_Container.RewardGold += amountToPack * 15;
+                        food.Consume(amountToPack);
                         from.PlaySound(0x57);
 
                         if (m_Container.m_FoodCount >= 100)
                         {
-                            m_Container.m_FoodCount = 100;
                             m_Container.IsSealed = true;
                             m_Container.ContentName = "100x Армейский Рацион Провианта";
                             m_Container.Name = "Запечатанная Бочка Городского Провианта";
@@ -159,18 +167,19 @@ namespace Server.Custom.GarrisonSupply
                     }
                     else
                     {
-                        from.SendMessage(0x22, "В эту бочку можно складывать только готовую еду!");
+                        from.SendMessage(0x22, "В эту бочку можно складывать только вашу готовую еду из рюкзака или руки.");
                     }
                     return;
                 }
 
                 // ЛОГИКА ДЛЯ ПРОФЕССИЙ С BOD КОНТРАКТАМИ
-                if (targeted is SmallBOD bod)
+                if (targeted is SmallBOD bod &&
+                    (bod.RootParent == from || bod.IsChildOf(from.Backpack)))
                 {
                     bool isValidBOD = false;
 
                     if (m_Container.ContainerType == SupplyType.Blacksmith && bod.BODType == BODType.Smith) isValidBOD = true;
-                    if (m_Container.ContainerType == SupplyType.Carpentry && (m_Container.ContainerType == SupplyType.Carpentry && bod.BODType == BODType.Carpentry)) isValidBOD = true;
+                    if (m_Container.ContainerType == SupplyType.Carpentry && bod.BODType == BODType.Carpentry) isValidBOD = true;
                     if (m_Container.ContainerType == SupplyType.Tailor && bod.BODType == BODType.Tailor) isValidBOD = true;
 
                     if (!isValidBOD)
@@ -179,7 +188,7 @@ namespace Server.Custom.GarrisonSupply
                         return;
                     }
 
-                    if (bod.AmountCur < bod.AmountMax)
+                    if (bod.AmountMax <= 0 || !bod.Complete)
                     {
                         from.SendMessage(0x22, $"Этот контракт еще не завершен! ({bod.AmountCur}/{bod.AmountMax})");
                         return;
@@ -210,7 +219,7 @@ namespace Server.Custom.GarrisonSupply
                 }
                 else
                 {
-                    from.SendMessage(0x22, "Сюда можно упаковать только заполненный контракт малого типа (Small BOD)!");
+                    from.SendMessage(0x22, "Сюда можно упаковать только ваш заполненный малый BOD из рюкзака или руки!");
                 }
             }
         }
@@ -229,10 +238,18 @@ namespace Server.Custom.GarrisonSupply
 
             protected override void OnTarget(Mobile from, object targeted)
             {
-                if (m_Container == null || m_Container.Deleted || !m_Container.IsChildOf(from.Backpack) || !m_Container.IsSealed)
+                if (m_Container == null || m_Container.Deleted || from.Backpack == null ||
+                    !m_Container.IsChildOf(from.Backpack) || !m_Container.IsSealed)
                     return;
                 if (targeted is Mobile vendor)
                 {
+                    if (vendor.Deleted || vendor.Map != from.Map ||
+                        !from.InRange(vendor.Location, 3) || m_Container.Map != from.Map)
+                    {
+                        from.SendMessage(0x22, "Вы должны находиться рядом с торговцем на той же карте.");
+                        return;
+                    }
+
                     bool isTargetValidNPC = false;
                     // Проверяем соответствие получателя типу припасов
                     if (m_Container.ContainerType == SupplyType.Blacksmith && vendor is Weaponsmith) isTargetValidNPC = true;
@@ -245,20 +262,26 @@ namespace Server.Custom.GarrisonSupply
                         return;
                     }
                     // Проверяем регион города лояльности
-                    if (vendor.Region != null && !string.IsNullOrEmpty(vendor.Region.Name))
+                    if (vendor.Region != null)
                     {
                         foreach (Server.Engines.CityLoyalty.City c in Enum.GetValues(typeof(Server.Engines.CityLoyalty.City)))
                         {
-                            if (vendor.Region.Name.IndexOf(c.ToString(), StringComparison.OrdinalIgnoreCase) >= 0)
+                            var city = Server.Engines.CityLoyalty.CityLoyaltySystem.GetCityInstance(c);
+                            if (city != null && city.Definition != null && city.Definition.Region != null &&
+                                city.Definition.Region.IsPartOf(vendor.Region))
                             {
+                                var cityProfile = Server.Custom.CityDevelopment.CityDevelopmentMod.GetCityProfile(c, vendor.Map);
+                                if (cityProfile == null)
+                                    continue;
+
                                 // 1. Начисляем золото
                                 Gold gold = new Gold(m_Container.RewardGold);
                                 if (!from.Backpack.TryDropItem(from, gold, false)) gold.MoveToWorld(from.Location, from.Map);
                                 // 2. Качаем опыт города
-                                var cityProfile = Server.Custom.CityDevelopment.CityDevelopmentMod.GetCityProfile(c);
-                                if (cityProfile != null)
+                                cityProfile.CurrentSupplies += 50.0;
+                                if (Server.Custom.CityDevelopment.CityDevelopmentMod.ProcessCityLevelUps(c, vendor.Map))
                                 {
-                                    cityProfile.CurrentSupplies += 50.0;
+                                    World.Broadcast(0x35, true, $"[Развитие городов] Город {c} достиг {cityProfile.Level} уровня благодаря поставкам гарнизона!");
                                 }
                                 // 3. Начисляем лояльность вендора
                                 if (vendor is BaseVendor baseVendor)
@@ -287,7 +310,7 @@ namespace Server.Custom.GarrisonSupply
                             }
                         }
                     }
-                    from.SendMessage(0x22, "Этот торговец находится вне зон кастомных городов фракций.");
+                    from.SendMessage(0x22, "Этот торговец находится вне зоны города лояльности.");
                 }
             }
         }
