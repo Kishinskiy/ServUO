@@ -18,6 +18,8 @@ namespace Server.Custom.AdvancedNpcTrade
     public static class AdvancedNpcTradeMod
     {
         public static readonly int LoyaltyChance = 5;
+        private static readonly Dictionary<Tuple<Serial, Serial>, List<GenericBuyInfo>> _legendaryOffers
+            = new Dictionary<Tuple<Serial, Serial>, List<GenericBuyInfo>>();
 
         static AdvancedNpcTradeMod()
         {
@@ -31,7 +33,63 @@ namespace Server.Custom.AdvancedNpcTrade
         public static void Initialize()
         {
             LoyaltyManager.Initialize();
+            EventSink.Logout += OnPlayerLogout;
             CommandSystem.Register("LoyaltyInfo", AccessLevel.GameMaster, new CommandEventHandler(LoyaltyInfo_OnCommand));
+        }
+
+        private static void OnPlayerLogout(LogoutEventArgs e)
+        {
+            if (e.Mobile != null)
+            {
+                RemoveLegendaryOffers(e.Mobile);
+            }
+        }
+
+        private static void RemoveLegendaryOffers(Mobile buyer)
+        {
+            var keysToRemove = new List<Tuple<Serial, Serial>>();
+
+            foreach (var entry in _legendaryOffers)
+            {
+                if (entry.Key.Item2 == buyer.Serial)
+                {
+                    foreach (GenericBuyInfo offer in entry.Value)
+                    {
+                        offer.DeleteDisplayEntity();
+                    }
+
+                    keysToRemove.Add(entry.Key);
+                }
+            }
+
+            foreach (var key in keysToRemove)
+            {
+                _legendaryOffers.Remove(key);
+            }
+        }
+
+        public static GenericBuyInfo FindLegendaryOffer(BaseVendor vendor, Mobile buyer, object displayEntity)
+        {
+            if (vendor == null || buyer == null || displayEntity == null)
+            {
+                return null;
+            }
+
+            var key = Tuple.Create(vendor.Serial, buyer.Serial);
+            if (!_legendaryOffers.TryGetValue(key, out List<GenericBuyInfo> offers))
+            {
+                return null;
+            }
+
+            foreach (GenericBuyInfo offer in offers)
+            {
+                if (offer.GetDisplayEntity() == displayEntity)
+                {
+                    return offer;
+                }
+            }
+
+            return null;
         }
 
         public static double GetTotalLoyaltyPoints(BaseVendor vendor, Mobile buyer)
@@ -56,6 +114,36 @@ namespace Server.Custom.AdvancedNpcTrade
             points += GetCityBonusPoints(vendor, buyer);
 
             return points < 0.0 ? 0.0 : points;
+        }
+
+        public static void ApplyLegendaryProperties(Item item, string displayName)
+        {
+            if (item == null)
+            {
+                return;
+            }
+
+            BaseRunicTool.ApplyAttributesTo(item, 5, 95, 100);
+
+            PropertyInfo powerProperty = item.GetType().GetProperty("ItemPower");
+            if (powerProperty != null && powerProperty.CanWrite)
+            {
+                try
+                {
+                    powerProperty.SetValue(item, Enum.ToObject(powerProperty.PropertyType, 5), null);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[AdvancedNpcTrade] Could not set ItemPower for {item.GetType().FullName}: {ex}");
+                }
+            }
+
+            if (!string.IsNullOrEmpty(displayName))
+            {
+                item.Name = displayName;
+            }
+
+            item.InvalidateProperties();
         }
 
         private static double GetCityBonusPoints(BaseVendor vendor, Mobile buyer)
@@ -328,6 +416,24 @@ namespace Server.Custom.AdvancedNpcTrade
         {
             List<IBuyItemInfo> artifacts = new List<IBuyItemInfo>();
             if (vendor == null || buyer == null) return artifacts;
+
+            var offerKey = Tuple.Create(vendor.Serial, buyer.Serial);
+            if (_legendaryOffers.TryGetValue(offerKey, out List<GenericBuyInfo> existingOffers))
+            {
+                if (existingOffers.Exists(offer => offer.Amount > 0))
+                {
+                    artifacts.AddRange(existingOffers);
+                    return artifacts;
+                }
+
+                foreach (GenericBuyInfo offer in existingOffers)
+                {
+                    offer.DeleteDisplayEntity();
+                }
+
+                _legendaryOffers.Remove(offerKey);
+            }
+
             bool isEvilShop = IsEvilVendor(vendor);
             if (!isEvilShop && vendor.Region != null && !string.IsNullOrEmpty(vendor.Region.Name))
             {
@@ -431,12 +537,6 @@ namespace Server.Custom.AdvancedNpcTrade
                     if (spawnedItem == null) spawnedItem = new Candle();
                     if (spawnedItem != null)
                     {
-                        if (spawnedItem is BaseWeapon weapon)
-                            BaseRunicTool.ApplyAttributesTo(weapon, 5, 95, 100);
-                        else if (spawnedItem is BaseArmor armor)
-                            BaseRunicTool.ApplyAttributesTo(armor, 5, 95, 100);
-                        else if (spawnedItem is BaseJewel jewel)
-                            BaseRunicTool.ApplyAttributesTo(jewel, 5, 95, 100);
                         var powerProp = spawnedItem.GetType().GetProperty("ItemPower");
                         if (powerProp != null && powerProp.CanWrite)
                         {
@@ -452,6 +552,7 @@ namespace Server.Custom.AdvancedNpcTrade
                         string finalDisplayName = $"{prefix} {itemRealName}";
                         string diabloColoredName = Server.Custom.DiabloLoot.DiabloLootColors.FormatName(spawnedItem, finalDisplayName);
                         var info = new GenericBuyInfo(diabloColoredName, spawnedItem.GetType(), finalPrice, 1, spawnedItem.ItemID, spawnedItem.Hue);
+                        ApplyLegendaryProperties(info.GetDisplayEntity() as Item, diabloColoredName);
                         artifacts.Add(info);
                         spawnedItem.Delete();
                     }
@@ -461,6 +562,13 @@ namespace Server.Custom.AdvancedNpcTrade
                     Console.WriteLine($"[AdvancedNpcTrade] Ошибка скрытой витрины: {ex.Message}");
                 }
             }
+
+            List<GenericBuyInfo> generatedOffers = artifacts.ConvertAll(item => (GenericBuyInfo)item);
+            if (generatedOffers.Count > 0)
+            {
+                _legendaryOffers[offerKey] = generatedOffers;
+            }
+
             return artifacts;
         }
         private static void LoyaltyInfo_OnCommand(CommandEventArgs e)

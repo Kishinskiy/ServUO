@@ -119,7 +119,7 @@ namespace Server.Custom.AdvancedNpcTrade
                             Mobile player = World.FindMobile(kvp.Key.Item2);
                             bool isExpired = (now - kvp.Value.LastPurchase) > MaxInactivity;
 
-                            // Если сущности удалены или запись устарела на 30 дней — стираем строку
+                            // Удаляем запись, если торговец/игрок больше не существует или лояльность устарела.
                             if (vendor == null || player == null || isExpired || kvp.Value.Purchases <= 0.0)
                             {
                                 keysToRemove.Add(kvp.Key);

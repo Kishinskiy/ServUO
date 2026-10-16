@@ -974,27 +974,6 @@ namespace Server.Mobiles
 					continue;
 				}
 
-				// --- НАЧАЛО ВСТАВКИ: Накладываем легендарные свойства на предмет в витрине, чтобы игрок видел их при наведении ---
-				if (disp is Item displayItem && displayItem.Name != null && displayItem.Name.Contains("[Легенда]"))
-				{
-					if (displayItem is BaseWeapon weapon)
-						BaseRunicTool.ApplyAttributesTo(weapon, 5, 95, 100);
-					else if (displayItem is BaseArmor armor)
-						BaseRunicTool.ApplyAttributesTo(armor, 5, 95, 100);
-					else if (displayItem is BaseJewel jewel)
-						BaseRunicTool.ApplyAttributesTo(jewel, 5, 95, 100);
-
-					var powerProp = displayItem.GetType().GetProperty("ItemPower");
-					if (powerProp != null && powerProp.CanWrite)
-					{
-						try { powerProp.SetValue(displayItem, Enum.ToObject(powerProp.PropertyType, 5), null); } catch { }
-					}
-
-					// Обновляем список свойств предмета, чтобы клиент игры считал новые параметры
-					displayItem.InvalidateProperties();
-				}
-				// --- КОНЕЦ ВСТАВКИ ---
-
 				int displayPrice = Server.Custom.AdvancedNpcTrade.AdvancedNpcTradeMod.CalculateDiscountedPrice(this, from, buyItem.Price);
 
 				list.Add(
@@ -1503,7 +1482,7 @@ namespace Server.Mobiles
 
 		#endregion
 
-		private GenericBuyInfo LookupDisplayObject(object obj)
+		private GenericBuyInfo LookupDisplayObject(object obj, Mobile buyer)
 		{
 			var buyInfo = GetBuyInfo();
 
@@ -1517,7 +1496,7 @@ namespace Server.Mobiles
 				}
 			}
 
-			return null;
+			return AdvancedNpcTradeMod.FindLegendaryOffer(this, buyer, obj);
 		}
 
 		private void ProcessSinglePurchase(
@@ -1556,7 +1535,7 @@ namespace Server.Mobiles
 			validBuy.Add(buy);
 		}
 
-		private void ProcessValidPurchase(int amount, IBuyItemInfo bii, Mobile buyer, Container cont)
+		private int ProcessValidPurchase(int amount, IBuyItemInfo bii, Mobile buyer, Container cont)
 		{
 			if (amount > bii.Amount)
 			{
@@ -1565,35 +1544,60 @@ namespace Server.Mobiles
 
 			if (amount < 1)
 			{
-				return;
+				return 0;
 			}
 
 			bii.Amount -= amount;
 
-			IEntity o = bii.GetEntity();
+			bool isLegendary = bii.Name != null &&
+				(bii.Name.Contains("[Легенда]") || bii.Name.Contains("[Запретный Артефакт]"));
+			IEntity displayEntity = isLegendary && bii is GenericBuyInfo genericBuyInfo
+				? genericBuyInfo.TakeDisplayEntity()
+				: null;
+			bool usedDisplayEntity = displayEntity != null;
+			IEntity o = displayEntity;
+
+			if (o == null)
+			{
+				o = bii.GetEntity();
+			}
+
+			int purchasedAmount = 0;
 
 			if (o is Item)
 			{
 				Item item = (Item)o;
+				Item boughtItem = item;
 
 				if (item.Stackable)
 				{
 					item.Amount = amount;
+					if (isLegendary && !usedDisplayEntity)
+					{
+						AdvancedNpcTradeMod.ApplyLegendaryProperties(item, bii.Name);
+					}
 
 					if (cont == null || !cont.TryDropItem(buyer, item, false))
 					{
 						item.MoveToWorld(buyer.Location, buyer.Map);
 					}
+
+					purchasedAmount = amount;
 				}
 				else
 				{
 					item.Amount = 1;
+					if (isLegendary && !usedDisplayEntity)
+					{
+						AdvancedNpcTradeMod.ApplyLegendaryProperties(item, bii.Name);
+					}
 
 					if (cont == null || !cont.TryDropItem(buyer, item, false))
 					{
 						item.MoveToWorld(buyer.Location, buyer.Map);
 					}
 
+					purchasedAmount = 1;
 					for (int i = 1; i < amount; i++)
 					{
 						item = bii.GetEntity() as Item;
@@ -1601,43 +1605,32 @@ namespace Server.Mobiles
 						if (item != null)
 						{
 							item.Amount = 1;
+							if (isLegendary)
+							{
+								AdvancedNpcTradeMod.ApplyLegendaryProperties(item, bii.Name);
+							}
 
 							if (cont == null || !cont.TryDropItem(buyer, item, false))
 							{
 								item.MoveToWorld(buyer.Location, buyer.Map);
 							}
+
+							purchasedAmount++;
 						}
 					}
 				}
 
-				// ВСТАВКА МОДА: Если игрок покупает легендарный артефакт, наделяем его магической силой на лету
-				if (bii.Name != null && bii.Name.Contains("[Легенда]"))
-				{
-					if (item is BaseWeapon weapon)
-						BaseRunicTool.ApplyAttributesTo(weapon, 5, 95, 100);
-					else if (item is BaseArmor armor)
-						BaseRunicTool.ApplyAttributesTo(armor, 5, 95, 100);
-					else if (item is BaseJewel jewel)
-						BaseRunicTool.ApplyAttributesTo(jewel, 5, 95, 100);
-
-					var powerProp = item.GetType().GetProperty("ItemPower");
-					if (powerProp != null && powerProp.CanWrite)
-					{
-						try { powerProp.SetValue(item, Enum.ToObject(powerProp.PropertyType, 5), null); } catch { }
-					}
-				}
-
-				bii.OnBought(buyer, this, item, amount);
+				bii.OnBought(buyer, this, boughtItem, purchasedAmount);
 			}
 			else if (o is Mobile)
 			{
 				Mobile m = (Mobile)o;
-
-				bii.OnBought(buyer, this, m, amount);
+				Mobile boughtMobile = m;
 
 				m.Direction = (Direction)Utility.Random(8);
 				m.MoveToWorld(buyer.Location, buyer.Map);
 				m.PlaySound(m.GetIdleSound());
+				purchasedAmount = 1;
 
 				if (m is BaseCreature)
 				{
@@ -1657,9 +1650,15 @@ namespace Server.Mobiles
 						{
 							((BaseCreature)m).SetControlMaster(buyer);
 						}
+
+						purchasedAmount++;
 					}
 				}
+
+				bii.OnBought(buyer, this, boughtMobile, purchasedAmount);
 			}
+
+			return purchasedAmount;
 		}
 
 		public virtual bool OnBuyItems(Mobile buyer, List<BuyItemResponse> list)
@@ -1686,6 +1685,7 @@ namespace Server.Mobiles
 			var info = GetSellInfo();
 			var totalCost = 0.0;
 			var validBuy = new List<BuyItemResponse>(list.Count);
+			int totalPurchasedAmount = 0;
 			Container cont;
 			bool bought = false;
 			bool fromBank = false;
@@ -1707,7 +1707,7 @@ namespace Server.Mobiles
 						continue;
 					}
 
-					GenericBuyInfo gbi = LookupDisplayObject(item);
+					GenericBuyInfo gbi = LookupDisplayObject(item, buyer);
 
 					if (gbi != null)
 					{
@@ -1763,7 +1763,7 @@ namespace Server.Mobiles
 						continue;
 					}
 
-					GenericBuyInfo gbi = LookupDisplayObject(mob);
+					GenericBuyInfo gbi = LookupDisplayObject(mob, buyer);
 
 					if (gbi != null)
 					{
@@ -1893,11 +1893,11 @@ namespace Server.Mobiles
 						continue;
 					}
 
-					GenericBuyInfo gbi = LookupDisplayObject(item);
+					GenericBuyInfo gbi = LookupDisplayObject(item, buyer);
 
 					if (gbi != null)
 					{
-						ProcessValidPurchase(amount, gbi, buyer, cont);
+						totalPurchasedAmount += ProcessValidPurchase(amount, gbi, buyer, cont);
 					}
 					else
 					{
@@ -1933,6 +1933,7 @@ namespace Server.Mobiles
 										buyItem.MoveToWorld(buyer.Location, buyer.Map);
 									}
 
+									totalPurchasedAmount += amount;
 									break;
 								}
 							}
@@ -1948,11 +1949,11 @@ namespace Server.Mobiles
 						continue;
 					}
 
-					GenericBuyInfo gbi = LookupDisplayObject(mob);
+					GenericBuyInfo gbi = LookupDisplayObject(mob, buyer);
 
 					if (gbi != null)
 					{
-						ProcessValidPurchase(amount, gbi, buyer, cont);
+						totalPurchasedAmount += ProcessValidPurchase(amount, gbi, buyer, cont);
 					}
 				}
 			} //foreach
@@ -2020,7 +2021,7 @@ namespace Server.Mobiles
 			}
 
 			// СЮДА: Засчитываем успешную покупку в базу данных лояльности
-			AdvancedNpcTradeMod.OnSuccessfulPurchase(this, buyer, validBuy.Count);
+			AdvancedNpcTradeMod.OnSuccessfulPurchase(this, buyer, totalPurchasedAmount);
 
 			return true;
 		}
@@ -2170,6 +2171,7 @@ namespace Server.Mobiles
 			var buyInfo = GetBuyInfo();
 			int GiveGold = 0;
 			int Sold = 0;
+			int totalSoldAmount = 0;
 			Container cont;
 
 			foreach (SellItemResponse resp in list)
@@ -2276,6 +2278,7 @@ namespace Server.Mobiles
 
 						var singlePrice = ssi.GetSellPriceFor(resp.Item, this);
 						GiveGold += singlePrice * amount;
+						totalSoldAmount += amount;
 
 						EventSink.InvokeValidVendorSell(new ValidVendorSellEventArgs(seller, this, resp.Item, singlePrice));
 
@@ -2312,16 +2315,8 @@ namespace Server.Mobiles
 			}
 			//no cliloc for this?
 			//SayTo( seller, true, "Thank you! I bought {0} item{1}. Here is your {2}gp.", Sold, (Sold > 1 ? "s" : ""), GiveGold );
-			if (list != null && list.Count > 0)
+			if (totalSoldAmount > 0)
 			{
-				int totalSoldAmount = 0;
-				for (int i = 0; i < list.Count; i++)
-				{
-					// Суммируем количество каждого проданного стопкой предмета
-					totalSoldAmount += list[i].Amount;
-				}
-
-				// Вызываем наш кастомный метод лояльности продавцов
 				AdvancedNpcTradeMod.OnSuccessfulSell(this, seller, totalSoldAmount);
 			}
 			return true;

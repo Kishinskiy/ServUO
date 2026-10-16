@@ -302,6 +302,13 @@ namespace Server.Mobiles
             return m_DisplayEntity;
         }
 
+        public IEntity TakeDisplayEntity()
+        {
+            IEntity displayEntity = m_DisplayEntity;
+            m_DisplayEntity = null;
+            return displayEntity;
+        }
+
         //get a new instance of an object (we just bought it)
         public virtual IEntity GetEntity()
         {
