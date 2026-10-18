@@ -8,6 +8,7 @@ using Server.Targeting;
 using Server.Network;
 using Server.Commands;
 using Server.Custom.CityDevelopment;
+using System.Linq;
 
 namespace Server.Custom.TownBoards
 {
@@ -222,9 +223,12 @@ namespace Server.Custom.TownBoards
             foreach (Server.Engines.CityLoyalty.City c in Enum.GetValues(typeof(Server.Engines.CityLoyalty.City)))
             {
                 var instance = Server.Engines.CityLoyalty.CityLoyaltySystem.GetCityInstance(c);
-                if (instance != null && instance.Definition != null && instance.Definition.Region != null)
+                if (instance != null && instance.Definition != null)
                 {
-                    if (instance.Definition.Region.IsPartOf(from.Region))
+                    Region cityRegion = Region.Regions.FirstOrDefault(r =>
+                        r.Map == from.Map && r.Name == instance.Definition.Name);
+
+                    if (cityRegion != null && cityRegion.IsPartOf(from.Region))
                     {
                         currentCity = c;
                         cityFound = true;
