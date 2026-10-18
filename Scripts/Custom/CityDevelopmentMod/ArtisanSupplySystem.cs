@@ -114,7 +114,13 @@ namespace Server.Custom.CityDevelopment
                 return;
             }
 
-            ArtisanSupplyDeed deed = new ArtisanSupplyDeed(city, category, GetRequiredAmount(category), player.Map);
+            int multiplier = Utility.RandomMinMax(1, 4);
+            int requiredAmount = GetRequiredAmount(category) * multiplier;
+            long treasuryReward = CityDevelopmentMod.ArtisanOrderRevenue * multiplier;
+            int goldReward = 2500 * multiplier;
+            int reputationReward = (10 + (multiplier - 1) * 5);
+            ArtisanSupplyDeed deed = new ArtisanSupplyDeed(
+                city, category, requiredAmount, player.Map, goldReward, treasuryReward, reputationReward);
             if (!player.AddToBackpack(deed))
             {
                 deed.Delete();
@@ -122,7 +128,8 @@ namespace Server.Custom.CityDevelopment
                 return;
             }
 
-            player.SendMessage(0x35, $"Вы приняли заказ на поставку: {GetRequiredAmount(category)} ед. — {GetCategoryName(category)}.");
+            player.SendMessage(0x35, $"Вы приняли заказ на поставку: {requiredAmount} ед. — {GetCategoryName(category)}.");
+            player.SendMessage(0x35, $"Награда: {goldReward:N0} золота вам, {treasuryReward:N0} золота в казну и {reputationReward} ремесленной репутации.");
             player.SendMessage(0x35, "Сдайте товары Торговому Министру указанного города в течение 24 часов.");
         }
 
@@ -168,10 +175,13 @@ namespace Server.Custom.CityDevelopment
             ConsumeGoods(goods, deed.RequiredAmount, deed.Category, progress);
             deed.Delete();
 
-            CityDevelopmentMod.AddTreasuryRevenue(deed.City, player.Map, CityDevelopmentMod.ArtisanOrderRevenue);
+            Banker.Deposit(player, deed.GoldReward, true);
+            CityDevelopmentMod.AddTreasuryRevenue(deed.City, player.Map, deed.TreasuryReward);
 
             int level = Math.Max(1, Math.Min(5, progress.Level));
-            int reputationReward = 10 + (level - 1) * 2;
+            int reputationReward = deed.ReputationReward > 0
+                ? deed.ReputationReward
+                : 10 + (level - 1) * 2;
 
             if (!_reputation.ContainsKey(player))
                 _reputation[player] = 0;
@@ -181,7 +191,7 @@ namespace Server.Custom.CityDevelopment
             player.PlaySound(0x57);
             minister.PublicOverheadMessage(MessageType.Regular, 0x35, false, "Ваш вклад принят. Городские склады пополнены!");
             player.SendMessage(0x58, $"Поставка зачислена на городской склад. +{reputationReward} ремесленной репутации. Репутация: {_reputation[player]}.");
-            player.SendMessage(0x35, $"Казна города пополнена на {CityDevelopmentMod.ArtisanOrderRevenue:N0} золота. Бонус города к шансу крафта: +{Math.Max(0, level - 1) * 2}%.");
+            player.SendMessage(0x35, $"Ваша награда: {deed.GoldReward:N0} золота; казна города пополнена на {deed.TreasuryReward:N0}. Бонус города к шансу крафта: +{Math.Max(0, level - 1) * 2}%.");
 
             return true;
         }
@@ -368,6 +378,9 @@ namespace Server.Custom.CityDevelopment
         private Server.Engines.CityLoyalty.City _city;
         private ArtisanSupplyCategory _category;
         private int _requiredAmount;
+        private int _goldReward;
+        private long _treasuryReward;
+        private int _reputationReward;
         private DateTime _expiresAt;
         private Map _map;
 
@@ -381,17 +394,36 @@ namespace Server.Custom.CityDevelopment
         public int RequiredAmount => _requiredAmount;
 
         [CommandProperty(AccessLevel.GameMaster)]
+        public int GoldReward => _goldReward;
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public long TreasuryReward => _treasuryReward;
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int ReputationReward => _reputationReward;
+
+        [CommandProperty(AccessLevel.GameMaster)]
         public DateTime ExpiresAt => _expiresAt;
 
         [CommandProperty(AccessLevel.GameMaster)]
         public Map OrderMap => _map;
 
-        public ArtisanSupplyDeed(Server.Engines.CityLoyalty.City city, ArtisanSupplyCategory category, int amount, Map map)
+        public ArtisanSupplyDeed(
+            Server.Engines.CityLoyalty.City city,
+            ArtisanSupplyCategory category,
+            int amount,
+            Map map,
+            int goldReward,
+            long treasuryReward,
+            int reputationReward)
             : base(0x14F0)
         {
             _city = city;
             _category = category;
             _requiredAmount = amount;
+            _goldReward = goldReward;
+            _treasuryReward = treasuryReward;
+            _reputationReward = reputationReward;
             _expiresAt = DateTime.UtcNow.AddHours(24);
             _map = map;
             Weight = 1.0;
@@ -409,7 +441,7 @@ namespace Server.Custom.CityDevelopment
             list.Add($"Город: {_city}");
             list.Add($"Поставка: {ArtisanSupplySystem.GetCategoryName(_category)} — {_requiredAmount} ед.");
             list.Add($"Принимаются: {ArtisanSupplySystem.GetCategoryDescription(_category)}.");
-            list.Add($"Поставка пополняет склад, казну (+{CityDevelopmentMod.ArtisanOrderRevenue:N0} золота) и дает ремесленную репутацию.");
+            list.Add($"Награда: {_goldReward:N0} золота вам, {_treasuryReward:N0} золота в казну и {_reputationReward} ремесленной репутации.");
             list.Add($"Действует до: {_expiresAt.ToLocalTime():g}");
             list.Add("Дважды щелкните и сдайте товары Торговому Министру.");
         }
@@ -447,12 +479,15 @@ namespace Server.Custom.CityDevelopment
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write(1);
+            writer.Write(3);
             writer.Write((int)_city);
             writer.Write((int)_category);
             writer.Write(_requiredAmount);
             writer.Write(_expiresAt);
             writer.Write(_map);
+            writer.Write(_treasuryReward);
+            writer.Write(_reputationReward);
+            writer.Write(_goldReward);
         }
 
         public override void Deserialize(GenericReader reader)
@@ -464,6 +499,17 @@ namespace Server.Custom.CityDevelopment
             _requiredAmount = reader.ReadInt();
             _expiresAt = reader.ReadDateTime();
             _map = version >= 1 ? reader.ReadMap() : Map.Trammel;
+            if (version >= 2)
+            {
+                _treasuryReward = reader.ReadLong();
+                _reputationReward = reader.ReadInt();
+            }
+            else
+            {
+                _treasuryReward = CityDevelopmentMod.ArtisanOrderRevenue;
+                _reputationReward = 0;
+            }
+            _goldReward = version >= 3 ? reader.ReadInt() : 0;
         }
     }
 }
