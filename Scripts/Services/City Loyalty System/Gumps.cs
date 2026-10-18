@@ -447,25 +447,23 @@ AddHtmlLocalized(30, 40, 285, 230, 1152891, String.Format("#{0}", CityLoyaltySys
 
             if (City.Election == null || !City.Election.Ongoing)
             {
-                // Высота подложки увеличена со 150 до 230, чтобы влез кастомный текст
-                AddBackground(0, 0, 400, 230, 5054);
-                AddHtmlLocalized(10, 12, 150, 20, 1155758, 0xFFFF, false, false); // City Stone
+                AddBackground(0, 0, 480, 230, 5054);
+                AddHtmlLocalized(10, 12, 200, 20, 1155758, 0xFFFF, false, false); // City Stone
 
                 DateTime next = City.Election.NextElection();
 
-                AddHtmlLocalized(20, 45, 360, 60, 1153898, String.Format("{0}\t{1}\t{2}", 
+                AddHtmlLocalized(20, 45, 440, 60, 1153898, String.Format("{0}\t{1}\t{2}",
                     City.Definition.Name,
                     City.Governor == null ? "Vacant" : City.Governor.Name, 
                     next.ToString()), 0xFFFF, false, false); 
 
                 // Выводим кастомный HTML статус региона точно под официальным текстом
-                AddHtml(20, 110, 360, 90, devStatusText, false, false);
+                AddHtml(20, 110, 440, 90, devStatusText, false, false);
             }
             else
             {
-                // Высота подложки во время выборов увеличена со 182 до 270
-                AddBackground(0, 0, 500, 270, 5054);
-                AddHtmlLocalized(10, 12, 150, 20, 1155758, 0xFFFF, false, false); // City Stone
+                AddBackground(0, 0, 560, 270, 5054);
+                AddHtmlLocalized(10, 12, 200, 20, 1155758, 0xFFFF, false, false); // City Stone
 
                 if (City.Election.CanNominate())
                 {
@@ -479,8 +477,7 @@ AddHtmlLocalized(30, 40, 285, 230, 1152891, String.Format("#{0}", CityLoyaltySys
                 AddButton(10, 110, 4005, 4007, 3, GumpButtonType.Reply, 0);
                 AddHtmlLocalized(45, 110, 250, 20, 1153899, 0xFFFF, false, false); // View List of Current Candidates 
 
-                // Смещаем кастомный статус в правую часть гампа (X=280), чтобы не перекрывать кнопки выборов
-                AddHtml(280, 40, 210, 120, devStatusText, false, false);
+                AddHtml(280, 40, 260, 120, devStatusText, false, false);
 
                 // Кнопка CLOSE смещена со 150 на 190, чтобы фоновое окно выглядело гармонично
                 AddButton(10, 190, 4005, 4007, 0, GumpButtonType.Reply, 0);
