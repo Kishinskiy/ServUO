@@ -290,7 +290,6 @@ namespace Server.Engines.CityLoyalty
 
         public override PointsEntry GetSystemEntry(PlayerMobile pm)
         {
-            string worldKey = pm.Map == Map.Felucca ? "_Felucca" : "_Trammel";
             return new CityLoyaltyEntry(pm, this.City);
         }
 
@@ -1338,6 +1337,9 @@ namespace Server.Engines.CityLoyalty
 
         public static void ConstructSystems()
         {
+            if (Britain != null)
+                return;
+
             Moonglow = new Moonglow();
             Britain = new Britain();
             Jhelom = new Jhelom();
