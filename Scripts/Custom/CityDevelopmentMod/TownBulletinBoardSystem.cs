@@ -252,8 +252,9 @@ namespace Server.Custom.TownBoards
             BaseCreature victim = e.Creature as BaseCreature;
             if (victim == null) return;
 
-            Mobile killer = victim.LastKiller as Mobile;
-            if (killer == null && victim.Combatant is Mobile) killer = victim.Combatant as Mobile;
+            Mobile killer = e.Killer;
+            if (killer is BaseCreature pet)
+                killer = pet.ControlMaster ?? pet.SummonMaster;
 
             if (killer is PlayerMobile && killer.Backpack != null)
             {
@@ -263,15 +264,17 @@ namespace Server.Custom.TownBoards
                     if (scroll.ContractType == TownContractType.Bounty && !scroll.Deleted && scroll.CurrentCount < scroll.RequiredCount)
                     {
                         var instance = Server.Engines.CityLoyalty.CityLoyaltySystem.GetCityInstance(scroll.City);
-                        if (instance != null && instance.Definition != null && instance.Definition.Region != null && instance.Definition.Region.IsPartOf(killer.Region))
+                        if (instance != null && instance.Definition != null &&
+                            IsInCityHuntArea(scroll.City, victim.Map, victim.Region))
                         {
                             scroll.CurrentCount++;
                             killer.SendMessage(0x35, $"[Заказ {scroll.City}]: Контракт охоты обновлен! ({scroll.CurrentCount}/{scroll.RequiredCount})");
                             if (scroll.CurrentCount >= scroll.RequiredCount)
                             {
                                 int gold = 4000;
+                                instance.AwardLove(killer, 15);
                                 Banker.Deposit(killer, gold, true);
-                                CityDevelopmentMod.AddTreasuryRevenue(scroll.City, killer.Map, CityDevelopmentMod.BulletinBoardBountyRevenue);
+                                CityDevelopmentMod.AddTreasuryRevenue(scroll.City, victim.Map, CityDevelopmentMod.BulletinBoardBountyRevenue);
                                 killer.SendMessage(0x58, $"[Доска Заказов]: Контракт охоты выполнен! Вы получили +15 Очков Гражданина и {gold} золотых в банк; казна города пополнена на {CityDevelopmentMod.BulletinBoardBountyRevenue:N0} золота.");
                                 scroll.Delete();
                             }
@@ -280,6 +283,71 @@ namespace Server.Custom.TownBoards
                     }
                 }
             }
+
+        }
+
+        private static bool IsInCityHuntArea(
+            Server.Engines.CityLoyalty.City city,
+            Map map,
+            Region creatureRegion)
+        {
+            if (map == null || creatureRegion == null)
+                return false;
+
+            var instance = Server.Engines.CityLoyalty.CityLoyaltySystem.GetCityInstance(city);
+            if (instance == null || instance.Definition == null)
+                return false;
+
+            string cityName = instance.Definition.Name;
+            Region cityRegion = Region.Regions.FirstOrDefault(r =>
+                r.Map == map && r.Name == cityName);
+
+            if (cityRegion != null && creatureRegion.IsPartOf(cityRegion))
+                return true;
+
+            if (IsInNamedRegion(map, creatureRegion, cityName + " Graveyard"))
+                return true;
+
+            foreach (string regionName in GetAdditionalHuntRegions(city))
+            {
+                if (IsInNamedRegion(map, creatureRegion, regionName))
+                    return true;
+            }
+
+            return false;
+        }
+
+        private static string[] GetAdditionalHuntRegions(Server.Engines.CityLoyalty.City city)
+        {
+            switch (city)
+            {
+                case Server.Engines.CityLoyalty.City.Moonglow:
+                    return new[] { "Deceit" };
+                case Server.Engines.CityLoyalty.City.Britain:
+                    return new[] { "Despise", "Despise Entrance", "Despise Passage", "Painted Caves", "Orc Cave" };
+                case Server.Engines.CityLoyalty.City.Jhelom:
+                    return new[] { "Jhelom Islands" };
+                case Server.Engines.CityLoyalty.City.Yew:
+                    return new[] { "Shame", "Heartwood", "Sanctuary", "Blighted Grove" };
+                case Server.Engines.CityLoyalty.City.Minoc:
+                    return new[] { "Covetous", "Wrong" };
+                case Server.Engines.CityLoyalty.City.Trinsic:
+                    return new[] { "Destard" };
+                case Server.Engines.CityLoyalty.City.NewMagincia:
+                    return new[] { "Ocllo" };
+                case Server.Engines.CityLoyalty.City.Vesper:
+                    return new[] { "Covetous" };
+                default:
+                    return new string[0];
+            }
+        }
+
+        private static bool IsInNamedRegion(Map map, Region creatureRegion, string regionName)
+        {
+            Region region = Region.Regions.FirstOrDefault(r =>
+                r.Map == map && r.Name == regionName);
+
+            return region != null && creatureRegion.IsPartOf(region);
         }
     }
     public class TownBoardGump : Gump
