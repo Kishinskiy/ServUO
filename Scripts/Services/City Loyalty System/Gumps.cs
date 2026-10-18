@@ -98,7 +98,7 @@ namespace Server.Engines.CityLoyalty
             for (int i = 0; i < CityLoyaltySystem.Cities.Count; i++)
             {
                 CityLoyaltySystem city = CityLoyaltySystem.Cities[i];
-                if (city.Stone != null && city.Stone.Map != User.Map)
+                if (!CityLoyaltySystem.HasCityStoneOnMap(city, User.Map))
                     continue;
 
 
@@ -216,7 +216,9 @@ AddHtmlLocalized(30, 40, 285, 230, 1152891, String.Format("#{0}", CityLoyaltySys
 
             if(info.ButtonID == 1 && City != null)
             {
-                if (CityLoyaltySystem.CanAddCitizen(User))
+                if (Citizenship == null && City.CanUtilize &&
+                    CityLoyaltySystem.HasCityStoneOnMap(City, User.Map) &&
+                    CityLoyaltySystem.CanAddCitizen(User))
                 {
                     City.DeclareCitizen(User);
                 }
