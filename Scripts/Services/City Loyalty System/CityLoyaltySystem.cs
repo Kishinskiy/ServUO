@@ -643,9 +643,9 @@ namespace Server.Engines.CityLoyalty
 
         public bool CanAdd(Mobile from)
         {
-            if (CitizenWait.ContainsKey(from))
+            if (from != null && CitizenWait.TryGetValue(from, out DateTime waitUntil))
             {
-                if (CitizenWait[from] < DateTime.UtcNow)
+                if (waitUntil <= DateTime.UtcNow)
                 {
                     RemoveWaitTime(from);
                 }
@@ -660,9 +660,9 @@ namespace Server.Engines.CityLoyalty
 
         public int NextJoin(Mobile from)
         {
-            if (CitizenWait.ContainsKey(from))
+            if (from != null && CitizenWait.TryGetValue(from, out DateTime waitUntil))
             {
-                return (int)(CitizenWait[from] - DateTime.UtcNow).TotalDays;
+                return Math.Max(0, (int)Math.Ceiling((waitUntil - DateTime.UtcNow).TotalDays));
             }
 
             return 0;
@@ -895,6 +895,9 @@ namespace Server.Engines.CityLoyalty
 
         public static bool CanAddCitizen(Mobile from)
         {
+            if (from == null)
+                return false;
+
             if (from.AccessLevel > AccessLevel.Player)
                 return true;
 
@@ -904,6 +907,15 @@ namespace Server.Engines.CityLoyalty
                     return false;
             }
             return true;
+        }
+
+        public static bool HasCityStoneOnMap(CityLoyaltySystem city, Map map)
+        {
+            if (city == null || map == null || map == Map.Internal)
+                return false;
+
+            return World.Items.Values.OfType<CityStone>().Any(stone =>
+                !stone.Deleted && stone.City == city && stone.Map == map);
         }
 
         public static int NextJoinCity(Mobile from)
