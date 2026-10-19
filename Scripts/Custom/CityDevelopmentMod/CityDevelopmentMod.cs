@@ -111,6 +111,13 @@ namespace Server.Custom.CityDevelopment
                 return false;
 
             progress.Treasury += amount;
+
+            Server.Engines.CityLoyalty.CityLoyaltySystem citySystem =
+                Server.Engines.CityLoyalty.CityLoyaltySystem.GetCityInstance(city);
+
+            if (citySystem != null)
+                citySystem.Treasury = progress.Treasury;
+
             return true;
         }
 

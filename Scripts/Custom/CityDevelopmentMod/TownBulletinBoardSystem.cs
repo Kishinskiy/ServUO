@@ -217,12 +217,12 @@ namespace Server.Custom.TownBoards
 
                         m_Scroll.Delete();
 
-                        from.PlaySound(0x57);
                         minister.PublicOverheadMessage(MessageType.Regular, 0x35, false, "Превосходно! Материалы приняты на городской склад.");
                         if (rewardGold > 0)
                             Banker.Deposit(from, rewardGold, true);
                         if (rewardLoyalty > 0)
                             Server.Engines.CityLoyalty.CityLoyaltySystem.GetCityInstance(minister.City)?.AwardLove(from, rewardLoyalty);
+                        from.PlaySound(0x57);
                         from.SendMessage(0x58, $"[Доска Заказов]: Поставка принята. Награда: {rewardGold:N0} золота и {rewardLoyalty} очков лояльности; казна города пополнена на {rewardTreasury:N0} золота.");
                     }
                     else
@@ -515,6 +515,7 @@ namespace Server.Custom.TownBoards
                                     instance.AwardLove(killer, scroll.RewardLoyalty);
                                 Banker.Deposit(killer, scroll.RewardGold, true);
                                 CityDevelopmentMod.AddTreasuryRevenue(scroll.City, victim.Map, scroll.RewardTreasury);
+                                killer.PlaySound(0x57);
                                 killer.SendMessage(0x58, $"[Доска Заказов]: Контракт выполнен! Награда: {scroll.RewardGold:N0} золота и {scroll.RewardLoyalty} очков лояльности; казна пополнена на {scroll.RewardTreasury:N0} золота.");
                                 scroll.Delete();
                             }
