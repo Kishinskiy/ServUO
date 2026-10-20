@@ -407,66 +407,89 @@ namespace Server.Custom.TownBoards
                 case Server.Engines.CityLoyalty.City.Moonglow:
                     return new[]
                     {
-                        new TownHuntTarget("Skeleton", "скелетов"), new TownHuntTarget("Zombie", "зомби"),
-                        new TownHuntTarget("Ghoul", "гулей"), new TownHuntTarget("Wraith", "призраков"),
-                        new TownHuntTarget("Lich", "личей"), new TownHuntTarget("Mongbat", "монгбатов")
+                        new TownHuntTarget("Skeleton", "скелетов"),
+                        new TownHuntTarget("Zombie", "зомби"),
+                        new TownHuntTarget("Ghoul", "гулей"),
+                        new TownHuntTarget("Wraith", "призраков"),
+                        new TownHuntTarget("Lich", "личей"),
+                        new TownHuntTarget("Mongbat", "монгбатов")
                     };
                 case Server.Engines.CityLoyalty.City.Britain:
                     return new[]
                     {
-                        new TownHuntTarget("Ettin", "эттинов"), new TownHuntTarget("Ogre", "огров"),
-                        new TownHuntTarget("Troll", "троллей"), new TownHuntTarget("Orc", "орков"),
-                        new TownHuntTarget("Ratman", "крысолюдов"), new TownHuntTarget("Skeleton", "скелетов"),
+                        new TownHuntTarget("Ettin", "эттинов"),
+                        new TownHuntTarget("Ogre", "огров"),
+                        new TownHuntTarget("Troll", "троллей"),
+                        new TownHuntTarget("Orc", "орков"),
+                        new TownHuntTarget("Ratman", "крысолюдов"),
+                        new TownHuntTarget("Skeleton", "скелетов"),
                         new TownHuntTarget("Lizardman", "ящеролюдов")
                     };
                 case Server.Engines.CityLoyalty.City.Jhelom:
                     return new[]
                     {
-                        new TownHuntTarget("Brigand", "разбойников"), new TownHuntTarget("Mongbat", "монгбатов"),
-                        new TownHuntTarget("Scorpion", "скорпионов"), new TownHuntTarget("Orc", "орков")
+                        new TownHuntTarget("Brigand", "разбойников"),
+                        new TownHuntTarget("Mongbat", "монгбатов"),
+                        new TownHuntTarget("Scorpion", "скорпионов"),
+                        new TownHuntTarget("Orc", "орков")
                     };
                 case Server.Engines.CityLoyalty.City.Yew:
                     return new[]
                     {
-                        new TownHuntTarget("Orc", "орков"), new TownHuntTarget("Ratman", "крысолюдов"),
+                        new TownHuntTarget("Orc", "орков"),
+                        new TownHuntTarget("Ratman", "крысолюдов"),
                         new TownHuntTarget("EarthElemental", "земляных элементалей"),
                         new TownHuntTarget("AirElemental", "воздушных элементалей"),
-                        new TownHuntTarget("Lich", "личей"), new TownHuntTarget("Ogre", "огров"),
-                        new TownHuntTarget("Ettin", "эттинов"), new TownHuntTarget("Troll", "троллей")
+                        new TownHuntTarget("Lich", "личей"),
+                        new TownHuntTarget("Ogre", "огров"),
+                        new TownHuntTarget("Ettin", "эттинов"),
+                        new TownHuntTarget("Troll", "троллей")
                     };
                 case Server.Engines.CityLoyalty.City.Minoc:
                     return new[]
                     {
-                        new TownHuntTarget("Harpy", "гарпий"), new TownHuntTarget("Gazer", "глаза-демона"),
-                        new TownHuntTarget("Ogre", "огров"), new TownHuntTarget("Ettin", "эттинов"),
-                        new TownHuntTarget("Ratman", "крысолюдов"), new TownHuntTarget("Lich", "личей")
+                        new TownHuntTarget("Harpy", "гарпий"),
+                        new TownHuntTarget("Gazer", "глаза-демона"),
+                        new TownHuntTarget("Ogre", "огров"),
+                        new TownHuntTarget("Ettin", "эттинов"),
+                        new TownHuntTarget("Ratman", "крысолюдов"),
+                        new TownHuntTarget("Lich", "личей")
                     };
                 case Server.Engines.CityLoyalty.City.Trinsic:
                     return new[]
                     {
-                        new TownHuntTarget("Dragon", "драконов"), new TownHuntTarget("Drake", "дрейков"),
-                        new TownHuntTarget("Lizardman", "ящеролюдов"), new TownHuntTarget("Ogre", "огров"),
+                        new TownHuntTarget("Dragon", "драконов"),
+                        new TownHuntTarget("Drake", "дрейков"),
+                        new TownHuntTarget("Lizardman", "ящеролюдов"),
+                        new TownHuntTarget("Ogre", "огров"),
                         new TownHuntTarget("Ettin", "эттинов")
                     };
                 case Server.Engines.CityLoyalty.City.SkaraBrae:
                     return new[]
                     {
-                        new TownHuntTarget("Brigand", "разбойников"), new TownHuntTarget("Mongbat", "монгбатов"),
-                        new TownHuntTarget("Skeleton", "скелетов"), new TownHuntTarget("Orc", "орков")
+                        new TownHuntTarget("Brigand", "разбойников"),
+                        new TownHuntTarget("Mongbat", "монгбатов"),
+                        new TownHuntTarget("Skeleton", "скелетов"),
+                        new TownHuntTarget("Orc", "орков")
                     };
                 case Server.Engines.CityLoyalty.City.NewMagincia:
                     return new[]
                     {
-                        new TownHuntTarget("Mongbat", "монгбатов"), new TownHuntTarget("Brigand", "разбойников"),
-                        new TownHuntTarget("Orc", "орков"), new TownHuntTarget("Scorpion", "скорпионов"),
+                        new TownHuntTarget("Mongbat", "монгбатов"),
+                        new TownHuntTarget("Brigand", "разбойников"),
+                        new TownHuntTarget("Orc", "орков"),
+                        new TownHuntTarget("Scorpion", "скорпионов"),
                         new TownHuntTarget("Skeleton", "скелетов")
                     };
                 case Server.Engines.CityLoyalty.City.Vesper:
                     return new[]
                     {
-                        new TownHuntTarget("Harpy", "гарпий"), new TownHuntTarget("Gazer", "глаза-демона"),
-                        new TownHuntTarget("Ogre", "огров"), new TownHuntTarget("Ettin", "эттинов"),
-                        new TownHuntTarget("Ratman", "крысолюдов"), new TownHuntTarget("Orc", "орков")
+                        new TownHuntTarget("Harpy", "гарпий"),
+                        new TownHuntTarget("Gazer", "глаза-демона"),
+                        new TownHuntTarget("Ogre", "огров"),
+                        new TownHuntTarget("Ettin", "эттинов"),
+                        new TownHuntTarget("Ratman", "крысолюдов"),
+                        new TownHuntTarget("Orc", "орков")
                     };
                 default:
                     return new TownHuntTarget[0];
@@ -622,60 +645,73 @@ namespace Server.Custom.TownBoards
             m_SupplyOffer = TownBulletinBoardSystem.CreateSupplyOffer(city, map, offerDate);
             int huntStage = TownBulletinBoardSystem.GetHuntDifficultyStage(DateTime.UtcNow);
 
-            AddBackground(0, 0, 540, 545, 0x13BE);
+            // Увеличена общая высота гампа с 545 до 630
+            AddBackground(0, 0, 540, 630, 0x13BE);
             AddImageTiled(12, 12, 516, 32, 0xA40);
+
+            // Заголовок: Насыщенный Gold (#FFD700)
             AddHtml(24, 16, 492, 25,
-                $"<BASEFONT COLOR=#FFD36A SIZE=5><CENTER><B>ГОРОДСКИЕ ЗАКАЗЫ: {city.ToString().ToUpper()}</B></CENTER></BASEFONT>",
-                false, false);
-            AddHtml(24, 48, 492, 22,
-                "<BASEFONT COLOR=#D8D0B8 SIZE=3><CENTER>Объявления обновляются раз в сутки. Принятый заказ остается у вас.</CENTER></BASEFONT>",
+                $"<BASEFONT COLOR=#FFD700 SIZE=5><CENTER><B>ГОРОДСКИЕ ЗАКАЗЫ: {city.ToString().ToUpper()}</B></CENTER></BASEFONT>",
                 false, false);
 
-            AddBackground(16, 78, 508, 146, 0x24AE);
-            AddHtml(28, 86, 480, 24, "<BASEFONT COLOR=#FFCF70 SIZE=4><B>ЗАДАНИЕ НА ОХОТУ</B></BASEFONT>", false, false);
+            // Подзаголовок: Светло-серый (#FFF0F5)
+            AddHtml(24, 48, 492, 22,
+                "<BASEFONT COLOR=#FFF0F5 SIZE=3><CENTER>Объявления обновляются раз в сутки. Принятый заказ остается у вас.</CENTER></BASEFONT>",
+                false, false);
+
+            // --- БЛОК 1: ОХОТА ---
+            AddBackground(16, 78, 508, 156, 0x24AE); // Высота увеличена со 146 до 156
+            AddHtml(28, 86, 480, 24, "<BASEFONT COLOR=#FFA500 SIZE=4><B>ЗАДАНИЕ НА ОХОТУ</B></BASEFONT>", false, false);
             if (m_HuntOffer != null)
             {
                 AddHtml(32, 116, 470, 26,
-                    $"<BASEFONT COLOR=#FFF0C0 SIZE=4><B>Убить {m_HuntOffer.RequiredCount} {TownContractScroll.GetTargetName(m_HuntOffer.TargetCreature)}</B></BASEFONT>",
+                    $"<BASEFONT COLOR=#FFFFFF SIZE=4><B>Убить {m_HuntOffer.RequiredCount} {TownContractScroll.GetTargetName(m_HuntOffer.TargetCreature)}</B></BASEFONT>",
                     false, false);
-                AddHtml(32, 146, 470, 22,
-                    $"<BASEFONT COLOR=#C9D6E2 SIZE=3>Награда: {m_HuntOffer.RewardGold:N0} золота, {m_HuntOffer.RewardLoyalty} очков лояльности, {m_HuntOffer.RewardTreasury:N0} в казну.</BASEFONT>",
+                AddHtml(32, 148, 470, 22,
+                    $"<BASEFONT COLOR=#FFFACD SIZE=3>Награда: {m_HuntOffer.RewardGold:N0} золота, {m_HuntOffer.RewardLoyalty} очков лояльности, {m_HuntOffer.RewardTreasury:N0} в казну.</BASEFONT>",
                     false, false);
-                AddHtml(32, 170, 430, 22,
-                    $"<BASEFONT COLOR=#B7D9AA SIZE=2>Сложность {huntStage}/4. Уровень повышается каждые 30 дней; учитываются области охоты города.</BASEFONT>",
+                AddHtml(32, 174, 430, 22,
+                    $"<BASEFONT COLOR=#98FB98 SIZE=2>Сложность {huntStage}/4. Уровень повышается каждые 30 дней; учитываются области охоты города.</BASEFONT>",
                     false, false);
-                AddButton(468, 132, 0xFA5, 0xFA7, 1, GumpButtonType.Reply, 0);
-                AddHtml(32, 196, 470, 18,
-                    "<BASEFONT COLOR=#AEB8C4 SIZE=2>Цель и объем выбираются случайно из местного пула.</BASEFONT>",
+                AddButton(468, 137, 0xFA5, 0xFA7, 1, GumpButtonType.Reply, 0); // Кнопка смещена чуть ниже для центровки
+                AddHtml(32, 204, 470, 18,
+                    "<BASEFONT COLOR=#A9A9A9 SIZE=2>Цель и объем выбираются случайно из местного пула.</BASEFONT>",
                     false, false);
             }
 
-            AddBackground(16, 232, 508, 112, 0x24AE);
-            AddHtml(28, 240, 480, 24, "<BASEFONT COLOR=#83D5E8 SIZE=4><B>ЗАДАНИЕ НА СНАБЖЕНИЕ</B></BASEFONT>", false, false);
-            AddHtml(32, 270, 430, 25,
-                $"<BASEFONT COLOR=#FFF0C0 SIZE=3>Доставить {m_SupplyOffer.RequiredCount} ед. ресурса: {GetResourceName(m_SupplyOffer.ResourceClass)}.</BASEFONT>",
+            // --- БЛОК 2: СНАБЖЕНИЕ ---
+            // Сдвинут по Y со 232 на 250, высота увеличена со 112 до 120
+            AddBackground(16, 250, 508, 120, 0x24AE);
+            AddHtml(28, 258, 480, 24, "<BASEFONT COLOR=#00FFFF SIZE=4><B>ЗАДАНИЕ НА СНАБЖЕНИЕ</B></BASEFONT>", false, false);
+            AddHtml(32, 288, 430, 25,
+                $"<BASEFONT COLOR=#FFFFFF SIZE=3>Доставить {m_SupplyOffer.RequiredCount} ед. ресурса: {GetResourceName(m_SupplyOffer.ResourceClass)}.</BASEFONT>",
                 false, false);
-            AddHtml(32, 298, 430, 22,
-                $"<BASEFONT COLOR=#C9D6E2 SIZE=2>Награда: {m_SupplyOffer.RewardGold:N0} золота, {m_SupplyOffer.RewardLoyalty} очков лояльности и {m_SupplyOffer.RewardTreasury:N0} в казну.</BASEFONT>",
+            AddHtml(32, 318, 430, 22,
+                $"<BASEFONT COLOR=#FFFACD SIZE=2>Награда: {m_SupplyOffer.RewardGold:N0} золота, {m_SupplyOffer.RewardLoyalty} очков лояльности и {m_SupplyOffer.RewardTreasury:N0} в казну.</BASEFONT>",
                 false, false);
-            AddButton(468, 273, 0xFA5, 0xFA7, 2, GumpButtonType.Reply, 0);
+            AddButton(468, 295, 0xFA5, 0xFA7, 2, GumpButtonType.Reply, 0); // Кнопка смещена
 
-            AddBackground(16, 352, 508, 142, 0x24AE);
-            AddHtml(28, 360, 480, 24, "<BASEFONT COLOR=#B8E986 SIZE=4><B>РЕМЕСЛЕННЫЕ ЗАКАЗЫ</B></BASEFONT>", false, false);
-            AddHtml(28, 386, 480, 34,
-                "<BASEFONT COLOR=#E5E1D5 SIZE=3>Выберите категорию: объем заказа случайный (от 1 до 4 базовых объемов); за крупную поставку выше и выплата.</BASEFONT>",
+            // --- БЛОК 3: РЕМЕСЛО ---
+            // Сдвинут по Y со 352 на 386, высота увеличена со 142 до 180
+            AddBackground(16, 386, 508, 180, 0x24AE);
+            AddHtml(28, 394, 480, 24, "<BASEFONT COLOR=#3ADF00 SIZE=4><B>РЕМЕСЛЕННЫЕ ЗАКАЗЫ</B></BASEFONT>", false, false);
+            AddHtml(28, 422, 480, 34,
+                "<BASEFONT COLOR=#E0E0E0 SIZE=3>Выберите категорию: объем заказа случайный (от 1 до 4 базовых объемов); за крупную поставку выше и выплата.</BASEFONT>",
                 false, false);
-            AddCategoryButton(32, 430, 3, "Сырье", 90);
-            AddCategoryButton(144, 430, 4, "Оружие / броня", 115);
-            AddCategoryButton(278, 430, 5, "Боеприпасы", 100);
-            AddCategoryButton(390, 430, 6, "Провизия", 100);
-            AddCategoryButton(32, 464, 7, "Магические материалы", 180);
 
-            AddHtml(28, 504, 490, 22,
-                $"<BASEFONT COLOR=#D7C7A1 SIZE=2>Ремесленная репутация: {ArtisanSupplySystem.GetReputation(from)}  |  Городской бонус к крафту: +{CityDevelopmentMod.GetCraftingChanceBonus(from) * 100:0}%  |  Ремесленный заказ: раз в 24 ч.</BASEFONT>",
+            // Кнопки категорий смещены ниже под новый текст
+            AddCategoryButton(32, 470, 3, "Сырье", 90);
+            AddCategoryButton(144, 470, 4, "Оружие / броня", 115);
+            AddCategoryButton(278, 470, 5, "Боеприпасы", 100);
+            AddCategoryButton(390, 470, 6, "Провизия", 100);
+            AddCategoryButton(32, 510, 7, "Магические материалы", 180);
+
+            // --- ПОДВАЛ ГАМПА ---
+            // Сдвинут по Y со 504 на 585
+            AddHtml(28, 585, 490, 22,
+                $"<BASEFONT COLOR=#B0C4DE SIZE=2>Ремесленная репутация: {ArtisanSupplySystem.GetReputation(from)}  |  Городской бонус к крафту: +{CityDevelopmentMod.GetCraftingChanceBonus(from) * 100:0}%  |  Ремесленный заказ: раз в 24 ч.</BASEFONT>",
                 false, false);
         }
-
         private static string GetResourceName(string resource)
         {
             switch (resource)
