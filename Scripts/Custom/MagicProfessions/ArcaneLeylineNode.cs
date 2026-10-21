@@ -58,7 +58,22 @@ namespace Server.Custom.MagicProfessions
 
             _charges--;
             if (_charges == 0)
-                _rechargeAt = DateTime.UtcNow.AddHours(2);
+            {
+                from.SendMessage(0x22, "Узел полностью истощился и растворился в линиях силы мира...");
+                
+                // Запускаем создание новой случайной ноды на этой же карте через 2 часа
+                Map currentMap = this.Map;
+                if (currentMap != null && currentMap != Map.Internal)
+                {
+                    Timer.DelayCall(TimeSpan.FromHours(2.0), () => 
+                    {
+                        MagicProfessionSpawner.SpawnSingleNode(currentMap);
+                    });
+                }
+
+                this.Delete(); // Удаляем текущую пустую ноду из мира навсегда
+                return;
+            }
 
             from.PlaySound(0x1F5);
             from.SendMessage(0x59, $"Вы извлекли {amount} фрагм. линии силы. Зарядов узла осталось: {_charges}/{MaxCharges}.");

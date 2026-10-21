@@ -9,7 +9,7 @@ namespace Server.Custom.MagicProfessions
 {
     public static class MagicProfessionSpawner
     {
-        private const int NodesPerMap = 3;
+        private const int NodesPerMap = 15;
         private const int MinimumNodeSpacing = 60;
         private const int SpawnAttemptsPerNode = 60;
 
@@ -137,6 +137,40 @@ namespace Server.Custom.MagicProfessions
                     return true;
             }
             return false;
+        }
+
+        public static void SpawnSingleNode(Map map)
+        {
+            if (map == null || map == Map.Internal) return;
+
+            List<ArcaneLeylineNode> nodes = GetNodes(map);
+            List<DungeonRegion> dungeons = new List<DungeonRegion>();
+
+            foreach (Region region in Region.Regions)
+            {
+                if (region is DungeonRegion dungeon && dungeon.Map == map && dungeon.Area != null && dungeon.Area.Length > 0)
+                    dungeons.Add(dungeon);
+            }
+
+            if (dungeons.Count == 0) return;
+
+            int startIndex = Utility.Random(dungeons.Count);
+            for (int regionOffset = 0; regionOffset < dungeons.Count; regionOffset++)
+            {
+                DungeonRegion dungeon = dungeons[(startIndex + regionOffset) % dungeons.Count];
+
+                for (int attempt = 0; attempt < SpawnAttemptsPerNode; attempt++)
+                {
+                    Point3D location;
+                    if (!TryGetDungeonLocation(dungeon, map, out location) || IsNearNode(nodes, location, MinimumNodeSpacing))
+                        continue;
+
+                    ArcaneLeylineNode node = new ArcaneLeylineNode();
+                    node.MoveToWorld(location, map);
+                    Console.WriteLine($"[MagicProfessions] Динамический респавн! Новый узел в данже {dungeon.Name} ({map.Name}) на {location}");
+                    return; // Успешно создали один узел, выходим
+                }
+            }
         }
     }
 }
