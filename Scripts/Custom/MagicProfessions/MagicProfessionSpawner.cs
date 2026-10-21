@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using Server;
-using Server.Engines.CityLoyalty;
 using Server.Items;
 using Server.Regions;
+
 
 namespace Server.Custom.MagicProfessions
 {
@@ -11,7 +11,6 @@ namespace Server.Custom.MagicProfessions
     {
         private const int NodesPerMap = 3;
         private const int MinimumNodeSpacing = 60;
-        private const int StationSearchRange = 20;
         private const int SpawnAttemptsPerNode = 60;
 
         private static readonly Map[] WorldMaps =
@@ -32,87 +31,13 @@ namespace Server.Custom.MagicProfessions
 
         private static void EnsureWorldObjects()
         {
-            EnsureCityStations();
-
+            // Автоматический спавн станков в городах отключен.
+            // Запуск генерации ресурсных узлов в подземельях:
             foreach (Map map in WorldMaps)
             {
                 if (map != null && map != Map.Internal)
                     EnsureLeylineNodes(map);
             }
-        }
-
-        private static void EnsureCityStations()
-        {
-            Map map = CityLoyaltySystem.SystemMap;
-            if (map == null || map == Map.Internal)
-                return;
-
-            foreach (City city in Enum.GetValues(typeof(City)))
-            {
-                CityLoyaltySystem system = CityLoyaltySystem.GetCityInstance(city);
-                if (system == null || system.Definition == null)
-                    continue;
-
-                Point3D anchor = system.Definition.TradeMinisterLocation;
-                if (anchor == Point3D.Zero)
-                    anchor = system.Definition.BoardLocation;
-
-                if (anchor == Point3D.Zero)
-                    continue;
-
-                EnsureStation<ArcaneWorkbench>(map, anchor, city);
-                EnsureStation<NecromanticAltar>(map, anchor, city);
-            }
-        }
-
-        private static void EnsureStation<T>(Map map, Point3D anchor, City city) where T : Item
-        {
-            if (HasNearbyItem<T>(map, anchor, StationSearchRange))
-                return;
-
-            Point3D location;
-            if (!TryFindStationLocation(map, anchor, out location))
-            {
-                Console.WriteLine($"[MagicProfessions] Could not find a valid location for {typeof(T).Name} in {city}.");
-                return;
-            }
-
-            Item station = Activator.CreateInstance(typeof(T)) as Item;
-            if (station == null)
-            {
-                Console.WriteLine($"[MagicProfessions] Could not create station {typeof(T).Name} in {city}.");
-                return;
-            }
-
-            station.MoveToWorld(location, map);
-            Console.WriteLine($"[MagicProfessions] Placed {typeof(T).Name} in {city} at {location} ({map.Name}).");
-        }
-
-        private static bool TryFindStationLocation(Map map, Point3D anchor, out Point3D location)
-        {
-            int[,] offsets =
-            {
-                { 2, 0 }, { -2, 0 }, { 0, 2 }, { 0, -2 },
-                { 2, 2 }, { -2, 2 }, { 2, -2 }, { -2, -2 },
-                { 3, 1 }, { -3, 1 }, { 3, -1 }, { -3, -1 }
-            };
-
-            for (int i = 0; i < offsets.GetLength(0); i++)
-            {
-                int x = anchor.X + offsets[i, 0];
-                int y = anchor.Y + offsets[i, 1];
-                int z = map.GetAverageZ(x, y);
-                Point3D candidate = new Point3D(x, y, z);
-
-                if (map.CanFit(x, y, z, 1, false, false, true))
-                {
-                    location = candidate;
-                    return true;
-                }
-            }
-
-            location = Point3D.Zero;
-            return false;
         }
 
         private static void EnsureLeylineNodes(Map map)
@@ -132,10 +57,7 @@ namespace Server.Custom.MagicProfessions
             }
 
             if (dungeons.Count == 0)
-            {
-                Console.WriteLine($"[MagicProfessions] No dungeon regions found on {map.Name}; skipping leyline node placement.");
                 return;
-            }
 
             for (int i = 0; i < needed; i++)
             {
@@ -148,23 +70,18 @@ namespace Server.Custom.MagicProfessions
 
                     for (int attempt = 0; attempt < SpawnAttemptsPerNode; attempt++)
                     {
-                        if (!TryGetDungeonLocation(dungeon, map, out Point3D location) ||
+                        Point3D location;
+                        if (!TryGetDungeonLocation(dungeon, map, out location) ||
                             IsNearNode(nodes, location, MinimumNodeSpacing))
                             continue;
 
-                        ArcaneLeylineNode node = new ArcaneLeylineNode();
+                        ArcaneLeylineNode node = new ArcaneLeylineNode(); // Спавнится как мировой (Movable = false)
                         node.MoveToWorld(location, map);
                         nodes.Add(node);
                         placed = true;
                         Console.WriteLine($"[MagicProfessions] Placed leyline node at {location} ({map.Name}, {dungeon.Name}).");
                         break;
                     }
-                }
-
-                if (!placed)
-                {
-                    Console.WriteLine($"[MagicProfessions] Could not place a leyline node on {map.Name}; no valid dungeon location was found.");
-                    break;
                 }
             }
         }
@@ -191,8 +108,7 @@ namespace Server.Custom.MagicProfessions
             Point3D candidate = new Point3D(x, y, z);
             Region pointRegion = Region.Find(candidate, map);
 
-            if (pointRegion == null || !pointRegion.IsPartOf(dungeon) ||
-                !map.CanFit(x, y, z, 1, false, false, true))
+            if (pointRegion == null || !pointRegion.IsPartOf(dungeon) || !map.CanFit(x, y, z, 1, false, false, true))
             {
                 location = Point3D.Zero;
                 return false;
@@ -205,13 +121,11 @@ namespace Server.Custom.MagicProfessions
         private static List<ArcaneLeylineNode> GetNodes(Map map)
         {
             List<ArcaneLeylineNode> nodes = new List<ArcaneLeylineNode>();
-
             foreach (Item item in World.Items.Values)
             {
                 if (!item.Deleted && item is ArcaneLeylineNode node && node.Map == map)
                     nodes.Add(node);
             }
-
             return nodes;
         }
 
@@ -219,30 +133,9 @@ namespace Server.Custom.MagicProfessions
         {
             foreach (ArcaneLeylineNode node in nodes)
             {
-                if (Math.Abs(node.X - location.X) <= range &&
-                    Math.Abs(node.Y - location.Y) <= range)
+                if (Math.Abs(node.X - location.X) <= range && Math.Abs(node.Y - location.Y) <= range)
                     return true;
             }
-
-            return false;
-        }
-
-        private static bool HasNearbyItem<T>(Map map, Point3D location, int range) where T : Item
-        {
-            IPooledEnumerable items = map.GetItemsInRange(location, range);
-            try
-            {
-                foreach (Item item in items)
-                {
-                    if (!item.Deleted && item is T)
-                        return true;
-                }
-            }
-            finally
-            {
-                items.Free();
-            }
-
             return false;
         }
     }
