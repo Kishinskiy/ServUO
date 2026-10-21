@@ -53,27 +53,47 @@ namespace Server.Misc
             return Path.GetFullPath(path);
         }
 		static DataPath()
-		{
-			string path;
+        {
+            string path = null;
 
-			if (CustomPath != null)
-			{
-				path = CustomPath;
-			}
-			else if (!Core.Unix)
-			{
-				path = Files.LoadDirectory();
-			}
-			else
-			{
-				path = null;
-			}
+            // 1. Сначала проверяем CustomPath из конфига (если он задан)
+            if (!string.IsNullOrWhiteSpace(CustomPath))
+            {
+                string resolved = ResolvePath(CustomPath);
+                if (Directory.Exists(resolved))
+                {
+                    path = resolved;
+                }
+            }
 
-			if (!String.IsNullOrWhiteSpace(path))
-			{
-				Core.DataDirectories.Add(path);
-			}
-		}
+            // 2. Если в конфиге пусто или папка не найдена, ищем в домашней директории (~/UOClassic)
+            if (path == null)
+            {
+                string homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                string defaultHomePath = Path.Combine(homeDir, "UOClassic");
+
+                if (Directory.Exists(defaultHomePath))
+                {
+                    path = defaultHomePath;
+                }
+            }
+
+            // 3. Если папка всё ещё не найдена и это Windows, ищем стандартную установку через реестр
+            if (path == null && !Core.Unix)
+            {
+                string registryPath = Files.LoadDirectory();
+                if (Directory.Exists(registryPath))
+                {
+                    path = registryPath;
+                }
+            }
+
+            // Если путь успешно определен, добавляем его в систему
+            if (!string.IsNullOrWhiteSpace(path))
+            {
+                Core.DataDirectories.Add(path);
+            }
+        }
 
         /* The following is a list of files which a required for proper execution:
         * 
