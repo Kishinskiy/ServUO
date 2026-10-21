@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using Server.Engines.Craft;
+using Server.Mobiles;
+
 
 namespace Server.Items
 {
@@ -35,7 +37,7 @@ namespace Server.Items
         Invisibility,
         Parasitic,
         Darkglow,
-		ExplodingTarPotion,
+        ExplodingTarPotion,
         #region TOL Publish 93
         Barrab,
         Jukari,
@@ -120,12 +122,29 @@ namespace Server.Items
             if (handTwo is BaseWeapon)
             {
                 BaseWeapon wep = (BaseWeapon)handTwo;
-				
+
                 if (wep.Attributes.BalancedWeapon > 0)
                     return true;
             }
 
             return (handOne == null || handTwo == null);
+        }
+
+        private void RestoreThirst(Mobile from)
+        {
+            if (from is PlayerMobile pm)
+            {
+                if (!(this is BaseExplosionPotion) && !(this is BaseExplodingTarPotion))
+                {
+                    pm.Thirst = 20;
+                    pm.SendMessage(0x42, "Вы выпили зелье и утолили жажду.");
+                    if (pm.GetStatMod("ThirstManaDebuff") != null)
+                    {
+                        pm.RemoveStatMod("ThirstManaDebuff");
+                        BuffInfo.RemoveBuff(pm, BuffIcon.Mindrot);
+                    }
+                }
+            }
         }
 
         public override void OnDoubleClick(Mobile from)
@@ -162,11 +181,13 @@ namespace Server.Items
                                 pot.MoveToWorld(from.Location, from.Map);
                             }
                             pot.Drink(from);
+                            RestoreThirst(from);
                         }
                     }
                     else
                     {
                         this.Drink(from);
+                        RestoreThirst(from);
                     }
                 }
                 else
@@ -195,7 +216,7 @@ namespace Server.Items
 
             int version = reader.ReadInt();
 
-            switch ( version )
+            switch (version)
             {
                 case 1:
                 case 0:
