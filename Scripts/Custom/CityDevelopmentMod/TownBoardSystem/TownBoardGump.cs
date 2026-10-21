@@ -200,10 +200,23 @@ namespace Server.Custom.TownBoards
 
         private static bool HasActiveTownContract(Mobile from)
         {
-            if (from.Backpack != null && from.Backpack.FindItemByType(typeof(TownContractScroll)) != null)
+            if (from.Backpack != null)
             {
-                from.SendMessage(0x22, "Сначала завершите активный городской контракт.");
-                return true;
+                TownContractScroll contract = from.Backpack.FindItemByType(typeof(TownContractScroll)) as TownContractScroll;
+                if (contract != null)
+                {
+                    if (contract.IsExpired)
+                    {
+                        contract.Delete();
+                        from.SendMessage(0x22, "Ваш активный городской контракт истек и был удален.");
+                        return false;
+                    }
+                    else
+                    {
+                        from.SendMessage(0x22, "Сначала завершите активный городской контракт.");
+                        return true;
+                    }   
+                }
             }
 
             if (ArtisanSupplySystem.HasActiveDeed(from))

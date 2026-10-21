@@ -8,13 +8,14 @@ using Server.Targeting;
 using Server.Network;
 using Server.Commands;
 using Server.Custom.CityDevelopment;
+using Server.Engines.CityLoyalty;
 using System.Linq;
 
 namespace Server.Custom.TownBoards
 {
     public enum TownContractType { Bounty, Supplies }
 
-    internal sealed class TownHuntTarget
+    public sealed class TownHuntTarget
     {
         public string TypeName { get; private set; }
         public string DisplayName { get; private set; }
@@ -38,7 +39,7 @@ namespace Server.Custom.TownBoards
 
     public class TownContractScroll : Item
     {
-        private Server.Engines.CityLoyalty.City m_City;
+        private City m_City;
         private TownContractType m_Type;
         private string m_ResourceClass;
         private int m_RequiredCount;
@@ -48,9 +49,10 @@ namespace Server.Custom.TownBoards
         private int m_RewardLoyalty;
         private long m_RewardTreasury;
         private Map m_ContractMap;
+        private DateTime m_CreationTime;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public Server.Engines.CityLoyalty.City City => m_City;
+        public City City => m_City;
 
         [CommandProperty(AccessLevel.GameMaster)]
         public TownContractType ContractType => m_Type;
@@ -79,8 +81,27 @@ namespace Server.Custom.TownBoards
         [CommandProperty(AccessLevel.GameMaster)]
         public Map ContractMap => m_ContractMap;
 
+        [CommandProperty(AccessLevel.GameMaster)]
+        public DateTime CreationTime => m_CreationTime;
+
+        public bool IsExpired => DateTime.UtcNow >= m_CreationTime + TimeSpan.FromHours(48);
+
+        public bool CheckExpiry(Mobile from)
+        {
+            if (IsExpired)
+            {
+                if (from != null)
+                {
+                    from.SendMessage(0x22, "Срок действия этого городского контракта (48 часов) истек. Он аннулирован.");
+                }
+                this.Delete();
+                return true;
+            }
+            return false;
+        }
+
         public TownContractScroll(
-            Server.Engines.CityLoyalty.City city,
+            City city,
             TownContractType type,
             string resClass,
             int count,
@@ -100,6 +121,7 @@ namespace Server.Custom.TownBoards
             m_RewardLoyalty = rewardLoyalty;
             m_RewardTreasury = rewardTreasury;
             m_ContractMap = contractMap;
+            m_CreationTime = DateTime.UtcNow;
 
             Weight = 1.0;
             Hue = (type == TownContractType.Bounty) ? 1161 : 1420;
@@ -110,6 +132,12 @@ namespace Server.Custom.TownBoards
 
         public override void AddNameProperties(ObjectPropertyList list)
         {
+            if (IsExpired)
+            {
+                list.Add("Контракт просрочен и недействителен!");
+                return;
+            }
+
             base.AddNameProperties(list);
             if (m_Type == TownContractType.Bounty)
                 list.Add($"Цель: Убить {m_RequiredCount} монстров типа {GetTargetName(m_TargetCreature)} в округе: {m_CurrentCount}/{m_RequiredCount}");
@@ -119,6 +147,11 @@ namespace Server.Custom.TownBoards
             list.Add(m_Type == TownContractType.Bounty
                 ? $"Награда: {m_RewardGold:N0} золота, {m_RewardLoyalty} очков лояльности и {m_RewardTreasury:N0} в казну."
                 : $"Награда: {m_RewardGold:N0} золота, {m_RewardLoyalty} очков лояльности и {m_RewardTreasury:N0} в казну.");
+
+            TimeSpan left = (m_CreationTime + TimeSpan.FromHours(48)) - DateTime.UtcNow;
+            if (left > TimeSpan.Zero)
+                list.Add($"Осталось времени: {left.Hours}ч. {left.Minutes}мин.");
+
             if (m_Type == TownContractType.Supplies)
                 list.Add("Сдача: дважды щелкните по свитку и выберите Торгового Министра.");
         }
@@ -131,6 +164,9 @@ namespace Server.Custom.TownBoards
 
         public override void OnDoubleClick(Mobile from)
         {
+            if (CheckExpiry(from))
+                return;
+
             if (!IsChildOf(from.Backpack))
             {
                 from.SendLocalizedMessage(1042001);
@@ -159,14 +195,19 @@ namespace Server.Custom.TownBoards
 
             protected override void OnTarget(Mobile from, object targeted)
             {
-                if (m_Scroll == null || m_Scroll.Deleted || from.Backpack == null ||
-                    !m_Scroll.IsChildOf(from.Backpack))
+                if (m_Scroll == null || m_Scroll.Deleted)
+                    return;
+
+                if (m_Scroll.CheckExpiry(from))
+                    return;
+
+                if (from.Backpack == null || !m_Scroll.IsChildOf(from.Backpack))
                 {
                     from.SendMessage(0x22, "Активный контракт должен находиться в вашем рюкзаке.");
                     return;
                 }
 
-                if (targeted is Server.Engines.CityLoyalty.TradeMinister minister)
+                if (targeted is TradeMinister minister)
                 {
                     if (minister.Deleted || minister.Map != from.Map ||
                         minister.Map != m_Scroll.ContractMap || minister.City != m_Scroll.City)
@@ -221,7 +262,7 @@ namespace Server.Custom.TownBoards
                         if (rewardGold > 0)
                             Banker.Deposit(from, rewardGold, true);
                         if (rewardLoyalty > 0)
-                            Server.Engines.CityLoyalty.CityLoyaltySystem.GetCityInstance(minister.City)?.AwardLove(from, rewardLoyalty);
+                            CityLoyaltySystem.GetCityInstance(minister.City)?.AwardLove(from, rewardLoyalty);
                         from.PlaySound(0x57);
                         from.SendMessage(0x58, $"[Доска Заказов]: Поставка принята. Награда: {rewardGold:N0} золота и {rewardLoyalty} очков лояльности; казна города пополнена на {rewardTreasury:N0} золота.");
                     }
@@ -256,7 +297,7 @@ namespace Server.Custom.TownBoards
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)2);
+            writer.Write((int)3);
             writer.Write((int)m_City);
             writer.Write((int)m_Type);
             writer.Write(m_ResourceClass);
@@ -267,12 +308,13 @@ namespace Server.Custom.TownBoards
             writer.Write(m_RewardLoyalty);
             writer.Write(m_RewardTreasury);
             writer.Write(m_ContractMap);
+            writer.Write(m_CreationTime);
         }
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
             int version = reader.ReadInt();
-            m_City = (Server.Engines.CityLoyalty.City)reader.ReadInt();
+            m_City = (City)reader.ReadInt();
             m_Type = (TownContractType)reader.ReadInt();
             m_ResourceClass = reader.ReadString();
             m_RequiredCount = reader.ReadInt();
@@ -295,6 +337,14 @@ namespace Server.Custom.TownBoards
                     : CityDevelopmentMod.BulletinBoardSupplyRevenue;
                 m_ContractMap = Map.Trammel;
             }
+            if(version >= 3)
+            {
+                m_CreationTime = reader.ReadDateTime();
+            }
+            else
+            {
+                m_CreationTime = DateTime.UtcNow;
+            }
         }
     }
 
@@ -315,12 +365,12 @@ namespace Server.Custom.TownBoards
             Mobile from = e.Mobile;
             if (from == null || !from.Alive) return;
 
-            Server.Engines.CityLoyalty.City currentCity = Server.Engines.CityLoyalty.City.Britain;
+            City currentCity = City.Britain;
             bool cityFound = false;
 
-            foreach (Server.Engines.CityLoyalty.City c in Enum.GetValues(typeof(Server.Engines.CityLoyalty.City)))
+            foreach (City c in Enum.GetValues(typeof(City)))
             {
-                var instance = Server.Engines.CityLoyalty.CityLoyaltySystem.GetCityInstance(c);
+                var instance = CityLoyaltySystem.GetCityInstance(c);
                 if (instance != null && instance.Definition != null)
                 {
                     Region cityRegion = Region.Regions.FirstOrDefault(r =>
@@ -345,7 +395,7 @@ namespace Server.Custom.TownBoards
             from.SendGump(new TownBoardGump(from, currentCity, from.Map));
         }
 
-        private static int GetDailySeed(Server.Engines.CityLoyalty.City city, Map map, DateTime date)
+        private static int GetDailySeed(City city, Map map, DateTime date)
         {
             unchecked
             {
@@ -362,9 +412,9 @@ namespace Server.Custom.TownBoards
             return Math.Min(4, 1 + elapsedDays / 30);
         }
 
-        internal static TownBoardOffer CreateHuntOffer(Server.Engines.CityLoyalty.City city, Map map, DateTime utcDate)
+        internal static TownBoardOffer CreateHuntOffer(City city, Map map, DateTime utcDate)
         {
-            TownHuntTarget[] targets = GetHuntTargets(city);
+            TownHuntTarget[] targets = TownBoardRegions.GetHuntTargets(city);
             if (targets.Length == 0)
                 return null;
 
@@ -383,7 +433,7 @@ namespace Server.Custom.TownBoards
             };
         }
 
-        internal static TownBoardOffer CreateSupplyOffer(Server.Engines.CityLoyalty.City city, Map map, DateTime utcDate)
+        internal static TownBoardOffer CreateSupplyOffer(City city, Map map, DateTime utcDate)
         {
             Random random = new Random(GetDailySeed(city, map, utcDate) ^ 0x5A17);
             string[] resources = { "iron", "leather", "wood" };
@@ -400,11 +450,11 @@ namespace Server.Custom.TownBoards
             };
         }
 
-        private static TownHuntTarget[] GetHuntTargets(Server.Engines.CityLoyalty.City city)
+        private static TownHuntTarget[] GetHuntTargets(City city)
         {
             switch (city)
             {
-                case Server.Engines.CityLoyalty.City.Moonglow:
+                case City.Moonglow:
                     return new[]
                     {
                         new TownHuntTarget("Skeleton", "скелетов"),
@@ -414,7 +464,7 @@ namespace Server.Custom.TownBoards
                         new TownHuntTarget("Lich", "личей"),
                         new TownHuntTarget("Mongbat", "монгбатов")
                     };
-                case Server.Engines.CityLoyalty.City.Britain:
+                case City.Britain:
                     return new[]
                     {
                         new TownHuntTarget("Ettin", "эттинов"),
@@ -425,7 +475,7 @@ namespace Server.Custom.TownBoards
                         new TownHuntTarget("Skeleton", "скелетов"),
                         new TownHuntTarget("Lizardman", "ящеролюдов")
                     };
-                case Server.Engines.CityLoyalty.City.Jhelom:
+                case City.Jhelom:
                     return new[]
                     {
                         new TownHuntTarget("Brigand", "разбойников"),
@@ -433,7 +483,7 @@ namespace Server.Custom.TownBoards
                         new TownHuntTarget("Scorpion", "скорпионов"),
                         new TownHuntTarget("Orc", "орков")
                     };
-                case Server.Engines.CityLoyalty.City.Yew:
+                case City.Yew:
                     return new[]
                     {
                         new TownHuntTarget("Orc", "орков"),
@@ -445,7 +495,7 @@ namespace Server.Custom.TownBoards
                         new TownHuntTarget("Ettin", "эттинов"),
                         new TownHuntTarget("Troll", "троллей")
                     };
-                case Server.Engines.CityLoyalty.City.Minoc:
+                case City.Minoc:
                     return new[]
                     {
                         new TownHuntTarget("Harpy", "гарпий"),
@@ -455,7 +505,7 @@ namespace Server.Custom.TownBoards
                         new TownHuntTarget("Ratman", "крысолюдов"),
                         new TownHuntTarget("Lich", "личей")
                     };
-                case Server.Engines.CityLoyalty.City.Trinsic:
+                case City.Trinsic:
                     return new[]
                     {
                         new TownHuntTarget("Dragon", "драконов"),
@@ -464,7 +514,7 @@ namespace Server.Custom.TownBoards
                         new TownHuntTarget("Ogre", "огров"),
                         new TownHuntTarget("Ettin", "эттинов")
                     };
-                case Server.Engines.CityLoyalty.City.SkaraBrae:
+                case City.SkaraBrae:
                     return new[]
                     {
                         new TownHuntTarget("Brigand", "разбойников"),
@@ -472,7 +522,7 @@ namespace Server.Custom.TownBoards
                         new TownHuntTarget("Skeleton", "скелетов"),
                         new TownHuntTarget("Orc", "орков")
                     };
-                case Server.Engines.CityLoyalty.City.NewMagincia:
+                case City.NewMagincia:
                     return new[]
                     {
                         new TownHuntTarget("Mongbat", "монгбатов"),
@@ -481,7 +531,7 @@ namespace Server.Custom.TownBoards
                         new TownHuntTarget("Scorpion", "скорпионов"),
                         new TownHuntTarget("Skeleton", "скелетов")
                     };
-                case Server.Engines.CityLoyalty.City.Vesper:
+                case City.Vesper:
                     return new[]
                     {
                         new TownHuntTarget("Harpy", "гарпий"),
@@ -498,9 +548,9 @@ namespace Server.Custom.TownBoards
 
         internal static TownHuntTarget GetHuntTarget(string typeName)
         {
-            foreach (Server.Engines.CityLoyalty.City city in Enum.GetValues(typeof(Server.Engines.CityLoyalty.City)))
+            foreach (City city in Enum.GetValues(typeof(City)))
             {
-                TownHuntTarget target = GetHuntTargets(city).FirstOrDefault(t => t.TypeName == typeName);
+                TownHuntTarget target = TownBoardRegions.GetHuntTargets(city).FirstOrDefault(t => t.TypeName == typeName);
                 if (target != null)
                     return target;
             }
@@ -522,9 +572,12 @@ namespace Server.Custom.TownBoards
                 Item[] contracts = killer.Backpack.FindItemsByType(typeof(TownContractScroll));
                 foreach (TownContractScroll scroll in contracts)
                 {
-                    if (scroll.ContractType == TownContractType.Bounty && !scroll.Deleted && scroll.CurrentCount < scroll.RequiredCount)
+                    if (scroll.Deleted || scroll.CheckExpiry(killer))
+                        continue;
+
+                    if (scroll.ContractType == TownContractType.Bounty && scroll.CurrentCount < scroll.RequiredCount)
                     {
-                        var instance = Server.Engines.CityLoyalty.CityLoyaltySystem.GetCityInstance(scroll.City);
+                        var instance = CityLoyaltySystem.GetCityInstance(scroll.City);
                         if (instance != null && instance.Definition != null &&
                             victim.Map == scroll.ContractMap &&
                             IsInCityHuntArea(scroll.City, victim.Map, victim.Region) &&
@@ -559,14 +612,14 @@ namespace Server.Custom.TownBoards
         }
 
         private static bool IsInCityHuntArea(
-            Server.Engines.CityLoyalty.City city,
+            City city,
             Map map,
             Region creatureRegion)
         {
             if (map == null || creatureRegion == null)
                 return false;
 
-            var instance = Server.Engines.CityLoyalty.CityLoyaltySystem.GetCityInstance(city);
+            var instance = CityLoyaltySystem.GetCityInstance(city);
             if (instance == null || instance.Definition == null)
                 return false;
 
@@ -580,7 +633,7 @@ namespace Server.Custom.TownBoards
             if (IsInNamedRegion(map, creatureRegion, cityName + " Graveyard"))
                 return true;
 
-            foreach (string regionName in GetAdditionalHuntRegions(city))
+            foreach (string regionName in TownBoardRegions.GetAdditionalHuntRegions(city))
             {
                 if (IsInNamedRegion(map, creatureRegion, regionName))
                     return true;
@@ -589,31 +642,31 @@ namespace Server.Custom.TownBoards
             return false;
         }
 
-        private static string[] GetAdditionalHuntRegions(Server.Engines.CityLoyalty.City city)
+        private static string[] GetAdditionalHuntRegions(City city)
         {
             switch (city)
             {
-                case Server.Engines.CityLoyalty.City.Moonglow:
+                case City.Moonglow:
                     return new[] { "Deceit" };
-                case Server.Engines.CityLoyalty.City.Britain:
+                case City.Britain:
                     return new[] { "Despise", "Despise Entrance", "Despise Passage", "Painted Caves", "Orc Cave" };
-                case Server.Engines.CityLoyalty.City.Jhelom:
+                case City.Jhelom:
                     return new[] { "Jhelom Islands" };
-                case Server.Engines.CityLoyalty.City.Yew:
+                case City.Yew:
                     return new[]
                     {
                         "Shame", "Heartwood", "Sanctuary", "Blighted Grove", "Orc Cave",
                         "Despise", "Despise Entrance", "Despise Passage", "Yew Cave", "Sanctuary Entrance"
                     };
-                case Server.Engines.CityLoyalty.City.Minoc:
+                case City.Minoc:
                     return new[] { "Covetous", "Wrong" };
-                case Server.Engines.CityLoyalty.City.Trinsic:
+                case City.Trinsic:
                     return new[] { "Destard" };
-                case Server.Engines.CityLoyalty.City.SkaraBrae:
+                case City.SkaraBrae:
                     return new string[0];
-                case Server.Engines.CityLoyalty.City.NewMagincia:
+                case City.NewMagincia:
                     return new[] { "Ocllo" };
-                case Server.Engines.CityLoyalty.City.Vesper:
+                case City.Vesper:
                     return new[] { "Covetous" };
                 default:
                     return new string[0];
@@ -627,5 +680,6 @@ namespace Server.Custom.TownBoards
 
             return region != null && creatureRegion.IsPartOf(region);
         }
+
     }
 }
