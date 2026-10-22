@@ -30,6 +30,7 @@ namespace Server.Custom.TownBoards
     internal sealed class TownBoardOffer
     {
         public string TargetCreature { get; set; }
+        public string TargetRegion { get; set; } // Новое поле для региона
         public int RequiredCount { get; set; }
         public string ResourceClass { get; set; }
         public int RewardGold { get; set; }
@@ -45,6 +46,7 @@ namespace Server.Custom.TownBoards
         private int m_RequiredCount;
         private int m_CurrentCount;
         private string m_TargetCreature;
+        private string m_TargetRegion; // Переменная региона охоты
         private int m_RewardGold;
         private int m_RewardLoyalty;
         private long m_RewardTreasury;
@@ -68,6 +70,9 @@ namespace Server.Custom.TownBoards
 
         [CommandProperty(AccessLevel.GameMaster)]
         public string TargetCreature => m_TargetCreature;
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public string TargetRegion => m_TargetRegion; // Геттер региона
 
         [CommandProperty(AccessLevel.GameMaster)]
         public int RewardGold => m_RewardGold;
@@ -106,6 +111,7 @@ namespace Server.Custom.TownBoards
             string resClass,
             int count,
             string targetCreature,
+            string targetRegion,
             int rewardGold,
             int rewardLoyalty,
             long rewardTreasury,
@@ -117,6 +123,7 @@ namespace Server.Custom.TownBoards
             m_RequiredCount = count;
             m_CurrentCount = 0;
             m_TargetCreature = targetCreature;
+            m_TargetRegion = targetRegion;
             m_RewardGold = rewardGold;
             m_RewardLoyalty = rewardLoyalty;
             m_RewardTreasury = rewardTreasury;
@@ -140,10 +147,25 @@ namespace Server.Custom.TownBoards
 
             base.AddNameProperties(list);
             if (m_Type == TownContractType.Bounty)
-                list.Add($"Цель: Убить {m_RequiredCount} монстров типа {GetTargetName(m_TargetCreature)} в округе: {m_CurrentCount}/{m_RequiredCount}");
-            else
-                list.Add($"Цель: Поставить городскому складу ресурс [{m_ResourceClass}]: {m_RequiredCount} шт.");
+            {
+                list.Add($"Цель: Убить {m_RequiredCount} {GetTargetName(m_TargetCreature)}: {m_CurrentCount}/{m_RequiredCount}");
 
+                // Вычисляем координаты центра региона для вывода в Тултип
+                Region reg = Region.Regions.FirstOrDefault(r => r.Map == m_ContractMap && r.Name == m_TargetRegion);
+                if (reg != null)
+                {
+                    Point2D center = TownBoardRegions.GetRegionCenter(reg);
+                    list.Add($"Регион охоты: {m_TargetRegion} (Центр: X:{center.X} YCenter:{center.Y})");
+                }
+                else
+                {
+                    list.Add($"Регион охоты: {m_TargetRegion ?? "Не определен"}");
+                }
+            }
+            else
+            {
+                list.Add($"Цель: Поставить городскому складу ресурс [{m_ResourceClass}]: {m_RequiredCount} шт.");
+            }
             list.Add(m_Type == TownContractType.Bounty
                 ? $"Награда: {m_RewardGold:N0} золота, {m_RewardLoyalty} очков лояльности и {m_RewardTreasury:N0} в казну."
                 : $"Награда: {m_RewardGold:N0} золота, {m_RewardLoyalty} очков лояльности и {m_RewardTreasury:N0} в казну.");
@@ -297,7 +319,8 @@ namespace Server.Custom.TownBoards
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)3);
+            writer.Write((int)4);
+            writer.Write(m_TargetRegion);
             writer.Write((int)m_City);
             writer.Write((int)m_Type);
             writer.Write(m_ResourceClass);
@@ -319,7 +342,7 @@ namespace Server.Custom.TownBoards
             m_ResourceClass = reader.ReadString();
             m_RequiredCount = reader.ReadInt();
             m_CurrentCount = reader.ReadInt();
-            if (version >= 1)
+            if (version >= 4)
             {
                 m_TargetCreature = reader.ReadString();
                 m_RewardGold = reader.ReadInt();
@@ -337,7 +360,7 @@ namespace Server.Custom.TownBoards
                     : CityDevelopmentMod.BulletinBoardSupplyRevenue;
                 m_ContractMap = Map.Trammel;
             }
-            if(version >= 3)
+            if (version >= 3)
             {
                 m_CreationTime = reader.ReadDateTime();
             }
@@ -345,6 +368,11 @@ namespace Server.Custom.TownBoards
             {
                 m_CreationTime = DateTime.UtcNow;
             }
+            if (version < 4) // Защита старых контрактов
+            {
+                m_TargetRegion = m_City.ToString();
+            }
+
         }
     }
 
@@ -417,20 +445,94 @@ namespace Server.Custom.TownBoards
             TownHuntTarget[] targets = TownBoardRegions.GetHuntTargets(city);
             if (targets.Length == 0)
                 return null;
-
+            // Нам нужен список ВСЕХ возможных регионов для этого города (включая имя самого города для проверки на гварду)
+            var possibleRegionNames = TownBoardRegions.GetAdditionalHuntRegions(city).ToList();
+            var instance = CityLoyaltySystem.GetCityInstance(city);
+            string cityName = instance?.Definition?.Name;
+            if (!string.IsNullOrEmpty(cityName))
+                possibleRegionNames.Add(cityName);
+            possibleRegionNames.Add(cityName + " Graveyard");
             Random random = new Random(GetDailySeed(city, map, utcDate));
-            TownHuntTarget target = targets[random.Next(targets.Length)];
-            int difficultyStage = GetHuntDifficultyStage(utcDate);
-            int requiredCount = HuntBaseCounts[random.Next(HuntBaseCounts.Length)] * difficultyStage;
-
+            // Перемешиваем цели случайным образом, но завязано на сид, чтобы у всех в этот день был один квест
+            var shuffledTargets = targets.OrderBy(x => random.Next()).ToList();
+            foreach (var target in shuffledTargets)
+            {
+                // Ищем регион для этого монстра, где ОН РЕАЛЬНО СПАВНИТСЯ и это не черта города
+                foreach (string regName in possibleRegionNames.OrderBy(x => random.Next()))
+                {
+                    // Исключаем сам город (черту города) из зон выполнения квестов
+                    if (regName == cityName)
+                        continue;
+                    Region region = Region.Regions.FirstOrDefault(r => r.Map == map && r.Name == regName);
+                    if (region == null) continue;
+                    // Валидация: Проверяем наличие спавна монстра в этом регионе!
+                    if (RegionHasSpawn(target.TypeName, region, map))
+                    {
+                        int difficultyStage = GetHuntDifficultyStage(utcDate);
+                        int requiredCount = HuntBaseCounts[random.Next(HuntBaseCounts.Length)] * difficultyStage;
+                        return new TownBoardOffer
+                        {
+                            TargetCreature = target.TypeName,
+                            TargetRegion = regName, // Привязываем конкретный проверенный регион
+                            RequiredCount = requiredCount,
+                            RewardGold = requiredCount * 100,
+                            RewardLoyalty = Math.Max(1, requiredCount / 5),
+                            RewardTreasury = requiredCount * 150L
+                        };
+                    }
+                }
+            }
+            // На случай если спавны вообще не настроены в мире, выдаем дефолт по старой схеме во избежание краша UI
+            var fallbackTarget = targets[random.Next(targets.Length)];
+            var fallbackReg = TownBoardRegions.GetAdditionalHuntRegions(city).FirstOrDefault() ?? cityName;
             return new TownBoardOffer
             {
-                TargetCreature = target.TypeName,
-                RequiredCount = requiredCount,
-                RewardGold = requiredCount * 100,
-                RewardLoyalty = Math.Max(1, requiredCount / 5),
-                RewardTreasury = requiredCount * 150L
+                TargetCreature = fallbackTarget.TypeName,
+                TargetRegion = fallbackReg,
+                RequiredCount = 50,
+                RewardGold = 5000,
+                RewardLoyalty = 10,
+                RewardTreasury = 7500
             };
+        }
+        // СКАНЕР ХОСТОВ И СПАВНЕРОВ
+        private static bool RegionHasSpawn(string creatureName, Region region, Map map)
+        {
+            if (region == null || map == null || map == Map.Internal) return false;
+
+            // Ищем любые XmlSpawner элементы в границах этого региона
+            foreach (Item item in World.Items.Values)
+            {
+                if (item.Map == map && region.Contains(item.Location))
+                {
+                    // Проверка для XmlSpawner по имени класса объекта
+                    if (item.GetType().Name.Equals("XmlSpawner", StringComparison.OrdinalIgnoreCase))
+                    {
+                        try
+                        {
+                            // Получаем свойство SpawnNames через Reflection
+                            var property = item.GetType().GetProperty("SpawnNames");
+                            if (property != null)
+                            {
+                                string[] spawnNames = property.GetValue(item, null) as string[];
+                                if (spawnNames != null)
+                                {
+                                    foreach (string name in spawnNames)
+                                    {
+                                        if (name != null && name.Equals(creatureName, StringComparison.OrdinalIgnoreCase))
+                                            return true;
+                                    }
+                                }
+                            }
+                        }
+                        catch 
+                        {
+                            // Подавляем ошибки рефлексии на случай непредвиденных структур данных
+                        }
+                    }
+                }
+            }
+            return false;
         }
 
         internal static TownBoardOffer CreateSupplyOffer(City city, Map map, DateTime utcDate)
@@ -562,11 +664,9 @@ namespace Server.Custom.TownBoards
         {
             BaseCreature victim = e.Creature as BaseCreature;
             if (victim == null || victim.Summoned || victim.Controlled) return;
-
             Mobile killer = e.Killer;
             if (killer is BaseCreature pet)
                 killer = pet.ControlMaster ?? pet.SummonMaster;
-
             if (killer is PlayerMobile && killer.Backpack != null)
             {
                 Item[] contracts = killer.Backpack.FindItemsByType(typeof(TownContractScroll));
@@ -574,14 +674,14 @@ namespace Server.Custom.TownBoards
                 {
                     if (scroll.Deleted || scroll.CheckExpiry(killer))
                         continue;
-
                     if (scroll.ContractType == TownContractType.Bounty && scroll.CurrentCount < scroll.RequiredCount)
                     {
                         var instance = CityLoyaltySystem.GetCityInstance(scroll.City);
                         if (instance != null && instance.Definition != null &&
-                            victim.Map == scroll.ContractMap &&
-                            IsInCityHuntArea(scroll.City, victim.Map, victim.Region) &&
-                            IsTargetCreature(scroll.TargetCreature, victim))
+                        victim.Map == scroll.ContractMap &&
+                        victim.Region != null &&
+                        victim.Region.Name == scroll.TargetRegion && // Проверка ЖЕСТКО на привязанный регион задания
+                        IsTargetCreature(scroll.TargetCreature, victim))
                         {
                             scroll.CurrentCount++;
                             killer.SendMessage(0x35, $"[Заказ {scroll.City}]: {TownContractScroll.GetTargetName(scroll.TargetCreature)}: {scroll.CurrentCount}/{scroll.RequiredCount}");
@@ -592,7 +692,7 @@ namespace Server.Custom.TownBoards
                                 Banker.Deposit(killer, scroll.RewardGold, true);
                                 CityDevelopmentMod.AddTreasuryRevenue(scroll.City, victim.Map, scroll.RewardTreasury);
                                 killer.PlaySound(0x57);
-                                killer.SendMessage(0x58, $"[Доска Заказов]: Контракт выполнен! Награда: {scroll.RewardGold:N0} золота и {scroll.RewardLoyalty} очков лояльности; казна пополнена на {scroll.RewardTreasury:N0} золота.");
+                                killer.SendMessage(0x58, $"[Доска Заказов]: Контракт выполнен! Награда: {scroll.RewardGold:N0} золота и {scroll.RewardLoyalty} очков лояльности.");
                                 scroll.Delete();
                             }
                             break;
@@ -600,7 +700,6 @@ namespace Server.Custom.TownBoards
                     }
                 }
             }
-
         }
 
         private static bool IsTargetCreature(string target, BaseCreature creature)
@@ -609,37 +708,6 @@ namespace Server.Custom.TownBoards
                 return true;
 
             return creature.GetType().Name == target;
-        }
-
-        private static bool IsInCityHuntArea(
-            City city,
-            Map map,
-            Region creatureRegion)
-        {
-            if (map == null || creatureRegion == null)
-                return false;
-
-            var instance = CityLoyaltySystem.GetCityInstance(city);
-            if (instance == null || instance.Definition == null)
-                return false;
-
-            string cityName = instance.Definition.Name;
-            Region cityRegion = Region.Regions.FirstOrDefault(r =>
-                r.Map == map && r.Name == cityName);
-
-            if (cityRegion != null && creatureRegion.IsPartOf(cityRegion))
-                return true;
-
-            if (IsInNamedRegion(map, creatureRegion, cityName + " Graveyard"))
-                return true;
-
-            foreach (string regionName in TownBoardRegions.GetAdditionalHuntRegions(city))
-            {
-                if (IsInNamedRegion(map, creatureRegion, regionName))
-                    return true;
-            }
-
-            return false;
         }
 
         private static string[] GetAdditionalHuntRegions(City city)

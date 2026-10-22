@@ -177,6 +177,7 @@ namespace Server.Custom.TownBoards
                     offer.ResourceClass,
                     offer.RequiredCount,
                     offer.TargetCreature,
+                    bounty ? offer.TargetRegion : null, // Передаем регион для охоты
                     offer.RewardGold,
                     offer.RewardLoyalty,
                     offer.RewardTreasury,

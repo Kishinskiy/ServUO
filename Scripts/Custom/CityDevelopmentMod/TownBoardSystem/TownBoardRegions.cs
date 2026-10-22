@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Server.Engines.CityLoyalty;
+using System.Linq;
 
 namespace Server.Custom.TownBoards
 {
@@ -22,6 +23,26 @@ namespace Server.Custom.TownBoards
                 case City.SkaraBrae:
                 default:                return new string[0];
             }
+        }
+
+        public static Point2D GetRegionCenter(Region region)
+        {
+            if (region == null || region.Area == null || region.Area.Length == 0)
+                return Point2D.Zero;
+
+            long totalX = 0;
+            long totalY = 0;
+            long totalPoints = 0;
+
+            foreach (var rect in region.Area)
+            {
+                totalX += (rect.Start.X + rect.Width / 2);
+                totalY += (rect.Start.Y + rect.Height / 2);
+                totalPoints++;
+            }
+
+            if (totalPoints == 0) return Point2D.Zero;
+            return new Point2D((int)(totalX / totalPoints), (int)(totalY / totalPoints));
         }
 
         // Цели для охоты по городам
