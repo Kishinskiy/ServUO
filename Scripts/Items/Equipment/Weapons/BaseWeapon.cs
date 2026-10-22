@@ -33,6 +33,14 @@ namespace Server.Items
 
 	public abstract class BaseWeapon : Item, IWeapon, IFactionItem, IUsesRemaining, ICraftable, ISlayer, IDurability, ISetItem, IVvVItem, IOwnerRestricted, IResource, IArtifact, ICombatEquipment, IEngravable, IQuality
 	{
+		private int m_HardeningReduction;
+		[CommandProperty(AccessLevel.GameMaster)]
+		public int HardeningReduction
+		{
+			get { return m_HardeningReduction; }
+			set { m_HardeningReduction = Math.Max(0, Math.Min(100, value)); InvalidateProperties(); } // Ограничение от 0 до 100%
+		}
+
 		#region Damage Helpers
 		public static BaseWeapon GetDamageOutput(Mobile wielder, out int min, out int max)
 		{
@@ -1037,11 +1045,11 @@ namespace Server.Items
 		public override bool CanEquip(Mobile from)
 		{
 			if (m_Hits <= 0 && m_MaxHits > 0)
-            {
-                from.SendMessage(0x22, "Этот предмет полностью сломан! Вы не можете экипировать его, пока Грандмастер не восстановит его прочность.");
-                return false;
-            }
-			
+			{
+				from.SendMessage(0x22, "Этот предмет полностью сломан! Вы не можете экипировать его, пока Грандмастер не восстановит его прочность.");
+				return false;
+			}
+
 			if (!Ethic.CheckEquip(from, this))
 			{
 				return false;
@@ -2347,26 +2355,35 @@ namespace Server.Items
 							}
 							else
 							{
-								HitPoints--;
-								if (m_Hits <= 0)
+								bool loseDurability = true;
+								if (m_HardeningReduction > 0 && Utility.Random(100) < m_HardeningReduction)
 								{
-									m_Hits = 0; // Жестко фиксируем ноль прочности
+									loseDurability = false; // Износ успешно проигнорирован благодаря закалке!
+								}
 
-									if (Parent is Mobile)
+								if (loseDurability)
+								{
+									HitPoints--;
+									if (m_Hits <= 0)
 									{
-										Mobile wielder = (Mobile)Parent;
-										
-										wielder.PlaySound(0x3B); // Звук поломки железа
-										wielder.SendMessage(0x22, $"Ваше оружие '{this.Name ?? this.GetType().Name}' полностью сломалось! Оно потеряло боевые свойства и упало в рюкзак.");
-										
-										// Принудительно разэкипируем пуху и переносим в бэкпак игрока
-										wielder.RemoveItem(this);
-										wielder.AddToBackpack(this);
+										m_Hits = 0; // Жестко фиксируем ноль прочности
 
-										wielder.UpdateTotals();
-                                    	wielder.Delta(MobileDelta.WeaponDamage | MobileDelta.Attributes);
+										if (Parent is Mobile)
+										{
+											Mobile wielder = (Mobile)Parent;
+
+											wielder.PlaySound(0x3B); // Звук поломки железа
+											wielder.SendMessage(0x22, $"Ваше оружие '{this.Name ?? this.GetType().Name}' полностью сломалось! Оно потеряло боевые свойства и упало в рюкзак.");
+
+											// Принудительно разэкипируем пуху и переносим в бэкпак игрока
+											wielder.RemoveItem(this);
+											wielder.AddToBackpack(this);
+
+											wielder.UpdateTotals();
+											wielder.Delta(MobileDelta.WeaponDamage | MobileDelta.Attributes);
+										}
+										return;
 									}
-									return;
 								}
 							}
 						}
@@ -4126,6 +4143,7 @@ namespace Server.Items
 			base.Serialize(writer);
 
 			writer.Write(19); // version
+			writer.Write(m_HardeningReduction);
 
 			// Version 19 - Removes m_SearingWeapon as its handled as a socket now
 			// Version 18 - removed VvV Item (handled in VvV System) and BlockRepair (Handled as negative attribute)
@@ -4521,6 +4539,7 @@ namespace Server.Items
 			base.Deserialize(reader);
 
 			int version = reader.ReadInt();
+			m_HardeningReduction = reader.ReadInt();
 
 			switch (version)
 			{
@@ -5547,6 +5566,11 @@ namespace Server.Items
 		public override void AddNameProperties(ObjectPropertyList list)
 		{
 			base.AddNameProperties(list);
+
+			if (m_HardeningReduction > 0)
+			{
+				list.Add($"Закалка: {m_HardeningReduction}%");
+			}
 
 			#region Factions
 			FactionEquipment.AddFactionProperties(this, list);

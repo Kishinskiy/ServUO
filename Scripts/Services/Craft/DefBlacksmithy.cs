@@ -635,6 +635,10 @@ namespace Server.Engines.Craft
                     index = AddCraft(typeof(BoneMachete), 1011081, 1020526, 45.0, 95.0, typeof(IronIngot), 1044036, 20, 1044037);
                     AddRes(index, typeof(Bone), 1049064, 6, 1049063);
                     AddRecipe(index, (int)SmithRecipes.BoneMachete);
+
+                    index = AddCraft(typeof(HardeningOil), "Материалы", "Масло для закалки оружия", 60.0, 80.0, typeof(IronIngot), "Железные слитки", 15, "Вам не хватает железных слитков.");
+                    AddRes(index, typeof(Bottle), "Пустая бутылка", 1, "Вам нужна пустая бутылка.");
+
                 }
             }
 

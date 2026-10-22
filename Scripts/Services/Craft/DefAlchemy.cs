@@ -157,7 +157,7 @@ namespace Server.Engines.Craft
                 AddRes(index, typeof(MyrmidexEggsac), 1156725, 5, 1044253);
                 AddRecipe(index, (int)AlchemyRecipes.BarrabHemolymphConcentrate);
             }
-                
+
             // Enhancement
             index = AddCraft(typeof(AgilityPotion), 1116349, 1044540, 15.0, 65.0, typeof(Bloodmoss), 1044354, 1, 1044362);
             AddRes(index, typeof(Bottle), 1044529, 1, 500315);
@@ -181,7 +181,7 @@ namespace Server.Engines.Craft
                 AddRes(index, typeof(Nightshade), 1044358, 3, 1044366);
                 AddRecipe(index, (int)TinkerRecipes.InvisibilityPotion);
             }
-            
+
             if (Core.TOL)
             {
                 index = AddCraft(typeof(JukariBurnPoiltice), 1116349, 1156726, 51.0, 151.0, typeof(Bottle), 1044529, 1, 500315);
@@ -215,6 +215,11 @@ namespace Server.Engines.Craft
                 AddRes(index, typeof(BlueCorn), 1156733, 5, 1044253);
                 SetBeverageType(index, BeverageType.Wine);
                 AddRecipe(index, (int)AlchemyRecipes.SakkhraProphylaxisPotion);
+
+                index = AddCraft(typeof(HardeningOil), "Специальные составы", "Масло для закалки оружия", 60.0, 80.0, typeof(Bottle), "Пустая бутылка", 1, "Вам нужна пустая бутылка.");
+                AddRes(index, typeof(BlackPearl), "Черный жемчуг", 10, "Вам не хватает черного жемчуга.");
+                AddRes(index, typeof(IronIngot), "Железная крошка", 5, "Вам нужны железные слитки для основы.");
+
             }
 
             // Toxic
@@ -293,7 +298,7 @@ namespace Server.Engines.Craft
 
             // Strange Brew
             if (Core.SE)
-            {                
+            {
                 index = AddCraft(typeof(SmokeBomb), 1116353, 1030248, 90.0, 120.0, typeof(Eggs), 1044477, 1, 1044253);
                 AddRes(index, typeof(Ginseng), 1044356, 3, 1044364);
             }
@@ -337,7 +342,7 @@ namespace Server.Engines.Craft
                 SetItemHue(index, 2625);
 
                 index = AddCraft(typeof(CrystalDust), 1044495, 1112328, 75.0, 100.0, typeof(CrystallineFragments), 1153988, 4, 1044253);
-                SetItemHue(index, 2103);               
+                SetItemHue(index, 2103);
 
                 index = AddCraft(typeof(SoftenedReeds), 1044495, 1112249, 75.0, 100.0, typeof(DryReeds), 1112248, 1, 1112250);
                 AddRes(index, typeof(ScouringToxin), 1112292, 2, 1112326);
@@ -345,7 +350,7 @@ namespace Server.Engines.Craft
                 SetRequiresBasketWeaving(index);
 
                 index = AddCraft(typeof(VialOfVitriol), 1044495, 1113331, 90.0, 100.0, typeof(ParasiticPotion), 1072848, 1, 1113754);
-                AddRes(index, typeof (Nightshade), 1044358, 30, 1044366);
+                AddRes(index, typeof(Nightshade), 1044358, 30, 1044366);
                 AddSkill(index, SkillName.Magery, 75.0, 100.0);
 
                 index = AddCraft(typeof(BottleIchor), 1044495, 1113361, 90.0, 100.0, typeof(DarkglowPotion), 1072849, 1, 1113755);
