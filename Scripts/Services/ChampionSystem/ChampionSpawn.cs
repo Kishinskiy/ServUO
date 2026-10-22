@@ -450,6 +450,11 @@ namespace Server.Engines.CannedEvil
 
             RemoveSkulls();
             m_Kills = 0;
+
+            if (AutoRestart) 
+            {
+                BeginRestart(m_RestartDelay); 
+            }
         }
 
         public void BeginRestart(TimeSpan ts)
