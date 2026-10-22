@@ -59,8 +59,9 @@ namespace Server.Custom.KarmaVirtueSystem
 
         private static void ProcessShrineActivation(Mobile from, ShrineData shrine)
         {
-            // 1. ПРОВЕРКА ДОСТУПА: Должен быть хотя бы 1 ранг (Seeker), полученный за действия в мире
-            int virtuePoints = VirtueHelper.GetLevel(from, shrine.Virtue);
+            // 1. ПРОВЕРКА ДОСТУПА: Должен быть хотя бы 1 ранг (Seeker).
+            // ИСПРАВЛЕНО (CS0266): Добавили явное приведение (int) перед перечислением VirtueLevel
+            int virtuePoints = (int)VirtueHelper.GetLevel(from, shrine.Virtue);
             if (virtuePoints == 0)
             {
                 from.PlaySound(0x5C3);
@@ -89,7 +90,8 @@ namespace Server.Custom.KarmaVirtueSystem
             {
                 // Эффекты тьмы
                 from.PlaySound(0x5A1); // Зловещий скрежет
-                Effects.SendLocationLightningEffect(from.Location, from.Map);
+                // ИСПРАВЛЕНО (CS0117): Используем нативный метод BoltEffect для создания эффекта молнии
+                from.BoltEffect(0);
                 Effects.SendLocationEffect(from.Location, from.Map, 0x3709, 30, 10, 0x497, 0); // Пурпурный огонь
 
                 if (shrine.Virtue == VirtueName.Valor)
@@ -107,7 +109,8 @@ namespace Server.Custom.KarmaVirtueSystem
             {
                 // Эффекты света
                 from.PlaySound(0xF7); // Ангельский хор
-                Effects.SendLocationLightningEffect(from.Location, from.Map);
+                // ИСПРАВЛЕНО (CS0117): Используем нативный метод BoltEffect
+                from.BoltEffect(0);
                 Effects.SendLocationEffect(from.Location, from.Map, 0x375A, 9, 20, 0x5D, 0); // Золотое сияние
 
                 from.SendMessage(0x5D, $"Вы успешно медитируете. Высшее благословение {shrine.Virtue} снизошло на вас на 2 часа!");
@@ -147,7 +150,7 @@ namespace Server.Custom.KarmaVirtueSystem
             return _activeBuffs[m].ContainsKey(buffKey);
         }
 
-        // ХУК ЭКОНОМИКИ: Удваивает золото и проклинает шмот (Вызывать из BaseCreature.cs)
+        // ХУК ЭКОНОМИКИ: Удваивает золото и проклинает шмот
         public static void HandleMonsterLoot(Mobile victim, Container lootContainer)
         {
             if (victim == null || lootContainer == null)
@@ -188,14 +191,15 @@ namespace Server.Custom.KarmaVirtueSystem
             }
         }
 
-        // МЕТОД ДЛЯ ФИНАЛЬНОГО КВЕСТА: Проверяет, является ли игрок Аватаром (все 8 добродетелей на 3 ранге - Knight)
+        // МЕТОД ДЛЯ ФИНАЛЬНОГО КВЕСТА
         public static bool CheckAvatarStatus(Mobile from, bool sendMessages)
         {
             if (from == null) return false;
 
             foreach (ShrineData shrine in Shrines)
             {
-                if (VirtueHelper.GetLevel(from, shrine.Virtue) < 3) // 3 = Ранг Knight в ядре ServUO
+                // ИСПРАВЛЕНО (CS0019): Применили (int) к VirtueHelper.GetLevel, чтобы корректно сравнить уровни как числа
+                if ((int)VirtueHelper.GetLevel(from, shrine.Virtue) < 3) // 3 = Ранг Knight в ядре ServUO
                 {
                     if (sendMessages)
                     {
@@ -238,7 +242,6 @@ namespace Server.Custom.KarmaVirtueSystem
         public int Y { get; private set; }
         public int Z { get; private set; }
         public Map Map { get; private set; }
-
         public ShrineData(int id, VirtueName virtue, string mantra, int x, int y, int z, Map map)
         {
             ID = id;
