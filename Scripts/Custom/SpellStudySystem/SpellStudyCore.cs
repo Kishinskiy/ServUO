@@ -159,8 +159,7 @@ namespace Server.Custom.SpellStudySystem
                 return false;
 
             if (!from.CheckAlive() || scroll.Deleted || !scroll.Movable || scroll.Amount < 1 ||
-                !scroll.CheckItemUse(from) ||
-                (from.Backpack == null || (!scroll.IsChildOf(from.Backpack) && scroll.HeldBy != from)))
+        (from.Backpack == null || (!scroll.IsChildOf(from.Backpack) && scroll.HeldBy != from)))
             {
                 from.SendMessage(0x22, "Свиток должен находиться при вас и быть доступен для использования.");
                 return true;
