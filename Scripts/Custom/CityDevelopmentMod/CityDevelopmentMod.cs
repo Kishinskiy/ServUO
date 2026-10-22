@@ -426,6 +426,7 @@ namespace Server.Custom.CityDevelopment
                     CityProgress progress = GetCityProfile(coreCity, map);
                     if (progress == null) continue;
 
+                    // 1. Естественная ежедневная усушка товаров на складах
                     progress.IronStock = DecayWarehouseStock(progress.IronStock);
                     progress.LeatherStock = DecayWarehouseStock(progress.LeatherStock);
                     progress.WoodStock = DecayWarehouseStock(progress.WoodStock);
@@ -434,16 +435,85 @@ namespace Server.Custom.CityDevelopment
                     progress.ProvisionsStock = DecayWarehouseStock(progress.ProvisionsStock);
                     progress.MagicStock = DecayWarehouseStock(progress.MagicStock);
 
-                    if (progress.Treasury > 50000)
+                    // =========================================================================
+                    // 🏛️ ТВОЁ ТЗ: ДИНАМИЧЕСКИЙ РАСЧЕТ РАСХОДА КАЗНЫ (РАЗМЕР + УРОВЕНЬ ГОРОДА) 🎉⚙️
+                    // =========================================================================
+                    
+                    // Фактор А: Масштаб/Размер города по лору Ultima Online
+                    double cityScaleFactor = 1.0; 
+                    switch (coreCity)
                     {
-                        long maintenance = (long)(BaseMaintenanceCost * Math.Pow(MaintenanceMultiplier, progress.Level - 1) * 0.1);
-                        progress.Treasury -= maintenance;
+                        // Столицы и торговые мегаполисы (Максимальное содержание)
+                        case Server.Engines.CityLoyalty.City.Britain:
+                        case Server.Engines.CityLoyalty.City.Moonglow:
+                        case Server.Engines.CityLoyalty.City.Trinsic:
+                            cityScaleFactor = 2.0; 
+                            break;
+
+                        // Средние промышленные и портовые хабы
+                        case Server.Engines.CityLoyalty.City.Minoc:
+                        case Server.Engines.CityLoyalty.City.Yew:
+                        case Server.Engines.CityLoyalty.City.Jhelom:
+                            cityScaleFactor = 1.4;
+                            break;
+
+                        // Маленькие поселения, анклавы и изолированные острова (Дешевое содержание)
+                        case Server.Engines.CityLoyalty.City.SkaraBrae:
+                        case Server.Engines.CityLoyalty.City.NewMagincia:
+                        case Server.Engines.CityLoyalty.City.Vesper:
+                            cityScaleFactor = 0.8;
+                            break;
+                    }
+
+                    // Фактор Б: Уровень развития города (Level Multiplier)
+                    // 1 уровень = x1.0, 2 уровень = x2.5, 3 уровень = x6.25, 4 уровень = x15.6, 5 уровень = x39.0
+                    double levelMultiplier = Math.Pow(MaintenanceMultiplier, progress.Level - 1);
+
+                    // Финальный расчет суточного расхода: База (100,000) * Масштаб * МножительУровня * 5% налога поддержки
+                    long maintenanceCost = (long)(BaseMaintenanceCost * cityScaleFactor * levelMultiplier * 0.05);
+
+                    // Списание средств
+                    if (progress.Treasury >= maintenanceCost)
+                    {
+                        progress.Treasury -= maintenanceCost;
+                        
+                        // Синхронизируем баланс с нативной системой City Loyalty ядра ServUO
+                        Server.Engines.CityLoyalty.CityLoyaltySystem citySystem = 
+                            Server.Engines.CityLoyalty.CityLoyaltySystem.GetCityInstance(coreCity);
+                        if (citySystem != null)
+                            citySystem.Treasury = progress.Treasury;
                     }
                     else
                     {
-                        progress.CurrentSupplies = Math.Max(0.0, progress.CurrentSupplies - 10.0);
+                        // Банкротство: Если в казне нет денег на содержание — город стремительно деградирует, теряя очки прогресса!
+                        progress.Treasury = 0;
+                        progress.CurrentSupplies = Math.Max(0.0, progress.CurrentSupplies - 25.0); // Штраф -25 очков снабжения
+                        
+                        // Проверяем, не упал ли город на уровень вниз из-за разрухи
+                        ProcessCityLevelDowns(coreCity, map);
                     }
                 }
+            }
+        }
+
+         // Автоматический регресс/падение уровня города при отсутствии финансирования
+        private static void ProcessCityLevelDowns(Server.Engines.CityLoyalty.City city, Map map)
+        {
+            CityProgress progress = GetCityProfile(city, map);
+            if (progress == null || progress.Level <= 1) return;
+
+            if (progress.CurrentSupplies < 0.0 && progress.Level > 1)
+            {
+                progress.Level--;
+                progress.RequiredSupplies = 250.0 * Math.Pow(2.0, progress.Level - 1);
+                progress.CurrentSupplies = progress.RequiredSupplies * 0.8; // Оставляем 80% шкалы прошлого уровня
+
+                World.Broadcast(0x22, true, $"[КРИЗИС]: Город {city} на карте {map.Name} обанкротился! Из-за нехватки золота его уровень снижен до {progress.Level}.");
+                
+                // Пересчитываем налоги фракций в меньшую сторону
+                Server.Factions.Town town = Server.Factions.Town.Towns.Find(t => string.Equals(t.ToString(), city.ToString(), StringComparison.OrdinalIgnoreCase));
+                if (town != null)
+                    town.Tax = progress.Level == 1 ? 2 : (progress.Level == 2 ? 3 : 5);
             }
         }
 
