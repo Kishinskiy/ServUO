@@ -9,63 +9,50 @@ namespace Server.Customs.Invasion_System
 {
     public static class InvasionControl
     {
-        private static int _LastInvadedWeekOfYear = -1;
-
         public static List<TownInvasion> Invasions = new List<TownInvasion>();
-
         static Mobile _caller;
-        private static Timer _AutoInvasionTimer;
 
-        public static void Initialize()
+         public static void Initialize()
         {
+            // Отключаем автоматический таймер ивент-старта намертво!
             CommandSystem.Register("ListInvasions", AccessLevel.Administrator, ListInvasions_OnCommand);
             
-            // Запускаем таймер проверки каждую минуту (60 секунд). First старт через 10 секунд после запуска сервера.
-            _AutoInvasionTimer = Timer.DelayCall(TimeSpan.FromSeconds(10.0), TimeSpan.FromSeconds(60.0), CheckAndLaunchRandomInvasion);
+            // 🔥 ДОБАВЛЕНО: ГМ-команда для тотальной очистки мира от лишних защитников! 🎉⚙️🛠️
+            CommandSystem.Register("WipeDefenders", AccessLevel.Administrator, WipeDefenders_OnCommand);
         }
 
-        private static void CheckAndLaunchRandomInvasion()
+        // 🔥 МЕТОД ОЧИСТКИ: Находим и стираем всех защитников и подкрепления из мира!
+        [Usage("WipeDefenders")]
+        [Description("Deletes all spawned town defenders and reinforcements from the world.")]
+        private static void WipeDefenders_OnCommand(CommandEventArgs e)
         {
-            DateTime now = DateTime.Now; // Время вашего сервера (или DateTime.UtcNow для Гринвича)
+            Mobile from = e.Mobile;
+            int count = 0;
 
-            // НАСТРОЙКА: Запуск каждую Субботу (Saturday) в 18:00
-            if (now.DayOfWeek == DayOfWeek.Saturday && now.Hour == 18 && now.Minute == 0)
+            // Собираем всех мобильных объектов во всех мирах для безопасного удаления
+            List<Mobile> toDelete = new List<Mobile>();
+
+            foreach (Mobile m in World.Mobiles.Values)
             {
-                // Вычисляем номер текущей недели в году
-                int currentWeek = System.Globalization.CultureInfo.CurrentCulture.Calendar.GetWeekOfYear(
-                    now, System.Globalization.DateTimeFormatInfo.CurrentInfo.CalendarWeekRule, System.Globalization.DateTimeFormatInfo.CurrentInfo.FirstDayOfWeek);
-
-                // Если на этой неделе авто-вторжение еще НЕ запускалось
-                if (_LastInvadedWeekOfYear != currentWeek)
+                if (m != null && !m.Deleted && m.Name != null)
                 {
-                    _LastInvadedWeekOfYear = currentWeek;
-
-                    // Если уже есть хоть одно активное вторжение — отменяем запуск нового
-                    foreach (var inv in Invasions)
+                    // Проверяем лорные маркеры, которые мы выдавали защитникам при спавне
+                    if (m.Name.Contains("[Town Defender]") || m.Name.Contains("[Reinforcement]"))
                     {
-                        if (inv.IsRunning)
-                            return;
+                        toDelete.Add(m);
                     }
-
-                    // Выбираем случайные параметры для еженедельного ивента
-                    Array towns = Enum.GetValues(typeof(InvasionTowns));
-                    InvasionTowns randomTown = (InvasionTowns)towns.GetValue(Utility.Random(towns.Length));
-
-                    Array monsters = Enum.GetValues(typeof(TownMonsterType));
-                    TownMonsterType randomMonster = (TownMonsterType)monsters.GetValue(Utility.Random(monsters.Length));
-
-                    Array champions = Enum.GetValues(typeof(TownChampionType));
-                    TownChampionType randomChamp = (TownChampionType)champions.GetValue(Utility.Random(champions.Length));
-
-                    DateTime immediateStart = DateTime.UtcNow.AddMinutes(-1.0);
-
-                    // Создаем и принудительно запускаем ивент
-                    TownInvasion newInvasion = new TownInvasion(randomTown, randomMonster, randomChamp, immediateStart);
-                    newInvasion.OnStart();
                 }
             }
-        }
 
+            // Удаляем найденных мобов
+            foreach (Mobile m in toDelete)
+            {
+                m.Delete();
+                count++;
+            }
+
+            from.SendMessage(0x58, $"[Очистка]: Операция завершена успешно! Из игрового мира удалено {count} защитников.");
+        }
 
         [Usage("ListInvasions")]
         [Description("Lists all active invasions.")]
@@ -105,7 +92,7 @@ namespace Server.Customs.Invasion_System
             AddHtml(x+520, y, 50, 20, "<BASEFONT COLOR=#ff33cc><BIG>Stop", false, false);
             AddHtml(x+565, y, 50, 20, "<BASEFONT COLOR=#ff33cc><BIG>Props", false, false);
 
-            foreach ( var invasion in invasions)
+            foreach (var invasion in invasions)
             {
                 y += 30;
                 id += 1;
@@ -158,10 +145,8 @@ namespace Server.Customs.Invasion_System
                 FilePath,
                 writer =>
                 {
-                    writer.Write(0); // version
-
+                    writer.Write(0); 
                     writer.Write(InvasionControl.Invasions.Count);
-
                     foreach (var m in InvasionControl.Invasions)
                     {
                         m.Serialize(writer);
@@ -176,17 +161,14 @@ namespace Server.Customs.Invasion_System
                 reader =>
                 {
                     var version = reader.ReadInt();
-
                     switch (version)
                     {
                         case 0:
                         {
                             var count = reader.ReadInt();
-
                             for (var i = 0; i < count; ++i)
                             {
                                 var invasion = new TownInvasion(reader);
-
                                 InvasionControl.Invasions.Add(invasion);
                             }
                         }
