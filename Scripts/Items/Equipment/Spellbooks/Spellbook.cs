@@ -624,10 +624,6 @@ namespace Server.Items
             if (dropped is SpellScroll && !(dropped is SpellStone))
             {
 				SpellScroll scroll = (SpellScroll)dropped;
-
-                if (Server.Custom.SpellStudySystem.SpellStudyCore.TryBeginStudy(from, scroll, this))
-                    return false;
-
 				SpellbookType type = GetTypeForSpell(scroll.SpellID);
 
 				if (type != SpellbookType)
