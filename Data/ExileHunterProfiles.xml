@@ -9,4 +9,12 @@
   <Profile serial="235">
     <Creature id="Skeleton" progress="115" />
   </Profile>
+  <Profile serial="12022">
+    <Creature id="Zombie" progress="79" />
+    <Creature id="Skeleton" progress="39" />
+  </Profile>
+  <Profile serial="1815">
+    <Creature id="Zombie" progress="118" />
+    <Creature id="Skeleton" progress="32" />
+  </Profile>
 </HunterProfiles>
