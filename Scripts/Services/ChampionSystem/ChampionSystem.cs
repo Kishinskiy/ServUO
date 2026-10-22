@@ -284,6 +284,10 @@ namespace Server.Engines.CannedEvil
 
             foreach (ChampionSpawn spawn in m_AllSpawns.Where(spawn => spawn != null && !spawn.Deleted))
 			{
+				spawn.AutoRestart = true;
+				if (!spawn.Active)
+					spawn.Active = true;
+
 				List<ChampionSpawn> group;
 				if (spawn.GroupName == null)
 				{
@@ -305,7 +309,9 @@ namespace Server.Engines.CannedEvil
 				List<ChampionSpawn> group = groups[key];
 				foreach (ChampionSpawn spawn in group)
 				{
-					spawn.AutoRestart = false;
+					spawn.AutoRestart = true; 
+					if (!spawn.Active)
+						spawn.Active = true;
 				}
 				ChampionSpawn s = group[Utility.Random(group.Count)];
 				s.AutoRestart = true;
