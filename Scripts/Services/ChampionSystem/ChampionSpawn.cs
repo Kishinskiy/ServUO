@@ -109,14 +109,15 @@ namespace Server.Engines.CannedEvil
             m_Altar = new ChampionAltar(this);
             m_Idol = new IdolOfTheChampion(this);
 
-            m_ExpireDelay = TimeSpan.FromMinutes(10.0);
-            m_RestartDelay = TimeSpan.FromMinutes(10.0);
+            m_ExpireDelay = TimeSpan.FromHours(4.0);
+            m_RestartDelay = TimeSpan.FromHours(8.0);
 
             m_DamageEntries = new Dictionary<Mobile, int>();
 			m_RandomizeType = false;
 
             SpawnRadius = 35;
             SpawnMod = 1;
+            KillsMod = 0.15;
 
             Timer.DelayCall(TimeSpan.Zero, new TimerCallback(SetInitialSpawnArea));
         }
