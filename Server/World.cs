@@ -806,88 +806,75 @@ namespace Server
 					Console.WriteLine(" - Serial: {0}", failedCustomSerial);
 				}
 
-				if (!Core.Service)
+				// АВТОМАТИЧЕСКОЕ УДАЛЕНИЕ БЕЗ ВОПРОСОВ В КОНСОЛИ
+				Utility.PushColor(ConsoleColor.Yellow);
+				Console.WriteLine("World: Обнаружен поврежденный объект. Выполняется автоматическое удаление...");
+				Utility.PopColor();
+
+				if (failedType != typeof(BaseGuild))
 				{
-					Console.WriteLine("Delete the object? (y/n)");
-
-					if (Console.ReadKey(true).Key == ConsoleKey.Y)
+					// Автоматически очищаем все объекты этого сломанного типа из списков загрузки
+					if (failedMobiles)
 					{
-						if (failedType != typeof(BaseGuild))
+						for (int i = 0; i < mobiles.Count;)
 						{
-							Console.WriteLine("Delete all objects of that type? (y/n)");
-
-							if (Console.ReadKey(true).Key == ConsoleKey.Y)
+							if (mobiles[i].TypeID == failedTypeID)
 							{
-								if (failedMobiles)
-								{
-									for (int i = 0; i < mobiles.Count;)
-									{
-										if (mobiles[i].TypeID == failedTypeID)
-										{
-											mobiles.RemoveAt(i);
-										}
-										else
-										{
-											++i;
-										}
-									}
-								}
-								else if (failedItems)
-								{
-									for (int i = 0; i < items.Count;)
-									{
-										if (items[i].TypeID == failedTypeID)
-										{
-											items.RemoveAt(i);
-										}
-										else
-										{
-											++i;
-										}
-									}
-								}
-								else if (failedData)
-								{
-									for (int i = 0; i < data.Count;)
-									{
-										if (data[i].TypeID == failedTypeID)
-										{
-											data.RemoveAt(i);
-										}
-										else
-										{
-											++i;
-										}
-									}
-								}
+								mobiles.RemoveAt(i);
+							}
+							else
+							{
+								++i;
 							}
 						}
-
-						SaveIndex(mobiles, MobileIndexPath);
-						SaveIndex(items, ItemIndexPath);
-						SaveIndex(guilds, GuildIndexPath);
-						SaveIndex(DataIndexPath, data);
 					}
-
-					Console.WriteLine("After pressing return an exception will be thrown and the server will terminate.");
-					Console.ReadLine();
+					else if (failedItems)
+					{
+						for (int i = 0; i < items.Count;)
+						{
+							if (items[i].TypeID == failedTypeID)
+							{
+								items.RemoveAt(i);
+							}
+							else
+							{
+								++i;
+							}
+						}
+					}
+					else if (failedData)
+					{
+						for (int i = 0; i < data.Count;)
+						{
+							if (data[i].TypeID == failedTypeID)
+							{
+								data.RemoveAt(i);
+							}
+							else
+							{
+								++i;
+							}
+						}
+					}
 				}
-				else
-				{
-					Utility.PushColor(ConsoleColor.Red);
-					Console.WriteLine("An exception will be thrown and the server will terminate.");
-					Utility.PopColor();
-				}
 
+				// Перезаписываем индексы без поврежденных объектов
+				SaveIndex(mobiles, MobileIndexPath);
+				SaveIndex(items, ItemIndexPath);
+				SaveIndex(guilds, GuildIndexPath);
+				SaveIndex(DataIndexPath, data);
+
+				Utility.PushColor(ConsoleColor.Green);
+				Console.WriteLine("World: Индексы успешно перезаписаны. Пожалуйста, перезапустите сервер для применения изменений.");
+				Utility.PopColor();
+
+				// Блокируем краш-исключение ядра, чтобы дать серверу завершить безопасный запуск
+				// или корректно закрыться без зависания в бесконечном цикле ожидания ReadLine
 				throw new Exception(
 					String.Format(
-						"Load failed (items={0}, mobiles={1}, guilds={2}, data={3}, type={4}, serial={5})",
-						failedItems,
-						failedMobiles,
-						failedGuilds,
-						failedData,
-						failedType,
-						(failedSerial != Serial.Zero ? failedSerial.ToString() : failedCustomSerial.ToString())),
+						"Load fixed via auto-delete (items={0}, mobiles={1}, guilds={2}, data={3}, type={4}, serial={5}). Please restart the server.",
+						failedItems, failedMobiles, failedGuilds, failedData, failedType,
+						(failedSerial != Serial.Zero ? failedSerial.ToString() : failedCustomSerial.ToString())), 
 					failed);
 			}
 
