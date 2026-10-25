@@ -1683,7 +1683,31 @@ namespace Server.Engines.CannedEvil
             : base(serial)
         {
         }
+        public override void OnDoubleClick(Mobile from)
+        {
+            if (m_Spawn == null || m_Spawn.Deleted)
+            {
+                from.SendMessage("Этот алтарь поврежден.");
+                return;
+            }
 
+            // ПРОВЕРКА: Проверяем, что спавнер чемпиона сейчас НЕ активен
+            if (!m_Spawn.Active)
+            {
+                // Запускаем алтарь через его родные методы
+                m_Spawn.Active = true; 
+
+                // Красивые визуальные эффекты пробуждения босса
+                Effects.PlaySound(this.Location, this.Map, 0x29);
+                Effects.SendLocationEffect(this.Location, this.Map, 0x4E, 10, 10, 0, 0);
+                
+                from.SendMessage(0x42, "Вы пробудили древние силы идола! Чемпион грядет...");
+            }
+            else
+            {
+                from.SendMessage("Этот алтарь уже активен! Сражайтесь с монстрами.");
+            }
+        }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
