@@ -8,8 +8,6 @@ namespace Server.Customs.Invasion_System
 {
     public class TownInvasion
     {
-        private static int _LastInvadedWeekOfYear = -1;
-
         public static void Initialize()
         {
         }

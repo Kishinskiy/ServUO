@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Server;
 using Server.Items;
 using Server.Mobiles;
@@ -8,12 +9,11 @@ namespace Server.Custom.PremiumCurrency
 {
     public static class SovereignsBankConverter
     {
-        // КЛЮЧЕВАЯ ФРАЗА, которую игрок должен сказать банкиру
+        // Фраза для активации обмена у банкира
         public static readonly string SpeechCommand = "bank deposit sovereigns";
 
         public static void Initialize()
         {
-            // Подписываемся на системное событие речи в мире
             EventSink.Speech += new SpeechEventHandler(EventSink_Speech);
         }
 
@@ -24,10 +24,10 @@ namespace Server.Custom.PremiumCurrency
             if (from == null || from.Backpack == null || e.Handled)
                 return;
 
-            // Проверяем, произнес ли игрок нужную фразу (регистронезависимо)
+            // Проверяем ключевую фразу
             if (e.Speech.Trim().IndexOf(SpeechCommand, StringComparison.OrdinalIgnoreCase) >= 0)
             {
-                // Ищем банкира в радиусе 3 клеток от игрока
+                // Ищем банкира рядом (в радиусе 3 тайлов)
                 Banker banker = null;
                 foreach (Mobile m in from.GetMobilesInRange(3))
                 {
@@ -38,61 +38,55 @@ namespace Server.Custom.PremiumCurrency
                     }
                 }
 
-                // Если банкира рядом нет — игрок просто говорит в пустоту, игнорируем
                 if (banker == null)
-                    return;
+                    return; // Банкира рядом нет — игнорируем
 
-                // Перехватываем речь, чтобы она не дублировалась в стандартные команды банка
-                e.Handled = true;
+                e.Handled = true; // Перехватываем стандартную речь
 
                 Account acct = from.Account as Account;
                 if (acct == null)
                 {
-                    banker.Say("У вас отсутствует учетная запись для зачисления суверенов.");
+                    banker.Say("У вас отсутствует учетная запись для зачисления северенов.");
                     return;
                 }
 
-                // Ищем стопки "Монет Удачи" в рюкзаке игрока
-                // Используем FindItemsByType для сбора всех кучек монет
-                var coins = from.Backpack.FindItemsByType<PremiumCoin>();
+                // Ищем все контракты в рюкзаке игрока
+                List<SovereignContract> contracts = from.Backpack.FindItemsByType<SovereignContract>();
 
-                if (coins == null || coins.Count == 0)
+                if (contracts == null || contracts.Count == 0)
                 {
-                    banker.Say("У вас в рюкзаке нет Монет Удачи для конвертации.");
+                    banker.Say("У вас в рюкзаке нет контрактов на северены для обмена.");
                     return;
                 }
 
-                // Считаем суммарное количество физических монет в рюкзаке
-                int totalCoinsFound = 0;
-                foreach (PremiumCoin coin in coins)
+                int totalSovereignsToDeposit = 0;
+                int totalContractsCount = contracts.Count;
+
+                // Подсчитываем суммарный номинал всех найденных контрактов
+                foreach (SovereignContract contract in contracts)
                 {
-                    totalCoinsFound += coin.Amount;
+                    totalSovereignsToDeposit += contract.SovereignAmount;
                 }
 
-                if (totalCoinsFound <= 0)
+                if (totalSovereignsToDeposit <= 0)
                 {
-                    banker.Say("У вас в рюкзаке нет Монет Удачи для конвертации.");
+                    banker.Say("У вас в рюкзаке нет ценных контрактов.");
                     return;
                 }
 
-                // КОНВЕРТАЦИЯ В СУВЕРЕНЫ
-                // Здесь вы можете настроить курс обмена. Сейчас курс 1 к 1.
-                // Если хотите, чтобы 1 монета давала, например, 10 суверенов: int sovereignsToDeposit = totalCoinsFound * 10;
-                int sovereignsToDeposit = totalCoinsFound;
-
-                // Жесткое удаление физических монет из рюкзака игрока (Server-Side)
-                for (int i = coins.Count - 1; i >= 0; i--)
+                // Безопасное удаление контрактов из игрового мира
+                for (int i = contracts.Count - 1; i >= 0; i--)
                 {
-                    coins[i].Delete();
+                    contracts[i].Delete();
                 }
 
-                // Аппаратно зачисляем суверены на баланс аккаунта в ядре ServUO
-                acct.DepositSovereigns(sovereignsToDeposit);
+                // Начисление северенов через корректный метод вашего ядра
+                acct.DepositSovereigns(totalSovereignsToDeposit);
 
-                // Оповещаем игрока через банкира и системное сообщение
-                banker.PlaySound(0x35); // Звук пересыпания золотых монет
-                banker.Say($"Отлично! Я принял ваши {totalCoinsFound} шт. Монет Удачи.");
-                from.SendMessage(88, $"На ваш аккаунт успешно зачислено {sovereignsToDeposit} Суверенов для Ultima Store! Текущий баланс: {acct.Sovereigns}");
+                // Визуальный и аудио фидбек
+                banker.PlaySound(0x55); // Звук разворачивающегося свитка / магии
+                banker.Say($"Отлично! Я принял ваши контракты в количестве {totalContractsCount} шт.");
+                from.SendMessage(88, $"На ваш аккаунт успешно зачислено {totalSovereignsToDeposit} Sovereigns для Ultima Store! Текущий баланс: {acct.Sovereigns}");
             }
         }
     }
