@@ -13,8 +13,8 @@ namespace Server.Custom.KarmaVirtueSystem
         private static readonly string _savePath = Path.Combine(Core.BaseDirectory, "Saves/Custom/KarmaVirtueSystem.bin");
         private static Dictionary<Mobile, Dictionary<int, DateTime>> _shrineCooldowns = new Dictionary<Mobile, Dictionary<int, DateTime>>();
         private static Dictionary<Mobile, Dictionary<int, int>> _activeBuffs = new Dictionary<Mobile, Dictionary<int, int>>();
+        private static Dictionary<Mobile, Dictionary<int, int>> _permanentlyActivatedShrines = new Dictionary<Mobile, Dictionary<int, int>>();
 
-        // Координаты всех 8 алтарей добродетелей в Felucca (X, Y, Z, Map, VirtueName, Mantra)
         public static readonly ShrineData[] Shrines = new ShrineData[]
         {
             new ShrineData(0, VirtueName.Valor,        "RA",   2493, 3931, 5,  Map.Felucca),
@@ -49,7 +49,7 @@ namespace Server.Custom.KarmaVirtueSystem
                 {
                     if (from.Map == shrine.Map && from.InRange(new Point3D(shrine.X, shrine.Y, shrine.Z), 4))
                     {
-                        e.Handled = true; // Перехватываем речь, чтобы мантры не спамились в общий чат
+                        e.Handled = true;
                         ProcessShrineActivation(from, shrine);
                         return;
                     }
@@ -59,17 +59,14 @@ namespace Server.Custom.KarmaVirtueSystem
 
         private static void ProcessShrineActivation(Mobile from, ShrineData shrine)
         {
-            // 1. ПРОВЕРКА ДОСТУПА: Должен быть хотя бы 1 ранг (Seeker).
-            // ИСПРАВЛЕНО (CS0266): Добавили явное приведение (int) перед перечислением VirtueLevel
             int virtuePoints = (int)VirtueHelper.GetLevel(from, shrine.Virtue);
-            if (virtuePoints == 0)
+            if (virtuePoints < 3)
             {
                 from.PlaySound(0x5C3);
-                from.SendMessage(0x22, $"Алтарь безмолвен. Вы еще не совершили в мире деяний, чтобы пробудить силу добродетели {shrine.Virtue}!");
+                from.SendMessage(0x22, $"Алтарь безмолвен. Чтобы подчинить силу {shrine.Virtue}, вы должны достичь максимального уровня (Knight)!");
                 return;
             }
 
-            // 2. ПРОВЕРКА КУЛДАУНА (Раз в 22 часа на каждый алтарь)
             if (!_shrineCooldowns.ContainsKey(from))
                 _shrineCooldowns[from] = new Dictionary<int, DateTime>();
 
@@ -78,47 +75,41 @@ namespace Server.Custom.KarmaVirtueSystem
                 if (DateTime.UtcNow < nextUse)
                 {
                     TimeSpan rem = nextUse - DateTime.UtcNow;
-                    from.SendMessage(0x22, $"Этот алтарь истощен. Энергия восстановится через {rem.Hours} ч. {rem.Minutes} мин.");
+                    from.SendMessage(0x22, $"Энергия баффа этого алтаря восстановится через {rem.Hours} ч. {rem.Minutes} мин. (Но в зачет алтарь уже внесен!)");
                     return;
                 }
             }
 
-            // 3. ПРОВЕРКА КАРМЫ И НАЛОЖЕНИЕ СООТВЕТСТВУЮЩЕГО БАФФА
             bool isDark = from.Karma < 0;
+
+            if (!_permanentlyActivatedShrines.ContainsKey(from))
+                _permanentlyActivatedShrines[from] = new Dictionary<int, int>();
 
             if (isDark)
             {
-                // Эффекты тьмы
-                from.PlaySound(0x5A1); // Зловещий скрежет
-                // ИСПРАВЛЕНО (CS0117): Используем нативный метод BoltEffect для создания эффекта молнии
+                from.PlaySound(0x5A1);
                 from.BoltEffect(0);
-                Effects.SendLocationEffect(from.Location, from.Map, 0x3709, 30, 10, 0x497, 0); // Пурпурный огонь
+                Effects.SendLocationEffect(from.Location, from.Map, 0x3709, 30, 10, 0x497, 0);
 
-                if (shrine.Virtue == VirtueName.Valor)
-                {
-                    from.SendMessage(0x22, "Вы осквернили алтарь Доблести! Тёмный бафф порочной Жадности (Greed) окутывает вас на 2 часа.");
-                    ApplyBuffInternal(from, shrine.ID, true);
-                }
-                else
-                {
-                    from.SendMessage(0x22, $"Тёмные помыслы искажают энергию {shrine.Virtue}. Вы получили порочный бафф школы Хаоса.");
-                    ApplyBuffInternal(from, shrine.ID, true);
-                }
+                from.SendMessage(0x22, $"Вы осквернили алтарь {shrine.Virtue}! Он вспыхнул ТЁМНОЙ энергией Хаоса и зачтен в вашу Книгу Порока.");
+
+                _permanentlyActivatedShrines[from][shrine.ID] = 2;
+                ApplyBuffInternal(from, shrine.ID, true);
             }
             else
             {
-                // Эффекты света
-                from.PlaySound(0xF7); // Ангельский хор
-                // ИСПРАВЛЕНО (CS0117): Используем нативный метод BoltEffect
+                from.PlaySound(0xF7);
                 from.BoltEffect(0);
-                Effects.SendLocationEffect(from.Location, from.Map, 0x375A, 9, 20, 0x5D, 0); // Золотое сияние
+                Effects.SendLocationEffect(from.Location, from.Map, 0x375A, 9, 20, 0x5D, 0);
 
-                from.SendMessage(0x5D, $"Вы успешно медитируете. Высшее благословение {shrine.Virtue} снизошло на вас на 2 часа!");
+                from.SendMessage(0x5D, $"Вы очистили алтарь {shrine.Virtue}! Он озарился СВЕТОМ Небес и зачтен в ваш Путь Просветления.");
+
+                _permanentlyActivatedShrines[from][shrine.ID] = 1;
                 ApplyBuffInternal(from, shrine.ID, false);
             }
 
-            // Записываем кулдаун (22 часа)
             _shrineCooldowns[from][shrine.ID] = DateTime.UtcNow + TimeSpan.FromHours(22.0);
+            Save();
         }
 
         private static void ApplyBuffInternal(Mobile from, int shrineID, bool isDark)
@@ -126,92 +117,73 @@ namespace Server.Custom.KarmaVirtueSystem
             if (!_activeBuffs.ContainsKey(from))
                 _activeBuffs[from] = new Dictionary<int, int>();
 
-            // Кодируем сторону: положительные ID — свет, отрицательные — тьма
             int buffKey = isDark ? -(shrineID + 1) : (shrineID + 1);
             _activeBuffs[from][buffKey] = 100;
 
-            // Запуск таймера удаления баффа через 2 часа
             Timer.DelayCall(TimeSpan.FromHours(2.0), () =>
             {
                 if (from != null && _activeBuffs.ContainsKey(from))
-                {
                     _activeBuffs[from].Remove(buffKey);
-                    from.SendMessage(0x35, "Действие благословения алтаря подошло к концу.");
-                }
             });
         }
 
         public static bool HasBuffActive(Mobile m, int shrineID, bool isDark)
         {
-            if (m == null || !_activeBuffs.ContainsKey(m))
-                return false;
-
+            if (m == null || !_activeBuffs.ContainsKey(m)) return false;
             int buffKey = isDark ? -(shrineID + 1) : (shrineID + 1);
             return _activeBuffs[m].ContainsKey(buffKey);
         }
 
-        // ХУК ЭКОНОМИКИ: Удваивает золото и проклинает шмот
+        public static int GetTotalActivatedShrinesCount(Mobile m)
+        {
+            if (m == null || !_permanentlyActivatedShrines.ContainsKey(m)) return 0;
+            return _permanentlyActivatedShrines[m].Count;
+        }
+
+        public static bool IsPredominantlyDark(Mobile m)
+        {
+            if (m == null || !_permanentlyActivatedShrines.ContainsKey(m) || _permanentlyActivatedShrines[m] == null)
+                return false;
+
+            int lightCount = 0; int darkCount = 0;
+            foreach (int side in _permanentlyActivatedShrines[m].Values)
+            {
+                if (side == 1) lightCount++;
+                if (side == 2) darkCount++;
+            }
+            return darkCount > lightCount;
+        }
+
         public static void HandleMonsterLoot(Mobile victim, Container lootContainer)
         {
-            if (victim == null || lootContainer == null)
-                return;
-
+            if (victim == null || lootContainer == null) return;
             Mobile killer = victim.FindMostRecentDamager(false);
-            if (killer is BaseCreature)
-                killer = ((BaseCreature)killer).GetMaster();
+            if (killer is BaseCreature) killer = ((BaseCreature)killer).GetMaster();
+            if (killer == null || !killer.Player) return;
 
-            if (killer == null || !killer.Player)
-                return;
-
-            // Проверяем тёмный бафф Жадности (Valor ID = 0, Dark = true)
             if (HasBuffActive(killer, 0, true))
             {
                 List<Gold> goldPiles = new List<Gold>();
-                foreach (Item item in lootContainer.Items)
-                {
-                    if (item is Gold) goldPiles.Add((Gold)item);
-                }
-
-                foreach (Gold gold in goldPiles)
-                {
-                    gold.Amount *= 2; // Золотая лихорадка!
-                }
-
+                foreach (Item item in lootContainer.Items) { if (item is Gold) goldPiles.Add((Gold)item); }
+                foreach (Gold gold in goldPiles) { gold.Amount *= 2; }
                 foreach (Item item in lootContainer.Items)
                 {
                     if (item is BaseWeapon || item is BaseArmor || item is BaseJewel || item is Spellbook)
                     {
-                        if (Utility.RandomBool()) // 50% шанс проклятия вещи
-                        {
-                            item.LootType = LootType.Cursed;
-                            item.Hue = 0x497; // Перекрашиваем в фиолетово-порочный цвет
-                        }
+                        if (Utility.RandomBool()) { item.LootType = LootType.Cursed; item.Hue = 0x497; }
                     }
                 }
             }
         }
 
-        // МЕТОД ДЛЯ ФИНАЛЬНОГО КВЕСТА
         public static bool CheckAvatarStatus(Mobile from, bool sendMessages)
         {
-            if (from == null) return false;
-
-            foreach (ShrineData shrine in Shrines)
+            int count = GetTotalActivatedShrinesCount(from);
+            if (count < 8)
             {
-                // ИСПРАВЛЕНО (CS0019): Применили (int) к VirtueHelper.GetLevel, чтобы корректно сравнить уровни как числа
-                if ((int)VirtueHelper.GetLevel(from, shrine.Virtue) < 3) // 3 = Ранг Knight в ядре ServUO
-                {
-                    if (sendMessages)
-                    {
-                        from.SendMessage(0x22, $"Вы еще не достигли идеала (Knight) в добродетели {shrine.Virtue}! Проход закрыт.");
-                    }
-                    return false;
-                }
-            }
-
-            if (sendMessages)
-            {
-                from.SendMessage(0x5D, "Великолепно! Вы познали все 8 столпов мира и заслужили право предстать перед финальным испытанием!");
+                if (sendMessages)
+                    from.SendMessage(0x22, $"Вы активировали только {count} из 8 Алтарей Силы в мире. Обойдите все алтари мантрой!");
+                return false;
             }
             return true;
         }
@@ -224,15 +196,56 @@ namespace Server.Custom.KarmaVirtueSystem
                 string folder = Path.GetDirectoryName(_savePath);
                 if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
                 writer = new BinaryFileWriter(_savePath, false);
-                writer.Write((int)0); // версия
+                writer.Write((int)1);
+
+                writer.Write((int)_permanentlyActivatedShrines.Count);
+                foreach (var kvp in _permanentlyActivatedShrines)
+                {
+                    writer.Write(kvp.Key);
+                    writer.Write((int)kvp.Value.Count);
+                    foreach (var shrineKvp in kvp.Value)
+                    {
+                        writer.Write((int)shrineKvp.Key);
+                        writer.Write((int)shrineKvp.Value);
+                    }
+                }
             }
             catch { }
             finally { if (writer != null) writer.Close(); }
         }
 
-        public static void Load() { if (!File.Exists(_savePath)) return; }
+        public static void Load()
+        {
+            if (!File.Exists(_savePath)) return;
+            try
+            {
+                using (FileStream stream = new FileStream(_savePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                {
+                    using (BinaryReader binReader = new BinaryReader(stream))
+                    {
+                        GenericReader reader = new BinaryFileReader(binReader);
+                        int version = reader.ReadInt();
+                        int mobCount = reader.ReadInt();
+                        for (int i = 0; i < mobCount; i++)
+                        {
+                            Mobile m = reader.ReadMobile();
+                            int count = reader.ReadInt();
+                            var dict = new Dictionary<int, int>();
+                            for (int j = 0; j < count; j++)
+                            {
+                                int id = reader.ReadInt();
+                                int side = reader.ReadInt();
+                                dict[id] = side;
+                            }
+                            if (m != null) _permanentlyActivatedShrines[m] = dict;
+                        }
+                    }
+                }
+            }
+            catch { }
+        }
     }
-
+    // ВЕРНУЛИ КЛАСС ДАННЫХ 🎉 (Устраняет ошибки CS0246)
     public class ShrineData
     {
         public int ID { get; private set; }

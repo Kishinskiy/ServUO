@@ -6,7 +6,10 @@ using Server;
 using Server.Mobiles;
 using Server.Commands;
 using Server.Items;
+using Server.Custom.KarmaVirtueSystem;
 
+// ИСПРАВЛЕНО 🎉: Вынесли перечисление в корневой namespace Server, 
+// чтобы PlayerMobile.cs и CityLoyaltySystem.cs мгновенно его увидели!
 namespace Server
 {
     public enum EpicRank { None, Avatar, HandOfMondain }
@@ -23,6 +26,7 @@ namespace Server.Custom.EpicAlignment
 
         public long NextGuardSeconds { get; set; } = 0;
         public long NextBossSeconds { get; set; } = 0;
+
         [ScriptIgnore]
         public EpicRank Rank
         {
@@ -58,7 +62,6 @@ namespace Server.Custom.EpicAlignment
             EventSink.Shutdown += (e) => Save();
             EventSink.ServerStarted += new ServerStartedEventHandler(Load);
             EventSink.Login += OnPlayerLogin;
-
         }
 
         public static bool IsAvatarActive()
@@ -225,48 +228,49 @@ namespace Server.Custom.EpicAlignment
 
         private static void CheckEpicStatus_OnCommand(CommandEventArgs e)
         {
-            EpicRank rank = GetRank(e.Mobile);
-            PlayerMobile pm = e.Mobile as PlayerMobile;
+            Mobile from = e.Mobile;
+            if (from == null) return;
 
-            e.Mobile.SendMessage(0x35, $"=== Ваш Эпический Status ===");
-            e.Mobile.SendMessage(0x59, $"Ранг Полубога: {(rank == EpicRank.None ? "Отсутствует" : rank.ToString())}");
-            if (pm != null)
+            EpicRank rank = GetRank(from);
+            from.SendMessage(0x35, $"=== Ваш Эпический Status ===");
+            from.SendMessage(0x59, $"Ранг Полубога: {(rank == EpicRank.None ? "Отсутствует" : rank.ToString())}");
+
+            int activatedShrines = KarmaVirtueManager.GetTotalActivatedShrinesCount(from);
+            bool darkOriented = KarmaVirtueManager.IsPredominantlyDark(from);
+
+            if (activatedShrines > 0)
             {
-                int activeStars = 0;
-                for (int i = 0; i < 8; i++)
-                {
-                    if (pm.Virtues.GetValue(i) >= 2000) activeStars++;
-                }
-                e.Mobile.SendMessage(0x58, $"Зажжено нативных звёзд Добродетелей: {activeStars} из 8");
+                string sideText = darkOriented ? "Порочная Тьма (Хаос)" : "Священный Свет (Порядок)";
+                from.SendMessage(0x3F, $"Вечный зачет паломничества: Вы подчинили {activatedShrines} из 8 Алтарей Силы!");
+                from.SendMessage(0x482, $"Вектор вашей души: {sideText}");
+
+                if (activatedShrines == 8)
+                    from.SendMessage(0x5D, "Все 8 Алтарей подчинены! Найдите Скрытый Алтарь Возвышения для проведения Обряда.");
+            }
+            else
+            {
+                from.SendMessage(0x22, "Внимание: Ни один Алтарь Силы еще не зачтен в вашу вечную историю.");
             }
         }
-
         private static void BecomeEpic_OnCommand(CommandEventArgs e)
         {
             PlayerMobile pm = e.Mobile as PlayerMobile;
             if (pm == null || pm.AccessLevel < AccessLevel.Administrator) return;
             if (e.Length < 1) { pm.SendMessage(0x22, "Использование: [BecomeEpic [light/dark/none]"); return; }
-
             string mode = e.GetString(0).ToLower().Trim();
             if (mode == "none" || mode == "clear") { SetRank(pm, EpicRank.None); pm.SendMessage(0x22, "[Admin] Статус удален."); return; }
-
             bool isLight = (mode == "light" || mode == "avatar" || mode == "свет");
             bool isDark = (mode == "dark" || mode == "mondain" || mode == "тьма");
             if (!isLight && !isDark) { pm.SendMessage(0x22, "Используй: light или dark"); return; }
             EpicRank targetRank = isLight ? EpicRank.Avatar : EpicRank.HandOfMondain;
             SetRank(pm, targetRank);
-            for (int i = 0; i < 8; i++)
-            {
-                pm.Virtues.SetValue(30000, i);
-            }
-            pm.Skills[SkillName.Magery].Cap = EpicRewardSystem.EpicSkillCap; pm.Skills[SkillName.Magery].Base = EpicRewardSystem.EpicSkillCap;
-            pm.Skills[SkillName.EvalInt].Cap = EpicRewardSystem.EpicSkillCap; pm.Skills[SkillName.EvalInt].Base = EpicRewardSystem.EpicSkillCap;
-            pm.Skills[SkillName.Swords].Cap = EpicRewardSystem.EpicSkillCap; pm.Skills[SkillName.Swords].Base = EpicRewardSystem.EpicSkillCap;
-            pm.Skills[SkillName.Tactics].Cap = EpicRewardSystem.EpicSkillCap; pm.Skills[SkillName.Tactics].Base = EpicRewardSystem.EpicSkillCap;
-            pm.StatCap = EpicRewardSystem.CustomStatCap;
-            pm.RawStr = EpicRewardSystem.MaxIndividualStat; pm.RawDex = EpicRewardSystem.MaxIndividualStat; pm.RawInt = EpicRewardSystem.MaxIndividualStat;
-            pm.AddToBackpack(new BookOfDestiny());
-            if (isLight) pm.AddToBackpack(new AvatarSwordOfVirtues()); else pm.AddToBackpack(new MondainsRetribution());
+            pm.Skills.Magery.Cap = 120.0; pm.Skills.Magery.Base = 120.0;
+            pm.Skills.EvalInt.Cap = 120.0; pm.Skills.EvalInt.Base = 120.0;
+            pm.Skills.Swords.Cap = 120.0; pm.Skills.Swords.Base = 120.0;
+            pm.Skills.Tactics.Cap = 120.0; pm.Skills.Tactics.Base = 120.0;
+            pm.StatCap = 250;
+            pm.RawStr = 100; pm.RawDex = 100; pm.RawInt = 50;
+            pm.AddToBackpack(new Gold(5000));
             pm.PlaySound(0x5C9); pm.SendMessage(0x35, "[BecomeEpic] Вы успешно получили статус Полубога!");
         }
     }
