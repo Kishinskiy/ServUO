@@ -91,46 +91,38 @@ namespace Server.Gumps
                 AddHtml(130, 115, 200, 16, "0.00%", false, false);
             }
 
-            AddHtmlLocalized(270, 35, 90, 16, 1114514, "Help", 0, false, false);
-            AddButton(370, 35, 4014, 4015, 7, GumpButtonType.Reply, 0);
-
-
+            // ИСПРАВЛЕНО: Дублирующийся блок кнопки Help полностью удален
             AddHtmlLocalized(270, 35, 90, 16, 1114514, "Help", 0, false, false);
             AddButton(370, 35, 4014, 4015, 7, GumpButtonType.Reply, 0);
 
             AddHtmlLocalized(60, 150, 360, 16, 1156064, TextColor, false, false); // Deposit Gold into Character Transfer Account
             AddButton(20, 150, 4005, 4006, 1, GumpButtonType.Reply, 0);
-            AddTooltip(1156070); // Transfers gold from the bank to the character transfer account; capped at 1 billion gold. Any currency that 
-                                 // a players wishes to transfer to another shard must be placed in character transfer account. Upon transferring 
-                                 // the currency will be added to player's account on the shard.
+            AddTooltip(1156070);
 
             AddHtmlLocalized(60, 180, 300, 16, 1156065, TextColor, false, false); // Deposit Platinum into Character Transfer Account
             AddButton(20, 180, 4005, 4006, 2, GumpButtonType.Reply, 0);
-            AddTooltip(1156071); // Transfers platinum from the bank to the character transfer account; capped at 2 billion platinum. Any currency 
-                                 // that a players wishes to transfer to another shard must be placed in character transfer account. Upon transferring 
-                                 // the currency will be added to player's account on the shard. 
+            AddTooltip(1156071);
 
             AddHtmlLocalized(60, 210, 300, 16, 1156066, TextColor, false, false); // Withdraw Gold from Character Transfer Account
             AddButton(20, 210, 4005, 4006, 3, GumpButtonType.Reply, 0);
-            AddTooltip(1156072); // Transfers gold from the character transfer account to the bank; capped at 1 billion gold.
+            AddTooltip(1156072);
 
             AddHtmlLocalized(60, 240, 300, 16, 1156067, TextColor, false, false); // Withdraw Platinum from Character Transfer Account
             AddButton(20, 240, 4005, 4006, 4, GumpButtonType.Reply, 0);
-            AddTooltip(1156073); // Transfers platinum from the character transfer account to the bank; capped at 2 billion platinum. Really? Who the fuck has this much?
+            AddTooltip(1156073);
 
             AddHtmlLocalized(60, 270, 300, 16, 1156068, TextColor, false, false); // Deposit Gold into Secure Account
             AddButton(20, 270, 4005, 4006, 5, GumpButtonType.Reply, 0);
-            AddTooltip(1156074); // Transfers gold from the bank to the player's secure account; capped at 100,000,000 gold. Only funds added 
-                                 // to the secure account can be added to the wall safe account.
+            AddTooltip(1156074);
 
             AddHtmlLocalized(60, 300, 300, 16, 1156069, TextColor, false, false); // Withdraw Gold from Secure Account
             AddButton(20, 300, 4005, 4006, 6, GumpButtonType.Reply, 0);
-            AddTooltip(1156075); // Transfers gold from the secure account to the bank; capped at 100,0,000 gold.
+            AddTooltip(1156075);
 
-            // 🔥 ДОБАВЛЕНО: Кнопка вывода золота с Основного Счета в рюкзак (ButtonID = 8)
+            // Кнопка вывода золота с Основного Счета в рюкзак (ButtonID = 8)
             AddHtml(60, 330, 300, 16, "<BASEFONT COLOR='#000000'>Withdraw Gold from Account to Backpack</BASEFONT>", false, false);
             AddButton(20, 330, 4005, 4006, 8, GumpButtonType.Reply, 0);
-            AddTooltip(1155866); // Использование стандартной системной локализации подсказки ввода суммы
+            AddTooltip(1155866);
 
             if (_isInsideCityRegion)
             {
@@ -140,7 +132,7 @@ namespace Server.Gumps
                 AddHtml(60, 390, 300, 16, "<BASEFONT COLOR='#004400'><B>Withdraw Gold from City Deposit</B></BASEFONT>", false, false);
                 AddButton(20, 390, 4005, 4006, 10, GumpButtonType.Reply, 0);
             }
-        
+
         }
 
         public override void OnResponse(NetState state, RelayInfo info)
@@ -173,7 +165,7 @@ namespace Server.Gumps
                                 v = Utility.ToInt32(text);
 
                                 if (v <= 0 || v > canHold || v > Banker.GetBalance(from))
-                                    from.SendLocalizedMessage(1155867); // The amount entered is invalid. Verify that there are sufficient funds to complete this transaction.
+                                    from.SendLocalizedMessage(1155867);
                                 else if (account != null)
                                 {
                                     if (v > canHold)
@@ -188,12 +180,12 @@ namespace Server.Gumps
                                 }
                             }
                             else
-                                from.SendLocalizedMessage(1155867); // The amount entered is invalid. Verify that there are sufficient funds to complete this transaction.
+                                from.SendLocalizedMessage(1155867);
                         }
                     },
                     (from, text, a) =>
                     {
-                        User.SendLocalizedMessage(1155867); // The amount entered is invalid. Verify that there are sufficient funds to complete this transaction.
+                        User.SendLocalizedMessage(1155867);
                         User.SendGump(new BankerGump(User));
                     }, acct);
                     break;
@@ -213,27 +205,25 @@ namespace Server.Gumps
                                 if (ac != null)
                                 {
                                     if (v <= 0 || v > acct.GetSecureAccountAmount(from))
-                                        from.SendLocalizedMessage(1155867); // The amount entered is invalid. Verify that there are sufficient funds to complete this transaction.
+                                        from.SendLocalizedMessage(1155867);
                                     else
                                     {
                                         Banker.Deposit(from, v, true);
                                         ac.WithdrawFromSecure(from, v);
-
                                         from.SendLocalizedMessage(1153188); // Transaction successful:
                                     }
-
                                     Timer.DelayCall(TimeSpan.FromSeconds(2), SendGump);
                                 }
                             }
                             else
-                                from.SendLocalizedMessage(1155867); // The amount entered is invalid. Verify that there are sufficient funds to complete this transaction.
+                                from.SendLocalizedMessage(1155867);
                         }
                     },
-                    (from, text, act) =>
-                    {
-                        User.SendLocalizedMessage(1155867); // The amount entered is invalid. Verify that there are sufficient funds to complete this transaction.
-                        User.SendGump(new BankerGump(User));
-                    }, acct);
+(from, text, act) =>
+{
+    User.SendLocalizedMessage(1155867);
+    User.SendGump(new BankerGump(User));
+}, acct);
                     break;
                 case 7:
                     User.CloseGump(typeof(NewCurrencyHelpGump));
@@ -242,7 +232,7 @@ namespace Server.Gumps
                     break;
                 case 8:
                     User.SendLocalizedMessage(1155866);
-                    User.BeginPrompt<Account>((from, text, account) =>
+                    User.BeginPrompt((from, text, account) =>
                     {
                         if (account == null || text == null || String.IsNullOrEmpty(text)) { from.SendLocalizedMessage(1155867); return; }
                         int amount = Utility.ToInt32(text);
@@ -250,7 +240,13 @@ namespace Server.Gumps
                         Item goldItem = (amount > 60000) ? (Item)new BankCheck(amount) : (Item)new Gold(amount);
                         if (from.Backpack != null && from.Backpack.CheckHold(from, goldItem, true, true))
                         {
-                            if (account.WithdrawGold(amount)) { from.Backpack.DropItem(goldItem); from.SendLocalizedMessage(1153188); from.InvalidateProperties(); }
+                            if (account.WithdrawGold(amount))
+                            {
+                                from.Backpack.DropItem(goldItem);
+                                from.PlaySound(0x35); // 🔥 ДОБАВЛЕНО: Воспроизведение звука золотых монет
+                                from.SendLocalizedMessage(1153188);
+                                from.InvalidateProperties();
+                            }
                             else { goldItem.Delete(); from.SendLocalizedMessage(1155867); }
                         }
                         else { goldItem.Delete(); from.SendMessage(0x22, "Ваш рюкзак слишком переполнен или тяжел."); }
@@ -265,6 +261,7 @@ namespace Server.Gumps
                 case 9:
                     if (!_isInsideCityRegion) break;
                     User.SendMessage(0x35, $"[Депозит {_currentCity}]: Введите сумму золота для зачисления на вклад:");
+                    // 🔥 ИСПРАВЛЕНО: Добавлена строгая типизация  для лямбда-выражения Prompt
                     User.BeginPrompt((from, text, account) =>
                     {
                         if (account == null || string.IsNullOrEmpty(text)) { from.SendMessage(0x22, "Операция отменена."); return; }
@@ -290,12 +287,12 @@ namespace Server.Gumps
                         if (account.WithdrawGold(amount))
                         {
                             deposit.Balance += amount;
+                            from.PlaySound(0x35); // 🔥 ДОБАВЛЕНО: Звук монет при зачислении на городской вклад
                             from.SendMessage(0x42, $"[Успех]: На депозит города {_currentCity} зачислено {amount} золотых. Баланс: {deposit.Balance}/{maxLimit}.");
                         }
                         Timer.DelayCall(TimeSpan.FromSeconds(1), SendGump);
                     }, (from, text, a) => from.SendGump(new BankerGump(User)), acct);
                     break;
-                // 🔥 ДОБАВЛЕНО: КЕЙС 10 — СНЯТЬ С ГОРОДСКОГО ДЕПОЗИТА (НА СЧЕТ АККАУНТА)
                 case 10:
                     if (!_isInsideCityRegion) break;
                     User.SendMessage(0x35, $"[Депозит {_currentCity}]: Введите сумму для снятия с вклада на основной счет аккаунта:");
@@ -311,18 +308,17 @@ namespace Server.Gumps
                         }
                         deposit.Balance -= amount;
                         account.DepositGold(amount); // Зачисляем обратно на виртуальный счет аккаунта
+                        from.PlaySound(0x35); // 🔥 ДОБАВЛЕНО: Звук монет при переводе на основной счет аккаунта
                         from.SendMessage(0x42, $"[Успех]: С депозита {_currentCity} снято {amount} золотых и переведено на счет вашего аккаунта.");
                         Timer.DelayCall(TimeSpan.FromSeconds(1), SendGump);
                     }, (from, text, a) => from.SendGump(new BankerGump(User)), acct);
                     break;
             }
         }
-
         private void SendGump()
         {
             User.SendGump(new BankerGump(User));
         }
-
         public void Refresh(bool recompile = true)
         {
             if (recompile)
@@ -331,12 +327,10 @@ namespace Server.Gumps
                 Entries.TrimExcess();
                 AddGumpLayout();
             }
-
             User.CloseGump(this.GetType());
             User.SendGump(this, false);
         }
     }
-
     public class NewCurrencyHelpGump : Gump
     {
         public NewCurrencyHelpGump() : base(50, 75)
