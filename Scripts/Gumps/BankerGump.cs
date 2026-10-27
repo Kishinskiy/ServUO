@@ -1,8 +1,9 @@
-﻿using Server;
-using System;
+﻿using System;
+using System.Collections.Generic;
+using System.Globalization;
+using Server;
 using Server.Accounting;
 using Server.Mobiles;
-using System.Globalization;
 using Server.Network;
 using Server.Items;
 using Server.Custom.CityDevelopment;
@@ -23,7 +24,7 @@ namespace Server.Gumps
         {
             User = pm;
 
-            // Автоматически определяем, в каком городе находится игрок по его региону
+            // Строгая проверка региона нахождения игрока
             _isInsideCityRegion = false;
             if (pm.Region != null && pm.Map != null && pm.Map != Map.Internal)
             {
@@ -39,16 +40,23 @@ namespace Server.Gumps
                 }
             }
 
+            // 🔥 ЗАЩИТНЫЙ РУБЕЖ: Если игрок вне города, полностью прерываем работу банка
+            if (!_isInsideCityRegion)
+            {
+                pm.SendMessage(0x22, "Этот NPC находится вне юрисдикции официальных городов. Банковские операции недоступны.");
+                return;
+            }
+
             AddGumpLayout();
         }
 
         public void AddGumpLayout()
         {
-            AddBackground(0, 0, 420, 434, 9300);
+            // Жестко фиксированный размер окна под полную городскую инфраструктуру
+            AddBackground(0, 0, 420, 464, 9300);
 
-            // Динамический заголовок в зависимости от текущего города
-            string title = _isInsideCityRegion ? $"Bank Actions - {_currentCity}" : "Bank Actions - Shard Account";
-            AddHtml(0, 10, 420, 16, $"<CENTER><B>{title}</B></CENTER>", false, false);
+            // Красивый заголовок с названием текущего города
+            AddHtml(0, 10, 420, 16, $"<CENTER><B>Bank Actions - {_currentCity}</B></CENTER>", false, false);
 
             Account acct = User.Account as Account;
 
@@ -61,78 +69,72 @@ namespace Server.Gumps
             AddHtmlLocalized(15, 75, 150, 16, 1157003, false, false); // Secure Account:
             AddHtml(130, 75, 200, 16, acct != null ? acct.GetSecureAccountAmount(User).ToString("N0", CultureInfo.GetCultureInfo("en-US")) : "0", false, false);
 
-            AddHtmlLocalized(15, 95, 150, 16, 1157004, false, false); // Transfer Gold:
-            AddHtml(130, 95, 200, 16, "0", false, false);
+            // =========================================================================
+            // 🏛️ ВЫВОД ИНФОРМАЦИИ О ГОРОДСКОМ ДЕПОЗИТЕ 🏛️
+            // =========================================================================
+            CityProgress cityProgress = CityDevelopmentMod.GetCityProfile(_currentCity, User.Map);
+            DepositEntry deposit = CityBankDepositSystem.GetDeposit(User, _currentCity, User.Map);
 
-            AddHtmlLocalized(15, 115, 150, 16, 1157005, false, false); // Transfer Platinum:
-            AddHtml(130, 115, 200, 16, "0", false, false);
+            long maxLimit = CityBankDepositSystem.GetMaxDepositLimit(cityProgress.Level);
+            double ratePercent = CityBankDepositSystem.GetInterestRate(cityProgress.Level) * 100;
+
+            AddHtml(15, 95, 150, 16, "<BASEFONT COLOR='#005500'>City Deposit:</BASEFONT>", false, false);
+            AddHtml(130, 95, 200, 16, $"<B>{deposit.Balance.ToString("N0", CultureInfo.GetCultureInfo("en-US"))}</B> / {maxLimit.ToString("N0", CultureInfo.GetCultureInfo("en-US"))}", false, false);
+
+            AddHtml(15, 115, 150, 16, "<BASEFONT COLOR='#005500'>City Rate (Day):</BASEFONT>", false, false);
+            AddHtml(130, 115, 200, 16, $"+{ratePercent.ToString("F2")}% (City Lvl: {cityProgress.Level})", false, false);
 
             // =========================================================================
-            // 🏛️ ВЫВОД ИНФОРМАЦИИ О ГОРОДСКОМ ДЕПОЗИТЕ 🎉⚙️
+            // 🔄 НА ТИВНЫЕ СТРОКИ СЧЕТА ТРАНСФЕРА
             // =========================================================================
-            if (_isInsideCityRegion)
-            {
-                CityProgress cityProgress = CityDevelopmentMod.GetCityProfile(_currentCity, User.Map);
-                DepositEntry deposit = CityBankDepositSystem.GetDeposit(User, _currentCity, User.Map);
+            AddHtmlLocalized(15, 135, 150, 16, 1157004, false, false); // Transfer Gold:
+            AddHtml(130, 135, 200, 16, "0", false, false);
 
-                long maxLimit = CityBankDepositSystem.GetMaxDepositLimit(cityProgress.Level);
-                double ratePercent = CityBankDepositSystem.GetInterestRate(cityProgress.Level) * 100;
+            AddHtmlLocalized(15, 155, 150, 16, 1157005, false, false); // Transfer Platinum:
+            AddHtml(130, 155, 200, 16, "0", false, false);
 
-                AddHtml(15, 95, 150, 16, "<BASEFONT COLOR='#005500'>City Deposit:</BASEFONT>", false, false);
-                AddHtml(130, 95, 200, 16, $"<B>{deposit.Balance.ToString("N0", CultureInfo.GetCultureInfo("en-US"))}</B> / {maxLimit.ToString("N0", CultureInfo.GetCultureInfo("en-US"))}", false, false);
-
-                AddHtml(15, 115, 150, 16, "<BASEFONT COLOR='#005500'>City Rate (Day):</BASEFONT>", false, false);
-                AddHtml(130, 115, 200, 16, $"+{ratePercent.ToString("F2")}% (City Lvl: {cityProgress.Level})", false, false);
-            }
-            else
-            {
-                AddHtml(15, 95, 250, 16, "<BASEFONT COLOR='#880000'>City Deposit: (Available only inside cities)</BASEFONT>", false, false);
-                AddHtml(15, 115, 150, 16, "City Rate (Day):", false, false);
-                AddHtml(130, 115, 200, 16, "0.00%", false, false);
-            }
-
-            // ИСПРАВЛЕНО: Дублирующийся блок кнопки Help полностью удален
+            // Кнопка Help
             AddHtmlLocalized(270, 35, 90, 16, 1114514, "Help", 0, false, false);
             AddButton(370, 35, 4014, 4015, 7, GumpButtonType.Reply, 0);
 
-            AddHtmlLocalized(60, 150, 360, 16, 1156064, TextColor, false, false); // Deposit Gold into Character Transfer Account
-            AddButton(20, 150, 4005, 4006, 1, GumpButtonType.Reply, 0);
+            // =========================================================================
+            // 🔘 КНОПКИ ДЕЙСТВИЙ И УПРАВЛЕНИЯ СЧЕТАМИ
+            // =========================================================================
+            AddHtmlLocalized(60, 180, 360, 16, 1156064, TextColor, false, false); // Deposit Gold into Character Transfer
+            AddButton(20, 180, 4005, 4006, 1, GumpButtonType.Reply, 0);
             AddTooltip(1156070);
 
-            AddHtmlLocalized(60, 180, 300, 16, 1156065, TextColor, false, false); // Deposit Platinum into Character Transfer Account
-            AddButton(20, 180, 4005, 4006, 2, GumpButtonType.Reply, 0);
+            AddHtmlLocalized(60, 210, 300, 16, 1156065, TextColor, false, false); // Deposit Platinum into Character Transfer
+            AddButton(20, 210, 4005, 4006, 2, GumpButtonType.Reply, 0);
             AddTooltip(1156071);
 
-            AddHtmlLocalized(60, 210, 300, 16, 1156066, TextColor, false, false); // Withdraw Gold from Character Transfer Account
-            AddButton(20, 210, 4005, 4006, 3, GumpButtonType.Reply, 0);
+            AddHtmlLocalized(60, 240, 300, 16, 1156066, TextColor, false, false); // Withdraw Gold from Character Transfer
+            AddButton(20, 240, 4005, 4006, 3, GumpButtonType.Reply, 0);
             AddTooltip(1156072);
 
-            AddHtmlLocalized(60, 240, 300, 16, 1156067, TextColor, false, false); // Withdraw Platinum from Character Transfer Account
-            AddButton(20, 240, 4005, 4006, 4, GumpButtonType.Reply, 0);
+            AddHtmlLocalized(60, 270, 300, 16, 1156067, TextColor, false, false); // Withdraw Platinum from Character Transfer
+            AddButton(20, 270, 4005, 4006, 4, GumpButtonType.Reply, 0);
             AddTooltip(1156073);
 
-            AddHtmlLocalized(60, 270, 300, 16, 1156068, TextColor, false, false); // Deposit Gold into Secure Account
-            AddButton(20, 270, 4005, 4006, 5, GumpButtonType.Reply, 0);
+            AddHtmlLocalized(60, 300, 300, 16, 1156068, TextColor, false, false); // Deposit Gold into Secure Account
+            AddButton(20, 300, 4005, 4006, 5, GumpButtonType.Reply, 0);
             AddTooltip(1156074);
 
-            AddHtmlLocalized(60, 300, 300, 16, 1156069, TextColor, false, false); // Withdraw Gold from Secure Account
-            AddButton(20, 300, 4005, 4006, 6, GumpButtonType.Reply, 0);
+            AddHtmlLocalized(60, 330, 300, 16, 1156069, TextColor, false, false); // Withdraw Gold from Secure Account
+            AddButton(20, 330, 4005, 4006, 6, GumpButtonType.Reply, 0);
             AddTooltip(1156075);
 
-            // Кнопка вывода золота с Основного Счета в рюкзак (ButtonID = 8)
-            AddHtml(60, 330, 300, 16, "<BASEFONT COLOR='#000000'>Withdraw Gold from Account to Backpack</BASEFONT>", false, false);
-            AddButton(20, 330, 4005, 4006, 8, GumpButtonType.Reply, 0);
+            // Кнопка 8: Вывод золота с Основного Счета в рюкзак
+            AddHtml(60, 360, 300, 16, "<BASEFONT COLOR='#000000'>Withdraw Gold from Account to Backpack</BASEFONT>", false, false);
+            AddButton(20, 360, 4005, 4006, 8, GumpButtonType.Reply, 0);
             AddTooltip(1155866);
 
-            if (_isInsideCityRegion)
-            {
-                AddHtml(60, 360, 300, 16, "<BASEFONT COLOR='#004400'><B>Deposit Gold into City Deposit</B></BASEFONT>", false, false);
-                AddButton(20, 360, 4005, 4006, 9, GumpButtonType.Reply, 0);
+            // Кнопки управления локальным депозитом города
+            AddHtml(60, 390, 300, 16, "<BASEFONT COLOR='#004400'><B>Deposit Gold into City Deposit</B></BASEFONT>", false, false);
+            AddButton(20, 390, 4005, 4006, 9, GumpButtonType.Reply, 0);
 
-                AddHtml(60, 390, 300, 16, "<BASEFONT COLOR='#004400'><B>Withdraw Gold from City Deposit</B></BASEFONT>", false, false);
-                AddButton(20, 390, 4005, 4006, 10, GumpButtonType.Reply, 0);
-            }
-
+            AddHtml(60, 410, 300, 16, "<BASEFONT COLOR='#004400'><B>Withdraw Gold from City Deposit</B></BASEFONT>", false, false);
+            AddButton(20, 410, 4005, 4006, 10, GumpButtonType.Reply, 0);
         }
 
         public override void OnResponse(NetState state, RelayInfo info)
@@ -155,27 +157,20 @@ namespace Server.Gumps
                     (from, text, account) =>
                     {
                         int v = 0;
-
                         if (account != null)
                         {
                             int canHold = Account.MaxSecureAmount - account.GetSecureAccountAmount(from);
-
                             if (text != null && !String.IsNullOrEmpty(text))
                             {
                                 v = Utility.ToInt32(text);
-
                                 if (v <= 0 || v > canHold || v > Banker.GetBalance(from))
                                     from.SendLocalizedMessage(1155867);
                                 else if (account != null)
                                 {
-                                    if (v > canHold)
-                                        v = canHold;
-
+                                    if (v > canHold) v = canHold;
                                     Banker.Withdraw(from, v, true);
                                     account.DepositToSecure(from, v);
-
-                                    from.SendLocalizedMessage(1153188); // Transaction successful:
-
+                                    from.SendLocalizedMessage(1153188);
                                     Timer.DelayCall(TimeSpan.FromSeconds(2), SendGump);
                                 }
                             }
@@ -195,13 +190,11 @@ namespace Server.Gumps
                     (from, text, ac) =>
                     {
                         int v = 0;
-
                         if (ac != null)
                         {
                             if (text != null && !String.IsNullOrEmpty(text))
                             {
                                 v = Utility.ToInt32(text);
-
                                 if (ac != null)
                                 {
                                     if (v <= 0 || v > acct.GetSecureAccountAmount(from))
@@ -210,7 +203,7 @@ namespace Server.Gumps
                                     {
                                         Banker.Deposit(from, v, true);
                                         ac.WithdrawFromSecure(from, v);
-                                        from.SendLocalizedMessage(1153188); // Transaction successful:
+                                        from.SendLocalizedMessage(1153188);
                                     }
                                     Timer.DelayCall(TimeSpan.FromSeconds(2), SendGump);
                                 }
@@ -243,7 +236,7 @@ namespace Server.Gumps
                             if (account.WithdrawGold(amount))
                             {
                                 from.Backpack.DropItem(goldItem);
-                                from.PlaySound(0x35); // 🔥 ДОБАВЛЕНО: Воспроизведение звука золотых монет
+                                from.PlaySound(0x35); // Звук монет
                                 from.SendLocalizedMessage(1153188);
                                 from.InvalidateProperties();
                             }
@@ -259,9 +252,7 @@ namespace Server.Gumps
                     }, acct);
                     break;
                 case 9:
-                    if (!_isInsideCityRegion) break;
                     User.SendMessage(0x35, $"[Депозит {_currentCity}]: Введите сумму золота для зачисления на вклад:");
-                    // 🔥 ИСПРАВЛЕНО: Добавлена строгая типизация  для лямбда-выражения Prompt
                     User.BeginPrompt((from, text, account) =>
                     {
                         if (account == null || string.IsNullOrEmpty(text)) { from.SendMessage(0x22, "Операция отменена."); return; }
@@ -281,20 +272,19 @@ namespace Server.Gumps
                         }
                         if (deposit.Balance + amount > maxLimit)
                         {
-                            amount = (int)(maxLimit - deposit.Balance); // Срезаем сумму под максимальный кап
+                            amount = (int)(maxLimit - deposit.Balance);
                             from.SendMessage(0x35, $"Сумма вклада скорректирована под лимит уровня города.");
                         }
                         if (account.WithdrawGold(amount))
                         {
                             deposit.Balance += amount;
-                            from.PlaySound(0x35); // 🔥 ДОБАВЛЕНО: Звук монет при зачислении на городской вклад
+                            from.PlaySound(0x35);
                             from.SendMessage(0x42, $"[Успех]: На депозит города {_currentCity} зачислено {amount} золотых. Баланс: {deposit.Balance}/{maxLimit}.");
                         }
                         Timer.DelayCall(TimeSpan.FromSeconds(1), SendGump);
                     }, (from, text, a) => from.SendGump(new BankerGump(User)), acct);
                     break;
                 case 10:
-                    if (!_isInsideCityRegion) break;
                     User.SendMessage(0x35, $"[Депозит {_currentCity}]: Введите сумму для снятия с вклада на основной счет аккаунта:");
                     User.BeginPrompt((from, text, account) =>
                     {
@@ -307,8 +297,8 @@ namespace Server.Gumps
                             return;
                         }
                         deposit.Balance -= amount;
-                        account.DepositGold(amount); // Зачисляем обратно на виртуальный счет аккаунта
-                        from.PlaySound(0x35); // 🔥 ДОБАВЛЕНО: Звук монет при переводе на основной счет аккаунта
+                        account.DepositGold(amount);
+                        from.PlaySound(0x35);
                         from.SendMessage(0x42, $"[Успех]: С депозита {_currentCity} снято {amount} золотых и переведено на счет вашего аккаунта.");
                         Timer.DelayCall(TimeSpan.FromSeconds(1), SendGump);
                     }, (from, text, a) => from.SendGump(new BankerGump(User)), acct);
