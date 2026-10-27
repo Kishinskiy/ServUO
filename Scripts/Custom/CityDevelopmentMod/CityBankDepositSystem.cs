@@ -17,7 +17,7 @@ namespace Server.Custom.CityDevelopment
     public static class CityBankDepositSystem
     {
         public static readonly int SystemVersion = 1;
-        
+
         // Ключ словаря: "СериалИгрока_Город_ИмяКарты"
         private static readonly Dictionary<string, DepositEntry> _deposits = new Dictionary<string, DepositEntry>();
         private static readonly string _savePath = Path.Combine(Core.BaseDirectory, "Saves/Custom/CityBankDeposits.bin");
@@ -33,11 +33,12 @@ namespace Server.Custom.CityDevelopment
         }
 
         // Получение или создание вклада игрока в конкретном городе
-        public static DepositEntry GetDeposit(Mobile from, Server.Engines.CityLoyalty.City city, Map map)
+        public static DepositEntry GetDeposit(Mobile from, string cityName, Map map)
         {
-            if (from == null || map == null || map == Map.Internal) return null;
+            if (from == null || map == null || map == Map.Internal || String.IsNullOrEmpty(cityName))
+                return null;
 
-            string key = $"{from.Serial.Value}_{city}_{map.Name}";
+            string key = $"{from.Serial.Value}_{cityName}_{map.Name}";
 
             if (!_deposits.TryGetValue(key, out DepositEntry entry))
             {
