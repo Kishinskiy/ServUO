@@ -1462,12 +1462,24 @@ namespace Server.Items
 
 				bonus += AosAttributes.GetValue(attacker, AosAttribute.AttackChance);
 
+				// 🔥 ХУК: Торговое соглашение Гильдии Воинов (+5% к шансу попадания HCI)
+				if (Server.Engines.CityLoyalty.CityLoyaltySystem.HasTradeDeal(attacker, Server.Engines.CityLoyalty.TradeDeal.WarriorsGuild))
+				{
+					bonus += 5;
+				}
+
 				//SA Gargoyle cap is 50, else 45
 				bonus = Math.Min(attacker.Race == Race.Gargoyle ? 50 : 45, bonus);
 
 				ourValue = (atkValue + 20.0) * (100 + bonus);
 
 				bonus = AosAttributes.GetValue(defender, AosAttribute.DefendChance);
+
+				// 🔥 ХУК: Торговое соглашение Гильдии Ассасинов (+5% к шансу защиты DCI)
+				if (Server.Engines.CityLoyalty.CityLoyaltySystem.HasTradeDeal(defender, Server.Engines.CityLoyalty.TradeDeal.GuildOfAssassins))
+				{
+					bonus += 5;
+				}
 
 				ForceArrow.ForceArrowInfo info = ForceArrow.GetInfo(attacker, defender);
 
@@ -3114,6 +3126,13 @@ namespace Server.Items
 			damageBonus += inscribeBonus;
 			damageBonus += attacker.Int / 10;
 			damageBonus += SpellHelper.GetSpellDamageBonus(attacker, defender, SkillName.Magery, attacker is PlayerMobile && defender is PlayerMobile);
+			
+			// 🔥 ХУК: Торговое соглашение Гильдии Магов (+5% к урону заклинаний SDI при проке с оружия)
+			if (Server.Engines.CityLoyalty.CityLoyaltySystem.HasTradeDeal(attacker, Server.Engines.CityLoyalty.TradeDeal.GuildOfArcaneArts))
+			{
+				damageBonus += 5;
+			}
+			
 			damage = AOS.Scale(damage, 100 + damageBonus);
 
 			if (defender != null && Feint.Registry.ContainsKey(defender) && Feint.Registry[defender].Enemy == attacker)

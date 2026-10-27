@@ -841,19 +841,60 @@ namespace Server.Engines.CityLoyalty
 
         public static void ActivateTradeDeal(Mobile m, TradeDeal deal)
         {
+            RemoveTradeDeal(m);
+
             switch (deal)
             {
-                case TradeDeal.OrderOfEngineers: m.AddStatMod(new StatMod(StatType.Dex, String.Format("TradeDeal_{0}", StatType.Dex), 3, TimeSpan.Zero)); break;
-                case TradeDeal.MiningCooperative: m.AddStatMod(new StatMod(StatType.Str, String.Format("TradeDeal_{0}", StatType.Str), 3, TimeSpan.Zero)); break;
-                case TradeDeal.LeagueOfRangers: m.AddStatMod(new StatMod(StatType.Int, String.Format("TradeDeal_{0}", StatType.Int), 3, TimeSpan.Zero)); break;
+                // Модификаторы основных характеристик (Stats)
+                case TradeDeal.OrderOfEngineers: 
+                    m.AddStatMod(new StatMod(StatType.Dex, "TradeDeal_Dex", 3, TimeSpan.Zero)); 
+                    break;
+                case TradeDeal.MiningCooperative: 
+                    m.AddStatMod(new StatMod(StatType.Str, "TradeDeal_Str", 3, TimeSpan.Zero)); 
+                    break;
+                case TradeDeal.LeagueOfRangers: 
+                    m.AddStatMod(new StatMod(StatType.Int, "TradeDeal_Int", 3, TimeSpan.Zero)); 
+                    break;
+
+                // Модификаторы сопротивлений (Resistances)
+                case TradeDeal.SocietyOfClothiers:
+                    m.AddResistanceMod(new ResistanceMod(ResistanceType.Physical, 5));
+                    break;
+                case TradeDeal.MaritimeGuild:
+                    m.AddResistanceMod(new ResistanceMod(ResistanceType.Cold, 5));
+                    break;
+
+                // Модификаторы регенерации (через встроенную систему Delta-атрибутов ServUO)
+                case TradeDeal.BardicCollegium:
+                    m.Delta(MobileDelta.Attributes); // Сигнализируем ядру об изменении регенерации маны
+                    break;
+                case TradeDeal.GuildOfHealers:
+                    m.Delta(MobileDelta.Attributes); // Сигнализируем ядру об изменении регенерации здоровья
+                    break;
+
+                // Для боевых и магических гильдий (Warriors, Assassins, ArcaneArts) 
+                // баффы сработают автоматически через хуки ниже, так как свойство ActiveTradeDeal уже обновлено.
+                default:
+                    break;
+
             }
+            m.Delta(MobileDelta.WeaponDamage);
         }
 
         public static void RemoveTradeDeal(Mobile m)
         {
-            m.RemoveStatMod(String.Format("TradeDeal_{0}", StatType.Dex));
-            m.RemoveStatMod(String.Format("TradeDeal_{0}", StatType.Str));
-            m.RemoveStatMod(String.Format("TradeDeal_{0}", StatType.Int));
+            // Удаляем модификаторы характеристик
+            m.RemoveStatMod("TradeDeal_Dex");
+            m.RemoveStatMod("TradeDeal_Str");
+            m.RemoveStatMod("TradeDeal_Int");
+
+            // Удаляем модификаторы резистов (ServUO безопасно удаляет их по совпадению типа)
+            m.RemoveResistanceMod(new ResistanceMod(ResistanceType.Physical, 5));
+            m.RemoveResistanceMod(new ResistanceMod(ResistanceType.Cold, 5));
+
+            // Сбрасываем флаги регенерации
+            m.Delta(MobileDelta.Attributes);
+            m.Delta(MobileDelta.WeaponDamage);
         }
 
         public static void OnBODTurnIn(Mobile from, int gold)

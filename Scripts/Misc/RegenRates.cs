@@ -239,6 +239,12 @@ namespace Server.Misc
                 foreach (RegenBonusHandler handler in HitsBonusHandlers)
                     points += handler(from);
 
+            // 🔥 ХУК: Торговое соглашение Целителей (+2 к регенерации HP)
+            if (Server.Engines.CityLoyalty.CityLoyaltySystem.HasTradeDeal(from, Server.Engines.CityLoyalty.TradeDeal.GuildOfHealers))
+            {
+                points += 2;
+            }
+
             return points;
         }
 
@@ -291,6 +297,12 @@ namespace Server.Misc
 
             foreach (RegenBonusHandler handler in ManaBonusHandlers)
                 points += handler(from);
+
+            // 🔥 ХУК: Торговое соглашение Бардов (+2 к регенерации маны)
+            if (Server.Engines.CityLoyalty.CityLoyaltySystem.HasTradeDeal(from, Server.Engines.CityLoyalty.TradeDeal.BardicCollegium))
+            {
+                points += 2;
+            }
 
             return points;
         }
