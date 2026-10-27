@@ -471,13 +471,12 @@ namespace Server.Engines.CityLoyalty
 
         public void AddToTreasury(Mobile m, int amount, bool givelove = false)
         {
-            Map currentMap = m.Map;
+            Map currentMap = (m != null && m.Map != null && m.Map != Map.Internal) ? m.Map : Map.Trammel;
             var progress = Server.Custom.CityDevelopment.CityDevelopmentMod.GetCityProfile(this.City, currentMap);
 
             if (progress != null)
             {
                 progress.Treasury += amount;
-                _Treasury = progress.Treasury; // Синхронизируем локальный баланс для гампов на текущей карте
             }
             else
             {
@@ -487,7 +486,7 @@ namespace Server.Engines.CityLoyalty
             if (Stone != null)
                 Stone.InvalidateProperties();
 
-            if (givelove)
+            if (givelove && m != null)
             {
                 AwardLove(m, amount / 250);
             }

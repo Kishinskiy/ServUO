@@ -477,11 +477,11 @@ namespace Server.Custom.CityDevelopment
                     {
                         progress.Treasury -= maintenanceCost;
                         
-                        // Синхронизируем баланс с нативной системой City Loyalty ядра ServUO
-                        Server.Engines.CityLoyalty.CityLoyaltySystem citySystem = 
-                            Server.Engines.CityLoyalty.CityLoyaltySystem.GetCityInstance(coreCity);
-                        if (citySystem != null)
-                            citySystem.Treasury = progress.Treasury;
+                        // // Синхронизируем баланс с нативной системой City Loyalty ядра ServUO
+                        // Server.Engines.CityLoyalty.CityLoyaltySystem citySystem = 
+                        //     Server.Engines.CityLoyalty.CityLoyaltySystem.GetCityInstance(coreCity);
+                        // if (citySystem != null)
+                        //     citySystem.Treasury = progress.Treasury;
                     }
                     else
                     {
