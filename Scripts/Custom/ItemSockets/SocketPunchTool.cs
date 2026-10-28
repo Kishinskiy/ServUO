@@ -25,9 +25,10 @@ namespace Server.Custom.ItemSockets
                 return;
             }
 
-            if (from.Skills[SkillName.Blacksmith].Value < 95.0)
+            // ИЗМЕНЕНО: Порог снижен до 60.0 Blacksmithy
+            if (from.Skills[SkillName.Blacksmith].Value < 60.0)
             {
-                from.SendMessage(0x22, "Ваш кузнечный навык слишком мал, чтобы ковать новые слоты. Требуется 95.0 Blacksmithy!");
+                from.SendMessage(0x22, "Ваш кузнечный навык слишком мал, чтобы ковать новые слоты. Требуется минимум 60.0 Blacksmithy!");
                 return;
             }
 
@@ -74,16 +75,27 @@ namespace Server.Custom.ItemSockets
                         return;
                     }
 
-                    if (Utility.RandomDouble() < 0.65)
+                    // =========================================================================
+                    // ДИНАМИЧЕСКИЙ РАСЧЕТ ШАНСА: СТАРТ С 10% НА 60.0 СКИЛЛЕ, МАКСИМУМ 100% НА 120.0
+                    // =========================================================================
+                    double smithySkill = from.Skills[SkillName.Blacksmith].Value;
+                    
+                    // Базовые 10% + 1.5% за каждый шаг навыка выше 60.0
+                    double successChance = 0.10 + (smithySkill - 60.0) * 0.015;
+                    
+                    // Ограничиваем рамками от 10% до 100% во избежание аномалий
+                    successChance = Math.Max(0.10, Math.Min(1.0, successChance));
+
+                    if (Utility.RandomDouble() < successChance)
                     {
                         attachment.MaxSockets++;
-                        from.PlaySound(0x54);
-                        from.SendMessage(0x35, $"Успех! Вы пробили новое гнездо в оружии. Всего доступно слотов: {attachment.MaxSockets}/3.");
+                        from.PlaySound(0x54); // Звук ковки/удара молотом
+                        from.SendMessage(0x35, $"Успех! (Шанс: {successChance * 100:0}%). Вы пробили новое гнездо в оружии. Всего доступно слотов: {attachment.MaxSockets}/3.");
                     }
                     else
                     {
-                        from.PlaySound(0x41);
-                        from.SendMessage(0x22, "Ваш молот сорвался! Слитки потрачены впустую, пробить гнездо не удалось.");
+                        from.PlaySound(0x41); // Звук неудачи
+                        from.SendMessage(0x22, $"Ваш молот сорвался! (Шанс был: {successChance * 100:0}%). Слитки потрачены впустую, пробить гнездо не удалось.");
                     }
 
                     weapon.InvalidateProperties();
