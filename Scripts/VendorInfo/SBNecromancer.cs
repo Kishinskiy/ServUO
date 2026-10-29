@@ -31,7 +31,8 @@ namespace Server.Mobiles
 				Add( new GenericBuyInfo( typeof( SpidersSilk ), 3, 20, 0xF8D, 0 ) );
 				Add( new GenericBuyInfo( typeof( SulfurousAsh ), 4, 20, 0xF8C, 0 ) );
 				Add( new GenericBuyInfo( typeof(HunterBestiary), 100, 25, 0x2252, 1153));
-				Add(new GenericBuyInfo(typeof(MageIdCurseScroll), 25000, 20, 0x14F0, 1365));
+				Add(new GenericBuyInfo(typeof(MageIdentificationScroll), 15000, 20, 0x14F0, 1365));
+                Add(new GenericBuyInfo(typeof(MageRemoveCurseScroll), 25000, 5, 0x14F0, 1175));
 
 
 				if ( Core.AOS )

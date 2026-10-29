@@ -131,14 +131,24 @@ namespace Server
 			{
 				TreasureMapChest chest = (TreasureMapChest)cont;
 				
-				// Чем выше уровень карты сундука (от 1 до 6), тем выше шанс
-				// Начиная с 3 уровня сундука: 3 ур = 15%, 4 ур = 20%, 5 ур = 25%, 6 ур = 30%
-				if (chest.Level >= 3)
+				if (chest != null && chest.Level >= 3)
 				{
-					double chestChance = chest.Level * 0.05; 
-					if (Utility.RandomDouble() < chestChance)
+					// Свиток Распознавания падает с шансом: 3 ур = 15%, 6 ур = 30%
+					double idChance = chest.Level * 0.05; 
+					if (Utility.RandomDouble() < idChance)
 					{
-						cont.DropItem(new MageIdCurseScroll());
+						cont.DropItem(new MageIdentificationScroll());
+					}
+
+					// Элитный свиток Снятия Проклятия падает только из сундуков высокого уровня (от 4 до 6+)
+					// Шанс: 4 ур = 4%, 5 ур = 8%, 6 ур = 12%
+					if (chest.Level >= 4)
+					{
+						double removeChance = (chest.Level - 3) * 0.04;
+						if (Utility.RandomDouble() < removeChance)
+						{
+							cont.DropItem(new MageRemoveCurseScroll());
+						}
 					}
 				}
 			}
@@ -146,7 +156,8 @@ namespace Server
 		}
 
 		public static readonly LootPackItem[] Gold = new[] {new LootPackItem(typeof(Gold), 1)};
-		public static readonly LootPackItem[] CurseScrollItem = new[] { new LootPackItem(typeof(MageIdCurseScroll), 1) };
+		public static readonly LootPackItem[] MageIdScrollItem = new[] { new LootPackItem(typeof(MageIdentificationScroll), 1) };
+		public static readonly LootPackItem[] MageRemoveCurseScrollItem = new[] { new LootPackItem(typeof(MageRemoveCurseScroll), 1) };
 
 		public static readonly LootPackItem[] Instruments = new[] {new LootPackItem(typeof(BaseInstrument), 1)};
 
@@ -307,7 +318,8 @@ namespace Server
 					new LootPackEntry(false, AosMagicItemsRichType1, 76.30, 1, 4, 0, 75),
 					new LootPackEntry(false, AosMagicItemsRichType2, 61.70, 1, 5, 0, 100),
 					new LootPackEntry(false, Instruments, 1.00, 1),
-					new LootPackEntry(false, CurseScrollItem, 3.00, 1) 
+					new LootPackEntry(false, MageIdScrollItem, 3.00, 1),
+					new LootPackEntry(false, MageRemoveCurseScrollItem, 2.00, 1)
 				});
 
 		public static readonly LootPack SeFilthyRich =
@@ -319,7 +331,8 @@ namespace Server
 					new LootPackEntry(false, AosMagicItemsFilthyRichType1, 79.50, 1, 5, 0, 100),
 					new LootPackEntry(false, AosMagicItemsFilthyRichType2, 77.60, 1, 5, 25, 100),
 					new LootPackEntry(false, Instruments, 2.00, 1),
-					new LootPackEntry(false, CurseScrollItem, 5.00, 1)
+					new LootPackEntry(false, MageIdScrollItem, 5.00, 1),
+					new LootPackEntry(false, MageRemoveCurseScrollItem, 4.00, 1)
 				});
 
 		public static readonly LootPack SeUltraRich =
@@ -334,8 +347,8 @@ namespace Server
 					new LootPackEntry(false, AosMagicItemsUltraRich, 100.00, 1, 5, 25, 100),
 					new LootPackEntry(false, AosMagicItemsUltraRich, 100.00, 1, 5, 33, 100),
 					new LootPackEntry(false, Instruments, 2.00, 1),
-					new LootPackEntry(false, CurseScrollItem, 30.00, 1),
-					new LootPackEntry(false, CurseScrollItem, 10.00, 1)
+					new LootPackEntry(false, MageIdScrollItem, 30.00, 1),
+					new LootPackEntry(false, MageRemoveCurseScrollItem, 10.00, 1)
 				});
 
 		public static readonly LootPack SeSuperBoss =
@@ -354,8 +367,8 @@ namespace Server
 					new LootPackEntry(false, AosMagicItemsUltraRich, 100.00, 1, 5, 50, 100),
 					new LootPackEntry(false, AosMagicItemsUltraRich, 100.00, 1, 5, 50, 100),
 					new LootPackEntry(false, Instruments, 2.00, 1),
-					new LootPackEntry(false, CurseScrollItem, 30.00, 1),
-					new LootPackEntry(false, CurseScrollItem, 10.00, 1)
+					new LootPackEntry(false, MageIdScrollItem, 30.00, 1),
+					new LootPackEntry(false, MageRemoveCurseScrollItem, 10.00, 1)
 				});
 		#endregion
 
@@ -366,8 +379,8 @@ namespace Server
 				{
 					new LootPackEntry(true, Gold, 100.00, "1d10+10"), new LootPackEntry(false, AosMagicItemsPoor, 0.02, 1, 5, 0, 90),
 					new LootPackEntry(false, Instruments, 0.02, 1),
-					new LootPackEntry(false, CurseScrollItem, 30.00, 1),
-					new LootPackEntry(false, CurseScrollItem, 10.00, 1)
+					new LootPackEntry(false, MageIdScrollItem, 30.00, 1),
+					new LootPackEntry(false, MageRemoveCurseScrollItem, 10.00, 1)
 				});
 
 		public static readonly LootPack AosMeager =
@@ -378,8 +391,8 @@ namespace Server
 					new LootPackEntry(false, AosMagicItemsMeagerType1, 1.00, 1, 2, 0, 10),
 					new LootPackEntry(false, AosMagicItemsMeagerType2, 0.20, 1, 5, 0, 90),
 					new LootPackEntry(false, Instruments, 0.10, 1),
-					new LootPackEntry(false, CurseScrollItem, 30.00, 1),
-					new LootPackEntry(false, CurseScrollItem, 10.00, 1)
+					new LootPackEntry(false, MageIdScrollItem, 30.00, 1),
+					new LootPackEntry(false, MageRemoveCurseScrollItem, 10.00, 1)
 				});
 
 		public static readonly LootPack AosAverage =
@@ -391,8 +404,8 @@ namespace Server
 					new LootPackEntry(false, AosMagicItemsAverageType1, 2.00, 1, 3, 0, 50),
 					new LootPackEntry(false, AosMagicItemsAverageType2, 0.50, 1, 5, 0, 90),
 					new LootPackEntry(false, Instruments, 0.40, 1),
-					new LootPackEntry(false, CurseScrollItem, 30.00, 1),
-					new LootPackEntry(false, CurseScrollItem, 10.00, 1)
+					new LootPackEntry(false, MageIdScrollItem, 30.00, 1),
+					new LootPackEntry(false, MageRemoveCurseScrollItem, 10.00, 1)
 				});
 
 		public static readonly LootPack AosRich =
@@ -429,8 +442,8 @@ namespace Server
 					new LootPackEntry(false, AosMagicItemsUltraRich, 100.00, 1, 5, 25, 100),
 					new LootPackEntry(false, AosMagicItemsUltraRich, 100.00, 1, 5, 35, 100),
 					new LootPackEntry(false, Instruments, 2.00, 1),
-					new LootPackEntry(false, CurseScrollItem, 30.00, 1),
-					new LootPackEntry(false, CurseScrollItem, 10.00, 1)
+					new LootPackEntry(false, MageIdScrollItem, 30.00, 1),
+					new LootPackEntry(false, MageRemoveCurseScrollItem, 10.00, 1)
 				});
 
 		public static readonly LootPack AosSuperBoss =
@@ -449,8 +462,8 @@ namespace Server
 					new LootPackEntry(false, AosMagicItemsUltraRich, 100.00, 1, 5, 50, 100),
 					new LootPackEntry(false, AosMagicItemsUltraRich, 100.00, 1, 5, 50, 100),
 					new LootPackEntry(false, Instruments, 2.00, 1),
-					new LootPackEntry(false, CurseScrollItem, 30.00, 1),
-					new LootPackEntry(false, CurseScrollItem, 10.00, 1)
+					new LootPackEntry(false, MageIdScrollItem, 30.00, 1),
+					new LootPackEntry(false, MageRemoveCurseScrollItem, 10.00, 1)
 				});
 		#endregion
 
