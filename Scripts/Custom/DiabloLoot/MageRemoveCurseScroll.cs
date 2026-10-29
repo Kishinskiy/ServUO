@@ -14,7 +14,7 @@ namespace Server.Custom.CurseSystem
         public MageRemoveCurseScroll() : base(0x14F0)
         {
             Name = "Свиток Снятия Проклятия";
-            Hue = 1175; // Очищающий зеленый цвет
+            Hue = 1175; 
             Weight = 1.0;
         }
 
@@ -24,7 +24,7 @@ namespace Server.Custom.CurseSystem
 
             if (from.Backpack == null || !IsChildOf(from.Backpack))
             {
-                from.SendLocalizedMessage(1042001); // Предмет должен быть в рюкзаке
+                from.SendLocalizedMessage(1042001); 
                 return;
             }
 
@@ -84,22 +84,23 @@ namespace Server.Custom.CurseSystem
                     {
                         from.PlaySound(0x5C3);
                         from.SendMessage(0x22, "Это древний Артефакт. Для снятия проклятия требуются знания Evaluating Intelligence выше 120 уровня!");
-                        return;
+                        return; // Для артефактов блокировка остается, пока навык не станет > 120
                     }
 
-                    // Для артефактов при EvalInt > 120 успех равен 100%
+                    // Если навык > 120.0, артефакт очищается со 100% вероятностью
                     ExecuteCleanse(from, item, curse, true);
                 }
                 // =========================================================================
-                // СНЯТИЕ ПРОКЛЯТИЙ С ОБЫЧНЫХ КЛАССОВ ВЕЩЕЙ
+                // ДИНАМИЧЕСКОЕ СНЯТИЕ ПРОКЛЯТИЙ С ОБЫЧНЫХ ВЕЩЕЙ (ПО ШАНСУ)
                 // =========================================================================
                 else
                 {
+                    // Сложность зависит напрямую от силы порчи (HpPenalty)
                     double curseDifficulty = 30.0 + (curse.HpPenalty * 2.0);
                     double cleanseChance = (evalIntel / curseDifficulty);
 
-                    // При EvalInt >= 100 или удачном кубике — 100% успех
-                    if (Utility.RandomDouble() < cleanseChance || evalIntel >= 100.0)
+                    // При ГМ уровне (100+) или если бросок кубика успешный — проклятие снимается
+                    if (evalIntel >= 100.0 || Utility.RandomDouble() < cleanseChance)
                     {
                         ExecuteCleanse(from, item, curse, false);
                     }
@@ -110,7 +111,7 @@ namespace Server.Custom.CurseSystem
                     }
                 }
 
-                m_Scroll.Delete(); // Свиток уничтожается при любой попытке
+                m_Scroll.Delete(); // Свиток уничтожается при любом исходе ритуала
             }
             else
             {

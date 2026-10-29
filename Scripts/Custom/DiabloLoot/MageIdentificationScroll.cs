@@ -13,7 +13,7 @@ namespace Server.Custom.CurseSystem
         public MageIdentificationScroll() : base(0x14F0)
         {
             Name = "Свиток Распознавания Предметов";
-            Hue = 1365; // Синий магический цвет
+            Hue = 1365; 
             Weight = 1.0;
         }
 
@@ -23,7 +23,7 @@ namespace Server.Custom.CurseSystem
 
             if (from.Backpack == null || !IsChildOf(from.Backpack))
             {
-                from.SendLocalizedMessage(1042001); // Предмет должен быть в рюкзаке
+                from.SendLocalizedMessage(1042001); 
                 return;
             }
 
@@ -68,21 +68,19 @@ namespace Server.Custom.CurseSystem
                 double evalIntel = from.Skills[SkillName.EvalInt].Value; 
                 int playerInt = from.Int; 
 
-                // Расчет сложности на основе класса редкости Diablo-лута
-                double reqEval = 30.0 + (rarityClass * 15.0);
-                int reqInt = 40 + (rarityClass * 10);
+                // Базовый коэффициент сложности от уровня предмета
+                double baseDifficulty = 30.0 + (rarityClass * 15.0);
 
-                if (evalIntel < reqEval || playerInt < reqInt)
+                // ДИНАМИЧЕСКИЙ РАСЧЕТ ШАНСА: Соотношение EvalInt игрока к сложности, усиленное Интеллектом
+                double identifyChance = (evalIntel / baseDifficulty) * (playerInt / 100.0);
+
+                // При высоком уровне навыков (100.0+ и 100+ Int) — гарантированный 100% успех
+                if (evalIntel >= 100.0 && playerInt >= 100)
                 {
-                    from.PlaySound(0x5C3);
-                    from.SendMessage(0x22, "Вашего интеллекта и ментального фокуса недостаточно, чтобы расшифровать руны на этом предмете.");
-                    return;
+                    identifyChance = 1.0;
                 }
 
-                // Расчет шанса успеха. На высоком уровне (100+) — гарантированный 100% успех
-                double identifyChance = (evalIntel / (reqEval * 1.5));
-
-                if (Utility.RandomDouble() < identifyChance || evalIntel >= 100.0)
+                if (Utility.RandomDouble() < identifyChance)
                 {
                     curse.IsIdentified = true;
 
@@ -101,7 +99,7 @@ namespace Server.Custom.CurseSystem
                     from.SendMessage(0x22, "Вам не удалось распознать свойства предмета, магические руны ускользнули от вашего разума.");
                 }
 
-                m_Scroll.Delete(); // Свиток расходуется при любом исходе
+                m_Scroll.Delete(); // Свиток расходуется в любом случае при использовании
             }
             else
             {
