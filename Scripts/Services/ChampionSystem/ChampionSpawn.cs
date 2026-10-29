@@ -109,8 +109,8 @@ namespace Server.Engines.CannedEvil
             m_Altar = new ChampionAltar(this);
             m_Idol = new IdolOfTheChampion(this);
 
-            m_ExpireDelay = TimeSpan.FromHours(4.0);
-            m_RestartDelay = TimeSpan.FromHours(8.0);
+            m_ExpireDelay = TimeSpan.FromHours(2.0);
+            m_RestartDelay = TimeSpan.FromHours(4.0);
 
             m_DamageEntries = new Dictionary<Mobile, int>();
 			m_RandomizeType = false;
