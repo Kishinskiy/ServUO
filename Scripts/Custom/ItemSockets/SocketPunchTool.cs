@@ -25,9 +25,10 @@ namespace Server.Custom.ItemSockets
                 return;
             }
 
-            if (from.Skills[SkillName.Blacksmith].Value < 95.0)
+            // ИЗМЕНЕНО: Порог снижен до 60.0 Blacksmithy
+            if (from.Skills[SkillName.Blacksmith].Value < 60.0)
             {
-                from.SendMessage(0x22, "Ваш кузнечный навык слишком мал, чтобы ковать новые слоты. Требуется 95.0 Blacksmithy!");
+                from.SendMessage(0x22, "Ваш кузнечный навык слишком мал, чтобы ковать новые слоты. Требуется минимум 60.0 Blacksmithy!");
                 return;
             }
 
@@ -54,13 +55,6 @@ namespace Server.Custom.ItemSockets
                         return;
                     }
 
-                    Container pack = from.Backpack;
-                    if (pack == null || pack.ConsumeTotal(typeof(IronIngot), 30) == false)
-                    {
-                        from.SendMessage(0x22, "Для пробития нового слота требуется потратить 30 железных слитков (Iron Ingot)!");
-                        return;
-                    }
-
                     XmlItemSockets attachment = XmlAttach.FindAttachment(weapon, typeof(XmlItemSockets)) as XmlItemSockets;
                     if (attachment == null)
                     {
@@ -74,16 +68,41 @@ namespace Server.Custom.ItemSockets
                         return;
                     }
 
-                    if (Utility.RandomDouble() < 0.65)
+                    // Текущий навык кузнечного дела
+                    double smithySkill = from.Skills[SkillName.Blacksmith].Value;
+
+                    // =========================================================================
+                    // ДИНАМИЧЕСКИЙ РАСЧЕТ РАСХОДА ИНГОТОВ (ОТ 45 ДО 15 ШТУК)
+                    // =========================================================================
+                    // Стартуем с 45 инготов на 60.0 скилле и уменьшаем на 1 за каждые 2.0 единицы скилла
+                    int requiredIngots = 45 - (int)((smithySkill - 60.0) / 2.0);
+                    
+                    // Устанавливаем жесткие рамки расхода (минимум 15, максимум 45)
+                    requiredIngots = Math.Max(15, Math.Min(45, requiredIngots));
+
+                    Container pack = from.Backpack;
+                    if (pack == null || pack.ConsumeTotal(typeof(IronIngot), requiredIngots) == false)
+                    {
+                        from.SendMessage(0x22, $"Для пробития нового слота вам требуется потратить {requiredIngots} железных слитков (Iron Ingot)!");
+                        return;
+                    }
+
+                    // =========================================================================
+                    // ДИНАМИЧЕСКИЙ РАСЧЕТ ШАНСА: СТАРТ С 10% НА 60.0 СКИЛЛЕ, МАКСИМУМ 100% НА 120.0
+                    // =========================================================================
+                    double successChance = 0.10 + (smithySkill - 60.0) * 0.015;
+                    successChance = Math.Max(0.10, Math.Min(1.0, successChance));
+
+                    if (Utility.RandomDouble() < successChance)
                     {
                         attachment.MaxSockets++;
-                        from.PlaySound(0x54);
-                        from.SendMessage(0x35, $"Успех! Вы пробили новое гнездо в оружии. Всего доступно слотов: {attachment.MaxSockets}/3.");
+                        from.PlaySound(0x54); // Звук ковки
+                        from.SendMessage(0x35, $"Успех! (Шанс: {successChance * 100:0}%). Потрачено слитков: {requiredIngots}. Доступно слотов в оружии: {attachment.MaxSockets}/3.");
                     }
                     else
                     {
-                        from.PlaySound(0x41);
-                        from.SendMessage(0x22, "Ваш молот сорвался! Слитки потрачены впустую, пробить гнездо не удалось.");
+                        from.PlaySound(0x41); // Звук неудачного удара
+                        from.SendMessage(0x22, $"Ваш молот сорвался! (Шанс был: {successChance * 100:0}%). Потрачено слитков: {requiredIngots}. Пробить гнездо не удалось.");
                     }
 
                     weapon.InvalidateProperties();
