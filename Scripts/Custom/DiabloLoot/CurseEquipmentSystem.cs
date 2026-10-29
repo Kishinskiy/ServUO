@@ -22,10 +22,10 @@ namespace Server.Custom.CurseSystem
         private Mobile m_CurrentEquipped; // Следим, на ком сейчас надета вещь
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public bool IsIdentified 
-        { 
-            get { return m_IsIdentified; } 
-            set { m_IsIdentified = value; InvalidateParentProperties(); } 
+        public bool IsIdentified
+        {
+            get { return m_IsIdentified; }
+            set { m_IsIdentified = value; InvalidateParentProperties(); }
         }
 
         [CommandProperty(AccessLevel.GameMaster)]
@@ -54,8 +54,8 @@ namespace Server.Custom.CurseSystem
         {
             Name = "CurseAttribute";
             m_IsIdentified = false;
-            m_HpPenalty = 10;   
-            m_ManaPenalty = 10; 
+            m_HpPenalty = 10;
+            m_ManaPenalty = 10;
         }
 
         public void RandomizeBonuses(int maxBonus)
@@ -90,9 +90,9 @@ namespace Server.Custom.CurseSystem
 
             switch (rarityClass)
             {
-                case 1: baseDifficulty += 10.0; break; 
-                case 2: baseDifficulty += 25.0; break; 
-                case 3: baseDifficulty += 45.0; break; 
+                case 1: baseDifficulty += 10.0; break;
+                case 2: baseDifficulty += 25.0; break;
+                case 3: baseDifficulty += 45.0; break;
             }
 
             return Math.Max(40.0, Math.Min(120.0, baseDifficulty));
@@ -105,13 +105,51 @@ namespace Server.Custom.CurseSystem
             m_CurrentEquipped = from;
             string modName = "CurseMod_" + SerialValue;
 
+            // 1. Применяем ваши кастомные Diablo-штрафы и бонусы к статам
             from.AddStatMod(new StatMod(StatType.Str, modName + "_hp", -m_HpPenalty, TimeSpan.Zero));
             from.AddStatMod(new StatMod(StatType.Int, modName + "_mn", -m_ManaPenalty, TimeSpan.Zero));
             from.AddStatMod(new StatMod(StatType.Str, modName + "_str", m_StrengthBonus, TimeSpan.Zero));
             from.AddStatMod(new StatMod(StatType.Dex, modName + "_dex", m_DexterityBonus, TimeSpan.Zero));
             from.AddStatMod(new StatMod(StatType.Int, modName + "_int", m_IntelligenceBonus, TimeSpan.Zero));
-            from.SendMessage(0x22, "Вы ощутили скрытое влияние предмета...");
-            
+
+            // =========================================================================
+            // 🔮 НАЛОЖЕНИЕ ПОЛНОЦЕННОГО ЭФФЕКТА ЗАКЛИНАНИЯ CURSE / BLESS 🎉
+            // =========================================================================
+            if (HasNegativeEffects)
+            {
+                // Воспроизводим нативные эффекты оригинального заклинания CurseSpell из CurseSpell.cs:
+                from.FixedParticles(0x374A, 10, 15, 5028, EffectLayer.Waist); // Анимация на талии из оригинального кода
+                from.PlaySound(0x1E1); // Звук наложения проклятия
+
+                // Накладываем нативные модификаторы заклинания, чтобы система воспринимала персонажа "под проклятием"
+                // Используем те же имена модов, что зачищаются в методе RemoveEffect вашего CurseSpell.cs
+                int p = 10; // Процент снижения характеристик для вывода в тултип (визуально)
+                string args = String.Format("{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}", p, p, p, 10, 10, 10, 10); // Аргументы локализации
+
+                // Добавляем полноценную иконку Curse в игровой трей со всплывающей подсказкой
+                BuffInfo.AddBuff(from, new BuffInfo(BuffIcon.Curse, 1075835, 1075836, TimeSpan.Zero, from, args));
+
+                from.SendMessage(0x22, "Вы чувствуете, как темные узы проклятия сковали ваше тело!");
+                from.UpdateResistances(); // Пересчитываем сопротивления персонажа
+            }
+            else if (m_IsIdentified && (m_StrengthBonus > 0 || m_DexterityBonus > 0 || m_IntelligenceBonus > 0))
+            {
+                // Альтернатива: Эффект благословения (Bless), если предмет чист и имеет только баффы
+                from.FixedParticles(0x373A, 10, 15, 5018, EffectLayer.Waist);
+                from.PlaySound(0x1EA); // Звук Bless
+
+                int blessBonus = 10;
+                from.AddStatMod(new StatMod(StatType.Str, modName + "_bless_str", blessBonus, TimeSpan.Zero));
+                from.AddStatMod(new StatMod(StatType.Dex, modName + "_bless_dex", blessBonus, TimeSpan.Zero));
+                from.AddStatMod(new StatMod(StatType.Int, modName + "_bless_int", blessBonus, TimeSpan.Zero));
+
+                string args = String.Format("{0}\t{0}\t{0}", blessBonus);
+                BuffInfo.AddBuff(from, new BuffInfo(BuffIcon.Bless, 1075847, 1075848, TimeSpan.Zero, from, args));
+
+                from.SendMessage(0x58, "Чары предмета накладывают на вас благословение.");
+            }
+            // =========================================================================
+
             from.Hits = Math.Min(from.Hits, from.HitsMax);
             from.Mana = Math.Min(from.Mana, from.ManaMax);
         }
@@ -121,14 +159,39 @@ namespace Server.Custom.CurseSystem
             if (m_CurrentEquipped != null)
             {
                 string modName = "CurseMod_" + SerialValue;
+
+                // 1. Вычищаем базовые модификаторы характеристик вашей Diablo-системы лута
                 m_CurrentEquipped.RemoveStatMod(modName + "_hp");
                 m_CurrentEquipped.RemoveStatMod(modName + "_mn");
                 m_CurrentEquipped.RemoveStatMod(modName + "_str");
                 m_CurrentEquipped.RemoveStatMod(modName + "_dex");
                 m_CurrentEquipped.RemoveStatMod(modName + "_int");
+
+                // =========================================================================
+                // 🛑 СНЯТИЕ ЭФФЕКТОВ ТРЕЯ И ЗАКЛИНАНИЙ (СИНХРОНИЗИРОВАНО С CURSESPELL.CS)
+                // =========================================================================
+                if (HasNegativeEffects)
+                {
+                    // Вычищаем значок проклятия из трея
+                    BuffInfo.RemoveBuff(m_CurrentEquipped, BuffIcon.Curse);
+
+                    m_CurrentEquipped.SendMessage(0x5A, "Энергия проклятия рассеялась, когда вы сняли предмет.");
+                    m_CurrentEquipped.UpdateResistances(); // Обновляем резисты
+                }
+                else
+                {
+                    // Снимаем нативные модификаторы Bless
+                    m_CurrentEquipped.RemoveStatMod(modName + "_bless_str");
+                    m_CurrentEquipped.RemoveStatMod(modName + "_bless_dex");
+                    m_CurrentEquipped.RemoveStatMod(modName + "_bless_int");
+                    BuffInfo.RemoveBuff(m_CurrentEquipped, BuffIcon.Bless);
+                }
+                // =========================================================================
+
                 m_CurrentEquipped = null;
             }
         }
+
 
         public void CleanseNegativeEffects()
         {
@@ -166,7 +229,7 @@ namespace Server.Custom.CurseSystem
 
                 return effects + "]";
             }
-            
+
             return "[Свойства предмета скрыты]";
         }
 
