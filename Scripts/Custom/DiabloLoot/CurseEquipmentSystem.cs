@@ -233,7 +233,7 @@ namespace Server.Custom.CurseSystem
         [Constructable]
         public MageIdCurseScroll() : base(0x14F0)
         {
-            Name = "Свиток Распознавания и Очищения (Mage Identification Scroll)";
+            Name = "Свиток Распознавания и Очищения";
             Hue = 1365; 
             Weight = 1.0;
         }
@@ -261,6 +261,8 @@ namespace Server.Custom.CurseSystem
 
             protected override void OnTarget(Mobile from, object targeted)
             {
+                if (m_Scroll == null || m_Scroll.Deleted || from == null || !from.Alive) return;
+
                 if (targeted is Item item)
                 {
                     XmlCurseAttribute curse = XmlAttach.FindAttachment(item, typeof(XmlCurseAttribute)) as XmlCurseAttribute;
@@ -270,32 +272,44 @@ namespace Server.Custom.CurseSystem
                         return;
                     }
 
-                    double neededSkill = curse.GetRequiredSkill(item);
-                    double currentSkill = from.Skills[SkillName.ItemID].Value;
+                    // Получаем класс редкости Diablo-лута (0 - обычный, 3 - Легендарный/Артефакт)
+                    int rarityClass = DiabloLootColors.GetRarityClass(item);
+                    bool isArtifact = (rarityClass == 3 || item.IsArtifact);
 
-                    if (currentSkill < neededSkill)
-                    {
-                        from.PlaySound(0x5C3); 
-                        from.SendMessage(0x22, $"[ItemID]: Это Легендарный артефакт Тьмы! Вашего базового разума ({currentSkill:F1}) недостаточно. Требуется редкий Power Scroll (Необходимо: {neededSkill:F1} Item ID)!");
-                        return;
-                    }
+                    // Текущие показатели игрока
+                    double evalIntel = from.Skills[SkillName.EvalInt].Value; // Перешли на Evaluating Intelligence
+                    int playerInt = from.Int; // Очки интеллекта
 
+                    // =========================================================================
+                    // ЭТАП 1: РАСПОЗНАВАНИЕ (ЕСЛИ ПРЕДМЕТ СКРЫТ)
+                    // =========================================================================
                     if (!curse.IsIdentified)
                     {
+                        // Динамический расчет требований к Интеллекту и EvalInt от уровня вещи
+                        double reqEval = 40.0 + (curse.HpPenalty * 0.5) + (rarityClass * 15.0);
+                        int reqInt = 50 + (rarityClass * 10);
+
+                        if (evalIntel < reqEval || playerInt < reqInt)
+                        {
+                            from.PlaySound(0x5C3);
+                            from.SendMessage(0x22, $"Недостаточно ментальных сил для распознавания! Требуется: {reqEval:F1} Evaluating Intelligence и {reqInt} Интеллекта. (У вас: {evalIntel:F1} / {playerInt})");
+                            return;
+                        }
+
+                        // Успешное распознавание
                         curse.IsIdentified = true;
 
-                        // Weapons and armor have their own identification state, separate from this attachment.
-                        if (item is BaseWeapon weapon)
-                            weapon.Identified = true;
-                        else if (item is BaseArmor armor)
-                            armor.Identified = true;
+                        if (item is BaseWeapon weapon) weapon.Identified = true;
+                        else if (item is BaseArmor armor) armor.Identified = true;
 
                         item.InvalidateProperties();
                         item.SendPropertiesTo(from);
-                        item.OnSingleClick(from);
-                        from.PlaySound(0x249); 
-                        from.SendMessage(0x35, $"Вы успешно преодолели элитный барьер ({neededSkill:F1}) и распознали скрытые свойства вещи!");
+                        from.PlaySound(0x249);
+                        from.SendMessage(0x35, $"Вы сфокусировали разум и распознали скрытые свойства предмета класса {rarityClass}!");
                     }
+                    // =========================================================================
+                    // ЭТАП 2: СНЯТИЕ ПРОКЛЯТИЯ (ЭКЗОРЦИЗМ)
+                    // =========================================================================
                     else
                     {
                         if (!curse.HasNegativeEffects)
@@ -304,17 +318,44 @@ namespace Server.Custom.CurseSystem
                             return;
                         }
 
+                        // ТРЕБОВАНИЕ ДЛЯ АРТЕФАКТОВ: Навыки строго выше максимально возможных (> 120)
+                        if (isArtifact)
+                        {
+                            double artifactRequiredEval = 121.0; // Порог для артефактов
+
+                            if (evalIntel < artifactRequiredEval)
+                            {
+                                from.PlaySound(0x5C3);
+                                from.SendMessage(0x22, $"[Экзорцизм]: Это древний Артефакт! Чтобы снять с него проклятие, требуются элитные знания за пределами возможностей смертных (Необходимо: {artifactRequiredEval:F1} Evaluating Intelligence!). Используйте Power Scrolls!");
+                                return;
+                            }
+                        }
+                        else
+                        {
+                            // Обычные и редкие шмотки требуют EvalInt пропорционально силе порчи
+                            double standardRequiredEval = 50.0 + (curse.HpPenalty * 1.5);
+                            if (evalIntel < standardRequiredEval)
+                            {
+                                from.PlaySound(0x5C3);
+                                from.SendMessage(0x22, $"Вам не хватает навыков для очищения этого предмета. Требуется: {standardRequiredEval:F1} Evaluating Intelligence.");
+                                return;
+                            }
+                        }
+
+                        // Успешное очищение проклятия
                         curse.CleanseNegativeEffects();
                         
-                        // Очищение удаляет только штрафы; положительные эффекты остаются на предмете.
-                        Item curseResource = new CurseShardCraftable(); 
+                        Item curseResource = new CurseShardCraftable();
                         from.AddToBackpack(curseResource);
 
-                        from.PlaySound(0x1F8); 
+                        from.PlaySound(0x1F8);
                         Effects.SendLocationParticles(EffectItem.Create(item.Location, item.Map, TimeSpan.FromSeconds(1.0)), 0x3709, 10, 20, 1175, 0, 5004, 0);
 
-                        from.SendMessage(0x58, $"Ритуал экзорцизма (Сложность: {neededSkill:F1}) удалил отрицательные эффекты. Положительные свойства предмета сохранены. Осколок Скверны получен.");
-                        m_Scroll.Delete(); 
+                        from.SendMessage(0x58, isArtifact 
+                            ? "Великий ритуал завершен! С высшего артефакта снята скверна, Осколок Скверны получен." 
+                            : "Ритуал экзорцизма удалил проклятие. Положительные свойства сохранены.");
+                        
+                        m_Scroll.Delete();
                     }
                 }
                 else
