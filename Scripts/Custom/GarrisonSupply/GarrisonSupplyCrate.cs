@@ -100,13 +100,14 @@ namespace Server.Custom.GarrisonSupply
         {
             if (from.Backpack == null || !IsChildOf(from.Backpack))
             {
-                from.SendLocalizedMessage(1042001); // Предмет должен быть в паке
+                from.SendLocalizedMessage(1042001);
                 return;
             }
 
             if (m_IsSealed)
             {
-                from.SendMessage("Выберите профильного NPC-продавца в развиваемом городе, чтобы передать ему снабжение.");
+                // Измененный текст подсказки
+                from.SendMessage("Выберите Торгового Министра развиваемого города, чтобы передать ему снабжение гарнизона.");
                 from.Target = new InternalDeliverTarget(this);
             }
             else
@@ -225,7 +226,7 @@ namespace Server.Custom.GarrisonSupply
         }
 
         // =========================================================================
-        // ТАРГЕТ СДАЧИ КОНТЕНТА К КАСTОМНЫМ NPC 🏙️💰 (ИНТЕГРИРОВАНА ВЫДАЧА НАГРАДЫ)
+        // ТАРГЕТ СДАЧИ КОНТЕНТА ТОРГОВОМУ МИНИСТРУ 🏙️💰 (ОБНОВЛЕННЫЙ)
         // =========================================================================
         private class InternalDeliverTarget : Target
         {
@@ -241,76 +242,76 @@ namespace Server.Custom.GarrisonSupply
                 if (m_Container == null || m_Container.Deleted || from.Backpack == null ||
                     !m_Container.IsChildOf(from.Backpack) || !m_Container.IsSealed)
                     return;
-                if (targeted is Mobile vendor)
+
+                // Изменено: теперь проверяем, что цель — именно Торговый Министр
+                if (targeted is Server.Engines.CityLoyalty.TradeMinister minister)
                 {
-                    if (vendor.Deleted || vendor.Map != from.Map ||
-                        !from.InRange(vendor.Location, 3) || m_Container.Map != from.Map)
+                    if (minister.Deleted || minister.Map != from.Map ||
+                        !from.InRange(minister.Location, 3) || m_Container.Map != from.Map)
                     {
-                        from.SendMessage(0x22, "Вы должны находиться рядом с торговцем на той же карте.");
+                        from.SendMessage(0x22, "Вы должны находиться рядом с Торговым Министром на той же карте.");
                         return;
                     }
 
-                    bool isTargetValidNPC = false;
-                    // Проверяем соответствие получателя типу припасов
-                    if (m_Container.ContainerType == SupplyType.Blacksmith && vendor is Weaponsmith) isTargetValidNPC = true;
-                    if (m_Container.ContainerType == SupplyType.Carpentry && (vendor is Carpenter || vendor is Architect)) isTargetValidNPC = true;
-                    if (m_Container.ContainerType == SupplyType.Tailor && (vendor is Tailor || vendor is Weaver)) isTargetValidNPC = true;
-                    if (m_Container.ContainerType == SupplyType.Cooking && (vendor is InnKeeper || vendor is Cook)) isTargetValidNPC = true;
-                    if (!isTargetValidNPC)
+                    // Напрямую берем город, к которому привязан данный Министр (минуя баги регионов)
+                    Server.Engines.CityLoyalty.City targetCity = minister.City;
+
+                    var cityProfile = Server.Custom.CityDevelopment.CityDevelopmentMod.GetCityProfile(targetCity, minister.Map);
+                    if (cityProfile != null)
                     {
-                        from.SendMessage(0x22, "Этот торговец не принимает данный тип припасов снабжения!");
-                        return;
-                    }
-                    // Проверяем регион города лояльности
-                    if (vendor.Region != null)
-                    {
-                        foreach (Server.Engines.CityLoyalty.City c in Enum.GetValues(typeof(Server.Engines.CityLoyalty.City)))
+                        // 1. Начисляем золото игроку за работу
+                        Gold gold = new Gold(m_Container.RewardGold);
+                        if (!from.Backpack.TryDropItem(from, gold, false)) 
+                            gold.MoveToWorld(from.Location, from.Map);
+
+                        // 2. Пополняем складские запасы города напрямую в экономику из типа ящика
+                        switch (m_Container.ContainerType)
                         {
-                            var city = Server.Engines.CityLoyalty.CityLoyaltySystem.GetCityInstance(c);
-                            if (city != null && city.Definition != null && city.Definition.Region != null &&
-                                city.Definition.Region.IsPartOf(vendor.Region))
-                            {
-                                var cityProfile = Server.Custom.CityDevelopment.CityDevelopmentMod.GetCityProfile(c, vendor.Map);
-                                if (cityProfile == null)
-                                    continue;
-
-                                // 1. Начисляем золото
-                                Gold gold = new Gold(m_Container.RewardGold);
-                                if (!from.Backpack.TryDropItem(from, gold, false)) gold.MoveToWorld(from.Location, from.Map);
-                                // 2. Качаем опыт города
-                                cityProfile.CurrentSupplies += 50.0;
-                                if (Server.Custom.CityDevelopment.CityDevelopmentMod.ProcessCityLevelUps(c, vendor.Map))
-                                {
-                                    World.Broadcast(0x35, true, $"[Развитие городов] Город {c} достиг {cityProfile.Level} уровня благодаря поставкам гарнизона!");
-                                }
-                                // 3. Начисляем лояльность вендора
-                                if (vendor is BaseVendor baseVendor)
-                                {
-                                    Server.Custom.AdvancedNpcTrade.LoyaltyManager.AddPurchase(baseVendor, from, 0.50);
-                                }
-                                // =========================================================================
-                                // ТОЧЕЧНАЯ ИНТЕГРАЦИЯ НАГРАДЫ: ВЫДАЧА НАБОРА САБОТАЖА (ШАНС 10%) 🥷
-                                // ПЕРЕНЕСЕНО СЮДА ИЗ МЕТОДА УПАКОВКИ, ТИП ДАННЫХ ИМПОРТИРОВАН ЧЕРЕЗ USING
-                                // =========================================================================
-                                if (Utility.RandomDouble() < 0.10) // 10% вероятности
-                                {
-                                    FactionSabotageKit sabotageKit = new FactionSabotageKit();
-                                    if (from.Backpack == null || !from.Backpack.TryDropItem(from, sabotageKit, false))
-                                    {
-                                        sabotageKit.MoveToWorld(from.Location, from.Map); // На землю под ноги, если пак полон
-                                    }
-                                    from.SendMessage(0x35, "В благодарность за ценный вклад, городская разведка делится с вами набором для фракционного саботажа!");
-                                }
-                                // =========================================================================
-                                vendor.PlaySound(0x2E6);
-                                vendor.Say("Великолепные припасы! Наш город крайне нуждался в этом. Вот ваша плата ремесленника!");
-                                from.SendMessage(0x35, $"Припасы успешно сданы! Получено: {m_Container.RewardGold} золотых. Лояльность {vendor.Name} выросла!");
-                                m_Container.Delete();
-                                return;
-                            }
+                            case SupplyType.Blacksmith: 
+                                cityProfile.EquipmentStock += 20; // Кузнечный ящик дает готовое снаряжение
+                                break;
+                            case SupplyType.Carpentry: 
+                                cityProfile.WoodStock += 50;      // Строительный — доски
+                                break;
+                            case SupplyType.Tailor: 
+                                cityProfile.EquipmentStock += 20; // Тюк одежды — обмундирование
+                                break;
+                            case SupplyType.Cooking: 
+                                cityProfile.ProvisionsStock += 50; // Бочка еды — провизию
+                                break;
                         }
+
+                        // 3. Качаем опыт и уровень города (+50.0 supplies)
+                        cityProfile.CurrentSupplies += 50.0;
+                        if (Server.Custom.CityDevelopment.CityDevelopmentMod.ProcessCityLevelUps(targetCity, minister.Map))
+                        {
+                            World.Broadcast(0x35, true, $"[Развитие городов] Город {targetCity} достиг {cityProfile.Level} уровня благодаря поставкам гарнизона!");
+                        }
+
+
+                        // 5. Выдача набора саботажа (Шанс 10%)
+                        if (Utility.RandomDouble() < 0.10)
+                        {
+                            FactionSabotageKit sabotageKit = new FactionSabotageKit();
+                            if (from.Backpack == null || !from.Backpack.TryDropItem(from, sabotageKit, false))
+                            {
+                                sabotageKit.MoveToWorld(from.Location, from.Map);
+                            }
+                            from.SendMessage(0x35, "В благодарность за ценный вклад, городская разведка делится с вами набором для фракционного саботажа!");
+                        }
+
+                        // Финальные эффекты и сообщения
+                        minister.PlaySound(0x2E6);
+                        minister.Say("Превосходно! Припасы для нашего гарнизона доставлены в целости. Вот ваша плата ремесленника!");
+                        from.SendMessage(0x35, $"Припасы успешно переданы Министру! Получено: {m_Container.RewardGold} золотых. Лояльность в городе {targetCity} выросла!");
+                        
+                        m_Container.Delete(); // Удаляем ящик из сумки
+                        return;
                     }
-                    from.SendMessage(0x22, "Этот торговец находится вне зоны города лояльности.");
+                }
+                else
+                {
+                    from.SendMessage(0x22, "Припасы для гарнизона можно сдать только Торговому Министру.");
                 }
             }
         }
