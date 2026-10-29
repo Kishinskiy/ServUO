@@ -3,6 +3,7 @@ using System;
 
 using Server.Items;
 using Server.Mobiles;
+using Server.Custom.CurseSystem;
 #endregion
 
 namespace Server
@@ -123,9 +124,29 @@ namespace Server
 					}
 				}
 			}
+
+			// --- НАША ВСТАВКА: Логика для сундуков с сокровищами ---
+			// Проверяем, является ли контейнер сундуком с картами сокровищ
+			if (cont is TreasureMapChest)
+			{
+				TreasureMapChest chest = (TreasureMapChest)cont;
+				
+				// Чем выше уровень карты сундука (от 1 до 6), тем выше шанс
+				// Начиная с 3 уровня сундука: 3 ур = 15%, 4 ур = 20%, 5 ур = 25%, 6 ур = 30%
+				if (chest.Level >= 3)
+				{
+					double chestChance = chest.Level * 0.05; 
+					if (Utility.RandomDouble() < chestChance)
+					{
+						cont.DropItem(new MageIdCurseScroll());
+					}
+				}
+			}
+			// ------------------------------------------------------
 		}
 
 		public static readonly LootPackItem[] Gold = new[] {new LootPackItem(typeof(Gold), 1)};
+		public static readonly LootPackItem[] CurseScrollItem = new[] { new LootPackItem(typeof(MageIdCurseScroll), 1) };
 
 		public static readonly LootPackItem[] Instruments = new[] {new LootPackItem(typeof(BaseInstrument), 1)};
 
@@ -285,7 +306,8 @@ namespace Server
 					new LootPackEntry(false, AosMagicItemsRichType1, 76.30, 1, 4, 0, 75),
 					new LootPackEntry(false, AosMagicItemsRichType1, 76.30, 1, 4, 0, 75),
 					new LootPackEntry(false, AosMagicItemsRichType2, 61.70, 1, 5, 0, 100),
-					new LootPackEntry(false, Instruments, 1.00, 1)
+					new LootPackEntry(false, Instruments, 1.00, 1),
+					new LootPackEntry(false, CurseScrollItem, 3.00, 1) 
 				});
 
 		public static readonly LootPack SeFilthyRich =
@@ -296,7 +318,8 @@ namespace Server
 					new LootPackEntry(false, AosMagicItemsFilthyRichType1, 79.50, 1, 5, 0, 100),
 					new LootPackEntry(false, AosMagicItemsFilthyRichType1, 79.50, 1, 5, 0, 100),
 					new LootPackEntry(false, AosMagicItemsFilthyRichType2, 77.60, 1, 5, 25, 100),
-					new LootPackEntry(false, Instruments, 2.00, 1)
+					new LootPackEntry(false, Instruments, 2.00, 1),
+					new LootPackEntry(false, CurseScrollItem, 5.00, 1)
 				});
 
 		public static readonly LootPack SeUltraRich =
@@ -310,7 +333,9 @@ namespace Server
 					new LootPackEntry(false, AosMagicItemsUltraRich, 100.00, 1, 5, 25, 100),
 					new LootPackEntry(false, AosMagicItemsUltraRich, 100.00, 1, 5, 25, 100),
 					new LootPackEntry(false, AosMagicItemsUltraRich, 100.00, 1, 5, 33, 100),
-					new LootPackEntry(false, Instruments, 2.00, 1)
+					new LootPackEntry(false, Instruments, 2.00, 1),
+					new LootPackEntry(false, CurseScrollItem, 30.00, 1),
+					new LootPackEntry(false, CurseScrollItem, 10.00, 1)
 				});
 
 		public static readonly LootPack SeSuperBoss =
@@ -328,7 +353,9 @@ namespace Server
 					new LootPackEntry(false, AosMagicItemsUltraRich, 100.00, 1, 5, 33, 100),
 					new LootPackEntry(false, AosMagicItemsUltraRich, 100.00, 1, 5, 50, 100),
 					new LootPackEntry(false, AosMagicItemsUltraRich, 100.00, 1, 5, 50, 100),
-					new LootPackEntry(false, Instruments, 2.00, 1)
+					new LootPackEntry(false, Instruments, 2.00, 1),
+					new LootPackEntry(false, CurseScrollItem, 30.00, 1),
+					new LootPackEntry(false, CurseScrollItem, 10.00, 1)
 				});
 		#endregion
 
@@ -338,7 +365,9 @@ namespace Server
 				new[]
 				{
 					new LootPackEntry(true, Gold, 100.00, "1d10+10"), new LootPackEntry(false, AosMagicItemsPoor, 0.02, 1, 5, 0, 90),
-					new LootPackEntry(false, Instruments, 0.02, 1)
+					new LootPackEntry(false, Instruments, 0.02, 1),
+					new LootPackEntry(false, CurseScrollItem, 30.00, 1),
+					new LootPackEntry(false, CurseScrollItem, 10.00, 1)
 				});
 
 		public static readonly LootPack AosMeager =
@@ -348,7 +377,9 @@ namespace Server
 					new LootPackEntry(true, Gold, 100.00, "3d10+20"),
 					new LootPackEntry(false, AosMagicItemsMeagerType1, 1.00, 1, 2, 0, 10),
 					new LootPackEntry(false, AosMagicItemsMeagerType2, 0.20, 1, 5, 0, 90),
-					new LootPackEntry(false, Instruments, 0.10, 1)
+					new LootPackEntry(false, Instruments, 0.10, 1),
+					new LootPackEntry(false, CurseScrollItem, 30.00, 1),
+					new LootPackEntry(false, CurseScrollItem, 10.00, 1)
 				});
 
 		public static readonly LootPack AosAverage =
@@ -359,7 +390,9 @@ namespace Server
 					new LootPackEntry(false, AosMagicItemsAverageType1, 5.00, 1, 4, 0, 20),
 					new LootPackEntry(false, AosMagicItemsAverageType1, 2.00, 1, 3, 0, 50),
 					new LootPackEntry(false, AosMagicItemsAverageType2, 0.50, 1, 5, 0, 90),
-					new LootPackEntry(false, Instruments, 0.40, 1)
+					new LootPackEntry(false, Instruments, 0.40, 1),
+					new LootPackEntry(false, CurseScrollItem, 30.00, 1),
+					new LootPackEntry(false, CurseScrollItem, 10.00, 1)
 				});
 
 		public static readonly LootPack AosRich =
@@ -395,7 +428,9 @@ namespace Server
 					new LootPackEntry(false, AosMagicItemsUltraRich, 100.00, 1, 5, 25, 100),
 					new LootPackEntry(false, AosMagicItemsUltraRich, 100.00, 1, 5, 25, 100),
 					new LootPackEntry(false, AosMagicItemsUltraRich, 100.00, 1, 5, 35, 100),
-					new LootPackEntry(false, Instruments, 2.00, 1)
+					new LootPackEntry(false, Instruments, 2.00, 1),
+					new LootPackEntry(false, CurseScrollItem, 30.00, 1),
+					new LootPackEntry(false, CurseScrollItem, 10.00, 1)
 				});
 
 		public static readonly LootPack AosSuperBoss =
@@ -413,7 +448,9 @@ namespace Server
 					new LootPackEntry(false, AosMagicItemsUltraRich, 100.00, 1, 5, 33, 100),
 					new LootPackEntry(false, AosMagicItemsUltraRich, 100.00, 1, 5, 50, 100),
 					new LootPackEntry(false, AosMagicItemsUltraRich, 100.00, 1, 5, 50, 100),
-					new LootPackEntry(false, Instruments, 2.00, 1)
+					new LootPackEntry(false, Instruments, 2.00, 1),
+					new LootPackEntry(false, CurseScrollItem, 30.00, 1),
+					new LootPackEntry(false, CurseScrollItem, 10.00, 1)
 				});
 		#endregion
 

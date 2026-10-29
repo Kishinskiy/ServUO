@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Server.Items;
 using Server.Custom.ExileHunterBestiary.Items;
+using Server.Custom.CurseSystem;
 
 
 namespace Server.Mobiles
@@ -37,6 +38,7 @@ namespace Server.Mobiles
                 Add(new GenericBuyInfo(typeof(HunterBestiary), 100, 25, 0x2252, 1153));
                 Add(new GenericBuyInfo(typeof(ScribesPen), 8, 10, 0xFBF, 0));
                 Add(new GenericBuyInfo(typeof(BlankScroll), 5, 20, 0x0E34, 0));
+                Add(new GenericBuyInfo(typeof(MageIdCurseScroll), 25000, 20, 0x14F0, 1365));
 
                 Add(new GenericBuyInfo(typeof(BlackPearl), 5, 20, 0xF7A, 0));
                 Add(new GenericBuyInfo(typeof(Bloodmoss), 5, 20, 0xF7B, 0));

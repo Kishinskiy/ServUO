@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Server.Items;
 using Server.Custom.ExileHunterBestiary.Items;
+using Server.Custom.CurseSystem;
 
 
 namespace Server.Mobiles
@@ -30,6 +31,7 @@ namespace Server.Mobiles
 				Add( new GenericBuyInfo( typeof( SpidersSilk ), 3, 20, 0xF8D, 0 ) );
 				Add( new GenericBuyInfo( typeof( SulfurousAsh ), 4, 20, 0xF8C, 0 ) );
 				Add( new GenericBuyInfo( typeof(HunterBestiary), 100, 25, 0x2252, 1153));
+				Add(new GenericBuyInfo(typeof(MageIdCurseScroll), 25000, 20, 0x14F0, 1365));
 
 
 				if ( Core.AOS )

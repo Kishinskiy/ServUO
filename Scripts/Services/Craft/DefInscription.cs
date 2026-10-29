@@ -1,6 +1,8 @@
 using System;
 using Server.Items;
 using Server.Spells;
+using Server.Custom.CurseSystem;
+using Server.Custom.VoidCraft;
 
 namespace Server.Engines.Craft
 {
@@ -462,6 +464,21 @@ namespace Server.Engines.Craft
                 AddMysticSpell(1031693, 50, 75.0, typeof(RisingColossusScroll), Reg.DaemonBone, Reg.FertileDirt, Reg.DragonBlood, Reg.Nightshade, Reg.MandrakeRoot);
             }
             #endregion
+
+            // --- ДОБАВЛЕНИЕ СВИТКА РАСПОЗНАВАНИЯ И ОЧИЩЕНИЯ В КРАФТ ---
+            // Аргументы AddCraft: Тип предмета, Название категории в меню, Название предмета (можно использовать строку или ClilocID),
+            // Минимальный навык (например, 70.0), Максимальный навык (110.0), Основной материал (BlankScroll), Локализация материала, Количество основного материала.
+            index = AddCraft(typeof(MageIdCurseScroll), 1044294, "Свиток Распознавания и Очищения", 70.0, 110.0, typeof(BlankScroll), 1044377, 1, 1044378);
+            
+            // Дополнительные ресурсы (например, Осколок Скверны, который падает при очищении, и реагенты)
+            // Аргументы AddRes: Идентификатор крафта, Тип ресурса, Название ресурса, Количество, Сообщение при нехватке
+            AddRes(index, typeof(CurseShardCraftable), "Осколок Скверны", 1, "Вам не хватает осколка скверны.");
+            AddRes(index, typeof(MandrakeRoot), 1044357, 5, 1044365);
+            AddRes(index, typeof(DaemonBlood), 1023965, 5, 501627);
+            
+            // Потребление маны при крафте свитка (например, 30 маны)
+            SetManaReq(index, 30); 
+            // ----------------------------------------------------------
 
             MarkOption = true;
         }
