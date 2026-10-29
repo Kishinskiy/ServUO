@@ -1,7 +1,9 @@
 using System;
 using Server;
 using Server.Items;
-using Server.Custom.CurseSystem; // Подключаем систему проклятий
+using Server.Mobiles;
+using Server.Custom.CurseSystem;
+using Server.Custom.EpicAlignment; // Подключаем вашу систему полубогов! 🎉
 
 namespace Server.Custom.DiabloLoot
 {
@@ -22,54 +24,110 @@ namespace Server.Custom.DiabloLoot
             if (!(item is BaseWeapon || item is BaseArmor || item is BaseClothing || item is BaseJewel))
                 return;
 
-            // Нативно определяем текущую карту, где создается предмет
             Map currentMap = item.Map;
 
-            // Если вещь в контейнере или на мобе — считываем карту её родителя
+            // Если вещь создается внутри контейнера или в трупе моба — считываем карту её родителя
             if (currentMap == null || currentMap == Map.Internal)
                 currentMap = item.RootParent is Mobile ? ((Mobile)item.RootParent).Map : (item.RootParent is Item ? ((Item)item.RootParent).Map : Map.Trammel);
 
             if (currentMap != null && currentMap != Map.Internal)
             {
-                double curseChance = 0.05; // Дефолтный шанс для Траммеля (5%)
+                // Базовые региональные шансы появления ОСОБЫХ предметов в мире
+                double baseGenerationChance = 0.05; // Дефолт Trammel (5%)
                 int minPenalty = 10;
                 int maxPenalty = 20;
 
-                // 🔥 ТВОЁ ТЗ: Динамический диапазон шансов и силы порчи под каждый мир! 🗺️⚙️🎉
                 if (currentMap == Map.Felucca)
                 {
-                    curseChance = 0.20; // Фелукка (20%)
+                    baseGenerationChance = 0.20; 
                     minPenalty = 15;
                     maxPenalty = 35;
                 }
                 else if (currentMap == Map.Ilshenar || currentMap == Map.Tokuno)
                 {
-                    curseChance = 0.25; // Ильшенар и Токуно (25%)
+                    baseGenerationChance = 0.25; 
                     minPenalty = 20;
                     maxPenalty = 40;
                 }
                 else if (currentMap == Map.Malas || currentMap == Map.TerMur)
                 {
-                    curseChance = 0.40; // Малас (город некромантов Umbra) и Тер Мур (40%!)
+                    baseGenerationChance = 0.40; 
                     minPenalty = 30;
-                    maxPenalty = 55; // Смертоносные штрафы, требующие элитных магов!
+                    maxPenalty = 55; 
                 }
 
-                double balanceMultiplier = Server.Custom.EpicBalance.EpicWorldBalanceMod.GetCurseChanceMultiplier();
-                curseChance = curseChance * balanceMultiplier;
+                // =========================================================================
+                // 🏛️ ВЛИЯНИЕ ПОЛУБОГОВ НА ОБЩИЙ ШАНС ПОЯВЛЕНИЯ ПРЕДМЕТОВ С СВОЙСТВАМИ
+                // =========================================================================
+                bool avatarOnline = EpicAlignmentSystem.IsAvatarActive();
+                bool mondainOnline = EpicAlignmentSystem.IsMondainActive();
 
-                // Бросаем кубик на появление проклятия
-                if (Utility.RandomDouble() < curseChance)
+                if (avatarOnline)
                 {
-                    // Создаем кастомный аттачмент
+                    baseGenerationChance *= 1.25; // Аватар бустит появление особых вещей на +25%
+                }
+                if (mondainOnline)
+                {
+                    baseGenerationChance *= 1.15; // Мондейн бустит появление на +15%
+                }
+
+                // Мягкий внешний множитель баланса сил, который у вас был ранее
+                double balanceMultiplier = Server.Custom.EpicBalance.EpicWorldBalanceMod.GetCurseChanceMultiplier();
+                baseGenerationChance *= balanceMultiplier;
+
+                // Бросаем кубик на то, появится ли у предмета ОСОБОЕ свойство в принципе
+                if (Utility.RandomDouble() < baseGenerationChance)
+                {
+                    // Создаем кастомный аттачмент проклятий/баффов
                     XmlCurseAttribute curse = new XmlCurseAttribute();
+                    curse.IsIdentified = false; // По умолчанию свойства скрыты до распознавания
 
-                    // Вшиваем сгенерированную силу порчи данного мира напрямую в параметры аттачмента
-                    curse.HpPenalty = Utility.RandomMinMax(minPenalty, maxPenalty);
-                    curse.ManaPenalty = Utility.RandomMinMax(minPenalty - 5, maxPenalty - 10);
-                    curse.RandomizeBonuses(Math.Max(1, maxPenalty / 4));
+                    // =========================================================================
+                    // 🧮 РАСЧЕТ ИНДЕКСА НЕГАТИВНЫХ ЭФФЕКТОВ (ЗАВИСИТ ОТ ДИФФЕРЕНЦИАЛА ПОЛУБОГОВ)
+                    // =========================================================================
+                    double negativeChance = 0.10; // Шанс по умолчанию (10%)
 
-                    // Намертво пришиваем аттачмент к сгенерированному предмету
+                    if (avatarOnline)
+                    {
+                        negativeChance = 0.05; // Аватар снижает появление порчи до 5%
+                    }
+                    else if (mondainOnline)
+                    {
+                        negativeChance = 0.15; // Рука Мондейна повышает появление порчи до 15%
+                    }
+
+                    // Генерируем индекс распределения свойств предмета от 1 до 100
+                    int propertyIndex = Utility.RandomMinMax(1, 100);
+
+                    // Распределяем свойства на основе сгенерированного индекса и шансов полубогов
+                    if (Utility.RandomDouble() < negativeChance)
+                    {
+                        if (propertyIndex <= 40)
+                        {
+                            // КАТЕГОРИЯ 1: Чистое проклятие (Только дебаффы, без статов)
+                            curse.HpPenalty = Utility.RandomMinMax(minPenalty, maxPenalty);
+                            curse.ManaPenalty = Utility.RandomMinMax(minPenalty - 5, maxPenalty - 10);
+                            curse.StrengthBonus = 0;
+                            curse.DexterityBonus = 0;
+                            curse.IntelligenceBonus = 0;
+                        }
+                        else
+                        {
+                            // КАТЕГОРИЯ 2: Diablo-style (И проклятие, и случайные положительные баффы вместе)
+                            curse.HpPenalty = Utility.RandomMinMax(minPenalty, maxPenalty);
+                            curse.ManaPenalty = Utility.RandomMinMax(minPenalty - 5, maxPenalty - 10);
+                            curse.RandomizeBonuses(Math.Max(1, maxPenalty / 4));
+                        }
+                    }
+                    else
+                    {
+                        // КАТЕГОРИЯ 3: Благословенный предмет (Только положительные статы, БЕЗ штрафов к HP/Мане)
+                        curse.HpPenalty = 0;
+                        curse.ManaPenalty = 0;
+                        curse.RandomizeBonuses(Math.Max(2, maxPenalty / 3)); // Статы чуть выше, так как нет проклятия
+                    }
+
+                    // Намертво пришиваем сформированный аттачмент к созданному предмету экипировки
                     Server.Engines.XmlSpawner2.XmlAttach.AttachTo(item, curse);
                 }
             }
