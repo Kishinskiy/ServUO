@@ -11,73 +11,154 @@ namespace Server.Telegram
     public class TelegramHttpListener
     {
         private static HttpListener _listener;
-        private static string _secretToken = "MySuperSecretServUOToken123"; // Должен совпадать с токеном в боте
+        private static string _secretToken = "MySuperSecretServUOToken123"; // Дефолт на случай отсутствия .env
+        private static string _listenerPrefix = "http://localhost:8080/giveitem/"; // Дефолт URL
 
         public static void Initialize()
         {
-            _listener = new HttpListener();
-            _listener.Prefixes.Add("http://localhost:8080/giveitem/");
-            _listener.Start();
-            _listener.BeginGetContext(OnRequest, null);
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine("Telegram API Listener успешно запущен на порту 8080.");
-            Console.ResetColor();
+            // Загружаем актуальные токены и адреса из файла .env в папке .venv
+            LoadEnvironmentVariables();
+
+            try
+            {
+                _listener = new HttpListener();
+                _listener.Prefixes.Add(_listenerPrefix);
+                _listener.Start();
+                _listener.BeginGetContext(OnRequest, null);
+
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.WriteLine($"[Telegram API] Listener успешно запущен. URL: {_listenerPrefix}");
+                Console.ResetColor();
+            }
+            catch (Exception ex)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"[Telegram API] КРИТИЧЕСКАЯ ОШИБКА запуска на префиксе '{_listenerPrefix}': {ex.Message}");
+                Console.ResetColor();
+            }
+        }
+
+        // 🗃️ ВСТРОЕННЫЙ ПАРСЕР .ENV ФАЙЛА ДЛЯ КЛАССИЧЕСКОГО SERVUO (net48)
+        private static void LoadEnvironmentVariables()
+        {
+            // Формируем путь к файлу конфигурации внутри папки виртуального окружения .venv
+            string envPath = Path.Combine(Core.BaseDirectory, ".venv", ".env");
+
+            if (!File.Exists(envPath))
+            {
+                // Резервная проверка: если .env лежит прямо в корне папки ServUO
+                envPath = Path.Combine(Core.BaseDirectory, ".env");
+            }
+
+            if (!File.Exists(envPath))
+            {
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("[Telegram API] Предупреждение: Файл конфигурации '.env' не найден. Исполняются дефолтные настройки.");
+                Console.ResetColor();
+                return;
+            }
+
+            try
+            {
+                string[] lines = File.ReadAllLines(envPath);
+                foreach (string line in lines)
+                {
+                    // Пропускаем пустые строки и комментарии #
+                    if (string.IsNullOrWhiteSpace(line) || line.Trim().StartsWith("#"))
+                        continue;
+
+                    int idx = line.IndexOf('=');
+                    if (idx <= 0) continue;
+
+                    string key = line.Substring(0, idx).Trim();
+                    string value = line.Substring(idx + 1).Trim();
+
+                    // Очищаем значение от возможных кавычек, если они прописаны в .env
+                    if (value.StartsWith("\"") && value.EndsWith("\"") || value.StartsWith("'") && value.EndsWith("'"))
+                    {
+                        value = value.Substring(1, value.Length - 2);
+                    }
+
+                    // Сопоставляем переменные
+                    if (key.Equals("TELEGRAM_BOT_SECRET_TOKEN", StringComparison.OrdinalIgnoreCase) || key.Equals("BOT_TOKEN", StringComparison.OrdinalIgnoreCase))
+                    {
+                        _secretToken = value;
+                    }
+                    else if (key.Equals("TELEGRAM_LISTENER_URL", StringComparison.OrdinalIgnoreCase) || key.Equals("BOT_URL", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Серверу UO для HttpListener префикс ОБЯЗАН оканчиваться на слэш /
+                        if (!value.EndsWith("/")) value += "/";
+                        _listenerPrefix = value;
+                    }
+                }
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("[Telegram API] Настройки безопасности из файла .env успешно импортированы в память сервера.");
+                Console.ResetColor();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Telegram API] Не удалось прочитать .env: {ex.Message}");
+            }
         }
 
         private static void OnRequest(IAsyncResult ar)
         {
-            if (!_listener.IsListening) return;
+            if (_listener == null || !_listener.IsListening) return;
 
-            HttpListenerContext context = _listener.EndGetContext(ar);
-            _listener.BeginGetContext(OnRequest, null); 
-
-            HttpListenerRequest request = context.Request;
-            HttpListenerResponse response = context.Response;
-
-            if (request.HttpMethod == "POST")
+            try
             {
-                string authHeader = request.Headers["X-Bot-Token"];
-                if (authHeader != _secretToken)
-                {
-                    SendResponse(response, HttpStatusCode.Unauthorized, "Unauthorized");
-                    return;
-                }
+                HttpListenerContext context = _listener.EndGetContext(ar);
+                _listener.BeginGetContext(OnRequest, null); 
 
-                using (var reader = new StreamReader(request.InputStream, request.ContentEncoding))
-                {
-                    string rawData = reader.ReadToEnd();
-                    // ИСПРАВЛЕНО: Парсим 3 параметра, отправленные ботом
-                    string[] split = rawData.Split('|');
+                HttpListenerRequest request = context.Request;
+                HttpListenerResponse response = context.Response;
 
-                    if (split.Length == 3)
+                if (request.HttpMethod == "POST")
+                {
+                    string authHeader = request.Headers["X-Bot-Token"];
+                    if (authHeader != _secretToken)
                     {
-                        string accountName = split[0].Trim();
-                        string characterName = split[1].Trim();
-                        string typeStr = split[2].Trim();
-
-                        Timer.DelayCall(TimeSpan.Zero, () =>
-                        {
-                            string errorDetail = "";
-                            bool success = AddContractToStrictTarget(accountName, characterName, typeStr, out errorDetail);
-                            
-                            if (success)
-                                SendResponse(response, HttpStatusCode.OK, "Success");
-                            else
-                                SendResponse(response, HttpStatusCode.BadRequest, errorDetail); 
-                        });
+                        SendResponse(response, HttpStatusCode.Unauthorized, "Unauthorized");
                         return;
                     }
+
+                    using (var reader = new StreamReader(request.InputStream, request.ContentEncoding))
+                    {
+                        string rawData = reader.ReadToEnd();
+                        string[] split = rawData.Split('|');
+
+                        if (split.Length == 3)
+                        {
+                            string accountName = split[0].Trim();
+                            string characterName = split[1].Trim();
+                            string typeStr = split[2].Trim();
+
+                            Timer.DelayCall(TimeSpan.Zero, () =>
+                            {
+                                string errorDetail = "";
+                                bool success = AddContractToStrictTarget(accountName, characterName, typeStr, out errorDetail);
+                                
+                                if (success)
+                                    SendResponse(response, HttpStatusCode.OK, "Success");
+                                else
+                                    SendResponse(response, HttpStatusCode.BadRequest, errorDetail); 
+                            });
+                            return;
+                        }
+                    }
                 }
+                SendResponse(response, HttpStatusCode.BadRequest, "Bad Request");
             }
-            SendResponse(response, HttpStatusCode.BadRequest, "Bad Request");
+            catch
+            {
+                // Подавляем ошибки сорванных соединений при перезагрузке
+            }
         }
 
-        // ИСПРАВЛЕНО: Новый метод строгого сопоставления аккаунта и игрового персонажа
         private static bool AddContractToStrictTarget(string accountName, string characterName, string typeStr, out string errorDetail)
         {
             errorDetail = "";
 
-            // 1. Ищем указанный аккаунт (инвариантно к регистру)
             var acct = Accounting.Accounts.GetAccount(accountName);
             if (acct == null)
             {
@@ -97,7 +178,6 @@ namespace Server.Telegram
                 return false;
             }
 
-            // 2. Проверяем персонажей ИМЕННО на этом аккаунте
             PlayerMobile targetPlayer = null;
             for (int i = 0; i < acct.Length; ++i)
             {
@@ -114,7 +194,6 @@ namespace Server.Telegram
                 return false;
             }
 
-            // 3. Начисляем предмет в банк верифицированного персонажа
             var bank = targetPlayer.BankBox;
             if (bank != null)
             {
@@ -135,11 +214,15 @@ namespace Server.Telegram
 
         private static void SendResponse(HttpListenerResponse response, HttpStatusCode statusCode, string message)
         {
-            byte[] buffer = Encoding.UTF8.GetBytes(message);
-            response.StatusCode = (int)statusCode;
-            response.ContentLength64 = buffer.Length;
-            response.OutputStream.Write(buffer, 0, buffer.Length);
-            response.OutputStream.Close();
+            try
+            {
+                byte[] buffer = Encoding.UTF8.GetBytes(message);
+                response.StatusCode = (int)statusCode;
+                response.ContentLength64 = buffer.Length;
+                response.OutputStream.Write(buffer, 0, buffer.Length);
+                response.OutputStream.Close();
+            }
+            catch { }
         }
     }
 }
