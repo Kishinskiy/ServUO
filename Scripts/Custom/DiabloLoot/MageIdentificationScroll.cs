@@ -4,6 +4,7 @@ using Server.Items;
 using Server.Targeting;
 using Server.Engines.XmlSpawner2;
 using Server.Custom.DiabloLoot;
+using Server.Custom.MagicProfessions;
 
 namespace Server.Custom.CurseSystem
 {
@@ -47,6 +48,25 @@ namespace Server.Custom.CurseSystem
 
         protected override void OnTarget(Mobile from, object targeted)
         {
+            if (targeted is MagicProfessionGrimoire grimoire)
+            {
+                if (grimoire.HasIdentify)
+                {
+                    from.SendMessage("Этот ритуал уже вплетен в структуру вашего гримуара.");
+                    return;
+                }
+
+                grimoire.HasIdentify = true;
+                grimoire.Name = "Гримуар Магических Профессий"; // Переименовываем из "Пустого"
+                
+                from.PlaySound(0x249); // Звук магической записи
+                Effects.SendTargetParticles(grimoire, 0x375A, 9, 20, 1266, EffectLayer.Waist);
+                from.SendMessage(0x35, "Вы успешно вплели свиток и изучили Ритуал Распознавания в Гримуаре!");
+                
+                m_Scroll.Delete(); // Свиток расходуется на изучение
+                return;
+            }
+            
             if (m_Scroll == null || m_Scroll.Deleted || from == null || !from.Alive) return;
 
             if (targeted is Item item)

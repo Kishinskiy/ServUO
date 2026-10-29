@@ -3,6 +3,7 @@ using Server.Items;
 using Server.Spells;
 using Server.Custom.CurseSystem;
 using Server.Custom.VoidCraft;
+using Server.Custom.MagicProfessions;
 
 namespace Server.Engines.Craft
 {
@@ -469,7 +470,7 @@ namespace Server.Engines.Craft
             // 📜 РЕЦЕПТ 1: СВИТОК РАСПОЗНАВАНИЯ ПРЕДМЕТОВ
             // =========================================================================
             // Параметры: Тип предмета, Группа в BOD, Название, Мин.Скилл, Макс.Скилл, Базовый ресурс, Название ресурса, Кол-во
-            index = AddCraft(typeof(Server.Custom.CurseSystem.MageIdentificationScroll), 1044294, "Свиток Распознавания Предметов", 60.0, 100.0, typeof(BlankScroll), 1044377, 1, 1044378);
+            index = AddCraft(typeof(MageIdentificationScroll), 1044294, "Свиток Распознавания Предметов", 60.0, 100.0, typeof(BlankScroll), 1044377, 1, 1044378);
             
             // Дополнительные реагенты (5 Мандрагоры, 5 Паутины)
             AddRes(index, typeof(MandrakeRoot), 1044357, 5, 1044365);
@@ -479,14 +480,24 @@ namespace Server.Engines.Craft
             // =========================================================================
             // 📜 РЕЦЕПТ 2: СВИТОК СНЯТИЯ ПРОКЛЯТИЯ
             // =========================================================================
-            index = AddCraft(typeof(Server.Custom.CurseSystem.MageRemoveCurseScroll), 1044294, "Свиток Снятия Проклятия", 80.0, 115.0, typeof(BlankScroll), 1044377, 1, 1044378);
+            index = AddCraft(typeof(MageRemoveCurseScroll), 1044294, "Свиток Снятия Проклятия", 80.0, 115.0, typeof(BlankScroll), 1044377, 1, 1044378);
             
             // Требует 1 Осколок Скверны, 5 Мандрагоры и 5 Крови Демона
-            AddRes(index, typeof(Server.Custom.VoidCraft.CurseShardCraftable), "Осколок Скверны", 1, "Вам не хватает осколка скверны.");
+            AddRes(index, typeof(CurseShardCraftable), "Осколок Скверны", 1, "Вам не хватает осколка скверны.");
             AddRes(index, typeof(MandrakeRoot), 1044357, 5, 1044365);
             AddRes(index, typeof(DaemonBlood), 1023965, 5, 501627);
             SetManaReq(index, 40);
             // =========================================================================
+
+            // =========================================================================
+            // 📖 РЕЦЕПТ: СОЗДАНИЕ ПУСТОГО ГРИМУАРА ПРОФЕССИЙ
+            // =========================================================================
+            // Требует: Inscription 95.0 - 115.0, 5 чистых свитков, 10 единиц арканической пыли и 1 зачарованные чернила
+            index = AddCraft(typeof(MagicProfessionGrimoire), 1044294, "Пустой Гримуар Профессий", 95.0, 115.0, typeof(BlankScroll), 1044377, 5, 1044378);
+            
+            AddRes(index, typeof(ArcaneDust), "Арканическая Пыль", 10, "Вам не хватает арканической пыли.");
+            AddRes(index, typeof(EnchantedInk), "Зачарованные Чернила", 1, "Вам не хватает зачарованных чернил.");
+            SetManaReq(index, 50);
 
 
             MarkOption = true;

@@ -5,6 +5,7 @@ using Server.Targeting;
 using Server.Engines.XmlSpawner2;
 using Server.Custom.DiabloLoot;
 using Server.Custom.VoidCraft;
+using Server.Custom.MagicProfessions;
 
 namespace Server.Custom.CurseSystem
 {
@@ -48,6 +49,25 @@ namespace Server.Custom.CurseSystem
 
         protected override void OnTarget(Mobile from, object targeted)
         {
+            if (targeted is MagicProfessionGrimoire grimoire)
+            {
+                if (grimoire.HasCleanse)
+                {
+                    from.SendMessage("Этот ритуал экзорцизма уже вплетен в структуру вашего гримуара.");
+                    return;
+                }
+
+                grimoire.HasCleanse = true;
+                grimoire.Name = "Гримуар Магических Профессий";
+                
+                from.PlaySound(0x1F8);
+                Effects.SendTargetParticles(grimoire, 0x375A, 9, 20, 1175, EffectLayer.Waist);
+                from.SendMessage(0x58, "Вы успешно провели медитацию над книгой и изучили Ритуал Экзорцизма в Гримуаре!");
+                
+                m_Scroll.Delete();
+                return;
+            }
+            
             if (m_Scroll == null || m_Scroll.Deleted || from == null || !from.Alive) return;
 
             if (targeted is Item item)
