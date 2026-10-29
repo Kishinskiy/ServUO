@@ -3,6 +3,7 @@ using Server;
 using Server.Targeting;
 using Server.Mobiles;
 using Server.Custom.CityDevelopment;
+using Server.Engines.CityLoyalty;
 
 namespace Server.Custom.CityDevelopment
 {
@@ -81,12 +82,12 @@ namespace Server.Custom.CityDevelopment
                     return;
                 }
 
-                Server.Engines.CityLoyalty.City targetCity = Server.Engines.CityLoyalty.City.Britain;
+                City targetCity = City.Britain;
                 bool cityFound = false;
 
-                foreach (Server.Engines.CityLoyalty.City c in Enum.GetValues(typeof(Server.Engines.CityLoyalty.City)))
+                foreach (City c in Enum.GetValues(typeof(City)))
                 {
-                    var cityInstance = Server.Engines.CityLoyalty.CityLoyaltySystem.GetCityInstance(c);
+                    var cityInstance = CityLoyaltySystem.GetCityInstance(c);
                     if (cityInstance != null && cityInstance.Definition != null && cityInstance.Definition.Region != null &&
                         cityInstance.Definition.Region.IsPartOf(stoneRegion))
                     {
