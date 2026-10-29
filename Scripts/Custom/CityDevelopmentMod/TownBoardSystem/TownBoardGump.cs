@@ -18,39 +18,33 @@ namespace Server.Custom.TownBoards
             m_City = city;
             m_Map = map;
             AddPage(0);
-            DateTime offerDate = DateTime.UtcNow;
-            m_HuntOffer = TownBulletinBoardSystem.CreateHuntOffer(city, map, offerDate);
-            m_SupplyOffer = TownBulletinBoardSystem.CreateSupplyOffer(city, map, offerDate);
-            int huntStage = TownBulletinBoardSystem.GetHuntDifficultyStage(DateTime.UtcNow);
+            
+            // Генерируем предложения, передавая объект игрока для расчета масштабирования от лояльности
+            m_HuntOffer = TownBulletinBoardSystem.CreateHuntOffer(city, map, from);
+            m_SupplyOffer = TownBulletinBoardSystem.CreateSupplyOffer(city, map, from);
 
-            // Основные габариты темной панели
             int w = 580;
             int h = 600;
 
-            // Стильный полупрозрачный черный фон с тонкой рамкой (0xBB8 - плоская серая рамка)
             AddBackground(0, 0, w, h, 0xBB8);
-            AddAlphaRegion(2, 2, w - 4, h - 4); // Делает всю область внутри рамки полупрозрачной
+            AddAlphaRegion(2, 2, w - 4, h - 4);
 
-            // Декоративная темная полоса под заголовок
             AddImageTiled(10, 12, w - 20, 32, 0xA40);
             AddAlphaRegion(10, 12, w - 20, 32);
 
-            // ЗАГОЛОВОК: Яркое неоновое золото (#FFFF00)
             AddHtml(20, 16, w - 40, 25,
                 $"<BASEFONT COLOR=#FFFF00 SIZE=5><CENTER><B>ГОРОДСКИЕ ЗАКАЗЫ: {city.ToString().ToUpper()}</B></CENTER></BASEFONT>",
                 false, false);
 
-            // ПОДЗАГОЛОВОК: Мягкий белый/серебряный (#F0F0F0)
             AddHtml(20, 52, w - 40, 25,
                 "<BASEFONT COLOR=#F0F0F0 SIZE=3><CENTER>Объявления обновляются раз в сутки. Принятый заказ остается у вас.</CENTER></BASEFONT>",
                 false, false);
 
             // ==========================================
-            // --- БЛОК 1: ОХОТА ---
+            // --- БЛОК 1: ОХОТА (БЕЗ РЕГИОНОВ) ---
             // ==========================================
-            // Отделяем визуальной линией (черная прозрачная подложка без рамки для структуры)
             AddAlphaRegion(15, 85, w - 30, 135);
-            AddHtml(25, 90, 500, 24, "<BASEFONT COLOR=#FF9900 SIZE=4><B>ЗАДАНИЕ НА ОХОТУ</B></BASEFONT>", false, false); // Насыщенный оранжевый
+            AddHtml(25, 90, 500, 24, "<BASEFONT COLOR=#FF9900 SIZE=4><B>ЗАДАНИЕ НА ОХОТУ</B></BASEFONT>", false, false);
 
             if (m_HuntOffer != null)
             {
@@ -59,24 +53,27 @@ namespace Server.Custom.TownBoards
                     false, false);
 
                 AddHtml(30, 146, 480, 24,
-                    $"<BASEFONT COLOR=#00FF00 SIZE=3>Награда: {m_HuntOffer.RewardGold:N0} золота, {m_HuntOffer.RewardLoyalty} очков лояльности, {m_HuntOffer.RewardTreasury:N0} в казну.</BASEFONT>",
-                    false, false); // Ядовито-зеленый для наград
+                    $"<BASEFONT COLOR=#00FF00 SIZE=3>Награда: {m_HuntOffer.RewardGold:N0} золота, {m_HuntOffer.RewardLoyalty} лояльности, {m_HuntOffer.RewardTreasury:N0} в казну.</BASEFONT>",
+                    false, false);
 
+                // Вычисляем и выводим множитель сложности от лояльности
+                double loyaltyPoints = TownBulletinBoardSystem.GetPlayerLoyaltyPoints(city, from);
+                int difficultyStage = TownBulletinBoardSystem.GetDifficultyStageByLoyalty(loyaltyPoints);
+                
                 AddHtml(30, 172, 450, 24,
-                    $"<BASEFONT COLOR=#87CEFA SIZE=2>Сложность {huntStage}/4. Уровень повышается каждые 30 дней; учитываются области охоты города.</BASEFONT>",
-                    false, false); // Светло-голубой
+                    $"<BASEFONT COLOR=#87CEFA SIZE=2>Сложность: Этап {difficultyStage} (Множитель: x{1.0 + (difficultyStage - 1) * 0.5:F1}). Растет от очков лояльности города.</BASEFONT>",
+                    false, false);
 
-                AddButton(525, 120, 0xFA5, 0xFA7, 1, GumpButtonType.Reply, 0); // Кнопка получения квеста
+                AddButton(525, 120, 0xFA5, 0xFA7, 1, GumpButtonType.Reply, 0);
             }
 
-            // Разделительная черта между блоками
             AddImageTiled(15, 228, w - 30, 2, 0xA40);
 
             // ==========================================
             // --- БЛОК 2: СНАБЖЕНИЕ ---
             // ==========================================
             AddAlphaRegion(15, 238, w - 30, 100);
-            AddHtml(25, 242, 500, 24, "<BASEFONT COLOR=#00FFFF SIZE=4><B>ЗАДАНИЕ НА СНАБЖЕНИЕ</B></BASEFONT>", false, false); // Яркий циан
+            AddHtml(25, 242, 500, 24, "<BASEFONT COLOR=#00FFFF SIZE=4><B>ЗАДАНИЕ НА СНАБЖЕНИЕ</B></BASEFONT>", false, false);
 
             if (m_SupplyOffer != null)
             {
@@ -84,26 +81,24 @@ namespace Server.Custom.TownBoards
                     $"<BASEFONT COLOR=#FFFFFF SIZE=3>Доставить {m_SupplyOffer.RequiredCount} ед. ресурса: <B>{GetResourceName(m_SupplyOffer.ResourceClass)}</B>.</BASEFONT>",
                     false, false);
                 AddHtml(30, 298, 480, 24,
-                    $"<BASEFONT COLOR=#00FF00 SIZE=2>Награда: {m_SupplyOffer.RewardGold:N0} золота, {m_SupplyOffer.RewardLoyalty} очков лояльности и {m_SupplyOffer.RewardTreasury:N0} в казну.</BASEFONT>",
+                    $"<BASEFONT COLOR=#00FF00 SIZE=2>Награда: {m_SupplyOffer.RewardGold:N0} золота, {m_SupplyOffer.RewardLoyalty} лояльности и {m_SupplyOffer.RewardTreasury:N0} в казну.</BASEFONT>",
                     false, false);
 
                 AddButton(525, 272, 0xFA5, 0xFA7, 2, GumpButtonType.Reply, 0);
             }
 
-            // Разделительная черта
             AddImageTiled(15, 346, w - 30, 2, 0xA40);
 
             // ==========================================
             // --- БЛОК 3: РЕМЕСЛО ---
             // ==========================================
             AddAlphaRegion(15, 356, w - 30, 180);
-            AddHtml(25, 360, 500, 24, "<BASEFONT COLOR=#FF66CC SIZE=4><B>РЕМЕСЛЕННЫЕ ЗАКАЗЫ</B></BASEFONT>", false, false); // Яркий розовый
+            AddHtml(25, 360, 500, 24, "<BASEFONT COLOR=#FF66CC SIZE=4><B>РЕМЕСЛЕННЫЕ ЗАКАЗЫ</B></BASEFONT>", false, false);
 
             AddHtml(25, 386, w - 50, 40,
                 "<BASEFONT COLOR=#E0E0E0 SIZE=3>Выберите категорию:</BASEFONT>",
                 false, false);
 
-            // Табличное размещение кнопок без наложений
             AddCategoryButton(40, 432, 3, "Сырье", 120);
             AddCategoryButton(205, 432, 4, "Оружие / броня", 160);
             AddCategoryButton(390, 432, 5, "Боеприпасы", 130);
@@ -111,7 +106,6 @@ namespace Server.Custom.TownBoards
             AddCategoryButton(40, 472, 6, "Провизия", 120);
             AddCategoryButton(205, 472, 7, "Магические материалы", 220);
 
-            // Разделительная черта перед подвалом
             AddImageTiled(15, 546, w - 30, 2, 0xA40);
 
             // ==========================================
@@ -119,7 +113,7 @@ namespace Server.Custom.TownBoards
             // ==========================================
             AddHtml(20, 558, w - 40, 30,
                 $"<BASEFONT COLOR=#ADD8E6 SIZE=3><CENTER>Репутация: <B>{ArtisanSupplySystem.GetReputation(from)}</B>  |  Бонус к крафту: <B>+{CityDevelopmentMod.GetCraftingChanceBonus(from) * 100:0}%</B>  |  Заказ: раз в 24 ч.</CENTER></BASEFONT>",
-                false, false); // Нежно-голубой текст
+                false, false);
         }
 
         private static string GetResourceName(string resource)
@@ -177,7 +171,6 @@ namespace Server.Custom.TownBoards
                     offer.ResourceClass,
                     offer.RequiredCount,
                     offer.TargetCreature,
-                    bounty ? offer.TargetRegion : null, // Передаем регион для охоты
                     offer.RewardGold,
                     offer.RewardLoyalty,
                     offer.RewardTreasury,
@@ -186,10 +179,8 @@ namespace Server.Custom.TownBoards
                 if (from.AddToBackpack(contract))
                 {
                     from.SendMessage(0x35, bounty
-                        ? $"Принят контракт: убить {contract.RequiredCount} {TownContractScroll.GetTargetName(contract.TargetCreature)}."
+                        ? $"Принят контракт: убить {contract.RequiredCount} {TownContractScroll.GetTargetName(contract.TargetCreature)} в любом регионе мира."
                         : $"Принят контракт: доставить {contract.RequiredCount} ед. ресурса [{contract.ResourceClass}].");
-                    from.SendMessage(0x35,
-                        $"Награда: {contract.RewardGold:N0} золота, {contract.RewardLoyalty} очков лояльности и {contract.RewardTreasury:N0} золота в городскую казну.");
                 }
                 else
                 {
@@ -209,7 +200,7 @@ namespace Server.Custom.TownBoards
                     if (contract.IsExpired)
                     {
                         contract.Delete();
-                        from.SendMessage(0x22, "Ваш активный городской контракт истек и был удален.");
+                        from.SendMessage(0x22, "Ваш активный контракт истек и был удален.");
                         return false;
                     }
                     else

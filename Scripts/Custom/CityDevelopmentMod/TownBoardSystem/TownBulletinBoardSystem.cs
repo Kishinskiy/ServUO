@@ -30,7 +30,6 @@ namespace Server.Custom.TownBoards
     internal sealed class TownBoardOffer
     {
         public string TargetCreature { get; set; }
-        public string TargetRegion { get; set; } // Новое поле для региона
         public int RequiredCount { get; set; }
         public string ResourceClass { get; set; }
         public int RewardGold { get; set; }
@@ -46,7 +45,6 @@ namespace Server.Custom.TownBoards
         private int m_RequiredCount;
         private int m_CurrentCount;
         private string m_TargetCreature;
-        private string m_TargetRegion; // Переменная региона охоты
         private int m_RewardGold;
         private int m_RewardLoyalty;
         private long m_RewardTreasury;
@@ -72,9 +70,6 @@ namespace Server.Custom.TownBoards
         public string TargetCreature => m_TargetCreature;
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public string TargetRegion => m_TargetRegion; // Геттер региона
-
-        [CommandProperty(AccessLevel.GameMaster)]
         public int RewardGold => m_RewardGold;
 
         [CommandProperty(AccessLevel.GameMaster)]
@@ -96,9 +91,7 @@ namespace Server.Custom.TownBoards
             if (IsExpired)
             {
                 if (from != null)
-                {
-                    from.SendMessage(0x22, "Срок действия этого городского контракта (48 часов) истек. Он аннулирован.");
-                }
+                    from.SendMessage(0x22, "Срок действия этого городского контракта истек. Он аннулирован.");
                 this.Delete();
                 return true;
             }
@@ -111,7 +104,6 @@ namespace Server.Custom.TownBoards
             string resClass,
             int count,
             string targetCreature,
-            string targetRegion,
             int rewardGold,
             int rewardLoyalty,
             long rewardTreasury,
@@ -123,7 +115,6 @@ namespace Server.Custom.TownBoards
             m_RequiredCount = count;
             m_CurrentCount = 0;
             m_TargetCreature = targetCreature;
-            m_TargetRegion = targetRegion;
             m_RewardGold = rewardGold;
             m_RewardLoyalty = rewardLoyalty;
             m_RewardTreasury = rewardTreasury;
@@ -149,26 +140,13 @@ namespace Server.Custom.TownBoards
             if (m_Type == TownContractType.Bounty)
             {
                 list.Add($"Цель: Убить {m_RequiredCount} {GetTargetName(m_TargetCreature)}: {m_CurrentCount}/{m_RequiredCount}");
-
-                // Вычисляем координаты центра региона для вывода в Тултип
-                Region reg = Region.Regions.FirstOrDefault(r => r.Map == m_ContractMap && r.Name == m_TargetRegion);
-                if (reg != null)
-                {
-                    Point2D center = TownBoardRegions.GetRegionCenter(reg);
-                    list.Add($"Регион охоты: {m_TargetRegion} (Центр: X:{center.X} YCenter:{center.Y})");
-                }
-                else
-                {
-                    list.Add($"Регион охоты: {m_TargetRegion ?? "Не определен"}");
-                }
+                list.Add("Зона выполнения: Любой регион мира (Глобальный заказ)");
             }
             else
             {
                 list.Add($"Цель: Поставить городскому складу ресурс [{m_ResourceClass}]: {m_RequiredCount} шт.");
             }
-            list.Add(m_Type == TownContractType.Bounty
-                ? $"Награда: {m_RewardGold:N0} золота, {m_RewardLoyalty} очков лояльности и {m_RewardTreasury:N0} в казну."
-                : $"Награда: {m_RewardGold:N0} золота, {m_RewardLoyalty} очков лояльности и {m_RewardTreasury:N0} в казну.");
+            list.Add($"Награда: {m_RewardGold:N0} золота, {m_RewardLoyalty} очков лояльности и {m_RewardTreasury:N0} в казну.");
 
             TimeSpan left = (m_CreationTime + TimeSpan.FromHours(48)) - DateTime.UtcNow;
             if (left > TimeSpan.Zero)
@@ -186,8 +164,7 @@ namespace Server.Custom.TownBoards
 
         public override void OnDoubleClick(Mobile from)
         {
-            if (CheckExpiry(from))
-                return;
+            if (CheckExpiry(from)) return;
 
             if (!IsChildOf(from.Backpack))
             {
@@ -202,7 +179,7 @@ namespace Server.Custom.TownBoards
             }
             else
             {
-                from.SendMessage($"Контракт: убейте {m_RequiredCount} монстров ({GetTargetName(m_TargetCreature)}) в округе {m_City}. Прогресс засчитывается автоматически.");
+                from.SendMessage($"Контракт: убейте {m_RequiredCount} монстров ({GetTargetName(m_TargetCreature)}) в любом месте мира. Прогресс засчитывается автоматически.");
             }
         }
 
@@ -217,11 +194,8 @@ namespace Server.Custom.TownBoards
 
             protected override void OnTarget(Mobile from, object targeted)
             {
-                if (m_Scroll == null || m_Scroll.Deleted)
-                    return;
-
-                if (m_Scroll.CheckExpiry(from))
-                    return;
+                if (m_Scroll == null || m_Scroll.Deleted) return;
+                if (m_Scroll.CheckExpiry(from)) return;
 
                 if (from.Backpack == null || !m_Scroll.IsChildOf(from.Backpack))
                 {
@@ -231,34 +205,22 @@ namespace Server.Custom.TownBoards
 
                 if (targeted is TradeMinister minister)
                 {
-                    if (minister.Deleted || minister.Map != from.Map ||
-                        minister.Map != m_Scroll.ContractMap || minister.City != m_Scroll.City)
+                    if (minister.Deleted || minister.Map != from.Map || minister.City != m_Scroll.City)
                     {
                         from.SendMessage(0x22, $"Этот контракт предназначен строго для Торгового Министра города {m_Scroll.City}!");
                         return;
                     }
 
                     CityProgress progress = CityDevelopmentMod.GetCityProfile(minister.City, from.Map);
-                    if (progress == null)
-                        return;
+                    if (progress == null) return;
 
                     Container pack = from.Backpack;
-                    if (pack == null) return;
-
                     List<Item> resources = new List<Item>();
                     CollectResources(pack, m_Scroll.ResourceClass, resources);
-                    int available = 0;
-
-                    foreach (Item item in resources)
-                    {
-                        available += item.Amount;
-                    }
+                    int available = resources.Sum(item => item.Amount);
 
                     if (available >= m_Scroll.RequiredCount)
                     {
-                        int rewardGold = m_Scroll.RewardGold;
-                        int rewardLoyalty = m_Scroll.RewardLoyalty;
-                        long rewardTreasury = m_Scroll.RewardTreasury;
                         int amountRemaining = m_Scroll.RequiredCount;
 
                         foreach (Item item in resources)
@@ -267,35 +229,27 @@ namespace Server.Custom.TownBoards
                             item.Amount -= amountToConsume;
                             amountRemaining -= amountToConsume;
 
-                            if (item.Amount <= 0)
-                                item.Delete();
-
-                            if (amountRemaining == 0)
-                                break;
+                            if (item.Amount <= 0) item.Delete();
+                            if (amountRemaining == 0) break;
                         }
+
                         if (m_Scroll.ResourceClass == "iron") progress.IronStock += m_Scroll.RequiredCount;
                         else if (m_Scroll.ResourceClass == "leather") progress.LeatherStock += m_Scroll.RequiredCount;
                         else if (m_Scroll.ResourceClass == "wood") progress.WoodStock += m_Scroll.RequiredCount;
-                        CityDevelopmentMod.AddTreasuryRevenue(minister.City, from.Map, rewardTreasury);
 
+                        CityDevelopmentMod.AddTreasuryRevenue(minister.City, from.Map, m_Scroll.RewardTreasury);
                         m_Scroll.Delete();
 
                         minister.PublicOverheadMessage(MessageType.Regular, 0x35, false, "Превосходно! Материалы приняты на городской склад.");
-                        if (rewardGold > 0)
-                            Banker.Deposit(from, rewardGold, true);
-                        if (rewardLoyalty > 0)
-                            CityLoyaltySystem.GetCityInstance(minister.City)?.AwardLove(from, rewardLoyalty);
+                        Banker.Deposit(from, m_Scroll.RewardGold, true);
+                        CityLoyaltySystem.GetCityInstance(minister.City)?.AwardLove(from, m_Scroll.RewardLoyalty);
                         from.PlaySound(0x57);
-                        from.SendMessage(0x58, $"[Доска Заказов]: Поставка принята. Награда: {rewardGold:N0} золота и {rewardLoyalty} очков лояльности; казна города пополнена на {rewardTreasury:N0} золота.");
+                        from.SendMessage(0x58, $"[Доска Заказов]: Поставка принята. Получено {m_Scroll.RewardGold:N0} золота, лояльность повышена.");
                     }
                     else
                     {
                         from.SendMessage(0x22, $"В вашем рюкзаке не найдено {m_Scroll.RequiredCount} единиц ресурса [{m_Scroll.ResourceClass}].");
                     }
-                }
-                else
-                {
-                    from.SendMessage(0x22, "Сдать ресурсы по городскому объявлению можно только Министру Торговли.");
                 }
             }
 
@@ -304,23 +258,18 @@ namespace Server.Custom.TownBoards
                 foreach (Item item in container.Items)
                 {
                     bool matches = resourceClass == "iron" && item is BaseIngot ||
-                                   resourceClass == "leather" && (item is BaseLeather || item is BaseHides) ||
-                                   resourceClass == "wood" && (item is BaseWoodBoard || item is BaseLog);
-
-                    if (matches && item.Stackable)
-                        resources.Add(item);
-                    else if (item is Container nested)
-                        CollectResources(nested, resourceClass, resources);
+                    resourceClass == "leather" && (item is BaseLeather || item is BaseHides) ||
+                    resourceClass == "wood" && (item is BaseWoodBoard || item is BaseLog);
+                    if (matches && item.Stackable) resources.Add(item);
+                    else if (item is Container nested) CollectResources(nested, resourceClass, resources);
                 }
             }
         }
-
         public TownContractScroll(Serial serial) : base(serial) { }
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)4);
-            writer.Write(m_TargetRegion);
+            writer.Write((int)5); // Новая версия структуры сохранения
             writer.Write((int)m_City);
             writer.Write((int)m_Type);
             writer.Write(m_ResourceClass);
@@ -342,68 +291,35 @@ namespace Server.Custom.TownBoards
             m_ResourceClass = reader.ReadString();
             m_RequiredCount = reader.ReadInt();
             m_CurrentCount = reader.ReadInt();
-            if (version >= 4)
-            {
-                m_TargetCreature = reader.ReadString();
-                m_RewardGold = reader.ReadInt();
-                m_RewardLoyalty = reader.ReadInt();
-                m_RewardTreasury = reader.ReadLong();
-                m_ContractMap = version >= 2 ? reader.ReadMap() : Map.Trammel;
-            }
-            else
-            {
-                m_TargetCreature = null;
-                m_RewardGold = m_Type == TownContractType.Bounty ? 4000 : 0;
-                m_RewardLoyalty = m_Type == TownContractType.Bounty ? 15 : 0;
-                m_RewardTreasury = m_Type == TownContractType.Bounty
-                    ? CityDevelopmentMod.BulletinBoardBountyRevenue
-                    : CityDevelopmentMod.BulletinBoardSupplyRevenue;
-                m_ContractMap = Map.Trammel;
-            }
-            if (version >= 3)
-            {
-                m_CreationTime = reader.ReadDateTime();
-            }
-            else
-            {
-                m_CreationTime = DateTime.UtcNow;
-            }
-            if (version < 4) // Защита старых контрактов
-            {
-                m_TargetRegion = m_City.ToString();
-            }
-
+            m_TargetCreature = reader.ReadString();
+            m_RewardGold = reader.ReadInt();
+            m_RewardLoyalty = reader.ReadInt();
+            m_RewardTreasury = reader.ReadLong();
+            m_ContractMap = reader.ReadMap();
+            m_CreationTime = reader.ReadDateTime();
         }
     }
-
     public static class TownBulletinBoardSystem
     {
-        private static readonly DateTime HuntProgressionStart = new DateTime(2026, 10, 18, 0, 0, 0, DateTimeKind.Utc);
-        private static readonly int[] HuntBaseCounts = { 30, 50, 80, 120 };
-
+        private static readonly int[] HuntBaseCounts = { 15, 25, 40, 60 }; // Базовое соло-число мобов для старта
         public static void Initialize()
         {
             CommandSystem.Register("TownBoard", AccessLevel.Player, new CommandEventHandler(TownBoard_OnCommand));
             EventSink.CreatureDeath += OnCreatureDeath;
             ArtisanSupplySystem.Initialize();
         }
-
         private static void TownBoard_OnCommand(CommandEventArgs e)
         {
             Mobile from = e.Mobile;
             if (from == null || !from.Alive) return;
-
             City currentCity = City.Britain;
             bool cityFound = false;
-
             foreach (City c in Enum.GetValues(typeof(City)))
             {
                 var instance = CityLoyaltySystem.GetCityInstance(c);
                 if (instance != null && instance.Definition != null)
                 {
-                    Region cityRegion = Region.Regions.FirstOrDefault(r =>
-                        r.Map == from.Map && r.Name == instance.Definition.Name);
-
+                    Region cityRegion = Region.Regions.FirstOrDefault(r => r.Map == from.Map && r.Name == instance.Definition.Name);
                     if (cityRegion != null && cityRegion.IsPartOf(from.Region))
                     {
                         currentCity = c;
@@ -412,17 +328,35 @@ namespace Server.Custom.TownBoards
                     }
                 }
             }
-
             if (!cityFound)
             {
-                from.SendMessage(0x22, "Вы должны находиться внутри региона какого-либо города, чтобы открыть доску объявлений!");
+                from.SendMessage(0x22, "Вы должны находиться внутри региона какого-либо города!");
                 return;
             }
-
             from.CloseGump(typeof(TownBoardGump));
             from.SendGump(new TownBoardGump(from, currentCity, from.Map));
         }
-
+        // Нативный хелпер: Получение очков лояльности игрока из ядра ServUO
+        public static double GetPlayerLoyaltyPoints(City city, Mobile from)
+        {
+            var citySystem = CityLoyaltySystem.GetCityInstance(city);
+            if (citySystem != null && from != null)
+            {
+                // Метод GetPoints возвращает double (текущие баллы игрока в этом городе)
+                return citySystem.GetPoints(from); 
+            }
+            return 0.0;
+        }
+        // =========================================================================
+        // 🧮 КРИТИЧЕСКИЙ РАСЧЕТ: Динамическая прогрессия сложности от Лояльности
+        // =========================================================================
+        public static int GetDifficultyStageByLoyalty(double loyaltyPoints)
+        {
+            if (loyaltyPoints >= 25000.0) return 4; // Высший ранг (Уровень Baron+) — множитель наград х2.5!
+            if (loyaltyPoints >= 5000.0)  return 3; // Почтенный гражданин (Уровень Knight/Baronet)
+            if (loyaltyPoints >= 500.0)   return 2; // Известный житель
+            return 1;                               // Новичок/Нейтрал (Меньше 500 очков)
+        }
         private static int GetDailySeed(City city, Map map, DateTime date)
         {
             unchecked
@@ -433,321 +367,116 @@ namespace Server.Custom.TownBoards
                 return seed;
             }
         }
-
-        internal static int GetHuntDifficultyStage(DateTime utcDate)
+        internal static TownBoardOffer CreateHuntOffer(City city, Map map, Mobile player)
         {
-            int elapsedDays = Math.Max(0, (utcDate.Date - HuntProgressionStart.Date).Days);
-            return Math.Min(4, 1 + elapsedDays / 30);
-        }
-
-        internal static TownBoardOffer CreateHuntOffer(City city, Map map, DateTime utcDate)
-        {
-            TownHuntTarget[] targets = TownBoardRegions.GetHuntTargets(city);
-            if (targets.Length == 0)
-                return null;
-            // Нам нужен список ВСЕХ возможных регионов для этого города (включая имя самого города для проверки на гварду)
-            var possibleRegionNames = TownBoardRegions.GetAdditionalHuntRegions(city).ToList();
-            var instance = CityLoyaltySystem.GetCityInstance(city);
-            string cityName = instance?.Definition?.Name;
-            if (!string.IsNullOrEmpty(cityName))
-                possibleRegionNames.Add(cityName);
-            possibleRegionNames.Add(cityName + " Graveyard");
-            Random random = new Random(GetDailySeed(city, map, utcDate));
-            // Перемешиваем цели случайным образом, но завязано на сид, чтобы у всех в этот день был один квест
-            var shuffledTargets = targets.OrderBy(x => random.Next()).ToList();
-            foreach (var target in shuffledTargets)
-            {
-                // Ищем регион для этого монстра, где ОН РЕАЛЬНО СПАВНИТСЯ и это не черта города
-                foreach (string regName in possibleRegionNames.OrderBy(x => random.Next()))
-                {
-                    // Исключаем сам город (черту города) из зон выполнения квестов
-                    if (regName == cityName)
-                        continue;
-                    Region region = Region.Regions.FirstOrDefault(r => r.Map == map && r.Name == regName);
-                    if (region == null) continue;
-                    // Валидация: Проверяем наличие спавна монстра в этом регионе!
-                    if (RegionHasSpawn(target.TypeName, region, map))
-                    {
-                        int difficultyStage = GetHuntDifficultyStage(utcDate);
-                        int requiredCount = HuntBaseCounts[random.Next(HuntBaseCounts.Length)] * difficultyStage;
-                        return new TownBoardOffer
-                        {
-                            TargetCreature = target.TypeName,
-                            TargetRegion = regName, // Привязываем конкретный проверенный регион
-                            RequiredCount = requiredCount,
-                            RewardGold = requiredCount * 100,
-                            RewardLoyalty = Math.Max(1, requiredCount / 5),
-                            RewardTreasury = requiredCount * 150L
-                        };
-                    }
-                }
-            }
-            // На случай если спавны вообще не настроены в мире, выдаем дефолт по старой схеме во избежание краша UI
-            var fallbackTarget = targets[random.Next(targets.Length)];
-            var fallbackReg = TownBoardRegions.GetAdditionalHuntRegions(city).FirstOrDefault() ?? cityName;
+            TownHuntTarget[] targets = GetHuntTargets(city);
+            if (targets.Length == 0) return null;
+            Random random = new Random(GetDailySeed(city, map, DateTime.UtcNow));
+            var target = targets[random.Next(targets.Length)];
+            // Считываем лояльность и набрасываем множитель усложнения
+            double points = GetPlayerLoyaltyPoints(city, player);
+            int difficultyStage = GetDifficultyStageByLoyalty(points);
+            // Итоговое число целей: База * ЭтапСложностиЛояльности
+            int baseCount = HuntBaseCounts[random.Next(HuntBaseCounts.Length)];
+            int requiredCount = (int)(baseCount * (1.0 + (difficultyStage - 1) * 0.5));
             return new TownBoardOffer
             {
-                TargetCreature = fallbackTarget.TypeName,
-                TargetRegion = fallbackReg,
-                RequiredCount = 50,
-                RewardGold = 5000,
-                RewardLoyalty = 10,
-                RewardTreasury = 7500
+                TargetCreature = target.TypeName,
+                RequiredCount = requiredCount,
+                RewardGold = requiredCount * 150 * difficultyStage, // Награда растет пропорционально сложности!
+                RewardLoyalty = Math.Max(5, (requiredCount / 3) * difficultyStage),
+                RewardTreasury = requiredCount * 200L * difficultyStage
             };
         }
-        // СКАНЕР ХОСТОВ И СПАВНЕРОВ
-        private static bool RegionHasSpawn(string creatureName, Region region, Map map)
+        internal static TownBoardOffer CreateSupplyOffer(City city, Map map, Mobile player)
         {
-            if (region == null || map == null || map == Map.Internal) return false;
-
-            // Ищем любые XmlSpawner элементы в границах этого региона
-            foreach (Item item in World.Items.Values)
-            {
-                if (item.Map == map && region.Contains(item.Location))
-                {
-                    // Проверка для XmlSpawner по имени класса объекта
-                    if (item.GetType().Name.Equals("XmlSpawner", StringComparison.OrdinalIgnoreCase))
-                    {
-                        try
-                        {
-                            // Получаем свойство SpawnNames через Reflection
-                            var property = item.GetType().GetProperty("SpawnNames");
-                            if (property != null)
-                            {
-                                string[] spawnNames = property.GetValue(item, null) as string[];
-                                if (spawnNames != null)
-                                {
-                                    foreach (string name in spawnNames)
-                                    {
-                                        if (name != null && name.Equals(creatureName, StringComparison.OrdinalIgnoreCase))
-                                            return true;
-                                    }
-                                }
-                            }
-                        }
-                        catch 
-                        {
-                            // Подавляем ошибки рефлексии на случай непредвиденных структур данных
-                        }
-                    }
-                }
-            }
-            return false;
-        }
-
-        internal static TownBoardOffer CreateSupplyOffer(City city, Map map, DateTime utcDate)
-        {
-            Random random = new Random(GetDailySeed(city, map, utcDate) ^ 0x5A17);
+            Random random = new Random(GetDailySeed(city, map, DateTime.UtcNow) ^ 0x5A17);
             string[] resources = { "iron", "leather", "wood" };
-            int[] quantities = { 25, 50, 100, 200 };
-            int quantity = quantities[random.Next(quantities.Length)];
-
+            double points = GetPlayerLoyaltyPoints(city, player);
+            int difficultyStage = GetDifficultyStageByLoyalty(points);
+            int[] quantities = { 20, 40, 75, 120 };
+            int quantity = (int)(quantities[random.Next(quantities.Length)] * (1.0 + (difficultyStage - 1) * 0.3));
             return new TownBoardOffer
             {
                 ResourceClass = resources[random.Next(resources.Length)],
                 RequiredCount = quantity,
-                RewardGold = quantity * 20,
-                RewardLoyalty = Math.Max(1, quantity / 10),
-                RewardTreasury = quantity * 100L
+                RewardGold = quantity * 30 * difficultyStage,
+                RewardLoyalty = Math.Max(5, (quantity / 8) * difficultyStage),
+                RewardTreasury = quantity * 120L * difficultyStage
             };
         }
-
-        private static TownHuntTarget[] GetHuntTargets(City city)
-        {
-            switch (city)
-            {
-                case City.Moonglow:
-                    return new[]
-                    {
-                        new TownHuntTarget("Skeleton", "скелетов"),
-                        new TownHuntTarget("Zombie", "зомби"),
-                        new TownHuntTarget("Ghoul", "гулей"),
-                        new TownHuntTarget("Wraith", "призраков"),
-                        new TownHuntTarget("Lich", "личей"),
-                        new TownHuntTarget("Mongbat", "монгбатов")
-                    };
-                case City.Britain:
-                    return new[]
-                    {
-                        new TownHuntTarget("Ettin", "эттинов"),
-                        new TownHuntTarget("Ogre", "огров"),
-                        new TownHuntTarget("Troll", "троллей"),
-                        new TownHuntTarget("Orc", "орков"),
-                        new TownHuntTarget("Ratman", "крысолюдов"),
-                        new TownHuntTarget("Skeleton", "скелетов"),
-                        new TownHuntTarget("Lizardman", "ящеролюдов")
-                    };
-                case City.Jhelom:
-                    return new[]
-                    {
-                        new TownHuntTarget("Brigand", "разбойников"),
-                        new TownHuntTarget("Mongbat", "монгбатов"),
-                        new TownHuntTarget("Scorpion", "скорпионов"),
-                        new TownHuntTarget("Orc", "орков")
-                    };
-                case City.Yew:
-                    return new[]
-                    {
-                        new TownHuntTarget("Orc", "орков"),
-                        new TownHuntTarget("Ratman", "крысолюдов"),
-                        new TownHuntTarget("EarthElemental", "земляных элементалей"),
-                        new TownHuntTarget("AirElemental", "воздушных элементалей"),
-                        new TownHuntTarget("Lich", "личей"),
-                        new TownHuntTarget("Ogre", "огров"),
-                        new TownHuntTarget("Ettin", "эттинов"),
-                        new TownHuntTarget("Troll", "троллей")
-                    };
-                case City.Minoc:
-                    return new[]
-                    {
-                        new TownHuntTarget("Harpy", "гарпий"),
-                        new TownHuntTarget("Gazer", "глаза-демона"),
-                        new TownHuntTarget("Ogre", "огров"),
-                        new TownHuntTarget("Ettin", "эттинов"),
-                        new TownHuntTarget("Ratman", "крысолюдов"),
-                        new TownHuntTarget("Lich", "личей")
-                    };
-                case City.Trinsic:
-                    return new[]
-                    {
-                        new TownHuntTarget("Dragon", "драконов"),
-                        new TownHuntTarget("Drake", "дрейков"),
-                        new TownHuntTarget("Lizardman", "ящеролюдов"),
-                        new TownHuntTarget("Ogre", "огров"),
-                        new TownHuntTarget("Ettin", "эттинов")
-                    };
-                case City.SkaraBrae:
-                    return new[]
-                    {
-                        new TownHuntTarget("Brigand", "разбойников"),
-                        new TownHuntTarget("Mongbat", "монгбатов"),
-                        new TownHuntTarget("Skeleton", "скелетов"),
-                        new TownHuntTarget("Orc", "орков")
-                    };
-                case City.NewMagincia:
-                    return new[]
-                    {
-                        new TownHuntTarget("Mongbat", "монгбатов"),
-                        new TownHuntTarget("Brigand", "разбойников"),
-                        new TownHuntTarget("Orc", "орков"),
-                        new TownHuntTarget("Scorpion", "скорпионов"),
-                        new TownHuntTarget("Skeleton", "скелетов")
-                    };
-                case City.Vesper:
-                    return new[]
-                    {
-                        new TownHuntTarget("Harpy", "гарпий"),
-                        new TownHuntTarget("Gazer", "глаза-демона"),
-                        new TownHuntTarget("Ogre", "огров"),
-                        new TownHuntTarget("Ettin", "эттинов"),
-                        new TownHuntTarget("Ratman", "крысолюдов"),
-                        new TownHuntTarget("Orc", "орков")
-                    };
-                default:
-                    return new TownHuntTarget[0];
-            }
-        }
-
-        internal static TownHuntTarget GetHuntTarget(string typeName)
-        {
-            foreach (City city in Enum.GetValues(typeof(City)))
-            {
-                TownHuntTarget target = TownBoardRegions.GetHuntTargets(city).FirstOrDefault(t => t.TypeName == typeName);
-                if (target != null)
-                    return target;
-            }
-
-            return null;
-        }
-
         private static void OnCreatureDeath(CreatureDeathEventArgs e)
         {
             BaseCreature victim = e.Creature as BaseCreature;
             if (victim == null || victim.Summoned || victim.Controlled) return;
             Mobile killer = e.Killer;
-            if (killer is BaseCreature pet)
-                killer = pet.ControlMaster ?? pet.SummonMaster;
+            if (killer is BaseCreature pet) killer = pet.ControlMaster ?? pet.SummonMaster;
             if (killer is PlayerMobile && killer.Backpack != null)
             {
                 Item[] contracts = killer.Backpack.FindItemsByType(typeof(TownContractScroll));
                 foreach (TownContractScroll scroll in contracts)
                 {
-                    if (scroll.Deleted || scroll.CheckExpiry(killer))
-                        continue;
+                    if (scroll.Deleted || scroll.CheckExpiry(killer)) continue;
+                    // УДАЛЕНО ОГРАНИЧЕНИЕ ВЫПОЛНЕНИЯ: Проверка victim.Region.Name == scroll.TargetRegion вырезана!
                     if (scroll.ContractType == TownContractType.Bounty && scroll.CurrentCount < scroll.RequiredCount)
                     {
-                        var instance = CityLoyaltySystem.GetCityInstance(scroll.City);
-                        if (instance != null && instance.Definition != null &&
-                        victim.Map == scroll.ContractMap &&
-                        victim.Region != null &&
-                        victim.Region.Name == scroll.TargetRegion && // Проверка ЖЕСТКО на привязанный регион задания
-                        IsTargetCreature(scroll.TargetCreature, victim))
+                        if (victim.Map == scroll.ContractMap && IsTargetCreature(scroll.TargetCreature, victim))
                         {
                             scroll.CurrentCount++;
                             killer.SendMessage(0x35, $"[Заказ {scroll.City}]: {TownContractScroll.GetTargetName(scroll.TargetCreature)}: {scroll.CurrentCount}/{scroll.RequiredCount}");
                             if (scroll.CurrentCount >= scroll.RequiredCount)
                             {
-                                if (scroll.RewardLoyalty > 0)
-                                    instance.AwardLove(killer, scroll.RewardLoyalty);
+                                CityLoyaltySystem.GetCityInstance(scroll.City)?.AwardLove(killer, scroll.RewardLoyalty);
                                 Banker.Deposit(killer, scroll.RewardGold, true);
                                 CityDevelopmentMod.AddTreasuryRevenue(scroll.City, victim.Map, scroll.RewardTreasury);
                                 killer.PlaySound(0x57);
-                                killer.SendMessage(0x58, $"[Доска Заказов]: Контракт выполнен! Награда: {scroll.RewardGold:N0} золота и {scroll.RewardLoyalty} очков лояльности.");
+                                killer.SendMessage(0x58, $"[Доска Заказов]: Контракт успешно выполнен в полевых условиях! Награда: {scroll.RewardGold:N0} золота зачислена в банк.");
                                 scroll.Delete();
                             }
-                            break;
+                            break; // Засчитываем фрагмент только в один контракт за убийство
                         }
                     }
                 }
             }
         }
-
         private static bool IsTargetCreature(string target, BaseCreature creature)
         {
-            if (String.IsNullOrEmpty(target) || target == "Any")
-                return true;
-
-            return creature.GetType().Name == target;
+            if (String.IsNullOrEmpty(target) || target == "Any") return true;
+            return creature.GetType().Name.Equals(target, StringComparison.OrdinalIgnoreCase);
         }
-
-        private static string[] GetAdditionalHuntRegions(City city)
+        public static TownHuntTarget GetHuntTarget(string typeName)
+        {
+            foreach (City city in Enum.GetValues(typeof(City)))
+            {
+                TownHuntTarget target = GetHuntTargets(city).FirstOrDefault(t => t.TypeName.Equals(typeName, StringComparison.OrdinalIgnoreCase));
+                if (target != null) return target;
+            }
+            return null;
+        }
+        private static TownHuntTarget[] GetHuntTargets(City city)
         {
             switch (city)
             {
                 case City.Moonglow:
-                    return new[] { "Deceit" };
+                    return new[] { new TownHuntTarget("Skeleton", "скелетов"), new TownHuntTarget("Zombie", "зомби"), new TownHuntTarget("Ghoul", "гулей"), new TownHuntTarget("Lich", "личей"), new TownHuntTarget("Mongbat", "монгбатов") };
                 case City.Britain:
-                    return new[] { "Despise", "Despise Entrance", "Despise Passage", "Painted Caves", "Orc Cave" };
+                    return new[] { new TownHuntTarget("Ettin", "эттинов"), new TownHuntTarget("Ogre", "огров"), new TownHuntTarget("Troll", "троллей"), new TownHuntTarget("Orc", "орков"), new TownHuntTarget("Ratman", "крысолюдов"), new TownHuntTarget("Skeleton", "скелетов"), new TownHuntTarget("Lizardman", "ящеролюдов") };
                 case City.Jhelom:
-                    return new[] { "Jhelom Islands" };
+                    return new[] { new TownHuntTarget("Brigand", "разбойников"), new TownHuntTarget("Mongbat", "монгбатов"), new TownHuntTarget("Scorpion", "скорпионов"), new TownHuntTarget("Orc", "орков") };
                 case City.Yew:
-                    return new[]
-                    {
-                        "Shame", "Heartwood", "Sanctuary", "Blighted Grove", "Orc Cave",
-                        "Despise", "Despise Entrance", "Despise Passage", "Yew Cave", "Sanctuary Entrance"
-                    };
+                    return new[] { new TownHuntTarget("Orc", "орков"), new TownHuntTarget("Ratman", "крысолюдов"), new TownHuntTarget("EarthElemental", "земляных элементалей"), new TownHuntTarget("AirElemental", "воздушных элементалей"), new TownHuntTarget("Lich", "личей"), new TownHuntTarget("Ogre", "огров"), new TownHuntTarget("Ettin", "эттинов") };
                 case City.Minoc:
-                    return new[] { "Covetous", "Wrong" };
+                    return new[] { new TownHuntTarget("Harpy", "гарпий"), new TownHuntTarget("Gazer", "глаза-демона"), new TownHuntTarget("Ogre", "огров"), new TownHuntTarget("Ettin", "эттинов"), new TownHuntTarget("Lich", "личей") };
                 case City.Trinsic:
-                    return new[] { "Destard" };
+                    return new[] { new TownHuntTarget("Dragon", "драконов"), new TownHuntTarget("Drake", "дрейков"), new TownHuntTarget("Lizardman", "ящеролюдов"), new TownHuntTarget("Ogre", "огров") };
                 case City.SkaraBrae:
-                    return new string[0];
                 case City.NewMagincia:
-                    return new[] { "Ocllo" };
+                    return new[] { new TownHuntTarget("Mongbat", "монгбатов"), new TownHuntTarget("Brigand", "разбойников"), new TownHuntTarget("Orc", "орков"), new TownHuntTarget("Skeleton", "скелетов") };
                 case City.Vesper:
-                    return new[] { "Covetous" };
+                    return new[] { new TownHuntTarget("Harpy", "гарпий"), new TownHuntTarget("Gazer", "глаза-демона"), new TownHuntTarget("Ogre", "огров"), new TownHuntTarget("Orc", "орков") };
                 default:
-                    return new string[0];
+                    return new TownHuntTarget[0];
             }
         }
-
-        private static bool IsInNamedRegion(Map map, Region creatureRegion, string regionName)
-        {
-            Region region = Region.Regions.FirstOrDefault(r =>
-                r.Map == map && r.Name == regionName);
-
-            return region != null && creatureRegion.IsPartOf(region);
-        }
-
     }
 }
