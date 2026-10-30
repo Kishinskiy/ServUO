@@ -305,16 +305,16 @@ namespace Server.Engines.CannedEvil
 
             foreach (ChampionSpawn spawn in m_AllSpawns.Where(spawn => spawn != null && !spawn.Deleted))
 			{
-				spawn.AutoRestart = true;
-				if (!spawn.Active)
-					spawn.Active = true;
+				spawn.AutoRestart = false; // 🔥 ИСПРАВЛЕНО: Отключаем авторестарт для соло-режима мантр
+				if (spawn.Active)
+					spawn.Active = false;  // 🔥 ИСПРАВЛЕНО: При генерации принудительно выключаем алтарь
 
 				List<ChampionSpawn> group;
 				if (spawn.GroupName == null)
 				{
-					spawn.AutoRestart = true;
-					if (!spawn.Active)
-						spawn.Active = true;
+					spawn.AutoRestart = false;
+					if (spawn.Active)
+						spawn.Active = false;
 					continue;
 				}
 				if (!groups.TryGetValue(spawn.GroupName, out group))
@@ -330,14 +330,15 @@ namespace Server.Engines.CannedEvil
 				List<ChampionSpawn> group = groups[key];
 				foreach (ChampionSpawn spawn in group)
 				{
-					spawn.AutoRestart = true; 
-					if (!spawn.Active)
-						spawn.Active = true;
+					spawn.AutoRestart = false; 
+					if (spawn.Active)
+						spawn.Active = false;
 				}
+				// Внутри групп тоже держим их выключенными до произнесения мантры игроком
 				ChampionSpawn s = group[Utility.Random(group.Count)];
-				s.AutoRestart = true;
-				if (!s.Active)
-					s.Active = true;
+				s.AutoRestart = false;
+				if (s.Active)
+					s.Active = false;
 			}
 		}
 

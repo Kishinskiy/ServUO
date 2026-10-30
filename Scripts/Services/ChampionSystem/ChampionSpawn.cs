@@ -9,6 +9,7 @@ using Server.Regions;
 using Server.Services.Virtues;
 using Server.Spells.Necromancy;
 
+
 namespace Server.Engines.CannedEvil
 {
     public class ChampionSpawn : Item
@@ -1655,91 +1656,75 @@ namespace Server.Engines.CannedEvil
 
         public ChampionSpawn Spawn
         {
-            get
-            {
-                return m_Spawn;
-            }
+            get { return m_Spawn; }
         }
 
         public override string DefaultName
         {
-            get
-            {
-                return "Idol of the Champion";
-            }
+            get { return "Idol of the Champion"; }
         }
 
-        public IdolOfTheChampion(ChampionSpawn spawn)
-            : base(0x1F18)
+        [Constructable]
+        public IdolOfTheChampion(ChampionSpawn spawn) : base(0x1F18)
         {
             m_Spawn = spawn;
             Movable = false;
         }
 
-        public override void OnAfterDelete()
-        {
-            base.OnAfterDelete();
-
-            if (m_Spawn != null)
-                m_Spawn.Delete();
-        }
-
-        public IdolOfTheChampion(Serial serial)
-            : base(serial)
+        // Конструктор десериализации ядра для защиты от фатальных падений [8]
+        public IdolOfTheChampion(Serial serial) : base(serial)
         {
         }
+
         public override void OnDoubleClick(Mobile from)
         {
+            if (from == null || !from.Alive) return;
+
             if (m_Spawn == null || m_Spawn.Deleted)
             {
                 from.SendMessage("Этот алтарь поврежден.");
                 return;
             }
 
-            // ПРОВЕРКА: Проверяем, что спавнер чемпиона сейчас НЕ активен
-            if (!m_Spawn.Active)
+            if (m_Spawn.Active)
             {
-                // Запускаем алтарь через его родные методы
-                m_Spawn.Active = true; 
+                from.SendMessage("Алтарь уже активен! Сражайтесь со спавном.");
+                return;
+            }
 
-                // Красивые визуальные эффекты пробуждения босса
-                Effects.PlaySound(this.Location, this.Map, 0x29);
-                Effects.SendLocationEffect(this.Location, this.Map, 0x4E, 10, 10, 0, 0);
-                
-                from.SendMessage(0x42, "Вы пробудили древние силы идола! Чемпион грядет...");
-            }
-            else
+            if (!from.InRange(this.Location, 3))
             {
-                from.SendMessage("Этот алтарь уже активен! Сражайтесь с монстрами.");
+                from.SendLocalizedMessage(500295); // Вы слишком далеко.
+                return;
             }
+
+            // Подсказка игроку
+            string requiredMantra = ChampionMantraCore.GetRequiredMantra(m_Spawn.Type);
+            from.SendMessage(0x35, $"Вы коснулись идола. Чтобы пробудить силы {m_Spawn.SpawnName}, встаньте на алтарь и произнесите мантру");
         }
+
+        public override void OnAfterDelete()
+        {
+            base.OnAfterDelete();
+            if (m_Spawn != null)
+                m_Spawn.Delete();
+        }
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-
             writer.Write((int)0); // version
-
             writer.Write(m_Spawn);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-
             int version = reader.ReadInt();
-
-            switch ( version )
-            {
-                case 0:
-                    {
-                        m_Spawn = reader.ReadItem() as ChampionSpawn;
-
-                        if (m_Spawn == null)
-                            Delete();
-
-                        break;
-                    }
-            }
+            m_Spawn = reader.ReadItem() as ChampionSpawn;
+            
+            if (m_Spawn == null) 
+                Delete();
         }
     }
 }
