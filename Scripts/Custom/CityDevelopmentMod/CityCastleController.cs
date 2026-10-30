@@ -22,7 +22,6 @@ namespace Server.Custom.CityDevelopment
         }
 
         // Координаты точки внутри подземелья (куда телепортирует люк)
-        // ГМ может изменить их прямо из игры через [props на контроллер!
         [CommandProperty(AccessLevel.GameMaster)]
         public Point3D DungeonDestLoc { get; set; } = new Point3D(6000, 1000, 0);
 
@@ -63,14 +62,13 @@ namespace Server.Custom.CityDevelopment
             if (currentLevel >= 3)
             {
                 SpawnNPC(new Banker(), new Point3D(X + 2, Y + 2, Z));
-                // SpawnNPC(new Herald(), new Point3D(X - 2, Y + 2, Z));
             }
 
             if (currentLevel >= 4)
             {
-                // SpawnNPC(new EliteCastleGuard(m_City), new Point3D(X + 5, Y, Z));
-                // SpawnNPC(new EliteCastleGuard(m_City), new Point3D(X - 5, Y, Z));
-                // SpawnNPC(new Quartermaster(), new Point3D(X, Y - 4, Z));
+                // Раскомментировали и вернули спавн элитной стражи и интенданта
+                SpawnNPC(new EliteCastleGuard(m_City), new Point3D(X + 5, Y, Z));
+                SpawnNPC(new EliteCastleGuard(m_City), new Point3D(X - 5, Y, Z));
             }
 
             if (currentLevel >= 5)
@@ -78,7 +76,7 @@ namespace Server.Custom.CityDevelopment
                 // Высший уровень: Спавним Губернатора
                 SpawnNPC(new TownGovernorNPC(m_City), new Point3D(X, Y, Z));
 
-                // 🔥 ОТКРЫТИЕ ПОДЗЕМЕЛЬЯ: Создаем физический люк прямо перед троном (на 2 тайла южнее контроллера)
+                // 🔥 ОТКРЫТИЕ ПОДЗЕМЕЛЬЯ: Создаем физический люк прямо перед троном
                 CastleDungeonTeleporter tele = new CastleDungeonTeleporter(this);
                 tele.MoveToWorld(new Point3D(X, Y + 2, Z), this.Map);
                 m_DungeonTeleporter = tele;
@@ -149,12 +147,12 @@ namespace Server.Custom.CityDevelopment
     {
         private CityCastleController m_Controller;
 
-        public CastleDungeonTeleporter(CityCastleController controller) : base(0x0247) // Графика железной решетки/люка в полу
+        public CastleDungeonTeleporter(CityCastleController controller) : base(0x0247) 
         {
             m_Controller = controller;
             Name = "Спуск в Подземелье Резиденции";
             Movable = false;
-            Hue = 1102; // Темный антуражный цвет порчи/камня
+            Hue = 1102; 
         }
 
         public override bool OnMoveOver(Mobile m)
@@ -173,18 +171,14 @@ namespace Server.Custom.CityDevelopment
                     return false; 
                 }
 
-                // 🔥 РОГАЛИК-МЕХАНИКА: Если лабиринт еще не сгенерирован — строим его!
-                // Размер 40х40 тайлов — идеальный компактный размер для соло-зачистки
                 Point3D startRoomInMaze = RogueDungeonGenerator.IsGenerated 
-                    ? RogueDungeonGenerator.StartRegion // Если уже создан кем-то, кидаем на старт
+                    ? RogueDungeonGenerator.StartRegion 
                     : RogueDungeonGenerator.Generate(40); 
 
-                // Переносим игрока в динамически созданную стартовую комнату лабиринта!
                 pm.PlaySound(0x1FE); 
                 pm.MoveToWorld(startRoomInMaze, RogueDungeonGenerator.DungeonMap);
                 pm.SendMessage(0x5A, "Вы сошли по ступеням в подземелье... Стены и коридоры этого места изменились до неузнаваемости!");
                 
-                // Запускаем автоматический таймер зачистки: через 40 минут данж исчезнет и сотрется, если игроки уйдут
                 Timer.DelayCall(TimeSpan.FromMinutes(40.0), () => RogueDungeonGenerator.ClearDungeon());
 
                 return false;
@@ -198,7 +192,65 @@ namespace Server.Custom.CityDevelopment
         public override void Deserialize(GenericReader reader) { base.Deserialize(reader); int version = reader.ReadInt(); m_Controller = reader.ReadItem() as CityCastleController; }
     }
 
-    // --- Классы заглушки NPC остаются без изменений ---
-    // public class EliteCastleGuard : Guard { public EliteCastleGuard(Server.Engines.CityLoyalty.City city) { Name = $"Рыцарь гвардии {city}"; Title = "[Замковая Стража]"; HueMod = 2418; } public EliteCastleGuard(Serial serial) : base(serial) { } public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write((int)0); } public override void Deserialize(GenericReader reader) { base.Deserialize(reader); int version = reader.ReadInt(); } }
-    public class TownGovernorNPC : Mobile { public TownGovernorNPC(Server.Engines.CityLoyalty.City city) { Name = "Лорд-Губернатор"; Title = $"[Правитель {city}]"; CantWalk = true; Body = 0x190; System.Threading.Tasks.Task.Run(() => Utility.AssignRandomHair(this)); } public override void OnDoubleClick(Mobile from) { if (from.Alive && from.InRange(this.Location, 3)) { from.SendMessage(0x54, $"{Name}: Приветствую тебя, верный гражданин! Наш замок процветает благодаря твоим поставкам и преданности городу."); } } public TownGovernorNPC(Serial serial) : base(serial) { } public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write((int)0); } public override void Deserialize(GenericReader reader) { base.Deserialize(reader); int version = reader.ReadInt(); } }
+    // =========================================================================
+    // ⚔️ ИСПРАВЛЕННЫЙ КЛАСС ЗАМКОВОЙ СТРАЖИ (УНАСЛЕДОВАН ОТ НА ТИВНОГО BASEGUARD)
+    // =========================================================================
+    public class EliteCastleGuard : BaseGuard
+    {
+
+        private Mobile m_Focus;
+
+        public override Mobile Focus
+        {
+            get { return m_Focus; }
+            set { m_Focus = value; }
+        }
+        
+        public EliteCastleGuard(Server.Engines.CityLoyalty.City city) : base(null)
+        {
+            Name = $"Рыцарь гвардии {city}";
+            Title = "[Замковая Стража]";
+            HueMod = 2418; // Золоченые доспехи фракции
+            CantWalk = false; 
+        }
+
+        public EliteCastleGuard(Serial serial) : base(serial) 
+        { 
+        }
+
+        public override void Serialize(GenericWriter writer) 
+        { 
+            base.Serialize(writer); 
+            writer.Write((int)0); 
+        }
+
+        public override void Deserialize(GenericReader reader) 
+        { 
+            base.Deserialize(reader); 
+            int version = reader.ReadInt(); 
+        }
+    }
+
+    // --- Класс Лорда-Губернатора ---
+    public class TownGovernorNPC : Mobile 
+    { 
+        public TownGovernorNPC(Server.Engines.CityLoyalty.City city) 
+        { 
+            Name = "Лорд-Губернатор"; 
+            Title = $"[Правитель {city}]"; 
+            CantWalk = true; 
+            Body = 0x190; 
+            System.Threading.Tasks.Task.Run(() => Utility.AssignRandomHair(this)); 
+        } 
+        public override void OnDoubleClick(Mobile from) 
+        { 
+            if (from.Alive && from.InRange(this.Location, 3)) 
+            { 
+                from.SendMessage(0x54, $"{Name}: Приветствую тебя, верный гражданин! Наш замок процветает благодаря твоим поставкам и преданности городу."); 
+            } 
+        } 
+        public TownGovernorNPC(Serial serial) : base(serial) { } 
+        public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write((int)0); } 
+        public override void Deserialize(GenericReader reader) { base.Deserialize(reader); int version = reader.ReadInt(); } 
+    }
 }
