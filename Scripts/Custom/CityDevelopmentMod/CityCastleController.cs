@@ -63,14 +63,14 @@ namespace Server.Custom.CityDevelopment
             if (currentLevel >= 3)
             {
                 SpawnNPC(new Banker(), new Point3D(X + 2, Y + 2, Z));
-                SpawnNPC(new Herald(), new Point3D(X - 2, Y + 2, Z));
+                // SpawnNPC(new Herald(), new Point3D(X - 2, Y + 2, Z));
             }
 
             if (currentLevel >= 4)
             {
-                SpawnNPC(new EliteCastleGuard(m_City), new Point3D(X + 5, Y, Z));
-                SpawnNPC(new EliteCastleGuard(m_City), new Point3D(X - 5, Y, Z));
-                SpawnNPC(new Quartermaster(), new Point3D(X, Y - 4, Z));
+                // SpawnNPC(new EliteCastleGuard(m_City), new Point3D(X + 5, Y, Z));
+                // SpawnNPC(new EliteCastleGuard(m_City), new Point3D(X - 5, Y, Z));
+                // SpawnNPC(new Quartermaster(), new Point3D(X, Y - 4, Z));
             }
 
             if (currentLevel >= 5)
@@ -199,6 +199,6 @@ namespace Server.Custom.CityDevelopment
     }
 
     // --- Классы заглушки NPC остаются без изменений ---
-    public class EliteCastleGuard : Guard { public EliteCastleGuard(Server.Engines.CityLoyalty.City city) { Name = $"Рыцарь гвардии {city}"; Title = "[Замковая Стража]"; HueMod = 2418; } public EliteCastleGuard(Serial serial) : base(serial) { } public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write((int)0); } public override void Deserialize(GenericReader reader) { base.Deserialize(reader); int version = reader.ReadInt(); } }
+    // public class EliteCastleGuard : Guard { public EliteCastleGuard(Server.Engines.CityLoyalty.City city) { Name = $"Рыцарь гвардии {city}"; Title = "[Замковая Стража]"; HueMod = 2418; } public EliteCastleGuard(Serial serial) : base(serial) { } public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write((int)0); } public override void Deserialize(GenericReader reader) { base.Deserialize(reader); int version = reader.ReadInt(); } }
     public class TownGovernorNPC : Mobile { public TownGovernorNPC(Server.Engines.CityLoyalty.City city) { Name = "Лорд-Губернатор"; Title = $"[Правитель {city}]"; CantWalk = true; Body = 0x190; System.Threading.Tasks.Task.Run(() => Utility.AssignRandomHair(this)); } public override void OnDoubleClick(Mobile from) { if (from.Alive && from.InRange(this.Location, 3)) { from.SendMessage(0x54, $"{Name}: Приветствую тебя, верный гражданин! Наш замок процветает благодаря твоим поставкам и преданности городу."); } } public TownGovernorNPC(Serial serial) : base(serial) { } public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write((int)0); } public override void Deserialize(GenericReader reader) { base.Deserialize(reader); int version = reader.ReadInt(); } }
 }
