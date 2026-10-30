@@ -1,0 +1,25 @@
+<?xml version="1.0" standalone="yes"?>
+<Spawns>
+  <!-- Шрайн Телепортации: Вход в лабиринт Ильшенара -->
+  <Points>
+    <Name>Ilshenar Ethereal Shrine Labyrinth</Name>
+    <UniqueId>00i333b7-570d-4cc8-b96e-dd76ad140i10</UniqueId>
+    <Map>Ilshenar</Map>
+    <X>845</X><Y>250</Y><Z>-15</Z>
+    <Range>0</Range><MaxCount>1</MaxCount><MinDelay>10</MinDelay><MaxDelay>10</MaxDelay>
+    <IsRunning>True</IsRunning>
+    <Objects2>EtherealShrine,Ильшенар:MX=1:SB=0:RT=0:TO=0:KL=0:RK=0:CA=1:DN=-1:DX=-1:SP=1:PR=-1</Objects2>
+  </Points>
+
+  <!-- Аномалии: Руины Nox Fane (Ilsh) -->
+  <Points>
+    <Name>Ilshenar Nox Fane Anomalies</Name>
+    <UniqueId>00i333b7-570d-4cc8-b96e-dd76ad140i01</UniqueId>
+    <Map>Ilshenar</Map>
+    <X>1712</X><Y>209</Y><Width>20</Width><Height>20</Height>
+    <CentreX>1722</CentreX><CentreY>219</CentreY><CentreZ>96</CentreZ>
+    <Range>12</Range><MaxCount>3</MaxCount><MinDelay>5</MinDelay><MaxDelay>15</MaxDelay>
+    <IsRunning>True</IsRunning><AllowGhostTriggering>True</AllowGhostTriggering>
+    <Objects2>EtherealAnomaly:MX=3:SB=0:RT=0:TO=0:KL=0:RK=0:CA=1:DN=-1:DX=-1:SP=1:PR=-1</Objects2>
+  </Points>
+</Spawns>

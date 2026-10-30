@@ -1,0 +1,84 @@
+<?xml version="1.0" standalone="yes"?>
+<Spawns>
+  <!-- ========================================================================= -->
+  <!-- ☀️ СВЯТИЛИЩА ТЕЛЕПОРТАЦИИ ДЛЯ ПРИЗРАКОВ (СТАЦИОНАРНЫЕ КАМНИ)                -->
+  <!-- ========================================================================= -->
+  
+  <!-- Эфирный Шрайн Света на главной площади города Луна -->
+  <Points>
+    <Name>Malas Ethereal Shrine Luna</Name>
+    <UniqueId>004475b7-570d-4cc8-b96e-dd76ad140aa3</UniqueId>
+    <Map>Malas</Map>
+    <X>980</X><Y>520</Y><Width>0</Width><Height>0</Height>
+    <CentreX>980</CentreX><CentreY>520</CentreY><CentreZ>-50</CentreZ>
+    <Range>0</Range><MaxCount>1</MaxCount><MinDelay>10</MinDelay><MaxDelay>10</MaxDelay>
+    <IsRunning>True</IsRunning>
+    <Objects2>EtherealShrine,Луна:MX=1:SB=0:RT=0:TO=0:KL=0:RK=0:CA=1:DN=-1:DX=-1:SP=1:PR=-1</Objects2>
+  </Points>
+
+  <!-- Эфирный Шрайн Тьмы у входа в некромантский город Умбра -->
+  <Points>
+    <Name>Malas Ethereal Shrine Umbra</Name>
+    <UniqueId>004475b7-570d-4cc8-b96e-dd76ad140aa4</UniqueId>
+    <Map>Malas</Map>
+    <X>2104</X><Y>1306</Y><Width>0</Width><Height>0</Height>
+    <CentreX>2104</CentreX><CentreY>1306</CentreY><CentreZ>-50</CentreZ>
+    <Range>0</Range><MaxCount>1</MaxCount><MinDelay>10</MinDelay><MaxDelay>10</MaxDelay>
+    <IsRunning>True</IsRunning>
+    <Objects2>EtherealShrine,Умбра:MX=1:SB=0:RT=0:TO=0:KL=0:RK=0:CA=1:DN=-1:DX=-1:SP=1:PR=-1</Objects2>
+  </Points>
+
+  <!-- ========================================================================= -->
+  <!-- 🔮 ДИНАМИЧЕСКИЙ СПАВН ЭФИРНЫХ АНОМАЛИЙ НА КУРГАНАХ                        -->
+  <!-- ========================================================================= -->
+  
+  <!-- Аномалии вокруг Алтаря Света (Каменный круг Луны) -->
+  <Points>
+    <Name>Malas Ascension Light Anomalies</Name>
+    <UniqueId>004475b7-570d-4cc8-b96e-004475b70aa1</UniqueId>
+    <Map>Malas</Map>
+    <X>1040</X><Y>410</Y><Width>20</Width><Height>20</Height>
+    <CentreX>1050</CentreX><CentreY>420</CentreY><CentreZ>-90</CentreZ>
+    <Range>15</Range><MaxCount>3</MaxCount><MinDelay>5</MinDelay><MaxDelay>15</MaxDelay>
+    <IsRunning>True</IsRunning><AllowGhostTriggering>True</AllowGhostTriggering>
+    <Objects2>EtherealAnomaly:MX=3:SB=0:RT=0:TO=0:KL=0:RK=0:CA=1:DN=-1:DX=-1:SP=1:PR=-1</Objects2>
+  </Points>
+
+  <!-- Аномалии вокруг Алтаря Тьмы (Пустоши Умбры) -->
+  <Points>
+    <Name>Malas Ascension Dark Anomalies</Name>
+    <UniqueId>004475b7-570d-4cc8-b96e-004475b70aa2</UniqueId>
+    <Map>Malas</Map>
+    <X>2140</X><Y>1010</Y><Width>20</Width><Height>20</Height>
+    <CentreX>2150</CentreX><CentreY>1020</CentreY><CentreZ>-28</CentreZ>
+    <Range>15</Range><MaxCount>3</MaxCount><MinDelay>5</MinDelay><MaxDelay>15</MaxDelay>
+    <IsRunning>True</IsRunning><AllowGhostTriggering>True</AllowGhostTriggering>
+    <Objects2>EtherealAnomaly:MX=3:SB=0:RT=0:TO=0:KL=0:RK=0:CA=1:DN=-1:DX=-1:SP=1:PR=-1</Objects2>
+  </Points>
+
+  <!-- ========================================================================= -->
+  <!-- 💎 ПАССИВНЫЙ СПАВН ПРЕДМЕТОВ SOUL ESSENCE НА ЗЕМЛЕ                       -->
+  <!-- ========================================================================= -->
+  
+  <Points>
+    <Name>Malas Soul Essences Luna</Name>
+    <UniqueId>00940d57-e552-406c-9324-bd9bc4d9f2aa</UniqueId>
+    <Map>Malas</Map>
+    <X>1045</X><Y>415</Y><Width>10</Width><Height>10</Height>
+    <CentreX>1050</CentreX><CentreY>420</CentreY><CentreZ>-90</CentreZ>
+    <Range>6</Range><MaxCount>2</MaxCount><MinDelay>15</MinDelay><MaxDelay>30</MaxDelay>
+    <IsRunning>True</IsRunning><IsHomeRangeRelative>True</IsHomeRangeRelative>
+    <Objects2>SoulEssence:MX=2:SB=0:RT=0:TO=0:KL=0:RK=0:CA=1:DN=-1:DX=-1:SP=1:PR=-1</Objects2>
+  </Points>
+
+  <Points>
+    <Name>Malas Soul Essences Umbra</Name>
+    <UniqueId>00940d57-e552-406c-9324-bd9bc4d9f2ab</UniqueId>
+    <Map>Malas</Map>
+    <X>2145</X><Y>1015</Y><Width>10</Width><Height>10</Height>
+    <CentreX>2150</CentreX><CentreY>1020</CentreY><CentreZ>-28</CentreZ>
+    <Range>6</Range><MaxCount>2</MaxCount><MinDelay>15</MinDelay><MaxDelay>30</MaxDelay>
+    <IsRunning>True</IsRunning><IsHomeRangeRelative>True</IsHomeRangeRelative>
+    <Objects2>SoulEssence:MX=2:SB=0:RT=0:TO=0:KL=0:RK=0:CA=1:DN=-1:DX=-1:SP=1:PR=-1</Objects2>
+  </Points>
+</Spawns>
