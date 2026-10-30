@@ -595,11 +595,44 @@ namespace Server.Custom.CityDevelopment
                     for (int i = 0; i < count; i++)
                     {
                         string key = reader.ReadString();
+
+                        // 🔥 ИСПРАВЛЕНО: Если ключ null/empty, мы вычитываем структуру вхолостую, 
+                        // сохраняя ровное положение байтового потока для остальных городов!
+                        if (string.IsNullOrEmpty(key))
+                        {
+                            // Вычитываем данные текущего "битого" города в никуда
+                            reader.ReadInt();    // Скипаем Level
+                            reader.ReadDouble(); // Скипаем CurrentSupplies
+                            reader.ReadDouble(); // Скипаем RequiredSupplies
+                            reader.ReadLong();   // Скипаем Treasury
+                            
+                            if (version >= 3)
+                            {
+                                reader.ReadInt(); // IronStock
+                                reader.ReadInt(); // LeatherStock
+                                reader.ReadInt(); // WoodStock
+                            }
+                            if (version >= 4)
+                            {
+                                reader.ReadInt(); // EquipmentStock
+                                reader.ReadInt(); // AmmunitionStock
+                                reader.ReadInt(); // ProvisionsStock
+                            }
+                            if (version >= 5)
+                            {
+                                reader.ReadInt(); // MagicStock
+                            }
+                            
+                            continue; // Теперь безопасно переходим к следующему городу
+                        }
+                        
+                        // Если ключ валидный — загружаем данные в штатном режиме
                         CityProgress progress = new CityProgress();
                         progress.Level = reader.ReadInt();
                         progress.CurrentSupplies = reader.ReadDouble();
                         progress.RequiredSupplies = reader.ReadDouble();
                         progress.Treasury = reader.ReadLong();
+                        
                         if (version >= 3)
                         {
                             progress.IronStock = reader.ReadInt();
@@ -613,7 +646,10 @@ namespace Server.Custom.CityDevelopment
                             progress.ProvisionsStock = reader.ReadInt();
                         }
                         if (version >= 5)
+                        {
                             progress.MagicStock = reader.ReadInt();
+                        }
+                        
                         loadedData[key] = progress;
                     }
                 }
