@@ -190,6 +190,18 @@ namespace Server.Engines.CannedEvil
 				// Волна 4: Высшие демоны и суккубы
 				new Type[] { typeof(Daemon), typeof(Succubus) }
 			}),
+
+            new ChampionSpawnInfo("Mondain Trial", typeof(Semidar), new string[] { "Святость", "Праведность", "Мондейн" }, new Type[][]
+			{ 
+				// Волна 1: Монахи, послушники и святые огоньки
+				new Type[] { typeof(Pixie), typeof(Wisp) }, 
+				// Волна 2: Храмовники, кавалерия и воины орденов
+				new Type[] { typeof(Paladin), typeof(Centaur) }, 
+				// Волна 3: Призванные небесные защитники и кирины
+				new Type[] { typeof(Kirin), typeof(Unicorn) }, 
+				// Волна 4: Высшие Архангелы (Единороги/Ангелы в зависимости от сборки, заменим на Серебряных Серпентов и Серых магов)
+				new Type[] { typeof(SilverSerpent), typeof(HolyMage) } 
+			}),
         };
 
         public static ChampionSpawnInfo GetInfo(ChampionSpawnType type)

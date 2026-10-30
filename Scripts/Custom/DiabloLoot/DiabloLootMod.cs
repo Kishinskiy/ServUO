@@ -61,11 +61,15 @@ namespace Server.Custom.DiabloLoot
                 // ИСПОЛЬЗУЕМ СИСТЕМУ ГЛОБАЛЬНОГО ПОИСКА АККАУНТОВ С КАПОМ SKILL СВЕТА 130
                 // =========================================================================
                 bool avatarOccupied = EpicAvatarWorldBalance.IsAvatarPlaceOccupied();
-                bool mondainActive = false; // Тьму пока не реализовывали, по дефолту false
+                bool mondainOccupied = EpicAvatarWorldBalance.IsMondainPlaceOccupied();
 
                 if (avatarOccupied)
                 {
                     baseGenerationChance *= 1.25; // Аватар бустит появление особых вещей на +25%
+                }
+                if (mondainOccupied)
+                {
+                    baseGenerationChance *= 1.15; // Мондейн бустит появление на +15%
                 }
 
                 // 🔥 ИСПРАВЛЕНО: Мягкий внешний множитель баланса сил считывается из нашего нового класса!
@@ -88,7 +92,10 @@ namespace Server.Custom.DiabloLoot
                     {
                         negativeChance = 0.05; // Аватар снижает появление порчи до 5%
                     }
-
+                    else if (mondainOccupied)
+                    {
+                        negativeChance = 0.20; // 🔥 СТАЛО: Мондейн повышает шанс генерации проклятых предметов до 20%!
+                    }
                     // Генерируем индекс распределения свойств предмета от 1 до 100
                     int propertyIndex = Utility.RandomMinMax(1, 100);
 

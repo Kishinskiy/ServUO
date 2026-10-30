@@ -52,19 +52,9 @@ namespace Server.Custom.EpicAlignment
                 return;
             }
 
-            // Жесткая проверка: пользоваться книгой может только тот, кто заслужил ранг Аватара!
-            // (Если вы еще не внедрили систему вызова рангов, временно закомментируйте эту проверку для тестов ГМом)
-            /*
-            if (pm.Skills[SkillName.Magery].Cap < 130.0 && pm.AccessLevel == AccessLevel.Player)
-            {
-                pm.SendMessage(0x22, "Страницы Гримуара объяты священным пламенем. Ваша душа еще не совершила Восхождение.");
-                return;
-            }
-            */
-
-            // Открываем наш новый кастомный гамп-интерфейс книги
-            pm.CloseGump(typeof(EpicBookGump));
-            pm.SendGump(new EpicBookGump(pm, this));
+            // Открываем строго золотой Гамп Аватара! 🎉
+            pm.CloseGump(typeof(EpicAvatarBookGump));
+            pm.SendGump(new EpicAvatarBookGump(pm, this));
         }
 
         // Логика поглощения будущих свитков магии при перетаскивании на Гримуар

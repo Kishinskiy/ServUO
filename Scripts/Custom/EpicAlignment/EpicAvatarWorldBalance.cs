@@ -36,6 +36,24 @@ namespace Server.Custom.EpicAlignment
             return false;
         }
 
+        public static bool IsMondainPlaceOccupied()
+        {
+            foreach (Server.Accounting.Account acc in Server.Accounting.Accounts.GetAccounts().Cast<Server.Accounting.Account>())
+            {
+                if (acc == null) continue;
+                for (int i = 0; i < acc.Length; ++i)
+                {
+                    Mobile m = acc[i];
+                    // Если кап некромантии равен 130 — Владыка Тьмы пробужден!
+                    if (m != null && !m.Deleted && m.Skills[SkillName.Necromancy].Cap >= 130.0)
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
         // 🔮 МЕТОД ДЛЯ ВАШЕЙ DIABLO-LOOT СИСТЕМЫ: Расчет модификатора шанса проклятий
         // Урезает шанс проклятий в 2 раза, если в мире в принципе существует Аватар (даже если он оффлайн)!
         public static double GetCurseChanceMultiplier()

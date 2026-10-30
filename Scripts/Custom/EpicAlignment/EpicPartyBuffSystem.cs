@@ -9,12 +9,12 @@ namespace Server.Custom.EpicAlignment
 {
     public static class EpicPartyBuffSystem
     {
-        // Словарь для отслеживания текущих аур на игроках (Serial персонажа -> тип ауры)
+        // Словарь для отслеживания текущих активных аур на персонажах (Serial -> Фракция)
         private static readonly Dictionary<Serial, string> _activeAuras = new Dictionary<Serial, string>();
 
         public static void Initialize()
         {
-            // 🎉 ЗАПУСК ГРУППОВОГО РАДАРА: сканирует мир раз в 3 секунды без нагрузки на сервер
+            // ЗАПУСК ЕДИНОГО ГРУППОВОГО РАДАРА: сканирует мир раз в 3 секунды без нагрузки на сервер
             Timer.DelayCall(TimeSpan.FromSeconds(3.0), TimeSpan.FromSeconds(3.0), new TimerCallback(ProcessPartyRadar));
         }
 
@@ -22,92 +22,113 @@ namespace Server.Custom.EpicAlignment
         {
             HashSet<Serial> onlinePlayers = new HashSet<Serial>();
 
-            // Перебираем всех живых игроков в мире, находящихся в сети
             foreach (Mobile m in World.Mobiles.Values)
             {
                 if (m is PlayerMobile pm && pm.Alive && !pm.Deleted && pm.NetState != null)
                 {
                     onlinePlayers.Add(pm.Serial);
 
-                    // Проверяем, состоит ли игрок в нативном Party-отряде UO
                     Party party = Party.Get(pm);
-                    bool hasAvatarInParty = false;
+                    bool hasAvatar = false;
+                    bool hasMondain = false;
 
-                    // Если у игрока самого ранг Аватара (Magery Cap поднят до 130)
-                    if (pm.Skills[SkillName.Magery].Cap >= 130.0)
-                    {
-                        hasAvatarInParty = true;
-                    }
-                    // Если он в группе — сканируем, есть ли Аватар среди соратников поблизости
-                    else if (party != null)
+                    // 1. Проверяем статус самого игрока
+                    if (pm.Skills[SkillName.Magery].Cap >= 130.0) hasAvatar = true;
+                    if (pm.Skills[SkillName.Necromancy].Cap >= 130.0) hasMondain = true;
+
+                    // 2. Если игрок в отряде — сканируем соратников в радиусе видимости (12 клеток)
+                    if (party != null && !hasAvatar && !hasMondain)
                     {
                         foreach (PartyMemberInfo info in party.Members)
                         {
                             Mobile member = info.Mobile;
-                            
-                            // Проверяем, что союзник жив, находится на той же карте и в радиусе 12 тайлов
                             if (member != null && member.Alive && member.Map == pm.Map && pm.InRange(member.Location, 12))
                             {
-                                // Если у члена отряда лимит Magery равен 130 — он Истинный Аватар Света!
-                                if (member.Skills[SkillName.Magery].Cap >= 130.0)
-                                {
-                                    hasAvatarInParty = true;
-                                    break;
-                                }
+                                if (member.Skills[SkillName.Magery].Cap >= 130.0) { hasAvatar = true; break; }
+                                if (member.Skills[SkillName.Necromancy].Cap >= 130.0) { hasMondain = true; break; }
                             }
                         }
                     }
 
-                    // Применяем или обновляем бонус аур для этого конкретного игрока
-                    ApplyDynamicPartyBonus(pm, hasAvatarInParty);
+                    // Применяем динамический расчет аур
+                    ApplyDynamicPartyBonus(pm, hasAvatar, hasMondain);
                 }
             }
 
-            // Очищаем кэш словаря от отключившихся или удаленных игроков (сборка мусора)
+            // Очистка кэша словаря от отключившихся игроков
             List<Serial> stalePlayers = _activeAuras.Keys.Where(serial => !onlinePlayers.Contains(serial)).ToList();
-            foreach (Serial serial in stalePlayers)
-            {
-                _activeAuras.Remove(serial);
-            }
+            foreach (Serial serial in stalePlayers) _activeAuras.Remove(serial);
         }
 
-        private static void ApplyDynamicPartyBonus(PlayerMobile pm, bool hasAvatar)
+        private static void ApplyDynamicPartyBonus(PlayerMobile pm, bool hasAvatar, bool hasMondain)
         {
             _activeAuras.TryGetValue(pm.Serial, out string previousAura);
 
-            // Если Аватара в группе нет или игрок вышел из радиуса его присутствия
-            if (!hasAvatar)
+            // Конфликт сил: если в одной пати оказались и Аватар, и Мондейн — ауры взаимно аннулируются!
+            if (hasAvatar && hasMondain)
             {
                 if (previousAura != null)
                 {
                     _activeAuras.Remove(pm.Serial);
-                    pm.SendMessage(0x59, "Священная аура Аватара Света угасла. Благословение покинуло вас.");
+                    pm.SendMessage(0x22, "Потоки Света и Тьмы столкнулись! Эпические ауры отряда заблокированы.");
                 }
                 return;
             }
 
-            // =========================================================================
-            // ❤️ МАТЕМАТИКА ТИКА АУРЫ: Восстановление 2 ХП каждые 3 секунды
-            // =========================================================================
-            if (pm.Hits < pm.HitsMax)
+            // --- СЦЕНАРИЙ А: АУРА СВЕТА (АВАТАР) ---
+            if (hasAvatar)
             {
-                pm.Hits = Math.Min(pm.HitsMax, pm.Hits + 2);
-                
-                // Легкий визуальный эффект искр исцеления на персонаже при тике ауры
-                if (Utility.RandomDouble() < 0.25) // с шансом 25%, чтобы не спамить экран
+                if (pm.Hits < pm.HitsMax)
                 {
-                    pm.FixedParticles(0x376A, 9, 32, 5015, 2418, 0, EffectLayer.Waist);
+                    pm.Hits = Math.Min(pm.HitsMax, pm.Hits + 2); // Восстановление +2 ХП
+                    if (Utility.RandomDouble() < 0.20) pm.FixedParticles(0x376A, 9, 32, 5015, 2418, 0, EffectLayer.Waist);
                 }
+
+                if (previousAura != "avatar")
+                {
+                    pm.SendMessage(0x35, "[Аура Аватара]: Присутствие сил Порядка восстанавливает вам и вашему отряду 2 HP каждые 3 секунды!");
+                    _activeAuras[pm.Serial] = "avatar";
+                    pm.FixedParticles(0x375A, 9, 20, 5027, 2418, 0, EffectLayer.Waist);
+                }
+                return;
             }
 
-            // Если аура только что активировалась на игроке, пишем красивое лорное уведомление
-            if (previousAura == null)
+            // --- СЦЕНАРИЙ Б: АУРА ТЬМЫ (РУКА МОНДЕЙНА) ---
+            if (hasMondain)
             {
-                pm.SendMessage(0x35, "[Аура Аватара]: Присутствие Полубога Света восстанавливает вам и вашему отряду 2 единицы здоровья каждые 3 секунды!");
-                _activeAuras[pm.Serial] = "avatar";
-                
-                // Эффект активации
-                pm.FixedParticles(0x375A, 9, 20, 5027, 2418, 0, EffectLayer.Waist);
+                bool auraTicked = false;
+
+                if (pm.Mana < pm.ManaMax)
+                {
+                    pm.Mana = Math.Min(pm.ManaMax, pm.Mana + 3); // Восстановление +3 Маны чернокнижникам
+                    auraTicked = true;
+                }
+                if (pm.Stam < pm.StamMax)
+                {
+                    pm.Stam = Math.Min(pm.StamMax, pm.Stam + 5); // Восстановление +5 стамины для бега в латах
+                    auraTicked = true;
+                }
+
+                if (auraTicked && Utility.RandomDouble() < 0.20)
+                {
+                    // Ядовито-зеленые искры поглощения маны
+                    pm.FixedParticles(0x376A, 9, 32, 5005, 1175, 0, EffectLayer.Waist);
+                }
+
+                if (previousAura != "mondain")
+                {
+                    pm.SendMessage(0x22, "[Аура Скверны]: Тёмная воля Мондейна восстанавливает вам и вашему отряду 3 Маны и 5 Выносливости каждые 3 секунды!");
+                    _activeAuras[pm.Serial] = "mondain";
+                    pm.FixedParticles(0x375A, 9, 20, 5027, 1175, 0, EffectLayer.Waist); // Вспышка Хаоса
+                }
+                return;
+            }
+
+            // Если Полубогов рядом больше нет
+            if (previousAura != null)
+            {
+                _activeAuras.Remove(pm.Serial);
+                pm.SendMessage(0x59, "Эпическое благословение Полубога покинуло ваш отряд.");
             }
         }
     }
