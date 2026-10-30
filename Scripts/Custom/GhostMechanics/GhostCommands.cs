@@ -8,7 +8,7 @@ namespace Server.Custom.GhostMechanics
 {
     public static class EpicGhostCommands
     {
-        private static readonly string SpawnsFolder = Path.Combine(Core.BaseDirectory, "Saves/Spawns");
+        private static readonly string SpawnsFolder = Path.Combine(Core.BaseDirectory, "./Spawns");
 
         public static void Initialize()
         {
@@ -17,13 +17,13 @@ namespace Server.Custom.GhostMechanics
         }
 
         [Usage("SetupGhostWorld")]
-        [Description("Принудительно подгружает готовые XML-файлы Посмертия из папки Saves/Spawns/.")]
+        [Description("Принудительно подгружает готовые XML-файлы Посмертия из папки ./Spawns/ через XmlSpawner2.")]
         private static void SetupGhostWorld_OnCommand(CommandEventArgs e)
         {
             Mobile from = e.Mobile;
             if (from == null) return;
 
-            // Список файлов, которые вы физически положили в папку Saves/Spawns/
+            // Список ваших внешних XML-файлов
             string[] filesToLoad = new string[]
             {
                 "GhostMechanics_Malas.xml",
@@ -34,47 +34,39 @@ namespace Server.Custom.GhostMechanics
                 "GhostMechanics_TerMur.xml"
             };
 
-            try
+            int successCount = 0;
+
+            foreach (string fileName in filesToLoad)
             {
-                // Находим движок XmlSpawner в кодовой базе сервера через рефлексию
-                Type xmlSpawnerType = ScriptCompiler.FindTypeByName("XmlSpawner");
-                if (xmlSpawnerType == null)
+                string relativePath = Path.Combine("./Spawns", fileName);
+                string fullPath = Path.Combine(Core.BaseDirectory, relativePath);
+
+                if (File.Exists(fullPath))
                 {
-                    from.SendMessage(0x22, "Ошибка: Движок XmlSpawner не найден в кодовой базе сервера.");
-                    return;
-                }
-
-                var loadMethod = xmlSpawnerType.GetMethod("LoadSpawns", new Type[] { typeof(string) });
-                if (loadMethod == null)
-                {
-                    from.SendMessage(0x22, "Ошибка: Метод LoadSpawns не поддерживается вашей версией XmlSpawner.");
-                    return;
-                }
-
-                int successCount = 0;
-
-                // Перебираем файлы и поочередно скармливаем их нативному загрузчику эмулятора
-                foreach (string fileName in filesToLoad)
-                {
-                    string fullPath = Path.Combine(SpawnsFolder, fileName);
-
-                    if (File.Exists(fullPath))
+                    // 🔥 НАДЁЖНЫЙ ХУК ДЛЯ XMLSPAWNER 2: 
+                    // Вызываем родную команду [XmlLoad, передавая ей путь к файлу.
+                    // Это полностью обходит проблему несовместимости скрытых методов ядра!
+                    string commandString = $"XmlLoad {relativePath}";
+                    
+                    if (CommandSystem.Handle(from, commandString))
                     {
-                        loadMethod.Invoke(null, new object[] { fullPath });
                         successCount++;
                     }
-                    else
-                    {
-                        from.SendMessage(0x35, $"[Предупреждение] Файл конфигурации '{fileName}' не найден на диске. Пропущен.");
-                    }
                 }
-
-                from.SendMessage(0x58, $"[Успех] Ритуал завершен! Из папки Saves/Spawns/ успешно подгружено файлов: {successCount} из {filesToLoad.Length}.");
-                Console.WriteLine($"[Admin] Администратор {from.Name} обновил эфирные спавны. Загружено файлов: {successCount}.");
+                else
+                {
+                    from.SendMessage(0x35, $"[Предупреждение] Файл конфигурации '{fileName}' не найден в ./Spawns/. Пропущен.");
+                }
             }
-            catch (Exception ex)
+
+            if (successCount > 0)
             {
-                from.SendMessage(0x22, $"Критическая ошибка выполнения команды: {ex.Message}");
+                from.SendMessage(0x58, $"[Успех] XmlSpawner2 успешно обработал и развернул файлов: {successCount} из {filesToLoad.Length}.");
+                Console.WriteLine($"[Admin Command] {from.Name} развернул призрачные спавны через XmlLoad. Файлов: {successCount}.");
+            }
+            else
+            {
+                from.SendMessage(0x22, "Ошибка: Ни один XML-файл не был найден в папке Spawns/.");
             }
         }
     }
