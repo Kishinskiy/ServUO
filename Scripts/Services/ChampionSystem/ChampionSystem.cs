@@ -85,7 +85,7 @@ namespace Server.Engines.CannedEvil
 			m_TranscendenceChance = Config.Get("Champions.TranscendenceChance", 50.0d) / 100.0d;
 			int rank2 = Config.Get("Champions.Rank2RedSkulls", 5);
 			int rank3 = Config.Get("Champions.Rank3RedSkulls", 10);
-			int rank4 = Config.Get("Champions.Rank4RedSkulls", 10);
+			int rank4 = Config.Get("Champions.Rank4RedSkulls", 13);
 			for (int i = 0; i < m_Rank.Length; ++i)
 			{
 				if (i < rank2)
@@ -183,13 +183,15 @@ namespace Server.Engines.CannedEvil
             RemoveSpawns();
 
             Utility.PushColor(ConsoleColor.White);
-            Console.WriteLine("Generating Champion Spawns");
+            Console.WriteLine("Generating Champion Spawns...");
             Utility.PopColor();
 
             ChampionSpawn spawn;
 
             XmlDocument doc = new XmlDocument();
             doc.Load(m_ConfigPath);
+            int loadedCount = 0;
+
             foreach (XmlNode node in doc.GetElementsByTagName("championSystem")[0].ChildNodes)
             {
                 if (node.Name.Equals("spawn"))
@@ -205,7 +207,8 @@ namespace Server.Engines.CannedEvil
 
                     value = GetAttr(node, "spawnMod", "1.0");
                     spawn.SpawnMod = XmlConvert.ToDouble(value);
-                    value = GetAttr(node, "killsMod", "1.0");
+                    
+                    value = GetAttr(node, "killsMod", "0.15"); // Используем ваш КillsMod 0.15 по умолчанию
                     spawn.KillsMod = XmlConvert.ToDouble(value);
 
                     foreach (XmlNode child in node.ChildNodes)
@@ -215,7 +218,9 @@ namespace Server.Engines.CannedEvil
                             int x = XmlConvert.ToInt32(GetAttr(child, "x", "0"));
                             int y = XmlConvert.ToInt32(GetAttr(child, "y", "0"));
                             int z = XmlConvert.ToInt32(GetAttr(child, "z", "0"));
-                            int r = XmlConvert.ToInt32(GetAttr(child, "radius", "0"));
+                            
+                            // 🔥 ИСПРАВЛЕНО: Безопасный дефолт 35 тайлов, если радиус в теге location опущен
+                            int r = XmlConvert.ToInt32(GetAttr(child, "radius", "35"));
                             string mapName = GetAttr(child, "map", "Felucca");
                             Map map = Map.Parse(mapName);
 
@@ -226,6 +231,10 @@ namespace Server.Engines.CannedEvil
 
                     spawn.GroupName = GetAttr(node, "group", null);
                     m_AllSpawns.Add(spawn);
+                    loadedCount++;
+
+                    // Отладочный вывод в консоль для проверки радиусов при старте сервера
+                    Console.WriteLine($"[Champions] Подгружен алтарь: {spawn.SpawnName} ({spawn.Map}) -> Радиус: {spawn.SpawnRadius} тайлов.");
 
                     if (spawn.Type == ChampionSpawnType.Infuse)
                     {
@@ -237,6 +246,7 @@ namespace Server.Engines.CannedEvil
             Rotate();
 
             m_Initialized = true;
+            Console.WriteLine($"[Champions] Генерация завершена. Всего развернуто алтарей: {loadedCount}.");
         }
 
         public static void RemoveSpawns()

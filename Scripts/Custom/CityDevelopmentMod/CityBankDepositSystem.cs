@@ -7,7 +7,6 @@ using Server.Mobiles;
 
 namespace Server.Custom.CityDevelopment
 {
-    // Класс структуры конкретного вклада игрока
     public class DepositEntry
     {
         public long Balance { get; set; } = 0;
@@ -16,9 +15,8 @@ namespace Server.Custom.CityDevelopment
 
     public static class CityBankDepositSystem
     {
-        public static readonly int SystemVersion = 1;
+        public static readonly int SystemVersion = 2; // Повышаем версию структуры данных
 
-        // Ключ словаря: "СериалИгрока_Город_ИмяКарты"
         private static readonly Dictionary<string, DepositEntry> _deposits = new Dictionary<string, DepositEntry>();
         private static readonly string _savePath = Path.Combine(Core.BaseDirectory, "Saves/Custom/CityBankDeposits.bin");
 
@@ -28,11 +26,10 @@ namespace Server.Custom.CityDevelopment
             EventSink.Shutdown += (e) => Save();
             EventSink.ServerStarted += new ServerStartedEventHandler(Load);
 
-            // Таймер, запускающийся раз в сутки для начисления процентов по вкладам
-            Timer.DelayCall(TimeSpan.FromDays(1.0), TimeSpan.FromDays(1.0), new TimerCallback(ProcessDailyInterest));
+            // Таймер проверяет вклады чаще (например, раз в час), но начисляет строго раз в сутки индивидуально
+            Timer.DelayCall(TimeSpan.FromHours(1.0), TimeSpan.FromHours(1.0), new TimerCallback(ProcessDailyInterest));
         }
 
-        // Получение или создание вклада игрока в конкретном городе
         public static DepositEntry GetDeposit(Mobile from, string cityName, Map map)
         {
             if (from == null || map == null || map == Map.Internal || String.IsNullOrEmpty(cityName))
@@ -48,82 +45,90 @@ namespace Server.Custom.CityDevelopment
             return entry;
         }
 
-        // Расчет максимального лимита вклада на основе уровня города
         public static long GetMaxDepositLimit(int cityLevel)
         {
             switch (cityLevel)
             {
-                case 1: return 500000;      // 500к
-                case 2: return 1500000;     // 1.5кк
-                case 3: return 5000000;     // 5кк
-                case 4: return 15000000;    // 15кк
-                case 5: return 50000000;    // 50кк
+                case 1: return 500000;      
+                case 2: return 1500000;     
+                case 3: return 5000000;     
+                case 4: return 15000000;    
+                case 5: return 50000000;    
                 default: return 500000;
             }
         }
 
-        // Получение суточной процентной ставки
         public static double GetInterestRate(int cityLevel)
         {
             switch (cityLevel)
             {
-                case 1: return 0.001;   // 0.1%
-                case 2: return 0.0025;  // 0.25%
-                case 3: return 0.005;   // 0.5%
-                case 4: return 0.008;   // 0.8%
-                case 5: return 0.012;   // 1.2%
+                case 1: return 0.001;   
+                case 2: return 0.0025;  
+                case 3: return 0.005;   
+                case 4: return 0.008;   
+                case 5: return 0.012;   
                 default: return 0.001;
             }
         }
 
-        // Ежедневный цикл начисления процентов всем игрокам в мире
         private static void ProcessDailyInterest()
         {
-            Console.WriteLine("[CityBankDeposit] Запущен цикл начисления ежедневных процентов по вкладам...");
+            Console.WriteLine("[CityBankDeposit] Проверка начисления суточных процентов по вкладам...");
             int accountsPaid = 0;
 
             foreach (var kvp in _deposits)
             {
-                // Разбираем составной ключ ("Сериал_Город_Карта")
-                string[] parts = kvp.Value.Balance > 0 ? kvp.Key.Split('_') : null;
-                if (parts == null || parts.Length < 3) continue;
-
-                int serialValue = Utility.ToInt32(parts[0]);
-                if (!Enum.TryParse(parts[1], true, out Server.Engines.CityLoyalty.City city)) continue;
-                Map map = Map.Parse(parts[2]);
-
-                if (map == null || map == Map.Internal) continue;
-
-                // Находим прогресс уровня города
-                CityProgress cityProgress = CityDevelopmentMod.GetCityProfile(city, map);
-                if (cityProgress == null) continue;
-
                 DepositEntry entry = kvp.Value;
-                long maxLimit = GetMaxDepositLimit(cityProgress.Level);
 
-                // Если вклад уже уперся в лимит уровня города, проценты временно не начисляются
-                if (entry.Balance >= maxLimit) continue;
+                if (entry == null || entry.Balance <= 0) 
+                    continue;
 
-                double rate = GetInterestRate(cityProgress.Level);
-                long interest = (long)(entry.Balance * rate);
+                // 🔥 ИСПРАВЛЕНО 1: Защита времени. Начисляем строго если с прошлой выплаты прошло 24 часа!
+                if (DateTime.UtcNow < entry.LastInterestPaid + TimeSpan.FromDays(1.0))
+                    continue;
 
-                if (interest < 1) interest = 1; // Минимальный 1 золотой при наличии баланса
+                string[] parts = kvp.Key.Split('_');
+                if (parts.Length < 3) continue;
 
-                entry.Balance = Math.Min(maxLimit, entry.Balance + interest);
-                entry.LastInterestPaid = DateTime.UtcNow;
-                accountsPaid++;
-
-                // Если игрок онлайн, посылаем ему уведомление
-                Mobile player = World.FindMobile(serialValue);
-                if (player != null && player.NetState != null)
+                try
                 {
-                    player.SendMessage(0x42, $"[Депозит {city}]: На ваш вклад начислены суточные проценты: +{interest} золотых. Текущий баланс: {entry.Balance}/{maxLimit}.");
+                    int serialValue = Utility.ToInt32(parts[0]);
+                    if (!Enum.TryParse(parts[1], true, out Server.Engines.CityLoyalty.City city)) continue;
+                    Map map = Map.Parse(parts[2]);
+
+                    if (map == null || map == Map.Internal) continue;
+
+                    CityProgress cityProgress = CityDevelopmentMod.GetCityProfile(city, map);
+                    if (cityProgress == null) continue;
+
+                    long maxLimit = GetMaxDepositLimit(cityProgress.Level);
+                    if (entry.Balance >= maxLimit) continue;
+
+                    double rate = GetInterestRate(cityProgress.Level);
+                    long interest = (long)(entry.Balance * rate);
+
+                    if (interest < 1) interest = 1;
+
+                    entry.Balance = Math.Min(maxLimit, entry.Balance + interest);
+                    entry.LastInterestPaid = DateTime.UtcNow; // Фиксируем время выплаты
+                    accountsPaid++;
+
+                    Mobile player = World.FindMobile(serialValue);
+                    if (player != null && player.NetState != null)
+                    {
+                        player.SendMessage(0x42, $"[Депозит {city}]: На ваш вклад начислены суточные проценты: +{interest} золотых. Баланс: {entry.Balance}/{maxLimit}.");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[CityBankDeposit] Ошибка обработки записи {kvp.Key}: {ex.Message}");
                 }
             }
-            Console.WriteLine($"[CityBankDeposit] Цикл завершен. Начислено процентов для {accountsPaid} вкладов.");
+            if (accountsPaid > 0)
+                Console.WriteLine($"[CityBankDeposit] Начислено процентов для {accountsPaid} активных вкладов.");
         }
 
-        // Сейв базы данных вкладов
+        // 🔥 ИСПРАВЛЕНО 2: Безопасное сохранение без сдвига байт даты
         public static void Save()
         {
             BinaryFileWriter writer = null;
@@ -140,7 +145,9 @@ namespace Server.Custom.CityDevelopment
                 {
                     writer.Write((string)kvp.Key);
                     writer.Write((long)kvp.Value.Balance);
-                    writer.Write((DateTime)kvp.Value.LastInterestPaid);
+                    
+                    // Переводим дату в строку ToString(), чтобы избежать сдвигов потока при чтении
+                    writer.Write((string)kvp.Value.LastInterestPaid.ToString("o")); 
                 }
             }
             catch (Exception ex)
@@ -153,7 +160,7 @@ namespace Server.Custom.CityDevelopment
             }
         }
 
-        // Загрузка базы данных вкладов
+        // 🔥 ИСПРАВЛЕНО 3: Безопасное чтение файлового потока
         public static void Load()
         {
             if (!File.Exists(_savePath)) return;
@@ -167,16 +174,32 @@ namespace Server.Custom.CityDevelopment
                     int version = reader.ReadInt();
                     int count = reader.ReadInt();
 
+                    _deposits.Clear();
+
                     for (int i = 0; i < count; i++)
                     {
                         string key = reader.ReadString();
                         DepositEntry entry = new DepositEntry();
                         entry.Balance = reader.ReadLong();
-                        entry.LastInterestPaid = reader.ReadDateTime();
+                        
+                        if (version >= 2)
+                        {
+                            // Считываем дату как строку и безопасно парсим обратно в DateTime
+                            string dateStr = reader.ReadString();
+                            if (DateTime.TryParse(dateStr, out DateTime parsedDate))
+                                entry.LastInterestPaid = parsedDate;
+                        }
+                        else
+                        {
+                            // Защита старых сейвов 1-й версии (если они выжили)
+                            try { reader.ReadDateTime(); } catch { }
+                            entry.LastInterestPaid = DateTime.UtcNow;
+                        }
 
                         _deposits[key] = entry;
                     }
                 }
+                Console.WriteLine($"[CityBankDeposit] Успешно загружено {_deposits.Count} банковских депозитов.");
             }
             catch (Exception ex)
             {
