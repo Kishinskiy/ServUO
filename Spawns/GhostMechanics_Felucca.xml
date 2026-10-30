@@ -1,0 +1,48 @@
+<?xml version="1.0" standalone="yes"?>
+<Spawns>
+  <!-- Шрайн Телепортации: Главная площадь Британии (Fel) -->
+  <Points>
+    <Name>Felucca Ethereal Shrine Britain</Name>
+    <UniqueId>00f111b7-570d-4cc8-b96e-dd76ad140f10</UniqueId>
+    <Map>Felucca</Map>
+    <X>1422</X><Y>1612</Y><Z>20</Z>
+    <Range>0</Range><MaxCount>1</MaxCount><MinDelay>10</MinDelay><MaxDelay>10</MaxDelay>
+    <IsRunning>True</IsRunning>
+    <Objects2>EtherealShrine,Британия Fel:MX=1:SB=0:RT=0:TO=0:KL=0:RK=0:CA=1:DN=-1:DX=-1:SP=1:PR=-1</Objects2>
+  </Points>
+
+  <!-- Шрайн Телепортации: Древний склеп города Ю (Fel) -->
+  <Points>
+    <Name>Felucca Ethereal Shrine Yew</Name>
+    <UniqueId>00f111b7-570d-4cc8-b96e-dd76ad140f11</UniqueId>
+    <Map>Felucca</Map>
+    <X>545</X><Y>967</Y><Z>0</Z>
+    <Range>0</Range><MaxCount>1</MaxCount><MinDelay>10</MinDelay><MaxDelay>10</MaxDelay>
+    <IsRunning>True</IsRunning>
+    <Objects2>EtherealShrine,Ю Fel:MX=1:SB=0:RT=0:TO=0:KL=0:RK=0:CA=1:DN=-1:DX=-1:SP=1:PR=-1</Objects2>
+  </Points>
+
+  <!-- Аномалии: Кладбище Британии (Fel) -->
+  <Points>
+    <Name>Felucca Britain Cemetery Anomalies</Name>
+    <UniqueId>00f111b7-570d-4cc8-b96e-dd76ad140f01</UniqueId>
+    <Map>Felucca</Map>
+    <X>1401</X><Y>1132</Y><Width>20</Width><Height>20</Height>
+    <CentreX>1411</CentreX><CentreY>1142</CentreY><CentreZ>0</CentreZ>
+    <Range>15</Range><MaxCount>4</MaxCount><MinDelay>5</MinDelay><MaxDelay>15</MaxDelay>
+    <IsRunning>True</IsRunning><AllowGhostTriggering>True</AllowGhostTriggering>
+    <Objects2>EtherealAnomaly:MX=4:SB=0:RT=0:TO=0:KL=0:RK=0:CA=1:DN=-1:DX=-1:SP=1:PR=-1</Objects2>
+  </Points>
+
+  <!-- Эссенции: Данж Despise (Fel) -->
+  <Points>
+    <Name>Felucca Despise Soul Essences</Name>
+    <UniqueId>00f111b7-570d-4cc8-b96e-dd76ad140f03</UniqueId>
+    <Map>Felucca</Map>
+    <X>5545</X><Y>70</Y><Width>20</Width><Height>20</Height>
+    <CentreX>5555</CentreX><CentreY>80</CentreY><CentreZ>0</CentreZ>
+    <Range>10</Range><MaxCount>3</MaxCount><MinDelay>15</MinDelay><MaxDelay>30</MaxDelay>
+    <IsRunning>True</IsRunning><IsHomeRangeRelative>True</IsHomeRangeRelative>
+    <Objects2>SoulEssence:MX=3:SB=0:RT=0:TO=0:KL=0:RK=0:CA=1:DN=-1:DX=-1:SP=1:PR=-1</Objects2>
+  </Points>
+</Spawns>

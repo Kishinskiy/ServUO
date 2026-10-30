@@ -6,6 +6,7 @@ using Server.Engines.XmlSpawner2;
 using Server.Custom.DiabloLoot;
 using Server.Custom.VoidCraft;
 using Server.Custom.MagicProfessions;
+using Server.Custom.EpicAlignment; // Подключаем калькулятор баланса сил Полубогов!     🎉
 
 namespace Server.Custom.CurseSystem
 {
@@ -100,14 +101,17 @@ namespace Server.Custom.CurseSystem
                 // =========================================================================
                 if (isArtifact)
                 {
-                    if (evalIntel <= 120.0)
+                    // 🔥 НАШ ХУК: Если Аватар существует, планка сложности для артефактов падает со 120 до 110!
+                    double requiredEval = EpicAvatarWorldBalance.IsAvatarPlaceOccupied() ? 110.0 : 120.0;
+
+                    if (evalIntel <= requiredEval)
                     {
                         from.PlaySound(0x5C3);
-                        from.SendMessage(0x22, "Это древний Артефакт. Для снятия проклятия требуются знания Evaluating Intelligence выше 120 уровня!");
-                        return; // Для артефактов блокировка остается, пока навык не станет > 120
+                        from.SendMessage(0x22, $"Это древний Артефакт. Для снятия проклятия требуются знания Evaluating Intelligence выше {requiredEval} уровня!");
+                        return; 
                     }
 
-                    // Если навык > 120.0, артефакт очищается со 100% вероятностью
+                    // Если навык выше требуемого, артефакт очищается со 100% вероятностью
                     ExecuteCleanse(from, item, curse, true);
                 }
                 // =========================================================================

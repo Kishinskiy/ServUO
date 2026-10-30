@@ -10,8 +10,7 @@ using Server.Items;
 using Server.Network;
 using Server.Engines.Plants;
 using System.Linq;
-using Server.Custom.EpicAlignment;
-using Server.Custom.EpicBalance; // Подключаем калькулятор баланса сил
+using Server.Custom.EpicAlignment; // Подключаем наше новое пространство имен баланса!
 
 namespace Server.Custom.AdvancedNpcTrade
 {
@@ -257,32 +256,21 @@ namespace Server.Custom.AdvancedNpcTrade
             double totalPoints = GetTotalLoyaltyPoints(vendor, buyer);
             LoyaltyLevel finalLevel = LoyaltyTables.GetLevelFromPoints(totalPoints);
             double loyaltyDiscount = LoyaltyTables.Discount[finalLevel];
-
             finalPrice *= (1.0 - loyaltyDiscount);
-
-            EpicRank playerEpicRank = EpicAlignmentSystem.GetRank(buyer);
-            if (playerEpicRank != EpicRank.None)
+            // 🔥 ИСПРАВЛЕНО: Чистая нативная детекция Аватара Света по капу Magery 130! 👑
+            bool isAvatar = buyer.Skills[SkillName.Magery].Cap >= 130.0;
+            if (isAvatar && !isEvilShop)
             {
-                if (playerEpicRank == EpicRank.HandOfMondain && isEvilShop)
-                {
-                    finalPrice *= 0.50;
-                }
-                else if (playerEpicRank == EpicRank.Avatar && !isEvilShop)
-                {
-                    finalPrice *= 0.50;
-                }
+                finalPrice *= 0.50; // Аватар Света вечно получает 50% скидку в честных лавках!
             }
-
             int roundedPrice = (int)Math.Round(finalPrice);
             return roundedPrice < 1 ? 1 : roundedPrice;
         }
-
         private static double GetDynamicLoyaltyChance(BaseVendor vendor, Mobile player)
         {
             double baseChance = LoyaltyChance / 100.0;
             Server.Engines.CityLoyalty.City coreCity = Server.Engines.CityLoyalty.City.Britain;
             bool cityFound = false;
-
             if (vendor != null && vendor.Region != null && !string.IsNullOrEmpty(vendor.Region.Name))
             {
                 foreach (Server.Engines.CityLoyalty.City c in Enum.GetValues(typeof(Server.Engines.CityLoyalty.City)))
@@ -301,13 +289,12 @@ namespace Server.Custom.AdvancedNpcTrade
                     }
                 }
             }
-
             if (cityFound)
             {
-                double balanceModifier = EpicWorldBalanceMod.GetCityProgressMultiplier(coreCity);
+                // 🔥 ИСПРАВЛЕНО: Считываем мировой модификатор из нашего нового класса баланса
+                double balanceModifier = EpicAvatarWorldBalance.GetCityProgressMultiplier(coreCity);
                 baseChance *= balanceModifier;
             }
-
             if (player != null && player.Luck > 0)
             {
                 double luckMultiplier = 1.0 + (player.Luck / 880.0); baseChance *= luckMultiplier;
@@ -335,7 +322,8 @@ namespace Server.Custom.AdvancedNpcTrade
                     }
                 }
             }
-            double stepMultiplier = EpicWorldBalanceMod.GetCityProgressMultiplier(coreCity);
+            // 🔥 ИСПРАВЛЕНО: Подключаем к вычитанию шагов новый класс баланса
+            double stepMultiplier = EpicAvatarWorldBalance.GetCityProgressMultiplier(coreCity);
             double pointStep = 0.01 * stepMultiplier;
             for (int i = 0; i < amount; i++)
             {
@@ -372,7 +360,8 @@ namespace Server.Custom.AdvancedNpcTrade
                     }
                 }
             }
-            double stepMultiplier = EpicWorldBalanceMod.GetCityProgressMultiplier(coreCity);
+            // 🔥 ИСПРАВЛЕНО: Извлечение модификатора из нового класса баланса
+            double stepMultiplier = EpicAvatarWorldBalance.GetCityProgressMultiplier(coreCity);
             double pointStep = 0.10 * stepMultiplier;
             for (int i = 0; i < amount; i++)
             {
@@ -411,13 +400,14 @@ namespace Server.Custom.AdvancedNpcTrade
             catch { }
             return count;
         }
-        // 🔥 ИСПРАВЛЕНО: Возвращаемое значение приведено к List ядра ванильных вендоров! 👑⚙️
         public static List<IBuyItemInfo> GetLegendaryArtifacts(BaseVendor vendor, Mobile buyer)
         {
             List<IBuyItemInfo> artifacts = new List<IBuyItemInfo>();
             if (vendor == null || buyer == null) return artifacts;
 
             var offerKey = Tuple.Create(vendor.Serial, buyer.Serial);
+            
+            // 🔥 ИСПРАВЛЕНО: Явно указан generic-тип List<GenericBuyInfo>
             if (_legendaryOffers.TryGetValue(offerKey, out List<GenericBuyInfo> existingOffers))
             {
                 if (existingOffers.Exists(offer => offer.Amount > 0))
@@ -468,18 +458,21 @@ namespace Server.Custom.AdvancedNpcTrade
                     return artifacts;
                 }
             }
+
             double totalPoints = GetTotalLoyaltyPoints(vendor, buyer);
             LoyaltyLevel currentLevel = LoyaltyTables.GetLevelFromPoints(totalPoints);
             if (currentLevel != LoyaltyLevel.Legend)
             {
                 return artifacts;
             }
+
             string vendorClass = vendor.GetType().Name.ToLower();
             Item spawnedItem = null;
             int customProfession = -1;
             var profProp = vendor.GetType().GetProperty("ProfessionIndex");
             if (profProp != null) { customProfession = (int)profProp.GetValue(vendor, null); }
             int artifactsCount = Utility.RandomMinMax(1, 2);
+
             for (int i = 0; i < artifactsCount; i++)
             {
                 spawnedItem = null;
@@ -534,6 +527,7 @@ namespace Server.Custom.AdvancedNpcTrade
                             spawnedItem = Loot.RandomArmorOrShieldOrWeaponOrJewelry(true, true, true);
                         }
                     }
+
                     if (spawnedItem == null) spawnedItem = new Candle();
                     if (spawnedItem != null)
                     {
@@ -563,7 +557,8 @@ namespace Server.Custom.AdvancedNpcTrade
                 }
             }
 
-            List<GenericBuyInfo> generatedOffers = artifacts.ConvertAll(item => (GenericBuyInfo)item);
+            // 🔥 ИСПРАВЛЕНО: Безопасное приведение элементов интерфейса IBuyItemInfo к GenericBuyInfo
+            List<GenericBuyInfo> generatedOffers = artifacts.Cast<GenericBuyInfo>().ToList();
             if (generatedOffers.Count > 0)
             {
                 _legendaryOffers[offerKey] = generatedOffers;

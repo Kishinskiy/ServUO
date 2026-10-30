@@ -93,4 +93,14 @@
     <spawn name="Bedlam" type="Corrupt" killsMod="0.5" spawnMod="0.5">
         <location x="174" y="1629" z="8" map="Malas" radius="25"/>
     </spawn>
+
+    <!-- Алтарь Возвышения Аватара Света (Священные поля Луны) -->
+    <spawn name="Ascension Altar of Light" type="AvatarTrial">
+        <location x="1054" y="358" z="-68" map="Malas" radius="30"/>
+    </spawn>
+
+    <!-- Алтарь Возвышения Руки Мондейна (Мертвые пустоши Умбры) -->
+    <spawn name="Ascension Altar of Darkness" type="MondainTrial">
+        <location x="1981" y="1216" z="-70" map="Malas" radius="30"/>
+    </spawn>
 </championSystem>

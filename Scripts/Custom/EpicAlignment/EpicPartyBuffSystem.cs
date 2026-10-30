@@ -1,98 +1,134 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Server;
 using Server.Mobiles;
-using Server.Items;
 using Server.Engines.PartySystem; // Подключаем нативную систему отрядов ServUO
-using Server.Custom.EpicAlignment;
 
-namespace Server.Custom.EpicPartyBuffs
+namespace Server.Custom.EpicAlignment
 {
     public static class EpicPartyBuffSystem
     {
-        private static readonly Dictionary<Serial, string> ActiveAuras = new Dictionary<Serial, string>();
+        // Словарь для отслеживания текущих активных аур на персонажах (Serial -> Фракция)
+        private static readonly Dictionary<Serial, string> _activeAuras = new Dictionary<Serial, string>();
 
         public static void Initialize()
         {
-            // Запускаем циклический радар отрядов раз в 3 секунды
+            // ЗАПУСК ЕДИНОГО ГРУППОВОГО РАДАРА: сканирует мир раз в 3 секунды без нагрузки на сервер
             Timer.DelayCall(TimeSpan.FromSeconds(3.0), TimeSpan.FromSeconds(3.0), new TimerCallback(ProcessPartyRadar));
         }
 
         private static void ProcessPartyRadar()
         {
             HashSet<Serial> onlinePlayers = new HashSet<Serial>();
+
             foreach (Mobile m in World.Mobiles.Values)
             {
                 if (m is PlayerMobile pm && pm.Alive && !pm.Deleted && pm.NetState != null)
                 {
                     onlinePlayers.Add(pm.Serial);
+
                     Party party = Party.Get(pm);
+                    bool hasAvatar = false;
+                    bool hasMondain = false;
 
-                    bool hasAvatarInParty = false;
-                    bool hasMondainInParty = false;
+                    // 1. Проверяем статус самого игрока
+                    if (pm.Skills[SkillName.Magery].Cap >= 130.0) hasAvatar = true;
+                    if (pm.Skills[SkillName.Necromancy].Cap >= 130.0) hasMondain = true;
 
-                    if (party != null)
+                    // 2. Если игрок в отряде — сканируем соратников в радиусе видимости (12 клеток)
+                    if (party != null && !hasAvatar && !hasMondain)
                     {
                         foreach (PartyMemberInfo info in party.Members)
                         {
                             Mobile member = info.Mobile;
                             if (member != null && member.Alive && member.Map == pm.Map && pm.InRange(member.Location, 12))
                             {
-                                EpicRank rank = EpicAlignmentSystem.GetRank(member);
-                                if (rank == EpicRank.Avatar) hasAvatarInParty = true;
-                                if (rank == EpicRank.HandOfMondain) hasMondainInParty = true;
+                                if (member.Skills[SkillName.Magery].Cap >= 130.0) { hasAvatar = true; break; }
+                                if (member.Skills[SkillName.Necromancy].Cap >= 130.0) { hasMondain = true; break; }
                             }
                         }
                     }
 
-                    ApplyDynamicPartyBonus(pm, hasAvatarInParty, hasMondainInParty);
+                    // Применяем динамический расчет аур
+                    ApplyDynamicPartyBonus(pm, hasAvatar, hasMondain);
                 }
             }
 
-            List<Serial> stalePlayers = new List<Serial>();
-            foreach (Serial serial in ActiveAuras.Keys)
-            {
-                if (!onlinePlayers.Contains(serial))
-                    stalePlayers.Add(serial);
-            }
-            foreach (Serial serial in stalePlayers)
-                ActiveAuras.Remove(serial);
+            // Очистка кэша словаря от отключившихся игроков
+            List<Serial> stalePlayers = _activeAuras.Keys.Where(serial => !onlinePlayers.Contains(serial)).ToList();
+            foreach (Serial serial in stalePlayers) _activeAuras.Remove(serial);
         }
 
         private static void ApplyDynamicPartyBonus(PlayerMobile pm, bool hasAvatar, bool hasMondain)
         {
-            string aura = hasAvatar ? (hasMondain ? "balance" : "avatar") : (hasMondain ? "mondain" : null);
-            ActiveAuras.TryGetValue(pm.Serial, out string previousAura);
+            _activeAuras.TryGetValue(pm.Serial, out string previousAura);
 
-            if (aura == null)
+            // Конфликт сил: если в одной пати оказались и Аватар, и Мондейн — ауры взаимно аннулируются!
+            if (hasAvatar && hasMondain)
             {
-                ActiveAuras.Remove(pm.Serial);
                 if (previousAura != null)
-                    pm.SendMessage(0x59, "Эпическая групповая аура угасла.");
+                {
+                    _activeAuras.Remove(pm.Serial);
+                    pm.SendMessage(0x22, "Потоки Света и Тьмы столкнулись! Эпические ауры отряда заблокированы.");
+                }
                 return;
             }
 
-            if (aura == "balance")
+            // --- СЦЕНАРИЙ А: АУРА СВЕТА (АВАТАР) ---
+            if (hasAvatar)
             {
-                pm.Hits = Math.Min(pm.HitsMax, pm.Hits + 3);
-                pm.Stam = Math.Min(pm.StamMax, pm.Stam + 5);
-            }
-            else if (aura == "avatar")
-            {
-                pm.Hits = Math.Min(pm.HitsMax, pm.Hits + 2);
-            }
-            else
-                pm.Stam = Math.Min(pm.StamMax, pm.Stam + 4);
+                if (pm.Hits < pm.HitsMax)
+                {
+                    pm.Hits = Math.Min(pm.HitsMax, pm.Hits + 2); // Восстановление +2 ХП
+                    if (Utility.RandomDouble() < 0.20) pm.FixedParticles(0x376A, 9, 32, 5015, 2418, 0, EffectLayer.Waist);
+                }
 
-            if (aura != previousAura)
+                if (previousAura != "avatar")
+                {
+                    pm.SendMessage(0x35, "[Аура Аватара]: Присутствие сил Порядка восстанавливает вам и вашему отряду 2 HP каждые 3 секунды!");
+                    _activeAuras[pm.Serial] = "avatar";
+                    pm.FixedParticles(0x375A, 9, 20, 5027, 2418, 0, EffectLayer.Waist);
+                }
+                return;
+            }
+
+            // --- СЦЕНАРИЙ Б: АУРА ТЬМЫ (РУКА МОНДЕЙНА) ---
+            if (hasMondain)
             {
-                string message = aura == "balance"
-                    ? "[Резонанс]: Ауры Аватара и Мондейна восстанавливают 3 здоровья и 5 выносливости каждые 3 секунды."
-                    : aura == "avatar"
-                        ? "[Аура Аватара]: Восстанавливается 2 здоровья каждые 3 секунды."
-                        : "[Аура Мондейна]: Восстанавливается 4 выносливости каждые 3 секунды.";
-                pm.SendMessage(aura == "mondain" ? 0x22 : 0x35, message);
-                ActiveAuras[pm.Serial] = aura;
+                bool auraTicked = false;
+
+                if (pm.Mana < pm.ManaMax)
+                {
+                    pm.Mana = Math.Min(pm.ManaMax, pm.Mana + 3); // Восстановление +3 Маны чернокнижникам
+                    auraTicked = true;
+                }
+                if (pm.Stam < pm.StamMax)
+                {
+                    pm.Stam = Math.Min(pm.StamMax, pm.Stam + 5); // Восстановление +5 стамины для бега в латах
+                    auraTicked = true;
+                }
+
+                if (auraTicked && Utility.RandomDouble() < 0.20)
+                {
+                    // Ядовито-зеленые искры поглощения маны
+                    pm.FixedParticles(0x376A, 9, 32, 5005, 1175, 0, EffectLayer.Waist);
+                }
+
+                if (previousAura != "mondain")
+                {
+                    pm.SendMessage(0x22, "[Аура Скверны]: Тёмная воля Мондейна восстанавливает вам и вашему отряду 3 Маны и 5 Выносливости каждые 3 секунды!");
+                    _activeAuras[pm.Serial] = "mondain";
+                    pm.FixedParticles(0x375A, 9, 20, 5027, 1175, 0, EffectLayer.Waist); // Вспышка Хаоса
+                }
+                return;
+            }
+
+            // Если Полубогов рядом больше нет
+            if (previousAura != null)
+            {
+                _activeAuras.Remove(pm.Serial);
+                pm.SendMessage(0x59, "Эпическое благословение Полубога покинуло ваш отряд.");
             }
         }
     }
