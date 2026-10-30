@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Server;
 using Server.Items;
 using Server.Mobiles;
+using Server.Custom.MercenarySystem;
 
 namespace Server.Mobiles
 {
@@ -15,6 +16,29 @@ namespace Server.Mobiles
         {
             Name = NameList.RandomName("male");
             Title = ", Вербовщик Гильдии";
+        }
+
+        public override void OnDoubleClick(Mobile from)
+        {
+            if (from == null || !from.Alive || !from.InRange(this.Location, 2)) return;
+
+            PlayerMobile pm = from as PlayerMobile;
+            if (pm == null) return;
+
+            // Ищем, есть ли у игрока павшие наёмники в нашей новой RescueSystem
+            var fallenList = Server.Custom.MercenarySystem.MercenaryRescueSystem.GetFallenMercenaries(pm);
+
+            if (fallenList != null && fallenList.Count > 0)
+            {
+                // Если есть погибшие, открываем интерактивное меню выкупа (Гамп)
+                pm.CloseGump(typeof(MercenaryBuybackGump));
+                pm.SendGump(new MercenaryBuybackGump(pm, fallenList));
+            }
+            else
+            {
+                // Если все живы — открываем стандартное окно покупки новых контрактов из SBMercenaryCaptain
+                base.OnDoubleClick(from);
+            }
         }
 
         public override void InitSBInfo()
