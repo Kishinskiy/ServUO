@@ -284,69 +284,53 @@ namespace Server.Custom.SmartNPCs
             else if (text.Contains("слухи") || text.Contains("новости") || text.Contains("аватар") || text.Contains("зло") || text.Contains("мондейн") || text.Contains("полубог") || text.Contains("сплетни"))
             {
                 List<Mobile> onlineAvatars = new List<Mobile>();
-                List<Mobile> onlineEvils = new List<Mobile>();
+                
+                // Сканируем всех активных игроков в сети
                 foreach (Server.Network.NetState ns in Server.Network.NetState.Instances)
                 {
                     Mobile m = ns.Mobile;
-                    if (m == null || !m.Alive || m.AccessLevel > AccessLevel.Player) continue;
-                    EpicRank rank = EpicAlignmentSystem.GetRank(m);
-                    if (rank == EpicRank.Avatar) onlineAvatars.Add(m);
-                    else if (rank == EpicRank.HandOfMondain) onlineEvils.Add(m);
+                    if (m == null || !m.Alive || m.AccessLevel > AccessLevel.Player) 
+                        continue;
+
+                    // 🔥 ИСПРАВЛЕНО: Нативная проверка Аватара по капу Magery 130 вместо удаленного EpicAlignmentSystem!
+                    if (m.Skills[SkillName.Magery].Cap >= 130.0)
+                    {
+                        onlineAvatars.Add(m);
+                    }
                 }
-                if (onlineAvatars.Count == 0 && onlineEvils.Count == 0)
+
+                if (onlineAvatars.Count == 0)
                 {
                     // Если полубогов нет в сети — выдаем стандартные лорные подсказки к сундукам и шрайнам! 🗺️
                     string[] staticRumors = new string[]
                     {
-"О, нынче на дорогах затишье. Высшие Полубоги скрылись в своих чертогах. Но поговаривают, Алтарь Justice сокрыт на самом севере Felucca, среди льдов!",
-"Старейшины шепчут, что Алтарь Honor (Чести) находится на изолированном острове. Без верных наёмников туда соваться — верная смерть.",
-"Охотники поговаривают, что в глубинах лесов Yew спрятан древний сундук с сокровищами пиратов... Но точные координаты знают лишь звёзды.",
-"В тавернах поговаривают, что если развивать караваны городов до 2 уровня, жители вспомнят утерянные английские мантры Добродетелей!",
-"Контрабандисты шепчутся, что Алтарь Доблести (Valor) в Felucca позволяет принудительно вызывать Чемпионов, если ты истинный Рыцарь!"
+                        "О, нынче на дорогах затишье. Высшие Полубоги скрылись в своих чертогах. Но поговаривают, Алтарь Justice сокрыт на самом севере Felucca, среди льдов!",
+                        "Старейшины шепчут, что Алтарь Honor (Чести) находится на изолированном острове. Без верных наёмников туда соваться — верная смерть.",
+                        "Охотники поговаривают, что в глубинах лесов Yew спрятан древний сундук с сокровищами пиратов... Но точные координаты знают лишь звёзды.",
+                        "В тавернах поговаривают, что если развивать караваны городов до 2 уровня, жители вспомнят утерянные английские мантры Добродетелей!",
+                        "Контрабандисты шепчутся, что Алтарь Доблести (Valor) в Felucca позволяет принудительно вызывать Чемпионов, если ты истинный Рыцарь!"
                     };
                     reply = staticRumors[Utility.Random(staticRumors.Length)];
                 }
-                else if (text.Contains("аватар") || (onlineAvatars.Count > 0 && Utility.RandomBool()))
-                {
-                    if (onlineAvatars.Count > 0)
-                    {
-                        Mobile av = onlineAvatars[Utility.Random(onlineAvatars.Count)];
-                        EpicProfile prof = EpicAlignmentSystem.GetProfile(av);
-                        string classTitle = prof != null ? prof.DetectedClass : "Великий Аватар";
-                        string regName = (av.Region != null && !string.IsNullOrEmpty(av.Region.Name)) ? av.Region.Name : "Диких землях";
-                        string[] avatarRumors = new string[]
-                        {
-$"Говорят, истинный Аватар Света по имени {av.Name} сейчас в мире! Его видели как {classTitle} в районе {regName} ({av.Map.Name}). Люди молятся на него!",
-$"Шепчутся, что {av.Name} — живое воплощение Добродетелей — сейчас проезжал через {regName}. Сияние его ауры озарило небосвод!",
-$"В тавернах только и разговоров, что {av.Name} ведет за собой силы Света где-то в {regName}. Охотники, у вас есть шанс помочь ему!"
-                        };
-                        reply = avatarRumors[Utility.Random(avatarRumors.Length)];
-                    }
-                    else
-                    {
-                        reply = "Силы Света сейчас безмолвствуют. На Алтаре Предназначения в Despise давно никто не проходил судейство.";
-                    }
-                }
                 else
                 {
-                    if (onlineEvils.Count > 0)
+                    // Если Аватар в сети — NPC вычисляют его положение, класс и регион!
+                    Mobile av = onlineAvatars[Utility.Random(onlineAvatars.Count)];
+                    
+                    // Динамически определяем архетип по его высшему боевому навыку
+                    string classTitle = "Великий Аватар";
+                    if (av.Skills[SkillName.Swords].Value >= 100.0) classTitle = "Аватар-Паладин";
+                    else if (av.Skills[SkillName.Magery].Value >= 100.0) classTitle = "Арканический Аватар";
+
+                    string regName = (av.Region != null && !string.IsNullOrEmpty(av.Region.Name)) ? av.Region.Name : "Диких землях";
+                    
+                    string[] avatarRumors = new string[]
                     {
-                        Mobile ev = onlineEvils[Utility.Random(onlineEvils.Count)];
-                        EpicProfile prof = EpicAlignmentSystem.GetProfile(ev);
-                        string classTitle = prof != null ? prof.DetectedClass : "Вестник Тьмы";
-                        string regName = (ev.Region != null && !string.IsNullOrEmpty(ev.Region.Name)) ? ev.Region.Name : "Диких землях";
-                        string[] evilRumors = new string[]
-                        {
-$"Спаси нас боги... Правая Рука Мондейна — нечестивый {ev.Name} — восстал из бездны! Его тень как {classTitle} пала на земли {regName} ({ev.Map.Name})!",
-$"Стража на взводе! Проклятый {ev.Name} собирает армию Тьмы в районе {regName}. За его голову назначена награда в 10,000 монет, соберите рейд!",
-$"Контрабандисты поговаривают, что {ev.Name} распространяет скверну некромантии прямо сейчас в {regName}. Бегите оттуда, если вам дорога жизнь!"
-                        };
-                        reply = evilRumors[Utility.Random(evilRumors.Length)];
-                    }
-                    else
-                    {
-                        reply = "Слуги Мондейна притихли. Темный Алтарь в глубинах Doom пустует, Сосария может спать спокойно... пока что.";
-                    }
+                        $"Говорят, истинный Аватар Света по имени {av.Name} сейчас в мире! Его видели как {classTitle} в районе {regName} ({av.Map.Name}). Люди молятся на него!",
+                        $"Шепчутся, что {av.Name} — живое воплощение Добродетелей — сейчас проезжал через {regName}. Сияние его ауры озарило небосвод!",
+                        $"В тавернах только и разговоров, что {av.Name} ведет за собой силы Света где-то в {regName}. Охотники, у вас есть шанс помочь ему!"
+                    };
+                    reply = avatarRumors[Utility.Random(avatarRumors.Length)];
                 }
             }
             // =========================================================================

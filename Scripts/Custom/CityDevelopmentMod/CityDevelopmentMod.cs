@@ -8,7 +8,7 @@ using Server.Commands;
 using Server.Targeting;
 using Server.Network;
 using Server.Items;
-using Server.Custom.EpicBalance; // Подключаем калькулятор баланса сил Полубогов! 🎉
+using Server.Custom.EpicAlignment; // Подключаем калькулятор баланса сил Полубогов! 🎉
 using Server.Custom.MagicProfessions;
 
 namespace Server.Custom.CityDevelopment
@@ -325,8 +325,12 @@ namespace Server.Custom.CityDevelopment
             bool isSeaRoute = (coreCity == Server.Engines.CityLoyalty.City.Britain || coreCity == Server.Engines.CityLoyalty.City.Trinsic);
             long exportProfit = isSeaRoute ? 90000 : 45000;
             int goldReward = isSeaRoute ? 15000 : 4500;
-            // 🔥 СИНХРОНИЗИРОВАНО С КАЛЬКУЛЯТОРОМ РАВНОВЕСИЯ: Применяем мягкий буст очков города! 🏛️📊
-            double epicBonus = Server.Custom.EpicBalance.EpicWorldBalanceMod.GetCityProgressMultiplier(coreCity);
+            
+            // =========================================================================
+            // 🔥 ИСПРАВЛЕНО: ПЕРЕНАПРАВЛЕНО НА НОВЫЙ КЛАСС МИРОВОГО БАЛАНСА ПОЛУБОГОВ 🎉⚙️
+            // =========================================================================
+            double epicBonus = Server.Custom.EpicAlignment.EpicAvatarWorldBalance.GetCityProgressMultiplier(coreCity);
+            
             progress.Treasury += exportProfit;
             double suppliesGained = (isSeaRoute ? 15.0 : 5.0) * epicBonus;
             progress.CurrentSupplies += suppliesGained;
@@ -341,7 +345,6 @@ namespace Server.Custom.CityDevelopment
                 player.SendMessage(0x35, $"[МОРСКОЙ ТРИУМФ]: Заморский контейнер успешно доставлен на острова!");
                 player.SendMessage(0x58, $"Казна порта {coreCity} получила колоссальную прибыль +{exportProfit} золотых. Ваш капитанский куш: {goldReward} монет зачислен на счёт!");
             }
-
             else
             {
                 player.SendMessage(0x58, $"[Экспорт] Караван успешно доставлен! Казна города {coreCity} получила прибыль +{exportProfit}. Ваша доля: {goldReward}.");

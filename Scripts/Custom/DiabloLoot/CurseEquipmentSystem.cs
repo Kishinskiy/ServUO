@@ -54,8 +54,18 @@ namespace Server.Custom.CurseSystem
         {
             Name = "CurseAttribute";
             m_IsIdentified = false;
-            m_HpPenalty = 10;
-            m_ManaPenalty = 10;
+
+            // 🔥 НАШ ХУК: Если место Аватара в мире занято, ослабляем базовые штрафы порчи в 2 раза!
+            if (Server.Custom.EpicAlignment.EpicAvatarWorldBalance.IsAvatarPlaceOccupied())
+            {
+                m_HpPenalty = 5;   // Вместо -10 накладываем всего -5 силы
+                m_ManaPenalty = 5; // Вместо -10 накладываем всего -5 интеллекта
+            }
+            else
+            {
+                m_HpPenalty = 10;
+                m_ManaPenalty = 10;
+            }
         }
 
         public void RandomizeBonuses(int maxBonus)

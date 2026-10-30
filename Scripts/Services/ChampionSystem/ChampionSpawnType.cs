@@ -21,7 +21,11 @@ namespace Server.Engines.CannedEvil
         #region TOL
         DragonTurtle,
         #endregion
-        Khaldun
+        Khaldun,
+        #region Epic Alignments
+        AvatarTrial,
+        MondainTrial
+        #endregion
     }
 
     public class ChampionSpawnInfo
@@ -174,6 +178,18 @@ namespace Server.Engines.CannedEvil
 				new Type[]{ typeof( CultistAmbusher  ), typeof( ShadowFiend ) },										// Level 3
 				new Type[]{ typeof( KhalAnkurWarriors ) }											                    // Level 4
 			} ),
+
+            new ChampionSpawnInfo("Avatar Trial", typeof(Semidar), new string[] { "Искра", "Пламя", "Аватар" }, new Type[][]
+			{ 
+				// Волна 1: Первые прихвостни Скверны
+				new Type[] { typeof(GreaterMongbat), typeof(Imp) }, 
+				// Волна 2: Тёмные горгульи и гарпии
+				new Type[] { typeof(Gargoyle), typeof(Harpy) }, 
+				// Волна 3: Проклятые мертвецы и лорды личей
+				new Type[] { typeof(Lich), typeof(BoneKnight) }, 
+				// Волна 4: Высшие демоны и суккубы
+				new Type[] { typeof(Daemon), typeof(Succubus) }
+			}),
         };
 
         public static ChampionSpawnInfo GetInfo(ChampionSpawnType type)

@@ -3,7 +3,7 @@ using Server;
 using Server.Items;
 using Server.Mobiles;
 using Server.Custom.CurseSystem;
-using Server.Custom.EpicAlignment; // Подключаем вашу систему полубогов! 🎉
+using Server.Custom.EpicAlignment; // Подключаем нашу новую систему полубогов! 🎉
 
 namespace Server.Custom.DiabloLoot
 {
@@ -57,22 +57,19 @@ namespace Server.Custom.DiabloLoot
                 }
 
                 // =========================================================================
-                // 🏛️ ВЛИЯНИЕ ПОЛУБОГОВ НА ОБЩИЙ ШАНС ПОЯВЛЕНИЯ ПРЕДМЕТОВ С СВОЙСТВАМИ
+                // 🏛️ ИСПРАВЛЕНО: ВЛИЯНИЕ ПОЛУБОГОВ НА ОБЩИЙ ШАНС ПОЯВЛЕНИЯ ПРЕДМЕТОВ С СВОЙСТВАМИ
+                // ИСПОЛЬЗУЕМ СИСТЕМУ ГЛОБАЛЬНОГО ПОИСКА АККАУНТОВ С КАПОМ SKILL СВЕТА 130
                 // =========================================================================
-                bool avatarOnline = EpicAlignmentSystem.IsAvatarActive();
-                bool mondainOnline = EpicAlignmentSystem.IsMondainActive();
+                bool avatarOccupied = EpicAvatarWorldBalance.IsAvatarPlaceOccupied();
+                bool mondainActive = false; // Тьму пока не реализовывали, по дефолту false
 
-                if (avatarOnline)
+                if (avatarOccupied)
                 {
                     baseGenerationChance *= 1.25; // Аватар бустит появление особых вещей на +25%
                 }
-                if (mondainOnline)
-                {
-                    baseGenerationChance *= 1.15; // Мондейн бустит появление на +15%
-                }
 
-                // Мягкий внешний множитель баланса сил, который у вас был ранее
-                double balanceMultiplier = Server.Custom.EpicBalance.EpicWorldBalanceMod.GetCurseChanceMultiplier();
+                // 🔥 ИСПРАВЛЕНО: Мягкий внешний множитель баланса сил считывается из нашего нового класса!
+                double balanceMultiplier = EpicAvatarWorldBalance.GetCurseChanceMultiplier();
                 baseGenerationChance *= balanceMultiplier;
 
                 // Бросаем кубик на то, появится ли у предмета ОСОБОЕ свойство в принципе
@@ -87,13 +84,9 @@ namespace Server.Custom.DiabloLoot
                     // =========================================================================
                     double negativeChance = 0.10; // Шанс по умолчанию (10%)
 
-                    if (avatarOnline)
+                    if (avatarOccupied)
                     {
                         negativeChance = 0.05; // Аватар снижает появление порчи до 5%
-                    }
-                    else if (mondainOnline)
-                    {
-                        negativeChance = 0.15; // Рука Мондейна повышает появление порчи до 15%
                     }
 
                     // Генерируем индекс распределения свойств предмета от 1 до 100

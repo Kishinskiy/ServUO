@@ -6,10 +6,12 @@ using Server.Mobiles;
 using Server.Factions;
 using Server.Regions;
 using Server.Engines.CityLoyalty;
-using Server.Custom.EpicAlignment;
 
 namespace Server.Custom.CityDevelopment
 {
+    // =========================================================================
+    // 🏛️ МОД ГАРНИЗОНА ГОРОДОВ: УПРАВЛЕНИЕ ДИНАМИЧЕСКОЙ СТРАЖЕЙ 🛡️💀
+    // =========================================================================
     public static class CityDecorationMod
     {
         public static void Initialize() { }
@@ -62,6 +64,7 @@ namespace Server.Custom.CityDevelopment
             return fallbackCenter;
         }
 
+        // Спавнит городскую стражу в зависимости от уровня развития
         public static void DecorateTown(Town town, int newLevel, Map currentMap)
         {
             Map map;
@@ -72,9 +75,7 @@ namespace Server.Custom.CityDevelopment
             ClearGuards(town, map);
 
             Region cityRegion = Region.Find(center, map);
-
-            int countToSpawn = newLevel * 2;
-
+            int countToSpawn = newLevel * 2; // Количество стражи растет с уровнем
             int patrolRadius = 40 + (newLevel * 10);
 
             for (int i = 0; i < countToSpawn; i++)
@@ -83,21 +84,13 @@ namespace Server.Custom.CityDevelopment
                 Point3D spawnLoc = FindRandomPointInRegion(cityRegion, map, center, patrolRadius);
 
                 guard.MoveToWorld(spawnLoc, map);
-
                 guard.Home = spawnLoc;
                 guard.RangeHome = 15;
                 guard.Warmode = false;
-
             }
 
-            if (IsEvilTown(town))
-            {
-                Effects.PlaySound(center, map, 0x22F);
-            }
-            else
-            {
-                Effects.PlaySound(center, map, 0x11C);
-            }
+            // Проигрываем нативный звук фракционного прогресса
+            Effects.PlaySound(center, map, IsEvilTown(town) ? 0x22F : 0x11C);
             Effects.SendLocationParticles(EffectItem.Create(center, map, EffectItem.DefaultDuration), 0x36B0, 9, 32, 5013);
         }
 
@@ -145,7 +138,7 @@ namespace Server.Custom.CityDevelopment
     }
 
     // =========================================================================
-    // ЗЕРКАЛЬНЫЙ КЛАСС ДИНАМИЧЕСКОГО СТРАЖНИКА (СВЕТ / ТЬМА) 🛡️💀
+    // ⚔️ КЛАСС ДИНАМИЧЕСКОГО СТРАЖНИКА (ПОЛНОСТЬЮ АВТОНОМНЫЙ И СИНХРОННЫЙ)
     // =========================================================================
     public class DevelopmentCityGuard : BaseCreature
     {
@@ -295,9 +288,7 @@ namespace Server.Custom.CityDevelopment
                         PlateLegs legs = new PlateLegs(); legs.Hue = 2418; AddItem(legs);
                         PlateArms arms = new PlateArms(); arms.Hue = 2418; AddItem(arms);
                         PlateGloves gloves = new PlateGloves(); gloves.Hue = 2418; AddItem(gloves);
-                        // ИСПРАВЛЕНО: Убрана ошибочная функция HelmWithVisual. Заменена на штатный перекрас свойства Hue
                         PlateHelm helm = new PlateHelm(); helm.Hue = 2418; AddItem(helm);
-                        // ИСПРАВЛЕНО: Ошибочные фракционные щиты и мечи заменены на 100% стабильный ванильный арсенал
                         AddItem(new Broadsword());
                         AddItem(new BronzeShield());
                         break;
@@ -309,20 +300,13 @@ namespace Server.Custom.CityDevelopment
         public override bool IsEnemy(Mobile m)
         {
             if (m == null || m.Deleted || m == this) return false;
-
-            // Извлекаем эпический ранг цели
-            EpicRank targetEpicRank = EpicAlignmentSystem.GetRank(m);
-
+            // 🔥 ИСПРАВЛЕНО: Нативная детекция Аватара по капу Magery 130 вместо удаленного EpicRank!
+            bool isAvatarTarget = m.Skills[SkillName.Magery].Cap >= 130.0;
             if (IsUndeadGuard)
             {
-                // Темная стража Умбры/Дума МГНОВЕННО атакует Аватара, игнорируя любые другие условия!
-                if (targetEpicRank == EpicRank.Avatar) return true;
-
-                // Руку Мондейна они никогда не тронут
-                if (targetEpicRank == EpicRank.HandOfMondain) return false;
-
+                // Темная стража МГНОВЕННО атакует Аватара Света!
+                if (isAvatarTarget) return true;
                 if (m.Karma >= 5000 && m.Kills == 0) return true;
-
                 if (m is BaseCreature bc)
                 {
                     if (bc.Controlled || bc.Summoned) return false;
@@ -332,14 +316,9 @@ namespace Server.Custom.CityDevelopment
             }
             else
             {
-                // Светлая стража Британии/Мунглоу МГНОВЕННО атакует Руку Мондейна! за его голову назначена награда!
-                if (targetEpicRank == EpicRank.HandOfMondain) return true;
-
-                // Аватара они защищают и никогда не атакуют
-                if (targetEpicRank == EpicRank.Avatar) return false;
-
+                // Светлая стража защищает Аватара Света и никогда его не тронет!
+                if (isAvatarTarget) return false;
                 if (m.Kills >= 5 || m.Criminal) return true;
-
                 if (m is BaseCreature bc)
                 {
                     if (bc.Controlled || bc.Summoned) return false;
