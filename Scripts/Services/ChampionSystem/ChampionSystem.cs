@@ -171,6 +171,7 @@ namespace Server.Engines.CannedEvil
 
         public static void DelSpawns_OnCommand(CommandEventArgs e)
         {
+			m_Initialized = false;
             RemoveSpawns();
             e.Mobile.SendMessage("Champ Spawns Removed!");
         }
@@ -192,9 +193,17 @@ namespace Server.Engines.CannedEvil
             doc.Load(m_ConfigPath);
             int loadedCount = 0;
 
-            foreach (XmlNode node in doc.GetElementsByTagName("championSystem")[0].ChildNodes)
+            // 🔥 ИСПРАВЛЕНО: Добавлен индекс [0] для корректного перебора дочерних элементов спавна
+            XmlNode root = doc.GetElementsByTagName("championSystem")[0];
+            if (root == null)
             {
-                if (node.Name.Equals("spawn"))
+                Console.WriteLine("[Champions] КРИТИЧЕСКАЯ ОШИБКА: Корневой тег <championSystem> не найден в XML!");
+                return;
+            }
+
+            foreach (XmlNode node in root.ChildNodes)
+            {
+                if (node.Name.Equals("spawn", StringComparison.OrdinalIgnoreCase))
                 {
                     spawn = new ChampionSpawn();
                     spawn.SpawnName = GetAttr(node, "name", "Unamed Spawner");
@@ -208,23 +217,24 @@ namespace Server.Engines.CannedEvil
                     value = GetAttr(node, "spawnMod", "1.0");
                     spawn.SpawnMod = XmlConvert.ToDouble(value);
                     
-                    value = GetAttr(node, "killsMod", "0.15"); // Используем ваш КillsMod 0.15 по умолчанию
+                    value = GetAttr(node, "killsMod", "0.15"); 
                     spawn.KillsMod = XmlConvert.ToDouble(value);
 
                     foreach (XmlNode child in node.ChildNodes)
                     {
-                        if (child.Name.Equals("location"))
+                        if (child.Name.Equals("location", StringComparison.OrdinalIgnoreCase))
                         {
                             int x = XmlConvert.ToInt32(GetAttr(child, "x", "0"));
                             int y = XmlConvert.ToInt32(GetAttr(child, "y", "0"));
                             int z = XmlConvert.ToInt32(GetAttr(child, "z", "0"));
                             
-                            // 🔥 ИСПРАВЛЕНО: Безопасный дефолт 35 тайлов, если радиус в теге location опущен
                             int r = XmlConvert.ToInt32(GetAttr(child, "radius", "35"));
                             string mapName = GetAttr(child, "map", "Felucca");
                             Map map = Map.Parse(mapName);
 
                             spawn.SpawnRadius = r;
+                            
+                            // Сначала перемещаем сам контроллер спавна в мир
                             spawn.MoveToWorld(new Point3D(x, y, z), map);
                         }
                     }
@@ -233,7 +243,6 @@ namespace Server.Engines.CannedEvil
                     m_AllSpawns.Add(spawn);
                     loadedCount++;
 
-                    // Отладочный вывод в консоль для проверки радиусов при старте сервера
                     Console.WriteLine($"[Champions] Подгружен алтарь: {spawn.SpawnName} ({spawn.Map}) -> Радиус: {spawn.SpawnRadius} тайлов.");
 
                     if (spawn.Type == ChampionSpawnType.Infuse)
@@ -246,11 +255,13 @@ namespace Server.Engines.CannedEvil
             Rotate();
 
             m_Initialized = true;
-            Console.WriteLine($"[Champions] Генерация завершена. Всего развернуто алтарей: {loadedCount}.");
+            Console.WriteLine($"[Champions] Генерация завершена. Всего создано алтарей: {loadedCount}.");
         }
 
         public static void RemoveSpawns()
         {
+            m_Initialized = false;
+
             if (m_AllSpawns != null && m_AllSpawns.Count > 0)
             {
                 foreach (ChampionSpawn s in m_AllSpawns.Where(sp => sp != null && !sp.Deleted))

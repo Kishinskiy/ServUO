@@ -1073,6 +1073,10 @@ namespace Server.Engines.CannedEvil
             if (Deleted)
                 return;
 
+
+        
+
+            // 🔥 ИСПРАВЛЕНО: Ставим все элементы алтаря на реальную высоту Z из XML-конфига, чтобы они не падали под землю
             if (m_Platform != null)
                 m_Platform.Location = new Point3D(X, Y, Z - 20);
 
