@@ -42,6 +42,10 @@ namespace Server.SkillHandlers
                 {
                     ((BaseVendor)targeted).PrivateOverheadMessage(MessageType.Regular, 0x3B2, 500909, from.NetState); // That person could probably calculate the cost of what you buy from them.
                 }
+                else if (Server.Custom.VirtueQuests.VirtueLoreResearchMod.OnEvaluateTarget(from, targeted))
+                {
+                    return;
+                }
                 else if (targeted is Mobile)
                 {
                     Mobile targ = (Mobile)targeted;
@@ -78,7 +82,7 @@ namespace Server.SkillHandlers
                         if (from.Skills[SkillName.EvalInt].Base >= 76.0)
                             targ.PrivateOverheadMessage(MessageType.Regular, 0x3B2, 1038202 + mnMod, from.NetState); // That being is at [10,20,...] percent mental strength.
                     }
-                    else 
+                    else
                     {
                         targ.PrivateOverheadMessage(MessageType.Regular, 0x3B2, 1038166 + (body / 11), from.NetState); // You cannot judge his/her/its mental abilities.
                     }
