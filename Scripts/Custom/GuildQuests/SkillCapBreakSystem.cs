@@ -51,7 +51,6 @@ namespace Server.Custom.GuildQuests
                     if (skill.Cap > 80.0)
                     {
                         skill.Cap = 80.0;
-                        pm.SendMessage(0x22, $"[Лимит Гильдии]: Развитие навыка '{skill.Name}' заблокировано на отметке 80.0. Пройдите квест Главы вашей профессиональной Гильдии!");
                     }
                 }
                 else

@@ -38,8 +38,11 @@ namespace Server.Custom.VirtueQuests
                 if (Utility.RandomDouble() > successChance)
                 {
                     pm.SendMessage(0x59, "Древние символы расплываются перед глазами... Попробуйте сосредоточиться и проанализировать предмет еще раз.");
+                    from.CheckSkill(SkillName.EvalInt, 0.0, 100.0);
                     return true;
                 }
+
+                from.CheckSkill(SkillName.EvalInt, 0.0, 100.0);
 
                 string loreMessage = GetSeparatedLoreMessage(evalSkill);
 
