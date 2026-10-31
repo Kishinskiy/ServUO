@@ -13,5 +13,17 @@ namespace Server.Custom.ItemSockets
 
         public abstract void ApplyEffect(BaseWeapon weapon);
         public abstract void RemoveEffect(BaseWeapon weapon);
+
+        // 🔥 НАШЕ ДОБАВЛЕНИЕ: МЕТОДЫ ДИНАМИЧЕСКИХ БОНУСОВ 🎉⚙️
+        public virtual void ApplyDynamicEffect(BaseWeapon weapon, double skillScale)
+        {
+            // По умолчанию, если в конкретном камне нет формулы, используется стандартный эффект x1.0
+            ApplyEffect(weapon);
+        }
+
+        public virtual void RemoveDynamicEffect(BaseWeapon weapon, double skillScale)
+        {
+            RemoveEffect(weapon);
+        }
     }
 }
