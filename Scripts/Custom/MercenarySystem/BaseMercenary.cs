@@ -42,6 +42,8 @@ namespace Server.Custom.MercenarySystem
             BaseSoundID = 0;
             ControlSlots = 2;
 
+            EnsureBackpack();
+
             if (mClass == MercenaryClass.Knight)
             {
                 AI = AIType.AI_Melee;
@@ -197,6 +199,19 @@ namespace Server.Custom.MercenarySystem
             return from != null && !from.Deleted && Controlled && ControlMaster == from;
         }
 
+        private Container EnsureBackpack()
+        {
+            Container backpack = Backpack;
+
+            if (backpack == null)
+            {
+                backpack = new Backpack { Movable = false };
+                AddItem(backpack);
+            }
+
+            return backpack;
+        }
+
         public override bool AllowEquipFrom(Mobile from)
         {
             return IsMercenaryOwner(from);
@@ -242,10 +257,14 @@ namespace Server.Custom.MercenarySystem
             public override void OnClick()
             {
                 if (m_Mercenary != null && !m_Mercenary.Deleted &&
-                    m_Mercenary.IsMercenaryOwner(m_From) && m_From.Alive && m_From.InRange(m_Mercenary, 2) &&
-                    m_Mercenary.Backpack != null)
+                    m_Mercenary.IsMercenaryOwner(m_From) && m_From.Alive && m_From.InRange(m_Mercenary, 2))
                 {
-                    m_Mercenary.Backpack.DisplayTo(m_From);
+                    Container backpack = m_Mercenary.EnsureBackpack();
+
+                    if (backpack != null)
+                        backpack.DisplayTo(m_From);
+                    else
+                        m_From.SendMessage("Не удалось открыть рюкзак наёмника.");
                 }
             }
         }
