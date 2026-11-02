@@ -19,7 +19,7 @@ concurrency:
 jobs:
   build:
     name: Build ServUO
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -45,21 +45,22 @@ jobs:
 
       - name: Prepare release files
         if: github.event_name != 'pull_request'
-        shell: pwsh
+        shell: bash
         run: |
-          $release = Join-Path $env:RUNNER_TEMP "servuo-release"
-          New-Item -ItemType Directory -Force -Path $release | Out-Null
+          set -Eeuo pipefail
+          release="$RUNNER_TEMP/servuo-release"
+          mkdir -p "$release"
 
-          $required = @("ServUO.exe", "Server.dll", "Scripts.dll", "Ultima.dll")
-          foreach ($file in $required) {
-            if (-not (Test-Path $file -PathType Leaf)) {
-              throw "Required build output is missing: $file"
-            }
-          }
+          required=(ServUO.exe Server.dll Scripts.dll Ultima.dll)
+          for file in "${required[@]}"; do
+            if [[ ! -s "$file" ]]; then
+              echo "Required build output is missing or empty: $file" >&2
+              exit 1
+            fi
+          done
 
-          Get-ChildItem -Path . -File |
-            Where-Object { $_.Extension -in @(".dll", ".exe") } |
-            Copy-Item -Destination $release
+          find . -maxdepth 1 -type f \( -name '*.dll' -o -name '*.exe' \) \
+            -exec cp -t "$release" -- {} +
 
       - name: Upload release files
         if: github.event_name != 'pull_request'
