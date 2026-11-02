@@ -92,7 +92,7 @@ namespace Server.Custom.GuildQuests
         private static void CompleteThiefQuest(PlayerMobile pm, SkillName skill, Mobile master, string title)
         {
             master.PlaySound(0x4A); // Скрытный, воровской шорох / свист
-            SkillCapBreakSystem.GrantSkillUnlock(pm, skill); // Разблокируем ИСКЛЮЧИТЕЛЬНО этот единственный навык
+            SkillCapBreakSystem.GrantQuest100Unlock(pm, skill); // Разблокируем ИСКЛЮЧИТЕЛЬНО этот единственный навык
             
             pm.CloseGump(typeof(ThiefSelectionGump));
             pm.SendGump(new ThiefQuestDetailsGump(title, $"Отличная работа, Синдикат доволен! Твой трофей подтверждает безупречное мастерство в искусстве {skill}. Лимит этого навыка поднят до 100.0. Ищи Power Свитки на Алтарях Чемпионов для дальнейшего Min-Maxing'а!"));

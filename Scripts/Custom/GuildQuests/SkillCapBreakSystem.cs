@@ -2,97 +2,157 @@ using System;
 using System.Collections.Generic;
 using Server;
 using Server.Mobiles;
-using Server.Network; // 🔥 ИСПРАВЛЕНО: Добавлен namespace для работы NetState!
+using Server.Network;
 using Server.Engines.XmlSpawner2;
 
 namespace Server.Custom.GuildQuests
 {
     public static class SkillCapBreakSystem
     {
+        private static readonly List<SkillName> CombatSkills = new List<SkillName>
+        {
+            SkillName.Swords, SkillName.Macing, SkillName.Fencing, 
+            SkillName.Archery, SkillName.Wrestling, SkillName.Parry, 
+            SkillName.Bushido, SkillName.Ninjitsu, SkillName.Tactics, SkillName.Anatomy
+        };
+
         public static void Initialize()
         {
             EventSink.Login += OnPlayerLogin;
-            Timer.DelayCall(TimeSpan.FromSeconds(10.0), TimeSpan.FromSeconds(10.0), new TimerCallback(EnforceSkillCaps));
+            EventSink.CreatureDeath += OnCreatureDeath;
         }
 
         private static void OnPlayerLogin(LoginEventArgs e)
         {
             if (e.Mobile is PlayerMobile pm)
             {
-                CheckAndApplyCaps(pm);
+                EnforceCombatCaps(pm);
             }
         }
 
-        private static void EnforceSkillCaps()
-        {
-            foreach (NetState ns in NetState.Instances)
-            {
-                if (ns.Mobile is PlayerMobile pm && pm.Alive)
-                {
-                    CheckAndApplyCaps(pm);
-                }
-            }
-        }
-
-        private static void CheckAndApplyCaps(PlayerMobile pm)
+        public static void EnforceCombatCaps(PlayerMobile pm)
         {
             if (pm == null || pm.AccessLevel > AccessLevel.Player) return;
 
-            // Сканируем навыки строго по отдельности
-            for (int i = 0; i < pm.Skills.Length; ++i)
+            foreach (SkillName skName in CombatSkills)
             {
-                Skill skill = pm.Skills[i];
-                
-                if (skill == null) 
-                    continue;
+                Skill skill = pm.Skills[skName];
+                if (skill == null) continue;
 
-                // 🔥 ИСПРАВЛЕНО: Проверяем базовое значение ТОЛЬКО текущего конкретного навыка (skill.Base).
-                // Радар срабатывает исключительно тогда, когда именно ЭТОТ навык дополз до порога [80.0 - 81.0).
-                // Общий показатель суммы всех навыков (700.0) сюда вообще никак не подмешивается!
-                if (skill.Base < 80.0 || skill.Base >= 81.0) 
-                    continue;
+                double baseVal = skill.Base;
 
-                // Имя токена привязывается строго к имени конкретного навыка, например: "Break_Swords"
-                string tokenName = $"Break_{skill.Name}";
-                XmlAttachment breakToken = XmlAttach.FindAttachment(pm, typeof(XmlData), tokenName);
-
-                if (breakToken == null)
+                if (baseVal < 20.0)
                 {
-                    // Запираем индивидуальный лимит ЭТОГО скилла (skill.Cap) на отметке 80.0
-                    if (skill.Cap > 80.0)
+                    if (skill.Cap > 20.0) skill.Cap = 20.0;
+                    continue;
+                }
+
+                if (baseVal >= 20.0 && baseVal < 40.0)
+                {
+                    if (skill.Cap > 40.0) skill.Cap = 40.0;
+                    continue;
+                }
+
+                if (baseVal >= 40.0 && baseVal < 60.0)
+                {
+                    string trainToken = $"Break_{skill.Name}"; // Используем общий префикс для совместимости
+                    if (XmlAttach.FindAttachment(pm, typeof(XmlData), trainToken) == null)
+                    {
+                        if (skill.Cap > 40.0) 
+                        { 
+                            skill.Cap = 40.0; 
+                            pm.SendMessage(0x22, $"[Лимит]: Боевой навык '{skill.Name}' замер на 40.0. Найдите тренера вендора и купите обучение (Train), чтобы открыть кап до 60.0!"); 
+                        }
+                    }
+                    else if (skill.Cap < 60.0)
+                    {
+                        skill.Cap = 60.0;
+                    }
+                    continue;
+                }
+
+                if (baseVal >= 60.0 && baseVal < 80.0)
+                {
+                    if (XmlAttach.FindAttachment(pm, typeof(XmlData), $"Quest80_{skill.Name}") == null)
+                    {
+                        if (skill.Cap > 60.0) { skill.Cap = 60.0; pm.SendMessage(0x22, $"[Лимит]: Навык '{skill.Name}' замер на 60.0. Сдайте первый квест Главе Гильдии!"); }
+                    }
+                    else if (skill.Cap < 80.0)
                     {
                         skill.Cap = 80.0;
-                        pm.SendMessage(0x22, $"[Лимит Гильдии]: Навык '{skill.Name}' развит до 80.0. Его дальнейший рост заморожен, пока вы не пройдете квест Магистра.");
                     }
+                    continue;
                 }
-                else
+
+                if (baseVal >= 80.0 && baseVal < 100.0)
                 {
-                    // Если индивидуальный токен именно для этого скилла найден, возвращаем ему нативный лимит
-                    if (skill.Cap <= 80.0)
+                    if (XmlAttach.FindAttachment(pm, typeof(XmlData), $"Quest100_{skill.Name}") == null)
+                    {
+                        if (skill.Cap > 80.0) { skill.Cap = 80.0; pm.SendMessage(0x22, $"[Лимит]: Навык '{skill.Name}' достиг 80.0. Требуется пройти испытание Грандмастера у Главы Гильдии!"); }
+                    }
+                    else if (skill.Cap < 100.0)
                     {
                         skill.Cap = Math.Max(100.0, skill.Cap);
                     }
+                    continue;
                 }
             }
         }
 
-
-
-        public static void GrantSkillUnlock(PlayerMobile pm, SkillName skillName)
+        private static void OnCreatureDeath(CreatureDeathEventArgs e)
         {
-            if (pm == null) return;
+            BaseCreature victim = e.Creature as BaseCreature;
+            if (victim == null || victim.Backpack == null) return;
 
-            string tokenName = $"Break_{skillName}";
-            XmlAttach.AttachTo(pm, new XmlData(tokenName, "Unlocked"));
-            
-            Skill sk = pm.Skills[skillName];
-            if (sk != null)
+            Mobile killer = victim.FindMostRecentDamager(false);
+            if (killer is BaseCreature bc) killer = bc.GetMaster();
+
+            if (killer is PlayerMobile pm && pm.Alive)
             {
-                sk.Cap = 100.0;
+                foreach (SkillName skName in CombatSkills)
+                {
+                    Skill skill = pm.Skills[skName];
+                    if (skill == null) continue;
+
+                    if (skill.Base >= 20.0 && skill.Base < 40.0)
+                    {
+                        skill.Cap = 40.0; 
+                        pm.CheckSkill(skName, 0.0, 100.0); 
+                    }
+                    
+                    if (skill.Base >= 40.0 && XmlAttach.FindAttachment(pm, typeof(XmlData), $"Break_{skill.Name}") == null)
+                    {
+                        // 🔥 ИСПРАВЛЕНО: Переписано без оператора 'using' строго по стандартам вашей версии ServUO 🎉⚙️🛠️
+                        IPooledEnumerable eable = pm.GetMobilesInRange(3);
+                        
+                        foreach (Mobile m in eable)
+                        {
+                            if (m is BaseVendor)
+                            {
+                                XmlAttach.AttachTo(pm, new XmlData($"Break_{skill.Name}", "Unlocked"));
+                                pm.SendMessage(0x35, $"[Обучение]: Городской мастер принял оплату. Навык '{skill.Name}' расширен до 60.0!");
+                                break;
+                            }
+                        }
+                        
+                        eable.Free(); // Нативно очищаем пул памяти ServUO, исключая утечки!
+                    }
+                }
+                
+                EnforceCombatCaps(pm);
             }
-            
-            pm.PlaySound(0x5B4); 
-            pm.FixedParticles(0x375A, 9, 20, 5027, 2418, 0, EffectLayer.Waist);
+        }
+
+        public static void GrantQuest80Unlock(PlayerMobile pm, SkillName skillName)
+        {
+            XmlAttach.AttachTo(pm, new XmlData($"Quest80_{skillName}", "Unlocked"));
+            EnforceCombatCaps(pm);
+        }
+
+        public static void GrantQuest100Unlock(PlayerMobile pm, SkillName skillName)
+        {
+            XmlAttach.AttachTo(pm, new XmlData($"Quest100_{skillName}", "Unlocked"));
+            EnforceCombatCaps(pm);
         }
     }
 }

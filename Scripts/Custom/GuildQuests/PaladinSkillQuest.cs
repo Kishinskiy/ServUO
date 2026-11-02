@@ -26,7 +26,7 @@ namespace Server.Custom.GuildQuests
                 master.PublicOverheadMessage(MessageType.Regular, 0x35, false, "*Благословляет коленопреклоненного рыцаря*");
                 
                 // Вызываем наш кастомный класс прорыва лимитов строго для Chivalry!
-                SkillCapBreakSystem.GrantSkillUnlock(pm, SkillName.Chivalry);
+                SkillCapBreakSystem.GrantQuest100Unlock(pm, SkillName.Chivalry);
 
                 pm.SendGump(new PaladinQuestGump("Испытание Священной Веры Пройдено!", "Свет восторжествовал! Ты вернул оскверненную святыню и наполнил этот Грааль чистой молитвой. Твоя связь с Высшими Силами теперь нерушима. Орден официально признает тебя Верховным Паладином.\n\nЛимит твоего навыка Chivalry успешно расширен до 100.0! Неси свет в самые темные данжи шарда!"));
                 return;

@@ -88,7 +88,7 @@ namespace Server.Custom.GuildQuests
         private static void CompleteNecroQuest(PlayerMobile pm, SkillName skill, Mobile master, string title)
         {
             master.PlaySound(0x215); // Мрачный загробный звук
-            SkillCapBreakSystem.GrantSkillUnlock(pm, skill); // Разблокируем СТРОГО один конкретный навык до 100.0
+            SkillCapBreakSystem.GrantQuest100Unlock(pm, skill); // Разблокируем СТРОГО один конкретный навык до 100.0
             
             pm.CloseGump(typeof(NecroSelectionGump));
             pm.SendGump(new NecroQuestDetailsGump(title, $"Ритуал Крови завершен успешно! Эфирные цепи разорваны. Гильдия признает тебя истинным Магистром Смерти в искусстве {skill}.\n\nТвой квестовый барьер снят, тренируйся до 100.0! Чтобы открыть престолы Полубогов Тьмы выше этого, ищи Power Свитки на Алтарях Чемпионов!"));

@@ -88,7 +88,7 @@ namespace Server.Custom.GuildQuests
         private static void CompleteCraftQuest(PlayerMobile pm, SkillName skill, Mobile master, string title)
         {
             master.PlaySound(0x2A); // Нативный звук удара молотом по железу [из предыдущих ответов]
-            SkillCapBreakSystem.GrantSkillUnlock(pm, skill); // Разблокируем СТРОГО один конкретный навык до 100.0
+            SkillCapBreakSystem.GrantQuest100Unlock(pm, skill); // Разблокируем СТРОГО один конкретный навык до 100.0
             
             pm.CloseGump(typeof(BlacksmithSelectionGump));
             pm.SendGump(new BlacksmithQuestDetailsGump(title, $"Металл укрощен! Твое мастерство раздуло угасший горн. Гильдия официально признает тебя Мастером в искусстве {skill}.\n\nТвой квестовый барьер снят, куй и копай до 100.0! Чтобы пробить капы Полубогов и открыть высший цветной крафт, добывай Power Свитки на Алтарях Чемпионов!"));

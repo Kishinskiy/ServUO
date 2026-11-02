@@ -88,7 +88,7 @@ namespace Server.Custom.GuildQuests
         private static void CompleteAlchQuest(PlayerMobile pm, SkillName skill, Mobile master, string title)
         {
             master.PlaySound(0x242); // Нативный звук бурления зелья / жидкости
-            SkillCapBreakSystem.GrantSkillUnlock(pm, skill); // Разблокируем СТРОГО один конкретный навык до 100.0
+            SkillCapBreakSystem.GrantQuest100Unlock(pm, skill);// Разблокируем СТРОГО один конкретный навык до 100.0
             
             pm.CloseGump(typeof(AlchemistSelectionGump));
             pm.SendGump(new AlchemistQuestDetailsGump(title, $"Реакция стабилизирована! Твой экстракт достиг идеальной дистилляции. Гильдия официально признает тебя Мастером в искусстве {skill}.\n\nТвой квестовый барьер снят, вари до 100.0! Чтобы пробить капы Полубогов и варить ультимативные эликсиры, добывай Power Свитки на Алтарях Чемпионов!"));

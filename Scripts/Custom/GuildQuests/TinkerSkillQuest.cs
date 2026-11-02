@@ -26,10 +26,11 @@ namespace Server.Custom.GuildQuests
                 master.PlaySound(0x241); // Звук взводящегося часового механизма
                 master.PublicOverheadMessage(MessageType.Regular, 0x35, false, "*Тщательно изучает микросхемы ядра лупой*");
                 
-                // Вызываем наш кастомный класс прорыва лимитов строго для Tinkering!
-                SkillCapBreakSystem.GrantSkillUnlock(pm, SkillName.Tinkering);
+                // Вызываем наш кастомный класс прорыва лимитов
+                SkillCapBreakSystem.GrantQuest100Unlock(pm, SkillName.Tinkering);
 
-                pm.SendGump(new TinkerQuestDetailsGump("Испытание Механики Завершено!", "Изумительно! Твои пальцы смогли извлечь это ядро, не повредив хрупкие шестерни. Ты доказал, что твоё понимание чертежей вышло далеко за рамки простых отмычек и капканов. Гильдия Инженеров официально признает тебя Магистром Изобретений.\n\nЛимит твоего навыка Tinkering успешно расширен до 100.0! Теперь тебе подвластна идеальная огранка эпических гемов!"));
+                // 🔥 ИСПРАВЛЕНО: Заменено с несуществующего 'skill.Name' на штатный 'tinkerSkill.Name' 🎉⚙️
+                pm.SendGump(new TinkerQuestDetailsGump("Испытание Механики Завершено!", $"Изумительно! Твои пальцы смогли извлечь это ядро. Лимит твоего навыка {tinkerSkill.Name} успешно расширен до 100.0!"));
                 return true;
             }
 

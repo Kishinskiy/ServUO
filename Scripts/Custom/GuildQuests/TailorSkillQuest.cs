@@ -27,7 +27,7 @@ namespace Server.Custom.GuildQuests
                 master.PublicOverheadMessage(MessageType.Regular, 0x35, false, "*Одобрительно проводит пальцами по тончайшему шёлку*");
                 
                 // Вызываем наш кастомный класс прорыва лимитов строго для Tailoring!
-                SkillCapBreakSystem.GrantSkillUnlock(pm, SkillName.Tailoring);
+                SkillCapBreakSystem.GrantQuest100Unlock(pm, SkillName.Tailoring);
 
                 pm.SendGump(new TailorQuestDetailsGump("Испытание Иглы Завершено!", "Потрясающе! Эта пряжа обладает невероятной прочностью и магической проводимостью. Ты доказал, что твои руки способны работать с деликатными материалами Пагана. Гильдия Портных официально признает тебя Магистром Иглы и Ткани.\n\nЛимит твоего навыка Tailoring успешно расширен до 100.0! Теперь тебе подвластен пошив элитных тканевых доспехов. Ищи Power Свитки на Алтарях Чемпионов для продвижения к лимитам Полубогов!"));
                 return true;

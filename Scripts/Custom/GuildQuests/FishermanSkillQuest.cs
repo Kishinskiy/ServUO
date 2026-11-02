@@ -33,7 +33,8 @@ namespace Server.Custom.GuildQuests
                 master.PublicOverheadMessage(MessageType.Regular, 0x35, false, "*Осматривает сияющую чешую Левиафана*");
                 
                 // Вызываем наш кастомный класс прорыва лимитов!
-                SkillCapBreakSystem.GrantSkillUnlock(pm, SkillName.Fishing);
+                SkillCapBreakSystem.GrantQuest100Unlock(pm, SkillName.Fishing);
+
 
                 pm.SendGump(new FishermanQuestGump("Испытание Глубин Пройдено!", "Невероятно! Ты действительно одолел чудовище морей и добыл Древнюю Чешую. Воды Сосарии больше не таят от тебя секретов. Рыболовная Гильдия объявляет тебя Магистром Морей.\n\nЛимит твоего навыка Fishing навсегда поднят до 120.0!"));
                 return;

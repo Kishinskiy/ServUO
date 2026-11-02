@@ -88,7 +88,7 @@ namespace Server.Custom.GuildQuests
         private static void CompleteWoodQuest(PlayerMobile pm, SkillName skill, Mobile master, string title)
         {
             master.PlaySound(0x23D); // Нативный звук обработки дерева / пилы
-            SkillCapBreakSystem.GrantSkillUnlock(pm, skill); // Разблокируем СТРОГО один конкретный навык до 100.0
+            SkillCapBreakSystem.GrantQuest100Unlock(pm, skill); // Разблокируем СТРОГО один конкретный навык до 100.0
             
             pm.CloseGump(typeof(CarpentersSelectionGump));
             pm.SendGump(new CarpentersQuestDetailsGump(title, $"Волокна подчинились твоей воле! Твоё мастерство оживило мертвую древесину. Гильдия официально признает тебя Мастером в искусстве {skill}.\n\nТвой квестовый барьер снят, твори до 100.0! Чтобы пробить капы Полубогов и открыть высший деревянный крафт, добывай Power Свитки на Алтарях Чемпионов!"));
