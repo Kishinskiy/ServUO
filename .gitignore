@@ -33,6 +33,7 @@
 *.exe
 *.mdb
 *.sh
+!/deploy/deploy-release.sh
 *.suo
 *.idea
 *.log

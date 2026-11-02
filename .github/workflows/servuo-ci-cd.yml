@@ -1,0 +1,119 @@
+name: ServUO CI/CD
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: servuo-production
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build ServUO
+    runs-on: windows-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore ServUO.sln -p:Platform=x64
+
+      - name: Build Release
+        run: dotnet build ServUO.sln --configuration Release --no-restore -p:Platform=x64
+
+      - name: Check patch whitespace
+        if: github.event_name == 'pull_request'
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.sha }}
+        run: git diff --check "$BASE_SHA...$HEAD_SHA"
+
+      - name: Prepare release files
+        if: github.event_name != 'pull_request'
+        shell: pwsh
+        run: |
+          $release = Join-Path $env:RUNNER_TEMP "servuo-release"
+          New-Item -ItemType Directory -Force -Path $release | Out-Null
+
+          $required = @("ServUO.exe", "Server.dll", "Scripts.dll", "Ultima.dll")
+          foreach ($file in $required) {
+            if (-not (Test-Path $file -PathType Leaf)) {
+              throw "Required build output is missing: $file"
+            }
+          }
+
+          Get-ChildItem -Path . -File |
+            Where-Object { $_.Extension -in @(".dll", ".exe") } |
+            Copy-Item -Destination $release
+
+      - name: Upload release files
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: servuo-release
+          path: ${{ runner.temp }}/servuo-release/*
+          if-no-files-found: error
+          retention-days: 7
+
+  deploy:
+    name: Deploy production
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    needs: build
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Download release files
+        uses: actions/download-artifact@v4
+        with:
+          name: servuo-release
+          path: ${{ runner.temp }}/servuo-release
+
+      - name: Prepare SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test -n "$DEPLOY_SSH_KEY" || { echo "Missing production secret DEPLOY_SSH_KEY"; exit 1; }
+          test -n "$DEPLOY_KNOWN_HOSTS" || { echo "Missing production secret DEPLOY_KNOWN_HOSTS"; exit 1; }
+
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/id_ed25519" "$HOME/.ssh/known_hosts"
+
+      - name: Transfer and activate release
+        env:
+          RELEASE_DIR: ${{ runner.temp }}/servuo-release
+          DEPLOY_HOST: kishinskiy.ru
+          DEPLOY_USER: root
+          RELEASE_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          archive="$RUNNER_TEMP/servuo-release-${RELEASE_SHA}.tar.gz"
+          tar -czf "$archive" -C "$RELEASE_DIR" .
+
+          target="${DEPLOY_USER}@${DEPLOY_HOST}"
+          ssh -i "$HOME/.ssh/id_ed25519" -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            "$target" "mkdir -p /tmp/servuo-deploy"
+          scp -i "$HOME/.ssh/id_ed25519" -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            "$archive" "$target:/tmp/servuo-deploy/${RELEASE_SHA}.tar.gz"
+          ssh -i "$HOME/.ssh/id_ed25519" -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            "$target" "bash /root/ServUO/deploy/deploy-release.sh '${RELEASE_SHA}'"
