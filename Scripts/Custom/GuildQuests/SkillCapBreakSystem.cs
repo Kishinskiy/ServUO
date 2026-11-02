@@ -145,10 +145,9 @@ namespace Server.Custom.GuildQuests
             if (e.From is PlayerMobile pm && pm.AccessLevel <= AccessLevel.Player &&
                 Array.IndexOf(TrainerSkills, e.Skill.SkillName) >= 0)
             {
-                double capBefore = e.Skill.Cap;
                 EnforceSkillCap(pm, e.Skill.SkillName);
 
-                if (e.Skill.Cap == capBefore && e.Skill.Base >= e.Skill.Cap)
+                if (e.Skill.Base >= e.Skill.Cap)
                     NotifySkillCapReached(pm, e.Skill);
             }
         }
@@ -231,8 +230,7 @@ namespace Server.Custom.GuildQuests
 
             if (baseVal < 60.0)
             {
-                EnforceUnlockCap(pm, skill, $"Break_{skill.Name}", 40.0, 60.0,
-                    $"[Лимит]: Навык '{skill.Name}' ограничен 40.0. Купите обучение у тренера, чтобы открыть кап до 60.0!");
+                EnforceUnlockCap(pm, skill, $"Break_{skill.Name}", 40.0, 60.0);
                 return;
             }
 
@@ -241,13 +239,11 @@ namespace Server.Custom.GuildQuests
             {
                 if (baseVal < 80.0)
                 {
-                    EnforceUnlockCap(pm, skill, $"Quest80_{skill.Name}", 60.0, 80.0,
-                        $"[Лимит]: Навык '{skill.Name}' ограничен 60.0. Завершите испытание у Главы Гильдии, чтобы открыть кап до 80.0!");
+                    EnforceUnlockCap(pm, skill, $"Quest80_{skill.Name}", 60.0, 80.0);
                 }
                 else if (baseVal < 100.0)
                 {
-                    EnforceUnlockCap(pm, skill, $"Quest100_{skill.Name}", 80.0, 100.0,
-                        $"[Лимит]: Навык '{skill.Name}' ограничен 80.0. Завершите испытание Грандмастера, чтобы открыть кап до 100.0!");
+                    EnforceUnlockCap(pm, skill, $"Quest100_{skill.Name}", 80.0, 100.0);
                 }
 
                 return;
@@ -255,22 +251,17 @@ namespace Server.Custom.GuildQuests
 
             if (baseVal < 100.0)
             {
-                EnforceUnlockCap(pm, skill, $"Quest100_{skill.Name}", 60.0, 100.0,
-                    $"[Лимит]: Навык '{skill.Name}' ограничен 60.0. Принесите трофей Главе Гильдии, чтобы открыть кап до 100.0!");
+                EnforceUnlockCap(pm, skill, $"Quest100_{skill.Name}", 60.0, 100.0);
             }
         }
 
-        private static void EnforceUnlockCap(PlayerMobile pm, Skill skill, string token, double lockedCap, double unlockedCap, string message)
+        private static void EnforceUnlockCap(PlayerMobile pm, Skill skill, string token, double lockedCap, double unlockedCap)
         {
             if (XmlAttach.FindAttachment(pm, typeof(XmlData), token) == null)
             {
                 if (skill.Cap != lockedCap)
                 {
-                    bool reduced = skill.Cap > lockedCap;
                     skill.Cap = lockedCap;
-
-                    if (reduced)
-                        pm.SendMessage(0x22, message);
                 }
             }
             else if (skill.Cap < unlockedCap)
