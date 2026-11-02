@@ -47,6 +47,7 @@ namespace Server.Custom.TownBoards
         private string m_TargetCreature;
         private int m_RewardGold;
         private int m_RewardLoyalty;
+        private int m_FameBonusGold;
         private long m_RewardTreasury;
         private Map m_ContractMap;
         private DateTime m_CreationTime;
@@ -74,6 +75,15 @@ namespace Server.Custom.TownBoards
 
         [CommandProperty(AccessLevel.GameMaster)]
         public int RewardLoyalty => m_RewardLoyalty;
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public int FameBonusGold => m_FameBonusGold;
+
+        public void AddFameBonusGold(int amount)
+        {
+            m_FameBonusGold += amount;
+            InvalidateProperties();
+        }
 
         [CommandProperty(AccessLevel.GameMaster)]
         public long RewardTreasury => m_RewardTreasury;
@@ -140,13 +150,14 @@ namespace Server.Custom.TownBoards
             if (m_Type == TownContractType.Bounty)
             {
                 list.Add($"Цель: Убить {m_RequiredCount} {GetTargetName(m_TargetCreature)}: {m_CurrentCount}/{m_RequiredCount}");
-                list.Add("Зона выполнения: Любой регион мира (Глобальный заказ)");
+                list.Add("Зона выполнения: любой регион и карта мира");
+                list.Add($"Дополнительная награда за Fame целей: {m_FameBonusGold:N0} золота");
             }
             else
             {
                 list.Add($"Цель: Поставить городскому складу ресурс [{m_ResourceClass}]: {m_RequiredCount} шт.");
             }
-            list.Add($"Награда: {m_RewardGold:N0} золота, {m_RewardLoyalty} очков лояльности и {m_RewardTreasury:N0} в казну.");
+            list.Add($"Награда: {m_RewardGold:N0} золота, {m_RewardLoyalty} очков любви городу {m_City} и {m_RewardTreasury:N0} в казну.");
 
             TimeSpan left = (m_CreationTime + TimeSpan.FromHours(48)) - DateTime.UtcNow;
             if (left > TimeSpan.Zero)
@@ -179,7 +190,7 @@ namespace Server.Custom.TownBoards
             }
             else
             {
-                from.SendMessage($"Контракт: убейте {m_RequiredCount} монстров ({GetTargetName(m_TargetCreature)}) в любом месте мира. Прогресс засчитывается автоматически.");
+                from.SendMessage($"Контракт: убейте {m_RequiredCount} {GetTargetName(m_TargetCreature)} в любом регионе и на любой карте. Сильные монстры дают больше золота за счет Fame.");
             }
         }
 
@@ -269,7 +280,7 @@ namespace Server.Custom.TownBoards
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)5); // Новая версия структуры сохранения
+            writer.Write((int)6);
             writer.Write((int)m_City);
             writer.Write((int)m_Type);
             writer.Write(m_ResourceClass);
@@ -281,6 +292,7 @@ namespace Server.Custom.TownBoards
             writer.Write(m_RewardTreasury);
             writer.Write(m_ContractMap);
             writer.Write(m_CreationTime);
+            writer.Write(m_FameBonusGold);
         }
         public override void Deserialize(GenericReader reader)
         {
@@ -297,6 +309,8 @@ namespace Server.Custom.TownBoards
             m_RewardTreasury = reader.ReadLong();
             m_ContractMap = reader.ReadMap();
             m_CreationTime = reader.ReadDateTime();
+            if (version >= 6)
+                m_FameBonusGold = reader.ReadInt();
         }
     }
     public static class TownBulletinBoardSystem
@@ -369,10 +383,7 @@ namespace Server.Custom.TownBoards
         }
         internal static TownBoardOffer CreateHuntOffer(City city, Map map, Mobile player)
         {
-            TownHuntTarget[] targets = GetHuntTargets(city);
-            if (targets.Length == 0) return null;
             Random random = new Random(GetDailySeed(city, map, DateTime.UtcNow));
-            var target = targets[random.Next(targets.Length)];
             // Считываем лояльность и набрасываем множитель усложнения
             double points = GetPlayerLoyaltyPoints(city, player);
             int difficultyStage = GetDifficultyStageByLoyalty(points);
@@ -381,7 +392,7 @@ namespace Server.Custom.TownBoards
             int requiredCount = (int)(baseCount * (1.0 + (difficultyStage - 1) * 0.5));
             return new TownBoardOffer
             {
-                TargetCreature = target.TypeName,
+                TargetCreature = "Any",
                 RequiredCount = requiredCount,
                 RewardGold = requiredCount * 150 * difficultyStage, // Награда растет пропорционально сложности!
                 RewardLoyalty = Math.Max(5, (requiredCount / 3) * difficultyStage),
@@ -417,20 +428,21 @@ namespace Server.Custom.TownBoards
                 foreach (TownContractScroll scroll in contracts)
                 {
                     if (scroll.Deleted || scroll.CheckExpiry(killer)) continue;
-                    // УДАЛЕНО ОГРАНИЧЕНИЕ ВЫПОЛНЕНИЯ: Проверка victim.Region.Name == scroll.TargetRegion вырезана!
                     if (scroll.ContractType == TownContractType.Bounty && scroll.CurrentCount < scroll.RequiredCount)
                     {
-                        if (victim.Map == scroll.ContractMap && IsTargetCreature(scroll.TargetCreature, victim))
+                        if (IsTargetCreature(scroll.TargetCreature, victim))
                         {
                             scroll.CurrentCount++;
+                            scroll.AddFameBonusGold(GetFameBonusGold(victim.Fame));
                             killer.SendMessage(0x35, $"[Заказ {scroll.City}]: {TownContractScroll.GetTargetName(scroll.TargetCreature)}: {scroll.CurrentCount}/{scroll.RequiredCount}");
                             if (scroll.CurrentCount >= scroll.RequiredCount)
                             {
                                 CityLoyaltySystem.GetCityInstance(scroll.City)?.AwardLove(killer, scroll.RewardLoyalty);
-                                Banker.Deposit(killer, scroll.RewardGold, true);
-                                CityDevelopmentMod.AddTreasuryRevenue(scroll.City, victim.Map, scroll.RewardTreasury);
+                                int totalGold = scroll.RewardGold + scroll.FameBonusGold;
+                                Banker.Deposit(killer, totalGold, true);
+                                CityDevelopmentMod.AddTreasuryRevenue(scroll.City, scroll.ContractMap, scroll.RewardTreasury);
                                 killer.PlaySound(0x57);
-                                killer.SendMessage(0x58, $"[Доска Заказов]: Контракт успешно выполнен в полевых условиях! Награда: {scroll.RewardGold:N0} золота зачислена в банк.");
+                                killer.SendMessage(0x58, $"[Доска Заказов]: Контракт выполнен! Получено {totalGold:N0} золота (включая {scroll.FameBonusGold:N0} за Fame) и {scroll.RewardLoyalty} очков любви городу {scroll.City}.");
                                 scroll.Delete();
                             }
                             break; // Засчитываем фрагмент только в один контракт за убийство
@@ -439,6 +451,12 @@ namespace Server.Custom.TownBoards
                 }
             }
         }
+
+        private static int GetFameBonusGold(int fame)
+        {
+            return Math.Min(1000, Math.Max(0, fame) / 50);
+        }
+
         private static bool IsTargetCreature(string target, BaseCreature creature)
         {
             if (String.IsNullOrEmpty(target) || target == "Any") return true;

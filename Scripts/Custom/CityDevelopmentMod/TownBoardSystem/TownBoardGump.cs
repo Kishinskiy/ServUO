@@ -49,11 +49,11 @@ namespace Server.Custom.TownBoards
             if (m_HuntOffer != null)
             {
                 AddHtml(30, 118, 480, 26,
-                    $"<BASEFONT COLOR=#FFFFFF SIZE=4><B>Убить {m_HuntOffer.RequiredCount} {TownContractScroll.GetTargetName(m_HuntOffer.TargetCreature)}</B></BASEFONT>",
+                    $"<BASEFONT COLOR=#FFFFFF SIZE=4><B>Убить {m_HuntOffer.RequiredCount} любых монстров</B></BASEFONT>",
                     false, false);
 
                 AddHtml(30, 146, 480, 24,
-                    $"<BASEFONT COLOR=#00FF00 SIZE=3>Награда: {m_HuntOffer.RewardGold:N0} золота, {m_HuntOffer.RewardLoyalty} лояльности, {m_HuntOffer.RewardTreasury:N0} в казну.</BASEFONT>",
+                    $"<BASEFONT COLOR=#00FF00 SIZE=3>Награда: {m_HuntOffer.RewardGold:N0} золота + Fame-бонус, {m_HuntOffer.RewardLoyalty} любви, {m_HuntOffer.RewardTreasury:N0} в казну.</BASEFONT>",
                     false, false);
 
                 // Вычисляем и выводим множитель сложности от лояльности
@@ -61,7 +61,7 @@ namespace Server.Custom.TownBoards
                 int difficultyStage = TownBulletinBoardSystem.GetDifficultyStageByLoyalty(loyaltyPoints);
                 
                 AddHtml(30, 172, 450, 24,
-                    $"<BASEFONT COLOR=#87CEFA SIZE=2>Сложность: Этап {difficultyStage} (Множитель: x{1.0 + (difficultyStage - 1) * 0.5:F1}). Растет от очков лояльности города.</BASEFONT>",
+                    $"<BASEFONT COLOR=#87CEFA SIZE=2>Любая карта и регион; Fame-бонус до 1 000 золота за цель. Этап сложности: {difficultyStage}.</BASEFONT>",
                     false, false);
 
                 AddButton(525, 120, 0xFA5, 0xFA7, 1, GumpButtonType.Reply, 0);
@@ -81,7 +81,7 @@ namespace Server.Custom.TownBoards
                     $"<BASEFONT COLOR=#FFFFFF SIZE=3>Доставить {m_SupplyOffer.RequiredCount} ед. ресурса: <B>{GetResourceName(m_SupplyOffer.ResourceClass)}</B>.</BASEFONT>",
                     false, false);
                 AddHtml(30, 298, 480, 24,
-                    $"<BASEFONT COLOR=#00FF00 SIZE=2>Награда: {m_SupplyOffer.RewardGold:N0} золота, {m_SupplyOffer.RewardLoyalty} лояльности и {m_SupplyOffer.RewardTreasury:N0} в казну.</BASEFONT>",
+                    $"<BASEFONT COLOR=#00FF00 SIZE=2>Награда: {m_SupplyOffer.RewardGold:N0} золота, {m_SupplyOffer.RewardLoyalty} любви городу и {m_SupplyOffer.RewardTreasury:N0} в казну.</BASEFONT>",
                     false, false);
 
                 AddButton(525, 272, 0xFA5, 0xFA7, 2, GumpButtonType.Reply, 0);
@@ -179,7 +179,7 @@ namespace Server.Custom.TownBoards
                 if (from.AddToBackpack(contract))
                 {
                     from.SendMessage(0x35, bounty
-                        ? $"Принят контракт: убить {contract.RequiredCount} {TownContractScroll.GetTargetName(contract.TargetCreature)} в любом регионе мира."
+                        ? $"Принят контракт: убить {contract.RequiredCount} любых монстров в любом регионе и на любой карте."
                         : $"Принят контракт: доставить {contract.RequiredCount} ед. ресурса [{contract.ResourceClass}].");
                 }
                 else
