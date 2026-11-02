@@ -54,6 +54,45 @@ namespace Server.Mobiles
 
 		public override bool CanTeach { get { return true; } }
 
+		public override TeachResult CheckTeachSkills(SkillName skill, Mobile m, int maxPointsToLearn, ref int pointsToLearn, bool doTeach)
+		{
+			if (m is PlayerMobile pm && Server.Custom.GuildQuests.SkillCapBreakSystem.CanUsePaidCombatTraining(pm, skill))
+			{
+				Skill playerSkill = pm.Skills[skill];
+				if (playerSkill == null)
+					return base.CheckTeachSkills(skill, m, maxPointsToLearn, ref pointsToLearn, doTeach);
+
+				double originalCap = playerSkill.Cap;
+				playerSkill.Cap = 60.0;
+
+				try
+				{
+					return base.CheckTeachSkills(skill, m, maxPointsToLearn, ref pointsToLearn, doTeach);
+				}
+				finally
+				{
+					playerSkill.Cap = originalCap;
+				}
+			}
+
+			return base.CheckTeachSkills(skill, m, maxPointsToLearn, ref pointsToLearn, doTeach);
+		}
+
+		public override bool OnGoldGiven(Mobile from, Gold dropped)
+		{
+			PlayerMobile pm = from as PlayerMobile;
+			SkillName learning = pm != null ? pm.Learning : (SkillName)(-1);
+			Skill skill = pm != null && learning != (SkillName)(-1) ? pm.Skills[learning] : null;
+			double skillBefore = skill != null ? skill.Base : -1.0;
+
+			bool accepted = base.OnGoldGiven(from, dropped);
+
+			if (accepted && pm != null && skill != null && skill.Base > skillBefore)
+				Server.Custom.GuildQuests.SkillCapBreakSystem.OnPaidCombatTraining(pm, learning);
+
+			return accepted;
+		}
+
 		public override bool BardImmune { get { return true; } }
 
 		public override bool PlayerRangeSensitive { get { return true; } }

@@ -66,7 +66,7 @@ namespace Server.Custom.GuildQuests
         {
             // Алхимия (Alchemy)
             Item stone = pm.Backpack.FindItemByType(typeof(EverburningPhilosophersStone));
-            if (stone != null && !stone.Deleted)
+            if (stone != null && !stone.Deleted && SkillCapBreakSystem.CanCompleteQuest100(pm, SkillName.Alchemy))
             {
                 stone.Delete();
                 CompleteAlchQuest(pm, SkillName.Alchemy, master, "Великая Трансмутация Завершена: Великий Алхимик");
@@ -75,7 +75,7 @@ namespace Server.Custom.GuildQuests
 
             // Распознавание (Taste Identification)
             Item root = pm.Backpack.FindItemByType(typeof(MandrakeRootQueen));
-            if (root != null && !root.Deleted)
+            if (root != null && !root.Deleted && SkillCapBreakSystem.CanCompleteQuest100(pm, SkillName.TasteID))
             {
                 root.Delete();
                 CompleteAlchQuest(pm, SkillName.TasteID, master, "Тайны Трав Раскрыты: Магистр Токсинов");

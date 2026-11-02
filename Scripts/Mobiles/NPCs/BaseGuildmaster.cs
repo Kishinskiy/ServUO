@@ -161,7 +161,7 @@ namespace Server.Mobiles
 
         public override bool OnGoldGiven(Mobile from, Gold dropped)
         {
-            if (from is PlayerMobile && dropped.Amount == this.JoinCost)
+            if (from is PlayerMobile && dropped.Amount == this.JoinCost && ((PlayerMobile)from).Learning == (SkillName)(-1))
             {
                 PlayerMobile pm = (PlayerMobile)from;
 

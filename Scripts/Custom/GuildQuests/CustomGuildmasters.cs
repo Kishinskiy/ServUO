@@ -67,6 +67,17 @@ namespace Server.Mobiles
             AddItem(new VikingSword() { Hue = 1266 });
         }
 
+        public override void OnDoubleClick(Mobile from)
+        {
+            if (from is PlayerMobile pm && pm.Alive && pm.InRange(Location, 2))
+            {
+                Server.Custom.GuildQuests.PaladinSkillQuest.OnPaladinClick(pm, this);
+                return;
+            }
+
+            base.OnDoubleClick(from);
+        }
+
         public PaladinGuildmaster(Serial serial) : base(serial) { }
         public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write((int)0); }
         public override void Deserialize(GenericReader reader) { base.Deserialize(reader); int version = reader.ReadInt(); }
@@ -91,6 +102,17 @@ namespace Server.Mobiles
             AddItem(new Cloak() { Hue = 1 }); 
             
             AddItem(new GnarledStaff() { Hue = 1175 });
+        }
+
+        public override void OnDoubleClick(Mobile from)
+        {
+            if (from is PlayerMobile pm && pm.Alive && pm.InRange(Location, 2))
+            {
+                Server.Custom.GuildQuests.NecroSkillQuest.OnNecromancerClick(pm, this);
+                return;
+            }
+
+            base.OnDoubleClick(from);
         }
 
         public NecromancerGuildmaster(Serial serial) : base(serial) { }

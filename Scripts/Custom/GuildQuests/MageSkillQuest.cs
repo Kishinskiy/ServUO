@@ -87,7 +87,7 @@ namespace Server.Custom.GuildQuests
         private static bool TryFinish60MageQuest<T>(PlayerMobile pm, SkillName skill, Mobile master, string title) where T : Item
         {
             Item item = pm.Backpack.FindItemByType(typeof(T));
-            if (item != null && !item.Deleted)
+            if (item != null && !item.Deleted && SkillCapBreakSystem.CanCompleteQuest80(pm, skill))
             {
                 item.Delete();
                 master.PlaySound(0x5B4);
@@ -101,7 +101,7 @@ namespace Server.Custom.GuildQuests
         private static bool TryFinish100MageQuest<T>(PlayerMobile pm, SkillName skill, Mobile master, string title) where T : Item
         {
             Item item = pm.Backpack.FindItemByType(typeof(T));
-            if (item != null && !item.Deleted)
+            if (item != null && !item.Deleted && SkillCapBreakSystem.CanCompleteQuest100(pm, skill))
             {
                 item.Delete();
                 master.PlaySound(0x5B4);
@@ -153,17 +153,17 @@ namespace Server.Custom.GuildQuests
 
                 if (m_IsGM) // Квесты 80 -> 100
                 {
-                    if (selectedSkill == SkillName.Magery) m_Player.SendGump(new MageQuestDetailsGump("Архимаг Magery", "Собери рейд Полубогов, призови Высшего Судию Света на Алтаре Луны и отбери у него Хронику Первородных Стихий!"));
-                    else if (selectedSkill == SkillName.EvalInt) m_Player.SendGump(new MageQuestDetailsGump("Архимаг Evaluate Intelligence", "Отправляйся к Алтарю Возвышения, уничтожь Жнеца Бездны и забери Хрустальное Око Всевидящего Судии!"));
-                    else if (selectedSkill == SkillName.Meditation) m_Player.SendGump(new MageQuestDetailsGump("Архимаг Meditation", "Выдержи натиск астральной энергии на Алтаре Тьмы в Маласе, сокруши Босса и вырви его Астральное Сердце Бездны!"));
-                    else if (selectedSkill == SkillName.MagicResist) m_Player.SendGump(new MageQuestDetailsGump("Архимаг Magic Resistance", "Брось вызов Высшему Судии Света, рассей его заклинания высшего круга и добудь Руническую Печать Отрицания!"));
+                    if (selectedSkill == SkillName.Magery) m_Player.SendGump(new MageQuestDetailsGump("Архимаг Magery", "Одолей Abyssal Infernal и забери Хронику Первородных Стихий!"));
+                    else if (selectedSkill == SkillName.EvalInt) m_Player.SendGump(new MageQuestDetailsGump("Архимаг Evaluate Intelligence", "Победи Shimmering Effusion и забери Хрустальное Око Всевидящего Судии!"));
+                    else if (selectedSkill == SkillName.Meditation) m_Player.SendGump(new MageQuestDetailsGump("Архимаг Meditation", "Одолей Primeval Lich и вырви его Астральное Сердце Бездны!"));
+                    else if (selectedSkill == SkillName.MagicResist) m_Player.SendGump(new MageQuestDetailsGump("Архимаг Magic Resistance", "Брось вызов Harrower, рассей его заклинания и добудь Руническую Печать Отрицания!"));
                 }
                 else // Квесты 60 -> 80
                 {
-                    if (selectedSkill == SkillName.Magery) m_Player.SendGump(new MageQuestDetailsGump("Адепт Magery", "Ступай в пылающий огненный данж в Землях Хаоса, одолей архимагов Демонов Бездны и принеси Мерцающий Древний Свиток!"));
-                    else if (selectedSkill == SkillName.EvalInt) m_Player.SendGump(new MageQuestDetailsGump("Адепт EvalInt", "Используй Evaluate Intelligence на старые книжные шкафы в руинах Земли Хаоса, разгадай лорные загадки и найди Гримуар Библиотеки!"));
-                    else if (selectedSkill == SkillName.Meditation) m_Player.SendGump(new MageQuestDetailsGump("Адепт Meditation", "Охоться на Призрачных Элементалей в зонах скопления Скверны Земли Хаоса, подчини их ядро и доставь Сферу Сконцентрированного Эфира!"));
-                    else if (selectedSkill == SkillName.MagicResist) m_Player.SendGump(new MageQuestDetailsGump("Адепт Magic Resistance", "Отправляйся в древний склеп нежити Deceit в Землях Хаоса. Выдержи темные проклятия Личей и принеси Противомагическую Призму!"));
+                    if (selectedSkill == SkillName.Magery) m_Player.SendGump(new MageQuestDetailsGump("Адепт Magery", "Ступай в огненные земли, одолей Эфритов или Огненных Демонов и принеси Мерцающий Древний Свиток!"));
+                    else if (selectedSkill == SkillName.EvalInt) m_Player.SendGump(new MageQuestDetailsGump("Адепт EvalInt", "Отыщи Древнего Лича, победи его и принеси Гримуар Потерянной Библиотеки!"));
+                    else if (selectedSkill == SkillName.Meditation) m_Player.SendGump(new MageQuestDetailsGump("Адепт Meditation", "Охоться на Призраков и Банши в землях, поражённых Скверной, и принеси Сферу Сконцентрированного Эфира!"));
+                    else if (selectedSkill == SkillName.MagicResist) m_Player.SendGump(new MageQuestDetailsGump("Адепт Magic Resistance", "Отправляйся в склеп Deceit, одолей Лорда Личей и принеси Противомагическую Призму!"));
                 }
             }
         }

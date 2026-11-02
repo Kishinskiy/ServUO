@@ -18,7 +18,7 @@ namespace Server.Custom.GuildQuests
             // 1. Проверяем, принёс ли паладин очищенную чашу
             Item grail = pm.Backpack.FindItemByType(typeof(PurifiedLightGrail));
 
-            if (grail != null && !grail.Deleted)
+            if (grail != null && !grail.Deleted && SkillCapBreakSystem.CanCompleteQuest100(pm, SkillName.Chivalry))
             {
                 grail.Delete();
                 

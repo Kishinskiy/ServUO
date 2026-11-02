@@ -19,7 +19,7 @@ namespace Server.Custom.GuildQuests
             // 1. Проверяем, принёс ли инженер трофей на сдачу
             Item core = pm.Backpack.FindItemByType(typeof(ClockworkCore));
 
-            if (core != null && !core.Deleted)
+            if (core != null && !core.Deleted && SkillCapBreakSystem.CanCompleteQuest100(pm, SkillName.Tinkering))
             {
                 core.Delete();
                 

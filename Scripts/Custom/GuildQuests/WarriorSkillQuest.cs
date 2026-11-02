@@ -74,8 +74,11 @@ namespace Server.Custom.GuildQuests
             if (TryFinish60Quest<SplinteredElvenBow>(pm, SkillName.Archery, master, "Испытание Ветра Пройдено!")) return true;
             if (TryFinish60Quest<CrackedTitanHammer>(pm, SkillName.Macing, master, "Испытание Сокрушителя Пройдено!")) return true;
             if (TryFinish60Quest<PoisonedAssassinsSpear>(pm, SkillName.Fencing, master, "Испытание Иглы Пройдено!")) return true;
+            if (TryFinish60Quest<CrackedWrestlersFist>(pm, SkillName.Wrestling, master, "Испытание Кулака Пройдено!")) return true;
             if (TryFinish60Quest<WarlordsStrategicMap>(pm, SkillName.Tactics, master, "Испытание Стратегии Пройдено!")) return true;
             if (TryFinish60Quest<EmbalmedGargoyleHeart>(pm, SkillName.Anatomy, master, "Испытание Анатомии Пройдено!")) return true;
+            if (TryFinish60Quest<CrimsonBushidoScroll>(pm, SkillName.Bushido, master, "Испытание Бусидо Пройдено!")) return true;
+            if (TryFinish60Quest<ShinobiNinjitsuMask>(pm, SkillName.Ninjitsu, master, "Испытание Ниндзюцу Пройдено!")) return true;
 
             // РАНГ 80 -> 100
             if (TryFinish100Quest<GrandmasterAscensionBlade>(pm, SkillName.Swords, master, "Возвышение Грандмастера: Мечи!")) return true;
@@ -83,6 +86,11 @@ namespace Server.Custom.GuildQuests
             if (TryFinish100Quest<GrandmasterAscensionShield>(pm, SkillName.Parry, master, "Возвышение Грандмастера: Защита!")) return true;
             if (TryFinish100Quest<GrandmasterAscensionMace>(pm, SkillName.Macing, master, "Возвышение Грандмастера: Молот!")) return true;
             if (TryFinish100Quest<GrandmasterAscensionSpear>(pm, SkillName.Fencing, master, "Возвышение Грандмастера: Копьё!")) return true;
+            if (TryFinish100Quest<GrandmasterAscensionFist>(pm, SkillName.Wrestling, master, "Возвышение Грандмастера: Кулак!")) return true;
+            if (TryFinish100Quest<GrandmasterTacticalScroll>(pm, SkillName.Tactics, master, "Возвышение Грандмастера: Тактика!")) return true;
+            if (TryFinish100Quest<GrandmasterAnatomyTome>(pm, SkillName.Anatomy, master, "Возвышение Грандмастера: Анатомия!")) return true;
+            if (TryFinish100Quest<GrandmasterBushidoManual>(pm, SkillName.Bushido, master, "Возвышение Грандмастера: Бусидо!")) return true;
+            if (TryFinish100Quest<GrandmasterNinjitsuScroll>(pm, SkillName.Ninjitsu, master, "Возвышение Грандмастера: Ниндзюцу!")) return true;
 
             return false;
         }
@@ -90,7 +98,7 @@ namespace Server.Custom.GuildQuests
         private static bool TryFinish60Quest<T>(PlayerMobile pm, SkillName skill, Mobile master, string title) where T : Item
         {
             Item item = pm.Backpack.FindItemByType(typeof(T));
-            if (item != null && !item.Deleted)
+            if (item != null && !item.Deleted && SkillCapBreakSystem.CanCompleteQuest80(pm, skill))
             {
                 item.Delete();
                 master.PlaySound(0x5B4);
@@ -104,7 +112,7 @@ namespace Server.Custom.GuildQuests
         private static bool TryFinish100Quest<T>(PlayerMobile pm, SkillName skill, Mobile master, string title) where T : Item
         {
             Item item = pm.Backpack.FindItemByType(typeof(T));
-            if (item != null && !item.Deleted)
+            if (item != null && !item.Deleted && SkillCapBreakSystem.CanCompleteQuest100(pm, skill))
             {
                 item.Delete();
                 master.PlaySound(0x5B4);
@@ -153,11 +161,16 @@ namespace Server.Custom.GuildQuests
 
                 if (m_IsGM)
                 {
-                    if (selectedSkill == SkillName.Swords) m_Player.SendGump(new WarriorQuestDetailsGump("Грандмастер Swordsmanship", "Призови Высшего Судию Света на Алтаре Возвышения и выбей его Эфирный Клинок!"));
-                    else if (selectedSkill == SkillName.Archery) m_Player.SendGump(new WarriorQuestDetailsGump("Грандмастер Archery", "Одолей Жнеца Бездны и принеси Ангельский Лук Возвышения!"));
-                    else if (selectedSkill == SkillName.Parry) m_Player.SendGump(new WarriorQuestDetailsGump("Грандмастер Parrying", "Выдержи сокрушительные удары Высших Боссов в Маласе и отбери у них Эгиду Высшей Воли!"));
-                    else if (selectedSkill == SkillName.Macing) m_Player.SendGump(new WarriorQuestDetailsGump("Грандмастер Macing", "Раздроби кости Жнецу Бездны Тьмы на его алтаре и принеси Молот Суда!"));
-                    else if (selectedSkill == SkillName.Fencing) m_Player.SendGump(new WarriorQuestDetailsGump("Грандмастер Fencing", "Пронзи сердце Судии Света на Алтаре Луны и забери его Комету Жнеца!"));
+                    if (selectedSkill == SkillName.Swords) m_Player.SendGump(new WarriorQuestDetailsGump("Грандмастер Swordsmanship", "Одолей Slasher of Veils и забери его Эфирный Клинок!"));
+                    else if (selectedSkill == SkillName.Archery) m_Player.SendGump(new WarriorQuestDetailsGump("Грандмастер Archery", "Одолей Dread Horn и принеси Ангельский Лук Возвышения!"));
+                    else if (selectedSkill == SkillName.Parry) m_Player.SendGump(new WarriorQuestDetailsGump("Грандмастер Parrying", "Выдержи сокрушительные удары Harrower и отбери у него Эгиду Высшей Воли!"));
+                    else if (selectedSkill == SkillName.Macing) m_Player.SendGump(new WarriorQuestDetailsGump("Грандмастер Macing", "Одолей Shimmering Effusion и принеси Молот Суда!"));
+                    else if (selectedSkill == SkillName.Fencing) m_Player.SendGump(new WarriorQuestDetailsGump("Грандмастер Fencing", "Пронзи сердце Medusa и забери её Комету Жнеца!"));
+                    else if (selectedSkill == SkillName.Wrestling) m_Player.SendGump(new WarriorQuestDetailsGump("Грандмастер Wrestling", "Одолей Corgul the SoulBinder в рукопашном бою и принеси Перчатку Непобедимого!"));
+                    else if (selectedSkill == SkillName.Tactics) m_Player.SendGump(new WarriorQuestDetailsGump("Грандмастер Tactics", "Победи Travesty и принеси Манускрипт Абсолютной Стратегии!"));
+                    else if (selectedSkill == SkillName.Anatomy) m_Player.SendGump(new WarriorQuestDetailsGump("Грандмастер Anatomy", "Одолей Lady Melisande и принеси Анатомический Атлас Древних Рас!"));
+                    else if (selectedSkill == SkillName.Bushido) m_Player.SendGump(new WarriorQuestDetailsGump("Грандмастер Bushido", "Одолей Serado и принеси Кодекс Непоколебимой Катаны!"));
+                    else if (selectedSkill == SkillName.Ninjitsu) m_Player.SendGump(new WarriorQuestDetailsGump("Грандмастер Ninjitsu", "Победи Navrey Night-Eyes и принеси Свиток Последней Тени!"));
                 }
                 else
                 {
@@ -166,8 +179,11 @@ namespace Server.Custom.GuildQuests
                     else if (selectedSkill == SkillName.Archery) m_Player.SendGump(new WarriorQuestDetailsGump("Ветеран Archery", "Твой путь лежит в паучью крепость Tera Keep. Выбей из Пауков-Охотников Расщепленный Эльфийский Лук!"));
                     else if (selectedSkill == SkillName.Macing) m_Player.SendGump(new WarriorQuestDetailsGump("Ветеран Macing", "Ступай к Каменным Элементалям и Титанам в горах, разбей их панцири и принеси Треснувший Молот Титана!"));
                     else if (selectedSkill == SkillName.Fencing) m_Player.SendGump(new WarriorQuestDetailsGump("Ветеран Fencing", "Отправляйся в змеиный данж Destard, одолей Офидианских Ассасинов и принеси Острие Убийцы!"));
+                    else if (selectedSkill == SkillName.Wrestling) m_Player.SendGump(new WarriorQuestDetailsGump("Ветеран Wrestling", "Сразись с могучими Циклопами без оружия и принеси их Разбитую Перчатку!"));
                     else if (selectedSkill == SkillName.Tactics) m_Player.SendGump(new WarriorQuestDetailsGump("Ветеран Tactics", "Сокруши вождей Орков-Полководцев в их фортах и отбери Стратегическую Карту Военачальника!"));
                     else if (selectedSkill == SkillName.Anatomy) m_Player.SendGump(new WarriorQuestDetailsGump("Ветеран Anatomy", "Ступай в мир Ильшенар, найди Диких Горгулий и добудь их Забальзамированное Сердце!"));
+                    else if (selectedSkill == SkillName.Bushido) m_Player.SendGump(new WarriorQuestDetailsGump("Ветеран Bushido", "Докажи своё владение кодексом самурая, одолей ниндзя и принеси Свиток Алой Катаны!"));
+                    else if (selectedSkill == SkillName.Ninjitsu) m_Player.SendGump(new WarriorQuestDetailsGump("Ветеран Ninjitsu", "Проникни в логово шиноби, пройди испытание тени и принеси Маску Теневого Клана!"));
                 }
             }
         }

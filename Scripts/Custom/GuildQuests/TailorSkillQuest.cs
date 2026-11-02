@@ -19,7 +19,7 @@ namespace Server.Custom.GuildQuests
             // 1. Проверяем, принёс ли портной трофей на сдачу
             Item silk = pm.Backpack.FindItemByType(typeof(AstralSilkSpool));
 
-            if (silk != null && !silk.Deleted)
+            if (silk != null && !silk.Deleted && SkillCapBreakSystem.CanCompleteQuest100(pm, SkillName.Tailoring))
             {
                 silk.Delete();
                 

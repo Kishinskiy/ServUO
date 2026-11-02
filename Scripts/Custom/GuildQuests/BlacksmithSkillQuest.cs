@@ -66,7 +66,7 @@ namespace Server.Custom.GuildQuests
         {
             // Кузнечное дело (Blacksmithing)
             Item hammer = pm.Backpack.FindItemByType(typeof(EternalForgeHammer));
-            if (hammer != null && !hammer.Deleted)
+            if (hammer != null && !hammer.Deleted && SkillCapBreakSystem.CanCompleteQuest100(pm, SkillName.Blacksmith))
             {
                 hammer.Delete();
                 CompleteCraftQuest(pm, SkillName.Blacksmith, master, "Испытание Горна Завершен: Великий Кузнец");
@@ -75,7 +75,7 @@ namespace Server.Custom.GuildQuests
 
             // Шахтерское дело (Mining)
             Item ore = pm.Backpack.FindItemByType(typeof(HeartOfTheMountainOre));
-            if (ore != null && !ore.Deleted)
+            if (ore != null && !ore.Deleted && SkillCapBreakSystem.CanCompleteQuest100(pm, SkillName.Mining))
             {
                 ore.Delete();
                 CompleteCraftQuest(pm, SkillName.Mining, master, "Испытание Кирки Завершен: Магистр Руды");

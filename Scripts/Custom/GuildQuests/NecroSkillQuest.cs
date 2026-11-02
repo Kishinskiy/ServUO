@@ -66,7 +66,7 @@ namespace Server.Custom.GuildQuests
         {
             // Магия смерти (Necromancy)
             Item necroItem = pm.Backpack.FindItemByType(typeof(PhylacteryOfTheDamned));
-            if (necroItem != null && !necroItem.Deleted)
+            if (necroItem != null && !necroItem.Deleted && SkillCapBreakSystem.CanCompleteQuest100(pm, SkillName.Necromancy))
             {
                 necroItem.Delete();
                 CompleteNecroQuest(pm, SkillName.Necromancy, master, "Тёмный Ритуал Завершен: Лич-Магистр");
@@ -75,7 +75,7 @@ namespace Server.Custom.GuildQuests
 
             // Разговор с духами (Spirit Speak)
             Item spiritItem = pm.Backpack.FindItemByType(typeof(BansheesWailingShroud));
-            if (spiritItem != null && !spiritItem.Deleted)
+            if (spiritItem != null && !spiritItem.Deleted && SkillCapBreakSystem.CanCompleteQuest100(pm, SkillName.SpiritSpeak))
             {
                 spiritItem.Delete();
                 CompleteNecroQuest(pm, SkillName.SpiritSpeak, master, "Тёмный Ритуал Завершен: Голос Бездны");

@@ -95,6 +95,30 @@ namespace Server.Custom.GuildQuests
         public override void Deserialize(GenericReader reader) { base.Deserialize(reader); int version = reader.ReadInt(); }
     }
 
+    public class GrandmasterBushidoManual : Item
+    {
+        [Constructable] public GrandmasterBushidoManual() : base(0x1F4C) { Name = "Кодекс Непоколебимой Катаны [Ранг Грандмастера]"; Weight = 2.0; Hue = 1266; LootType = LootType.Cursed; }
+        public GrandmasterBushidoManual(Serial serial) : base(serial) { }
+        public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write((int)0); }
+        public override void Deserialize(GenericReader reader) { base.Deserialize(reader); int version = reader.ReadInt(); }
+    }
+
+    public class GrandmasterNinjitsuScroll : Item
+    {
+        [Constructable] public GrandmasterNinjitsuScroll() : base(0x14ED) { Name = "Свиток Последней Тени [Ранг Грандмастера]"; Weight = 1.0; Hue = 1175; LootType = LootType.Cursed; }
+        public GrandmasterNinjitsuScroll(Serial serial) : base(serial) { }
+        public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write((int)0); }
+        public override void Deserialize(GenericReader reader) { base.Deserialize(reader); int version = reader.ReadInt(); }
+    }
+
+    public class GrandmasterAscensionFist : Item
+    {
+        [Constructable] public GrandmasterAscensionFist() : base(0x13B5) { Name = "Перчатка Непобедимого [Ранг Грандмастера]"; Weight = 5.0; Hue = 1266; LootType = LootType.Cursed; }
+        public GrandmasterAscensionFist(Serial serial) : base(serial) { }
+        public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write((int)0); }
+        public override void Deserialize(GenericReader reader) { base.Deserialize(reader); int version = reader.ReadInt(); }
+    }
+
 
     // =========================================================================
     // ⚔️ 🔥 НОВОЕ: ДОБАВЛЕННЫЕ ТРОФЕИ ВЕТЕРАНА (РАНГ 60 -> 80)
@@ -159,6 +183,30 @@ namespace Server.Custom.GuildQuests
     {
         [Constructable] public EmbalmedGargoyleHeart() : base(0x1CED) { Name = "Забальзамированное Сердце Горгульи [Испытание Анатомии]"; Weight = 2.0; Hue = 1175; LootType = LootType.Cursed; }
         public EmbalmedGargoyleHeart(Serial serial) : base(serial) { }
+        public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write((int)0); }
+        public override void Deserialize(GenericReader reader) { base.Deserialize(reader); int version = reader.ReadInt(); }
+    }
+
+    public class CrimsonBushidoScroll : Item
+    {
+        [Constructable] public CrimsonBushidoScroll() : base(0x14ED) { Name = "Свиток Алой Катаны [Испытание Бусидо]"; Weight = 1.0; Hue = 1161; LootType = LootType.Cursed; }
+        public CrimsonBushidoScroll(Serial serial) : base(serial) { }
+        public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write((int)0); }
+        public override void Deserialize(GenericReader reader) { base.Deserialize(reader); int version = reader.ReadInt(); }
+    }
+
+    public class ShinobiNinjitsuMask : Item
+    {
+        [Constructable] public ShinobiNinjitsuMask() : base(0x154B) { Name = "Маска Теневого Клана [Испытание Ниндзюцу]"; Weight = 2.0; Hue = 1175; LootType = LootType.Cursed; }
+        public ShinobiNinjitsuMask(Serial serial) : base(serial) { }
+        public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write((int)0); }
+        public override void Deserialize(GenericReader reader) { base.Deserialize(reader); int version = reader.ReadInt(); }
+    }
+
+    public class CrackedWrestlersFist : Item
+    {
+        [Constructable] public CrackedWrestlersFist() : base(0x13B5) { Name = "Разбитая Перчатка Циклопа [Испытание Борьбы]"; Weight = 4.0; Hue = 1157; LootType = LootType.Cursed; }
+        public CrackedWrestlersFist(Serial serial) : base(serial) { }
         public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write((int)0); }
         public override void Deserialize(GenericReader reader) { base.Deserialize(reader); int version = reader.ReadInt(); }
     }

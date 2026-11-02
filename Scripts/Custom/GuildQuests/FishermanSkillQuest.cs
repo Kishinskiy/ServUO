@@ -15,34 +15,35 @@ namespace Server.Custom.GuildQuests
 
             Skill fishSkill = pm.Skills[SkillName.Fishing];
 
+            Item scale = pm.Backpack.FindItemByType(typeof(LeviathanScale));
+            if (scale != null && !scale.Deleted && SkillCapBreakSystem.CanCompleteQuest100(pm, SkillName.Fishing))
+            {
+                scale.Delete();
+
+                master.PlaySound(0x5B4);
+                master.PublicOverheadMessage(MessageType.Regular, 0x35, false, "*Осматривает сияющую чешую Левиафана*");
+                SkillCapBreakSystem.GrantQuest100Unlock(pm, SkillName.Fishing);
+
+                pm.SendGump(new FishermanQuestGump("Испытание Глубин Пройдено!", "Невероятно! Ты действительно одолел чудовище морей и добыл Древнюю Чешую. Воды Сосарии больше не таят от тебя секретов. Рыболовная Гильдия объявляет тебя Магистром Морей.\n\nЛимит твоего навыка Fishing навсегда поднят до 100.0!"));
+                return;
+            }
+
+            if (fishSkill.Base >= 100.0)
+            {
+                master.Say("Ты уже достиг вершины рыболовного мастерства. Новых испытаний для тебя нет.");
+                return;
+            }
+
             // Проверяем, застрял ли навык Fishing на отметке 80.0
-            if (fishSkill.Base < 80.0 || fishSkill.Cap > 80.0)
+            if (fishSkill.Base < 80.0)
             {
                 master.Say("Приветствую на причале, матрос! Закидывай удочку, лови рыбу. Как только твое чутье Fishing достигнет 80.0, я выдам тебе контракт на Испытание Глубин.");
                 return;
             }
 
-            // Ищем трофей в сумке
-            Item scale = pm.Backpack.FindItemByType(typeof(LeviathanScale));
-
-            if (scale != null && !scale.Deleted)
-            {
-                scale.Delete();
-                
-                master.PlaySound(0x5B4); // Звук триумфа
-                master.PublicOverheadMessage(MessageType.Regular, 0x35, false, "*Осматривает сияющую чешую Левиафана*");
-                
-                // Вызываем наш кастомный класс прорыва лимитов!
-                SkillCapBreakSystem.GrantQuest100Unlock(pm, SkillName.Fishing);
-
-
-                pm.SendGump(new FishermanQuestGump("Испытание Глубин Пройдено!", "Невероятно! Ты действительно одолел чудовище морей и добыл Древнюю Чешую. Воды Сосарии больше не таят от тебя секретов. Рыболовная Гильдия объявляет тебя Магистром Морей.\n\nЛимит твоего навыка Fishing навсегда поднят до 120.0!"));
-                return;
-            }
-
             // Если предмета нет — открываем Гамп выдачи задания
             pm.CloseGump(typeof(FishermanQuestGump));
-            pm.SendGump(new FishermanQuestGump("Испытание Глубин (Ранг 80.0+)", "Ты отлично управляешься с наживкой, рыбак. Но чтобы ловить по-настоящему легендарную рыбу и сокровища глубин выше 80.0, обычной удачи мало. Ты должен доказать бездне свою силу.\n\nВыходи в открытое море в Землях Хаоса, закидывай сети в самых глубоких водах, одолей вынырнувшее чудовище и принеси мне его Древнюю Чешую. Только тогда я открою тебе секреты Легенд (120.0). Ты готов?"));
+            pm.SendGump(new FishermanQuestGump("Испытание Глубин (Ранг 80.0+)", "Ты отлично управляешься с наживкой, рыбак. Но чтобы ловить по-настоящему легендарную рыбу и сокровища глубин выше 80.0, обычной удачи мало. Ты должен доказать бездне свою силу.\n\nВыходи в открытое море в Землях Хаоса, закидывай сети в самых глубоких водах, одолей вынырнувшее чудовище и принеси мне его Древнюю Чешую. Только тогда я открою тебе секреты Легенд (100.0). Ты готов?"));
         }
     }
 

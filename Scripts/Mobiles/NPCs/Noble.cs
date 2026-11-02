@@ -61,6 +61,12 @@ namespace Server.Mobiles
             Utility.AssignRandomHair(this);
 
             this.PackGold(200, 250);
+
+            if (Utility.RandomDouble() < 0.10)
+                PackItem(new Server.Custom.GuildQuests.NoblesGoldenPocketwatch());
+
+            if (Utility.RandomDouble() < 0.10)
+                PackItem(new Server.Custom.GuildQuests.DukesSignetRing());
         }
 
         public override void Serialize(GenericWriter writer)

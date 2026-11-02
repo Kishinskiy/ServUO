@@ -111,7 +111,7 @@ namespace Server.Mobiles
 
         public override bool OnGoldGiven(Mobile from, Gold dropped)
         {
-            if (from is PlayerMobile && dropped.Amount == 700)
+            if (from is PlayerMobile && dropped.Amount == 700 && ((PlayerMobile)from).Learning == (SkillName)(-1))
             {
                 PlayerMobile pm = (PlayerMobile)from;
 

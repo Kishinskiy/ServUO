@@ -58,4 +58,43 @@ namespace Server.Custom.GuildQuests
         public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write((int)0); }
         public override void Deserialize(GenericReader reader) { base.Deserialize(reader); int version = reader.ReadInt(); }
     }
+
+    public class VeilOfTheUnseen : Item
+    {
+        [Constructable]
+        public VeilOfTheUnseen() : base(0x1515)
+        {
+            Name = "Вуаль Незримого [Испытание Скрытности]";
+            Weight = 1.0; Hue = 1175; LootType = LootType.Cursed;
+        }
+        public VeilOfTheUnseen(Serial serial) : base(serial) { }
+        public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write((int)0); }
+        public override void Deserialize(GenericReader reader) { base.Deserialize(reader); int version = reader.ReadInt(); }
+    }
+
+    public class DukesSignetRing : Item
+    {
+        [Constructable]
+        public DukesSignetRing() : base(0x108A)
+        {
+            Name = "Перстень Герцога [Испытание Слежки]";
+            Weight = 1.0; Hue = 2418; LootType = LootType.Cursed;
+        }
+        public DukesSignetRing(Serial serial) : base(serial) { }
+        public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write((int)0); }
+        public override void Deserialize(GenericReader reader) { base.Deserialize(reader); int version = reader.ReadInt(); }
+    }
+
+    public class TrapmastersDisarmingKit : Item
+    {
+        [Constructable]
+        public TrapmastersDisarmingKit() : base(0x14FC)
+        {
+            Name = "Набор Обезвреживания Мастера [Испытание Ловушек]";
+            Weight = 1.0; Hue = 1102; LootType = LootType.Cursed;
+        }
+        public TrapmastersDisarmingKit(Serial serial) : base(serial) { }
+        public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write((int)0); }
+        public override void Deserialize(GenericReader reader) { base.Deserialize(reader); int version = reader.ReadInt(); }
+    }
 }

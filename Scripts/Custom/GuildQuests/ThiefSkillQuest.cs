@@ -70,23 +70,27 @@ namespace Server.Custom.GuildQuests
 
         private static bool CheckAndCompleteThiefQuest(PlayerMobile pm, Mobile master)
         {
-            // Взлом (Lockpicking)
-            Item lockItem = pm.Backpack.FindItemByType(typeof(SkeletonMasterKey));
-            if (lockItem != null && !lockItem.Deleted) { lockItem.Delete(); CompleteThiefQuest(pm, SkillName.Lockpicking, master, "Контракт Закрыт: Мастер Взлома"); return true; }
-
-            // Шаг в тени (Stealth)
-            Item stealthItem = pm.Backpack.FindItemByType(typeof(ShadowsSilkenBoots));
-            if (stealthItem != null && !stealthItem.Deleted) { stealthItem.Delete(); CompleteThiefQuest(pm, SkillName.Stealth, master, "Контракт Закрыт: Призрак Тени"); return true; }
-
-            // Воровство (Stealing)
-            Item stealingItem = pm.Backpack.FindItemByType(typeof(NoblesGoldenPocketwatch));
-            if (stealingItem != null && !stealingItem.Deleted) { stealingItem.Delete(); CompleteThiefQuest(pm, SkillName.Stealing, master, "Контракт Закрыт: Неуловимый Палец"); return true; }
-
-            // Отравление (Poisoning)
-            Item poisonItem = pm.Backpack.FindItemByType(typeof(DeadlyNightshadeVial));
-            if (poisonItem != null && !poisonItem.Deleted) { poisonItem.Delete(); CompleteThiefQuest(pm, SkillName.Poisoning, master, "Контракт Закрыт: Теневой Отравитель"); return true; }
+            if (TryFinishThiefQuest<SkeletonMasterKey>(pm, SkillName.Lockpicking, master, "Контракт Закрыт: Мастер Взлома")) return true;
+            if (TryFinishThiefQuest<ShadowsSilkenBoots>(pm, SkillName.Stealth, master, "Контракт Закрыт: Призрак Тени")) return true;
+            if (TryFinishThiefQuest<NoblesGoldenPocketwatch>(pm, SkillName.Stealing, master, "Контракт Закрыт: Неуловимый Палец")) return true;
+            if (TryFinishThiefQuest<DeadlyNightshadeVial>(pm, SkillName.Poisoning, master, "Контракт Закрыт: Теневой Отравитель")) return true;
+            if (TryFinishThiefQuest<VeilOfTheUnseen>(pm, SkillName.Hiding, master, "Контракт Закрыт: Несуществующая Тень")) return true;
+            if (TryFinishThiefQuest<DukesSignetRing>(pm, SkillName.Snooping, master, "Контракт Закрыт: Взгляд За Замком")) return true;
+            if (TryFinishThiefQuest<TrapmastersDisarmingKit>(pm, SkillName.RemoveTrap, master, "Контракт Закрыт: Мастер Ловушек")) return true;
 
             return false;
+        }
+
+        private static bool TryFinishThiefQuest<T>(PlayerMobile pm, SkillName skill, Mobile master, string title) where T : Item
+        {
+            Item item = pm.Backpack.FindItemByType(typeof(T));
+
+            if (item == null || item.Deleted || !SkillCapBreakSystem.CanCompleteQuest100(pm, skill))
+                return false;
+
+            item.Delete();
+            CompleteThiefQuest(pm, skill, master, title);
+            return true;
         }
 
         private static void CompleteThiefQuest(PlayerMobile pm, SkillName skill, Mobile master, string title)
@@ -136,8 +140,11 @@ namespace Server.Custom.GuildQuests
                 
                 if (selectedSkill == SkillName.Lockpicking) m_Player.SendGump(new ThiefQuestDetailsGump("Контракт: Взлом Замков", "Слухи подтверждают, что в Землях Хаоса, в сокровищницах данжа Сострадания или сундуках Лордов Смерти, сокрыт сундук с титановым замком. Взломай его, не сломав механизм, и принеси мне Древнюю Отмычку Магистра!"));
                 else if (selectedSkill == SkillName.Stealth) m_Player.SendGump(new ThiefQuestDetailsGump("Контракт: Шаг в Тени", "Твоя походка должна стать невидимой. Проникни в Земли Хаоса, незаметно прокрадись мимо Высших Пауков-Охотников в Tera Keep прямо к их коконам, срежь с мертвеца Шёлковые Сапоги Тени и доставь их мне!"));
-                else if (selectedSkill == SkillName.Stealing) m_Player.SendGump(new ThiefQuestDetailsGump("Контракт: Высшее Воровство", "В портовых тавернах Земли Порядка или среди богачей Маласа путешествует заносчивый Герцог под охраной наёмников 10 уровня. Обчисти его карманы, вытащи Золотые Часы Герцога так, чтобы стража ничего не заметила, и скройся!"));
+                else if (selectedSkill == SkillName.Stealing) m_Player.SendGump(new ThiefQuestDetailsGump("Контракт: Высшее Воровство", "Найди Noble в городских кварталах и укради из его сумки Золотые Часы, не привлекая внимания!"));
                 else if (selectedSkill == SkillName.Poisoning) m_Player.SendGump(new ThiefQuestDetailsGump("Контракт: Искусство Отравления", "Яды требуют хладнокровия. Ступай в змеиный данж Destard в Землях Хаоса. Одолей Офидианских Ассасинов, собери их смертоносные железы, отфильтруй реагенты у алхимического горна и принеси Флакон Концентрированного Яда!"));
+                else if (selectedSkill == SkillName.Hiding) m_Player.SendGump(new ThiefQuestDetailsGump("Контракт: Несуществующая Тень", "Одолей Тёмного Стража и принеси Вуаль Незримого!"));
+                else if (selectedSkill == SkillName.Snooping) m_Player.SendGump(new ThiefQuestDetailsGump("Контракт: Взгляд За Замком", "Проникни в сумку Noble, найди и укради Перстень Герцога!"));
+                else if (selectedSkill == SkillName.RemoveTrap) m_Player.SendGump(new ThiefQuestDetailsGump("Контракт: Мастер Ловушек", "Обезвреди древние ловушки в опасном подземелье и принеси Набор Обезвреживания Мастера!"));
             }
         }
     }

@@ -66,7 +66,7 @@ namespace Server.Custom.GuildQuests
         {
             // Плотничество (Carpentry)
             Item wood = pm.Backpack.FindItemByType(typeof(FossilizedAncientWood));
-            if (wood != null && !wood.Deleted)
+            if (wood != null && !wood.Deleted && SkillCapBreakSystem.CanCompleteQuest100(pm, SkillName.Carpentry))
             {
                 wood.Delete();
                 CompleteWoodQuest(pm, SkillName.Carpentry, master, "Испытание Текстуры Завершено: Магистр Зодчества");
@@ -75,7 +75,7 @@ namespace Server.Custom.GuildQuests
 
             // Лесозаготовка (Lumberjacking)
             Item log = pm.Backpack.FindItemByType(typeof(EntLivingLog));
-            if (log != null && !log.Deleted)
+            if (log != null && !log.Deleted && SkillCapBreakSystem.CanCompleteQuest100(pm, SkillName.Lumberjacking))
             {
                 log.Delete();
                 CompleteWoodQuest(pm, SkillName.Lumberjacking, master, "Испытание Топора Завершено: Магистр Леса");

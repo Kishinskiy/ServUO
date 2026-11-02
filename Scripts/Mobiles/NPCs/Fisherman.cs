@@ -44,6 +44,17 @@ namespace Server.Mobiles
             this.AddItem(new Server.Items.FishingPole());
         }
 
+        public override void OnDoubleClick(Mobile from)
+        {
+            if (from is PlayerMobile pm && pm.Alive && pm.InRange(Location, 2))
+            {
+                Server.Custom.GuildQuests.FishermanSkillQuest.OnFishermanClick(pm, this);
+                return;
+            }
+
+            base.OnDoubleClick(from);
+        }
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
