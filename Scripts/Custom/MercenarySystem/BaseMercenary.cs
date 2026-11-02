@@ -21,6 +21,11 @@ namespace Server.Custom.MercenarySystem
         [CommandProperty(AccessLevel.GameMaster)]
         public int MercExp { get { return m_Progression.Experience; } set { m_Progression.Experience = value; m_Progression.CheckLevelUp(this, m_Class); } }
 
+        public override int MaxWeight
+        {
+            get { return (((Core.ML && Race == Race.Human) ? 100 : 40) + (int)(3.5 * Str)); }
+        }
+
         public static void Initialize()
         {
             EventSink.ServerStarted += () =>
@@ -156,6 +161,7 @@ namespace Server.Custom.MercenarySystem
                     Title = $"[{MercenaryProgression.GetRankTitle(m_Progression.Level)}]";
                     InvalidateProperties();
                 }
+
             }
         }
 
@@ -180,13 +186,25 @@ namespace Server.Custom.MercenarySystem
             if (IsMercenaryOwner(from) && (dropped is BaseWeapon || dropped is BaseArmor || dropped is BaseClothing))
             {
                 Item current = FindItemOnLayer(dropped.Layer);
-                if (current != null && current.Movable && !from.AddToBackpack(current))
+                if (current != null)
                 {
-                    from.SendMessage("Освободите место в рюкзаке перед заменой экипировки.");
+                    if (!current.Movable || !from.PlaceInBackpack(current))
+                    {
+                        from.SendMessage("Не удалось убрать текущую экипировку в ваш рюкзак.");
+                        return false;
+                    }
+
+                }
+
+                if (!EquipItem(dropped))
+                {
+                    if (current != null)
+                        AddItem(current);
+
+                    from.SendMessage("Наёмник не может экипировать этот предмет: проверьте его требования.");
                     return false;
                 }
 
-                AddItem(dropped);
                 from.PlaySound(0x57);
                 PublicOverheadMessage(Network.MessageType.Regular, 0x35, false, "*Спасибо за снаряжение, командир!*");
                 return true;
@@ -203,13 +221,24 @@ namespace Server.Custom.MercenarySystem
         {
             Container backpack = Backpack;
 
-            if (backpack == null)
+            if (backpack is MercenaryBackpack)
+                return backpack;
+
+            Container mercenaryBackpack = new MercenaryBackpack { Movable = false };
+
+            if (backpack != null)
             {
-                backpack = new Backpack { Movable = false };
-                AddItem(backpack);
+                foreach (Item item in new List<Item>(backpack.Items))
+                {
+                    item.Internalize();
+                    mercenaryBackpack.DropItem(item);
+                }
+
+                backpack.Delete();
             }
 
-            return backpack;
+            AddItem(mercenaryBackpack);
+            return mercenaryBackpack;
         }
 
         public override bool AllowEquipFrom(Mobile from)
@@ -294,6 +323,8 @@ namespace Server.Custom.MercenarySystem
             m_Progression.Experience = reader.ReadInt();
             m_Progression.NextLevelExperience = reader.ReadInt();
 
+            EnsureBackpack();
+
             foreach (Item item in Items)
             {
                 if (item != null && !item.Deleted && item.Layer != Layer.Backpack)
@@ -301,6 +332,27 @@ namespace Server.Custom.MercenarySystem
             }
 
             Title = $"[{MercenaryProgression.GetRankTitle(m_Progression.Level)}]";
+        }
+    }
+
+    public class MercenaryBackpack : Backpack
+    {
+        [Constructable]
+        public MercenaryBackpack()
+        {
+        }
+
+        public MercenaryBackpack(Serial serial) : base(serial)
+        {
+        }
+
+        public override int DefaultMaxWeight
+        {
+            get
+            {
+                Mobile owner = ParentEntity as Mobile;
+                return owner is BaseMercenary ? owner.MaxWeight : base.DefaultMaxWeight;
+            }
         }
     }
 }
