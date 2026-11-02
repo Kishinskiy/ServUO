@@ -34,34 +34,41 @@ namespace Server.Custom.GuildQuests
             }
         }
 
-        private static void CheckAndApplyCaps(PlayerMobile pm)
+                private static void CheckAndApplyCaps(PlayerMobile pm)
         {
             if (pm.AccessLevel > AccessLevel.Player) return;
 
             for (int i = 0; i < pm.Skills.Length; ++i)
             {
                 Skill skill = pm.Skills[i];
-                if (skill == null || skill.Base < 80.0) continue;
+                
+                // 🔥 ИСПРАВЛЕНО: Радар реагирует СТРОГО на порог перехода (от 80.0 до 81.0).
+                // Если навык уже выше 81.0, система считает игрока легальным ветераном и полностью игнорирует его!
+                if (skill == null || skill.Base < 80.0 || skill.Base >= 81.0) 
+                    continue;
 
                 string tokenName = $"Break_{skill.Name}";
                 XmlAttachment breakToken = XmlAttach.FindAttachment(pm, typeof(XmlData), tokenName);
 
                 if (breakToken == null)
                 {
+                    // Запираем кап на 80.0 только тем, кто упёрся в лимит прямо сейчас
                     if (skill.Cap > 80.0)
                     {
                         skill.Cap = 80.0;
+                        pm.SendMessage(0x22, $"[Лимит Гильдии]: Развитие навыка '{skill.Name}' достигло порога 80.0. Обратитесь к Главе вашей Гильдии за Испытанием!");
                     }
                 }
                 else
                 {
                     if (skill.Cap <= 80.0)
                     {
-                        skill.Cap = 120.0;
+                        skill.Cap = Math.Max(100.0, skill.Cap);
                     }
                 }
             }
         }
+
 
         public static void GrantSkillUnlock(PlayerMobile pm, SkillName skillName)
         {
@@ -71,7 +78,10 @@ namespace Server.Custom.GuildQuests
             XmlAttach.AttachTo(pm, new XmlData(tokenName, "Unlocked"));
             
             Skill sk = pm.Skills[skillName];
-            if (sk != null) sk.Cap = 120.0;
+            if (sk != null)
+            {
+                sk.Cap = 100.0;
+            }
             
             pm.PlaySound(0x5B4); 
             pm.FixedParticles(0x375A, 9, 20, 5027, 2418, 0, EffectLayer.Waist);

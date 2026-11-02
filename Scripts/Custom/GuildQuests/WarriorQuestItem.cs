@@ -72,4 +72,32 @@ namespace Server.Custom.GuildQuests
         public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write((int)0); }
         public override void Deserialize(GenericReader reader) { base.Deserialize(reader); int version = reader.ReadInt(); }
     }
+
+    // 📜 Для Tactics (Тактика)
+    public class WarlordsStrategicMap : Item
+    {
+        [Constructable]
+        public WarlordsStrategicMap() : base(0x14EB) // Графика старой карты
+        {
+            Name = "Стратегическая Карта Военачальника [Испытание Тактики]";
+            Weight = 1.0; Hue = 1240; LootType = LootType.Cursed;
+        }
+        public WarlordsStrategicMap(Serial serial) : base(serial) { }
+        public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write((int)0); }
+        public override void Deserialize(GenericReader reader) { base.Deserialize(reader); int version = reader.ReadInt(); }
+    }
+
+    // 🩻 Для Anatomy (Анатомия)
+    public class EmbalmedGargoyleHeart : Item
+    {
+        [Constructable]
+        public EmbalmedGargoyleHeart() : base(0x1CED) // Графика сердца/органа
+        {
+            Name = "Забальзамированное Сердце Горгульи [Испытание Анатомии]";
+            Weight = 2.0; Hue = 1175; LootType = LootType.Cursed;
+        }
+        public EmbalmedGargoyleHeart(Serial serial) : base(serial) { }
+        public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write((int)0); }
+        public override void Deserialize(GenericReader reader) { base.Deserialize(reader); int version = reader.ReadInt(); }
+    }
 }
