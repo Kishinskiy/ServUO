@@ -78,6 +78,11 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     steps:
+      - name: Check out release source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
       - name: Download release files
         uses: actions/download-artifact@v4
         with:
@@ -116,5 +121,8 @@ jobs:
             "$target" "mkdir -p /tmp/servuo-deploy"
           scp -i "$HOME/.ssh/id_ed25519" -o BatchMode=yes -o StrictHostKeyChecking=yes \
             "$archive" "$target:/tmp/servuo-deploy/${RELEASE_SHA}.tar.gz"
+          scp -i "$HOME/.ssh/id_ed25519" -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            "$GITHUB_WORKSPACE/deploy/deploy-release.sh" \
+            "$target:/tmp/servuo-deploy/deploy-release-${RELEASE_SHA}.sh"
           ssh -i "$HOME/.ssh/id_ed25519" -o BatchMode=yes -o StrictHostKeyChecking=yes \
-            "$target" "bash /root/ServUO/deploy/deploy-release.sh '${RELEASE_SHA}'"
+            "$target" "bash '/tmp/servuo-deploy/deploy-release-${RELEASE_SHA}.sh' '${RELEASE_SHA}'"

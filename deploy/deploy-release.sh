@@ -26,24 +26,13 @@ if ! flock -n 9; then
     exit 1
 fi
 
-if [[ ! -d "$REPO_DIR/.git" ]]; then
+if [[ ! -e "$REPO_DIR/.git" ]]; then
     log "ERROR: Git repository not found at $REPO_DIR."
     exit 1
 fi
 
 if [[ ! -f "$ARCHIVE" ]]; then
     log "ERROR: Release archive not found at $ARCHIVE."
-    exit 1
-fi
-
-current_branch="$(git -C "$REPO_DIR" branch --show-current)"
-if [[ "$current_branch" != "$BRANCH" ]]; then
-    log "ERROR: Expected branch '$BRANCH', found '${current_branch:-detached HEAD}'."
-    exit 1
-fi
-
-if [[ -n "$(git -C "$REPO_DIR" status --porcelain --untracked-files=no)" ]]; then
-    log "ERROR: Tracked working tree changes exist; refusing to deploy."
     exit 1
 fi
 
@@ -54,17 +43,6 @@ remote_head="$(git -C "$REPO_DIR" rev-parse FETCH_HEAD)"
 if [[ "$remote_head" != "$RELEASE_SHA" ]]; then
     log "ERROR: Release $RELEASE_SHA is not the current $REMOTE/$BRANCH commit ($remote_head)."
     exit 1
-fi
-
-local_head="$(git -C "$REPO_DIR" rev-parse HEAD)"
-if [[ "$local_head" != "$RELEASE_SHA" ]]; then
-    if ! git -C "$REPO_DIR" merge-base --is-ancestor "$local_head" "$RELEASE_SHA"; then
-        log "ERROR: Local branch diverged from $REMOTE/$BRANCH; refusing non-fast-forward update."
-        exit 1
-    fi
-
-    log "Fast-forwarding source to $RELEASE_SHA."
-    git -C "$REPO_DIR" merge --ff-only "$RELEASE_SHA"
 fi
 
 rm -rf -- "$STAGING_DIR"
@@ -86,6 +64,12 @@ while IFS= read -r entry; do
     esac
 done < <(tar -tzf "$ARCHIVE")
 tar -xzf "$ARCHIVE" -C "$STAGING_DIR"
+
+if ! git -C "$REPO_DIR" show "$RELEASE_SHA:servuo.service" > "$STAGING_DIR/servuo.service" ||
+    [[ ! -s "$STAGING_DIR/servuo.service" ]]; then
+    log "ERROR: Could not read servuo.service from release $RELEASE_SHA."
+    exit 1
+fi
 
 for file in ServUO.exe Scripts.dll Ultima.dll; do
     if [[ ! -s "$STAGING_DIR/$file" ]]; then
@@ -131,7 +115,7 @@ for file in "${release_files[@]}"; do
     install -m 0644 "$file" "$REPO_DIR/"
 done
 
-install -m 0644 "$REPO_DIR/servuo.service" /etc/systemd/system/servuo.service
+install -m 0644 "$STAGING_DIR/servuo.service" /etc/systemd/system/servuo.service
 systemctl daemon-reload
 
 if systemctl restart servuo && sleep 5 && systemctl is-active --quiet servuo; then
