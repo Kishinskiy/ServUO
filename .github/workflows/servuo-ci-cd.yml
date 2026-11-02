@@ -51,6 +51,8 @@ jobs:
           release="$RUNNER_TEMP/servuo-release"
           mkdir -p "$release"
 
+          git archive --format=tar "$GITHUB_SHA" | tar -xf - -C "$release"
+
           required=(ServUO.exe Scripts.dll Ultima.dll)
           for file in "${required[@]}"; do
             if [[ ! -s "$file" ]]; then
@@ -60,14 +62,15 @@ jobs:
           done
 
           find . -maxdepth 1 -type f \( -name '*.dll' -o -name '*.exe' \) \
-            -exec cp {} "$release/" \;
+            -exec cp -f {} "$release/" \;
+          tar -czf "$RUNNER_TEMP/servuo-release.tar.gz" -C "$release" .
 
       - name: Upload release files
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: servuo-release
-          path: ${{ runner.temp }}/servuo-release/*
+          path: ${{ runner.temp }}/servuo-release.tar.gz
           if-no-files-found: error
           retention-days: 7
 
@@ -106,21 +109,20 @@ jobs:
 
       - name: Transfer and activate release
         env:
-          RELEASE_DIR: ${{ runner.temp }}/servuo-release
+          RELEASE_ARCHIVE: ${{ runner.temp }}/servuo-release/servuo-release.tar.gz
           DEPLOY_HOST: kishinskiy.ru
           DEPLOY_USER: root
           RELEASE_SHA: ${{ github.sha }}
         shell: bash
         run: |
           set -Eeuo pipefail
-          archive="$RUNNER_TEMP/servuo-release-${RELEASE_SHA}.tar.gz"
-          tar -czf "$archive" -C "$RELEASE_DIR" .
+          test -s "$RELEASE_ARCHIVE" || { echo "Full server release archive is missing"; exit 1; }
 
           target="${DEPLOY_USER}@${DEPLOY_HOST}"
           ssh -i "$HOME/.ssh/id_ed25519" -o BatchMode=yes -o StrictHostKeyChecking=yes \
             "$target" "mkdir -p /tmp/servuo-deploy"
           scp -i "$HOME/.ssh/id_ed25519" -o BatchMode=yes -o StrictHostKeyChecking=yes \
-            "$archive" "$target:/tmp/servuo-deploy/${RELEASE_SHA}.tar.gz"
+            "$RELEASE_ARCHIVE" "$target:/tmp/servuo-deploy/${RELEASE_SHA}.tar.gz"
           scp -i "$HOME/.ssh/id_ed25519" -o BatchMode=yes -o StrictHostKeyChecking=yes \
             "$GITHUB_WORKSPACE/deploy/deploy-release.sh" \
             "$target:/tmp/servuo-deploy/deploy-release-${RELEASE_SHA}.sh"
