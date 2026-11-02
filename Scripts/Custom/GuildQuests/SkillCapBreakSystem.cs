@@ -34,33 +34,40 @@ namespace Server.Custom.GuildQuests
             }
         }
 
-                private static void CheckAndApplyCaps(PlayerMobile pm)
+        private static void CheckAndApplyCaps(PlayerMobile pm)
         {
-            if (pm.AccessLevel > AccessLevel.Player) return;
+            if (pm == null || pm.AccessLevel > AccessLevel.Player) return;
 
+            // Сканируем навыки строго по отдельности
             for (int i = 0; i < pm.Skills.Length; ++i)
             {
                 Skill skill = pm.Skills[i];
                 
-                // 🔥 ИСПРАВЛЕНО: Радар реагирует СТРОГО на порог перехода (от 80.0 до 81.0).
-                // Если навык уже выше 81.0, система считает игрока легальным ветераном и полностью игнорирует его!
-                if (skill == null || skill.Base < 80.0 || skill.Base >= 81.0) 
+                if (skill == null) 
                     continue;
 
+                // 🔥 ИСПРАВЛЕНО: Проверяем базовое значение ТОЛЬКО текущего конкретного навыка (skill.Base).
+                // Радар срабатывает исключительно тогда, когда именно ЭТОТ навык дополз до порога [80.0 - 81.0).
+                // Общий показатель суммы всех навыков (700.0) сюда вообще никак не подмешивается!
+                if (skill.Base < 80.0 || skill.Base >= 81.0) 
+                    continue;
+
+                // Имя токена привязывается строго к имени конкретного навыка, например: "Break_Swords"
                 string tokenName = $"Break_{skill.Name}";
                 XmlAttachment breakToken = XmlAttach.FindAttachment(pm, typeof(XmlData), tokenName);
 
                 if (breakToken == null)
                 {
-                    // Запираем кап на 80.0 только тем, кто упёрся в лимит прямо сейчас
+                    // Запираем индивидуальный лимит ЭТОГО скилла (skill.Cap) на отметке 80.0
                     if (skill.Cap > 80.0)
                     {
                         skill.Cap = 80.0;
-                        pm.SendMessage(0x22, $"[Лимит Гильдии]: Развитие навыка '{skill.Name}' достигло порога 80.0. Обратитесь к Главе вашей Гильдии за Испытанием!");
+                        pm.SendMessage(0x22, $"[Лимит Гильдии]: Навык '{skill.Name}' развит до 80.0. Его дальнейший рост заморожен, пока вы не пройдете квест Магистра.");
                     }
                 }
                 else
                 {
+                    // Если индивидуальный токен именно для этого скилла найден, возвращаем ему нативный лимит
                     if (skill.Cap <= 80.0)
                     {
                         skill.Cap = Math.Max(100.0, skill.Cap);
@@ -68,6 +75,7 @@ namespace Server.Custom.GuildQuests
                 }
             }
         }
+
 
 
         public static void GrantSkillUnlock(PlayerMobile pm, SkillName skillName)

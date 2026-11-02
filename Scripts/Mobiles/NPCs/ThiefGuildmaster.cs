@@ -127,6 +127,21 @@ namespace Server.Mobiles
             return base.OnGoldGiven(from, dropped);
         }
 
+        public override void OnDoubleClick(Mobile from)
+        {
+            if (from is PlayerMobile pm && pm.Alive && pm.InRange(this.Location, 2))
+            {
+                // 🔥 НАШ ИЗОЛИРОВАННЫЙ КВЕСТОВЫЙ ПЕРЕХВАТЧИК ГИЛЬДИИ ВОРОВ 🎉⚙️
+                if (Server.Custom.GuildQuests.ThiefSkillQuest.OnThievesGuildmasterClick(pm, this))
+                {
+                    return; // Блокируем стандартный ванильный диалог гильдии
+                }
+            }
+
+            base.OnDoubleClick(from); 
+        }
+
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);

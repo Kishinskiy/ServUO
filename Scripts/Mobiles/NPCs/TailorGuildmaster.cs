@@ -23,6 +23,21 @@ namespace Server.Mobiles
                 return NpcGuild.TailorsGuild;
             }
         }
+
+        public override void OnDoubleClick(Mobile from)
+        {
+            if (from is PlayerMobile pm && pm.Alive && pm.InRange(this.Location, 2))
+            {
+                // 🔥 НАШ ИЗОЛИРОВАННЫЙ КВЕСТОВЫЙ ПЕРЕХВАТЧИК ГИЛЬДИИ ПОРТНЫХ 🎉⚙️
+                if (Server.Custom.GuildQuests.TailorSkillQuest.OnTailorGuildmasterClick(pm, this))
+                {
+                    return; // Блокируем стандартный ванильный диалог гильдии
+                }
+            }
+
+            base.OnDoubleClick(from); 
+        }
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
