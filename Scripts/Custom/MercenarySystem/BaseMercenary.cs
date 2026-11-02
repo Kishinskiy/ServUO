@@ -156,6 +156,22 @@ namespace Server.Custom.MercenarySystem
             }
         }
 
+        public override bool CanBeHarmedBy(Mobile from, bool message)
+        {
+            if (from != null && from.Player)
+                return false;
+
+            return base.CanBeHarmedBy(from, message);
+        }
+
+        public override int Damage(int amount, Mobile from, bool informMount, bool checkDisrupt)
+        {
+            if (from != null && from.Player)
+                return 0;
+
+            return base.Damage(amount, from, informMount, checkDisrupt);
+        }
+
         public override bool OnDragDrop(Mobile from, Item dropped)
         {
             if (from == ControlMaster && (dropped is BaseWeapon || dropped is BaseArmor || dropped is BaseClothing))
