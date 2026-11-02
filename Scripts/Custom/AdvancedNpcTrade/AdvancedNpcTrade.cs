@@ -16,7 +16,10 @@ namespace Server.Custom.AdvancedNpcTrade
 {
     public static class AdvancedNpcTradeMod
     {
-        public static readonly int LoyaltyChance = 5;
+        public static readonly int LoyaltyChance = 10;
+        private const double LoyaltyChancePerCityLevel = 12.5;
+        private const double PurchasePointsPerSuccess = 0.05;
+        private const double SellPointsPerSuccess = 0.05;
         private static readonly Dictionary<Tuple<Serial, Serial>, List<GenericBuyInfo>> _legendaryOffers
             = new Dictionary<Tuple<Serial, Serial>, List<GenericBuyInfo>>();
 
@@ -282,7 +285,7 @@ namespace Server.Custom.AdvancedNpcTrade
                         var cityProfile = Server.Custom.CityDevelopment.CityDevelopmentMod.GetCityProfile(c);
                         if (cityProfile != null)
                         {
-                            double calculatedChance = 5.0 + (cityProfile.Level - 1) * 6.25;
+                            double calculatedChance = LoyaltyChance + (cityProfile.Level - 1) * LoyaltyChancePerCityLevel;
                             baseChance = calculatedChance / 100.0;
                         }
                         break;
@@ -324,7 +327,7 @@ namespace Server.Custom.AdvancedNpcTrade
             }
             // 🔥 ИСПРАВЛЕНО: Подключаем к вычитанию шагов новый класс баланса
             double stepMultiplier = EpicAvatarWorldBalance.GetCityProgressMultiplier(coreCity);
-            double pointStep = 0.01 * stepMultiplier;
+            double pointStep = PurchasePointsPerSuccess * stepMultiplier;
             for (int i = 0; i < amount; i++)
             {
                 if (Utility.RandomDouble() < targetChance)
@@ -362,7 +365,7 @@ namespace Server.Custom.AdvancedNpcTrade
             }
             // 🔥 ИСПРАВЛЕНО: Извлечение модификатора из нового класса баланса
             double stepMultiplier = EpicAvatarWorldBalance.GetCityProgressMultiplier(coreCity);
-            double pointStep = 0.10 * stepMultiplier;
+            double pointStep = SellPointsPerSuccess * stepMultiplier;
             for (int i = 0; i < amount; i++)
             {
                 if (Utility.RandomDouble() < targetChance)
