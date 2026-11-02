@@ -12,6 +12,14 @@ namespace Server.Custom.MercenarySystem
         private MercenaryClass m_Class;
         private MercenaryProgression m_Progression;
 
+        protected override BaseAI ForcedAI
+        {
+            get
+            {
+                return IsRangedCaster ? new MercenaryMageAI(this) : null;
+            }
+        }
+
         [CommandProperty(AccessLevel.GameMaster)]
         public MercenaryClass Class { get { return m_Class; } set { m_Class = value; InvalidateProperties(); } }
 
@@ -59,6 +67,7 @@ namespace Server.Custom.MercenarySystem
             else if (mClass == MercenaryClass.Mage)
             {
                 AI = AIType.AI_Mage;
+                RangeFight = 6;
                 SetStr(80); SetDex(80); SetInt(150); SetHits(150); SetMana(300); SetDamage(10, 15);
                 SetSkill(SkillName.Magery, 80.0); SetSkill(SkillName.EvalInt, 80.0); SetSkill(SkillName.Meditation, 80.0); SetSkill(SkillName.Wrestling, 50.0);
                 AddItem(new Robe() { Movable = true, Hue = 2418 }); AddItem(new GnarledStaff() { Movable = true });
@@ -73,6 +82,7 @@ namespace Server.Custom.MercenarySystem
             else if (mClass == MercenaryClass.Bard)
             {
                 AI = AIType.AI_Mage;
+                RangeFight = 6;
                 SetStr(100); SetDex(100); SetInt(100); SetHits(220); SetDamage(12, 18);
                 SetSkill(SkillName.Musicianship, 80.0); SetSkill(SkillName.Discordance, 80.0); SetSkill(SkillName.Magery, 60.0);
                 AddItem(new JesterSuit() { Movable = true, Hue = 1161 }); AddItem(new Tambourine() { Movable = true });
@@ -94,6 +104,7 @@ namespace Server.Custom.MercenarySystem
             else if (mClass == MercenaryClass.Necromancer)
             {
                 AI = AIType.AI_Mage;
+                RangeFight = 6;
                 SetStr(90); SetDex(80); SetInt(140); SetHits(180); SetMana(280); SetDamage(12, 20);
                 SetSkill(SkillName.Necromancy, 80.0); SetSkill(SkillName.SpiritSpeak, 80.0); SetSkill(SkillName.MagicResist, 70.0);
                 AddItem(new BoneChest() { Movable = true, Hue = 1102 }); AddItem(new Scythe() { Movable = true });
@@ -108,6 +119,7 @@ namespace Server.Custom.MercenarySystem
             else if (mClass == MercenaryClass.ElfMage)
             {
                 AI = AIType.AI_Mage;
+                RangeFight = 6;
                 Body = 605;
                 Name = NameList.RandomName("elf_male");
                 SetStr(80); SetDex(90); SetInt(160); SetHits(170); SetMana(350); SetDamage(10, 16);
@@ -323,6 +335,12 @@ namespace Server.Custom.MercenarySystem
             m_Progression.Experience = reader.ReadInt();
             m_Progression.NextLevelExperience = reader.ReadInt();
 
+            if (IsRangedCaster)
+            {
+                RangeFight = 6;
+                ChangeAIType(AI);
+            }
+
             EnsureBackpack();
 
             foreach (Item item in Items)
@@ -332,6 +350,44 @@ namespace Server.Custom.MercenarySystem
             }
 
             Title = $"[{MercenaryProgression.GetRankTitle(m_Progression.Level)}]";
+        }
+
+        private bool IsRangedCaster
+        {
+            get
+            {
+                return m_Class == MercenaryClass.Mage || m_Class == MercenaryClass.Necromancer ||
+                       m_Class == MercenaryClass.ElfMage || m_Class == MercenaryClass.Bard;
+            }
+        }
+    }
+
+    public class MercenaryMageAI : MageAI
+    {
+        private const int MinimumCombatDistance = 5;
+        private const int PreferredCombatDistance = 6;
+        private const int MaximumCombatDistance = 8;
+
+        public MercenaryMageAI(BaseCreature mobile) : base(mobile)
+        {
+        }
+
+        public override void RunTo(IDamageable target)
+        {
+            if (target == null || target.Deleted)
+                return;
+
+            int distance = (int)m_Mobile.GetDistanceToSqrt(target);
+
+            if (distance < MinimumCombatDistance)
+            {
+                RunFrom(target);
+            }
+            else if (distance > MaximumCombatDistance &&
+                     !MoveTo(target, true, PreferredCombatDistance))
+            {
+                OnFailedMove();
+            }
         }
     }
 
