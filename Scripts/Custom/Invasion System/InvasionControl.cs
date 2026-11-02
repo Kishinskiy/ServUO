@@ -1,9 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using Server.Custom.CityDevelopment;
+using Server.Engines.CityLoyalty;
 using Server.Commands;
 using Server.Gumps;
+using Server.Mobiles;
 using Server.Network;
+using Server.Regions;
 
 namespace Server.Customs.Invasion_System
 {
@@ -14,14 +19,125 @@ namespace Server.Customs.Invasion_System
 
          public static void Initialize()
         {
-            // Отключаем автоматический таймер ивент-старта намертво!
+            Timer.DelayCall(TimeSpan.FromMinutes(2.0), TimeSpan.FromHours(1.0), TryStartAutomaticInvasion);
             CommandSystem.Register("ListInvasions", AccessLevel.Administrator, ListInvasions_OnCommand);
-            
-            // 🔥 ДОБАВЛЕНО: ГМ-команда для тотальной очистки мира от лишних защитников! 🎉⚙️🛠️
             CommandSystem.Register("WipeDefenders", AccessLevel.Administrator, WipeDefenders_OnCommand);
         }
 
-        // 🔥 МЕТОД ОЧИСТКИ: Находим и стираем всех защитников и подкрепления из мира!
+        private sealed class InvasionCandidate
+        {
+            public InvasionTowns Town;
+            public Map Map;
+            public int Population;
+        }
+
+        private static void TryStartAutomaticInvasion()
+        {
+            if (Invasions.Any(invasion => invasion.IsRunning || invasion.IsScheduled))
+                return;
+
+            List<PlayerMobile> onlinePlayers = NetState.Instances
+                .Select(state => state.Mobile)
+                .OfType<PlayerMobile>()
+                .Where(player => player.AccessLevel == AccessLevel.Player && player.Map != null && player.Map != Map.Internal)
+                .ToList();
+
+            int online = onlinePlayers.Count;
+            if (online == 0)
+                return;
+
+            double attackChance = 15.0 * (1.0 - Math.Exp(-online / 75.0));
+            if (Utility.Random(10000) >= attackChance * 100.0)
+                return;
+
+            List<InvasionCandidate> candidates = new List<InvasionCandidate>();
+            foreach (Map map in new[] { Map.Felucca, Map.Trammel })
+            {
+                foreach (City city in Enum.GetValues(typeof(City)))
+                {
+                    CityLoyaltySystem citySystem = CityLoyaltySystem.GetCityInstance(city);
+                    if (citySystem?.Definition == null)
+                        continue;
+
+                    CityProgress progress = CityDevelopmentMod.GetCityProfile(city, map);
+                    if (progress.Level < 5)
+                        continue;
+
+                    Region cityRegion = Region.Regions.FirstOrDefault(region =>
+                        region.Name == citySystem.Definition.Name && region.Map == map);
+                    if (cityRegion == null)
+                        continue;
+
+                    int population = onlinePlayers.Count(player =>
+                        player.Map == map &&
+                        player.Region != null &&
+                        cityRegion.IsPartOf(player.Region));
+
+                    if (population > 0 && TryGetInvasionTown(city, out InvasionTowns town))
+                    {
+                        candidates.Add(new InvasionCandidate
+                        {
+                            Town = town,
+                            Map = map,
+                            Population = population
+                        });
+                    }
+                }
+            }
+
+            if (candidates.Count == 0)
+                return;
+
+            int totalPopulation = candidates.Sum(candidate => candidate.Population);
+            int selectedPopulation = Utility.Random(totalPopulation);
+            InvasionCandidate selected = candidates[candidates.Count - 1];
+            foreach (InvasionCandidate candidate in candidates)
+            {
+                selectedPopulation -= candidate.Population;
+                if (selectedPopulation < 0)
+                {
+                    selected = candidate;
+                    break;
+                }
+            }
+
+            TownMonsterType[] monsterTypes = Enum.GetValues(typeof(TownMonsterType)).Cast<TownMonsterType>().ToArray();
+            TownChampionType[] championTypes = Enum.GetValues(typeof(TownChampionType)).Cast<TownChampionType>().ToArray();
+            int attackers = Math.Min(80, 15 + online * 5);
+            bool hasBoss = Utility.Random(100) < Math.Min(70, 10 + online * 2);
+
+            TownMonsterType monster = monsterTypes[Utility.Random(monsterTypes.Length)];
+            TownChampionType champion = championTypes[Utility.Random(championTypes.Length)];
+            DateTime startTime = DateTime.UtcNow + TimeSpan.FromMinutes(10.0);
+
+            new TownInvasion(
+                selected.Town,
+                monster,
+                champion,
+                startTime,
+                selected.Map,
+                attackers,
+                hasBoss,
+                true);
+        }
+
+        private static bool TryGetInvasionTown(City city, out InvasionTowns town)
+        {
+            switch (city)
+            {
+                case City.Britain: town = InvasionTowns.Britain; return true;
+                case City.Jhelom: town = InvasionTowns.Jhelom; return true;
+                case City.Minoc: town = InvasionTowns.Minoc; return true;
+                case City.Moonglow: town = InvasionTowns.Moonglow; return true;
+                case City.SkaraBrae: town = InvasionTowns.SkaraBrae; return true;
+                case City.Vesper: town = InvasionTowns.Vesper; return true;
+                case City.Yew: town = InvasionTowns.Yew; return true;
+                case City.Trinsic: town = InvasionTowns.Trinsic; return true;
+                case City.NewMagincia: town = InvasionTowns.NewMagincia; return true;
+                default: town = default(InvasionTowns); return false;
+            }
+        }
+
         [Usage("WipeDefenders")]
         [Description("Deletes all spawned town defenders and reinforcements from the world.")]
         private static void WipeDefenders_OnCommand(CommandEventArgs e)
@@ -99,7 +215,7 @@ namespace Server.Customs.Invasion_System
                 AddLabel(x, y, 2100, invasion.InvasionTown.ToString());
                 AddLabel(x+120, y, 2100, invasion.TownMonsterType.ToString());
                 AddLabel(x+240, y, 2100, invasion.TownChampionType.ToString());
-                AddLabel(x+360, y, 2100, invasion.IsRunning ? "Active" : invasion.StartTime.ToString());
+                AddLabel(x+360, y, 2100, invasion.IsRunning ? "Active" : invasion.IsScheduled ? "Scheduled" : invasion.StartTime.ToString());
                 AddButton(x+525, y, 210, 211, id, GumpButtonType.Reply, 0);
                 AddButton(x+570, y, 210, 211, id+100, GumpButtonType.Reply, 0);
             }

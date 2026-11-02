@@ -387,6 +387,61 @@ namespace Server.Custom.CityDevelopment
 
             return true;
         }
+
+        public static bool ApplyInvasionDamage(
+            Server.Engines.CityLoyalty.City city,
+            Map map,
+            double damage,
+            ref double damageUntilLevelDown)
+        {
+            if (damage <= 0.0)
+                return GetCityProfile(city, map).Level > 1;
+
+            CityProgress progress = GetCityProfile(city, map);
+            if (progress.Level <= 1)
+                return false;
+
+            progress.CurrentSupplies = Math.Max(0.0, progress.CurrentSupplies - damage);
+            if (damageUntilLevelDown <= 0.0)
+                damageUntilLevelDown = progress.RequiredSupplies;
+
+            damageUntilLevelDown -= damage;
+
+            Server.Factions.Town town = Server.Factions.Town.Towns.Find(
+                t => string.Equals(t.ToString(), city.ToString(), StringComparison.OrdinalIgnoreCase));
+
+            while (damageUntilLevelDown <= 0.0 && progress.Level > 1)
+            {
+                int previousLevel = progress.Level;
+                progress.Level--;
+                progress.RequiredSupplies = 250.0 * Math.Pow(2.0, progress.Level - 1);
+                progress.CurrentSupplies = Math.Min(progress.CurrentSupplies, progress.RequiredSupplies);
+                damageUntilLevelDown += progress.RequiredSupplies;
+
+                if (town != null)
+                {
+                    switch (progress.Level)
+                    {
+                        case 1: town.Tax = 2; break;
+                        case 2: town.Tax = 3; break;
+                        case 3: town.Tax = 5; break;
+                        case 4: town.Tax = 6; break;
+                        case 5: town.Tax = 8; break;
+                    }
+
+                    CityDecorationMod.RemoveTownDecoration(town, previousLevel, map);
+                    CityLegendaryMerchantMod.CheckMerchantSpawn(town, progress.Level);
+                }
+
+                World.Broadcast(
+                    0x22,
+                    true,
+                    $"[Вторжение]: Город {city} ({map.Name}) теряет развитие под натиском врага. Текущий уровень: {progress.Level}.");
+            }
+
+            return progress.Level > 1;
+        }
+
         private static void CityStatus_OnCommand(CommandEventArgs e)
         {
             Mobile m = e.Mobile;

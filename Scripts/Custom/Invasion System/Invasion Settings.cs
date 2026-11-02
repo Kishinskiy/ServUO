@@ -41,5 +41,7 @@
         Vesper,
         Yew,
         Britain,
+        Trinsic,
+        NewMagincia,
     }
 }
