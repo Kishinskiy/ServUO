@@ -28,7 +28,7 @@ namespace Server.Mobiles
         public override void OnDoubleClick(Mobile from)
         {
             if (from is PlayerMobile pm && pm.Alive && pm.InRange(Location, 2) &&
-                Server.Custom.GuildQuests.BlacksmithSkillQuest.OnBlacksmithGuildmasterClick(pm, this))
+                Server.Custom.GuildQuests.CraftSkillQuest.OnMinerGuildmasterClick(pm, this))
             {
                 return;
             }

@@ -127,10 +127,9 @@ namespace Server.Mobiles
         {
             if (from is PlayerMobile pm && pm.Alive && pm.InRange(this.Location, 2))
             {
-                // 🔥 НАШ ИЗОЛИРОВАННЫЙ КВЕСТОВЫЙ ПЕРЕХВАТЧИК ГИЛЬДИИ КУЗНЕЦОВ 🎉⚙️
-                if (Server.Custom.GuildQuests.BlacksmithSkillQuest.OnBlacksmithGuildmasterClick(pm, this))
+                if (Server.Custom.GuildQuests.CraftSkillQuest.OnBlacksmithGuildmasterClick(pm, this))
                 {
-                    return; // Блокируем стандартный ванильный диалог гильдии
+                    return;
                 }
             }
 

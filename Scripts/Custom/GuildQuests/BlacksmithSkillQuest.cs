@@ -8,79 +8,75 @@ using Server.Items;
 
 namespace Server.Custom.GuildQuests
 {
-    public static class BlacksmithSkillQuest
+    public static class CraftSkillQuest
     {
-        private static readonly SkillName[] CraftSkills = new SkillName[] { SkillName.Blacksmith, SkillName.Mining };
-
         public static bool OnBlacksmithGuildmasterClick(PlayerMobile pm, Mobile master)
+        {
+            return OnCraftGuildmasterClick(pm, master, SkillName.Blacksmith);
+        }
+
+        public static bool OnMinerGuildmasterClick(PlayerMobile pm, Mobile master)
+        {
+            return OnCraftGuildmasterClick(pm, master, SkillName.Mining);
+        }
+
+        private static bool OnCraftGuildmasterClick(PlayerMobile pm, Mobile master, SkillName skill)
         {
             if (pm == null || master == null) return false;
             if (GuildmasterSkillQuest.OnGuildmasterClick(pm, master)) return true;
 
-            // 1. Проверяем, принёс ли ремесленник трофей на сдачу
-            if (CheckAndCompleteCraftQuest(pm, master))
+            if (CheckAndCompleteCraftQuest(pm, master, skill))
                 return true;
 
-            // 2. Распределяем навыки по категориям (строго раздельно!)
-            List<SkillName> lockedCraftSpecs = new List<SkillName>();
-            List<SkillName> tooLowCraftSpecs = new List<SkillName>();
-            List<SkillName> alreadyCraftMaster = new List<SkillName>();
+            double baseValue = pm.Skills[skill].Base;
 
-            foreach (SkillName sk in CraftSkills)
+            if (SkillCapBreakSystem.CanCompleteQuest100(pm, skill))
             {
-                double baseValue = pm.Skills[sk].Base;
-
-                if (SkillCapBreakSystem.CanCompleteQuest100(pm, sk))
-                    lockedCraftSpecs.Add(sk);
-                else if (baseValue >= 30.0 && baseValue < 60.0)
-                    tooLowCraftSpecs.Add(sk);
-                else if (baseValue >= 100.0)
-                    alreadyCraftMaster.Add(sk);
-            }
-
-            // КАТЕГОРИЯ А: Есть конкретные навыки для прорыва (равны ровно 80.0)
-            if (lockedCraftSpecs.Count > 0)
-            {
-                pm.CloseGump(typeof(BlacksmithSelectionGump));
-                pm.SendGump(new BlacksmithSelectionGump(pm, master, lockedCraftSpecs));
+                pm.CloseGump(typeof(CraftSkillSelectionGump));
+                pm.SendGump(new CraftSkillSelectionGump(pm, master, skill));
                 return true;
             }
 
-            // КАТЕГОРИЯ Б: Мастер уже пробил эти капы ранее (выше 81.0)
-            if (alreadyCraftMaster.Count > 0 && lockedCraftSpecs.Count == 0)
+            if (baseValue >= 100.0)
             {
-                master.Say("Приветствую тебя, великий мастер наковальни. Твои ремесленные лимиты открыты, а кузнечные шедевры славятся по всему шарду. Новых испытаний не требуется.");
+                master.Say(skill == SkillName.Mining
+                    ? "Приветствую тебя, великий мастер шахтёрского дела. Твой лимит Mining уже открыт до 100.0."
+                    : "Приветствую тебя, великий мастер наковальни. Твой лимит Blacksmith уже открыт до 100.0.");
                 return true;
             }
 
-            // КАТЕГОРИЯ В: Слишком малый уровень (меньше 80.0)
-            if (tooLowCraftSpecs.Count > 0 && lockedCraftSpecs.Count == 0)
+            if (baseValue >= 30.0 && baseValue < 60.0)
             {
-                master.Say("Приветствую, подмастерье. Продолжай тренироваться, купи обучение у тренера и возвращайся, когда навык достигнет 60.0, чтобы пройти испытание гильдии.");
+                master.Say(skill == SkillName.Mining
+                    ? "Приветствую, подмастерье. Продолжай тренировать Mining и возвращайся на испытание гильдии, когда навык достигнет 60.0."
+                    : "Приветствую, подмастерье. Продолжай тренировать Blacksmith и возвращайся на испытание гильдии, когда навык достигнет 60.0.");
                 return true;
             }
 
             return false;
         }
 
-        private static bool CheckAndCompleteCraftQuest(PlayerMobile pm, Mobile master)
+        private static bool CheckAndCompleteCraftQuest(PlayerMobile pm, Mobile master, SkillName skill)
         {
-            // Кузнечное дело (Blacksmithing)
-            Item hammer = pm.Backpack.FindItemByType(typeof(EternalForgeHammer));
-            if (hammer != null && !hammer.Deleted && SkillCapBreakSystem.CanCompleteQuest100(pm, SkillName.Blacksmith))
+            if (skill == SkillName.Blacksmith)
             {
-                hammer.Delete();
-                CompleteCraftQuest(pm, SkillName.Blacksmith, master, "Испытание Горна Завершен: Великий Кузнец");
-                return true;
+                Item hammer = pm.Backpack.FindItemByType(typeof(EternalForgeHammer));
+                if (hammer != null && !hammer.Deleted && SkillCapBreakSystem.CanCompleteQuest100(pm, skill))
+                {
+                    hammer.Delete();
+                    CompleteCraftQuest(pm, skill, master, "Испытание Горна Завершено: Великий Кузнец");
+                    return true;
+                }
             }
-
-            // Шахтерское дело (Mining)
-            Item ore = pm.Backpack.FindItemByType(typeof(HeartOfTheMountainOre));
-            if (ore != null && !ore.Deleted && SkillCapBreakSystem.CanCompleteQuest100(pm, SkillName.Mining))
+            else if (skill == SkillName.Mining)
             {
-                ore.Delete();
-                CompleteCraftQuest(pm, SkillName.Mining, master, "Испытание Кирки Завершен: Магистр Руды");
-                return true;
+                Item ore = pm.Backpack.FindItemByType(typeof(HeartOfTheMountainOre));
+                if (ore != null && !ore.Deleted && SkillCapBreakSystem.CanCompleteQuest100(pm, skill))
+                {
+                    ore.Delete();
+                    CompleteCraftQuest(pm, skill, master, "Испытание Кирки Завершено: Магистр Руды");
+                    return true;
+                }
             }
 
             return false;
@@ -91,57 +87,56 @@ namespace Server.Custom.GuildQuests
             master.PlaySound(0x2A); // Нативный звук удара молотом по железу [из предыдущих ответов]
             SkillCapBreakSystem.GrantQuest100Unlock(pm, skill); // Разблокируем СТРОГО один конкретный навык до 100.0
             
-            pm.CloseGump(typeof(BlacksmithSelectionGump));
-            pm.SendGump(new BlacksmithQuestDetailsGump(title, $"Металл укрощен! Твое мастерство раздуло угасший горн. Гильдия официально признает тебя Мастером в искусстве {skill}.\n\nТвой квестовый барьер снят, куй и копай до 100.0! Чтобы пробить капы Полубогов и открыть высший цветной крафт, добывай Power Свитки на Алтарях Чемпионов!"));
+            pm.CloseGump(typeof(CraftSkillSelectionGump));
+            string message = skill == SkillName.Mining
+                ? "Твои знания недр впечатлили гильдию шахтёров. Квестовый барьер снят — добывай руду и развивай Mining до 100.0!"
+                : "Твоё мастерство у горна впечатлило гильдию кузнецов. Квестовый барьер снят — куй и развивай Blacksmith до 100.0!";
+            pm.SendGump(new CraftSkillQuestDetailsGump(title, message));
         }
     }
 
     // =========================================================================
     // 🎨 ГАМП 1: МЕНЮ ВЫБОРА РЕМЕСЛЕННЫХ ВЕТОК
     // =========================================================================
-    public class BlacksmithSelectionGump : Gump
+    public class CraftSkillSelectionGump : Gump
     {
-        private PlayerMobile m_Player; Mobile m_Master; private List<SkillName> m_Specs;
+        private PlayerMobile m_Player; Mobile m_Master; private SkillName m_Skill;
 
-        public BlacksmithSelectionGump(PlayerMobile pm, Mobile master, List<SkillName> specs) : base(100, 100)
+        public CraftSkillSelectionGump(PlayerMobile pm, Mobile master, SkillName skill) : base(100, 100)
         {
-            m_Player = pm; m_Master = master; m_Specs = specs;
+            m_Player = pm; m_Master = master; m_Skill = skill;
             AddPage(0); 
-            AddBackground(0, 0, 440, 320, 0x13BE); // Кузнечный железный интерфейс
+            AddBackground(0, 0, 440, 320, 0x13BE);
             AddAlphaRegion(15, 15, 410, 290);
 
-            AddLabel(40, 25, 0x35, "Ремесленная Палата: Закалка Стали");
+            string guildName = skill == SkillName.Mining ? "Гильдия шахтёров" : "Гильдия кузнецов";
+            AddLabel(40, 25, 0x35, $"{guildName}: Испытание мастерства");
             AddImageTiled(30, 50, 380, 2, 0x2424);
 
-            AddHtml(40, 65, 360, 60, "<BASEFONT COLOR=#FFFFFF>Твоё ремесленное чутье уперлось в барьер 60.0. Принеси трофей испытания и выбери навык, который хочешь открыть до 100.0:</BASEFONT>", false, false);
+            string skillName = skill == SkillName.Mining ? "Mining" : "Blacksmith";
+            AddHtml(40, 65, 360, 60, $"<BASEFONT COLOR=#FFFFFF>Навык {skillName} достиг барьера. Принеси трофей испытания, чтобы открыть его до 100.0:</BASEFONT>", false, false);
 
-            int y = 140;
-            for (int i = 0; i < m_Specs.Count; i++)
-            {
-                AddButton(40, y + 2, 0x15E1, 0x15E5, i + 1, GumpButtonType.Reply, 0);
-                AddLabel(75, y, 0x58, $"Начать испытание для: {m_Specs[i]}");
-                y += 30;
-            }
+            AddButton(40, 140, 0x15E1, 0x15E5, 1, GumpButtonType.Reply, 0);
+            AddLabel(75, 138, 0x58, $"Начать испытание для: {skillName}");
             AddButton(40, 275, 0xFB1, 0xFB2, 0, GumpButtonType.Reply, 0); AddLabel(75, 277, 0x22, "Закрыть");
         }
 
         public override void OnResponse(NetState sender, RelayInfo info)
         {
             if (m_Player == null || m_Master == null || info.ButtonID == 0) return;
-            int index = info.ButtonID - 1;
-            if (index >= 0 && index < m_Specs.Count)
+            if (info.ButtonID == 1)
             {
-                SkillName selectedSkill = m_Specs[index];
-                m_Player.CloseGump(typeof(BlacksmithQuestDetailsGump));
+                SkillName selectedSkill = m_Skill;
+                m_Player.CloseGump(typeof(CraftSkillQuestDetailsGump));
                 
                 if (selectedSkill == SkillName.Blacksmith)
                 {
-                    m_Player.SendGump(new BlacksmithQuestDetailsGump("Испытание Blacksmithing", 
+                    m_Player.SendGump(new CraftSkillQuestDetailsGump("Испытание Blacksmithing",
                         "Кузнец, твои доспехи крепки, но они не удержат удар дракона. Чтобы ковать высшую броню, тебе нужен легендарный инструмент. Отправляйся в Земли Хаоса, проникни в огненный данж к Огненным Горгульям и Демонам Бездны. Одолей их кузнецов у адского горнила и верни Молот Вечного Пламени!"));
                 }
                 else if (selectedSkill == SkillName.Mining)
                 {
-                    m_Player.SendGump(new BlacksmithQuestDetailsGump("Испытание Mining", 
+                    m_Player.SendGump(new CraftSkillQuestDetailsGump("Испытание Mining",
                         "Шахтер, обычные жилы железа и меди блекнут пред тайнами глубин. Чтобы находить Verite и Valorite, ты должен заглянуть в недра земли. Ступай в горы мира Ильшенар или глубокие пещеры каменистых плато, одолей древних Каменных Титанов и Высших Горных Элементалей и выбей из их сердца редчайшую руду 'Сердце Горы'!"));
                 }
             }
@@ -151,9 +146,9 @@ namespace Server.Custom.GuildQuests
     // =========================================================================
     // 🎨 ГАМП 2: ДЕТАЛИ ВЫБРАННОГО КВЕСТА КРАФТА
     // =========================================================================
-    public class BlacksmithQuestDetailsGump : Gump
+    public class CraftSkillQuestDetailsGump : Gump
     {
-        public BlacksmithQuestDetailsGump(string title, string text) : base(120, 120)
+        public CraftSkillQuestDetailsGump(string title, string text) : base(120, 120)
         {
             AddPage(0); AddBackground(0, 0, 420, 320, 0x13BE); AddAlphaRegion(15, 15, 390, 290);
             AddLabel(40, 25, 0x35, title); AddImageTiled(30, 50, 360, 2, 0x2424);
