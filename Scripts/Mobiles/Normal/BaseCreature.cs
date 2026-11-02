@@ -4332,7 +4332,7 @@ namespace Server.Mobiles
                 return TeachResult.Failure;
             }
 
-            int baseToSet = ourSkill.BaseFixedPoint / 3;
+            int baseToSet = ourSkill.BaseFixedPoint / 2;
 
             if (baseToSet > 420)
             {
@@ -4635,7 +4635,7 @@ namespace Server.Mobiles
 
                     if (skill != null && theirSkill != null && skill.Base >= 60.0 && CheckTeach(skill.SkillName, from))
                     {
-                        int toTeach = skill.BaseFixedPoint / 3;
+                        int toTeach = skill.BaseFixedPoint / 2;
 
                         if (toTeach > 420)
                         {

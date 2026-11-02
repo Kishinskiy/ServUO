@@ -15,7 +15,7 @@ namespace Server.Mobiles
         public MageGuildmaster()
             : base("mage")
         {
-            SetSkill(SkillName.EvalInt, 125.0, 125.0);
+            SetSkill(SkillName.EvalInt, 85.0, 100.0);
             SetSkill(SkillName.Inscribe, 65.0, 88.0);
             SetSkill(SkillName.MagicResist, 64.0, 100.0);
             SetSkill(SkillName.Magery, 90.0, 100.0);
@@ -77,8 +77,6 @@ namespace Server.Mobiles
             base.Deserialize(reader);
 
             int version = reader.ReadInt();
-
-            SetSkill(SkillName.EvalInt, 125.0, 125.0);
         }
     }
 }
