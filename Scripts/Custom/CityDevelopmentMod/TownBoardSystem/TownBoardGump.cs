@@ -41,7 +41,7 @@ namespace Server.Custom.TownBoards
                 false, false);
 
             // ==========================================
-            // --- БЛОК 1: ОХОТА (БЕЗ РЕГИОНОВ) ---
+            // --- БЛОК 1: ОХОТА ---
             // ==========================================
             AddAlphaRegion(15, 85, w - 30, 135);
             AddHtml(25, 90, 500, 24, "<BASEFONT COLOR=#FF9900 SIZE=4><B>ЗАДАНИЕ НА ОХОТУ</B></BASEFONT>", false, false);
@@ -49,7 +49,7 @@ namespace Server.Custom.TownBoards
             if (m_HuntOffer != null)
             {
                 AddHtml(30, 118, 480, 26,
-                    $"<BASEFONT COLOR=#FFFFFF SIZE=4><B>Убить {m_HuntOffer.RequiredCount} любых монстров</B></BASEFONT>",
+                    $"<BASEFONT COLOR=#FFFFFF SIZE=4><B>Убить {m_HuntOffer.RequiredCount} {TownContractScroll.GetTargetName(m_HuntOffer.TargetCreature)}</B></BASEFONT>",
                     false, false);
 
                 AddHtml(30, 146, 480, 24,
@@ -59,9 +59,13 @@ namespace Server.Custom.TownBoards
                 // Вычисляем и выводим множитель сложности от лояльности
                 double loyaltyPoints = TownBulletinBoardSystem.GetPlayerLoyaltyPoints(city, from);
                 int difficultyStage = TownBulletinBoardSystem.GetDifficultyStageByLoyalty(loyaltyPoints);
-                
+
                 AddHtml(30, 172, 450, 24,
-                    $"<BASEFONT COLOR=#87CEFA SIZE=2>Любая карта и регион; Fame-бонус до 1 000 золота за цель. Этап сложности: {difficultyStage}.</BASEFONT>",
+                    $"<BASEFONT COLOR=#87CEFA SIZE=2>Сложность цели: {m_HuntOffer.DifficultyTier}/5. Известность города: этап {difficultyStage}.</BASEFONT>",
+                    false, false);
+
+                AddHtml(30, 194, 480, 22,
+                    "<BASEFONT COLOR=#87CEFA SIZE=2>Убийства засчитываются в любом регионе и на любой карте. Fame-бонус — до 1 000 золота.</BASEFONT>",
                     false, false);
 
                 AddButton(525, 120, 0xFA5, 0xFA7, 1, GumpButtonType.Reply, 0);
@@ -178,9 +182,14 @@ namespace Server.Custom.TownBoards
 
                 if (from.AddToBackpack(contract))
                 {
-                    from.SendMessage(0x35, bounty
-                        ? $"Принят контракт: убить {contract.RequiredCount} любых монстров в любом регионе и на любой карте."
-                        : $"Принят контракт: доставить {contract.RequiredCount} ед. ресурса [{contract.ResourceClass}].");
+                    if (bounty)
+                    {
+                        from.SendMessage(0x35, $"Принят контракт: убить {contract.RequiredCount} {TownContractScroll.GetTargetName(contract.TargetCreature)} в любом регионе и на любой карте.");
+                    }
+                    else
+                    {
+                        from.SendMessage(0x35, $"Принят контракт: доставить {contract.RequiredCount} ед. ресурса [{contract.ResourceClass}].");
+                    }
                 }
                 else
                 {
