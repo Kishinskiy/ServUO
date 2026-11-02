@@ -51,7 +51,7 @@ jobs:
           release="$RUNNER_TEMP/servuo-release"
           mkdir -p "$release"
 
-          required=(ServUO.exe Server.dll Scripts.dll Ultima.dll)
+          required=(ServUO.exe Scripts.dll Ultima.dll)
           for file in "${required[@]}"; do
             if [[ ! -s "$file" ]]; then
               echo "Required build output is missing or empty: $file" >&2
@@ -60,7 +60,7 @@ jobs:
           done
 
           find . -maxdepth 1 -type f \( -name '*.dll' -o -name '*.exe' \) \
-            -exec cp -t "$release" -- {} +
+            -exec cp {} "$release/" \;
 
       - name: Upload release files
         if: github.event_name != 'pull_request'

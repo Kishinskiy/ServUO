@@ -87,12 +87,19 @@ while IFS= read -r entry; do
 done < <(tar -tzf "$ARCHIVE")
 tar -xzf "$ARCHIVE" -C "$STAGING_DIR"
 
-for file in ServUO.exe Server.dll Scripts.dll Ultima.dll; do
+for file in ServUO.exe Scripts.dll Ultima.dll; do
     if [[ ! -s "$STAGING_DIR/$file" ]]; then
         log "ERROR: Required release file is missing or empty: $file."
         exit 1
     fi
 done
+
+shopt -s nullglob
+release_files=("$STAGING_DIR"/*.dll "$STAGING_DIR"/*.exe)
+if [[ ${#release_files[@]} -eq 0 ]]; then
+    log "ERROR: Release archive contains no assemblies."
+    exit 1
+fi
 
 if systemctl cat servuo-auto-update.timer >/dev/null 2>&1; then
     log "Disabling the legacy auto-update timer."
@@ -105,11 +112,10 @@ fi
 
 BACKUP_DIR="$REPO_DIR/Backups/deploy/$(date -u +%Y%m%dT%H%M%SZ)-$RELEASE_SHA"
 mkdir -p "$BACKUP_DIR"
-for file in ServUO.exe Server.dll Scripts.dll Ultima.dll; do
-    if [[ -f "$REPO_DIR/$file" ]]; then
-        cp -a "$REPO_DIR/$file" "$BACKUP_DIR/"
-    fi
-done
+existing_files=("$REPO_DIR"/*.dll "$REPO_DIR"/*.exe)
+if [[ ${#existing_files[@]} -gt 0 ]]; then
+    cp -a "${existing_files[@]}" "$BACKUP_DIR/"
+fi
 
 if [[ -f /etc/systemd/system/servuo.service ]]; then
     cp -a /etc/systemd/system/servuo.service "$BACKUP_DIR/servuo.service"
@@ -118,8 +124,11 @@ fi
 log "Stopping ServUO."
 systemctl stop servuo
 
-for file in ServUO.exe Server.dll Scripts.dll Ultima.dll; do
-    install -m 0644 "$STAGING_DIR/$file" "$REPO_DIR/$file"
+for file in "${existing_files[@]}"; do
+    rm -- "$file"
+done
+for file in "${release_files[@]}"; do
+    install -m 0644 "$file" "$REPO_DIR/"
 done
 
 install -m 0644 "$REPO_DIR/servuo.service" /etc/systemd/system/servuo.service
@@ -132,11 +141,14 @@ if systemctl restart servuo && sleep 5 && systemctl is-active --quiet servuo; th
 fi
 
 log "ERROR: New release failed to start; restoring previous binaries."
-for file in ServUO.exe Server.dll Scripts.dll Ultima.dll; do
-    if [[ -f "$BACKUP_DIR/$file" ]]; then
-        install -m 0644 "$BACKUP_DIR/$file" "$REPO_DIR/$file"
-    fi
+deployed_files=("$REPO_DIR"/*.dll "$REPO_DIR"/*.exe)
+for file in "${deployed_files[@]}"; do
+    rm -- "$file"
 done
+backup_files=("$BACKUP_DIR"/*.dll "$BACKUP_DIR"/*.exe)
+if [[ ${#backup_files[@]} -gt 0 ]]; then
+    cp -a "${backup_files[@]}" "$REPO_DIR/"
+fi
 
 if [[ -f "$BACKUP_DIR/servuo.service" ]]; then
     install -m 0644 "$BACKUP_DIR/servuo.service" /etc/systemd/system/servuo.service
