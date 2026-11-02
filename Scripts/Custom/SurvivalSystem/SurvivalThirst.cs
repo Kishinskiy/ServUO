@@ -10,8 +10,17 @@ namespace Server.Custom.SurvivalSystem
 
         public static void Initialize()
         {
-            // Start a timer that fires every minute
+            EventSink.ThirstChanged += OnThirstChanged;
             _thirst_check = Timer.DelayCall(TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1), new TimerCallback(CheckThirst));
+        }
+
+        private static void OnThirstChanged(ThirstChangedEventArgs e)
+        {
+            if (e.Mobile is PlayerMobile pm && pm.Alive && pm.Thirst > e.OldValue && pm.Thirst > 0)
+            {
+                pm.RemoveStatMod("ThirstManaDebuff");
+                BuffInfo.RemoveBuff(pm, BuffIcon.Mindrot);
+            }
         }
 
         private static void CheckThirst()
