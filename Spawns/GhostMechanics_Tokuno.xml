@@ -6,9 +6,10 @@
     <UniqueId>00c444b7-570d-4cc8-b96e-dd76ad140c10</UniqueId>
     <Map>Tokuno</Map>
     <X>782</X><Y>1228</Y><Z>25</Z>
+    <Width>0</Width><Height>0</Height>
     <CentreX>782</CentreX><CentreY>1228</CentreY><CentreZ>25</CentreZ>
     <Range>0</Range><MaxCount>1</MaxCount><MinDelay>10</MinDelay><MaxDelay>10</MaxDelay>
-    <IsRunning>True</IsRunning>
+    <Team>0</Team><IsGroup>False</IsGroup><IsRunning>True</IsRunning>
     <Objects2>EtherealShrine,Зенто:MX=1:SB=0:RT=0:TO=0:KL=0:RK=0:CA=1:DN=-1:DX=-1:SP=1:PR=-1</Objects2>
   </Points>
 
@@ -21,7 +22,7 @@
     <CentreX>1166</CentreX><CentreY>801</CentreY><CentreZ>27</CentreZ>
     <Range>15</Range><MaxCount>3</MaxCount>
     <MinDelay>5</MinDelay><MaxDelay>15</MaxDelay>
-    <IsRunning>True</IsRunning><AllowGhostTriggering>True</AllowGhostTriggering>
+    <Team>0</Team><IsGroup>False</IsGroup><IsRunning>True</IsRunning><AllowGhostTriggering>True</AllowGhostTriggering>
     <Objects2>EtherealAnomaly:MX=3:SB=0:RT=0:TO=0:KL=0:RK=0:CA=1:DN=-1:DX=-1:SP=1:PR=-1</Objects2>
   </Points>
 </Spawns>
