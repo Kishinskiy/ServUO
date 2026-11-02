@@ -13,6 +13,7 @@ namespace Server.Custom.GuildQuests
         public static bool OnTinkerGuildmasterClick(PlayerMobile pm, Mobile master)
         {
             if (pm == null || master == null) return false;
+            if (GuildmasterSkillQuest.OnGuildmasterClick(pm, master)) return true;
 
             Skill tinkerSkill = pm.Skills[SkillName.Tinkering];
 
@@ -35,28 +36,29 @@ namespace Server.Custom.GuildQuests
             }
 
             // 2. ФАЗОВАЯ ПРОВЕРКА: Если навык уже выше 81.0 (Ветеран)
-            if (tinkerSkill.Base >= 81.0)
+            if (tinkerSkill.Base >= 100.0)
             {
                 master.Say("Приветствую тебя, великий изобретатель. Твои чертежи и механизмы уже вошли в историю нашей Гильдии. Твои лимиты открыты, и новые испытания тебе не требуются.");
                 return true;
             }
 
             // 3. ФАЗОВАЯ ПРОВЕРКА: Если навык готов к прорыву (Ровно 80.0)
-            if (tinkerSkill.Base >= 80.0 && tinkerSkill.Base < 81.0 && tinkerSkill.Cap <= 80.0)
+            if (SkillCapBreakSystem.CanCompleteQuest100(pm, SkillName.Tinkering))
             {
                 pm.CloseGump(typeof(TinkerQuestDetailsGump));
-                pm.SendGump(new TinkerQuestDetailsGump("Испытание Изобретателя (Tinkering 80.0+)", "Мастер, твои инструменты точны, но схемы уперлись в барьер 80.0. Чтобы конструировать по-настоящему живые механизмы и гранить тончайшие камни, обычных линеек мало. Ты должен разгадать секреты древних автоматонов.\n\nОтправляйся в Земли Хаоса, найди заброшенные механические мастерские или шахты, где безумные паровые Големы крушат все вокруг. Отключи одного из них, извлеки его тикающее Хронометрическое Ядро и доставь его мне. Ты готов принять этот вызов?"));
+                pm.SendGump(new TinkerQuestDetailsGump("Испытание Изобретателя (Tinkering 60.0+)", "Мастер, чтобы открыть Tinkering выше 60.0, найди древнего механического голема, отключи его и принеси мне Хронометрическое Ядро."));
                 return true;
             }
 
             // 4. ФАЗОВАЯ ПРОВЕРКА: Если навык меньше 80.0 (Подмастерье)
-            if (tinkerSkill.Base < 80.0)
+            if (tinkerSkill.Base < 60.0)
             {
-                master.Say("Приветствую, жестянщик. Твои инструменты еще слишком грубы, а шестеренки постоянно заедают. Собирай бочки, куй ведра, и когда твой навык Tinkering достигнет ровно 80.0 — Палата выслушает твой проект.");
+                master.Say("Приветствую, жестянщик. Продолжай практиковаться, купи обучение у тренера и возвращайся, когда Tinkering достигнет 60.0.");
                 return true;
             }
 
-            return false;
+            master.Say("Твоё испытание уже пройдено. Продолжай развивать Tinkering до 100.0.");
+            return true;
         }
     }
 

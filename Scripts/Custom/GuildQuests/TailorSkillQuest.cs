@@ -13,6 +13,7 @@ namespace Server.Custom.GuildQuests
         public static bool OnTailorGuildmasterClick(PlayerMobile pm, Mobile master)
         {
             if (pm == null || master == null) return false;
+            if (GuildmasterSkillQuest.OnGuildmasterClick(pm, master)) return true;
 
             Skill tailorSkill = pm.Skills[SkillName.Tailoring];
 
@@ -34,28 +35,29 @@ namespace Server.Custom.GuildQuests
             }
 
             // 2. ФАЗОВАЯ ПРОВЕРКА: Если навык уже выше 81.0 (Ветеран)
-            if (tailorSkill.Base >= 81.0)
+            if (tailorSkill.Base >= 100.0)
             {
                 master.Say("Приветствую тебя, великий кутюрье. Твои швейные шедевры уже известны на весь шард, а капы открыты. Новых испытаний от палаты не требуется.");
                 return true;
             }
 
             // 3. ФАЗОВАЯ ПРОВЕРКА: Если навык готов к прорыву (Ровно 80.0)
-            if (tailorSkill.Base >= 80.0 && tailorSkill.Base < 81.0 && tailorSkill.Cap <= 80.0)
+            if (SkillCapBreakSystem.CanCompleteQuest100(pm, SkillName.Tailoring))
             {
                 pm.CloseGump(typeof(TailorQuestDetailsGump));
-                pm.SendGump(new TailorQuestDetailsGump("Испытание Иглы (Tailoring 80.0+)", "Мастер, твои стежки ровны, но выкройки уперлись в барьер 80.0. Обычная шерсть и шкуры волков больше ничему не могут тебя научить. Чтобы шить элитные робы, способные удерживать заклинания Полубогов, тебе нужен благословенный материал.\n\nОтправляйся в Земли Хаоса, проникни в паучью цитадель Tera Keep, одолей Теневых Шелкопрядов и Высших Пауков-Ткачей. Собери их тончайшую пряжу Звездного Шёлка и доставь ее мне. Ты готов принять этот контракт?"));
+                pm.SendGump(new TailorQuestDetailsGump("Испытание Иглы (Tailoring 60.0+)", "Мастер, чтобы открыть Tailoring выше 60.0, проникни в паучью цитадель Tera Keep, одолей Высших Пауков-Ткачей и принеси мне пряжу Звездного Шёлка."));
                 return true;
             }
 
             // 4. ФАЗОВАЯ ПРОВЕРКА: Если навык меньше 80.0 (Подмастерье)
-            if (tailorSkill.Base < 80.0)
+            if (tailorSkill.Base < 60.0)
             {
-                master.Say("Приветствую, ткач. Твои швы еще слишком грубы, а кожа рвется под натяжением иглы. Шей банданы, крои простые плащи, и когда твой навык Tailoring достигнет ровно 80.0 — Синдикат выдаст тебе серьезное дело.");
+                master.Say("Приветствую, ткач. Продолжай шить, купи обучение у тренера и возвращайся, когда Tailoring достигнет 60.0.");
                 return true;
             }
 
-            return false;
+            master.Say("Твоё испытание уже пройдено. Продолжай развивать Tailoring до 100.0.");
+            return true;
         }
     }
 

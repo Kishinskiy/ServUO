@@ -15,6 +15,7 @@ namespace Server.Custom.GuildQuests
         public static bool OnNecromancerClick(PlayerMobile pm, Mobile master)
         {
             if (pm == null || master == null) return false;
+            if (GuildmasterSkillQuest.OnGuildmasterClick(pm, master)) return true;
 
             // 1. Проверяем, принёс ли чернокнижник трофей на сдачу
             if (CheckAndCompleteNecroQuest(pm, master))
@@ -29,11 +30,11 @@ namespace Server.Custom.GuildQuests
             {
                 double baseValue = pm.Skills[sk].Base;
 
-                if (baseValue >= 80.0 && baseValue < 81.0 && pm.Skills[sk].Cap <= 80.0)
+                if (SkillCapBreakSystem.CanCompleteQuest100(pm, sk))
                     lockedNecroSpecs.Add(sk);
-                else if (baseValue >= 30.0 && baseValue < 80.0)
+                else if (baseValue >= 30.0 && baseValue < 60.0)
                     tooLowNecroSpecs.Add(sk);
-                else if (baseValue >= 81.0)
+                else if (baseValue >= 100.0)
                     alreadyNecroMaster.Add(sk);
             }
 
@@ -55,7 +56,7 @@ namespace Server.Custom.GuildQuests
             // КАТЕГОРИЯ В: Слишком малый уровень (меньше 80.0)
             if (tooLowNecroSpecs.Count > 0 && lockedNecroSpecs.Count == 0)
             {
-                master.Say("Приветствую тебя, неофит. Твоя связь с миром мертвых еще слишком слаба, а кости послушников отказываются подчиняться. Накапливай ярость и прах, и когда твой темный путь упрется в отметку 80.0 — возвращайся.");
+                master.Say("Приветствую тебя, неофит. Продолжай изучать запретные искусства, купи обучение у тренера и возвращайся, когда навык достигнет 60.0.");
                 return true;
             }
 
@@ -112,7 +113,7 @@ namespace Server.Custom.GuildQuests
             AddLabel(40, 25, 0x22, "Некромантский Синедрион: Жертва Хаосу");
             AddImageTiled(30, 50, 380, 2, 0x2424);
 
-            AddHtml(40, 65, 360, 60, "<BASEFONT COLOR=#00FF00>Твоя душа очернена Скверной, но силы уперлись в барьер 80.0. Выбери, какую именно запретную дисциплину ты готов защитить кровью:</BASEFONT>", false, false);
+            AddHtml(40, 65, 360, 60, "<BASEFONT COLOR=#00FF00>Твоя сила уперлась в барьер 60.0. Принеси трофей испытания и выбери навык, который хочешь открыть до 100.0:</BASEFONT>", false, false);
 
             int y = 140;
             for (int i = 0; i < m_Specs.Count; i++)
@@ -135,12 +136,12 @@ namespace Server.Custom.GuildQuests
                 
                 if (selectedSkill == SkillName.Necromancy)
                 {
-                    m_Player.SendGump(new NecroQuestDetailsGump("Обряд Филактерии (Necromancy 80.0+)", 
+                    m_Player.SendGump(new NecroQuestDetailsGump("Обряд Филактерии (Necromancy 60.0+)",
                         "Твоя магия поднимает кости, но они рассыпаются от одного удара паладина. Твоя воля должна вечно удерживать души. Ступай в Земли Хаоса, проникни в самый темный склеп нежити и Жнецов Смерти, сокруши Древних Личей, заточи их эссенцию и принеси мне Филактерию Проклятых!"));
                 }
                 else if (selectedSkill == SkillName.SpiritSpeak)
                 {
-                    m_Player.SendGump(new NecroQuestDetailsGump("Шепот Бездны (Spirit Speak 80.0+)", 
+                    m_Player.SendGump(new NecroQuestDetailsGump("Шепот Бездны (Spirit Speak 60.0+)",
                         "Чтобы слышать призраков без искажений, твое ментальное тело должно частично умереть. Отправляйся в Земли Хаоса, найди места массовых захоронений или проклятый город Бедлам, уничтожь воющих призраков Банши, собери их предсмертные стоны и доставь мне Смертный Саван Банши!"));
                 }
             }

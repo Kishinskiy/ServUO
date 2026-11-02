@@ -15,6 +15,7 @@ namespace Server.Custom.GuildQuests
         public static bool OnAlchemistGuildmasterClick(PlayerMobile pm, Mobile master)
         {
             if (pm == null || master == null) return false;
+            if (GuildmasterSkillQuest.OnGuildmasterClick(pm, master)) return true;
 
             // 1. Проверяем, принёс ли ремесленник трофей на сдачу
             if (CheckAndCompleteAlchQuest(pm, master))
@@ -29,11 +30,11 @@ namespace Server.Custom.GuildQuests
             {
                 double baseValue = pm.Skills[sk].Base;
 
-                if (baseValue >= 80.0 && baseValue < 81.0 && pm.Skills[sk].Cap <= 80.0)
+                if (SkillCapBreakSystem.CanCompleteQuest100(pm, sk))
                     lockedAlchSpecs.Add(sk);
-                else if (baseValue >= 30.0 && baseValue < 80.0)
+                else if (baseValue >= 30.0 && baseValue < 60.0)
                     tooLowAlchSpecs.Add(sk);
-                else if (baseValue >= 81.0)
+                else if (baseValue >= 100.0)
                     alreadyAlchMaster.Add(sk);
             }
 
@@ -55,7 +56,7 @@ namespace Server.Custom.GuildQuests
             // КАТЕГОРИЯ В: Слишком малый уровень (меньше 80.0)
             if (tooLowAlchSpecs.Count > 0 && lockedAlchSpecs.Count == 0)
             {
-                master.Say("Приветствую, лаборант. Твои растворы еще слишком мутны, а колбы взрываются при малейшем перегреве. Толки ступкой простые травы, вари базовое зелье лечения, и когда твой навык доползет до 80.0 — я выдам тебе формулу испытания.");
+                master.Say("Приветствую, лаборант. Твои растворы еще слишком мутны, а колбы взрываются при малейшем перегреве. Купи обучение у тренера, развивай навык до 60.0 и возвращайся за испытанием гильдии.");
                 return true;
             }
 
@@ -112,7 +113,7 @@ namespace Server.Custom.GuildQuests
             AddLabel(40, 25, 2418, "Высшая Лаборатория: Дистилляция Сущностей");
             AddImageTiled(30, 50, 380, 2, 0x2424);
 
-            AddHtml(40, 65, 360, 60, "<BASEFONT COLOR=#FBC815>Твоё понимание связей между реагентами уперлось в барьер 80.0. Обычный корень мандрагоры и кровь пауков больше ничему тебя не научат. Выбери индивидуальный путь прорыва:</BASEFONT>", false, false);
+            AddHtml(40, 65, 360, 60, "<BASEFONT COLOR=#FBC815>Твоё понимание связей между реагентами уперлось в барьер 60.0. Принеси трофей испытания и выбери, какой навык открыть до 100.0:</BASEFONT>", false, false);
 
             int y = 140;
             for (int i = 0; i < m_Specs.Count; i++)

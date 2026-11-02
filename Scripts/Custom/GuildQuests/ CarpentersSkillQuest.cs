@@ -15,6 +15,7 @@ namespace Server.Custom.GuildQuests
         public static bool OnCarpentersGuildmasterClick(PlayerMobile pm, Mobile master)
         {
             if (pm == null || master == null) return false;
+            if (GuildmasterSkillQuest.OnGuildmasterClick(pm, master)) return true;
 
             // 1. Проверяем, принёс ли ремесленник трофей на сдачу
             if (CheckAndCompleteWoodQuest(pm, master))
@@ -29,11 +30,11 @@ namespace Server.Custom.GuildQuests
             {
                 double baseValue = pm.Skills[sk].Base;
 
-                if (baseValue >= 80.0 && baseValue < 81.0 && pm.Skills[sk].Cap <= 80.0)
+                if (SkillCapBreakSystem.CanCompleteQuest100(pm, sk))
                     lockedWoodSpecs.Add(sk);
-                else if (baseValue >= 30.0 && baseValue < 80.0)
+                else if (baseValue >= 30.0 && baseValue < 60.0)
                     tooLowWoodSpecs.Add(sk);
-                else if (baseValue >= 81.0)
+                else if (baseValue >= 100.0)
                     alreadyWoodMaster.Add(sk);
             }
 
@@ -55,7 +56,7 @@ namespace Server.Custom.GuildQuests
             // КАТЕГОРИЯ В: Слишком малый уровень (меньше 80.0)
             if (tooLowWoodSpecs.Count > 0 && lockedWoodSpecs.Count == 0)
             {
-                master.Say("Приветствую, подмастерье. Твои руки еще не привыкли к теслу и пиле, а бревна часто уходят в щепки. Заготавливай доски и делай простые стулья, и когда твой навык доползет до 80.0 — я выдам тебе контракт.");
+                master.Say("Приветствую, подмастерье. Продолжай работать с деревом, купи обучение у тренера и возвращайся, когда навык достигнет 60.0, чтобы пройти испытание гильдии.");
                 return true;
             }
 
@@ -112,7 +113,7 @@ namespace Server.Custom.GuildQuests
             AddLabel(40, 25, 2418, "Палата Зодчих: Сила Живого Леса");
             AddImageTiled(30, 50, 380, 2, 0x2424);
 
-            AddHtml(40, 65, 360, 60, "<BASEFONT COLOR=#FBC815>Твоё мастерство работы с древесиной уперлось в барьер 80.0. Обычные логи дуба и ясеня больше ничему тебя не научат. Выбери индивидуальный путь прорыва:</BASEFONT>", false, false);
+            AddHtml(40, 65, 360, 60, "<BASEFONT COLOR=#FBC815>Твоё мастерство работы с древесиной уперлось в барьер 60.0. Принеси трофей испытания и выбери навык, который хочешь открыть до 100.0:</BASEFONT>", false, false);
 
             int y = 140;
             for (int i = 0; i < m_Specs.Count; i++)

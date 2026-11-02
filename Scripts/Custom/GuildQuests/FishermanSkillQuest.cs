@@ -12,6 +12,7 @@ namespace Server.Custom.GuildQuests
         public static void OnFishermanClick(PlayerMobile pm, Mobile master)
         {
             if (pm == null || master == null) return;
+            if (GuildmasterSkillQuest.OnGuildmasterClick(pm, master)) return;
 
             Skill fishSkill = pm.Skills[SkillName.Fishing];
 
@@ -34,16 +35,20 @@ namespace Server.Custom.GuildQuests
                 return;
             }
 
-            // Проверяем, застрял ли навык Fishing на отметке 80.0
-            if (fishSkill.Base < 80.0)
+            if (fishSkill.Base < 60.0)
             {
-                master.Say("Приветствую на причале, матрос! Закидывай удочку, лови рыбу. Как только твое чутье Fishing достигнет 80.0, я выдам тебе контракт на Испытание Глубин.");
+                master.Say("Приветствую на причале, матрос! Продолжай ловить рыбу, купи обучение у тренера и возвращайся, когда Fishing достигнет 60.0.");
                 return;
             }
 
-            // Если предмета нет — открываем Гамп выдачи задания
+            if (!SkillCapBreakSystem.CanCompleteQuest100(pm, SkillName.Fishing))
+            {
+                master.Say("Ты уже прошёл испытание и можешь развивать Fishing до 100.0.");
+                return;
+            }
+
             pm.CloseGump(typeof(FishermanQuestGump));
-            pm.SendGump(new FishermanQuestGump("Испытание Глубин (Ранг 80.0+)", "Ты отлично управляешься с наживкой, рыбак. Но чтобы ловить по-настоящему легендарную рыбу и сокровища глубин выше 80.0, обычной удачи мало. Ты должен доказать бездне свою силу.\n\nВыходи в открытое море в Землях Хаоса, закидывай сети в самых глубоких водах, одолей вынырнувшее чудовище и принеси мне его Древнюю Чешую. Только тогда я открою тебе секреты Легенд (100.0). Ты готов?"));
+            pm.SendGump(new FishermanQuestGump("Испытание Глубин (Fishing 60.0+)", "Чтобы открыть Fishing выше 60.0, выходи в открытое море, одолей Левиафана и принеси мне его Древнюю Чешую. Тогда Рыболовная Гильдия позволит тебе развивать навык до 100.0."));
         }
     }
 

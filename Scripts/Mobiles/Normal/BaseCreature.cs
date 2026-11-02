@@ -3046,8 +3046,16 @@ namespace Server.Mobiles
         {
             if (CheckTeachingMatch(from))
             {
+                PlayerMobile pm = from as PlayerMobile;
+                SkillName learning = pm != null ? pm.Learning : (SkillName)(-1);
+                Skill skill = pm != null && learning != (SkillName)(-1) ? pm.Skills[learning] : null;
+                double skillBefore = skill != null ? skill.Base : -1.0;
+
                 if (Teach(m_Teaching, from, dropped.Amount, true))
                 {
+                    if (pm != null && skill != null && skill.Base > skillBefore)
+                        Server.Custom.GuildQuests.SkillCapBreakSystem.OnPaidTraining(pm, learning);
+
                     dropped.Delete();
                     return true;
                 }
@@ -4282,6 +4290,33 @@ namespace Server.Mobiles
         }
 
         public virtual TeachResult CheckTeachSkills(
+            SkillName skill, Mobile m, int maxPointsToLearn, ref int pointsToLearn, bool doTeach)
+        {
+            if (m is PlayerMobile pm &&
+                Server.Custom.GuildQuests.SkillCapBreakSystem.CanUsePaidTraining(pm, skill))
+            {
+                Skill playerSkill = pm.Skills[skill];
+
+                if (playerSkill != null)
+                {
+                    double originalCap = playerSkill.Cap;
+                    playerSkill.Cap = 60.0;
+
+                    try
+                    {
+                        return CheckTeachSkillsCore(skill, m, maxPointsToLearn, ref pointsToLearn, doTeach);
+                    }
+                    finally
+                    {
+                        playerSkill.Cap = originalCap;
+                    }
+                }
+            }
+
+            return CheckTeachSkillsCore(skill, m, maxPointsToLearn, ref pointsToLearn, doTeach);
+        }
+
+        private TeachResult CheckTeachSkillsCore(
             SkillName skill, Mobile m, int maxPointsToLearn, ref int pointsToLearn, bool doTeach)
         {
             if (!CheckTeach(skill, m) || !m.CheckAlive())

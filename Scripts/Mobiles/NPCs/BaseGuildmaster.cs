@@ -80,6 +80,17 @@ namespace Server.Mobiles
         {
         }
 
+        public override void OnDoubleClick(Mobile from)
+        {
+            if (from is PlayerMobile pm && pm.Alive && pm.InRange(Location, 2) &&
+                Server.Custom.GuildQuests.GuildmasterSkillQuest.OnGuildmasterClick(pm, this))
+            {
+                return;
+            }
+
+            base.OnDoubleClick(from);
+        }
+
         public virtual bool CheckCustomReqs(PlayerMobile pm)
         {
             return true;

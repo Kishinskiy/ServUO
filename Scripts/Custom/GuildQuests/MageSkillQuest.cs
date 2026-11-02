@@ -22,6 +22,7 @@ namespace Server.Custom.GuildQuests
         public static bool OnMageGuildmasterClick(PlayerMobile pm, Mobile master)
         {
             if (pm == null || master == null) return false;
+            if (GuildmasterSkillQuest.OnGuildmasterClick(pm, master)) return true;
 
             // 1. ПР ПРОВЕРКА СДАЧИ ТРОФЕЕВ
             if (CheckAndCompleteMageQuest(pm, master))

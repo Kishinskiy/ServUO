@@ -9,6 +9,10 @@ namespace Server.Custom.GuildQuests
 {
     public static class SkillCapBreakSystem
     {
+        // Spellweaving has no trainer NPC configured in this shard.
+        private static readonly SkillName[] TrainerSkills =
+            Array.FindAll((SkillName[])Enum.GetValues(typeof(SkillName)), skill => skill != SkillName.Spellweaving);
+
         private static readonly SkillName[] CombatSkills =
         {
             SkillName.Swords, SkillName.Macing, SkillName.Fencing, 
@@ -27,7 +31,36 @@ namespace Server.Custom.GuildQuests
             SkillName.Carpentry, SkillName.Lumberjacking, SkillName.Tailoring, SkillName.Tinkering,
             SkillName.Fishing, SkillName.Chivalry, SkillName.Necromancy, SkillName.SpiritSpeak,
             SkillName.Lockpicking, SkillName.Stealth, SkillName.Stealing, SkillName.Poisoning,
-            SkillName.Hiding, SkillName.Snooping, SkillName.RemoveTrap
+            SkillName.Hiding, SkillName.Snooping, SkillName.RemoveTrap, SkillName.AnimalLore,
+            SkillName.ItemID, SkillName.ArmsLore, SkillName.Begging, SkillName.Fletching,
+            SkillName.Peacemaking, SkillName.Camping, SkillName.Cartography, SkillName.Cooking,
+            SkillName.DetectHidden, SkillName.Discordance, SkillName.Healing, SkillName.Forensics,
+            SkillName.Herding, SkillName.Provocation, SkillName.Inscribe, SkillName.Musicianship,
+            SkillName.AnimalTaming, SkillName.Tracking, SkillName.Veterinary, SkillName.Focus,
+            SkillName.Mysticism, SkillName.Imbuing, SkillName.Throwing
+        };
+
+        private static readonly SkillName[] GenericGuildmasterQuestSkills =
+        {
+            SkillName.AnimalLore, SkillName.ItemID, SkillName.ArmsLore, SkillName.Begging,
+            SkillName.Fletching, SkillName.Peacemaking, SkillName.Camping, SkillName.Cartography,
+            SkillName.Cooking, SkillName.DetectHidden, SkillName.Discordance, SkillName.Healing,
+            SkillName.Forensics, SkillName.Herding, SkillName.Provocation, SkillName.Inscribe,
+            SkillName.Musicianship, SkillName.AnimalTaming, SkillName.Tracking, SkillName.Veterinary,
+            SkillName.Focus, SkillName.Mysticism, SkillName.Imbuing,
+            SkillName.Throwing
+        };
+
+        private static readonly Dictionary<Type, SkillName[]> GenericQuestTrophyDrops = new Dictionary<Type, SkillName[]>
+        {
+            { typeof(Treefellow), new[] { SkillName.AnimalLore, SkillName.AnimalTaming, SkillName.Veterinary, SkillName.Herding } },
+            { typeof(Cyclops), new[] { SkillName.ArmsLore, SkillName.Fletching, SkillName.Throwing, SkillName.Cooking } },
+            { typeof(SkeletalKnight), new[] { SkillName.ItemID, SkillName.Forensics, SkillName.Healing, SkillName.Camping } },
+            { typeof(OrcCaptain), new[] { SkillName.Begging, SkillName.Cartography } },
+            { typeof(WailingBanshee), new[] { SkillName.Peacemaking, SkillName.Discordance, SkillName.Provocation, SkillName.Musicianship } },
+            { typeof(DarkGuardian), new[] { SkillName.DetectHidden, SkillName.Tracking, SkillName.Focus } },
+            { typeof(FireDaemon), new[] { SkillName.Inscribe, SkillName.Mysticism } },
+            { typeof(Golem), new[] { SkillName.Imbuing } }
         };
 
         private sealed class QuestLoot
@@ -96,6 +129,7 @@ namespace Server.Custom.GuildQuests
         {
             EventSink.Login += OnPlayerLogin;
             EventSink.CreatureDeath += OnCreatureDeath;
+            EventSink.SkillGain += OnPlayerSkillGain;
         }
 
         private static void OnPlayerLogin(LoginEventArgs e)
@@ -106,71 +140,123 @@ namespace Server.Custom.GuildQuests
             }
         }
 
+        private static void OnPlayerSkillGain(SkillGainEventArgs e)
+        {
+            if (e.From is PlayerMobile pm && pm.AccessLevel <= AccessLevel.Player &&
+                Array.IndexOf(TrainerSkills, e.Skill.SkillName) >= 0)
+            {
+                double capBefore = e.Skill.Cap;
+                EnforceSkillCap(pm, e.Skill.SkillName);
+
+                if (e.Skill.Cap == capBefore && e.Skill.Base >= e.Skill.Cap)
+                    NotifySkillCapReached(pm, e.Skill);
+            }
+        }
+
+        private static void NotifySkillCapReached(PlayerMobile pm, Skill skill)
+        {
+            double baseVal = skill.Base;
+
+            if (baseVal >= 40.0 && baseVal < 60.0 &&
+                XmlAttach.FindAttachment(pm, typeof(XmlData), $"Break_{skill.Name}") == null)
+            {
+                pm.SendMessage(0x22, $"[Лимит]: Навык '{skill.Name}' достиг 40.0. Купите обучение у тренера, чтобы открыть кап до 60.0!");
+            }
+            else if (baseVal >= 60.0 && baseVal < 80.0 &&
+                (Array.IndexOf(CombatSkills, skill.SkillName) >= 0 ||
+                 Array.IndexOf(TwoStageQuestSkills, skill.SkillName) >= 0) &&
+                XmlAttach.FindAttachment(pm, typeof(XmlData), $"Quest80_{skill.Name}") == null)
+            {
+                pm.SendMessage(0x22, $"[Лимит]: Навык '{skill.Name}' достиг 60.0. Завершите испытание у Главы Гильдии, чтобы открыть кап до 80.0!");
+            }
+            else if (baseVal >= 80.0 && baseVal < 100.0 &&
+                (Array.IndexOf(CombatSkills, skill.SkillName) >= 0 ||
+                 Array.IndexOf(TwoStageQuestSkills, skill.SkillName) >= 0) &&
+                XmlAttach.FindAttachment(pm, typeof(XmlData), $"Quest100_{skill.Name}") == null)
+            {
+                pm.SendMessage(0x22, $"[Лимит]: Навык '{skill.Name}' достиг 80.0. Завершите испытание Грандмастера, чтобы открыть кап до 100.0!");
+            }
+            else if (baseVal >= 60.0 && baseVal < 100.0 &&
+                Array.IndexOf(CombatSkills, skill.SkillName) < 0 &&
+                Array.IndexOf(TwoStageQuestSkills, skill.SkillName) < 0 &&
+                XmlAttach.FindAttachment(pm, typeof(XmlData), $"Quest100_{skill.Name}") == null)
+            {
+                pm.SendMessage(0x22, $"[Лимит]: Навык '{skill.Name}' достиг 60.0. Принесите трофей Главе Гильдии, чтобы открыть кап до 100.0!");
+            }
+        }
+
         public static void EnforceSkillCaps(PlayerMobile pm)
         {
             if (pm == null || pm.AccessLevel > AccessLevel.Player) return;
 
-            foreach (SkillName skillName in CombatSkills)
+            foreach (SkillName skillName in TrainerSkills)
             {
-                Skill skill = pm.Skills[skillName];
-                if (skill == null) continue;
+                EnforceSkillCap(pm, skillName);
+            }
+        }
 
-                double baseVal = skill.Base;
+        private static void EnforceSkillCap(PlayerMobile pm, SkillName skillName)
+        {
+            Skill skill = pm.Skills[skillName];
+            if (skill == null) return;
 
-                if (baseVal < 20.0)
+            double baseVal = skill.Base;
+
+            // Preserve characters that already passed the native trainer teaching ceiling.
+            if (baseVal >= 42.0 && baseVal < 60.0 &&
+                XmlAttach.FindAttachment(pm, typeof(XmlData), $"Break_{skill.Name}") == null)
+            {
+                XmlAttach.AttachTo(pm, new XmlData($"Break_{skill.Name}", "Unlocked"));
+            }
+
+            if (baseVal < 20.0)
+            {
+                if (skill.Cap > 20.0)
                 {
-                    if (skill.Cap > 20.0) skill.Cap = 20.0;
-                    continue;
+                    skill.Cap = 20.0;
                 }
 
-                if (baseVal >= 20.0 && baseVal < 40.0)
+                return;
+            }
+
+            if (baseVal < 40.0)
+            {
+                if (skill.Cap != 40.0)
                 {
-                    if (skill.Cap > 40.0) skill.Cap = 40.0;
-                    continue;
+                    skill.Cap = 40.0;
                 }
 
-                if (baseVal >= 40.0 && baseVal < 60.0)
-                {
-                    string trainToken = $"Break_{skill.Name}"; // Используем общий префикс для совместимости
-                    EnforceUnlockCap(pm, skill, trainToken, 40.0, 60.0,
-                        $"[Лимит]: Боевой навык '{skill.Name}' замер на 40.0. Найдите тренера вендора и купите обучение (Train), чтобы открыть кап до 60.0!");
-                    continue;
-                }
+                return;
+            }
 
-                if (baseVal >= 60.0 && baseVal < 80.0)
+            if (baseVal < 60.0)
+            {
+                EnforceUnlockCap(pm, skill, $"Break_{skill.Name}", 40.0, 60.0,
+                    $"[Лимит]: Навык '{skill.Name}' ограничен 40.0. Купите обучение у тренера, чтобы открыть кап до 60.0!");
+                return;
+            }
+
+            if (Array.IndexOf(CombatSkills, skillName) >= 0 ||
+                Array.IndexOf(TwoStageQuestSkills, skillName) >= 0)
+            {
+                if (baseVal < 80.0)
                 {
                     EnforceUnlockCap(pm, skill, $"Quest80_{skill.Name}", 60.0, 80.0,
-                        $"[Лимит]: Навык '{skill.Name}' замер на 60.0. Сдайте первый квест Главе Гильдии!");
-                    continue;
+                        $"[Лимит]: Навык '{skill.Name}' ограничен 60.0. Завершите испытание у Главы Гильдии, чтобы открыть кап до 80.0!");
                 }
-
-                if (baseVal >= 80.0 && baseVal < 100.0)
+                else if (baseVal < 100.0)
                 {
                     EnforceUnlockCap(pm, skill, $"Quest100_{skill.Name}", 80.0, 100.0,
-                        $"[Лимит]: Навык '{skill.Name}' достиг 80.0. Требуется пройти испытание Грандмастера у Главы Гильдии!");
-                    continue;
+                        $"[Лимит]: Навык '{skill.Name}' ограничен 80.0. Завершите испытание Грандмастера, чтобы открыть кап до 100.0!");
                 }
+
+                return;
             }
 
-            foreach (SkillName skillName in TwoStageQuestSkills)
+            if (baseVal < 100.0)
             {
-                Skill skill = pm.Skills[skillName];
-                if (skill == null || skill.Base >= 100.0) continue;
-
-                double cap = skill.Base < 80.0 ? 60.0 : 80.0;
-                string unlock = skill.Base < 80.0 ? $"Quest80_{skill.Name}" : $"Quest100_{skill.Name}";
-                double unlockedCap = skill.Base < 80.0 ? 80.0 : 100.0;
-                EnforceUnlockCap(pm, skill, unlock, cap, unlockedCap,
-                    $"[Лимит]: Навык '{skill.Name}' ограничен. Завершите соответствующее испытание у Главы Гильдии!");
-            }
-
-            foreach (SkillName skillName in SingleStageQuestSkills)
-            {
-                Skill skill = pm.Skills[skillName];
-                if (skill == null || skill.Base >= 100.0) continue;
-
-                EnforceUnlockCap(pm, skill, $"Quest100_{skill.Name}", 80.0, 100.0,
-                    $"[Лимит]: Навык '{skill.Name}' ограничен 80.0. Пройдите испытание у Главы Гильдии!");
+                EnforceUnlockCap(pm, skill, $"Quest100_{skill.Name}", 60.0, 100.0,
+                    $"[Лимит]: Навык '{skill.Name}' ограничен 60.0. Принесите трофей Главе Гильдии, чтобы открыть кап до 100.0!");
             }
         }
 
@@ -178,10 +264,13 @@ namespace Server.Custom.GuildQuests
         {
             if (XmlAttach.FindAttachment(pm, typeof(XmlData), token) == null)
             {
-                if (skill.Cap > lockedCap)
+                if (skill.Cap != lockedCap)
                 {
+                    bool reduced = skill.Cap > lockedCap;
                     skill.Cap = lockedCap;
-                    pm.SendMessage(0x22, message);
+
+                    if (reduced)
+                        pm.SendMessage(0x22, message);
                 }
             }
             else if (skill.Cap < unlockedCap)
@@ -203,13 +292,19 @@ namespace Server.Custom.GuildQuests
         {
             Skill skill = pm?.Skills[skillName];
 
-            if (skill == null || skill.Base < 80.0 || skill.Base >= 100.0 ||
+            bool stagedSkill = Array.IndexOf(CombatSkills, skillName) >= 0 ||
+                Array.IndexOf(TwoStageQuestSkills, skillName) >= 0;
+            bool singleStageSkill = Array.IndexOf(SingleStageQuestSkills, skillName) >= 0;
+            double requiredBase = stagedSkill ? 80.0 : 60.0;
+
+            if (skill == null || (!stagedSkill && !singleStageSkill) ||
+                skill.Base < requiredBase || skill.Base >= 100.0 ||
                 XmlAttach.FindAttachment(pm, typeof(XmlData), $"Quest100_{skillName}") != null)
             {
                 return false;
             }
 
-            if (Array.IndexOf(CombatSkills, skillName) >= 0 || Array.IndexOf(TwoStageQuestSkills, skillName) >= 0)
+            if (stagedSkill)
             {
                 return XmlAttach.FindAttachment(pm, typeof(XmlData), $"Quest80_{skillName}") != null;
             }
@@ -251,18 +346,37 @@ namespace Server.Custom.GuildQuests
 
         private static void AddQuestLoot(CreatureDeathEventArgs e, BaseCreature victim)
         {
-            if (!QuestLootDrops.TryGetValue(victim.GetType(), out QuestLoot loot) ||
-                Utility.RandomDouble() >= loot.Chance)
+            QuestLootDrops.TryGetValue(victim.GetType(), out QuestLoot loot);
+            GenericQuestTrophyDrops.TryGetValue(victim.GetType(), out SkillName[] genericSkills);
+
+            if (loot == null && (genericSkills == null || genericSkills.Length == 0))
             {
                 return;
             }
 
-            e.ForcedLoot.Add(loot.Items[Utility.Random(loot.Items.Length)]());
+            double chance = loot?.Chance ?? 0.10;
+
+            if (Utility.RandomDouble() >= chance)
+                return;
+
+            int existingItemCount = loot?.Items.Length ?? 0;
+            int genericItemCount = genericSkills?.Length ?? 0;
+            int selectedItem = Utility.Random(existingItemCount + genericItemCount);
+
+            if (selectedItem < existingItemCount)
+            {
+                e.ForcedLoot.Add(loot.Items[selectedItem]());
+            }
+            else
+            {
+                SkillName skill = genericSkills[selectedItem - existingItemCount];
+                e.ForcedLoot.Add(new GuildmasterSkillTrophy(skill));
+            }
         }
 
-        public static void OnPaidCombatTraining(PlayerMobile pm, SkillName skillName)
+        public static void OnPaidTraining(PlayerMobile pm, SkillName skillName)
         {
-            if (!CanUsePaidCombatTraining(pm, skillName))
+            if (!CanUsePaidTraining(pm, skillName))
             {
                 return;
             }
@@ -270,20 +384,37 @@ namespace Server.Custom.GuildQuests
             Skill skill = pm.Skills[skillName];
             XmlAttach.AttachTo(pm, new XmlData($"Break_{skillName}", "Unlocked"));
             EnforceSkillCaps(pm);
-            pm.SendMessage(0x35, $"[Обучение]: Оплата обучения прошла успешно. Навык '{skill.Name}' теперь можно развивать до 60.0!");
+            pm.SendMessage(0x35, $"[Обучение]: Навык '{skill.Name}' теперь можно развивать до 60.0. После этого обратись к Главе Гильдии.");
         }
 
-        public static bool CanUsePaidCombatTraining(PlayerMobile pm, SkillName skillName)
+        public static bool CanUsePaidTraining(PlayerMobile pm, SkillName skillName)
         {
             if (pm == null || pm.AccessLevel > AccessLevel.Player ||
-                Array.IndexOf(CombatSkills, skillName) < 0 ||
                 XmlAttach.FindAttachment(pm, typeof(XmlData), $"Break_{skillName}") != null)
             {
                 return false;
             }
 
             Skill skill = pm.Skills[skillName];
-            return skill != null && skill.Base >= 40.0 && skill.Base < 60.0;
+            return skill != null && skill.Base < 60.0;
+        }
+
+        public static bool IsGenericGuildmasterQuestSkill(SkillName skillName)
+        {
+            return Array.IndexOf(GenericGuildmasterQuestSkills, skillName) >= 0;
+        }
+
+        public static Type[] GetGenericQuestTrophySources(SkillName skillName)
+        {
+            List<Type> sources = new List<Type>();
+
+            foreach (KeyValuePair<Type, SkillName[]> entry in GenericQuestTrophyDrops)
+            {
+                if (Array.IndexOf(entry.Value, skillName) >= 0)
+                    sources.Add(entry.Key);
+            }
+
+            return sources.ToArray();
         }
 
         public static void GrantQuest80Unlock(PlayerMobile pm, SkillName skillName)

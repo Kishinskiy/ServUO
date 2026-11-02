@@ -19,6 +19,7 @@ namespace Server.Custom.GuildQuests
         public static bool OnThievesGuildmasterClick(PlayerMobile pm, Mobile master)
         {
             if (pm == null || master == null) return false;
+            if (GuildmasterSkillQuest.OnGuildmasterClick(pm, master)) return true;
 
             // 1. Проверяем, принёс ли карманник готовый трофей на сдачу
             if (CheckAndCompleteThiefQuest(pm, master))
@@ -33,11 +34,11 @@ namespace Server.Custom.GuildQuests
             {
                 double baseValue = pm.Skills[sk].Base;
 
-                if (baseValue >= 80.0 && baseValue < 81.0 && pm.Skills[sk].Cap <= 80.0)
+                if (SkillCapBreakSystem.CanCompleteQuest100(pm, sk))
                     lockedThiefSpecs.Add(sk);
-                else if (baseValue >= 30.0 && baseValue < 80.0)
+                else if (baseValue >= 30.0 && baseValue < 60.0)
                     tooLowThiefSpecs.Add(sk);
-                else if (baseValue >= 81.0)
+                else if (baseValue >= 100.0)
                     alreadyThiefMaster.Add(sk);
             }
 
@@ -61,7 +62,7 @@ namespace Server.Custom.GuildQuests
             // КАТЕГОРИЯ В: Слишком малый уровень (меньше 80.0)
             if (tooLowThiefSpecs.Count > 0 && lockedThiefSpecs.Count == 0)
             {
-                master.Say("Твои шаги слишком громкие, а пальцы дрожат при виде чужого кошелька, салага. Срезай сумки у крестьян, ковыряй простые ящики. Когда твой навык доползет до 80.0 — Синдикат выдаст тебе настоящее дело.");
+                master.Say("Твои шаги слишком громкие, а пальцы дрожат при виде чужого кошелька, салага. Продолжай тренироваться, купи обучение и возвращайся к Синдикату, когда навык достигнет 60.0.");
                 return true;
             }
 
@@ -117,7 +118,7 @@ namespace Server.Custom.GuildQuests
 
             AddLabel(40, 25, 0x22, "Воровской Синдикат: Выбор Контракта");
             AddImageTiled(30, 50, 380, 2, 0x2424);
-            AddHtml(40, 65, 360, 60, "<BASEFONT COLOR=#00FF00>Твои криминальные повадки застыли на отметке 80.0. Выбери, какое именно теневое испытание ты готов пройти, чтобы заслужить уважение Гильдии:</BASEFONT>", false, false);
+            AddHtml(40, 65, 360, 60, "<BASEFONT COLOR=#00FF00>Твои криминальные навыки застыли на отметке 60.0. Принеси трофей испытания и выбери навык, который хочешь открыть до 100.0:</BASEFONT>", false, false);
             
             int y = 140;
             for (int i = 0; i < m_Specs.Count; i++)

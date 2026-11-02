@@ -12,6 +12,7 @@ namespace Server.Custom.GuildQuests
         public static void OnPaladinClick(PlayerMobile pm, Mobile master)
         {
             if (pm == null || master == null) return;
+            if (GuildmasterSkillQuest.OnGuildmasterClick(pm, master)) return;
 
             Skill chivSkill = pm.Skills[SkillName.Chivalry];
 
@@ -32,27 +33,26 @@ namespace Server.Custom.GuildQuests
                 return;
             }
 
-            // 2. ФАЗОВАЯ ПРОВЕРКА: Если навык уже выше 81.0 (Ветеран)
-            if (chivSkill.Base >= 81.0)
+            if (chivSkill.Base >= 100.0)
             {
                 master.Say("Приветствую тебя, прославленный рыцарь Света. Твоё благочестие и верность Chivalry уже доказаны делами. Ступай с миром, тебе не нужны новые испытания.");
                 return;
             }
 
-            // 3. ФАЗОВАЯ ПРОВЕРКА: Если навык готов к прорыву (Ровно 80.0)
-            if (chivSkill.Base >= 80.0 && chivSkill.Base < 81.0 && chivSkill.Cap <= 80.0)
+            if (SkillCapBreakSystem.CanCompleteQuest100(pm, SkillName.Chivalry))
             {
                 pm.CloseGump(typeof(PaladinQuestGump));
-                pm.SendGump(new PaladinQuestGump("Испытание Священной Веры (Chivalry 80.0+)", "Брат мой, твои молитвы сильны, но твоё духовное тело достигло земного предела. Чтобы разжечь священный огонь Chivalry выше порога в 80.0 единиц, тебе нужен великий подвиг.\n\nОтправляйся в Земли Хаоса, отыщи оскверненные руины древней церкви, где властвуют Лорды Смерти и Тёмные гвардейцы. Одолей их, окропи святой водой их алтарь и верни мне Очищенный Грааль Света. Справишься ли ты с этой миссией?"));
+                pm.SendGump(new PaladinQuestGump("Испытание Священной Веры (Chivalry 60.0+)", "Брат мой, твои молитвы сильны, но твоё духовное тело достигло предела. Чтобы открыть Chivalry выше 60.0, отправляйся в Земли Хаоса, одолей Лордов Смерти или Тёмных гвардейцев и принеси мне Очищенный Грааль Света."));
                 return;
             }
 
-            // 4. ФАЗОВАЯ ПРОВЕРКА: Если навык меньше 80.0 (Рекрут)
-            if (chivSkill.Base < 80.0)
+            if (chivSkill.Base < 60.0)
             {
-                master.Say("Приветствую тебя, послушник. Твоё служение только началось. Изучай священные мантры, твори праведные дела, и когда твоя вера Chivalry достигнет отметки 80.0 — я сочту тебя готовым к Великому Испытанию.");
+                master.Say("Приветствую тебя, послушник. Продолжай изучать священные мантры, купи обучение у тренера и возвращайся, когда твой навык Chivalry достигнет 60.0.");
                 return;
             }
+
+            master.Say("Твоё испытание уже пройдено, рыцарь. Продолжай развивать Chivalry до 100.0.");
         }
     }
 
