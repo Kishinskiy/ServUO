@@ -30,7 +30,8 @@ namespace Server.Engines.Quests
             typeof(Ambitious.AmbitiousQueenQuest),
             typeof(Ninja.EminosUndertakingQuest),
             typeof(Samurai.HaochisTrialsQuest),
-            typeof(Zento.TerribleHatchlingsQuest)
+            typeof(Zento.TerribleHatchlingsQuest),
+            typeof(Server.Custom.GuildQuests.GuildmasterQuestSystem)
         };
         private PlayerMobile m_From;
         private ArrayList m_Objectives;

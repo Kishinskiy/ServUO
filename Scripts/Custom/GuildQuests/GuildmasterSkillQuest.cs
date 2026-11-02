@@ -98,6 +98,7 @@ namespace Server.Custom.GuildQuests
                 {
                     trophy.Delete();
                     SkillCapBreakSystem.GrantQuest100Unlock(pm, trophy.Skill);
+                    GuildmasterQuestSystem.CompleteTrackedQuest(pm, master.GetType(), trophy.Skill);
                     master.PlaySound(0x5B4);
                     string skillName = SkillInfo.Table[(int)trophy.Skill].Name;
                     pm.SendGump(new GuildmasterSkillQuestGump(
@@ -121,8 +122,29 @@ namespace Server.Custom.GuildQuests
                 return false;
 
             pm.CloseGump(typeof(GuildmasterSkillQuestGump));
-            pm.SendGump(new GuildmasterSkillQuestGump(master.GetType(), availableSkills));
+            pm.SendGump(new GuildmasterSkillQuestGump(pm, master, master.GetType(), availableSkills));
             return true;
+        }
+
+        public static void BeginTrackedQuest(PlayerMobile pm, Mobile master, SkillName skill, Type guildmasterType = null)
+        {
+            if (pm == null || master == null || master.Deleted)
+                return;
+
+            if (pm.Quest != null)
+            {
+                pm.SendMessage("Сначала заверши или откажись от текущего задания.");
+                return;
+            }
+
+            if (!SkillCapBreakSystem.CanCompleteQuest100(pm, skill) ||
+                SkillCapBreakSystem.GetGenericQuestTrophySources(skill).Length == 0)
+            {
+                pm.SendMessage("Это испытание сейчас недоступно.");
+                return;
+            }
+
+            new GuildmasterQuestSystem(pm, guildmasterType ?? master.GetType(), skill).SendOffer();
         }
     }
 
@@ -150,6 +172,7 @@ namespace Server.Custom.GuildQuests
                 {
                     trophy.Delete();
                     SkillCapBreakSystem.GrantQuest100Unlock(pm, trophy.Skill);
+                    GuildmasterQuestSystem.CompleteTrackedQuest(pm, master.GetType(), trophy.Skill);
                     master.PlaySound(0x5B4);
                     string skillName = SkillInfo.Table[(int)trophy.Skill].Name;
                     pm.SendGump(new GuildmasterSkillQuestGump(
@@ -170,7 +193,7 @@ namespace Server.Custom.GuildQuests
 
             if (availableSkills.Count > 0)
             {
-                pm.SendGump(new BardSkillQuestGump(availableSkills));
+                pm.SendGump(new BardSkillQuestGump(pm, master, availableSkills));
                 return;
             }
 
@@ -225,6 +248,7 @@ namespace Server.Custom.GuildQuests
                 {
                     trophy.Delete();
                     SkillCapBreakSystem.GrantQuest100Unlock(pm, SkillName.Cooking);
+                    GuildmasterQuestSystem.CompleteTrackedQuest(pm, master.GetType(), SkillName.Cooking);
                     master.PlaySound(0x5B4);
                     pm.CloseGump(typeof(CookingSkillQuestGump));
                     pm.SendGump(new GuildmasterSkillQuestGump(
@@ -238,7 +262,7 @@ namespace Server.Custom.GuildQuests
 
             if (SkillCapBreakSystem.CanCompleteQuest100(pm, SkillName.Cooking))
             {
-                pm.SendGump(new CookingSkillQuestGump(pm));
+                pm.SendGump(new CookingSkillQuestGump(pm, master));
             }
             else if (pm.Skills[SkillName.Cooking].Base < 60.0)
             {
@@ -253,27 +277,45 @@ namespace Server.Custom.GuildQuests
 
     public class CookingSkillQuestGump : Gump
     {
-        public CookingSkillQuestGump(PlayerMobile player) : base(100, 100)
+        private readonly PlayerMobile m_Player;
+        private readonly Mobile m_Master;
+
+        public CookingSkillQuestGump(PlayerMobile player, Mobile master) : base(100, 100)
         {
+            m_Player = player;
+            m_Master = master;
             AddPage(0);
-            AddBackground(0, 0, 520, 270, 0x13BE);
-            AddAlphaRegion(15, 15, 490, 240);
+            AddBackground(0, 0, 520, 310, 0x13BE);
+            AddAlphaRegion(15, 15, 490, 280);
             AddLabel(35, 25, 0x35, "Испытание гильдии кулинаров");
 
             AddHtml(35, 65, 450, 130,
                 "<BASEFONT COLOR=#FFFFFF>В старых книгах гильдии сказано, что даже самый искусный повар должен однажды приготовить блюдо среди хаоса битвы. Одолей Циклопа, добудь трофей испытания и принеси его гильдмастеру, чтобы открыть развитие Cooking до 100.0.</BASEFONT>",
                 false, true);
+            AddButton(35, 220, 0x15E1, 0x15E5, 1, GumpButtonType.Reply, 0);
+            AddLabel(70, 220, 0x35, "Принять испытание");
         }
 
         public override void OnResponse(NetState sender, RelayInfo info)
         {
+            if (info.ButtonID != 1)
+                return;
+
+            GuildmasterSkillQuest.BeginTrackedQuest(m_Player, m_Master, SkillName.Cooking);
         }
     }
 
     public class BardSkillQuestGump : Gump
     {
-        public BardSkillQuestGump(List<SkillName> skills) : base(100, 100)
+        private readonly PlayerMobile m_Player;
+        private readonly Mobile m_Master;
+        private readonly List<SkillName> m_Skills;
+
+        public BardSkillQuestGump(PlayerMobile player, Mobile master, List<SkillName> skills) : base(100, 100)
         {
+            m_Player = player;
+            m_Master = master;
+            m_Skills = skills;
             AddPage(0);
             AddBackground(0, 0, 520, 420, 0x13BE);
             AddAlphaRegion(15, 15, 490, 390);
@@ -282,18 +324,24 @@ namespace Server.Custom.GuildQuests
                 "<BASEFONT COLOR=#FFFFFF>Легенда гласит, что Воющая Банши хранит мелодии, способные сломить даже самую стойкую волю. Одолей ее и принеси гильдмастеру трофей, чтобы подтвердить свое мастерство.</BASEFONT>",
                 false, true);
 
-            List<string> entries = new List<string>();
-
-            foreach (SkillName skillName in skills)
+            for (int i = 0; i < skills.Count; i++)
             {
-                entries.Add($"<BASEFONT COLOR=#FFFFFF><b>Испытание навыка {SkillInfo.Table[(int)skillName].Name}</b>: одолей Воющую Банши и принеси ее трофей гильдмастеру, чтобы открыть развитие навыка до 100.0.</BASEFONT>");
+                int y = 125 + i * 62;
+                string skillName = SkillInfo.Table[(int)skills[i]].Name;
+                AddHtml(35, y, 390, 52,
+                    $"<BASEFONT COLOR=#FFFFFF><b>Испытание навыка {skillName}</b>: одолей Воющую Банши и принеси ее трофей гильдмастеру, чтобы открыть развитие навыка до 100.0.</BASEFONT>",
+                    false, true);
+                AddButton(440, y + 8, 0x15E1, 0x15E5, i + 1, GumpButtonType.Reply, 0);
+                AddLabel(428, y + 30, 0x35, "Взять");
             }
-
-            AddHtml(35, 125, 450, 260, String.Join("<br><br>", entries), true, true);
         }
 
         public override void OnResponse(NetState sender, RelayInfo info)
         {
+            int index = info.ButtonID - 1;
+
+            if (index >= 0 && index < m_Skills.Count)
+                GuildmasterSkillQuest.BeginTrackedQuest(m_Player, m_Master, m_Skills[index]);
         }
     }
 
@@ -308,31 +356,47 @@ namespace Server.Custom.GuildQuests
             AddHtml(35, 65, 430, 110, $"<BASEFONT COLOR=#FFFFFF>{message}</BASEFONT>", false, true);
         }
 
-        public GuildmasterSkillQuestGump(Type guildmasterType, List<SkillName> skills) : base(100, 100)
+        private readonly PlayerMobile m_Player;
+        private readonly Mobile m_Master;
+        private readonly Type m_GuildmasterType;
+        private readonly List<SkillName> m_Skills;
+
+        public GuildmasterSkillQuestGump(PlayerMobile player, Mobile master, Type guildmasterType, List<SkillName> skills) : base(100, 100)
         {
+            m_Player = player;
+            m_Master = master;
+            m_GuildmasterType = guildmasterType;
+            m_Skills = skills;
             AddPage(0);
             AddBackground(0, 0, 500, 500, 0x13BE);
             AddAlphaRegion(15, 15, 470, 470);
             AddLabel(35, 25, 0x35, GetGuildmasterTitle(guildmasterType));
 
-            List<string> entries = new List<string>();
             string lore = GetGuildmasterLore(guildmasterType);
+            AddHtml(35, 55, 430, 36, $"<BASEFONT COLOR=#FFFFFF>{lore}</BASEFONT>", false, false);
 
-            foreach (SkillName skill in skills)
+            for (int i = 0; i < skills.Count; i++)
             {
+                SkillName skill = skills[i];
                 Type[] sources = SkillCapBreakSystem.GetGenericQuestTrophySources(skill);
                 string sourceNames = String.Join(", ", Array.ConvertAll(sources, GetSourceName));
                 string skillName = SkillInfo.Table[(int)skill].Name;
+                int y = 96 + i * 56;
 
-                entries.Add(
-                    $"<BASEFONT COLOR=#FFFFFF><b>Испытание навыка {skillName}</b><br>{lore} Одолей {sourceNames} и принеси гильдмастеру трофей испытания. Это откроет развитие навыка до 100.0.</BASEFONT>");
+                AddHtml(35, y, 390, 52,
+                    $"<BASEFONT COLOR=#FFFFFF><b>Испытание навыка {skillName}</b><br>Одолей {sourceNames} и принеси трофей, чтобы открыть развитие до 100.0.</BASEFONT>",
+                    false, true);
+                AddButton(435, y + 8, 0x15E1, 0x15E5, i + 1, GumpButtonType.Reply, 0);
+                AddLabel(425, y + 30, 0x35, "Взять");
             }
-
-            AddHtml(35, 65, 430, 400, String.Join("<br><br>", entries), true, true);
         }
 
-        private static string GetGuildmasterTitle(Type guildmasterType)
+        internal static string GetGuildmasterTitle(Type guildmasterType)
         {
+            if (guildmasterType == typeof(BardGuildmaster))
+                return "Испытания гильдии бардов";
+            if (guildmasterType == typeof(CookGuildmaster))
+                return "Испытание гильдии кулинаров";
             if (guildmasterType == typeof(WarriorGuildmaster))
                 return "Испытания гильдии воинов";
             if (guildmasterType == typeof(BlacksmithGuildmaster))
@@ -351,8 +415,12 @@ namespace Server.Custom.GuildQuests
             return "Испытания гильдии";
         }
 
-        private static string GetGuildmasterLore(Type guildmasterType)
+        internal static string GetGuildmasterLore(Type guildmasterType)
         {
+            if (guildmasterType == typeof(BardGuildmaster))
+                return "Гильдия бардов верит, что истинное искусство рождается перед лицом опасности.";
+            if (guildmasterType == typeof(CookGuildmaster))
+                return "Гильдия кулинаров проверяет мастера там, где спокойная кухня уступает место опасному походу.";
             if (guildmasterType == typeof(WarriorGuildmaster))
                 return "Гильдия воинов чтит не громкие слова, а испытания, пережитые в бою.";
             if (guildmasterType == typeof(BlacksmithGuildmaster))
@@ -371,7 +439,7 @@ namespace Server.Custom.GuildQuests
             return "Гильдия приготовила для тебя особое испытание.";
         }
 
-        private static string GetSourceName(Type source)
+        internal static string GetSourceName(Type source)
         {
             if (source == typeof(Treefellow))
                 return "Древесный дух";
@@ -395,6 +463,10 @@ namespace Server.Custom.GuildQuests
 
         public override void OnResponse(NetState sender, RelayInfo info)
         {
+            int index = info.ButtonID - 1;
+
+            if (index >= 0 && index < m_Skills.Count)
+                GuildmasterSkillQuest.BeginTrackedQuest(m_Player, m_Master, m_Skills[index], m_GuildmasterType);
         }
     }
 }
