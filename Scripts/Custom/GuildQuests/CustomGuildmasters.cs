@@ -5,6 +5,49 @@ using Server.Mobiles;
 
 namespace Server.Mobiles
 {
+    public class CookGuildmaster : BaseGuildmaster
+    {
+        public override NpcGuild NpcGuild => NpcGuild.MerchantsGuild;
+
+        [Constructable]
+        public CookGuildmaster() : base("Повар")
+        {
+            Name = NameList.RandomName("male");
+            Title = "[Глава Гильдии Кулинаров]";
+
+            SetSkill(SkillName.Cooking, 90.0, 100.0);
+            SetSkill(SkillName.TasteID, 75.0, 98.0);
+            AddItem(new HalfApron(0x59B));
+        }
+
+        public override void OnDoubleClick(Mobile from)
+        {
+            if (from is PlayerMobile pm && pm.Alive && pm.InRange(Location, 2))
+            {
+                Server.Custom.GuildQuests.CookingSkillQuest.OnGuildmasterClick(pm, this);
+                return;
+            }
+
+            base.OnDoubleClick(from);
+        }
+
+        public CookGuildmaster(Serial serial) : base(serial)
+        {
+        }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            reader.ReadInt();
+        }
+    }
+
     // =========================================================================
     // 🎣 1. ГЛАВА МОРСКОЙ РЫБОЛОВНОЙ ГИЛЬДИИ (ДЛЯ НАВЫКА FISHING)
     // =========================================================================

@@ -12305,4 +12305,15 @@
     <IsHomeRangeRelative>True</IsHomeRangeRelative>
     <Objects2>mage/z/-50:MX=1:SB=0:RT=0:TO=0:KL=0:RK=0:CA=1:DN=-1:DX=-1:SP=1:PR=-1:OBJ=alchemist/z/-50:MX=1:SB=0:RT=0:TO=0:KL=0:RK=0:CA=1:DN=-1:DX=-1:SP=1:PR=-1:OBJ=herbalist/z/-50:MX=1:SB=0:RT=0:TO=0:KL=0:RK=0:CA=1:DN=-1:DX=-1:SP=1:PR=-1:OBJ=mapmaker/z/-50:MX=1:SB=0:RT=0:TO=0:KL=0:RK=0:CA=1:DN=-1:DX=-1:SP=1:PR=-1</Objects2>
   </Points>
+  <Points>
+    <Name>Guildmaster_Necromancer_Umbra</Name>
+    <UniqueId>b5bc7ac8-38d6-4d54-a501-000000000001</UniqueId>
+    <Map>Malas</Map>
+    <X>2104</X><Y>1306</Y><Z>-50</Z>
+    <Width>0</Width><Height>0</Height>
+    <CentreX>2104</CentreX><CentreY>1306</CentreY><CentreZ>-50</CentreZ>
+    <Range>0</Range><MaxCount>1</MaxCount><MinDelay>10</MinDelay><MaxDelay>10</MaxDelay>
+    <Team>0</Team><IsGroup>False</IsGroup><IsRunning>True</IsRunning>
+    <Objects2>NecromancerGuildmaster:MX=1:SB=0:RT=0:TO=0:KL=0:RK=0:CA=1:DN=-1:DX=-1:SP=1:PR=-1</Objects2>
+  </Points>
 </Spawns>

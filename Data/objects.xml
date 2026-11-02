@@ -6009,6 +6009,7 @@
 			<category title="Guildmasters">
 				<object type="Server.Mobiles.BardGuildmaster" gfx="8454" hue="1024" />
 				<object type="Server.Mobiles.BlacksmithGuildmaster" gfx="8454" hue="1002" />
+				<object type="Server.Mobiles.CookGuildmaster" gfx="8454" hue="1004" />
 				<object type="Server.Mobiles.FisherGuildmaster" gfx="8455" hue="1005" />
 				<object type="Server.Mobiles.Greeter1" gfx="8454" />
 				<object type="Server.Mobiles.HealerGuildmaster" gfx="8454" hue="1031" />
