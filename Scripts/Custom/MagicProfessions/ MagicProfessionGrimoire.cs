@@ -163,7 +163,7 @@ namespace Server.Custom.MagicProfessions
                 bool nearStation = false;
                 foreach (Item checkItem in from.GetItemsInRange(3))
                 {
-                    if (checkItem.GetType().Name == "ArcaneWorkbench" || checkItem.GetType().Name == "NecromanticAltar")
+                    if (checkItem is ArcaneTable || checkItem is ArcaneWorkbench || checkItem is NecromanticAltar)
                     {
                         nearStation = true;
                         break;

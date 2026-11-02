@@ -10,14 +10,14 @@ using Server.Custom.EpicAlignment; // Подключаем калькулято�
 
 namespace Server.Custom.CurseSystem
 {
-    public class MageRemoveCurseScroll : Item
+    public class MageRemoveCurseScroll : BaseMageCurseScroll
     {
+        protected override string ScrollName { get { return "Свиток Снятия Проклятия"; } }
+        protected override int ScrollHue { get { return 1175; } }
+
         [Constructable]
         public MageRemoveCurseScroll() : base(0x14F0)
         {
-            Name = "Свиток Снятия Проклятия";
-            Hue = 1175; 
-            Weight = 1.0;
         }
 
         public override void OnDoubleClick(Mobile from)
@@ -35,8 +35,8 @@ namespace Server.Custom.CurseSystem
         }
 
         public MageRemoveCurseScroll(Serial serial) : base(serial) { }
-        public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write((int)0); }
-        public override void Deserialize(GenericReader reader) { base.Deserialize(reader); int version = reader.ReadInt(); }
+        public override void Serialize(GenericWriter writer) { SerializeScroll(writer); }
+        public override void Deserialize(GenericReader reader) { DeserializeScroll(reader); }
     }
 
     public class MageRemoveCurseTarget : Target
@@ -50,6 +50,9 @@ namespace Server.Custom.CurseSystem
 
         protected override void OnTarget(Mobile from, object targeted)
         {
+            if (m_Scroll == null || m_Scroll.Deleted || from == null || !from.Alive || from.Backpack == null || !m_Scroll.IsChildOf(from.Backpack))
+                return;
+
             if (targeted is MagicProfessionGrimoire grimoire)
             {
                 if (grimoire.HasCleanse)
@@ -69,8 +72,6 @@ namespace Server.Custom.CurseSystem
                 return;
             }
             
-            if (m_Scroll == null || m_Scroll.Deleted || from == null || !from.Alive) return;
-
             if (targeted is Item item)
             {
                 XmlCurseAttribute curse = XmlAttach.FindAttachment(item, typeof(XmlCurseAttribute)) as XmlCurseAttribute;
@@ -96,12 +97,8 @@ namespace Server.Custom.CurseSystem
                 bool isArtifact = (rarityClass == 3 || item.IsArtifact);
                 double evalIntel = from.Skills[SkillName.EvalInt].Value;
 
-                // =========================================================================
-                // ЖЕСТКАЯ ПРОВЕРКА ДЛЯ АРТЕФАКТОВ (> 120 EvalInt)
-                // =========================================================================
                 if (isArtifact)
                 {
-                    // 🔥 НАШ ХУК: Если Аватар существует, планка сложности для артефактов падает со 120 до 110!
                     double requiredEval = EpicAvatarWorldBalance.IsAvatarPlaceOccupied() ? 110.0 : 120.0;
 
                     if (evalIntel <= requiredEval)
@@ -111,28 +108,19 @@ namespace Server.Custom.CurseSystem
                         return; 
                     }
 
-                    // Если навык выше требуемого, артефакт очищается со 100% вероятностью
-                    ExecuteCleanse(from, item, curse, true);
                 }
-                // =========================================================================
-                // ДИНАМИЧЕСКОЕ СНЯТИЕ ПРОКЛЯТИЙ С ОБЫЧНЫХ ВЕЩЕЙ (ПО ШАНСУ)
-                // =========================================================================
+
+                double difficulty = 10.0 + curse.HpPenalty * 0.5 + rarityClass * 8.0;
+                double cleanseChance = BaseMageCurseScroll.GetSuccessChance(from, m_Scroll.QualityTier, difficulty);
+
+                if (Utility.RandomDouble() < cleanseChance)
+                {
+                    ExecuteCleanse(from, item, curse, isArtifact);
+                }
                 else
                 {
-                    // Сложность зависит напрямую от силы порчи (HpPenalty)
-                    double curseDifficulty = 30.0 + (curse.HpPenalty * 2.0);
-                    double cleanseChance = (evalIntel / curseDifficulty);
-
-                    // При ГМ уровне (100+) или если бросок кубика успешный — проклятие снимается
-                    if (evalIntel >= 100.0 || Utility.RandomDouble() < cleanseChance)
-                    {
-                        ExecuteCleanse(from, item, curse, false);
-                    }
-                    else
-                    {
-                        from.PlaySound(0x54A);
-                        from.SendMessage(0x22, "Вам не хватило ментальной концентрации, чтобы разрушить узы проклятия.");
-                    }
+                    from.PlaySound(0x54A);
+                    from.SendMessage(0x22, "Вам не хватило ментальной концентрации, чтобы разрушить узы проклятия.");
                 }
 
                 m_Scroll.Delete(); // Свиток уничтожается при любом исходе ритуала

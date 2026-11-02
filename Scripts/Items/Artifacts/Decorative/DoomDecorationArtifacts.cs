@@ -1,4 +1,5 @@
 using System;
+using Server.Custom.MagicProfessions;
 
 namespace Server.Items
 {
@@ -1012,6 +1013,17 @@ namespace Server.Items
         public ArcaneTable(Serial serial)
             : base(serial)
         {
+        }
+
+        public override void OnDoubleClick(Mobile from)
+        {
+            if (from == null || !from.Alive || from.Map != Map || !from.InRange(Location, 3))
+            {
+                from?.SendLocalizedMessage(500295);
+                return;
+            }
+
+            from.SendGump(new MagicProfessionGump(from, this, false));
         }
 
         public override void Serialize(GenericWriter writer)

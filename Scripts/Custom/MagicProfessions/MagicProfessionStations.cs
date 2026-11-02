@@ -3,18 +3,19 @@ using Server;
 using Server.Items;
 using Server.Network;
 using Server.Engines.Craft;
+using Server.Custom.GuildQuests;
 
 namespace Server.Custom.MagicProfessions
 {
     // =========================================================================
     // 1. АРКАНИЧЕСКИЙ СТОЛ (МАГИ)
     // =========================================================================
+    [Flipable(40677, 40678)]
     public class ArcaneWorkbench : Item
     {
-        public ArcaneWorkbench(bool isPlayerCrafted) : base(0x0B9A)
+        public ArcaneWorkbench(bool isPlayerCrafted) : base(40677)
         {
             Name = "Арканический стол";
-            Hue = 1165;
             Movable = !isPlayerCrafted; // Скрафченный игроком можно двигать/настраивать в доме
         }
 
@@ -30,7 +31,17 @@ namespace Server.Custom.MagicProfessions
 
         public ArcaneWorkbench(Serial serial) : base(serial) { }
         public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write(0); }
-        public override void Deserialize(GenericReader reader) { base.Deserialize(reader); reader.ReadInt(); }
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            reader.ReadInt();
+
+            if (ItemID == 0x0B9A)
+                ItemID = 40677;
+
+            if (Hue == 1165)
+                Hue = 0;
+        }
     }
 
     public class ArcaneWorkbenchDeed : Item, ICraftable
@@ -55,7 +66,8 @@ namespace Server.Custom.MagicProfessions
                 return;
             }
 
-            ArcaneWorkbench station = new ArcaneWorkbench(true);
+            ArcaneTable station = new ArcaneTable();
+            station.Hue = 1165;
             station.MoveToWorld(from.Location, from.Map);
             from.SendMessage(0x59, "Арканический стол успешно установлен.");
             Delete();
@@ -70,22 +82,32 @@ namespace Server.Custom.MagicProfessions
         public static void Initialize()
         {
             CraftSystem system = DefCarpentry.CraftSystem;
-            if (system != null)
+
+            if (system == null)
+                return;
+
+            int index = system.AddCraft(
+                typeof(ArcaneWorkbenchDeed),
+                "Магические Профессии",
+                "Арканический стол",
+                115.0,
+                120.0,
+                typeof(HeartwoodBoard),
+                "Доски сердцевины",
+                100,
+                "Недостаточно досок сердцевины."
+            );
+
+            system.AddSkill(index, SkillName.Inscribe, 90.0, 100.0);
+            system.AddSkill(index, SkillName.Magery, 100.0, 100.0);
+
+            CraftItem craftItem = system.CraftItems.GetAt(index);
+
+            if (craftItem != null)
             {
-                int index = system.AddCraft(
-                    typeof(ArcaneWorkbenchDeed), "Магические Профессии", "Арканический стол",
-                    90.0, 115.0,
-                    typeof(Log), "Древесина", 40, "Недостаточно древесины."
-                );
-                system.AddSkill(index, SkillName.Inscribe, 50.0, 70.0);
-                
-                CraftItem craftItem = system.CraftItems.GetAt(index);
-                if (craftItem != null)
-                {
-                    // ИСПРАВЛЕНО: Заменен метод AddReg на встроенный метод AddRes эмулятора ServUO
-                    craftItem.AddRes(typeof(Cloth), "Ткань", 15, "Недостаточно ткани.");
-                    craftItem.AddRes(typeof(LeylineFragment), "Фрагмент линии силы", 5, "Нужны фрагменты линии силы.");
-                }
+                craftItem.AddRes(typeof(ArcaneFocusCharge), "Заряд арканического фокуса", 1, "Нужен заряд арканического фокуса.");
+                craftItem.AddRes(typeof(AncientLibraryGrimoire), "Гримуар Древней Библиотеки", 1, "Нужен гримуар из подземелья.");
+                craftItem.AddRes(typeof(LeylineFragment), "Фрагменты линии силы", 30, "Нужны фрагменты линии силы из узлов в подземельях.");
             }
         }
     }
