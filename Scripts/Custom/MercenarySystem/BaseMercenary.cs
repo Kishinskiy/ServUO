@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Server;
+using Server.ContextMenus;
 using Server.Mobiles;
 using Server.Items;
 
@@ -46,56 +47,56 @@ namespace Server.Custom.MercenarySystem
                 AI = AIType.AI_Melee;
                 SetStr(150); SetDex(80); SetInt(50); SetHits(300); SetDamage(15, 25);
                 SetSkill(SkillName.Swords, 70.0); SetSkill(SkillName.Tactics, 70.0); SetSkill(SkillName.Anatomy, 50.0); SetSkill(SkillName.Parry, 60.0);
-                AddItem(new PlateChest() { Movable = false }); AddItem(new VikingSword() { Movable = false }); AddItem(new BronzeShield() { Movable = false });
+                AddItem(new PlateChest() { Movable = true }); AddItem(new VikingSword() { Movable = true }); AddItem(new BronzeShield() { Movable = true });
             }
             else if (mClass == MercenaryClass.Mage)
             {
                 AI = AIType.AI_Mage;
                 SetStr(80); SetDex(80); SetInt(150); SetHits(150); SetMana(300); SetDamage(10, 15);
                 SetSkill(SkillName.Magery, 80.0); SetSkill(SkillName.EvalInt, 80.0); SetSkill(SkillName.Meditation, 80.0); SetSkill(SkillName.Wrestling, 50.0);
-                AddItem(new Robe() { Movable = false, Hue = 2418 }); AddItem(new GnarledStaff() { Movable = false });
+                AddItem(new Robe() { Movable = true, Hue = 2418 }); AddItem(new GnarledStaff() { Movable = true });
             }
             else if (mClass == MercenaryClass.Ranger)
             {
                 AI = AIType.AI_Archer;
                 SetStr(100); SetDex(150); SetInt(50); SetHits(200); SetDamage(20, 30);
                 SetSkill(SkillName.Archery, 80.0); SetSkill(SkillName.Tactics, 70.0); SetSkill(SkillName.Anatomy, 70.0);
-                AddItem(new LeatherChest() { Movable = false }); AddItem(new Bow() { Movable = false });
+                AddItem(new LeatherChest() { Movable = true }); AddItem(new Bow() { Movable = true });
             }
             else if (mClass == MercenaryClass.Bard)
             {
                 AI = AIType.AI_Mage;
                 SetStr(100); SetDex(100); SetInt(100); SetHits(220); SetDamage(12, 18);
                 SetSkill(SkillName.Musicianship, 80.0); SetSkill(SkillName.Discordance, 80.0); SetSkill(SkillName.Magery, 60.0);
-                AddItem(new JesterSuit() { Movable = false, Hue = 1161 }); AddItem(new Tambourine() { Movable = false });
+                AddItem(new JesterSuit() { Movable = true, Hue = 1161 }); AddItem(new Tambourine() { Movable = true });
             }
             else if (mClass == MercenaryClass.Thief)
             {
                 AI = AIType.AI_Melee;
                 SetStr(90); SetDex(160); SetInt(50); SetHits(200); SetDamage(18, 28);
                 SetSkill(SkillName.Fencing, 85.0); SetSkill(SkillName.Tactics, 75.0); SetSkill(SkillName.Stealth, 80.0);
-                AddItem(new LeatherChest() { Movable = false, Hue = 1109 }); AddItem(new Dagger() { Movable = false });
+                AddItem(new LeatherChest() { Movable = true, Hue = 1109 }); AddItem(new Dagger() { Movable = true });
             }
             else if (mClass == MercenaryClass.Paladin)
             {
                 AI = AIType.AI_Melee;
                 SetStr(140); SetDex(90); SetInt(70); SetHits(320); SetDamage(20, 30);
                 SetSkill(SkillName.Swords, 80.0); SetSkill(SkillName.Tactics, 75.0); SetSkill(SkillName.Chivalry, 75.0); SetSkill(SkillName.Focus, 70.0);
-                AddItem(new PlateChest() { Movable = false, Hue = 1266 }); AddItem(new Broadsword() { Movable = false });
+                AddItem(new PlateChest() { Movable = true, Hue = 1266 }); AddItem(new Broadsword() { Movable = true });
             }
             else if (mClass == MercenaryClass.Necromancer)
             {
                 AI = AIType.AI_Mage;
                 SetStr(90); SetDex(80); SetInt(140); SetHits(180); SetMana(280); SetDamage(12, 20);
                 SetSkill(SkillName.Necromancy, 80.0); SetSkill(SkillName.SpiritSpeak, 80.0); SetSkill(SkillName.MagicResist, 70.0);
-                AddItem(new BoneChest() { Movable = false, Hue = 1102 }); AddItem(new Scythe() { Movable = false });
+                AddItem(new BoneChest() { Movable = true, Hue = 1102 }); AddItem(new Scythe() { Movable = true });
             }
             else if (mClass == MercenaryClass.Samurai)
             {
                 AI = AIType.AI_Melee;
                 SetStr(130); SetDex(110); SetInt(60); SetHits(260); SetDamage(22, 32);
                 SetSkill(SkillName.Swords, 85.0); SetSkill(SkillName.Bushido, 80.0); SetSkill(SkillName.Tactics, 80.0);
-                AddItem(new LeatherDo() { Movable = false, Hue = 2211 }); AddItem(new NoDachi() { Movable = false });
+                AddItem(new LeatherDo() { Movable = true, Hue = 2211 }); AddItem(new NoDachi() { Movable = true });
             }
             else if (mClass == MercenaryClass.ElfMage)
             {
@@ -104,7 +105,7 @@ namespace Server.Custom.MercenarySystem
                 Name = NameList.RandomName("elf_male");
                 SetStr(80); SetDex(90); SetInt(160); SetHits(170); SetMana(350); SetDamage(10, 16);
                 SetSkill(SkillName.Magery, 90.0); SetSkill(SkillName.EvalInt, 90.0); SetSkill(SkillName.Meditation, 90.0);
-                AddItem(new Robe() { Movable = false, Hue = 1270 }); AddItem(new WildStaff() { Movable = false });
+                AddItem(new Robe() { Movable = true, Hue = 1270 }); AddItem(new WildStaff() { Movable = true });
             }
             // 🔥 НЕУЯЗВИМЫЙ И ПОЛНОЦЕННЫЙ СПАВН КЛАССА ГАРГУЛЬИ ЧЕРЕЗ ID КЛИЕНТА! 🪓🛡️⚙️
             else if (mClass == MercenaryClass.GargoyleWarrior)
@@ -118,15 +119,15 @@ namespace Server.Custom.MercenarySystem
                 SetSkill(SkillName.Swords, 85.0); SetSkill(SkillName.Tactics, 80.0); SetSkill(SkillName.Anatomy, 70.0); SetSkill(SkillName.Parry, 70.0);
 
                 // Генерируем Латный Горгулий Доспех напрямую через ID графики (0x4054), минуя проверку классов ядра!
-                Item gChest = new Item(0x4054) { Name = "Gargoyle Kilt Armor", Movable = false, Hue = 1115, Layer = Layer.InnerTorso };
+                Item gChest = new Item(0x4054) { Name = "Gargoyle Kilt Armor", Movable = true, Hue = 1115, Layer = Layer.InnerTorso };
                 AddItem(gChest);
 
                 // Даем расовые латные поножи горгулий через графический ID клиента (0x405C)
-                Item gLegs = new Item(0x405C) { Name = "Gargoyle Loincloth", Movable = false, Hue = 1115, Layer = Layer.Pants };
+                Item gLegs = new Item(0x405C) { Name = "Gargoyle Loincloth", Movable = true, Hue = 1115, Layer = Layer.Pants };
                 AddItem(gLegs);
 
                 // Выдаем массивный Горгулий Каменный Боевой Меч через ID графики (0x48A0) строго в правую руку!
-                Item gSword = new Item(0x48A0) { Name = "Gargoyle Stone War Sword", Movable = false, Layer = Layer.OneHanded };
+                Item gSword = new Item(0x48A0) { Name = "Gargoyle Stone War Sword", Movable = true, Layer = Layer.OneHanded };
                 AddItem(gSword);
             }
 
@@ -174,12 +175,13 @@ namespace Server.Custom.MercenarySystem
 
         public override bool OnDragDrop(Mobile from, Item dropped)
         {
-            if (from == ControlMaster && (dropped is BaseWeapon || dropped is BaseArmor || dropped is BaseClothing))
+            if (IsMercenaryOwner(from) && (dropped is BaseWeapon || dropped is BaseArmor || dropped is BaseClothing))
             {
                 Item current = FindItemOnLayer(dropped.Layer);
-                if (current != null && current.Movable)
+                if (current != null && current.Movable && !from.AddToBackpack(current))
                 {
-                    from.AddToBackpack(current);
+                    from.SendMessage("Освободите место в рюкзаке перед заменой экипировки.");
+                    return false;
                 }
 
                 AddItem(dropped);
@@ -188,6 +190,64 @@ namespace Server.Custom.MercenarySystem
                 return true;
             }
             return base.OnDragDrop(from, dropped);
+        }
+
+        private bool IsMercenaryOwner(Mobile from)
+        {
+            return from != null && !from.Deleted && Controlled && ControlMaster == from;
+        }
+
+        public override bool AllowEquipFrom(Mobile from)
+        {
+            return IsMercenaryOwner(from);
+        }
+
+        public override bool CheckNonlocalLift(Mobile from, Item item)
+        {
+            return IsMercenaryOwner(from);
+        }
+
+        public override bool CheckNonlocalDrop(Mobile from, Item item, Item target)
+        {
+            return IsMercenaryOwner(from);
+        }
+
+        public override void OnDoubleClick(Mobile from)
+        {
+            if (IsMercenaryOwner(from) && from.InRange(this, 2))
+                DisplayPaperdollTo(from);
+            else
+                base.OnDoubleClick(from);
+        }
+
+        public override void GetContextMenuEntries(Mobile from, List<ContextMenuEntry> list)
+        {
+            base.GetContextMenuEntries(from, list);
+
+            if (IsMercenaryOwner(from) && from.Alive && from.InRange(this, 2))
+                list.Add(new OpenBackpackEntry(from, this));
+        }
+
+        private class OpenBackpackEntry : ContextMenuEntry
+        {
+            private readonly Mobile m_From;
+            private readonly BaseMercenary m_Mercenary;
+
+            public OpenBackpackEntry(Mobile from, BaseMercenary mercenary) : base(3006145, 2)
+            {
+                m_From = from;
+                m_Mercenary = mercenary;
+            }
+
+            public override void OnClick()
+            {
+                if (m_Mercenary != null && !m_Mercenary.Deleted &&
+                    m_Mercenary.IsMercenaryOwner(m_From) && m_From.Alive && m_From.InRange(m_Mercenary, 2) &&
+                    m_Mercenary.Backpack != null)
+                {
+                    m_Mercenary.Backpack.DisplayTo(m_From);
+                }
+            }
         }
 
         public override bool ClickTitle { get { return true; } }
@@ -214,6 +274,12 @@ namespace Server.Custom.MercenarySystem
             m_Progression.Level = reader.ReadInt();
             m_Progression.Experience = reader.ReadInt();
             m_Progression.NextLevelExperience = reader.ReadInt();
+
+            foreach (Item item in Items)
+            {
+                if (item != null && !item.Deleted && item.Layer != Layer.Backpack)
+                    item.Movable = true;
+            }
 
             Title = $"[{MercenaryProgression.GetRankTitle(m_Progression.Level)}]";
         }
