@@ -8,14 +8,14 @@ using Server.Custom.MagicProfessions;
 
 namespace Server.Custom.CurseSystem
 {
-    public class MageIdentificationScroll : Item
+    public class MageIdentificationScroll : BaseMageCurseScroll
     {
+        protected override string ScrollName { get { return "Свиток Распознавания Предметов"; } }
+        protected override int ScrollHue { get { return 1365; } }
+
         [Constructable]
         public MageIdentificationScroll() : base(0x14F0)
         {
-            Name = "Свиток Распознавания Предметов";
-            Hue = 1365; 
-            Weight = 1.0;
         }
 
         public override void OnDoubleClick(Mobile from)
@@ -33,8 +33,8 @@ namespace Server.Custom.CurseSystem
         }
 
         public MageIdentificationScroll(Serial serial) : base(serial) { }
-        public override void Serialize(GenericWriter writer) { base.Serialize(writer); writer.Write((int)0); }
-        public override void Deserialize(GenericReader reader) { base.Deserialize(reader); int version = reader.ReadInt(); }
+        public override void Serialize(GenericWriter writer) { SerializeScroll(writer); }
+        public override void Deserialize(GenericReader reader) { DeserializeScroll(reader); }
     }
 
     public class MageIdentificationTarget : Target
@@ -48,6 +48,9 @@ namespace Server.Custom.CurseSystem
 
         protected override void OnTarget(Mobile from, object targeted)
         {
+            if (m_Scroll == null || m_Scroll.Deleted || from == null || !from.Alive || from.Backpack == null || !m_Scroll.IsChildOf(from.Backpack))
+                return;
+
             if (targeted is MagicProfessionGrimoire grimoire)
             {
                 if (grimoire.HasIdentify)
@@ -67,8 +70,6 @@ namespace Server.Custom.CurseSystem
                 return;
             }
             
-            if (m_Scroll == null || m_Scroll.Deleted || from == null || !from.Alive) return;
-
             if (targeted is Item item)
             {
                 XmlCurseAttribute curse = XmlAttach.FindAttachment(item, typeof(XmlCurseAttribute)) as XmlCurseAttribute;
@@ -85,20 +86,8 @@ namespace Server.Custom.CurseSystem
                 }
 
                 int rarityClass = DiabloLootColors.GetRarityClass(item);
-                double evalIntel = from.Skills[SkillName.EvalInt].Value; 
-                int playerInt = from.Int; 
-
-                // Базовый коэффициент сложности от уровня предмета
-                double baseDifficulty = 30.0 + (rarityClass * 15.0);
-
-                // ДИНАМИЧЕСКИЙ РАСЧЕТ ШАНСА: Соотношение EvalInt игрока к сложности, усиленное Интеллектом
-                double identifyChance = (evalIntel / baseDifficulty) * (playerInt / 100.0);
-
-                // При высоком уровне навыков (100.0+ и 100+ Int) — гарантированный 100% успех
-                if (evalIntel >= 100.0 && playerInt >= 100)
-                {
-                    identifyChance = 1.0;
-                }
+                double difficulty = rarityClass * 12.0;
+                double identifyChance = BaseMageCurseScroll.GetSuccessChance(from, m_Scroll.QualityTier, difficulty);
 
                 if (Utility.RandomDouble() < identifyChance)
                 {

@@ -18,39 +18,39 @@ namespace Server.Custom.VirtueQuests
         {
             if (from == null || !from.Alive || targeted == null) return false;
 
-            if (targeted is Item item)
+            if (!(targeted is Item item) || !IsLoreResearchTarget(item))
+                return false;
+
+            PlayerMobile pm = from as PlayerMobile;
+            if (pm == null) return true;
+
+            from.CheckTargetSkill(SkillName.EvalInt, item, 0.0, 120.0);
+
+            double evalSkill = pm.Skills[SkillName.EvalInt].Value;
+
+            if (evalSkill < 40.0)
             {
-                PlayerMobile pm = from as PlayerMobile;
-                if (pm == null) return true;
-
-                double evalSkill = pm.Skills[SkillName.EvalInt].Value;
-
-                if (evalSkill < 40.0)
-                {
-                    pm.SendMessage(0x22, "Вы внимательно осматриваете предмет, но ваш ментальный индекс слишком мал, чтобы расшифровать скрытые знаки магии.");
-                    return true;
-                }
-
-                pm.PlaySound(0x249);
-                pm.FixedParticles(0x375A, 9, 20, 5016, 2418, 0, EffectLayer.Head);
-
-                double successChance = (evalSkill / 100.0);
-                if (Utility.RandomDouble() > successChance)
-                {
-                    pm.SendMessage(0x59, "Древние символы расплываются перед глазами... Попробуйте сосредоточиться и проанализировать предмет еще раз.");
-                    from.CheckSkill(SkillName.EvalInt, 0.0, 100.0);
-                    return true;
-                }
-
-                from.CheckSkill(SkillName.EvalInt, 0.0, 100.0);
-
-                string loreMessage = GetSeparatedLoreMessage(evalSkill);
-
-                pm.SendGump(new VirtueLoreBookGump(item.Name ?? item.GetType().Name, loreMessage));
+                pm.SendMessage(0x22, "Вы внимательно осматриваете предмет, но ваш ментальный индекс слишком мал, чтобы расшифровать скрытые знаки магии.");
                 return true;
             }
 
-            return false;
+            pm.PlaySound(0x249);
+            pm.FixedParticles(0x375A, 9, 20, 5016, 2418, 0, EffectLayer.Head);
+
+            string loreMessage = GetSeparatedLoreMessage(evalSkill);
+
+            pm.SendGump(new VirtueLoreBookGump(item.Name ?? item.GetType().Name, loreMessage));
+            return true;
+        }
+
+        private static bool IsLoreResearchTarget(Item item)
+        {
+            return item is BaseBook ||
+               item is BaseLocalizedBook ||
+               item is BaseSpecialScrollBook ||
+               item is Spellbook ||
+               item is MagicCrystalBall ||
+               item is CrystalBallOfKnowledge;
         }
 
         private static string GetSeparatedLoreMessage(double skill)

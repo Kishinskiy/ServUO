@@ -1,8 +1,6 @@
 using System;
 using Server.Items;
 using Server.Spells;
-using Server.Custom.CurseSystem;
-using Server.Custom.VoidCraft;
 using Server.Custom.MagicProfessions;
 
 namespace Server.Engines.Craft
@@ -465,29 +463,6 @@ namespace Server.Engines.Craft
                 AddMysticSpell(1031693, 50, 75.0, typeof(RisingColossusScroll), Reg.DaemonBone, Reg.FertileDirt, Reg.DragonBlood, Reg.Nightshade, Reg.MandrakeRoot);
             }
             #endregion
-
-            // =========================================================================
-            // 📜 РЕЦЕПТ 1: СВИТОК РАСПОЗНАВАНИЯ ПРЕДМЕТОВ
-            // =========================================================================
-            // Параметры: Тип предмета, Группа в BOD, Название, Мин.Скилл, Макс.Скилл, Базовый ресурс, Название ресурса, Кол-во
-            index = AddCraft(typeof(MageIdentificationScroll), 1044294, "Свиток Распознавания Предметов", 60.0, 100.0, typeof(BlankScroll), 1044377, 1, 1044378);
-            
-            // Дополнительные реагенты (5 Мандрагоры, 5 Паутины)
-            AddRes(index, typeof(MandrakeRoot), 1044357, 5, 1044365);
-            AddRes(index, typeof(SpidersSilk), 1044360, 5, 1044368);
-            SetManaReq(index, 20); // Потребление маны при создании
-
-            // =========================================================================
-            // 📜 РЕЦЕПТ 2: СВИТОК СНЯТИЯ ПРОКЛЯТИЯ
-            // =========================================================================
-            index = AddCraft(typeof(MageRemoveCurseScroll), 1044294, "Свиток Снятия Проклятия", 80.0, 115.0, typeof(BlankScroll), 1044377, 1, 1044378);
-            
-            // Требует 1 Осколок Скверны, 5 Мандрагоры и 5 Крови Демона
-            AddRes(index, typeof(CurseShardCraftable), "Осколок Скверны", 1, "Вам не хватает осколка скверны.");
-            AddRes(index, typeof(MandrakeRoot), 1044357, 5, 1044365);
-            AddRes(index, typeof(DaemonBlood), 1023965, 5, 501627);
-            SetManaReq(index, 40);
-            // =========================================================================
 
             // =========================================================================
             // 📖 РЕЦЕПТ: СОЗДАНИЕ ПУСТОГО ГРИМУАРА ПРОФЕССИЙ

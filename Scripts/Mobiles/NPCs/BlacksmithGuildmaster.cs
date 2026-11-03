@@ -122,6 +122,20 @@ namespace Server.Mobiles
         }
 
         #endregion
+
+        public override void OnDoubleClick(Mobile from)
+        {
+            if (from is PlayerMobile pm && pm.Alive && pm.InRange(this.Location, 2))
+            {
+                if (Server.Custom.GuildQuests.CraftSkillQuest.OnBlacksmithGuildmasterClick(pm, this))
+                {
+                    return;
+                }
+            }
+
+            base.OnDoubleClick(from);
+        }
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);

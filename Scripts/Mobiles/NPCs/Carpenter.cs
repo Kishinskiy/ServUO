@@ -51,6 +51,17 @@ namespace Server.Mobiles
             this.AddItem(new Server.Items.HalfApron());
         }
 
+        public override void OnDoubleClick(Mobile from)
+        {
+            if (from is PlayerMobile pm && pm.Alive && pm.InRange(Location, 2) &&
+                Server.Custom.GuildQuests.CarpentersSkillQuest.OnCarpentersGuildmasterClick(pm, this))
+            {
+                return;
+            }
+
+            base.OnDoubleClick(from);
+        }
+
         #region Bulk Orders
         public override BODType BODType { get { return BODType.Carpentry; } }
 

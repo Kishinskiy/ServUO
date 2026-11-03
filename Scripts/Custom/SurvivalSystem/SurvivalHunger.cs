@@ -9,8 +9,44 @@ namespace Server.Custom.SurvivalSystem
         private static Timer _hunger_check;
         public static void Initialize()
         {
-            // Start a timer that fires every minute
+            EventSink.HungerChanged += OnHungerChanged;
             _hunger_check = Timer.DelayCall(TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1), new TimerCallback(HungerCheck));
+        }
+
+        private static void OnHungerChanged(HungerChangedEventArgs e)
+        {
+            if (e.Mobile is PlayerMobile pm && pm.Alive && pm.Hunger > e.OldValue)
+            {
+                int hunger = pm.Hunger;
+
+                if (hunger != 20)
+                {
+                    pm.RemoveStatMod("IncraceStr");
+                    pm.RemoveStatMod("IncraceDex");
+                    BuffInfo.RemoveBuff(pm, BuffIcon.Healing);
+                }
+
+                if (hunger > 10)
+                {
+                    pm.RemoveStatMod("Weaken");
+                    BuffInfo.RemoveBuff(pm, BuffIcon.Weaken);
+                }
+
+                if (hunger > 5)
+                {
+                    pm.RemoveStatMod("Clumsy");
+                    BuffInfo.RemoveBuff(pm, BuffIcon.Clumsy);
+                }
+
+                if (hunger > 0)
+                {
+                    pm.RemoveStatMod("Curse");
+                    pm.RemoveStatMod("CurseStr");
+                    pm.RemoveStatMod("CurseDex");
+                    pm.RemoveStatMod("CurseInt");
+                    BuffInfo.RemoveBuff(pm, BuffIcon.Curse);
+                }
+            }
         }
 
         private static void HungerCheck()

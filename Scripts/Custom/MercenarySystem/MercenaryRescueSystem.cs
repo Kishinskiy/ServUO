@@ -53,7 +53,7 @@ namespace Server.Custom.MercenarySystem
                 List<Item> wornItems = new List<Item>(merc.Items);
                 foreach (Item item in wornItems)
                 {
-                    if (item != null && !item.Deleted && item.Movable == false && item.Layer != Layer.Backpack)
+                    if (item != null && !item.Deleted && item.Layer != Layer.Backpack)
                     {
                         // Делаем вещь временно перемещаемой, чтобы сохранить её, и снимаем с трупа
                         item.Movable = true;

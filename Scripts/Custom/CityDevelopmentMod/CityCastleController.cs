@@ -171,15 +171,8 @@ namespace Server.Custom.CityDevelopment
                     return false; 
                 }
 
-                Point3D startRoomInMaze = RogueDungeonGenerator.IsGenerated 
-                    ? RogueDungeonGenerator.StartRegion 
-                    : RogueDungeonGenerator.Generate(40); 
-
-                pm.PlaySound(0x1FE); 
-                pm.MoveToWorld(startRoomInMaze, RogueDungeonGenerator.DungeonMap);
-                pm.SendMessage(0x5A, "Вы сошли по ступеням в подземелье... Стены и коридоры этого места изменились до неузнаваемости!");
-                
-                Timer.DelayCall(TimeSpan.FromMinutes(40.0), () => RogueDungeonGenerator.ClearDungeon());
+                Point3D returnLocation = new Point3D(Location.X + 1, Location.Y, Location.Z);
+                RogueDungeonGenerator.EnterDungeon(pm, 40, returnLocation, Map);
 
                 return false;
             }

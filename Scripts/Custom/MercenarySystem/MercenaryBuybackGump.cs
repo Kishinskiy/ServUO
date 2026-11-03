@@ -70,7 +70,7 @@ namespace Server.Custom.MercenarySystem
                     // Возвращаем все сохраненные вещи ему на тело!
                     foreach (Item item in data.EquippedItems)
                     {
-                        item.Movable = false; // Возвращаем статус экипировки спутника
+                        item.Movable = true;
                         restoredMerc.AddItem(item);
                     }
 

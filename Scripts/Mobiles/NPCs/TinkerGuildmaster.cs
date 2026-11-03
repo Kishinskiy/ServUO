@@ -52,6 +52,21 @@ namespace Server.Mobiles
             }
         }
 
+        public override void OnDoubleClick(Mobile from)
+        {
+            if (from is PlayerMobile pm && pm.Alive && pm.InRange(this.Location, 2))
+            {
+                // 🔥 НАШ ИЗОЛИРОВАННЫЙ КВЕСТОВЫЙ ПЕРЕХВАТЧИК ГИЛЬДИИ ИНЖЕНЕРОВ 🎉⚙️
+                if (Server.Custom.GuildQuests.TinkerSkillQuest.OnTinkerGuildmasterClick(pm, this))
+                {
+                    return; // Блокируем стандартный ванильный диалог гильдии
+                }
+            }
+
+            base.OnDoubleClick(from); 
+        }
+
+
         private class RechargeEntry : ContextMenuEntry
         {
             private readonly Mobile m_From;

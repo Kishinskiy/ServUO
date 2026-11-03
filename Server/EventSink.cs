@@ -37,6 +37,8 @@ namespace Server
 
 	public delegate void HungerChangedEventHandler(HungerChangedEventArgs e);
 
+	public delegate void ThirstChangedEventHandler(ThirstChangedEventArgs e);
+
 	public delegate void CrashedEventHandler(CrashedEventArgs e);
 
 	public delegate void ShutdownEventHandler(ShutdownEventArgs e);
@@ -783,6 +785,21 @@ namespace Server
 		public int OldValue { get { return m_OldValue; } }
 
 		public HungerChangedEventArgs(Mobile mobile, int oldValue)
+		{
+			m_Mobile = mobile;
+			m_OldValue = oldValue;
+		}
+	}
+
+	public class ThirstChangedEventArgs : EventArgs
+	{
+		private readonly Mobile m_Mobile;
+		private readonly int m_OldValue;
+
+		public Mobile Mobile { get { return m_Mobile; } }
+		public int OldValue { get { return m_OldValue; } }
+
+		public ThirstChangedEventArgs(Mobile mobile, int oldValue)
 		{
 			m_Mobile = mobile;
 			m_OldValue = oldValue;
@@ -1700,6 +1717,7 @@ namespace Server
 		public static event ServerListEventHandler ServerList;
 		public static event MovementEventHandler Movement;
 		public static event HungerChangedEventHandler HungerChanged;
+		public static event ThirstChangedEventHandler ThirstChanged;
 		public static event CrashedEventHandler Crashed;
 		public static event ShutdownEventHandler Shutdown;
 		public static event HelpRequestEventHandler HelpRequest;
@@ -2101,6 +2119,14 @@ namespace Server
 			if (HungerChanged != null)
 			{
 				HungerChanged(e);
+			}
+		}
+
+		public static void InvokeThirstChanged(ThirstChangedEventArgs e)
+		{
+			if (ThirstChanged != null)
+			{
+				ThirstChanged(e);
 			}
 		}
 
@@ -2525,6 +2551,7 @@ namespace Server
 			ServerList = null;
 			Movement = null;
 			HungerChanged = null;
+			ThirstChanged = null;
 			Crashed = null;
 			Shutdown = null;
 			HelpRequest = null;

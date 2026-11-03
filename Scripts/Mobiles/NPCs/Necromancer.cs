@@ -56,6 +56,17 @@ namespace Server.Mobiles
 			beard.Layer = Layer.FacialHair;
 			AddItem( beard );
 		}
+
+		public override void OnDoubleClick(Mobile from)
+		{
+			if (from is PlayerMobile pm && pm.Alive && pm.InRange(Location, 2))
+			{
+				Server.Custom.GuildQuests.NecroSkillQuest.OnNecromancerClick(pm, this);
+				return;
+			}
+
+			base.OnDoubleClick(from);
+		}
 		
 		public override void Serialize( GenericWriter writer )
 		{

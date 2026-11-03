@@ -111,7 +111,7 @@ namespace Server.Mobiles
 
         public override bool OnGoldGiven(Mobile from, Gold dropped)
         {
-            if (from is PlayerMobile && dropped.Amount == 700)
+            if (from is PlayerMobile && dropped.Amount == 700 && ((PlayerMobile)from).Learning == (SkillName)(-1))
             {
                 PlayerMobile pm = (PlayerMobile)from;
 
@@ -126,6 +126,21 @@ namespace Server.Mobiles
 
             return base.OnGoldGiven(from, dropped);
         }
+
+        public override void OnDoubleClick(Mobile from)
+        {
+            if (from is PlayerMobile pm && pm.Alive && pm.InRange(this.Location, 2))
+            {
+                // 🔥 НАШ ИЗОЛИРОВАННЫЙ КВЕСТОВЫЙ ПЕРЕХВАТЧИК ГИЛЬДИИ ВОРОВ 🎉⚙️
+                if (Server.Custom.GuildQuests.ThiefSkillQuest.OnThievesGuildmasterClick(pm, this))
+                {
+                    return; // Блокируем стандартный ванильный диалог гильдии
+                }
+            }
+
+            base.OnDoubleClick(from); 
+        }
+
 
         public override void Serialize(GenericWriter writer)
         {

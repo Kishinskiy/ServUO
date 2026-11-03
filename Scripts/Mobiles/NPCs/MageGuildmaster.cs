@@ -51,6 +51,20 @@ namespace Server.Mobiles
             AddItem(new Server.Items.GnarledStaff());
         }
 
+        public override void OnDoubleClick(Mobile from)
+        {
+            if (from is PlayerMobile pm && pm.Alive && pm.InRange(this.Location, 2))
+            {
+                // 🔥 НАШ ИЗОЛИРОВАННЫЙ КВЕСТОВЫЙ ПЕРЕХВАТЧИК ГИЛЬДИИ МАГОВ 🎉⚙️
+                if (Server.Custom.GuildQuests.MageSkillQuest.OnMageGuildmasterClick(pm, this))
+                {
+                    return; // Блокируем стандартное ванильное меню обучения
+                }
+            }
+
+            base.OnDoubleClick(from); 
+        }
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);

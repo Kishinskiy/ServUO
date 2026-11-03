@@ -80,6 +80,17 @@ namespace Server.Mobiles
         {
         }
 
+        public override void OnDoubleClick(Mobile from)
+        {
+            if (from is PlayerMobile pm && pm.Alive && pm.InRange(Location, 2) &&
+                Server.Custom.GuildQuests.GuildmasterSkillQuest.OnGuildmasterClick(pm, this))
+            {
+                return;
+            }
+
+            base.OnDoubleClick(from);
+        }
+
         public virtual bool CheckCustomReqs(PlayerMobile pm)
         {
             return true;
@@ -161,7 +172,7 @@ namespace Server.Mobiles
 
         public override bool OnGoldGiven(Mobile from, Gold dropped)
         {
-            if (from is PlayerMobile && dropped.Amount == this.JoinCost)
+            if (from is PlayerMobile && dropped.Amount == this.JoinCost && ((PlayerMobile)from).Learning == (SkillName)(-1))
             {
                 PlayerMobile pm = (PlayerMobile)from;
 

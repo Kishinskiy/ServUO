@@ -24,6 +24,18 @@ namespace Server.Mobiles
                 return NpcGuild.MinersGuild;
             }
         }
+
+        public override void OnDoubleClick(Mobile from)
+        {
+            if (from is PlayerMobile pm && pm.Alive && pm.InRange(Location, 2) &&
+                Server.Custom.GuildQuests.CraftSkillQuest.OnMinerGuildmasterClick(pm, this))
+            {
+                return;
+            }
+
+            base.OnDoubleClick(from);
+        }
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);

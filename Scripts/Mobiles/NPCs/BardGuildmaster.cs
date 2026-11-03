@@ -1,4 +1,6 @@
 using System;
+using Server.Custom.GuildQuests;
+using Server.Mobiles;
 
 namespace Server.Mobiles
 {
@@ -14,6 +16,17 @@ namespace Server.Mobiles
             this.SetSkill(SkillName.Peacemaking, 80.0, 100.0);
             this.SetSkill(SkillName.Provocation, 80.0, 100.0);
             this.SetSkill(SkillName.Swords, 80.0, 100.0);
+        }
+
+        public override void OnDoubleClick(Mobile from)
+        {
+            if (from is PlayerMobile pm && pm.Alive && pm.InRange(Location, 2))
+            {
+                BardSkillQuest.OnGuildmasterClick(pm, this);
+                return;
+            }
+
+            base.OnDoubleClick(from);
         }
 
         public BardGuildmaster(Serial serial)
