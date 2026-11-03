@@ -43,14 +43,16 @@ namespace Server.Custom.VirtueQuests
             return true;
         }
 
-        private static bool IsLoreResearchTarget(Item item)
+        private static bool IsLoreResearchTarget(object target)
         {
-            return item is BaseBook ||
-                   item is BaseLocalizedBook ||
-                   item is BaseSpecialScrollBook ||
-                   item is Spellbook ||
-                   item is MagicCrystalBall ||
-                   item is CrystalBallOfKnowledge;
+            if (target is StaticTarget staticTarget)
+            {
+                return staticTarget.ItemID >= 0xE2F &&
+                    staticTarget.ItemID <= 0xFBD ||
+                    staticTarget.ItemID == 0xFBE;
+            }
+
+    return false;
         }
 
         private static string GetSeparatedLoreMessage(double skill)
