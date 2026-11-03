@@ -14,17 +14,18 @@ namespace Server.Custom.KarmaVirtueSystem
         private static Dictionary<Mobile, Dictionary<int, DateTime>> _shrineCooldowns = new Dictionary<Mobile, Dictionary<int, DateTime>>();
         private static Dictionary<Mobile, Dictionary<int, int>> _activeBuffs = new Dictionary<Mobile, Dictionary<int, int>>();
         private static Dictionary<Mobile, Dictionary<int, int>> _permanentlyActivatedShrines = new Dictionary<Mobile, Dictionary<int, int>>();
+        private static readonly Dictionary<int, int> _shrineWorldStates = new Dictionary<int, int>();
 
         public static readonly ShrineData[] Shrines = new ShrineData[]
         {
-            new ShrineData(0, VirtueName.Valor,        "RA",   2493, 3931, 5,  Map.Felucca),
-            new ShrineData(1, VirtueName.Spirituality, "OM",   1595, 2490, 20, Map.Felucca),
-            new ShrineData(2, VirtueName.Honor,        "SUMM", 1398, 3765, 18, Map.Felucca),
-            new ShrineData(3, VirtueName.Sacrifice,    "CAH",  3355, 290,  9,  Map.Felucca),
-            new ShrineData(4, VirtueName.Justice,      "BEH",  1302, 1080, 0,  Map.Felucca),
-            new ShrineData(5, VirtueName.Honesty,      "AHM",  4217, 563,  36, Map.Felucca),
-            new ShrineData(6, VirtueName.Compassion,   "MU",   1855, 865,  10, Map.Felucca),
-            new ShrineData(7, VirtueName.Humility,     "LUM",  4274, 3711, 0,  Map.Felucca)
+            new ShrineData(0, VirtueName.Valor,        "RA",   2493, 3931, 5,  Map.Felucca, "Serpent's Hold", "Destard"),
+            new ShrineData(1, VirtueName.Spirituality, "OM",   1595, 2490, 20, Map.Felucca, "Britain", "Misc Dungeons"), // Храм Жизни / Аватар
+            new ShrineData(2, VirtueName.Honor,        "SUMM", 1398, 3765, 18, Map.Felucca, "Trinsic", "Shame"),
+            new ShrineData(3, VirtueName.Sacrifice,    "CAH",  3355, 290,  9,  Map.Felucca, "Minoc", "Covetous"),
+            new ShrineData(4, VirtueName.Justice,      "BEH",  1302, 1080, 0,  Map.Felucca, "Yew", "Wrong"),
+            new ShrineData(5, VirtueName.Honesty,      "AHM",  4217, 563,  36, Map.Felucca, "Moonglow", "Deceit"),
+            new ShrineData(6, VirtueName.Compassion,   "MU",   1855, 865,  10, Map.Felucca, "Britain", "Despise"),
+            new ShrineData(7, VirtueName.Humility,     "LUM",  4274, 3711, 0,  Map.Felucca, "Magincia", "Hythloth")
         };
 
         public static void Initialize()
@@ -94,6 +95,7 @@ namespace Server.Custom.KarmaVirtueSystem
                 from.SendMessage(0x22, $"Вы осквернили алтарь {shrine.Virtue}! Он вспыхнул ТЁМНОЙ энергией Хаоса и зачтен в вашу Книгу Порока.");
 
                 _permanentlyActivatedShrines[from][shrine.ID] = 2;
+                _shrineWorldStates[shrine.ID] = 2;
                 ApplyBuffInternal(from, shrine.ID, true);
             }
             else
@@ -105,6 +107,7 @@ namespace Server.Custom.KarmaVirtueSystem
                 from.SendMessage(0x5D, $"Вы очистили алтарь {shrine.Virtue}! Он озарился СВЕТОМ Небес и зачтен в ваш Путь Просветления.");
 
                 _permanentlyActivatedShrines[from][shrine.ID] = 1;
+                _shrineWorldStates[shrine.ID] = 1;
                 ApplyBuffInternal(from, shrine.ID, false);
             }
 
@@ -188,6 +191,108 @@ namespace Server.Custom.KarmaVirtueSystem
             return true;
         }
 
+        public static int GetShrineWorldState(int shrineID)
+        {
+            if (_shrineWorldStates.TryGetValue(shrineID, out int worldState))
+                return worldState;
+
+            // Поддерживаем старые данные, если состояние мира еще не было сохранено.
+            foreach (var playerShrines in _permanentlyActivatedShrines.Values)
+            {
+                if (playerShrines.TryGetValue(shrineID, out int state))
+                {
+                    return state;
+                }
+            }
+            return 0;
+        }
+
+        public static bool IsRegionWithin(Region region, string regionName)
+        {
+            if (region == null || String.IsNullOrEmpty(regionName))
+                return false;
+
+            for (Region current = region; current != null; current = current.Parent)
+            {
+                if (String.Equals(current.Name, regionName, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+
+            return false;
+        }
+
+        public static double GetTownInfluence(Region region)
+        {
+            if (region == null) return 1.0;
+
+            double influence = 1.0;
+
+            foreach (ShrineData shrine in Shrines)
+            {
+                if (IsRegionWithin(region, shrine.TownRegionName))
+                {
+                    int shrineState = GetShrineWorldState(shrine.ID);
+
+                    if (shrineState == 1) // Алтарь очищен Светом
+                    {
+                        influence *= 1.25; // +25% к очкам развития города
+                    }
+                    if (shrineState == 2) // Алтарь осквернен Тьмой
+                    {
+                        influence *= 0.85; // -15% к развитию (штраф за силы Хаоса)
+                    }
+                }
+            }
+
+            return influence;
+        }
+
+        public static double GetInvasionChanceModifier(Region region)
+        {
+            if (region == null) return 1.0;
+
+            double modifier = 1.0;
+
+            foreach (ShrineData shrine in Shrines)
+            {
+                if (!IsRegionWithin(region, shrine.TownRegionName))
+                    continue;
+
+                int shrineState = GetShrineWorldState(shrine.ID);
+
+                if (shrineState == 1)
+                    modifier *= 0.75; // Свет снижает угрозу вторжения на 25%.
+                else if (shrineState == 2)
+                    modifier *= 1.25; // Осквернение повышает угрозу вторжения на 25%.
+            }
+
+            return modifier;
+        }
+
+        public static double GetDungeonSpawnRateModifier(Region region)
+        {
+            if (region == null) return 1.0;
+
+            foreach (ShrineData shrine in Shrines)
+            {
+                if (IsRegionWithin(region, shrine.DungeonRegionName))
+                {
+                    int shrineState = GetShrineWorldState(shrine.ID);
+
+                    if (shrineState == 1) // Светлый алтарь ослабляет подземелье-антагонист
+                    {
+                        return 1.50; // Замедляет респаун монстров на 50% (время ожидания увеличивается в 1.5 раза)
+                    }
+                    if (shrineState == 2) // Тёмный алтарь усиливает подземелье-антагонист
+                    {
+                        return 0.70; // Ускоряет респаун монстров (время ожидания составляет всего 70% от базового)
+                    }
+                    break;
+                }
+            }
+
+            return 1.0; // Базовое значение, если алтарь нейтрален
+        }
         public static void Save()
         {
             GenericWriter writer = null;
@@ -196,7 +301,7 @@ namespace Server.Custom.KarmaVirtueSystem
                 string folder = Path.GetDirectoryName(_savePath);
                 if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
                 writer = new BinaryFileWriter(_savePath, false);
-                writer.Write((int)1);
+                writer.Write((int)2);
 
                 writer.Write((int)_permanentlyActivatedShrines.Count);
                 foreach (var kvp in _permanentlyActivatedShrines)
@@ -209,8 +314,18 @@ namespace Server.Custom.KarmaVirtueSystem
                         writer.Write((int)shrineKvp.Value);
                     }
                 }
+
+                writer.Write(_shrineWorldStates.Count);
+                foreach (var shrineKvp in _shrineWorldStates)
+                {
+                    writer.Write(shrineKvp.Key);
+                    writer.Write(shrineKvp.Value);
+                }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[KarmaVirtue] Failed to save shrine data: {ex}");
+            }
             finally { if (writer != null) writer.Close(); }
         }
 
@@ -225,6 +340,9 @@ namespace Server.Custom.KarmaVirtueSystem
                     {
                         GenericReader reader = new BinaryFileReader(binReader);
                         int version = reader.ReadInt();
+                        if (version < 1 || version > 2)
+                            throw new InvalidDataException($"Unsupported shrine data version: {version}");
+
                         int mobCount = reader.ReadInt();
                         for (int i = 0; i < mobCount; i++)
                         {
@@ -236,13 +354,25 @@ namespace Server.Custom.KarmaVirtueSystem
                                 int id = reader.ReadInt();
                                 int side = reader.ReadInt();
                                 dict[id] = side;
+                                if (version < 2 && !_shrineWorldStates.ContainsKey(id))
+                                    _shrineWorldStates[id] = side;
                             }
                             if (m != null) _permanentlyActivatedShrines[m] = dict;
+                        }
+
+                        if (version >= 2)
+                        {
+                            int shrineCount = reader.ReadInt();
+                            for (int i = 0; i < shrineCount; i++)
+                                _shrineWorldStates[reader.ReadInt()] = reader.ReadInt();
                         }
                     }
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[KarmaVirtue] Failed to load shrine data: {ex}");
+            }
         }
     }
     // ВЕРНУЛИ КЛАСС ДАННЫХ 🎉 (Устраняет ошибки CS0246)
@@ -255,7 +385,11 @@ namespace Server.Custom.KarmaVirtueSystem
         public int Y { get; private set; }
         public int Z { get; private set; }
         public Map Map { get; private set; }
-        public ShrineData(int id, VirtueName virtue, string mantra, int x, int y, int z, Map map)
+
+        public string TownRegionName { get; private set; }
+        public string DungeonRegionName { get; private set; }
+
+        public ShrineData(int id, VirtueName virtue, string mantra, int x, int y, int z, Map map, string townRegion, string dungeonRegion)
         {
             ID = id;
             Virtue = virtue;
@@ -264,6 +398,8 @@ namespace Server.Custom.KarmaVirtueSystem
             Y = y;
             Z = z;
             Map = map;
+            TownRegionName = townRegion;
+            DungeonRegionName = dungeonRegion;
         }
     }
 }

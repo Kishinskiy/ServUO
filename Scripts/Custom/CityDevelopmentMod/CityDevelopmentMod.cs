@@ -330,9 +330,12 @@ namespace Server.Custom.CityDevelopment
             // 🔥 ИСПРАВЛЕНО: ПЕРЕНАПРАВЛЕНО НА НОВЫЙ КЛАСС МИРОВОГО БАЛАНСА ПОЛУБОГОВ 🎉⚙️
             // =========================================================================
             double epicBonus = Server.Custom.EpicAlignment.EpicAvatarWorldBalance.GetCityProgressMultiplier(coreCity);
-            
+            Server.Engines.CityLoyalty.CityLoyaltySystem citySystem =
+                Server.Engines.CityLoyalty.CityLoyaltySystem.GetCityInstance(coreCity);
+            double virtueBonus = Server.Custom.KarmaVirtueSystem.KarmaVirtueManager.GetTownInfluence(citySystem?.Definition?.Region);
+
             progress.Treasury += exportProfit;
-            double suppliesGained = (isSeaRoute ? 15.0 : 5.0) * epicBonus;
+            double suppliesGained = (isSeaRoute ? 15.0 : 5.0) * epicBonus * virtueBonus;
             progress.CurrentSupplies += suppliesGained;
             if (ProcessCityLevelUps(coreCity, player.Map))
             {

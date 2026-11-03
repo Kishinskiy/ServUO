@@ -29,6 +29,7 @@ namespace Server.Customs.Invasion_System
             public InvasionTowns Town;
             public Map Map;
             public int Population;
+            public double AttackWeight;
         }
 
         private static void TryStartAutomaticInvasion()
@@ -44,10 +45,6 @@ namespace Server.Customs.Invasion_System
 
             int online = onlinePlayers.Count;
             if (online == 0)
-                return;
-
-            double attackChance = 15.0 * (1.0 - Math.Exp(-online / 75.0));
-            if (Utility.Random(10000) >= attackChance * 100.0)
                 return;
 
             List<InvasionCandidate> candidates = new List<InvasionCandidate>();
@@ -75,11 +72,15 @@ namespace Server.Customs.Invasion_System
 
                     if (population > 0 && TryGetInvasionTown(city, out InvasionTowns town))
                     {
+                        double shrineModifier = Server.Custom.KarmaVirtueSystem.KarmaVirtueManager
+                            .GetInvasionChanceModifier(cityRegion);
+
                         candidates.Add(new InvasionCandidate
                         {
                             Town = town,
                             Map = map,
-                            Population = population
+                            Population = population,
+                            AttackWeight = population * shrineModifier
                         });
                     }
                 }
@@ -89,12 +90,19 @@ namespace Server.Customs.Invasion_System
                 return;
 
             int totalPopulation = candidates.Sum(candidate => candidate.Population);
-            int selectedPopulation = Utility.Random(totalPopulation);
+            double totalAttackWeight = candidates.Sum(candidate => candidate.AttackWeight);
+            double attackChance = 15.0 * (1.0 - Math.Exp(-online / 75.0)) *
+                (totalAttackWeight / totalPopulation);
+
+            if (Utility.Random(10000) >= attackChance * 100.0)
+                return;
+
+            double selectedWeight = Utility.RandomDouble() * totalAttackWeight;
             InvasionCandidate selected = candidates[candidates.Count - 1];
             foreach (InvasionCandidate candidate in candidates)
             {
-                selectedPopulation -= candidate.Population;
-                if (selectedPopulation < 0)
+                selectedWeight -= candidate.AttackWeight;
+                if (selectedWeight < 0.0)
                 {
                     selected = candidate;
                     break;

@@ -80,7 +80,7 @@ namespace Server.Mobiles
 
         public override bool IsVirtualItem { get { return true; } }
 
-        public bool IsFull { get { return (SpawnCount >= m_MaxCount); } }
+        public bool IsFull { get { return (SpawnCount >= GetEffectiveMaxCount()); } }
         public bool IsEmpty { get { return (SpawnCount == 0); } }
 
         public List<SpawnObject> SpawnObjects
@@ -426,14 +426,14 @@ namespace Server.Mobiles
 
         public virtual bool CheckSpawnerFull()
         {
-            return (SpawnCount >= m_MaxCount);
+            return (SpawnCount >= GetEffectiveMaxCount());
         }
 
         public virtual void Respawn()
         {
             RemoveSpawned();
 
-            for (int i = 0; i < m_MaxCount; i++)
+            for (int i = 0; i < GetEffectiveMaxCount(); i++)
                 Spawn();
         }
 
@@ -455,7 +455,7 @@ namespace Server.Mobiles
 
                 if (m_Group)
                 {
-                    int toSpawn = so.MaxCount - GetSpawnCount(so);
+                    int toSpawn = GetEffectiveSpawnObjectMaxCount(so) - GetSpawnCount(so);
 
                     for (int i = 0; i < toSpawn; i++)
                     {
@@ -473,7 +473,7 @@ namespace Server.Mobiles
         {
             Map map = Map;
 
-            if (map == null || map == Map.Internal || SpawnObjectCount == 0 || so == null || Parent != null || GetSpawnCount(so) >= so.MaxCount)
+            if (map == null || map == Map.Internal || SpawnObjectCount == 0 || so == null || Parent != null || GetSpawnCount(so) >= GetEffectiveSpawnObjectMaxCount(so))
                 return;
 
             Defrag();
@@ -598,7 +598,7 @@ namespace Server.Mobiles
 
             foreach (var so in m_SpawnObjects)
             {
-                if (so.CurrentCount < so.MaxCount)
+                if (so.CurrentCount < GetEffectiveSpawnObjectMaxCount(so))
                 {
                     if(objects == null)
                         objects = new List<SpawnObject>();
@@ -624,6 +624,12 @@ namespace Server.Mobiles
             int maxSeconds = (int)m_MaxDelay.TotalSeconds;
 
             TimeSpan delay = TimeSpan.FromSeconds(Utility.RandomMinMax(minSeconds, maxSeconds));
+            Region region = Map == null ? null : Region.Find(Location, Map);
+            double spawnRateModifier = Server.Custom.KarmaVirtueSystem.KarmaVirtueManager.GetDungeonSpawnRateModifier(region);
+
+            if (spawnRateModifier != 1.0)
+                delay = TimeSpan.FromSeconds(Math.Max(1, (int)Math.Round(delay.TotalSeconds * spawnRateModifier)));
+
             DoTimer(delay);
         }
 
@@ -687,6 +693,21 @@ namespace Server.Mobiles
             Defrag();
 
             return so.CurrentCount;
+        }
+
+        private int GetEffectiveMaxCount()
+        {
+            Region region = Map == null ? null : Region.Find(Location, Map);
+            return Server.Custom.KarmaVirtueSystem.VirtueDungeonModifier.GetSpawnCountModifier(region, m_MaxCount);
+        }
+
+        private int GetEffectiveSpawnObjectMaxCount(SpawnObject spawnObject)
+        {
+            if (spawnObject == null)
+                return 0;
+
+            Region region = Map == null ? null : Region.Find(Location, Map);
+            return Server.Custom.KarmaVirtueSystem.VirtueDungeonModifier.GetSpawnCountModifier(region, spawnObject.MaxCount);
         }
 
         public void RemoveSpawned(int index)
