@@ -10,11 +10,32 @@ namespace Server.Custom.KarmaVirtueSystem
 {
     public static class KarmaVirtueManager
     {
+        private static readonly TimeSpan PlayerBuffDuration =
+            Config.Get("KarmaVirtue.PlayerBuffDuration", TimeSpan.FromHours(2.0));
+        private static readonly TimeSpan ShrineEffectDuration =
+            Config.Get("KarmaVirtue.ShrineEffectDuration", TimeSpan.FromHours(2.0));
+        public static readonly double TownDevelopmentLightMultiplier =
+            Config.Get("KarmaVirtue.TownDevelopmentLightMultiplier", 1.25);
+        public static readonly double TownDevelopmentDarkMultiplier =
+            Config.Get("KarmaVirtue.TownDevelopmentDarkMultiplier", 0.85);
+        public static readonly double InvasionChanceLightMultiplier =
+            Config.Get("KarmaVirtue.InvasionChanceLightMultiplier", 0.75);
+        public static readonly double InvasionChanceDarkMultiplier =
+            Config.Get("KarmaVirtue.InvasionChanceDarkMultiplier", 1.25);
+        public static readonly double DungeonSpawnCountLightMultiplier =
+            Config.Get("KarmaVirtue.DungeonSpawnCountLightMultiplier", 0.70);
+        public static readonly double DungeonSpawnCountDarkMultiplier =
+            Config.Get("KarmaVirtue.DungeonSpawnCountDarkMultiplier", 1.50);
+        public static readonly double DungeonRespawnTimeLightMultiplier =
+            Config.Get("KarmaVirtue.DungeonRespawnTimeLightMultiplier", 1.50);
+        public static readonly double DungeonRespawnTimeDarkMultiplier =
+            Config.Get("KarmaVirtue.DungeonRespawnTimeDarkMultiplier", 0.70);
         private static readonly string _savePath = Path.Combine(Core.BaseDirectory, "Saves/Custom/KarmaVirtueSystem.bin");
         private static Dictionary<Mobile, Dictionary<int, DateTime>> _shrineCooldowns = new Dictionary<Mobile, Dictionary<int, DateTime>>();
         private static Dictionary<Mobile, Dictionary<int, int>> _activeBuffs = new Dictionary<Mobile, Dictionary<int, int>>();
         private static Dictionary<Mobile, Dictionary<int, int>> _permanentlyActivatedShrines = new Dictionary<Mobile, Dictionary<int, int>>();
         private static readonly Dictionary<int, int> _shrineWorldStates = new Dictionary<int, int>();
+        private static readonly Dictionary<int, DateTime> _shrineWorldStateExpirations = new Dictionary<int, DateTime>();
 
         public static readonly ShrineData[] Shrines = new ShrineData[]
         {
@@ -48,7 +69,7 @@ namespace Server.Custom.KarmaVirtueSystem
             {
                 if (speech == shrine.Mantra)
                 {
-                    if (from.Map == shrine.Map && from.InRange(new Point3D(shrine.X, shrine.Y, shrine.Z), 4))
+                    if (shrine.IsAvailableOn(from.Map) && from.InRange(new Point3D(shrine.X, shrine.Y, shrine.Z), 4))
                     {
                         e.Handled = true;
                         ProcessShrineActivation(from, shrine);
@@ -96,6 +117,7 @@ namespace Server.Custom.KarmaVirtueSystem
 
                 _permanentlyActivatedShrines[from][shrine.ID] = 2;
                 _shrineWorldStates[shrine.ID] = 2;
+                _shrineWorldStateExpirations[shrine.ID] = DateTime.UtcNow + ShrineEffectDuration;
                 ApplyBuffInternal(from, shrine.ID, true);
             }
             else
@@ -108,6 +130,7 @@ namespace Server.Custom.KarmaVirtueSystem
 
                 _permanentlyActivatedShrines[from][shrine.ID] = 1;
                 _shrineWorldStates[shrine.ID] = 1;
+                _shrineWorldStateExpirations[shrine.ID] = DateTime.UtcNow + ShrineEffectDuration;
                 ApplyBuffInternal(from, shrine.ID, false);
             }
 
@@ -123,7 +146,7 @@ namespace Server.Custom.KarmaVirtueSystem
             int buffKey = isDark ? -(shrineID + 1) : (shrineID + 1);
             _activeBuffs[from][buffKey] = 100;
 
-            Timer.DelayCall(TimeSpan.FromHours(2.0), () =>
+            Timer.DelayCall(PlayerBuffDuration, () =>
             {
                 if (from != null && _activeBuffs.ContainsKey(from))
                     _activeBuffs[from].Remove(buffKey);
@@ -193,18 +216,12 @@ namespace Server.Custom.KarmaVirtueSystem
 
         public static int GetShrineWorldState(int shrineID)
         {
-            if (_shrineWorldStates.TryGetValue(shrineID, out int worldState))
-                return worldState;
+            if (!_shrineWorldStates.TryGetValue(shrineID, out int worldState) ||
+                !_shrineWorldStateExpirations.TryGetValue(shrineID, out DateTime expiresAt) ||
+                DateTime.UtcNow >= expiresAt)
+                return 0;
 
-            // Поддерживаем старые данные, если состояние мира еще не было сохранено.
-            foreach (var playerShrines in _permanentlyActivatedShrines.Values)
-            {
-                if (playerShrines.TryGetValue(shrineID, out int state))
-                {
-                    return state;
-                }
-            }
-            return 0;
+            return worldState;
         }
 
         public static bool IsRegionWithin(Region region, string regionName)
@@ -235,11 +252,11 @@ namespace Server.Custom.KarmaVirtueSystem
 
                     if (shrineState == 1) // Алтарь очищен Светом
                     {
-                        influence *= 1.25; // +25% к очкам развития города
+                        influence *= TownDevelopmentLightMultiplier;
                     }
                     if (shrineState == 2) // Алтарь осквернен Тьмой
                     {
-                        influence *= 0.85; // -15% к развитию (штраф за силы Хаоса)
+                        influence *= TownDevelopmentDarkMultiplier;
                     }
                 }
             }
@@ -261,9 +278,9 @@ namespace Server.Custom.KarmaVirtueSystem
                 int shrineState = GetShrineWorldState(shrine.ID);
 
                 if (shrineState == 1)
-                    modifier *= 0.75; // Свет снижает угрозу вторжения на 25%.
+                    modifier *= InvasionChanceLightMultiplier;
                 else if (shrineState == 2)
-                    modifier *= 1.25; // Осквернение повышает угрозу вторжения на 25%.
+                    modifier *= InvasionChanceDarkMultiplier;
             }
 
             return modifier;
@@ -281,11 +298,11 @@ namespace Server.Custom.KarmaVirtueSystem
 
                     if (shrineState == 1) // Светлый алтарь ослабляет подземелье-антагонист
                     {
-                        return 1.50; // Замедляет респаун монстров на 50% (время ожидания увеличивается в 1.5 раза)
+                        return DungeonRespawnTimeLightMultiplier;
                     }
                     if (shrineState == 2) // Тёмный алтарь усиливает подземелье-антагонист
                     {
-                        return 0.70; // Ускоряет респаун монстров (время ожидания составляет всего 70% от базового)
+                        return DungeonRespawnTimeDarkMultiplier;
                     }
                     break;
                 }
@@ -301,7 +318,7 @@ namespace Server.Custom.KarmaVirtueSystem
                 string folder = Path.GetDirectoryName(_savePath);
                 if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
                 writer = new BinaryFileWriter(_savePath, false);
-                writer.Write((int)2);
+                writer.Write((int)3);
 
                 writer.Write((int)_permanentlyActivatedShrines.Count);
                 foreach (var kvp in _permanentlyActivatedShrines)
@@ -320,6 +337,9 @@ namespace Server.Custom.KarmaVirtueSystem
                 {
                     writer.Write(shrineKvp.Key);
                     writer.Write(shrineKvp.Value);
+                    writer.Write(_shrineWorldStateExpirations.TryGetValue(shrineKvp.Key, out DateTime expiresAt)
+                        ? expiresAt
+                        : DateTime.UtcNow);
                 }
             }
             catch (Exception ex)
@@ -340,9 +360,10 @@ namespace Server.Custom.KarmaVirtueSystem
                     {
                         GenericReader reader = new BinaryFileReader(binReader);
                         int version = reader.ReadInt();
-                        if (version < 1 || version > 2)
+                        if (version < 1 || version > 3)
                             throw new InvalidDataException($"Unsupported shrine data version: {version}");
 
+                        DateTime legacyExpiration = DateTime.UtcNow + ShrineEffectDuration;
                         int mobCount = reader.ReadInt();
                         for (int i = 0; i < mobCount; i++)
                         {
@@ -355,7 +376,10 @@ namespace Server.Custom.KarmaVirtueSystem
                                 int side = reader.ReadInt();
                                 dict[id] = side;
                                 if (version < 2 && !_shrineWorldStates.ContainsKey(id))
+                                {
                                     _shrineWorldStates[id] = side;
+                                    _shrineWorldStateExpirations[id] = legacyExpiration;
+                                }
                             }
                             if (m != null) _permanentlyActivatedShrines[m] = dict;
                         }
@@ -364,7 +388,13 @@ namespace Server.Custom.KarmaVirtueSystem
                         {
                             int shrineCount = reader.ReadInt();
                             for (int i = 0; i < shrineCount; i++)
-                                _shrineWorldStates[reader.ReadInt()] = reader.ReadInt();
+                            {
+                                int shrineID = reader.ReadInt();
+                                _shrineWorldStates[shrineID] = reader.ReadInt();
+                                _shrineWorldStateExpirations[shrineID] = version >= 3
+                                    ? reader.ReadDateTime()
+                                    : legacyExpiration;
+                            }
                         }
                     }
                 }
@@ -388,6 +418,13 @@ namespace Server.Custom.KarmaVirtueSystem
 
         public string TownRegionName { get; private set; }
         public string DungeonRegionName { get; private set; }
+
+        public bool IsAvailableOn(Map map)
+        {
+            return map == Map ||
+                   ((Map == Server.Map.Felucca || Map == Server.Map.Trammel) &&
+                    (map == Server.Map.Felucca || map == Server.Map.Trammel));
+        }
 
         public ShrineData(int id, VirtueName virtue, string mantra, int x, int y, int z, Map map, string townRegion, string dungeonRegion)
         {

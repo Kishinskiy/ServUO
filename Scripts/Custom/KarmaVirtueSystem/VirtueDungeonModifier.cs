@@ -19,13 +19,13 @@ namespace Server.Custom.KarmaVirtueSystem
 
                     if (shrineState == 2) // ТЕМНЫЙ алтарь -> Заполняем данж монстрами до предела!
                     {
-                        // Увеличиваем лимит спавна в 1.5 раза (например, вместо 4 монстров будет спавниться 6)
-                        return (int)Math.Ceiling(baseMaxCount * 1.50);
+                        return Math.Max(1, (int)Math.Ceiling(
+                            baseMaxCount * KarmaVirtueManager.DungeonSpawnCountDarkMultiplier));
                     }
                     if (shrineState == 1) // СВЕТЛЫЙ алтарь -> Монстров становится меньше
                     {
-                        // Уменьшаем количество монстров на 30% (минимум 1)
-                        return Math.Max(1, (int)Math.Floor(baseMaxCount * 0.70));
+                        return Math.Max(1, (int)Math.Floor(
+                            baseMaxCount * KarmaVirtueManager.DungeonSpawnCountLightMultiplier));
                     }
                     break;
                 }
