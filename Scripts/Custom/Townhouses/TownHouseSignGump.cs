@@ -11,6 +11,7 @@ using Server.Gumps;
 using Server.Mobiles;
 using Server.Targeting;
 using Server.Items;
+using Server.Engines.CityLoyalty;
 
 namespace Server.Custom.TownHouses
 {
@@ -51,6 +52,8 @@ namespace Server.Custom.TownHouses
         private const int BTN_ListNext = 13;
         private const int BTN_ListPrev = 14;
         private const int BTN_TogglePublic = 15;
+        private const int BTN_Rent = 16;
+        private const int BTN_VacateRental = 17;
 
         private const int BTN_REMOVE_BASE = 1000;
 
@@ -61,6 +64,8 @@ namespace Server.Custom.TownHouses
         private const int BTN_GM_ToggleWipe = 53;
         private const int BTN_GM_ApplySettings = 54;
         private const int BTN_GM_Evict = 55;
+        private const int BTN_GM_ClearRental = 56;
+        private const int BTN_GovernorSaveRental = 57;
 
         // Nav Buttons
         private const int BTN_OpenFriends = 101;
@@ -85,8 +90,8 @@ namespace Server.Custom.TownHouses
             Resizable = false;
 
             AddPage(0);
-            AddBackground(0, 0, 600, 520, 9270);
-            AddAlphaRegion(10, 10, 580, 500);
+            AddBackground(0, 0, 600, 650, 9270);
+            AddAlphaRegion(10, 10, 580, 630);
 
             AddHtml(10, 20, 580, 25, "<CENTER><BASEFONT COLOR=#FFD700>TOWN HOUSE PROPERTY</BASEFONT></CENTER>", false, false);
             AddImageTiled(20, 45, 560, 2, 96);
@@ -224,6 +229,68 @@ namespace Server.Custom.TownHouses
             AddLabel(col2 + 100, y2, LabelHue, (m_C.Rect.Width * m_C.Rect.Height) + " Tiles");
             y2 += 30;
 
+            if (m_C.State == TownHouseState.Rentable)
+            {
+                AddImageTiled(col2 - 10, y2, 260, 2, 96);
+                y2 += 10;
+                AddLabel(col2, y2, HeaderHue, "CITY RENTAL");
+                y2 += 25;
+
+                if (m_C.HasRenter)
+                {
+                    AddLabel(col2, y2, LabelHue, "Tenant: " + m_C.Renter.Name);
+                    y2 += 20;
+                    AddLabel(col2, y2, LabelHue, "Paid through: " + m_C.RentalPaidUntil.ToLocalTime().ToString("g"));
+                    y2 += 25;
+
+                    if (m_C.IsRenter(m_From))
+                    {
+                        AddButton(col2, y2, 4005, 4007, BTN_VacateRental, GumpButtonType.Reply, 0);
+                        AddLabel(col2 + 35, y2, LabelHue, "End lease (7-day collection period)");
+                        y2 += 30;
+                    }
+                }
+                else if (m_C.RentalNeedsClearance)
+                {
+                    AddLabel(col2, y2, 33, "Awaiting administrator item clearance.");
+                    y2 += 25;
+
+                    if (m_From.AccessLevel >= AccessLevel.GameMaster)
+                    {
+                        AddButton(col2, y2, 4011, 4013, BTN_GM_ClearRental, GumpButtonType.Reply, 0);
+                        AddLabel(col2 + 35, y2, 33, "Mark cleared after cleanup");
+                        y2 += 30;
+                    }
+                }
+                else if (m_C.CanRent(m_From))
+                {
+                    AddLabel(col2, y2, LabelHue, "Rent: " + m_C.RentalPrice.ToString("N0") + " gp");
+                    y2 += 20;
+                    AddLabel(col2, y2, LabelHue, "Refundable deposit: " + m_C.RentalPrice.ToString("N0") + " gp");
+                    y2 += 25;
+                    AddButton(col2, y2, 4005, 4007, BTN_Rent, GumpButtonType.Reply, 0);
+                    AddLabel(col2 + 35, y2, LabelHue, "Rent for " + m_C.RentalDays + " days");
+                    y2 += 30;
+                }
+
+                if (m_C.CanManageRental(m_From) && !m_C.HasRenter && !m_C.RentalNeedsClearance)
+                {
+                    AddLabel(col2, y2, HeaderHue, "GOVERNOR RENTAL TERMS");
+                    y2 += 22;
+                    AddLabel(col2, y2, LabelHue, "Price:");
+                    AddImageTiled(col2 + 70, y2, 95, 20, 2624);
+                    AddTextEntry(col2 + 72, y2, 91, 20, ValueHue, 11, m_C.RentalPrice.ToString());
+                    y2 += 23;
+                    AddLabel(col2, y2, LabelHue, "Days (7 or 30):");
+                    AddImageTiled(col2 + 130, y2, 45, 20, 2624);
+                    AddTextEntry(col2 + 132, y2, 41, 20, ValueHue, 12, m_C.RentalDays.ToString());
+                    y2 += 25;
+                    AddButton(col2, y2, 4005, 4007, BTN_GovernorSaveRental, GumpButtonType.Reply, 0);
+                    AddLabel(col2 + 35, y2, LabelHue, "Save rental terms");
+                    y2 += 30;
+                }
+            }
+
             if (m_From.AccessLevel >= AccessLevel.GameMaster)
             {
                 AddImageTiled(col2 - 10, y2, 260, 2, 96);
@@ -360,6 +427,12 @@ namespace Server.Custom.TownHouses
                 case BTN_BuyFromOwner: m_C.TryPurchaseFromOwner(m_From); break;
                 case BTN_CancelSale: m_C.TryCancelSale(m_From); break;
                 case BTN_Abandon: m_C.TryAbandon(m_From); break;
+                case BTN_Rent: m_C.TryRent(m_From); break;
+                case BTN_VacateRental: m_C.TryVacateRental(m_From); break;
+                case BTN_GM_ClearRental: m_C.ClearRentalAfterCleanup(m_From); break;
+                case BTN_GovernorSaveRental:
+                    m_C.SetRentalTerms(m_From, ParseInt(info, 11, 0), ParseInt(info, 12, 0));
+                    break;
 
                 case BTN_Transfer:
                     if (m_C.IsOwner(m_From)) {

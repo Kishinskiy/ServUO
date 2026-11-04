@@ -447,7 +447,7 @@ AddHtmlLocalized(30, 40, 285, 230, 1152891, String.Format("#{0}", CityLoyaltySys
 
             if (City.Election == null || !City.Election.Ongoing)
             {
-                AddBackground(0, 0, 480, 230, 5054);
+                AddBackground(0, 0, 480, City.IsGovernor(User) ? 270 : 230, 5054);
                 AddHtmlLocalized(10, 12, 200, 20, 1155758, 0xFFFF, false, false); // City Stone
 
                 DateTime next = City.Election.NextElection();
@@ -458,11 +458,17 @@ AddHtmlLocalized(30, 40, 285, 230, 1152891, String.Format("#{0}", CityLoyaltySys
                     next.ToString()), 0xFFFF, false, false); 
 
                 // Выводим кастомный HTML статус региона точно под официальным текстом
-                AddHtml(20, 110, 440, 90, devStatusText, false, false);
+                AddHtml(20, 110, 440, City.IsGovernor(User) ? 80 : 90, devStatusText, false, false);
+
+                if (City.IsGovernor(User))
+                {
+                    AddButton(10, 205, 4005, 4007, 4, GumpButtonType.Reply, 0);
+                    AddLabel(45, 205, 0xFFFF, "Place rental market stall");
+                }
             }
             else
             {
-                AddBackground(0, 0, 560, 270, 5054);
+                AddBackground(0, 0, 560, City.IsGovernor(User) ? 300 : 270, 5054);
                 AddHtmlLocalized(10, 12, 200, 20, 1155758, 0xFFFF, false, false); // City Stone
 
                 if (City.Election.CanNominate())
@@ -482,6 +488,12 @@ AddHtmlLocalized(30, 40, 285, 230, 1152891, String.Format("#{0}", CityLoyaltySys
                 // Кнопка CLOSE смещена со 150 на 190, чтобы фоновое окно выглядело гармонично
                 AddButton(10, 190, 4005, 4007, 0, GumpButtonType.Reply, 0);
                 AddHtmlLocalized(45, 190, 250, 20, 1060675, 0xFFFF, false, false); // CLOSE
+
+                if (City.IsGovernor(User))
+                {
+                    AddButton(280, 190, 4005, 4007, 4, GumpButtonType.Reply, 0);
+                    AddLabel(315, 190, 0xFFFF, "Place rental market stall");
+                }
             }
         }
 
@@ -493,6 +505,7 @@ AddHtmlLocalized(30, 40, 285, 230, 1152891, String.Format("#{0}", CityLoyaltySys
                 case 1: City.Election.TryNominate(User); break;
                 case 2: BaseGump.SendGump(new NomineesGump(User, City)); break;
                 case 3: BaseGump.SendGump(new CandidatesGump(User, City)); break;
+                case 4: CityRentalSystem.BeginStallPlacement(User, City); break;
             }
         }
     }

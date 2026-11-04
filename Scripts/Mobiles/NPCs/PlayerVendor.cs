@@ -952,7 +952,7 @@ namespace Server.Mobiles
             return base.CheckNonlocalLift(from, item);
         }
 
-        public bool CanInteractWith(Mobile from, bool ownerOnly)
+        public virtual bool CanInteractWith(Mobile from, bool ownerOnly)
         {
             if (!from.CanSee(this) || !Utility.InUpdateRange(from, this) || !from.CheckAlive())
                 return false;

@@ -64,8 +64,10 @@ that you own" when attempting to use deeds inside a TownHouse.
    Click "APPLY SETTINGS" to save.
 
 6. **SET STATE**
-   Click "Cycle State" to toggle between Purchasable and Transferable.
-   Set it to Purchasable so players can buy it from the sign.
+   Click "Cycle State" to cycle through Purchasable, Transferable, and
+   Rentable for unowned properties. Set Rentable for a city house that
+   should be leased rather than purchased. The house is initially blocked
+   until staff confirms its old items have been cleared.
 
 7. **WIPE POLICY (OPTIONAL)**
    Click "Wipe Policy" to toggle between:
@@ -167,6 +169,26 @@ Click Refresh to update the list.
 **ABANDON** (Owner only)
   Immediately clears ownership and resets to Purchasable.
   Items remain in place but immovable for the next owner to claim.
+
+**CITY RENTAL**
+  Town houses must be configured by staff and set to Rentable. The serving
+  city governor can then set a 7- or 30-day term and the rent price at the
+  house sign. The tenant pays the full rent plus an equal deposit from their
+  bank; rent goes to the city treasury. The deposit is returned to the tenant's
+  bank at the end of the paid term. Ending the lease early forfeits the deposit
+  to the city treasury.
+
+  At the end of a lease, the tenant has 7 days to collect belongings. The house
+  is then closed to the tenant, but its items are not deleted and the property
+  cannot be rented again until staff removes the old items and clicks
+  "Mark cleared after cleanup" at the sign. Staff must also confirm the
+  property is empty when first enabling it for rent.
+
+  A governor can also open the City Stone and choose "Place rental market
+  stall", then target an available tile within the city. Governors set the
+  rent and 7- or 30-day term at the resulting sign. A tenant can place one
+  player vendor there. Market stall leases use the same rent, deposit, expiry,
+  and 7-day collection rules as housing.
 
 
 --------------------------------------------------------------------------------

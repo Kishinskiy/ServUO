@@ -19,6 +19,7 @@ using Server.Items;
 using Server.Mobiles;
 using Server.Regions;
 using Server.Targeting;
+using Server.Engines.CityLoyalty;
 
 namespace Server.Custom.TownHouses
 {
@@ -186,6 +187,17 @@ namespace Server.Custom.TownHouses
             if (m.IsStaff())
                 return base.OnMoveInto(m, d, newLocation, oldLocation);
 
+            if (Controller.State == TownHouseState.Rentable)
+            {
+                if (!Controller.HasRentalAccess(m))
+                {
+                    m.SendMessage("This property is available for rent or is awaiting clearance.");
+                    return false;
+                }
+
+                return base.OnMoveInto(m, d, newLocation, oldLocation);
+            }
+
             // If house is unowned, allow entry
             if (Controller.Owner == null)
                 return base.OnMoveInto(m, d, newLocation, oldLocation);
@@ -338,9 +350,22 @@ namespace Server.Custom.TownHouses
         public TownHouseWipePolicy WipePolicy { get; private set; }
 
         public int PurchasePrice { get; private set; }
+        public int RentalPrice { get; private set; }
+        public int RentalDays { get; private set; }
+        public int RentalDeposit { get; private set; }
+        public DateTime RentalPaidUntil { get; private set; }
+        public DateTime RentalGraceUntil { get; private set; }
+        public bool RentalNeedsClearance { get; private set; }
+        public CityLoyaltySystem RentalCity { get; private set; }
+
+        public bool HasRenter
+        {
+            get { return Renter != null && !Renter.Deleted; }
+        }
 
         // Ownership & access
         public Mobile Owner { get; private set; }
+        public Mobile Renter { get; private set; }
         public List<Mobile> CoOwners { get; private set; }
         public List<Mobile> Friends { get; private set; }
         public List<Mobile> Bans { get; private set; }
@@ -385,8 +410,11 @@ namespace Server.Custom.TownHouses
             WipePolicy = TownHouseWipePolicy.LeaveAsIs;
 
             PurchasePrice = 250000;
+            RentalPrice = 10000;
+            RentalDays = 7;
 
             Owner = null;
+            Renter = null;
             CoOwners = new List<Mobile>();
             Friends = new List<Mobile>();
             Bans = new List<Mobile>();
@@ -499,16 +527,239 @@ namespace Server.Custom.TownHouses
 
         public bool IsOwner(Mobile m) => (m != null && (Owner == m || SameAccount(Owner, m)));
 
+        public bool IsRenter(Mobile m)
+        {
+            return m != null && Renter != null && (Renter == m || SameAccount(Renter, m)) && HasRentalAccess(m);
+        }
+
+        public bool HasRentalAccess(Mobile m)
+        {
+            return HasRenter && m != null && (Renter == m || SameAccount(Renter, m) || Friends.Contains(m) || CoOwners.Contains(m));
+        }
+
+        public CityLoyaltySystem GetRentalCity()
+        {
+            return RentalCity ?? CityRentalSystem.GetCityAt(Location, Map);
+        }
+
+        public bool CanManageRental(Mobile m)
+        {
+            if (m == null)
+                return false;
+
+            CityLoyaltySystem city = GetRentalCity();
+            return State == TownHouseState.Rentable && city != null && city.IsGovernor(m);
+        }
+
+        public bool CanRent(Mobile m)
+        {
+            return m != null && Owner == null && State == TownHouseState.Rentable && Renter == null &&
+                !RentalNeedsClearance && RentalPrice > 0 && (RentalDays == 7 || RentalDays == 30) &&
+                GetRentalCity() != null;
+        }
+
         public bool IsCoOwner(Mobile m)
         {
             if (m == null) return false;
-            return CoOwners.Contains(m) || SameAccount(Owner, m);
+            return IsRenter(m) || CoOwners.Contains(m) || SameAccount(Owner, m);
         }
 
         public bool IsFriend(Mobile m)
         {
             if (m == null) return false;
-            return IsOwner(m) || IsCoOwner(m) || Friends.Contains(m);
+            return IsOwner(m) || IsCoOwner(m) || Friends.Contains(m) || HasRentalAccess(m);
+        }
+
+        public bool SetRentalTerms(Mobile from, int price, int days)
+        {
+            if (from == null)
+                return false;
+
+            if (!CanManageRental(from) || Owner != null || Renter != null || RentalNeedsClearance)
+            {
+                from.SendMessage("This property cannot be configured for rent right now.");
+                return false;
+            }
+
+            if (price < 1 || price > 100000000 || (days != 7 && days != 30))
+            {
+                from.SendMessage("Use a rent between 1 and 100,000,000 gp and a term of 7 or 30 days.");
+                return false;
+            }
+
+            RentalPrice = price;
+            RentalDays = days;
+            InvalidateProperties();
+            from.SendMessage("Rental terms updated.");
+            return true;
+        }
+
+        public bool TryRent(Mobile renter)
+        {
+            if (renter == null)
+                return false;
+
+            if (!CanRent(renter))
+            {
+                renter.SendMessage("This property is not available for rent.");
+                return false;
+            }
+
+            CityLoyaltySystem city = GetRentalCity();
+            if (city == null || !CityRentalSystem.IsInCity(Location, Map, city))
+            {
+                renter.SendMessage("This property is not within a supported city.");
+                return false;
+            }
+
+            int total = RentalPrice * 2;
+            if (Banker.GetBalance(renter) < total || !Banker.Withdraw(renter, total))
+            {
+                renter.SendMessage("You need enough gold in your bank for the rent and refundable deposit.");
+                return false;
+            }
+
+            Renter = renter;
+            RentalDeposit = RentalPrice;
+            RentalPaidUntil = DateTime.UtcNow + TimeSpan.FromDays(RentalDays);
+            RentalGraceUntil = RentalPaidUntil + TimeSpan.FromDays(7);
+            RentalCity = city;
+            RentalNeedsClearance = false;
+            CoOwners.Clear();
+            Friends.Clear();
+            Bans.Clear();
+            city.AddToTreasury(renter, RentalPrice);
+
+            ScheduleRentalCheck();
+            InvalidateProperties();
+            renter.SendMessage("You rented this town house for {0} days. Your deposit will be returned at the end of the term.", RentalDays);
+            return true;
+        }
+
+        public bool TryVacateRental(Mobile renter)
+        {
+            if (renter == null)
+                return false;
+
+            if (!IsRenter(renter))
+            {
+                renter.SendMessage("You are not the renter of this property.");
+                return false;
+            }
+
+            DateTime now = DateTime.UtcNow;
+            if (now >= RentalPaidUntil)
+            {
+                renter.SendMessage("Your lease is already in its 7-day collection period.");
+                return false;
+            }
+
+            if (RentalDeposit > 0)
+            {
+                CityLoyaltySystem city = GetRentalCity();
+                if (city != null)
+                    city.AddToTreasury(renter, RentalDeposit);
+                RentalDeposit = 0;
+                renter.SendMessage("Your early departure forfeits the deposit to the city treasury.");
+            }
+
+            RentalPaidUntil = now;
+            RentalGraceUntil = now + TimeSpan.FromDays(7);
+            ScheduleRentalCheck();
+            InvalidateProperties();
+            renter.SendMessage("Your lease is ending. You may collect your belongings for 7 days.");
+            return true;
+        }
+
+        public bool ClearRentalAfterCleanup(Mobile from)
+        {
+            if (from == null || from.AccessLevel < AccessLevel.GameMaster || Renter != null || !RentalNeedsClearance)
+                return false;
+
+            RentalNeedsClearance = false;
+            RentalCity = null;
+            RentalDeposit = 0;
+            RentalPaidUntil = DateTime.MinValue;
+            RentalGraceUntil = DateTime.MinValue;
+            foreach (Item item in Lockdowns)
+            {
+                if (item != null && !item.Deleted)
+                    item.IsLockedDown = false;
+            }
+            Lockdowns.Clear();
+
+            foreach (Item item in Secures)
+            {
+                if (item != null && !item.Deleted)
+                    item.IsSecure = false;
+            }
+            Secures.Clear();
+
+            InvalidateProperties();
+            from.SendMessage("Rental clearance completed. The property is available again.");
+            return true;
+        }
+
+        private void ScheduleRentalCheck()
+        {
+            if (Renter == null)
+                return;
+
+            DateTime next = RentalGraceUntil;
+            if (RentalDeposit > 0 && RentalPaidUntil < next)
+                next = RentalPaidUntil;
+
+            TimeSpan delay = next - DateTime.UtcNow;
+
+            if (delay < TimeSpan.Zero)
+                delay = TimeSpan.Zero;
+
+            Timer.DelayCall(delay, ProcessRental);
+        }
+
+        private void ProcessRental()
+        {
+            if (Deleted || Renter == null)
+                return;
+
+            DateTime now = DateTime.UtcNow;
+
+            if (Renter.Deleted)
+            {
+                CityLoyaltySystem city = GetRentalCity();
+                if (RentalDeposit > 0 && city != null)
+                    city.AddToTreasury(city.Governor ?? city.Herald, RentalDeposit);
+
+                RentalDeposit = 0;
+                RentalGraceUntil = now;
+            }
+
+            if (now >= RentalPaidUntil && RentalDeposit > 0)
+            {
+                if (!CityRentalSystem.Refund(Renter, RentalDeposit))
+                {
+                    Timer.DelayCall(TimeSpan.FromMinutes(10), ProcessRental);
+                    return;
+                }
+
+                RentalDeposit = 0;
+                if (Renter.NetState != null)
+                    Renter.SendMessage("Your town house rental deposit has been returned to your bank.");
+            }
+
+            if (now >= RentalGraceUntil)
+            {
+                Renter = null;
+                RentalNeedsClearance = true;
+                CoOwners.Clear();
+                Friends.Clear();
+                Bans.Clear();
+                RentalCity = null;
+                InvalidateProperties();
+                return;
+            }
+
+            Timer.DelayCall(RentalGraceUntil - now, ProcessRental);
         }
 
         public bool IsBanned(Mobile m)
@@ -572,10 +823,20 @@ namespace Server.Custom.TownHouses
 
         public void CycleState()
         {
-            if (this.State == TownHouseState.Purchasable)
-                this.State = TownHouseState.Transferable;
+            if (Renter != null)
+                return;
+
+            if (Owner != null)
+                State = TownHouseState.Transferable;
+            else if (State == TownHouseState.Purchasable)
+                State = TownHouseState.Transferable;
+            else if (State == TownHouseState.Transferable)
+            {
+                State = TownHouseState.Rentable;
+                RentalNeedsClearance = true;
+            }
             else
-                this.State = TownHouseState.Purchasable;
+                State = TownHouseState.Purchasable;
 
             InvalidateProperties();
         }
@@ -669,6 +930,26 @@ namespace Server.Custom.TownHouses
 
         public void EvictOwner()
         {
+            if (Renter != null)
+            {
+                if (RentalDeposit > 0 && DateTime.UtcNow < RentalPaidUntil)
+                {
+                    CityLoyaltySystem city = GetRentalCity();
+                    if (city != null)
+                        city.AddToTreasury(Renter, RentalDeposit);
+                    RentalDeposit = 0;
+                }
+
+                RentalGraceUntil = DateTime.UtcNow + TimeSpan.FromDays(7);
+                ScheduleRentalCheck();
+
+                if (Renter.NetState != null)
+                    Renter.SendMessage("Your town house lease was ended by staff. You have 7 days to collect your belongings.");
+
+                InvalidateProperties();
+                return;
+            }
+
             Mobile oldOwner = Owner;
 
             Owner = null;
@@ -1079,7 +1360,7 @@ namespace Server.Custom.TownHouses
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write(4); // version
+            writer.Write(5); // version
 
             writer.Write(RegionName);
             writer.Write(RegionPriority);
@@ -1116,6 +1397,14 @@ namespace Server.Custom.TownHouses
             for (int i = 0; i < Secures.Count; i++) writer.Write(Secures[i]);
 
             writer.Write(IsPublic);
+            writer.Write(Renter);
+            writer.Write(RentalPrice);
+            writer.Write(RentalDays);
+            writer.Write(RentalDeposit);
+            writer.WriteDeltaTime(RentalPaidUntil);
+            writer.WriteDeltaTime(RentalGraceUntil);
+            writer.Write(RentalNeedsClearance);
+            writer.Write(RentalCity != null ? (int)RentalCity.City : -1);
         }
 
         public override void Deserialize(GenericReader reader)
@@ -1211,6 +1500,30 @@ namespace Server.Custom.TownHouses
                     reader.ReadDateTime();
 
                 IsPublic = (version >= 4) ? reader.ReadBool() : false;
+
+                if (version >= 5)
+                {
+                    Renter = reader.ReadMobile();
+                    RentalPrice = reader.ReadInt();
+                    RentalDays = reader.ReadInt();
+                    RentalDeposit = reader.ReadInt();
+                    RentalPaidUntil = reader.ReadDeltaTime();
+                    RentalGraceUntil = reader.ReadDeltaTime();
+                    RentalNeedsClearance = reader.ReadBool();
+                    int city = reader.ReadInt();
+                    RentalCity = city >= 0 ? CityLoyaltySystem.GetCityInstance((City)city) : null;
+                }
+                else
+                {
+                    Renter = null;
+                    RentalPrice = 10000;
+                    RentalDays = 7;
+                    RentalDeposit = 0;
+                    RentalPaidUntil = DateTime.MinValue;
+                    RentalGraceUntil = DateTime.MinValue;
+                    RentalNeedsClearance = false;
+                    RentalCity = null;
+                }
             }
             else
             {
@@ -1224,6 +1537,7 @@ namespace Server.Custom.TownHouses
                 WipePolicy = TownHouseWipePolicy.LeaveAsIs;
                 PurchasePrice = 250000;
                 Owner = null;
+                Renter = null;
                 CoOwners = new List<Mobile>();
                 Friends = new List<Mobile>();
                 Bans = new List<Mobile>();
@@ -1232,10 +1546,19 @@ namespace Server.Custom.TownHouses
                 Secures = new List<Item>();
                 OwnerSaleActive = false;
                 OwnerSalePrice = 0;
+                RentalPrice = 10000;
+                RentalDays = 7;
+                RentalDeposit = 0;
+                RentalPaidUntil = DateTime.MinValue;
+                RentalGraceUntil = DateTime.MinValue;
+                RentalNeedsClearance = false;
+                RentalCity = null;
             }
 
             TownHouseSystem.Register(this);
             EnsureRegion();
+            if (Renter != null)
+                Timer.DelayCall(TimeSpan.Zero, ScheduleRentalCheck);
         }
     }
 }
