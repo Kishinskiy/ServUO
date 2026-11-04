@@ -10,9 +10,9 @@ namespace Server.Custom.DiabloLoot
     public static class CurseScrollLoot
     {
         private static readonly double IdentificationDropChance = ClampChance(
-            Config.Get("Loot.MageIdentificationScrollDropChance", 2.0));
+            Config.Get("Loot.MageIdentificationScrollDropChance", 0.2));
         private static readonly double CurseRemovalDropChance = ClampChance(
-            Config.Get("Loot.MageRemoveCurseScrollDropChance", 2.0));
+            Config.Get("Loot.MageRemoveCurseScrollDropChance", 0.2));
         private static readonly HashSet<Serial> PendingCreaturePacks = new HashSet<Serial>();
         private static readonly HashSet<Serial> ManagedScrolls = new HashSet<Serial>();
 
