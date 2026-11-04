@@ -5,6 +5,7 @@ using Server.Targeting;
 using Server.Mobiles; // Явное подключение всех NPC торговцев
 using Server.Engines.BulkOrders; // Подключение BOD системы
 using Server.Custom.CityDevelopment;
+using Server.Custom.TownBoards;
 
 namespace Server.Custom.GarrisonSupply
 {
@@ -23,6 +24,8 @@ namespace Server.Custom.GarrisonSupply
         private string m_ContentName;
         private SupplyType m_SupplyType;
         private int m_FoodCount;
+        private int m_ResourceCount;
+        private TownContractScroll m_TownContract;
 
         [CommandProperty(AccessLevel.GameMaster)]
         public bool IsSealed { get => m_IsSealed; set { m_IsSealed = value; InvalidateProperties(); } }
@@ -84,15 +87,20 @@ namespace Server.Custom.GarrisonSupply
             if (m_IsSealed)
             {
                 list.Add($"Содержимое: {m_ContentName}");
-                list.Add($"Выплата гарнизона: {m_RewardGold} золотых");
+                if (m_TownContract != null)
+                    list.Add($"Городской заказ: {m_ResourceCount}/{m_TownContract.RequiredCount} ед. ресурса");
+                else
+                    list.Add($"Выплата гарнизона: {m_RewardGold} золотых");
                 list.Add("<BASEFONT COLOR=#69F0AE>[Дважды кликните, чтобы сдать профильному NPC]<BASEFONT COLOR=#FFFFFF>");
             }
             else
             {
                 if (m_SupplyType == SupplyType.Cooking)
                     list.Add($"Заполнено провиантом: {m_FoodCount} / 100 шт. (Кликните на бочку и цельтесь в готовую еду)");
+                else if (m_TownContract != null)
+                    list.Add($"Городской заказ: {m_ResourceCount} / {m_TownContract.RequiredCount} ед. ресурса");
                 else
-                    list.Add("<BASEFONT COLOR=#FFE082>Используйте этот контейнер на заполненный малый BOD контракт вашей профессии, чтобы упаковать припасы для города.<BASEFONT COLOR=#FFFFFF>");
+                    list.Add("<BASEFONT COLOR=#FFE082>Используйте этот контейнер на заполненный малый BOD контракт вашей профессии или заполните сырьем по активному заказу с городской доски.<BASEFONT COLOR=#FFFFFF>");
             }
         }
 
@@ -106,15 +114,153 @@ namespace Server.Custom.GarrisonSupply
 
             if (m_IsSealed)
             {
-                // Измененный текст подсказки
-                from.SendMessage("Выберите Торгового Министра развиваемого города, чтобы передать ему снабжение гарнизона.");
+                from.SendMessage(m_TownContract != null
+                    ? "Выберите Торгового Министра города из контракта, чтобы сдать контейнер вместе с заказом."
+                    : "Выберите Торгового Министра развиваемого города, чтобы передать ему снабжение гарнизона.");
                 from.Target = new InternalDeliverTarget(this);
             }
             else
             {
-                from.SendMessage(m_SupplyType == SupplyType.Cooking ? "Выберите готовую еду для загрузки в бочку." : "Выберите полностью заполненный малый BOD-контракт.");
+                TownContractScroll contract = GetActiveSupplyContract(from);
+                if (contract != null)
+                {
+                    if (!IsCorrectCrateForResource(contract.ResourceClass))
+                    {
+                        from.SendMessage(0x22, $"Этот заказ требует контейнер другого торговца для ресурса [{contract.ResourceClass}].");
+                        return;
+                    }
+
+                    from.SendMessage($"Выберите стопку ресурса [{contract.ResourceClass}] для упаковки в контейнер.");
+                }
+                else
+                {
+                    from.SendMessage(m_SupplyType == SupplyType.Cooking ? "Выберите готовую еду для загрузки в бочку." : "Выберите полностью заполненный малый BOD-контракт.");
+                }
                 from.Target = new InternalPackTarget(this);
             }
+        }
+
+        public override bool OnDragDrop(Mobile from, Item dropped)
+        {
+            if (GetActiveSupplyContract(from) != null)
+                return TryPackTownBoardResource(from, dropped, false);
+
+            return false;
+        }
+
+        private static TownContractScroll GetActiveSupplyContract(Mobile from)
+        {
+            if (from?.Backpack == null)
+                return null;
+
+            Item[] contracts = from.Backpack.FindItemsByType(typeof(TownContractScroll));
+            foreach (TownContractScroll contract in contracts)
+            {
+                if (!contract.Deleted && contract.ContractType == TownContractType.Supplies)
+                {
+                    if (contract.CheckExpiry(from))
+                        continue;
+
+                    return contract;
+                }
+            }
+
+            return null;
+        }
+
+        private bool IsCorrectCrateForResource(string resourceClass)
+        {
+            return m_SupplyType == SupplyType.Blacksmith && resourceClass == "iron" ||
+                   m_SupplyType == SupplyType.Tailor && resourceClass == "leather" ||
+                   m_SupplyType == SupplyType.Carpentry && resourceClass == "wood";
+        }
+
+        private bool TryPackTownBoardResource(Mobile from, Item item, bool continueTargeting)
+        {
+            TownContractScroll contract = GetActiveSupplyContract(from);
+            if (contract == null)
+                return false;
+
+            if (from.Backpack == null || !IsChildOf(from.Backpack) || m_IsSealed)
+                return false;
+
+            if (m_TownContract != null &&
+                (m_TownContract.Deleted || m_TownContract.CheckExpiry(from)))
+            {
+                from.SendMessage(0x22, "Связанный с контейнером городской контракт больше недействителен.");
+                return false;
+            }
+
+            if (!IsCorrectCrateForResource(contract.ResourceClass))
+            {
+                from.SendMessage(0x22, $"Этот заказ требует контейнер другого торговца для ресурса [{contract.ResourceClass}].");
+                return false;
+            }
+
+            if (m_TownContract != null && m_TownContract != contract)
+            {
+                from.SendMessage(0x22, "Этот контейнер уже привязан к другому городскому заказу.");
+                return false;
+            }
+
+            foreach (Item found in from.Backpack.FindItemsByType(typeof(GarrisonSupplyCrate)))
+            {
+                GarrisonSupplyCrate other = found as GarrisonSupplyCrate;
+                if (other != null && other != this && other.m_TownContract == contract)
+                {
+                    from.SendMessage(0x22, "Для этого заказа уже используется другой BOD-контейнер.");
+                    return false;
+                }
+            }
+
+            if (item == null || item == this || !item.IsChildOf(from.Backpack) || !item.Stackable ||
+                !MatchesResource(contract.ResourceClass, item))
+            {
+                from.SendMessage(0x22, $"В этот контейнер принимается только ресурс [{contract.ResourceClass}] из вашего рюкзака.");
+                return false;
+            }
+
+            int amountToPack = Math.Min(item.Amount, contract.RequiredCount - m_ResourceCount);
+            if (amountToPack <= 0)
+                return false;
+
+            m_TownContract = contract;
+            m_ResourceCount += amountToPack;
+            item.Amount -= amountToPack;
+            if (item.Amount <= 0)
+                item.Delete();
+
+            m_ContentName = $"{m_ResourceCount} ед. ресурса [{contract.ResourceClass}]";
+            InvalidateProperties();
+            from.PlaySound(0x249);
+
+            if (m_ResourceCount >= contract.RequiredCount)
+            {
+                m_IsSealed = true;
+                if (m_SupplyType == SupplyType.Blacksmith || m_SupplyType == SupplyType.Carpentry)
+                    ItemID = 0x09A9;
+                Name = m_SupplyType == SupplyType.Blacksmith
+                    ? "Запечатанный ящик сырья для городского заказа"
+                    : m_SupplyType == SupplyType.Carpentry
+                        ? "Запечатанный ящик строительных припасов для городского заказа"
+                        : "Запечатанный тюк сырья для городского заказа";
+                from.SendMessage(0x58, "BOD-контейнер заполнен и запечатан! Отнесите его вместе с контрактом Торговому Министру.");
+            }
+            else
+            {
+                from.SendMessage(0x35, $"Ресурс упакован: {m_ResourceCount}/{contract.RequiredCount}.");
+                if (continueTargeting)
+                    from.Target = new InternalPackTarget(this);
+            }
+
+            return true;
+        }
+
+        private static bool MatchesResource(string resourceClass, Item item)
+        {
+            return resourceClass == "iron" && item is BaseIngot ||
+                   resourceClass == "leather" && (item is BaseLeather || item is BaseHides) ||
+                   resourceClass == "wood" && (item is BaseWoodBoard || item is BaseLog);
         }
 
         // =========================================================================
@@ -134,6 +280,12 @@ namespace Server.Custom.GarrisonSupply
                 if (m_Container == null || m_Container.Deleted || from.Backpack == null ||
                     !m_Container.IsChildOf(from.Backpack) || m_Container.IsSealed)
                     return;
+
+                if (GetActiveSupplyContract(from) != null)
+                {
+                    m_Container.TryPackTownBoardResource(from, targeted as Item, true);
+                    return;
+                }
 
                 // ЛОГИКА ДЛЯ ПОВАРОВ (Загрузка еды напрямую)
                 if (m_Container.ContainerType == SupplyType.Cooking)
@@ -253,6 +405,58 @@ namespace Server.Custom.GarrisonSupply
                         return;
                     }
 
+                    TownContractScroll townContract = m_Container.m_TownContract;
+                    if (townContract != null)
+                    {
+                        if (townContract.Deleted || !townContract.IsChildOf(from.Backpack) ||
+                            townContract.CheckExpiry(from))
+                        {
+                            from.SendMessage(0x22, "Для сдачи контейнера нужен действующий городской контракт в вашем рюкзаке.");
+                            return;
+                        }
+
+                        if (townContract.ContractType != TownContractType.Supplies ||
+                            m_Container.m_ResourceCount < townContract.RequiredCount ||
+                            !m_Container.IsCorrectCrateForResource(townContract.ResourceClass) ||
+                            minister.City != townContract.City ||
+                            townContract.ContractMap != from.Map)
+                        {
+                            from.SendMessage(0x22, "Контейнер не соответствует заполненному контракту или городу сдачи.");
+                            return;
+                        }
+
+                        var townProfile = Server.Custom.CityDevelopment.CityDevelopmentMod.GetCityProfile(townContract.City, from.Map);
+                        if (townProfile == null)
+                            return;
+
+                        switch (townContract.ResourceClass)
+                        {
+                            case "iron": townProfile.IronStock += townContract.RequiredCount; break;
+                            case "leather": townProfile.LeatherStock += townContract.RequiredCount; break;
+                            case "wood": townProfile.WoodStock += townContract.RequiredCount; break;
+                            default:
+                                from.SendMessage(0x22, "В контракте указан неизвестный тип сырья.");
+                                return;
+                        }
+
+                        Server.Custom.CityDevelopment.CityDevelopmentMod.AddTreasuryRevenue(
+                            townContract.City, from.Map, townContract.RewardTreasury);
+                        Banker.Deposit(from, townContract.RewardGold, true);
+                        Server.Engines.CityLoyalty.CityLoyaltySystem.GetCityInstance(townContract.City)
+                            ?.AwardLove(from, townContract.RewardLoyalty);
+
+                        minister.PublicOverheadMessage(
+                            Server.Network.MessageType.Regular, 0x35, false, "Превосходно! Сырье принято на городской склад.");
+                        from.SendMessage(
+                            0x58,
+                            $"[Доска Заказов]: Поставка принята. Получено {townContract.RewardGold:N0} золота и {townContract.RewardLoyalty} очков любви городу {townContract.City}.");
+                        from.PlaySound(0x57);
+
+                        townContract.Delete();
+                        m_Container.Delete();
+                        return;
+                    }
+
                     // Напрямую берем город, к которому привязан данный Министр (минуя баги регионов)
                     Server.Engines.CityLoyalty.City targetCity = minister.City;
 
@@ -319,12 +523,14 @@ namespace Server.Custom.GarrisonSupply
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write((int)0);
+            writer.Write((int)1);
             writer.Write(m_IsSealed);
             writer.Write(m_RewardGold);
             writer.Write(m_ContentName);
             writer.Write((int)m_SupplyType);
             writer.Write(m_FoodCount);
+            writer.Write(m_ResourceCount);
+            writer.Write((Item)m_TownContract);
         }
         public override void Deserialize(GenericReader reader)
         {
@@ -335,6 +541,11 @@ namespace Server.Custom.GarrisonSupply
             m_ContentName = reader.ReadString();
             m_SupplyType = (SupplyType)reader.ReadInt();
             m_FoodCount = reader.ReadInt();
+            if (version >= 1)
+            {
+                m_ResourceCount = reader.ReadInt();
+                m_TownContract = reader.ReadItem() as TownContractScroll;
+            }
         }
     }
 }

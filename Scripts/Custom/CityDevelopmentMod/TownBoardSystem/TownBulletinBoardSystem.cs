@@ -183,6 +183,7 @@ namespace Server.Custom.TownBoards
             else
             {
                 list.Add($"Цель: Поставить городскому складу ресурс [{m_ResourceClass}]: {m_RequiredCount} шт.");
+                list.Add("Купите пустой BOD-контейнер у профильного торговца и заполните его нужным сырьем.");
             }
             list.Add($"Награда: {m_RewardGold:N0} золота, {m_RewardLoyalty} очков любви городу {m_City} и {m_RewardTreasury:N0} в казну.");
 
@@ -191,7 +192,7 @@ namespace Server.Custom.TownBoards
                 list.Add($"Осталось времени: {left.Hours}ч. {left.Minutes}мин.");
 
             if (m_Type == TownContractType.Supplies)
-                list.Add("Сдача: дважды щелкните по свитку и выберите Торгового Министра.");
+                list.Add("Сдача: принесите заполненный BOD-контейнер и этот контракт Торговому Министру.");
         }
 
         public static string GetTargetName(string target)
@@ -212,95 +213,14 @@ namespace Server.Custom.TownBoards
 
             if (m_Type == TownContractType.Supplies)
             {
-                from.SendMessage("Выберите Министра Торговли вашего города для сдачи упакованных материалов.");
-                from.Target = new ContractTurnInTarget(this);
+                string vendor = m_ResourceClass == "iron" ? "кузнеца" :
+                    m_ResourceClass == "leather" ? "портного" :
+                    m_ResourceClass == "wood" ? "плотника" : "профильного торговца";
+                from.SendMessage($"Купите у {vendor} пустой BOD-контейнер, заполните его ресурсом [{m_ResourceClass}] и принесите вместе с этим контрактом Торговому Министру.");
             }
             else
             {
                 from.SendMessage($"Контракт: убейте {m_RequiredCount} {GetTargetName(m_TargetCreature)} в любом регионе и на любой карте. Сильные монстры дают больше золота за счет Fame.");
-            }
-        }
-
-        private class ContractTurnInTarget : Target
-        {
-            private TownContractScroll m_Scroll;
-
-            public ContractTurnInTarget(TownContractScroll scroll) : base(3, false, TargetFlags.None)
-            {
-                m_Scroll = scroll;
-            }
-
-            protected override void OnTarget(Mobile from, object targeted)
-            {
-                if (m_Scroll == null || m_Scroll.Deleted) return;
-                if (m_Scroll.CheckExpiry(from)) return;
-
-                if (from.Backpack == null || !m_Scroll.IsChildOf(from.Backpack))
-                {
-                    from.SendMessage(0x22, "Активный контракт должен находиться в вашем рюкзаке.");
-                    return;
-                }
-
-                if (targeted is TradeMinister minister)
-                {
-                    if (minister.Deleted || minister.Map != from.Map || minister.City != m_Scroll.City)
-                    {
-                        from.SendMessage(0x22, $"Этот контракт предназначен строго для Торгового Министра города {m_Scroll.City}!");
-                        return;
-                    }
-
-                    CityProgress progress = CityDevelopmentMod.GetCityProfile(minister.City, from.Map);
-                    if (progress == null) return;
-
-                    Container pack = from.Backpack;
-                    List<Item> resources = new List<Item>();
-                    CollectResources(pack, m_Scroll.ResourceClass, resources);
-                    int available = resources.Sum(item => item.Amount);
-
-                    if (available >= m_Scroll.RequiredCount)
-                    {
-                        int amountRemaining = m_Scroll.RequiredCount;
-
-                        foreach (Item item in resources)
-                        {
-                            int amountToConsume = Math.Min(item.Amount, amountRemaining);
-                            item.Amount -= amountToConsume;
-                            amountRemaining -= amountToConsume;
-
-                            if (item.Amount <= 0) item.Delete();
-                            if (amountRemaining == 0) break;
-                        }
-
-                        if (m_Scroll.ResourceClass == "iron") progress.IronStock += m_Scroll.RequiredCount;
-                        else if (m_Scroll.ResourceClass == "leather") progress.LeatherStock += m_Scroll.RequiredCount;
-                        else if (m_Scroll.ResourceClass == "wood") progress.WoodStock += m_Scroll.RequiredCount;
-
-                        CityDevelopmentMod.AddTreasuryRevenue(minister.City, from.Map, m_Scroll.RewardTreasury);
-                        m_Scroll.Delete();
-
-                        minister.PublicOverheadMessage(MessageType.Regular, 0x35, false, "Превосходно! Материалы приняты на городской склад.");
-                        Banker.Deposit(from, m_Scroll.RewardGold, true);
-                        CityLoyaltySystem.GetCityInstance(minister.City)?.AwardLove(from, m_Scroll.RewardLoyalty);
-                        from.PlaySound(0x57);
-                        from.SendMessage(0x58, $"[Доска Заказов]: Поставка принята. Получено {m_Scroll.RewardGold:N0} золота, лояльность повышена.");
-                    }
-                    else
-                    {
-                        from.SendMessage(0x22, $"В вашем рюкзаке не найдено {m_Scroll.RequiredCount} единиц ресурса [{m_Scroll.ResourceClass}].");
-                    }
-                }
-            }
-
-            private static void CollectResources(Container container, string resourceClass, List<Item> resources)
-            {
-                foreach (Item item in container.Items)
-                {
-                    bool matches = resourceClass == "iron" && item is BaseIngot ||
-                    resourceClass == "leather" && (item is BaseLeather || item is BaseHides) ||
-                    resourceClass == "wood" && (item is BaseWoodBoard || item is BaseLog);
-                    if (matches && item.Stackable) resources.Add(item);
-                    else if (item is Container nested) CollectResources(nested, resourceClass, resources);
-                }
             }
         }
         public TownContractScroll(Serial serial) : base(serial) { }

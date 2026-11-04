@@ -188,7 +188,10 @@ namespace Server.Custom.TownBoards
                     }
                     else
                     {
-                        from.SendMessage(0x35, $"Принят контракт: доставить {contract.RequiredCount} ед. ресурса [{contract.ResourceClass}].");
+                        string vendor = contract.ResourceClass == "iron" ? "кузнеца" :
+                            contract.ResourceClass == "leather" ? "портного" :
+                            contract.ResourceClass == "wood" ? "плотника" : "профильного торговца";
+                        from.SendMessage(0x35, $"Принят контракт: купите у {vendor} пустой BOD-контейнер, заполните его ресурсом [{contract.ResourceClass}] ({contract.RequiredCount} ед.) и сдайте вместе с контрактом Торговому Министру.");
                     }
                 }
                 else
