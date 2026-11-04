@@ -37,8 +37,13 @@ namespace Server.Engines.Craft
         RingOfAstralPower = 1302, // Кольцо Астрала (Требует Сапфир Астрала)
         BraceletOfStorms = 1303,  // Браслет Бури (Требует Бирюзу Грома)
         EarringsOfVampire = 1304, // Серьги Вампира (Требует Осколок Вампиризма)
-        TalismanOfFortune = 1305  // Талисман Знахаря (Требует Экру-Цитрин)
+        TalismanOfFortune = 1305, // Талисман Знахаря (Требует Экру-Цитрин)
 
+        PhysicalResistGem = 1401,
+        FireResistGem = 1402,
+        ColdResistGem = 1403,
+        PoisonResistGem = 1404,
+        EnergyResistGem = 1405
     }
 
     public class DefJewelryCrafting : CraftSystem
@@ -301,6 +306,17 @@ namespace Server.Engines.Craft
                 return new JewelryGem("vamp_shard", quality, 0x1EA7, 1175);
             });
 
+            AddResistCapGem("physical_resist", "Рубин Физической Стойкости", "physical damage",
+                typeof(Ruby), "Неограненный рубин", 115.0, 125.0, (int)JewelryRecipes.PhysicalResistGem, 1157);
+            AddResistCapGem("fire_resist", "Огненный Рубин Стойкости", "огонь",
+                typeof(FireRuby), "Основа из огненного рубина", 115.0, 125.0, (int)JewelryRecipes.FireResistGem, 1175);
+            AddResistCapGem("cold_resist", "Сапфир Ледяной Стойкости", "холод",
+                typeof(Sapphire), "Неограненный сапфир", 110.0, 125.0, (int)JewelryRecipes.ColdResistGem, 1144);
+            AddResistCapGem("poison_resist", "Изумруд Ядовитой Стойкости", "яд",
+                typeof(Emerald), "Неограненный изумруд", 110.0, 125.0, (int)JewelryRecipes.PoisonResistGem, 1168);
+            AddResistCapGem("energy_resist", "Бирюза Энергетической Стойкости", "энергию",
+                typeof(Turquoise), "Драгоценная бирюза", 115.0, 125.0, (int)JewelryRecipes.EnergyResistGem, 1315);
+
             // =========================================================================
             // 💍 КАТЕГОРИЯ 4: СОЗДАНИЕ ВЫСШИХ УКРАШЕНИЙ (ЭНДГЕЙМ БИЖУТЕРИЯ) 🎉⚙️🪓
             // =========================================================================
@@ -470,6 +486,22 @@ namespace Server.Engines.Craft
                 return necklace;
             });
 
+        }
+
+        private void AddResistCapGem(string effect, string name, string resistName, Type rawGemType, string rawGemName,
+            double minSkill, double maxSkill, int recipe, int hue)
+        {
+            int index = AddCraft(typeof(JewelryGem), "Камни стойкости", $"{name} (резист: {resistName})",
+                minSkill, maxSkill, rawGemType, rawGemName, 5, $"Вам не хватает камней для огранки «{name}».");
+            AddRes(index, typeof(GoldIngot), "Золотые слитки для оправы", 10, "Нужно золото для оправы.");
+            AddRecipe(index, recipe);
+            SetData(index, effect);
+            AddCreateItem(index, (from, craftItem, tool) =>
+            {
+                double tinkering = from.Skills[SkillName.Tinkering].Value;
+                double quality = tinkering <= 50.0 ? 0.5 : 0.5 + ((tinkering - 50.0) * 0.05);
+                return new JewelryGem(effect, quality, 0x1EA7, hue);
+            });
         }
     }
 }

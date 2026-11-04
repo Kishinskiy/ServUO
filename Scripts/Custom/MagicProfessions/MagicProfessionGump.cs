@@ -3,6 +3,7 @@ using Server;
 using Server.Gumps;
 using Server.Items;
 using Server.Network;
+using Server.Targeting;
 using Server.Custom.JewelryCrafting;
 using Server.Custom.CurseSystem;
 using Server.Custom.VoidCraft;
@@ -34,6 +35,7 @@ namespace Server.Custom.MagicProfessions
                 AddRecipe(2, 115, "Эктоплазма", "3 праха души + 1 Bloodmoss + 2 Spiders' Silk", "Necromancy 75 / Spirit Speak 60; 9 заклинаний");
                 AddRecipe(3, 175, "Ритуальный воск", "2 эктоплазмы + 4 Nightshade + 2 Black Pearl", "Necromancy 90 / Spirit Speak 75; 14 заклинаний");
                 AddRecipe(4, 235, "Настой души", "2 ритуальных воска + 2 эктоплазмы + 4 Garlic", "Necromancy 100 / Spirit Speak 90; 16 заклинаний");
+                AddRecipe(5, 295, "Нить души", "3 остатка души + 1 эктоплазма + 2 паутины", "Necromancy 85 / Spirit Speak 75");
             }
             else
             {
@@ -43,8 +45,21 @@ namespace Server.Custom.MagicProfessions
 
                 for (int i = 0; i < recipesPerPage && firstRecipe + i <= recipeCount; i++)
                 {
-                    Recipe recipe = GetRecipe(false, firstRecipe + i);
-                    AddRecipe(i + 1, 55 + i * 92, recipe.Title, recipe.Materials, GetSkillDescription(recipe));
+                    int recipeIndex = firstRecipe + i;
+
+                    ArmorEnchantRecipe armorRecipe = GetArmorEnchantRecipe(recipeIndex);
+
+                    if (armorRecipe != null)
+                    {
+                        AddRecipe(i + 1, 55 + i * 92, $"Предел резиста: {armorRecipe.Name}",
+                            $"3 камня «{armorRecipe.GemName}» + 1/2/3 нити души, чернил, кристаллов и {armorRecipe.ResourceName}",
+                            $"Magery/Inscription 80/90/100; +5/+10/+15; шанс {GetSuccessChance(_crafter, SkillName.Magery, 80.0, SkillName.Inscribe, 80.0, HasCraftedTableBonus(_station)):0}%");
+                    }
+                    else
+                    {
+                        Recipe recipe = GetRecipe(false, recipeIndex);
+                        AddRecipe(i + 1, 55 + i * 92, recipe.Title, recipe.Materials, GetSkillDescription(recipe));
+                    }
                 }
 
                 AddPagination(recipeCount, recipesPerPage);
@@ -83,13 +98,16 @@ namespace Server.Custom.MagicProfessions
 
         private static int GetRecipeCount(bool necromancy)
         {
-            return necromancy ? 4 : 14;
+            return necromancy ? 5 : 19;
         }
 
-        private static string GetSkillDescription(Recipe recipe)
+        private string GetSkillDescription(Recipe recipe)
         {
             string skills = $"{recipe.PrimarySkill} {recipe.PrimaryRequired:0} / {recipe.SupportSkill} {recipe.SupportRequired:0}";
-            return recipe.RequiredSpells > 0 ? $"{skills}; {recipe.RequiredSpells} заклинаний" : skills;
+            if (recipe.RequiredSpells > 0)
+                skills += $"; {recipe.RequiredSpells} заклинаний";
+
+            return $"{skills}; шанс успеха {GetSuccessChance(recipe, _crafter, HasCraftedTableBonus(_station)):0}%";
         }
 
         public override void OnResponse(NetState sender, RelayInfo info)
@@ -105,7 +123,7 @@ namespace Server.Custom.MagicProfessions
                 return;
             }
 
-            if (info.ButtonID < 1 || info.ButtonID > 4)
+            if (info.ButtonID < 1 || info.ButtonID > (_necromancy ? 5 : 4))
                 return;
 
             if (_crafter == null || !_crafter.Alive || _station == null || _station.Deleted || _crafter.Map != _station.Map || !_crafter.InRange(_station.Location, 3) || _crafter.Backpack == null)
@@ -115,6 +133,21 @@ namespace Server.Custom.MagicProfessions
             }
 
             int recipeIndex = _necromancy ? info.ButtonID : _page * 4 + info.ButtonID;
+
+            ArmorEnchantRecipe armorEnchantRecipe = _necromancy ? null : GetArmorEnchantRecipe(recipeIndex);
+            if (armorEnchantRecipe != null)
+            {
+                if (_crafter.Skills[SkillName.Magery].Value < 80.0 || _crafter.Skills[SkillName.Inscribe].Value < 80.0)
+                {
+                    _crafter.SendMessage(0x22, "Для зачарования доспехов нужны Magery 80 и Inscription 80.");
+                    return;
+                }
+
+                _crafter.SendMessage(0x480, $"Выберите доспех для зачарования на {armorEnchantRecipe.Name}.");
+                _crafter.Target = new ArcaneArmorTarget(_crafter, _station, armorEnchantRecipe);
+                return;
+            }
+
             Recipe recipe = GetRecipe(_necromancy, recipeIndex);
             if (recipe == null) return;
 
@@ -146,6 +179,16 @@ namespace Server.Custom.MagicProfessions
             }
 
             JewelryGem requiredGem = recipe.GemEffect == null ? null : FindJewelryGem(recipe.GemEffect);
+            double successChance = GetSuccessChance(recipe, _crafter, HasCraftedTableBonus(_station));
+
+            if (Utility.RandomDouble() * 100.0 >= successChance)
+            {
+                ConsumeResources(_crafter.Backpack, recipe, requiredGem);
+                _crafter.PlaySound(0x249);
+                _crafter.SendMessage(0x22, $"Не удалось создать предмет (шанс успеха: {successChance:0}%). Все материалы израсходованы.");
+                return;
+            }
+
             Item output = CreateOutput(recipe, requiredGem, _crafter);
             if (output == null)
                 return;
@@ -158,16 +201,258 @@ namespace Server.Custom.MagicProfessions
                 return;
             }
 
-            for (int i = 0; i < recipe.Resources.Length; i++)
-            {
-                if (recipe.Resources[i] == typeof(JewelryGem))
-                    requiredGem.Delete();
-                else
-                    Consume(_crafter.Backpack, recipe.Resources[i], recipe.Amounts[i]);
-            }
+            ConsumeResources(_crafter.Backpack, recipe, requiredGem);
 
             _crafter.PlaySound(_necromancy ? 0x1FB : 0x249);
             _crafter.SendMessage(0x59, $"Создано: {outputName}.");
+        }
+
+        private static double GetSuccessChance(Recipe recipe, Mobile crafter, bool hasCraftedTableBonus)
+        {
+            return GetSuccessChance(crafter, recipe.PrimarySkill, recipe.PrimaryRequired, recipe.SupportSkill, recipe.SupportRequired, hasCraftedTableBonus);
+        }
+
+        private static double GetSuccessChance(Mobile crafter, SkillName primarySkill, double primaryRequired, SkillName supportSkill, double supportRequired, bool hasCraftedTableBonus)
+        {
+            double primarySurplus = Math.Max(0.0, crafter.Skills[primarySkill].Value - primaryRequired);
+            double supportSurplus = Math.Max(0.0, crafter.Skills[supportSkill].Value - supportRequired);
+            double chance = Math.Min(95.0, 70.0 + (primarySurplus + supportSurplus) * 0.5);
+
+            if (hasCraftedTableBonus)
+                chance += 5.0;
+
+            return Math.Min(100.0, chance);
+        }
+
+        private static int GetArmorEnchantBonus(Mobile crafter)
+        {
+            double skill = Math.Min(crafter.Skills[SkillName.Magery].Value, crafter.Skills[SkillName.Inscribe].Value);
+
+            if (skill >= 100.0)
+                return 15;
+            if (skill >= 90.0)
+                return 10;
+            if (skill >= 80.0)
+                return 5;
+
+            return 0;
+        }
+
+        private static bool HasCraftedTableBonus(Item station)
+        {
+            return station is CraftedArcaneTable || station is ArcaneTable && station.Hue == 1165;
+        }
+
+        private static int GetArmorEnchantResourceAmount(int bonus)
+        {
+            return bonus / 5;
+        }
+
+        private static ArmorEnchantRecipe GetArmorEnchantRecipe(int index)
+        {
+            switch (index)
+            {
+                case 15: return new ArmorEnchantRecipe(ResistanceType.Physical, "Физический", "Рубин Физической Стойкости", "остатков души", "physical_resist", typeof(SoulResidue));
+                case 16: return new ArmorEnchantRecipe(ResistanceType.Fire, "Огненный", "Огненный Рубин Стойкости", "эктоплазмы", "fire_resist", typeof(Ectoplasm));
+                case 17: return new ArmorEnchantRecipe(ResistanceType.Cold, "Холодный", "Сапфир Ледяной Стойкости", "ритуального воска", "cold_resist", typeof(RitualWax));
+                case 18: return new ArmorEnchantRecipe(ResistanceType.Poison, "Ядовитый", "Изумруд Ядовитой Стойкости", "праха души", "poison_resist", typeof(SoulAsh));
+                case 19: return new ArmorEnchantRecipe(ResistanceType.Energy, "Энергетический", "Бирюза Энергетической Стойкости", "фрагментов линии силы", "energy_resist", typeof(LeylineFragment));
+                default: return null;
+            }
+        }
+
+        private sealed class ArmorEnchantRecipe
+        {
+            public ResistanceType Resist { get; private set; }
+            public string Name { get; private set; }
+            public string GemName { get; private set; }
+            public string ResourceName { get; private set; }
+            public string GemEffect { get; private set; }
+            public Type ResourceType { get; private set; }
+
+            public ArmorEnchantRecipe(ResistanceType resist, string name, string gemName, string resourceName, string gemEffect, Type resourceType)
+            {
+                Resist = resist;
+                Name = name;
+                GemName = gemName;
+                ResourceName = resourceName;
+                GemEffect = gemEffect;
+                ResourceType = resourceType;
+            }
+        }
+
+        private sealed class ArcaneArmorTarget : Target
+        {
+            private readonly Mobile _crafter;
+            private readonly Item _station;
+            private readonly ArmorEnchantRecipe _recipe;
+
+            public ArcaneArmorTarget(Mobile crafter, Item station, ArmorEnchantRecipe recipe) : base(-1, false, TargetFlags.None)
+            {
+                _crafter = crafter;
+                _station = station;
+                _recipe = recipe;
+            }
+
+            protected override void OnTarget(Mobile from, object targeted)
+            {
+                if (from != _crafter || !IsAtStation(from, _station) || from.Backpack == null)
+                {
+                    from?.SendMessage(0x22, "Вы отошли от арканического стола или не можете продолжать.");
+                    return;
+                }
+
+                BaseArmor armor = targeted as BaseArmor;
+                if (armor == null || !armor.IsChildOf(from.Backpack))
+                {
+                    from.SendMessage(0x22, "Можно зачаровать только доспех, находящийся в вашем рюкзаке.");
+                    return;
+                }
+
+                if (armor.ArmorAttributes.MageArmor > 0)
+                {
+                    from.SendMessage(0x22, "Нельзя зачаровать магическую броню.");
+                    return;
+                }
+
+                int bonus = GetArmorEnchantBonus(from);
+                if (bonus == 0)
+                {
+                    from.SendMessage(0x22, "Для зачарования нужны Magery и Inscription не ниже 80.");
+                    return;
+                }
+
+                int gems = CountJewelryGems(from.Backpack, _recipe.GemEffect);
+                if (gems < 3)
+                {
+                    from.SendMessage(0x22, $"Недостаточно камней «{_recipe.GemName}»: нужно 3, имеется {gems}.");
+                    return;
+                }
+
+                int amount = GetArmorEnchantResourceAmount(bonus);
+                if (from.Backpack.GetAmount(typeof(EnchantedInk), true) < amount ||
+                    from.Backpack.GetAmount(typeof(ChargedCrystal), true) < amount ||
+                    from.Backpack.GetAmount(typeof(SoulThread), true) < amount ||
+                    from.Backpack.GetAmount(_recipe.ResourceType, true) < amount)
+                {
+                    from.SendMessage(0x22, $"Недостаточно материалов: нужно по {amount} зачарованных чернил, заряженных кристаллов, нитей души и {_recipe.ResourceName}.");
+                    return;
+                }
+
+                int current = GetRefinedResist(armor, _recipe.Resist);
+                int newValue = Math.Min(15, current + bonus);
+                if (newValue <= current)
+                {
+                    from.SendMessage(0x22, "Этот доспех уже имеет максимальный бонус выбранного резиста.");
+                    return;
+                }
+
+                double chance = GetSuccessChance(from, SkillName.Magery, 80.0, SkillName.Inscribe, 80.0, HasCraftedTableBonus(_station));
+                if (Utility.RandomDouble() * 100.0 >= chance)
+                {
+                    ConsumeJewelryGems(from.Backpack, _recipe.GemEffect, 3);
+                    Consume(from.Backpack, typeof(EnchantedInk), amount);
+                    Consume(from.Backpack, typeof(ChargedCrystal), amount);
+                    Consume(from.Backpack, typeof(SoulThread), amount);
+                    Consume(from.Backpack, _recipe.ResourceType, amount);
+                    from.PlaySound(0x249);
+                    from.SendMessage(0x22, $"Не удалось повысить предел {GetResistName(_recipe.Resist)} резиста (шанс: {chance:0}%). Все материалы израсходованы.");
+                    return;
+                }
+
+                SetRefinedResist(armor, _recipe.Resist, newValue);
+                ConsumeJewelryGems(from.Backpack, _recipe.GemEffect, 3);
+                Consume(from.Backpack, typeof(EnchantedInk), amount);
+                Consume(from.Backpack, typeof(ChargedCrystal), amount);
+                Consume(from.Backpack, typeof(SoulThread), amount);
+                Consume(from.Backpack, _recipe.ResourceType, amount);
+                from.PlaySound(0x249);
+                from.SendMessage(0x59, $"Доспех зачарован: предел {GetResistName(_recipe.Resist)} резиста повышен на {newValue - current}.");
+            }
+        }
+
+        private static int CountJewelryGems(Container backpack, string effect)
+        {
+            int count = 0;
+            foreach (JewelryGem gem in backpack.FindItemsByType<JewelryGem>(true))
+            {
+                if (!gem.Deleted && gem.GemEffect == effect)
+                    count++;
+            }
+            return count;
+        }
+
+        private static void ConsumeJewelryGems(Container backpack, string effect, int amount)
+        {
+            foreach (JewelryGem gem in backpack.FindItemsByType<JewelryGem>(true))
+            {
+                if (gem.Deleted || gem.GemEffect != effect)
+                    continue;
+
+                gem.Delete();
+                if (--amount == 0)
+                    return;
+            }
+        }
+
+        private static bool IsAtStation(Mobile crafter, Item station)
+        {
+            return crafter != null && crafter.Alive && station != null && !station.Deleted &&
+                crafter.Map == station.Map && crafter.InRange(station.Location, 3);
+        }
+
+        private static int GetRefinedResist(BaseArmor armor, ResistanceType resist)
+        {
+            switch (resist)
+            {
+                case ResistanceType.Physical: return armor.RefinedPhysical;
+                case ResistanceType.Fire: return armor.RefinedFire;
+                case ResistanceType.Cold: return armor.RefinedCold;
+                case ResistanceType.Poison: return armor.RefinedPoison;
+                case ResistanceType.Energy: return armor.RefinedEnergy;
+                default: return 0;
+            }
+        }
+
+        private static void SetRefinedResist(BaseArmor armor, ResistanceType resist, int value)
+        {
+            switch (resist)
+            {
+                case ResistanceType.Physical: armor.RefinedPhysical = value; break;
+                case ResistanceType.Fire: armor.RefinedFire = value; break;
+                case ResistanceType.Cold: armor.RefinedCold = value; break;
+                case ResistanceType.Poison: armor.RefinedPoison = value; break;
+                case ResistanceType.Energy: armor.RefinedEnergy = value; break;
+            }
+        }
+
+        private static string GetResistName(ResistanceType resist)
+        {
+            switch (resist)
+            {
+                case ResistanceType.Physical: return "физического";
+                case ResistanceType.Fire: return "огненного";
+                case ResistanceType.Cold: return "холодного";
+                case ResistanceType.Poison: return "ядовитого";
+                case ResistanceType.Energy: return "энергетического";
+                default: return "неизвестного";
+            }
+        }
+
+        private static void ConsumeResources(Container backpack, Recipe recipe, JewelryGem requiredGem)
+        {
+            for (int i = 0; i < recipe.Resources.Length; i++)
+            {
+                if (recipe.Resources[i] == typeof(JewelryGem))
+                {
+                    if (requiredGem != null && !requiredGem.Deleted)
+                        requiredGem.Delete();
+                }
+                else
+                {
+                    Consume(backpack, recipe.Resources[i], recipe.Amounts[i]);
+                }
+            }
         }
 
         private static Recipe GetRecipe(bool necromancy, int index)
@@ -180,6 +465,9 @@ namespace Server.Custom.MagicProfessions
                     case 2: return new Recipe(typeof(Ectoplasm), SkillName.Necromancy, 75, SkillName.SpiritSpeak, 60, 9, new[] { typeof(SoulAsh), typeof(Bloodmoss), typeof(SpidersSilk) }, new[] { 3, 1, 2 });
                     case 3: return new Recipe(typeof(RitualWax), SkillName.Necromancy, 90, SkillName.SpiritSpeak, 75, 14, new[] { typeof(Ectoplasm), typeof(Nightshade), typeof(BlackPearl) }, new[] { 2, 4, 2 });
                     case 4: return new Recipe(typeof(SoulTonic), SkillName.Necromancy, 100, SkillName.SpiritSpeak, 90, 16, new[] { typeof(RitualWax), typeof(Ectoplasm), typeof(Garlic) }, new[] { 2, 2, 4 });
+                    case 5: return new Recipe(typeof(SoulThread), SkillName.Necromancy, 85, SkillName.SpiritSpeak, 75, 0,
+                        new[] { typeof(SoulResidue), typeof(Ectoplasm), typeof(SpidersSilk) }, new[] { 3, 1, 2 }, null,
+                        "Нить души", "3 остатка души + 1 эктоплазма + 2 паутины");
                 }
             }
             else
@@ -350,6 +638,7 @@ namespace Server.Custom.MagicProfessions
             if (type == typeof(RitualWax)) return new RitualWax();
             if (type == typeof(ArcaneFocusCharge)) return new ArcaneFocusCharge();
             if (type == typeof(SoulTonic)) return new SoulTonic();
+            if (type == typeof(SoulThread)) return new SoulThread(2);
             return null;
         }
 
@@ -359,6 +648,7 @@ namespace Server.Custom.MagicProfessions
             if (type == typeof(ArcaneDust)) return "арканической пыли";
             if (type == typeof(EnchantedInk)) return "зачарованных чернил";
             if (type == typeof(SoulResidue)) return "остатков души";
+            if (type == typeof(SoulThread)) return "нитей души";
             if (type == typeof(SoulAsh)) return "праха души";
             if (type == typeof(Ectoplasm)) return "эктоплазмы";
             if (type == typeof(JewelryGem)) return "подходящего ограненного ювелирного камня";

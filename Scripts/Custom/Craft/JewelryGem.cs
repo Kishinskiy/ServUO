@@ -68,6 +68,11 @@ namespace Server.Custom.JewelryCrafting
                 case "turquoise": return "Бирюза Грома";
                 case "ecrucitrine": return "Экру-Цитрин Знахаря";
                 case "vamp_shard": return "Осколок Вампиризма";
+                case "physical_resist": return "Рубин Физической Стойкости";
+                case "fire_resist": return "Огненный Рубин Стойкости";
+                case "cold_resist": return "Сапфир Ледяной Стойкости";
+                case "poison_resist": return "Изумруд Ядовитой Стойкости";
+                case "energy_resist": return "Бирюза Энергетической Стойкости";
                 default: return "Драгоценный Камень";
             }
         }
@@ -107,6 +112,16 @@ namespace Server.Custom.JewelryCrafting
                     return $"+{(int)Math.Round(50.0 * quality)}% Усиление лечебных зелий";
                 case "vamp_shard": 
                     return $"+{(int)Math.Round(20.0 * quality)}% Вампиризм (Восстановление HP при ударе)";
+                case "physical_resist":
+                    return "Используется для повышения максимума физического резиста";
+                case "fire_resist":
+                    return "Используется для повышения максимума огненного резиста";
+                case "cold_resist":
+                    return "Используется для повышения максимума резиста холода";
+                case "poison_resist":
+                    return "Используется для повышения максимума ядовитого резиста";
+                case "energy_resist":
+                    return "Используется для повышения максимума энергетического резиста";
                 default: 
                     return "Магический резонанс не настроен";
             }

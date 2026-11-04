@@ -44,6 +44,29 @@ namespace Server.Custom.MagicProfessions
         }
     }
 
+    public class CraftedArcaneTable : ArcaneTable
+    {
+        [Constructable]
+        public CraftedArcaneTable() : base()
+        {
+            Hue = 1165;
+        }
+
+        public CraftedArcaneTable(Serial serial) : base(serial) { }
+
+        public override void Serialize(GenericWriter writer)
+        {
+            base.Serialize(writer);
+            writer.Write(0);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            base.Deserialize(reader);
+            reader.ReadInt();
+        }
+    }
+
     public class ArcaneWorkbenchDeed : Item, ICraftable
     {
         [Constructable]
@@ -66,8 +89,7 @@ namespace Server.Custom.MagicProfessions
                 return;
             }
 
-            ArcaneTable station = new ArcaneTable();
-            station.Hue = 1165;
+            CraftedArcaneTable station = new CraftedArcaneTable();
             station.MoveToWorld(from.Location, from.Map);
             from.SendMessage(0x59, "Арканический стол успешно установлен.");
             Delete();

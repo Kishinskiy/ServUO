@@ -1014,7 +1014,7 @@ namespace Server.Mobiles
                 max = CorpseSkinSpell.GetResistMalus(this);
             }
 
-            return max;
+            return refineBonus > 0 ? Math.Min(max, 85) : max;
         }
 
         public override void ComputeResistances()

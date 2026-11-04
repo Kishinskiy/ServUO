@@ -41,7 +41,10 @@ namespace Server.Custom.JewelryCrafting
                     (int)JewelryRecipes.EcruCitrinePot, (int)JewelryRecipes.VampiricShard,
                     (int)JewelryRecipes.AmuletOfLife, (int)JewelryRecipes.RingOfAstralPower,
                     (int)JewelryRecipes.BraceletOfStorms, (int)JewelryRecipes.EarringsOfVampire,
-                    (int)JewelryRecipes.TalismanOfFortune
+                    (int)JewelryRecipes.TalismanOfFortune,
+                    (int)JewelryRecipes.PhysicalResistGem, (int)JewelryRecipes.FireResistGem,
+                    (int)JewelryRecipes.ColdResistGem, (int)JewelryRecipes.PoisonResistGem,
+                    (int)JewelryRecipes.EnergyResistGem
                 };
 
                 int randomRecipeID = epicRecipes[Utility.Random(epicRecipes.Length)];
