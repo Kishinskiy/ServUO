@@ -44,9 +44,5 @@
 
 /Data
 !/bin/rosyln/*
-!/Config/
-/Config/*
-!/Config/KarmaVirtue.cfg
 /runtimes
-Config/DataPath.cfg
 Scripts/Custom/AdvancedNpcTrade/Data/LoyaltyDatabase.db
