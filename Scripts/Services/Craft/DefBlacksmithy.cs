@@ -942,6 +942,8 @@ namespace Server.Engines.Craft
 
             #endregion
 
+            AddCraft(typeof(LevelItemDeed), 1111704, 0x14F0, 100.0, 120.0, typeof(GoldIngot), 1044027, 50, 1044037);
+
             // Set the overridable material
             SetSubRes(typeof(IronIngot), 1044022);
 
