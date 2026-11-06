@@ -532,15 +532,8 @@ namespace Server.Custom.Farms
                     return;
                 }
             }
-            int baseYield = Utility.RandomMinMax(2, 3);
-            int bonusItems = 0;
-            if (m_GoodCareTicks >= 2) bonusItems += 1;
-            if (m_GoodCareTicks >= 4) bonusItems += 1;
-            if (m_GoodCareTicks >= 6) bonusItems += 1;
-            if (m_FertilityLevel >= 30) bonusItems += 1;
-            if (m_FertilityLevel >= 70) bonusItems += 1;
-            int finalYield = baseYield + bonusItems;
-            if (finalYield > 8) finalYield = 8;
+            int finalYield;
+            ProcessHarvestYield(from, out finalYield);
             bool totalSuccess = true;
             for (int i = 0; i < finalYield; i++)
             {
@@ -556,7 +549,7 @@ namespace Server.Custom.Farms
             {
                 if (finalYield >= 7)
                     from.SendMessage(0x35, $"Потрясающе! Благодаря вашему мастерскому уходу и богатой почве, вы собрали ЛЕГЕНДАРНЫЙ урожай: {finalYield} шт.!");
-                else if (bonusItems > 0)
+                else if (m_GoodCareTicks >= 2)
                     from.SendMessage(0x5D, $"Хорошая работа! Заботливый уход принес вам повышенный урожай: {finalYield} шт.");
                 else
                     from.SendMessage($"Вы успешно собрали плоды в количестве {finalYield} шт.");
@@ -568,6 +561,20 @@ namespace Server.Custom.Farms
                 from.SendMessage("Ваш инвентарь переполнен! Освободите место для овощей.");
             }
         }
+
+        private void ProcessHarvestYield(Mobile from, out int finalYield)
+        {
+            int baseYield = Utility.RandomMinMax(2, 3);
+            int bonusItems = 0;
+            if (m_GoodCareTicks >= 2) bonusItems += 1;
+            if (m_GoodCareTicks >= 4) bonusItems += 1;
+            if (m_GoodCareTicks >= 6) bonusItems += 1;
+            if (m_FertilityLevel >= 30) bonusItems += 1;
+            if (m_FertilityLevel >= 70) bonusItems += 1;
+            finalYield = baseYield + bonusItems;
+            if (finalYield > 8) finalYield = 8;
+        }
+
         public void PourWater(Mobile from, int percent)
         {
             if (m_IsDead || m_IsWeedSource) return;
@@ -577,6 +584,7 @@ namespace Server.Custom.Farms
             from.SendMessage(0x42, $"Вы полили грядку. Уровень влаги: {m_WaterLevel}%.");
             InvalidateProperties();
         }
+
         public void ApplyFertilizer(Mobile from, int percent)
         {
             if (m_IsDead || m_IsWeedSource) return;
