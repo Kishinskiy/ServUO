@@ -32,21 +32,23 @@ namespace Server.Custom.KarmaVirtueSystem
             Config.Get("KarmaVirtue.DungeonRespawnTimeDarkMultiplier", 0.70);
         private static readonly string _savePath = Path.Combine(Core.BaseDirectory, "Saves/Custom/KarmaVirtueSystem.bin");
         private static Dictionary<Mobile, Dictionary<int, DateTime>> _shrineCooldowns = new Dictionary<Mobile, Dictionary<int, DateTime>>();
-        private static Dictionary<Mobile, Dictionary<int, int>> _activeBuffs = new Dictionary<Mobile, Dictionary<int, int>>();
+        private static readonly Dictionary<Mobile, Dictionary<int, ShrineBuffState>> _activeBuffs = new Dictionary<Mobile, Dictionary<int, ShrineBuffState>>();
         private static Dictionary<Mobile, Dictionary<int, int>> _permanentlyActivatedShrines = new Dictionary<Mobile, Dictionary<int, int>>();
         private static readonly Dictionary<int, int> _shrineWorldStates = new Dictionary<int, int>();
         private static readonly Dictionary<int, DateTime> _shrineWorldStateExpirations = new Dictionary<int, DateTime>();
+        private static bool _applyingReflectedDamage;
+        private static int _bandageHealDepth;
 
         public static readonly ShrineData[] Shrines = new ShrineData[]
         {
-            new ShrineData(0, VirtueName.Valor,        "RA",   2493, 3931, 5,  Map.Felucca, "Serpent's Hold", "Destard"),
-            new ShrineData(1, VirtueName.Spirituality, "OM",   1595, 2490, 20, Map.Felucca, "Britain", "Misc Dungeons"), // Храм Жизни / Аватар
-            new ShrineData(2, VirtueName.Honor,        "SUMM", 1398, 3765, 18, Map.Felucca, "Trinsic", "Shame"),
-            new ShrineData(3, VirtueName.Sacrifice,    "CAH",  3355, 290,  9,  Map.Felucca, "Minoc", "Covetous"),
-            new ShrineData(4, VirtueName.Justice,      "BEH",  1302, 1080, 0,  Map.Felucca, "Yew", "Wrong"),
-            new ShrineData(5, VirtueName.Honesty,      "AHM",  4217, 563,  36, Map.Felucca, "Moonglow", "Deceit"),
-            new ShrineData(6, VirtueName.Compassion,   "MU",   1855, 865,  10, Map.Felucca, "Britain", "Despise"),
-            new ShrineData(7, VirtueName.Humility,     "LUM",  4274, 3711, 0,  Map.Felucca, "Magincia", "Hythloth")
+            new ShrineData(0, VirtueName.Valor,        "RA",   2492, 3931, Map.Felucca, "Serpent's Hold", "Destard"),
+            new ShrineData(1, VirtueName.Spirituality, "OM",   1606, 2490, Map.Felucca, "Britain", "Misc Dungeons"), // Храм Жизни / Аватар
+            new ShrineData(2, VirtueName.Honor,        "SUMM", 1727, 3528, Map.Felucca, "Trinsic", "Shame"),
+            new ShrineData(3, VirtueName.Sacrifice,    "CAH",  3355, 290,  Map.Felucca, "Minoc", "Covetous"),
+            new ShrineData(4, VirtueName.Justice,      "BEH",  1301, 634,  Map.Felucca, "Yew", "Wrong"),
+            new ShrineData(5, VirtueName.Honesty,      "AHM",  4209, 564,  Map.Felucca, "Moonglow", "Deceit"),
+            new ShrineData(6, VirtueName.Compassion,   "MU",   1858, 875,  Map.Felucca, "Britain", "Despise"),
+            new ShrineData(7, VirtueName.Humility,     "LUM",  4274, 3697, Map.Felucca, "Magincia", "Hythloth")
         };
 
         public static void Initialize()
@@ -69,7 +71,7 @@ namespace Server.Custom.KarmaVirtueSystem
             {
                 if (speech == shrine.Mantra)
                 {
-                    if (shrine.IsAvailableOn(from.Map) && from.InRange(new Point3D(shrine.X, shrine.Y, shrine.Z), 4))
+                    if (shrine.IsAvailableOn(from.Map) && from.InRange(new Point2D(shrine.X, shrine.Y), 4))
                     {
                         e.Handled = true;
                         ProcessShrineActivation(from, shrine);
@@ -140,24 +142,297 @@ namespace Server.Custom.KarmaVirtueSystem
 
         private static void ApplyBuffInternal(Mobile from, int shrineID, bool isDark)
         {
-            if (!_activeBuffs.ContainsKey(from))
-                _activeBuffs[from] = new Dictionary<int, int>();
+            RemoveBuff(from, shrineID);
 
-            int buffKey = isDark ? -(shrineID + 1) : (shrineID + 1);
-            _activeBuffs[from][buffKey] = 100;
-
-            Timer.DelayCall(PlayerBuffDuration, () =>
+            if (!_activeBuffs.TryGetValue(from, out Dictionary<int, ShrineBuffState> buffs))
             {
-                if (from != null && _activeBuffs.ContainsKey(from))
-                    _activeBuffs[from].Remove(buffKey);
-            });
+                buffs = new Dictionary<int, ShrineBuffState>();
+                _activeBuffs[from] = buffs;
+            }
+
+            DateTime expiresAt = DateTime.UtcNow + PlayerBuffDuration;
+            ShrineData shrine = GetShrine(shrineID);
+            ShrineBuffState state = new ShrineBuffState(shrineID, shrine.Virtue, isDark, expiresAt);
+            buffs[shrineID] = state;
+
+            if (!isDark && shrine.Virtue == VirtueName.Justice)
+            {
+                state.ResistanceMods = new ResistanceMod[5];
+
+                for (int i = 0; i < state.ResistanceMods.Length; i++)
+                {
+                    ResistanceMod mod = new ResistanceMod((ResistanceType)i, 15);
+                    state.ResistanceMods[i] = mod;
+                    from.AddResistanceMod(mod);
+                }
+            }
+
+            if (!isDark && shrine.Virtue == VirtueName.Humility)
+            {
+                string prefix = GetStatModPrefix(shrineID);
+                from.AddStatMod(new StatMod(StatType.Str, prefix + "Str", 8, TimeSpan.Zero));
+                from.AddStatMod(new StatMod(StatType.Dex, prefix + "Dex", 8, TimeSpan.Zero));
+                from.AddStatMod(new StatMod(StatType.Int, prefix + "Int", 8, TimeSpan.Zero));
+            }
+
+            from.Delta(MobileDelta.Attributes | MobileDelta.WeaponDamage);
+
+            Timer.DelayCall(PlayerBuffDuration, () => ExpireBuff(from, shrineID, expiresAt));
         }
 
         public static bool HasBuffActive(Mobile m, int shrineID, bool isDark)
         {
-            if (m == null || !_activeBuffs.ContainsKey(m)) return false;
-            int buffKey = isDark ? -(shrineID + 1) : (shrineID + 1);
-            return _activeBuffs[m].ContainsKey(buffKey);
+            return TryGetBuff(m, shrineID, out ShrineBuffState state) && state.IsDark == isDark;
+        }
+
+        private static ShrineData GetShrine(int shrineID)
+        {
+            for (int i = 0; i < Shrines.Length; i++)
+            {
+                if (Shrines[i].ID == shrineID)
+                    return Shrines[i];
+            }
+
+            throw new ArgumentOutOfRangeException(nameof(shrineID));
+        }
+
+        private static bool TryGetBuff(Mobile mobile, int shrineID, out ShrineBuffState state)
+        {
+            state = null;
+
+            if (mobile == null || !_activeBuffs.TryGetValue(mobile, out Dictionary<int, ShrineBuffState> buffs) ||
+                !buffs.TryGetValue(shrineID, out state))
+                return false;
+
+            if (DateTime.UtcNow >= state.ExpiresAt)
+            {
+                RemoveBuff(mobile, shrineID);
+                state = null;
+                return false;
+            }
+
+            return true;
+        }
+
+        private static void ExpireBuff(Mobile mobile, int shrineID, DateTime expiresAt)
+        {
+            if (mobile != null && TryGetBuff(mobile, shrineID, out ShrineBuffState state) &&
+                state.ExpiresAt == expiresAt && DateTime.UtcNow >= expiresAt)
+            {
+                RemoveBuff(mobile, shrineID);
+            }
+        }
+
+        private static void RemoveBuff(Mobile mobile, int shrineID)
+        {
+            if (mobile == null || !_activeBuffs.TryGetValue(mobile, out Dictionary<int, ShrineBuffState> buffs) ||
+                !buffs.TryGetValue(shrineID, out ShrineBuffState state))
+                return;
+
+            buffs.Remove(shrineID);
+
+            if (buffs.Count == 0)
+                _activeBuffs.Remove(mobile);
+
+            if (state.ResistanceMods != null)
+            {
+                for (int i = 0; i < state.ResistanceMods.Length; i++)
+                    mobile.RemoveResistanceMod(state.ResistanceMods[i]);
+            }
+
+            if (!state.IsDark && state.Virtue == VirtueName.Humility)
+            {
+                string prefix = GetStatModPrefix(shrineID);
+                mobile.RemoveStatMod(prefix + "Str");
+                mobile.RemoveStatMod(prefix + "Dex");
+                mobile.RemoveStatMod(prefix + "Int");
+                mobile.CheckStatTimers();
+            }
+
+            mobile.Delta(MobileDelta.Attributes | MobileDelta.WeaponDamage);
+        }
+
+        private static string GetStatModPrefix(int shrineID)
+        {
+            return "KarmaVirtueShrine" + shrineID;
+        }
+
+        public static int GetAosAttributeBonus(Mobile mobile, AosAttribute attribute)
+        {
+            if (mobile == null || !mobile.Player)
+                return 0;
+
+            int bonus = 0;
+
+            for (int i = 0; i < Shrines.Length; i++)
+            {
+                ShrineData shrine = Shrines[i];
+                if (!TryGetBuff(mobile, shrine.ID, out ShrineBuffState state))
+                    continue;
+
+                if (state.IsDark)
+                {
+                    if (shrine.Virtue == VirtueName.Honor && attribute == AosAttribute.DefendChance)
+                        bonus -= 10;
+                    else if (shrine.Virtue == VirtueName.Humility && attribute == AosAttribute.WeaponSpeed)
+                        bonus += 15;
+                }
+                else
+                {
+                    if (shrine.Virtue == VirtueName.Spirituality &&
+                        (attribute == AosAttribute.RegenHits || attribute == AosAttribute.RegenStam || attribute == AosAttribute.RegenMana))
+                        bonus += 2;
+                    else if (shrine.Virtue == VirtueName.Honor &&
+                        (attribute == AosAttribute.AttackChance || attribute == AosAttribute.DefendChance))
+                        bonus += 15;
+                    else if (shrine.Virtue == VirtueName.Honesty && attribute == AosAttribute.Luck)
+                        bonus += 150;
+                }
+            }
+
+            return bonus;
+        }
+
+        public static int GetWeaponDamageBonus(Mobile attacker, Mobile defender)
+        {
+            if (attacker == null || !attacker.Player)
+                return 0;
+
+            int bonus = 0;
+
+            for (int i = 0; i < Shrines.Length; i++)
+            {
+                ShrineData shrine = Shrines[i];
+                if (!TryGetBuff(attacker, shrine.ID, out ShrineBuffState state))
+                    continue;
+
+                if (shrine.Virtue == VirtueName.Valor)
+                {
+                    if (state.IsDark || (defender != null && !defender.Player))
+                        bonus += state.IsDark ? 20 : 15;
+                }
+                else if (shrine.Virtue == VirtueName.Honor && state.IsDark)
+                {
+                    bonus += 20;
+                }
+            }
+
+            return bonus;
+        }
+
+        public static int GetSpellDamageBonus(Mobile caster)
+        {
+            return HasBuffActive(caster, 1, true) ? 15 : 0;
+        }
+
+        public static int ModifyIncomingDamage(Mobile defender, int damage)
+        {
+            if (defender == null || !defender.Player || damage <= 0)
+                return damage;
+
+            int modifier = 0;
+
+            for (int i = 0; i < Shrines.Length; i++)
+            {
+                ShrineData shrine = Shrines[i];
+                if (!TryGetBuff(defender, shrine.ID, out ShrineBuffState state) || !state.IsDark)
+                    continue;
+
+                if (shrine.Virtue == VirtueName.Valor)
+                    modifier += 10;
+                else if (shrine.Virtue == VirtueName.Compassion)
+                    modifier -= 15;
+            }
+
+            return Math.Max(1, (int)Math.Round(damage * (100 + modifier) / 100.0));
+        }
+
+        public static int GetDamageReflection(Mobile defender, Mobile attacker, int damage)
+        {
+            return !_applyingReflectedDamage && attacker != null && defender != null && attacker != defender &&
+                HasBuffActive(defender, 4, true) ? (int)Math.Floor(damage * 0.15) : 0;
+        }
+
+        public static bool IsApplyingReflectedDamage
+        {
+            get { return _applyingReflectedDamage; }
+        }
+
+        public static void ApplyReflectedDamage(Mobile defender, Mobile attacker, int damage)
+        {
+            if (damage <= 0 || defender == null || attacker == null)
+                return;
+
+            _applyingReflectedDamage = true;
+            try
+            {
+                attacker.Damage(damage, defender, false, false);
+            }
+            finally
+            {
+                _applyingReflectedDamage = false;
+            }
+        }
+
+        public static void OnDamageDealt(Mobile attacker, Mobile victim, int damage)
+        {
+            if (attacker == null || !attacker.Player || victim == null || attacker == victim || damage <= 0 ||
+                !HasBuffActive(attacker, 3, true))
+                return;
+
+            int healing = Math.Max(1, (int)Math.Floor(damage * 0.08));
+            attacker.Heal(healing, attacker, false);
+        }
+
+        public static int ModifyHealing(Mobile patient, Mobile healer, int amount)
+        {
+            if (_bandageHealDepth > 0 || !IsCompassionHealing(patient, healer) ||
+                !HasBuffActive(healer, 6, false) || amount <= 0)
+                return amount;
+
+            return ScaleHealing(amount, 30);
+        }
+
+        public static int HealByBandage(Mobile patient, Mobile healer, int amount)
+        {
+            int bonus = 0;
+
+            if (HasBuffActive(healer, 3, false))
+                bonus += 30;
+
+            if (IsCompassionHealing(patient, healer) && HasBuffActive(healer, 6, false))
+                bonus += 30;
+
+            _bandageHealDepth++;
+            try
+            {
+                return patient.Heal(ScaleHealing(amount, bonus), healer, false);
+            }
+            finally
+            {
+                _bandageHealDepth--;
+            }
+        }
+
+        private static int ScaleHealing(int amount, int bonus)
+        {
+            return bonus > 0 ? (int)Math.Ceiling(amount * (100 + bonus) / 100.0) : amount;
+        }
+
+        private static bool IsCompassionHealing(Mobile patient, Mobile healer)
+        {
+            if (patient == null || healer == null || !healer.Player || patient == healer)
+                return false;
+
+            if (patient.Player)
+                return true;
+
+            BaseCreature creature = patient as BaseCreature;
+            if (creature == null)
+                return false;
+
+            Mobile master = creature.ControlMaster ?? creature.SummonMaster;
+            return master != null && master.Player && master != healer;
         }
 
         public static int GetTotalActivatedShrinesCount(Mobile m)
@@ -187,18 +462,12 @@ namespace Server.Custom.KarmaVirtueSystem
             if (killer is BaseCreature) killer = ((BaseCreature)killer).GetMaster();
             if (killer == null || !killer.Player) return;
 
-            if (HasBuffActive(killer, 0, true))
+            if (HasBuffActive(killer, 5, true))
             {
                 List<Gold> goldPiles = new List<Gold>();
                 foreach (Item item in lootContainer.Items) { if (item is Gold) goldPiles.Add((Gold)item); }
-                foreach (Gold gold in goldPiles) { gold.Amount *= 2; }
-                foreach (Item item in lootContainer.Items)
-                {
-                    if (item is BaseWeapon || item is BaseArmor || item is BaseJewel || item is Spellbook)
-                    {
-                        if (Utility.RandomBool()) { item.LootType = LootType.Cursed; item.Hue = 0x497; }
-                    }
-                }
+                foreach (Gold gold in goldPiles)
+                    gold.Amount = (int)Math.Ceiling(gold.Amount * 1.30);
             }
         }
 
@@ -405,6 +674,24 @@ namespace Server.Custom.KarmaVirtueSystem
             }
         }
     }
+
+    internal sealed class ShrineBuffState
+    {
+        public int ShrineID { get; private set; }
+        public VirtueName Virtue { get; private set; }
+        public bool IsDark { get; private set; }
+        public DateTime ExpiresAt { get; private set; }
+        public ResistanceMod[] ResistanceMods { get; set; }
+
+        public ShrineBuffState(int shrineID, VirtueName virtue, bool isDark, DateTime expiresAt)
+        {
+            ShrineID = shrineID;
+            Virtue = virtue;
+            IsDark = isDark;
+            ExpiresAt = expiresAt;
+        }
+    }
+
     // ВЕРНУЛИ КЛАСС ДАННЫХ 🎉 (Устраняет ошибки CS0246)
     public class ShrineData
     {
@@ -413,7 +700,6 @@ namespace Server.Custom.KarmaVirtueSystem
         public string Mantra { get; private set; }
         public int X { get; private set; }
         public int Y { get; private set; }
-        public int Z { get; private set; }
         public Map Map { get; private set; }
 
         public string TownRegionName { get; private set; }
@@ -426,14 +712,13 @@ namespace Server.Custom.KarmaVirtueSystem
                     (map == Server.Map.Felucca || map == Server.Map.Trammel));
         }
 
-        public ShrineData(int id, VirtueName virtue, string mantra, int x, int y, int z, Map map, string townRegion, string dungeonRegion)
+        public ShrineData(int id, VirtueName virtue, string mantra, int x, int y, Map map, string townRegion, string dungeonRegion)
         {
             ID = id;
             Virtue = virtue;
             Mantra = mantra;
             X = x;
             Y = y;
-            Z = z;
             Map = map;
             TownRegionName = townRegion;
             DungeonRegionName = dungeonRegion;

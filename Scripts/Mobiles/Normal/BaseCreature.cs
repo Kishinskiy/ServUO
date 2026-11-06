@@ -6574,6 +6574,9 @@ namespace Server.Mobiles
                     return;
                 }
 
+                if (!c.Deleted)
+                    Server.Custom.KarmaVirtueSystem.KarmaVirtueManager.HandleMonsterLoot(this, c);
+
                 if (DeleteCorpseOnDeath && !e.PreventDelete)
                 {
                     c.Delete();
@@ -6920,6 +6923,12 @@ namespace Server.Mobiles
             {
                 Heal((Mobile)state);
             }
+        }
+
+        public override int Heal(int amount, Mobile from, bool message)
+        {
+            amount = Server.Custom.KarmaVirtueSystem.KarmaVirtueManager.ModifyHealing(this, from, amount);
+            return base.Heal(amount, from, message);
         }
 
         public virtual void Heal(Mobile patient)

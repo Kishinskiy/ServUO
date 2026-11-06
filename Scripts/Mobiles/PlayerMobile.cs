@@ -3563,6 +3563,21 @@ namespace Server.Mobiles
             return base.IsBeneficialCriminal(target);
         }
 
+        public override int Damage(int amount, Mobile from, bool informMount, bool checkDisrupt)
+        {
+            amount = Server.Custom.KarmaVirtueSystem.KarmaVirtueManager.ModifyIncomingDamage(this, amount);
+
+            int damageTaken = base.Damage(amount, from, informMount, checkDisrupt);
+
+            return damageTaken;
+        }
+
+        public override int Heal(int amount, Mobile from, bool message)
+        {
+            amount = Server.Custom.KarmaVirtueSystem.KarmaVirtueManager.ModifyHealing(this, from, amount);
+            return base.Heal(amount, from, message);
+        }
+
 		public override void OnDamage(int amount, Mobile from, bool willKill)
 		{
 			int disruptThreshold;

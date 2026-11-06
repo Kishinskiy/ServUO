@@ -140,6 +140,8 @@ namespace Server.Spells
                 sdiBonus = Math.Min(sdiBonus, PvPSpellDamageCap(caster, skill));
             }
 
+            sdiBonus += Server.Custom.KarmaVirtueSystem.KarmaVirtueManager.GetSpellDamageBonus(caster);
+
             return sdiBonus;
         }
         #endregion 

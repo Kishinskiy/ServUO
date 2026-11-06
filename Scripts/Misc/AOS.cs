@@ -389,7 +389,19 @@ namespace Server
                 DoLeech(totalDamage, from, m);
             }
 
+            int oldHits = m.Hits;
             totalDamage = m.Damage(totalDamage, from, true, false);
+            int actualDamage = Math.Min(Math.Max(0, totalDamage), Math.Max(0, oldHits));
+
+            if (actualDamage > 0 && from != null)
+                Server.Custom.KarmaVirtueSystem.KarmaVirtueManager.OnDamageDealt(from, m, actualDamage);
+
+            if (type == DamageType.Melee && m is PlayerMobile && from != null &&
+                !Server.Custom.KarmaVirtueSystem.KarmaVirtueManager.IsApplyingReflectedDamage)
+            {
+                int reflectedDamage = Server.Custom.KarmaVirtueSystem.KarmaVirtueManager.GetDamageReflection(m, from, actualDamage);
+                Server.Custom.KarmaVirtueSystem.KarmaVirtueManager.ApplyReflectedDamage(m, from, reflectedDamage);
+            }
 
             if (Core.SA && type == DamageType.Melee && from is BaseCreature &&
                 (m is PlayerMobile || (m is BaseCreature && !((BaseCreature)m).IsMonster)))
@@ -891,6 +903,8 @@ namespace Server
                 value += AnkhPendant.GetManaRegenModifier(m);
             }
             #endregion
+
+            value += Server.Custom.KarmaVirtueSystem.KarmaVirtueManager.GetAosAttributeBonus(m, attribute);
 
             return value;
         }

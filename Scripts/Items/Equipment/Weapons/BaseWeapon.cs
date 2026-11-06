@@ -3887,7 +3887,10 @@ namespace Server.Items
 
 		public virtual int ComputeDamageAOS(Mobile attacker, Mobile defender)
 		{
-			return (int)ScaleDamageAOS(attacker, GetBaseDamage(attacker), true);
+			double damage = ScaleDamageAOS(attacker, GetBaseDamage(attacker), true);
+			int virtueBonus = Server.Custom.KarmaVirtueSystem.KarmaVirtueManager.GetWeaponDamageBonus(attacker, defender);
+
+			return (int)(damage * (100 + virtueBonus) / 100.0);
 		}
 
 		public virtual double ScaleDamageOld(Mobile attacker, double damage, bool checkSkills)
@@ -3993,6 +3996,9 @@ namespace Server.Items
 			{
 				damage = (int)(damage / 2.0);
 			}
+
+			int virtueBonus = Server.Custom.KarmaVirtueSystem.KarmaVirtueManager.GetWeaponDamageBonus(attacker, defender);
+			damage = (int)(damage * (100 + virtueBonus) / 100.0);
 
 			return damage;
 		}

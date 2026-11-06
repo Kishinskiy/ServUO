@@ -561,7 +561,7 @@ namespace Server.Items
                         SpiritualityVirtue.OnHeal(m_Healer, Math.Min((int)toHeal, m_Patient.HitsMax - m_Patient.Hits));
                     }
 
-                    m_Patient.Heal((int)toHeal, m_Healer, false);
+                    Server.Custom.KarmaVirtueSystem.KarmaVirtueManager.HealByBandage(m_Patient, m_Healer, (int)toHeal);
                 }
                 else
                 {
