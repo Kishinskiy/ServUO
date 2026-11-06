@@ -298,6 +298,35 @@ namespace Server
 
 				ushort sv = (ushort)value;
 
+				// Проверка лимита прокачки из SkillCapBreakSystem
+				if (m_Owner.Owner is Mobile pm)
+				{
+					try
+					{
+						// Используем строку для поиска типа, чтобы избежать жесткой зависимости на этапе компиляции
+						var systemType = Type.GetType("Server.Custom.GuildQuests.SkillCapBreakSystem, Server");
+						if (systemType == null)
+						{
+                            // Пробуем без имени сборки
+                            systemType = Type.GetType("Server.Custom.GuildQuests.SkillCapBreakSystem");
+                        }
+
+						if (systemType != null)
+						{
+							var method = systemType.GetMethod("CanGainSkill", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+							if (method != null)
+							{
+								bool canGain = (bool)method.Invoke(null, new object[] { pm, SkillName });
+								if (!canGain)
+								{
+									sv = m_Base;
+								}
+							}
+						}
+					}
+					catch { /* Игнорируем ошибки, чтобы сервер не упал */ }
+				}
+
 				int oldBase = m_Base;
 
 				if (m_Base != sv)

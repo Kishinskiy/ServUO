@@ -15,8 +15,8 @@ namespace Server.Custom.GuildQuests
 
         private static readonly SkillName[] CombatSkills =
         {
-            SkillName.Swords, SkillName.Macing, SkillName.Fencing, 
-            SkillName.Archery, SkillName.Wrestling, SkillName.Parry, 
+            SkillName.Swords, SkillName.Macing, SkillName.Fencing,
+            SkillName.Archery, SkillName.Wrestling, SkillName.Parry,
             SkillName.Bushido, SkillName.Ninjitsu, SkillName.Tactics, SkillName.Anatomy
         };
 
@@ -201,6 +201,12 @@ namespace Server.Custom.GuildQuests
 
             double baseVal = skill.Base;
 
+            // Теперь мы всегда держим Cap на 100, чтобы кольца и предметы работали.
+            // Ограничение прокачки теперь будет работать через проверку Base в других частях системы
+            // или через внешние хуки.
+            if (skill.Cap != 100.0)
+                skill.Cap = 100.0;
+
             // Preserve characters that already passed the native trainer teaching ceiling.
             if (baseVal >= 42.0 && baseVal < 60.0 &&
                 XmlAttach.FindAttachment(pm, typeof(XmlData), $"Break_{skill.Name}") == null)
@@ -210,21 +216,11 @@ namespace Server.Custom.GuildQuests
 
             if (baseVal < 20.0)
             {
-                if (skill.Cap > 20.0)
-                {
-                    skill.Cap = 20.0;
-                }
-
                 return;
             }
 
             if (baseVal < 40.0)
             {
-                if (skill.Cap != 40.0)
-                {
-                    skill.Cap = 40.0;
-                }
-
                 return;
             }
 
@@ -259,9 +255,11 @@ namespace Server.Custom.GuildQuests
         {
             if (XmlAttach.FindAttachment(pm, typeof(XmlData), token) == null)
             {
-                if (skill.Cap != lockedCap)
+                // Мы больше не ставим skill.Cap = lockedCap, чтобы кольца работали.
+                // Вместо этого мы ставим Cap в 100, а лимит храним в данных персонажа (если нужно для других систем).
+                if (skill.Cap != 100.0)
                 {
-                    skill.Cap = lockedCap;
+                    skill.Cap = 100.0;
                 }
             }
             else if (skill.Cap < unlockedCap)
@@ -323,14 +321,10 @@ namespace Server.Custom.GuildQuests
                     Skill skill = pm.Skills[skName];
                     if (skill == null) continue;
 
-                    if (skill.Base >= 20.0 && skill.Base < 40.0)
-                    {
-                        skill.Cap = 40.0; 
-                        pm.CheckSkill(skName, 0.0, 100.0); 
-                    }
-                    
+                    // Мы больше не меняем skill.Cap здесь, чтобы не резать бонусы предметов.
+                    // Лимиты теперь управляются через CanGainSkill.
                 }
-                
+
                 EnforceSkillCaps(pm);
             }
         }
@@ -406,6 +400,44 @@ namespace Server.Custom.GuildQuests
             }
 
             return sources.ToArray();
+        }
+
+        public static bool CanGainSkill(PlayerMobile pm, SkillName skillName)
+        {
+            if (pm == null) return false;
+            if (pm.AccessLevel > AccessLevel.Player) return true;
+
+            Skill skill = pm.Skills[skillName];
+            if (skill == null) return false;
+
+            double currentBase = skill.Base;
+
+            // Базовый лимит для всех - 20.0
+            double limit = 20.0;
+
+            // Если прошел базовое обучение или имеет пометку Break - лимит 60.0
+            if (XmlAttach.FindAttachment(pm, typeof(XmlData), $"Break_{skillName}") != null)
+            {
+                limit = 60.0;
+            }
+            else if (currentBase >= 40.0)
+            {
+                // Позволяем докачаться до 40 даже без обучения, если система позволяет
+                limit = 40.0;
+            }
+
+            // Проверка на квестовые лимиты (80 и 100)
+            if (XmlAttach.FindAttachment(pm, typeof(XmlData), $"Quest100_{skillName}") != null)
+            {
+                limit = 100.0;
+            }
+            else if (XmlAttach.FindAttachment(pm, typeof(XmlData), $"Quest80_{skillName}") != null)
+            {
+                limit = 80.0;
+            }
+
+            // Если текущий навык уже достиг или превысил лимит - запрещаем рост
+            return currentBase < limit;
         }
 
         public static void GrantQuest80Unlock(PlayerMobile pm, SkillName skillName)
