@@ -95,6 +95,8 @@ namespace Server
 		private ushort m_Base;
 		private ushort m_Cap;
 		private SkillLock m_Lock;
+		private static Func<Mobile, SkillName, int, bool> m_SkillGainLimitCallback;
+		private static bool m_SkillGainLimitWarningLogged;
 
 		public override string ToString()
 		{
@@ -298,33 +300,9 @@ namespace Server
 
 				ushort sv = (ushort)value;
 
-				// Проверка лимита прокачки из SkillCapBreakSystem
-				if (m_Owner.Owner is Mobile pm)
+				if (sv > m_Base && !CanIncreaseBase(sv))
 				{
-					try
-					{
-						// Используем строку для поиска типа, чтобы избежать жесткой зависимости на этапе компиляции
-						var systemType = Type.GetType("Server.Custom.GuildQuests.SkillCapBreakSystem, Server");
-						if (systemType == null)
-						{
-                            // Пробуем без имени сборки
-                            systemType = Type.GetType("Server.Custom.GuildQuests.SkillCapBreakSystem");
-                        }
-
-						if (systemType != null)
-						{
-							var method = systemType.GetMethod("CanGainSkill", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
-							if (method != null)
-							{
-								bool canGain = (bool)method.Invoke(null, new object[] { pm, SkillName });
-								if (!canGain)
-								{
-									sv = m_Base;
-								}
-							}
-						}
-					}
-					catch { /* Игнорируем ошибки, чтобы сервер не упал */ }
+					return;
 				}
 
 				int oldBase = m_Base;
@@ -345,6 +323,49 @@ namespace Server
 					}
 				}
 			}
+		}
+
+		private bool CanIncreaseBase(ushort newBase)
+		{
+			if (m_SkillGainLimitCallback == null)
+			{
+				foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+				{
+					var systemType = assembly.GetType("Server.Custom.GuildQuests.SkillCapBreakSystem", false);
+
+					if (systemType != null)
+					{
+						var method = systemType.GetMethod(
+							"CanGainSkill",
+							System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static,
+							null,
+							new[] { typeof(Mobile), typeof(SkillName), typeof(int) },
+							null);
+
+						if (method != null)
+						{
+							m_SkillGainLimitCallback =
+								(Func<Mobile, SkillName, int, bool>)Delegate.CreateDelegate(
+									typeof(Func<Mobile, SkillName, int, bool>), method);
+						}
+
+						break;
+					}
+				}
+
+				if (m_SkillGainLimitCallback == null)
+				{
+					if (!m_SkillGainLimitWarningLogged)
+					{
+						Console.WriteLine("Warning: SkillCapBreakSystem.CanGainSkill(Mobile, SkillName, int) was not found; skill gain limits are not being enforced.");
+						m_SkillGainLimitWarningLogged = true;
+					}
+
+					return true;
+				}
+			}
+
+			return m_SkillGainLimitCallback(m_Owner.Owner, SkillName, newBase);
 		}
 
 		[CommandProperty(AccessLevel.Counselor, AccessLevel.GameMaster)]

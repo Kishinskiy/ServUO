@@ -402,42 +402,57 @@ namespace Server.Custom.GuildQuests
             return sources.ToArray();
         }
 
-        public static bool CanGainSkill(PlayerMobile pm, SkillName skillName)
+        public static bool CanGainSkill(Mobile mobile, SkillName skillName, int newBaseFixed)
         {
-            if (pm == null) return false;
+            PlayerMobile pm = mobile as PlayerMobile;
+
+            if (pm == null || Array.IndexOf(TrainerSkills, skillName) < 0)
+                return true;
+
             if (pm.AccessLevel > AccessLevel.Player) return true;
 
             Skill skill = pm.Skills[skillName];
-            if (skill == null) return false;
+            if (skill == null) return true;
 
             double currentBase = skill.Base;
+            int limitFixed;
 
-            // Базовый лимит для всех - 20.0
-            double limit = 20.0;
+            if (currentBase < 20.0)
+            {
+                limitFixed = 200;
+            }
+            else if (currentBase < 40.0)
+            {
+                limitFixed = 400;
+            }
+            else if (currentBase < 60.0)
+            {
+                limitFixed = XmlAttach.FindAttachment(pm, typeof(XmlData), $"Break_{skillName}") != null ? 600 : 400;
+            }
+            else if (Array.IndexOf(CombatSkills, skillName) >= 0 ||
+                     Array.IndexOf(TwoStageQuestSkills, skillName) >= 0)
+            {
+                bool quest80Unlocked =
+                    XmlAttach.FindAttachment(pm, typeof(XmlData), $"Quest80_{skillName}") != null;
+                bool quest100Unlocked =
+                    XmlAttach.FindAttachment(pm, typeof(XmlData), $"Quest100_{skillName}") != null;
 
-            // Если прошел базовое обучение или имеет пометку Break - лимит 60.0
-            if (XmlAttach.FindAttachment(pm, typeof(XmlData), $"Break_{skillName}") != null)
-            {
-                limit = 60.0;
+                if (currentBase < 80.0)
+                    limitFixed = quest80Unlocked ? 800 : 600;
+                else if (currentBase < 100.0)
+                    limitFixed = quest100Unlocked ? 1000 : (quest80Unlocked ? 800 : 600);
+                else
+                    limitFixed = 1000;
             }
-            else if (currentBase >= 40.0)
+            else
             {
-                // Позволяем докачаться до 40 даже без обучения, если система позволяет
-                limit = 40.0;
-            }
-
-            // Проверка на квестовые лимиты (80 и 100)
-            if (XmlAttach.FindAttachment(pm, typeof(XmlData), $"Quest100_{skillName}") != null)
-            {
-                limit = 100.0;
-            }
-            else if (XmlAttach.FindAttachment(pm, typeof(XmlData), $"Quest80_{skillName}") != null)
-            {
-                limit = 80.0;
+                limitFixed =
+                    XmlAttach.FindAttachment(pm, typeof(XmlData), $"Quest100_{skillName}") != null
+                        ? 1000
+                        : 600;
             }
 
-            // Если текущий навык уже достиг или превысил лимит - запрещаем рост
-            return currentBase < limit;
+            return newBaseFixed <= limitFixed;
         }
 
         public static void GrantQuest80Unlock(PlayerMobile pm, SkillName skillName)
