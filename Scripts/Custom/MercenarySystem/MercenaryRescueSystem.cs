@@ -117,7 +117,8 @@ namespace Server.Custom.MercenarySystem
                 string folder = Path.GetDirectoryName(_savePath);
                 if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
 
-                using (BinaryFileWriter writer = new BinaryFileWriter(_savePath, false))
+                BinaryFileWriter writer = new BinaryFileWriter(_savePath, false);
+                try
                 {
                     writer.Write((int)1); // Version
                     writer.Write((int)_rescueRoster.Count);
@@ -129,6 +130,10 @@ namespace Server.Custom.MercenarySystem
                         foreach (FallenMercenaryData data in kvp.Value)
                             data.Serialize(writer);
                     }
+                }
+                finally
+                {
+                    writer.Close();
                 }
             }
             catch (Exception ex)
@@ -143,22 +148,25 @@ namespace Server.Custom.MercenarySystem
 
             try
             {
-                using (BinaryReader binReader = new BinaryFileReader(_savePath))
+                using (FileStream stream = new FileStream(_savePath, FileMode.Open, FileAccess.Read, FileShare.Read))
                 {
-                    GenericReader reader = new GenericReader(binReader);
-                    int version = reader.ReadInt();
-                    if (version < 1) return;
-
-                    int accountCount = reader.ReadInt();
-                    for (int i = 0; i < accountCount; i++)
+                    using (BinaryReader binReader = new BinaryReader(stream))
                     {
-                        string accName = reader.ReadString();
-                        int mercCount = reader.ReadInt();
-                        List<FallenMercenaryData> list = new List<FallenMercenaryData>();
-                        for (int j = 0; j < mercCount; j++)
-                            list.Add(FallenMercenaryData.Deserialize(reader));
+                        GenericReader reader = new BinaryFileReader(binReader);
+                        int version = reader.ReadInt();
+                        if (version < 1) return;
 
-                        _rescueRoster[accName] = list;
+                        int accountCount = reader.ReadInt();
+                        for (int i = 0; i < accountCount; i++)
+                        {
+                            string accName = reader.ReadString();
+                            int mercCount = reader.ReadInt();
+                            List<FallenMercenaryData> list = new List<FallenMercenaryData>();
+                            for (int j = 0; j < mercCount; j++)
+                                list.Add(FallenMercenaryData.Deserialize(reader));
+
+                            _rescueRoster[accName] = list;
+                        }
                     }
                 }
             }

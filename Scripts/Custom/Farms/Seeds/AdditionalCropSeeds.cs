@@ -46,16 +46,18 @@ namespace Server.Custom.Farms
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
-            writer.Write(0);
+            writer.Write(0); // Version
             writer.Write((int)_vegetableType);
         }
 
         public override void Deserialize(GenericReader reader)
         {
             base.Deserialize(reader);
-            reader.ReadInt();
+            reader.ReadInt(); // Version
             _vegetableType = (VegetableType)reader.ReadInt();
         }
+
+        public VegetableType VegetableType => _vegetableType;
     }
 
     public class TurnipSeed : FarmCropSeed
