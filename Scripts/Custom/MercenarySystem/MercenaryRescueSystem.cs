@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using Server;
 using Server.Items;
 using Server.Mobiles;
@@ -15,18 +16,48 @@ namespace Server.Custom.MercenarySystem
         public int Level { get; set; }
         public int Exp { get; set; }
         public List<Item> EquippedItems { get; set; } = new List<Item>();
+
+        public void Serialize(GenericWriter writer)
+        {
+            writer.Write(OwnerAccount);
+            writer.Write(MercName);
+            writer.Write((int)Class);
+            writer.Write(Level);
+            writer.Write(Exp);
+            writer.Write((int)EquippedItems.Count);
+            foreach (Item item in EquippedItems)
+                writer.Write(item);
+        }
+
+        public static FallenMercenaryData Deserialize(GenericReader reader)
+        {
+            FallenMercenaryData data = new FallenMercenaryData();
+            data.OwnerAccount = reader.ReadString();
+            data.MercName = reader.ReadString();
+            data.Class = (MercenaryClass)reader.ReadInt();
+            data.Level = reader.ReadInt();
+            data.Exp = reader.ReadInt();
+            int itemCount = reader.ReadInt();
+            data.EquippedItems = new List<Item>();
+            for (int i = 0; i < itemCount; i++)
+                data.EquippedItems.Add(reader.ReadItem());
+            return data;
+        }
     }
 
     public static class MercenaryRescueSystem
     {
+        private static readonly string _savePath = Path.Combine(Core.BaseDirectory, "Saves/Custom/MercenaryRescue.bin");
+
         // Глобальная база данных погибших наёмников (Имя аккаунта хозяина -> список слуг)
         private static readonly Dictionary<string, List<FallenMercenaryData>> _rescueRoster 
             = new Dictionary<string, List<FallenMercenaryData>>();
 
         public static void Initialize()
         {
-            // Хукаем смерть существ в мире
             EventSink.CreatureDeath += OnCreatureDeath;
+            EventSink.WorldSave += e => Save();
+            EventSink.ServerStarted += Load;
         }
 
         private static void OnCreatureDeath(CreatureDeathEventArgs e)
@@ -76,6 +107,64 @@ namespace Server.Custom.MercenarySystem
                 
                 // Удаляем нативного моба, чтобы он не оставлял голый лут в данже
                 Timer.DelayCall(TimeSpan.FromMilliseconds(50), () => merc.Delete());
+            }
+        }
+
+        public static void Save()
+        {
+            try
+            {
+                string folder = Path.GetDirectoryName(_savePath);
+                if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
+
+                using (BinaryFileWriter writer = new BinaryFileWriter(_savePath, false))
+                {
+                    writer.Write((int)1); // Version
+                    writer.Write((int)_rescueRoster.Count);
+
+                    foreach (var kvp in _rescueRoster)
+                    {
+                        writer.Write(kvp.Key);
+                        writer.Write((int)kvp.Value.Count);
+                        foreach (FallenMercenaryData data in kvp.Value)
+                            data.Serialize(writer);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[MercenaryRescueSystem] Save failed: {ex}");
+            }
+        }
+
+        public static void Load()
+        {
+            if (!File.Exists(_savePath)) return;
+
+            try
+            {
+                using (BinaryReader binReader = new BinaryFileReader(_savePath))
+                {
+                    GenericReader reader = new GenericReader(binReader);
+                    int version = reader.ReadInt();
+                    if (version < 1) return;
+
+                    int accountCount = reader.ReadInt();
+                    for (int i = 0; i < accountCount; i++)
+                    {
+                        string accName = reader.ReadString();
+                        int mercCount = reader.ReadInt();
+                        List<FallenMercenaryData> list = new List<FallenMercenaryData>();
+                        for (int j = 0; j < mercCount; j++)
+                            list.Add(FallenMercenaryData.Deserialize(reader));
+
+                        _rescueRoster[accName] = list;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[MercenaryRescueSystem] Load failed: {ex}");
             }
         }
 
