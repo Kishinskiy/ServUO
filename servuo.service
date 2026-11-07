@@ -7,11 +7,9 @@ Type=forking
 User=servuo
 Group=servuo
 WorkingDirectory=/home/servuo/ServUO
-
-# Запуск собранных GitHub Actions бинарников в сессии screen
+# Явно указываем использование mono и проверяем путь
 ExecStart=/usr/bin/screen -dmS servuo /usr/bin/mono /home/servuo/ServUO/ServUO.exe -release
 
-# Корректная остановка сервера (отправка команды сохранения и выхода в консоль screen)
 ExecStop=/usr/bin/screen -S servuo -X eval "stuff '[save\015'"
 ExecStop=/bin/sleep 5
 ExecStop=/usr/bin/screen -S servuo -X eval "stuff '[shutdown\015'"
@@ -22,6 +20,5 @@ RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
-
 
 ## for controll from console type `screen -r servuo`

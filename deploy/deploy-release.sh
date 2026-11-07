@@ -84,11 +84,12 @@ fi
 
 if systemctl cat servuo-auto-update.timer >/dev/null 2>&1; then
     log "Disabling the legacy auto-update timer."
-    sudo systemctl disable --now servuo-auto-update.timer
+    # Use non-interactive sudo or remove if not needed
+    sudo -n systemctl disable --now servuo-auto-update.timer || log "Could not disable timer (sudo required)"
 fi
 
 if systemctl cat servuo-auto-update.service >/dev/null 2>&1; then
-    sudo systemctl stop servuo-auto-update.service
+    sudo -n systemctl stop servuo-auto-update.service || log "Could not stop auto-update service (sudo required)"
 fi
 
 mkdir -p "$REPO_DIR"
@@ -116,9 +117,8 @@ fi
 if [[ "$binary_changed" == false ]]; then
     cp -a "$STAGING_DIR/." "$REPO_DIR/"
     if ! cmp -s "$STAGING_DIR/servuo.service" /etc/systemd/system/servuo.service 2>/dev/null; then
-        sudo install -m 0644 "$STAGING_DIR/servuo.service" /etc/systemd/system/servuo.service
-        sudo systemctl daemon-reload
-        log "Updated the full server tree and systemd unit; ServUO was not restarted because its binaries are unchanged."
+        sudo -n install -m 0644 "$STAGING_DIR/servuo.service" /etc/systemd/system/servuo.service || { log "ERROR: Failed to update systemd unit. Sudo NOPASSWD for 'install' required."; exit 1; }
+        sudo -n systemctl daemon-reload
     else
         log "Updated the full server tree; binaries are unchanged, so the ServUO restart was skipped."
     fi
@@ -137,7 +137,7 @@ fi
 
 log "Stopping ServUO."
 if systemctl cat servuo >/dev/null 2>&1; then
-    sudo systemctl stop servuo
+    sudo -n systemctl stop servuo || { log "ERROR: Failed to stop ServUO. Sudo NOPASSWD for 'systemctl stop' required."; exit 1; }
 fi
 
 for file in "${existing_files[@]}"; do
@@ -145,10 +145,10 @@ for file in "${existing_files[@]}"; do
 done
 cp -a "$STAGING_DIR/." "$REPO_DIR/"
 
-sudo install -m 0644 "$STAGING_DIR/servuo.service" /etc/systemd/system/servuo.service
-sudo systemctl daemon-reload
+sudo -n install -m 0644 "$STAGING_DIR/servuo.service" /etc/systemd/system/servuo.service || { log "ERROR: Failed to install systemd unit. Sudo NOPASSWD for 'install' required."; exit 1; }
+sudo -n systemctl daemon-reload
 
-if sudo systemctl restart servuo && sleep 5 && sudo systemctl is-active --quiet servuo; then
+if sudo -n systemctl restart servuo && sleep 5 && sudo -n systemctl is-active --quiet servuo; then
     log "Release $RELEASE_SHA deployed successfully."
     rm -rf -- "$STAGING_DIR" "$ARCHIVE"
     exit 0
@@ -170,11 +170,11 @@ if [[ ${#backup_files[@]} -gt 0 ]]; then
 fi
 
 if [[ -f "$BACKUP_DIR/servuo.service" ]]; then
-    sudo install -m 0644 "$BACKUP_DIR/servuo.service" /etc/systemd/system/servuo.service
-    sudo systemctl daemon-reload
+    sudo -n install -m 0644 "$BACKUP_DIR/servuo.service" /etc/systemd/system/servuo.service
+    sudo -n systemctl daemon-reload
 fi
 
-if ! sudo systemctl restart servuo; then
+if ! sudo -n systemctl restart servuo; then
     log "CRITICAL: Rollback restart failed; inspect systemctl status servuo."
 fi
 
