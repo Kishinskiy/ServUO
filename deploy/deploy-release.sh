@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-REPO_DIR="/root/ServUO"
-LOCK_FILE="/run/lock/servuo-deploy.lock"
-STAGING_ROOT="/tmp/servuo-deploy"
+REPO_DIR="$HOME/ServUO"
+LOCK_FILE="$HOME/.servuo-deploy.lock"
+STAGING_ROOT="$HOME/tmp/servuo-deploy"
 
 log() {
     printf '[servuo-deploy] %s\n' "$*"
@@ -84,11 +84,11 @@ fi
 
 if systemctl cat servuo-auto-update.timer >/dev/null 2>&1; then
     log "Disabling the legacy auto-update timer."
-    systemctl disable --now servuo-auto-update.timer
+    sudo systemctl disable --now servuo-auto-update.timer
 fi
 
 if systemctl cat servuo-auto-update.service >/dev/null 2>&1; then
-    systemctl stop servuo-auto-update.service
+    sudo systemctl stop servuo-auto-update.service
 fi
 
 mkdir -p "$REPO_DIR"
@@ -116,8 +116,8 @@ fi
 if [[ "$binary_changed" == false ]]; then
     cp -a "$STAGING_DIR/." "$REPO_DIR/"
     if ! cmp -s "$STAGING_DIR/servuo.service" /etc/systemd/system/servuo.service 2>/dev/null; then
-        install -m 0644 "$STAGING_DIR/servuo.service" /etc/systemd/system/servuo.service
-        systemctl daemon-reload
+        sudo install -m 0644 "$STAGING_DIR/servuo.service" /etc/systemd/system/servuo.service
+        sudo systemctl daemon-reload
         log "Updated the full server tree and systemd unit; ServUO was not restarted because its binaries are unchanged."
     else
         log "Updated the full server tree; binaries are unchanged, so the ServUO restart was skipped."
@@ -137,7 +137,7 @@ fi
 
 log "Stopping ServUO."
 if systemctl cat servuo >/dev/null 2>&1; then
-    systemctl stop servuo
+    sudo systemctl stop servuo
 fi
 
 for file in "${existing_files[@]}"; do
@@ -145,10 +145,10 @@ for file in "${existing_files[@]}"; do
 done
 cp -a "$STAGING_DIR/." "$REPO_DIR/"
 
-install -m 0644 "$STAGING_DIR/servuo.service" /etc/systemd/system/servuo.service
-systemctl daemon-reload
+sudo install -m 0644 "$STAGING_DIR/servuo.service" /etc/systemd/system/servuo.service
+sudo systemctl daemon-reload
 
-if systemctl restart servuo && sleep 5 && systemctl is-active --quiet servuo; then
+if sudo systemctl restart servuo && sleep 5 && sudo systemctl is-active --quiet servuo; then
     log "Release $RELEASE_SHA deployed successfully."
     rm -rf -- "$STAGING_DIR" "$ARCHIVE"
     exit 0
@@ -170,11 +170,11 @@ if [[ ${#backup_files[@]} -gt 0 ]]; then
 fi
 
 if [[ -f "$BACKUP_DIR/servuo.service" ]]; then
-    install -m 0644 "$BACKUP_DIR/servuo.service" /etc/systemd/system/servuo.service
-    systemctl daemon-reload
+    sudo install -m 0644 "$BACKUP_DIR/servuo.service" /etc/systemd/system/servuo.service
+    sudo systemctl daemon-reload
 fi
 
-if ! systemctl restart servuo; then
+if ! sudo systemctl restart servuo; then
     log "CRITICAL: Rollback restart failed; inspect systemctl status servuo."
 fi
 
