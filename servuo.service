@@ -4,12 +4,12 @@ After=network.target
 
 [Service]
 Type=forking
-User=root
-Group=root
-WorkingDirectory=/root/ServUO
+User=servuo
+Group=servuo
+WorkingDirectory=/home/servuo/ServUO
 
 # Запуск собранных GitHub Actions бинарников в сессии screen
-ExecStart=/usr/bin/screen -dmS servuo /usr/bin/mono /root/ServUO/ServUO.exe -release
+ExecStart=/usr/bin/screen -dmS servuo /usr/bin/mono /home/servuo/ServUO/ServUO.exe -release
 
 # Корректная остановка сервера (отправка команды сохранения и выхода в консоль screen)
 ExecStop=/usr/bin/screen -S servuo -X eval "stuff '[save\015'"
