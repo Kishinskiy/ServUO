@@ -13,15 +13,16 @@ namespace Server.Custom.CityDevelopment
         // Каноничное сопоставление городов и мантр ядра ServUO
         private static readonly Dictionary<City, Tuple<string, string>> VirtueMap = new Dictionary<City, Tuple<string, string>>()
         {
-            { City.Britain,     new Tuple<string, string>("Compassion (Сострадание)", "МУ") },
-            { City.Yew,         new Tuple<string, string>("Justice (Справедливость)", "БЕХ") },
-            { City.Minoc,       new Tuple<string, string>("Sacrifice (Жертвенность)", "КАХ") },
-            { City.Moonglow,    new Tuple<string, string>("Honesty (Честность)", "АХМ") },
-            { City.Trinsic,     new Tuple<string, string>("Honor (Честь)", "СУММ") },
-            { City.SkaraBrae,   new Tuple<string, string>("Spirituality (Духовность)", "ОМ") },
-            { City.Jhelom,      new Tuple<string, string>("Valor (Доблесть)", "РА") },
-            { City.NewMagincia, new Tuple<string, string>("Humility (Смирение)", "ЛУМ") }
+            { City.Britain,     new Tuple<string, string>("Compassion (Сострадание)", "MU") },
+            { City.Yew,         new Tuple<string, string>("Justice (Справедливость)", "BEH") },
+            { City.Minoc,       new Tuple<string, string>("Sacrifice (Жертвенность)", "CAH") },
+            { City.Moonglow,    new Tuple<string, string>("Honesty (Честность)", "AHM") },
+            { City.Trinsic,     new Tuple<string, string>("Honor (Честь)", "SUMM") },
+            { City.SkaraBrae,   new Tuple<string, string>("Spirituality (Духовность)", "OM") },
+            { City.Jhelom,      new Tuple<string, string>("Valor (Доблесть)", "RA") },
+            { City.NewMagincia, new Tuple<string, string>("Humility (Смирение)", "LUM") }
         };
+
 
         public static void Initialize()
         {
