@@ -133,11 +133,11 @@ jobs:
 
           target="${DEPLOY_USER}@${DEPLOY_HOST}"
           ssh -i "$HOME/.ssh/id_ed25519" -o BatchMode=yes -o StrictHostKeyChecking=yes \
-            "$target" "mkdir -p /tmp/servuo-deploy"
+            "$target" "mkdir -p /home/servuo/tmp/servuo-deploy"
           scp -i "$HOME/.ssh/id_ed25519" -o BatchMode=yes -o StrictHostKeyChecking=yes \
-            "$RELEASE_ARCHIVE" "$target:/tmp/servuo-deploy/${RELEASE_SHA}.tar.gz"
+            "$RELEASE_ARCHIVE" "$target:/home/servuo/tmp/servuo-deploy/${RELEASE_SHA}.tar.gz"
           scp -i "$HOME/.ssh/id_ed25519" -o BatchMode=yes -o StrictHostKeyChecking=yes \
             "$GITHUB_WORKSPACE/deploy/deploy-release.sh" \
-            "$target:/tmp/servuo-deploy/deploy-release-${RELEASE_SHA}.sh"
+            "$target:/home/servuo/tmp/servuo-deploy/deploy-release-${RELEASE_SHA}.sh"
           ssh -i "$HOME/.ssh/id_ed25519" -o BatchMode=yes -o StrictHostKeyChecking=yes \
-            "$target" "bash '/tmp/servuo-deploy/deploy-release-${RELEASE_SHA}.sh' '${RELEASE_SHA}'"
+            "$target" "bash '/home/servuo/tmp/servuo-deploy/deploy-release-${RELEASE_SHA}.sh' '${RELEASE_SHA}'"
