@@ -118,13 +118,13 @@ jobs:
         shell: bash
         run: |
           DATESTAMP=$(date +%Y-%m-%d)
-          tar -czf servuo-$DATESTAMP.tar.gz /root/ServUO
+          tar -czf servuo-$DATESTAMP.tar.gz $HOME/ServUO
 
       - name: Transfer and activate release
         env:
           RELEASE_ARCHIVE: ${{ runner.temp }}/servuo-release/servuo-release.tar.gz
           DEPLOY_HOST: kishinskiy.ru
-          DEPLOY_USER: root
+          DEPLOY_USER: servuo
           RELEASE_SHA: ${{ github.sha }}
         shell: bash
         run: |
