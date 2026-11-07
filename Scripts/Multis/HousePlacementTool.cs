@@ -546,16 +546,16 @@ namespace Server.Items
 
         private static readonly HousePlacementEntry[] m_FarmFoundations = new HousePlacementEntry[]
         {
-            new HousePlacementEntry(
-                typeof(Server.Custom.Farms.CustomFarmController), // Наш тип фермы
-                1011303,                                          // Cliloc текстовой заглушки имени
-                2100, 1050,                                       // Лимиты в меню
-                300, 5,                                           // Локдауны
-                42,                                               // Срок распада
-                50000,                                            // Цена (50,000 gp)
-                0, 0, 0,                                          // Смещения осей X, Y, Z
-                0x13EC                                            // ВАЖНО: Заменили 0x006A на 0x13EC (ID пустого плоского фундамента 7x7)
-            ),
+            // new HousePlacementEntry(
+            //     typeof(Server.Custom.Farms.CustomFarmController), // Наш тип фермы
+            //     1011303,                                          // Cliloc текстовой заглушки имени
+            //     2100, 1050,                                       // Лимиты в меню
+            //     300, 5,                                           // Локдауны
+            //     42,                                               // Срок распада
+            //     50000,                                            // Цена (50,000 gp)
+            //     0, 0, 0,                                          // Смещения осей X, Y, Z
+            //     0x13EC                                            // ВАЖНО: Заменили 0x006A на 0x13EC (ID пустого плоского фундамента 7x7)
+            // ),
         };
 
 
@@ -745,16 +745,16 @@ namespace Server.Items
         {
             try
             {
-                if (m_Type == typeof(Server.Custom.Farms.CustomFarmController))
-                {
-                    // Если игрок выбрал ферму, мы спавним наш контроллер прямо на месте клика
-                    // (Поскольку метод должен вернуть BaseHouse, мы создадим контроллер, а вернем null,
-                    // чтобы стандартный код создания фундаментов прервался, так как мы уже всё построили сами)
-
-                    // Но так как координаты клика находятся в методе PlacementWarning_Callback,
-                    // самый чистый способ — просто зарегистрировать в m_FarmFoundations тип существующего маленького дома,
-                    // а в OnPlacement подменить его.
-                }
+                // if (m_Type == typeof(Server.Custom.Farms.CustomFarmController))
+                // {
+                //     // Если игрок выбрал ферму, мы спавним наш контроллер прямо на месте клика
+                //     // (Поскольку метод должен вернуть BaseHouse, мы создадим контроллер, а вернем null,
+                //     // чтобы стандартный код создания фундаментов прервался, так как мы уже всё построили сами)
+                //
+                //     // Но так как координаты клика находятся в методе PlacementWarning_Callback,
+                //     // самый чистый способ — просто зарегистрировать в m_FarmFoundations тип существующего маленького дома,
+                //     // а в OnPlacement подменить его.
+                // }
 
                 object[] args;
 
@@ -830,8 +830,8 @@ namespace Server.Items
                             }
 
                             // Создаем нашу настоящую ферму ровно в центре указанной точки
-                            Server.Custom.Farms.CustomFarmController farm = new Server.Custom.Farms.CustomFarmController(from);
-                            farm.MoveToWorld(center, map);
+                            // Server.Custom.Farms.CustomFarmController farm = new Server.Custom.Farms.CustomFarmController(from);
+                            // farm.MoveToWorld(center, map);
 
                             // Смещаем сторонние предметы/игроков, если они мешали строительству
                             for (int i = 0; i < toMove.Count; ++i)
@@ -1168,11 +1168,11 @@ namespace Server.Items
 
                 AddButton(10, y, 4005, 4007, 1 + i, GumpButtonType.Reply, 0);
                 // Проверяем тип на наш новый класс контроллера фермы
-                if (entry.Type == typeof(Server.Custom.Farms.CustomFarmController))
-                {
-                    AddHtml(50, y, 225, 20, "<BASEFONT COLOR=#7FFF>Custom Farm Field</BASEFONT>", false, false);
-                }
-                else
+                // if (entry.Type == typeof(Server.Custom.Farms.CustomFarmController))
+                // {
+                //     AddHtml(50, y, 225, 20, "<BASEFONT COLOR=#7FFF>Custom Farm Field</BASEFONT>", false, false);
+                // }
+                // else
                 {
                     AddHtmlLocalized(50, y, 225, 20, entry.Description, LabelColor, false, false);
                 }

@@ -7,6 +7,7 @@ using Server.Items;
 using Server.Multis;
 using Server.ContextMenus;
 using Server.Network;
+using Server.Custom.Farms;
 
 namespace Server.Engines.Plants
 {
@@ -364,6 +365,16 @@ namespace Server.Engines.Plants
 			{
 				LabelTo( from, 1061856 ); // You must have the item in your backpack or locked down in order to use it.
 				return;
+			}
+
+			if ( m_PlantStatus == PlantStatus.FullGrownPlant )
+			{
+				if ( PlantHarvestHook.TryHarvestCustomCrop( from, this ) )
+				{
+					// Если это наш овощ, то после успешного сбора сбрасываем горшок в состояние земли
+					this.PlantStatus = PlantStatus.BowlOfDirt;
+					return; // Выходим, чтобы не открывать меню
+				}
 			}
 
 			from.SendGump( new MainPlantGump( this ) );

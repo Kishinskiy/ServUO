@@ -48,7 +48,25 @@ namespace Server.Engines.Plants
 		HopsSouth,
 		SugarCanes,
 		CocoaTree, 
-        Vanilla
+        Vanilla,
+		OnionPlant,
+		PotatoPlant,
+		CabbagePlant,
+		CarrotPlant,
+		LettucePlant,
+		PumpkinPlant,
+		TurnipPlant,
+		GrapesPlant,
+		WatermelonPlant,
+		WheatPlant,
+		ApplePlant,
+		PeachPlant,
+		PearPlant,
+		BananaPlant,
+		LemonPlant,
+		LimePlant,
+		CoconutPlant,
+		DatesPlant
 	}
 
 	public enum PlantCategory

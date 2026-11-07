@@ -1432,48 +1432,6 @@ namespace Server.Items
             if (IsEmpty || !Pourable || !ValidateUse(from, false))
                 return;
 
-            // =========================================================================
-            // ИНТЕГРАЦИЯ С ФЕРМОЙ: ПОЛИВ ГРЯДОК ИЗ КУВШИНА С ВОДОЙ
-            // =========================================================================
-            if (Content == BeverageType.Water && targ is Server.Custom.Farms.FarmVegetablePlant)
-            {
-                Server.Custom.Farms.FarmVegetablePlant plant = (Server.Custom.Farms.FarmVegetablePlant)targ;
-
-                if (plant.IsDead)
-                {
-                    from.SendMessage("Этому растению полив уже не поможет, оно погибло.");
-                    return;
-                }
-
-                if (plant.WaterLevel >= 100)
-                {
-                    from.SendMessage("Эта грядка уже отлично увлажнена!");
-                    return;
-                }
-
-                // Проверяем права на приватную грядку (как в вашей лейке)
-                Region reg = Region.Find(plant.Location, plant.Map);
-                if (reg is Server.Custom.Farms.FarmRegion)
-                {
-                    Server.Custom.Farms.FarmRegion farmReg = (Server.Custom.Farms.FarmRegion)reg;
-                    if (farmReg.Controller != null && farmReg.Controller.Owner != from && from.AccessLevel == AccessLevel.Player)
-                    {
-                        from.SendMessage("Вы не можете ухаживать за чужим урожаем!");
-                        return;
-                    }
-                }
-
-                // Успешный полив:
-                plant.PourWater(from, 5);
-                Quantity--; // Тратим 1 заряд воды кувшина (из максимума в 5 зарядов)
-
-                from.PlaySound(0x4E); // Стандартный звук брызг воды в UO
-                from.SendMessage($"Вы тщательно полили грядку из кувшина. Воды осталось: {Quantity}/{MaxQuantity}");
-                return; // Выходим, чтобы кувшин не выполнял другие нативные проверки
-            }
-            // =========================================================================
-
-
             if (targ is BaseBeverage)
             {
                 BaseBeverage bev = (BaseBeverage)targ;

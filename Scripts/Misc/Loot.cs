@@ -180,7 +180,7 @@ namespace Server
 {
             typeof(BlueDiamond), typeof(DarkSapphire), typeof(EcruCitrine), typeof(FireRuby), typeof(PerfectEmerald), typeof(Turquoise), typeof(WhitePearl), typeof(BrilliantAmber),
             typeof(LuminescentFungi), typeof(BarkFragment), typeof(SwitchItem), typeof(ParasiticPlant),
-            typeof(Server.Custom.Farms.FarmSeedBag)
+            // typeof(Server.Custom.Farms.FarmSeedBag) // Removed missing type
         };
 
         public static Type[] MLResources { get { return m_MLResources; } }
