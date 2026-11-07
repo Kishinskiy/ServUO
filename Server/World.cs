@@ -870,12 +870,12 @@ namespace Server
 
 				// Блокируем краш-исключение ядра, чтобы дать серверу завершить безопасный запуск
 				// или корректно закрыться без зависания в бесконечном цикле ожидания ReadLine
-				throw new Exception(
-					String.Format(
-						"Load fixed via auto-delete (items={0}, mobiles={1}, guilds={2}, data={3}, type={4}, serial={5}). Please restart the server.",
-						failedItems, failedMobiles, failedGuilds, failedData, failedType,
-						(failedSerial != Serial.Zero ? failedSerial.ToString() : failedCustomSerial.ToString())), 
-					failed);
+				// throw new Exception(
+				// 	String.Format(
+				// 		"Load fixed via auto-delete (items={0}, mobiles={1}, guilds={2}, data={3}, type={4}, serial={5}). Please restart the server.",
+				// 		failedItems, failedMobiles, failedGuilds, failedData, failedType,
+				// 		(failedSerial != Serial.Zero ? failedSerial.ToString() : failedCustomSerial.ToString())), 
+				// 	failed);
 			}
 
 			EventSink.InvokeWorldLoad();
