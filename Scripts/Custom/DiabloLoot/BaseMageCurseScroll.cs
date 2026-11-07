@@ -111,6 +111,16 @@ namespace Server.Custom.CurseSystem
             UpdateScrollAppearance();
         }
 
+        public override void Serialize(GenericWriter writer)
+        {
+            SerializeScroll(writer);
+        }
+
+        public override void Deserialize(GenericReader reader)
+        {
+            DeserializeScroll(reader);
+        }
+
         private void UpdateScrollAppearance()
         {
             Name = $"{ScrollName} ({QualityNames[m_QualityTier - 1]})";

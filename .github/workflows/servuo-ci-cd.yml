@@ -73,6 +73,8 @@ jobs:
           path: ${{ runner.temp }}/servuo-release.tar.gz
           if-no-files-found: error
           retention-days: 7
+  
+    
 
   deploy:
     name: Deploy production
@@ -106,6 +108,17 @@ jobs:
           printf '%s\n' "$DEPLOY_SSH_KEY" > "$HOME/.ssh/id_ed25519"
           printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
           chmod 600 "$HOME/.ssh/id_ed25519" "$HOME/.ssh/known_hosts"
+
+      - name: Backup Current ServUO
+        env:
+          RELEASE_ARCHIVE: ${{ runner.temp }}/servuo-release/servuo-release.tar.gz
+          DEPLOY_HOST: kishinskiy.ru
+          DEPLOY_USER: root
+          RELEASE_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          DATESTAMP=$(date +%Y-%m-%d)
+          tar -czf servuo-$DATESTAMP.tar.gz /root/ServUO
 
       - name: Transfer and activate release
         env:
