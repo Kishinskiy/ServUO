@@ -113,12 +113,12 @@ jobs:
         env:
           RELEASE_ARCHIVE: ${{ runner.temp }}/servuo-release/servuo-release.tar.gz
           DEPLOY_HOST: kishinskiy.ru
-          DEPLOY_USER: root
+          DEPLOY_USER: servuo
           RELEASE_SHA: ${{ github.sha }}
         shell: bash
         run: |
           DATESTAMP=$(date +%Y-%m-%d)
-          ssh servuo@your-server-ip "mkdir -p /home/servuo/BackUP && tar -czf /home/servuo/BackUP/servuo-\$DATESTAMP.tar.gz -C \$HOME ServUO"
+          ssh -i "$HOME/.ssh/id_ed25519" -o BatchMode=yes -o StrictHostKeyChecking=yes ${DEPLOY_USER}@${DEPLOY_HOST} "mkdir -p /home/servuo/BackUP && tar -czf /home/servuo/BackUP/servuo-\$DATESTAMP.tar.gz -C \$HOME ServUO"
 
       - name: Transfer and activate release
         env:
