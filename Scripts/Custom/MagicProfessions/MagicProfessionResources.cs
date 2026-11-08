@@ -19,6 +19,7 @@ namespace Server.Custom.MagicProfessions
         {
         }
 
+
         public override void Serialize(GenericWriter writer)
         {
             base.Serialize(writer);
