@@ -17,7 +17,18 @@ namespace Server.Custom.Farms
 
         public override void AddNameProperty(ObjectPropertyList list)
         {
-            list.Add(1060810, SeedName); // Отображает кастомное имя семени
+            if (Amount == 1)
+                list.Add(SeedName);
+            else
+                list.Add("{0} {1}s", Amount, SeedName);
+        }
+
+        public override void OnSingleClick(Mobile from)
+        {
+            if (Amount == 1)
+                LabelTo(from, SeedName);
+            else
+                LabelTo(from, "{0} {1}s", Amount, SeedName);
         }
 
         protected abstract string SeedName { get; }

@@ -367,7 +367,7 @@ namespace Server.Engines.Plants
 				return;
 			}
 
-			if ( m_PlantStatus == PlantStatus.FullGrownPlant )
+			if ( m_PlantStatus >= PlantStatus.FullGrownPlant )
 			{
 				if ( PlantHarvestHook.TryHarvestCustomCrop( from, this ) )
 				{
